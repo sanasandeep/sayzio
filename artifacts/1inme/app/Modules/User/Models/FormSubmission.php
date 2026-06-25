@@ -14,7 +14,7 @@ protected $fillable = [
         'form_id', 'data', 'files', 'ip', 'user_agent', 'referrer',
         'country', 'is_spam', 'spam_reason', 'is_read', 'is_starred',
         'payment_status', 'amount_cents', 'currency', 'gateway',
-        'gateway_charge_id', 'paid_at',
+        'gateway_charge_id', 'paid_at', 'line_items',
     ];
 
     protected function casts(): array
@@ -27,6 +27,7 @@ protected $fillable = [
             'is_starred' => 'boolean',
             'amount_cents' => 'integer',
             'paid_at' => 'datetime',
+            'line_items' => 'array',
         ];
     }
 

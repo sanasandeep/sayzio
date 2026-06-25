@@ -8,6 +8,7 @@
         description: @js($form->description ?? ''),
         fields: @js($form->fields ?? []),
         types: @js($fieldTypes),
+        canPrice: @js($canPrice),
      })"
      x-init="$nextTick(() => initSortable())">
 
@@ -53,6 +54,16 @@
                 <input type="hidden" :name="`fields[${i}][parent]`" :value="f.parent || ''">
                 <template x-for="(opt, j) in (f.options || [])" :key="`${f.id}-opt-${j}`">
                     <input type="hidden" :name="`fields[${i}][options][${j}]`" :value="opt">
+                </template>
+                {{-- Per-field pricing (cents). f.price / f.option_prices are kept
+                     in dollars in the editor and serialized to cents here. --}}
+                <template x-if="canPrice && PRICED_TYPES.includes(f.type)">
+                    <div>
+                        <input type="hidden" :name="`fields[${i}][price_cents]`" :value="f.price > 0 ? Math.round(f.price * 100) : ''">
+                        <template x-for="entry in Object.entries(f.option_prices || {})" :key="`${f.id}-op-${entry[0]}`">
+                            <input type="hidden" :name="`fields[${i}][option_prices][${entry[0]}]`" :value="entry[1] > 0 ? Math.round(entry[1] * 100) : ''">
+                        </template>
+                    </div>
                 </template>
             </div>
         </template>
@@ -288,6 +299,48 @@
                                 Required field
                             </label>
 
+                            {{-- Pricing (paid forms, Pro+). Charged only when the
+                                 form's payment mode is per-field — see the Payments tab. --}}
+                            <template x-if="canPrice && PRICED_TYPES.includes(fields[selectedIndex].type)">
+                                <div class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
+                                    <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-muted);">
+                                        <i class="fas fa-tag text-emerald-400 mr-1"></i> Pricing
+                                        <span class="text-[10px]" style="color: var(--text-faint);">— amounts in {{ $priceCurrency }}</span>
+                                    </label>
+
+                                    {{-- number: price per unit (× quantity entered) --}}
+                                    <div x-show="fields[selectedIndex].type === 'number'">
+                                        <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Price per unit</label>
+                                        <input type="number" min="0" step="0.01" x-model.number="fields[selectedIndex].price" class="theme-input w-full text-xs" placeholder="0.00">
+                                        <p class="text-[10px] mt-1" style="color: var(--text-faint);">Multiplied by the quantity the visitor enters.</p>
+                                    </div>
+
+                                    {{-- consent: flat add-on when ticked --}}
+                                    <div x-show="fields[selectedIndex].type === 'consent'">
+                                        <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Add-on price</label>
+                                        <input type="number" min="0" step="0.01" x-model.number="fields[selectedIndex].price" class="theme-input w-full text-xs" placeholder="0.00">
+                                        <p class="text-[10px] mt-1" style="color: var(--text-faint);">Added to the total when the visitor ticks this box.</p>
+                                    </div>
+
+                                    {{-- select/radio/checkbox: per-option price --}}
+                                    <div x-show="['select','radio','checkbox'].includes(fields[selectedIndex].type)" class="space-y-1.5">
+                                        <p class="text-[10px]" style="color: var(--text-faint);">Set a price per option — leave blank for free options.</p>
+                                        <template x-if="(fields[selectedIndex].options || []).length === 0">
+                                            <p class="text-[10px]" style="color: var(--text-faint);">Add options above to price them.</p>
+                                        </template>
+                                        <template x-for="opt in (fields[selectedIndex].options || [])" :key="opt">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-[11px] flex-1 truncate" style="color: var(--text-secondary);" x-text="opt"></span>
+                                                <input type="number" min="0" step="0.01"
+                                                       :value="(fields[selectedIndex].option_prices && fields[selectedIndex].option_prices[opt]) || ''"
+                                                       @input="setOptionPrice(opt, $event.target.value)"
+                                                       class="theme-input w-24 text-xs" placeholder="0.00">
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
                             {{-- Section assignment (group fields into one card) --}}
                             <div x-show="fields[selectedIndex].type !== 'section' && sectionOptions.length > 0" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
                                 <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-muted);">
@@ -377,7 +430,39 @@ function formBuilder(initial) {
         description: initial.description,
         fields: initial.fields,
         types: initial.types,
+        canPrice: !!initial.canPrice,
+        PRICED_TYPES: ['number', 'select', 'radio', 'checkbox', 'consent'],
         selectedIndex: null,
+
+        init() {
+            // Stored pricing is in cents; the editor works in dollars. Normalize
+            // each field's price_cents → price and option_prices (cents → dollars)
+            // once on load. Hidden inputs convert back to cents on submit.
+            (this.fields || []).forEach(f => {
+                if (f.price_cents != null && f.price == null) {
+                    f.price = (Number(f.price_cents) || 0) / 100;
+                }
+                if (f.option_prices && typeof f.option_prices === 'object') {
+                    const dollars = {};
+                    Object.keys(f.option_prices).forEach(k => {
+                        dollars[k] = (Number(f.option_prices[k]) || 0) / 100;
+                    });
+                    f.option_prices = dollars;
+                }
+            });
+        },
+
+        setOptionPrice(opt, val) {
+            const f = this.fields[this.selectedIndex];
+            if (!f) return;
+            if (!f.option_prices) f.option_prices = {};
+            const n = parseFloat(val);
+            if (!val || isNaN(n) || n <= 0) {
+                delete f.option_prices[opt];
+            } else {
+                f.option_prices[opt] = n;
+            }
+        },
 
         get sectionOptions() {
             return this.fields.filter(f => f.type === 'section');

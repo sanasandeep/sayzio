@@ -31,6 +31,12 @@
         }
         $pageCount = count($pages);
         $isMulti = $pageCount > 1;
+
+        // Variable pricing (Task #2321). Show per-field prices + a live order
+        // total only when the form actually charges per field.
+        $payCurrency     = strtoupper($settings['payment']['currency'] ?? 'USD') ?: 'USD';
+        $showFieldPrices = $form->isPaid() && (($settings['payment']['mode'] ?? 'fixed') === 'per_field');
+        $baseFeeCents    = (int) ($settings['payment']['amount_cents'] ?? 0);
     @endphp
     <title>{{ $form->title }}</title>
     @if($form->description)<meta name="description" content="{{ $form->description }}">@endif
@@ -125,6 +131,19 @@
         .form-required { color: #ef4444; margin-left: 0.25rem; }
         .form-help { font-size: 0.74rem; opacity: 0.6; margin-top: 0.4rem; }
         .form-error { font-size: 0.74rem; color: #ef4444; margin-top: 0.4rem; font-weight: 500; }
+
+        /* Variable pricing (Task #2321) */
+        .form-price-tag { margin-left: auto; padding-left: 0.6rem; font-size: 0.78rem; font-weight: 700; color: var(--form-accent); white-space: nowrap; }
+        .form-radio-group label, .form-check-group label { justify-content: space-between; }
+        .form-order-total {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-top: 1.5rem; padding: 0.85rem 1rem;
+            background: {{ $theme === 'light' ? '#f1f5f9' : 'rgba(255,255,255,0.05)' }};
+            border: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.10)' }};
+            border-radius: var(--form-radius-sm);
+            font-size: 0.92rem; font-weight: 600;
+        }
+        .form-order-total strong { font-size: 1.05rem; color: var(--form-accent); }
 
         .form-input, .form-textarea, .form-select {
             width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem; font-family: inherit;
@@ -384,7 +403,7 @@
                     @endphp
 
                     <form method="POST" action="{{ route('forms.public.submit', $form->slug) }}" enctype="multipart/form-data"
-                          class="form-card form-oneq {{ $cover ? 'has-cover' : '' }}"
+                          class="form-card form-oneq {{ $cover ? 'has-cover' : '' }} {{ $showFieldPrices ? 'form-paid-pricing' : '' }}"
                           x-data="formOneq({{ $slideCount }}, {{ $startSlide }}, @js($requiredBySlide))"
                           @keydown.enter="onEnter($event)">
                         @csrf
@@ -435,11 +454,18 @@
                                     @php $f = $s['field']; @endphp
                                     <div class="oneq-slide" x-show="slide === {{ $idx }}" x-cloak>
                                         <div class="oneq-slide-counter">{{ $idx }} / {{ $slideCount - 1 }}</div>
-                                        @include('common.form-field', ['field' => $f, 'errors' => $errors, 'fieldOwner' => $form->user ?? null])
+                                        @include('common.form-field', ['field' => $f, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency])
                                     </div>
                                 @endif
                             @endforeach
                         </div>
+
+                        @if($showFieldPrices)
+                            <div class="form-order-total" data-base-cents="{{ $baseFeeCents }}" data-currency="{{ $payCurrency }}">
+                                <span>Order total</span>
+                                <strong id="orderTotal">{{ number_format($baseFeeCents / 100, 2) }} {{ $payCurrency }}</strong>
+                            </div>
+                        @endif
 
                         <div class="oneq-controls">
                             <button type="button" x-show="slide > 0" @click="prev()" class="form-button form-button-secondary">
@@ -459,7 +485,7 @@
                     </form>
                 @else
                 <form method="POST" action="{{ route('forms.public.submit', $form->slug) }}" enctype="multipart/form-data"
-                      class="form-card {{ $cover ? 'has-cover' : '' }} {{ $design['layout'] === 'inline' ? 'form-row-inline' : '' }}"
+                      class="form-card {{ $cover ? 'has-cover' : '' }} {{ $design['layout'] === 'inline' ? 'form-row-inline' : '' }} {{ $showFieldPrices ? 'form-paid-pricing' : '' }}"
                       x-data="formRunner({{ $pageCount }})">
                     @csrf
 
@@ -520,7 +546,7 @@
                                             @foreach(($childrenBySection[$field['id']] ?? []) as $child)
                                                 @php $cw = (int) ($child['width'] ?? 12); if (!in_array($cw, [4,6,8,12], true)) $cw = 12; @endphp
                                                 <div class="form-grid-cell" style="grid-column: span {{ $cw }};">
-                                                    @include('common.form-field', ['field' => $child, 'errors' => $errors, 'fieldOwner' => $form->user ?? null])
+                                                    @include('common.form-field', ['field' => $child, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency])
                                                 </div>
                                             @endforeach
                                         </div>
@@ -528,12 +554,19 @@
                                 @else
                                     @php $w = (int) ($field['width'] ?? 12); if (!in_array($w, [4,6,8,12], true)) $w = 12; @endphp
                                     <div class="form-grid-cell" style="grid-column: span {{ $w }};">
-                                        @include('common.form-field', ['field' => $field, 'errors' => $errors, 'fieldOwner' => $form->user ?? null])
+                                        @include('common.form-field', ['field' => $field, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency])
                                     </div>
                                 @endif
                             @endforeach
                         </div>
                     @endforeach
+
+                    @if($showFieldPrices)
+                        <div class="form-order-total" data-base-cents="{{ $baseFeeCents }}" data-currency="{{ $payCurrency }}">
+                            <span>Order total</span>
+                            <strong id="orderTotal">{{ number_format($baseFeeCents / 100, 2) }} {{ $payCurrency }}</strong>
+                        </div>
+                    @endif
 
                     <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 1.5rem; flex-wrap: wrap;">
                         @if($isMulti)
@@ -716,6 +749,49 @@
                 },
             };
         }
+
+        // Live order total for per-field paid forms (Task #2321). Mirrors the
+        // server-side Form::computeAmountCents() so visitors see the same total
+        // the gateway will charge: base fee + number(unit×qty) + select/radio/
+        // checkbox option prices + consent add-ons. The server recomputes
+        // authoritatively on submit; this is display only.
+        (function () {
+            const form = document.querySelector('form.form-paid-pricing');
+            const totalEl = document.getElementById('orderTotal');
+            if (!form || !totalEl) return;
+            const bar = form.querySelector('.form-order-total');
+            const baseCents = bar ? (parseInt(bar.getAttribute('data-base-cents'), 10) || 0) : 0;
+            const currency = bar ? (bar.getAttribute('data-currency') || 'USD') : 'USD';
+
+            function recompute() {
+                let cents = baseCents;
+                // number fields priced per unit
+                form.querySelectorAll('input[data-price-unit]').forEach(el => {
+                    const unit = parseInt(el.getAttribute('data-price-unit'), 10) || 0;
+                    const qty = parseFloat(el.value);
+                    if (!isNaN(qty) && qty > 0) cents += Math.round(unit * qty);
+                });
+                // consent add-ons (checked)
+                form.querySelectorAll('input[data-price-addon]').forEach(el => {
+                    if (el.checked) cents += parseInt(el.getAttribute('data-price-addon'), 10) || 0;
+                });
+                // radio / checkbox option prices (checked)
+                form.querySelectorAll('input[type="radio"][data-price], input[type="checkbox"][data-price]').forEach(el => {
+                    if (el.checked) cents += parseInt(el.getAttribute('data-price'), 10) || 0;
+                });
+                // select option prices (selected)
+                form.querySelectorAll('select[data-priced]').forEach(sel => {
+                    const opt = sel.options[sel.selectedIndex];
+                    if (opt) cents += parseInt(opt.getAttribute('data-price'), 10) || 0;
+                });
+                if (cents < 0) cents = 0;
+                totalEl.textContent = (cents / 100).toFixed(2) + ' ' + currency;
+            }
+
+            form.addEventListener('input', recompute);
+            form.addEventListener('change', recompute);
+            recompute();
+        })();
     </script>
 </body>
 </html>

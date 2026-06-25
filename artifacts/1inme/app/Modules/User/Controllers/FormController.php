@@ -233,7 +233,12 @@ class FormController extends Controller
     {
         $this->authorizeForm($request, $form);
         $fieldTypes = Form::fieldTypes();
-        return view('user.forms.builder', compact('form', 'fieldTypes'));
+        // Per-field pricing UI is Pro+ gated; the editor only renders price
+        // inputs when the owner's plan allows paid forms.
+        $canPrice = (bool) (workspace_owner()?->getPlanFeature('paid_forms', false));
+        $payment = $form->paymentConfig();
+        $priceCurrency = $form->paymentCurrency();
+        return view('user.forms.builder', compact('form', 'fieldTypes', 'canPrice', 'payment', 'priceCurrency'));
     }
 
     public function updateBuilder(Request $request, Form $form)
@@ -280,6 +285,25 @@ class FormController extends Controller
                     fn ($o) => trim((string) $o),
                     $f['options']
                 ), fn ($o) => $o !== ''));
+            }
+            // Per-field pricing (Task #2321). Persisted for priceable types
+            // regardless of plan — the runtime charge is plan-gated via
+            // Form::isPaid(), so a downgrade reverts to free without losing
+            // the owner's configured prices. Values arrive in cents.
+            if (in_array($type, Form::PRICED_FIELD_TYPES, true)) {
+                if (isset($f['price_cents']) && is_numeric($f['price_cents']) && (int) $f['price_cents'] > 0) {
+                    $row['price_cents'] = max(0, (int) $f['price_cents']);
+                }
+                if (isset($f['option_prices']) && is_array($f['option_prices'])) {
+                    $op = [];
+                    foreach ($f['option_prices'] as $optLabel => $cents) {
+                        $optLabel = trim((string) $optLabel);
+                        if ($optLabel !== '' && is_numeric($cents) && (int) $cents > 0) {
+                            $op[$optLabel] = max(0, (int) $cents);
+                        }
+                    }
+                    if ($op) $row['option_prices'] = $op;
+                }
             }
             $clean[] = $row;
         }
@@ -720,16 +744,24 @@ class FormController extends Controller
 
         $data = $request->validate([
             'enabled'  => 'sometimes|boolean',
+            'mode'     => 'nullable|in:fixed,per_field',
             'amount'   => 'nullable|numeric|min:0|max:100000',
             'currency' => 'required|string|size:3',
             'label'    => 'nullable|string|max:60',
         ]);
 
         $enabled     = $request->boolean('enabled');
+        $mode        = ($data['mode'] ?? 'fixed') === 'per_field' ? 'per_field' : 'fixed';
         $amountCents = (int) round(((float) ($data['amount'] ?? 0)) * 100);
 
-        if ($enabled && $amountCents <= 0) {
+        // Fixed mode needs a positive flat price; per_field mode draws its
+        // charge from priced fields, so the base fee here is optional (0 ok).
+        if ($enabled && $mode === 'fixed' && $amountCents <= 0) {
             return back()->withInput()->with('error', 'Set a price greater than zero to require payment.');
+        }
+
+        if ($enabled && $mode === 'per_field' && $amountCents <= 0 && ! $form->hasPricedFields()) {
+            return back()->withInput()->with('error', 'Add a price to at least one field (in the builder) or set a base fee before enabling per-field pricing.');
         }
 
         if ($enabled && ! $form->user?->defaultPaymentConnection()) {
@@ -742,7 +774,7 @@ class FormController extends Controller
             (array) ($settings['payment'] ?? []),
             [
                 'enabled'      => $enabled,
-                'mode'         => 'fixed',
+                'mode'         => $mode,
                 'amount_cents' => $amountCents,
                 'currency'     => strtoupper($data['currency']),
                 'label'        => $data['label'] ?? null,
@@ -900,7 +932,15 @@ class FormController extends Controller
         // a connected gateway to receive the funds. If the gateway was removed
         // after the form was set up, the submission degrades to a normal free
         // submission rather than stranding the customer at a dead checkout.
-        $isPaid = $form->isPaid() && (bool) $form->user?->defaultPaymentConnection();
+        //
+        // Variable pricing (Task #2321): the total is recomputed server-side
+        // from the submitted data — never trusted from the client. In per_field
+        // mode a submission that selects no priced fields (and has no base fee)
+        // computes to 0 and is treated as a normal free submission.
+        $canCharge   = $form->isPaid() && (bool) $form->user?->defaultPaymentConnection();
+        $amountCents = $canCharge ? $form->computeAmountCents($data) : 0;
+        $lineItems   = $canCharge ? $form->priceLineItems($data) : [];
+        $isPaid      = $canCharge && $amountCents > 0;
 
         $submission = $form->submissions()->create([
             'data' => $data,
@@ -915,22 +955,26 @@ class FormController extends Controller
             // unpaid attempt that only becomes a real submission once its charge
             // clears. Free forms are immediately 'none' (complete).
             'payment_status' => $isPaid ? 'pending' : 'none',
+            // Persist the computed breakdown so the owner sees exactly what was
+            // (or will be) charged for this submission.
+            'line_items' => $isPaid ? $lineItems : null,
         ]);
 
-        // Paid form (Task #2319): hold the submission pending and send the
-        // customer to the OWNER's gateway. Counting + owner notifications
-        // happen only on a verified return (confirmFormPayment). Obvious spam
-        // is never charged — it's stored for review without a checkout.
+        // Paid form (Task #2319 / #2321): hold the submission pending and send
+        // the customer to the OWNER's gateway for the computed total. Counting +
+        // owner notifications happen only on a verified return
+        // (confirmFormPayment). Obvious spam is never charged — it's stored for
+        // review without a checkout.
         if ($isPaid && ! $spamCheck['is_spam']) {
             $checkout = app(\App\Services\Monetization\MonetizationCheckout::class)
-                ->startFormPayment($form, $submission, $senderEmail);
+                ->startFormPayment($form, $submission, $senderEmail, $amountCents, $lineItems);
 
             if ($request->wantsJson()) {
                 return response()->json([
                     'ok' => true,
                     'payment_required' => true,
                     'checkout_url' => $checkout['url'],
-                    'amount_cents' => $form->paymentAmountCents(),
+                    'amount_cents' => $amountCents,
                     'currency' => $form->paymentCurrency(),
                 ]);
             }

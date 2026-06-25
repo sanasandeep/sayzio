@@ -2,7 +2,7 @@
 @section('title', 'Payments · ' . $form->title)
 
 @section('content')
-<div class="max-w-3xl mx-auto" x-data="{ paidEnabled: {{ ($payment['enabled'] ?? false) ? 'true' : 'false' }} }">
+<div class="max-w-3xl mx-auto" x-data="{ paidEnabled: {{ ($payment['enabled'] ?? false) ? 'true' : 'false' }}, payMode: '{{ ($payment['mode'] ?? 'fixed') === 'per_field' ? 'per_field' : 'fixed' }}' }">
     @include('user.partials.page-hero', [
         'title' => 'Payments',
         'subtitle' => 'Charge customers to submit this form. Funds go straight to your connected payment gateway — 1INME takes 0%.',
@@ -73,22 +73,50 @@
                 </label>
             </div>
 
-            <div x-show="paidEnabled" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="grid grid-cols-1 sm:grid-cols-3 gap-3 ml-13" style="margin-left: 3.25rem;">
+            <div x-show="paidEnabled" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="space-y-4 ml-13" style="margin-left: 3.25rem;">
+                {{-- Pricing mode --}}
                 <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Price</label>
-                    <input type="number" name="amount" step="0.01" min="0" value="{{ old('amount', number_format(($payment['amount_cents'] ?? 0) / 100, 2, '.', '')) }}" placeholder="9.99" class="theme-input w-full">
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Pricing mode</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <label class="flex items-start gap-2 p-3 rounded-xl cursor-pointer" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" :style="payMode === 'fixed' ? 'border-color: rgb(16,185,129);' : ''">
+                            <input type="radio" name="mode" value="fixed" x-model="payMode" class="mt-0.5 text-emerald-500">
+                            <span>
+                                <span class="block text-xs font-semibold" style="color: var(--text-primary);">Fixed price</span>
+                                <span class="block text-[11px] mt-0.5" style="color: var(--text-faint);">One price for the whole form.</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-2 p-3 rounded-xl cursor-pointer" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" :style="payMode === 'per_field' ? 'border-color: rgb(16,185,129);' : ''">
+                            <input type="radio" name="mode" value="per_field" x-model="payMode" class="mt-0.5 text-emerald-500">
+                            <span>
+                                <span class="block text-xs font-semibold" style="color: var(--text-primary);">Variable (per field)</span>
+                                <span class="block text-[11px] mt-0.5" style="color: var(--text-faint);">Total is built from priced fields &amp; options.</span>
+                            </span>
+                        </label>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Currency</label>
-                    <input type="text" name="currency" maxlength="3" value="{{ old('currency', strtoupper($payment['currency'] ?? 'USD')) }}" placeholder="USD" class="theme-input w-full uppercase">
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">
+                            <span x-show="payMode === 'fixed'">Price</span>
+                            <span x-show="payMode === 'per_field'" x-cloak>Base fee <span class="text-[10px]" style="color: var(--text-faint);">— optional</span></span>
+                        </label>
+                        <input type="number" name="amount" step="0.01" min="0" value="{{ old('amount', number_format(($payment['amount_cents'] ?? 0) / 100, 2, '.', '')) }}" placeholder="9.99" class="theme-input w-full">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Currency</label>
+                        <input type="text" name="currency" maxlength="3" value="{{ old('currency', strtoupper($payment['currency'] ?? 'USD')) }}" placeholder="USD" class="theme-input w-full uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Button label <span class="text-[10px]" style="color: var(--text-faint);">— optional</span></label>
+                        <input type="text" name="label" maxlength="60" value="{{ old('label', $payment['label'] ?? '') }}" placeholder="Pay &amp; submit" class="theme-input w-full">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Button label <span class="text-[10px]" style="color: var(--text-faint);">— optional</span></label>
-                    <input type="text" name="label" maxlength="60" value="{{ old('label', $payment['label'] ?? '') }}" placeholder="Pay &amp; submit" class="theme-input w-full">
-                </div>
-                <div class="sm:col-span-3 text-[11px] flex items-center gap-1.5" style="color: var(--text-faint);">
-                    <i class="fas fa-circle-info"></i>
-                    A single fixed price applies to the whole form for now. Per-field pricing is on the way.
+
+                <div class="text-[11px] flex items-start gap-1.5" style="color: var(--text-faint);">
+                    <i class="fas fa-circle-info mt-0.5"></i>
+                    <span x-show="payMode === 'fixed'">A single fixed price applies to the whole form.</span>
+                    <span x-show="payMode === 'per_field'" x-cloak>Attach prices to fields and options in the <a href="{{ route('user.forms.builder', $form) }}" class="underline font-semibold">form builder</a>. The visitor's total is the base fee plus everything they select.</span>
                 </div>
             </div>
         </div>

@@ -7,6 +7,14 @@
     $help = $field['help'] ?? null;
     $oldVal = old($id);
     $hasError = $errors->has($id);
+
+    // Per-field pricing (Task #2321). Only surfaced when the form is in
+    // per_field paid mode (caller passes $showPrices + $priceCurrency).
+    $showPrices = $showPrices ?? false;
+    $priceCur   = $priceCurrency ?? 'USD';
+    $optPrices  = (array) ($field['option_prices'] ?? []);
+    $unitPrice  = (int) ($field['price_cents'] ?? 0);
+    $fmtPrice   = fn ($cents) => '+' . number_format(((int) $cents) / 100, 2) . ' ' . $priceCur;
 @endphp
 
 @if($type === 'heading')
@@ -32,10 +40,11 @@
             @break
 
         @case('select')
-            <select id="f_{{ $id }}" name="{{ $id }}" class="form-select" @if($required) required @endif>
+            <select id="f_{{ $id }}" name="{{ $id }}" class="form-select" @if($required) required @endif @if($showPrices) data-priced @endif>
                 <option value="">— Choose —</option>
                 @foreach(($field['options'] ?? []) as $opt)
-                    <option value="{{ $opt }}" @selected($oldVal === $opt)>{{ $opt }}</option>
+                    @php $oc = (int) ($optPrices[$opt] ?? 0); @endphp
+                    <option value="{{ $opt }}" @selected($oldVal === $opt) @if($showPrices && $oc > 0) data-price="{{ $oc }}" @endif>{{ $opt }}@if($showPrices && $oc > 0) ({{ $fmtPrice($oc) }})@endif</option>
                 @endforeach
             </select>
             @break
@@ -43,7 +52,8 @@
         @case('radio')
             <div class="form-radio-group">
                 @foreach(($field['options'] ?? []) as $opt)
-                    <label><input type="radio" name="{{ $id }}" value="{{ $opt }}" @checked($oldVal === $opt) @if($required) required @endif> {{ $opt }}</label>
+                    @php $oc = (int) ($optPrices[$opt] ?? 0); @endphp
+                    <label><input type="radio" name="{{ $id }}" value="{{ $opt }}" @checked($oldVal === $opt) @if($required) required @endif @if($showPrices && $oc > 0) data-price="{{ $oc }}" @endif> {{ $opt }}@if($showPrices && $oc > 0)<span class="form-price-tag">{{ $fmtPrice($oc) }}</span>@endif</label>
                 @endforeach
             </div>
             @break
@@ -52,7 +62,8 @@
             <label class="form-label">{{ $label }}@if($required)<span class="form-required">*</span>@endif</label>
             <div class="form-check-group">
                 @foreach(($field['options'] ?? []) as $opt)
-                    <label><input type="checkbox" name="{{ $id }}[]" value="{{ $opt }}" @checked(is_array($oldVal) && in_array($opt, $oldVal))> {{ $opt }}</label>
+                    @php $oc = (int) ($optPrices[$opt] ?? 0); @endphp
+                    <label><input type="checkbox" name="{{ $id }}[]" value="{{ $opt }}" @checked(is_array($oldVal) && in_array($opt, $oldVal)) @if($showPrices && $oc > 0) data-price="{{ $oc }}" @endif> {{ $opt }}@if($showPrices && $oc > 0)<span class="form-price-tag">{{ $fmtPrice($oc) }}</span>@endif</label>
                 @endforeach
             </div>
             @break
@@ -128,8 +139,8 @@
 
         @case('consent')
             <label style="display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer; line-height: 1.4;">
-                <input type="checkbox" name="{{ $id }}" value="1" @checked($oldVal) @if($required) required @endif style="margin-top: 0.2rem;">
-                <span class="form-label" style="margin: 0;">{{ $label }}@if($required)<span class="form-required">*</span>@endif</span>
+                <input type="checkbox" name="{{ $id }}" value="1" @checked($oldVal) @if($required) required @endif @if($showPrices && $unitPrice > 0) data-price-addon="{{ $unitPrice }}" @endif style="margin-top: 0.2rem;">
+                <span class="form-label" style="margin: 0;">{{ $label }}@if($required)<span class="form-required">*</span>@endif @if($showPrices && $unitPrice > 0)<span class="form-price-tag">{{ $fmtPrice($unitPrice) }}</span>@endif</span>
             </label>
             @break
 
@@ -153,7 +164,9 @@
             <input type="number" id="f_{{ $id }}" name="{{ $id }}" class="form-input" placeholder="{{ $placeholder }}" value="{{ $oldVal }}"
                    @if(isset($field['min']) && $field['min'] !== '') min="{{ $field['min'] }}" @endif
                    @if(isset($field['max']) && $field['max'] !== '') max="{{ $field['max'] }}" @endif
+                   @if($showPrices && $unitPrice > 0) data-price-unit="{{ $unitPrice }}" @endif
                    @if($required) required @endif>
+            @if($showPrices && $unitPrice > 0)<div class="form-help">{{ number_format($unitPrice / 100, 2) }} {{ $priceCur }} per unit</div>@endif
             @break
 
         @case('url')

@@ -790,19 +790,27 @@ class MonetizationCheckout
     public function startFormPayment(
         \App\Modules\User\Models\Form $form,
         \App\Modules\User\Models\FormSubmission $submission,
-        ?string $fanEmail = null
+        ?string $fanEmail = null,
+        ?int $amountCents = null,
+        ?array $lineItems = null
     ): array {
         $creator = $form->user;
         $connection = $creator?->defaultPaymentConnection()
             ?: new CreatorPaymentConnection(['provider' => 'stripe', 'user_id' => $creator?->id]);
 
-        $amount   = $form->paymentAmountCents();
+        // Variable pricing (Task #2321): the caller computes the per-submission
+        // total from the submitted data; fall back to the form's flat price when
+        // not supplied (fixed-mode callers / legacy paths).
+        $amount   = $amountCents !== null ? max(0, $amountCents) : $form->paymentAmountCents();
         $currency = $form->paymentCurrency();
 
         $submission->payment_status = 'pending';
         $submission->amount_cents   = $amount;
         $submission->currency       = $currency;
         $submission->gateway        = $connection->provider;
+        if ($lineItems !== null) {
+            $submission->line_items = $lineItems;
+        }
         $submission->save();
 
         // Where the customer lands after a successful charge — the form's

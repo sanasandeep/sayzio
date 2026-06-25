@@ -156,20 +156,50 @@ protected $fillable = [
     }
 
     /**
+     * Field types that can carry a price (Task #2321). add-ons (consent),
+     * tiers (select/radio/checkbox per-option) and quantity (number ×
+     * per-unit). Anything else is informational and never priced.
+     */
+    public const PRICED_FIELD_TYPES = ['number', 'select', 'radio', 'checkbox', 'consent'];
+
+    /**
      * Whether this form charges to submit. Requires the toggle on, a
-     * positive computed amount, AND the owner's plan to still allow paid
-     * forms — so a downgrade silently reverts the form to free at submit
-     * time without us mutating stored settings.
+     * pricing SOURCE (a fixed amount, or — in per_field mode — at least one
+     * priced field), AND the owner's plan to still allow paid forms — so a
+     * downgrade silently reverts the form to free at submit time without us
+     * mutating stored settings.
+     *
+     * Note: in per_field mode the actual charge depends on what the visitor
+     * selects, so a positive *total* is only known per submission via
+     * computeAmountCents(); isPaid() just reports that the form is capable
+     * of charging.
      */
     public function isPaid(): bool
     {
-        if (empty($this->paymentConfig()['enabled']) || $this->paymentAmountCents() <= 0) {
+        if (empty($this->paymentConfig()['enabled'])) {
+            return false;
+        }
+        $hasSource = $this->paymentMode() === 'per_field'
+            ? ($this->paymentAmountCents() > 0 || $this->hasPricedFields())
+            : $this->paymentAmountCents() > 0;
+        if (!$hasSource) {
             return false;
         }
         return (bool) ($this->user?->getPlanFeature('paid_forms', false));
     }
 
-    /** Total charge in cents. Fixed mode today; extend for per-field later. */
+    /** Pricing mode: 'fixed' (one price) or 'per_field' (priced fields). */
+    public function paymentMode(): string
+    {
+        $mode = (string) ($this->paymentConfig()['mode'] ?? 'fixed');
+        return $mode === 'per_field' ? 'per_field' : 'fixed';
+    }
+
+    /**
+     * Base charge in cents. In fixed mode this is the whole price; in
+     * per_field mode it's an optional base fee added on top of the selected
+     * priced fields. Use computeAmountCents() for the per-submission total.
+     */
     public function paymentAmountCents(): int
     {
         return max(0, (int) ($this->paymentConfig()['amount_cents'] ?? 0));
@@ -179,6 +209,132 @@ protected $fillable = [
     {
         $cur = strtoupper((string) ($this->paymentConfig()['currency'] ?? 'USD'));
         return $cur !== '' ? $cur : 'USD';
+    }
+
+    /** True when at least one field carries a price (per_field mode). */
+    public function hasPricedFields(): bool
+    {
+        foreach ($this->fields ?? [] as $field) {
+            if (!in_array($field['type'] ?? '', self::PRICED_FIELD_TYPES, true)) continue;
+            if ((int) ($field['price_cents'] ?? 0) > 0) return true;
+            foreach ((array) ($field['option_prices'] ?? []) as $cents) {
+                if ((int) $cents > 0) return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The per-submission total in cents. Fixed mode returns the flat price;
+     * per_field mode sums the selected priced fields on top of the optional
+     * base fee. Always recompute server-side from the submitted $data — never
+     * trust a client-sent total.
+     */
+    public function computeAmountCents(array $data): int
+    {
+        if ($this->paymentMode() !== 'per_field') {
+            return $this->paymentAmountCents();
+        }
+
+        $total = $this->paymentAmountCents(); // optional base fee
+        foreach ($this->priceLineItems($data) as $item) {
+            // priceLineItems already includes the base fee as its first row
+            // when present, so skip it here to avoid double-counting.
+            if (($item['field'] ?? null) === '__base__') continue;
+            $total += (int) ($item['amount_cents'] ?? 0);
+        }
+        return max(0, $total);
+    }
+
+    /**
+     * Itemised price breakdown for a submission: [{field, label, detail,
+     * amount_cents}]. Returns the flat-price row for fixed mode, or the base
+     * fee + each selected priced field for per_field mode. Stored alongside
+     * the submission's amount_cents so the owner sees what was charged.
+     */
+    public function priceLineItems(array $data): array
+    {
+        if ($this->paymentMode() !== 'per_field') {
+            $amount = $this->paymentAmountCents();
+            if ($amount <= 0) return [];
+            $label = (string) ($this->paymentConfig()['label'] ?? '') ?: 'Form payment';
+            return [[
+                'field'        => '__base__',
+                'label'        => $label,
+                'detail'       => null,
+                'amount_cents' => $amount,
+            ]];
+        }
+
+        $items = [];
+
+        $base = $this->paymentAmountCents();
+        if ($base > 0) {
+            $items[] = [
+                'field'        => '__base__',
+                'label'        => (string) ($this->paymentConfig()['label'] ?? '') ?: 'Base fee',
+                'detail'       => null,
+                'amount_cents' => $base,
+            ];
+        }
+
+        foreach ($this->fields ?? [] as $field) {
+            $type = $field['type'] ?? '';
+            $id   = (string) ($field['id'] ?? '');
+            if ($id === '' || !in_array($type, self::PRICED_FIELD_TYPES, true)) continue;
+
+            $label   = (string) ($field['label'] ?? $id);
+            $value   = $data[$id] ?? null;
+            $unit    = max(0, (int) ($field['price_cents'] ?? 0));
+            $options = (array) ($field['option_prices'] ?? []);
+
+            if ($type === 'number') {
+                $qty = (int) round((float) $value);
+                if ($unit > 0 && $qty > 0) {
+                    $items[] = [
+                        'field'        => $id,
+                        'label'        => $label,
+                        'detail'       => $qty . ' × ' . number_format($unit / 100, 2),
+                        'amount_cents' => $unit * $qty,
+                    ];
+                }
+            } elseif ($type === 'consent') {
+                if ($unit > 0 && filter_var($value, FILTER_VALIDATE_BOOL)) {
+                    $items[] = [
+                        'field'        => $id,
+                        'label'        => $label,
+                        'detail'       => null,
+                        'amount_cents' => $unit,
+                    ];
+                }
+            } elseif ($type === 'checkbox') {
+                foreach ((array) $value as $opt) {
+                    $opt   = (string) $opt;
+                    $price = (int) ($options[$opt] ?? 0);
+                    if ($price > 0) {
+                        $items[] = [
+                            'field'        => $id,
+                            'label'        => $label,
+                            'detail'       => $opt,
+                            'amount_cents' => $price,
+                        ];
+                    }
+                }
+            } else { // select | radio
+                $opt   = (string) $value;
+                $price = (int) ($options[$opt] ?? 0);
+                if ($opt !== '' && $price > 0) {
+                    $items[] = [
+                        'field'        => $id,
+                        'label'        => $label,
+                        'detail'       => $opt,
+                        'amount_cents' => $price,
+                    ];
+                }
+            }
+        }
+
+        return $items;
     }
 
     public static function defaultNotifications(): array

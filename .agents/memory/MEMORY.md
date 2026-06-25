@@ -92,3 +92,4 @@
 - [OTP code-send surfaces](otp-send-surfaces.md) — no central send funnel; a cross-cutting OTP change must touch ~9 web/API/mobile spots, and no-user branches must issue/reveal nothing.
 - [Buzz impression metering](buzz-impression-metering.md) — per-plan monthly Buzz view cap (`max_buzz_impressions`) meters a period-scoped counter (NOT cumulative `social_proofs.impressions`); enforce in public config(), default -1/unlimited when key missing.
 - [Adding a monetization checkout kind](monetization-checkout-kind.md) — a new paid "kind" needs lockstep edits across event consts, MonetizationCheckout, the 3 controller allow-lists, and the caller; confirm runs outside the request cycle.
+- [Variable form pricing](variable-form-pricing.md) — paid forms `mode=per_field`: Form computes total/line_items in cents (option_prices keyed by label); builder is the only dollars surface; data-attr live total mirrors PHP.

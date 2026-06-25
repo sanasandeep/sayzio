@@ -153,6 +153,50 @@
         @endif
     </div>
 
+    @php
+        $__lineItems = $submission->line_items ?? [];
+        $__payCur = strtoupper($submission->currency ?? ($form->settings['payment']['currency'] ?? 'USD')) ?: 'USD';
+        $__fmtCents = fn ($c) => number_format(((int) $c) / 100, 2) . ' ' . $__payCur;
+    @endphp
+    @if(!empty($__lineItems) || (int) ($submission->amount_cents ?? 0) > 0)
+        <div class="card-premium p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);">
+                    <i class="fas fa-receipt mr-2 text-emerald-400"></i>Payment
+                </h3>
+                @if(($submission->payment_status ?? null))
+                    @php
+                        $__ps = $submission->payment_status;
+                        $__psClass = $__ps === 'paid' ? 'bg-emerald-500/15 text-emerald-400' : ($__ps === 'pending' ? 'bg-amber-500/15 text-amber-400' : 'bg-rose-500/15 text-rose-400');
+                    @endphp
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $__psClass }}">{{ $__ps }}</span>
+                @endif
+            </div>
+
+            @if(!empty($__lineItems))
+                <div class="space-y-2 mb-4">
+                    @foreach($__lineItems as $li)
+                        @php $__isBase = ($li['field'] ?? null) === '__base__'; @endphp
+                        <div class="flex items-start justify-between gap-3 text-sm py-1.5 border-b" style="border-color: var(--border-subtle);">
+                            <div class="min-w-0">
+                                <span style="color: var(--text-primary);">{{ $__isBase ? 'Base fee' : ($li['label'] ?? $li['field'] ?? 'Item') }}</span>
+                                @if(!empty($li['detail']))
+                                    <span class="text-xs ml-1" style="color: var(--text-faint);">{{ $li['detail'] }}</span>
+                                @endif
+                            </div>
+                            <span class="font-mono whitespace-nowrap" style="color: var(--text-secondary);">{{ $__fmtCents($li['amount_cents'] ?? 0) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
+            <div class="flex items-center justify-between text-sm font-bold pt-1">
+                <span style="color: var(--text-primary);">Total</span>
+                <span class="font-mono" style="color: var(--text-primary);">{{ $__fmtCents($submission->amount_cents ?? 0) }}</span>
+            </div>
+        </div>
+    @endif
+
     @if(!empty($replyTo) && $__can('inbox.reply'))
         <div class="card-premium p-6 mb-6">
             <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">
