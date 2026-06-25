@@ -743,6 +743,24 @@
                     </label>
                 @endforeach
             </div>
+
+            <div class="mt-6 pt-5 border-t border-white/10">
+                <h3 class="text-sm font-semibold text-white/90">AI coin pricing multipliers</h3>
+                <p class="text-xs text-white/40 mb-3">Scale the global base coin rates per provider for users on this plan. Blank or 0 means 1× (no change). Bypass users are never charged regardless.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach(PlanFormCatalogue::aiCoinMultipliers() as $row)
+                        <div>
+                            <label class="block text-xs text-white/60 mb-1">{{ $row['label'] }}</label>
+                            <input type="number" step="0.01" min="0"
+                                   name="features[{{ $row['key'] }}]"
+                                   value="{{ $scalarVal($row['key'], '') }}"
+                                   placeholder="1"
+                                   class="w-full rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/90 focus:border-violet-400 focus:outline-none">
+                            <p class="text-[11px] text-white/40 leading-snug mt-1">{{ $row['hint'] }}</p>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
         </section>
 
         {{-- ============================== INTEGRATION ACCOUNTS ============================== --}}

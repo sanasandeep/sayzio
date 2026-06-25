@@ -34,11 +34,15 @@ class WhisperService
         $this->guard();
         $model = AiEngineSettings::whisperModel();
 
+        // Whisper is an OpenAI service, so it bills against the user's
+        // OpenAI plan multiplier (scales the per-minute base rate).
+        $multiplier = AiPlanAccess::coinMultiplier($user, 'openai');
+
         // Worst-case prepay: if we have an UploadedFile we know its size
         // and can roughly estimate duration; otherwise assume 60s.
         $estSec = $this->estimateDurationSeconds($audio);
         $estMin = max(1, (int) ceil($estSec / 60));
-        $worstCase = (int) ceil($estMin * AiEngineSettings::voiceSttCoinsPerMinute());
+        $worstCase = (int) ceil($estMin * AiEngineSettings::voiceSttCoinsPerMinute() * $multiplier);
         $noCharge = !empty($opts['no_charge']);
         if (!$noCharge && $worstCase > 0) $this->ensureCanAfford($user, $worstCase);
 
@@ -66,13 +70,15 @@ class WhisperService
         $duration = (float) ($body['duration'] ?? $estSec);
 
         $minutes = max(1, (int) ceil($duration / 60));
-        $cost    = (int) ceil($minutes * AiEngineSettings::voiceSttCoinsPerMinute());
+        $cost    = (int) ceil($minutes * AiEngineSettings::voiceSttCoinsPerMinute() * $multiplier);
 
         $tx = ($cost > 0 && !$noCharge)
             ? $this->credits->charge($user, $cost, [
                 'feature' => 'voice_stt',
                 'related_id' => $opts['related_id'] ?? null,
                 'model'   => $model,
+                'provider'   => 'openai',
+                'multiplier' => $multiplier,
                 'reason'  => "Voice STT ({$model}, {$minutes} min)",
                 'meta'    => array_merge(
                     is_array($opts['meta'] ?? null) ? $opts['meta'] : [],

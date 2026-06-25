@@ -46,7 +46,7 @@ class ResumeTailorController extends Controller
         $resume = $request->user()->ensureResume();
         $resume->load('items');
 
-        $cost = $this->tailor->estimateCredits($resume, $data['job_description']);
+        $cost = $this->tailor->estimateCredits($resume, $data['job_description'], $request->user());
         return response()->json([
             'estimated_credits' => $cost,
             'balance'           => $this->credits->getBalance($request->user()),

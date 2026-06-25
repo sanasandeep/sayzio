@@ -195,6 +195,29 @@ class PlanFormCatalogue
     }
 
     /**
+     * Per-plan coin multipliers that scale the global base AI rates. One
+     * multiplier per provider; a missing / zero value means 1× (no change).
+     * These are deliberately NOT part of moduleKeys() — they apply to coin
+     * pricing across every AI feature, not just the AI suite module, so we
+     * never want the module reset to wipe them.
+     */
+    public static function aiCoinMultipliers(): array
+    {
+        return [
+            [
+                'key'   => 'ai_openai_coin_multiplier',
+                'label' => 'OpenAI coin multiplier',
+                'hint'  => 'Scales the base coin cost of every OpenAI call (chat, embeddings, Whisper STT) for this plan. Leave blank or 0 for 1× (no change). e.g. 0.5 = half price, 2 = double.',
+            ],
+            [
+                'key'   => 'ai_elevenlabs_coin_multiplier',
+                'label' => 'ElevenLabs coin multiplier',
+                'hint'  => 'Scales the base coin cost of ElevenLabs text-to-speech for this plan. Leave blank or 0 for 1× (no change). e.g. 0.5 = half price, 2 = double.',
+            ],
+        ];
+    }
+
+    /**
      * PremiumFeatures::catalogue() indexed by key — used to pull plain-
      * English label + description for any feature that already lives there.
      */

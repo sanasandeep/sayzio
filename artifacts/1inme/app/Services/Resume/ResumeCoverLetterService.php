@@ -49,11 +49,11 @@ class ResumeCoverLetterService
     public function __construct(protected OpenAiService $openai) {}
 
     /** Worst-case credit cost for the upfront confirmation step. */
-    public function estimateCredits(Resume $resume, string $jd, string $tone, ?int $personaId = null): int
+    public function estimateCredits(Resume $resume, string $jd, string $tone, ?int $personaId = null, ?User $user = null): int
     {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
         $messages = $this->buildMessages($resume, $jd, $tone, $personaId);
-        return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS);
+        return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
     }
 
     /** Estimate cost for regenerating a single section (smaller prompt). */
@@ -62,10 +62,11 @@ class ResumeCoverLetterService
         ResumeCoverLetter $letter,
         string $section,
         ?string $instruction = null,
+        ?User $user = null,
     ): int {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
         $messages = $this->buildSectionMessages($resume, $letter, $section, $instruction);
-        return $this->openai->estimateChatCoins($model, $messages, 700);
+        return $this->openai->estimateChatCoins($model, $messages, 700, $user);
     }
 
     /**

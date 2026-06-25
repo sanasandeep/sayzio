@@ -36,7 +36,8 @@ class ElevenLabsService
         $model   = $opts['model']    ?? AiEngineSettings::elevenLabsModel();
         $chars   = (int) mb_strlen($text);
 
-        $cost = (int) ceil($chars * AiEngineSettings::voiceTtsCoinsPer1kChars() / 1000);
+        $multiplier = AiPlanAccess::coinMultiplier($user, 'elevenlabs');
+        $cost = (int) ceil($chars * AiEngineSettings::voiceTtsCoinsPer1kChars() / 1000 * $multiplier);
         if ($cost > 0) $this->ensureCanAfford($user, $cost);
 
         $res = Http::withHeaders([
@@ -60,6 +61,8 @@ class ElevenLabsService
                 'feature'    => 'voice_tts',
                 'related_id' => $opts['related_id'] ?? null,
                 'model'      => $model,
+                'provider'   => 'elevenlabs',
+                'multiplier' => $multiplier,
                 'reason'     => "Voice TTS ({$model}, {$chars} chars)",
                 'meta'       => array_merge(
                     is_array($opts['meta'] ?? null) ? $opts['meta'] : [],

@@ -96,7 +96,7 @@ class AiUsageCharger
     protected function walletOpts(array $opts): array
     {
         $meta = is_array($opts['meta'] ?? null) ? $opts['meta'] : [];
-        foreach (['feature', 'model', 'tokens_in', 'tokens_out', 'related_id'] as $k) {
+        foreach (['feature', 'model', 'tokens_in', 'tokens_out', 'related_id', 'provider', 'multiplier'] as $k) {
             if (array_key_exists($k, $opts) && $opts[$k] !== null) {
                 $meta[$k] = $opts[$k];
             }

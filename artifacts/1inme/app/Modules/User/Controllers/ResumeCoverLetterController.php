@@ -62,6 +62,7 @@ class ResumeCoverLetterController extends Controller
                 $data['job_description'],
                 $data['tone'] ?? 'professional',
                 isset($data['persona_id']) ? (int) $data['persona_id'] : null,
+                $request->user(),
             );
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);

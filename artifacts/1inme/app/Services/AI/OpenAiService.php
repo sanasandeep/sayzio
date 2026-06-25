@@ -56,13 +56,14 @@ class OpenAiService
         // (or DEFAULT_MAX_OUTPUT_TOKENS if unbounded). We refuse the
         // request — and never hit OpenAI — if the user can't afford the
         // upper bound.
+        $multiplier   = AiPlanAccess::coinMultiplier($user, 'openai');
         $estimatedIn  = $this->estimateChatPromptTokens($messages);
         $maxOut       = (int) ($opts['max_tokens'] ?? self::DEFAULT_MAX_OUTPUT_TOKENS);
         // Honor admin intent: if model rates are set to 0, the floor is 0
         // too. We still respect any caller-supplied min_credits.
         $worstCase    = max(
             (int) ($opts['min_credits'] ?? 0),
-            $this->computeCost($modelCfg, $estimatedIn, $maxOut),
+            $this->computeCost($modelCfg, $estimatedIn, $maxOut, $multiplier),
         );
         if ($worstCase > 0) $this->ensureCanAfford($user, $worstCase);
 
@@ -85,7 +86,7 @@ class OpenAiService
 
         $tokensIn  = (int) ($response['usage']['prompt_tokens'] ?? 0);
         $tokensOut = (int) ($response['usage']['completion_tokens'] ?? 0);
-        $cost      = $this->computeCost($modelCfg, $tokensIn, $tokensOut);
+        $cost      = $this->computeCost($modelCfg, $tokensIn, $tokensOut, $multiplier);
 
         // Skip the ledger entry entirely when the admin has set rates to
         // zero — there is nothing to charge and we don't want to pollute
@@ -97,6 +98,8 @@ class OpenAiService
                 'model'      => $model,
                 'tokens_in'  => $tokensIn,
                 'tokens_out' => $tokensOut,
+                'provider'   => 'openai',
+                'multiplier' => $multiplier,
                 'reason'     => $opts['reason'] ?? "OpenAI chat ({$model})",
                 'meta'       => array_merge(
                     is_array($opts['meta'] ?? null) ? $opts['meta'] : [],
@@ -138,11 +141,12 @@ class OpenAiService
     ): array {
         $modelCfg = $this->guard($model, 'chat');
 
+        $multiplier  = AiPlanAccess::coinMultiplier($user, 'openai');
         $estimatedIn = $this->estimateChatPromptTokens($messages);
         $maxOut      = (int) ($opts['max_tokens'] ?? self::DEFAULT_MAX_OUTPUT_TOKENS);
         $worstCase   = max(
             (int) ($opts['min_credits'] ?? 0),
-            $this->computeCost($modelCfg, $estimatedIn, $maxOut),
+            $this->computeCost($modelCfg, $estimatedIn, $maxOut, $multiplier),
         );
         if ($worstCase > 0) $this->ensureCanAfford($user, $worstCase);
 
@@ -227,7 +231,7 @@ class OpenAiService
                 if ($hasRates) {
                     $runningIn  = $tokensIn  > 0 ? $tokensIn  : $estimatedIn;
                     $runningOut = $tokensOut > 0 ? $tokensOut : $this->estimateTextTokens($content);
-                    $runningCost = $this->computeCost($modelCfg, $runningIn, $runningOut);
+                    $runningCost = $this->computeCost($modelCfg, $runningIn, $runningOut, $multiplier);
                     if ($runningCost > $startBalance) {
                         $exhausted = true;
                         break;
@@ -249,7 +253,7 @@ class OpenAiService
         if ($tokensIn  === 0) $tokensIn  = $estimatedIn;
         if ($tokensOut === 0) $tokensOut = $this->estimateTextTokens($content);
 
-        $cost = $this->computeCost($modelCfg, $tokensIn, $tokensOut);
+        $cost = $this->computeCost($modelCfg, $tokensIn, $tokensOut, $multiplier);
         // Cap the charge at whatever the visitor actually had so we
         // never write a transaction that drops the balance below zero
         // because of a mid-stream cutoff. Anything above the start
@@ -264,6 +268,8 @@ class OpenAiService
                 'model'      => $model,
                 'tokens_in'  => $tokensIn,
                 'tokens_out' => $tokensOut,
+                'provider'   => 'openai',
+                'multiplier' => $multiplier,
                 'reason'     => $opts['reason'] ?? "OpenAI chat stream ({$model})",
                 'meta'       => array_merge(
                     is_array($opts['meta'] ?? null) ? $opts['meta'] : [],
@@ -312,10 +318,11 @@ class OpenAiService
         $modelCfg = $this->guard($model, 'embedding');
 
         // Worst-case prepay gate based on the cumulative input length.
+        $multiplier  = AiPlanAccess::coinMultiplier($user, 'openai');
         $estimatedIn = $this->estimateTextTokens(implode("\n", $inputs));
         $worstCase   = max(
             (int) ($opts['min_credits'] ?? 0),
-            $this->computeCost($modelCfg, $estimatedIn, 0),
+            $this->computeCost($modelCfg, $estimatedIn, 0, $multiplier),
         );
         if ($worstCase > 0) $this->ensureCanAfford($user, $worstCase);
 
@@ -325,7 +332,7 @@ class OpenAiService
         ]);
 
         $tokensIn = (int) ($response['usage']['prompt_tokens'] ?? 0);
-        $cost     = $this->computeCost($modelCfg, $tokensIn, 0);
+        $cost     = $this->computeCost($modelCfg, $tokensIn, 0, $multiplier);
 
         $tx = $cost > 0
             ? $this->credits->charge($user, $cost, [
@@ -334,6 +341,8 @@ class OpenAiService
                 'model'      => $model,
                 'tokens_in'  => $tokensIn,
                 'tokens_out' => 0,
+                'provider'   => 'openai',
+                'multiplier' => $multiplier,
                 'reason'     => $opts['reason'] ?? "OpenAI embedding ({$model})",
                 'meta'       => is_array($opts['meta'] ?? null) ? $opts['meta'] : null,
             ])
@@ -382,13 +391,16 @@ class OpenAiService
      * user clicks Run (e.g. resume tailoring). Returns 0 when the model
      * isn't enabled or the admin's per-token rates are zero.
      */
-    public function estimateChatCoins(string $model, array $messages, int $maxOutputTokens = self::DEFAULT_MAX_OUTPUT_TOKENS): int
+    public function estimateChatCoins(string $model, array $messages, int $maxOutputTokens = self::DEFAULT_MAX_OUTPUT_TOKENS, ?User $user = null): int
     {
         if (!AiEngineSettings::isEnabled()) return 0;
         $cfg = AiEngineSettings::model($model);
         if (!$cfg || !$cfg['enabled'] || $cfg['kind'] !== 'chat') return 0;
+        // Route the displayed estimate through the same per-plan multiplier
+        // the real charge uses, so the gate and the price never disagree.
+        $multiplier = $user ? AiPlanAccess::coinMultiplier($user, 'openai') : 1.0;
         $tokensIn = $this->estimateChatPromptTokens($messages);
-        return $this->computeCost($cfg, $tokensIn, max(1, $maxOutputTokens));
+        return $this->computeCost($cfg, $tokensIn, max(1, $maxOutputTokens), $multiplier);
     }
 
     /**
@@ -420,11 +432,15 @@ class OpenAiService
      * integer coin balance) is never under-charged and never left
      * negative. A non-zero-rate call always costs at least 1 coin.
      */
-    protected function computeCost(array $modelCfg, int $tokensIn, int $tokensOut): int
+    protected function computeCost(array $modelCfg, int $tokensIn, int $tokensOut, float $multiplier = 1.0): int
     {
         $inRate  = (float) ($modelCfg['in_coins_per_1k'] ?? 0);
         $outRate = (float) ($modelCfg['out_coins_per_1k'] ?? 0);
         $cost = ($tokensIn * $inRate + $tokensOut * $outRate) / 1000;
+        // Scale the exact float cost by the plan multiplier BEFORE ceil so
+        // a non-zero base rate still costs at least 1 whole coin (the
+        // multiplier is normalised to >0 by AiPlanAccess::coinMultiplier).
+        $cost *= ($multiplier > 0 ? $multiplier : 1.0);
         return max(0, (int) ceil($cost));
     }
 

@@ -211,6 +211,18 @@ class PlanWriter
             $out[$row['key']] = !empty($features[$row['key']]);
         }
 
+        // ---- AI coin multipliers (per provider) ----
+        // Stored as a float; a blank / non-positive value normalises to 1.0
+        // (no change) so the wallet never under-charges. These deliberately
+        // sit outside moduleKeys() so the module-off pass below can't wipe
+        // them — they govern coin pricing across every AI feature.
+        foreach (PlanFormCatalogue::aiCoinMultipliers() as $row) {
+            if (!array_key_exists($row['key'], $features)) continue;
+            $raw = $features[$row['key']];
+            $mult = is_numeric($raw) ? (float) $raw : 0.0;
+            $out[$row['key']] = $mult > 0 ? $mult : 1.0;
+        }
+
         // ---- Block allowlist: '*' or array of known slugs ----
         $blockMode = $request->input('block_mode', 'all');
         if ($blockMode === 'all') {
@@ -339,6 +351,10 @@ class PlanWriter
             'features.signup_bonus_days'       => 'nullable|integer|min:0|max:3650',
             'features.referrer_free_days'      => 'nullable|integer|min:0|max:3650',
             'features.referred_free_days'      => 'nullable|integer|min:0|max:3650',
+
+            // AI coin pricing multipliers (per provider) — float, blank/0 = 1×.
+            'features.ai_openai_coin_multiplier'     => 'nullable|numeric|min:0',
+            'features.ai_elevenlabs_coin_multiplier' => 'nullable|numeric|min:0',
 
             // Analytics select.
             'features.analytics' => 'nullable|in:basic,advanced',

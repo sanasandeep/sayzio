@@ -32,6 +32,41 @@ class AiPlanAccess
         'companions' => 'max_companions',
     ];
 
+    /**
+     * AI coin-cost multipliers per provider => plan feature key. Each
+     * scales the GLOBAL per-call base coin cost (1× = the base rate,
+     * 0.5× = half price). Whisper STT is an OpenAI service so it shares
+     * the `openai` multiplier.
+     */
+    public const COIN_MULTIPLIER_KEYS = [
+        'openai'     => 'ai_openai_coin_multiplier',
+        'elevenlabs' => 'ai_elevenlabs_coin_multiplier',
+    ];
+
+    /** Default multiplier when a plan predates the key (no behaviour change). */
+    public const COIN_MULTIPLIER_DEFAULT = 1.0;
+
+    /**
+     * Effective coin-cost multiplier for $user against a provider. A plan
+     * with no multiplier set (or set to 0 / negative) behaves exactly as
+     * today (1×), so nothing regresses and we never charge free or
+     * broken amounts. Bypass-permission users are unaffected: they aren't
+     * gated and `getPlanFeature` would return PHP_INT_MAX for a numeric
+     * default, which is meaningless as a multiplier, so we normalise to 1×.
+     */
+    public static function coinMultiplier(User $user, string $provider): float
+    {
+        $key = self::COIN_MULTIPLIER_KEYS[$provider] ?? null;
+        if ($key === null) {
+            return self::COIN_MULTIPLIER_DEFAULT;
+        }
+        if ($user->hasPermission('user.plan_limits.bypass')) {
+            return self::COIN_MULTIPLIER_DEFAULT;
+        }
+        $mult = (float) $user->getPlanFeature($key, self::COIN_MULTIPLIER_DEFAULT);
+        return $mult > 0 ? $mult : self::COIN_MULTIPLIER_DEFAULT;
+    }
+
     /** Effective per-plan quantity cap for a feature. -1 = unlimited. */
     public static function quantityCap(User $user, string $feature): int
     {

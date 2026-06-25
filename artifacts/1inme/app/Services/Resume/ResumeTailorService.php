@@ -94,11 +94,11 @@ class ResumeTailorService
      * Worst-case credit cost the editor surfaces before the user clicks
      * Run. Uses the same messages buildMessages() will pass to chat().
      */
-    public function estimateCredits(Resume $resume, string $jobDescription): int
+    public function estimateCredits(Resume $resume, string $jobDescription, ?User $user = null): int
     {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
         $messages = $this->buildMessages($resume, $jobDescription);
-        return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS);
+        return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
     }
 
     /**
