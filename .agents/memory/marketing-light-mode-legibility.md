@@ -34,6 +34,25 @@ for hardcoded light hex text colors and add `html.light-mode` counterparts.
 Standalone pages that don't load `site.blade.php` (e.g. `age-gate.blade.php`,
 which is always-dark `bg-slate-950` on Tailwind CDN) are out of scope.
 
+### Gotchas the marketing global remap does NOT cover (unlike the dashboard one)
+
+- **Only accent `*-300` is remapped** — the LIGHTER accent shades `*-100/200/400`
+  (e.g. `text-violet-100`, `text-emerald-400`, `text-amber-200`, `text-pink-400`)
+  are NOT, so they wash out on white. The dashboard remap already darkens
+  `*-100..400`; the marketing one lags. Fix per-page scoped (user pref = avoid
+  broad global CSS edits) OR extend marketing-anim.css for a site-wide fix.
+- **`text-white\/` opacity selectors are mis-escaped** (`\\/` → matches a literal
+  backslash, never the real `text-white/NN` class) so translucent white text is
+  never remapped. Lives in the global file.
+- **Dark-in-both-modes islands must be protected.** `pricing/plans.blade.php`
+  `.smart-banner` (signed-in upgrade banner) keeps a DARK surface in light mode,
+  so its accent text (`text-emerald-100/200/300`, violet/pink/amber-300) is
+  deliberately kept LIGHT via `html.light-mode .smart-banner ...` rules. Any
+  page-level light-mode accent DARKENING must add a higher-specificity
+  `.smart-banner` carve-out or it buries that text dark-on-dark.
+**Why:** these gaps make white/light accent text invisible in light mode while
+plain `text-white` already works.
+
 ## Signed-in dashboard equivalent (User/Admin/Super Admin)
 
 The dashboard does NOT load `marketing-anim.css`. Its shared CSS + light-mode

@@ -2,6 +2,15 @@
 
 @section('title', 'Premium features')
 
+@push('head')
+<style>
+    /* Darken the light accent eyebrows/icons the global remap leaves out so
+       they stay legible on the near-white light-mode surface. */
+    html.light-mode [class*="text-violet-400"] { color: #6d28d9 !important; }
+    html.light-mode [class*="text-amber-400"]  { color: #b45309 !important; }
+</style>
+@endpush
+
 @section('content')
 <section class="relative pt-20 pb-12 lg:pt-28 lg:pb-16">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">

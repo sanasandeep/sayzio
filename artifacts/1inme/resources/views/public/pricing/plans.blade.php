@@ -372,6 +372,28 @@
     .ref-icon { background: linear-gradient(135deg,#7c3aed,#c026d3); color: #fff; }
     html.light-mode .ref-icon { color: #fff !important; }
 
+    /* ── Light-mode accent shades the global remap misses ──────────────────
+       marketing-anim.css darkens the 200/300 accent families but leaves the
+       100/400 shades (and a few opacity variants) this page uses for the
+       eyebrow badge, note boxes, status pills and inline icons. On the
+       near-white surface those light accents wash out, so darken them to the
+       same deep accent tones the global remap uses. Substring selectors also
+       catch the `/NN` and `/[0.x]` opacity variants. None of these sit on a
+       saturated background here, so darkening is always safe — the smart
+       banner (dark in both modes) is protected just below. */
+    html.light-mode .text-violet-100,
+    html.light-mode [class*="text-violet-400"]   { color: #6d28d9 !important; }
+    html.light-mode [class*="text-emerald-200"],
+    html.light-mode [class*="text-emerald-400"]  { color: #047857 !important; }
+    html.light-mode [class*="text-amber-200"],
+    html.light-mode [class*="text-amber-400"]    { color: #b45309 !important; }
+    html.light-mode [class*="text-pink-400"]     { color: #db2777 !important; }
+
+    /* The smart banner keeps a dark surface in both modes, so its emerald-200
+       status text must stay light — the page-level darken above would
+       otherwise bury it dark-on-dark. Higher specificity wins here. */
+    html.light-mode .smart-banner [class*="text-emerald-200"] { color: rgba(167,243,208,.85) !important; }
+
     @media (prefers-reduced-motion: reduce) {
         .pulse-dot, .float-coin, .pop-ribbon, .grad-glow { animation: none !important; }
         .grad-glow:hover { transform: none !important; }
