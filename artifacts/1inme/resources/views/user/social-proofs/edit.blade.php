@@ -98,8 +98,21 @@ html.light-mode .bz-tpl-desc{color:#64748b}
         <div><span class="text-white text-base font-semibold">{{ number_format($stats['impressions_30d']) }}</span> imp / 30d</div>
         <div><span class="text-white text-base font-semibold">{{ number_format($stats['clicks_30d']) }}</span> clicks</div>
         <div><span class="text-white text-base font-semibold">{{ $stats['ctr'] }}%</span> CTR</div>
+        @isset($buzzUsage)
+        <div class="pl-3 border-l border-white/10" title="Monthly Buzz views across all your campaigns, counted against your plan allowance.">
+            <span class="text-white text-base font-semibold {{ $buzzUsage['paused'] ? 'text-rose-300' : '' }}">{{ number_format($buzzUsage['used']) }}</span>/{{ $buzzUsage['unlimited'] ? '∞' : number_format($buzzUsage['allowance']) }} views/mo
+        </div>
+        @endisset
     </div>
 </div>
+@isset($buzzUsage)
+    @if($buzzUsage['paused'])
+    <div class="bz-scope mb-4 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-center justify-between flex-wrap gap-2">
+        <span><i class="fas fa-pause mr-1.5"></i> You've reached your monthly Buzz views allowance ({{ number_format($buzzUsage['allowance']) }}). Your widgets are paused and will resume next month.</span>
+        <a href="{{ route('user.upgrade') }}" class="underline hover:text-rose-200 whitespace-nowrap">Upgrade for more</a>
+    </div>
+    @endif
+@endisset
 
 @if(session('success'))
 <div class="mb-4 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('success') }}</div>

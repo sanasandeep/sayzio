@@ -326,6 +326,7 @@ class PlanWriter
             'features.max_seats_per_workspace' => 'nullable|integer|min:-1',
             'features.max_forms'               => 'nullable|integer|min:-1',
             'features.max_buzz_items'          => 'nullable|integer|min:-1',
+            'features.max_buzz_impressions'    => 'nullable|integer|min:-1',
             'features.max_splash_pages'        => 'nullable|integer|min:-1',
             'features.max_files'               => 'nullable|integer|min:-1',
             'features.max_vault_items'         => 'nullable|integer|min:-1',

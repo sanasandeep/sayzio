@@ -71,6 +71,7 @@ class PlanFormCatalogue
             ['key' => 'max_alias_length',     'label' => 'Max alias length',        'default' => 50,  'module' => 'module_short_links', 'hint' => 'Hard cap is 191 characters.', 'max' => 191],
             ['key' => 'max_forms',            'label' => 'Max forms',               'default' => 1,   'module' => 'module_forms',       'hint' => 'Custom form definitions a user can publish.'],
             ['key' => 'max_buzz_items',       'label' => 'Max buzz pop-ups',        'default' => 0,   'module' => null,                 'hint' => 'On-site notification pop-ups.'],
+            ['key' => 'max_buzz_impressions', 'label' => 'Max buzz views / mo',     'default' => -1,  'module' => null,                 'hint' => 'Monthly Buzz notification views (impressions). Beyond this, widgets pause until next month. -1 = unlimited.'],
             ['key' => 'max_splash_pages',     'label' => 'Max splash pages',        'default' => 0,   'module' => null,                 'hint' => 'Branded splash / coming-soon pages.'],
             ['key' => 'max_files',            'label' => 'Max files',               'default' => 25,  'module' => null,                 'hint' => 'Files uploaded into the in-app file manager.'],
             ['key' => 'max_vault_items',      'label' => 'Max vault items',         'default' => 0,   'module' => null,                 'hint' => 'Encrypted vault entries.'],

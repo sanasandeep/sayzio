@@ -50,6 +50,14 @@ class UserResource
                     // a second round-trip. Default-true matches the web
                     // helper's fallback for plans that don't set the key.
                     'analytics_export' => (bool) $u->getPlanFeature('analytics_export', true),
+                    // Per-plan monthly Buzz (social-proof) impressions
+                    // allowance + current-period usage. -1 = unlimited.
+                    // Lets the mobile/extension Buzz surface show the same
+                    // "views this month" gauge and paused state the web UI
+                    // does without a second round-trip.
+                    'buzz_popups'             => (bool) $u->getPlanFeature('buzz_popups', false),
+                    'max_buzz_impressions'    => \App\Services\BuzzImpressionMeter::allowanceFor($u),
+                    'buzz_impressions_used'   => \App\Services\BuzzImpressionMeter::used((int) $u->id),
                 ],
             ]);
         }

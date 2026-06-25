@@ -13,6 +13,31 @@
     </a>
 </div>
 
+@isset($buzzUsage)
+<div class="glass rounded-2xl p-4 mb-5">
+    <div class="flex items-center justify-between flex-wrap gap-2">
+        <div class="text-sm">
+            <span class="text-white/70"><i class="fas fa-eye text-violet-400 mr-1.5"></i> Buzz views this month</span>
+            <span class="text-white font-semibold ml-2">{{ number_format($buzzUsage['used']) }}</span>
+            <span class="text-white/40">/ {{ $buzzUsage['unlimited'] ? 'Unlimited' : number_format($buzzUsage['allowance']) }}</span>
+        </div>
+        @if($buzzUsage['paused'])
+            <span class="px-2 py-1 rounded-md text-xs bg-rose-500/15 text-rose-300 border border-rose-500/20">
+                <i class="fas fa-pause mr-1"></i> Limit reached — widgets paused until next month.
+                <a href="{{ route('user.upgrade') }}" class="underline hover:text-rose-200">Upgrade</a>
+            </span>
+        @elseif(!$buzzUsage['unlimited'])
+            <span class="text-xs text-white/40">{{ number_format($buzzUsage['remaining']) }} remaining</span>
+        @endif
+    </div>
+    @unless($buzzUsage['unlimited'])
+    <div class="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
+        <div class="h-full rounded-full {{ $buzzUsage['percent_used'] >= 100 ? 'bg-rose-500' : ($buzzUsage['percent_used'] >= 80 ? 'bg-amber-400' : 'bg-violet-500') }}" style="width: {{ $buzzUsage['percent_used'] }}%"></div>
+    </div>
+    @endunless
+</div>
+@endisset
+
 @if(session('success'))
 <div class="mb-4 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('success') }}</div>
 @endif

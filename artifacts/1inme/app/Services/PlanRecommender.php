@@ -60,6 +60,7 @@ class PlanRecommender
             'contacts_max'     => ['label' => 'contacts'],
             'max_files'        => ['label' => 'files'],
             'max_custom_domains' => ['label' => 'custom domains'],
+            'max_buzz_impressions' => ['label' => 'Buzz views / month'],
         ];
     }
 
@@ -261,6 +262,10 @@ class PlanRecommender
             'contacts_max'     => (int) Contact::where('user_id', $user->id)->count(),
             'max_files'        => (int) UserFile::where('user_id', $user->id)->count(),
             'max_custom_domains' => (int) $user->domains()->count(),
+            // Current-period Buzz impressions served across all the user's
+            // campaigns (resets monthly). Approximate on the pricing gauge
+            // — not event-busted on every public impression.
+            'max_buzz_impressions' => (int) \App\Services\BuzzImpressionMeter::used((int) $user->id),
         ];
     }
 

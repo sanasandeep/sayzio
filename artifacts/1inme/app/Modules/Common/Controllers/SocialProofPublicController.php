@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\SocialProof;
 use App\Modules\User\Models\SocialProofEvent;
+use App\Modules\User\Models\User;
+use App\Services\BuzzImpressionMeter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -88,6 +90,15 @@ class SocialProofPublicController extends Controller
             ));
         }
 
+        // Per-plan monthly Buzz impressions allowance (task #2304): once the
+        // creator has used up their plan's `max_buzz_impressions` allowance
+        // for the current period, stop serving notifications so the widget
+        // shows nothing for the rest of the month. Resumes automatically
+        // next period. A -1 (or missing) allowance never pauses.
+        if (BuzzImpressionMeter::servingPaused($this->ownerOf((int) $proof->user_id))) {
+            $notifications = [];
+        }
+
         $payload = [
             'uuid'          => $proof->uuid,
             'name'          => $proof->name,
@@ -144,7 +155,21 @@ class SocialProofPublicController extends Controller
         $col = match ($kind) { 'impression' => 'impressions', 'click' => 'clicks', 'conversion' => 'conversions' };
         DB::table('social_proofs')->where('id', $proof->id)->increment($col);
 
+        // Meter impressions against the creator's per-plan monthly Buzz
+        // allowance (task #2304). Only impressions count toward the cap;
+        // the cumulative `impressions` column above never resets, so we
+        // keep a separate period-scoped counter for gating.
+        if ($kind === 'impression') {
+            BuzzImpressionMeter::record((int) $proof->user_id);
+        }
+
         return response()->json(['ok' => true], 200, $this->corsHeaders());
+    }
+
+    /** Resolve the campaign owner once, swallowing any lookup failure. */
+    private function ownerOf(int $userId): ?User
+    {
+        return $userId > 0 ? User::find($userId) : null;
     }
 
     public function preflight(Request $request, string $uuid)

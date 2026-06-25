@@ -4,17 +4,29 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\SocialProof;
+use App\Modules\User\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class SocialProofController extends Controller
 {
+    /**
+     * The account that owns the active workspace's Buzz campaigns — Buzz
+     * impressions are metered per owning account, so usage indicators read
+     * the owner's plan + counter rather than the acting team member's.
+     */
+    private function workspaceOwner(): ?User
+    {
+        return User::find(workspace_owner_id());
+    }
+
     public function index(Request $request)
     {
         $proofs = SocialProof::where('user_id', workspace_owner_id())
             ->orderByDesc('id')
             ->get();
-        return view('user.social-proofs.index', compact('proofs'));
+        $buzzUsage = \App\Services\BuzzImpressionMeter::usageSummary($this->workspaceOwner());
+        return view('user.social-proofs.index', compact('proofs', 'buzzUsage'));
     }
 
     public function create()
@@ -61,8 +73,9 @@ class SocialProofController extends Controller
         }
 
         return view('user.social-proofs.edit', [
-            'proof' => $socialProof,
-            'stats' => $stats,
+            'proof'     => $socialProof,
+            'stats'     => $stats,
+            'buzzUsage' => \App\Services\BuzzImpressionMeter::usageSummary($this->workspaceOwner()),
         ]);
     }
 

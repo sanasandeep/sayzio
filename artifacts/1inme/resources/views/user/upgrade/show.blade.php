@@ -250,6 +250,7 @@
                         'contacts_max' => 'contacts',
                         'max_forms' => 'forms',
                         'max_buzz_items' => 'buzz popups',
+                        'max_buzz_impressions' => 'Buzz views / mo',
                         'max_splash_pages' => 'splash pages',
                         'max_files' => 'files',
                         'max_vault_items' => 'vault items',
