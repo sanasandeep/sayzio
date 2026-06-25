@@ -39,7 +39,7 @@ class UpgradeController extends Controller
             ->ordered()->get();
         $addons = Addon::where('status', 'active')
             ->where('is_archived', false)
-            ->with('prices')
+            ->with('prices', 'plans')
             ->ordered()->get();
 
         // Pull the buyer's billing address (if any) so we can show real
@@ -116,6 +116,7 @@ class UpgradeController extends Controller
                 'tax'      => $taxFor((int) $shown['amount_minor'], $currency),
                 'prices'   => $prices,
                 'taxByCur' => $taxByCur,
+                'planIds'  => $a->plans->pluck('id')->map(fn ($id) => (int) $id)->all(),
             ];
         });
 

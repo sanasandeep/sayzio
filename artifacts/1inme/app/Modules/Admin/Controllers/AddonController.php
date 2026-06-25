@@ -13,7 +13,7 @@ class AddonController extends Controller
 {
     public function index()
     {
-        $addons = Addon::with('plans')->ordered()->get();
+        $addons = Addon::with('plans', 'prices')->ordered()->get();
         return view('admin.addons.index', compact('addons'));
     }
 

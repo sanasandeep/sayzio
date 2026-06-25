@@ -14,10 +14,14 @@ use Illuminate\Http\Request;
 
 class CheckoutController extends Controller
 {
+    /** Upper bound on per-addon quantity a buyer can purchase at once. */
+    public const MAX_ADDON_QTY = 99;
+
     /**
      * Show the checkout cart for a chosen plan + cycle + optional addons.
-     * Uses query params (?plan=X&cycle=monthly&addons[]=Y) so the pricing
-     * page can link directly here.
+     * Uses query params (?plan=X&cycle=monthly&addons[ID]=QTY) so the
+     * pricing/upgrade page can link directly here. The legacy list shape
+     * (?addons[]=ID, quantity 1) is still accepted.
      */
     public function show(Request $request, GatewayManager $gm)
     {
@@ -26,10 +30,11 @@ class CheckoutController extends Controller
         $cycle = $request->query('cycle', 'monthly') === 'annual' ? 'annual' : 'monthly';
         $currency = PricingResolver::currencyForUser($user);
 
-        $addonIds = array_map('intval', (array) $request->query('addons', []));
-        $addons = $addonIds
-            ? Addon::whereIn('id', $addonIds)->where('status', 'active')->where('is_archived', false)->get()
-            : collect();
+        // Parse requested addons to an [id => qty] map and keep only those
+        // actually eligible (attached) to the chosen plan — eligibility is
+        // enforced here, not just hidden in the UI.
+        $qtyMap = $this->parseAddonQuantities($request->query('addons', []));
+        $addons = $this->eligibleAddons($plan, $qtyMap);
 
         $items = [];
         $planPriced = PricingResolver::priceForCurrency($plan, $currency, $cycle);
@@ -55,14 +60,8 @@ class CheckoutController extends Controller
                 ] : null,
             ], fn ($v) => $v !== null),
         ];
-        foreach ($addons as $a) {
-            $p = PricingResolver::priceFor($a, $user, $cycle);
-            $items[] = [
-                'label'        => $a->name,
-                'amount_minor' => (int) $p['amount_minor'],
-                'quantity'     => 1,
-                'meta'         => ['kind' => 'addon', 'addon_id' => $a->id, 'qty' => 1],
-            ];
+        foreach ($this->addonItems($addons, $qtyMap, $currency, $cycle) as $addonItem) {
+            $items[] = $addonItem;
         }
 
         // Preview the tax breakdown without persisting an invoice yet.
@@ -102,8 +101,10 @@ class CheckoutController extends Controller
             'gateway' => 'required|string|in:razorpay,stripe,paypal,cashfree,payumoney,offline',
             'plan_id' => 'required|integer|exists:plans,id',
             'cycle'   => 'required|in:monthly,annual',
+            // Modern shape: addons[ID] = QTY. Values are quantities; the
+            // keys (addon ids) are validated by the eligibility query below.
             'addons'  => 'array',
-            'addons.*' => 'integer|exists:addons,id',
+            'addons.*' => 'integer|min:1',
         ]);
 
         $user  = $request->user();
@@ -140,14 +141,10 @@ class CheckoutController extends Controller
                 ] : null,
             ], fn ($v) => $v !== null),
         ]];
-        foreach ((array) ($data['addons'] ?? []) as $addonId) {
-            $a = Addon::findOrFail($addonId);
-            $items[] = [
-                'label'        => $a->name,
-                'amount_minor' => (int) PricingResolver::priceFor($a, $user, $cycle)['amount_minor'],
-                'quantity'     => 1,
-                'meta'         => ['kind' => 'addon', 'addon_id' => $a->id, 'qty' => 1],
-            ];
+        $qtyMap = $this->parseAddonQuantities($data['addons'] ?? []);
+        $eligible = $this->eligibleAddons($plan, $qtyMap);
+        foreach ($this->addonItems($eligible, $qtyMap, $currency, $cycle) as $addonItem) {
+            $items[] = $addonItem;
         }
 
         $invoice = ActivateSubscription::issuePendingInvoice($user, $items, $currency);
@@ -180,6 +177,94 @@ class CheckoutController extends Controller
             return view($result['view'], $result['data']);
         }
         return redirect()->route('user.invoices.pdf', $invoice);
+    }
+
+    /**
+     * Normalize the `addons` request payload into an [addonId => qty] map.
+     * Accepts both the modern associative shape (addons[ID]=QTY) and the
+     * legacy list shape (addons[]=ID, quantity 1). Quantities are clamped
+     * to 1..MAX_ADDON_QTY. Returns an empty array for empty/invalid input.
+     *
+     * @return array<int,int>
+     */
+    private function parseAddonQuantities($raw): array
+    {
+        $raw = (array) $raw;
+        if (empty($raw)) {
+            return [];
+        }
+
+        $map = [];
+        if (array_is_list($raw)) {
+            // Legacy ?addons[]=ID — each id counts as one unit.
+            foreach ($raw as $id) {
+                $id = (int) $id;
+                if ($id > 0) {
+                    $map[$id] = ($map[$id] ?? 0) + 1;
+                }
+            }
+        } else {
+            // Modern ?addons[ID]=QTY.
+            foreach ($raw as $id => $qty) {
+                $id = (int) $id;
+                $qty = (int) $qty;
+                if ($id > 0 && $qty > 0) {
+                    $map[$id] = $qty;
+                }
+            }
+        }
+
+        foreach ($map as $id => $qty) {
+            $map[$id] = max(1, min(self::MAX_ADDON_QTY, $qty));
+        }
+
+        return $map;
+    }
+
+    /**
+     * Active, non-archived addons among the requested ids that are actually
+     * attached (eligible) to $plan, in the plan's addon order. Ineligible
+     * ids are silently dropped — eligibility is enforced server-side.
+     *
+     * @param array<int,int> $qtyMap
+     * @return \Illuminate\Support\Collection<int,Addon>
+     */
+    private function eligibleAddons(Plan $plan, array $qtyMap)
+    {
+        if (empty($qtyMap)) {
+            return collect();
+        }
+
+        return $plan->addons()
+            ->whereIn('addons.id', array_keys($qtyMap))
+            ->where('addons.status', 'active')
+            ->where('addons.is_archived', false)
+            ->get();
+    }
+
+    /**
+     * Build invoice line items for the eligible addons at their requested
+     * quantity. `amount_minor` is the per-unit price; `quantity` (and the
+     * mirrored meta `qty`) carry the count so the tax calculator and
+     * subscription activation both bill/grant the right amount.
+     *
+     * @param \Illuminate\Support\Collection<int,Addon> $addons
+     * @param array<int,int> $qtyMap
+     * @return array<int,array<string,mixed>>
+     */
+    private function addonItems($addons, array $qtyMap, string $currency, string $cycle): array
+    {
+        $items = [];
+        foreach ($addons as $a) {
+            $qty = $qtyMap[$a->id] ?? 1;
+            $items[] = [
+                'label'        => $a->name,
+                'amount_minor' => (int) PricingResolver::priceForCurrency($a, $currency, $cycle)['amount_minor'],
+                'quantity'     => $qty,
+                'meta'         => ['kind' => 'addon', 'addon_id' => $a->id, 'qty' => $qty],
+            ];
+        }
+        return $items;
     }
 
     /**

@@ -49,6 +49,105 @@ class CheckoutFlowTest extends TestCase
         ]);
     }
 
+    /**
+     * Create an addon with explicit INR + USD prices and attach it to $plan
+     * so it counts as eligible. $monthlyMinorInr is the per-unit price.
+     */
+    protected function makeAddon(Plan $plan, int $monthlyMinorInr, array $features = []): \App\Modules\Admin\Models\Addon
+    {
+        $addon = \App\Modules\Admin\Models\Addon::create([
+            'name' => 'Extra '.Str::random(4), 'slug' => 'extra-'.Str::random(6),
+            'description' => 'Extra', 'type' => 'recurring',
+            'monthly_price' => $monthlyMinorInr / 100, 'annual_price' => ($monthlyMinorInr * 10) / 100,
+            'features' => $features, 'status' => 'active', 'is_archived' => false, 'sort_order' => 1,
+        ]);
+        foreach (['USD', 'INR'] as $cur) {
+            \App\Modules\Admin\Models\Price::create([
+                'priceable_type' => \App\Modules\Admin\Models\Addon::class,
+                'priceable_id' => $addon->id, 'currency' => $cur,
+                'billing_cycle' => 'monthly', 'amount_minor_units' => $monthlyMinorInr, 'is_active' => true,
+            ]);
+            \App\Modules\Admin\Models\Price::create([
+                'priceable_type' => \App\Modules\Admin\Models\Addon::class,
+                'priceable_id' => $addon->id, 'currency' => $cur,
+                'billing_cycle' => 'annual', 'amount_minor_units' => $monthlyMinorInr * 10, 'is_active' => true,
+            ]);
+        }
+        $plan->addons()->attach($addon->id);
+        return $addon;
+    }
+
+    public function test_handoff_bills_multiple_addons_at_quantity(): void
+    {
+        $user = $this->makeBuyer();
+        $plan = $this->makePlan();
+        // Plan needs an INR price row (makePlan doesn't create one).
+        foreach (['USD', 'INR'] as $cur) {
+            \App\Modules\Admin\Models\Price::create([
+                'priceable_type' => Plan::class, 'priceable_id' => $plan->id,
+                'currency' => $cur, 'billing_cycle' => 'monthly',
+                'amount_minor_units' => 99900, 'is_active' => true,
+            ]);
+        }
+        $addonA = $this->makeAddon($plan, 5000, ['max_biolinks_extra' => 5]);
+        $addonB = $this->makeAddon($plan, 2000, ['max_links_extra' => 10]);
+
+        $this->actingAs($user)->post('/user/checkout/handoff', [
+            'gateway' => 'offline',
+            'plan_id' => $plan->id,
+            'cycle'   => 'monthly',
+            'addons'  => [$addonA->id => 3, $addonB->id => 2],
+        ])->assertOk();
+
+        $invoice = Invoice::where('user_id', $user->id)->firstOrFail();
+        $items = collect($invoice->line_items);
+        $a = $items->firstWhere('meta.addon_id', $addonA->id);
+        $b = $items->firstWhere('meta.addon_id', $addonB->id);
+        $this->assertSame(5000, (int) $a['amount_minor'], 'addon line stores per-unit price');
+        $this->assertSame(3, (int) $a['quantity']);
+        $this->assertSame(3, (int) $a['meta']['qty']);
+        $this->assertSame(2, (int) $b['quantity']);
+
+        // Subscription persists each addon with its purchased quantity.
+        $sub = Subscription::where('user_id', $user->id)->latest('id')->firstOrFail();
+        $qtys = $sub->addons()->pluck('qty', 'addon_id');
+        $this->assertSame(3, (int) $qtys[$addonA->id]);
+        $this->assertSame(2, (int) $qtys[$addonB->id]);
+
+        // Effective features merge plan + addons × qty: +5×3 biolinks, +10×2 links.
+        $eff = \App\Services\EffectivePlanFeatures::for($user->fresh());
+        $this->assertSame(15, (int) ($eff['max_biolinks'] ?? 0));
+        $this->assertSame(20, (int) ($eff['max_links'] ?? 0));
+    }
+
+    public function test_handoff_drops_addons_not_attached_to_plan(): void
+    {
+        $user = $this->makeBuyer();
+        $plan = $this->makePlan();
+        foreach (['USD', 'INR'] as $cur) {
+            \App\Modules\Admin\Models\Price::create([
+                'priceable_type' => Plan::class, 'priceable_id' => $plan->id,
+                'currency' => $cur, 'billing_cycle' => 'monthly',
+                'amount_minor_units' => 99900, 'is_active' => true,
+            ]);
+        }
+        // Addon created but NOT attached to the plan → ineligible.
+        $orphan = \App\Modules\Admin\Models\Addon::create([
+            'name' => 'Orphan', 'slug' => 'orphan-'.Str::random(6), 'description' => 'x',
+            'type' => 'recurring', 'monthly_price' => 9.99, 'annual_price' => 99.9,
+            'features' => ['max_links_extra' => 10], 'status' => 'active',
+            'is_archived' => false, 'sort_order' => 1,
+        ]);
+
+        $this->actingAs($user)->post('/user/checkout/handoff', [
+            'gateway' => 'offline', 'plan_id' => $plan->id, 'cycle' => 'monthly',
+            'addons'  => [$orphan->id => 4],
+        ])->assertOk();
+
+        $sub = Subscription::where('user_id', $user->id)->latest('id')->firstOrFail();
+        $this->assertSame(0, $sub->addons()->count(), 'ineligible addon must not be billed/granted');
+    }
+
     public function test_gateway_manager_returns_only_enabled_adapters(): void
     {
         $mgr = app(GatewayManager::class);

@@ -7,9 +7,30 @@
 {{-- Currency flips USD/INR instantly client-side (both currencies are
      embedded per card/addon below); the choice is persisted in the
      background. Billing cycle still navigates server-side via links. --}}
+@php
+    // Compact catalog for the client-side add-on cart: per-addon unit price
+    // (minor units, current cycle) in each currency plus its eligible plan
+    // ids, so the running total and per-plan checkout links resolve without
+    // another round-trip.
+    $addonCatalog = [];
+    foreach ($addons as $row) {
+        $am = $row['model'];
+        $unit = [];
+        foreach (['USD', 'INR'] as $cur) {
+            $unit[$cur] = (int) ($row['prices'][$cur][$cycle]['amount_minor'] ?? 0);
+        }
+        $addonCatalog[(int) $am->id] = [
+            'planIds' => $row['planIds'],
+            'unit'    => $unit,
+        ];
+    }
+@endphp
 <div class="max-w-6xl mx-auto space-y-8"
      x-data="{
         currency: '{{ $currency }}',
+        sel: {},
+        catalog: @json($addonCatalog),
+        maxQty: 99,
         switchCurrency(c){
             if (this.currency === c) return;
             this.currency = c;
@@ -27,6 +48,35 @@
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 });
             } catch (e) { /* swallow — UX must not depend on persistence */ }
+        },
+        isSelected(id){ return (this.sel[id] ?? 0) > 0; },
+        qtyOf(id){ return this.sel[id] ?? 1; },
+        toggle(id){ if (this.isSelected(id)) { delete this.sel[id]; } else { this.sel[id] = 1; } },
+        inc(id){ this.sel[id] = Math.min(this.maxQty, (this.sel[id] ?? 1) + 1); },
+        dec(id){ const q = (this.sel[id] ?? 1) - 1; if (q < 1) { delete this.sel[id]; } else { this.sel[id] = q; } },
+        addonCount(){ return Object.keys(this.sel).length; },
+        fmtMoney(minor, cur){
+            const sym = cur === 'INR' ? '₹' : (cur === 'USD' ? '$' : cur + ' ');
+            return sym + (minor/100).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+        },
+        addonTotalMinor(){
+            let t = 0;
+            for (const id in this.sel) {
+                const c = this.catalog[id];
+                if (c) { t += (c.unit[this.currency] ?? 0) * this.sel[id]; }
+            }
+            return t;
+        },
+        addonTotalFormatted(){ return this.fmtMoney(this.addonTotalMinor(), this.currency); },
+        checkoutUrl(planId){
+            let url = '{{ route('user.checkout.show') }}?plan=' + planId + '&cycle={{ $cycle }}';
+            for (const id in this.sel) {
+                const c = this.catalog[id];
+                if (this.sel[id] > 0 && c && c.planIds.includes(planId)) {
+                    url += '&addons[' + id + ']=' + this.sel[id];
+                }
+            }
+            return url;
         }
      }">
     <div class="text-center space-y-2">
@@ -285,7 +335,10 @@
                     @if($isCurrent)
                         <button disabled class="w-full px-4 py-2.5 bg-white/10 text-white/60 rounded-xl font-medium cursor-not-allowed">Current plan</button>
                     @else
-                        <button class="w-full px-4 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition" disabled title="Checkout coming soon">Choose {{ $plan->name }}</button>
+                        <a :href="checkoutUrl({{ $plan->id }})"
+                           class="block text-center w-full px-4 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition">
+                            Choose {{ $plan->name }}<span x-show="addonCount() > 0" x-cloak> + add-ons</span>
+                        </a>
                     @endif
                 </div>
             </div>
@@ -294,13 +347,23 @@
 
     @if($addons->isNotEmpty())
     <div class="space-y-3 pt-4">
-        <h2 class="text-xl font-semibold text-white">Add-ons</h2>
-        <p class="text-sm text-white/50">Extend any paid plan with extra capabilities.</p>
+        <div class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+                <h2 class="text-xl font-semibold text-white">Add-ons</h2>
+                <p class="text-sm text-white/50">Pick any number of add-ons, set a quantity for each, then choose a plan to check out together.</p>
+            </div>
+            <div x-show="addonCount() > 0" x-cloak class="text-right">
+                <div class="text-xs text-white/50"><span x-text="addonCount()"></span> add-on<span x-show="addonCount() !== 1">s</span> selected</div>
+                <div class="text-lg font-semibold text-white" x-text="addonTotalFormatted()"></div>
+                <div class="text-[11px] text-white/40">added to your plan at checkout</div>
+            </div>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             @foreach($addons as $row)
-                @php $a = $row['model']; @endphp
+                @php $a = $row['model']; $eligible = !empty($row['planIds']); @endphp
                 <div x-data='{ prices: @json($row['prices']), taxByCur: @json($row['taxByCur']) }'
-                     class="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                     class="rounded-xl border bg-white/[0.02] p-4 transition"
+                     :class="isSelected({{ $a->id }}) ? 'border-violet-500/60 ring-1 ring-violet-500/30' : 'border-white/10'">
                     <div class="flex items-baseline justify-between gap-3">
                         <div class="font-medium text-white">{{ $a->name }}</div>
                         <div class="text-sm text-white/80 whitespace-nowrap"><span x-text="(prices[currency] && prices[currency].{{ $cycle }} && prices[currency].{{ $cycle }}.formatted) || '{{ $row['shown']['formatted'] }}'">{{ $row['shown']['formatted'] }}</span><span class="text-xs text-white/40"> / {{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></div>
@@ -327,6 +390,31 @@
                             </div>
                         @endif
                     @endforeach
+
+                    @if($eligible)
+                        <div class="mt-3 flex items-center justify-between gap-2 border-t border-white/5 pt-3">
+                            <label class="flex items-center gap-2 text-sm text-white/75 cursor-pointer select-none">
+                                <input type="checkbox" :checked="isSelected({{ $a->id }})" @change="toggle({{ $a->id }})"
+                                       class="rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500/40">
+                                <span x-text="isSelected({{ $a->id }}) ? 'Added' : 'Add to plan'"></span>
+                            </label>
+                            <div x-show="isSelected({{ $a->id }})" x-cloak class="flex items-center gap-1.5">
+                                <button type="button" @click="dec({{ $a->id }})" aria-label="Decrease quantity"
+                                        class="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 leading-none">−</button>
+                                <span class="w-6 text-center text-sm text-white tabular-nums" x-text="qtyOf({{ $a->id }})">1</span>
+                                <button type="button" @click="inc({{ $a->id }})" aria-label="Increase quantity"
+                                        class="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 leading-none">+</button>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex flex-wrap items-center gap-1">
+                            <span class="text-[10px] uppercase tracking-wider text-white/30">Works with</span>
+                            @foreach($a->plans as $p)
+                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-300/80 border border-violet-500/15">{{ $p->name }}</span>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="mt-3 text-[11px] text-white/40 border-t border-white/5 pt-3">Not available for any plan yet.</div>
+                    @endif
                     <div class="text-[10px] uppercase tracking-wider text-white/30 mt-2">{{ str_replace('_',' ',$a->type) }}</div>
                 </div>
             @endforeach

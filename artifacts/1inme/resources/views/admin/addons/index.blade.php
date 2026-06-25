@@ -32,9 +32,21 @@
         </div>
         <p class="text-sm text-white/40 mb-4">{{ $addon->description ?? 'No description' }}</p>
 
+        @php
+            $usdMonthly = \App\Services\PricingResolver::priceForCurrency($addon, 'USD', 'monthly');
+            $usdAnnual  = \App\Services\PricingResolver::priceForCurrency($addon, 'USD', 'annual');
+            $inrMonthly = \App\Services\PricingResolver::priceForCurrency($addon, 'INR', 'monthly');
+            $inrAnnual  = \App\Services\PricingResolver::priceForCurrency($addon, 'INR', 'annual');
+        @endphp
         <div class="space-y-1 mb-4 text-sm">
-            <div class="flex justify-between"><span class="text-white/40">Monthly</span><span class="font-semibold text-white">${{ number_format($addon->monthly_price, 2) }}</span></div>
-            <div class="flex justify-between"><span class="text-white/40">Annual</span><span class="font-semibold text-white">${{ number_format($addon->annual_price, 2) }}</span></div>
+            <div class="flex justify-between">
+                <span class="text-white/40">Monthly</span>
+                <span class="font-semibold text-white">{{ $usdMonthly['formatted'] }} <span class="text-white/30 font-normal">/</span> {{ $inrMonthly['formatted'] }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-white/40">Annual</span>
+                <span class="font-semibold text-white">{{ $usdAnnual['formatted'] }} <span class="text-white/30 font-normal">/</span> {{ $inrAnnual['formatted'] }}</span>
+            </div>
             @if(!is_null($addon->coin_cost))
                 <div class="flex justify-between"><span class="text-white/40">Coin price</span><span class="font-semibold text-amber-300">{{ number_format($addon->coin_cost) }} 🪙</span></div>
             @endif

@@ -15,16 +15,21 @@
             @foreach($items as $li)
                 @php($intro = $li['meta']['intro_discount'] ?? null)
                 @php($term = ($li['meta']['cycle'] ?? null) === 'annual' ? 'year' : 'month')
+                @php($qty = (int) ($li['quantity'] ?? 1))
+                @php($lineTotal = (int) $li['amount_minor'] * $qty)
                 <div class="py-2">
                     <div class="flex items-center justify-between text-white/80">
-                        <span>{{ $li['label'] }}</span>
+                        <span>{{ $li['label'] }}@if($qty > 1) <span class="text-white/40">× {{ $qty }}</span>@endif</span>
                         <span class="font-mono">
                             @if($intro)
                                 <span class="text-white/40 line-through mr-1">{{ number_format(($intro['normal_minor'] ?? 0)/100, 2) }}</span>
                             @endif
-                            {{ number_format($li['amount_minor']/100, 2) }} {{ $currency }}
+                            {{ number_format($lineTotal/100, 2) }} {{ $currency }}
                         </span>
                     </div>
+                    @if($qty > 1)
+                        <div class="text-[11px] text-white/40 mt-0.5">{{ number_format($li['amount_minor']/100, 2) }} {{ $currency }} each</div>
+                    @endif
                     @if($intro)
                         <div class="flex items-center justify-between text-emerald-300/90 text-xs mt-1">
                             <span>Intro discount{{ !empty($intro['percent_off']) ? ' ('.$intro['percent_off'].'% off)' : '' }}</span>
@@ -51,8 +56,10 @@
         @csrf
         <input type="hidden" name="plan_id" value="{{ $plan->id }}">
         <input type="hidden" name="cycle" value="{{ $cycle }}">
-        @foreach($addons as $a)
-            <input type="hidden" name="addons[]" value="{{ $a->id }}">
+        @foreach($items as $li)
+            @if(($li['meta']['kind'] ?? null) === 'addon')
+                <input type="hidden" name="addons[{{ $li['meta']['addon_id'] }}]" value="{{ (int) ($li['meta']['qty'] ?? 1) }}">
+            @endif
         @endforeach
 
         <h2 class="text-white font-medium">Choose a payment method</h2>

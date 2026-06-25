@@ -11,6 +11,9 @@ class User extends Authenticatable
 {
     use HasApiTokens, Notifiable;
 
+    /** Per-instance memo of plan features merged with active subscription addons. */
+    protected ?array $effectivePlanFeaturesCache = null;
+
     protected $fillable = [
         'name', 'email', 'mobile', 'password', 'phone', 'avatar', 'status',
         'plan_id', 'billing_cycle', 'plan_expires_at', 'trial_ends_at',
@@ -868,7 +871,28 @@ class User extends Authenticatable
         if (!$this->plan || !is_array($this->plan->features)) {
             return $default;
         }
-        return $this->plan->features[$key] ?? $default;
+        return $this->effectivePlanFeatures()[$key] ?? $default;
+    }
+
+    /**
+     * Plan features merged with any active subscription addons (quantity
+     * aware — additive `*_extra` keys add `value × qty`). Memoized per
+     * model instance so the hot capability path doesn't re-query the
+     * user's subscription addons on every `getPlanFeature()` call. Falls
+     * back to the bare plan features when there are no addons.
+     */
+    public function effectivePlanFeatures(): array
+    {
+        if ($this->effectivePlanFeaturesCache !== null) {
+            return $this->effectivePlanFeaturesCache;
+        }
+        $base = ($this->plan && is_array($this->plan->features)) ? $this->plan->features : [];
+        $addons = \App\Services\EffectivePlanFeatures::addonsForUser($this);
+        $merged = empty($addons)
+            ? $base
+            : \App\Services\EffectivePlanFeatures::mergeFeatures($base, $addons);
+
+        return $this->effectivePlanFeaturesCache = $merged;
     }
 
     /**
