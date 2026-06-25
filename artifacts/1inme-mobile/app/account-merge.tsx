@@ -44,6 +44,9 @@ export default function AccountMerge() {
   const [resending, setResending] = useState(false);
   const [resentAt, setResentAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Admin "Demo mode" toggle: backend returns the live code so it can be shown
+  // on screen; null when the toggle is off. Refreshed on each (re)send.
+  const [demoReveal, setDemoReveal] = useState<string | null>(null);
   const cooldown = useCooldown(30);
 
   const webBottom = Platform.OS === "web" ? 34 : 0;
@@ -79,6 +82,7 @@ export default function AccountMerge() {
     setPreview(null);
     setKeepPlan("primary");
     setResentAt(null);
+    setDemoReveal(null);
     cooldown.clear();
     setError(null);
   };
@@ -92,7 +96,8 @@ export default function AccountMerge() {
     setBusy(true);
     setError(null);
     try {
-      await mergeChallenge({ kind, value: v });
+      const res = await mergeChallenge({ kind, value: v });
+      setDemoReveal(res.demo_reveal ?? null);
       setResentAt(null);
       cooldown.start();
       setStep("verify");
@@ -109,7 +114,8 @@ export default function AccountMerge() {
     setResending(true);
     setError(null);
     try {
-      await mergeChallenge({ kind, value: v });
+      const res = await mergeChallenge({ kind, value: v });
+      setDemoReveal(res.demo_reveal ?? null);
       setResentAt(Date.now());
       cooldown.start();
     } catch (e) {
@@ -224,6 +230,22 @@ export default function AccountMerge() {
               sub={`We sent a 6-digit code to ${value.trim()}. Enter it to prove you own that account.`}
             />
             <View style={{ height: 20 }} />
+            {demoReveal ? (
+              <View
+                style={[
+                  styles.demoBanner,
+                  {
+                    backgroundColor: colors.primary + "14",
+                    borderColor: colors.primary + "55",
+                    borderRadius: colors.radius,
+                  },
+                ]}
+              >
+                <Text style={[styles.demoBannerText, { color: colors.foreground }]}>
+                  {demoReveal}
+                </Text>
+              </View>
+            ) : null}
             <TextField
               label="Verification code"
               placeholder="123456"
@@ -446,6 +468,17 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   toggleRow: { flexDirection: "row", gap: 10 },
+  demoBanner: {
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+  },
+  demoBannerText: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 14,
+    lineHeight: 20,
+  },
   card: { borderWidth: 1, padding: 16, gap: 10 },
   cardTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
   muted: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13, lineHeight: 19 },

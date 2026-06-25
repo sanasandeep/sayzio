@@ -26,6 +26,7 @@ class AuthSettingsController extends Controller
             'emailPasswordEnabled'       => AuthMethods::emailPasswordEnabled(),
             'emailOtpEnabled'            => AuthMethods::emailOtpEnabled(),
             'emailVerificationRequired'  => AuthMethods::emailVerificationRequired(),
+            'demoRevealOtpEnabled'       => AuthMethods::demoRevealOtpEnabled(),
             'allowedCodesText'     => implode("\n", AuthMethods::allowedCountryCodes()),
             'credsConfigured'      => (bool) $credsConfigured,
         ]);
@@ -37,6 +38,7 @@ class AuthSettingsController extends Controller
             'email_password_enabled'       => ['nullable', 'boolean'],
             'email_otp_enabled'            => ['nullable', 'boolean'],
             'email_verification_required'  => ['nullable', 'boolean'],
+            'demo_reveal_otp_enabled'      => ['nullable', 'boolean'],
             'mobile_login_enabled'         => ['nullable', 'boolean'],
             'allowed_country_codes'        => ['nullable', 'string', 'max:2000'],
         ]);
@@ -68,6 +70,10 @@ class AuthSettingsController extends Controller
         AppSetting::put(
             AuthMethods::SETTING_EMAIL_VERIFICATION_REQUIRED,
             (bool) ($data['email_verification_required'] ?? false)
+        );
+        AppSetting::put(
+            AuthMethods::SETTING_DEMO_REVEAL_OTP,
+            (bool) ($data['demo_reveal_otp_enabled'] ?? false)
         );
         AppSetting::put(AuthMethods::SETTING_MOBILE_ENABLED, (bool) ($data['mobile_login_enabled'] ?? false));
         AppSetting::put(AuthMethods::SETTING_ALLOWED_CODES, $codes);

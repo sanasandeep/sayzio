@@ -51,6 +51,7 @@
                             <button type="button" @click="step='identifier'; otp=''" class="px-3 py-2 rounded-lg text-xs opacity-80">← Back</button>
                             <button :disabled="verifying" class="flex-1 px-4 py-2 rounded-lg text-sm font-bold bg-violet-600 hover:bg-violet-500" x-text="verifying ? 'Verifying…' : (creatorId ? 'Verify & follow' : 'Verify')"></button>
                         </div>
+                        <button type="button" @click="sendOtp()" :disabled="sending" class="w-full text-xs font-medium text-violet-300 hover:text-violet-200 mt-1" x-text="sending ? 'Resending…' : 'Resend code'"></button>
                     </form>
                 </template>
                 <p class="text-xs mt-3 opacity-90" x-show="message" x-text="message"></p>
@@ -123,7 +124,12 @@ function viewerLoginModal(creatorId, initialMe) {
             try {
                 const r = await fetch('/viewer/otp/send', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':this.csrf,'Accept':'application/json'}, body: JSON.stringify({identifier:this.identifier, type:this.channel})});
                 const d = await r.json();
-                if (r.ok) { this.step='otp'; this.message='Code sent — check your '+(this.channel==='email'?'inbox':'messages')+'.'; }
+                if (r.ok) {
+                    this.step='otp';
+                    // Demo mode (admin toggle): when on, the backend returns
+                    // the actual code so it can be shown on screen.
+                    this.message = d.demo_reveal || ('Code sent — check your '+(this.channel==='email'?'inbox':'messages')+'.');
+                }
                 else this.message = d.message || 'Could not send code.';
             } catch(e) { this.message = 'Network error.'; }
             this.sending = false;

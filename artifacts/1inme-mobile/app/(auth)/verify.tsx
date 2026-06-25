@@ -31,6 +31,7 @@ export default function Verify() {
     channel?: string;
     identifier?: string;
     challenge_token?: string;
+    demo_reveal?: string;
   }>();
   const channel = (params.channel === "mobile" ? "mobile" : "email") as
     | "email"
@@ -46,6 +47,12 @@ export default function Verify() {
   const [busy, setBusy] = useState<null | "verify" | "resend">(null);
   const [error, setError] = useState<string | null>(null);
   const [resentAt, setResentAt] = useState<number | null>(null);
+  // Admin "Demo mode" toggle: when on, the backend returns the actual code so
+  // it can be shown on screen (no real inbox/phone needed). Seeded from the
+  // send screen and refreshed on every resend.
+  const [demoReveal, setDemoReveal] = useState<string | null>(
+    params.demo_reveal ? String(params.demo_reveal) : null,
+  );
   const cooldown = useCooldown(30);
 
   const verify = async () => {
@@ -93,7 +100,8 @@ export default function Verify() {
   const resend = async () => {
     setBusy("resend");
     try {
-      await sendOtp({ channel, identifier });
+      const { demoReveal: revealed } = await sendOtp({ channel, identifier });
+      setDemoReveal(revealed);
       setResentAt(Date.now());
       cooldown.start();
     } catch (e) {
@@ -126,6 +134,23 @@ export default function Verify() {
         </Text>
 
         <View style={{ height: 24 }} />
+
+        {mode === "otp" && demoReveal ? (
+          <View
+            style={[
+              styles.demoBanner,
+              {
+                backgroundColor: colors.primary + "14",
+                borderColor: colors.primary + "55",
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <Text style={[styles.demoBannerText, { color: colors.foreground }]}>
+              {demoReveal}
+            </Text>
+          </View>
+        ) : null}
 
         <TextField
           label={mode === "backup" ? "Backup code" : "Verification code"}
@@ -204,5 +229,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     marginTop: 6,
+  },
+  demoBanner: {
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+  },
+  demoBannerText: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

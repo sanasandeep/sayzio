@@ -85,7 +85,7 @@ type Ctx = AuthState & {
   sendOtp: (input: {
     channel: "email" | "mobile";
     identifier: string;
-  }) => Promise<void>;
+  }) => Promise<{ demoReveal: string | null }>;
   verifyOtp: (input: {
     channel: "email" | "mobile";
     identifier: string;
@@ -441,13 +441,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Backend OtpController + OpenAPI require `{ identifier, type }`.
       // The previous payload `{ channel, [channel]: identifier }` was the
       // source of broken email/SMS login — it 422'd on every request.
-      await apiFetch("/auth/otp/send", {
+      // `demo_reveal` is populated only when the admin "Demo mode" toggle is
+      // on AND a real code was issued; the screen surfaces it on-screen.
+      const res = await apiFetch<{
+        data?: { demo_reveal?: string | null };
+        demo_reveal?: string | null;
+      }>("/auth/otp/send", {
         method: "POST",
         body: JSON.stringify({
           identifier: input.identifier,
           type: input.channel,
         }),
       });
+      return { demoReveal: res.data?.demo_reveal ?? res.demo_reveal ?? null };
     },
     [],
   );

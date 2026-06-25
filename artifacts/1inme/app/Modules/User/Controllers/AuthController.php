@@ -146,7 +146,8 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('user.otp.verify.form')
-            ->with('status', 'Account created. We sent a 6-digit code to ' . $user->email . '.');
+            ->with('status', 'Account created. We sent a 6-digit code to ' . $user->email . '.')
+            ->with('otp_demo_reveal', AuthMethods::demoRevealMessage($code));
     }
 
     public function showLogin()
@@ -289,7 +290,9 @@ class AuthController extends Controller
         // the verify-otp POST has to be made from a freshly-issued token.
         $request->session()->regenerateToken();
 
-        return redirect()->route('user.otp.verify.form')->with('status', 'OTP sent to your ' . $type . '.');
+        return redirect()->route('user.otp.verify.form')
+            ->with('status', 'OTP sent to your ' . $type . '.')
+            ->with('otp_demo_reveal', AuthMethods::demoRevealMessage($code));
     }
 
     public function resendOtp(Request $request)
@@ -318,9 +321,13 @@ class AuthController extends Controller
         // Always show a generic success so we don't leak account existence.
         $user = $this->resolveUserByIdentifier($identifier, $type);
 
+        // Only reveal a code we actually generated below — the account-hiding
+        // branch (no $user) must never surface one.
+        $reveal = null;
         if ($user) {
             $otpService = new OtpService();
             $code = $otpService->generate($identifier, $type, 'login', 'web', $request->ip());
+            $reveal = AuthMethods::demoRevealMessage($code);
             try {
                 if ($type === 'email') {
                     $otpService->sendEmail($identifier, $code);
@@ -332,7 +339,9 @@ class AuthController extends Controller
             }
         }
 
-        return back()->with('status', 'If your account exists, a new code was sent to your ' . $type . '.');
+        return back()
+            ->with('status', 'If your account exists, a new code was sent to your ' . $type . '.')
+            ->with('otp_demo_reveal', $reveal);
     }
 
     public function showOtpVerify()

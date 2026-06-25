@@ -56,7 +56,9 @@ class LinkedIdentifierController extends Controller
         }
 
         session(['linked_identifier_pending' => ['kind' => $kind, 'value' => $value]]);
-        return back()->with('status', 'Verification code sent to ' . $value . '.');
+        return back()
+            ->with('status', 'Verification code sent to ' . $value . '.')
+            ->with('otp_demo_reveal', \App\Modules\Common\Support\AuthMethods::demoRevealMessage($code));
     }
 
     public function confirm(Request $request)

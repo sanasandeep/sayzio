@@ -9,6 +9,7 @@
     @if (session('success'))<div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm">{{ session('success') }}</div>@endif
     @if (session('error'))<div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-sm">{{ session('error') }}</div>@endif
     @if (session('status'))<div class="mb-4 p-3 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-200 text-sm">{{ session('status') }}</div>@endif
+    @if (session('otp_demo_reveal'))<div class="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm font-semibold"><i class="fas fa-flask text-[10px] mr-1"></i>{{ session('otp_demo_reveal') }}</div>@endif
 
     <div class="glass rounded-2xl p-6 mb-6">
         <h2 class="text-lg font-semibold text-white mb-4">Your identifiers</h2>

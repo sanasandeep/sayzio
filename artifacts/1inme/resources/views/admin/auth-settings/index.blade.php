@@ -98,6 +98,36 @@
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
+                <h2 class="text-base font-semibold text-white">Demo mode</h2>
+                <p class="text-xs text-white/50">For demos and reviews where a real inbox or phone isn't available.</p>
+            </div>
+
+            <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">
+                <input type="hidden" name="demo_reveal_otp_enabled" value="0">
+                <input type="checkbox"
+                       name="demo_reveal_otp_enabled"
+                       value="1"
+                       @checked(old('demo_reveal_otp_enabled', $demoRevealOtpEnabled))
+                       class="mt-1 w-5 h-5 accent-violet-500 cursor-pointer">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-semibold text-white">Reveal one-time codes on screen</span>
+                        @if($demoRevealOtpEnabled)
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-white/50 mt-0.5">
+                        When on, every verification code is shown to the user on the screen right after it's sent (login, sign-up, account merge, and adding a new email/phone). Codes are still emailed/messaged as usual — this only also displays them.
+                    </p>
+                    <p class="text-xs text-amber-300/80 mt-1">
+                        Turn this <strong>off</strong> for production: while on, anyone reaching a verification screen can read the live code.
+                    </p>
+                </div>
+            </label>
+        </div>
+
+        <div class="glass rounded-2xl p-6 space-y-4">
+            <div>
                 <h2 class="text-base font-semibold text-white">WhatsApp login</h2>
                 <p class="text-xs text-white/50">When off, email is the only way to sign in or reset access.</p>
             </div>

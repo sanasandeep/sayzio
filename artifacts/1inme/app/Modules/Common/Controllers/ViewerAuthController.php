@@ -58,7 +58,10 @@ class ViewerAuthController extends Controller
             ], 502);
         }
 
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success'     => true,
+            'demo_reveal' => \App\Modules\Common\Support\AuthMethods::demoRevealMessage($code),
+        ]);
     }
 
     public function verifyOtp(Request $request)

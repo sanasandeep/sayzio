@@ -72,10 +72,11 @@ class AccountMergeController extends Controller
         // Generic success either way so a request can't enumerate which
         // identifiers map to a real account.
         return $this->ok([
-            'sent'    => true,
-            'kind'    => $kind,
-            'value'   => $value,
-            'message' => 'If that account exists, a verification code has been sent.',
+            'sent'        => true,
+            'kind'        => $kind,
+            'value'       => $value,
+            'message'     => 'If that account exists, a verification code has been sent.',
+            'demo_reveal' => \App\Modules\Common\Support\AuthMethods::demoRevealMessage($code),
         ]);
     }
 

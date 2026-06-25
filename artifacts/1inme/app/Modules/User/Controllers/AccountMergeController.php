@@ -63,7 +63,8 @@ class AccountMergeController extends Controller
             'merge_primary_id'        => Auth::id(),
         ]);
         return redirect()->route('user.otp.verify.form')
-            ->with('status', 'Code sent to ' . $value . '. Enter it to continue the merge.');
+            ->with('status', 'Code sent to ' . $value . '. Enter it to continue the merge.')
+            ->with('otp_demo_reveal', \App\Modules\Common\Support\AuthMethods::demoRevealMessage($code));
     }
 
     /** Step 3: show what will move and (if needed) let the user choose a plan. */

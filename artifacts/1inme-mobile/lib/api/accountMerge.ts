@@ -14,6 +14,9 @@ export type MergeChallengeResult = {
   kind: string;
   value: string;
   message: string;
+  // Admin "Demo mode" toggle: the actual code, prefixed for on-screen display,
+  // or null when the toggle is off.
+  demo_reveal?: string | null;
 };
 
 export type MergePreviewItem = {

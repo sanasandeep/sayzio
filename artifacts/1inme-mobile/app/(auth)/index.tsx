@@ -210,10 +210,14 @@ export default function AuthLanding() {
     setError(null);
     setBusy("otp");
     try {
-      await sendOtp({ channel, identifier: id });
+      const { demoReveal } = await sendOtp({ channel, identifier: id });
       router.push({
         pathname: "/(auth)/verify",
-        params: { channel, identifier: id },
+        params: {
+          channel,
+          identifier: id,
+          ...(demoReveal ? { demo_reveal: demoReveal } : {}),
+        },
       });
     } catch (e) {
       const err = e as ApiError;

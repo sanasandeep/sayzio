@@ -51,9 +51,13 @@ class OtpController extends Controller
         $user = $this->resolve($data['identifier'], $data['type']);
 
         // Always issue + try to send when a real user exists. Generic
-        // success either way to avoid enumeration.
+        // success either way to avoid enumeration. Only a code we actually
+        // generated (real account) is ever eligible for demo reveal — the
+        // account-hiding branch must never surface one.
+        $reveal = null;
         if ($user) {
             $code = $otp->generate($data['identifier'], $data['type'], 'login', 'web', $request->ip());
+            $reveal = AuthMethods::demoRevealMessage($code);
             try {
                 $data['type'] === 'email'
                     ? $otp->sendEmail($data['identifier'], $code)
@@ -64,8 +68,9 @@ class OtpController extends Controller
         }
 
         return $this->ok([
-            'sent'    => true,
-            'message' => 'If an account exists, a verification code has been sent.',
+            'sent'        => true,
+            'message'     => 'If an account exists, a verification code has been sent.',
+            'demo_reveal' => $reveal,
         ]);
     }
 
@@ -151,9 +156,10 @@ class OtpController extends Controller
         }
 
         return $this->created([
-            'sent'    => true,
-            'user_id' => $user->id,
-            'message' => 'Account created. A verification code has been sent.',
+            'sent'        => true,
+            'user_id'     => $user->id,
+            'message'     => 'Account created. A verification code has been sent.',
+            'demo_reveal' => AuthMethods::demoRevealMessage($code),
         ]);
     }
 

@@ -26,6 +26,15 @@ class AuthMethods
 
     public const SETTING_EMAIL_VERIFICATION_REQUIRED = 'auth_email_verification_required';
 
+    /**
+     * Demo mode: when on, the actual one-time code is surfaced on screen
+     * after it is sent (alongside the normal email/WhatsApp delivery). This
+     * exists so reviewers and demo accounts can complete OTP sign-in without
+     * access to a real inbox/phone. It NEVER changes how codes are generated,
+     * delivered, or expired — it only reveals an already-issued code.
+     */
+    public const SETTING_DEMO_REVEAL_OTP = 'auth_demo_reveal_otp_enabled';
+
     /** Seeded defaults when an admin has never saved the settings. */
     public const DEFAULT_ALLOWED_CODES = ['+91', '+1'];
 
@@ -46,6 +55,13 @@ class AuthMethods
      * skipped regardless of this setting.
      */
     public const DEFAULT_EMAIL_VERIFICATION_REQUIRED = true;
+
+    /**
+     * Demo-reveal defaults ON so out-of-the-box demo/review environments can
+     * complete OTP sign-in without a real inbox. Admins switch it off for
+     * production-grade privacy.
+     */
+    public const DEFAULT_DEMO_REVEAL_OTP = true;
 
     /** Is WhatsApp (mobile) login switched on by an admin? */
     public static function mobileLoginEnabled(): bool
@@ -98,6 +114,35 @@ class AuthMethods
     public static function emailVerificationMeaningful(): bool
     {
         return self::emailOtpEnabled() || self::emailPasswordEnabled();
+    }
+
+    /**
+     * Is "Demo mode (reveal OTP on screen)" switched on? When on, a freshly
+     * issued code is shown to the user after it's sent. Defaults to ON.
+     */
+    public static function demoRevealOtpEnabled(): bool
+    {
+        return (bool) AppSetting::get(
+            self::SETTING_DEMO_REVEAL_OTP,
+            self::DEFAULT_DEMO_REVEAL_OTP
+        );
+    }
+
+    /**
+     * Build the on-screen "for demo purposes" reveal line for a just-issued
+     * code, or null when demo mode is off / no real code was generated.
+     *
+     * Callers MUST pass the actual code returned by OtpService::generate and
+     * only when a real code was issued (i.e. a matching account existed) — so
+     * passing null here for account-existence-hiding branches safely reveals
+     * nothing.
+     */
+    public static function demoRevealMessage(?string $code): ?string
+    {
+        if (!self::demoRevealOtpEnabled() || $code === null || $code === '') {
+            return null;
+        }
+        return 'For demo purposes only — your verification code is ' . $code;
     }
 
     /**

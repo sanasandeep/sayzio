@@ -42,6 +42,12 @@
                 </div>
             @endif
 
+            @if(session('otp_demo_reveal'))
+                <div class="mb-4 p-3 rounded-xl text-amber-300 text-xs font-semibold" style="border: 1px solid rgba(245,158,11,0.25); background: rgba(245,158,11,0.08);">
+                    <i class="fas fa-flask text-[10px] mr-1"></i> {{ session('otp_demo_reveal') }}
+                </div>
+            @endif
+
             @if($errors->any())
                 <div class="mb-4 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">
                     @foreach($errors->all() as $error) <p>{{ $error }}</p> @endforeach
