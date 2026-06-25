@@ -79,7 +79,7 @@
       [
         "expo-router",
         {
-          "origin": "https://1in.me/"
+          "origin": "https://sayzio.app/"
         }
       ],
       "expo-font",

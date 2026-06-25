@@ -3,7 +3,7 @@ import Constants from "expo-constants";
 
 import { getToken } from "@/lib/secure";
 
-const FALLBACK_HOST = "1in.me";
+const FALLBACK_HOST = "sayzio.app";
 
 const APP_VERSION =
   (Constants?.expoConfig?.version as string | undefined) ?? "1.0.0";
