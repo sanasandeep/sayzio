@@ -5,6 +5,7 @@ namespace App\Modules\Common\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Models\SitePage;
+use App\Modules\Common\Support\PlatformHosts;
 use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\User\Models\BillingAddress;
 use App\Services\PricingResolver;
@@ -16,6 +17,17 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
+        // The short-link brand domain (1in.me) is dedicated to links/profiles;
+        // its bare root has no home of its own. Permanently redirect the root to
+        // the canonical primary brand domain (sayzio.app) so search engines
+        // consolidate there. Only recognised non-primary brand domains redirect:
+        // dev/preview hosts (Replit dev domain, localhost) and sayzio.app itself
+        // keep rendering the marketing page below. Short links and profiles are
+        // served by the catch-all route, not here, so they are unaffected.
+        if (PlatformHosts::isNonPrimaryBrandDomain($request->getHost())) {
+            return redirect()->away('https://' . PlatformHosts::primaryBrandDomain() . '/', 301);
+        }
+
         $user = $request->user();
         $currency = PricingResolver::currencyForUser($user);
         $currencySource = PricingResolver::currencySourceForUser($user);

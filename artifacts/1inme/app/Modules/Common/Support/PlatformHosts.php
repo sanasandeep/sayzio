@@ -131,6 +131,34 @@ class PlatformHosts
     }
 
     /**
+     * The canonical primary brand domain — the public host the product
+     * should consolidate on (currently sayzio.app). This is the first
+     * entry of PLATFORM_DOMAINS, normalised. Returns null only if no
+     * brand domains are configured.
+     */
+    public static function primaryBrandDomain(): ?string
+    {
+        $brands = self::brandDomains();
+        return $brands[0] ?? null;
+    }
+
+    /**
+     * True when $host is a recognised brand domain that is NOT the canonical
+     * primary brand domain (e.g. the short-link domain 1in.me while sayzio.app
+     * is primary). Dev/preview hosts (Replit dev domain, localhost) and the
+     * primary brand domain itself return false, so callers can safely use this
+     * to gate a "consolidate onto the primary brand" redirect.
+     */
+    public static function isNonPrimaryBrandDomain(?string $host): bool
+    {
+        $normalized = self::normalize($host);
+        if ($normalized === null) return false;
+        $primary = self::primaryBrandDomain();
+        if ($primary !== null && $normalized === $primary) return false;
+        return in_array($normalized, self::brandDomains(), true);
+    }
+
+    /**
      * Every host that should be treated as "the platform": the canonical
      * brand domains (sayzio.app, 1in.me) plus whatever APP_URL / Replit env
      * advertise via configured(). Brand domains come first so the platform's
