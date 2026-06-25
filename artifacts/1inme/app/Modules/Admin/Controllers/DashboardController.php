@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Support\ExpectedSchemaHealth;
 use App\Modules\Common\Support\SchemaHealth;
+use App\Modules\Common\Support\StatsStorageHealth;
 use App\Modules\Common\Support\WorkspaceColumnHealth;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Admin;
@@ -44,7 +45,11 @@ class DashboardController extends Controller
         // never re-run). Cached.
         $expectedSchemaHealth = ExpectedSchemaHealth::cached();
 
-        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth'));
+        // Proactive unbounded-analytics-growth warning: a high-volume stats
+        // table is over the alert threshold AND nothing will prune it. Cached.
+        $statsStorage = StatsStorageHealth::cached();
+
+        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage'));
     }
 
     /**

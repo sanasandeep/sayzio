@@ -441,6 +441,8 @@ class AdminAccessController extends Controller
             // only a super-admin may add/remove entries (mirrors the web).
             'view_protected'   => (bool) $admin?->hasPermission('users.view'),
             'manage_protected' => (bool) ($admin && $admin->isSuperAdmin()),
+            // Analytics-storage panel + mail/platform settings parity.
+            'manage_settings'  => (bool) $admin?->hasPermission('settings.manage'),
         ];
     }
 }

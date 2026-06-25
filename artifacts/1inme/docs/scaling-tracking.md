@@ -154,6 +154,22 @@ Relevant AppSettings:
 - `stats.alert_row_threshold` — estimated row count that triggers the growth alert.
 - `stats.prune.last_run` — last run's outcome (for the admin dashboard / audit).
 
+The retention rules above are resolved through `Common\Support\StatsRetentionPolicy`
+(single source for the prune command + the admin read surfaces) and surfaced as a
+cached read model by `Common\Support\StatsStorageHealth`.
+
+### Admin UI
+
+Admins don't need shell access to see or bound this growth:
+- **Web**: `/admin/stats-storage` (System nav → "Analytics Storage", gated by
+  `settings.manage`) shows the effective retention window + reason, plan retention,
+  hard cap, per-table estimated row counts with an over-threshold badge, and the last
+  sweep outcome — and lets an admin set or clear `stats.hard_max_days` and
+  `stats.alert_row_threshold`. The admin dashboard also raises an amber banner when a
+  table is growing unbounded.
+- **Mobile**: same panel at `/admin/stats-storage` over `GET|PUT /api/v1/admin/stats-storage`
+  (gated by `settings.manage`, exposed as the `manage_settings` capability).
+
 ## Load / latency verification
 
 `tracking:verify-scale` seeds synthetic clicks (tagged `utm_source='verify-scale'`)

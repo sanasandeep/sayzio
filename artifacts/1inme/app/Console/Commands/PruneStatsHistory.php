@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Modules\Admin\Models\AppSetting;
-use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Services\NotificationService;
 use App\Modules\Common\Support\PartitionManager;
+use App\Modules\Common\Support\StatsRetentionPolicy;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -45,13 +45,7 @@ class PruneStatsHistory extends Command
     protected $description = 'Prune click/session history by plan retention with a hard physical safety cap and growth visibility.';
 
     /** Tables to prune, keyed by their "created" timestamp column. */
-    private const TABLES = [
-        'link_clicks'   => 'clicked_at',
-        'page_sessions' => 'started_at',
-    ];
-
-    /** Default estimated-row threshold above which we raise an admin alert. */
-    private const DEFAULT_ALERT_THRESHOLD = 50_000_000;
+    private const TABLES = StatsRetentionPolicy::TABLES;
 
     public function handle(PartitionManager $partitions): int
     {
@@ -142,18 +136,7 @@ class PruneStatsHistory extends Command
      */
     private function effectiveRetention(int $planRetention, ?int $hardMax): array
     {
-        if ($planRetention === -1) {
-            if ($hardMax !== null && $hardMax > 0) {
-                return [$hardMax, 'unlimited plan retention bounded by hard cap'];
-            }
-            return [null, 'a plan retains stats forever and no hard cap is set'];
-        }
-
-        if ($hardMax !== null && $hardMax > 0) {
-            return [min($planRetention, $hardMax), 'min(plan retention, hard cap)'];
-        }
-
-        return [$planRetention, 'plan retention'];
+        return StatsRetentionPolicy::effectiveRetention($planRetention, $hardMax);
     }
 
     private function hardMaxDays(): ?int
@@ -162,12 +145,7 @@ class PruneStatsHistory extends Command
         if ($override !== null && $override !== '') {
             return max(1, (int) $override);
         }
-        $configured = AppSetting::get('stats.hard_max_days');
-        if ($configured === null || $configured === '') {
-            return null;
-        }
-        $days = (int) $configured;
-        return $days > 0 ? $days : null;
+        return StatsRetentionPolicy::hardMaxDays();
     }
 
     /**
@@ -177,7 +155,7 @@ class PruneStatsHistory extends Command
      */
     private function reportSizesAndAlert(array &$report, ?int $effectiveDays, ?int $hardMax): void
     {
-        $threshold = (int) (AppSetting::get('stats.alert_row_threshold') ?? self::DEFAULT_ALERT_THRESHOLD);
+        $threshold = StatsRetentionPolicy::alertThreshold();
 
         foreach (self::TABLES as $table => $column) {
             if (!Schema::hasTable($table)) {
@@ -208,29 +186,7 @@ class PruneStatsHistory extends Command
      */
     private function largestRetentionDays(): int
     {
-        $plans = Plan::where('status', 'active')->get(['features']);
-        if ($plans->isEmpty()) {
-            return -1;
-        }
-
-        $max = 30;
-        foreach ($plans as $plan) {
-            $raw = $plan->features['stats_retention_days'] ?? null;
-            if ($raw === null) {
-                return -1;
-            }
-            $days = (int) $raw;
-            if ($days === -1) {
-                return -1;
-            }
-            if ($days < 30) {
-                $days = 30;
-            }
-            if ($days > $max) {
-                $max = $days;
-            }
-        }
-        return $max;
+        return StatsRetentionPolicy::largestRetentionDays();
     }
 
     /**
@@ -263,16 +219,7 @@ class PruneStatsHistory extends Command
     /** Fast row estimate from planner statistics (avoids count(*) on huge tables). */
     private function estimateRows(string $table): int
     {
-        try {
-            $row = DB::selectOne(
-                'SELECT reltuples::bigint AS n FROM pg_class WHERE relname = ? LIMIT 1',
-                [$table]
-            );
-            $n = $row ? (int) $row->n : 0;
-            return $n < 0 ? 0 : $n;
-        } catch (\Throwable $e) {
-            return 0;
-        }
+        return StatsRetentionPolicy::estimateRows($table);
     }
 
     private function estimateOlderThan(string $table, string $column, \DateTimeInterface $cutoff): int

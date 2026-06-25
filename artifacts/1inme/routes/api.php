@@ -299,6 +299,12 @@ Route::prefix('v1')->group(function () {
         Route::get ('/admin/schema-health/audits', [\App\Modules\Api\Controllers\SchemaHealthController::class, 'audits']);
         Route::post('/admin/schema-health/repair', [\App\Modules\Api\Controllers\SchemaHealthController::class, 'repair'])->middleware('throttle:10,1');
 
+        // Analytics-storage health parity (Task #2356): read analytics-history
+        // growth + retention and set/clear the hard cap + growth-alert
+        // threshold. Mirrors the web admin panel, gated behind `settings.manage`.
+        Route::get('/admin/stats-storage', [\App\Modules\Api\Controllers\StatsStorageController::class, 'status']);
+        Route::put('/admin/stats-storage', [\App\Modules\Api\Controllers\StatsStorageController::class, 'update']);
+
         // Cron jobs reference (super-admin parity). Read-only list of the
         // required scheduled jobs plus the single master crontab line, derived
         // live from routes/console.php via CronJobsInspector and mirroring the

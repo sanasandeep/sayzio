@@ -316,6 +316,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('users/{user}/send', [\App\Modules\Admin\Controllers\StarterRenewalReminderController::class, 'sendReminder'])->middleware(CheckPermission::class . ':settings.manage')->name('users.send');
         });
 
+        Route::prefix('stats-storage')->name('stats-storage.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\StatsStorageController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::put('/', [\App\Modules\Admin\Controllers\StatsStorageController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+
         Route::prefix('mail-settings')->name('mail-settings.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::put('/', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');

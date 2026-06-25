@@ -19,6 +19,8 @@ export type AdminCapabilities = {
   // add/remove needs `manage_protected` (super-admin only).
   view_protected: boolean;
   manage_protected: boolean;
+  // Platform settings (analytics storage, mail) — needs `settings.manage`.
+  manage_settings: boolean;
 };
 
 export type AdminContext = {

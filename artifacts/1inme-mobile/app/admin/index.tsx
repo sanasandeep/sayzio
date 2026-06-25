@@ -20,7 +20,7 @@ import { getAdminContext, type AdminCapabilities } from "@/lib/api/admin";
 // /admin/context, mirroring the web back-office.
 
 type Row = {
-  key: keyof AdminCapabilities | "mail" | "schema-audits";
+  key: keyof AdminCapabilities | "mail" | "schema-audits" | "stats-storage";
   icon: keyof typeof Feather.glyphMap;
   label: string;
   description: string;
@@ -56,6 +56,14 @@ export default function AdminHubScreen() {
       description: "Accounts that can never be deleted or suspended",
       href: "/admin/protected-accounts",
       enabled: !!can?.view_protected,
+    },
+    {
+      key: "stats-storage",
+      icon: "hard-drive",
+      label: "Analytics storage",
+      description: "Analytics growth, retention & storage limits",
+      href: "/admin/stats-storage",
+      enabled: !!can?.manage_settings,
     },
   ];
 
