@@ -115,6 +115,27 @@ final class BlockTypeRegistry
     ];
 
     /**
+     * Legacy / friendly slugs that appear only in plan `block_types_allowed`
+     * allowlists (seeded or hand-typed) and never as a real `links` block
+     * `type`. Unlike {@see ALIASES}, these are display-only synonyms — they
+     * are NOT valid POST types, so a single friendly slug may fan out to
+     * SEVERAL canonical block types (e.g. "tiktok" → both TikTok blocks).
+     *
+     * The pricing page used to humanize these gracefully for display, but
+     * the editor gate compared the canonical POST type (`link`, `socials`,
+     * `tiktok_video`) against the raw allowlist (`link_button`,
+     * `social_icons`, `tiktok`), so what we advertised didn't match what we
+     * enforced. {@see canonicalizeAllowlist()} resolves these so gating and
+     * display agree.
+     */
+    private const ALLOWLIST_ALIASES = [
+        'link_button'  => ['link'],
+        'social_icons' => ['socials'],
+        'tiktok'       => ['tiktok_video', 'tiktok_profile'],
+        'twitter'      => ['twitter_profile', 'twitter_tweet', 'twitter_video'],
+    ];
+
+    /**
      * New canonical types added by Task #1090. Each entry is the same
      * shape as a `BiolinkBlock::TYPES` row, with optional `meta` for
      * editor-side mode/size/layout metadata.
@@ -282,6 +303,52 @@ final class BlockTypeRegistry
     public static function canonical(string $type): string
     {
         return self::ALIASES[$type]['canonical'] ?? $type;
+    }
+
+    /**
+     * Expand a single plan-allowlist slug to the real block type(s) it
+     * permits.
+     *
+     * IMPORTANT: this resolves friendly allowlist-only synonyms
+     * ({@see ALLOWLIST_ALIASES}) ONLY — those are display strings that are
+     * not themselves valid `links` block types (e.g. `tiktok` fans out to
+     * both real TikTok blocks). Real block types — including those the
+     * editor-side {@see ALIASES} map treats as "modes" of another type
+     * (`cta_button`, `link_big`, `paragraph`, `markdown`, …) — are returned
+     * UNCHANGED. We must not collapse them onto a canonical here: gating and
+     * the AI block catalog match on the raw type string, so a plan that
+     * allows `link` but not `cta_button` must keep enforcing that
+     * distinction.
+     */
+    public static function expandAllowlistSlug(string $slug): array
+    {
+        if (isset(self::ALLOWLIST_ALIASES[$slug])) {
+            return self::ALLOWLIST_ALIASES[$slug];
+        }
+        return [$slug];
+    }
+
+    /**
+     * Normalize a whole `block_types_allowed` list to real block-type slugs,
+     * expanding friendly synonyms ({@see ALLOWLIST_ALIASES}) and
+     * de-duplicating while preserving every real type unchanged. The `'*'`
+     * sentinel is handled by callers, not here. Used by gating
+     * ({@see \App\Modules\User\Models\User::userCanUseBlockType}), the
+     * pricing matrix, and the data migration so "what we show" == "what we
+     * enforce".
+     */
+    public static function canonicalizeAllowlist(array $slugs): array
+    {
+        $out = [];
+        foreach ($slugs as $slug) {
+            if (!is_string($slug) || $slug === '') {
+                continue;
+            }
+            foreach (self::expandAllowlistSlug($slug) as $canonical) {
+                $out[$canonical] = true;
+            }
+        }
+        return array_keys($out);
     }
 
     /**

@@ -903,7 +903,14 @@ class User extends Authenticatable
         $allowed = $this->getPlanFeature('block_types_allowed', '*');
         if ($allowed === '*' || $allowed === null || $allowed === '') return true;
         if (!is_array($allowed)) return true;
-        return in_array($slug, $allowed, true);
+        // Resolve friendly allowlist-only synonyms (e.g. `link_button`,
+        // `social_icons`, `tiktok`, `twitter`) to the real block types the
+        // editor actually POSTs (`link`, `socials`, `tiktok_video`, …), then
+        // match the requested type as-is. Real types are never collapsed, so
+        // a plan that allows `link` but not `cta_button` keeps enforcing that.
+        // Keeps "what pricing shows" == "what we enforce".
+        $normalized = \App\Modules\User\Support\BlockTypeRegistry::canonicalizeAllowlist($allowed);
+        return in_array($slug, $normalized, true);
     }
 
     /**

@@ -790,12 +790,14 @@
             ];
 
             // Resolve a biolink block-type slug to a human-readable label.
-            // Friendly names come from the live block registry; any slug
-            // that isn't in the picker (legacy / renamed) degrades to a
-            // humanized version of the slug rather than a raw token.
-            $blockPicker = \App\Modules\User\Models\BiolinkBlock::pickerTypes();
-            $blockLabel = function (string $slug) use ($blockPicker) {
-                $label = $blockPicker[$slug]['label'] ?? null;
+            // Friendly names come from the live block registry (the full TYPES
+            // map, including consolidated "_alias" entries like `paragraph`),
+            // so allowlists normalized to real types read straight from the
+            // registry. Any genuinely unknown slug degrades to a humanized
+            // version rather than a raw token.
+            $blockTypes = \App\Modules\User\Models\BiolinkBlock::TYPES;
+            $blockLabel = function (string $slug) use ($blockTypes) {
+                $label = $blockTypes[$slug]['label'] ?? null;
                 if ($label) return $label;
                 $clean = preg_replace('/_v\d+$/', '', $slug);
                 return \Illuminate\Support\Str::title(str_replace(['_', '-'], ' ', $clean));
@@ -829,6 +831,10 @@
                     $val = $features[$key] ?? null;
                     if ($val === '*') return ['num' => PHP_INT_MAX, 'name' => 'All biolink blocks', 'desc' => $e['desc'], 'blocks' => null];
                     if (is_array($val) && count($val) > 0) {
+                        // Resolve friendly / legacy allowlist slugs to canonical
+                        // block types first, so labels come straight from the
+                        // registry and match exactly what editor gating enforces.
+                        $val = \App\Modules\User\Support\BlockTypeRegistry::canonicalizeAllowlist($val);
                         $labels = [];
                         foreach ($val as $slug) {
                             if (!is_string($slug) || $slug === '') continue;
