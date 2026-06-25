@@ -13,6 +13,23 @@
         return array_key_exists($key, $features) ? $features[$key] : $default;
     };
 
+    // Helper: read a feature value that MUST be a scalar for a number/text input.
+    // Some quantity keys (notably `max_aliases_per_link`) are persisted as a
+    // structured map once per-link-type overrides are set
+    // (`['default' => 5, 'short' => 10, ...]`). Echoing that array into a
+    // `value="..."` attribute fatals htmlspecialchars(), so collapse any map
+    // to its `default` element (the global value shown in the number box) and
+    // fall back to the field default for any other unexpected array.
+    $scalarVal = function (string $key, $default = null) use ($val) {
+        $v = $val($key, $default);
+        if (is_array($v)) {
+            $v = array_key_exists('default', $v) ? $v['default'] : $default;
+        }
+        // Never let a non-scalar (e.g. a malformed nested map) reach an
+        // attribute echo — fall back to the field default in that case.
+        return (is_scalar($v) || $v === null) ? $v : $default;
+    };
+
     // Modules default to ON for any plan that doesn't explicitly set them
     // (preserves prior behavior — every existing plan had every module on).
     $moduleOn = function (string $key) use ($features) {
@@ -408,7 +425,7 @@
                 @foreach($quantities as $q)
                     @php
                         $module = $q['module'];
-                        $current = $val($q['key'], $q['default']);
+                        $current = $scalarVal($q['key'], $q['default']);
                         $minAttr = $q['min'] ?? -1;
                         // These two share state with the Storage section's live converter
                         // via the root x-data scope (storageMb / fileMb).
@@ -504,7 +521,7 @@
                     <div>
                         <label class="block text-xs text-white/60 mb-1">{{ $row['label'] }}</label>
                         <div class="flex items-stretch gap-1">
-                            <input type="number" name="features[{{ $row['key'] }}]" value="{{ $val($row['key'], $row['default']) }}" min="-1"
+                            <input type="number" name="features[{{ $row['key'] }}]" value="{{ $scalarVal($row['key'], $row['default']) }}" min="-1"
                                    x-ref="qty_{{ $row['key'] }}"
                                    class="flex-1 min-w-0 px-3 py-2 bg-white/5 border border-white/10 rounded-l-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                             <button type="button" @click="$refs.qty_{{ $row['key'] }}.value = '-1'" title="Set to unlimited (-1)"
