@@ -19,8 +19,9 @@ class SiteAssistantSettings
             'enabled_app'       => true,
             'launcher_position' => 'bottom-right', // bottom-right|bottom-left
             'accent_color'      => '#7c3aed',
-            'avatar_url'        => null,
-            'greeting'          => "Hi! I'm your Sayzio assistant. Ask me anything about the platform or what you can do on this page.",
+            'avatar_url'        => null, // empty => bundled Zio Bot mascot (see avatarUrlFor)
+            'brand_name'        => self::DEFAULT_BRAND_NAME,
+            'greeting'          => "Hi! I'm Zio Bot, your Sayzio assistant. Ask me anything about the platform or what you can do on this page.",
             'system_prompt'     => self::defaultSystemPrompt(),
             'model'             => '', // empty = fall back to feature-mapped chat model
             'mind_ids'          => [], // empty = use platform-default minds
@@ -119,6 +120,12 @@ class SiteAssistantSettings
         ];
     }
 
+    /** Bundled Zio Bot mascot, served from public/. Used as the default
+     *  assistant avatar when an admin hasn't uploaded a custom one. */
+    public const DEFAULT_AVATAR_PATH = 'branding/zio-bot.png';
+    /** Default display name for the assistant widget header. */
+    public const DEFAULT_BRAND_NAME = 'Zio Bot';
+
     public const DEFAULT_INPUT_PLACEHOLDER = 'Type a message…';
     public const DEFAULT_SEND_LABEL        = 'Send';
     public const DEFAULT_SUBHEADING            = 'How can I help?';
@@ -156,6 +163,31 @@ P;
         $stored = AppSetting::get(self::KEY, []);
         if (!is_array($stored)) $stored = [];
         return array_replace(self::defaults(), $stored);
+    }
+
+    /**
+     * Resolve the assistant avatar URL. An admin-uploaded avatar wins;
+     * otherwise we fall back to the bundled Zio Bot mascot so the widget
+     * always has a face without any admin action. Returning an absolute
+     * URL keeps the cross-origin marketing widget happy too.
+     */
+    public static function avatarUrlFor(array $cfg): string
+    {
+        $custom = trim((string) ($cfg['avatar_url'] ?? ''));
+        if ($custom !== '') {
+            return $custom;
+        }
+        return asset(self::DEFAULT_AVATAR_PATH);
+    }
+
+    /**
+     * Resolve the assistant display name shown in the chat header,
+     * falling back to the built-in "Zio Bot" brand when unset.
+     */
+    public static function brandNameFor(array $cfg): string
+    {
+        $name = trim((string) ($cfg['brand_name'] ?? ''));
+        return $name !== '' ? $name : self::DEFAULT_BRAND_NAME;
     }
 
     public static function update(array $data): array

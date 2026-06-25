@@ -42,6 +42,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'companion/*/message',
             'companion/*/session',
             'companion/*/rate',
+            // Site-wide AI assistant ("Zio Bot"): the marketing-site widget
+            // posts cross-origin from 1inme.com with no app session/CSRF
+            // cookie. Visitors are forced to the anonymous "marketing"
+            // surface server-side and every endpoint is rate-limited +
+            // visitor-token bound, mirroring the companion endpoints above.
+            'assistant/*',
             // Conversational Biolink visitor flow. Visitor has no app
             // session; rate-limited and bound to opaque `cvs_*` ids.
             'cv/*/start',

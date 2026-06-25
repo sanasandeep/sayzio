@@ -18,7 +18,8 @@
      data-title="{{ trim(strip_tags(View::yieldContent('title') ?: '')) ?: config('app.name') }}"
      data-position="{{ $__sa_cfg['launcher_position'] }}"
      data-accent="{{ $__sa_cfg['accent_color'] }}"
-     data-avatar="{{ $__sa_cfg['avatar_url'] }}"
+     data-avatar="{{ \App\Services\AI\SiteAssistantSettings::avatarUrlFor($__sa_cfg) }}"
+     data-brand="{{ \App\Services\AI\SiteAssistantSettings::brandNameFor($__sa_cfg) }}"
      data-bootstrap-url="{{ url('/assistant/bootstrap') }}"
      data-session-url="{{ url('/assistant/session') }}"
      data-message-url="{{ url('/assistant/message') }}"
@@ -122,6 +123,11 @@
 #sa-launcher:active{transform:scale(.96)}
 #sa-launcher:focus-visible{outline:2px solid #fff;outline-offset:3px}
 #sa-launcher .sa-icon-bubble{position:relative;z-index:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}
+/* Zio Bot mascot riding the launcher button — sits above the sheen, gentle
+   float so the character feels alive without overpowering the brand button. */
+#sa-launcher .sa-icon-mascot{position:relative;z-index:1;width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 2px 5px rgba(0,0,0,.32));pointer-events:none;animation:sa-mascot-float 4s ease-in-out infinite}
+@keyframes sa-mascot-float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-2px) rotate(-3deg)}}
+@media (prefers-reduced-motion:reduce){#sa-launcher .sa-icon-mascot{animation:none}}
 #sa-launcher .sa-spark{
   position:absolute;color:#fff;filter:drop-shadow(0 0 6px rgba(255,255,255,.85));z-index:1;
   animation:sa-spark-orbit 4.2s ease-in-out infinite;
@@ -199,7 +205,8 @@
 #sa-panel.sa-open{display:flex}
 @media (max-width:480px){#sa-panel{width:calc(100vw - 16px);right:8px!important;left:8px!important;bottom:80px;height:calc(100vh - 100px)}}
 .sa-header{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.06)}
-.sa-header img,.sa-header .sa-avatar{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
+.sa-header img,.sa-header .sa-avatar{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
+.sa-header img{object-fit:contain;padding:1px}
 .sa-header h4{margin:0;font-size:14px;font-weight:600;color:#fff}
 .sa-header .sa-sub{font-size:11px;opacity:.65}
 .sa-close{margin-left:auto;background:transparent;border:0;color:#94a3b8;font-size:18px;cursor:pointer}
@@ -275,6 +282,8 @@ html.light-mode .sa-badge{border:2px solid #ffffff}
 // later overwrites window.__SA_CHROME with the same values once the
 // fetch completes — keeping a single source of truth at runtime.
 window.__SA_SUBHEADING = @json(\App\Services\AI\SiteAssistantSettings::subheadingFor($__sa_cfg));
+// Assistant display name ("Zio Bot" by default) shown in the chat header.
+window.__SA_BRAND = @json(\App\Services\AI\SiteAssistantSettings::brandNameFor($__sa_cfg));
 // Rotating tooltip messages. We seed with a few inline brand defaults
 // passed through Laravel's translator (so installs that ship matching
 // translation files can localize them) and merge in the admin's
@@ -385,12 +394,18 @@ window.__SA_CHROME = {
   var launcherWrap=el('div',{class:'sa-launcher-wrap '+pos});
   var launcher=el('button',{id:'sa-launcher',class:pos,type:'button','aria-label':'Open assistant',
     style:{'--sa-accent':ds.accent||'#7c3aed'}}, '');
-  // Custom icon: chat bubble + sparkle (the brand gradient is on the button itself).
+  // Face of the assistant: the Zio Bot mascot rides on the brand-gradient
+  // button. When an admin hasn't set an avatar the resolver already hands
+  // us the bundled mascot, so ds.avatar is effectively always present; the
+  // chat-bubble glyph stays as a defensive fallback if it's ever empty.
+  var launcherFace = ds.avatar
+    ? '<img class="sa-icon-mascot" src="'+escapeHtml(ds.avatar)+'" alt="" aria-hidden="true">'
+    : '<svg class="sa-icon-bubble" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      +  '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H12l-4 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-8z"/>'
+      +  '<path d="M12 6.2l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" fill="currentColor" stroke="none"/>'
+      +'</svg>';
   launcher.innerHTML=''
-    +'<svg class="sa-icon-bubble" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-    +  '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H12l-4 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-8z"/>'
-    +  '<path d="M12 6.2l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" fill="currentColor" stroke="none"/>'
-    +'</svg>'
+    +launcherFace
     +'<svg class="sa-spark s1" width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0l2.5 9.5L24 12l-9.5 2.5L12 24l-2.5-9.5L0 12l9.5-2.5z"/></svg>'
     +'<svg class="sa-spark s2" width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0l2.5 9.5L24 12l-9.5 2.5L12 24l-2.5-9.5L0 12l9.5-2.5z"/></svg>'
     +'<svg class="sa-spark s3" width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0l2.5 9.5L24 12l-9.5 2.5L12 24l-2.5-9.5L0 12l9.5-2.5z"/></svg>';

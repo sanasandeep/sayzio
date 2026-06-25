@@ -27,6 +27,30 @@ export const PRICING_URL: string =
   import.meta.env.VITE_PRICING_URL ?? DEFAULT_PRICING_URL;
 
 /**
+ * Origin of the product app that serves the site-wide "Zio Bot" assistant
+ * endpoints (`/assistant/*`). The marketing site embeds the same assistant
+ * cross-origin, so it talks to the real product app. Defaults to the origin
+ * of the login URL (https://1in.me) and can be overridden at build time with
+ * VITE_ASSISTANT_API_BASE (handy for local dev / staging), mirroring the
+ * blog feed's resolveBlogApiBase() pattern.
+ */
+function resolveAssistantApiBase(): string {
+  const override = import.meta.env.VITE_ASSISTANT_API_BASE as
+    | string
+    | undefined;
+  if (override && override.trim() !== "") {
+    return override.replace(/\/$/, "");
+  }
+  try {
+    return new URL(LOGIN_URL).origin;
+  } catch {
+    return "https://1in.me";
+  }
+}
+
+export const ASSISTANT_API_BASE: string = resolveAssistantApiBase();
+
+/**
  * Official Sayzio social media profiles, surfaced in the marketing footer.
  * `icon` names the lucide-react component to render; "threads" has no lucide
  * icon, so the footer renders an inline brand SVG for it.
