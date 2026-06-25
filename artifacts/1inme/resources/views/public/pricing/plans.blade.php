@@ -789,11 +789,23 @@
                 ['key' => 'api_access',         'group' => 'Developer',        'icon' => 'fa-code',                       'type' => 'api'],
             ];
 
+            // Resolve a biolink block-type slug to a human-readable label.
+            // Friendly names come from the live block registry; any slug
+            // that isn't in the picker (legacy / renamed) degrades to a
+            // humanized version of the slug rather than a raw token.
+            $blockPicker = \App\Modules\User\Models\BiolinkBlock::pickerTypes();
+            $blockLabel = function (string $slug) use ($blockPicker) {
+                $label = $blockPicker[$slug]['label'] ?? null;
+                if ($label) return $label;
+                $clean = preg_replace('/_v\d+$/', '', $slug);
+                return \Illuminate\Support\Str::title(str_replace(['_', '-'], ' ', $clean));
+            };
+
             // Evaluate a single catalogue entry against a features blob.
             // Returns null when the feature isn't present/enabled, or an
             // array with a numeric weight (for delta comparison), a bold
             // name, and a description line.
-            $evalFeature = function (array $features, array $e) {
+            $evalFeature = function (array $features, array $e) use ($blockLabel) {
                 $type = $e['type'];
                 $key  = $e['key'];
 
@@ -815,8 +827,18 @@
                 }
                 if ($type === 'blocks') {
                     $val = $features[$key] ?? null;
-                    if ($val === '*') return ['num' => PHP_INT_MAX, 'name' => 'All biolink blocks', 'desc' => $e['desc']];
-                    if (is_array($val) && count($val) > 0) return ['num' => count($val), 'name' => count($val) . ' biolink blocks', 'desc' => $e['desc']];
+                    if ($val === '*') return ['num' => PHP_INT_MAX, 'name' => 'All biolink blocks', 'desc' => $e['desc'], 'blocks' => null];
+                    if (is_array($val) && count($val) > 0) {
+                        $labels = [];
+                        foreach ($val as $slug) {
+                            if (!is_string($slug) || $slug === '') continue;
+                            $labels[$blockLabel($slug)] = true;
+                        }
+                        $labels = array_keys($labels);
+                        sort($labels, SORT_NATURAL | SORT_FLAG_CASE);
+                        if (count($labels) === 0) return null;
+                        return ['num' => count($labels), 'name' => count($labels) . ' biolink blocks', 'desc' => $e['desc'], 'blocks' => $labels];
+                    }
                     return null;
                 }
                 if ($type === 'analytics') {
@@ -1083,6 +1105,20 @@
                                                         <span class="block text-sm font-semibold text-white leading-tight">{{ $f['name'] }}</span>
                                                         @if(!empty($f['desc']))
                                                             <span class="block text-xs text-gray-400 leading-snug">{{ $f['desc'] }}</span>
+                                                        @endif
+                                                        @if(!empty($f['blocks']))
+                                                            @php $blockNames = $f['blocks']; $blockPreview = array_slice($blockNames, 0, 6); $blockExtra = count($blockNames) - count($blockPreview); @endphp
+                                                            <span x-data="{ open: false }" class="block mt-1.5">
+                                                                <span class="block text-xs text-gray-500 leading-snug" x-show="!open">{{ implode(', ', $blockPreview) }}@if($blockExtra > 0)<span class="text-gray-400"> &amp; {{ $blockExtra }} more</span>@endif</span>
+                                                                <span class="block text-xs text-gray-500 leading-snug" x-show="open" x-cloak>{{ implode(', ', $blockNames) }}</span>
+                                                                @if($blockExtra > 0)
+                                                                    <button type="button" @click="open = !open" class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-violet-300 hover:text-violet-200 transition">
+                                                                        <span x-show="!open">Show all {{ count($blockNames) }} blocks</span>
+                                                                        <span x-show="open" x-cloak>Show fewer</span>
+                                                                        <i class="fas fa-chevron-down text-[8px]" :class="open ? 'rotate-180' : ''"></i>
+                                                                    </button>
+                                                                @endif
+                                                            </span>
                                                         @endif
                                                     </span>
                                                 </li>
