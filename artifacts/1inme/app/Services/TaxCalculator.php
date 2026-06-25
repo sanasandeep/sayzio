@@ -31,8 +31,12 @@ use App\Modules\Admin\Rules\Vatin;
  *          (treated like B2C OSS unless reverse-charge applies)
  *   4. Buyer country == "IN" but merchant elsewhere -> 0% (export of
  *      services from buyer's POV; merchant's home country handles it).
- *   5. Anything else (US, AU, ROW) -> 0% in this initial pass. Admins
- *      can add jurisdictions through /admin/taxes later.
+ *   5. Buyer country == "US" (non-IN merchant) -> state-level sales tax
+ *      resolved from the active SALES row for (US, state), falling back
+ *      to a country-level US row when the state has none. No-sales-tax
+ *      states resolve to an explicit 0% row.
+ *   6. Anything else (AU, ROW) -> 0% in this initial pass. Admins can
+ *      add jurisdictions through /admin/taxes later.
  *
  * `place_of_supply` and `reverse_charge_note` are surfaced so the
  * invoice generator can print them.
@@ -57,6 +61,27 @@ class TaxCalculator
         'KL' => 'Kerala',                'TN' => 'Tamil Nadu',           'PY' => 'Puducherry',
         'AN' => 'Andaman and Nicobar',   'TG' => 'Telangana',            'AP' => 'Andhra Pradesh',
         'LA' => 'Ladakh',
+    ];
+
+    /** US states + DC (ISO 3166-2 two-letter codes). Used for state sales tax. */
+    public const US_STATES = [
+        'AL' => 'Alabama',        'AK' => 'Alaska',         'AZ' => 'Arizona',
+        'AR' => 'Arkansas',       'CA' => 'California',      'CO' => 'Colorado',
+        'CT' => 'Connecticut',    'DE' => 'Delaware',        'DC' => 'District of Columbia',
+        'FL' => 'Florida',        'GA' => 'Georgia',        'HI' => 'Hawaii',
+        'ID' => 'Idaho',          'IL' => 'Illinois',       'IN' => 'Indiana',
+        'IA' => 'Iowa',           'KS' => 'Kansas',         'KY' => 'Kentucky',
+        'LA' => 'Louisiana',      'ME' => 'Maine',          'MD' => 'Maryland',
+        'MA' => 'Massachusetts',  'MI' => 'Michigan',       'MN' => 'Minnesota',
+        'MS' => 'Mississippi',    'MO' => 'Missouri',       'MT' => 'Montana',
+        'NE' => 'Nebraska',       'NV' => 'Nevada',         'NH' => 'New Hampshire',
+        'NJ' => 'New Jersey',     'NM' => 'New Mexico',     'NY' => 'New York',
+        'NC' => 'North Carolina', 'ND' => 'North Dakota',   'OH' => 'Ohio',
+        'OK' => 'Oklahoma',       'OR' => 'Oregon',         'PA' => 'Pennsylvania',
+        'RI' => 'Rhode Island',   'SC' => 'South Carolina', 'SD' => 'South Dakota',
+        'TN' => 'Tennessee',      'TX' => 'Texas',          'UT' => 'Utah',
+        'VT' => 'Vermont',        'VA' => 'Virginia',       'WA' => 'Washington',
+        'WV' => 'West Virginia',  'WI' => 'Wisconsin',      'WY' => 'Wyoming',
     ];
 
     /** EU member states (post-Brexit). */
@@ -198,7 +223,30 @@ class TaxCalculator
             return self::pack($subtotal, $breakdown, $lineItems, $currency, $place, null);
         }
 
-        // ----- ROW (US, AU, etc.) -----
+        // ----- UNITED STATES path -----
+        // State-level sales tax. Only reached for non-Indian merchants — the
+        // Indian-merchant "export of services" short-circuit above returns
+        // first, so US buyers of an Indian merchant stay zero-rated exports.
+        // Resolve the buyer's state SALES rate, falling back to the
+        // country-level US row when the state has no specific row (activeRow
+        // does this automatically). No-sales-tax states (e.g. OR, DE, MT, NH,
+        // AK) resolve to an explicit 0% row → no tax line is emitted.
+        if ($buyerCountry === 'US') {
+            $place = 'US' . ($buyerState ? '-' . $buyerState : '');
+            $salesRow = self::activeRow('US', $buyerState ?: null, 'SALES');
+            $rate = $salesRow?->rate_percent ?? 0.0;
+            if ($rate > 0) {
+                $statePrefix = $buyerState ? $buyerState . ' ' : '';
+                $breakdown[] = [
+                    'label'        => $statePrefix . 'Sales Tax ' . self::pctStr($rate) . '%',
+                    'rate_percent' => $rate,
+                    'amount_minor' => self::pct($subtotal, $rate),
+                ];
+            }
+            return self::pack($subtotal, $breakdown, $lineItems, $currency, $place, null);
+        }
+
+        // ----- ROW (AU, etc.) -----
         $place = $buyerCountry;
         return self::pack($subtotal, $breakdown, $lineItems, $currency, $place, null);
     }

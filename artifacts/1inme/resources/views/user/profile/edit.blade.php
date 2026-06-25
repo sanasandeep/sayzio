@@ -108,9 +108,16 @@
                                 <label class="block text-xs text-white/50 mb-1">State / region</label>
                                 <select name="billing_region" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
                                     <option value="" class="bg-[#0d0818]">— None / N/A —</option>
-                                    @foreach($inStates as $code => $label)
-                                        <option value="{{ $code }}" {{ old('billing_region', $billing->region) === $code ? 'selected' : '' }} class="bg-[#0d0818]">IN-{{ $code }} · {{ $label }}</option>
-                                    @endforeach
+                                    <optgroup label="India" class="bg-[#0d0818]">
+                                        @foreach($inStates as $code => $label)
+                                            <option value="{{ $code }}" {{ old('billing_region', $billing->region) === $code ? 'selected' : '' }} class="bg-[#0d0818]">IN-{{ $code }} · {{ $label }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                    <optgroup label="United States" class="bg-[#0d0818]">
+                                        @foreach($usStates as $code => $label)
+                                            <option value="{{ $code }}" {{ old('billing_region', $billing->region) === $code ? 'selected' : '' }} class="bg-[#0d0818]">US-{{ $code }} · {{ $label }}</option>
+                                        @endforeach
+                                    </optgroup>
                                 </select>
                             </div>
                         </div>

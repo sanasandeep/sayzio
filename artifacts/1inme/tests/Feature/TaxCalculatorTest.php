@@ -16,10 +16,12 @@ use Tests\TestCase;
  *  3. IN with B2B GSTIN (still charges — input-tax-credit is buyer-side)
  *  4. EU B2C (charge buyer's country VAT)
  *  5. EU B2B with valid VATIN of buyer's country (reverse charge → 0%)
- *  6. US (no jurisdiction → 0%)
+ *  6. US (Indian-merchant export → 0%)
  *  7. Unknown country (→ 0%)
  *
- * Plus: invoice numbering reservation correctness.
+ * Plus US state sales tax (non-IN merchant): state with a rate, a
+ * no-sales-tax state (0%), and a state with no specific row falling
+ * back to the country-level US rate; and invoice numbering correctness.
  */
 class TaxCalculatorTest extends TestCase
 {
@@ -139,6 +141,55 @@ class TaxCalculatorTest extends TestCase
         $this->assertSame(0, $r['tax_total_minor']);
         $this->assertSame(10000, $r['grand_total_minor']);
         $this->assertSame('US', $r['place_of_supply']);
+    }
+
+    public function test_us_state_with_rate_charges_state_sales_tax(): void
+    {
+        // Non-Indian merchant so the export short-circuit doesn't apply and
+        // the US sales-tax branch is reachable.
+        config()->set('billing.merchant.country', 'US');
+        config()->set('billing.merchant.gst_state', null);
+        $r = TaxCalculator::calculate($this->items(), [
+            'country' => 'US', 'region' => 'CA', 'tax_id' => null, 'tax_id_kind' => null,
+        ], 'USD');
+        $this->assertCount(1, $r['tax_breakdown']);
+        $this->assertSame('CA Sales Tax 7.25%', $r['tax_breakdown'][0]['label']);
+        $this->assertSame(725, $r['tax_breakdown'][0]['amount_minor']);
+        $this->assertSame(10725, $r['grand_total_minor']);
+        $this->assertSame('US-CA', $r['place_of_supply']);
+    }
+
+    public function test_us_no_sales_tax_state_is_zero(): void
+    {
+        // Oregon has no state sales tax — seeded as an explicit 0% row.
+        config()->set('billing.merchant.country', 'US');
+        config()->set('billing.merchant.gst_state', null);
+        $r = TaxCalculator::calculate($this->items(), [
+            'country' => 'US', 'region' => 'OR', 'tax_id' => null, 'tax_id_kind' => null,
+        ], 'USD');
+        $this->assertCount(0, $r['tax_breakdown']);
+        $this->assertSame(0, $r['tax_total_minor']);
+        $this->assertSame(10000, $r['grand_total_minor']);
+        $this->assertSame('US-OR', $r['place_of_supply']);
+    }
+
+    public function test_us_state_without_specific_row_falls_back_to_country_rate(): void
+    {
+        // Give the country-level US row a non-zero rate, then bill a state
+        // (Puerto Rico) that has no state-specific SALES row.
+        config()->set('billing.merchant.country', 'US');
+        config()->set('billing.merchant.gst_state', null);
+        TaxJurisdiction::updateOrCreate(
+            ['country' => 'US', 'region' => null, 'kind' => 'SALES'],
+            ['label' => 'US Sales Tax', 'rate_percent' => 5.0, 'is_active' => true]
+        );
+        $r = TaxCalculator::calculate($this->items(), [
+            'country' => 'US', 'region' => 'PR', 'tax_id' => null, 'tax_id_kind' => null,
+        ], 'USD');
+        $this->assertCount(1, $r['tax_breakdown']);
+        $this->assertSame('PR Sales Tax 5%', $r['tax_breakdown'][0]['label']);
+        $this->assertSame(500, $r['tax_breakdown'][0]['amount_minor']);
+        $this->assertSame(10500, $r['grand_total_minor']);
     }
 
     public function test_unknown_country_returns_zero_tax(): void

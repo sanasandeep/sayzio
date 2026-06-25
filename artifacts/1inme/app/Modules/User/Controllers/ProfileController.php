@@ -31,9 +31,10 @@ class ProfileController extends Controller
             : [];
         $billing = BillingAddress::firstOrNew(['user_id' => $user->id]);
         $inStates = TaxCalculator::IN_STATES;
+        $usStates = TaxCalculator::US_STATES;
         return view('user.profile.edit', compact(
             'user', 'timezones', 'digestPreviewHtml', 'digestPreviewIsReal',
-            'digestPreviewCount', 'handleSuggestions', 'billing', 'inStates'
+            'digestPreviewCount', 'handleSuggestions', 'billing', 'inStates', 'usStates'
         ));
     }
 
