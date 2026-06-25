@@ -24,6 +24,20 @@ so it fills gaps on drifted DBs and is a no-op on fresh DBs (where the original
 migration already created everything). This stays within the additive-only
 shared-DB policy and the destructive-command guard.
 
+**Table-granularity variant:** the drift isn't always columns. A single create
+migration that creates several tables, each wrapped in its own
+`if (!Schema::hasTable(...))`, can be expanded later to add MORE tables. On DBs
+that already ran the earlier version, only the original tables exist and the
+newly-added ones are silently absent — `ExpectedSchemaHealth` reports them as
+whole-missing tables (not column drift), and the dashboard "Fix now" button
+CANNOT repair whole-missing tables (it only re-creates columns; tables land under
+`unrepairable`). Heal them the same way: a new migration that re-creates ONLY the
+missing tables, guarded by `hasTable`, with column/index/FK definitions
+byte-for-byte identical to the owning create migration. EXPECTED (a column-repair
+map) needs no change for whole-table drift. Real instance: `inbox_threads`
+existed but `inbox_messages` / `inbox_snippets` / `inbox_thread_conversions`
+(all added later to `create_inbox_unified_tables`) were missing.
+
 **Detection (no longer just smoke-testing):** `ExpectedSchemaHealth` (mirrors
 `SchemaHealth`/`WorkspaceColumnHealth`/`TemplateDesignHealth`) probes a curated
 manifest `EXPECTED = [table => [columns]]` of critical hot-path columns directly
