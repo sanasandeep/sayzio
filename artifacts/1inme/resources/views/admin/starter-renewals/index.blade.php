@@ -36,7 +36,7 @@
         <div>
             <h2 class="text-base font-semibold text-white">Who's due</h2>
             <p class="text-xs text-white/50">
-                Free-Starter users with an email and a tracked yearly window@if($stats['defaultPlanName']) (plan: <span class="text-white/70">{{ $stats['defaultPlanName'] }}</span>)@endif.
+                Free-Starter users with an email and a tracked yearly window{!! $stats['defaultPlanName'] ? ' (plan: <span class="text-white/70">'.e($stats['defaultPlanName']).'</span>)' : '' !!}.
             </p>
         </div>
 

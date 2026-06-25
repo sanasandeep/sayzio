@@ -35,7 +35,7 @@
          The OAuth round-trip already proved ownership, so "Merge" jumps
          straight to the merge preview. --}}
     @if(session('social_merge_offer'))
-        @php($__mergeOffer = session('social_merge_offer'))
+        @php $__mergeOffer = session('social_merge_offer'); @endphp
         <div class="mb-4 px-4 py-3 rounded-lg text-sm flex items-start gap-3"
              style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.35); color: var(--text-primary);">
             <i class="fas fa-code-merge mt-0.5" style="color:#7c3aed;"></i>

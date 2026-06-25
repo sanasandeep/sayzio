@@ -27,7 +27,7 @@
                     </div>
                     @if($intro)
                         <div class="flex items-center justify-between text-emerald-300/90 text-xs mt-1">
-                            <span>Intro discount@if(!empty($intro['percent_off'])) ({{ $intro['percent_off'] }}% off)@endif</span>
+                            <span>Intro discount{{ !empty($intro['percent_off']) ? ' ('.$intro['percent_off'].'% off)' : '' }}</span>
                             <span class="font-mono">−{{ number_format(($intro['amount_off_minor'] ?? 0)/100, 2) }} {{ $currency }}</span>
                         </div>
                         <p class="text-xs text-white/40 mt-1">Renews at {{ number_format(($intro['normal_minor'] ?? 0)/100, 2) }} {{ $currency }}/{{ $term }}</p>

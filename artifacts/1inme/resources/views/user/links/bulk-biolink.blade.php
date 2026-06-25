@@ -24,7 +24,7 @@
         {{-- Step 1 — pick a blueprint --}}
         <div class="glass rounded-2xl p-6 mb-6">
             <h2 class="text-base font-semibold text-white mb-1">Step 1 — Pick a blueprint</h2>
-            <p class="text-xs text-white/40 mb-4">This master page is copied for every row. Put <code class="text-violet-300">{{ '{{token}}' }}</code> placeholders in its text, links or images and we'll fill them in from your sheet.</p>
+            <p class="text-xs text-white/40 mb-4">This master page is copied for every row. Put <code class="text-violet-300">@{{token}}</code> placeholders in its text, links or images and we'll fill them in from your sheet.</p>
 
             <div class="flex gap-1 mb-4 bg-white/5 p-1 rounded-xl w-fit">
                 <button type="button" @click="source = 'template'"
@@ -80,7 +80,7 @@
                 </button>
             </div>
             <p class="text-xs text-white/40 mb-4">
-                First row = column headers. Reserved columns: <code class="text-violet-300">handle</code> (the page URL — blank to auto-generate) and <code class="text-violet-300">title</code>. Every other column is matched to a <code class="text-violet-300">{{ '{{token}}' }}</code>. Up to {{ $maxRows }} rows.
+                First row = column headers. Reserved columns: <code class="text-violet-300">handle</code> (the page URL — blank to auto-generate) and <code class="text-violet-300">title</code>. Every other column is matched to a <code class="text-violet-300">@{{token}}</code>. Up to {{ $maxRows }} rows.
             </p>
 
             <div class="flex gap-1 mb-4 bg-white/5 p-1 rounded-xl w-fit">
@@ -99,7 +99,7 @@
             <div x-show="tab === 'paste'">
                 <label class="block text-sm font-medium text-white/60 mb-1.5">Paste from a spreadsheet <span class="text-white/30 text-xs">(tab- or comma-separated)</span></label>
                 <textarea name="sheet_text" rows="10"
-                          placeholder="handle	title	first_name	city&#10;jane-doe	Jane Doe	Jane	Berlin&#10;rui-lee	Rui Lee	Rui	Lisbon"
+                          placeholder="handle   title   first_name      city&#10;jane-doe       Jane Doe        Jane    Berlin&#10;rui-lee      Rui Lee Rui     Lisbon"
                           class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none font-mono">{{ old('sheet_text') }}</textarea>
             </div>
 

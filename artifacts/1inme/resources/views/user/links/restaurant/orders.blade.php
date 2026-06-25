@@ -69,9 +69,12 @@
 </div>
 
 <script>
+@php
+    $ordersData = $orders->map(fn($o)=>['id'=>$o->id,'status'=>$o->status,'table_label'=>$o->table_label,'customer_name'=>$o->customer_name,'customer_note'=>$o->customer_note,'subtotal'=>$o->subtotal,'currency'=>$o->currency,'created_at'=>$o->created_at?->toIso8601String(),'updated_at'=>$o->updated_at?->toIso8601String(),'items'=>$o->items->map(fn($i)=>['id'=>$i->id,'name'=>$i->name,'quantity'=>$i->quantity,'line_total'=>$i->line_total])])->values();
+@endphp
 function ordersBoard() {
     return {
-        orders: @json($orders->map(fn($o)=>['id'=>$o->id,'status'=>$o->status,'table_label'=>$o->table_label,'customer_name'=>$o->customer_name,'customer_note'=>$o->customer_note,'subtotal'=>$o->subtotal,'currency'=>$o->currency,'created_at'=>$o->created_at?->toIso8601String(),'updated_at'=>$o->updated_at?->toIso8601String(),'items'=>$o->items->map(fn($i)=>['id'=>$i->id,'name'=>$i->name,'quantity'=>$i->quantity,'line_total'=>$i->line_total])])->values()),
+        orders: @json($ordersData),
         openCount: {{ $orders->whereIn('status', \App\Modules\User\Models\RestaurantOrder::OPEN_STATUSES)->count() }},
         filter: 'open',
         base: @json(route('user.links.restaurant.orders', $link)),

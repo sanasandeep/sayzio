@@ -203,6 +203,10 @@
                 <button type="button" class="outcome-chip text-[11px] px-2.5 py-1 rounded-full" data-outcome="{{ $val }}"
                         style="background:rgba(255,255,255,.05);color:var(--text-muted);border:1px solid rgba(255,255,255,.08)">{{ $label }}</button>
             @endforeach
+        </div>
+    </div>
+    @endif
+
     {{-- Reach via — multi-app calling / messaging chooser --}}
     @php
         $iconFor = fn ($t) => match ($t) {

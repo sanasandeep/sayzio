@@ -54,6 +54,7 @@
     <script>
     document.addEventListener('alpine:init', function () {
         window.Alpine.data('icsCreateForm', function () {
+            @php $icsSlots = old('slots') ?: [['start' => '', 'end' => '', 'label' => '', 'location' => '']]; @endphp
             return {
                 allDay: @json(old('all_day', false) ? true : false),
                 freq: @json(old('recurrence_freq', '')),
@@ -62,7 +63,7 @@
                 monthlyOrdinal: @json((string) old('monthly_weekday_ordinal', '1')),
                 yearlyMonth:    @json((int) old('yearly_month', 0)),
                 endMode: @json(old('recurrence_count') ? 'count' : (old('recurrence_until') ? 'until' : 'none')),
-                slots: @json(old('slots') ?: [['start' => '', 'end' => '', 'label' => '', 'location' => '']]),
+                slots: @json($icsSlots),
                 rsvpEnabled: @json(old('rsvp_enabled', false) ? true : false),
                 syncMode: @json(old('calendar_sync_mode', 'off')),
                 questions: @json(old('rsvp_questions', [])),

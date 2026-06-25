@@ -189,12 +189,17 @@
 </div>
 
 <script>
+@php
+    $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'name'=>$c->name,'description'=>$c->description])->values();
+    $menuItems = $menu->items->map(fn($i)=>['id'=>$i->id,'category_id'=>$i->category_id,'name'=>$i->name,'description'=>$i->description,'price'=>$i->price,'photo_url'=>$i->photo_url,'is_sold_out'=>$i->is_sold_out])->values();
+    $menuTables = $menu->tables->map(fn($t)=>['id'=>$t->id,'label'=>$t->label,'code'=>$t->code])->values();
+@endphp
 function restaurantEditor() {
     return {
         menu: @json(['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color]),
-        categories: @json($menu->categories->map(fn($c)=>['id'=>$c->id,'name'=>$c->name,'description'=>$c->description])->values()),
-        items: @json($menu->items->map(fn($i)=>['id'=>$i->id,'category_id'=>$i->category_id,'name'=>$i->name,'description'=>$i->description,'price'=>$i->price,'photo_url'=>$i->photo_url,'is_sold_out'=>$i->is_sold_out])->values()),
-        tables: @json($menu->tables->map(fn($t)=>['id'=>$t->id,'label'=>$t->label,'code'=>$t->code])->values()),
+        categories: @json($menuCategories),
+        items: @json($menuItems),
+        tables: @json($menuTables),
         savedMsg: '',
         catModal: { open:false, id:null, name:'', description:'' },
         itemModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_sold_out:false },
