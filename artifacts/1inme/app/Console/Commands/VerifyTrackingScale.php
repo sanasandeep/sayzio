@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
  *   - daily rollup latency
  *   - dashboard read latency through AnalyticsRollupReader
  *
- * Synthetic rows are tagged (utm_source='verify-scale') so --cleanup can remove
+ * Synthetic rows are tagged (source='verify-scale') so --cleanup can remove
  * exactly what it created without touching real history. Intended for staging /
  * load boxes, never as a scheduled job.
  */
@@ -38,6 +38,9 @@ class VerifyTrackingScale extends Command
 
     private const TAG = 'verify-scale';
 
+    /** Column used to tag synthetic rows so --cleanup can target only them. */
+    private const TAG_COLUMN = 'source';
+
     public function handle(PartitionManager $partitions, AnalyticsRollupReader $reader): int
     {
         if (!Schema::hasTable('link_clicks')) {
@@ -46,7 +49,11 @@ class VerifyTrackingScale extends Command
         }
 
         if ($this->option('cleanup')) {
-            $deleted = DB::table('link_clicks')->where('utm_source', self::TAG)->delete();
+            if (!Schema::hasColumn('link_clicks', self::TAG_COLUMN)) {
+                $this->error('link_clicks has no "' . self::TAG_COLUMN . '" column — cannot identify synthetic rows to clean up.');
+                return self::FAILURE;
+            }
+            $deleted = DB::table('link_clicks')->where(self::TAG_COLUMN, self::TAG)->delete();
             $this->info("Removed {$deleted} synthetic row(s).");
             return self::SUCCESS;
         }
@@ -121,16 +128,16 @@ class VerifyTrackingScale extends Command
             for ($i = 0; $i < $take; $i++) {
                 $when = now()->subDays(random_int(0, $days - 1))->subSeconds(random_int(0, 86399));
                 $payload[] = [
-                    'link_id'    => $link,
-                    'clicked_at' => $when,
-                    'created_at' => $when,
-                    'updated_at' => $when,
-                    'country'    => $countries[array_rand($countries)],
-                    'device'     => $devices[array_rand($devices)],
-                    'referer'    => $referrers[array_rand($referrers)],
-                    'utm_source' => self::TAG,
-                    'is_bot'     => false,
-                    'event_id'   => (string) Str::uuid(),
+                    'link_id'         => $link,
+                    'clicked_at'      => $when,
+                    'created_at'      => $when,
+                    'updated_at'      => $when,
+                    'country_code'    => $countries[array_rand($countries)],
+                    'device_type'     => $devices[array_rand($devices)],
+                    'referrer'        => $referrers[array_rand($referrers)],
+                    self::TAG_COLUMN  => self::TAG,
+                    'is_bot'          => false,
+                    'event_id'        => (string) Str::uuid(),
                 ];
             }
             // Drop columns the table doesn't have, so this works across schema drift.

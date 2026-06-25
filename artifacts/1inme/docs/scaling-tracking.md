@@ -172,7 +172,7 @@ Admins don't need shell access to see or bound this growth:
 
 ## Load / latency verification
 
-`tracking:verify-scale` seeds synthetic clicks (tagged `utm_source='verify-scale'`)
+`tracking:verify-scale` seeds synthetic clicks (tagged `source='verify-scale'`)
 and measures insert throughput, counter-flush latency, rollup latency, and
 dashboard read latency through `AnalyticsRollupReader`. Run on a staging / load
 box, never as a scheduled job.
@@ -191,6 +191,56 @@ php artisan tracking:verify-scale --cleanup
 The harness reports rows/sec for inserts and milliseconds for the flush, rollup,
 and dashboard read so regressions in any stage are visible before they reach
 production scale.
+
+> **Synthetic-row tag column.** Seeded rows are tagged on the `source` column
+> (`source='verify-scale'`), which is what `--cleanup` deletes by. The harness
+> still filters its payload to columns that actually exist (`filterColumns`), so
+> it tolerates schema drift, but the **tag column must be present** or `--cleanup`
+> cannot identify what to remove (it now fails loudly instead of erroring on a
+> missing column). Earlier revisions tagged on a non-existent `utm_source`
+> column, which silently produced untaggable, un-cleanable synthetic rows.
+
+### Recorded run — first verification pass
+
+First end-to-end pass of the harness against a real link. **Important caveat:**
+this was run against a far, high-latency Postgres (~0.8 s per query round-trip)
+that was also being mutated concurrently (partition count changed between
+invocations), i.e. **not** a dedicated, production-scale, low-latency load box.
+The absolute milliseconds below are therefore dominated by per-query network RTT,
+not by the pipeline's algorithmic behaviour, and must **not** be read as
+production baselines. They are useful only as (a) a functional smoke that every
+stage runs end-to-end and `--cleanup` removes exactly what was seeded, and (b) a
+view of the *relative* cost of each stage.
+
+| Stage | Measurement (network-bound) | Notes |
+|---|---|---|
+| Insert | ~4000 rows in ~5.6 s (~720 rows/sec) | Single synchronous connection, batched inserts; throughput is RTT-bound, not CPU/IO-bound. |
+| Counter flush | ~1.5 s | `counter_deltas` empty in this harness (see limitation below), so this is mostly command/bootstrap + fold overhead, not real fold cost. |
+| Daily rollup | ~33 s for a 2-day window | Heaviest stage; cost scales with `days × dimensions` query count (≈18–21 queries/day). At ~0.8 s/query this dominates. |
+| Dashboard read (`byDay`) | ~4.6 s | A handful of reader queries (finalised rollup + current-day raw); RTT-bound. |
+
+Operational findings from this pass:
+
+- **Rollup first-run backfill vs `--lookback`.** `analytics:rollup-daily` ignores
+  `--lookback` when there is no watermark and backfills 30 days. The harness only
+  passes `--lookback`, so on a fresh box the rollup stage measures a 30-day
+  backfill (≈30 × ~18 queries) — not a `--days`-sized window like the other
+  stages. Prime the watermark first (`analytics:rollup-daily --days=2`) to get a
+  bounded, comparable rollup measurement, or the rollup call will not complete on
+  a high-latency box.
+- **Flush stage under-measured.** `verify-scale` inserts straight into
+  `link_clicks` and never appends to `counter_deltas`, so `analytics:flush-counters`
+  folds an empty table and the reported flush time is essentially fixed overhead.
+  To exercise the real fold path, the harness would need to seed `counter_deltas`
+  (or drive the buffered `PersistLinkClicksJob` path) — see follow-ups.
+- **Insert path is single-connection and synchronous**, so reported rows/sec is a
+  floor; production write throughput comes from many concurrent request workers
+  feeding the async job, which this single-process harness does not model.
+
+To get trustworthy production-scale baselines, re-run this harness on a dedicated,
+low-latency staging Postgres (co-located, not cross-region) at large `--rows`
+(e.g. 1M+), both before and after partition conversion, and record the numbers
+above as the real baseline.
 
 ## Scheduled jobs (routes/console.php)
 
