@@ -12,10 +12,22 @@ export type Form = {
   created_at: string | null;
 };
 
+export type FormLineItem = {
+  field: string | null;
+  label: string | null;
+  detail: string | null;
+  amount_cents: number;
+};
+
 export type FormSubmission = {
   id: number;
   data: Record<string, unknown> | null;
   ip: string | null;
+  payment_status: string | null;
+  amount_cents: number | null;
+  currency: string | null;
+  line_items: FormLineItem[] | null;
+  paid_at: string | null;
   created_at: string | null;
 };
 

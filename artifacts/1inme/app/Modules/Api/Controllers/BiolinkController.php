@@ -69,13 +69,13 @@ class BiolinkController extends Controller
                 ->where('is_active', true)
                 ->orderBy('sort_order')
                 ->get()
-                ->map(fn ($b) => [
+                ->map(fn ($b) => $this->decorateFormBlock([
                     'id'         => $b->id,
                     'type'       => $b->type,
                     'sort_order' => $b->sort_order,
                     'parent_id'  => $b->parent_id,
                     'settings'   => $b->settings,
-                ])->all();
+                ]))->all();
         }
 
         $mode = (string) (data_get($link->settings, 'biolink.mode', 'list'));
@@ -90,11 +90,11 @@ class BiolinkController extends Controller
                 // Strip server-rendered HTML for the mobile client; the
                 // mobile viewer renders blocks natively from `blocks[]`.
                 $slides = collect($snap['slides'] ?? [])->map(function ($s) {
-                    $blocks = collect($s['blocks'] ?? [])->map(fn ($b) => [
+                    $blocks = collect($s['blocks'] ?? [])->map(fn ($b) => $this->decorateFormBlock([
                         'id'       => (int) ($b['id'] ?? 0),
                         'type'     => (string) ($b['type'] ?? ''),
                         'settings' => $b['settings'] ?? [],
-                    ])->values()->all();
+                    ]))->values()->all();
                     return [
                         'id'         => $s['id'] ?? null,
                         'sort_order' => (int) ($s['sort_order'] ?? 0),
@@ -155,19 +155,71 @@ class BiolinkController extends Controller
         $out = [];
         foreach ($tree as $node) {
             if (!($node['is_active'] ?? true)) continue;
-            $out[] = [
+            $out[] = $this->decorateFormBlock([
                 'id'         => (int) ($node['id'] ?? 0),
                 'type'       => (string) ($node['type'] ?? ''),
                 'sort_order' => (int) ($node['sort_order'] ?? 0),
                 'parent_id'  => $node['parent_id'] ?? null,
                 'settings'   => $node['settings'] ?? [],
-            ];
+            ]);
             foreach ($this->flattenSnapshotForApi($node['children'] ?? []) as $child) {
                 $out[] = $child;
             }
         }
         return $out;
     }
+
+    /**
+     * Enrich a `form` block with the resolved public form URL and pricing
+     * metadata so the mobile client can open the priced web form directly
+     * (in an in-app WebView) instead of bouncing to the whole biolink page,
+     * and can hint that the form is paid before the visitor opens it.
+     *
+     * Non-form blocks pass through untouched. Forms are looked up without the
+     * workspace global scope (public, stateless request) and memoised per
+     * request to avoid duplicate queries when a page repeats a form block.
+     *
+     * @param array<string, mixed> $block
+     * @return array<string, mixed>
+     */
+    protected function decorateFormBlock(array $block): array
+    {
+        if (($block['type'] ?? '') !== 'form') {
+            return $block;
+        }
+
+        $formId = (int) data_get($block['settings'] ?? [], 'form_id', 0);
+        if ($formId <= 0) {
+            return $block;
+        }
+
+        if (!array_key_exists($formId, $this->formCache)) {
+            $this->formCache[$formId] = \App\Modules\User\Models\Form::withoutGlobalScope('workspace')->find($formId);
+        }
+        $form = $this->formCache[$formId];
+        if (!$form) {
+            return $block;
+        }
+
+        $isPaid = $form->isPaid();
+        $cfg    = $form->paymentConfig();
+        $block['form'] = [
+            'id'         => (int) $form->id,
+            'public_url' => $form->getPublicUrl(),
+            'is_paid'    => $isPaid,
+            'payment'    => $isPaid ? [
+                'mode'         => (string) ($cfg['mode'] ?? 'fixed'),
+                'amount_cents' => (int) ($cfg['amount_cents'] ?? 0),
+                'currency'     => strtoupper((string) ($cfg['currency'] ?? 'USD')),
+                'label'        => $cfg['label'] ?? null,
+            ] : null,
+        ];
+
+        return $block;
+    }
+
+    /** @var array<int, \App\Modules\User\Models\Form|null> */
+    protected array $formCache = [];
 
     /**
      * Mobile slide-view event ping. Mirrors the web's /sl/{alias}/view

@@ -2,12 +2,26 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { apiFetch } from "@/lib/api";
 
+export type BiolinkFormMeta = {
+  id: number;
+  public_url: string;
+  is_paid: boolean;
+  payment: {
+    mode: "fixed" | "per_field";
+    amount_cents: number;
+    currency: string;
+    label: string | null;
+  } | null;
+};
+
 export type BiolinkBlock = {
   id: number;
   type: string;
   sort_order: number;
   parent_id: number | null;
   settings: Record<string, unknown> | null;
+  /** Present for `form` blocks: resolved public form URL + pricing hint. */
+  form?: BiolinkFormMeta | null;
 };
 
 export type SlideBlock = {

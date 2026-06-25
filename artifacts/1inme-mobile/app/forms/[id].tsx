@@ -39,6 +39,9 @@ export default function FormDetailScreen() {
   const fieldLabel = (fid: string) =>
     fields.find((f) => f.id === fid)?.label || fid;
 
+  const fmtCents = (cents: number, currency?: string | null) =>
+    `${(cents / 100).toFixed(2)} ${(currency || "USD").toUpperCase()}`;
+
   const [exporting, setExporting] = useState(false);
   const exportCsv = async () => {
     setExporting(true);
@@ -148,6 +151,104 @@ export default function FormDetailScreen() {
                     </Text>
                   </View>
                 ))}
+              {((item.line_items && item.line_items.length > 0) ||
+                (item.amount_cents ?? 0) > 0) && (
+                <View
+                  style={[styles.payment, { borderTopColor: colors.border }]}
+                >
+                  <View style={styles.paymentHeader}>
+                    <View style={styles.paymentHeaderLeft}>
+                      <Feather
+                        name="credit-card"
+                        size={12}
+                        color={colors.mutedForeground}
+                      />
+                      <Text
+                        style={[
+                          styles.k,
+                          { color: colors.mutedForeground },
+                        ]}
+                      >
+                        Payment
+                      </Text>
+                    </View>
+                    {item.payment_status &&
+                      item.payment_status !== "none" && (
+                        <View
+                          style={[
+                            styles.badge,
+                            {
+                              backgroundColor:
+                                item.payment_status === "paid"
+                                  ? "rgba(16,185,129,0.15)"
+                                  : item.payment_status === "pending"
+                                    ? "rgba(245,158,11,0.15)"
+                                    : "rgba(244,63,94,0.15)",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.badgeText,
+                              {
+                                color:
+                                  item.payment_status === "paid"
+                                    ? "#10b981"
+                                    : item.payment_status === "pending"
+                                      ? "#f59e0b"
+                                      : "#f43f5e",
+                              },
+                            ]}
+                          >
+                            {item.payment_status}
+                          </Text>
+                        </View>
+                      )}
+                  </View>
+                  {(item.line_items ?? []).map((li, i) => (
+                    <View key={i} style={styles.lineItem}>
+                      <View style={{ flex: 1, paddingRight: 8 }}>
+                        <Text
+                          style={[styles.liLabel, { color: colors.foreground }]}
+                        >
+                          {li.field === "__base__"
+                            ? "Base fee"
+                            : li.label || li.field || "Item"}
+                        </Text>
+                        {!!li.detail && (
+                          <Text
+                            style={[
+                              styles.liDetail,
+                              { color: colors.mutedForeground },
+                            ]}
+                          >
+                            {li.detail}
+                          </Text>
+                        )}
+                      </View>
+                      <Text
+                        style={[styles.liAmount, { color: colors.mutedForeground }]}
+                      >
+                        {fmtCents(li.amount_cents, item.currency)}
+                      </Text>
+                    </View>
+                  ))}
+                  <View
+                    style={[styles.lineItem, { marginTop: 2 }]}
+                  >
+                    <Text
+                      style={[styles.totalLabel, { color: colors.foreground }]}
+                    >
+                      Total
+                    </Text>
+                    <Text
+                      style={[styles.totalAmount, { color: colors.foreground }]}
+                    >
+                      {fmtCents(item.amount_cents ?? 0, item.currency)}
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           )}
           ListEmptyComponent={
@@ -175,4 +276,29 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   v: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 14 },
+  payment: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, gap: 4 },
+  paymentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  paymentHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 5 },
+  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
+  badgeText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 10,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  lineItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  liLabel: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13 },
+  liDetail: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 11, marginTop: 1 },
+  liAmount: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 },
+  totalLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  totalAmount: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
 });

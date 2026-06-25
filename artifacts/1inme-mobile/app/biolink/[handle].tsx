@@ -1508,7 +1508,21 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "contact_form" || t === "form" || t === "quiz" || t === "review") {
     const title = pickStr(s, "title", "heading") ?? (t === "quiz" ? "Take quiz" : "Open form");
-    const url = publicBiolinkUrl(alias);
+    // For `form` blocks the API resolves the priced public form URL so we can
+    // open the form itself (price tags, live order total and the per-field
+    // payment flow all render inside the in-app WebView) rather than bouncing
+    // to the whole biolink page. Other form-like blocks open the biolink page.
+    const fm = block.form ?? null;
+    const url = t === "form" && fm?.public_url ? fm.public_url : publicBiolinkUrl(alias);
+    const pay = fm?.payment ?? null;
+    const priceHint =
+      fm?.is_paid && pay
+        ? pay.mode === "per_field"
+          ? pay.amount_cents > 0
+            ? `Paid form · from ${fmtMoney(pay.amount_cents, pay.currency)}`
+            : "Paid form · priced by your answers"
+          : `Paid form · ${fmtMoney(pay.amount_cents, pay.currency)}`
+        : null;
     return (
       <Pressable
         onPress={() => {
@@ -1519,7 +1533,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
       >
         <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>{title}</Text>
         <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12, marginTop: 4 }]}>
-          Tap to open in-app
+          {priceHint ?? "Tap to open in-app"}
         </Text>
       </Pressable>
     );

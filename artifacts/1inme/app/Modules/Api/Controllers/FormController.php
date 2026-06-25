@@ -196,6 +196,12 @@ class FormController extends Controller
                 'payment_status' => $s->payment_status ?? 'none',
                 'amount_cents'   => $s->amount_cents !== null ? (int) $s->amount_cents : null,
                 'currency'       => $s->currency,
+                'line_items'     => array_values(array_map(fn ($li) => [
+                    'field'        => $li['field'] ?? null,
+                    'label'        => $li['label'] ?? null,
+                    'detail'       => $li['detail'] ?? null,
+                    'amount_cents' => (int) ($li['amount_cents'] ?? 0),
+                ], (array) ($s->line_items ?? []))),
                 'paid_at'        => optional($s->paid_at)->toIso8601String(),
                 'created_at' => optional($s->created_at)->toIso8601String(),
             ])->all(),
