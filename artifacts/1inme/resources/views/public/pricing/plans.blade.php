@@ -325,7 +325,8 @@
         border-color: rgba(15,23,42,.12) !important;
     }
     html.light-mode .cycle-knob {
-        box-shadow: 0 6px 18px -6px rgba(124,58,237,.75), 0 0 0 1px rgba(124,58,237,.45) !important;
+        background: linear-gradient(135deg,#6d28d9 0%,#7c3aed 50%,#a21caf 100%) !important;
+        box-shadow: 0 8px 22px -6px rgba(124,58,237,.85), 0 0 0 1.5px rgba(124,58,237,.6) !important;
     }
     /* The active label uses the `.text-white` utility but sits on the violet
        knob as a SIBLING (not a child of .grad-bar), so the global light-mode
@@ -550,7 +551,7 @@
             <p class="text-lg text-gray-300/90 max-w-xl mx-auto">
                 Start free, upgrade only when you outgrow it. Powerful features, transparent pricing — cancel anytime.
             </p>
-            <div class="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-2 pt-1 text-xs">
+            <div class="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-2 pt-1 pb-4 text-xs">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-gray-300"><i class="fas fa-circle-check text-emerald-400"></i> No card to start</span>
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-gray-300"><i class="fas fa-circle-check text-emerald-400"></i> Cancel anytime</span>
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-gray-300"><i class="fas fa-circle-check text-emerald-400"></i> Secure checkout</span>
