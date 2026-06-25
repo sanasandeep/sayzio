@@ -1303,11 +1303,50 @@
                 </div>
                 <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Out of API calls? Just grab some coins.</h2>
                 <p class="text-gray-400 mt-2">
-                    Every plan includes a monthly API-call allowance. When you go over it,
-                    coins automatically top up the extra calls — no overage bill, no hard stop.
-                    Coins also activate paid add-ons on demand — one-off campaigns,
-                    NFC tag batches or AI credit top-ups — without committing to a higher plan.
+                    Coins are 1INME's pay-as-you-go top-up currency — one flexible balance
+                    you keep on hand and only spend when you need more than your plan includes.
+                    No overage bills, no hard stops, no jumping to a bigger plan just for a busy week.
                 </p>
+            </div>
+
+            {{-- ── "What are coins?" explainer — plain-language breakdown of the
+                 three things coins are spent on, with everyday examples so a
+                 first-time buyer can immediately picture the value. The AI
+                 features card hands off to the detailed list in the partial
+                 below (kept as the single source of truth), so we don't repeat
+                 those feature names here. ── --}}
+            <div class="max-w-4xl mx-auto mb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 flex flex-col">
+                    <div class="w-10 h-10 rounded-xl bg-amber-400/15 ring-1 ring-amber-400/30 flex items-center justify-center mb-3">
+                        <i class="fas fa-gauge-high text-amber-300"></i>
+                    </div>
+                    <div class="text-sm font-semibold text-white">API overage</div>
+                    <p class="text-xs text-gray-400 mt-1 leading-relaxed flex-grow">
+                        Blow past your monthly API-call allowance and coins quietly cover the
+                        extra calls — nothing breaks.
+                    </p>
+                    <p class="text-[11px] text-amber-300/80 mt-2">e.g. a viral week that doubles your traffic.</p>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 flex flex-col">
+                    <div class="w-10 h-10 rounded-xl bg-amber-400/15 ring-1 ring-amber-400/30 flex items-center justify-center mb-3">
+                        <i class="fas fa-puzzle-piece text-amber-300"></i>
+                    </div>
+                    <div class="text-sm font-semibold text-white">Paid add-ons</div>
+                    <p class="text-xs text-gray-400 mt-1 leading-relaxed flex-grow">
+                        Activate one-off extras on demand, without committing to a higher plan.
+                    </p>
+                    <p class="text-[11px] text-amber-300/80 mt-2">e.g. a single ad campaign or a batch of NFC tags.</p>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 flex flex-col">
+                    <div class="w-10 h-10 rounded-xl bg-violet-500/15 ring-1 ring-violet-400/30 flex items-center justify-center mb-3">
+                        <i class="fas fa-wand-magic-sparkles text-violet-300"></i>
+                    </div>
+                    <div class="text-sm font-semibold text-white">AI features</div>
+                    <p class="text-xs text-gray-400 mt-1 leading-relaxed flex-grow">
+                        Power OpenAI tools billed straight from your balance — pay only for what you use.
+                    </p>
+                    <p class="text-[11px] text-violet-300/80 mt-2">e.g. generating a persona or scanning business cards.</p>
+                </div>
             </div>
 
             @include('public.pricing._ai_coin_uses')
@@ -1337,19 +1376,25 @@
                         return 'Power-users — months of AI generation, gifting credits, or running multiple add-ons in parallel.';
                     };
                 @endphp
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-10">
                     @foreach($packages as $row)
                         @php $pkg = $row['model']; $isFeat = $pkg->bonus_coins > 0; @endphp
                         <div x-data='{ prices: @json($row['prices']) }'
-                             class="grad-glow {{ $isFeat ? 'is-popular' : '' }} relative rounded-2xl border {{ $isFeat ? 'border-amber-400/40' : 'border-white/10' }} bg-white/[0.02] coin-bg p-6 flex flex-col overflow-hidden">
+                             class="grad-glow {{ $isFeat ? 'is-popular' : '' }} relative rounded-2xl border {{ $isFeat ? 'border-amber-400/40' : 'border-white/10' }} bg-white/[0.02] coin-bg p-6 flex flex-col">
+                            {{-- Background glow lives in its own clipped layer so it stays
+                                 contained inside the rounded card, while the "+X bonus"
+                                 badge below can render fully outside the card bounds
+                                 without being cut off. --}}
+                            <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                                <div class="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-amber-400/10 blur-2xl"></div>
+                            </div>
                             @if($isFeat)
-                                <div class="absolute -top-3 right-6 px-3 py-1 bg-amber-400 text-[#1e2330] text-[10px] font-bold rounded-full uppercase tracking-wider shadow-lg shadow-amber-500/20">
+                                <div class="absolute -top-3 right-6 z-10 px-3 py-1 bg-amber-400 text-[#1e2330] text-[10px] font-bold rounded-full uppercase tracking-wider shadow-lg shadow-amber-500/20">
                                     +{{ number_format($pkg->bonus_coins) }} bonus
                                 </div>
                             @endif
-                            <div class="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-amber-400/10 blur-2xl pointer-events-none"></div>
 
-                            <div class="flex items-center gap-3">
+                            <div class="relative flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full bg-amber-400/15 ring-1 ring-amber-400/30 flex items-center justify-center float-coin">
                                     <i class="fas fa-coins text-amber-300"></i>
                                 </div>
