@@ -18,11 +18,11 @@ class AiFeatureCatalog
 
     /** Friendly labels for ledger / reporting surfaces. */
     public const FEATURE_LABELS = [
-        'mind'          => 'AI Mind',
-        'persona'       => 'AI Persona',
-        'companion'     => 'AI Companion',
-        'coach'         => 'AI Coach',
-        'ask_coach'     => 'Ask Coach',
+        'mind'          => 'Note Summarizer',
+        'persona'       => 'Persona Generator',
+        'companion'     => 'AI Chat',
+        'coach'         => 'Growth Coach',
+        'ask_coach'     => 'Account Assistant',
         'voice_stt'     => 'Voice — Transcription',
         'voice_llm'     => 'Voice — Reasoning',
         'voice_tts'     => 'Voice — Speech',
@@ -34,6 +34,24 @@ class AiFeatureCatalog
     public static function featureLabel(?string $feature): string
     {
         if (!$feature) return '—';
-        return self::FEATURE_LABELS[$feature] ?? ucwords(str_replace('_', ' ', $feature));
+
+        // Exact match on a known feature key.
+        if (isset(self::FEATURE_LABELS[$feature])) {
+            return self::FEATURE_LABELS[$feature];
+        }
+
+        // Spend is often tagged with a dotted sub-reason (e.g.
+        // `companion.chat`, `persona.profile`, `coach.suggest`). Resolve the
+        // product label from the base key so reporting rows show the new tool
+        // name, with the sub-reason appended for context.
+        if (str_contains($feature, '.')) {
+            [$base, $sub] = explode('.', $feature, 2);
+            if (isset(self::FEATURE_LABELS[$base])) {
+                $subLabel = ucwords(str_replace(['_', '.'], ' ', $sub));
+                return self::FEATURE_LABELS[$base] . ' — ' . $subLabel;
+            }
+        }
+
+        return ucwords(str_replace('_', ' ', $feature));
     }
 }
