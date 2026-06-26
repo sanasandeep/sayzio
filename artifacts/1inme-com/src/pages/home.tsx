@@ -2,6 +2,7 @@ import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import { CTABand, Eyebrow } from "@/components/marketing/marketing";
 import { LinkTypesShowcase } from "@/components/marketing/link-types-showcase";
+import { AiFlipTiles } from "@/components/marketing/ai-flip-tiles";
 import { motion, useReducedMotion } from "framer-motion";
 import { SIGNUP_URL } from "@/config";
 import { Link } from "wouter";
@@ -266,6 +267,9 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
+      {/* ─── AI feature flip tiles — full toolkit ─────────────────── */}
+      <AiFlipTiles />
 
       {/* ─── Sayzio is the new 1INME ──────────────────────────────── */}
       <section className="relative py-24 overflow-hidden">

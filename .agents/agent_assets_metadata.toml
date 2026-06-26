@@ -594,6 +594,30 @@ uri = "file://attached_assets/banner_assets/bg_features_light.png"
 type = "image"
 title = "light features background"
 
+[[generated]]
+id = "KpyGnSiEpvj4XQxPjR93F"
+uri = "file://artifacts/1inme-com/public/ai-tiles/ai-builder.png"
+type = "image"
+title = "ai builder wand blocks"
+
+[[generated]]
+id = "_8RQSpMBdSmu-ZE68dKG0"
+uri = "file://artifacts/1inme-com/public/ai-tiles/ai-chat.png"
+type = "image"
+title = "ai chat robot personas"
+
+[[generated]]
+id = "khs0uWWQYzgNJ13AyVwZH"
+uri = "file://artifacts/1inme-com/public/ai-tiles/ai-voice.png"
+type = "image"
+title = "ai voice phone agent"
+
+[[generated]]
+id = "OiEqSIxB4Y-qZhNpwWVUu"
+uri = "file://artifacts/1inme-com/public/ai-tiles/ai-coach.png"
+type = "image"
+title = "ai coach gauge resume"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"
