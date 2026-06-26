@@ -1,81 +1,152 @@
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
-import { CTABand } from "@/components/marketing/marketing";
+import { CTABand, Eyebrow } from "@/components/marketing/marketing";
 import { LinkTypesShowcase } from "@/components/marketing/link-types-showcase";
 import { motion, useReducedMotion } from "framer-motion";
 import { SIGNUP_URL } from "@/config";
 import { Link } from "wouter";
-import { ArrowRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import {
+  ArrowRight,
+  Sparkles,
+  Gauge,
+  Wand2,
+  Bot,
+  PhoneCall,
+  Workflow,
+  Code2,
+  Check,
+  Link2,
+  Globe,
+  type LucideIcon,
+} from "lucide-react";
+import zioMascot from "@assets/icon_1782443779300.png";
 
-const ROLES = [
-  "Creator",
-  "Artist",
-  "Businessman",
-  "Musician",
-  "Coach",
-  "Photographer",
-  "Influencer",
-  "Podcaster",
-  "Writer",
-  "Designer",
+interface AiCapability {
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+  accent: string;
+}
+
+/**
+ * Headline AI capabilities surfaced near the top of the homepage. Mirrors the
+ * AI Suite mega-menu (chatbot / agent / widget / voice) plus the two flagship
+ * in-product AI features (Performance Coach, biolink builder) so the page leads
+ * with the AI story. Accents are decorative icon tints only — primary UI stays
+ * on the blue brand palette.
+ */
+const aiCapabilities: AiCapability[] = [
+  {
+    icon: Gauge,
+    title: "AI Performance Coach",
+    desc: "Reads your analytics and tells you exactly what to fix next to grow — in plain English.",
+    accent: "#3d6bff",
+  },
+  {
+    icon: Wand2,
+    title: "AI Page Builder",
+    desc: "Describe your page in a sentence and watch AI assemble a full Link in Bio, ready to publish.",
+    accent: "#6e61ff",
+  },
+  {
+    icon: Bot,
+    title: "AI Chatbot & Companion",
+    desc: "A 24/7 assistant on your page, trained on your content, answering visitors in your voice.",
+    accent: "#1bd4d9",
+  },
+  {
+    icon: PhoneCall,
+    title: "AI Voice Assistant",
+    desc: "Picks up every call to your number in your voice, qualifies callers and books real meetings.",
+    accent: "#ff8a3c",
+  },
+  {
+    icon: Workflow,
+    title: "AI Agent",
+    desc: "Runs multi-step playbooks across your inbox, calendar and contacts — a teammate, not a bot.",
+    accent: "#e94e8c",
+  },
+  {
+    icon: Code2,
+    title: "AI Widget",
+    desc: "Embed your on-brand assistant on any website with a single snippet — it captures leads in context.",
+    accent: "#3d6bff",
+  },
 ];
 
 export default function Home() {
-  const [roleIndex, setRoleIndex] = useState(0);
   const prefersReducedMotion = useReducedMotion();
 
-  useEffect(() => {
-    if (prefersReducedMotion) return;
-    const interval = setInterval(() => {
-      setRoleIndex((current) => (current + 1) % ROLES.length);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [prefersReducedMotion]);
+  const float = (offset: number, duration: number, delay = 0) =>
+    prefersReducedMotion
+      ? {}
+      : {
+          animate: { y: [0, offset, 0] },
+          transition: {
+            repeat: Infinity,
+            duration,
+            ease: "easeInOut" as const,
+            delay,
+          },
+        };
+
+  const reveal = (delay: number) =>
+    prefersReducedMotion
+      ? {}
+      : {
+          initial: { opacity: 0, y: 20 },
+          whileInView: { opacity: 1, y: 0 },
+          viewport: { once: true, margin: "-80px" },
+          transition: { duration: 0.5, delay },
+        };
 
   return (
     <PageLayout
-      title="All-in-one Link Platform"
-      description="Whoever you are, Sayzio is the all-in-one link, monetization & growth stack — free forever, no card required."
+      title="The AI-first marketing toolkit"
+      description="Sayzio is the AI-first marketing toolkit that redefines how creators and businesses market themselves — AI pages, an AI Performance Coach, an on-brand AI assistant and more. Free forever, no card required."
     >
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+      {/* ─── Hero — AI-first ──────────────────────────────────────── */}
+      <section className="relative pt-32 pb-20 lg:pt-44 lg:pb-28 overflow-hidden">
         <div className="mesh-bg" aria-hidden />
         <div className="grid-bg" aria-hidden />
         <div className="container mx-auto px-6 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="max-w-2xl"
             >
-              <p className="text-sm font-medium text-muted-foreground mb-6">
-                Analytics · Followers · Social integrations · Free Forever · Native mobile app
-              </p>
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary mb-6">
+                <Sparkles className="w-4 h-4" />
+                The AI-first marketing toolkit
+              </span>
 
-              <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-foreground mb-6 leading-tight">
-                I am a{" "}
-                <span className="grad-text transition-all duration-300">
-                  {ROLES[roleIndex]}
-                </span>
+              <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-foreground mb-6 leading-[1.05]">
+                Redefine your marketing with{" "}
+                <span className="grad-text">AI</span>
               </h1>
 
               <p className="text-lg lg:text-xl text-muted-foreground mb-10 max-w-xl">
-                Whoever you are, Sayzio is the all-in-one link, monetization &amp;
-                growth stack: drag-and-drop Link in Bio pages, branded short links,
-                dynamic QR codes, NFC tags, built-in DMs, an AI Performance Coach
-                and a native mobile app — free forever, no card required.
+                Meet Zio — the friendly AI behind Sayzio. It builds your pages,
+                coaches your growth, answers your visitors and even picks up your
+                calls. One link, an AI suite that markets you 24/7 — free
+                forever, no card required.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button asChild size="lg" className="rounded-full h-14 px-8 text-base">
                   <a href={SIGNUP_URL}>
-                    Make mine free <ArrowRight className="ml-2 w-5 h-5" />
+                    Start free with AI <ArrowRight className="ml-2 w-5 h-5" />
                   </a>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="rounded-full h-14 px-8 text-base bg-transparent border-primary/20 hover:bg-primary/5">
-                  <Link href="/features">See it live</Link>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="rounded-full h-14 px-8 text-base bg-transparent border-primary/20 hover:bg-primary/5"
+                >
+                  <a href="#ai-suite">Meet the AI suite</a>
                 </Button>
               </div>
 
@@ -84,43 +155,61 @@ export default function Home() {
                   <div className="w-2 h-2 rounded-full bg-green-500" />
                   120,000+ creators served
                 </div>
-                <div>9 teammates</div>
-                <div>3 years young</div>
+                <div>AI built-in, not bolted on</div>
+                <div>Free forever</div>
               </div>
             </motion.div>
 
+            {/* Zio mascot + floating AI badges */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.9 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative lg:ml-auto"
             >
-              <div className="relative w-full max-w-[340px] mx-auto">
-                <img 
-                  src={`${import.meta.env.BASE_URL}hero-mockup.png`} 
-                  alt="Sayzio Link in Bio Profile" 
-                  className="w-full h-auto drop-shadow-2xl rounded-[3rem]"
+              <div className="relative w-full max-w-[420px] mx-auto">
+                {/* Glow halo behind the mascot */}
+                <div
+                  aria-hidden
+                  className="absolute inset-0 -z-10 mx-auto h-[80%] w-[80%] translate-y-6 rounded-full bg-primary/25 blur-[80px]"
                 />
-                
-                {/* Floating Badges */}
-                <motion.div 
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                  className="absolute top-1/4 -left-12 glass-card py-2 px-4 rounded-full text-sm font-semibold flex items-center gap-2 whitespace-nowrap"
+
+                <motion.img
+                  src={zioMascot}
+                  alt="Zio, the Sayzio AI mascot"
+                  className="w-full h-auto drop-shadow-2xl select-none"
+                  draggable={false}
+                  {...float(-16, 6)}
+                />
+
+                {/* Floating AI badges */}
+                <motion.div
+                  className="absolute top-6 -left-4 sm:-left-10 glass-card py-2.5 px-4 rounded-2xl text-sm font-semibold flex items-center gap-2 whitespace-nowrap"
+                  {...float(-10, 4.5)}
                 >
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  Live · 247 visitors
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  Page built by AI
                 </motion.div>
 
-                <motion.div 
-                  animate={{ y: [0, 10, 0] }}
-                  transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-                  className="absolute bottom-1/3 -right-16 glass-card py-3 px-5 rounded-2xl text-sm font-semibold flex flex-col gap-1 whitespace-nowrap"
+                <motion.div
+                  className="absolute bottom-24 -right-3 sm:-right-12 glass-card py-3 px-5 rounded-2xl text-sm font-semibold flex flex-col gap-1 whitespace-nowrap"
+                  {...float(12, 5.5, 1)}
                 >
-                  <span className="text-muted-foreground text-xs">Top link today</span>
-                  <span className="text-primary flex items-center gap-2">
-                    /new-album <span className="text-green-500">+18%</span>
+                  <span className="text-muted-foreground text-xs flex items-center gap-1.5">
+                    <Gauge className="w-3.5 h-3.5 text-primary" />
+                    AI Coach
                   </span>
+                  <span className="text-foreground flex items-center gap-2">
+                    Growth this week <span className="text-green-500">+18%</span>
+                  </span>
+                </motion.div>
+
+                <motion.div
+                  className="absolute bottom-2 left-2 sm:-left-6 glass-card py-2.5 px-4 rounded-2xl text-sm font-semibold flex items-center gap-2 max-w-[200px]"
+                  {...float(-8, 5, 0.6)}
+                >
+                  <Bot className="w-4 h-4 shrink-0 text-primary" />
+                  <span className="truncate">“Hi! How can I help?”</span>
                 </motion.div>
               </div>
             </motion.div>
@@ -128,13 +217,135 @@ export default function Home() {
         </div>
       </section>
 
-      {/* What you can create — grouped 12-link-types poster recreation */}
+      {/* ─── AI Suite — front and centre ──────────────────────────── */}
+      <section
+        id="ai-suite"
+        className="relative py-24 bg-card/50 border-y overflow-hidden scroll-mt-24"
+      >
+        <div className="mesh-bg" aria-hidden />
+        <div className="container mx-auto px-6 relative z-10">
+          <motion.div className="text-center mb-16 max-w-3xl mx-auto" {...reveal(0)}>
+            <Eyebrow>An AI suite, built in</Eyebrow>
+            <h2 className="text-3xl lg:text-5xl font-bold tracking-tight mb-4">
+              AI that <span className="grad-text">markets you</span>, around the clock
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              Sayzio isn't a link tool with AI sprinkled on top. AI runs through
+              everything — from building your page to coaching your growth and
+              talking to your audience while you sleep.
+            </p>
+          </motion.div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {aiCapabilities.map((cap, index) => (
+              <motion.div
+                key={cap.title}
+                className="glass-card rounded-3xl p-7 flex flex-col"
+                {...reveal((index % 3) * 0.08)}
+              >
+                <span
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
+                  style={{ color: cap.accent, backgroundColor: `${cap.accent}1f` }}
+                >
+                  <cap.icon className="w-6 h-6" />
+                </span>
+                <h3 className="text-lg font-semibold mb-2">{cap.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {cap.desc}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div className="mt-12 flex justify-center" {...reveal(0.1)}>
+            <Button asChild size="lg" className="rounded-full h-14 px-8 text-base">
+              <a href={SIGNUP_URL}>
+                Put the AI suite to work <ArrowRight className="ml-2 w-5 h-5" />
+              </a>
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── Sayzio is the new 1INME ──────────────────────────────── */}
+      <section className="relative py-24 overflow-hidden">
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="glass-card rounded-[2rem] p-8 lg:p-14 overflow-hidden relative">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/15 blur-3xl"
+            />
+            <div className="grid lg:grid-cols-[1fr_auto] gap-10 lg:gap-14 items-center relative">
+              <motion.div {...reveal(0)}>
+                <Eyebrow>A new name, the same home</Eyebrow>
+                <h2 className="text-3xl lg:text-4xl font-bold tracking-tight mb-4">
+                  Sayzio is the new <span className="grad-text">1INME</span>
+                </h2>
+                <p className="text-muted-foreground text-lg leading-relaxed mb-6">
+                  1INME grew up. As we rebuilt the platform around AI — pages that
+                  build themselves, a coach that grows you, an assistant that never
+                  sleeps — the name needed to say what it does: let your audience
+                  hear you. So 1INME became <strong className="text-foreground">Sayzio</strong>.
+                </p>
+                <ul className="space-y-3 mb-8">
+                  {[
+                    "Your existing 1INME links keep working — nothing to migrate, nothing to re-share.",
+                    "The 1in.me domain stays live as part of the Sayzio global domain family.",
+                    "Same account, same data, same free-forever plan — just smarter, with AI built in.",
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-3">
+                      <span className="shrink-0 mt-0.5 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                        <Check className="w-4 h-4" />
+                      </span>
+                      <span className="text-sm font-medium text-foreground">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex flex-wrap gap-3">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-4 py-2 text-sm font-medium text-foreground">
+                    <Link2 className="w-4 h-4 text-primary" />
+                    1in.me links still work
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/60 px-4 py-2 text-sm font-medium text-foreground">
+                    <Globe className="w-4 h-4 text-primary" />
+                    Part of the global domain family
+                  </span>
+                </div>
+              </motion.div>
+
+              <motion.div className="relative mx-auto" {...reveal(0.1)}>
+                <div className="relative w-40 lg:w-52">
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 -z-10 rounded-full bg-primary/20 blur-2xl"
+                  />
+                  <motion.img
+                    src={zioMascot}
+                    alt="Zio waving hello"
+                    className="w-full h-auto drop-shadow-xl select-none"
+                    draggable={false}
+                    {...float(-12, 5.5)}
+                  />
+                  <div className="mt-4 text-center">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Hi, I'm Zio
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── What you can create — supporting catalog ─────────────── */}
       <LinkTypesShowcase />
 
       <CTABand
-        title="Your audience is already searching for you."
-        subtitle="Build the page. Share the link. Watch them show up — live on a map."
-        primary={{ label: "Make mine free", href: SIGNUP_URL }}
+        title="Let AI do your marketing's heavy lifting."
+        subtitle="Build the page, coach the growth, answer the visitors — all from one link, all powered by Zio."
+        primary={{ label: "Start free with AI", href: SIGNUP_URL }}
         secondary={{ label: "See features", href: "/features" }}
       />
     </PageLayout>
