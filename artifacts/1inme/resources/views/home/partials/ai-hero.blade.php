@@ -35,7 +35,7 @@
                 </h2>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-                    Describe your idea and <strong class="text-white">your AI</strong> builds the Link in Bio, writes the copy, picks the theme and lays out every block. Then it keeps working — an <strong class="text-white">AI chatbot</strong> answering visitors, a <strong class="text-white">voice assistant</strong> taking calls and a <strong class="text-white">Performance Coach</strong> turning your numbers into next steps — <strong class="text-white">free forever</strong>, no card required.
+                    Describe your idea in a sentence and <strong class="text-white">your AI</strong> builds the whole Link in Bio — it writes the copy, picks a matching theme and lays out every block in seconds. Everything stays <strong class="text-white">fully editable</strong>, so you tweak any block and publish the moment it looks right. No templates to wrestle, no design skills needed.
                 </p>
 
                 <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 justify-center lg:justify-start">
@@ -49,19 +49,19 @@
 
                 <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-3 mt-10 justify-center lg:justify-start text-sm">
                     <span class="flex items-center gap-2 text-gray-400">
-                        <i class="fas fa-wand-magic-sparkles text-[13px]" style="color:var(--c2)"></i>
-                        <span class="font-bold text-white">AI builder</span>
-                        <span class="text-gray-500">page in seconds</span>
+                        <i class="fas fa-keyboard text-[13px]" style="color:var(--c2)"></i>
+                        <span class="font-bold text-white">One prompt</span>
+                        <span class="text-gray-500">to a full page</span>
                     </span>
                     <span class="flex items-center gap-2 text-gray-400">
-                        <i class="fas fa-comments text-[13px]" style="color:var(--c1)"></i>
-                        <span class="font-bold text-white">AI chatbot</span>
-                        <span class="text-gray-500">always on</span>
+                        <i class="fas fa-palette text-[13px]" style="color:var(--c1)"></i>
+                        <span class="font-bold text-white">Theme &amp; copy</span>
+                        <span class="text-gray-500">auto-matched</span>
                     </span>
                     <span class="flex items-center gap-2 text-gray-400">
-                        <i class="fas fa-bolt text-[13px]" style="color:var(--c5)"></i>
-                        <span class="font-bold text-white">AI coach</span>
-                        <span class="text-gray-500">grows you</span>
+                        <i class="fas fa-sliders text-[13px]" style="color:var(--c5)"></i>
+                        <span class="font-bold text-white">Every block</span>
+                        <span class="text-gray-500">fully editable</span>
                     </span>
                 </div>
             </div>
@@ -114,13 +114,13 @@
                         </div>
                     </div>
 
-                    {{-- Floating AI coach chip (desktop only) --}}
+                    {{-- Floating "page built" chip (desktop only) --}}
                     <div class="float-b hidden lg:block absolute -right-5 -bottom-4 glass rounded-2xl px-4 py-3 border border-white/10" style="animation-delay:-2s">
                         <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-xl flex items-center justify-center grad-bar"><i class="fas fa-bolt text-white text-xs"></i></div>
+                            <div class="w-8 h-8 rounded-xl flex items-center justify-center grad-bar"><i class="fas fa-check text-white text-xs"></i></div>
                             <div>
-                                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">AI Coach</div>
-                                <div class="text-xs font-bold text-white">Add a QR — reach +18%</div>
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">AI builder</div>
+                                <div class="text-xs font-bold text-white">Page built in 18s</div>
                             </div>
                         </div>
                     </div>
