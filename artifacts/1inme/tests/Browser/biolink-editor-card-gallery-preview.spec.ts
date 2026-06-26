@@ -54,6 +54,29 @@ const SHAPE_TYPES: Record<string, string> = {
 const SHAPES = Object.keys(SHAPE_TYPES);
 
 /**
+ * Run a `php artisan tinker` seed, retrying on a transient failure. Over the
+ * distant RDS the tinker process occasionally fails to connect — a hard
+ * "Command failed" with no PHP error in the output — which would flake the
+ * whole spec at seed time. A couple of quick retries absorb that blip without
+ * masking a real seed bug (a genuine PHP error fails every attempt and is then
+ * surfaced via the rethrown error).
+ */
+function runTinkerSeed(php: string): string {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      return execFileSync("php", ["artisan", "tinker", "--execute=" + php], {
+        cwd: ARTIFACT_ROOT,
+        encoding: "utf8",
+      });
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * Idempotently (re)seed the demo user, a biolink they own, and one card
  * template per shape family. Each fixture has NO `thumbnail_url` and a snapshot
  * holding a single full-span child of the shape's representative type, so the
@@ -132,10 +155,7 @@ foreach ($map as $shape => $type) {
 echo 'LINKID=' . $bio->id;
 `.trim();
 
-  const out = execFileSync("php", ["artisan", "tinker", "--execute=" + php], {
-    cwd: ARTIFACT_ROOT,
-    encoding: "utf8",
-  });
+  const out = runTinkerSeed(php);
   const m = out.match(/LINKID=(\d+)/);
   if (!m) throw new Error("Seed failed, output:\n" + out);
   return Number(m[1]);
@@ -178,6 +198,12 @@ async function loginAsDemo(page: Page): Promise<void> {
  * fetch → reactive render) the way clicking the "Cards" tab would.
  */
 async function openCardGallery(page: Page, linkId: number): Promise<void> {
+  // Arm the E2E flag (inherited by the device-preview iframe) so the public
+  // biolink preview skips its 15s tracking heartbeat — those beacons otherwise
+  // saturate the few local PHP-CLI workers and slow the editor render.
+  await page.addInitScript(() => {
+    (window as unknown as { __E2E__: boolean }).__E2E__ = true;
+  });
   await page.goto(`/user/links/${linkId}/blocks`);
 
   // Wait for Alpine to have initialised the editor root component.

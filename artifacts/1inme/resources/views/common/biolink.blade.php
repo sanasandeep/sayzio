@@ -1721,6 +1721,12 @@
         var ALIAS = @json($link->alias);
         var startUrl = '/' + ALIAS + '/track/session';
         var hbUrl    = '/' + ALIAS + '/track/heartbeat';
+        // Under the browser E2E flag (set by the editor specs and inherited by
+        // the device-preview iframe), skip all tracking beacons: the preview's
+        // 15s heartbeat otherwise saturates the few local PHP-CLI workers the
+        // block-store AJAX needs, flaking the editor drag-and-drop suite. No
+        // effect in production, where __E2E__ is never set.
+        if (window.__E2E__) return;
         var CONSENT_REQUIRED = {!! !empty(($link->settings['biolink']['privacy']['consent_banner_enabled'] ?? false)) ? 'true' : 'false' !!};
         var CONSENT_COOKIE   = @json('1inme_link_consent_' . (int) $link->id);
         function readCookie(name){

@@ -5,6 +5,10 @@
      Requires: $link in scope (used to derive the alias for tracking URLs). --}}
 <script>
 (function(){
+    // Under the browser E2E flag, skip tracking beacons so a preview/render
+    // doesn't saturate the local PHP-CLI workers during the test suite. No
+    // effect in production, where __E2E__ is never set.
+    if (window.__E2E__) return;
     var ALIAS = @json($link->_used_alias ?? $link->alias);
     var startUrl = '/' + ALIAS + '/track/session';
     var hbUrl    = '/' + ALIAS + '/track/heartbeat';

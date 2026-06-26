@@ -31,6 +31,29 @@ const ARTIFACT_ROOT = path.resolve(
 type Baseline = { linkId: number; cardId: number };
 
 /**
+ * Run a `php artisan tinker` seed, retrying on a transient failure. Over the
+ * distant RDS the tinker process occasionally fails to connect — a hard
+ * "Command failed" with no PHP error in the output — which would flake the
+ * whole spec at seed time. A couple of quick retries absorb that blip without
+ * masking a real seed bug (a genuine PHP error fails every attempt and is then
+ * surfaced via the rethrown error).
+ */
+function runTinkerSeed(php: string): string {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      return execFileSync("php", ["artisan", "tinker", "--execute=" + php], {
+        cwd: ARTIFACT_ROOT,
+        encoding: "utf8",
+      });
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * Reset (idempotently re-create) a known biolink owned by the demo user with
  * a deterministic block layout so each test starts from the same state:
  *
@@ -92,11 +115,7 @@ BiolinkBlock::create(['link_id'=>$bio->id,'workspace_id'=>$bio->workspace_id,'pa
 echo 'LINKID=' . $bio->id . ' CARDID=' . $card->id;
 `.trim();
 
-  const out = execFileSync(
-    "php",
-    ["artisan", "tinker", "--execute=" + php],
-    { cwd: ARTIFACT_ROOT, encoding: "utf8" },
-  );
+  const out = runTinkerSeed(php);
   const m = out.match(/LINKID=(\d+) CARDID=(\d+)/);
   if (!m) throw new Error("Seed failed, output:\n" + out);
   return { linkId: Number(m[1]), cardId: Number(m[2]) };
@@ -159,19 +178,24 @@ async function paletteLabel(page: Page, type: string): Promise<string> {
   ).trim();
 }
 
-/** Ordered top-level block-type labels currently rendered on the canvas. */
+/**
+ * Ordered top-level block-type labels currently rendered on the canvas, read as
+ * a single atomic DOM snapshot. Reading the whole list in one `page.evaluate`
+ * (rather than per-wrapper locator round-trips) avoids a mid-re-render race: the
+ * in-place insert briefly re-renders #blockList, and a multi-step read could
+ * catch a node detaching between the count and the per-label read. Pair this
+ * with `expect.poll` so the assertion re-snapshots until the list settles.
+ */
 async function topLevelLabels(page: Page): Promise<string[]> {
-  const wrappers = page.locator("#blockList > .block-card-wrapper");
-  const n = await wrappers.count();
-  const out: string[] = [];
-  for (let i = 0; i < n; i++) {
-    out.push(
+  return page.evaluate(() =>
+    Array.from(
+      document.querySelectorAll("#blockList > .block-card-wrapper"),
+    ).map((w) =>
       (
-        await wrappers.nth(i).locator("span.text-sm.font-semibold").first().innerText()
+        w.querySelector("span.text-sm.font-semibold")?.textContent ?? ""
       ).trim(),
-    );
-  }
-  return out;
+    ),
+  );
 }
 
 /**
@@ -247,11 +271,15 @@ test.describe("biolink editor — palette drag-and-drop block creation", () => {
     await openEditor(page, baseline.linkId);
     const heading = await paletteLabel(page, "heading");
 
-    expect(await topLevelLabels(page)).toEqual(["Divider", "Spacer", "Card Container"]);
+    await expect.poll(() => topLevelLabels(page), { timeout: 60_000 }).toEqual([
+      "Divider",
+      "Spacer",
+      "Card Container",
+    ]);
 
     await dropPalette(page, "heading", null, 0);
 
-    expect(await topLevelLabels(page)).toEqual([
+    await expect.poll(() => topLevelLabels(page), { timeout: 60_000 }).toEqual([
       heading,
       "Divider",
       "Spacer",
@@ -265,7 +293,7 @@ test.describe("biolink editor — palette drag-and-drop block creation", () => {
 
     await dropPalette(page, "heading", null, 1);
 
-    expect(await topLevelLabels(page)).toEqual([
+    await expect.poll(() => topLevelLabels(page), { timeout: 60_000 }).toEqual([
       "Divider",
       heading,
       "Spacer",
@@ -279,7 +307,7 @@ test.describe("biolink editor — palette drag-and-drop block creation", () => {
 
     await dropPalette(page, "heading", null, 99);
 
-    expect(await topLevelLabels(page)).toEqual([
+    await expect.poll(() => topLevelLabels(page), { timeout: 60_000 }).toEqual([
       "Divider",
       "Spacer",
       "Card Container",
@@ -307,7 +335,11 @@ test.describe("biolink editor — palette drag-and-drop block creation", () => {
       children.nth(0).locator("span.font-semibold").first(),
     ).toHaveText(link);
     // The top level did NOT gain a block — it went into the card, not the canvas.
-    expect(await topLevelLabels(page)).toEqual(["Divider", "Spacer", "Card Container"]);
+    await expect.poll(() => topLevelLabels(page), { timeout: 60_000 }).toEqual([
+      "Divider",
+      "Spacer",
+      "Card Container",
+    ]);
   });
 
   test("rejects a card-type tile dropped inside a Card Container", async ({
