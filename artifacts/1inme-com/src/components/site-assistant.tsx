@@ -532,18 +532,6 @@ export default function SiteAssistant() {
                 borderBottom: `1px solid ${t.panelBorder}`,
               }}
             >
-              <img
-                src={avatar}
-                alt=""
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 10,
-                  objectFit: "contain",
-                  background: "rgba(61,107,255,0.18)",
-                  padding: 1,
-                }}
-              />
               <div style={{ lineHeight: 1.2 }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{brand}</div>
                 <div style={{ fontSize: 11, color: t.sub }}>{subheading}</div>

@@ -368,14 +368,13 @@ window.__SA_CHROME = {
     var peek=el('div',{id:'sa-peek','aria-hidden':'true',html:'<img src="'+escapeHtml(ds.peekAvatar)+'" alt="">'});
     panelWrap.appendChild(peek);
   }
-  var avatarHtml = ds.avatar ? '<img src="'+escapeHtml(ds.avatar)+'" alt="">' : '<div class="sa-avatar">★</div>';
   // Subheading is rendered server-side using the localized
   // `subheading` field exposed by the partial, so visitors with a
   // non-English Accept-Language never see English chrome flash before
   // bootstrap arrives. Bootstrap re-applies it (in case admin edits
   // happened mid-pageload) but the initial value is already correct.
   var subInit = (typeof window.__SA_SUBHEADING==='string' && window.__SA_SUBHEADING) ? window.__SA_SUBHEADING : 'How can I help?';
-  var header=el('div',{class:'sa-header',html:avatarHtml+'<div><h4>'+escapeHtml(window.__SA_BRAND||'Assistant')+'</h4><div class="sa-sub" id="sa-sub">'+escapeHtml(subInit)+'</div></div>'});
+  var header=el('div',{class:'sa-header',html:'<div><h4>'+escapeHtml(window.__SA_BRAND||'Assistant')+'</h4><div class="sa-sub" id="sa-sub">'+escapeHtml(subInit)+'</div></div>'});
   var closeBtn=el('button',{class:'sa-close',type:'button','aria-label':'Close'},'×');
   closeBtn.onclick=function(){ togglePanel(false); };
   header.appendChild(closeBtn);
