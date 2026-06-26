@@ -40,6 +40,10 @@ args = "php-deprecations"
 task = "workflow.run"
 args = "brand-color"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "brand-color-build"
+
 [[workflows.workflow]]
 name = "template-designs"
 author = "agent"
@@ -102,6 +106,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:brand-color"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "brand-color-build"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:brand-color-build"
 
 [workflows.workflow.metadata]
 isValidation = true

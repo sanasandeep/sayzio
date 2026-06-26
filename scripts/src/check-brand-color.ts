@@ -42,20 +42,35 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+
+/**
+ * Banned RETIRED-purple HEX forms, with or without '#'. \b keeps us off longer
+ * hex strings. Shared with the post-build guard (`check-brand-color-build.ts`),
+ * which greps the COMPILED stylesheet where these survive verbatim.
+ */
+export const BANNED_HEX_PATTERN = String.raw`#?\b(7c3aed|8b5cf6|a78bfa)\b`;
+
+/**
+ * Banned rgb()/rgba() forms of the same three colors. Whitespace-tolerant and
+ * accepts both comma- and space-separated channels (Tailwind v4 can emit either
+ * in the compiled CSS).
+ */
+export const BANNED_RGB_PATTERNS: string[] = [
+  String.raw`rgba?\(\s*124\s*[,\s]\s*58\s*[,\s]\s*237`,
+  String.raw`rgba?\(\s*139\s*[,\s]\s*92\s*[,\s]\s*246`,
+  String.raw`rgba?\(\s*167\s*[,\s]\s*139\s*[,\s]\s*250`,
+];
 
 /** Banned-token regexes passed to ripgrep (case-insensitive). */
 const BANNED_PATTERNS: string[] = [
-  // Hex forms, with or without '#'. \b keeps us off longer hex strings.
-  String.raw`#?\b(7c3aed|8b5cf6|a78bfa)\b`,
-  // rgb()/rgba() forms of the same three colors (whitespace-tolerant).
-  String.raw`rgba?\(\s*124\s*,\s*58\s*,\s*237`,
-  String.raw`rgba?\(\s*139\s*,\s*92\s*,\s*246`,
-  String.raw`rgba?\(\s*167\s*,\s*139\s*,\s*250`,
-  // Tailwind utility classes for the violet / purple ramps.
+  BANNED_HEX_PATTERN,
+  ...BANNED_RGB_PATTERNS,
+  // Tailwind utility classes for the violet / purple ramps (source-only — these
+  // compile away to color values, so they never reach the built stylesheet).
   String.raw`\b(violet|purple)-(50|100|200|300|400|500|600|700|800|900|950)\b`,
 ];
 
@@ -220,4 +235,8 @@ function main(): void {
   process.exit(1);
 }
 
-main();
+// Only run when invoked directly (the patterns above are imported by the
+// post-build guard, which must not trigger this source-level scan on import).
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  main();
+}
