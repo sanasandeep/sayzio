@@ -46,12 +46,14 @@
 
     {{-- AI BUILDER: describe it and AI assembles the page — second prominent path --}}
     @if(!empty($aiBuilderEnabled))
-    <form method="POST" action="{{ route('user.links.store') }}" class="mb-8">
+    <form method="POST" action="{{ route('user.links.store') }}" class="mb-8"
+          onsubmit="this.querySelector('input[name=alias]').value = (document.getElementById('create-link-alias')?.value || '').trim();">
         @csrf
         <input type="hidden" name="type" value="biolink">
         <input type="hidden" name="start_mode" value="ai">
+        <input type="hidden" name="alias" value="">
         <button type="submit"
-                class="w-full text-left block relative overflow-hidden glass rounded-3xl p-6 sm:p-8 border border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-500/15 via-purple-500/10 to-blue-500/10 hover:from-fuchsia-500/20 hover:via-purple-500/15 hover:to-blue-500/15 transition-all group hover:shadow-2xl hover:shadow-fuchsia-500/20">
+                class="w-full text-left block relative overflow-hidden glass rounded-3xl p-6 sm:p-8 border border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-500/15 via-indigo-500/10 to-blue-500/10 hover:from-fuchsia-500/20 hover:via-indigo-500/15 hover:to-blue-500/15 transition-all group hover:shadow-2xl hover:shadow-fuchsia-500/20">
             <div class="absolute -top-24 -left-16 w-64 h-64 rounded-full bg-fuchsia-500/20 blur-3xl pointer-events-none"></div>
             <div class="absolute -bottom-24 -right-16 w-64 h-64 rounded-full bg-blue-500/20 blur-3xl pointer-events-none"></div>
             <div class="relative flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6">
@@ -142,7 +144,7 @@
                     <span class="flex items-center px-3 text-sm text-white/40 bg-white/[0.03] border-r border-white/10 select-none">
                         {{ $domainHost }}/
                     </span>
-                    <input type="text" name="alias"
+                    <input type="text" name="alias" id="create-link-alias"
                            value="{{ old('alias', $prefillAlias ?? '') }}"
                            placeholder="leave blank to auto-generate"
                            minlength="{{ $aliasLimits['min'] }}"
