@@ -20,9 +20,13 @@ use Illuminate\Support\Facades\DB;
 class AliasAvailability
 {
     /**
+     * @param  int|null  $ignoreLinkId  When the indicator backs an *edit*
+     *         screen, pass the link being edited so its own current alias is
+     *         excluded from the uniqueness check — re-saving a link without
+     *         changing its alias should read as available, not "taken".
      * @return array{status:string, available:bool|null, message:string}
      */
-    public static function check(User $owner, string $alias): array
+    public static function check(User $owner, string $alias, ?int $ignoreLinkId = null): array
     {
         $alias  = trim($alias);
         $limits = $owner->getAliasLengthLimits();
@@ -74,8 +78,14 @@ class AliasAvailability
         }
 
         // unique:links,alias — query the raw table so the check matches the
-        // validator (which ignores model scopes/soft-deletes) exactly.
-        $taken = DB::table('links')->where('alias', $alias)->exists();
+        // validator (which ignores model scopes/soft-deletes) exactly. On the
+        // edit screen the link's own row is excluded so an unchanged alias
+        // doesn't report as taken.
+        $takenQuery = DB::table('links')->where('alias', $alias);
+        if ($ignoreLinkId !== null) {
+            $takenQuery->where('id', '!=', $ignoreLinkId);
+        }
+        $taken = $takenQuery->exists();
         if ($taken) {
             return [
                 'status'    => 'taken',

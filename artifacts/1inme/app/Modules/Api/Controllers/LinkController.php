@@ -53,8 +53,13 @@ class LinkController extends Controller
     {
         $alias = (string) $request->query('alias', (string) $request->input('alias', ''));
 
+        // Optional "ignore link id" — the mobile edit screen passes the link
+        // being edited so its own current alias isn't reported as taken.
+        $ignoreId = $request->query('ignore_id', $request->input('ignore_id'));
+        $ignoreId = ($ignoreId === null || $ignoreId === '') ? null : (int) $ignoreId;
+
         return response()->json(
-            \App\Modules\User\Support\AliasAvailability::check($request->user(), $alias)
+            \App\Modules\User\Support\AliasAvailability::check($request->user(), $alias, $ignoreId)
         );
     }
 

@@ -63,8 +63,14 @@ export type AliasCheck = {
   message: string;
 };
 
-export async function checkAlias(alias: string): Promise<AliasCheck> {
+export async function checkAlias(
+  alias: string,
+  ignoreId?: number,
+): Promise<AliasCheck> {
   const qs = new URLSearchParams({ alias });
+  // On the edit screen, exclude the link's own current alias from the
+  // "taken" check so an unchanged alias reads as available.
+  if (ignoreId != null) qs.set("ignore_id", String(ignoreId));
   return apiFetch<AliasCheck>(`/links/check-alias?${qs}`);
 }
 

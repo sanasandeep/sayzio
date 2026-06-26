@@ -31,11 +31,13 @@ import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
 import { listAvailableDomains } from "@/lib/api/domains";
 import {
+  checkAlias,
   deleteLink,
   duplicateLink,
   getLink,
   resetLink,
   updateLink,
+  type AliasCheck,
   type Link,
 } from "@/lib/api/links";
 import { listNfcWrites } from "@/lib/api/nfc";
@@ -90,6 +92,11 @@ export default function EditLinkScreen() {
 
   const [title, setTitle] = useState("");
   const [alias, setAlias] = useState("");
+  // Live "Custom URL availability" check — same debounced indicator the
+  // create flow shows. The link's own id is passed to checkAlias so its
+  // current (unchanged) alias reads as available, not taken.
+  const [aliasCheck, setAliasCheck] = useState<AliasCheck | null>(null);
+  const [aliasChecking, setAliasChecking] = useState(false);
   const [longUrl, setLongUrl] = useState("");
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDesc, setSeoDesc] = useState("");
@@ -138,6 +145,33 @@ export default function EditLinkScreen() {
     setPrivacyAccept(privacy.consent_accept_label ?? DEFAULT_ACCEPT_LABEL);
     setPrivacyDecline(privacy.consent_decline_label ?? DEFAULT_DECLINE_LABEL);
   }, [q.data]);
+
+  useEffect(() => {
+    const trimmed = alias.trim();
+    if (trimmed === "") {
+      setAliasCheck(null);
+      setAliasChecking(false);
+      return;
+    }
+    setAliasChecking(true);
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const res = await checkAlias(trimmed, id);
+        if (!cancelled) setAliasCheck(res);
+      } catch {
+        // Network/transient errors leave the last known state; the save
+        // still enforces the rules server-side regardless.
+        if (!cancelled) setAliasCheck(null);
+      } finally {
+        if (!cancelled) setAliasChecking(false);
+      }
+    }, 450);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [alias, id]);
 
   const save = useMutation({
     mutationFn: () => {
@@ -515,6 +549,30 @@ export default function EditLinkScreen() {
             autoCorrect={false}
             trailing={<DictationMic onText={dictateInto(setAlias)} />}
           />
+          {alias.trim() !== "" ? (
+            <Text
+              style={[
+                styles.aliasStatus,
+                {
+                  color: aliasChecking
+                    ? colors.mutedForeground
+                    : aliasCheck?.available
+                      ? colors.scheme === "dark"
+                        ? "#4ade80"
+                        : "#16a34a"
+                      : aliasCheck
+                        ? colors.destructive
+                        : colors.mutedForeground,
+                },
+              ]}
+            >
+              {aliasChecking
+                ? "Checking availability…"
+                : aliasCheck
+                  ? `${aliasCheck.available ? "✓" : "✕"} ${aliasCheck.message}`
+                  : ""}
+            </Text>
+          ) : null}
           {meta.kind !== "biolink" &&
           meta.kind !== "vcard" &&
           meta.kind !== "slides" &&
@@ -960,6 +1018,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 0.4,
     textTransform: "uppercase",
+  },
+  aliasStatus: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 12,
+    marginTop: -8,
   },
   segment: { flexDirection: "row", padding: 4, borderWidth: 1 },
   segmentItem: {
