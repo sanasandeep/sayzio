@@ -618,6 +618,54 @@ uri = "file://artifacts/1inme-com/public/ai-tiles/ai-coach.png"
 type = "image"
 title = "ai coach gauge resume"
 
+[[generated]]
+id = "vI12j940N30DZOmt9RnVx"
+uri = "file://artifacts/1inme/public/images/zio-nodes/ai.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "XPjKCHhOn0Nmut-xYzN3O"
+uri = "file://artifacts/1inme/public/images/zio-nodes/analytics.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "MgUVpW1Tr3WOgjD_u867n"
+uri = "file://artifacts/1inme/public/images/zio-nodes/growth.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "Sfg9SpcYq54SRA45IQolR"
+uri = "file://artifacts/1inme/public/images/zio-nodes/store.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "EEI9_lcaUeN5WruhOc3_s"
+uri = "file://artifacts/1inme/public/images/zio-nodes/calls.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "CrsvC5Q669xs_vPX27bfZ"
+uri = "file://artifacts/1inme/public/images/zio-nodes/link.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "fgm8eKeVxV4hBFy_9Txz-"
+uri = "file://artifacts/1inme/public/images/zio-nodes/qr.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "4EX4nrxSHX2kAmcADRGct"
+uri = "file://artifacts/1inme/public/images/zio-nodes/code.png"
+type = "image"
+title = "generated_image"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"
