@@ -22,6 +22,22 @@ paths = ["/"]
 # preview automatically. `--kill-others` ties the two processes' lifecycles
 # together so a crash of either tears the workflow down cleanly for restart.
 #
+# REMOVED/RENAMED CLASSES (Task #2427): Tailwind v4's watch candidate set is
+# ADDITIVE — a class scanned once survives every later incremental rebuild until
+# the watcher process restarts. So deleting/renaming a Tailwind class in a Blade
+# file mid-session leaves its old utility rule lingering in the served CSS (the
+# rendered page is still correct, but the dead rule confuses styling debugging).
+# To flush it we don't run a single long-lived watcher; we run the `build:watch:cycle`
+# npm script, which loops `timeout 60 vite build --watch` — every 60s the watcher
+# is torn down and a fresh one starts, and that fresh process scans `@source`
+# from scratch so removed/renamed classes drop out of the candidate set, while
+# new classes still appear live (incremental within a cycle, or via the next
+# cycle's initial build). The cycle sets VITE_KEEP_OUTDIR=1 so vite.config.js
+# turns OFF emptyOutDir for the watch: each restart's initial build would
+# otherwise blank public/build for ~1-2s and 500 the page on a missing @vite
+# manifest — with it the prior build's hashed assets stay until the fresh build
+# overwrites the manifest, so the periodic restart is gap-free.
+#
 # STALE VIEW CACHE NOTE: Tailwind's content scan also reads Laravel's compiled-
 # blade cache (storage/framework/views/*.php) via an `@source` in
 # resources/css/app.css. If those cached files hold pre-sweep class tokens (e.g.
@@ -47,7 +63,7 @@ paths = ["/"]
 # storage/framework/cache/dev_boot_ms; the real home page serves normally once the
 # window elapses, and the middleware is a no-op in production.
 [services.development]
-run = '''cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || { php artisan view:clear && pnpm --dir /home/runner/workspace/artifacts/1inme run build; }; } && rm -f storage/framework/views/*.php && mkdir -p storage/framework/cache && date +%s%3N > storage/framework/cache/dev_boot_ms && pnpm exec concurrently --kill-others --names tailwind,serve "pnpm --dir /home/runner/workspace/artifacts/1inme run build:watch" "PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"'''
+run = '''cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || { php artisan view:clear && pnpm --dir /home/runner/workspace/artifacts/1inme run build; }; } && rm -f storage/framework/views/*.php && mkdir -p storage/framework/cache && date +%s%3N > storage/framework/cache/dev_boot_ms && pnpm exec concurrently --kill-others --names tailwind,serve "pnpm --dir /home/runner/workspace/artifacts/1inme run build:watch:cycle" "PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"'''
 
 [services.development.env]
 PORT = "5000"

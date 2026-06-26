@@ -25,9 +25,24 @@ empirically) make an in-process vite plugin useless for this:
 So the only reliable fix is `rm -f storage/framework/views/*.php` in the run
 command BEFORE the vite process launches. Laravel lazily recompiles views on the
 next request, and from then on the cache only ever holds current-source tokens,
-so it can never feed STALE tokens back. (Removed/renamed classes still linger as
-dead CSS until a watcher restart — inherent additive limitation, not the compiled
-cache; the rendered page is still correct because it uses the new class.)
+so it can never feed STALE tokens back.
+
+**Removed/renamed classes (the additive-set fix):** because the only way to flush
+the additive candidate set is to restart the watcher process, the dev run no
+longer runs ONE long-lived `vite build --watch`. It runs the `build:watch:cycle`
+npm script: `while true; do VITE_KEEP_OUTDIR=1 timeout -s TERM 60 node_modules/.bin/vite build --watch; done`.
+Every 60s the watcher is torn down and a FRESH process starts; that fresh process
+scans `@source` from scratch, so a class deleted/renamed in a blade file drops out
+of the candidate set (verified: stale rule gone after restart). New-class refresh
+is unchanged (incremental within a cycle, or the next cycle's initial build).
+`VITE_KEEP_OUTDIR=1` makes `vite.config.js` set `build.emptyOutDir=false` for the
+watch ONLY — otherwise each restart's initial build would blank `public/build`
+for ~1-2s and 500 the page on a missing @vite manifest; with it the prior build's
+hashed assets stay until the fresh build overwrites the manifest, so the restart
+is gap-free. Production build is unaffected (no VITE_KEEP_OUTDIR ⇒ default empty
+outDir ⇒ clean deploy dir). Don't wrap the watcher in `pnpm exec`/`pnpm run`
+under `timeout` — call `node_modules/.bin/vite` directly so `timeout` signals
+vite itself and leaves no orphan process.
 
 **Gotchas:**
 - `vite build --watch` empties `public/build` only on its FIRST build; incremental
