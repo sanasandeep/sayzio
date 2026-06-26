@@ -145,6 +145,10 @@ export default function BiolinkWizardScreen() {
   // snapshot before the recipe/AI layers the user's answers on top.
   const [templateId, setTemplateId] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  // Optional custom alias (Custom URL), carried through to the generator. Blank
+  // = the server auto-generates one, exactly as before. Mirrors the web wizard.
+  const [alias, setAlias] = useState("");
+  const [aliasError, setAliasError] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
@@ -305,6 +309,7 @@ export default function BiolinkWizardScreen() {
   function reset(to: Step) {
     setError(null);
     setFieldErrors({});
+    setAliasError(null);
     setStep(to);
   }
 
@@ -315,6 +320,7 @@ export default function BiolinkWizardScreen() {
     setIndustry(null);
     setTemplateId(null);
     setAnswers({});
+    setAlias("");
     setSelectedMinds(new Set());
     setIncludePlatformMind(false);
     setSelectedFiles(new Set());
@@ -389,6 +395,31 @@ export default function BiolinkWizardScreen() {
     return true;
   }
 
+  // The custom alias lives outside the question set, so the server's
+  // `invalid_alias` 422 is surfaced on its own inline field rather than the
+  // per-question error bag. Returns true when an alias error was applied so
+  // callers can short-circuit the generic error path.
+  function applyAliasError(e: any): boolean {
+    const details = (e?.details ?? e?.errors) as
+      | Record<string, unknown>
+      | undefined;
+    const raw = details && typeof details === "object" ? details.alias : undefined;
+    const msg = Array.isArray(raw) ? raw[0] : raw;
+    if (e?.code === "invalid_alias" || (typeof msg === "string" && msg)) {
+      const text =
+        (typeof msg === "string" && msg) ||
+        e?.message ||
+        "That custom URL isn't available. Please choose another.";
+      setAliasError(text);
+      // Surface it in the banner too: the Custom URL field lives on the basics
+      // step but generation runs from the additional step, so the inline error
+      // alone wouldn't be visible at the point of failure.
+      setError(text);
+      return true;
+    }
+    return false;
+  }
+
   // Local per-step required-field gate mirroring the server's validateAnswers.
   // Blocks advancing past a content step with empty required fields so mobile
   // matches the web wizard's step gating (instead of silently letting the user
@@ -424,18 +455,22 @@ export default function BiolinkWizardScreen() {
     }
     setError(null);
     setFieldErrors({});
+    setAliasError(null);
     setBusy(true);
     try {
       const link = await generateWizardPage({
         persona,
         industry,
         template_id: templateId,
+        alias: alias.trim() || null,
         answers,
       });
       router.replace(`/links/${link.id}/blocks` as any);
     } catch (e: any) {
       if (handlePlanLockedError(e)) {
         setError(null);
+      } else if (applyAliasError(e)) {
+        // applyAliasError already set the banner + inline error.
       } else if (applyFieldErrors(e)) {
         setError("Please fix the highlighted fields before generating.");
       } else {
@@ -502,12 +537,14 @@ export default function BiolinkWizardScreen() {
     }
     setError(null);
     setFieldErrors({});
+    setAliasError(null);
     setAiBusy(true);
     try {
       const link = await aiGenerateWizardPage({
         persona,
         industry,
         template_id: templateId,
+        alias: alias.trim() || null,
         answers,
         ai_mind_ids: [...selectedMinds],
         include_platform_mind: includePlatformMind,
@@ -517,6 +554,8 @@ export default function BiolinkWizardScreen() {
     } catch (e: any) {
       if (handlePlanLockedError(e)) {
         setError(null);
+      } else if (applyAliasError(e)) {
+        // applyAliasError already set the banner + inline error.
       } else if (applyFieldErrors(e)) {
         setError("Please fix the highlighted fields before drafting.");
       } else {
@@ -773,6 +812,64 @@ export default function BiolinkWizardScreen() {
                     : "No extra fields for this page — generate when you're ready."
                 }
               />
+
+              {step === "basics" ? (
+                <View
+                  style={[
+                    styles.section,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      borderRadius: colors.radius,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.sectionHeader,
+                      { borderBottomColor: colors.border },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.sectionIcon,
+                        { backgroundColor: colors.primary + "22" },
+                      ]}
+                    >
+                      <AppIcon name="fa-link" size={16} color={colors.primary} />
+                    </View>
+                    <View style={{ flex: 1, gap: 1 }}>
+                      <Text
+                        style={[styles.sectionTitle, { color: colors.foreground }]}
+                      >
+                        Custom URL
+                      </Text>
+                      <Text
+                        style={[
+                          styles.sectionDesc,
+                          { color: colors.mutedForeground },
+                        ]}
+                      >
+                        Optional — leave blank to auto-generate one.
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.sectionBody}>
+                    <TextField
+                      hint="Letters, numbers, dashes and underscores only."
+                      error={aliasError ?? undefined}
+                      value={alias}
+                      onChangeText={(v) => {
+                        setAlias(v);
+                        if (aliasError) setAliasError(null);
+                      }}
+                      placeholder="your-custom-url"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+              ) : null}
 
               {aiEnabled ? (
                 <AiDraftResources

@@ -251,6 +251,84 @@ class BiolinkWizardGenerateTest extends TestCase
         $this->assertNotEmpty($link->alias, 'a blank alias must still auto-generate');
     }
 
+    // ── API custom alias passthrough ──────────────────────────────────
+
+    /**
+     * A valid custom alias posted to the API wizard generate() is used verbatim
+     * as the created link's alias (mobile parity with the web Create Link flow),
+     * instead of an auto-generated one.
+     */
+    public function test_api_generate_uses_custom_alias(): void
+    {
+        $user = $this->makeUser($this->plan());
+        $this->withToken($this->token($user));
+
+        $resp = $this->postJson('/api/v1/links/wizard/generate', [
+            'category'  => 'creator',
+            'page_type' => 'influencer',
+            'alias'     => 'my-mobile-link',
+            'answers'   => $this->creatorAnswers(),
+        ]);
+
+        $resp->assertStatus(201);
+        $resp->assertJsonPath('data.link.alias', 'my-mobile-link');
+
+        $link = Link::find($resp->json('data.link.id'));
+        $this->assertSame('my-mobile-link', $link->alias);
+    }
+
+    /**
+     * A blank/absent alias on the API generate() still auto-generates one
+     * (regression guard — the original behaviour is unchanged).
+     */
+    public function test_api_generate_blank_alias_auto_generates(): void
+    {
+        $user = $this->makeUser($this->plan());
+        $this->withToken($this->token($user));
+
+        $resp = $this->postJson('/api/v1/links/wizard/generate', [
+            'category'  => 'creator',
+            'page_type' => 'influencer',
+            'answers'   => $this->creatorAnswers(),
+        ]);
+
+        $resp->assertStatus(201);
+        $link = Link::find($resp->json('data.link.id'));
+        $this->assertNotEmpty($link->alias, 'a blank alias must still auto-generate');
+    }
+
+    /**
+     * An already-taken custom alias is rejected with a 422 `invalid_alias`
+     * envelope (with an `alias` field error) and creates no biolink — the same
+     * unique guard the web flow enforces, surfaced as JSON for the mobile client.
+     */
+    public function test_api_generate_rejects_taken_alias(): void
+    {
+        $user = $this->makeUser($this->plan());
+
+        Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'short',
+            'alias'     => 'already-taken',
+            'long_url'  => 'https://example.com',
+            'is_active' => true,
+        ]);
+
+        $this->withToken($this->token($user));
+        $resp = $this->postJson('/api/v1/links/wizard/generate', [
+            'category'  => 'creator',
+            'page_type' => 'influencer',
+            'alias'     => 'already-taken',
+            'answers'   => $this->creatorAnswers(),
+        ]);
+
+        $resp->assertStatus(422);
+        $resp->assertJsonPath('error.code', 'invalid_alias');
+        $resp->assertJsonStructure(['error' => ['details' => ['alias']]]);
+        // Nothing new was created — only the pre-existing short link survives.
+        $this->assertSame(0, Link::where('user_id', $user->id)->where('type', 'biolink')->count());
+    }
+
     // ── Plan caps: API ────────────────────────────────────────────────
 
     /**

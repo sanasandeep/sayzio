@@ -12,10 +12,12 @@ use App\Modules\User\Services\BiolinkWizardQuestions;
 use App\Modules\User\Services\PersonaCatalog;
 use App\Modules\User\Services\WizardAiDraftService;
 use App\Modules\User\Services\WizardStartingDesignService;
+use App\Modules\Admin\Rules\NotBannedName;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\InsufficientCoinsForAiException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Validator;
 use Throwable;
 
 /**
@@ -175,6 +177,7 @@ class BiolinkWizardController extends Controller
             'page_type'   => ['required_without:persona', 'string'],
             'industry'    => ['nullable', 'string'],
             'template_id' => ['nullable', 'integer'],
+            'alias'       => ['nullable', 'string'],
             'answers'     => ['required', 'array'],
         ]);
 
@@ -235,8 +238,15 @@ class BiolinkWizardController extends Controller
         // template's theme). Null = "Start from scratch" (the original path).
         $templateSnapshot = $this->resolveTemplateSnapshot($data['template_id'] ?? null, $owner);
 
+        // Optional custom alias (Custom URL) carried through from the mobile
+        // wizard, mirroring the web flow. Blank/absent = auto-generate.
+        [$alias, $aliasError] = $this->resolveCustomAlias($request, $owner);
+        if ($aliasError !== null) {
+            return $aliasError;
+        }
+
         try {
-            $link = $this->generator->generate($owner, $category, $pageType, $industry, $answers, $templateSnapshot);
+            $link = $this->generator->generate($owner, $category, $pageType, $industry, $answers, $templateSnapshot, $alias);
         } catch (Throwable $e) {
             report($e);
             return $this->fail('We hit a snag generating your page. Please try again.', 500, 'generation_failed');
@@ -261,6 +271,7 @@ class BiolinkWizardController extends Controller
             'page_type'             => ['required_without:persona', 'string'],
             'industry'              => ['nullable', 'string'],
             'template_id'           => ['nullable', 'integer'],
+            'alias'                 => ['nullable', 'string'],
             'answers'               => ['required', 'array'],
             'ai_mind_ids'           => ['nullable', 'array'],
             'ai_mind_ids.*'         => ['integer'],
@@ -320,6 +331,13 @@ class BiolinkWizardController extends Controller
         // original "Start from scratch" AI path.
         $templateSnapshot = $this->resolveTemplateSnapshot($data['template_id'] ?? null, $owner);
 
+        // Optional custom alias (Custom URL) carried through from the mobile
+        // wizard, mirroring the web flow. Blank/absent = auto-generate.
+        [$alias, $aliasError] = $this->resolveCustomAlias($request, $owner);
+        if ($aliasError !== null) {
+            return $aliasError;
+        }
+
         try {
             $link = $this->aiDraft->generate(
                 $owner,
@@ -331,6 +349,7 @@ class BiolinkWizardController extends Controller
                 (bool) ($data['include_platform_mind'] ?? false),
                 $data['file_ids'] ?? [],
                 $templateSnapshot,
+                $alias,
             );
         } catch (InsufficientCoinsForAiException $e) {
             return $this->fail('You don\'t have enough credits for AI generation. Top up or generate instantly instead.', 402, 'insufficient_credits');
@@ -484,6 +503,46 @@ class BiolinkWizardController extends Controller
         }
         $snapshot = $template->snapshot;
         return is_array($snapshot) ? $snapshot : null;
+    }
+
+    /**
+     * Validate an optional custom alias (Custom URL) typed in the mobile
+     * wizard, mirroring the web Create Link / wizard captureCustomAlias()
+     * rules (alpha_dash, plan-driven length, unique, not-banned). A blank or
+     * absent alias is a no-op — returns [null, null] so the generators
+     * auto-generate an alias exactly as before. On failure a 422 envelope with
+     * an `alias` field error is returned so the client can highlight the field.
+     *
+     * @return array{0:?string,1:\Illuminate\Http\JsonResponse|null}
+     */
+    private function resolveCustomAlias(Request $request, $owner): array
+    {
+        $alias = trim((string) ($request->input('alias') ?? ''));
+        if ($alias === '') {
+            return [null, null];
+        }
+
+        $limits = $owner->getAliasLengthLimits();
+        $validator = Validator::make(['alias' => $alias], [
+            'alias' => [
+                'string', 'alpha_dash',
+                'min:' . $limits['min'],
+                'max:' . $limits['max'],
+                'unique:links,alias',
+                new NotBannedName(),
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            return [null, $this->fail(
+                $validator->errors()->first('alias') ?: 'That custom URL isn\'t available. Please choose another.',
+                422,
+                'invalid_alias',
+                ['alias' => $validator->errors()->first('alias')],
+            )];
+        }
+
+        return [$alias, null];
     }
 
     private function isValidCategory(string $category): bool

@@ -162,6 +162,8 @@ export async function generateWizardPage(payload: {
   page_type?: string | null;
   industry?: string | null;
   template_id?: number | null;
+  // Optional custom alias (Custom URL). Blank/omitted = server auto-generates.
+  alias?: string | null;
   answers: Record<string, string>;
 }): Promise<Link> {
   const res = await apiFetch<{ data: { link: Link } }>(
@@ -206,6 +208,8 @@ export async function aiGenerateWizardPage(payload: {
   page_type?: string | null;
   industry?: string | null;
   template_id?: number | null;
+  // Optional custom alias (Custom URL). Blank/omitted = server auto-generates.
+  alias?: string | null;
   answers: Record<string, string>;
   ai_mind_ids?: number[];
   include_platform_mind?: boolean;
