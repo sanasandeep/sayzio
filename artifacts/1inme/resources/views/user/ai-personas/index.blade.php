@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'AI Personas')
+@section('title', 'AI Agents')
 
 @section('content')
 <div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
@@ -8,13 +8,13 @@
 
     <div class="flex items-end justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-bold text-white">AI Personas</h1>
-            <p class="text-sm text-white/50 mt-1">Configurable agents that combine a system prompt, tone, and the Minds you choose. Test them here, then wire them into widgets.</p>
-            <p class="text-[11px] text-white/40 mt-1">{{ $used }} of {{ $caps['max_personas_per_user'] == -1 ? '∞' : $caps['max_personas_per_user'] }} used &middot; up to {{ $caps['max_minds_per_persona'] }} Minds per Persona</p>
+            <h1 class="text-2xl font-bold text-white">AI Agents</h1>
+            <p class="text-sm text-white/50 mt-1">Configurable agents that combine a system prompt, tone, and the knowledge bases you choose. Test them here, then wire them into widgets.</p>
+            <p class="text-[11px] text-white/40 mt-1">{{ $used }} of {{ $caps['max_personas_per_user'] == -1 ? '∞' : $caps['max_personas_per_user'] }} used &middot; up to {{ $caps['max_minds_per_persona'] }} knowledge bases per AI agent</p>
         </div>
         @if($caps['max_personas_per_user'] == -1 || $used < $caps['max_personas_per_user'])
             <a href="{{ route('user.ai-personas.create') }}" class="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm">
-                <i class="fas fa-plus"></i> New Persona
+                <i class="fas fa-plus"></i> New AI Agent
             </a>
         @endif
     </div>
@@ -22,10 +22,10 @@
     @if($personas->isEmpty())
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
             <i class="fas fa-user-astronaut text-4xl text-pink-400/70"></i>
-            <p class="mt-3 text-white font-semibold">No Personas yet.</p>
-            <p class="text-sm text-white/50 mt-1">Create one from a starter template, then attach the Minds it should know.</p>
+            <p class="mt-3 text-white font-semibold">No AI agents yet.</p>
+            <p class="text-sm text-white/50 mt-1">Create one from a starter template, then attach the knowledge bases it should know.</p>
             <a href="{{ route('user.ai-personas.create') }}" class="inline-block mt-4 px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm">
-                <i class="fas fa-plus"></i> Create your first Persona
+                <i class="fas fa-plus"></i> Create your first AI Agent
             </a>
         </div>
     @else
@@ -50,7 +50,7 @@
                             <p class="text-xs text-white/50 truncate">{{ $p->description ?: 'No description' }}</p>
                             <p class="text-[10px] text-white/40 mt-1">
                                 {{ $p->model }} &middot; T={{ number_format($p->temperature(), 2) }} &middot;
-                                {{ $p->minds_count }} Mind{{ $p->minds_count === 1 ? '' : 's' }}
+                                {{ $p->minds_count }} Knowledge Base{{ $p->minds_count === 1 ? '' : 's' }}
                                 @if($p->use_default_mind) + default @endif
                             </p>
                             @if($p->is_disabled && $p->disabled_reason)
@@ -65,7 +65,7 @@
                             <form method="POST" action="{{ route('user.ai-personas.duplicate', $p) }}" class="inline">@csrf
                                 <button class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white"><i class="fas fa-copy"></i> Duplicate</button>
                             </form>
-                            <form method="POST" action="{{ route('user.ai-personas.destroy', $p) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this Persona?', message: 'All of its versions will be removed too.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
+                            <form method="POST" action="{{ route('user.ai-personas.destroy', $p) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this AI agent?', message: 'All of its versions will be removed too.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
                                 <button class="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300"><i class="fas fa-trash"></i></button>
                             </form>
                         </div>

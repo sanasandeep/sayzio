@@ -19,7 +19,7 @@
 
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-            <a href="{{ route('user.minds.index') }}" class="text-xs text-white/40 hover:text-white/60"><i class="fas fa-arrow-left"></i> All minds</a>
+            <a href="{{ route('user.minds.index') }}" class="text-xs text-white/40 hover:text-white/60"><i class="fas fa-arrow-left"></i> All knowledge bases</a>
             <h1 class="text-2xl font-bold text-white mt-1">{{ $mind->name }}
                 @if($isPlatform)<span class="ml-2 text-[10px] uppercase tracking-wider text-cyan-300/80 align-middle">Platform default</span>@endif
                 @if($mind->is_disabled)<span class="ml-2 text-[10px] uppercase tracking-wider text-red-300 align-middle">Disabled</span>@endif
@@ -59,7 +59,7 @@
         </div>
         <x-mind-daily-spend-chart :days="$dailyCreditSpend" />
         @if($creditUsage['total'] === 0)
-            <p class="text-[11px] text-white/40 mt-3">No credits spent on this Mind in the last {{ $creditUsage['days'] }} days.</p>
+            <p class="text-[11px] text-white/40 mt-3">No credits spent on this knowledge base in the last {{ $creditUsage['days'] }} days.</p>
         @endif
     </div>
 
@@ -125,7 +125,7 @@
             @csrf <input type="hidden" name="type" value="document">
             <input name="title" required placeholder="Document title" maxlength="200" class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
             <input type="file" name="file" required accept=".pdf,.docx,.txt,.md" class="w-full text-sm text-white/70">
-            <p class="text-[11px] text-white/40">PDF, DOCX, TXT, MD · max {{ $caps['max_doc_size_mb'] }}MB · max {{ $caps['max_docs_per_mind'] }} docs per mind. Image-only PDFs are skipped.</p>
+            <p class="text-[11px] text-white/40">PDF, DOCX, TXT, MD · max {{ $caps['max_doc_size_mb'] }}MB · max {{ $caps['max_docs_per_mind'] }} docs per knowledge base. Image-only PDFs are skipped.</p>
             <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Upload</button>
         </form>
 
@@ -145,7 +145,7 @@
         {{-- FEATURE --}}
         <form method="POST" action="{{ route('user.minds.sources.store', $mind) }}" x-show="addType==='feature'" class="space-y-3">
             @csrf <input type="hidden" name="type" value="feature">
-            <p class="text-xs text-white/40">Snapshots live data from a Sayzio feature whenever this Mind is asked a question.</p>
+            <p class="text-xs text-white/40">Snapshots live data from a Sayzio feature whenever this knowledge base is asked a question.</p>
             <select name="feature_key" required class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
                 @foreach($features as $key=>$label)
                     <option value="{{ $key }}">{{ $label }}</option>
@@ -205,8 +205,8 @@
 
     {{-- Test chat --}}
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-        <h3 class="text-white font-semibold flex items-center gap-2"><i class="fas fa-comment-dots text-blue-300"></i> Test this Mind</h3>
-        <p class="text-xs text-white/40 mt-1">Ask a question to verify the Mind answers from your sources. Costs AI credits.</p>
+        <h3 class="text-white font-semibold flex items-center gap-2"><i class="fas fa-comment-dots text-blue-300"></i> Test this knowledge base</h3>
+        <p class="text-xs text-white/40 mt-1">Ask a question to verify the knowledge base answers from your sources. Costs AI credits.</p>
         <form @submit.prevent="ask" class="mt-3 flex gap-2">
             <input x-model="question" required maxlength="1500" placeholder="What do you want to know?" class="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
             <button :disabled="loading" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium">

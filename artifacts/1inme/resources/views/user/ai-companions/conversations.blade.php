@@ -5,7 +5,7 @@
 <div class="max-w-5xl mx-auto px-4 py-8 space-y-4">
     <div class="flex items-end justify-between gap-3">
         <div>
-            <a href="{{ route('user.ai-companions.edit', $companion) }}" class="text-xs text-white/40 hover:text-white/70"><i class="fas fa-arrow-left"></i> Back to Companion</a>
+            <a href="{{ route('user.ai-companions.edit', $companion) }}" class="text-xs text-white/40 hover:text-white/70"><i class="fas fa-arrow-left"></i> Back to Chat Widget</a>
             <h1 class="text-2xl font-bold text-white mt-1">{{ $companion->name }}</h1>
             <p class="text-xs text-white/50 mt-1">Conversations are anonymous unless the visitor shared name / email.</p>
         </div>

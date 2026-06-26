@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'AI Minds')
+@section('title', 'Knowledge Bases')
 
 @section('content')
 <div class="max-w-5xl mx-auto px-4 py-8 space-y-6">
@@ -8,14 +8,14 @@
 
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-bold text-white">AI Minds</h1>
-            <p class="text-sm text-white/50 mt-1">Labelled knowledge bases your AI personas and coach can draw on. Add text, FAQs, documents, links, or live Sayzio data.</p>
+            <h1 class="text-2xl font-bold text-white">Knowledge Bases</h1>
+            <p class="text-sm text-white/50 mt-1">Labelled knowledge bases your AI agents and Growth Coach can draw on. Add text, FAQs, documents, links, or live Sayzio data.</p>
         </div>
         <div class="flex items-center gap-2">
-            <span class="text-xs text-white/40">{{ $usedMinds }} / {{ $caps['max_minds_per_user'] == -1 ? '∞' : $caps['max_minds_per_user'] }} minds</span>
+            <span class="text-xs text-white/40">{{ $usedMinds }} / {{ $caps['max_minds_per_user'] == -1 ? '∞' : $caps['max_minds_per_user'] }} knowledge bases</span>
             @if($caps['max_minds_per_user'] == -1 || $usedMinds < $caps['max_minds_per_user'])
                 <a href="{{ route('user.minds.create') }}" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium">
-                    <i class="fas fa-plus mr-1"></i> New mind
+                    <i class="fas fa-plus mr-1"></i> New knowledge base
                 </a>
             @else
                 <button disabled class="px-4 py-2 rounded-xl bg-white/5 text-white/30 text-sm cursor-not-allowed">Limit reached</button>
@@ -25,14 +25,14 @@
 
     @if($platform->isNotEmpty())
         <div>
-            <h2 class="text-xs uppercase tracking-wider text-white/40 mb-2">Platform mind</h2>
+            <h2 class="text-xs uppercase tracking-wider text-white/40 mb-2">Platform knowledge base</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 @foreach($platform as $m)
                     <a href="{{ route('user.minds.edit', $m) }}" class="rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-900/20 to-blue-900/10 p-5 hover:border-white/20 transition">
                         <div class="flex items-start justify-between gap-2">
                             <div>
                                 <p class="text-white font-semibold">{{ $m->name }} <span class="ml-1 text-[10px] uppercase tracking-wider text-cyan-300/80">Default</span></p>
-                                <p class="text-xs text-white/50 mt-1">{{ $m->description ?: 'Sayzio product knowledge available to every persona.' }}</p>
+                                <p class="text-xs text-white/50 mt-1">{{ $m->description ?: 'Sayzio product knowledge available to every AI agent.' }}</p>
                             </div>
                             <i class="fas fa-network-wired text-cyan-400/60"></i>
                         </div>
@@ -48,10 +48,10 @@
     @endif
 
     <div>
-        <h2 class="text-xs uppercase tracking-wider text-white/40 mb-2">Your minds</h2>
+        <h2 class="text-xs uppercase tracking-wider text-white/40 mb-2">Your knowledge bases</h2>
         @if($mine->isEmpty())
             <div class="rounded-2xl border border-dashed border-white/10 p-8 text-center text-white/40 text-sm">
-                You don't have any minds yet. <a class="text-cyan-300 hover:underline" href="{{ route('user.minds.create') }}">Create your first one</a>.
+                You don't have any knowledge bases yet. <a class="text-cyan-300 hover:underline" href="{{ route('user.minds.create') }}">Create your first one</a>.
             </div>
         @else
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -74,7 +74,7 @@
                             <form method="POST" action="{{ route('user.minds.refresh', $m) }}">@csrf
                                 <button class="px-3 py-1.5 text-xs rounded-lg bg-white/5 hover:bg-white/10 text-white/70" title="Re-ingest every source"><i class="fas fa-rotate"></i> Refresh all</button>
                             </form>
-                            <form method="POST" action="{{ route('user.minds.destroy', $m) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this mind?', message: 'All of its sources will be removed too.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
+                            <form method="POST" action="{{ route('user.minds.destroy', $m) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this knowledge base?', message: 'All of its sources will be removed too.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                 @csrf @method('DELETE')
                                 <button class="px-3 py-1.5 text-xs rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300"><i class="fas fa-trash"></i></button>
                             </form>

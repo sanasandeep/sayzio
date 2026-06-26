@@ -1,12 +1,12 @@
 @extends('user.layouts.app')
-@section('title', 'New AI Companion')
+@section('title', 'New Chat Widget')
 
 @section('content')
 <div class="max-w-2xl mx-auto px-4 py-8 space-y-6">
     <div>
         <a href="{{ route('user.ai-companions.index') }}" class="text-xs text-white/40 hover:text-white/70"><i class="fas fa-arrow-left"></i> Back</a>
-        <h1 class="text-2xl font-bold text-white mt-1">New AI Companion</h1>
-        <p class="text-sm text-white/50 mt-1">Wrap a Persona in a chat surface. You can change the placement and visuals later.</p>
+        <h1 class="text-2xl font-bold text-white mt-1">New Chat Widget</h1>
+        <p class="text-sm text-white/50 mt-1">Wrap an AI agent in a chat surface. You can change the placement and visuals later.</p>
     </div>
 
     @if($errors->any())
@@ -19,7 +19,7 @@
 
     @if($personas->isEmpty())
         <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm">
-            You don't have any active Personas yet.
+            You don't have any active AI agents yet.
             <a href="{{ route('user.ai-personas.create') }}" class="underline">Create one first</a>.
         </div>
     @else
@@ -31,9 +31,9 @@
                        class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-white/70 mb-1">Persona</label>
+                <label class="block text-xs font-semibold text-white/70 mb-1">Agent</label>
                 <select name="persona_id" required class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
-                    <option value="">Pick a Persona…</option>
+                    <option value="">Pick an agent…</option>
                     @foreach($personas as $p)
                         <option value="{{ $p->id }}" @selected(old('persona_id')==$p->id)>{{ $p->name }}</option>
                     @endforeach
@@ -52,7 +52,7 @@
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <a href="{{ route('user.ai-companions.index') }}" class="px-4 py-2 rounded-xl bg-white/5 text-white text-sm">Cancel</a>
-                <button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">Create Companion</button>
+                <button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">Create Chat Widget</button>
             </div>
         </form>
     @endif

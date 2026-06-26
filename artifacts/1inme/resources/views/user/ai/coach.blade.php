@@ -1,12 +1,12 @@
 @extends('user.layouts.app')
-@section('title', 'Coach')
+@section('title', 'Growth Coach')
 
 @section('content')
 <div class="max-w-3xl mx-auto px-4 py-8">
     @include('user.ai._partials.header', [
-        'kicker'   => 'AI · Coach',
-        'title'    => 'Get suggestions for a link',
-        'subtitle' => 'Pick a link — Coach reviews recent stats and proposes experiments.',
+        'kicker'   => 'AI',
+        'title'    => 'Growth Coach',
+        'subtitle' => 'Pick a link — Growth Coach reviews recent stats and proposes experiments.',
         'balance'  => $balance,
     ])
 
@@ -55,7 +55,7 @@
     @if($result)
         <div class="mt-6 rounded-2xl border border-blue-500/20 bg-blue-500/[0.05] p-5">
             <div class="flex items-center justify-between mb-2">
-                <p class="text-xs text-white/40 uppercase tracking-wider">Coach on "{{ $result['link_title'] }}"</p>
+                <p class="text-xs text-white/40 uppercase tracking-wider">Growth Coach on "{{ $result['link_title'] }}"</p>
                 <p class="text-xs text-white/40">
                     {{ $result['model'] }} · {{ number_format($result['credits_spent']) }} ✦ spent
                 </p>

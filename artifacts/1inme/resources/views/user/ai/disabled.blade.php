@@ -1,5 +1,18 @@
 @extends('user.layouts.app')
-@section('title', $title ?? 'AI')
+@php
+    $__aiLabelMap = [
+        'Mind'       => 'Note Summarizer',
+        'Minds'      => 'Knowledge Bases',
+        'Persona'    => 'Persona Generator',
+        'Personas'   => 'AI Agents',
+        'Companion'  => 'AI Chat',
+        'Companions' => 'Chat Widgets',
+        'Coach'      => 'Growth Coach',
+        'Ask Coach'  => 'Account Assistant',
+    ];
+    $__aiDisplayTitle = $__aiLabelMap[$title ?? ''] ?? ($title ?? 'AI');
+@endphp
+@section('title', $__aiDisplayTitle)
 
 @php
     $__user = auth()->user();
@@ -27,7 +40,7 @@
     // switch is on — e.g. the Voice Assistant feature toggle is off, where
     // no plan upgrade would help and only an admin can turn it on.
     $__aiEnabled = $aiEnabled ?? \App\Services\AI\AiEngineSettings::isEnabled();
-    $__featureLabel = $title ?? 'AI features';
+    $__featureLabel = $__aiLabelMap[$title ?? ''] ?? ($title ?? 'AI features');
     $__planName = $__user && $__user->plan ? $__user->plan->name : 'your current plan';
     $__coinBalance = $__user && $__user->wallet ? (int) $__user->wallet->balance : 0;
     // Optional concrete upgrade target passed by the controller (e.g. the
@@ -38,14 +51,14 @@
     // Per-feature one-liner so a user who clicks in knows exactly what this
     // particular surface does — keyed off the `title` each controller passes.
     $__featureBlurbs = [
-        'Mind'       => 'Mind is your personal AI knowledge base — it learns from your sources so the assistant can answer in your voice.',
-        'Minds'      => 'Minds let you build and manage several AI knowledge bases, each trained on its own set of sources.',
-        'Persona'    => 'Persona shapes the tone and personality your AI uses when it writes or replies on your behalf.',
-        'Personas'   => 'Personas let you create and switch between different AI voices for different audiences.',
-        'Companion'  => 'Companion is a chat assistant that helps you draft content and answer questions about your account.',
-        'Companions' => 'Companions are embeddable AI chatbots you can drop into your pages, widgets and inbox.',
-        'Coach'      => 'Coach gives you AI-powered suggestions to grow and fine-tune your links and pages.',
-        'Ask Coach'  => 'Ask Coach lets you chat with an AI advisor for tips on improving your account.',
+        'Mind'       => 'Note Summarizer turns raw notes into a tight summary with clear next steps.',
+        'Minds'      => 'Knowledge Bases let you build and manage several AI knowledge bases, each trained on its own set of sources.',
+        'Persona'    => 'Persona Generator creates a brand persona that shapes the tone and personality your AI uses when it writes or replies on your behalf.',
+        'Personas'   => 'AI Agents let you create and switch between configurable agents — each with its own prompt, tone, and knowledge — for different audiences.',
+        'Companion'  => 'AI Chat is a chat assistant that helps you draft content and answer questions about your account.',
+        'Companions' => 'Chat Widgets are embeddable AI chatbots you can drop into your pages, widgets and inbox.',
+        'Coach'      => 'Growth Coach gives you AI-powered suggestions to grow and fine-tune your links and pages.',
+        'Ask Coach'  => 'Account Assistant lets you chat with an AI advisor for tips on improving your account.',
     ];
     $__featureBlurb = $__featureBlurbs[$title ?? ''] ?? null;
 @endphp
@@ -138,7 +151,7 @@
             <div class="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left text-sm text-white/60">
                 <p class="font-medium text-white/80">What you’re missing</p>
                 <p class="mt-1">
-                    AI features on {{ $__appName }} — like Minds, Personas, the Companion and Coach — help you
+                    AI features on {{ $__appName }} — like Knowledge Bases, AI Agents, AI Chat and Growth Coach — help you
                     draft content, answer questions about your account and build pages faster. They run on
                     your coin balance once an administrator enables the engine.
                 </p>

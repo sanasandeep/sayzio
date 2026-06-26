@@ -1,12 +1,12 @@
 @extends('user.layouts.app')
-@section('title', 'Ask Coach')
+@section('title', 'Account Assistant')
 
 @section('content')
 <div class="max-w-6xl mx-auto px-4 py-8">
     @include('user.ai._partials.header', [
-        'kicker'   => 'AI · Ask Coach',
-        'title'    => 'Ask Coach about your Sayzio',
-        'subtitle' => 'Read-only self-support — Coach pulls from your live links, audience, payments and account to answer.',
+        'kicker'   => 'AI',
+        'title'    => 'Account Assistant',
+        'subtitle' => 'Read-only self-support — the assistant pulls from your live links, audience, payments and account to answer.',
         'balance'  => $balance,
     ])
 
@@ -60,7 +60,7 @@
 
             {{-- Tools panel — be transparent about what Coach can see --}}
             <div class="mt-4 pt-3 border-t border-white/5">
-                <p class="text-[10px] uppercase tracking-wider text-white/40 mb-1">Coach can read</p>
+                <p class="text-[10px] uppercase tracking-wider text-white/40 mb-1">Assistant can read</p>
                 <ul class="space-y-1">
                     @foreach($tools as $key => $t)
                         <li class="text-[11px] text-white/50">
@@ -98,7 +98,7 @@
                 <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4 max-h-[60vh] overflow-y-auto">
                     @if(empty($history))
                         <p class="text-sm text-white/40 text-center py-8">
-                            Ask Coach anything about your account. Try: <em>"Which Link in Bio got the most clicks?"</em> or <em>"How many sales last month?"</em>
+                            Ask the assistant anything about your account. Try: <em>"Which Link in Bio got the most clicks?"</em> or <em>"How many sales last month?"</em>
                         </p>
                     @else
                         @foreach($history as $turn)
@@ -230,7 +230,7 @@
                     @csrf
                     <input type="text" name="message" required maxlength="2000" autofocus
                            data-coach-input
-                           placeholder="Ask Coach about your Sayzio data…"
+                           placeholder="Ask the assistant about your Sayzio data…"
                            class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
                     <button data-coach-send class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                         Send
@@ -319,7 +319,7 @@
                                     list.scrollTop = list.scrollHeight;
                                 } else if (event === 'error') {
                                     errored = true;
-                                    target.textContent = data.message || 'Coach could not reply.';
+                                    target.textContent = data.message || 'The assistant could not reply.';
                                 } else if (event === 'done') {
                                     if (data && data.message && typeof data.message.content === 'string') {
                                         target.textContent = data.message.content;
@@ -348,7 +348,7 @@
                             // Reload to pick up insight cards / actions / citations / feedback.
                             if (!errored) window.location.assign(reload);
                         } catch (err) {
-                            target.textContent = 'Coach could not reply right now. Please try again.';
+                            target.textContent = 'The assistant could not reply right now. Please try again.';
                         } finally {
                             button.disabled = false;
                             input.disabled = false;
@@ -360,7 +360,7 @@
                 </script>
             @else
                 <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
-                    <p class="text-white/60 text-sm">Start a chat to ask Coach about your Sayzio.</p>
+                    <p class="text-white/60 text-sm">Start a chat to ask the assistant about your Sayzio.</p>
                     <form method="POST" action="{{ route('user.ai.ask-coach.store') }}" class="mt-4">
                         @csrf
                         <button class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">

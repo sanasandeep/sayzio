@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Edit AI Companion · ' . $companion->name)
+@section('title', 'Edit Chat Widget · ' . $companion->name)
 
 @section('content')
 @php
@@ -62,7 +62,7 @@
                        class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-white/70 mb-1">Persona (the brain)</label>
+                <label class="block text-xs font-semibold text-white/70 mb-1">Agent (the brain)</label>
                 <select name="persona_id" required class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                     @foreach($personas as $p)
                         <option value="{{ $p->id }}" @selected(old('persona_id', $companion->persona_id)==$p->id)>{{ $p->name }}</option>
@@ -139,7 +139,7 @@
         @if($companion->placement === 'embed')
             <fieldset class="space-y-3">
                 <legend class="text-xs font-bold text-white/80 uppercase tracking-wider">Allowed domains</legend>
-                <p class="text-[11px] text-white/50">Only the listed domains can embed this companion. Use a leading dot (e.g. <code>.example.com</code>) to allow subdomains.</p>
+                <p class="text-[11px] text-white/50">Only the listed domains can embed this chat widget. Use a leading dot (e.g. <code>.example.com</code>) to allow subdomains.</p>
                 @php $domains = old('allowed_domains', $companion->allowed_domains ?: ['']); @endphp
                 <div id="domains-list" class="space-y-2">
                     @foreach(($domains ?: ['']) as $i => $d)
@@ -174,7 +174,7 @@
         @endif
 
         <div class="flex justify-end gap-2 pt-2">
-            <button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">Save Companion</button>
+            <button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">Save Chat Widget</button>
         </div>
     </form>
 
@@ -190,12 +190,12 @@
     @elseif($companion->placement === 'inbox')
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2 text-sm text-white/80">
             <h2 class="font-bold">How to use the inbox bot</h2>
-            <p>Open any DM thread under <a href="{{ route('user.inbox.dms.index') }}" class="text-blue-300 underline">Inbox → DMs</a>, switch on "Auto-reply with this Companion", and your next viewer message will get a drafted reply. Toggle <em>Auto-send</em> above to send the reply without confirming.</p>
+            <p>Open any DM thread under <a href="{{ route('user.inbox.dms.index') }}" class="text-blue-300 underline">Inbox → DMs</a>, switch on "Auto-reply with this chat widget", and your next viewer message will get a drafted reply. Toggle <em>Auto-send</em> above to send the reply without confirming.</p>
         </div>
     @else
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-2 text-sm text-white/80">
             <h2 class="font-bold">How to add it to a Link in Bio</h2>
-            <p>Open the Link in Bio builder, add an <strong>AI Companion</strong> block, and pick this Companion from the dropdown. It renders as a floating launcher (or inline if you toggled Inline mode above).</p>
+            <p>Open the Link in Bio builder, add an <strong>AI Companion</strong> block, and pick this chat widget from the dropdown. It renders as a floating launcher (or inline if you toggled Inline mode above).</p>
         </div>
     @endif
 </div>

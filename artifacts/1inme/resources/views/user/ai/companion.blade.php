@@ -1,11 +1,11 @@
 @extends('user.layouts.app')
-@section('title', 'Companion')
+@section('title', 'AI Chat')
 
 @section('content')
 <div class="max-w-6xl mx-auto px-4 py-8">
     @include('user.ai._partials.header', [
-        'kicker'   => 'AI · Companion',
-        'title'    => 'Chat with Companion',
+        'kicker'   => 'AI',
+        'title'    => 'AI Chat',
         'subtitle' => 'Ask anything — past conversations are saved so you can pick up where you left off.',
         'balance'  => $balance,
     ])
@@ -21,8 +21,8 @@
             </form>
             <a href="{{ route('user.ai.companion.show', ['compose' => 1]) }}"
                class="block w-full text-center px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs hover:bg-white/10"
-               title="Pick which Minds Companion should ground in for this new chat">
-                + New (with Minds…)
+               title="Pick which knowledge bases to ground in for this new chat">
+                + New (with knowledge bases…)
             </a>
 
             <form method="GET" action="{{ route('user.ai.companion.show') }}" class="flex gap-1">
@@ -211,7 +211,7 @@
                     <div>
                         <p class="text-sm text-white/80">Start a new conversation</p>
                         <p class="text-xs text-white/40 mt-0.5">
-                            Pick the Minds Companion should ground replies in. They apply to every turn of the new chat.
+                            Pick the knowledge bases to ground replies in. They apply to every turn of the new chat.
                         </p>
                     </div>
 

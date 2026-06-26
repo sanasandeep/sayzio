@@ -45,9 +45,9 @@
                     </div>
                     @unless($contributed)
                         <p class="mt-2 text-xs text-amber-200/80 leading-relaxed">
-                            This Mind didn't contribute to the answer, but you were still charged embedding credits for it.
-                            Consider unchecking it in the Mind picker next time to save credits, or
-                            <a href="{{ route('user.minds.index') }}" class="underline decoration-amber-300/40 hover:decoration-amber-300">manage your Minds</a>
+                            This knowledge base didn't contribute to the answer, but you were still charged embedding credits for it.
+                            Consider unchecking it in the knowledge base picker next time to save credits, or
+                            <a href="{{ route('user.minds.index') }}" class="underline decoration-amber-300/40 hover:decoration-amber-300">manage your knowledge bases</a>
                             to remove it entirely.
                         </p>
                     @endunless

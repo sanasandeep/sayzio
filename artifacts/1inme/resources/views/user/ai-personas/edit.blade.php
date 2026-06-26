@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Edit AI Persona')
+@section('title', 'Edit AI Agent')
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 py-8 space-y-6"
@@ -12,11 +12,11 @@
 
     <div class="flex items-end justify-between gap-3">
         <div>
-            <a href="{{ route('user.ai-personas.index') }}" class="text-xs text-white/50 hover:text-white"><i class="fas fa-arrow-left"></i> Back to Personas</a>
+            <a href="{{ route('user.ai-personas.index') }}" class="text-xs text-white/50 hover:text-white"><i class="fas fa-arrow-left"></i> Back to AI Agents</a>
             <h1 class="text-2xl font-bold text-white mt-2">{{ $persona->name }}</h1>
             <p class="text-[11px] text-white/40">v{{ optional($persona->activeVersion)->revision ?? '—' }} &middot; AI credit balance: <span class="text-blue-300">{{ number_format($balance) }}</span></p>
             @if($persona->is_disabled)
-                <p class="mt-2 text-xs text-red-300">This Persona is disabled by an administrator: {{ $persona->disabled_reason }}</p>
+                <p class="mt-2 text-xs text-red-300">This AI agent is disabled by an administrator: {{ $persona->disabled_reason }}</p>
             @endif
         </div>
     </div>
@@ -116,24 +116,24 @@
 
             {{-- Knowledge --}}
             <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
-                <h3 class="text-white font-semibold">Knowledge (Minds)</h3>
+                <h3 class="text-white font-semibold">Knowledge bases</h3>
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="hidden" name="use_default_mind" value="0">
                     <input type="checkbox" name="use_default_mind" value="1" @checked(old('use_default_mind', $persona->use_default_mind))
                         class="rounded border-white/20 bg-white/5 text-pink-500">
                     <span class="text-sm text-white">
-                        Use the platform default Mind
+                        Use the platform default knowledge base
                         @if($defaultMind)
                             <span class="text-[10px] text-white/40">({{ $defaultMind->name }})</span>
                         @else
-                            <span class="text-[10px] text-amber-300">(no default Mind configured yet)</span>
+                            <span class="text-[10px] text-amber-300">(no default knowledge base configured yet)</span>
                         @endif
                     </span>
                 </label>
                 <div>
-                    <label class="text-[11px] uppercase tracking-wider text-white/50">Your Minds (max {{ $caps['max_minds_per_persona'] }})</label>
+                    <label class="text-[11px] uppercase tracking-wider text-white/50">Your knowledge bases (max {{ $caps['max_minds_per_persona'] }})</label>
                     @if($myMinds->isEmpty())
-                        <p class="mt-2 text-xs text-white/40">You don't have any Minds yet.
+                        <p class="mt-2 text-xs text-white/40">You don't have any knowledge bases yet.
                             <a href="{{ route('user.minds.index') }}" class="text-pink-300 hover:underline">Create one →</a>
                         </p>
                     @else
@@ -225,7 +225,7 @@
                 <h3 class="text-white font-semibold flex items-center gap-2">
                     <i class="fas fa-flask text-pink-300"></i> Test panel
                 </h3>
-                <p class="text-[11px] text-white/50 mt-1">Hit a saved version of this Persona with the runtime visitors will use. Each turn spends AI credits.</p>
+                <p class="text-[11px] text-white/50 mt-1">Hit a saved version of this AI agent with the runtime visitors will use. Each turn spends AI credits.</p>
 
                 <div class="mt-3 max-h-80 overflow-y-auto space-y-2 pr-1" x-ref="log">
                     <template x-if="!log.length">
