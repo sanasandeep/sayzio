@@ -1,6 +1,5 @@
 import { motion, useReducedMotion } from "framer-motion";
 import {
-  Fingerprint,
   Zap,
   Rocket,
   ShieldCheck,
@@ -8,7 +7,8 @@ import {
   Lightbulb,
   type LucideIcon,
 } from "lucide-react";
-import zioMascot from "@assets/icon_1782443779300.png";
+import oneMark from "@assets/icon_1782472971059.png";
+import sayzioMascot from "@assets/icon_1782472986927.png";
 
 /**
  * "1IN.ME is Sayzio" brand-relationship section — the public-gateway mirror of
@@ -54,7 +54,7 @@ export function BrandSayzio() {
   const float = prefersReducedMotion
     ? {}
     : {
-        animate: { y: [0, -12, 0] },
+        animate: { y: [0, -8, 0] },
         transition: { repeat: Infinity, duration: 7, ease: "easeInOut" as const },
       };
 
@@ -101,8 +101,22 @@ export function BrandSayzio() {
               className="pointer-events-none absolute -top-20 -left-16 h-60 w-60 rounded-full bg-primary/20 blur-3xl"
             />
             <div className="relative flex items-center gap-4 sm:gap-5">
-              <span className="shrink-0 inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-[#3d6bff] to-[#6e61ff] text-white shadow-lg">
-                <Fingerprint className="w-8 h-8 sm:w-10 sm:h-10" />
+              <span className="relative shrink-0 inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border border-border bg-background/40 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/15 via-transparent to-transparent"
+                />
+                <motion.img
+                  src={oneMark}
+                  alt="1IN.ME logo"
+                  width={72}
+                  height={56}
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  className="relative w-11 h-11 sm:w-14 sm:h-14 object-contain select-none drop-shadow-[0_8px_22px_rgba(61,107,255,0.45)]"
+                  {...float}
+                />
               </span>
               <div className="min-w-0">
                 <div className="text-3xl sm:text-4xl font-black tracking-tight grad-text">
@@ -145,17 +159,23 @@ export function BrandSayzio() {
               className="pointer-events-none absolute -bottom-24 -right-16 h-60 w-60 rounded-full bg-[#6e61ff]/25 blur-3xl"
             />
             <div className="relative flex items-center gap-4 sm:gap-5">
-              <motion.img
-                src={zioMascot}
-                alt="Zio, the Sayzio mascot"
-                width={80}
-                height={80}
-                loading="lazy"
-                decoding="async"
-                draggable={false}
-                className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 object-contain select-none drop-shadow-[0_14px_30px_rgba(110,97,255,0.6)]"
-                {...float}
-              />
+              <span className="relative shrink-0 inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border border-border bg-background/40 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-[#6e61ff]/20 via-transparent to-transparent"
+                />
+                <motion.img
+                  src={sayzioMascot}
+                  alt="Zio, the Sayzio mascot"
+                  width={64}
+                  height={64}
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  className="relative w-12 h-12 sm:w-14 sm:h-14 object-contain select-none drop-shadow-[0_10px_26px_rgba(110,97,255,0.55)]"
+                  {...float}
+                />
+              </span>
               <div className="min-w-0">
                 <div className="text-3xl sm:text-4xl font-black tracking-tight grad-text">
                   Sayzio

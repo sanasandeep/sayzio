@@ -52,15 +52,26 @@
     .bs-wordmark--zio { background: linear-gradient(95deg, #6e61ff, #e94e8c 60%, #ff8a3c); -webkit-background-clip: text; background-clip: text; }
     @keyframes bsGrad { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 
-    /* Logo glyph tile */
+    /* Logo holder tile — neutral / frosted so the colorful brand marks read cleanly */
     .bs-glyph {
         position: relative; flex-shrink: 0;
         display: inline-flex; align-items: center; justify-content: center;
         border-radius: 1.1rem;
-        background: linear-gradient(135deg, #3d6bff, #6e61ff);
-        box-shadow: 0 16px 38px -14px rgba(61,107,255,.7), inset 0 1px 0 rgba(255,255,255,.25);
+        border: 1px solid rgba(255,255,255,.14);
+        background: rgba(255,255,255,.05);
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 16px 38px -18px rgba(61,107,255,.45);
     }
-    .bs-glyph-zio { background: linear-gradient(135deg, #6e61ff, #e94e8c); box-shadow: 0 16px 38px -14px rgba(110,97,255,.7), inset 0 1px 0 rgba(255,255,255,.25); }
+    .bs-glyph::after {
+        content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+        background: linear-gradient(135deg, rgba(61,107,255,.16), transparent 60%);
+    }
+    .bs-glyph-zio::after { background: linear-gradient(135deg, rgba(110,97,255,.20), transparent 60%); }
+    .bs-glyph > img { position: relative; object-fit: contain; user-select: none; -webkit-user-select: none; }
+    html.light-mode .bs-glyph {
+        background: #ffffff; border-color: rgba(15,23,42,.10);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 16px 38px -20px rgba(61,107,255,.30);
+    }
 
     /* Animated energy line between the two cards (desktop horizontal). */
     .bs-energy { position: relative; height: 4px; border-radius: 9999px; overflow: hidden; background: rgba(255,255,255,.08); }
@@ -125,7 +136,7 @@
 
     /* Mascot drift (gentler, section-local variant of the float helpers). */
     .bs-mascot { animation: bsDrift 7.5s ease-in-out infinite; will-change: transform; }
-    @keyframes bsDrift { 0%,100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-12px) rotate(1.5deg); } }
+    @keyframes bsDrift { 0%,100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-8px) rotate(1.5deg); } }
 
     @media (prefers-reduced-motion: reduce) {
         .bs-wordmark, .bs-energy::after, .bs-is-pill::before, .bs-bolt::after, .bs-mascot {
@@ -165,8 +176,9 @@
             {{-- 1IN.ME card --}}
             <div data-anim="fade-right" class="bs-card bs-card--id p-6 sm:p-8 lg:mr-12">
                 <div class="relative flex items-center gap-4 sm:gap-5">
-                    <span class="bs-glyph float-a w-16 h-16 sm:w-20 sm:h-20 text-3xl sm:text-4xl font-black text-white">
-                        <i class="fas fa-fingerprint"></i>
+                    <span class="bs-glyph float-a w-16 h-16 sm:w-20 sm:h-20">
+                        <img src="{{ asset('branding/1inme-mark.png') }}" alt="1IN.ME logo" width="72" height="56"
+                             class="w-11 h-11 sm:w-14 sm:h-14 drop-shadow-[0_8px_22px_rgba(61,107,255,.45)]" loading="lazy" decoding="async">
                     </span>
                     <div class="min-w-0">
                         <div class="text-3xl sm:text-4xl font-black tracking-tight"><span class="bs-wordmark">1IN.ME</span></div>
@@ -189,8 +201,10 @@
             {{-- Sayzio card --}}
             <div data-anim="fade-left" class="bs-card bs-card--zio p-6 sm:p-8 lg:ml-12">
                 <div class="relative flex items-center gap-4 sm:gap-5">
-                    <img src="{{ asset('branding/zio-bot.png') }}" alt="Zio, the Sayzio mascot" width="80" height="80"
-                         class="bs-mascot w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_14px_30px_rgba(110,97,255,.6)]" loading="lazy" decoding="async">
+                    <span class="bs-glyph bs-glyph-zio w-16 h-16 sm:w-20 sm:h-20">
+                        <img src="{{ asset('branding/sayzio-mascot.png') }}" alt="Zio, the Sayzio mascot" width="64" height="64"
+                             class="bs-mascot w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_10px_26px_rgba(110,97,255,.55)]" loading="lazy" decoding="async">
+                    </span>
                     <div class="min-w-0">
                         <div class="text-3xl sm:text-4xl font-black tracking-tight"><span class="bs-wordmark bs-wordmark--zio">Sayzio</span></div>
                         <div class="mt-1 text-sm sm:text-base text-gray-300">
