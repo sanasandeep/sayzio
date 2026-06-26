@@ -71,9 +71,10 @@ class HomeController extends Controller
         $featuredBlogPosts = $this->featuredBlogPosts();
 
         // Example pages the AI-builder demo cycles through (and the resting
-        // no-JS state). Not cached with the payload: it issues no queries and
-        // bakes in asset() URLs that already vary safely per host.
-        $aiHeroExamples = AiHeroExamples::all();
+        // no-JS state). The static data bakes in asset() URLs that vary safely
+        // per host; we then attach a live "See this live" demoUrl per example
+        // (resolved against actually-published demo pages, briefly cached).
+        $aiHeroExamples = $this->withAiHeroDemoUrls(AiHeroExamples::all());
 
         return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes', 'aiHeroExamples'));
     }
@@ -250,5 +251,64 @@ class HomeController extends Controller
             // Blogs migration not run yet — silently skip the carousel.
             return collect();
         }
+    }
+
+    /**
+     * Attach a "See this live" `demoUrl` to each AI-hero example.
+     *
+     * Each example may list `demoAliases` (priority-ordered slugs of seeded
+     * `/demos` pages). We resolve the FIRST alias that is actually live and
+     * publicly viewable — preferring a rich industry demo, falling back to the
+     * always-seeded `demo-type-*` explainer — so the link never 404s and an
+     * example with no live demo simply carries no `demoUrl` (the link hides).
+     *
+     * The alias→live set is the same on every render, so it is cached briefly
+     * (mirrors the home payload TTL) to keep this query-light. A cached miss is
+     * stored as an empty array, never null, so it is not re-queried each hit.
+     *
+     * @param  array<int, array<string, mixed>>  $examples
+     * @return array<int, array<string, mixed>>
+     */
+    private function withAiHeroDemoUrls(array $examples): array
+    {
+        // Every candidate alias across all examples (deduplicated).
+        $candidates = [];
+        foreach ($examples as $ex) {
+            foreach ((array) ($ex['demoAliases'] ?? []) as $alias) {
+                $candidates[$alias] = true;
+            }
+        }
+        if (empty($candidates)) {
+            return $examples;
+        }
+
+        // Which of those demo pages are live and publicly viewable right now?
+        $live = Cache::remember('home:ai_hero_demo_aliases', 300, function () use ($candidates) {
+            try {
+                return \App\Modules\User\Models\Link::query()
+                    ->whereIn('alias', array_keys($candidates))
+                    ->where('is_active', true)
+                    ->where('visibility', 'public')
+                    ->pluck('alias')
+                    ->all();
+            } catch (\Throwable $e) {
+                // Links table not migrated yet — degrade to "no live demos".
+                return [];
+            }
+        });
+        $liveSet = array_flip($live);
+
+        foreach ($examples as &$ex) {
+            foreach ((array) ($ex['demoAliases'] ?? []) as $alias) {
+                if (isset($liveSet[$alias])) {
+                    $ex['demoUrl'] = url('/' . $alias);
+                    break;
+                }
+            }
+            unset($ex['demoAliases']);
+        }
+        unset($ex);
+
+        return $examples;
     }
 }

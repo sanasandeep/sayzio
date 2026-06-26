@@ -14,13 +14,20 @@ namespace App\Modules\Common\Support;
  * motion, so keep it photo-backed (avatar `img` + gallery `imgs`).
  *
  * Shape per example:
- *   prompt  string  the typed AI prompt
- *   name    string  profile name
- *   tag     string  profile tagline
- *   time    string  "page built in" time chip (e.g. "18s")
- *   avatar  array   one of { img: url } or { icon: 'fa-...' }
- *   links   array   up to 3 { icon, label, color, rating? }
- *   gallery array   one of { imgs: [url,url,url] } or { tiles: [{icon,color}] }
+ *   prompt       string    the typed AI prompt
+ *   name         string    profile name
+ *   tag          string    profile tagline
+ *   time         string    "page built in" time chip (e.g. "18s")
+ *   avatar       array     one of { img: url } or { icon: 'fa-...' }
+ *   links        array     up to 3 { icon, label, color, rating? }
+ *   gallery      array     one of { imgs: [url,url,url] } or { tiles: [{icon,color}] }
+ *   demoAliases  string[]  optional, priority-ordered aliases of live `/demos`
+ *                          pages this example could link to ("See this live").
+ *                          HomeController resolves the FIRST one that exists and
+ *                          is publicly viewable into a `demoUrl`; if none exist
+ *                          the example carries no `demoUrl` and the link hides.
+ *                          Prefer a rich industry demo, fall back to the always
+ *                          seeded `demo-type-*` explainer page.
  */
 class AiHeroExamples
 {
@@ -46,6 +53,7 @@ class AiHeroExamples
                     asset('images/marketing/ai-hero/gallery-beans.webp'),
                     asset('images/marketing/ai-hero/gallery-pastry.webp'),
                 ]],
+                'demoAliases' => ['demo-type-link-in-bio'],
             ],
             [
                 'prompt' => 'A coaching page for my fitness business with bookings & reviews',
@@ -63,6 +71,7 @@ class AiHeroExamples
                     asset('images/marketing/ai-hero/gallery-meal.webp'),
                     asset('images/marketing/ai-hero/gallery-gym.webp'),
                 ]],
+                'demoAliases' => ['demo-type-link-in-bio'],
             ],
             [
                 'prompt' => 'A page for my music with new songs, tour dates & merch',
@@ -80,6 +89,7 @@ class AiHeroExamples
                     asset('images/marketing/ai-hero/gallery-vinyl.webp'),
                     asset('images/marketing/ai-hero/gallery-studio.webp'),
                 ]],
+                'demoAliases' => ['demo-bio-musician', 'demo-type-link-in-bio'],
             ],
             [
                 'prompt' => 'A page for my restaurant with menu, bookings & directions',
@@ -97,6 +107,7 @@ class AiHeroExamples
                     ['icon' => 'fa-wine-glass', 'color' => 'var(--c2)'],
                     ['icon' => 'fa-fire', 'color' => 'var(--c1)'],
                 ]],
+                'demoAliases' => ['demo-bio-restaurant', 'demo-type-restaurant-menu'],
             ],
             [
                 'prompt' => 'A storefront for my candle brand with shop, bestsellers & order tracking',
@@ -114,6 +125,7 @@ class AiHeroExamples
                     asset('images/marketing/ai-hero/gallery-collection.webp'),
                     asset('images/marketing/ai-hero/gallery-shelf.webp'),
                 ]],
+                'demoAliases' => ['demo-bio-shop', 'demo-type-link-in-bio'],
             ],
             [
                 'prompt' => 'A resume & portfolio page for my design work with CV, projects & hire me',
@@ -131,6 +143,7 @@ class AiHeroExamples
                     asset('images/marketing/ai-hero/gallery-brand.webp'),
                     asset('images/marketing/ai-hero/gallery-desk.webp'),
                 ]],
+                'demoAliases' => ['demo-file-resume'],
             ],
         ];
     }

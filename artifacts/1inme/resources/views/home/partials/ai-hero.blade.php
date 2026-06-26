@@ -172,6 +172,20 @@
                                 </div>
                             </div>
                         </div>
+
+                        {{-- "See this live" — opens the matching public demo page in a
+                             new tab so the passive animation becomes an interactive
+                             entry point. Server-rendered for the resting example; the
+                             JS cycle keeps the href + visibility in step. Hidden when
+                             the current example has no live demo (graceful fallback). --}}
+                        <div class="aih-live-row">
+                            <a class="aih-see-live" href="{{ $aihEx['demoUrl'] ?? '#' }}" target="_blank" rel="noopener"
+                               @if (empty($aihEx['demoUrl'])) hidden @endif
+                               onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','ai_hero_demo')">
+                                <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i>
+                                <span>See this page live</span>
+                            </a>
+                        </div>
                     </div>
 
                     {{-- Floating "page built" chip (desktop only) --}}
@@ -278,6 +292,29 @@
             color: rgba(255,255,255,.82); font-size: 13px;
         }
 
+        /* "See this live" affordance — subtle pill below the assembled page. */
+        .aih-live-row { margin-top: 12px; text-align: center; }
+        .aih-see-live {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px; border-radius: 999px;
+            font-size: 12px; font-weight: 600; line-height: 1;
+            color: var(--c2);
+            background: color-mix(in srgb, var(--c2) 10%, transparent);
+            border: 1px solid color-mix(in srgb, var(--c2) 28%, transparent);
+            transition: opacity .45s ease, background .2s ease, border-color .2s ease, transform .2s ease;
+        }
+        .aih-see-live:hover {
+            background: color-mix(in srgb, var(--c2) 18%, transparent);
+            border-color: color-mix(in srgb, var(--c2) 50%, transparent);
+            transform: translateY(-1px);
+        }
+        .aih-see-live i { font-size: 10px; }
+        .aih-see-live[hidden] { display: none; }
+        /* While a page is mid-build (armed + generating) hide the live link, then
+           fade it in once "Page built". Resting / no-JS / reduced-motion never
+           gets `.aih-armed`, so the link shows immediately there. */
+        .aih.aih-armed:not(.aih-built) .aih-see-live { opacity: 0; pointer-events: none; }
+
         /* Generating → built status crossfade. Resting = "Page built". */
         .aih-status { position: relative; display: inline-grid; }
         .aih-status-gen, .aih-status-built { grid-area: 1 / 1; transition: opacity .4s ease; }
@@ -351,6 +388,7 @@
         var linkEls = root.querySelectorAll('.aih-link');
         var galleryEl = root.querySelector('.aih-gallery');
         var timeEl = root.querySelector('.aih-time');
+        var seeLiveEl = root.querySelector('.aih-see-live');
 
         function exposeStatus(building) {
             if (genEl) genEl.setAttribute('aria-hidden', building ? 'false' : 'true');
@@ -362,6 +400,18 @@
             if (nameEl) nameEl.textContent = ex.name;
             if (tagEl) tagEl.textContent = ex.tag;
             if (timeEl) timeEl.textContent = 'Page built in ' + ex.time;
+
+            // Point "See this live" at this example's demo, or hide it when the
+            // example has no live demo page (graceful fallback).
+            if (seeLiveEl) {
+                if (ex.demoUrl) {
+                    seeLiveEl.href = ex.demoUrl;
+                    seeLiveEl.hidden = false;
+                } else {
+                    seeLiveEl.removeAttribute('href');
+                    seeLiveEl.hidden = true;
+                }
+            }
 
             if (avatarWrap) {
                 if (ex.avatar.img) {
