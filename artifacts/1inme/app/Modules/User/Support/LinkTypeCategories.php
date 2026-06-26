@@ -70,13 +70,17 @@ class LinkTypeCategories
      * Quick "What are you trying to do?" goal prompts shown above the manual
      * picker. Each maps a plain-language goal to the link type that best fits,
      * letting people who don't know the type names jump straight to the right
-     * card. Every `type` here must exist in categories().
+     * card. `keywords` are plain-language aliases used by the free-text intent
+     * search to fuzzy-match a typed phrase to this type. Every `type` here must
+     * exist in categories().
      *
-     * @return array<int, array{type:string, icon:string, label:string}>
+     * @return array<int, array{type:string, icon:string, label:string, keywords:array<int, string>}>
      */
     public static function intents(): array
     {
-        return [
+        $aliases = self::keywordAliases();
+
+        $intents = [
             ['type' => 'url',             'icon' => 'fa-link',         'label' => 'Shorten a link'],
             ['type' => 'file',            'icon' => 'fa-file',         'label' => 'Share a file'],
             ['type' => 'paid_page',       'icon' => 'fa-crown',        'label' => 'Take payments'],
@@ -87,6 +91,60 @@ class LinkTypeCategories
             ['type' => 'resume',          'icon' => 'fa-file-lines',   'label' => 'Share my resume'],
             ['type' => 'ics',             'icon' => 'fa-calendar',     'label' => 'Invite to an event'],
         ];
+
+        return array_map(static function (array $intent) use ($aliases): array {
+            $intent['keywords'] = $aliases[$intent['type']] ?? [];
+
+            return $intent;
+        }, $intents);
+    }
+
+    /**
+     * Plain-language keyword aliases per link type, used to fuzzy-match a typed
+     * goal phrase to the closest link type. Covers every type in the catalog so
+     * the free-text intent search can reach types that have no goal chip.
+     *
+     * @return array<string, array<int, string>>
+     */
+    public static function keywordAliases(): array
+    {
+        return [
+            'url'             => ['shorten', 'short link', 'shortener', 'url', 'redirect', 'tiny link', 'trim link', 'tracking link'],
+            'file'            => ['file', 'document', 'pdf', 'download', 'upload', 'attachment', 'share a file', 'doc'],
+            'ics'             => ['event', 'calendar', 'invite', 'meeting', 'rsvp', 'appointment', 'date', 'webinar', 'add to calendar'],
+            'vcf'             => ['contact', 'business card', 'vcard', 'save my number', 'phone number', 'contact details', 'digital card'],
+            'biolink'         => ['bio', 'link in bio', 'profile', 'mini site', 'links page', 'instagram bio', 'socials', 'all my links'],
+            'slides'          => ['slides', 'presentation', 'deck', 'pitch', 'swipeable', 'story', 'carousel'],
+            'restaurant_menu' => ['menu', 'restaurant', 'food', 'dishes', 'cafe', 'dining', 'prices', 'order food'],
+            'resume'          => ['resume', 'cv', 'portfolio', 'job', 'career', 'work history', 'hire me'],
+            'paid_page'       => ['payment', 'pay', 'sell', 'money', 'monetize', 'subscription', 'tips', 'earn', 'checkout', 'paid', 'fans', 'tiers'],
+            'reviews'         => ['review', 'testimonial', 'rating', 'feedback', 'stars', 'ratings'],
+            'ai_chat'         => ['ai', 'chatbot', 'bot', 'assistant', 'ai chat', 'answer visitors', 'automated chat'],
+            'conversational'  => ['conversational', 'chat', 'guided', 'walkthrough', 'interactive', 'chat style'],
+        ];
+    }
+
+    /**
+     * Searchable index of every link type for the free-text intent search:
+     * type value plus the keyword/alias phrases (label included) that should
+     * match it. Consumed client-side to fuzzy-match a typed phrase to a card.
+     *
+     * @return array<int, array{type:string, label:string, keywords:array<int, string>}>
+     */
+    public static function searchIndex(): array
+    {
+        $aliases = self::keywordAliases();
+        $out = [];
+
+        foreach (self::types() as $value => $type) {
+            $out[] = [
+                'type'     => $value,
+                'label'    => $type['label'],
+                'keywords' => $aliases[$value] ?? [],
+            ];
+        }
+
+        return $out;
     }
 
     /**

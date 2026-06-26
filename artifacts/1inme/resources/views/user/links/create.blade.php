@@ -130,28 +130,7 @@
     @endphp
 
     <form method="POST" action="{{ route('user.links.choose-type') }}"
-          x-data="{
-              type: '{{ old('type', $lastType ?? '') }}',
-              search: '',
-              activeCategory: 'all',
-              cats: {{ \Illuminate\Support\Js::from($linkFilterCats) }},
-              matches(label, desc, key) {
-                  if (this.activeCategory !== 'all' && this.activeCategory !== key) return false;
-                  const q = this.search.trim().toLowerCase();
-                  if (!q) return true;
-                  return (label + ' ' + desc).toLowerCase().includes(q);
-              },
-              categoryHasMatch(key) {
-                  if (this.activeCategory !== 'all' && this.activeCategory !== key) return false;
-                  const q = this.search.trim().toLowerCase();
-                  if (!q) return true;
-                  return (this.cats[key] || []).some(t => (t.label + ' ' + t.desc).toLowerCase().includes(q));
-              },
-              anyMatch() {
-                  return Object.keys(this.cats).some(k => this.categoryHasMatch(k));
-              },
-              resetFilters() { this.search = ''; this.activeCategory = 'all'; }
-          }"
+          x-data="linkTypePicker({ type: '{{ old('type', $lastType ?? '') }}', searchIndex: {{ Illuminate\Support\Js::from(\App\Modules\User\Support\LinkTypeCategories::searchIndex()) }}, cats: {{ \Illuminate\Support\Js::from($linkFilterCats) }} })"
           x-init="window.__voiceSurface = { name: 'create_link' }"
           @voice-action.window="
               if ($event.detail && $event.detail.type === 'select_link_type' && $event.detail.link_type) {
@@ -178,7 +157,7 @@
                 <div class="flex flex-wrap gap-2">
                     @foreach($linkIntents as $intent)
                         <button type="button"
-                                @click="type = '{{ $intent['type'] }}'; $nextTick(() => { const el = document.getElementById('lt-card-{{ $intent['type'] }}'); if (el) { el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); } })"
+                                @click="select('{{ $intent['type'] }}')"
                                 class="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 border transition-all"
                                 :class="type === '{{ $intent['type'] }}'
                                     ? 'border-blue-400 bg-blue-500/20 text-blue-100 shadow-lg shadow-blue-500/10'
@@ -187,6 +166,39 @@
                             {{ $intent['label'] }}
                         </button>
                     @endforeach
+                </div>
+
+                {{-- FREE-TEXT SEARCH: type a goal in your own words --}}
+                <div class="mt-3.5 pt-3.5 border-t border-white/10">
+                    <label for="intent-search" class="block text-xs text-white/40 mb-2">…or describe it in your own words</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none">
+                            <i class="fas fa-magnifying-glass text-xs"></i>
+                        </span>
+                        <input type="text" id="intent-search" autocomplete="off" spellcheck="false"
+                               x-model="query"
+                               @input.debounce.250ms="runSearch()"
+                               @keydown.enter.prevent="runSearch()"
+                               placeholder="e.g. take orders for my cafe, sell my photos, save my number…"
+                               aria-describedby="intent-search-status"
+                               class="w-full rounded-xl bg-white/5 border border-white/10 pl-9 pr-9 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400/40 transition-all">
+                        <button type="button" x-show="query.length > 0" x-cloak
+                                @click="clearSearch()"
+                                aria-label="Clear search"
+                                class="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all">
+                            <i class="fas fa-xmark text-xs"></i>
+                        </button>
+                    </div>
+                    <p id="intent-search-status" class="mt-2 text-xs min-h-[1rem]" aria-live="polite"
+                       x-show="matchLabel || noMatch" x-cloak
+                       :class="noMatch ? 'text-amber-300/80' : 'text-blue-300/90'">
+                        <template x-if="matchLabel">
+                            <span><i class="fas fa-circle-check text-[10px] mr-1"></i>Matched <span class="font-semibold" x-text="matchLabel"></span> — selected below.</span>
+                        </template>
+                        <template x-if="noMatch">
+                            <span><i class="fas fa-circle-info text-[10px] mr-1"></i>No matching type yet — try different words or pick one below.</span>
+                        </template>
+                    </p>
                 </div>
             </div>
 
@@ -358,3 +370,137 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('alpine:init', function () {
+    window.Alpine.data('linkTypePicker', function (config) {
+        return {
+            type: config.type || '',
+            searchIndex: Array.isArray(config.searchIndex) ? config.searchIndex : [],
+            query: '',
+            matchLabel: '',
+            noMatch: false,
+
+            // Manual card filter (search box + category tabs over the grid).
+            search: '',
+            activeCategory: 'all',
+            cats: config.cats || {},
+
+            matches: function (label, desc, key) {
+                if (this.activeCategory !== 'all' && this.activeCategory !== key) { return false; }
+                var q = this.search.trim().toLowerCase();
+                if (!q) { return true; }
+                return (label + ' ' + desc).toLowerCase().indexOf(q) !== -1;
+            },
+
+            categoryHasMatch: function (key) {
+                if (this.activeCategory !== 'all' && this.activeCategory !== key) { return false; }
+                var q = this.search.trim().toLowerCase();
+                if (!q) { return true; }
+                return (this.cats[key] || []).some(function (t) {
+                    return (t.label + ' ' + t.desc).toLowerCase().indexOf(q) !== -1;
+                });
+            },
+
+            anyMatch: function () {
+                var self = this;
+                return Object.keys(this.cats).some(function (k) { return self.categoryHasMatch(k); });
+            },
+
+            resetFilters: function () {
+                this.search = '';
+                this.activeCategory = 'all';
+            },
+
+            scrollToCard: function (value) {
+                this.$nextTick(function () {
+                    var el = document.getElementById('lt-card-' + value);
+                    if (!el) { return; }
+                    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+                });
+            },
+
+            select: function (value) {
+                this.type = value;
+                this.scrollToCard(value);
+            },
+
+            clearSearch: function () {
+                this.query = '';
+                this.matchLabel = '';
+                this.noMatch = false;
+            },
+
+            // Score one search-index entry against the normalized query. Higher
+            // is better; 0 means no useful overlap.
+            scoreEntry: function (query, entry) {
+                var terms = [String(entry.label || '').toLowerCase()];
+                (entry.keywords || []).forEach(function (k) { terms.push(String(k).toLowerCase()); });
+
+                var queryTokens = query.split(/\s+/).filter(function (t) { return t.length >= 2; });
+                var best = 0;
+
+                for (var i = 0; i < terms.length; i++) {
+                    var term = terms[i];
+                    if (!term) { continue; }
+                    var score = 0;
+
+                    if (term === query) {
+                        score = 100;
+                    } else if (term.indexOf(query) === 0) {
+                        score = 82;
+                    } else if (term.indexOf(query) !== -1) {
+                        score = 66;
+                    } else if (query.length >= 3 && query.indexOf(term) !== -1 && term.length >= 3) {
+                        score = 60;
+                    } else if (queryTokens.length) {
+                        var termTokens = term.split(/\s+/);
+                        var overlap = 0;
+                        queryTokens.forEach(function (qt) {
+                            var hit = termTokens.some(function (tt) {
+                                return tt === qt || (qt.length >= 3 && (tt.indexOf(qt) !== -1 || qt.indexOf(tt) !== -1));
+                            });
+                            if (hit) { overlap++; }
+                        });
+                        if (overlap) {
+                            score = 28 + (overlap * 8);
+                        }
+                    }
+
+                    if (score > best) { best = score; }
+                }
+
+                return best;
+            },
+
+            runSearch: function () {
+                var query = (this.query || '').trim().toLowerCase();
+                if (query.length < 2) {
+                    this.matchLabel = '';
+                    this.noMatch = false;
+                    return;
+                }
+
+                var bestEntry = null;
+                var bestScore = 0;
+                for (var i = 0; i < this.searchIndex.length; i++) {
+                    var s = this.scoreEntry(query, this.searchIndex[i]);
+                    if (s > bestScore) { bestScore = s; bestEntry = this.searchIndex[i]; }
+                }
+
+                if (bestEntry && bestScore >= 28) {
+                    this.matchLabel = bestEntry.label;
+                    this.noMatch = false;
+                    this.select(bestEntry.type);
+                } else {
+                    this.matchLabel = '';
+                    this.noMatch = true;
+                }
+            },
+        };
+    });
+});
+</script>
+@endpush
