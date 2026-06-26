@@ -17,14 +17,41 @@ const commonAiFaqs = [
   { question: "How is my plan billed for usage?", answer: "Usage is metered against your plan's monthly AI allowance; overage is covered by your coin wallet so you're never cut off mid-conversation." },
 ];
 
+/**
+ * Marketing AI suite ↔ in-app AI tool mapping
+ * ------------------------------------------------------------------
+ * The app exposes 8 user-facing AI tools (canonical label map in
+ * artifacts/1inme/resources/views/user/ai/disabled.blade.php:
+ * Note Summarizer, Knowledge Bases, Persona Generator, AI Agents, AI Chat,
+ * Chat Widgets, Growth Coach, Account Assistant). The marketing site groups
+ * them into a smaller, sales-oriented suite. The product names below are kept
+ * in sync with the app and help docs so visitors who cross-reference them
+ * aren't confused. The mapping:
+ *
+ *   "Chat Widgets"        → in-app "Chat Widgets" (embeddable AI chatbot on a
+ *                            Link in Bio page; also the full-page "AI Chatbot"
+ *                            / ai_chat link type)
+ *   "AI Agents"           → in-app "AI Agents" (configurable multi-step agents)
+ *   "AI Widget"           → in-app "Chat Widgets" too — the same embeddable
+ *                            chatbot, positioned for embedding on any external
+ *                            website (a placement, not a separate app tool)
+ *   "AI Voice Assistant"  → in-app Voice assistant (Whisper STT · LLM ·
+ *                            ElevenLabs TTS); a distinct voice feature with no
+ *                            entry in the 8-tool label map, kept by name
+ *
+ * The remaining in-app tools (Note Summarizer, Knowledge Bases, Persona
+ * Generator, AI Chat, Growth Coach, Account Assistant) are surfaced elsewhere
+ * on the site (features catalog, flip tiles, compare/pricing) rather than as
+ * standalone AI-suite product pages.
+ */
 export const aiProducts: AiProduct[] = [
   {
     slug: "ai-chatbot",
-    eyebrow: "AI Chatbot",
+    eyebrow: "Chat Widgets",
     tagline: "A 24/7 chatbot for your Link in Bio — trained on you, on-brand, never asleep.",
-    navDesc: "24/7 chatbot trained on your Link in Bio",
+    navDesc: "Embeddable 24/7 chatbot for your Link in Bio",
     accent: "#3d6bff",
-    title: "AI Chatbot",
+    title: "Chat Widgets",
     description:
       "Drop a 24/7 AI chatbot onto your Link in Bio that greets every visitor in your voice, answers from your real content, captures leads and books calls — never asleep.",
     sections: [
@@ -42,11 +69,11 @@ export const aiProducts: AiProduct[] = [
   },
   {
     slug: "ai-agent",
-    eyebrow: "AI Agent",
+    eyebrow: "AI Agents",
     tagline: "A multi-step AI teammate that actually gets things done.",
     navDesc: "Runs multi-step playbooks for you",
     accent: "#1bd4d9",
-    title: "AI Agent",
+    title: "AI Agents",
     description:
       "A multi-step AI agent that runs real tasks across your inbox, calendar and CRM — qualifying leads, drafting outreach and following up on its own.",
     sections: [

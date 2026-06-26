@@ -33,7 +33,7 @@ interface AiCapability {
 
 /**
  * Headline AI capabilities surfaced near the top of the homepage. Mirrors the
- * AI Suite mega-menu (chatbot / agent / widget / voice) plus the two flagship
+ * AI Suite mega-menu (Chat Widgets / AI Agents / AI Widget / AI Voice) plus the two flagship
  * in-product AI features (Performance Coach, biolink builder) so the page leads
  * with the AI story. Accents are decorative icon tints only — primary UI stays
  * on the blue brand palette.
@@ -53,7 +53,7 @@ const aiCapabilities: AiCapability[] = [
   },
   {
     icon: Bot,
-    title: "AI Chat",
+    title: "Chat Widgets",
     desc: "A 24/7 assistant on your page, trained on your content, answering visitors in your voice.",
     accent: "#1bd4d9",
   },
@@ -65,7 +65,7 @@ const aiCapabilities: AiCapability[] = [
   },
   {
     icon: Workflow,
-    title: "AI Agent",
+    title: "AI Agents",
     desc: "Runs multi-step playbooks across your inbox, calendar and contacts — a teammate, not a bot.",
     accent: "#e94e8c",
   },

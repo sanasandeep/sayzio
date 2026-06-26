@@ -57,9 +57,9 @@ const PLANETS: Planet[] = [
   // ── Outer ring: the AI suite ──
   { title: "AI Page Builder", desc: "Describe it in a sentence — AI assembles your whole page.", icon: Wand2, accent: "#6e61ff", angle: -90, radius: 43, ring: "outer" },
   { title: "AI Performance Coach", desc: "Reads your analytics and tells you what to fix next.", icon: Gauge, accent: "#3d6bff", angle: -30, radius: 43, ring: "outer" },
-  sourced("ai-suite", "AI Chatbot", { icon: Bot, accent: "#1bd4d9", angle: 30, radius: 43, ring: "outer" }),
+  sourced("ai-suite", "Chat Widgets", { icon: Bot, accent: "#1bd4d9", angle: 30, radius: 43, ring: "outer" }),
   sourced("ai-suite", "AI Voice Assistant", { icon: PhoneCall, accent: "#ff8a3c", angle: 90, radius: 43, ring: "outer" }),
-  sourced("ai-suite", "AI Agent", { icon: Workflow, accent: "#e94e8c", angle: 150, radius: 43, ring: "outer" }),
+  sourced("ai-suite", "AI Agents", { icon: Workflow, accent: "#e94e8c", angle: 150, radius: 43, ring: "outer" }),
   sourced("ai-suite", "AI Widget", { icon: Code2, accent: "#3d6bff", angle: 210, radius: 43, ring: "outer" }),
   // ── Inner ring: everyday tools (copy sourced from the feature catalog) ──
   sourced("links", "Short URLs", { icon: Link2, accent: "#6e61ff", angle: 60, radius: 26, ring: "inner" }),

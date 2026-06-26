@@ -62,8 +62,8 @@ const columns: FooterColumn[] = [
   {
     heading: "AI Suite",
     links: [
-      { href: "/ai/ai-chatbot", label: "AI Chatbot" },
-      { href: "/ai/ai-agent", label: "AI Agent" },
+      { href: "/ai/ai-chatbot", label: "Chat Widgets" },
+      { href: "/ai/ai-agent", label: "AI Agents" },
       { href: "/ai/ai-widget", label: "AI Widget" },
       { href: "/ai/ai-voice-assistant", label: "AI Voice Assistant" },
       { href: "/resume-builder", label: "Resume builder" },
