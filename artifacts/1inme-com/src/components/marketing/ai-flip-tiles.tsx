@@ -35,14 +35,14 @@ const AI_TILES: AiTile[] = [
   },
   {
     icon: "ai-tiles/ai-chat.png",
-    title: "AI Chat & Personas",
+    title: "AI Chat & Agents",
     desc: "A 24/7 chatbot that answers visitors on your page.",
     backTitle: "Across the suite",
     features: [
-      "AI Companion on your page",
+      "AI Chat on your page",
       "Embeddable AI Widget for any site",
-      "AI Personas in your tone",
-      "AI Minds — your knowledge bases",
+      "Persona Generator in your tone",
+      "Knowledge Bases your AI can draw on",
     ],
   },
   {
@@ -62,7 +62,7 @@ const AI_TILES: AiTile[] = [
     desc: "A Performance Coach that turns numbers into next steps.",
     backTitle: "Plus everyday tools",
     features: [
-      "Ask Coach for plain-English insights",
+      "Account Assistant for plain-English insights",
       "AI Resume — import, tailor, cover letter",
       "AI Card & Brochure scanner",
     ],

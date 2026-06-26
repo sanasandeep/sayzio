@@ -53,7 +53,7 @@ const aiCapabilities: AiCapability[] = [
   },
   {
     icon: Bot,
-    title: "AI Chatbot & Companion",
+    title: "AI Chat",
     desc: "A 24/7 assistant on your page, trained on your content, answering visitors in your voice.",
     accent: "#1bd4d9",
   },
