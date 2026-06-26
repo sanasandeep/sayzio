@@ -9,18 +9,33 @@ name = "web"
 paths = ["/"]
 
 # Dev startup builds the Vite/Tailwind v4 assets if the @vite() manifest at
-# public/build/manifest.json is missing, then writes a boot timestamp and serves.
-# public/build is gitignored, so a fresh dev environment has no manifest and every
-# Blade page using @vite() would 500 with ViteManifestNotFoundException — building
-# on startup keeps dev durable across environment restarts without committing build
-# output.
+# public/build/manifest.json is missing, then runs a Vite WATCHER alongside the
+# PHP server so Blade edits refresh the CSS live.
 #
-# STALE VIEW CACHE NOTE: Tailwind's content auto-detection also scans Laravel's
-# compiled-blade cache (storage/framework/views/*.php). If those cached files hold
-# pre-sweep class tokens (e.g. retired purple), Tailwind regenerates them back into
-# public/build CSS. So we run `php artisan view:clear` BEFORE the asset build to
-# clear the compiled-blade cache at the source (see
-# .agents/memory/tailwind-scans-compiled-views.md).
+# WHY A WATCHER (Task #2422): `php artisan serve` only serves the pre-built
+# public/build assets — it does not rebuild them. So mid-session, editing a Blade
+# file's Tailwind classes/colors used to leave the preview on stale CSS until a
+# manual `pnpm run build`. We now run `vite build --watch` concurrently with the
+# server (via the `concurrently` dev dependency); Tailwind v4 registers every
+# `@source` glob (including `../**/*.blade.php`) as a watched file, so saving a
+# Blade file triggers an incremental rebuild and new utilities appear in the
+# preview automatically. `--kill-others` ties the two processes' lifecycles
+# together so a crash of either tears the workflow down cleanly for restart.
+#
+# STALE VIEW CACHE NOTE: Tailwind's content scan also reads Laravel's compiled-
+# blade cache (storage/framework/views/*.php) via an `@source` in
+# resources/css/app.css. If those cached files hold pre-sweep class tokens (e.g.
+# retired purple), Tailwind regenerates them back into the CSS — and in watch
+# mode its candidate set is ADDITIVE (a token scanned once survives every later
+# rebuild until the watcher restarts), and it enumerates the @source files at
+# config time, BEFORE any in-process hook could clear them. So we wipe the
+# compiled-blade cache HERE — `rm -f storage/framework/views/*.php` — before the
+# Vite watcher launches, guaranteeing its first (and only) scan of that directory
+# sees nothing stale. Laravel lazily recompiles views on the next request, and
+# from then on the cache only ever holds tokens for the current Blade source, so
+# it can never feed stale tokens back into the CSS mid-session. (The cold-start
+# `php artisan view:clear` above still runs only when the manifest is missing;
+# this unconditional rm also covers warm restarts where the manifest exists.)
 #
 # READINESS PROBE NOTE: the Replit dev readiness probe is hard-wired to poll the
 # preview path "/" — it ignores [services.development.health.startup].path (verified:
@@ -32,7 +47,7 @@ paths = ["/"]
 # storage/framework/cache/dev_boot_ms; the real home page serves normally once the
 # window elapses, and the middleware is a no-op in production.
 [services.development]
-run = "cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || { php artisan view:clear && pnpm --dir /home/runner/workspace/artifacts/1inme run build; }; } && mkdir -p storage/framework/cache && date +%s%3N > storage/framework/cache/dev_boot_ms && PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"
+run = '''cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || { php artisan view:clear && pnpm --dir /home/runner/workspace/artifacts/1inme run build; }; } && rm -f storage/framework/views/*.php && mkdir -p storage/framework/cache && date +%s%3N > storage/framework/cache/dev_boot_ms && pnpm exec concurrently --kill-others --names tailwind,serve "pnpm --dir /home/runner/workspace/artifacts/1inme run build:watch" "PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"'''
 
 [services.development.env]
 PORT = "5000"
