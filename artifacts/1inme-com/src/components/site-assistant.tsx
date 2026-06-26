@@ -17,6 +17,15 @@ import zioBotMascot from "@assets/ChatGPT_Image_Jun_26,_2026_at_09_24_23_AM_1782
  * message/choice/handoff) and renders the same block types (buttons, list,
  * image, form), but uses the non-streaming /assistant/message endpoint for
  * simplicity and cross-origin reliability.
+ *
+ * Default mascot — single source of truth: the backend. Both the launcher
+ * and the chat header resolve the avatar from the `avatar_url` returned by
+ * /assistant/bootstrap (see SiteAssistantSettings::avatarUrlFor in the
+ * Laravel app, which falls back to public/branding/zio-bot.png when no
+ * admin avatar is set). We fetch bootstrap once on mount so the launcher
+ * reflects a backend mascot change with no React edit. The bundled
+ * `zioBotMascot` import below is ONLY an offline fallback for first paint /
+ * when the backend is unreachable.
  */
 
 const BRAND_ACCENT = "#3d6bff";
@@ -151,12 +160,22 @@ export default function SiteAssistant() {
   const [handedOff, setHandedOff] = useState(false);
   const [input, setInput] = useState("");
   const [tooltip, setTooltip] = useState<string | null>(null);
+  // Default mascot resolved from the backend bootstrap, populated on mount
+  // so the launcher reflects an admin mascot change before the chat is
+  // ever opened. Empty until the first bootstrap resolves (then the
+  // bundled import is used as the offline fallback).
+  const [bootAvatar, setBootAvatar] = useState("");
 
   const tokenRef = useRef<string>(
     (typeof window !== "undefined" && localStorage.getItem(TOKEN_KEY)) || ""
   );
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const tooltipDismissed = useRef(false);
+  // Cache the bootstrap fetch so the mount-time avatar load and the
+  // open-time full boot share a single network request.
+  const bootstrapPromiseRef = useRef<Promise<BootstrapResponse | null> | null>(
+    null
+  );
 
   const setToken = useCallback((t?: string) => {
     if (t && t.trim()) {
@@ -176,15 +195,57 @@ export default function SiteAssistant() {
     });
   }, []);
 
+  // Fetch (and cache) the assistant bootstrap config. Shared by the
+  // mount-time avatar load and the open-time full boot so we only hit
+  // /assistant/bootstrap once. Resolves null when the backend is
+  // unreachable so callers fall back to the bundled mascot.
+  const loadBootstrap = useCallback((): Promise<BootstrapResponse | null> => {
+    if (!bootstrapPromiseRef.current) {
+      bootstrapPromiseRef.current = (async () => {
+        try {
+          const res = await fetch(api("/assistant/bootstrap?surface=marketing"), {
+            headers: { Accept: "application/json" },
+          });
+          return (await res.json()) as BootstrapResponse;
+        } catch {
+          // Don't cache a transient failure — drop the cached promise so a
+          // later open (or re-open) retries the fetch instead of being
+          // permanently poisoned with a null result.
+          bootstrapPromiseRef.current = null;
+          return null;
+        }
+      })();
+    }
+    return bootstrapPromiseRef.current;
+  }, []);
+
+  // Resolve the default mascot from the backend on mount so the launcher
+  // shows the current admin mascot without waiting for the chat to open.
+  useEffect(() => {
+    let cancelled = false;
+    void loadBootstrap().then((data) => {
+      if (cancelled) return;
+      const url = (data?.avatar_url || "").trim();
+      if (url) setBootAvatar(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadBootstrap]);
+
   // ── bootstrap + session (runs once, on first open) ──────────────
   const boot = useCallback(async () => {
     setBooted(true);
     try {
-      const res = await fetch(api("/assistant/bootstrap?surface=marketing"), {
-        headers: { Accept: "application/json" },
-      });
-      const data = (await res.json()) as BootstrapResponse;
-      if (!data || !data.enabled) {
+      const data = await loadBootstrap();
+      if (!data) {
+        // Backend unreachable — NOT the same as "disabled". Fall through to
+        // the catch so the launcher stays visible (with the bundled
+        // fallback mascot) and shows a recoverable message; booted is reset
+        // there so a later re-open retries.
+        throw new Error("bootstrap_unreachable");
+      }
+      if (!data.enabled) {
         setCfg({ enabled: false });
         return;
       }
@@ -213,6 +274,10 @@ export default function SiteAssistant() {
       setSuggested(combined);
       if (session?.handed_off) setHandedOff(true);
     } catch {
+      // Reset booted so re-opening the chat retries the connection. The
+      // launcher itself stays mounted (cfg is never set to enabled:false
+      // here), so the bundled fallback mascot remains visible offline.
+      setBooted(false);
       setMessages([
         {
           role: "assistant",
@@ -223,7 +288,7 @@ export default function SiteAssistant() {
     } finally {
       scrollBottom();
     }
-  }, [scrollBottom, setToken]);
+  }, [scrollBottom, setToken, loadBootstrap]);
 
   const toggle = useCallback(
     (next: boolean) => {
@@ -376,7 +441,7 @@ export default function SiteAssistant() {
     [sending, pushMessage, scrollBottom]
   );
 
-  const avatar = cfg?.avatar_url || zioBotMascot;
+  const avatar = cfg?.avatar_url || bootAvatar || zioBotMascot;
   const brand = cfg?.brand_name || "Zio Bot";
   const subheading = cfg?.subheading || "How can I help?";
   const placeholder = cfg?.input_placeholder || "Type a message…";
@@ -511,7 +576,7 @@ export default function SiteAssistant() {
                 gap: 10,
               }}
             >
-              {!booted && (
+              {!booted && messages.length === 0 && (
                 <div style={{ color: t.sub, fontSize: 13 }}>Loading…</div>
               )}
               {messages.map((m, idx) => (
@@ -677,7 +742,7 @@ export default function SiteAssistant() {
           </span>
         ) : (
           <motion.img
-            src={zioBotMascot}
+            src={avatar}
             alt=""
             aria-hidden="true"
             animate={{ y: [0, -2, 0], rotate: [0, -3, 0] }}

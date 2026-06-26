@@ -173,6 +173,14 @@ P;
      * otherwise we fall back to the bundled Zio Bot mascot so the widget
      * always has a face without any admin action. Returning an absolute
      * URL keeps the cross-origin marketing widget happy too.
+     *
+     * SINGLE SOURCE OF TRUTH for the default assistant mascot. Both
+     * front-ends resolve their avatar from the `avatar_url` this returns
+     * via the /assistant/bootstrap payload: the Laravel blade widget and
+     * the marketing React widget (artifacts/1inme-com site-assistant.tsx,
+     * which fetches it on mount and only falls back to its bundled import
+     * when the backend is unreachable). Change the mascot here / via the
+     * admin avatar upload and both surfaces update — no React edit needed.
      */
     public static function avatarUrlFor(array $cfg): string
     {
