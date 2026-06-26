@@ -67,6 +67,30 @@ const PLANETS: Planet[] = [
   sourced("analytics", "Visitor analytics", { icon: BarChart3, accent: "#3d6bff", angle: 300, radius: 26, ring: "inner" }),
 ];
 
+export type OrbitalVariant = "full" | "compact";
+
+/** Stage edge length (px) per variant. radius/sizing are %/vw based so they scale. */
+const STAGE_SIZE: Record<OrbitalVariant, number> = { full: 480, compact: 320 };
+
+/** Re-space a ring's planets evenly so a trimmed subset stays balanced. */
+function evenlySpaced(planets: Planet[], start = -90): Planet[] {
+  const step = 360 / planets.length;
+  return planets.map((p, i) => ({ ...p, angle: start + i * step }));
+}
+
+/**
+ * Per-variant planet sets. "full" keeps the canonical nine; "compact" trims to a
+ * lighter five (3 outer AI flagships + 2 everyday tools), each ring re-spaced so
+ * the smaller stage stays balanced.
+ */
+const PLANETS_BY_VARIANT: Record<OrbitalVariant, Planet[]> = {
+  full: PLANETS,
+  compact: [
+    ...evenlySpaced(PLANETS.filter((p) => p.ring === "outer").filter((_, i) => i % 2 === 0)),
+    ...evenlySpaced(PLANETS.filter((p) => p.ring === "inner").slice(0, 2)),
+  ],
+};
+
 function position(angle: number, radius: number) {
   const rad = (angle * Math.PI) / 180;
   return {
@@ -145,12 +169,19 @@ function PlanetNode({ planet, index, active, onActivate, onClear }: {
  * name + one-line description on hover/focus. Everything degrades to a static,
  * legible layout under `prefers-reduced-motion`.
  */
-export function OrbitalUniverse() {
+export function OrbitalUniverse({ variant = "full" }: { variant?: OrbitalVariant } = {}) {
   const [active, setActive] = useState<number | null>(null);
   const prefersReducedMotion = useReducedMotion();
+  const planets = PLANETS_BY_VARIANT[variant];
+  const isCompact = variant === "compact";
 
   return (
-    <div className="orbit-stage relative aspect-square w-[480px] max-w-full" data-reduced={prefersReducedMotion ? "true" : "false"}>
+    <div
+      className="orbit-stage relative aspect-square max-w-full"
+      style={{ width: STAGE_SIZE[variant] }}
+      data-variant={variant}
+      data-reduced={prefersReducedMotion ? "true" : "false"}
+    >
       {/* ── Concentric dotted rings (infinite spin, varying speed/direction) ── */}
       <svg className="orbit-rings absolute inset-0 h-full w-full" viewBox="0 0 100 100" aria-hidden fill="none">
         <circle className="orbit-ring orbit-ring--3" cx="50" cy="50" r="43" pathLength={100} />
@@ -162,7 +193,7 @@ export function OrbitalUniverse() {
 
       {/* ── Center hub: glow halo + Zio ── */}
       <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
-        <div className="relative w-[clamp(108px,30vw,168px)]">
+        <div className={`relative ${isCompact ? "w-[clamp(76px,22vw,112px)]" : "w-[clamp(108px,30vw,168px)]"}`}>
           <div aria-hidden className="absolute inset-0 -z-10 scale-[1.55] rounded-full bg-primary/30 blur-[44px]" />
           <div aria-hidden className="absolute inset-0 -z-10 scale-110 rounded-full bg-accent-foreground/20 blur-2xl" />
           <img
@@ -181,7 +212,7 @@ export function OrbitalUniverse() {
       </div>
 
       {/* ── Feature planets ── */}
-      {PLANETS.map((planet, i) => (
+      {planets.map((planet, i) => (
         <PlanetNode
           key={planet.title}
           planet={planet}
