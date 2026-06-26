@@ -66,51 +66,82 @@
                 </div>
             </div>
 
-            {{-- Visual column: prompt → AI-generated page --}}
-            <div class="reveal rd-2 relative w-full max-w-[520px] mx-auto lg:justify-self-end">
-                <div class="float-c aibd" id="ai-builder-demo">
-                    <div class="glass rounded-3xl p-5 sm:p-6 relative overflow-hidden border border-white/10">
+            {{-- Visual column: prompt → biolink blocks fly in and assemble a page --}}
+            <div class="reveal rd-2 relative w-full max-w-[480px] mx-auto lg:justify-self-end">
+                <div class="float-c">
+                    <div class="glass rounded-3xl p-4 sm:p-5 relative overflow-hidden border border-white/10">
                         <div class="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-25" style="background:var(--c2)"></div>
                         <div class="absolute -bottom-20 -left-16 w-52 h-52 rounded-full opacity-20" style="background:var(--c1)"></div>
 
-                        {{-- Prompt bar --}}
+                        {{-- Prompt bar (the trigger) --}}
                         <div class="relative">
-                            <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-2" style="color:var(--c2)">
-                                <i class="fas fa-wand-magic-sparkles"></i> AI builder
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="text-[11px] font-bold uppercase tracking-[.2em]" style="color:var(--c2)">
+                                    <i class="fas fa-wand-magic-sparkles"></i> AI builder
+                                </div>
+                                {{-- Generating → built beat --}}
+                                <div class="aih-status">
+                                    <span class="aih-status-gen inline-flex items-center gap-1.5 px-3 py-1 grad-bar text-white rounded-full text-[11px] font-bold"><i class="fas fa-bolt"></i> Generating</span>
+                                    <span class="aih-status-built inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold" style="background:#1ed76022;color:#1ed760"><i class="fas fa-check"></i> Page built</span>
+                                </div>
                             </div>
                             <div class="flex items-center gap-3 rounded-2xl bg-white/[.05] border border-white/10 px-4 py-3">
-                                <i class="fas fa-keyboard text-sm text-gray-400"></i>
-                                <span class="text-sm text-gray-200">"<span class="aibd-prompt">A link page for my coffee brand with shop, menu &amp; reviews</span><span class="aibd-caret" aria-hidden="true">▍</span>"</span>
-                            </div>
-                            <div class="flex items-center justify-end mt-3">
-                                <span class="aibd-status px-4 py-2 grad-bar text-white rounded-full text-xs font-bold" aria-live="polite">
-                                    <span class="aibd-status-gen inline-flex items-center gap-2" aria-hidden="true"><i class="fas fa-bolt"></i> Generating</span>
-                                    <span class="aibd-status-done inline-flex items-center gap-2"><i class="fas fa-check"></i> Built</span>
-                                </span>
+                                <i class="fas fa-keyboard text-sm text-gray-400 shrink-0"></i>
+                                <span class="text-[13px] sm:text-sm text-gray-200">"A link page for my coffee brand with shop, menu &amp; reviews"</span>
                             </div>
                         </div>
 
-                        {{-- Generated blocks preview --}}
-                        <div class="relative mt-5 rounded-2xl bg-[#0a0a14] border border-white/5 p-4">
-                            <div class="flex items-center gap-3 mb-4">
-                                <div class="w-11 h-11 rounded-2xl flex items-center justify-center grad-bar shrink-0"><i class="fas fa-mug-hot text-white"></i></div>
-                                <div class="min-w-0">
-                                    <div class="text-sm font-bold text-white leading-tight">Daybreak Coffee</div>
-                                    <div class="text-[11px] text-gray-400">Roasted fresh, shipped daily</div>
-                                </div>
-                            </div>
-                            <div class="space-y-2.5">
-                                @foreach([
-                                    ['fa-store','Shop the beans','var(--c2)'],
-                                    ['fa-book-open','See the menu','var(--c1)'],
-                                    ['fa-star','Read reviews','var(--c5)'],
-                                ] as $g)
-                                    <div class="aibd-block flex items-center gap-3 rounded-xl bg-white/[.04] border border-white/5 px-3 py-2.5">
-                                        <span class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style="background:{{ $g[2] }}1f;color:{{ $g[2] }}"><i class="fas {{ $g[0] }} text-xs"></i></span>
-                                        <span class="text-[13px] font-semibold text-white">{{ $g[1] }}</span>
-                                        <i class="fas fa-check ml-auto text-[10px]" style="color:#1ed760"></i>
+                        {{-- Assembly stage: each block flies in from a different direction and snaps into place --}}
+                        <div class="aih-stage relative mt-4 rounded-2xl bg-[#0a0a14] border border-white/5 p-3.5 sm:p-4">
+                            <div class="aih-page">
+                                {{-- Profile block (in from top) --}}
+                                <div class="aih-block aih-profile" style="--d:60ms;--tx:-22px;--ty:-120px;--rot:-5deg;">
+                                    <img src="{{ asset('images/marketing/ai-hero/avatar.webp') }}" alt="" loading="lazy" decoding="async" class="aih-avatar">
+                                    <div class="aih-prof-meta">
+                                        <div class="aih-name">Daybreak Coffee <i class="fas fa-circle-check aih-verified" aria-hidden="true"></i></div>
+                                        <div class="aih-tag">Roasted fresh · shipped daily</div>
                                     </div>
-                                @endforeach
+                                </div>
+
+                                {{-- Link cards (in from alternating sides) --}}
+                                <div class="aih-block aih-link" style="--d:220ms;--tx:-180px;--ty:8px;--rot:-7deg;">
+                                    <span class="aih-link-ico" style="background:color-mix(in srgb,var(--c2) 16%,transparent);color:var(--c2)"><i class="fas fa-store"></i></span>
+                                    <span class="aih-link-label">Shop the beans</span>
+                                    <i class="fas fa-arrow-right aih-link-arrow" aria-hidden="true"></i>
+                                </div>
+                                <div class="aih-block aih-link" style="--d:340ms;--tx:185px;--ty:8px;--rot:7deg;">
+                                    <span class="aih-link-ico" style="background:color-mix(in srgb,var(--c1) 16%,transparent);color:var(--c1)"><i class="fas fa-book-open"></i></span>
+                                    <span class="aih-link-label">See the menu</span>
+                                    <i class="fas fa-arrow-right aih-link-arrow" aria-hidden="true"></i>
+                                </div>
+                                <div class="aih-block aih-link" style="--d:460ms;--tx:-170px;--ty:8px;--rot:-5deg;">
+                                    <span class="aih-link-ico" style="background:color-mix(in srgb,var(--c5) 18%,transparent);color:var(--c5)"><i class="fas fa-star"></i></span>
+                                    <span class="aih-link-label">Read reviews</span>
+                                    <span class="aih-link-rating"><i class="fas fa-star"></i> 4.9</span>
+                                </div>
+
+                                {{-- Projects / gallery block (in from bottom) --}}
+                                <div class="aih-block aih-gallery" style="--d:580ms;--tx:0;--ty:140px;--rot:3deg;">
+                                    <img src="{{ asset('images/marketing/ai-hero/gallery-latte.webp') }}" alt="" loading="lazy" decoding="async" class="aih-shot">
+                                    <img src="{{ asset('images/marketing/ai-hero/gallery-beans.webp') }}" alt="" loading="lazy" decoding="async" class="aih-shot">
+                                    <img src="{{ asset('images/marketing/ai-hero/gallery-pastry.webp') }}" alt="" loading="lazy" decoding="async" class="aih-shot">
+                                </div>
+
+                                {{-- Contacts row (in from right) --}}
+                                <div class="aih-block aih-contacts" style="--d:700ms;--tx:175px;--ty:24px;--rot:6deg;">
+                                    <span class="aih-contact"><i class="fas fa-phone"></i> Call</span>
+                                    <span class="aih-contact"><i class="fas fa-envelope"></i> Email</span>
+                                    <span class="aih-contact"><i class="fas fa-location-dot"></i> Visit</span>
+                                </div>
+
+                                {{-- Social icons row (in from bottom) --}}
+                                <div class="aih-block aih-socials" style="--d:820ms;--tx:0;--ty:110px;--rot:-4deg;">
+                                    <span class="aih-soc"><i class="fab fa-instagram"></i></span>
+                                    <span class="aih-soc"><i class="fab fa-tiktok"></i></span>
+                                    <span class="aih-soc"><i class="fab fa-x-twitter"></i></span>
+                                    <span class="aih-soc"><i class="fab fa-youtube"></i></span>
+                                    <span class="aih-soc"><i class="fab fa-spotify"></i></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -129,110 +160,122 @@
             </div>
         </div>
     </div>
+
+    <style>
+        /* ===== AI hero — biolink blocks fly in and assemble a page ===== */
+        /* Master cycle: all blocks share the same duration so they loop in
+           sync; per-block --d staggers the entry into a cascade, and --tx/--ty
+           /--rot set each block's scattered start offset. */
+        .aih-stage { overflow: hidden; }
+        .aih-page { display: flex; flex-direction: column; gap: 9px; }
+
+        .aih-block {
+            opacity: 0;
+            transform-origin: center;
+            will-change: transform, opacity;
+            animation: aihAssemble 9s cubic-bezier(.34, 1.56, .64, 1) infinite;
+            animation-delay: var(--d, 0ms);
+        }
+        @keyframes aihAssemble {
+            0%   { opacity: 0; transform: translate(var(--tx, 0), var(--ty, 36px)) rotate(var(--rot, 0deg)) scale(.86); }
+            14%  { opacity: 1; transform: translate(0, 0) rotate(0) scale(1); }
+            86%  { opacity: 1; transform: translate(0, 0) rotate(0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--tx, 0), var(--ty, 36px)) rotate(var(--rot, 0deg)) scale(.86); }
+        }
+
+        /* Profile block */
+        .aih-profile {
+            display: flex; align-items: center; gap: 11px;
+            padding: 11px 12px; border-radius: 16px;
+            background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.03));
+            border: 1px solid rgba(255,255,255,.10);
+        }
+        .aih-avatar {
+            width: 46px; height: 46px; border-radius: 50%;
+            object-fit: cover; flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,.30);
+        }
+        .aih-prof-meta { min-width: 0; }
+        .aih-name {
+            font-size: 14px; font-weight: 700; color: #fff; line-height: 1.15;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .aih-verified { color: var(--c2); font-size: 12px; }
+        .aih-tag { font-size: 11px; color: rgba(255,255,255,.62); margin-top: 2px; }
+
+        /* Link cards */
+        .aih-link {
+            display: flex; align-items: center; gap: 11px;
+            padding: 9px 11px; border-radius: 13px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.07);
+        }
+        .aih-link-ico {
+            width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
+        }
+        .aih-link-label { font-size: 13px; font-weight: 600; color: #fff; flex: 1; min-width: 0; }
+        .aih-link-arrow { color: rgba(255,255,255,.40); font-size: 11px; }
+        .aih-link-rating { font-size: 11px; font-weight: 700; color: var(--c5); white-space: nowrap; }
+        .aih-link-rating i { font-size: 9px; margin-right: 1px; }
+
+        /* Projects / gallery block */
+        .aih-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+        .aih-shot {
+            width: 100%; aspect-ratio: 1 / 1; object-fit: cover;
+            border-radius: 11px; border: 1px solid rgba(255,255,255,.08);
+        }
+
+        /* Contacts row */
+        .aih-contacts { display: flex; gap: 7px; }
+        .aih-contact {
+            flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+            padding: 7px 4px; border-radius: 11px;
+            background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07);
+            font-size: 11px; font-weight: 600; color: rgba(255,255,255,.85);
+        }
+        .aih-contact i { color: var(--c1); font-size: 11px; }
+
+        /* Social icons row */
+        .aih-socials { display: flex; gap: 9px; justify-content: center; padding-top: 1px; }
+        .aih-soc {
+            width: 30px; height: 30px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.08);
+            color: rgba(255,255,255,.82); font-size: 13px;
+        }
+
+        /* Generating → built status crossfade (synced to the 9s cycle) */
+        .aih-status { position: relative; display: inline-grid; }
+        .aih-status-gen, .aih-status-built { grid-area: 1 / 1; }
+        .aih-status-gen   { animation: aihStatusGen   9s ease-in-out infinite; }
+        .aih-status-built { animation: aihStatusBuilt 9s ease-in-out infinite; opacity: 0; }
+        @keyframes aihStatusGen   { 0%, 5% { opacity: 1; } 17%, 100% { opacity: 0; } }
+        @keyframes aihStatusBuilt { 0%, 13% { opacity: 0; } 21%, 93% { opacity: 1; } 100% { opacity: 0; } }
+
+        /* Small phones: tighten spacing + scale type so the page stays inside
+           the column, legible and free of horizontal overflow. */
+        @media (max-width: 420px) {
+            .aih-page { gap: 7px; }
+            .aih-avatar { width: 40px; height: 40px; }
+            .aih-name { font-size: 13px; }
+            .aih-link { padding: 8px 10px; }
+            .aih-link-label { font-size: 12px; }
+            .aih-gallery { gap: 6px; }
+            .aih-contact { font-size: 10px; }
+            .aih-soc { width: 27px; height: 27px; font-size: 12px; }
+        }
+
+        /* Reduced motion: skip the fly-in entirely; show the assembled page
+           and the "Page built" state immediately. */
+        @media (prefers-reduced-motion: reduce) {
+            .aih-block {
+                animation: none !important;
+                opacity: 1 !important;
+                transform: none !important;
+            }
+            .aih-status-gen { display: none; }
+            .aih-status-built { animation: none !important; opacity: 1 !important; }
+        }
+    </style>
 </section>
-
-{{--
-    AI builder demo animation — on scroll-into-view the prompt sentence types
-    out, the "Generating" pill cross-fades to "Built" and the three result
-    blocks reveal one-by-one. Pure opacity/transform (GPU-cheap), runs once.
-    The resting CSS state IS the finished state, so no-JS and
-    prefers-reduced-motion users see the page already "built" (frozen final).
-    The start/animated state only applies once JS adds `.aibd-armed`, which it
-    never does under reduced motion.
---}}
-<style>
-    .aibd .aibd-status { display: inline-grid; }
-    .aibd .aibd-status > span { grid-area: 1 / 1; transition: opacity .4s ease; }
-    /* Resting / final state (also no-JS + reduced motion): "Built", no caret, blocks shown */
-    .aibd .aibd-status-gen { opacity: 0; }
-    .aibd .aibd-status-done { opacity: 1; }
-    .aibd .aibd-caret { opacity: 0; color: var(--c2); font-weight: 400; }
-    .aibd .aibd-block { transition: opacity .55s ease, transform .55s cubic-bezier(.16,1,.3,1); }
-
-    @media (prefers-reduced-motion: no-preference) {
-        /* Start state — only active while JS drives the sequence forward */
-        .aibd.aibd-armed .aibd-status-gen { opacity: 1; }
-        .aibd.aibd-armed .aibd-status-done { opacity: 0; }
-        .aibd.aibd-armed .aibd-caret { opacity: 1; animation: aibdCaret 1.05s step-end infinite; }
-        .aibd.aibd-armed .aibd-block { opacity: 0; transform: translateY(12px); }
-
-        /* Status flip: Generating -> Built */
-        .aibd.aibd-armed.aibd-built .aibd-status-gen { opacity: 0; }
-        .aibd.aibd-armed.aibd-built .aibd-status-done { opacity: 1; }
-        .aibd.aibd-armed.aibd-built .aibd-caret { opacity: 0; animation: none; }
-
-        /* Sequential block reveal (JS adds .is-in per block) */
-        .aibd.aibd-armed .aibd-block.is-in { opacity: 1; transform: none; }
-    }
-    @keyframes aibdCaret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
-</style>
-<script>
-(function () {
-    if (window.__aibdInit) return;
-    window.__aibdInit = true;
-
-    function init() {
-        var root = document.getElementById('ai-builder-demo');
-        if (!root) return;
-
-        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (reduce) return; // leave at resting/final state
-
-        var promptEl = root.querySelector('.aibd-prompt');
-        var blocks = root.querySelectorAll('.aibd-block');
-        var genEl = root.querySelector('.aibd-status-gen');
-        var doneEl = root.querySelector('.aibd-status-done');
-        var fullText = promptEl ? promptEl.textContent.trim() : '';
-
-        function exposeStatus(building) {
-            if (genEl) genEl.setAttribute('aria-hidden', building ? 'false' : 'true');
-            if (doneEl) doneEl.setAttribute('aria-hidden', building ? 'true' : 'false');
-        }
-
-        // Arm immediately (before paint where possible) to avoid a flash of the
-        // finished state, then clear the prompt ready to type.
-        root.classList.add('aibd-armed');
-        exposeStatus(true); // start state shows "Generating"
-        if (promptEl) promptEl.textContent = '';
-
-        var played = false;
-        function play() {
-            if (played) return;
-            played = true;
-
-            var i = 0;
-            function type() {
-                if (promptEl && i <= fullText.length) {
-                    promptEl.textContent = fullText.slice(0, i);
-                    i++;
-                    setTimeout(type, 26 + Math.random() * 36);
-                } else {
-                    setTimeout(finish, 380);
-                }
-            }
-            function finish() {
-                root.classList.add('aibd-built'); // flip Generating -> Built
-                exposeStatus(false); // now announce "Built"
-                blocks.forEach(function (b, idx) {
-                    setTimeout(function () { b.classList.add('is-in'); }, 260 + idx * 170);
-                });
-            }
-            type();
-        }
-
-        if ('IntersectionObserver' in window) {
-            var io = new IntersectionObserver(function (entries) {
-                entries.forEach(function (e) {
-                    if (e.isIntersecting) { play(); io.disconnect(); }
-                });
-            }, { threshold: 0.35 });
-            io.observe(root);
-        } else {
-            play();
-        }
-    }
-
-    if (document.readyState !== 'loading') init();
-    else document.addEventListener('DOMContentLoaded', init);
-})();
-</script>

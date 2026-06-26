@@ -625,14 +625,32 @@ type = "image"
 title = "generated_image"
 
 [[generated]]
+id = "UNARW0NySQcdb67rOQXzK"
+uri = "file://artifacts/1inme/public/images/marketing/ai-hero/avatar.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
 id = "XPjKCHhOn0Nmut-xYzN3O"
 uri = "file://artifacts/1inme/public/images/zio-nodes/analytics.png"
 type = "image"
 title = "generated_image"
 
 [[generated]]
+id = "OfQ65-FJNIdNBgwa6fVx9"
+uri = "file://artifacts/1inme/public/images/marketing/ai-hero/gallery-latte.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
 id = "MgUVpW1Tr3WOgjD_u867n"
 uri = "file://artifacts/1inme/public/images/zio-nodes/growth.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "3QzUBnABZvNLnoleRHPty"
+uri = "file://artifacts/1inme/public/images/marketing/ai-hero/gallery-beans.png"
 type = "image"
 title = "generated_image"
 
@@ -663,6 +681,12 @@ title = "generated_image"
 [[generated]]
 id = "4EX4nrxSHX2kAmcADRGct"
 uri = "file://artifacts/1inme/public/images/zio-nodes/code.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "EcNZNUUPG8B1gY5fZavxO"
+uri = "file://artifacts/1inme/public/images/marketing/ai-hero/gallery-pastry.png"
 type = "image"
 title = "generated_image"
 
