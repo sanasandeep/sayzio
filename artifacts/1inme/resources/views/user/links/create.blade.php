@@ -133,13 +133,20 @@
         }
 
         // Goal => guided-wizard URL for the goals the wizard can build,
-        // pre-seeding the matching persona group where one applies. Goals
-        // absent here have no wizard path and keep the manual flow.
+        // pre-seeding the matching persona group — and, for goals that map to
+        // exactly one persona, the persona too (so the wizard skips its second
+        // question). Goals absent here have no wizard path and keep the manual
+        // flow. The typed Custom URL alias is layered on at click time (JS).
         $wizardIntentUrls = [];
-        foreach (\App\Modules\User\Support\LinkTypeCategories::wizardGroups() as $intentType => $wizardGroup) {
-            $wizardIntentUrls[$intentType] = $wizardGroup
-                ? route('user.links.wizard', ['group' => $wizardGroup])
-                : route('user.links.wizard');
+        foreach (\App\Modules\User\Support\LinkTypeCategories::wizardGroups() as $intentType => $wizardCfg) {
+            $params = [];
+            if (!empty($wizardCfg['group'])) {
+                $params['group'] = $wizardCfg['group'];
+                if (!empty($wizardCfg['persona'])) {
+                    $params['persona'] = $wizardCfg['persona'];
+                }
+            }
+            $wizardIntentUrls[$intentType] = route('user.links.wizard', $params);
         }
     @endphp
 
@@ -220,6 +227,7 @@
                      the matching category pre-seeded so the user skips its first
                      question. Goals without a wizard path keep manual select. --}}
                 <a x-cloak x-show="!!wizardPaths[type]" :href="wizardPaths[type] || '#'"
+                   @click="$el.href = wizardHref(type)"
                    x-transition:enter="transition ease-out duration-200"
                    x-transition:enter-start="opacity-0 -translate-y-1"
                    x-transition:enter-end="opacity-100 translate-y-0"
@@ -425,6 +433,20 @@ document.addEventListener('alpine:init', function () {
 
             // Goal => guided-wizard URL map for the one-tap guided path.
             wizardPaths: config.wizardPaths || {},
+
+            // Build the guided-wizard href for a goal, layering on the typed
+            // Custom URL alias so a user who fills it in keeps it through the
+            // wizard (mirrors the hero card). Computed at click time because the
+            // alias lives in a plain (non-Alpine) input. Appends with the right
+            // separator so an existing ?group=&persona= path stays intact.
+            wizardHref: function (type) {
+                var base = this.wizardPaths[type];
+                if (!base) { return '#'; }
+                var alias = (document.getElementById('create-link-alias') || {}).value;
+                alias = (alias || '').trim();
+                if (!alias) { return base; }
+                return base + (base.indexOf('?') !== -1 ? '&' : '?') + 'alias=' + encodeURIComponent(alias);
+            },
 
             matches: function (label, desc, key) {
                 if (this.activeCategory !== 'all' && this.activeCategory !== key) { return false; }

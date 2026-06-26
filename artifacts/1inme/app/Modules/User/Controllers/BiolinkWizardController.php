@@ -157,15 +157,37 @@ class BiolinkWizardController extends Controller
 
         // One-tap prefill from the "Create Link" goal prompt: `?group=<persona
         // group>` seeds the persona-group step so a user who already picked a
-        // goal (e.g. "Show a menu") skips the wizard's first question. Only
-        // applied to a fresh/empty draft so an in-progress wizard is never
-        // clobbered — the wizard otherwise auto-resumes the latest draft.
+        // goal (e.g. "Show a menu") skips the wizard's first question. An
+        // optional `?persona=<slug>` (only sent for goals that map to exactly
+        // one persona) *also* seeds the persona, so the wizard skips its second
+        // question too and lands on the starting-design step. Only applied to a
+        // fresh/empty draft so an in-progress wizard is never clobbered — the
+        // wizard otherwise auto-resumes the latest draft.
         $prefillGroup = $request->query('group');
         if (is_string($prefillGroup) && PersonaCatalog::isValidGroup($prefillGroup)) {
             $draft ??= $this->newDraft($request);
             if (!$draft->persona_group && !$draft->persona) {
                 $draft->persona_group = $prefillGroup;
                 $draft->step = 1;
+
+                // Seed the persona too when the goal maps unambiguously to a
+                // single one. Validate it actually belongs to the prefilled
+                // group (defends against a hand-crafted ?persona= for another
+                // group); on success resolve the legacy combo and jump to the
+                // starting-design step exactly like the manual pick_persona
+                // action does. A bad/foreign persona silently falls through to
+                // the group-only behaviour (stop on the persona step).
+                $prefillPersona = $request->query('persona');
+                if (is_string($prefillPersona)
+                    && PersonaCatalog::groupOf($prefillPersona) === $prefillGroup) {
+                    $combo = PersonaCatalog::wizardResolution($prefillPersona);
+                    $draft->persona   = $prefillPersona;
+                    $draft->category  = $combo['category'];
+                    $draft->page_type = $combo['page_type'];
+                    $draft->industry  = null;
+                    $draft->step      = 2;
+                }
+
                 $draft->save();
             }
         }

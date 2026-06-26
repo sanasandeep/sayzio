@@ -149,24 +149,34 @@ class LinkTypeCategories
 
     /**
      * Goals from intents() that the guided biolink wizard can build, mapped to
-     * the persona group the wizard should pre-seed for its first ("category")
-     * step. A null value means "no specific group" — drop the user into the
-     * generic wizard. Goals absent from this map have no wizard path and keep
-     * the manual link-type selection flow.
+     * the persona step(s) the wizard should pre-seed. Each entry is a
+     * `['group' => ?string, 'persona' => ?string]` pair:
+     *   - `group`   — the persona group to seed for the wizard's first
+     *                 ("category") step. null means "no specific group" — drop
+     *                 the user into the generic wizard at step 0.
+     *   - `persona` — an OPTIONAL persona slug to *also* seed, used only when a
+     *                 goal maps unambiguously to a single persona. When present
+     *                 (and it belongs to `group`) the wizard skips its persona
+     *                 question too and lands on the starting-design step. null
+     *                 leaves the persona as the user's choice (ambiguous goals).
+     * Goals absent from this map have no wizard path and keep the manual
+     * link-type selection flow.
      *
      * The wizard always produces a biolink-family page, so only goals it can
-     * sensibly theme belong here: the generic Link in Bio, and the food/menu
-     * goal (the Food persona group's chef persona is built around menus).
+     * sensibly theme belong here: the generic Link in Bio (no group), and the
+     * food/menu goal — the Food group's single chef persona is built around
+     * menus, so "Show a menu" lands straight on the chef persona.
      *
-     * Every group key here must be a valid PersonaCatalog group.
+     * Every `group` here must be a valid PersonaCatalog group, and every
+     * `persona` must belong to its `group`.
      *
-     * @return array<string, string|null>
+     * @return array<string, array{group:string|null, persona:string|null}>
      */
     public static function wizardGroups(): array
     {
         return [
-            'biolink'         => null,
-            'restaurant_menu' => 'Food',
+            'biolink'         => ['group' => null,   'persona' => null],
+            'restaurant_menu' => ['group' => 'Food', 'persona' => 'chef'],
         ];
     }
 

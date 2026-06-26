@@ -41,18 +41,71 @@ class BiolinkWizardGoalPrefillTest extends TestCase
         return app(WorkspaceContext::class)->resolve($user)?->id;
     }
 
-    /** Every goal→group entry must reference a real persona group (or null). */
+    /**
+     * Every goal entry must reference a real persona group (or null), and any
+     * optional persona must belong to that group — otherwise the prefill would
+     * silently fall back to the group-only step.
+     */
     public function test_wizard_groups_map_to_valid_persona_groups(): void
     {
         $valid = \App\Modules\User\Services\PersonaCatalog::groupKeys();
 
-        foreach (LinkTypeCategories::wizardGroups() as $type => $group) {
+        foreach (LinkTypeCategories::wizardGroups() as $type => $cfg) {
+            $group   = $cfg['group'] ?? null;
+            $persona = $cfg['persona'] ?? null;
+
             if ($group === null) {
+                $this->assertNull($persona,
+                    "goal '{$type}' has a persona but no group to anchor it");
                 continue; // generic wizard entry — no group to validate
             }
+
             $this->assertContains($group, $valid,
                 "goal '{$type}' maps to unknown persona group '{$group}'");
+
+            if ($persona !== null) {
+                $this->assertSame($group,
+                    \App\Modules\User\Services\PersonaCatalog::groupOf($persona),
+                    "goal '{$type}' persona '{$persona}' is not in group '{$group}'");
+            }
         }
+    }
+
+    /** A `?group=&persona=` prefill seeds the persona and jumps to step 2. */
+    public function test_persona_prefill_seeds_starting_design_step(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user)
+            ->get('/user/links/wizard?group=Food&persona=chef')
+            ->assertOk();
+
+        $draft = BiolinkWizardDraft::where('actor_user_id', $user->id)->latest('id')->first();
+        $this->assertNotNull($draft, 'a draft should be seeded from the prefill');
+        $this->assertSame('Food', $draft->persona_group);
+        $this->assertSame('chef', $draft->persona);
+        // Resolved legacy combo so the question set + recipe engine work.
+        $this->assertSame('restaurant', $draft->category);
+        $this->assertSame('restaurant', $draft->page_type);
+        // Step 2 = the starting-design step.
+        $this->assertSame(2, (int) $draft->step);
+    }
+
+    /** A persona that doesn't belong to the group is ignored (group-only). */
+    public function test_foreign_persona_prefill_falls_back_to_group_step(): void
+    {
+        $user = $this->makeUser();
+
+        // `creator` is a Creators persona, not Food — it must be rejected.
+        $this->actingAs($user)
+            ->get('/user/links/wizard?group=Food&persona=creator')
+            ->assertOk();
+
+        $draft = BiolinkWizardDraft::where('actor_user_id', $user->id)->latest('id')->first();
+        $this->assertNotNull($draft);
+        $this->assertSame('Food', $draft->persona_group);
+        $this->assertNull($draft->persona, 'a foreign persona must not be seeded');
+        $this->assertSame(1, (int) $draft->step, 'should stop on the persona step');
     }
 
     /** A `?group=` prefill seeds a fresh draft on the persona step. */
