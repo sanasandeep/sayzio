@@ -1,5 +1,6 @@
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
+import { BrandSayzio } from "@/components/marketing/brand-sayzio";
 import { SIGNUP_URL } from "@/config";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
@@ -170,7 +171,13 @@ export default function About() {
               </p>
             </div>
           </div>
+        </div>
+      </section>
 
+      <BrandSayzio />
+
+      <section className="py-20 lg:py-32">
+        <div className="container mx-auto px-6">
           <div className="max-w-3xl mx-auto glass-card p-10 rounded-3xl mb-24">
             <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-4">
               Part of EEFind
