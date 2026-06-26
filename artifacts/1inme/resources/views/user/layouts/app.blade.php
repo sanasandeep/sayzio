@@ -856,60 +856,60 @@
                            class="sidebar-link {{ request()->routeIs('user.ai.mind.*') ? 'active' : '' }}"
                            style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-brain"></i></div>
-                            <span class="nav-label">Mind</span>
-                            <span class="sidebar-tooltip">Mind</span>
+                            <span class="nav-label">Note Summarizer</span>
+                            <span class="sidebar-tooltip">Note Summarizer</span>
                         </a>
                         @if($__can['settings_view'])
                         <a href="{{ route('user.minds.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.minds.*') ? 'active' : '' }}"
                            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div>
-                            <span class="nav-label">Minds</span>
-                            <span class="sidebar-tooltip">Minds</span>
+                            <span class="nav-label">Knowledge Bases</span>
+                            <span class="sidebar-tooltip">Knowledge Bases</span>
                         </a>
                         @endif
                         <a href="{{ route('user.ai.persona.show') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai.persona.*') ? 'active' : '' }}"
                            style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-user-pen"></i></div>
-                            <span class="nav-label">Persona</span>
-                            <span class="sidebar-tooltip">Persona</span>
+                            <span class="nav-label">Persona Generator</span>
+                            <span class="sidebar-tooltip">Persona Generator</span>
                         </a>
                         <a href="{{ route('user.ai-personas.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai-personas.*') ? 'active' : '' }}"
                            style="--nav-tint:#f472b6; --nav-tint-soft:rgba(244,114,182,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div>
-                            <span class="nav-label">Personas</span>
-                            <span class="sidebar-tooltip">AI Personas</span>
+                            <span class="nav-label">AI Agents</span>
+                            <span class="sidebar-tooltip">AI Agents</span>
                         </a>
                         <a href="{{ route('user.ai.companion.show') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai.companion.*') ? 'active' : '' }}"
                            style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-comments"></i></div>
-                            <span class="nav-label">Companion</span>
-                            <span class="sidebar-tooltip">Companion</span>
+                            <span class="nav-label">AI Chat</span>
+                            <span class="sidebar-tooltip">AI Chat</span>
                         </a>
                         <a href="{{ route('user.ai-companions.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai-companions.*') ? 'active' : '' }}"
                            style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-robot"></i></div>
-                            <span class="nav-label">Companions</span>
-                            <span class="sidebar-tooltip">AI Companions (chatbot widget / embed / inbox bot)</span>
+                            <span class="nav-label">Chat Widgets</span>
+                            <span class="sidebar-tooltip">Chat Widgets</span>
                         </a>
                         <a href="{{ route('user.ai.coach.show') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"
                            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div>
-                            <span class="nav-label">Coach</span>
-                            <span class="sidebar-tooltip">Coach</span>
+                            <span class="nav-label">Growth Coach</span>
+                            <span class="sidebar-tooltip">Growth Coach</span>
                         </a>
                         @if(auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
                         <a href="{{ route('user.ai.ask-coach.show') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai.ask-coach.*') ? 'active' : '' }}"
                            style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div>
-                            <span class="nav-label">Ask Coach</span>
-                            <span class="sidebar-tooltip">Ask Coach</span>
+                            <span class="nav-label">Account Assistant</span>
+                            <span class="sidebar-tooltip">Account Assistant</span>
                         </a>
                         @endif
                     </div>
@@ -1376,17 +1376,17 @@
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
-                                <a href="{{ route('user.ai.mind.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.mind.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-brain"></i></div> <span>Mind</span></a>
+                                <a href="{{ route('user.ai.mind.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.mind.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-brain"></i></div> <span>Note Summarizer</span></a>
                                 @if($__can['settings_view'])
-                                <a href="{{ route('user.minds.index') }}" class="sidebar-link {{ request()->routeIs('user.minds.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div> <span>Minds</span></a>
+                                <a href="{{ route('user.minds.index') }}" class="sidebar-link {{ request()->routeIs('user.minds.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div> <span>Knowledge Bases</span></a>
                                 @endif
-                                <a href="{{ route('user.ai.persona.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.persona.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-pen"></i></div> <span>Persona</span></a>
-                                <a href="{{ route('user.ai-personas.index') }}" class="sidebar-link {{ request()->routeIs('user.ai-personas.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div> <span>Personas</span></a>
-                                <a href="{{ route('user.ai.companion.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.companion.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comments"></i></div> <span>Companion</span></a>
-                                <a href="{{ route('user.ai-companions.index') }}" class="sidebar-link {{ request()->routeIs('user.ai-companions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div> <span>Companions</span></a>
-                                <a href="{{ route('user.ai.coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div> <span>Coach</span></a>
+                                <a href="{{ route('user.ai.persona.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.persona.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-pen"></i></div> <span>Persona Generator</span></a>
+                                <a href="{{ route('user.ai-personas.index') }}" class="sidebar-link {{ request()->routeIs('user.ai-personas.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div> <span>AI Agents</span></a>
+                                <a href="{{ route('user.ai.companion.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.companion.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comments"></i></div> <span>AI Chat</span></a>
+                                <a href="{{ route('user.ai-companions.index') }}" class="sidebar-link {{ request()->routeIs('user.ai-companions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div> <span>Chat Widgets</span></a>
+                                <a href="{{ route('user.ai.coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div> <span>Growth Coach</span></a>
                                 @if(auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
-                                <a href="{{ route('user.ai.ask-coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.ask-coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div> <span>Ask Coach</span></a>
+                                <a href="{{ route('user.ai.ask-coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.ask-coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div> <span>Account Assistant</span></a>
                                 @endif
                             </div>
                         </div>
