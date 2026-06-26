@@ -738,6 +738,30 @@ uri = "file://attached_assets/aihero/mus-studio.png"
 type = "image"
 title = "generated_image"
 
+[[generated]]
+id = "1wmfoJ8lJkeRyRgmIRyJe"
+uri = "file://artifacts/1inme/public/images/marketing/ai-hero/_src-avatar-store.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "npxEHB2Le5WXDY0lBpsPL"
+uri = "file://artifacts/1inme/public/images/marketing/ai-hero/_src-gallery-candle.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "U3ra0pT0XmFkqbTjC3_8L"
+uri = "file://artifacts/1inme/public/images/marketing/ai-hero/_src-gallery-collection.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "faLTKySLeHzW7cytENnmm"
+uri = "file://artifacts/1inme/public/images/marketing/ai-hero/_src-gallery-shelf.png"
+type = "image"
+title = "generated_image"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"

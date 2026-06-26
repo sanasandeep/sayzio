@@ -98,6 +98,23 @@ class AiHeroExamples
                     ['icon' => 'fa-fire', 'color' => 'var(--c1)'],
                 ]],
             ],
+            [
+                'prompt' => 'A storefront for my candle brand with shop, bestsellers & order tracking',
+                'name'   => 'Lumen & Co.',
+                'tag'    => 'Hand-poured candles · free shipping',
+                'time'   => '17s',
+                'avatar' => ['img' => asset('images/marketing/ai-hero/avatar-store.webp')],
+                'links'  => [
+                    ['icon' => 'fa-bag-shopping', 'label' => 'Shop all products', 'color' => 'var(--c2)'],
+                    ['icon' => 'fa-fire-flame-curved', 'label' => 'Shop bestsellers', 'color' => 'var(--c1)'],
+                    ['icon' => 'fa-truck-fast', 'label' => 'Track my order', 'color' => 'var(--c5)'],
+                ],
+                'gallery' => ['imgs' => [
+                    asset('images/marketing/ai-hero/gallery-candle.webp'),
+                    asset('images/marketing/ai-hero/gallery-collection.webp'),
+                    asset('images/marketing/ai-hero/gallery-shelf.webp'),
+                ]],
+            ],
         ];
     }
 }
