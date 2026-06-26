@@ -110,6 +110,24 @@
                         <span class="zio-core-label"><i class="fas fa-wand-magic-sparkles"></i> Zio runs it all</span>
                     </div>
                 </div>
+
+                {{-- No-JS fallback: the popover title/description live inside Alpine
+                     x-cloak panels, so they're unreachable if Alpine fails to load
+                     or JS is disabled. This <noscript> list keeps every tool's name
+                     + description readable. Hidden whenever JS is available. --}}
+                <noscript>
+                    <ul class="zio-noscript">
+                        @foreach($zioNodes as $n)
+                            <li class="zio-noscript-item">
+                                <img class="zio-noscript-ic" src="{{ asset('images/zio-nodes/' . $n['img']) }}" alt="" width="34" height="34" loading="lazy" decoding="async">
+                                <span class="zio-noscript-text">
+                                    <strong class="zio-noscript-title" style="--ac:{{ $n['c'] }}">{{ $n['t'] }}</strong>
+                                    <span class="zio-noscript-desc">{{ $n['d'] }}</span>
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </noscript>
             </div>
 
         </div>
@@ -325,6 +343,42 @@
             color: #fff; white-space: nowrap;
         }
         .zio-core-label i { color: var(--c2); font-size: 10px; }
+
+        /* ---- No-JS fallback list (only rendered inside <noscript>) ---- */
+        .zio-noscript {
+            list-style: none;
+            margin: 22px auto 0;
+            padding: 0;
+            display: grid;
+            gap: 8px;
+            width: 100%;
+            max-width: 460px;
+        }
+        .zio-noscript-item {
+            display: flex; align-items: flex-start; gap: 11px;
+            padding: 11px 13px;
+            border-radius: 14px;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.12);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        }
+        .zio-noscript-ic { width: 34px; height: 34px; object-fit: contain; flex: 0 0 auto; }
+        .zio-noscript-text { display: flex; flex-direction: column; text-align: left; }
+        .zio-noscript-title { font-size: 13px; font-weight: 800; color: #fff; line-height: 1.25; }
+        .zio-noscript-title::before {
+            content: ''; display: inline-block;
+            width: 7px; height: 7px; margin-right: 7px;
+            border-radius: 50%; background: var(--ac, var(--c2));
+            vertical-align: middle;
+        }
+        .zio-noscript-desc { margin-top: 2px; font-size: 11.5px; font-weight: 500; color: rgba(214,222,255,.82); line-height: 1.4; }
+
+        html.light-mode .zio-noscript-item {
+            background: #ffffff; border-color: #e2e8f0;
+            box-shadow: 0 10px 24px -14px rgba(15,23,42,.35);
+        }
+        html.light-mode .zio-noscript-title { color: #0f172a; }
+        html.light-mode .zio-noscript-desc { color: #475569; }
 
         /* ---- Tablet (single-column, sm→below-lg): the orbit is stacked under the
                copy in a wide column, so the vw-based size leaves it looking small and
