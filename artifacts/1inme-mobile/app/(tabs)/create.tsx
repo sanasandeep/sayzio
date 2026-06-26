@@ -65,16 +65,22 @@ export default function CreateTab() {
 
   // Open the guided wizard for a goal that supports it, pre-seeding the matching
   // persona group so the user skips the wizard's first question (parity with the
-  // web one-tap path). A null group means "generic wizard" (no pre-seed).
+  // web one-tap path). For goals that map to exactly one persona we ALSO seed
+  // that persona (`prefillPersona`), so the wizard skips its second question and
+  // lands on the starting-design step. A null group means "generic wizard".
   const openGuided = useCallback(
     (apiType: string) => {
       if (!wizardGroups || !(apiType in wizardGroups)) return;
-      const group = wizardGroups[apiType];
-      router.push(
-        (group
-          ? `/links/wizard?prefillGroup=${encodeURIComponent(group)}`
-          : "/links/wizard") as never,
-      );
+      const { group, persona } = wizardGroups[apiType];
+      if (!group) {
+        router.push("/links/wizard" as never);
+        return;
+      }
+      let href = `/links/wizard?prefillGroup=${encodeURIComponent(group)}`;
+      if (persona) {
+        href += `&prefillPersona=${encodeURIComponent(persona)}`;
+      }
+      router.push(href as never);
     },
     [router, wizardGroups],
   );

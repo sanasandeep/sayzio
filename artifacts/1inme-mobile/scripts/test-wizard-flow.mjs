@@ -35,6 +35,10 @@ const wizardSrc = readFileSync(
   "utf8",
 );
 const apiSrc = readFileSync(join(root, "lib", "api", "wizard.ts"), "utf8");
+const createSrc = readFileSync(
+  join(root, "app", "(tabs)", "create.tsx"),
+  "utf8",
+);
 
 let passed = 0;
 function ok(label) {
@@ -284,6 +288,86 @@ ok("Back walks additional → basics → design → persona → group, then exit
 ok("the inline niche is optional — advancing without one leaves industry = null");
 
 // ===========================================================================
+// 3.5. One-tap goal prefill from the Create Link screen. `prefillGroup` seeds
+//      the persona group (lands on the persona step); an optional
+//      `prefillPersona` (sent only for goals that map to exactly one persona)
+//      ALSO seeds the persona and jumps straight to the starting-design step.
+//      A foreign/unknown persona, or an invalid group, falls back safely.
+// ===========================================================================
+
+// Replica of the wizard.tsx prefill effect's group/persona branch (the
+// category-match branch is covered elsewhere). Mirrors it exactly; the wiring
+// guards in 4i pin this replica to the real source so it can't drift.
+function applyPrefill(taxo, prm) {
+  const s = makeWizard();
+  const grp = prm.prefillGroup;
+  if (
+    typeof grp === "string" &&
+    grp &&
+    taxo?.groups.some((g) => g.key === grp)
+  ) {
+    s.group = grp;
+    const pers = prm.prefillPersona;
+    const inGroup =
+      typeof pers === "string" &&
+      !!pers &&
+      (taxo?.personas[grp] ?? []).some((p) => p.slug === pers);
+    if (inGroup) {
+      s.persona = pers;
+      s.step = "design";
+    } else {
+      s.step = "persona";
+    }
+  }
+  return s;
+}
+
+// group only → lands on the persona step, persona unset.
+{
+  const s = applyPrefill(taxonomy, { prefillGroup: "business" });
+  assert.equal(s.group, "business", "prefillGroup seeds the persona group");
+  assert.equal(s.persona, null, "no prefillPersona leaves the persona unset");
+  assert.equal(s.step, "persona", "group-only prefill lands on the persona step");
+}
+ok("prefillGroup seeds the group and lands on the persona step");
+
+// group + valid persona → seeds the persona and jumps to the design step.
+{
+  const s = applyPrefill(taxonomy, {
+    prefillGroup: "business",
+    prefillPersona: "local_shop_owner",
+  });
+  assert.equal(s.group, "business");
+  assert.equal(s.persona, "local_shop_owner", "a valid prefillPersona is seeded");
+  assert.equal(s.step, "design", "persona prefill jumps to the starting-design step");
+}
+ok("prefillGroup + prefillPersona seeds the persona and jumps to the design step");
+
+// group + foreign persona (belongs to another group) → ignored, persona step.
+{
+  const s = applyPrefill(taxonomy, {
+    prefillGroup: "business",
+    prefillPersona: "developer", // a Personal persona, not Business
+  });
+  assert.equal(s.group, "business", "the valid group still seeds");
+  assert.equal(s.persona, null, "a foreign persona is not seeded");
+  assert.equal(s.step, "persona", "a foreign persona falls back to the persona step");
+}
+ok("a foreign prefillPersona is ignored and falls back to the persona step");
+
+// invalid group → nothing seeded, stays on the group step.
+{
+  const s = applyPrefill(taxonomy, {
+    prefillGroup: "not-a-real-group",
+    prefillPersona: "local_shop_owner",
+  });
+  assert.equal(s.group, null, "an invalid group seeds nothing");
+  assert.equal(s.persona, null, "an invalid group never seeds a persona");
+  assert.equal(s.step, "group", "an invalid group leaves the wizard on the group step");
+}
+ok("an invalid prefillGroup is ignored entirely");
+
+// ===========================================================================
 // 4. Source wiring guards — pin the replica above to the real component so the
 //    two can't drift, and confirm the generation call is wired correctly.
 // ===========================================================================
@@ -429,5 +513,47 @@ assert.match(
   "getWizardTaxonomy must GET /links/wizard/taxonomy",
 );
 ok("generation wiring: onGenerate posts persona/template payload and opens the block editor");
+
+// 4i. Goal-prefill wiring — pin the applyPrefill replica (section 3.5) to the
+//     real source so the prefill effect can't silently drift.
+{
+  // The wizard reads an optional prefillPersona param alongside prefillGroup.
+  assert.match(
+    wizardSrc,
+    /prefillPersona\?: string;/,
+    "the wizard must accept an optional prefillPersona param",
+  );
+  // The prefill effect seeds the persona + jumps to the design step only when
+  // the persona belongs to the prefilled group; otherwise it stops on persona.
+  assert.match(
+    wizardSrc,
+    /\(taxonomyQ\.data\?\.personas\[grp\] \?\? \[\]\)\.some\(\(p\) => p\.slug === pers\)/,
+    "the prefill must validate the persona belongs to the prefilled group",
+  );
+  assert.match(
+    wizardSrc,
+    /if \(inGroup\) \{[\s\S]*?setPersona\(pers\);[\s\S]*?setStep\("design"\);[\s\S]*?\} else \{[\s\S]*?setStep\("persona"\);/,
+    "a valid prefillPersona must jump to design; a foreign one falls back to persona",
+  );
+}
+// The create screen's openGuided builds the deep link with prefillGroup and,
+// for single-persona goals, prefillPersona — and the taxonomy type carries the
+// {group, persona} shape both sides read.
+assert.match(
+  createSrc,
+  /const \{ group, persona \} = wizardGroups\[apiType\];/,
+  "openGuided must destructure { group, persona } from the goal map",
+);
+assert.match(
+  createSrc,
+  /prefillPersona=\$\{encodeURIComponent\(persona\)\}/,
+  "openGuided must add prefillPersona to the deep link for single-persona goals",
+);
+assert.match(
+  apiSrc,
+  /wizard_groups: Record<\s*string,\s*\{ group: string \| null; persona: string \| null \}\s*>;/,
+  "the taxonomy type must model wizard_groups as a {group, persona} map",
+);
+ok("goal-prefill wiring: deep link carries prefillGroup/prefillPersona and seeds the right step");
 
 console.log(`\n[test-wizard-flow] all ${passed} checks passed`);

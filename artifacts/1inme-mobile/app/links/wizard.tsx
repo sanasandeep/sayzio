@@ -138,6 +138,7 @@ export default function BiolinkWizardScreen() {
     prefillCategory?: string;
     prefillAnswers?: string;
     prefillGroup?: string;
+    prefillPersona?: string;
   }>();
 
   const [step, setStep] = useState<Step>("group");
@@ -292,13 +293,29 @@ export default function BiolinkWizardScreen() {
         taxonomyQ.data?.groups.some((g) => g.key === grp)
       ) {
         setGroup(grp);
-        setStep("persona");
+        // An optional `prefillPersona` (sent only for goals that map to exactly
+        // one persona) seeds the persona too, so the wizard skips its second
+        // question and lands on the starting-design step — mirroring the web
+        // `?persona=` handoff. The persona must belong to the prefilled group;
+        // a foreign/unknown slug silently falls back to the persona step.
+        const pers = params.prefillPersona;
+        const inGroup =
+          typeof pers === "string" &&
+          !!pers &&
+          (taxonomyQ.data?.personas[grp] ?? []).some((p) => p.slug === pers);
+        if (inGroup) {
+          setPersona(pers);
+          setStep("design");
+        } else {
+          setStep("persona");
+        }
       }
     }
   }, [
     params.prefillCategory,
     params.prefillAnswers,
     params.prefillGroup,
+    params.prefillPersona,
     taxonomyQ.data,
   ]);
 
