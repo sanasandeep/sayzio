@@ -65,6 +65,39 @@ export const BANNED_RGB_PATTERNS: string[] = [
   String.raw`rgba?\(\s*167\s*[,\s]\s*139\s*[,\s]\s*250`,
 ];
 
+/**
+ * Per-color descriptors of the retired purple ramp, used by the post-build
+ * guard (`check-brand-color-build.ts`) to attribute a compiled-CSS match back
+ * to one canonical color. Needed because the deck's decorative per-slide
+ * palettes (`artifacts/1inme-deck/src/pages/**`) intentionally use the
+ * `7c3aed` wash — that contribution must be allowed in the compiled stylesheet
+ * while the SAME color leaking in from slide chrome must still fail.
+ */
+export const RETIRED_COLORS: { base: string; rgb: [number, number, number] }[] = [
+  { base: "7c3aed", rgb: [124, 58, 237] },
+  { base: "8b5cf6", rgb: [139, 92, 246] },
+  { base: "a78bfa", rgb: [167, 139, 250] },
+];
+
+/**
+ * Hex form of a retired color, allowing an optional 8-digit alpha suffix.
+ *
+ * Tailwind v4 normalizes arbitrary `rgba(124,58,237,0.18)` values into a
+ * `#rrggbbaa` hex in the COMPILED CSS (e.g. `#7c3aed2e`). The source-level
+ * `BANNED_HEX_PATTERN` ends in `\b`, which never matches an 8-digit hex (no
+ * word boundary between the 6th and 7th hex digit), so it silently misses
+ * translucent purple in built output. This variant catches both the 6-digit
+ * solid and the 8-digit translucent forms.
+ */
+export function hexPatternWithAlpha(base: string): string {
+  return String.raw`#?\b${base}([0-9a-f]{2})?\b`;
+}
+
+/** rgb()/rgba() form of a retired color (whitespace/comma tolerant). */
+export function rgbPatternFor([r, g, b]: [number, number, number]): string {
+  return String.raw`rgba?\(\s*${r}\s*[,\s]\s*${g}\s*[,\s]\s*${b}`;
+}
+
 /** Banned-token regexes passed to ripgrep (case-insensitive). */
 const BANNED_PATTERNS: string[] = [
   BANNED_HEX_PATTERN,

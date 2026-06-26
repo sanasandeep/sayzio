@@ -18,15 +18,30 @@ template galleries, decorative pitch-deck slides — and of palette/seed DATA, n
 the brand accent. Re-coloring those would break the intended rainbow.
 
 **Post-build complement:** the source-level guard cannot catch purple that
-Tailwind regenerates into the COMPILED stylesheet from a stale compiled-blade
-cache (see `tailwind-scans-compiled-views.md`) — `public/build` is gitignored
-and unscanned. Validation step `brand-color-build`
-(`scripts/src/check-brand-color-build.ts`) closes that gap: it runs
-`php artisan view:clear`, rebuilds the 1inme Vite/Tailwind assets, then greps
-the freshly compiled `public/build/assets/*.css` for the retired hex/rgb forms.
-It imports the shared HEX/RGB patterns from `check-brand-color.ts` (only those
-survive compilation; `violet-`/`purple-<shade>` class names compile away, so the
-source-level guard owns them). Runs in CI alongside `brand-color`.
+lands in a COMPILED stylesheet from content the source scan doesn't cover —
+all the built CSS dirs are gitignored. Validation step `brand-color-build`
+(`scripts/src/check-brand-color-build.ts`) closes that gap for THREE artifacts:
+- `1inme` (Laravel): `view:clear` then rebuild, scan `public/build/assets/*.css`.
+  The stale compiled-blade cache regenerates pre-sweep tokens (see
+  `tailwind-scans-compiled-views.md`). Uses the `\b`-anchored hex pattern
+  (unchanged — upgrading it would newly flag the biolink categorical palette's
+  alpha purple in compiled CSS).
+- `1inme-com` / `1inme-deck` (Vite): build (needs PORT/BASE_PATH env), scan
+  `dist/public/assets/*.css`. These use an ALPHA-AWARE hex pattern
+  (`hexPatternWithAlpha`) because Tailwind v4 normalizes arbitrary
+  `rgba(124,58,237,.18)` into 8-digit `#7c3aedXX`, which the `\b` pattern misses.
+
+Only HEX (6- and 8-digit) + rgb() survive compilation; Tailwind v4 compiles
+`violet-`/`purple-<shade>` UTILITY classes to oklch theme vars (never hex), so
+the source-level guard owns those.
+
+**Deck decorative palette honoring:** the deck's `src/pages/**` slides
+intentionally use the `7c3aed` wash (source guard allow-lists that dir). The
+build guard mirrors it by ATTRIBUTION: a retired color in the deck's compiled
+CSS is allowed iff that color is also used in `src/pages/**` source
+(`RETIRED_COLORS` + per-color grep). Marketing has no decorative dir, so ANY
+retired purple there fails. Gap: if chrome reuses a color the slides also use,
+the build guard allows it — but the source guard catches chrome regressions.
 
 **How to apply:**
 - If a NEW intentional categorical surface trips the guard, add it to the
