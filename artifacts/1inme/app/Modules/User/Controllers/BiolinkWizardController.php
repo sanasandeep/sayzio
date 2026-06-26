@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Throwable;
 
 /**
@@ -142,6 +143,16 @@ class BiolinkWizardController extends Controller
     /** Land on the wizard — show the persona group step or resume a draft. */
     public function index(Request $request)
     {
+        // Carry a user-typed custom alias (Custom URL) from the Create Link
+        // page into the wizard. When present we validate it with the same rules
+        // as the manual picker and stash it on the draft so the eventual
+        // biolink is created with it. An invalid/taken alias bounces back to the
+        // Create Link page with the error so the user can fix it (mirrors the
+        // manual chooseType() flow). Blank → no-op (auto-generate as before).
+        if (($aliasError = $this->captureCustomAlias($request)) !== null) {
+            return $aliasError;
+        }
+
         $draft = $this->loadDraft($request);
         $category = $draft?->category;
         $pageType = $draft?->page_type;
@@ -436,7 +447,7 @@ class BiolinkWizardController extends Controller
         try {
             $link = DB::transaction(function () use ($owner, $draft, $answers, $templateSnapshot) {
                 $newLink = $this->generator->generate(
-                    $owner, $draft->category, $draft->page_type, $draft->industry, $answers, $templateSnapshot,
+                    $owner, $draft->category, $draft->page_type, $draft->industry, $answers, $templateSnapshot, $draft->alias,
                 );
 
                 // Wizard is single-shot — discard the draft now that the
@@ -528,6 +539,7 @@ class BiolinkWizardController extends Controller
                 (bool) ($draft->include_platform_mind ?? false),
                 $draft->file_ids ?? [],
                 $templateSnapshot,
+                $draft->alias,
             );
         } catch (InsufficientCoinsForAiException $e) {
             return redirect()->route('user.upgrade')
@@ -646,6 +658,47 @@ SVG;
             ->when($wsId, fn ($q) => $q->where('workspace_id', $wsId), fn ($q) => $q->whereNull('workspace_id'))
             ->latest('id')
             ->first();
+    }
+
+    /**
+     * Capture a custom alias passed through from the Create Link page (the
+     * guided wizard hero forwards `?alias=...` typed in the manual picker).
+     *
+     * Validates with the same rules as the manual chooseType() flow. On
+     * success the alias is stashed on the (loaded-or-new) draft and null is
+     * returned so index() proceeds. On failure a redirect back to the Create
+     * Link page (with errors + old input) is returned. A blank/absent alias is
+     * a no-op (null) — the wizard auto-generates an alias exactly as before.
+     */
+    protected function captureCustomAlias(Request $request)
+    {
+        $alias = trim((string) $request->query('alias', ''));
+        if ($alias === '') {
+            return null;
+        }
+
+        $limits = workspace_owner()->getAliasLengthLimits();
+        $validator = Validator::make(['alias' => $alias], [
+            'alias' => [
+                'string', 'alpha_dash',
+                'min:' . $limits['min'],
+                'max:' . $limits['max'],
+                'unique:links,alias',
+                new \App\Modules\Admin\Rules\NotBannedName(),
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('user.links.create')
+                ->withErrors($validator)
+                ->withInput(['alias' => $alias]);
+        }
+
+        $draft = $this->loadDraft($request) ?? $this->newDraft($request);
+        $draft->alias = $alias;
+        $draft->save();
+
+        return null;
     }
 
     protected function newDraft(Request $request): BiolinkWizardDraft

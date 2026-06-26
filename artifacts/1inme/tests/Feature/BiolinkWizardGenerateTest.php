@@ -167,6 +167,90 @@ class BiolinkWizardGenerateTest extends TestCase
         $this->assertSame('Demo Creator', $profile['name'] ?? null);
     }
 
+    // ── Custom alias carried into the wizard ──────────────────────────
+
+    /**
+     * A valid custom alias passed to the wizard index (carried through from the
+     * Create Link page hero) is stashed on the draft and used as the created
+     * link's alias on finish() — instead of an auto-generated one.
+     */
+    public function test_custom_alias_carries_through_wizard_to_link(): void
+    {
+        $user = $this->makeUser($this->plan());
+
+        // Land on the wizard with a typed custom alias.
+        $this->actingAs($user)->get('/user/links/wizard?alias=my-custom-link')
+            ->assertOk();
+
+        // The alias is stashed on the auto-created draft.
+        $draft = BiolinkWizardDraft::where('actor_user_id', $user->id)->latest('id')->first();
+        $this->assertNotNull($draft);
+        $this->assertSame('my-custom-link', $draft->alias);
+
+        // Complete the draft and finish — the link should use the custom alias.
+        $draft->update([
+            'category'  => 'creator',
+            'page_type' => 'influencer',
+            'step'      => 4,
+            'answers'   => $this->creatorAnswers(),
+        ]);
+
+        $this->actingAs($user)->post('/user/links/wizard/finish')->assertRedirect();
+
+        $link = Link::where('user_id', $user->id)->where('type', 'biolink')->first();
+        $this->assertNotNull($link);
+        $this->assertSame('my-custom-link', $link->alias);
+    }
+
+    /**
+     * An already-taken alias never reaches the wizard: index() bounces back to
+     * the Create Link page with a validation error and stashes nothing.
+     */
+    public function test_taken_alias_redirects_back_to_create_with_error(): void
+    {
+        $user = $this->makeUser($this->plan());
+
+        Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'short',
+            'alias'     => 'already-taken',
+            'long_url'  => 'https://example.com',
+            'is_active' => true,
+        ]);
+
+        $resp = $this->actingAs($user)->get('/user/links/wizard?alias=already-taken');
+        $resp->assertRedirect(route('user.links.create'));
+        $resp->assertSessionHasErrors('alias');
+
+        $this->assertNull(BiolinkWizardDraft::where('actor_user_id', $user->id)->first(),
+            'an invalid alias must not create a draft');
+    }
+
+    /**
+     * No alias param → the wizard auto-generates as before (regression guard).
+     */
+    public function test_blank_alias_auto_generates(): void
+    {
+        $user = $this->makeUser($this->plan());
+
+        $draft = BiolinkWizardDraft::create([
+            'user_id'       => $user->id,
+            'actor_user_id' => $user->id,
+            'workspace_id'  => $this->activeWorkspaceId($user),
+            'category'      => 'creator',
+            'page_type'     => 'influencer',
+            'step'          => 4,
+            'answers'       => $this->creatorAnswers(),
+        ]);
+        $this->assertNull($draft->alias);
+
+        $this->actingAs($user)->post('/user/links/wizard/finish')->assertRedirect();
+
+        $link = Link::where('user_id', $user->id)->where('type', 'biolink')->first();
+        $this->assertNotNull($link);
+        $this->assertNotEmpty($link->alias, 'a blank alias must still auto-generate');
+    }
+
     // ── Plan caps: API ────────────────────────────────────────────────
 
     /**

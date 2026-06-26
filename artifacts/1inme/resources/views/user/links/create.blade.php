@@ -20,8 +20,12 @@
         [x-cloak] { display: none !important; }
     </style>
 
-    {{-- HERO: guided wizard — the recommended, primary path --}}
+    {{-- HERO: guided wizard — the recommended, primary path. Carries the typed
+         "Custom URL" (alias) through so a user who fills it in and clicks here
+         keeps it; blank → wizard auto-generates as before. --}}
     <a href="{{ route('user.links.wizard') }}"
+       data-wizard-base="{{ route('user.links.wizard') }}"
+       onclick="(function(a){var v=(document.getElementById('create-link-alias')||{}).value;v=(v||'').trim();a.href=a.getAttribute('data-wizard-base')+(v?('?alias='+encodeURIComponent(v)):'');})(this)"
        class="block relative overflow-hidden glass rounded-3xl p-6 sm:p-8 mb-8 border border-blue-500/30 bg-gradient-to-br from-blue-500/15 via-indigo-500/10 to-fuchsia-500/10 hover:from-blue-500/20 hover:via-indigo-500/15 hover:to-fuchsia-500/15 transition-all group hover:shadow-2xl hover:shadow-blue-500/20">
         <div class="absolute -top-24 -right-16 w-64 h-64 rounded-full bg-fuchsia-500/20 blur-3xl pointer-events-none"></div>
         <div class="absolute -bottom-24 -left-16 w-64 h-64 rounded-full bg-blue-500/20 blur-3xl pointer-events-none"></div>

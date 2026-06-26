@@ -46,14 +46,15 @@ class BiolinkWizardGenerator
         ?string $industry,
         array $answers,
         ?array $templateSnapshot = null,
+        ?string $alias = null,
     ): Link {
         $title = BiolinkWizardQuestions::resolveTitle($answers);
 
-        return DB::transaction(function () use ($owner, $category, $pageType, $industry, $answers, $title, $templateSnapshot) {
+        return DB::transaction(function () use ($owner, $category, $pageType, $industry, $answers, $title, $templateSnapshot, $alias) {
             $link = Link::create([
                 'user_id'   => $owner->id,
                 'type'      => 'biolink',
-                'alias'     => Link::generateAlias(),
+                'alias'     => $this->resolveAlias($alias),
                 'title'     => mb_substr($title, 0, 255),
                 'is_active' => true,
             ]);
@@ -71,6 +72,21 @@ class BiolinkWizardGenerator
 
             return $link;
         });
+    }
+
+    /**
+     * Resolve the alias for the new link. Uses the user's custom alias (carried
+     * through from the Create Link page) when one was supplied and is still
+     * available; otherwise — or if it was taken between wizard start and finish
+     * — falls back to an auto-generated alias so generation never fails.
+     */
+    private function resolveAlias(?string $alias): string
+    {
+        $alias = trim((string) $alias);
+        if ($alias !== '' && !Link::where('alias', $alias)->exists()) {
+            return $alias;
+        }
+        return Link::generateAlias();
     }
 
     /**

@@ -53,6 +53,7 @@ class WizardAiDraftService
         bool $includePlatform,
         array $fileIds,
         ?array $templateSnapshot = null,
+        ?string $alias = null,
     ): Link {
         $description = BiolinkWizardQuestions::describeForAi($category, $pageType, $industry, $answers);
 
@@ -88,10 +89,14 @@ class WizardAiDraftService
         // empty link so it never lingers in the dashboard — the builder has
         // already refunded any spent credits by then.
         $title = BiolinkWizardQuestions::resolveTitle($answers);
+        $resolvedAlias = trim((string) $alias);
+        if ($resolvedAlias === '' || Link::where('alias', $resolvedAlias)->exists()) {
+            $resolvedAlias = Link::generateAlias();
+        }
         $link = Link::create([
             'user_id'   => $owner->id,
             'type'      => 'biolink',
-            'alias'     => Link::generateAlias(),
+            'alias'     => $resolvedAlias,
             'title'     => mb_substr($title, 0, 255),
             'is_active' => true,
         ]);
