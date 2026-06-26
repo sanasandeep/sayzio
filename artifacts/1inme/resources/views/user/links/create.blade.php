@@ -17,6 +17,7 @@
             .lt-card-reveal { opacity: 0; transform: translateY(12px); animation: ltCardReveal .5s cubic-bezier(.21,.6,.35,1) forwards; }
             @keyframes ltCardReveal { to { opacity: 1; transform: none; } }
         }
+        [x-cloak] { display: none !important; }
     </style>
 
     {{-- HERO: guided wizard — the recommended, primary path --}}
@@ -115,8 +116,42 @@
     </a>
     @endif
 
+    @php
+        $linkCategories = \App\Modules\User\Support\LinkTypeCategories::categories();
+        $linkIntents    = \App\Modules\User\Support\LinkTypeCategories::intents();
+        $cardIndex = 0;
+        $linkFilterCats = [];
+        foreach ($linkCategories as $catIdx => $cat) {
+            $linkFilterCats['cat-' . $catIdx] = array_map(
+                static fn (array $t): array => ['label' => $t['label'], 'desc' => $t['desc']],
+                $cat['types']
+            );
+        }
+    @endphp
+
     <form method="POST" action="{{ route('user.links.choose-type') }}"
-          x-data="{ type: '{{ old('type', $lastType ?? '') }}' }"
+          x-data="{
+              type: '{{ old('type', $lastType ?? '') }}',
+              search: '',
+              activeCategory: 'all',
+              cats: {{ \Illuminate\Support\Js::from($linkFilterCats) }},
+              matches(label, desc, key) {
+                  if (this.activeCategory !== 'all' && this.activeCategory !== key) return false;
+                  const q = this.search.trim().toLowerCase();
+                  if (!q) return true;
+                  return (label + ' ' + desc).toLowerCase().includes(q);
+              },
+              categoryHasMatch(key) {
+                  if (this.activeCategory !== 'all' && this.activeCategory !== key) return false;
+                  const q = this.search.trim().toLowerCase();
+                  if (!q) return true;
+                  return (this.cats[key] || []).some(t => (t.label + ' ' + t.desc).toLowerCase().includes(q));
+              },
+              anyMatch() {
+                  return Object.keys(this.cats).some(k => this.categoryHasMatch(k));
+              },
+              resetFilters() { this.search = ''; this.activeCategory = 'all'; }
+          }"
           x-init="window.__voiceSurface = { name: 'create_link' }"
           @voice-action.window="
               if ($event.detail && $event.detail.type === 'select_link_type' && $event.detail.link_type) {
@@ -125,12 +160,6 @@
               }
           ">
         @csrf
-
-        @php
-            $linkCategories = \App\Modules\User\Support\LinkTypeCategories::categories();
-            $linkIntents    = \App\Modules\User\Support\LinkTypeCategories::intents();
-            $cardIndex = 0;
-        @endphp
 
         {{-- SECONDARY: pick a link type manually --}}
         <div class="glass rounded-2xl p-6 mb-6">
@@ -188,9 +217,45 @@
                 </p>
             </div>
 
+            {{-- Search + category filters for the manual picker --}}
+            <div class="mb-6">
+                <label for="link-type-search" class="sr-only">Search link types</label>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 text-sm pointer-events-none"></i>
+                    <input type="text" id="link-type-search" x-model="search"
+                           placeholder="Search link types…"
+                           autocomplete="off" spellcheck="false"
+                           @keydown.escape="resetFilters()"
+                           class="w-full rounded-xl bg-white/5 border border-white/10 focus:ring-2 focus:ring-blue-500/40 pl-10 pr-10 py-2.5 text-sm text-white placeholder-white/30 outline-none transition-all">
+                    <button type="button" x-show="search" x-cloak @click="search = ''"
+                            aria-label="Clear search"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors">
+                        <i class="fas fa-times text-sm"></i>
+                    </button>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-3" role="group" aria-label="Filter by category">
+                    <button type="button" @click="activeCategory = 'all'"
+                            class="px-3 py-1.5 rounded-full text-xs font-medium border transition-all"
+                            :class="activeCategory === 'all'
+                                ? 'border-blue-500 bg-blue-500/15 text-blue-200'
+                                : 'border-white/10 text-white/50 hover:border-white/20 hover:text-white/80'">
+                        All
+                    </button>
+                    @foreach($linkCategories as $catIdx => $category)
+                        <button type="button" @click="activeCategory = 'cat-{{ $catIdx }}'"
+                                class="px-3 py-1.5 rounded-full text-xs font-medium border transition-all"
+                                :class="activeCategory === 'cat-{{ $catIdx }}'
+                                    ? 'border-blue-500 bg-blue-500/15 text-blue-200'
+                                    : 'border-white/10 text-white/50 hover:border-white/20 hover:text-white/80'">
+                            {{ $category['label'] }}
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+
             <div class="space-y-8">
-                @foreach($linkCategories as $category)
-                    <section>
+                @foreach($linkCategories as $catIdx => $category)
+                    <section x-show="categoryHasMatch('cat-{{ $catIdx }}')">
                         <div class="mb-3">
                             <h3 class="text-sm font-semibold text-white/90">{{ $category['label'] }}</h3>
                             <p class="text-xs text-white/40 mt-0.5">{{ $category['desc'] }}</p>
@@ -198,7 +263,9 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach($category['types'] as $opt)
-                                <label id="lt-card-{{ $opt['value'] }}" class="relative cursor-pointer block group h-full lt-card-reveal" style="animation-delay: {{ min($cardIndex++ * 45, 540) }}ms">
+                                <label id="lt-card-{{ $opt['value'] }}" class="relative cursor-pointer block group h-full lt-card-reveal"
+                                       x-show="matches({{ \Illuminate\Support\Js::from($opt['label']) }}, {{ \Illuminate\Support\Js::from($opt['desc']) }}, 'cat-{{ $catIdx }}')"
+                                       style="animation-delay: {{ min($cardIndex++ * 45, 540) }}ms">
                                     <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only peer">
                                     <div class="h-full border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-200 motion-safe:group-hover:-translate-y-1"
                                          :class="type === '{{ $opt['value'] }}'
@@ -235,6 +302,15 @@
                         </div>
                     </section>
                 @endforeach
+
+                {{-- Empty state: no link type matches the current search/filter --}}
+                <div x-show="!anyMatch()" x-cloak class="text-center py-12">
+                    <div class="w-12 h-12 mx-auto rounded-full bg-white/5 flex items-center justify-center text-white/30 mb-3">
+                        <i class="fas fa-search text-lg"></i>
+                    </div>
+                    <p class="text-sm text-white/60">No link types match<template x-if="search.trim()"> “<span class="text-white font-medium" x-text="search.trim()"></span>”</template>.</p>
+                    <button type="button" @click="resetFilters()" class="mt-3 text-sm text-blue-400 hover:underline">Clear search</button>
+                </div>
             </div>
             @error('type') <p class="text-red-400 text-sm mt-2">{{ $message }}</p> @enderror
 
