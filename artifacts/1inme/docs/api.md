@@ -28,7 +28,7 @@ see [API usage metering](#api-usage-metering)).
 - [Reviews (public)](#reviews-public) · [Reviews moderation (owner)](#reviews-moderation-owner)
 - [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Paid pages](#paid-pages-public) · [Creator monetization](#creator-monetization) · [Product storefront](#product-storefront) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
 - [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Resume](#resume--portfolio) · [Projects](#projects)
-- [Wallet & coins](#wallet--coins) · [AI](#ai-credits-minds-voice-ask-coach-companions) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
+- [Wallet & coins](#wallet--coins) · [AI](#ai-credits-knowledge-bases-voice-account-assistant-chat-widgets) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
 - [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
 - [Admin (mobile back-office)](#admin-mobile-back-office) · [Admin mail / SMTP](#admin-mail--smtp-settings)
@@ -172,7 +172,7 @@ Literal `links/ab` segments are registered before `/links/{id}` so they win over
 
 ### AI-chat links
 
-Full-page AI chat link editor (`links.type = ai_chat`); reuses the AI Companion infra via `AiChatPageManager`.
+Full-page AI chat link editor (`links.type = ai_chat`); reuses the AI Chat / Chat Widget infra via `AiChatPageManager`.
 
 | Method | Path                    | Auth | Description                          |
 | ------ | ----------------------- | ---- | ----------------------------------- |
@@ -641,7 +641,7 @@ Single resume per user — resolved from the bearer token, so the URL never carr
 curl $BASE/wallet -H "Authorization: Bearer $TOKEN" -H 'Accept: application/json'
 ```
 
-## AI (credits, minds, voice, ask-coach, companions)
+## AI (credits, Knowledge Bases, voice, Account Assistant, Chat Widgets)
 
 See [Coin & AI-credit audit](./billing-ai-credit-audit.md) for who pays for each AI feature.
 
@@ -654,14 +654,14 @@ See [Coin & AI-credit audit](./billing-ai-credit-audit.md) for who pays for each
 | GET    | `/ai/credits/packs`           | yes  | Credit packs for purchase.  |
 | POST   | `/ai/credits/purchase`        | yes  | Buy a credit pack.          |
 
-### AI minds & feature defaults
+### Knowledge Bases & feature defaults
 
 | Method | Path                          | Auth | Description                                         |
 | ------ | ----------------------------- | ---- | ------------------------------------------------- |
-| GET    | `/ai/minds`                   | yes  | Available AI "minds" for the picker.              |
-| GET    | `/ai/{feature}/defaults`      | yes  | Default mind for `persona` or `coach`.            |
-| PUT    | `/ai/{feature}/defaults`      | yes  | Save default mind for `persona` or `coach`.       |
-| DELETE | `/ai/{feature}/defaults`      | yes  | Clear default mind for `persona` or `coach`.      |
+| GET    | `/ai/minds`                   | yes  | Available Knowledge Bases for the picker.         |
+| GET    | `/ai/{feature}/defaults`      | yes  | Default Knowledge Base for `persona` or `coach`.  |
+| PUT    | `/ai/{feature}/defaults`      | yes  | Save default Knowledge Base for `persona` or `coach`. |
+| DELETE | `/ai/{feature}/defaults`      | yes  | Clear default Knowledge Base for `persona` or `coach`. |
 
 ### Voice assistant
 
@@ -673,29 +673,29 @@ Same orchestrator as the web — STT/LLM/TTS each charge their own ledger row.
 | POST   | `/ai/voice/turn`           | yes  | One conversational turn (STT + reply + TTS). Throttle: 30/min. |
 | POST   | `/ai/voice/wake-check`     | yes  | Wake-word check on a short clip (not billed). Throttle: 60/min. |
 
-### Ask Coach
+### Account Assistant
 
 Data-aware self-support chatbot.
 
 | Method | Path                                          | Auth | Description                          |
 | ------ | --------------------------------------------- | ---- | ----------------------------------- |
-| GET    | `/ai/ask-coach/threads`                       | yes  | List coach threads.                 |
+| GET    | `/ai/ask-coach/threads`                       | yes  | List Account Assistant threads.     |
 | POST   | `/ai/ask-coach/threads`                       | yes  | Create a thread.                    |
 | GET    | `/ai/ask-coach/threads/{thread}`              | yes  | Messages in a thread.               |
 | POST   | `/ai/ask-coach/threads/{thread}/send`         | yes  | Send a message. Throttle: 30/min.   |
 | DELETE | `/ai/ask-coach/threads/{thread}`              | yes  | Delete a thread.                    |
 | POST   | `/ai/ask-coach/messages/{message}/feedback`   | yes  | Thumbs up/down a reply. Throttle: 30/min. |
 
-### AI companions
+### Chat Widgets
 
-Biolink AI companions — list/persona lookup + create-on-the-spot for the block editor's "AI" picker (richer editing lives on web).
+Biolink Chat Widgets — list/AI Agent lookup + create-on-the-spot for the block editor's "AI" picker (richer editing lives on web).
 
 | Method | Path                          | Auth | Description                          |
 | ------ | ----------------------------- | ---- | ----------------------------------- |
-| GET    | `/ai-companions`              | yes  | List companions.                    |
-| GET    | `/ai-companions/personas`     | yes  | List personas.                      |
-| POST   | `/ai-companions/personas`     | yes  | Create a persona.                   |
-| POST   | `/ai-companions`              | yes  | Create a companion.                 |
+| GET    | `/ai-companions`              | yes  | List Chat Widgets.                  |
+| GET    | `/ai-companions/personas`     | yes  | List AI Agents.                     |
+| POST   | `/ai-companions/personas`     | yes  | Create an AI Agent.                 |
+| POST   | `/ai-companions`              | yes  | Create a Chat Widget.               |
 
 ---
 

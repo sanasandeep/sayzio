@@ -33,7 +33,7 @@ of *what it is*, *why you'd use it*, and *how to use it* step by step. A large
 17. [Referrals](#17-referrals)
 18. [Creator monetization](#18-creator-monetization)
 19. [18+ adult content](#19-adult-content)
-20. [AI tools: Mind, Personas, Companions, Coach](#20-ai-tools)
+20. [AI tools: Note Summarizer, Knowledge Bases, Persona Generator, AI Agents, AI Chat, Chat Widgets, Growth Coach, Account Assistant](#20-ai-tools)
 21. [Tools: Forms, Contact cards, Contacts & Dialer, Scan a card or brochure, Files, Resume, Calendar](#21-tools)
 22. [Restaurant menu & orders](#22-restaurant-menu--orders)
 23. [Inbox & messages](#23-inbox--messages)
@@ -170,7 +170,7 @@ add-ons, or covering developer-API usage beyond your plan's monthly allowance.
 
 **What it is.** A separate metered balance that powers Sayzio's AI features.
 
-**Why use it.** AI features (the AI biolink builder, Ask Coach, AI Personas/Minds,
+**Why use it.** AI features (the AI biolink builder, Account Assistant, AI Agents/Knowledge Bases,
 resume tailoring and cover letters, the [card/brochure scanner](#scan-a-card-or-brochure),
 voice assistant, etc.) consume **AI credits** as you use them.
 
@@ -219,7 +219,7 @@ what each one is for:
 | **PDF** | Share a PDF behind a viewer/download page. |
 | **Conversational** | A guided, chat-style page that walks visitors through your links one message at a time on a fixed script. |
 | **Slides** | A swipeable, story-style deck served from a single link — great for presentations or portfolios. |
-| **AI Chatbot (AI Chat)** | A full-page AI assistant that answers visitors' questions about you, powered by your AI Companion/Mind. |
+| **AI Chatbot (AI Chat)** | A full-page AI assistant that answers visitors' questions about you, powered by your Chat Widget and Knowledge Bases. |
 | **Restaurant Menu** | A digital menu with categories, items, prices, photos, and optional table-side ordering. See [Restaurant menu](#22-restaurant-menu--orders). |
 | **Resume / Portfolio** | A shareable, professional resume page with PDF download and AI tooling. |
 | **Reviews Page** | A standalone wall for collecting and showcasing star reviews. |
@@ -335,7 +335,7 @@ Blocks are grouped into categories in the picker. Highlights:
 **Engagement (interactive)**
 - **FAQ** (simple & accordion), **Poll**, **Quiz** (with live results),
   **Testimonials**, **Reviews / Reviews Wall**, **Timeline**.
-- **AI Companion** — embed an AI chatbot directly on the page.
+- **Chat Widget** — embed an AI chatbot directly on the page.
 - **Buzz / Social Proof** — small popups showing recent activity.
 
 **Commerce**
@@ -620,14 +620,21 @@ unless a visitor opts to show adult content.
 
 Sayzio includes several AI helpers (all metered with **AI credits**):
 
-- **Ask Coach / Performance Coach** — an AI assistant that reviews your account
+- **Account Assistant** — an AI assistant that reviews your account
   and answers "how do I improve?" questions, including actionable suggestions.
-- **AI Personas** — configurable AI personalities for automated interactions.
-- **AI Companions** — AI chatbots you can embed on a biolink (as a block) or run
+- **Growth Coach** — AI-powered suggestions to grow and fine-tune your links and pages.
+- **Persona Generator** — creates a brand persona that shapes the tone and
+  personality your AI uses when it writes or replies on your behalf.
+- **AI Agents** — configurable agents you can create and switch between, each with
+  its own prompt, tone, and knowledge for different audiences.
+- **Chat Widgets** — AI chatbots you can embed on a biolink (as a block) or run
   as a full-page **AI Chatbot** link, so visitors can ask questions about you and
   get dynamic answers. The **owner** pays for visitor chats, not the visitor.
-- **AI Mind / Minds** — a private knowledge base: upload documents and links to
-  "train" your AI so its answers reflect your real information.
+- **AI Chat** — a chat assistant that helps you draft content and answer questions
+  about your account.
+- **Knowledge Bases / Note Summarizer** — build and manage private knowledge bases:
+  upload documents and links to "train" your AI so its answers reflect your real
+  information, and summarize raw notes into clear next steps with **Note Summarizer**.
 
 Other AI helpers appear inside specific tools — e.g. **resume tailoring** and
 **cover-letter generation** in the Resume builder, and the
@@ -902,7 +909,7 @@ address (`@yourname`) and is used in the Creators directory.
 **What's the difference between coins and AI credits?**
 **Coins** are a general prepaid balance (top up by buying coin packages) used for
 add-ons and developer-API overage. **AI credits** specifically power AI features
-like the AI builder, Ask Coach, Personas/Minds, and resume AI tools.
+like the AI builder, Account Assistant, AI Agents/Knowledge Bases, and resume AI tools.
 
 **What happens if I run out of AI credits?**
 Before an AI action runs, Sayzio checks you can afford it; if not, you'll be
@@ -1088,15 +1095,15 @@ To your **Inbox** — it gathers biolink DMs and form submissions in one place.
 
 ### AI features
 
-**What is an AI Companion vs. an AI Mind?**
-A **Mind** is a private knowledge base you fill with your documents/links. A
-**Companion** is the chatbot that answers visitors using that knowledge — you can
+**What is a Chat Widget vs. a Knowledge Base?**
+A **Knowledge Base** is a private store you fill with your documents/links. A
+**Chat Widget** is the chatbot that answers visitors using that knowledge — you can
 embed it as a block or run it as a full-page **AI Chatbot** link.
 
-**Who pays when a visitor chats with my AI Companion?**
+**Who pays when a visitor chats with my Chat Widget?**
 You do (the owner), from your AI credits — visitors don't pay.
 
-**What is Ask Coach?**
+**What is the Account Assistant?**
 An AI assistant that reviews your account and gives plain-language advice on how
 to improve your links and pages.
 

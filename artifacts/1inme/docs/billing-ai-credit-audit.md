@@ -66,9 +66,9 @@ services) rejects the request before hitting the provider when the billed
 account can't afford the worst-case cost.
 
 ### Features charging the signed-in user's own balance
-- **Ask Coach** — `AskCoachController@send/sendStream` (incl. tool-call turns)
-- **AI Personas** — `PersonaRuntime::turn` (chat + retrieval embeddings)
-- **Persona profile generation** — `PersonaController@generate`
+- **Account Assistant** — `AskCoachController@send/sendStream` (incl. tool-call turns)
+- **AI Agents** — `PersonaRuntime::turn` (chat + retrieval embeddings)
+- **Persona Generator** — `PersonaController@generate`
 - **Card / Brochure Scanner** — `CardBrochureExtractionService::extract`
   (refunds the owner if the scan fails after the charge)
 - **AI Resume Tools** — `ResumeCoverLetterService` (tailoring, cover
@@ -77,17 +77,17 @@ account can't afford the worst-case cost.
   `biolink_builder`); refunds the owner if the AI response fails to
   parse/validate
 - **Voice Assistant** — Whisper STT + GPT reply + ElevenLabs TTS
-- **AI Minds (user minds)** — `AiMindIngestor::ingest` charges the mind owner
+- **Knowledge Bases (user knowledge bases)** — `AiMindIngestor::ingest` charges the knowledge base owner
 
 ### By-design exceptions (explicitly NOT "fixed")
 - **Site Assistant, anonymous visitors** — anonymous on-site/widget chat
   draws on the **platform admin's** balance (`SiteAssistantRuntime::billingUser`,
   resolving `billing_user_id` then the first `user.platform.admin`). Signed-in
   visitors are charged their own balance.
-- **AI Companions** — a chat turn is billed to the **companion owner's**
-  balance (a visitor chatting with someone's companion does not pay; the
+- **Chat Widgets** — a chat turn is billed to the **Chat Widget owner's**
+  balance (a visitor chatting with someone's Chat Widget does not pay; the
   owner does). `CompanionRuntime` refunds the owner if a turn fails.
-- **Platform AI Minds** — ingestion of platform-managed minds is billed to
+- **Platform Knowledge Bases** — ingestion of platform-managed knowledge bases is billed to
   the **platform admin** (`user.ai_minds.manage_platform`), not end users.
 
 **Verdict:** every feature meters the correct account with a pre-call

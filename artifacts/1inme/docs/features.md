@@ -179,8 +179,8 @@ handle-keyed creator endpoints. *Web · REST (`/paid-page/{alias}`, `/paid-page/
 | **Conversational** | `conversational` | A guided, chat-style page that responds as visitors tap. |
 
 - **AI Chatbot (`ai_chat`)** — a full-page AI assistant surface. It reuses the
-  AI Companion runtime (placement = page) rather than introducing a new runtime;
-  bound to a companion via the `ai_companion_links` pivot. The **owner** pays for
+  AI Chat runtime (placement = page) rather than introducing a new runtime;
+  bound to a Chat Widget via the `ai_companion_links` pivot. The **owner** pays for
   visitor chats (AI credits), not the visitor. Toggle `module_ai_chat`, cap
   `max_ai_chat`. See [§8](#8-ai-engine--ai-features). *Web · REST · Mobile.*
 - **Conversational (`conversational`)** — a scripted, one-message-at-a-time
@@ -271,7 +271,7 @@ defaults** (`BlockDefaults`): placeholder text/media + a seeded `_style` and a
   Playlist, File Download, plus embeds (YouTube, Vimeo, Spotify, Apple Music,
   SoundCloud, Instagram, TikTok, X/Twitter, Pinterest, and more).
 - **Engagement** — FAQ (simple & accordion), Poll, Quiz (live results),
-  Testimonials, Reviews / Reviews Wall, Timeline, AI Companion (embedded chatbot),
+  Testimonials, Reviews / Reviews Wall, Timeline, Chat Widget (embedded chatbot),
   Buzz / Social Proof.
 - **Commerce** — Product / Service, Catalog / Storefront, Coupon, Limited Offer
   (countdown), Donation, Buy Me a Coffee, Ko-fi, Patreon.
@@ -585,13 +585,14 @@ show "AI scanning/feature is currently disabled by your administrator."
   images/links) into a full page, constrained to a safe block subset and the
   user's plan-allowed types; charged to `biolink_builder` with auto-refund on
   parse failure.
-- **AI Mind / Minds** — private RAG knowledge base: `AiMindSource` (PDF / web /
-  text) chunked and embedded (`AiMindChunk`) to ground answers.
-- **AI Personas / Companions** — customizable agents with system prompts and chat
-  history (`CompanionThread`); a companion can be embedded as a biolink **block**
-  or run as a full-page **AI Chatbot** (`ai_chat`) link. The **owner** pays for
-  visitor chats.
-- **Ask Coach / Performance Coach** — self-support AI grounded in an account
+- **Knowledge Bases / Note Summarizer** — private RAG knowledge base: `AiMindSource`
+  (PDF / web / text) chunked and embedded (`AiMindChunk`) to ground answers; the
+  single-base view is surfaced to users as **Note Summarizer**.
+- **AI Agents / Persona Generator / Chat Widgets** — customizable agents with system
+  prompts and chat history (`CompanionThread`); a Chat Widget can be embedded as a
+  biolink **block** or run as a full-page **AI Chatbot** (`ai_chat`) link, and the
+  direct owner chat is surfaced as **AI Chat**. The **owner** pays for visitor chats.
+- **Account Assistant / Growth Coach** — self-support AI grounded in an account
   snapshot (analytics, biolinks) with actionable suggestions.
 - **Voice assistant** — Whisper **STT** (transcription / dictation), an LLM turn,
   and ElevenLabs **TTS** (spoken mp3). Voice tools return a `client_action`
@@ -611,8 +612,8 @@ metered monthly (`api_usage_counters`) against the plan allowance by
 period 80% / 100% / overage-unavailable warnings (email + in-app
 `api.usage_warning`).
 
-*Web · REST (`/ai/*`, Voice, Coach, Companions) · Mobile (Ask Coach, persona
-chat, floating-mic voice assistant).*
+*Web · REST (`/ai/*`, Voice, Growth Coach, Chat Widgets) · Mobile (Account Assistant,
+AI Agent chat, floating-mic voice assistant).*
 
 ---
 
@@ -746,7 +747,7 @@ High-level groups:
 - **Creator stack** — creator profile, posts, feed, paid DMs, tiers.
 - **Business tools** — store/products, restaurant menu & orders, reviews (public
   feed + moderation), contacts/dialer.
-- **Platform & AI** — wallet/coins, AI (Minds, voice, coach), onboarding slides.
+- **Platform & AI** — wallet/coins, AI (Knowledge Bases, voice, Growth Coach), onboarding slides.
 - **Back-office** — users, roles, protected accounts, mail settings, schema
   health.
 
@@ -790,7 +791,7 @@ over `/api/v1`.
   restaurant menu builder + orders; paid pages (mobile template tokens).
 - **Monetization** — unlock content, tip, manage orders; payouts onboarding +
   sync; 18+ toggle.
-- **AI** — Ask Coach, AI persona chat, floating-mic voice assistant.
+- **AI** — Account Assistant, AI Agent chat, floating-mic voice assistant.
 - **Reviews** — moderation parity.
 - **Admin hub** — manage users, roles, protected accounts, mail settings, schema
   health.

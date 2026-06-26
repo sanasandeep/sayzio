@@ -139,9 +139,9 @@ allowance. Your balance and a running transaction ledger are always visible in
 your **Wallet**.
 
 **AI credits.** A separate metered balance that powers Sayzio's AI features (the
-AI biolink builder, Ask Coach, AI Personas/Minds, resume tailoring and cover
+AI biolink builder, Account Assistant, AI Agents/Knowledge Bases, resume tailoring and cover
 letters, the card/brochure scanner, the voice assistant, and visitor chats with
-your AI Companion). Each AI action is billed automatically. Before an action
+your Chat Widget). Each AI action is billed automatically. Before an action
 runs, Sayzio checks you can afford it — if your balance is too low you're prompted
 to top up rather than charged for something that can't finish. Many failed AI
 runs are automatically refunded, and there's a credit ledger so you can see where
@@ -196,7 +196,7 @@ or as biolink blocks.
 | **PDF** | Share a PDF behind a viewer/download page. |
 | **Conversational** | A guided, chat-style page that walks visitors through your links one message at a time on a fixed script. |
 | **Slides** | A swipeable, story-style deck served from a single link — great for presentations or portfolios. |
-| **AI Chatbot** | A full-page AI assistant that answers visitors' questions about you, powered by your AI Companion/Mind. |
+| **AI Chatbot** | A full-page AI assistant that answers visitors' questions about you, powered by your Chat Widget and Knowledge Bases. |
 | **Restaurant Menu** | A digital menu with categories, items, prices, photos, and optional table-side ordering. |
 | **Resume / Portfolio** | A shareable, professional resume page with PDF download and AI tooling. |
 | **Reviews Page** | A standalone wall for collecting and showcasing star reviews. |
@@ -282,7 +282,7 @@ of **blocks**. It's split into two pages: **Blocks** and **Settings**.
   Player / Playlist, File Download, plus embeds (YouTube, Vimeo, Spotify, Apple
   Music, SoundCloud, Instagram, TikTok, X/Twitter, Pinterest, and more).
 - **Engagement** — FAQ (simple & accordion), Poll, Quiz (with live results),
-  Testimonials, Reviews / Reviews Wall, Timeline, AI Companion (embedded
+  Testimonials, Reviews / Reviews Wall, Timeline, Chat Widget (embedded
   chatbot), and Buzz / Social Proof.
 - **Commerce** — Product / Service, Catalog / Storefront, Coupon, Limited Offer
   (with countdown), Donation, Buy Me a Coffee, Ko-fi, Patreon.
@@ -520,15 +520,22 @@ unless a visitor opts to show adult content.
 
 Sayzio includes several AI helpers, all metered with **AI credits**:
 
-- **Ask Coach / Performance Coach** — an AI assistant that reviews your account
+- **Account Assistant** — an AI assistant that reviews your account
   (analytics, biolinks) and answers "how do I improve?" questions with actionable
   suggestions.
-- **AI Personas** — configurable AI personalities for automated interactions.
-- **AI Companions** — AI chatbots you can embed on a biolink (as a block) or run
+- **Growth Coach** — AI-powered suggestions to grow and fine-tune your links and pages.
+- **Persona Generator** — creates a brand persona that shapes the tone and
+  personality your AI uses when it writes or replies on your behalf.
+- **AI Agents** — configurable agents you can create and switch between, each with
+  its own prompt, tone, and knowledge for different audiences.
+- **Chat Widgets** — AI chatbots you can embed on a biolink (as a block) or run
   as a full-page **AI Chatbot** link, so visitors can ask questions about you and
   get dynamic answers. The **owner** pays for visitor chats, not the visitor.
-- **AI Mind / Minds** — a private knowledge base: upload documents and links to
-  "train" your AI so its answers reflect your real information.
+- **AI Chat** — a chat assistant that helps you draft content and answer questions
+  about your account.
+- **Knowledge Bases / Note Summarizer** — build and manage private knowledge bases:
+  upload documents and links to "train" your AI so its answers reflect your real
+  information, and summarize raw notes into clear next steps with **Note Summarizer**.
 - **Voice assistant** — a hands-free assistant that listens (speech-to-text), takes
   an AI turn, and can speak its reply (text-to-speech); also offers dictation.
 
@@ -788,7 +795,7 @@ For teams and agencies, Sayzio scales beyond a single user:
 
 - **Sayzio mobile app** — most creator features have native parity in the mobile
   app, including links, biolink editing, QR Studio, restaurant menus, reviews
-  moderation, payouts, the 18+ toggle, Ask Coach, AI persona chat, and a
+  moderation, payouts, the 18+ toggle, Account Assistant, AI Agent chat, and a
   floating-mic voice assistant. Sign in with email/OTP or social.
 - **Browser extension** — helps with things like saving and shortening links
   (including "Shorten as A/B test") and powering the Backlinks radar from your
@@ -833,7 +840,7 @@ require a specific plan).
 **What's the difference between coins and AI credits?**
 **Coins** are a general prepaid balance (top up by buying coin packages) used for
 add-ons and developer-API overage. **AI credits** specifically power AI features
-like the AI builder, Ask Coach, Personas/Minds, the card scanner, and resume AI
+like the AI builder, Account Assistant, AI Agents/Knowledge Bases, the card scanner, and resume AI
 tools.
 
 **What are add-ons?**
@@ -1049,15 +1056,15 @@ To your **Inbox** — it gathers biolink DMs and form submissions in one place.
 
 ## AI features
 
-**What's an AI Companion vs. an AI Mind?**
-A **Mind** is a private knowledge base you fill with your documents/links. A
-**Companion** is the chatbot that answers visitors using that knowledge — you can
+**What's a Chat Widget vs. a Knowledge Base?**
+A **Knowledge Base** is a private store you fill with your documents/links. A
+**Chat Widget** is the chatbot that answers visitors using that knowledge — you can
 embed it as a block or run it as a full-page **AI Chatbot** link.
 
-**Who pays when a visitor chats with my AI Companion?**
+**Who pays when a visitor chats with my Chat Widget?**
 You do (the owner), from your AI credits — visitors don't pay.
 
-**What is Ask Coach?**
+**What is the Account Assistant?**
 An AI assistant that reviews your account and gives plain-language advice on how to
 improve your links and pages.
 
