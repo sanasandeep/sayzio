@@ -128,6 +128,7 @@
 
         @php
             $linkCategories = \App\Modules\User\Support\LinkTypeCategories::categories();
+            $linkIntents    = \App\Modules\User\Support\LinkTypeCategories::intents();
             $cardIndex = 0;
         @endphp
 
@@ -135,6 +136,30 @@
         <div class="glass rounded-2xl p-6 mb-6">
             <h2 class="text-base font-semibold text-white mb-1">…or pick a link type manually</h2>
             <p class="text-xs text-white/40 mb-6">Pick one to continue — we'll only ask for the fields that matter for that type.</p>
+
+            {{-- INTENT PROMPT: map a plain-language goal to the matching link type --}}
+            <div class="mb-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="w-7 h-7 rounded-lg bg-blue-500/15 text-blue-300 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-wand-magic-sparkles text-xs"></i>
+                    </span>
+                    <h3 class="text-sm font-semibold text-white">What are you trying to do?</h3>
+                </div>
+                <p class="text-xs text-white/40 mb-3.5">Tap a goal and we'll pick the matching type for you — or just choose one below.</p>
+                <div class="flex flex-wrap gap-2">
+                    @foreach($linkIntents as $intent)
+                        <button type="button"
+                                @click="type = '{{ $intent['type'] }}'; $nextTick(() => { const el = document.getElementById('lt-card-{{ $intent['type'] }}'); if (el) { el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); } })"
+                                class="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 border transition-all"
+                                :class="type === '{{ $intent['type'] }}'
+                                    ? 'border-blue-400 bg-blue-500/20 text-blue-100 shadow-lg shadow-blue-500/10'
+                                    : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:bg-white/10 hover:text-white'">
+                            <i class="fas {{ $intent['icon'] }} text-[10px]"></i>
+                            {{ $intent['label'] }}
+                        </button>
+                    @endforeach
+                </div>
+            </div>
 
             <div class="mb-6">
                 <label class="block text-sm font-medium text-white/60 mb-1.5">
@@ -173,7 +198,7 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach($category['types'] as $opt)
-                                <label class="relative cursor-pointer block group h-full lt-card-reveal" style="animation-delay: {{ min($cardIndex++ * 45, 540) }}ms">
+                                <label id="lt-card-{{ $opt['value'] }}" class="relative cursor-pointer block group h-full lt-card-reveal" style="animation-delay: {{ min($cardIndex++ * 45, 540) }}ms">
                                     <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only peer">
                                     <div class="h-full border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-200 motion-safe:group-hover:-translate-y-1"
                                          :class="type === '{{ $opt['value'] }}'

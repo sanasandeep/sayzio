@@ -67,6 +67,29 @@ class LinkTypeCategories
     }
 
     /**
+     * Quick "What are you trying to do?" goal prompts shown above the manual
+     * picker. Each maps a plain-language goal to the link type that best fits,
+     * letting people who don't know the type names jump straight to the right
+     * card. Every `type` here must exist in categories().
+     *
+     * @return array<int, array{type:string, icon:string, label:string}>
+     */
+    public static function intents(): array
+    {
+        return [
+            ['type' => 'url',             'icon' => 'fa-link',         'label' => 'Shorten a link'],
+            ['type' => 'file',            'icon' => 'fa-file',         'label' => 'Share a file'],
+            ['type' => 'paid_page',       'icon' => 'fa-crown',        'label' => 'Take payments'],
+            ['type' => 'reviews',         'icon' => 'fa-star',         'label' => 'Collect reviews'],
+            ['type' => 'restaurant_menu', 'icon' => 'fa-utensils',     'label' => 'Show a menu'],
+            ['type' => 'vcf',             'icon' => 'fa-address-card', 'label' => 'Share my contact'],
+            ['type' => 'biolink',         'icon' => 'fa-id-card',      'label' => 'Build a profile page'],
+            ['type' => 'resume',          'icon' => 'fa-file-lines',   'label' => 'Share my resume'],
+            ['type' => 'ics',             'icon' => 'fa-calendar',     'label' => 'Invite to an event'],
+        ];
+    }
+
+    /**
      * Flat, value-keyed view of every link type in the catalog. Lets surfaces
      * that work one type at a time (e.g. a per-link type badge) look up a
      * type's label/icon/badge/desc without re-flattening the groups.
