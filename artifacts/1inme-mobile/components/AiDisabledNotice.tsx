@@ -10,20 +10,22 @@ import { useColors } from "@/hooks/useColors";
  * particular feature does, even while the engine is switched off.
  */
 const FEATURE_BLURBS: Record<string, string> = {
-  Mind: "Mind is your personal AI knowledge base — it learns from your sources so the assistant can answer in your voice.",
-  Minds:
-    "Minds let you build and manage several AI knowledge bases, each trained on its own set of sources.",
-  Persona:
-    "Persona shapes the tone and personality your AI uses when it writes or replies on your behalf.",
-  Personas:
-    "Personas let you create and switch between different AI voices for different audiences.",
-  Companion:
-    "Companion is a chat assistant that helps you draft content and answer questions about your account.",
-  Companions:
-    "Companions are embeddable AI chatbots you can drop into your pages, widgets and inbox.",
-  Coach: "Coach gives you AI-powered suggestions to grow and fine-tune your links and pages.",
-  "Ask Coach":
-    "Ask Coach lets you chat with an AI advisor for tips on improving your account.",
+  "Note Summarizer":
+    "Note Summarizer is your personal AI knowledge base — it learns from your sources so the assistant can answer in your voice.",
+  "Knowledge Bases":
+    "Knowledge Bases let you build and manage several AI knowledge bases, each trained on its own set of sources.",
+  "Persona Generator":
+    "Persona Generator shapes the tone and personality your AI uses when it writes or replies on your behalf.",
+  "AI Agents":
+    "AI Agents let you create and switch between different AI voices for different audiences.",
+  "AI Chat":
+    "AI Chat is a chat assistant that helps you draft content and answer questions about your account.",
+  "Chat Widgets":
+    "Chat Widgets are embeddable AI chatbots you can drop into your pages, widgets and inbox.",
+  "Growth Coach":
+    "Growth Coach gives you AI-powered suggestions to grow and fine-tune your links and pages.",
+  "Account Assistant":
+    "Account Assistant lets you chat with an AI advisor for tips on improving your account.",
   Voice:
     "Voice lets you talk to Sayzio hands-free to look things up and get around the app.",
 };
@@ -34,7 +36,7 @@ export function aiFeatureBlurb(feature?: string): string | null {
 }
 
 type Props = {
-  /** Feature label used to pick the matching one-liner (e.g. "Ask Coach"). */
+  /** Feature label used to pick the matching one-liner (e.g. "Account Assistant"). */
   feature?: string;
   /**
    * "engine" — the admin-controlled master switch is off (default).
@@ -121,8 +123,8 @@ export function AiDisabledNotice({
               What you’re missing
             </Text>
             <Text style={[styles.infoBody, { color: colors.mutedForeground }]}>
-              AI features on Sayzio — like Minds, Personas, the Companion and
-              Coach — help you draft content, answer questions about your account
+              AI features on Sayzio — like Knowledge Bases, AI Agents, AI Chat
+              and Growth Coach — help you draft content, answer questions about your account
               and build pages faster. They run on your coin balance once an
               administrator enables the engine.
             </Text>

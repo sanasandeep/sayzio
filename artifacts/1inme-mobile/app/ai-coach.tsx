@@ -4,9 +4,9 @@ export default function AiCoachScreen() {
   return (
     <AiMindPickerScreen
       feature="coach"
-      title="Coach Minds"
-      subtitle="Pick which Minds Coach should reference when suggesting experiments. We'll remember your selection for next time."
-      disabledFeature="Coach"
+      title="Growth Coach"
+      subtitle="Pick which Knowledge Bases Growth Coach should reference when suggesting experiments. We'll remember your selection for next time."
+      disabledFeature="Growth Coach"
     />
   );
 }
