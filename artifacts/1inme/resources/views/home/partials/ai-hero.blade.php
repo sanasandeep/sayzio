@@ -68,7 +68,7 @@
 
             {{-- Visual column: prompt → AI-generated page --}}
             <div class="reveal rd-2 relative w-full max-w-[520px] mx-auto lg:justify-self-end">
-                <div class="float-c">
+                <div class="float-c aibd" id="ai-builder-demo">
                     <div class="glass rounded-3xl p-5 sm:p-6 relative overflow-hidden border border-white/10">
                         <div class="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-25" style="background:var(--c2)"></div>
                         <div class="absolute -bottom-20 -left-16 w-52 h-52 rounded-full opacity-20" style="background:var(--c1)"></div>
@@ -80,11 +80,12 @@
                             </div>
                             <div class="flex items-center gap-3 rounded-2xl bg-white/[.05] border border-white/10 px-4 py-3">
                                 <i class="fas fa-keyboard text-sm text-gray-400"></i>
-                                <span class="text-sm text-gray-200">"A link page for my coffee brand with shop, menu &amp; reviews"</span>
+                                <span class="text-sm text-gray-200">"<span class="aibd-prompt">A link page for my coffee brand with shop, menu &amp; reviews</span><span class="aibd-caret" aria-hidden="true">▍</span>"</span>
                             </div>
                             <div class="flex items-center justify-end mt-3">
-                                <span class="inline-flex items-center gap-2 px-4 py-2 grad-bar text-white rounded-full text-xs font-bold">
-                                    <i class="fas fa-bolt"></i> Generating
+                                <span class="aibd-status px-4 py-2 grad-bar text-white rounded-full text-xs font-bold" aria-live="polite">
+                                    <span class="aibd-status-gen inline-flex items-center gap-2" aria-hidden="true"><i class="fas fa-bolt"></i> Generating</span>
+                                    <span class="aibd-status-done inline-flex items-center gap-2"><i class="fas fa-check"></i> Built</span>
                                 </span>
                             </div>
                         </div>
@@ -104,7 +105,7 @@
                                     ['fa-book-open','See the menu','var(--c1)'],
                                     ['fa-star','Read reviews','var(--c5)'],
                                 ] as $g)
-                                    <div class="flex items-center gap-3 rounded-xl bg-white/[.04] border border-white/5 px-3 py-2.5">
+                                    <div class="aibd-block flex items-center gap-3 rounded-xl bg-white/[.04] border border-white/5 px-3 py-2.5">
                                         <span class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style="background:{{ $g[2] }}1f;color:{{ $g[2] }}"><i class="fas {{ $g[0] }} text-xs"></i></span>
                                         <span class="text-[13px] font-semibold text-white">{{ $g[1] }}</span>
                                         <i class="fas fa-check ml-auto text-[10px]" style="color:#1ed760"></i>
@@ -129,3 +130,109 @@
         </div>
     </div>
 </section>
+
+{{--
+    AI builder demo animation — on scroll-into-view the prompt sentence types
+    out, the "Generating" pill cross-fades to "Built" and the three result
+    blocks reveal one-by-one. Pure opacity/transform (GPU-cheap), runs once.
+    The resting CSS state IS the finished state, so no-JS and
+    prefers-reduced-motion users see the page already "built" (frozen final).
+    The start/animated state only applies once JS adds `.aibd-armed`, which it
+    never does under reduced motion.
+--}}
+<style>
+    .aibd .aibd-status { display: inline-grid; }
+    .aibd .aibd-status > span { grid-area: 1 / 1; transition: opacity .4s ease; }
+    /* Resting / final state (also no-JS + reduced motion): "Built", no caret, blocks shown */
+    .aibd .aibd-status-gen { opacity: 0; }
+    .aibd .aibd-status-done { opacity: 1; }
+    .aibd .aibd-caret { opacity: 0; color: var(--c2); font-weight: 400; }
+    .aibd .aibd-block { transition: opacity .55s ease, transform .55s cubic-bezier(.16,1,.3,1); }
+
+    @media (prefers-reduced-motion: no-preference) {
+        /* Start state — only active while JS drives the sequence forward */
+        .aibd.aibd-armed .aibd-status-gen { opacity: 1; }
+        .aibd.aibd-armed .aibd-status-done { opacity: 0; }
+        .aibd.aibd-armed .aibd-caret { opacity: 1; animation: aibdCaret 1.05s step-end infinite; }
+        .aibd.aibd-armed .aibd-block { opacity: 0; transform: translateY(12px); }
+
+        /* Status flip: Generating -> Built */
+        .aibd.aibd-armed.aibd-built .aibd-status-gen { opacity: 0; }
+        .aibd.aibd-armed.aibd-built .aibd-status-done { opacity: 1; }
+        .aibd.aibd-armed.aibd-built .aibd-caret { opacity: 0; animation: none; }
+
+        /* Sequential block reveal (JS adds .is-in per block) */
+        .aibd.aibd-armed .aibd-block.is-in { opacity: 1; transform: none; }
+    }
+    @keyframes aibdCaret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+</style>
+<script>
+(function () {
+    if (window.__aibdInit) return;
+    window.__aibdInit = true;
+
+    function init() {
+        var root = document.getElementById('ai-builder-demo');
+        if (!root) return;
+
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduce) return; // leave at resting/final state
+
+        var promptEl = root.querySelector('.aibd-prompt');
+        var blocks = root.querySelectorAll('.aibd-block');
+        var genEl = root.querySelector('.aibd-status-gen');
+        var doneEl = root.querySelector('.aibd-status-done');
+        var fullText = promptEl ? promptEl.textContent.trim() : '';
+
+        function exposeStatus(building) {
+            if (genEl) genEl.setAttribute('aria-hidden', building ? 'false' : 'true');
+            if (doneEl) doneEl.setAttribute('aria-hidden', building ? 'true' : 'false');
+        }
+
+        // Arm immediately (before paint where possible) to avoid a flash of the
+        // finished state, then clear the prompt ready to type.
+        root.classList.add('aibd-armed');
+        exposeStatus(true); // start state shows "Generating"
+        if (promptEl) promptEl.textContent = '';
+
+        var played = false;
+        function play() {
+            if (played) return;
+            played = true;
+
+            var i = 0;
+            function type() {
+                if (promptEl && i <= fullText.length) {
+                    promptEl.textContent = fullText.slice(0, i);
+                    i++;
+                    setTimeout(type, 26 + Math.random() * 36);
+                } else {
+                    setTimeout(finish, 380);
+                }
+            }
+            function finish() {
+                root.classList.add('aibd-built'); // flip Generating -> Built
+                exposeStatus(false); // now announce "Built"
+                blocks.forEach(function (b, idx) {
+                    setTimeout(function () { b.classList.add('is-in'); }, 260 + idx * 170);
+                });
+            }
+            type();
+        }
+
+        if ('IntersectionObserver' in window) {
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) {
+                    if (e.isIntersecting) { play(); io.disconnect(); }
+                });
+            }, { threshold: 0.35 });
+            io.observe(root);
+        } else {
+            play();
+        }
+    }
+
+    if (document.readyState !== 'loading') init();
+    else document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
