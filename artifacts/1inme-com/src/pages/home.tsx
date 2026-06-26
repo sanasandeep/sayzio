@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { CTABand, Eyebrow } from "@/components/marketing/marketing";
 import { LinkTypesShowcase } from "@/components/marketing/link-types-showcase";
 import { AiFlipTiles } from "@/components/marketing/ai-flip-tiles";
+import { OrbitalUniverse } from "@/components/marketing/orbital-universe";
 import { motion, useReducedMotion } from "framer-motion";
 import { SIGNUP_URL } from "@/config";
 import { Link } from "wouter";
@@ -124,15 +125,15 @@ export default function Home() {
               </span>
 
               <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-foreground mb-6 leading-[1.05]">
-                Redefine your marketing with{" "}
-                <span className="grad-text">AI</span>
+                One AI runs your whole{" "}
+                <span className="grad-text">universe</span>
               </h1>
 
               <p className="text-lg lg:text-xl text-muted-foreground mb-10 max-w-xl">
-                Meet Zio — the friendly AI behind Sayzio. It builds your pages,
-                coaches your growth, answers your visitors and even picks up your
-                calls. One link, an AI suite that markets you 24/7 — free
-                forever, no card required.
+                Meet Zio, the AI at the center of Sayzio. Every tool orbits
+                around it — building your pages, coaching your growth, answering
+                visitors and even picking up your calls. One link, an AI suite
+                that markets you 24/7 — free forever, no card required.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
@@ -161,58 +162,14 @@ export default function Home() {
               </div>
             </motion.div>
 
-            {/* Zio mascot + floating AI badges */}
+            {/* Zio universe — orbital feature planets */}
             <motion.div
-              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.9 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.92 }}
               animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative lg:ml-auto"
+              className="relative flex justify-center lg:justify-end"
             >
-              <div className="relative w-full max-w-[420px] mx-auto">
-                {/* Glow halo behind the mascot */}
-                <div
-                  aria-hidden
-                  className="absolute inset-0 -z-10 mx-auto h-[80%] w-[80%] translate-y-6 rounded-full bg-primary/25 blur-[80px]"
-                />
-
-                <motion.img
-                  src={zioMascot}
-                  alt="Zio, the Sayzio AI mascot"
-                  className="w-full h-auto drop-shadow-2xl select-none"
-                  draggable={false}
-                  {...float(-16, 6)}
-                />
-
-                {/* Floating AI badges */}
-                <motion.div
-                  className="absolute top-6 -left-4 sm:-left-10 glass-card py-2.5 px-4 rounded-2xl text-sm font-semibold flex items-center gap-2 whitespace-nowrap"
-                  {...float(-10, 4.5)}
-                >
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  Page built by AI
-                </motion.div>
-
-                <motion.div
-                  className="absolute bottom-24 -right-3 sm:-right-12 glass-card py-3 px-5 rounded-2xl text-sm font-semibold flex flex-col gap-1 whitespace-nowrap"
-                  {...float(12, 5.5, 1)}
-                >
-                  <span className="text-muted-foreground text-xs flex items-center gap-1.5">
-                    <Gauge className="w-3.5 h-3.5 text-primary" />
-                    AI Coach
-                  </span>
-                  <span className="text-foreground flex items-center gap-2">
-                    Growth this week <span className="text-green-500">+18%</span>
-                  </span>
-                </motion.div>
-
-                <motion.div
-                  className="absolute bottom-2 left-2 sm:-left-6 glass-card py-2.5 px-4 rounded-2xl text-sm font-semibold flex items-center gap-2 max-w-[200px]"
-                  {...float(-8, 5, 0.6)}
-                >
-                  <Bot className="w-4 h-4 shrink-0 text-primary" />
-                  <span className="truncate">“Hi! How can I help?”</span>
-                </motion.div>
-              </div>
+              <OrbitalUniverse />
             </motion.div>
           </div>
         </div>

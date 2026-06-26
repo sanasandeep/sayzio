@@ -289,6 +289,80 @@
   50%      { transform: translateY(-10px); }
 }
 
+/* ---------- Orbital "Zio universe" hero ---------- */
+.orbit-stage {
+  isolation: isolate;
+}
+
+/* Dotted rings — each circle is normalized to pathLength=100 so the dash count
+   is consistent regardless of radius. They spin on an infinite loop at
+   different speeds and directions. */
+.orbit-ring {
+  stroke: hsl(var(--primary) / 0.55);
+  stroke-width: 0.5;
+  stroke-linecap: round;
+  stroke-dasharray: 0.6 2.6;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.orbit-ring--1 { animation: orbit-spin 26s linear infinite; }
+.orbit-ring--2 { animation: orbit-spin 40s linear infinite reverse; }
+.orbit-ring--3 { animation: orbit-spin 58s linear infinite; }
+
+/* Faint continuous guide rings under the dotted ones. */
+.orbit-ring-faint {
+  stroke: hsl(var(--foreground) / 0.08);
+  stroke-width: 0.25;
+}
+
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Center mascot float */
+.orbit-zio { animation: orbit-float 7s ease-in-out infinite; }
+
+/* Planet wrapper: positioned on its ring, gently floating. */
+.orbit-planet {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+.orbit-planet-float {
+  position: relative;
+  animation: orbit-float 6s ease-in-out infinite;
+}
+.orbit-planet[data-active="true"] { z-index: 40; }
+.orbit-planet-btn {
+  position: relative;
+  cursor: pointer;
+}
+.orbit-planet-btn:hover { transform: scale(1.12); }
+
+@keyframes orbit-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+/* Tooltip: hidden until the planet is active (hover / focus / tap). */
+.orbit-tooltip {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+.orbit-planet[data-active="true"] .orbit-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Reduced motion: freeze every infinite loop, keep the layout legible. */
+.orbit-stage[data-reduced="true"] .orbit-ring,
+.orbit-stage[data-reduced="true"] .orbit-zio,
+.orbit-stage[data-reduced="true"] .orbit-planet-float {
+  animation: none !important;
+}
+
 /* ---------- 3D flip tile (AI features showcase) ---------- */
 .flip-tile {
   position: relative;
