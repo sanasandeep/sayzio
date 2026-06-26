@@ -43,6 +43,7 @@
 
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import fs from "node:fs";
 import path from "node:path";
 
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -106,6 +107,60 @@ const BANNED_PATTERNS: string[] = [
   // compile away to color values, so they never reach the built stylesheet).
   String.raw`\b(violet|purple)-(50|100|200|300|400|500|600|700|800|900|950)\b`,
 ];
+
+/**
+ * Cookie-consent config defaults guard (PHP backend exception).
+ * --------------------------------------------------------------
+ * The PHP backend (`artifacts/1inme/app/**`) is deliberately OUT of the
+ * SCAN_ROOTS above, because its catalogs store multi-color categorical palette
+ * DATA. But ONE PHP file is a genuine PRIMARY brand surface: the cookie-consent
+ * widget's default accent / button colors. Those defaults render as the brand
+ * accent on every visitor's consent prompt, so retired purple must never creep
+ * back in there. We scan just this single file for the retired HEX/rgb forms
+ * (Tailwind utility classes never appear in PHP config), keeping the scope
+ * narrow so the categorical palette catalogs elsewhere in the backend are not
+ * touched.
+ */
+const COOKIE_CONSENT_CONFIG = "artifacts/1inme/app/Modules/Common/Support/CookieConsentConfig.php";
+
+/** Build the HEX (incl. 8-digit alpha) + rgb() regexes for the consent scan. */
+function consentBannedRegexes(): RegExp[] {
+  const pats = [
+    ...RETIRED_COLORS.map((c) => hexPatternWithAlpha(c.base)),
+    ...RETIRED_COLORS.map((c) => rgbPatternFor(c.rgb)),
+  ];
+  return pats.map((p) => new RegExp(p, "i"));
+}
+
+/**
+ * Scan the cookie-consent config defaults file for retired purple, returning
+ * offender lines in vimgrep format (`path:line:col:text`) to match the
+ * ripgrep-based scan's output handling.
+ */
+function scanCookieConsentConfig(): string[] {
+  const abs = path.join(REPO_ROOT, COOKIE_CONSENT_CONFIG);
+  let src: string;
+  try {
+    src = fs.readFileSync(abs, "utf8");
+  } catch {
+    // Missing file is not this guard's concern (e.g. relocated/renamed).
+    return [];
+  }
+  const regexes = consentBannedRegexes();
+  const offenders: string[] = [];
+  const lines = src.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const text = lines[i] ?? "";
+    for (const re of regexes) {
+      const m = re.exec(text);
+      if (m) {
+        offenders.push(`${COOKIE_CONSENT_CONFIG}:${i + 1}:${m.index + 1}:${text}`);
+        break;
+      }
+    }
+  }
+  return offenders;
+}
 
 /** Primary UI surfaces to scan (relative to repo root). */
 const SCAN_ROOTS: string[] = [
@@ -233,23 +288,26 @@ function main(): void {
     console.error("brand-color guard: failed to run ripgrep:", res.error.message);
     process.exit(2);
   }
-  // rg exit codes: 0 = matches found, 1 = no matches, 2 = error.
-  if (res.status === 1) {
-    console.log("✓ brand-color guard passed — no retired purple in primary UI surfaces.");
-    process.exit(0);
-  }
   if (res.status === 2) {
     console.error("brand-color guard: ripgrep error:\n" + res.stderr);
     process.exit(2);
   }
 
   const offenders: string[] = [];
-  for (const line of res.stdout.split("\n")) {
-    if (!line.trim()) continue;
-    // vimgrep format: path:line:col:text
-    const file = line.slice(0, line.indexOf(":"));
-    if (!isAllowed(file)) offenders.push(line);
+  // rg exit codes: 0 = matches found, 1 = no matches, 2 = error. Either status
+  // is fine here — the cookie-consent config scan runs regardless.
+  if (res.status === 0) {
+    for (const line of res.stdout.split("\n")) {
+      if (!line.trim()) continue;
+      // vimgrep format: path:line:col:text
+      const file = line.slice(0, line.indexOf(":"));
+      if (!isAllowed(file)) offenders.push(line);
+    }
   }
+
+  // The PHP backend is otherwise out of scope, but the cookie-consent config
+  // defaults are a genuine brand surface — scan that single file too.
+  offenders.push(...scanCookieConsentConfig());
 
   if (offenders.length === 0) {
     console.log("✓ brand-color guard passed — purple only in intentional categorical palettes.");
