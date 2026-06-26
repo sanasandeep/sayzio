@@ -115,11 +115,6 @@
         }
         html.light-mode body { background: #f8fafc; color: #111827; }
         html.light-mode .aurora { opacity: 0.18; }
-        html.light-mode .stack-card {
-            background: rgba(15,23,42,0.85);
-            border-color: rgba(15,23,42,0.30);
-            color: #fff;
-        }
 
         /* ============ Aurora background ============ */
         .aurora { position: fixed; inset: -10%; z-index: -1; pointer-events: none; opacity: .6; filter: blur(80px); }
@@ -232,13 +227,8 @@
         .ring-pulse { position: absolute; border-radius: 50%; animation: ringPulse 2.4s cubic-bezier(0,0,.2,1) infinite; }
         @keyframes ringPulse { 0%{ transform: scale(.4); opacity:.9;} 80%,100%{ transform: scale(2.6); opacity:0;} }
 
-        /* ============ Sparkline draw ============ */
-        .spark-line { stroke-dasharray: 600; stroke-dashoffset: 600; animation: drawLine 2.4s ease-out forwards; }
+        /* ============ Drawn-line keyframe (shared by .draw-line) ============ */
         @keyframes drawLine { to { stroke-dashoffset: 0; } }
-
-        /* ============ Health gauge ============ */
-        .gauge-arc { stroke-dasharray: 251; stroke-dashoffset: 251; animation: gaugeFill 1.8s ease-out forwards; }
-        @keyframes gaugeFill { to { stroke-dashoffset: 75; } }
 
         /* ============ Drawn underline ============ */
         .draw-line { stroke-dasharray: 220; stroke-dashoffset: 220; animation: drawLine 1.6s 1s ease-out forwards; }
@@ -469,9 +459,8 @@
         /* ============ Reduced motion ============ */
         @media (prefers-reduced-motion: reduce) {
             .reveal, .aurora b, .float-a, .float-b, .float-c, .wiggle, .spin-slow,
-            .marquee, .marquee-rev, .eq i, .pulse-dot, .ring-pulse, .spark-line,
-            .gauge-arc, .draw-line, .grad-text, .drift-a, .drift-b, .pop-in, .btn-glow::after,
-            .stack-3d, .stack-card, .role-word,
+            .marquee, .marquee-rev, .eq i, .pulse-dot, .ring-pulse,
+            .draw-line, .grad-text, .drift-a, .drift-b, .pop-in, .btn-glow::after,
             .pp-live-dot, .pp-nfc-pulse, .pp-tip-card, .pp-dm-bubble, .pp-coach-num, .pp-coach-bar,
             .aud-blob, .aud-arrow {
                 animation: none !important; transition: none !important; transform: none !important; opacity: 1 !important;
@@ -480,12 +469,7 @@
             .aud-in-view .aud-icon > i { animation: none !important; transform: none !important; }
             .pp-in-view .pp-qr-wrap::after { animation: none !important; opacity: 0 !important; }
             .pp-coach-arc { stroke-dashoffset: 12.66 !important; animation: none !important; }
-            .spark-line, .draw-line { stroke-dashoffset: 0 !important; }
-            .gauge-arc { stroke-dashoffset: 75 !important; }
-            /* Simple crossfade fallback for the rotating hero */
-            .role-word { transition: opacity .35s ease !important; }
-            #hero-stack { transition: opacity .35s ease !important; }
-            .role-word.rm-out, #hero-stack.rm-out { opacity: 0 !important; }
+            .draw-line { stroke-dashoffset: 0 !important; }
         }
 
         /* Make <picture> transparent to layout so existing img selectors / flex / grid rules still apply. */
@@ -2256,26 +2240,6 @@
         html.light-mode .grad-bar .text-white\/80 { color: rgba(255,255,255,.85) !important; }
         html.light-mode .grad-bar .text-white\/70 { color: rgba(255,255,255,.78) !important; }
         html.light-mode .grad-bar .text-white\/60 { color: rgba(255,255,255,.70) !important; }
-        /* ---- Hero floating metric cards (custom classes + inline color:#fff) ----
-           .float-card sets its own translucent surface + white text that the
-           Tailwind-utility light-mode rules above never reach. Flip the card to
-           a real white surface with dark text so every value/label reads on the
-           white hero background. Per-variant colored box-shadows stay (they glow
-           fine on white). The .hero-mstat row is the mobile equivalent. */
-        html.light-mode .float-card {
-            background: #ffffff;
-            border-color: rgba(15,23,42,.10);
-            color: #0f172a;
-            box-shadow: 0 18px 40px -16px rgba(15,23,42,.18);
-        }
-        html.light-mode .float-card-label,
-        html.light-mode .hero-mstat .lbl,
-        html.light-mode .hero-mstat .sub { color: #64748b; }
-        html.light-mode .hero-mstat {
-            background: #ffffff;
-            border-color: rgba(15,23,42,.10);
-        }
-        html.light-mode .hero-mstat .val { color: #0f172a; }
         html.live, /* sentinel — keeps the file parseable */
         html.light-mode .text-gray-200                    { color: #1f2937; }
         html.light-mode .text-gray-300                    { color: #334155; }
