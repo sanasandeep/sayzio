@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "@/components/theme-provider";
 import { ASSISTANT_API_BASE } from "@/config";
-import zioBotMascot from "@assets/icon_1782414678709.png";
+import zioBotMascot from "@assets/ChatGPT_Image_Jun_26,_2026_at_09_24_23_AM_1782451375104.png";
 
 /**
  * Floating "Zio Bot" assistant widget for the marketing site.
@@ -657,19 +657,24 @@ export default function SiteAssistant() {
           height: 64,
           border: 0,
           cursor: "pointer",
-          borderRadius: "30px 30px 8px 30px",
-          overflow: "hidden",
+          padding: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background:
-            "radial-gradient(120% 120% at 30% 25%, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 45%), conic-gradient(from 200deg,#22d3ee 0deg,#6366f1 90deg,#a855f7 170deg,#ec4899 250deg,#f59e0b 320deg,#22d3ee 360deg)",
-          boxShadow:
-            "0 8px 18px -6px rgba(99,102,241,.5), inset 0 0 0 1.5px rgba(255,255,255,.35)",
+          background: "transparent",
+          boxShadow: "none",
         }}
       >
         {open ? (
-          <span style={{ color: "#fff", fontSize: 26, lineHeight: 1 }}>×</span>
+          <span
+            style={{
+              color: isDark ? "#fff" : "#1e1b2e",
+              fontSize: 26,
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </span>
         ) : (
           <motion.img
             src={zioBotMascot}
@@ -678,8 +683,8 @@ export default function SiteAssistant() {
             animate={{ y: [0, -2, 0], rotate: [0, -3, 0] }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             style={{
-              width: 44,
-              height: 44,
+              width: 60,
+              height: 60,
               objectFit: "contain",
               filter: "drop-shadow(0 2px 5px rgba(0,0,0,.32))",
               pointerEvents: "none",

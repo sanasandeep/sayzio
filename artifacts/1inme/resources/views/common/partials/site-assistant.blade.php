@@ -56,76 +56,20 @@
   55% {transform:scale(1.12)}
   100%{transform:scale(1)}
 }
-/* Soft outer aura — slow color drift, blob-shaped to feel organic. Hidden until hover. */
-.sa-launcher-wrap::before{
-  content:"";position:absolute;inset:-16px;
-  border-radius:38% 62% 55% 45% / 50% 45% 55% 50%;
-  background:conic-gradient(from 0deg,#22d3ee,#6366f1,#ec4899,#f59e0b,#22d3ee);
-  filter:blur(16px);opacity:0;z-index:0;
-  animation:sa-aura-spin 9s linear infinite, sa-blob-morph 7s ease-in-out infinite;
-  transition:opacity .35s ease;
-}
-.sa-launcher-wrap:hover::before,
-.sa-launcher-wrap:focus-within::before{opacity:.6}
-/* Pulsing ring follows the chat-tag silhouette — only on hover */
-.sa-launcher-wrap::after{
-  content:"";position:absolute;inset:0;
-  border-radius:30px 30px 8px 30px;
-  border:2px solid rgba(144,172,255,.55);z-index:0;
-  opacity:0;
-  animation:sa-pulse-ring 2.6s cubic-bezier(.22,.61,.36,1) infinite;
-  transition:opacity .25s ease;
-}
-.sa-launcher-wrap:hover::after,
-.sa-launcher-wrap:focus-within::after{opacity:1}
-.sa-launcher-wrap.sa-pos-left::after{border-radius:30px 30px 30px 8px}
 #sa-launcher{
   position:absolute;inset:0;width:68px;height:68px;
-  border-radius:30px 30px 8px 30px; /* chat-tag: tail bottom-left, points toward content */
   display:flex;align-items:center;justify-content:center;
-  cursor:pointer;border:0;color:#fff;z-index:2;overflow:hidden;
+  cursor:pointer;border:0;color:#fff;z-index:2;
   pointer-events:auto; /* re-enable clicks on the button itself (wrap is none) */
-  background:
-    radial-gradient(120% 120% at 30% 25%, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 45%),
-    conic-gradient(from 200deg,#22d3ee 0deg,#6366f1 90deg,#6e61ff 170deg,#ec4899 250deg,#f59e0b 320deg,#22d3ee 360deg);
-  box-shadow:
-    0 8px 18px -6px rgba(99,102,241,.45),
-    inset 0 0 0 1.5px rgba(255,255,255,.35);
-  transition:box-shadow .35s ease, border-radius .35s ease;
-  /* Breath only runs while hovered so an idle widget is calm */
-  animation:sa-breath 3.6s ease-in-out infinite;
-  animation-play-state:paused;
+  /* No background blob, ring, or glassy shadow — just the mascot head floating. */
+  background:transparent;box-shadow:none;
 }
-#sa-launcher.sa-pos-left{border-radius:30px 30px 30px 8px}
-.sa-launcher-wrap:hover #sa-launcher,
-.sa-launcher-wrap:focus-within #sa-launcher{
-  border-radius:34px 34px 12px 34px;
-  box-shadow:
-    0 22px 48px -10px rgba(99,102,241,.7),
-    0 10px 24px -8px rgba(236,72,153,.55),
-    inset 0 0 0 1.5px rgba(255,255,255,.45),
-    inset 0 -8px 18px rgba(0,0,0,.18);
-  animation-play-state:running;
-}
-.sa-launcher-wrap.sa-pos-left:hover #sa-launcher,
-.sa-launcher-wrap.sa-pos-left:focus-within #sa-launcher{border-radius:34px 34px 34px 12px}
-/* Animated gradient sheen sweeping across the launcher face — only on hover */
-#sa-launcher::before{
-  content:"";position:absolute;inset:0;border-radius:inherit;
-  background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);
-  transform:translateX(-130%);
-  animation:sa-sheen 4.5s ease-in-out infinite;
-  animation-play-state:paused;
-  pointer-events:none;
-}
-.sa-launcher-wrap:hover #sa-launcher::before,
-.sa-launcher-wrap:focus-within #sa-launcher::before{animation-play-state:running}
 #sa-launcher:active{transform:scale(.96)}
-#sa-launcher:focus-visible{outline:2px solid #fff;outline-offset:3px}
+#sa-launcher:focus-visible{outline:2px solid #90acff;outline-offset:3px;border-radius:16px}
 #sa-launcher .sa-icon-bubble{position:relative;z-index:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}
-/* Zio Bot mascot riding the launcher button — sits above the sheen, gentle
-   float so the character feels alive without overpowering the brand button. */
-#sa-launcher .sa-icon-mascot{position:relative;z-index:1;width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 2px 5px rgba(0,0,0,.32));pointer-events:none;animation:sa-mascot-float 4s ease-in-out infinite}
+/* Zio Bot mascot — the entire launcher face, gentle float so the character
+   feels alive while floating on its own with no background behind it. */
+#sa-launcher .sa-icon-mascot{position:relative;z-index:1;width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(15,23,42,.3));pointer-events:none;animation:sa-mascot-float 4s ease-in-out infinite}
 @keyframes sa-mascot-float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-2px) rotate(-3deg)}}
 @media (prefers-reduced-motion:reduce){#sa-launcher .sa-icon-mascot{animation:none}}
 #sa-launcher .sa-spark{
@@ -135,27 +79,9 @@
 #sa-launcher .sa-spark.s1{top:8px;right:11px;animation-delay:0s}
 #sa-launcher .sa-spark.s2{bottom:14px;left:10px;animation-delay:.9s;transform:scale(.7)}
 #sa-launcher .sa-spark.s3{top:18px;left:9px;animation-delay:1.7s;transform:scale(.55)}
-@keyframes sa-aura-spin{to{transform:rotate(360deg)}}
-@keyframes sa-blob-morph{
-  0%,100%{border-radius:38% 62% 55% 45% / 50% 45% 55% 50%}
-  50%{border-radius:55% 45% 40% 60% / 45% 55% 45% 55%}
-}
-@keyframes sa-pulse-ring{
-  0%{transform:scale(1);opacity:.7;border-width:2px}
-  80%{transform:scale(1.45);opacity:0;border-width:1px}
-  100%{transform:scale(1.45);opacity:0}
-}
 @keyframes sa-spark-orbit{
   0%,100%{opacity:.25;transform:translate(0,0) scale(.7) rotate(0)}
   50%{opacity:1;transform:translate(2px,-2px) scale(1.05) rotate(20deg)}
-}
-@keyframes sa-breath{
-  0%,100%{transform:translateY(0) scale(1)}
-  50%{transform:translateY(-3px) scale(1.025)}
-}
-@keyframes sa-sheen{
-  0%{transform:translateX(-130%)}
-  60%,100%{transform:translateX(130%)}
 }
 /* Speech-bubble tooltip popping out next to the launcher */
 .sa-tooltip{
@@ -195,8 +121,7 @@
   100%{transform:translateY(0) scale(1)}
 }
 @media (prefers-reduced-motion:reduce){
-  .sa-launcher-wrap::before,.sa-launcher-wrap::after,
-  #sa-launcher,#sa-launcher::before,#sa-launcher .sa-spark{animation:none}
+  #sa-launcher,#sa-launcher .sa-spark,#sa-launcher .sa-icon-mascot{animation:none}
   .sa-tooltip,.sa-tooltip.sa-show{transition:none;animation:none}
 }
 #sa-panel{position:fixed;bottom:90px;width:380px;max-width:calc(100vw - 24px);height:560px;max-height:calc(100vh - 120px);background:#0f172a;color:#e2e8f0;border-radius:16px;box-shadow:0 25px 60px rgba(0,0,0,.5);display:none;flex-direction:column;overflow:hidden;z-index:99999;border:1px solid rgba(255,255,255,.08);font-family:'Space Grotesk','system-ui',sans-serif}
