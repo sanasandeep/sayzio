@@ -58,13 +58,13 @@ class CookieConsentConfig
             'max_width'           => 440,       // px clamp for non-takeover layouts
             'radius'              => 16,        // border-radius in px
             'theme'               => 'auto',
-            'accent'              => '#7c3aed',
+            'accent'              => '#3d6bff',
 
             // Independent button styling. Each entry: bg, text, style.
             'buttons' => [
-                'primary'   => ['bg' => '#7c3aed', 'text' => '#ffffff', 'style' => 'solid'],
+                'primary'   => ['bg' => '#3d6bff', 'text' => '#ffffff', 'style' => 'solid'],
                 'secondary' => ['bg' => '#ffffff', 'text' => '#111827', 'style' => 'outline'],
-                'tertiary'  => ['bg' => '#7c3aed', 'text' => '#7c3aed', 'style' => 'link'],
+                'tertiary'  => ['bg' => '#3d6bff', 'text' => '#3d6bff', 'style' => 'link'],
             ],
 
             // Backdrop (modal / takeover layouts).
@@ -223,7 +223,7 @@ class CookieConsentConfig
     private static function color($v): string
     {
         $v = trim((string) $v);
-        return preg_match('/^#[0-9a-fA-F]{3,8}$/', $v) ? $v : '#7c3aed';
+        return preg_match('/^#[0-9a-fA-F]{3,8}$/', $v) ? $v : '#3d6bff';
     }
 
     private static function url($v): string
@@ -256,7 +256,7 @@ class CookieConsentConfig
             $curRow = (array) ($cur[$role] ?? []);
             $style = $row['style'] ?? ($curRow['style'] ?? 'solid');
             $out[$role] = [
-                'bg'    => self::color($row['bg']   ?? ($curRow['bg']   ?? '#7c3aed')),
+                'bg'    => self::color($row['bg']   ?? ($curRow['bg']   ?? '#3d6bff')),
                 'text'  => self::color($row['text'] ?? ($curRow['text'] ?? '#ffffff')),
                 'style' => in_array($style, self::BTN_STYLES, true) ? $style : 'solid',
             ];
