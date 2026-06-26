@@ -690,6 +690,54 @@ uri = "file://artifacts/1inme/public/images/marketing/ai-hero/gallery-pastry.png
 type = "image"
 title = "generated_image"
 
+[[generated]]
+id = "ygXwWov4gJxFfaebBtAp3"
+uri = "file://attached_assets/aihero/fit-avatar.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "eSLBySu40jY8egICovRsO"
+uri = "file://attached_assets/aihero/fit-workout.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "vlbMTrTZgoTtSft8J-bE2"
+uri = "file://attached_assets/aihero/fit-meal.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "sXiTapF8K9bb89pvlai0e"
+uri = "file://attached_assets/aihero/fit-gym.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "zquK4LJrq7SdfQX76dNTL"
+uri = "file://attached_assets/aihero/mus-avatar.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "DHs4D3YfwD4H2ircnIXFY"
+uri = "file://attached_assets/aihero/mus-live.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "54NGTWaHXR-Ko8a00Dmbk"
+uri = "file://attached_assets/aihero/mus-vinyl.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "m_zS7UH5XsdFl_vPil_dS"
+uri = "file://attached_assets/aihero/mus-studio.png"
+type = "image"
+title = "generated_image"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"

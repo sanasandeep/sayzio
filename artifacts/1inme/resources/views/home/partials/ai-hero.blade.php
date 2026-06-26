@@ -322,7 +322,15 @@
         avatar: '{{ asset('images/marketing/ai-hero/avatar.webp') }}',
         latte: '{{ asset('images/marketing/ai-hero/gallery-latte.webp') }}',
         beans: '{{ asset('images/marketing/ai-hero/gallery-beans.webp') }}',
-        pastry: '{{ asset('images/marketing/ai-hero/gallery-pastry.webp') }}'
+        pastry: '{{ asset('images/marketing/ai-hero/gallery-pastry.webp') }}',
+        avatarFitness: '{{ asset('images/marketing/ai-hero/avatar-fitness.webp') }}',
+        workout: '{{ asset('images/marketing/ai-hero/gallery-workout.webp') }}',
+        meal: '{{ asset('images/marketing/ai-hero/gallery-meal.webp') }}',
+        gym: '{{ asset('images/marketing/ai-hero/gallery-gym.webp') }}',
+        avatarMusic: '{{ asset('images/marketing/ai-hero/avatar-music.webp') }}',
+        live: '{{ asset('images/marketing/ai-hero/gallery-live.webp') }}',
+        vinyl: '{{ asset('images/marketing/ai-hero/gallery-vinyl.webp') }}',
+        studio: '{{ asset('images/marketing/ai-hero/gallery-studio.webp') }}'
     };
     var EXAMPLES = [
         {
@@ -337,19 +345,26 @@
             gallery: { imgs: [IMG.latte, IMG.beans, IMG.pastry] }
         },
         {
-            prompt: 'A page for my band with the new single, tour dates & merch',
-            name: 'Neon Tigers', tag: 'Indie synth-pop · on tour now', time: '15s',
-            avatar: { icon: 'fa-guitar' },
+            prompt: 'A coaching page for my fitness business with bookings & reviews',
+            name: 'Mia Strong', tag: '1:1 coaching · online & in person', time: '16s',
+            avatar: { img: IMG.avatarFitness },
             links: [
-                { icon: 'fa-play', label: 'Stream the single', color: 'var(--c1)' },
-                { icon: 'fa-calendar-days', label: 'Tour dates', color: 'var(--c2)' },
-                { icon: 'fa-shirt', label: 'Shop the merch', color: 'var(--c5)' }
+                { icon: 'fa-calendar-check', label: 'Book a session', color: 'var(--c1)' },
+                { icon: 'fa-dumbbell', label: 'Free workout plan', color: 'var(--c2)' },
+                { icon: 'fa-star', label: 'Client reviews', color: 'var(--c5)', rating: '5.0' }
             ],
-            gallery: { tiles: [
-                { icon: 'fa-compact-disc', color: 'var(--c1)' },
-                { icon: 'fa-music', color: 'var(--c2)' },
-                { icon: 'fa-headphones', color: 'var(--c5)' }
-            ] }
+            gallery: { imgs: [IMG.workout, IMG.meal, IMG.gym] }
+        },
+        {
+            prompt: 'A page for my music with new songs, tour dates & merch',
+            name: 'Lyra Vale', tag: 'Indie folk · new single out now', time: '15s',
+            avatar: { img: IMG.avatarMusic },
+            links: [
+                { icon: 'fa-play', label: 'Listen now', color: 'var(--c5)' },
+                { icon: 'fa-calendar-day', label: 'Tour dates', color: 'var(--c1)' },
+                { icon: 'fa-shirt', label: 'Shop merch', color: 'var(--c2)' }
+            ],
+            gallery: { imgs: [IMG.live, IMG.vinyl, IMG.studio] }
         },
         {
             prompt: 'A page for my restaurant with menu, bookings & directions',
