@@ -10,6 +10,7 @@ use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\BiolinkWizardGenerator;
 use App\Modules\User\Services\BiolinkWizardQuestions;
 use App\Modules\User\Services\PersonaCatalog;
+use App\Modules\User\Support\LinkTypeCategories;
 use App\Modules\User\Services\WizardAiDraftService;
 use App\Modules\User\Services\WizardStartingDesignService;
 use App\Modules\Admin\Rules\NotBannedName;
@@ -111,6 +112,12 @@ class BiolinkWizardController extends Controller
             'groups'                => PersonaCatalog::groups(),
             'personas'              => $personas,
             'industries_by_persona' => $industriesByPersona,
+            // Goal (link type) => persona group the guided wizard pre-seeds, so
+            // the mobile "Create Link" surface can offer the same one-tap guided
+            // path as web (LinkTypeCategories::wizardGroups()). A null value =
+            // the generic wizard (no group pre-seed). Single source of truth
+            // shared with the web Create Link page.
+            'wizard_groups'         => LinkTypeCategories::wizardGroups(),
             // Legacy keys kept for backward compatibility with older clients.
             'categories' => BiolinkWizardQuestions::categories(),
             'page_types' => $pageTypes,

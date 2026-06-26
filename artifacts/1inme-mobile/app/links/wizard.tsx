@@ -135,6 +135,7 @@ export default function BiolinkWizardScreen() {
   const params = useLocalSearchParams<{
     prefillCategory?: string;
     prefillAnswers?: string;
+    prefillGroup?: string;
   }>();
 
   const [step, setStep] = useState<Step>("group");
@@ -231,8 +232,11 @@ export default function BiolinkWizardScreen() {
   const prefilled = useRef(false);
   useEffect(() => {
     if (prefilled.current) return;
-    if (!params.prefillCategory && !params.prefillAnswers) return;
-    if (params.prefillCategory && !taxonomyQ.data) return; // wait for taxonomy
+    if (!params.prefillCategory && !params.prefillAnswers && !params.prefillGroup)
+      return;
+    // Both the category match and the group seed need the taxonomy loaded.
+    if ((params.prefillCategory || params.prefillGroup) && !taxonomyQ.data)
+      return; // wait for taxonomy
 
     prefilled.current = true;
 
@@ -253,6 +257,7 @@ export default function BiolinkWizardScreen() {
     }
 
     const cat = params.prefillCategory;
+    let matchedCategory = false;
     if (typeof cat === "string" && cat && taxonomyQ.data) {
       for (const [groupKey, list] of Object.entries(taxonomyQ.data.personas)) {
         const match = list.find((p) => p.category === cat);
@@ -260,11 +265,34 @@ export default function BiolinkWizardScreen() {
           setGroup(groupKey);
           setPersona(match.slug);
           setStep("design");
+          matchedCategory = true;
           break;
         }
       }
     }
-  }, [params.prefillCategory, params.prefillAnswers, taxonomyQ.data]);
+
+    // One-tap guided path from the "Create Link" screen: `prefillGroup=<persona
+    // group>` seeds the group step so a user who already picked a goal skips the
+    // first ("What are you building?") question and lands on persona selection.
+    // Mirrors the web wizard's `?group=` handoff. Only applied for a valid group
+    // and when a more-specific category match didn't already advance the flow.
+    if (!matchedCategory) {
+      const grp = params.prefillGroup;
+      if (
+        typeof grp === "string" &&
+        grp &&
+        taxonomyQ.data?.groups.some((g) => g.key === grp)
+      ) {
+        setGroup(grp);
+        setStep("persona");
+      }
+    }
+  }, [
+    params.prefillCategory,
+    params.prefillAnswers,
+    params.prefillGroup,
+    taxonomyQ.data,
+  ]);
 
   // The wizard always produces a biolink-family link, so its real upfront
   // plan gate is the `max_biolinks` / `max_links` quota (mirrors the server

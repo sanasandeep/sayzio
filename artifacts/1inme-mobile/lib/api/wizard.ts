@@ -62,6 +62,11 @@ export type WizardTaxonomy = {
   personas: Record<string, WizardPersona[]>;
   // Optional niche refinement keyed by persona slug (specific-only).
   industries_by_persona: Record<string, WizardIndustry[]>;
+  // Goal (link type) => persona group the guided wizard pre-seeds, mirroring
+  // the web Create Link page (LinkTypeCategories::wizardGroups()). A null value
+  // means "no group pre-seed" (the generic wizard). Goals absent from this map
+  // have no wizard path and keep the manual create flow.
+  wizard_groups: Record<string, string | null>;
   // Legacy keys (kept for backward compatibility; unused by the new flow).
   categories: WizardCategory[];
   page_types: Record<string, WizardPageType[]>;

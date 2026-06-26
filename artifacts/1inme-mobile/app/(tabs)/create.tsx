@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -20,6 +21,7 @@ import { onVoiceAction, setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
 import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import type { VoiceClientAction } from "@/lib/api/voice";
+import { getWizardTaxonomy } from "@/lib/api/wizard";
 import {
   KINDS_BY_API,
   LINK_KIND_CATEGORIES,
@@ -48,6 +50,33 @@ export default function CreateTab() {
       router.push(`/links/create/${meta.kind}` as never);
     },
     [plan, router],
+  );
+
+  // Goal => guided-wizard persona group map, mirroring the web Create Link
+  // page (LinkTypeCategories::wizardGroups()). Cached & shared with the wizard
+  // screen's own taxonomy query. Fails open: if it hasn't loaded, every kind
+  // simply keeps the manual create flow with no guided CTA.
+  const taxonomyQ = useQuery({
+    queryKey: ["wizard-taxonomy"],
+    queryFn: getWizardTaxonomy,
+    staleTime: 5 * 60 * 1000,
+  });
+  const wizardGroups = taxonomyQ.data?.wizard_groups;
+
+  // Open the guided wizard for a goal that supports it, pre-seeding the matching
+  // persona group so the user skips the wizard's first question (parity with the
+  // web one-tap path). A null group means "generic wizard" (no pre-seed).
+  const openGuided = useCallback(
+    (apiType: string) => {
+      if (!wizardGroups || !(apiType in wizardGroups)) return;
+      const group = wizardGroups[apiType];
+      router.push(
+        (group
+          ? `/links/wizard?prefillGroup=${encodeURIComponent(group)}`
+          : "/links/wizard") as never,
+      );
+    },
+    [router, wizardGroups],
   );
 
   // ── Voice control ──────────────────────────────────────────────
@@ -167,6 +196,11 @@ export default function CreateTab() {
               {category.kinds.map((kind) => {
                 const meta = metaForKind(kind as LinkKind);
                 const locked = plan.isLinkTypeLocked(meta.apiType);
+                // Whether this goal supports the guided wizard (parity with web).
+                const hasGuided =
+                  !locked &&
+                  !!wizardGroups &&
+                  meta.apiType in wizardGroups;
                 return (
                   <RevealCard
                     key={meta.kind}
@@ -181,6 +215,15 @@ export default function CreateTab() {
                           backgroundColor: colors.card,
                           borderColor: colors.border,
                           borderRadius: colors.radius,
+                          // When a guided CTA is stacked below, square off the
+                          // bottom corners so the two read as one connected card.
+                          ...(hasGuided
+                            ? {
+                                borderBottomLeftRadius: 0,
+                                borderBottomRightRadius: 0,
+                                borderBottomWidth: 0,
+                              }
+                            : null),
                           opacity: pressed ? 0.85 : 1,
                         },
                       ]}
@@ -231,6 +274,44 @@ export default function CreateTab() {
                         color={colors.mutedForeground}
                       />
                     </Pressable>
+
+                    {hasGuided ? (
+                      <Pressable
+                        onPress={() => openGuided(meta.apiType)}
+                        style={({ pressed }) => [
+                          styles.guidedCta,
+                          {
+                            backgroundColor: colors.primary + "12",
+                            borderColor: colors.primary + "44",
+                            borderBottomLeftRadius: colors.radius,
+                            borderBottomRightRadius: colors.radius,
+                            opacity: pressed ? 0.85 : 1,
+                          },
+                        ]}
+                      >
+                        <View
+                          style={[
+                            styles.guidedBadge,
+                            { backgroundColor: colors.primary + "26" },
+                          ]}
+                        >
+                          <Feather name="zap" size={12} color={colors.primary} />
+                        </View>
+                        <Text
+                          style={[
+                            styles.guidedText,
+                            { color: colors.primary },
+                          ]}
+                        >
+                          Build this with the guided wizard
+                        </Text>
+                        <Feather
+                          name="arrow-right"
+                          size={14}
+                          color={colors.primary}
+                        />
+                      </Pressable>
+                    ) : null}
                   </RevealCard>
                 );
               })}
@@ -357,5 +438,27 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
     lineHeight: 18,
+  },
+  guidedCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    marginTop: -1,
+  },
+  guidedBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  guidedText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 13,
+    flex: 1,
   },
 });
