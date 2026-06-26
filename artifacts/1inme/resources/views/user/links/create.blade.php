@@ -12,6 +12,38 @@
         <h1 class="text-2xl font-bold text-white">Create Link</h1>
     </div>
 
+    <style>
+        @media (prefers-reduced-motion: no-preference) {
+            .lt-card-reveal { opacity: 0; transform: translateY(12px); animation: ltCardReveal .5s cubic-bezier(.21,.6,.35,1) forwards; }
+            @keyframes ltCardReveal { to { opacity: 1; transform: none; } }
+        }
+    </style>
+
+    {{-- HERO: guided wizard — the recommended, primary path --}}
+    <a href="{{ route('user.links.wizard') }}"
+       class="block relative overflow-hidden glass rounded-3xl p-6 sm:p-8 mb-8 border border-blue-500/30 bg-gradient-to-br from-blue-500/15 via-indigo-500/10 to-fuchsia-500/10 hover:from-blue-500/20 hover:via-indigo-500/15 hover:to-fuchsia-500/15 transition-all group hover:shadow-2xl hover:shadow-blue-500/20">
+        <div class="absolute -top-24 -right-16 w-64 h-64 rounded-full bg-fuchsia-500/20 blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -left-16 w-64 h-64 rounded-full bg-blue-500/20 blur-3xl pointer-events-none"></div>
+        <div class="relative flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/30">
+                <i class="fas fa-magic text-2xl"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-blue-200 bg-blue-500/20 border border-blue-400/30 rounded-full px-2.5 py-0.5 mb-2">
+                    <i class="fas fa-star text-[9px]"></i> Recommended
+                </span>
+                <div class="text-xl sm:text-2xl font-bold text-white">Build a Link in Bio with the guided wizard</div>
+                <div class="text-sm text-white/60 mt-1.5 max-w-xl">Answer a few quick questions and we'll generate your whole page for you — blocks, layout and styling, all done. The fastest way to get a page live.</div>
+            </div>
+            <div class="flex items-center gap-2 text-blue-200 font-medium flex-shrink-0">
+                <span class="text-sm hidden sm:inline">Start building</span>
+                <span class="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center group-hover:bg-blue-500/30 group-hover:translate-x-0.5 transition-all">
+                    <i class="fas fa-arrow-right"></i>
+                </span>
+            </div>
+        </div>
+    </a>
+
     <form method="POST" action="{{ route('user.links.choose-type') }}"
           x-data="{ type: '{{ old('type', $lastType ?? '') }}' }"
           x-init="window.__voiceSurface = { name: 'create_link' }"
@@ -23,90 +55,42 @@
           ">
         @csrf
 
-        <div class="glass rounded-2xl p-6 mb-6">
-            <label class="block text-sm font-medium text-white/60 mb-1.5">
-                Custom URL <span class="text-white/30 text-xs">(optional)</span>
-            </label>
-            <div class="flex items-stretch rounded-xl bg-white/5 border border-white/10 focus-within:ring-2 focus-within:ring-blue-500/40 overflow-hidden">
-                <span class="flex items-center px-3 text-sm text-white/40 bg-white/[0.03] border-r border-white/10 select-none">
-                    {{ $domainHost }}/
-                </span>
-                <input type="text" name="alias"
-                       value="{{ old('alias', $prefillAlias ?? '') }}"
-                       placeholder="leave blank to auto-generate"
-                       minlength="{{ $aliasLimits['min'] }}"
-                       maxlength="{{ $aliasLimits['max'] }}"
-                       pattern="[A-Za-z0-9_\-]+"
-                       autocomplete="off" spellcheck="false"
-                       class="flex-1 bg-transparent px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none">
-            </div>
-            @error('alias') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
-            <p class="text-xs text-white/30 mt-1.5">
-                Leave blank and we'll generate one for you. Letters, numbers, dashes &amp; underscores only.
-                Length: {{ $aliasLimits['min'] }}–{{ $aliasLimits['max'] }} characters
-                @if(!empty($aliasUpgradeHint))
-                    · <a href="{{ route('user.plans.index') }}" class="text-blue-400 hover:underline">upgrade for more</a>
-                @endif.
-            </p>
-        </div>
-
-        <a href="{{ route('user.links.url.bulk') }}"
-           class="block glass rounded-2xl p-5 mb-4 border border-emerald-500/20 bg-gradient-to-r from-emerald-500/10 to-teal-500/5 hover:from-emerald-500/15 hover:to-teal-500/10 transition-all group">
-            <div class="flex items-center gap-4">
-                <div class="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-layer-group text-lg"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="text-white font-medium">Bulk create short links</div>
-                    <div class="text-xs text-white/50 mt-0.5">Paste a list or upload a CSV — share settings across many links in one go.</div>
-                </div>
-                <i class="fas fa-arrow-right text-white/30 group-hover:text-emerald-300 transition-colors"></i>
-            </div>
-        </a>
-
-        <a href="{{ route('user.links.biolink.bulk') }}"
-           class="block glass rounded-2xl p-5 mb-4 border border-sky-500/20 bg-gradient-to-r from-sky-500/10 to-indigo-500/5 hover:from-sky-500/15 hover:to-indigo-500/10 transition-all group">
-            <div class="flex items-center gap-4">
-                <div class="w-11 h-11 rounded-xl bg-sky-500/20 text-sky-300 flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-table text-lg"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="text-white font-medium">Bulk create Link in Bio pages from a sheet</div>
-                    <div class="text-xs text-white/50 mt-0.5">Mail-merge a master page with a CSV/Excel or pasted table — one personalized page per row.</div>
-                </div>
-                <i class="fas fa-arrow-right text-white/30 group-hover:text-sky-300 transition-colors"></i>
-            </div>
-        </a>
-
-        <a href="{{ route('user.links.wizard') }}"
-           class="block glass rounded-2xl p-5 mb-4 border border-blue-500/20 bg-gradient-to-r from-blue-500/10 to-fuchsia-500/5 hover:from-blue-500/15 hover:to-fuchsia-500/10 transition-all group">
-            <div class="flex items-center gap-4">
-                <div class="w-11 h-11 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-magic text-lg"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="text-white font-medium">Build a Link in Bio with the guided wizard</div>
-                    <div class="text-xs text-white/50 mt-0.5">Answer a few questions and we'll generate your page — blocks, layout and all.</div>
-                </div>
-                <i class="fas fa-arrow-right text-white/30 group-hover:text-blue-300 transition-colors"></i>
-            </div>
-        </a>
-
         @php
             $linkCategories = \App\Modules\User\Support\LinkTypeCategories::categories();
             $cardIndex = 0;
         @endphp
 
-        <style>
-            @media (prefers-reduced-motion: no-preference) {
-                .lt-card-reveal { opacity: 0; transform: translateY(12px); animation: ltCardReveal .5s cubic-bezier(.21,.6,.35,1) forwards; }
-                @keyframes ltCardReveal { to { opacity: 1; transform: none; } }
-            }
-        </style>
-
+        {{-- SECONDARY: pick a link type manually --}}
         <div class="glass rounded-2xl p-6 mb-6">
             <h2 class="text-base font-semibold text-white mb-1">…or pick a link type manually</h2>
             <p class="text-xs text-white/40 mb-6">Pick one to continue — we'll only ask for the fields that matter for that type.</p>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-white/60 mb-1.5">
+                    Custom URL <span class="text-white/30 text-xs">(optional)</span>
+                </label>
+                <div class="flex items-stretch rounded-xl bg-white/5 border border-white/10 focus-within:ring-2 focus-within:ring-blue-500/40 overflow-hidden">
+                    <span class="flex items-center px-3 text-sm text-white/40 bg-white/[0.03] border-r border-white/10 select-none">
+                        {{ $domainHost }}/
+                    </span>
+                    <input type="text" name="alias"
+                           value="{{ old('alias', $prefillAlias ?? '') }}"
+                           placeholder="leave blank to auto-generate"
+                           minlength="{{ $aliasLimits['min'] }}"
+                           maxlength="{{ $aliasLimits['max'] }}"
+                           pattern="[A-Za-z0-9_\-]+"
+                           autocomplete="off" spellcheck="false"
+                           class="flex-1 bg-transparent px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none">
+                </div>
+                @error('alias') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
+                <p class="text-xs text-white/30 mt-1.5">
+                    Leave blank and we'll generate one for you. Letters, numbers, dashes &amp; underscores only.
+                    Length: {{ $aliasLimits['min'] }}–{{ $aliasLimits['max'] }} characters
+                    @if(!empty($aliasUpgradeHint))
+                        · <a href="{{ route('user.plans.index') }}" class="text-blue-400 hover:underline">upgrade for more</a>
+                    @endif.
+                </p>
+            </div>
 
             <div class="space-y-8">
                 @foreach($linkCategories as $category)
@@ -157,14 +141,48 @@
                 @endforeach
             </div>
             @error('type') <p class="text-red-400 text-sm mt-2">{{ $message }}</p> @enderror
-        </div>
 
-        <div class="flex items-center justify-end gap-3">
-            <a href="{{ route('user.links.index') }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Cancel</a>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
-                Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
-            </button>
+            <div class="flex items-center justify-end gap-3 mt-6">
+                <a href="{{ route('user.links.index') }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Cancel</a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
+                    Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
+                </button>
+            </div>
         </div>
     </form>
+
+    {{-- TERTIARY: bulk & advanced — rare actions, de-emphasized --}}
+    <div class="mt-8">
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-white/40 mb-3 px-1">Bulk &amp; advanced</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <a href="{{ route('user.links.url.bulk') }}"
+               class="block glass rounded-xl p-4 border border-white/10 hover:border-emerald-500/30 hover:bg-emerald-500/[0.06] transition-all group">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-500/15 text-emerald-300 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm text-white font-medium truncate">Bulk create short links</div>
+                        <div class="text-xs text-white/40 mt-0.5">Paste a list or upload a CSV.</div>
+                    </div>
+                    <i class="fas fa-arrow-right text-white/20 group-hover:text-emerald-300 transition-colors text-xs"></i>
+                </div>
+            </a>
+
+            <a href="{{ route('user.links.biolink.bulk') }}"
+               class="block glass rounded-xl p-4 border border-white/10 hover:border-sky-500/30 hover:bg-sky-500/[0.06] transition-all group">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-sky-500/15 text-sky-300 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-table"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm text-white font-medium truncate">Bulk create Link in Bio pages</div>
+                        <div class="text-xs text-white/40 mt-0.5">Mail-merge a master page from a sheet.</div>
+                    </div>
+                    <i class="fas fa-arrow-right text-white/20 group-hover:text-sky-300 transition-colors text-xs"></i>
+                </div>
+            </a>
+        </div>
+    </div>
 </div>
 @endsection
