@@ -154,6 +154,22 @@ class BiolinkWizardController extends Controller
         }
 
         $draft = $this->loadDraft($request);
+
+        // One-tap prefill from the "Create Link" goal prompt: `?group=<persona
+        // group>` seeds the persona-group step so a user who already picked a
+        // goal (e.g. "Show a menu") skips the wizard's first question. Only
+        // applied to a fresh/empty draft so an in-progress wizard is never
+        // clobbered — the wizard otherwise auto-resumes the latest draft.
+        $prefillGroup = $request->query('group');
+        if (is_string($prefillGroup) && PersonaCatalog::isValidGroup($prefillGroup)) {
+            $draft ??= $this->newDraft($request);
+            if (!$draft->persona_group && !$draft->persona) {
+                $draft->persona_group = $prefillGroup;
+                $draft->step = 1;
+                $draft->save();
+            }
+        }
+
         $category = $draft?->category;
         $pageType = $draft?->page_type;
 

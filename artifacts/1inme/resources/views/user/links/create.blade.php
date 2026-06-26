@@ -131,10 +131,20 @@
                 $cat['types']
             );
         }
+
+        // Goal => guided-wizard URL for the goals the wizard can build,
+        // pre-seeding the matching persona group where one applies. Goals
+        // absent here have no wizard path and keep the manual flow.
+        $wizardIntentUrls = [];
+        foreach (\App\Modules\User\Support\LinkTypeCategories::wizardGroups() as $intentType => $wizardGroup) {
+            $wizardIntentUrls[$intentType] = $wizardGroup
+                ? route('user.links.wizard', ['group' => $wizardGroup])
+                : route('user.links.wizard');
+        }
     @endphp
 
     <form method="POST" action="{{ route('user.links.choose-type') }}"
-          x-data="linkTypePicker({ type: '{{ old('type', $lastType ?? '') }}', searchIndex: {{ Illuminate\Support\Js::from(\App\Modules\User\Support\LinkTypeCategories::searchIndex()) }}, cats: {{ \Illuminate\Support\Js::from($linkFilterCats) }} })"
+          x-data="linkTypePicker({ type: '{{ old('type', $lastType ?? '') }}', searchIndex: {{ Illuminate\Support\Js::from(\App\Modules\User\Support\LinkTypeCategories::searchIndex()) }}, cats: {{ \Illuminate\Support\Js::from($linkFilterCats) }}, wizardPaths: {{ \Illuminate\Support\Js::from($wizardIntentUrls) }} })"
           x-init="window.__voiceSurface = { name: 'create_link' }"
           @voice-action.window="
               if ($event.detail && $event.detail.type === 'select_link_type' && $event.detail.link_type) {
@@ -204,6 +214,28 @@
                         </template>
                     </p>
                 </div>
+
+                {{-- One-tap guided-wizard path. Appears only when the chosen
+                     goal maps to a wizard-supported type; the wizard lands with
+                     the matching category pre-seeded so the user skips its first
+                     question. Goals without a wizard path keep manual select. --}}
+                <a x-cloak x-show="!!wizardPaths[type]" :href="wizardPaths[type] || '#'"
+                   x-transition:enter="transition ease-out duration-200"
+                   x-transition:enter-start="opacity-0 -translate-y-1"
+                   x-transition:enter-end="opacity-100 translate-y-0"
+                   class="mt-3.5 flex items-center gap-3 rounded-xl border border-blue-500/30 bg-gradient-to-br from-blue-500/15 to-fuchsia-500/10 hover:from-blue-500/20 hover:to-fuchsia-500/15 px-4 py-3 transition-all group">
+                    <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/30">
+                        <i class="fas fa-magic text-xs"></i>
+                    </span>
+                    <span class="flex-1 min-w-0">
+                        <span class="block text-sm font-semibold text-white">Build this with the guided wizard</span>
+                        <span class="block text-xs text-white/50">We'll start you in the right place — answer a few questions and we'll generate the page.</span>
+                    </span>
+                    <span class="flex items-center gap-1.5 text-blue-200 text-sm font-medium flex-shrink-0">
+                        <span class="hidden sm:inline">Start</span>
+                        <i class="fas fa-arrow-right text-xs group-hover:translate-x-0.5 transition-transform"></i>
+                    </span>
+                </a>
             </div>
 
             <div class="mb-6">
@@ -390,6 +422,9 @@ document.addEventListener('alpine:init', function () {
             search: '',
             activeCategory: 'all',
             cats: config.cats || {},
+
+            // Goal => guided-wizard URL map for the one-tap guided path.
+            wizardPaths: config.wizardPaths || {},
 
             matches: function (label, desc, key) {
                 if (this.activeCategory !== 'all' && this.activeCategory !== key) { return false; }

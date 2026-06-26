@@ -148,6 +148,29 @@ class LinkTypeCategories
     }
 
     /**
+     * Goals from intents() that the guided biolink wizard can build, mapped to
+     * the persona group the wizard should pre-seed for its first ("category")
+     * step. A null value means "no specific group" — drop the user into the
+     * generic wizard. Goals absent from this map have no wizard path and keep
+     * the manual link-type selection flow.
+     *
+     * The wizard always produces a biolink-family page, so only goals it can
+     * sensibly theme belong here: the generic Link in Bio, and the food/menu
+     * goal (the Food persona group's chef persona is built around menus).
+     *
+     * Every group key here must be a valid PersonaCatalog group.
+     *
+     * @return array<string, string|null>
+     */
+    public static function wizardGroups(): array
+    {
+        return [
+            'biolink'         => null,
+            'restaurant_menu' => 'Food',
+        ];
+    }
+
+    /**
      * Flat, value-keyed view of every link type in the catalog. Lets surfaces
      * that work one type at a time (e.g. a per-link type badge) look up a
      * type's label/icon/badge/desc without re-flattening the groups.

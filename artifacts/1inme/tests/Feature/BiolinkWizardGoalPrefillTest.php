@@ -1,0 +1,119 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Modules\User\Models\BiolinkWizardDraft;
+use App\Modules\User\Models\User;
+use App\Modules\User\Services\WorkspaceContext;
+use App\Modules\User\Support\LinkTypeCategories;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Tests\TestCase;
+
+/**
+ * Coverage for carrying a chosen "Create Link" goal into the guided wizard.
+ *
+ * The create page's intent prompt offers a one-tap path into the wizard for
+ * goals the wizard can build, pre-seeding the matching persona group via a
+ * `?group=<persona group>` query param on the wizard index. These tests lock
+ * in that the prefill seeds a fresh draft, never clobbers an in-progress one,
+ * and that the goal→group map only references valid persona groups.
+ */
+class BiolinkWizardGoalPrefillTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function makeUser(): User
+    {
+        $user = User::create([
+            'name'     => 'Wiz ' . Str::random(4),
+            'email'    => 'wiz-' . Str::random(8) . '@example.com',
+            'password' => Hash::make('x'),
+            'status'   => 'active',
+        ]);
+        $user->ensureDefaultWorkspace();
+        return $user->fresh();
+    }
+
+    private function activeWorkspaceId(User $user): ?int
+    {
+        return app(WorkspaceContext::class)->resolve($user)?->id;
+    }
+
+    /** Every goal→group entry must reference a real persona group (or null). */
+    public function test_wizard_groups_map_to_valid_persona_groups(): void
+    {
+        $valid = \App\Modules\User\Services\PersonaCatalog::groupKeys();
+
+        foreach (LinkTypeCategories::wizardGroups() as $type => $group) {
+            if ($group === null) {
+                continue; // generic wizard entry — no group to validate
+            }
+            $this->assertContains($group, $valid,
+                "goal '{$type}' maps to unknown persona group '{$group}'");
+        }
+    }
+
+    /** A `?group=` prefill seeds a fresh draft on the persona step. */
+    public function test_group_prefill_seeds_a_fresh_draft(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user)
+            ->get('/user/links/wizard?group=Food')
+            ->assertOk();
+
+        $draft = BiolinkWizardDraft::where('actor_user_id', $user->id)->latest('id')->first();
+        $this->assertNotNull($draft, 'a draft should be seeded from the prefill');
+        $this->assertSame('Food', $draft->persona_group);
+        $this->assertSame(1, (int) $draft->step);
+        // The persona itself is still the user's choice on step 1.
+        $this->assertNull($draft->persona);
+    }
+
+    /** An in-progress draft is never clobbered by a prefill param. */
+    public function test_group_prefill_does_not_clobber_in_progress_draft(): void
+    {
+        $user = $this->makeUser();
+
+        $draft = BiolinkWizardDraft::create([
+            'user_id'       => $user->id,
+            'actor_user_id' => $user->id,
+            'workspace_id'  => $this->activeWorkspaceId($user),
+            'persona'       => 'creator',
+            'persona_group' => 'Creators',
+            'category'      => 'creator',
+            'page_type'     => 'influencer',
+            'industry'      => null,
+            'step'          => 3,
+            'answers'       => ['display_name' => 'Existing'],
+        ]);
+
+        $this->actingAs($user)
+            ->get('/user/links/wizard?group=Food')
+            ->assertOk();
+
+        $draft->refresh();
+        $this->assertSame('Creators', $draft->persona_group, 'existing group must survive');
+        $this->assertSame('creator', $draft->persona, 'existing persona must survive');
+        $this->assertSame(3, (int) $draft->step, 'existing step must survive');
+    }
+
+    /** An invalid group param is ignored and seeds nothing. */
+    public function test_invalid_group_prefill_is_ignored(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user)
+            ->get('/user/links/wizard?group=NotARealGroup')
+            ->assertOk();
+
+        $draft = BiolinkWizardDraft::where('actor_user_id', $user->id)->latest('id')->first();
+        // Either no draft was created, or a created one carries no seeded group.
+        if ($draft !== null) {
+            $this->assertNull($draft->persona_group);
+        }
+        $this->assertTrue(true);
+    }
+}
