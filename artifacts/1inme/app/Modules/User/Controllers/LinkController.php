@@ -98,6 +98,7 @@ class LinkController extends Controller
             'lastType'     => $lastType,
             'aliasLimits'  => $aliasLimits,
             'domainHost'   => $domainHost,
+            'aiBuilderEnabled' => \App\Services\AI\AiEngineSettings::isEnabled(),
         ]);
     }
 

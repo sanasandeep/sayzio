@@ -44,6 +44,38 @@
         </div>
     </a>
 
+    {{-- AI BUILDER: describe it and AI assembles the page — second prominent path --}}
+    @if(!empty($aiBuilderEnabled))
+    <form method="POST" action="{{ route('user.links.store') }}" class="mb-8">
+        @csrf
+        <input type="hidden" name="type" value="biolink">
+        <input type="hidden" name="start_mode" value="ai">
+        <button type="submit"
+                class="w-full text-left block relative overflow-hidden glass rounded-3xl p-6 sm:p-8 border border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-500/15 via-purple-500/10 to-blue-500/10 hover:from-fuchsia-500/20 hover:via-purple-500/15 hover:to-blue-500/15 transition-all group hover:shadow-2xl hover:shadow-fuchsia-500/20">
+            <div class="absolute -top-24 -left-16 w-64 h-64 rounded-full bg-fuchsia-500/20 blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-16 w-64 h-64 rounded-full bg-blue-500/20 blur-3xl pointer-events-none"></div>
+            <div class="relative flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-blue-500 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-fuchsia-500/30">
+                    <i class="fas fa-wand-magic-sparkles text-2xl"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-fuchsia-200 bg-fuchsia-500/20 border border-fuchsia-400/30 rounded-full px-2.5 py-0.5 mb-2">
+                        <i class="fas fa-bolt text-[9px]"></i> AI Powered
+                    </span>
+                    <div class="text-xl sm:text-2xl font-bold text-white">Describe it and AI builds your page</div>
+                    <div class="text-sm text-white/60 mt-1.5 max-w-xl">Skip the blank page — describe your page, paste your links, and add photos. AI assembles a complete Link in Bio for you to refine in the editor. Uses AI credits.</div>
+                </div>
+                <div class="flex items-center gap-2 text-fuchsia-200 font-medium flex-shrink-0">
+                    <span class="text-sm hidden sm:inline">Build with AI</span>
+                    <span class="w-10 h-10 rounded-full bg-fuchsia-500/20 border border-fuchsia-400/30 flex items-center justify-center group-hover:bg-fuchsia-500/30 group-hover:translate-x-0.5 transition-all">
+                        <i class="fas fa-arrow-right"></i>
+                    </span>
+                </div>
+            </div>
+        </button>
+    </form>
+    @endif
+
     <form method="POST" action="{{ route('user.links.choose-type') }}"
           x-data="{ type: '{{ old('type', $lastType ?? '') }}' }"
           x-init="window.__voiceSurface = { name: 'create_link' }"
