@@ -105,7 +105,7 @@ export default function SecurityLoginsScreen() {
         ? { label: "Revoked", bg: "#fee2e2", fg: "#991b1b" }
         : item.status === "new"
           ? { label: "New device", bg: "#fef3c7", fg: "#92400e" }
-          : { label: "Recognized", bg: "#dcfce7", fg: "#166534" };
+          : { label: "Recognized", bg: colors.success + "22", fg: colors.success };
     return (
       <View
         style={[

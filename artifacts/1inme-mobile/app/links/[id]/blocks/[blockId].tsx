@@ -2495,7 +2495,7 @@ export default function EditBlockScreen() {
                 backgroundColor:
                   previewState === "expired" ? "rgba(120,113,108,0.25)"
                   : previewState === "near"  ? "rgba(245,158,11,0.22)"
-                                              : "rgba(16,185,129,0.18)",
+                                              : colors.success + "2e",
               }}
             >
               <Text style={{ color: colors.foreground, fontSize: 11, fontWeight: "700" }}>

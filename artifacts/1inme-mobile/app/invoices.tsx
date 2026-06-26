@@ -42,13 +42,15 @@ async function listInvoices(): Promise<Invoice[]> {
   return [];
 }
 
-const STATUS_TINT: Record<string, string> = {
-  paid: "#10b981",
+const statusTint = (
+  colors: ReturnType<typeof useColors>,
+): Record<string, string> => ({
+  paid: colors.success,
   sent: "#0ea5e9",
   draft: "#7d9bff",
   overdue: "#ef4444",
   void: "#9ca3af",
-};
+});
 
 function formatAmount(inv: Invoice): string {
   if (inv.formatted) return inv.formatted;
@@ -91,7 +93,7 @@ export default function InvoicesScreen() {
           keyExtractor={(inv) => String(inv.id)}
           contentContainerStyle={{ padding: 20, gap: 10 }}
           renderItem={({ item }) => {
-            const tint = STATUS_TINT[String(item.status ?? "").toLowerCase()] ?? colors.primary;
+            const tint = statusTint(colors)[String(item.status ?? "").toLowerCase()] ?? colors.primary;
             return (
               <Pressable
                 onPress={() => router.push(`/invoices/${item.id}` as never)}

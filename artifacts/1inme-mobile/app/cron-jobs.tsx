@@ -94,9 +94,9 @@ export default function CronJobsScreen() {
                 <Feather
                   name={copied ? "check" : "copy"}
                   size={15}
-                  color={copied ? "#10b981" : colors.primary}
+                  color={copied ? colors.success : colors.primary}
                 />
-                <Text style={[styles.copyText, { color: copied ? "#10b981" : colors.primary }]}>
+                <Text style={[styles.copyText, { color: copied ? colors.success : colors.primary }]}>
                   {copied ? "Copied" : "Copy line"}
                 </Text>
               </Pressable>
@@ -154,7 +154,7 @@ function CronJobCard({
       {job.without_overlapping || job.on_one_server || job.running_now ? (
         <View style={styles.flags}>
           {job.running_now ? (
-            <Flag label="Running now" color="#10b981" colors={colors} />
+            <Flag label="Running now" color={colors.success} colors={colors} />
           ) : null}
           {job.without_overlapping ? (
             <Flag label="No overlap" color={colors.primary} colors={colors} />

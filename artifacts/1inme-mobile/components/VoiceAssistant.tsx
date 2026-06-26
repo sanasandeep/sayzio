@@ -1052,7 +1052,7 @@ function HelpView(props: {
                 <Feather
                   name={t.destructive ? "alert-circle" : "check-circle"}
                   size={14}
-                  color={t.destructive ? "#dc2626" : "#16a34a"}
+                  color={t.destructive ? "#dc2626" : colors.success}
                 />
                 <Text style={[styles.helpRowText, { color: colors.foreground }]}>
                   {t.description}

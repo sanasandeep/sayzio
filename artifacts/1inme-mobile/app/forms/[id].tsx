@@ -180,7 +180,7 @@ export default function FormDetailScreen() {
                             {
                               backgroundColor:
                                 item.payment_status === "paid"
-                                  ? "rgba(16,185,129,0.15)"
+                                  ? colors.success + "26"
                                   : item.payment_status === "pending"
                                     ? "rgba(245,158,11,0.15)"
                                     : "rgba(244,63,94,0.15)",
@@ -193,7 +193,7 @@ export default function FormDetailScreen() {
                               {
                                 color:
                                   item.payment_status === "paid"
-                                    ? "#10b981"
+                                    ? colors.success
                                     : item.payment_status === "pending"
                                       ? "#f59e0b"
                                       : "#f43f5e",

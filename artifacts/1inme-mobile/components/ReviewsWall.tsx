@@ -372,7 +372,7 @@ function SubmitModal({
         >
           {done ? (
             <View style={{ gap: 12, alignItems: "center", paddingVertical: 12 }}>
-              <Feather name="check-circle" size={40} color="#16a34a" />
+              <Feather name="check-circle" size={40} color={colors.success} />
               <Text style={[styles.modalTitle, { color: colors.foreground, textAlign: "center" }]}>
                 Thank you!
               </Text>

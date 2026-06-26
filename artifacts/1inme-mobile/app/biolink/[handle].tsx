@@ -418,7 +418,7 @@ function PollBlock({
         </Text>
       ) : null}
       {votedIndex !== null ? (
-        <Text style={[styles.body, { color: "#16a34a", textAlign: "left", fontSize: 12, marginTop: 4 }]}>
+        <Text style={[styles.body, { color: colors.success, textAlign: "left", fontSize: 12, marginTop: 4 }]}>
           {resultsLockedUntil
             ? "Thanks for voting!"
             : (hiddenUntilVote ? "Thanks for voting! Results are hidden by the creator." : "Thanks for voting!")}
@@ -454,7 +454,7 @@ function RsvpBlock({
     || pickBool(settings, "collect_phone", false);
 
   const responses: { key: "yes" | "maybe" | "no"; label: string; bg: string }[] = [
-    { key: "yes", label: "Going", bg: "#16a34a" },
+    { key: "yes", label: "Going", bg: colors.success },
     { key: "maybe", label: "Maybe", bg: "#ca8a04" },
     { key: "no", label: "Can't go", bg: "#64748b" },
   ];

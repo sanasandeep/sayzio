@@ -26,11 +26,13 @@ import {
   type VerificationRequest,
 } from "@/lib/api/verification";
 
-const STATUS_COLORS: Record<string, string> = {
+const statusColorMap = (
+  colors: ReturnType<typeof useColors>,
+): Record<string, string> => ({
   pending: "#f59e0b",
-  approved: "#22c55e",
+  approved: colors.success,
   rejected: "#ef4444",
-};
+});
 
 const CATEGORIES: { value: VerificationCategory; label: string }[] = [
   { value: "individual", label: "Individual" },
@@ -41,6 +43,7 @@ const CATEGORIES: { value: VerificationCategory; label: string }[] = [
 
 export default function VerificationScreen() {
   const colors = useColors();
+  const STATUS_COLORS = statusColorMap(colors);
   const qc = useQueryClient();
   const [showNew, setShowNew] = useState(false);
   const [linkId, setLinkId] = useState<number | null>(null);

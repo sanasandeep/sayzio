@@ -68,8 +68,8 @@ function AuditCard({ audit }: { audit: SchemaRepairAudit }) {
       {/* Columns added */}
       {audit.changed_schema ? (
         <View style={{ gap: 6 }}>
-          <View style={[styles.badge, { backgroundColor: "#10b98122" }]}>
-            <Text style={[styles.badgeText, { color: "#10b981" }]}>
+          <View style={[styles.badge, { backgroundColor: colors.success + "22" }]}>
+            <Text style={[styles.badgeText, { color: colors.success }]}>
               {audit.added_columns_count}{" "}
               {audit.added_columns_count === 1 ? "column" : "columns"} across{" "}
               {audit.added_tables_count}{" "}

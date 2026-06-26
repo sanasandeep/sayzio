@@ -164,13 +164,13 @@ export default function DomainsScreen() {
                   <View
                     style={[
                       styles.badge,
-                      { backgroundColor: (item.is_verified ? "#22c55e" : colors.mutedForeground) + "33" },
+                      { backgroundColor: (item.is_verified ? colors.success : colors.mutedForeground) + "33" },
                     ]}
                   >
                     <Text
                       style={[
                         styles.badgeText,
-                        { color: item.is_verified ? "#16a34a" : colors.mutedForeground },
+                        { color: item.is_verified ? colors.success : colors.mutedForeground },
                       ]}
                     >
                       {item.is_verified ? "verified" : "pending"}

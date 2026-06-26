@@ -112,7 +112,7 @@ export default function AdminUsersScreen() {
                     styles.adminPill,
                     {
                       backgroundColor:
-                        u.admin_status === "active" ? "#10b98122" : "#f59e0b22",
+                        u.admin_status === "active" ? colors.success + "22" : "#f59e0b22",
                     },
                   ]}
                 >
@@ -120,7 +120,7 @@ export default function AdminUsersScreen() {
                     style={{
                       fontSize: 11,
                       fontWeight: "600",
-                      color: u.admin_status === "active" ? "#10b981" : "#f59e0b",
+                      color: u.admin_status === "active" ? colors.success : "#f59e0b",
                     }}
                   >
                     Admin

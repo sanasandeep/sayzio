@@ -279,7 +279,7 @@ export function NfcWriteSheet({
 
             {phase === "success" && (
               <View style={styles.center}>
-                <Feather name="check-circle" size={40} color="#16a34a" />
+                <Feather name="check-circle" size={40} color={colors.success} />
                 <Text style={[styles.msg, { color: colors.foreground }]}>Tag written</Text>
                 <Text style={[styles.sub, { color: colors.mutedForeground }]}>
                   Tapping this tag will now open your link.

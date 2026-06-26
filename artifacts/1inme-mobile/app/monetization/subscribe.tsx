@@ -75,13 +75,13 @@ export default function SubscribeScreen() {
           style={{
             padding: 12,
             borderRadius: 12,
-            backgroundColor: "rgba(16,185,129,0.12)",
+            backgroundColor: colors.success + "1f",
             flexDirection: "row",
             alignItems: "center",
             gap: 8,
           }}
         >
-          <Text style={{ color: "#047857", fontWeight: "700", fontSize: 12 }}>
+          <Text style={{ color: colors.success, fontWeight: "700", fontSize: 12 }}>
             ✓ 100% to creator · Sayzio takes 0%
           </Text>
         </View>
@@ -205,7 +205,7 @@ function TierCard({
         </View>
       )}
       {cycle === "yearly" && tier.yearly_discount_percent ? (
-        <Text style={{ color: "#10b981", fontSize: 11, marginTop: 2 }}>
+        <Text style={{ color: colors.success, fontSize: 11, marginTop: 2 }}>
           Save {tier.yearly_discount_percent}% vs monthly
         </Text>
       ) : null}

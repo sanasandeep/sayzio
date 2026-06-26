@@ -22,14 +22,16 @@ import {
   type OwnerOrder,
 } from "@/lib/api/restaurant";
 
-const STATUS_COLORS: Record<string, string> = {
+const statusColors = (
+  colors: ReturnType<typeof useColors>,
+): Record<string, string> => ({
   new: "#ef4444",
   accepted: "#f59e0b",
   preparing: "#3b82f6",
-  ready: "#10b981",
+  ready: colors.success,
   completed: "#6b7280",
   cancelled: "#9ca3af",
-};
+});
 
 export default function RestaurantOrdersScreen() {
   const colors = useColors();
@@ -159,7 +161,7 @@ export default function RestaurantOrdersScreen() {
               <View
                 style={[
                   styles.statusPill,
-                  { backgroundColor: STATUS_COLORS[o.status] ?? "#6b7280" },
+                  { backgroundColor: statusColors(colors)[o.status] ?? "#6b7280" },
                 ]}
               >
                 <Text style={styles.statusText}>{o.status_label}</Text>

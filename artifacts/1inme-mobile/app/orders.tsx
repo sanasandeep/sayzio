@@ -147,7 +147,7 @@ function OrderCard({
 }) {
   const statusColor =
     order.status === "fulfilled"
-      ? "#22c55e"
+      ? colors.success
       : order.status === "cancelled"
         ? "#ef4444"
         : colors.primary;

@@ -376,7 +376,7 @@ function ResumeEditor({
         <View
           style={[
             styles.statusDot,
-            { backgroundColor: saving ? "#f59e0b" : "#10b981" },
+            { backgroundColor: saving ? "#f59e0b" : colors.success },
           ]}
         />
         <Text style={[styles.statusText, { color: colors.mutedForeground }]}>
@@ -598,7 +598,7 @@ function PublishingSummaryCard({
         <View
           style={[
             styles.statusDot,
-            { backgroundColor: resume.is_public ? "#10b981" : "#9ca3af" },
+            { backgroundColor: resume.is_public ? colors.success : "#9ca3af" },
           ]}
         />
         <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 }}>

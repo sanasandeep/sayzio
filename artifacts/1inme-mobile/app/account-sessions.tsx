@@ -172,8 +172,8 @@ export default function AccountSessions() {
                         style={[
                           styles.badge,
                           {
-                            color: "#10b981",
-                            backgroundColor: "#10b9811f",
+                            color: colors.success,
+                            backgroundColor: colors.success + "1f",
                           },
                         ]}
                       >

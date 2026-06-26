@@ -25,13 +25,15 @@ import {
   sendInvoice,
 } from "@/lib/api/invoices";
 
-const STATUS_TINT: Record<string, string> = {
-  paid: "#10b981",
+const statusTint = (
+  colors: ReturnType<typeof useColors>,
+): Record<string, string> => ({
+  paid: colors.success,
   sent: "#0ea5e9",
   draft: "#7d9bff",
   overdue: "#ef4444",
   void: "#9ca3af",
-};
+});
 
 function fmt(minor: number, currency: string | null): string {
   const major = (minor || 0) / 100;
@@ -81,7 +83,7 @@ export default function InvoiceDetailScreen() {
   });
 
   const inv = q.data;
-  const tint = STATUS_TINT[String(inv?.status ?? "").toLowerCase()] ?? colors.primary;
+  const tint = statusTint(colors)[String(inv?.status ?? "").toLowerCase()] ?? colors.primary;
   const canManage = inv?.status !== "paid";
 
   const openPdf = async () => {

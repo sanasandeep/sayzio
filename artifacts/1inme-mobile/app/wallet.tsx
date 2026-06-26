@@ -176,7 +176,7 @@ export default function WalletScreen() {
                     <Text
                       style={[
                         styles.txDelta,
-                        { color: tx.delta_coins >= 0 ? "#10b981" : "#ef4444" },
+                        { color: tx.delta_coins >= 0 ? colors.success : "#ef4444" },
                       ]}
                     >
                       {tx.delta_coins >= 0 ? "+" : ""}

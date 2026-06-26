@@ -90,13 +90,13 @@ export default function OrderScreen() {
                   borderRadius: 999,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: paid ? "rgba(34,197,94,0.15)" : "rgba(61,107,255,0.15)",
+                  backgroundColor: paid ? colors.success + "26" : "rgba(61,107,255,0.15)",
                 }}
               >
                 <Feather
                   name={paid ? "check-circle" : "clock"}
                   size={34}
-                  color={paid ? "#22c55e" : colors.primary}
+                  color={paid ? colors.success : colors.primary}
                 />
               </View>
               <Text style={{ color: colors.foreground, fontSize: 22, fontWeight: "800" }}>
@@ -120,10 +120,10 @@ export default function OrderScreen() {
                     paddingHorizontal: 10,
                     paddingVertical: 3,
                     borderRadius: 999,
-                    backgroundColor: paid ? "rgba(34,197,94,0.15)" : "rgba(148,163,184,0.18)",
+                    backgroundColor: paid ? colors.success + "26" : "rgba(148,163,184,0.18)",
                   }}
                 >
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: paid ? "#22c55e" : colors.mutedForeground }}>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: paid ? colors.success : colors.mutedForeground }}>
                     {order.status_label}
                   </Text>
                 </View>

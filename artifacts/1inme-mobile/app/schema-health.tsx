@@ -86,8 +86,8 @@ export default function SchemaHealthScreen() {
                     <Text style={[styles.badgeText, { color: colors.mutedForeground }]}>Unavailable</Text>
                   </View>
                 ) : data.healthy ? (
-                  <View style={[styles.badge, { backgroundColor: "#10b98122" }]}>
-                    <Text style={[styles.badgeText, { color: "#10b981" }]}>In sync</Text>
+                  <View style={[styles.badge, { backgroundColor: colors.success + "22" }]}>
+                    <Text style={[styles.badgeText, { color: colors.success }]}>In sync</Text>
                   </View>
                 ) : (
                   <View style={[styles.badge, { backgroundColor: "#f59e0b22" }]}>
@@ -182,15 +182,15 @@ export default function SchemaHealthScreen() {
                 style={[
                   styles.resultBox,
                   {
-                    backgroundColor: repairResult.healthy ? "#10b98115" : "#f59e0b15",
-                    borderColor: repairResult.healthy ? "#10b981" : "#f59e0b",
+                    backgroundColor: repairResult.healthy ? colors.success + "15" : "#f59e0b15",
+                    borderColor: repairResult.healthy ? colors.success : "#f59e0b",
                   },
                 ]}
               >
                 <Feather
                   name={repairResult.healthy ? "check-circle" : "info"}
                   size={16}
-                  color={repairResult.healthy ? "#10b981" : "#f59e0b"}
+                  color={repairResult.healthy ? colors.success : "#f59e0b"}
                 />
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text style={{ color: colors.foreground }}>

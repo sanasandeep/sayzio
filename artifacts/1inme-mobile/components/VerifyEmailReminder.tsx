@@ -204,15 +204,15 @@ export function VerifyEmailReminder() {
                 paddingHorizontal: 16,
                 paddingVertical: 11,
                 borderRadius: 10,
-                backgroundColor: "#10b981",
+                backgroundColor: colors.success,
               }}
             >
               {confirming ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={colors.successForeground} />
               ) : (
-                <Feather name="check" size={14} color="#fff" />
+                <Feather name="check" size={14} color={colors.successForeground} />
               )}
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>
+              <Text style={{ color: colors.successForeground, fontWeight: "700", fontSize: 13 }}>
                 Verify
               </Text>
             </Pressable>

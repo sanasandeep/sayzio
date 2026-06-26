@@ -107,7 +107,7 @@ function ReviewItem({
 
   const statusMeta: Record<string, { label: string; color: string }> = {
     pending: { label: "Pending", color: "#f59e0b" },
-    approved: { label: "Published", color: "#16a34a" },
+    approved: { label: "Published", color: colors.success },
     hidden: { label: "Hidden", color: colors.mutedForeground },
     unverified: { label: "Unverified", color: "#6366f1" },
   };
@@ -199,7 +199,7 @@ function ReviewItem({
 
       <View style={styles.actions}>
         {review.status !== "approved" ? (
-          <ActionButton icon="check" label="Approve" color="#16a34a" onPress={onApprove} disabled={busy} />
+          <ActionButton icon="check" label="Approve" color={colors.success} onPress={onApprove} disabled={busy} />
         ) : null}
         {review.status !== "hidden" ? (
           <ActionButton icon="eye-off" label="Hide" color={colors.mutedForeground} onPress={onHide} disabled={busy} />

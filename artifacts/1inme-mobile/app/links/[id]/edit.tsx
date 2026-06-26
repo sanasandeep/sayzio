@@ -557,9 +557,7 @@ export default function EditLinkScreen() {
                   color: aliasChecking
                     ? colors.mutedForeground
                     : aliasCheck?.available
-                      ? colors.scheme === "dark"
-                        ? "#4ade80"
-                        : "#16a34a"
+                      ? colors.success
                       : aliasCheck
                         ? colors.destructive
                         : colors.mutedForeground,
