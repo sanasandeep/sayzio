@@ -2,51 +2,65 @@
 @php
     $__aiProducts = [
         [
-            'eyebrow' => 'AI Chatbot',
-            'title'   => 'A 24/7 chatbot trained on your Link in Bio.',
-            'desc'    => 'Greets every visitor in your voice, answers from your real content, captures leads and books calls — never asleep.',
-            'icon'    => 'fa-comments',
-            'color'   => '#3d6bff',
-            'route'   => 'site.ai-chatbot',
+            'eyebrow'  => 'AI Chatbot',
+            'title'    => 'A 24/7 chatbot trained on your Link in Bio.',
+            'desc'     => 'Greets every visitor in your voice, answers from your real content, captures leads and books calls — never asleep.',
+            'image'    => 'img/ai/chatbot.svg',
+            'color'    => '#3d6bff',
+            'route'    => 'site.ai-chatbot',
+            'features' => [
+                'Trained on your real content',
+                'Captures leads around the clock',
+                'Books calls automatically',
+                'Hands off to a human',
+            ],
         ],
         [
-            'eyebrow' => 'AI Agent',
-            'title'   => 'A teammate that runs multi-step tasks.',
-            'desc'    => 'Qualifies leads, drafts outreach, updates your contacts and follows up — across your inbox, calendar and CRM.',
-            'icon'    => 'fa-robot',
-            'color'   => '#1bd4d9',
-            'route'   => 'site.ai-agent',
+            'eyebrow'  => 'AI Agent',
+            'title'    => 'A teammate that runs multi-step tasks.',
+            'desc'     => 'Qualifies leads, drafts outreach, updates your contacts and follows up — across your inbox, calendar and CRM.',
+            'image'    => 'img/ai/agent.svg',
+            'color'    => '#1bd4d9',
+            'route'    => 'site.ai-agent',
+            'features' => [
+                'Runs editable playbooks',
+                'Connects your tools & CRM',
+                'Asks before key actions',
+                'Full audit trail',
+            ],
         ],
         [
-            'eyebrow' => 'AI Widget',
-            'title'   => 'Embed an AI assistant on any website.',
-            'desc'    => 'One snippet on WordPress, Shopify, Webflow or your custom site — answers questions and routes hot leads to your inbox.',
-            'icon'    => 'fa-window-restore',
-            'color'   => '#e94e8c',
-            'route'   => 'site.ai-widget',
+            'eyebrow'  => 'AI Widget',
+            'title'    => 'Embed an AI assistant on any website.',
+            'desc'     => 'One snippet on WordPress, Shopify, Webflow or your custom site — answers questions and routes hot leads to your inbox.',
+            'image'    => 'img/ai/widget.svg',
+            'color'    => '#e94e8c',
+            'route'    => 'site.ai-widget',
+            'features' => [
+                'One snippet, any site',
+                'Matches your brand',
+                'Replies in 30+ languages',
+                'Privacy-first analytics',
+            ],
         ],
         [
-            'eyebrow' => 'AI Voice Assistant',
-            'title'   => 'Picks up calls in your voice.',
-            'desc'    => 'AI receptionist that answers your number, qualifies callers, books real meetings and warm-transfers when it matters.',
-            'icon'    => 'fa-headset',
-            'color'   => '#ff8a3c',
-            'route'   => 'site.ai-voice-assistant',
+            'eyebrow'  => 'AI Voice Assistant',
+            'title'    => 'Picks up calls in your voice.',
+            'desc'     => 'AI receptionist that answers your number, qualifies callers, books real meetings and warm-transfers when it matters.',
+            'image'    => 'img/ai/voice.svg',
+            'color'    => '#ff8a3c',
+            'route'    => 'site.ai-voice-assistant',
+            'features' => [
+                'Answers in your own voice',
+                'Qualifies & routes callers',
+                'Books real meetings',
+                'Transcript & recap of every call',
+            ],
         ],
     ];
 @endphp
-@php
-    $__aiKey = function ($eyebrow) {
-        return [
-            'AI Chatbot'         => 'chatbot',
-            'AI Agent'           => 'agent',
-            'AI Widget'          => 'widget',
-            'AI Voice Assistant' => 'voice',
-        ][$eyebrow] ?? 'chatbot';
-    };
-@endphp
 <style>
-    /* ===== AI Suite v2 — animated illustrations ===== */
+    /* ===== AI Suite v3 — image-icon flip cards ===== */
     .ai-suite-v2 { isolation: isolate; }
     .ai-suite-v2 .ai-bg-grid {
         position: absolute; inset: 0; pointer-events: none; opacity: .35;
@@ -78,244 +92,118 @@
     }
 
     /* Headline shimmer sweep */
-    .ai-shimmer {
-        color: #90acff;
-    }
-    @keyframes aiShimmer { 0%{ background-position: 0% 50%; } 100%{ background-position: 200% 50%; } }
+    .ai-shimmer { color: #90acff; }
 
-    /* Card */
-    .ai-card {
-        position: relative; display: block; overflow: hidden;
+    /* ---- Flip card shell ---- */
+    .ai-flip {
+        position: relative;
+        perspective: 1500px;
         border-radius: 1.5rem;
+        cursor: pointer;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .ai-flip-inner {
+        position: relative;
+        width: 100%;
+        min-height: 330px;
+        transform-style: preserve-3d;
+        transition: transform .7s cubic-bezier(.2,.7,.2,1);
+    }
+    .ai-flip:hover .ai-flip-inner,
+    .ai-flip.is-flipped .ai-flip-inner {
+        transform: rotateY(180deg);
+    }
+
+    /* ---- Faces ---- */
+    .ai-face {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        overflow: hidden;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
         background: rgba(255,255,255,.03);
         border: 1px solid rgba(255,255,255,.08);
-        padding: 1.25rem 1.25rem 1.4rem;
-        transition: transform .4s cubic-bezier(.2,.7,.2,1), border-color .35s ease, box-shadow .4s ease;
+        transition: border-color .35s ease, box-shadow .4s ease;
     }
-    .ai-card:hover, .ai-card:focus-visible {
-        transform: translateY(-6px);
-        border-color: color-mix(in srgb, var(--ai-accent, #3d6bff) 55%, transparent);
-        box-shadow: 0 30px 70px -28px color-mix(in srgb, var(--ai-accent, #3d6bff) 70%, transparent);
-    }
-    html.light-mode .ai-card {
+    html.light-mode .ai-face {
         background: #ffffff;
         border-color: rgba(15,23,42,.08);
         box-shadow: 0 4px 14px -8px rgba(15,23,42,.10);
     }
-    .ai-card-glow {
-        position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
-        background: color-mix(in srgb, var(--ai-accent, #3d6bff) 22%, transparent);
-        opacity: .35; transition: opacity .4s ease;
+    .ai-flip:hover .ai-face,
+    .ai-flip:focus-visible .ai-face,
+    .ai-flip.is-flipped .ai-face {
+        border-color: color-mix(in srgb, var(--ai-accent, #3d6bff) 55%, transparent);
+        box-shadow: 0 30px 70px -28px color-mix(in srgb, var(--ai-accent, #3d6bff) 70%, transparent);
     }
-    .ai-card:hover .ai-card-glow { opacity: 1; }
-    .ai-card-corner {
-        position: absolute; top: -50px; right: -50px; width: 160px; height: 160px;
-        border-radius: 9999px; opacity: .22;
+    .ai-flip:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ai-accent, #3d6bff) 45%, transparent); }
+    .ai-face-back { transform: rotateY(180deg); }
+
+    /* Decorative accent corner on the front */
+    .ai-face-corner {
+        position: absolute; top: -55px; right: -55px; width: 150px; height: 150px;
+        border-radius: 9999px; opacity: .20; pointer-events: none;
         background: var(--ai-accent, #3d6bff);
     }
 
-    /* Illustration frame */
-    .ai-illus {
-        position: relative; height: 132px; border-radius: 1rem; overflow: hidden;
-        margin-bottom: 1rem;
-        background: rgba(255,255,255,.03);
-        border: 1px solid rgba(255,255,255,.08);
+    /* ---- Front face ---- */
+    .ai-icon {
+        width: 60px; height: 60px; border-radius: 18px; display: block;
+        box-shadow: 0 16px 34px -16px color-mix(in srgb, var(--ai-accent, #3d6bff) 90%, transparent);
+        margin-bottom: 1.1rem;
+        transition: transform .4s cubic-bezier(.2,.7,.2,1);
     }
-    html.light-mode .ai-illus {
-        background:
-            radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--ai-accent, #3d6bff) 14%, transparent), transparent 60%),
-            linear-gradient(180deg, #f8fafc, #ffffff);
-        border-color: rgba(15,23,42,.08);
+    .ai-flip:hover .ai-icon { transform: translateY(-2px) rotate(-3deg); }
+    .ai-front-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ai-accent, #3d6bff); margin-bottom: .35rem; }
+    .ai-front-title { font-size: 1.075rem; font-weight: 700; line-height: 1.3; margin-bottom: .5rem; }
+    .ai-front-desc { font-size: .85rem; line-height: 1.55; color: #9ca3af; }
+    html.light-mode .ai-front-desc { color: #64748b; }
+    .ai-front-hint {
+        margin-top: auto; padding-top: 1rem;
+        display: inline-flex; align-items: center; gap: .4rem;
+        font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+        color: var(--ai-accent, #3d6bff);
     }
+    .ai-front-hint .ai-hint-rot { transition: transform .4s ease; }
+    .ai-flip:hover .ai-front-hint .ai-hint-rot { transform: rotate(180deg); }
 
-    /* ---- Chatbot illustration ---- */
-    .ai-chat-bubble {
-        position: absolute; padding: .42rem .65rem; border-radius: .9rem;
-        font-size: .68rem; font-weight: 600; line-height: 1.1;
-        max-width: 70%;
-        animation: aiChatPop .5s ease both;
+    /* ---- Back face ---- */
+    .ai-back-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ai-accent, #3d6bff); margin-bottom: .9rem; }
+    .ai-back-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .65rem; flex: 1; }
+    .ai-back-list li { display: flex; align-items: flex-start; gap: .6rem; font-size: .85rem; font-weight: 600; line-height: 1.35; color: #e5e7eb; }
+    html.light-mode .ai-back-list li { color: #334155; }
+    .ai-back-check {
+        flex: 0 0 auto; width: 18px; height: 18px; border-radius: 6px; margin-top: 1px;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: color-mix(in srgb, var(--ai-accent, #3d6bff) 18%, transparent);
+        color: var(--ai-accent, #3d6bff);
     }
-    .ai-chat-b1 { top: 14px; left: 12px; background: rgba(255,255,255,.10); color: #e5e7eb; border-bottom-left-radius: .3rem; animation-delay: .1s; }
-    .ai-chat-b2 { top: 50px; right: 12px; background: linear-gradient(135deg, var(--ai-accent), #6366f1); color: #fff; border-bottom-right-radius: .3rem; animation-delay: .8s; }
-    .ai-chat-b3 { bottom: 16px; left: 12px; background: rgba(255,255,255,.10); color: #e5e7eb; border-bottom-left-radius: .3rem; padding: .55rem .75rem; animation-delay: 1.6s; }
-    html.light-mode .ai-chat-b1, html.light-mode .ai-chat-b3 { background: rgba(15,23,42,.06); color: #1e293b; }
-    @keyframes aiChatPop { 0%{ opacity:0; transform: translateY(8px) scale(.9);} 100%{ opacity:1; transform: translateY(0) scale(1);} }
-    .ai-typing { display: inline-flex; gap: 3px; vertical-align: middle; }
-    .ai-typing i {
-        width: 5px; height: 5px; border-radius: 9999px; background: currentColor;
-        animation: aiTyping 1.2s ease-in-out infinite;
+    .ai-back-check i { font-size: 9px; }
+    .ai-back-link {
+        margin-top: 1.1rem;
+        display: inline-flex; align-items: center; gap: .5rem;
+        font-size: .82rem; font-weight: 700;
+        color: var(--ai-accent, #3d6bff);
+        transition: gap .25s ease;
     }
-    .ai-typing i:nth-child(2) { animation-delay: .15s; }
-    .ai-typing i:nth-child(3) { animation-delay: .3s; }
-    @keyframes aiTyping { 0%,100% { opacity: .3; transform: translateY(0);} 50% { opacity: 1; transform: translateY(-3px);} }
-    .ai-card:hover .ai-chat-bubble { animation-duration: .35s; }
+    .ai-back-link:hover { gap: .8rem; }
 
-    /* ---- Agent illustration ---- */
-    .ai-tasklist {
-        position: absolute; inset: 14px; display: flex; flex-direction: column; gap: 7px;
-        padding: 10px; border-radius: .75rem;
-        background: rgba(0,0,0,.25);
-        border: 1px solid rgba(255,255,255,.06);
-    }
-    html.light-mode .ai-tasklist { background: #fff; border-color: rgba(15,23,42,.06); box-shadow: inset 0 0 0 1px rgba(15,23,42,.02); }
-    .ai-task {
-        display: flex; align-items: center; gap: 8px;
-        font-size: .68rem; font-weight: 600; color: #e5e7eb;
-    }
-    html.light-mode .ai-task { color: #334155; }
-    .ai-task-check {
-        flex: 0 0 auto; width: 14px; height: 14px; border-radius: 4px;
-        border: 1.5px solid color-mix(in srgb, var(--ai-accent) 60%, #94a3b8);
-        position: relative; overflow: hidden;
-    }
-    .ai-task-check::after {
-        content: ""; position: absolute; left: 2px; top: 4px; width: 7px; height: 4px;
-        border-left: 2px solid #fff; border-bottom: 2px solid #fff;
-        transform: rotate(-45deg) scale(0); transform-origin: left top;
-        transition: transform .25s ease;
-    }
-    .ai-task.done .ai-task-check { background: var(--ai-accent); border-color: var(--ai-accent); }
-    .ai-task.done .ai-task-check::after { transform: rotate(-45deg) scale(1); }
-    .ai-task-bar { flex: 1; height: 6px; border-radius: 9999px; background: rgba(255,255,255,.10); overflow: hidden; }
-    html.light-mode .ai-task-bar { background: rgba(15,23,42,.08); }
-    .ai-task-bar i {
-        display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ai-accent), #6366f1);
-        animation: aiTaskFill 4s ease-in-out infinite;
-    }
-    .ai-task:nth-child(1) { animation: aiTaskRow 4s ease-in-out infinite; }
-    .ai-task:nth-child(2) { animation: aiTaskRow 4s ease-in-out infinite 1.2s; }
-    .ai-task:nth-child(3) { animation: aiTaskRow 4s ease-in-out infinite 2.4s; }
-    @keyframes aiTaskRow {
-        0%, 8%   { opacity: .55; }
-        10%, 35% { opacity: 1; }
-        40%      { opacity: 1; }
-    }
-    .ai-task:nth-child(1) .ai-task-bar i { animation-delay: 0s; }
-    .ai-task:nth-child(2) .ai-task-bar i { animation-delay: 1.2s; }
-    .ai-task:nth-child(3) .ai-task-bar i { animation-delay: 2.4s; }
-    @keyframes aiTaskFill { 0%{ width: 0; } 60%, 100%{ width: 100%; } }
-    .ai-card:hover .ai-task .ai-task-check { background: var(--ai-accent); border-color: var(--ai-accent); }
-    .ai-card:hover .ai-task .ai-task-check::after { transform: rotate(-45deg) scale(1); }
-
-    /* ---- Widget illustration (browser frame) ---- */
-    .ai-browser {
-        position: absolute; inset: 14px; border-radius: .75rem; overflow: hidden;
-        background: rgba(0,0,0,.30);
-        border: 1px solid rgba(255,255,255,.08);
-        display: flex; flex-direction: column;
-    }
-    html.light-mode .ai-browser { background: #fff; border-color: rgba(15,23,42,.08); }
-    .ai-browser-bar {
-        display: flex; align-items: center; gap: 4px;
-        padding: 5px 7px; background: rgba(255,255,255,.04);
-        border-bottom: 1px solid rgba(255,255,255,.06);
-    }
-    html.light-mode .ai-browser-bar { background: #f1f5f9; border-bottom-color: rgba(15,23,42,.06); }
-    .ai-browser-bar span { width: 6px; height: 6px; border-radius: 9999px; background: rgba(255,255,255,.20); }
-    html.light-mode .ai-browser-bar span { background: rgba(15,23,42,.18); }
-    .ai-browser-body { position: relative; flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 5px; }
-    .ai-browser-line { height: 5px; border-radius: 9999px; background: rgba(255,255,255,.08); }
-    html.light-mode .ai-browser-line { background: rgba(15,23,42,.08); }
-    .ai-browser-line.l1 { width: 70%; }
-    .ai-browser-line.l2 { width: 90%; }
-    .ai-browser-line.l3 { width: 55%; }
-    .ai-widget-pop {
-        position: absolute; right: 8px; bottom: 8px;
-        width: 64px; padding: 6px 8px; border-radius: .55rem;
-        background: linear-gradient(135deg, var(--ai-accent), #6366f1);
-        color: #fff; font-size: .58rem; font-weight: 700;
-        box-shadow: 0 8px 22px -8px var(--ai-accent);
-        display: flex; align-items: center; gap: 5px;
-        transform-origin: bottom right;
-        animation: aiWidgetPop 4s ease-in-out infinite;
-    }
-    .ai-widget-pop::before {
-        content: ""; width: 7px; height: 7px; border-radius: 9999px; background: #fff;
-        box-shadow: 0 0 0 0 rgba(255,255,255,.6);
-        animation: aiWidgetDot 1.6s ease-out infinite;
-    }
-    @keyframes aiWidgetPop {
-        0%, 20%, 100% { transform: scale(0) rotate(-12deg); opacity: 0; }
-        30%, 75%      { transform: scale(1) rotate(0); opacity: 1; }
-        85%           { transform: scale(.9) rotate(-4deg); opacity: .6; }
-    }
-    @keyframes aiWidgetDot {
-        0% { box-shadow: 0 0 0 0 rgba(255,255,255,.55); }
-        80%, 100% { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
-    }
-    .ai-card:hover .ai-widget-pop { animation-duration: 2.4s; }
-
-    /* ---- Voice illustration ---- */
-    .ai-voice {
-        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 14px;
-    }
-    .ai-phone {
-        width: 46px; height: 70px; border-radius: 10px;
-        background: linear-gradient(160deg, #1f2937, #0f172a);
-        border: 1px solid rgba(255,255,255,.10);
-        box-shadow: 0 14px 34px -16px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04);
-        position: relative; overflow: hidden;
-        animation: aiPhoneRing 2.4s ease-in-out infinite;
-    }
-    .ai-phone::before {
-        content: ""; position: absolute; left: 50%; top: 6px; transform: translateX(-50%);
-        width: 14px; height: 3px; border-radius: 9999px; background: rgba(255,255,255,.18);
-    }
-    .ai-phone::after {
-        content: "\f095"; /* fa phone */
-        font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome";
-        font-weight: 900; font-size: 18px;
-        position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-        color: var(--ai-accent);
-        text-shadow: 0 0 14px color-mix(in srgb, var(--ai-accent) 70%, transparent);
-    }
-    @keyframes aiPhoneRing {
-        0%, 100% { transform: rotate(-3deg); }
-        50%      { transform: rotate(3deg); }
-    }
-    .ai-wave { display: flex; align-items: center; gap: 4px; height: 56px; }
-    .ai-wave i {
-        display: block; width: 4px; border-radius: 9999px;
-        background: linear-gradient(180deg, var(--ai-accent), #6366f1);
-        animation: aiWaveBar 1.2s ease-in-out infinite;
-    }
-    .ai-wave i:nth-child(1){ height: 18px; animation-delay: 0s; }
-    .ai-wave i:nth-child(2){ height: 30px; animation-delay: .12s; }
-    .ai-wave i:nth-child(3){ height: 44px; animation-delay: .24s; }
-    .ai-wave i:nth-child(4){ height: 26px; animation-delay: .36s; }
-    .ai-wave i:nth-child(5){ height: 38px; animation-delay: .48s; }
-    .ai-wave i:nth-child(6){ height: 22px; animation-delay: .60s; }
-    .ai-wave i:nth-child(7){ height: 14px; animation-delay: .72s; }
-    @keyframes aiWaveBar {
-        0%,100% { transform: scaleY(.35); }
-        50%     { transform: scaleY(1); }
-    }
-    .ai-card:hover .ai-wave i { animation-duration: .7s; }
-    .ai-card:hover .ai-phone { animation-duration: 1.2s; }
-
-    /* Reveal stagger — uses existing `.reveal` mechanism */
-    .ai-suite-v2 .ai-card { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
-    .ai-suite-v2 .ai-card.in-view, .ai-suite-v2 .reveal.in-view .ai-card { opacity: 1; transform: translateY(0); }
-    .ai-suite-v2 .ai-card.d1 { transition-delay: .05s; }
-    .ai-suite-v2 .ai-card.d2 { transition-delay: .15s; }
-    .ai-suite-v2 .ai-card.d3 { transition-delay: .25s; }
-    .ai-suite-v2 .ai-card.d4 { transition-delay: .35s; }
+    /* Reveal entrance reuses the page `.reveal` mechanism */
 
     @media (prefers-reduced-motion: reduce) {
         .ai-suite-v2 .ai-bg-blob,
-        .ai-shimmer,
-        .ai-chat-bubble,
-        .ai-typing i,
-        .ai-task,
-        .ai-task-bar i,
-        .ai-widget-pop,
-        .ai-widget-pop::before,
-        .ai-phone,
-        .ai-wave i { animation: none !important; }
+        .ai-shimmer { animation: none !important; }
         .ai-shimmer { color: #90acff; }
-        .ai-chat-bubble { opacity: 1; transform: none; }
-        .ai-widget-pop { transform: none; opacity: 1; }
-        .ai-suite-v2 .ai-card { opacity: 1; transform: none; }
+        /* Flatten the flip: stack both faces so all content + the link stay reachable */
+        .ai-flip { perspective: none; cursor: default; }
+        .ai-flip-inner { transform: none !important; transition: none; transform-style: flat; min-height: 0; }
+        .ai-face { position: relative; inset: auto; backface-visibility: visible; -webkit-backface-visibility: visible; }
+        .ai-face-back { transform: none; margin-top: .75rem; }
+        .ai-icon, .ai-front-hint .ai-hint-rot { transition: none; }
+        .ai-front-hint { display: none; }
     }
 </style>
 <section id="ai-suite" class="ai-suite-v2 py-24 lg:py-32 relative overflow-hidden" aria-labelledby="ai-suite-h">
@@ -337,75 +225,96 @@
 
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             @foreach($__aiProducts as $i => $a)
-                @php $key = $__aiKey($a['eyebrow']); @endphp
-                <a href="{{ route($a['route']) }}"
-                   class="ai-card reveal rd-{{ ($i % 4) + 1 }} d{{ $i + 1 }} group"
-                   style="--ai-accent: {{ $a['color'] }};"
-                   aria-label="{{ $a['eyebrow'] }} — learn more">
-                    <span class="ai-card-glow" aria-hidden="true"></span>
-                    <span class="ai-card-corner" aria-hidden="true"></span>
-
-                    <div class="ai-illus" aria-hidden="true">
-                        @if($key === 'chatbot')
-                            <div class="ai-chat-bubble ai-chat-b1">Hey! 👋</div>
-                            <div class="ai-chat-bubble ai-chat-b2">Got it — booking a slot for you.</div>
-                            <div class="ai-chat-bubble ai-chat-b3">
-                                <span class="ai-typing" style="color: {{ $a['color'] }};">
-                                    <i></i><i></i><i></i>
-                                </span>
-                            </div>
-                        @elseif($key === 'agent')
-                            <div class="ai-tasklist">
-                                <div class="ai-task done">
-                                    <span class="ai-task-check"></span>
-                                    <span>Qualify lead</span>
-                                    <span class="ai-task-bar"><i></i></span>
-                                </div>
-                                <div class="ai-task done">
-                                    <span class="ai-task-check"></span>
-                                    <span>Draft email</span>
-                                    <span class="ai-task-bar"><i></i></span>
-                                </div>
-                                <div class="ai-task">
-                                    <span class="ai-task-check"></span>
-                                    <span>Schedule follow-up</span>
-                                    <span class="ai-task-bar"><i></i></span>
-                                </div>
-                            </div>
-                        @elseif($key === 'widget')
-                            <div class="ai-browser">
-                                <div class="ai-browser-bar">
-                                    <span></span><span></span><span></span>
-                                </div>
-                                <div class="ai-browser-body">
-                                    <div class="ai-browser-line l1"></div>
-                                    <div class="ai-browser-line l2"></div>
-                                    <div class="ai-browser-line l3"></div>
-                                    <div class="ai-browser-line l2"></div>
-                                    <div class="ai-widget-pop">
-                                        <span>Ask AI</span>
-                                    </div>
-                                </div>
-                            </div>
-                        @else
-                            <div class="ai-voice">
-                                <div class="ai-phone"></div>
-                                <div class="ai-wave">
-                                    <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-                                </div>
-                            </div>
-                        @endif
+                <div class="ai-flip reveal rd-{{ ($i % 4) + 1 }}"
+                     style="--ai-accent: {{ $a['color'] }};"
+                     role="button"
+                     tabindex="0"
+                     aria-pressed="false"
+                     aria-label="{{ $a['eyebrow'] }} — flip card to see what's included">
+                    <div class="ai-flip-inner">
+                        {{-- Front --}}
+                        <div class="ai-face ai-face-front">
+                            <span class="ai-face-corner" aria-hidden="true"></span>
+                            <img class="ai-icon" src="{{ asset($a['image']) }}" alt="" width="60" height="60" loading="lazy" decoding="async">
+                            <div class="ai-front-eyebrow">{{ $a['eyebrow'] }}</div>
+                            <h3 class="ai-front-title">{{ $a['title'] }}</h3>
+                            <p class="ai-front-desc">{{ $a['desc'] }}</p>
+                            <span class="ai-front-hint" aria-hidden="true">
+                                What's included <i class="fas fa-arrows-rotate ai-hint-rot text-[10px]"></i>
+                            </span>
+                        </div>
+                        {{-- Back --}}
+                        <div class="ai-face ai-face-back">
+                            <div class="ai-back-eyebrow">{{ $a['eyebrow'] }} includes</div>
+                            <ul class="ai-back-list">
+                                @foreach($a['features'] as $feat)
+                                    <li>
+                                        <span class="ai-back-check" aria-hidden="true"><i class="fas fa-check"></i></span>
+                                        <span>{{ $feat }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                            <a href="{{ route($a['route']) }}" class="ai-back-link" data-ai-flip-link>
+                                Learn more <i class="fas fa-arrow-right text-[10px]"></i>
+                            </a>
+                        </div>
                     </div>
-
-                    <div class="relative text-[11px] font-bold uppercase tracking-wider mb-1" style="color: {{ $a['color'] }};">{{ $a['eyebrow'] }}</div>
-                    <h3 class="relative text-lg font-bold mb-2 leading-snug">{{ $a['title'] }}</h3>
-                    <p class="relative text-sm text-gray-400 leading-relaxed mb-4">{{ $a['desc'] }}</p>
-                    <span class="relative inline-flex items-center gap-1.5 text-xs font-semibold" style="color: {{ $a['color'] }};">
-                        Learn more <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition"></i>
-                    </span>
-                </a>
+                </div>
             @endforeach
         </div>
     </div>
 </section>
 
+<script>
+(function () {
+    if (window.__aiFlipInit) return;
+    window.__aiFlipInit = true;
+
+    function init() {
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var cards = document.querySelectorAll('#ai-suite .ai-flip');
+
+        cards.forEach(function (card) {
+            var link = card.querySelector('[data-ai-flip-link]');
+
+            if (reduce) {
+                // Both faces are shown; behave as a static block, link always reachable.
+                card.removeAttribute('role');
+                card.removeAttribute('tabindex');
+                card.removeAttribute('aria-pressed');
+                return;
+            }
+
+            if (link) link.setAttribute('tabindex', '-1');
+
+            function setFlipped(flipped) {
+                card.classList.toggle('is-flipped', flipped);
+                card.setAttribute('aria-pressed', flipped ? 'true' : 'false');
+                if (link) link.setAttribute('tabindex', flipped ? '0' : '-1');
+            }
+
+            card.addEventListener('click', function (e) {
+                if (e.target.closest('a')) return; // let the Learn more link navigate
+                setFlipped(!card.classList.contains('is-flipped'));
+            });
+
+            card.addEventListener('keydown', function (e) {
+                if (e.target.closest('a')) return;
+                if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                    e.preventDefault();
+                    setFlipped(!card.classList.contains('is-flipped'));
+                }
+            });
+
+            // Keep the link tab-reachable while the mouse hover keeps the card flipped.
+            card.addEventListener('mouseenter', function () { if (link) link.setAttribute('tabindex', '0'); });
+            card.addEventListener('mouseleave', function () {
+                if (link && !card.classList.contains('is-flipped')) link.setAttribute('tabindex', '-1');
+            });
+        });
+    }
+
+    if (document.readyState !== 'loading') init();
+    else document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
