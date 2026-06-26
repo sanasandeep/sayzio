@@ -1,10 +1,12 @@
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
-import { PRICING_URL } from "@/config";
-import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { OrbitalUniverse } from "@/components/marketing/orbital-universe";
+import { PRICING_URL, SIGNUP_URL } from "@/config";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, Check, Sparkles } from "lucide-react";
 
 export default function Pricing() {
+  const prefersReducedMotion = useReducedMotion();
   const plans = [
     {
       name: "Free",
@@ -70,23 +72,62 @@ export default function Pricing() {
       title="Pricing"
       description="Plans for steady use, coins for one-off boosts — all in one place."
     >
-      <section className="relative py-20 lg:py-28 overflow-hidden">
+      <section className="relative pt-28 pb-16 lg:pt-36 lg:pb-20 overflow-hidden">
         <div className="mesh-bg" aria-hidden />
         <div className="grid-bg" aria-hidden />
         <div className="container mx-auto px-6 relative z-10">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-primary mb-4">
-              Pricing
-            </span>
-            <h1 className="text-4xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.05]">
-              Pick a plan. <span className="grad-text">Top up coins.</span>
-            </h1>
-            <p className="text-xl text-muted-foreground">
-              Plans for steady use, coins for one-off boosts — all in one place.
-            </p>
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center mb-20">
+            <motion.div
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="max-w-2xl"
+            >
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary mb-6">
+                <Sparkles className="w-4 h-4" />
+                Every plan includes Zio
+              </span>
+
+              <h1 className="text-4xl lg:text-6xl font-bold tracking-tight text-foreground mb-6 leading-[1.05]">
+                Pick a plan. <span className="grad-text">Keep the whole universe.</span>
+              </h1>
+
+              <p className="text-lg lg:text-xl text-muted-foreground mb-10 max-w-xl">
+                Every tier orbits the same AI. Pages, short links, QR codes,
+                analytics and Zio's AI suite come on every plan — you upgrade for
+                higher limits and pro tools, not to unlock the basics. Top up
+                coins any time for one-off boosts.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button asChild size="lg" className="rounded-full h-14 px-8 text-base">
+                  <a href={SIGNUP_URL}>
+                    Start free <ArrowRight className="ml-2 w-5 h-5" />
+                  </a>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="rounded-full h-14 px-8 text-base bg-transparent border-primary/20 hover:bg-primary/5"
+                >
+                  <a href="#plans">Compare plans</a>
+                </Button>
+              </div>
+            </motion.div>
+
+            {/* Zio universe — orbital feature planets */}
+            <motion.div
+              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.92 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative flex justify-center lg:justify-end"
+            >
+              <OrbitalUniverse />
+            </motion.div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+          <div id="plans" className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16 scroll-mt-24">
             {plans.map((plan, index) => (
               <motion.div
                 key={plan.name}
