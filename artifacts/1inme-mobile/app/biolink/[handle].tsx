@@ -425,7 +425,7 @@ function PollBlock({
         </Text>
       ) : null}
       {error ? (
-        <Text style={[styles.body, { color: "#dc2626", textAlign: "left", fontSize: 12, marginTop: 4 }]}>
+        <Text style={[styles.body, { color: colors.destructive, textAlign: "left", fontSize: 12, marginTop: 4 }]}>
           {error}
         </Text>
       ) : null}
@@ -646,7 +646,7 @@ function RsvpBlock({
         </View>
       ) : null}
       {error ? (
-        <Text style={[styles.body, { color: "#dc2626", textAlign: "left", fontSize: 12, marginTop: 4 }]}>
+        <Text style={[styles.body, { color: colors.destructive, textAlign: "left", fontSize: 12, marginTop: 4 }]}>
           {error}
         </Text>
       ) : null}

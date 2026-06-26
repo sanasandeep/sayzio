@@ -31,7 +31,7 @@ const statusTint = (
   paid: colors.success,
   sent: "#0ea5e9",
   draft: "#7d9bff",
-  overdue: "#ef4444",
+  overdue: colors.destructive,
   void: "#9ca3af",
 });
 

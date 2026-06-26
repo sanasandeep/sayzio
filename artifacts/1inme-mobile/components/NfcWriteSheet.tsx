@@ -289,7 +289,7 @@ export function NfcWriteSheet({
 
             {phase === "error" && (
               <View style={styles.center}>
-                <Feather name="alert-triangle" size={36} color="#dc2626" />
+                <Feather name="alert-triangle" size={36} color={colors.destructive} />
                 <Text style={[styles.msg, { color: colors.foreground }]}>Write failed</Text>
                 <Text style={[styles.sub, { color: colors.mutedForeground }]}>
                   {errMsg ?? "Try again with the tag closer to your phone."}

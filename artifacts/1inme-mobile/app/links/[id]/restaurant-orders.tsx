@@ -25,8 +25,8 @@ import {
 const statusColors = (
   colors: ReturnType<typeof useColors>,
 ): Record<string, string> => ({
-  new: "#ef4444",
-  accepted: "#f59e0b",
+  new: colors.destructive,
+  accepted: colors.warning,
   preparing: "#3b82f6",
   ready: colors.success,
   completed: "#6b7280",

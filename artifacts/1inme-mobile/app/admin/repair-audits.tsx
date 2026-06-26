@@ -91,8 +91,8 @@ function AuditCard({ audit }: { audit: SchemaRepairAudit }) {
       {/* Could not repair */}
       {audit.unrepairable_count > 0 ? (
         <View style={{ gap: 6 }}>
-          <View style={[styles.badge, { backgroundColor: "#ef444422" }]}>
-            <Text style={[styles.badgeText, { color: "#ef4444" }]}>
+          <View style={[styles.badge, { backgroundColor: colors.destructive + "22" }]}>
+            <Text style={[styles.badgeText, { color: colors.destructive }]}>
               Could not repair {audit.unrepairable_count}{" "}
               {audit.unrepairable_count === 1 ? "table" : "tables"}
             </Text>

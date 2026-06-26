@@ -130,7 +130,7 @@ export default function ConversationScreen() {
                   ])
                 }
               >
-                <Feather name="trash-2" size={18} color="#dc2626" />
+                <Feather name="trash-2" size={18} color={colors.destructive} />
               </Pressable>
             </View>
           ),

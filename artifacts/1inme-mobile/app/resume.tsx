@@ -1172,7 +1172,7 @@ function VersionSheet({
                       }
                       disabled={busy}
                     >
-                      <Feather name="trash-2" size={14} color="#ef4444" />
+                      <Feather name="trash-2" size={14} color={colors.destructive} />
                     </Pressable>
                   ) : null}
                 </View>

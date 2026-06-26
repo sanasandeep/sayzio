@@ -29,9 +29,9 @@ import {
 const statusColorMap = (
   colors: ReturnType<typeof useColors>,
 ): Record<string, string> => ({
-  pending: "#f59e0b",
+  pending: colors.warning,
   approved: colors.success,
-  rejected: "#ef4444",
+  rejected: colors.destructive,
 });
 
 const CATEGORIES: { value: VerificationCategory; label: string }[] = [

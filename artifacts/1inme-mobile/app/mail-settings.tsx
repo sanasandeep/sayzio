@@ -41,7 +41,7 @@ function toneColors(
     case "green":
       return { bg: colors.success + "22", fg: colors.success };
     case "amber":
-      return { bg: "#f59e0b22", fg: "#f59e0b" };
+      return { bg: colors.warning + "22", fg: colors.warning };
     default:
       return { bg: colors.mutedForeground + "22", fg: colors.mutedForeground };
   }
@@ -354,10 +354,10 @@ export default function MailSettingsScreen() {
                     {
                       backgroundColor:
                         saveResult.verify && !saveResult.verify.ok
-                          ? "#f59e0b15"
+                          ? colors.warning + "15"
                           : colors.success + "15",
                       borderColor:
-                        saveResult.verify && !saveResult.verify.ok ? "#f59e0b" : colors.success,
+                        saveResult.verify && !saveResult.verify.ok ? colors.warning : colors.success,
                     },
                   ]}
                 >
@@ -366,7 +366,7 @@ export default function MailSettingsScreen() {
                       saveResult.verify && !saveResult.verify.ok ? "info" : "check-circle"
                     }
                     size={16}
-                    color={saveResult.verify && !saveResult.verify.ok ? "#f59e0b" : colors.success}
+                    color={saveResult.verify && !saveResult.verify.ok ? colors.warning : colors.success}
                   />
                   <Text style={{ color: colors.foreground, flex: 1 }}>
                     {saveResult.verify
@@ -423,15 +423,15 @@ export default function MailSettingsScreen() {
                   style={[
                     styles.resultBox,
                     {
-                      backgroundColor: result.sent ? colors.success + "15" : "#f59e0b15",
-                      borderColor: result.sent ? colors.success : "#f59e0b",
+                      backgroundColor: result.sent ? colors.success + "15" : colors.warning + "15",
+                      borderColor: result.sent ? colors.success : colors.warning,
                     },
                   ]}
                 >
                   <Feather
                     name={result.sent ? "check-circle" : "info"}
                     size={16}
-                    color={result.sent ? colors.success : "#f59e0b"}
+                    color={result.sent ? colors.success : colors.warning}
                   />
                   <Text style={{ color: colors.foreground, flex: 1 }}>{result.message}</Text>
                 </View>

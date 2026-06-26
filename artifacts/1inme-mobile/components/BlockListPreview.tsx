@@ -366,7 +366,7 @@ export function PricingBlockView({
           <AppIcon
             name={it.included ? "fas fa-check" : "fas fa-times"}
             size={14}
-            color={it.included ? colors.success : "#dc2626"}
+            color={it.included ? colors.success : colors.destructive}
           />
         ) : null;
         const name = it.name || "Item";

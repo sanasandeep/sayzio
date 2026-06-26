@@ -106,7 +106,7 @@ function ReviewItem({
     (review.author_name || "?").trim().charAt(0).toUpperCase() || "?";
 
   const statusMeta: Record<string, { label: string; color: string }> = {
-    pending: { label: "Pending", color: "#f59e0b" },
+    pending: { label: "Pending", color: colors.warning },
     approved: { label: "Published", color: colors.success },
     hidden: { label: "Hidden", color: colors.mutedForeground },
     unverified: { label: "Unverified", color: "#6366f1" },

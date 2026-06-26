@@ -182,8 +182,8 @@ export default function FormDetailScreen() {
                                 item.payment_status === "paid"
                                   ? colors.success + "26"
                                   : item.payment_status === "pending"
-                                    ? "rgba(245,158,11,0.15)"
-                                    : "rgba(244,63,94,0.15)",
+                                    ? colors.warning + "26"
+                                    : colors.destructive + "26",
                             },
                           ]}
                         >
@@ -195,8 +195,8 @@ export default function FormDetailScreen() {
                                   item.payment_status === "paid"
                                     ? colors.success
                                     : item.payment_status === "pending"
-                                      ? "#f59e0b"
-                                      : "#f43f5e",
+                                      ? colors.warning
+                                      : colors.destructive,
                               },
                             ]}
                           >

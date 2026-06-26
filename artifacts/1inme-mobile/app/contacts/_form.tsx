@@ -113,7 +113,7 @@ export default function ContactForm({
                 style={{ paddingRight: 12 }}
                 hitSlop={8}
               >
-                <Feather name="trash-2" size={18} color="#dc2626" />
+                <Feather name="trash-2" size={18} color={colors.destructive} />
               </Pressable>
             ) : null,
         }}
@@ -225,7 +225,7 @@ function Row({
           justifyContent: "center",
         }}
       >
-        <Feather name="x" size={16} color="#dc2626" />
+        <Feather name="x" size={16} color={colors.destructive} />
       </Pressable>
     </View>
   );

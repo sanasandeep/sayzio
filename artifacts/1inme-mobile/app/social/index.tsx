@@ -137,7 +137,7 @@ export default function SocialScreen() {
                 hitSlop={6}
                 style={{ paddingHorizontal: 8 }}
               >
-                <Feather name="x" size={16} color="#dc2626" />
+                <Feather name="x" size={16} color={colors.destructive} />
               </Pressable>
             </View>
           ))
@@ -196,7 +196,7 @@ export default function SocialScreen() {
                 hitSlop={6}
                 style={{ paddingLeft: 8 }}
               >
-                <Feather name="x" size={16} color="#dc2626" />
+                <Feather name="x" size={16} color={colors.destructive} />
               </Pressable>
             </View>
           ))

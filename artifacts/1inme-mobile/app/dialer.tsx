@@ -523,7 +523,7 @@ export default function DialerScreen() {
                     <View
                       style={[
                         styles.bubbleAvatar,
-                        { backgroundColor: fr.is_spam ? "#ef4444" : colors.primary },
+                        { backgroundColor: fr.is_spam ? colors.destructive : colors.primary },
                       ]}
                     >
                       <Text style={styles.bubbleInitials}>{fr.initials}</Text>
@@ -745,7 +745,7 @@ export default function DialerScreen() {
                     </Text>
                   )}
                   {item.biolink && <MiniTag text="Sayzio" color="#d76dff" />}
-                  {item.isSpam && <MiniTag text="SPAM" color="#ef4444" />}
+                  {item.isSpam && <MiniTag text="SPAM" color={colors.destructive} />}
                   {item.isBlocked && <MiniTag text="BLOCKED" color="#9ca3af" />}
                 </View>
                 {item.label && (

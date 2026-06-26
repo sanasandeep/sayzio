@@ -257,7 +257,7 @@ export default function UserRolesScreen() {
                       styles.statusPill,
                       {
                         backgroundColor:
-                          data.admin_account.status === "active" ? colors.success + "22" : "#f59e0b22",
+                          data.admin_account.status === "active" ? colors.success + "22" : colors.warning + "22",
                       },
                     ]}
                   >
@@ -265,7 +265,7 @@ export default function UserRolesScreen() {
                       style={{
                         fontSize: 11,
                         fontWeight: "600",
-                        color: data.admin_account.status === "active" ? colors.success : "#f59e0b",
+                        color: data.admin_account.status === "active" ? colors.success : colors.warning,
                       }}
                     >
                       {data.admin_account.status === "active"

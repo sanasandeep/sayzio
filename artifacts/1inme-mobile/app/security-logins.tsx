@@ -102,9 +102,9 @@ export default function SecurityLoginsScreen() {
     const when = new Date(item.created_at).toLocaleString();
     const badge =
       item.status === "revoked"
-        ? { label: "Revoked", bg: "#fee2e2", fg: "#991b1b" }
+        ? { label: "Revoked", bg: colors.destructive + "22", fg: colors.destructive }
         : item.status === "new"
-          ? { label: "New device", bg: "#fef3c7", fg: "#92400e" }
+          ? { label: "New device", bg: colors.warning + "22", fg: colors.warning }
           : { label: "Recognized", bg: colors.success + "22", fg: colors.success };
     return (
       <View
@@ -141,8 +141,8 @@ export default function SecurityLoginsScreen() {
             ]}
             hitSlop={8}
           >
-            <Feather name="alert-triangle" size={14} color="#dc2626" />
-            <Text style={styles.revokeText}>
+            <Feather name="alert-triangle" size={14} color={colors.destructive} />
+            <Text style={[styles.revokeText, { color: colors.destructive }]}>
               {revokingId === item.id ? "Revoking…" : "This wasn't me"}
             </Text>
           </Pressable>
@@ -225,6 +225,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  revokeText: { color: "#dc2626", fontSize: 13, fontWeight: "600" },
+  revokeText: { fontSize: 13, fontWeight: "600" },
   retry: { padding: 8 },
 });

@@ -111,12 +111,12 @@ export default function StatsStorageScreen() {
               <View
                 style={[
                   styles.card,
-                  { backgroundColor: "#f59e0b1a", borderColor: "#f59e0b59" },
+                  { backgroundColor: colors.warning + "1a", borderColor: colors.warning + "59" },
                 ]}
               >
                 <View style={styles.head}>
-                  <Feather name="alert-triangle" size={18} color="#f59e0b" />
-                  <Text style={[styles.title, { color: "#f59e0b" }]}>
+                  <Feather name="alert-triangle" size={18} color={colors.warning} />
+                  <Text style={[styles.title, { color: colors.warning }]}>
                     Growing unbounded
                   </Text>
                 </View>
@@ -187,13 +187,13 @@ export default function StatsStorageScreen() {
                       style={[
                         styles.badge,
                         {
-                          backgroundColor: t.over_threshold ? "#f59e0b1a" : colors.primary + "14",
+                          backgroundColor: t.over_threshold ? colors.warning + "1a" : colors.primary + "14",
                         },
                       ]}
                     >
                       <Text
                         style={{
-                          color: t.over_threshold ? "#f59e0b" : colors.primary,
+                          color: t.over_threshold ? colors.warning : colors.primary,
                           fontSize: 11,
                           fontWeight: "600",
                         }}

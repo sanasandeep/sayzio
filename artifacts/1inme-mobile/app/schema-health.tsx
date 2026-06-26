@@ -90,8 +90,8 @@ export default function SchemaHealthScreen() {
                     <Text style={[styles.badgeText, { color: colors.success }]}>In sync</Text>
                   </View>
                 ) : (
-                  <View style={[styles.badge, { backgroundColor: "#f59e0b22" }]}>
-                    <Text style={[styles.badgeText, { color: "#f59e0b" }]}>Out of date</Text>
+                  <View style={[styles.badge, { backgroundColor: colors.warning + "22" }]}>
+                    <Text style={[styles.badgeText, { color: colors.warning }]}>Out of date</Text>
                   </View>
                 )}
               </View>
@@ -145,7 +145,7 @@ export default function SchemaHealthScreen() {
                     </Text>
                     {wholeMissing.map((m) => (
                       <View key={m.table} style={styles.driftRow}>
-                        <Feather name="alert-triangle" size={14} color="#f59e0b" />
+                        <Feather name="alert-triangle" size={14} color={colors.warning} />
                         <Text style={{ color: colors.foreground, flex: 1 }}>
                           <Text style={styles.mono}>{m.table}</Text>
                           {" — entire table missing"}
@@ -182,15 +182,15 @@ export default function SchemaHealthScreen() {
                 style={[
                   styles.resultBox,
                   {
-                    backgroundColor: repairResult.healthy ? colors.success + "15" : "#f59e0b15",
-                    borderColor: repairResult.healthy ? colors.success : "#f59e0b",
+                    backgroundColor: repairResult.healthy ? colors.success + "15" : colors.warning + "15",
+                    borderColor: repairResult.healthy ? colors.success : colors.warning,
                   },
                 ]}
               >
                 <Feather
                   name={repairResult.healthy ? "check-circle" : "info"}
                   size={16}
-                  color={repairResult.healthy ? colors.success : "#f59e0b"}
+                  color={repairResult.healthy ? colors.success : colors.warning}
                 />
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text style={{ color: colors.foreground }}>

@@ -149,7 +149,7 @@ function OrderCard({
     order.status === "fulfilled"
       ? colors.success
       : order.status === "cancelled"
-        ? "#ef4444"
+        ? colors.destructive
         : colors.primary;
   const canFulfill = order.status === "paid" && order.contains_physical;
 

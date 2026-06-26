@@ -879,7 +879,7 @@ function SessionView(props: {
       ) : null}
 
       {error ? (
-        <Text style={[styles.error, { color: "#dc2626" }]}>{error}</Text>
+        <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text>
       ) : null}
 
       {transcript ? (
@@ -920,7 +920,7 @@ function SessionView(props: {
         <View
           style={[
             styles.confirmBox,
-            { backgroundColor: colors.muted, borderColor: "#dc2626" },
+            { backgroundColor: colors.muted, borderColor: colors.destructive },
           ]}
         >
           <Text style={[styles.confirmTitle, { color: colors.foreground }]}>
@@ -1023,7 +1023,7 @@ function HelpView(props: {
 
   if (error) {
     return (
-      <Text style={[styles.error, { color: "#dc2626" }]}>{error}</Text>
+      <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text>
     );
   }
   if (!capabilities) {
@@ -1052,7 +1052,7 @@ function HelpView(props: {
                 <Feather
                   name={t.destructive ? "alert-circle" : "check-circle"}
                   size={14}
-                  color={t.destructive ? "#dc2626" : colors.success}
+                  color={t.destructive ? colors.destructive : colors.success}
                 />
                 <Text style={[styles.helpRowText, { color: colors.foreground }]}>
                   {t.description}

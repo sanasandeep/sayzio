@@ -163,7 +163,7 @@ function ActionBtn({
   onPress: () => void;
 }) {
   const colors = useColors();
-  const c = danger ? "#dc2626" : colors.primary;
+  const c = danger ? colors.destructive : colors.primary;
   return (
     <Pressable
       onPress={onPress}

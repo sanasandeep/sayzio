@@ -106,7 +106,7 @@ export default function WalletScreen() {
             </Text>
           )}
           {lowBalance && (
-            <Text style={[styles.warn, { color: "#f59e0b" }]}>
+            <Text style={[styles.warn, { color: colors.warning }]}>
               <Feather name="alert-triangle" size={12} /> Low balance — top up to keep using coin add-ons.
             </Text>
           )}
@@ -176,7 +176,7 @@ export default function WalletScreen() {
                     <Text
                       style={[
                         styles.txDelta,
-                        { color: tx.delta_coins >= 0 ? colors.success : "#ef4444" },
+                        { color: tx.delta_coins >= 0 ? colors.success : colors.destructive },
                       ]}
                     >
                       {tx.delta_coins >= 0 ? "+" : ""}

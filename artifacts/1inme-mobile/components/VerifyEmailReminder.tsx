@@ -105,7 +105,7 @@ export function VerifyEmailReminder() {
     }
   };
 
-  const amber = "#f59e0b";
+  const amber = colors.warning;
 
   return (
     <View
@@ -113,8 +113,8 @@ export function VerifyEmailReminder() {
         padding: 14,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: "rgba(245,158,11,0.3)",
-        backgroundColor: "rgba(245,158,11,0.1)",
+        borderColor: colors.warning + "4d",
+        backgroundColor: colors.warning + "1a",
         gap: 10,
       }}
     >
@@ -154,8 +154,8 @@ export function VerifyEmailReminder() {
             paddingVertical: 8,
             borderRadius: 999,
             borderWidth: 1,
-            borderColor: "rgba(245,158,11,0.5)",
-            backgroundColor: "rgba(245,158,11,0.14)",
+            borderColor: colors.warning + "80",
+            backgroundColor: colors.warning + "24",
           }}
         >
           {sending ? (
@@ -186,7 +186,7 @@ export function VerifyEmailReminder() {
                 paddingVertical: 10,
                 borderRadius: 10,
                 borderWidth: 1,
-                borderColor: "rgba(245,158,11,0.4)",
+                borderColor: colors.warning + "66",
                 backgroundColor: colors.card,
                 color: colors.foreground,
                 fontSize: 16,

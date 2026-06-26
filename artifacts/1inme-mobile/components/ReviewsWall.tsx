@@ -484,7 +484,7 @@ function SubmitModal({
                 </Text>
               </View>
 
-              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+              {error ? <Text style={[styles.errorText, { color: colors.destructive }]}>{error}</Text> : null}
 
               {mutation.isPending && media.length > 0 ? (
                 <View style={{ gap: 6 }}>
@@ -781,5 +781,5 @@ const styles = StyleSheet.create({
   progressTrack: { height: 8, borderRadius: 4, overflow: "hidden" },
   progressFill: { height: 8, borderRadius: 4 },
   progressLabel: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12, textAlign: "center" },
-  errorText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13, color: "#dc2626" },
+  errorText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13 },
 });

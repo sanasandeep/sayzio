@@ -535,7 +535,7 @@ export default function DialerProfileScreen() {
               </Text>
             )}
             <View style={styles.badges}>
-              {lookup?.is_spam && <Badge text="SPAM" color="#ef4444" />}
+              {lookup?.is_spam && <Badge text="SPAM" color={colors.destructive} />}
               {lookup?.is_blocked && <Badge text="BLOCKED" color="#9ca3af" />}
               {(lookup?.biolink || profile?.biolink) && (
                 <Badge text="Sayzio" color="#d76dff" />
@@ -606,7 +606,7 @@ export default function DialerProfileScreen() {
               icon="alert-triangle"
               label={lookup?.is_spam ? "Unmark spam" : "Mark spam"}
               active={!!lookup?.is_spam}
-              color="#ef4444"
+              color={colors.destructive}
               onPress={() => toggleFlag("is_spam")}
               disabled={busy}
             />
@@ -997,7 +997,7 @@ export default function DialerProfileScreen() {
                 >
                   <Text
                     style={{
-                      color: "#ef4444",
+                      color: colors.destructive,
                       fontFamily: "SpaceGrotesk_500Medium",
                     }}
                   >
@@ -1219,7 +1219,7 @@ export default function DialerProfileScreen() {
                         }
                         style={{ paddingHorizontal: 8 }}
                       >
-                        <Feather name="trash-2" size={16} color="#ef4444" />
+                        <Feather name="trash-2" size={16} color={colors.destructive} />
                       </Pressable>
                     </View>
                   </View>
@@ -1304,7 +1304,7 @@ export default function DialerProfileScreen() {
                       }
                       style={{ paddingHorizontal: 8 }}
                     >
-                      <Feather name="trash-2" size={16} color="#ef4444" />
+                      <Feather name="trash-2" size={16} color={colors.destructive} />
                     </Pressable>
                   </View>
                 ))}

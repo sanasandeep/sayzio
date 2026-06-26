@@ -44,6 +44,9 @@ const colors = {
     destructive: "#ef4444",
     destructiveForeground: "#ffffff",
 
+    warning: "#d97706",
+    warningForeground: "#ffffff",
+
     success: brand.green500,
     successForeground: "#ffffff",
 
@@ -78,6 +81,9 @@ const colors = {
 
     destructive: "#f87171",
     destructiveForeground: "#0a0a0f",
+
+    warning: "#fbbf24",
+    warningForeground: "#0a0a0f",
 
     success: brand.green400,
     successForeground: "#0a0a0f",
