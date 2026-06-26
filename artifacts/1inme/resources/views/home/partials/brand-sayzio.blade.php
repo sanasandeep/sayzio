@@ -13,15 +13,30 @@
     /* ===== "1IN.ME is Sayzio" section (bs- = brand-sayzio) ===== */
     .bs-section { position: relative; }
 
-    /* Faint reference visual washed into the backdrop (desktop only). */
+    /* Faint typographic backdrop built from the brand words (desktop + mobile). */
     .bs-backing {
-        position: absolute; inset: 0; z-index: 0; pointer-events: none;
-        background-size: cover; background-position: center;
-        opacity: .05; filter: saturate(1.1);
-        mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, #000 10%, transparent 75%);
-        -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 45%, #000 10%, transparent 75%);
+        position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+        mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 5%, transparent 78%);
+        -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, #000 5%, transparent 78%);
     }
-    html.light-mode .bs-backing { opacity: .04; }
+    .bs-backing-word {
+        position: absolute; white-space: nowrap; user-select: none;
+        font-weight: 900; letter-spacing: -.03em; line-height: .82;
+        font-size: clamp(4.5rem, 17vw, 15rem);
+        color: rgba(255,255,255,.035);
+        will-change: transform, opacity;
+    }
+    html.light-mode .bs-backing-word { color: rgba(15,23,42,.04); }
+    .bs-backing-word--id  { top: 4%;  left: -3%;  animation: bsBackA 18s ease-in-out infinite; }
+    .bs-backing-word--zio { bottom: 4%; right: -3%; animation: bsBackB 22s ease-in-out infinite; }
+    @keyframes bsBackA {
+        0%, 100% { transform: translate3d(0, 0, 0); opacity: 1; }
+        50%      { transform: translate3d(2.5%, -1%, 0); opacity: .45; }
+    }
+    @keyframes bsBackB {
+        0%, 100% { transform: translate3d(0, 0, 0); opacity: .45; }
+        50%      { transform: translate3d(-2.5%, 1%, 0); opacity: 1; }
+    }
 
     /* Brand cards */
     .bs-card {
@@ -52,25 +67,35 @@
     .bs-wordmark--zio { background: linear-gradient(95deg, #6e61ff, #e94e8c 60%, #ff8a3c); -webkit-background-clip: text; background-clip: text; }
     @keyframes bsGrad { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 
+    /* Mode-aware emphasis text — white on dark, near-black on light */
+    .bs-emph { color: #fff; }
+    html.light-mode .bs-emph { color: #0f172a; }
+
+    /* Mode-aware heading connector + body copy (legible white-on-dark / dark-on-light) */
+    .bs-is-word { color: rgba(255,255,255,.55); }
+    html.light-mode .bs-is-word { color: rgba(15,23,42,.55); }
+    .bs-copy { color: rgba(255,255,255,.82); }
+    html.light-mode .bs-copy { color: rgba(15,23,42,.78); }
+
     /* Logo holder tile — neutral / frosted so the colorful brand marks read cleanly */
     .bs-glyph {
         position: relative; flex-shrink: 0;
         display: inline-flex; align-items: center; justify-content: center;
         border-radius: 1.1rem;
-        border: 1px solid rgba(255,255,255,.14);
-        background: rgba(255,255,255,.05);
+        border: 1px solid rgba(255,255,255,.10);
+        background: rgba(255,255,255,.03);
         backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 16px 38px -18px rgba(61,107,255,.45);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 12px 28px -22px rgba(61,107,255,.30);
     }
     .bs-glyph::after {
         content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-        background: linear-gradient(135deg, rgba(61,107,255,.16), transparent 60%);
+        background: linear-gradient(135deg, rgba(61,107,255,.08), transparent 60%);
     }
-    .bs-glyph-zio::after { background: linear-gradient(135deg, rgba(110,97,255,.20), transparent 60%); }
+    .bs-glyph-zio::after { background: linear-gradient(135deg, rgba(110,97,255,.10), transparent 60%); }
     .bs-glyph > img { position: relative; object-fit: contain; user-select: none; -webkit-user-select: none; }
     html.light-mode .bs-glyph {
-        background: #ffffff; border-color: rgba(15,23,42,.10);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 16px 38px -20px rgba(61,107,255,.30);
+        background: rgba(255,255,255,.55); border-color: rgba(15,23,42,.08);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 12px 28px -24px rgba(61,107,255,.18);
     }
 
     /* Animated energy line between the two cards (desktop horizontal). */
@@ -89,33 +114,14 @@
         position: relative; z-index: 2;
         display: inline-flex; align-items: center; justify-content: center;
         width: 64px; height: 64px; border-radius: 9999px;
-        background: linear-gradient(135deg, #3d6bff, #6e61ff);
+        background: linear-gradient(135deg, rgba(61,107,255,.82), rgba(110,97,255,.82));
         color: #fff; font-weight: 800; letter-spacing: .04em;
-        box-shadow: 0 14px 40px -10px rgba(61,107,255,.75);
+        box-shadow: 0 10px 26px -14px rgba(61,107,255,.45);
     }
     .bs-is-pill::before {
-        content: ""; position: absolute; inset: -6px; border-radius: inherit; z-index: -1;
+        content: ""; position: absolute; inset: -5px; border-radius: inherit; z-index: -1;
         background: conic-gradient(from 0deg, #3d6bff, #6e61ff, #1bd4d9, #3d6bff);
-        filter: blur(10px); opacity: .8; animation: spinSlow 7s linear infinite;
-    }
-
-    /* "Powered by" connector lightning halo */
-    .bs-bolt {
-        position: relative;
-        display: inline-flex; align-items: center; justify-content: center;
-        width: 54px; height: 54px; border-radius: 9999px;
-        background: linear-gradient(135deg, #6e61ff, #3d6bff);
-        color: #fff; box-shadow: 0 12px 34px -10px rgba(110,97,255,.8);
-    }
-    .bs-bolt::after {
-        content: ""; position: absolute; inset: 0; border-radius: inherit;
-        box-shadow: 0 0 0 0 rgba(110,97,255,.55);
-        animation: bsBolt 2.4s ease-out infinite;
-    }
-    @keyframes bsBolt {
-        0%   { box-shadow: 0 0 0 0 rgba(110,97,255,.55); }
-        70%  { box-shadow: 0 0 0 18px rgba(110,97,255,0); }
-        100% { box-shadow: 0 0 0 0 rgba(110,97,255,0); }
+        filter: blur(11px); opacity: .32; animation: spinSlow 7s linear infinite;
     }
 
     /* Pillar chips */
@@ -139,16 +145,21 @@
     @keyframes bsDrift { 0%,100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-8px) rotate(1.5deg); } }
 
     @media (prefers-reduced-motion: reduce) {
-        .bs-wordmark, .bs-energy::after, .bs-is-pill::before, .bs-bolt::after, .bs-mascot {
+        .bs-wordmark, .bs-energy::after, .bs-is-pill::before, .bs-mascot,
+        .bs-backing-word--id, .bs-backing-word--zio {
             animation: none !important;
         }
         .bs-wordmark { background-position: 0 50% !important; }
         .bs-energy::after { background: linear-gradient(90deg, var(--c1), #6e61ff, var(--c3)) !important; }
+        .bs-backing-word--zio { opacity: .7; }
     }
 </style>
 
 <section class="bs-section relative py-20 lg:py-28 overflow-hidden" aria-labelledby="bs-h">
-    <div class="bs-backing" style="background-image:url('{{ asset('images/marketing/1inme-is-sayzio.png') }}')" aria-hidden="true"></div>
+    <div class="bs-backing" aria-hidden="true">
+        <span class="bs-backing-word bs-backing-word--id">1INME</span>
+        <span class="bs-backing-word bs-backing-word--zio">SAYZIO</span>
+    </div>
 
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
         {{-- Eyebrow + heading --}}
@@ -162,12 +173,12 @@
             </div>
             <h2 id="bs-h" data-anim="fade-up" class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.08]">
                 <span class="bs-wordmark">1IN.ME</span>
-                <span class="text-gray-400 font-semibold italic px-1">is</span>
+                <span class="bs-is-word font-semibold italic px-1">is</span>
                 <span class="bs-wordmark bs-wordmark--zio">Sayzio</span>
             </h2>
-            <p data-anim="fade-up" class="mt-5 text-lg text-gray-400 leading-relaxed">
-                <strong class="text-white">1IN.ME</strong> is your digital identity, unified — and it runs on
-                <strong class="text-white">Sayzio</strong>, the smart, scalable, seamless platform powering every link, page and QR.
+            <p data-anim="fade-up" class="bs-copy mt-5 text-lg leading-relaxed">
+                <strong class="bs-emph">1IN.ME</strong> is your digital identity, unified — and it runs on
+                <strong class="bs-emph">Sayzio</strong>, the smart, scalable, seamless platform powering every link, page and QR.
             </p>
         </div>
 
@@ -224,7 +235,6 @@
         {{-- "Powered by Sayzio" connector --}}
         <div data-anim="fade-up" class="mt-10 lg:mt-12 flex items-center justify-center">
             <div class="inline-flex items-center gap-3 px-5 py-2.5 glass rounded-full">
-                <span class="bs-bolt w-9 h-9 text-sm"><i class="fas fa-bolt"></i></span>
                 <span class="text-xs font-bold uppercase tracking-[.22em] text-gray-400">Powered by</span>
                 <span class="text-base font-extrabold"><span class="bs-wordmark bs-wordmark--zio">Sayzio</span></span>
             </div>
