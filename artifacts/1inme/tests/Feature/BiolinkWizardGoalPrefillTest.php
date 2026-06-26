@@ -108,6 +108,29 @@ class BiolinkWizardGoalPrefillTest extends TestCase
         $this->assertSame(1, (int) $draft->step, 'should stop on the persona step');
     }
 
+    /** Every mapped goal must be a real create-screen link type. */
+    public function test_wizard_goals_are_real_link_types(): void
+    {
+        $types = LinkTypeCategories::types();
+
+        foreach (array_keys(LinkTypeCategories::wizardGroups()) as $goal) {
+            $this->assertArrayHasKey($goal, $types,
+                "wizard goal '{$goal}' is not a catalog link type");
+        }
+    }
+
+    /** The guided-wizard goal coverage stays in lockstep with its persona groups. */
+    public function test_wizard_groups_cover_expected_goals(): void
+    {
+        $this->assertSame([
+            'biolink'         => ['group' => null,       'persona' => null],
+            'restaurant_menu' => ['group' => 'Food',     'persona' => 'chef'],
+            'paid_page'       => ['group' => 'Creators', 'persona' => null],
+            'reviews'         => ['group' => 'Business', 'persona' => null],
+            'resume'          => ['group' => 'Services', 'persona' => null],
+        ], LinkTypeCategories::wizardGroups());
+    }
+
     /** A `?group=` prefill seeds a fresh draft on the persona step. */
     public function test_group_prefill_seeds_a_fresh_draft(): void
     {

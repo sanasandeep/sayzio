@@ -162,10 +162,17 @@ class LinkTypeCategories
      * Goals absent from this map have no wizard path and keep the manual
      * link-type selection flow.
      *
-     * The wizard always produces a biolink-family page, so only goals it can
-     * sensibly theme belong here: the generic Link in Bio (no group), and the
-     * food/menu goal — the Food group's single chef persona is built around
-     * menus, so "Show a menu" lands straight on the chef persona.
+     * The wizard always produces a biolink-family page, so only goals whose
+     * persona-themed page genuinely serves the goal belong here. Pure utility
+     * links the wizard can't build (short link, file share, event/.ics,
+     * contact card) stay on the manual flow.
+     *
+     *   - biolink         → null group   generic Link in Bio (no pre-seed)
+     *   - restaurant_menu → Food / chef  the Food group's single chef persona
+     *                                    builds menus, so it lands on chef
+     *   - paid_page       → Creators     creator monetization (posts/tiers/tips)
+     *   - reviews         → Business     brands/shops/agencies collecting reviews
+     *   - resume          → Services     freelancers/consultants/pros (portfolio)
      *
      * Every `group` here must be a valid PersonaCatalog group, and every
      * `persona` must belong to its `group`.
@@ -175,8 +182,11 @@ class LinkTypeCategories
     public static function wizardGroups(): array
     {
         return [
-            'biolink'         => ['group' => null,   'persona' => null],
-            'restaurant_menu' => ['group' => 'Food', 'persona' => 'chef'],
+            'biolink'         => ['group' => null,       'persona' => null],
+            'restaurant_menu' => ['group' => 'Food',     'persona' => 'chef'],
+            'paid_page'       => ['group' => 'Creators', 'persona' => null],
+            'reviews'         => ['group' => 'Business', 'persona' => null],
+            'resume'          => ['group' => 'Services', 'persona' => null],
         ];
     }
 
