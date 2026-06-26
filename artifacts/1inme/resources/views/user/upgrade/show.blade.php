@@ -29,7 +29,7 @@
      x-data="{
         currency: '{{ $currency }}',
         sel: {},
-        catalog: @json($addonCatalog),
+        catalog: @js($addonCatalog),
         maxQty: 99,
         switchCurrency(c){
             if (this.currency === c) return;

@@ -12,7 +12,7 @@
     $modalBgPanel   = $modalBgPanel ?? '#0f172a';
     $viewerInitial  = $viewerInitial ?? null;
 @endphp
-<div x-data="viewerLoginModal({{ $modalCreatorId ? (int)$modalCreatorId : 'null' }}, @json($viewerInitial))"
+<div x-data="viewerLoginModal({{ $modalCreatorId ? (int)$modalCreatorId : 'null' }}, @js($viewerInitial))"
      x-cloak
      @open-viewer-login.window="open($event.detail || {})"
      @viewer-followed.window="onFollowed($event.detail)"

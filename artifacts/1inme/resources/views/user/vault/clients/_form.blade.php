@@ -37,7 +37,7 @@
     </label>
 </div>
 
-<div class="mt-6" x-data="{ rows: @json($emails ?: [['email'=>'','label'=>'']]) }">
+<div class="mt-6" x-data="{ rows: @js($emails ?: [['email'=>'','label'=>'']]) }">
     <h3 class="text-sm font-semibold text-gray-300 mb-2">Emails <span class="text-xs" style="color: var(--text-muted);">(first row is primary)</span></h3>
     <template x-for="(row, i) in rows" :key="i">
         <div class="grid grid-cols-12 gap-2 mb-2">
@@ -49,7 +49,7 @@
     <button type="button" @click="rows.push({email:'',label:''})" class="text-xs text-amber-400">+ Add email</button>
 </div>
 
-<div class="mt-6" x-data="{ rows: @json($phones ?: [['phone'=>'','label'=>'']]) }">
+<div class="mt-6" x-data="{ rows: @js($phones ?: [['phone'=>'','label'=>'']]) }">
     <h3 class="text-sm font-semibold text-gray-300 mb-2">Phones</h3>
     <template x-for="(row, i) in rows" :key="i">
         <div class="grid grid-cols-12 gap-2 mb-2">
@@ -61,7 +61,7 @@
     <button type="button" @click="rows.push({phone:'',label:''})" class="text-xs text-amber-400">+ Add phone</button>
 </div>
 
-<div class="mt-6" x-data="{ rows: @json($addresses) }">
+<div class="mt-6" x-data="{ rows: @js($addresses) }">
     <h3 class="text-sm font-semibold text-gray-300 mb-2">Addresses</h3>
     <template x-for="(row, i) in rows" :key="i">
         <div class="grid grid-cols-12 gap-2 mb-3 p-3 rounded-lg bg-white/5">
