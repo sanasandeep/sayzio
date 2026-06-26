@@ -2526,6 +2526,7 @@
      The home page now matches all other marketing pages, which use a sticky
      sidebar TOC (features, faqs, policy) instead of a horizontal sub-nav. --}}
 
+@include('home.partials.ai-hero')
 @include('home.partials.hero')
 {{-- ============================ MARQUEE STRIP ============================ --}}
 @php $__skipMarquee = false; @endphp
@@ -2592,7 +2593,7 @@
             <h2 id="audience-h" class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
                 Built for <span class="grad-text">creators, brands &amp; networking pros.</span>
             </h2>
-            <p class="reveal rd-2 text-gray-400">Pick the one that fits you &mdash; the same all-in-one toolkit powers all three.</p>
+            <p class="reveal rd-2 text-gray-400">Pick the one that fits you &mdash; the same AI-powered, all-in-one toolkit powers all three.</p>
         </div>
 
         <div class="grid md:grid-cols-3 gap-5">
@@ -2662,13 +2663,13 @@
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
                 Live in <span class="grad-text">under 2 minutes.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Four tiny steps from "I have an idea" to "share my link". No card, no setup call, no fuss.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">Tell your AI what you want and it builds the page. Four tiny steps from "I have an idea" to "share my link" &mdash; no card, no setup call, no fuss.</p>
         </div>
 
         <div class="hiw-track grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
             @foreach([
                 ['01','0:15','Sign up free','Email or one-tap Google. Pick your handle and you\'re in.','fa-user-plus','#1bd4d9'],
-                ['02','0:45','Build your page','Drag-and-drop blocks for socials, music, shop, video, forms.','fa-grip-vertical','#3d6bff'],
+                ['02','0:45','Build with AI','Let AI draft it, then drag-and-drop blocks for socials, music, shop, video.','fa-grip-vertical','#3d6bff'],
                 ['03','1:30','Share it everywhere','One link, branded short links and a dynamic QR for offline.','fa-share-nodes','#e94e8c'],
                 ['04','2:00','Watch it grow','Live analytics + an AI Coach that turns numbers into actions.','fa-chart-line','#ff8a3c'],
             ] as $i => $s)
@@ -2708,9 +2709,9 @@
         <div class="text-center mb-16 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">Build</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                A whole website,<br><span class="grad-text">drag-and-drop simple.</span>
+                A whole website,<br><span class="grad-text">AI-built or drag-and-drop.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Stack blocks for text, images, video, audio, files, embeds and forms. Arrange in multi-column layouts. Pick a theme. Go live.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">Describe it and your AI stacks the blocks &mdash; or build by hand: text, images, video, audio, files, embeds and forms in multi-column layouts. Pick a theme. Go live.</p>
         </div>
 
         <div class="grid lg:grid-cols-12 gap-6">
@@ -3143,7 +3144,7 @@
                 Pick a domain that fits.<br><span class="grad-text">Or bring your own.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                Launch on one of our branded shared domains, connect your own custom domain, or give any link a memorable slug — with multiple aliases pointing at the same page.
+                Launch on one of our branded shared domains, connect your own custom domain, or give any link a memorable slug — with multiple aliases pointing at the same AI-built page.
             </p>
         </div>
 
@@ -3227,9 +3228,9 @@
         <div class="text-center mb-16 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Grow</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Live analytics with<br><span class="grad-text">a built-in coach.</span>
+                Live analytics with<br><span class="grad-text">an AI growth coach.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">See visitors land on a world map, watch click trends per block, and let the Performance Coach suggest one-click fixes.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">See visitors land on a world map, watch click trends per block, and let your AI Performance Coach suggest one-click fixes.</p>
         </div>
 
         <div class="grid lg:grid-cols-12 gap-6">
@@ -3430,7 +3431,7 @@
                 Ten kinds of link.<br><span class="grad-text">One simple dashboard.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                A short link is just the start. Build a chat page, a slide story, a digital menu, a review wall and more — every one tracked and shareable from a single URL.
+                A short link is just the start. Spin up a chat page, a slide story, a digital menu, a review wall and more — your AI helps draft each one, and every one is tracked and shareable from a single URL.
             </p>
         </div>
 
@@ -3588,7 +3589,7 @@
                 One platform.<br><span class="grad-text">The whole growth stack.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                Four pillars, one login, free forever. No more stitching together five different tools to launch, share, sell and grow.
+                Four pillars, one login, free forever — with AI woven through every one. No more stitching together five different tools to launch, share, sell and grow.
             </p>
         </div>
 
@@ -3737,7 +3738,7 @@
                 Run Sayzio with <span class="grad-text">your whole team.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                Multiple workspaces, real teammates with real roles, fine-grained permissions and per-workspace billing — built for agencies, founders and busy creators.
+                Multiple workspaces, real teammates with real roles, fine-grained permissions and per-workspace billing — with shared AI tools built for agencies, founders and busy creators.
             </p>
         </div>
 
@@ -3918,10 +3919,10 @@
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Buzz</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Show visitors <span class="grad-text">real momentum.</span>
+                Your AI grows it. <span class="grad-text">Buzz shows it.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                Buzz is the social-proof widget already wired into every Sayzio Link in Bio. Live signups, visits and purchases pop up right on your page so visitors see the room is busy — and act.
+                While your AI builds and tunes the page, Buzz keeps the momentum visible — live signups, visits and purchases pop up right on your Link in Bio so visitors see the room is busy and act.
             </p>
         </div>
 
@@ -4079,7 +4080,7 @@
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Social proof</div>
-            <h2 class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold">Loved by people who <span class="grad-text">do the most.</span></h2>
+            <h2 class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold">Built with AI, <span class="grad-text">loved by creators.</span></h2>
         </div>
     </div>
 
@@ -4161,7 +4162,7 @@
         <div class="text-center mb-8">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
             <h2 class="reveal rd-1 text-3xl sm:text-4xl font-bold tracking-tight mb-2">Questions? <span class="grad-text">Answered.</span></h2>
-            <p class="reveal rd-2 text-sm text-gray-400">A quick highlight reel — the full searchable library lives on the FAQ page.</p>
+            <p class="reveal rd-2 text-sm text-gray-400">How the AI builder, coach and the rest actually work — a quick highlight reel; the full searchable library lives on the FAQ page.</p>
         </div>
 
         <div class="reveal rd-3 space-y-3">
@@ -4194,7 +4195,7 @@
             <div>
                 <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">From the blog</div>
                 <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-3">Featured <span class="grad-text">stories.</span></h2>
-                <p class="reveal rd-2 text-gray-400 max-w-xl">Tips, product news and creator deep-dives — fresh from the Sayzio team.</p>
+                <p class="reveal rd-2 text-gray-400 max-w-xl">AI playbooks, product news and creator deep-dives — fresh from the Sayzio team.</p>
             </div>
             <a href="{{ route('site.blogs.index') }}" class="hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-blue-200 transition">
                 Browse all posts
@@ -4308,7 +4309,7 @@
             <h2 data-anim="fade-up" class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
                 More features. <span class="grad-text">Better deal.</span>
             </h2>
-            <p data-anim="fade-up" class="text-gray-400">See how Sayzio stacks up against the link-in-bio tools you already know — and why creators are switching.</p>
+            <p data-anim="fade-up" class="text-gray-400">See how Sayzio stacks up against the link-in-bio tools you already know — most charge extra for AI; here it's built in and free.</p>
         </div>
 
         {{-- ===== Desktop / tablet matrix ===== --}}
@@ -4443,7 +4444,7 @@
                         Your audience is <span class="grad-text">already searching for you.</span>
                     </h2>
                     <p class="text-base text-gray-400 mt-4 max-w-xl mx-auto lg:mx-0">
-                        Build the page. Share the link. Watch them show up — live on a map.
+                        Let your AI build the page. Share the link. Watch them show up — live on a map.
                     </p>
                 </div>
                 <div class="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 items-stretch sm:justify-center lg:items-stretch">

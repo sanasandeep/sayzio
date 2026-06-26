@@ -29,7 +29,7 @@
                         @endforeach
                     </div>
                     <div class="text-xs sm:text-sm leading-tight">
-                        <span class="font-semibold text-white">Trusted worldwide</span>
+                        <span class="font-semibold text-white">AI-built pages, trusted worldwide</span>
                         <span class="block text-gray-400">by creators, brands &amp; teams</span>
                     </div>
                 </div>

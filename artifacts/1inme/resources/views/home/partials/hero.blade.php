@@ -310,7 +310,7 @@
     ];
 @endphp
 
-<section class="relative pt-28 pb-20 lg:pt-44 lg:pb-32 xl:pt-52 xl:pb-40 overflow-hidden" aria-labelledby="hero-h">
+<section class="relative pt-12 pb-20 lg:pt-16 lg:pb-32 xl:pt-20 xl:pb-40 overflow-hidden" aria-labelledby="hero-h">
     {{-- Drifting confetti --}}
     <div class="confetti drift-a" style="left:8%;  bottom:-20vh;"><div class="w-3 h-3 rounded-sm" style="background:var(--c1)"></div></div>
     <div class="confetti drift-b" style="left:18%; bottom:-30vh; animation-delay:-3s"><div class="w-2 h-6 rounded-full" style="background:var(--c3)"></div></div>
