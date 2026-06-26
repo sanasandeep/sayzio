@@ -170,8 +170,18 @@ class LinkTypeCategories
      *   - biolink         → null group   generic Link in Bio (no pre-seed)
      *   - restaurant_menu → Food / chef  the Food group's single chef persona
      *                                    builds menus, so it lands on chef
-     *   - paid_page       → Creators     creator monetization (posts/tiers/tips)
-     *   - reviews         → Business     brands/shops/agencies collecting reviews
+     *   - paid_page       → Creators / creator  fan-monetization (posts/tiers/
+     *                                    tips) is the archetypal "creator" page
+     *                                    ("content, fans, all your links"); the
+     *                                    other Creators personas monetize too,
+     *                                    but `creator` is the clear best fit and
+     *                                    the group default, so it lands on it
+     *   - reviews         → Business / business  the Business group is just
+     *                                    business + agency, and collecting /
+     *                                    showcasing customer reviews is the
+     *                                    textbook Business/Brand use case (and
+     *                                    the group default) far more than an
+     *                                    agency, so it lands on business
      *   - resume          → Services / freelancer  a resume/portfolio is the
      *                                    freelancer's "portfolio + hire-me" page,
      *                                    so it lands straight on freelancer
@@ -186,8 +196,8 @@ class LinkTypeCategories
         return [
             'biolink'         => ['group' => null,       'persona' => null],
             'restaurant_menu' => ['group' => 'Food',     'persona' => 'chef'],
-            'paid_page'       => ['group' => 'Creators', 'persona' => null],
-            'reviews'         => ['group' => 'Business', 'persona' => null],
+            'paid_page'       => ['group' => 'Creators', 'persona' => 'creator'],
+            'reviews'         => ['group' => 'Business', 'persona' => 'business'],
             'resume'          => ['group' => 'Services', 'persona' => 'freelancer'],
         ];
     }
