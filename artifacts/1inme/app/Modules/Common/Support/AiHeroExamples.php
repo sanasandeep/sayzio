@@ -115,6 +115,23 @@ class AiHeroExamples
                     asset('images/marketing/ai-hero/gallery-shelf.webp'),
                 ]],
             ],
+            [
+                'prompt' => 'A resume & portfolio page for my design work with CV, projects & hire me',
+                'name'   => 'Noah Avery',
+                'tag'    => 'Product designer · open to work',
+                'time'   => '14s',
+                'avatar' => ['img' => asset('images/marketing/ai-hero/avatar-resume.webp')],
+                'links'  => [
+                    ['icon' => 'fa-file-arrow-down', 'label' => 'Download CV', 'color' => 'var(--c1)'],
+                    ['icon' => 'fa-briefcase', 'label' => 'View portfolio', 'color' => 'var(--c2)'],
+                    ['icon' => 'fa-paper-plane', 'label' => 'Hire me', 'color' => 'var(--c5)'],
+                ],
+                'gallery' => ['imgs' => [
+                    asset('images/marketing/ai-hero/gallery-case.webp'),
+                    asset('images/marketing/ai-hero/gallery-brand.webp'),
+                    asset('images/marketing/ai-hero/gallery-desk.webp'),
+                ]],
+            ],
         ];
     }
 }

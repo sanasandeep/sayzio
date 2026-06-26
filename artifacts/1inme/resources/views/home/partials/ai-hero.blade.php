@@ -13,10 +13,10 @@
     The visual demo: a prompt types out, the status flips Generating → Page built,
     and a full biolink page (profile, link cards, gallery, contacts, socials)
     flies in and assembles. It then CYCLES through a few example businesses
-    (coffee brand → fitness coach → musician → restaurant → candle storefront) to
-    show the breadth of what the AI builds and keep the section alive for lingering
-    visitors. Most examples keep real photography (avatar + gallery); the
-    restaurant uses themed icon tiles. Pure opacity/transform
+    (coffee brand → fitness coach → musician → restaurant → candle storefront →
+    resume/portfolio) to show the breadth of what the AI builds and keep the
+    section alive for lingering visitors. Most examples keep real photography
+    (avatar + gallery); the restaurant uses themed icon tiles. Pure opacity/transform
     motion (GPU-cheap). The resting CSS state IS the finished coffee page, so
     no-JS and prefers-reduced-motion users see it already "built" (frozen final).
 --}}
