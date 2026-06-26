@@ -252,7 +252,7 @@
                     <span class="bs-pillar-ico" style="background:{{ $p[1] }}1f;color:{{ $p[1] }}"><i class="fas {{ $p[0] }}"></i></span>
                     <div class="min-w-0">
                         <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">{{ $p[2] }}</div>
-                        <div class="text-base font-extrabold text-white leading-tight">{{ $p[3] }}</div>
+                        <div class="text-base font-extrabold bs-emph leading-tight">{{ $p[3] }}</div>
                     </div>
                 </div>
             @endforeach
