@@ -324,12 +324,28 @@
                 <div><h2 class="ics-section-title">Link settings</h2><p class="ics-section-sub">Control your shareable link.</p></div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
+                @include('user.links.partials.alias-checker')
+                <div x-data="aliasChecker('{{ route('user.links.check-alias') }}')" x-init="init()">
                     <label class="ics-label">Custom short link</label>
                     <div class="ics-pill">
                         <span class="ics-pill-suffix" style="border-left:0; border-right:1px solid var(--border-glass);">{{ \App\Modules\Common\Support\PlatformHosts::currentRequestHost() ?: \App\Modules\Common\Support\PlatformHosts::primary() }}/</span>
-                        <input type="text" name="alias" value="{{ old('alias', $prefillAlias ?? '') }}" pattern="[A-Za-z0-9_\-]+" placeholder="auto" class="flex-1 px-3 py-2.5 text-sm">
+                        <input type="text" name="alias" value="{{ old('alias', $prefillAlias ?? '') }}"
+                               minlength="{{ ($aliasLimits ?? ['min'=>3])['min'] }}"
+                               maxlength="{{ ($aliasLimits ?? ['max'=>50])['max'] }}"
+                               pattern="[A-Za-z0-9_\-]+" placeholder="auto"
+                               autocomplete="off" spellcheck="false"
+                               @input.debounce.400ms="check($event.target.value)"
+                               class="flex-1 px-3 py-2.5 text-sm">
+                        <span class="flex items-center px-3" x-show="state && state !== 'empty'" x-cloak>
+                            <i x-show="state === 'checking'" class="fas fa-spinner fa-spin text-white/40 text-sm"></i>
+                            <i x-show="state === 'available'" class="fas fa-circle-check text-emerald-400 text-sm"></i>
+                            <i x-show="isError" class="fas fa-circle-xmark text-red-400 text-sm"></i>
+                        </span>
                     </div>
+                    <p aria-live="polite" x-show="message && state && state !== 'empty'" x-cloak
+                       class="text-xs mt-1.5"
+                       :class="state === 'available' ? 'text-emerald-400' : (isError ? 'text-red-400' : 'text-white/40')"
+                       x-text="message"></p>
                     @error('alias') <p class="text-red-400 text-xs mt-1.5">{{ $message }}</p> @enderror
                 </div>
                 <div>

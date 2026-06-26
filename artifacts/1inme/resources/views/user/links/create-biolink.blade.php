@@ -37,13 +37,17 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                @include('user.links.partials.alias-checker')
+                <div x-data="aliasChecker('{{ route('user.links.check-alias') }}')" x-init="init()">
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Custom Alias</label>
                     @php
                         $defaultHost = \App\Modules\Common\Support\PlatformHosts::currentRequestHost()
                             ?: \App\Modules\Common\Support\PlatformHosts::primary();
                     @endphp
-                    <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/40">
+                    <div class="flex items-center bg-white/5 border rounded-xl overflow-hidden transition-colors"
+                         :class="state === 'available' ? 'border-emerald-500/40 focus-within:ring-2 focus-within:ring-emerald-500/40'
+                             : (isError ? 'border-red-500/40 focus-within:ring-2 focus-within:ring-red-500/40'
+                             : 'border-white/10 focus-within:ring-2 focus-within:ring-blue-500/40')">
                         @if(($domains ?? collect())->isNotEmpty())
                             @php $selectedDomainId = old('domain_id', $defaultDomainId ?? ''); @endphp
                             <select name="domain_id" class="bg-white/5 px-2 py-2.5 text-xs text-white/70 border-r border-white/10 outline-none max-w-[180px]">
@@ -59,9 +63,20 @@
                                minlength="{{ ($aliasLimits ?? ['min'=>3])['min'] }}"
                                maxlength="{{ ($aliasLimits ?? ['max'=>50])['max'] }}"
                                pattern="[A-Za-z0-9_\-]+"
+                               autocomplete="off" spellcheck="false"
+                               @input.debounce.400ms="check($event.target.value)"
                                class="flex-1 px-3 py-2.5 text-sm bg-transparent text-white placeholder-white/20 border-0 focus:ring-0 outline-none">
+                        <span class="flex items-center px-3" x-show="state && state !== 'empty'" x-cloak>
+                            <i x-show="state === 'checking'" class="fas fa-spinner fa-spin text-white/40 text-sm"></i>
+                            <i x-show="state === 'available'" class="fas fa-circle-check text-emerald-400 text-sm"></i>
+                            <i x-show="isError" class="fas fa-circle-xmark text-red-400 text-sm"></i>
+                        </span>
                     </div>
                     @include('user.links.partials.platform-hosts-hint', ['primary' => $defaultHost])
+                    <p aria-live="polite" x-show="message && state && state !== 'empty'" x-cloak
+                       class="text-sm mt-1.5"
+                       :class="state === 'available' ? 'text-emerald-400' : (isError ? 'text-red-400' : 'text-white/40')"
+                       x-text="message"></p>
                     @error('alias') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
                     @error('domain_id') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
                 </div>

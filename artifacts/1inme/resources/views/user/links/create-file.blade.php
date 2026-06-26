@@ -32,9 +32,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-white/60 mb-1">Custom Alias</label>
-                    <input type="text" name="alias" value="{{ old('alias', $prefillAlias ?? '') }}" placeholder="auto-generated" minlength="{{ ($aliasLimits ?? ['min'=>3])['min'] }}" maxlength="{{ ($aliasLimits ?? ['max'=>50])['max'] }}" pattern="[A-Za-z0-9_\-]+" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">
-                    @error('alias') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
+                    @include('user.links.partials.alias-field')
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1">Project</label>

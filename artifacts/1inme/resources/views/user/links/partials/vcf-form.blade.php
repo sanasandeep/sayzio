@@ -226,14 +226,18 @@
         <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-link text-blue-400 mr-2"></i>Link Settings</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
-                <label class="block text-xs font-medium text-white/60 mb-1">Custom Alias</label>
-                <input type="text" name="alias" value="{{ old('alias', $link->alias ?? ($prefillAlias ?? '')) }}"
-                       placeholder="auto-generated"
-                       minlength="{{ ($aliasLimits ?? ['min'=>3])['min'] }}"
-                       maxlength="{{ ($aliasLimits ?? ['max'=>50])['max'] }}"
-                       pattern="[A-Za-z0-9_\-]+"
-                       class="{{ $inputCls }}">
-                @error('alias') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+                @if(empty($v))
+                    @include('user.links.partials.alias-field')
+                @else
+                    <label class="block text-xs font-medium text-white/60 mb-1">Custom Alias</label>
+                    <input type="text" name="alias" value="{{ old('alias', $link->alias ?? ($prefillAlias ?? '')) }}"
+                           placeholder="auto-generated"
+                           minlength="{{ ($aliasLimits ?? ['min'=>3])['min'] }}"
+                           maxlength="{{ ($aliasLimits ?? ['max'=>50])['max'] }}"
+                           pattern="[A-Za-z0-9_\-]+"
+                           class="{{ $inputCls }}">
+                    @error('alias') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+                @endif
             </div>
             <div>
                 <label class="block text-xs font-medium text-white/60 mb-1">Project</label>
