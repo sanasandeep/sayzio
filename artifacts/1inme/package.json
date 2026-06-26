@@ -8,7 +8,7 @@
         "build:watch:cycle": "while true; do VITE_KEEP_OUTDIR=1 timeout -s TERM 60 node_modules/.bin/vite build --watch; done",
         "dev": "vite",
         "test:e2e": "playwright test",
-        "test:e2e:ci": "bash tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts biolink-editor-card-gallery-preview.spec.ts biolink-editor-palette-dnd.spec.ts cookie-consent-footer-gap.spec.ts cookie-consent-layout-styles.spec.ts cookie-consent-theme-match.spec.ts voice-assistant-bridge.spec.ts slides-mode.spec.ts cookie-consent-footer-reserve.spec.ts"
+        "test:e2e:ci": "bash tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts biolink-editor-card-gallery-preview.spec.ts biolink-editor-palette-dnd.spec.ts cookie-consent-footer-gap.spec.ts cookie-consent-layout-styles.spec.ts cookie-consent-theme-match.spec.ts voice-assistant-bridge.spec.ts slides-mode.spec.ts cookie-consent-footer-reserve.spec.ts home-hero-orbit-popover.spec.ts"
     },
     "devDependencies": {
         "@playwright/test": "^1.59.1",

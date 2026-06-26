@@ -47,7 +47,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   cookie-consent-theme-match.spec.ts \
   voice-assistant-bridge.spec.ts \
   slides-mode.spec.ts \
-  cookie-consent-footer-reserve.spec.ts
+  cookie-consent-footer-reserve.spec.ts \
+  home-hero-orbit-popover.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -99,7 +100,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these nine specs are gated (and not the whole suite)
+### Why these ten specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -155,13 +156,20 @@ The gate covers the specs that run reliably as an unattended check here:
   the *capped* target the page actually writes (`min(ceil(h), innerHeight*0.5)`)
   instead of raw `ceil(h)`, so it converges reliably when the expanded prompt
   sits near the half-viewport cap. No login/seeding.
+- `home-hero-orbit-popover.spec.ts` — pins the home hero's orbital tool-node
+  popover contract. No login/seeding: it visits `/` with a consent cookie under
+  `prefers-reduced-motion` (so the spinning orbit is frozen and the nodes are
+  statically clickable) and asserts that clicking a node opens its popover (with
+  the right title + description), clicking another node switches (the first
+  closes), re-clicking the open node closes it, and Escape / an outside click
+  both close it — with exactly one popover open at any time.
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the nine gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the ten gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
