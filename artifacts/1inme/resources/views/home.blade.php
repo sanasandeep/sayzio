@@ -2528,6 +2528,8 @@
 
 @include('home.partials.ai-hero')
 @include('home.partials.hero')
+{{-- ============================ "1IN.ME is Sayzio" BRAND SECTION ============================ --}}
+@include('home.partials.brand-sayzio')
 {{-- ============================ MARQUEE STRIP ============================ --}}
 @php $__skipMarquee = false; @endphp
 <div class="grad-bar py-4 overflow-hidden border-y border-white/10" aria-hidden="true">
