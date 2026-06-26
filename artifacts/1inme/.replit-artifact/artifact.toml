@@ -15,6 +15,13 @@ paths = ["/"]
 # on startup keeps dev durable across environment restarts without committing build
 # output.
 #
+# STALE VIEW CACHE NOTE: Tailwind's content auto-detection also scans Laravel's
+# compiled-blade cache (storage/framework/views/*.php). If those cached files hold
+# pre-sweep class tokens (e.g. retired purple), Tailwind regenerates them back into
+# public/build CSS. So we run `php artisan view:clear` BEFORE the asset build to
+# clear the compiled-blade cache at the source (see
+# .agents/memory/tailwind-scans-compiled-views.md).
+#
 # READINESS PROBE NOTE: the Replit dev readiness probe is hard-wired to poll the
 # preview path "/" — it ignores [services.development.health.startup].path (verified:
 # zero "/up" hits in the dev log when that was set) — and enforces a tight per-response
@@ -25,7 +32,7 @@ paths = ["/"]
 # storage/framework/cache/dev_boot_ms; the real home page serves normally once the
 # window elapses, and the middleware is a no-op in production.
 [services.development]
-run = "cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || pnpm --dir /home/runner/workspace/artifacts/1inme run build; } && mkdir -p storage/framework/cache && date +%s%3N > storage/framework/cache/dev_boot_ms && PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"
+run = "cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || { php artisan view:clear && pnpm --dir /home/runner/workspace/artifacts/1inme run build; }; } && mkdir -p storage/framework/cache && date +%s%3N > storage/framework/cache/dev_boot_ms && PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"
 
 [services.development.env]
 PORT = "5000"
@@ -33,8 +40,12 @@ PORT = "5000"
 # Production build compiles the Vite/Tailwind v4 assets (resources/css/app.css +
 # resources/js/app.js) so the @vite() manifest at public/build/manifest.json
 # resolves at runtime — the Blade views no longer load the Tailwind CDN.
+# `php artisan view:clear` runs BEFORE the asset build so Tailwind never scans a
+# stale compiled-blade cache and regenerates retired classes into the CSS (see
+# .agents/memory/tailwind-scans-compiled-views.md). The trailing view:clear stays
+# to leave a clean compiled-view cache after deploy.
 [services.production.build]
-args = ["sh", "-c", "pnpm install --frozen-lockfile && pnpm --dir artifacts/1inme run build && cd artifacts/1inme && composer install --no-dev --optimize-autoloader --no-interaction && php artisan config:clear && php artisan route:clear && php artisan view:clear"]
+args = ["sh", "-c", "pnpm install --frozen-lockfile && (cd artifacts/1inme && php artisan view:clear) && pnpm --dir artifacts/1inme run build && cd artifacts/1inme && composer install --no-dev --optimize-autoloader --no-interaction && php artisan config:clear && php artisan route:clear && php artisan view:clear"]
 
 # Deploy migration policy (Task #1679): KEEP SERVING on migrate failure.
 # `php artisan migrate --force` runs first; if it fails we fall back to
