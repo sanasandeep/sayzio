@@ -16,12 +16,12 @@
 --}}
 @php
     $aiCoinFeatures = [
-        ['icon' => 'fa-brain',            'name' => 'AI Minds',          'desc' => 'Train knowledge bases — ingestion & embeddings'],
-        ['icon' => 'fa-user-astronaut',   'name' => 'AI Personas',       'desc' => 'Public chat agents & persona generation'],
-        ['icon' => 'fa-robot',            'name' => 'AI Companions',     'desc' => 'Always-on chatbots on your biolink'],
+        ['icon' => 'fa-brain',            'name' => 'Knowledge Bases',   'desc' => 'Train knowledge bases — ingestion & embeddings'],
+        ['icon' => 'fa-user-astronaut',   'name' => 'AI Agents',         'desc' => 'Public chat agents & persona generation'],
+        ['icon' => 'fa-robot',            'name' => 'Chat Widgets',      'desc' => 'Always-on chatbots on your biolink'],
         ['icon' => 'fa-headset',          'name' => 'Site Assistant',    'desc' => 'On-site help & support chat widget'],
         ['icon' => 'fa-microphone-lines', 'name' => 'Voice Assistant',   'desc' => 'Speech-to-text, replies & voice output'],
-        ['icon' => 'fa-comments',         'name' => 'Ask Coach',         'desc' => 'Data-aware assistant for your account'],
+        ['icon' => 'fa-comments',         'name' => 'Account Assistant', 'desc' => 'Data-aware assistant for your account'],
         ['icon' => 'fa-id-card',          'name' => 'Card & Brochure Scanner', 'desc' => 'Extract contacts from images'],
         ['icon' => 'fa-file-lines',       'name' => 'AI Resume Tools',   'desc' => 'Import, tailoring & cover letters'],
     ];
