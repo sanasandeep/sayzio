@@ -91,6 +91,52 @@ class BiolinkWizardGoalPrefillTest extends TestCase
         $this->assertSame(2, (int) $draft->step);
     }
 
+    /**
+     * The "Take payments" (paid_page) shortcut pre-seeds the Creators/creator
+     * persona and lands on the starting-design step.
+     */
+    public function test_paid_page_persona_prefill_seeds_starting_design_step(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user)
+            ->get('/user/links/wizard?group=Creators&persona=creator')
+            ->assertOk();
+
+        $draft = BiolinkWizardDraft::where('actor_user_id', $user->id)->latest('id')->first();
+        $this->assertNotNull($draft, 'a draft should be seeded from the prefill');
+        $this->assertSame('Creators', $draft->persona_group);
+        $this->assertSame('creator', $draft->persona);
+        // Resolved legacy combo so the question set + recipe engine work.
+        $this->assertSame('creator', $draft->category);
+        $this->assertSame('influencer', $draft->page_type);
+        // Step 2 = the starting-design step.
+        $this->assertSame(2, (int) $draft->step);
+    }
+
+    /**
+     * The "Collect reviews" (reviews) shortcut pre-seeds the Business/business
+     * persona and lands on the starting-design step.
+     */
+    public function test_reviews_persona_prefill_seeds_starting_design_step(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user)
+            ->get('/user/links/wizard?group=Business&persona=business')
+            ->assertOk();
+
+        $draft = BiolinkWizardDraft::where('actor_user_id', $user->id)->latest('id')->first();
+        $this->assertNotNull($draft, 'a draft should be seeded from the prefill');
+        $this->assertSame('Business', $draft->persona_group);
+        $this->assertSame('business', $draft->persona);
+        // Resolved legacy combo so the question set + recipe engine work.
+        $this->assertSame('business', $draft->category);
+        $this->assertSame('local_shop', $draft->page_type);
+        // Step 2 = the starting-design step.
+        $this->assertSame(2, (int) $draft->step);
+    }
+
     /** A persona that doesn't belong to the group is ignored (group-only). */
     public function test_foreign_persona_prefill_falls_back_to_group_step(): void
     {
