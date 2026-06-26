@@ -256,7 +256,14 @@ class SiteAssistantController extends Controller
                 $resolved = trim((string) $url) !== '' ? trim((string) $url) : null;
             } else {
                 $name = 'assistant-avatar-' . \Illuminate\Support\Str::uuid()->toString() . '.' . $ext;
-                $file->move($publicDir, $name);
+                $destPath = $publicDir . DIRECTORY_SEPARATOR . $name;
+                // The avatar is only shown at ~32-64px in the chat header,
+                // so downscale oversized uploads to keep the widget light
+                // on every page load. Falls back to the raw upload if the
+                // image can't be processed (GD missing / decode failure).
+                if (!$this->shrinkAvatar((string) $file->getRealPath(), $destPath, $ext)) {
+                    $file->move($publicDir, $name);
+                }
                 $resolved = '/branding/' . $name;
             }
         } else {
@@ -266,6 +273,93 @@ class SiteAssistantController extends Controller
 
         $this->pruneReplacedAvatar($previous, $resolved);
         return $resolved;
+    }
+
+    /**
+     * Downscale and re-encode an uploaded avatar to a sensible maximum
+     * dimension (256x256) before it is served by the chat widget. The
+     * original aspect ratio is preserved and PNG/WebP transparency is
+     * retained. Images already within the cap are re-encoded as-is (no
+     * upscaling). Returns true on success, false when the source can't
+     * be decoded or GD is unavailable so the caller can fall back to
+     * storing the raw upload.
+     */
+    protected function shrinkAvatar(string $sourcePath, string $destPath, string $ext): bool
+    {
+        if ($sourcePath === '' || !function_exists('imagecreatefromstring')) {
+            return false;
+        }
+
+        $bytes = @file_get_contents($sourcePath);
+        if ($bytes === false || $bytes === '') {
+            return false;
+        }
+
+        $src = @imagecreatefromstring($bytes);
+        if ($src === false) {
+            return false;
+        }
+
+        $maxDim = 256;
+        $srcW = imagesx($src);
+        $srcH = imagesy($src);
+        if ($srcW < 1 || $srcH < 1) {
+            imagedestroy($src);
+            return false;
+        }
+
+        // Preserve aspect ratio; never upscale a smaller image.
+        $scale = min(1.0, $maxDim / max($srcW, $srcH));
+        $dstW = max(1, (int) round($srcW * $scale));
+        $dstH = max(1, (int) round($srcH * $scale));
+
+        $dst = imagecreatetruecolor($dstW, $dstH);
+        if ($dst === false) {
+            imagedestroy($src);
+            return false;
+        }
+
+        // Keep transparency intact for PNG/WebP outputs.
+        imagealphablending($dst, false);
+        imagesavealpha($dst, true);
+        $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
+        imagefilledrectangle($dst, 0, 0, $dstW, $dstH, $transparent);
+
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $dstW, $dstH, $srcW, $srcH);
+
+        // Guard each encoder: a GD build can omit a specific format
+        // (e.g. no WebP support). Bail to the raw-upload fallback rather
+        // than letting an unavailable encoder throw a fatal error.
+        $ok = false;
+        switch ($ext) {
+            case 'png':
+                if (function_exists('imagepng')) {
+                    $ok = imagepng($dst, $destPath, 6);
+                }
+                break;
+            case 'webp':
+                if (function_exists('imagewebp')) {
+                    $ok = imagewebp($dst, $destPath, 82);
+                }
+                break;
+            case 'jpg':
+                if (function_exists('imagejpeg')) {
+                    // JPEG has no alpha; flatten onto white so transparent
+                    // PNG-sourced uploads don't pick up a black background.
+                    $flat = imagecreatetruecolor($dstW, $dstH);
+                    $white = imagecolorallocate($flat, 255, 255, 255);
+                    imagefilledrectangle($flat, 0, 0, $dstW, $dstH, $white);
+                    imagecopy($flat, $dst, 0, 0, 0, 0, $dstW, $dstH);
+                    $ok = imagejpeg($flat, $destPath, 82);
+                    imagedestroy($flat);
+                }
+                break;
+        }
+
+        imagedestroy($dst);
+        imagedestroy($src);
+
+        return $ok;
     }
 
     /**
