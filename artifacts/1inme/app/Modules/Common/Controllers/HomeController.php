@@ -5,6 +5,7 @@ namespace App\Modules\Common\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Models\SitePage;
+use App\Modules\Common\Support\AiHeroExamples;
 use App\Modules\Common\Support\PlatformHosts;
 use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\User\Models\BillingAddress;
@@ -69,7 +70,12 @@ class HomeController extends Controller
         $linkTypes = $payload['linkTypes'];
         $featuredBlogPosts = $this->featuredBlogPosts();
 
-        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes'));
+        // Example pages the AI-builder demo cycles through (and the resting
+        // no-JS state). Not cached with the payload: it issues no queries and
+        // bakes in asset() URLs that already vary safely per host.
+        $aiHeroExamples = AiHeroExamples::all();
+
+        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes', 'aiHeroExamples'));
     }
 
     /**

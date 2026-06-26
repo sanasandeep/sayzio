@@ -20,6 +20,18 @@
     motion (GPU-cheap). The resting CSS state IS the finished coffee page, so
     no-JS and prefers-reduced-motion users see it already "built" (frozen final).
 --}}
+@php
+    // Single source of truth for the demo examples (see Common\Support\AiHeroExamples).
+    // The first entry is the resting / no-JS / reduced-motion state rendered as
+    // static markup below; the full list is handed to the JS cycle further down.
+    $aihEx = ($aiHeroExamples ?? [])[0] ?? [];
+    // Per-slot fly-in motion for the (always 3) link-card slots.
+    $aihLinkFly = [
+        '--d:220ms;--tx:-180px;--ty:8px;--rot:-7deg;',
+        '--d:340ms;--tx:185px;--ty:8px;--rot:7deg;',
+        '--d:460ms;--tx:-170px;--ty:8px;--rot:-5deg;',
+    ];
+@endphp
 <section class="relative py-16 lg:py-24 overflow-hidden" aria-labelledby="ai-hero-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
         <div class="grid grid-cols-1 gap-y-12 lg:grid-cols-[1.05fr_1fr] lg:gap-x-12 xl:gap-x-16 lg:items-center">
@@ -97,7 +109,7 @@
                             </div>
                             <div class="flex items-center gap-3 rounded-2xl bg-white/[.05] border border-white/10 px-4 py-3">
                                 <i class="fas fa-keyboard text-sm text-gray-400 shrink-0"></i>
-                                <span class="text-[13px] sm:text-sm text-gray-200">"<span class="aih-prompt">A link page for my coffee brand with shop, menu &amp; reviews</span><span class="aih-caret" aria-hidden="true">▍</span>"</span>
+                                <span class="text-[13px] sm:text-sm text-gray-200">"<span class="aih-prompt">{{ $aihEx['prompt'] ?? '' }}</span><span class="aih-caret" aria-hidden="true">▍</span>"</span>
                             </div>
                         </div>
 
@@ -107,39 +119,40 @@
                                 {{-- Profile block (in from top) --}}
                                 <div class="aih-block aih-profile" style="--d:60ms;--tx:-22px;--ty:-120px;--rot:-5deg;">
                                     <span class="aih-avatar-wrap" aria-hidden="true">
-                                        <img src="{{ asset('images/marketing/ai-hero/avatar.webp') }}" alt="" loading="lazy" decoding="async" class="aih-avatar">
+                                        @if (!empty($aihEx['avatar']['img']))
+                                            <img src="{{ $aihEx['avatar']['img'] }}" alt="" loading="lazy" decoding="async" class="aih-avatar">
+                                        @else
+                                            <span class="aih-avatar aih-avatar-icon grad-bar"><i class="fas {{ $aihEx['avatar']['icon'] ?? 'fa-user' }}"></i></span>
+                                        @endif
                                     </span>
                                     <div class="aih-prof-meta">
-                                        <div class="aih-name"><span class="aih-name-text">Daybreak Coffee</span> <i class="fas fa-circle-check aih-verified" aria-hidden="true"></i></div>
-                                        <div class="aih-tag">Roasted fresh · shipped daily</div>
+                                        <div class="aih-name"><span class="aih-name-text">{{ $aihEx['name'] ?? '' }}</span> <i class="fas fa-circle-check aih-verified" aria-hidden="true"></i></div>
+                                        <div class="aih-tag">{{ $aihEx['tag'] ?? '' }}</div>
                                     </div>
                                 </div>
 
                                 {{-- Link cards (in from alternating sides) --}}
-                                <div class="aih-block aih-link" style="--d:220ms;--tx:-180px;--ty:8px;--rot:-7deg;">
-                                    <span class="aih-link-ico" style="background:color-mix(in srgb,var(--c2) 16%,transparent);color:var(--c2)"><i class="fas fa-store"></i></span>
-                                    <span class="aih-link-label">Shop the beans</span>
-                                    <i class="fas fa-arrow-right aih-link-arrow" aria-hidden="true"></i>
-                                    <span class="aih-link-rating" style="display:none"><i class="fas fa-star"></i> 4.9</span>
-                                </div>
-                                <div class="aih-block aih-link" style="--d:340ms;--tx:185px;--ty:8px;--rot:7deg;">
-                                    <span class="aih-link-ico" style="background:color-mix(in srgb,var(--c1) 16%,transparent);color:var(--c1)"><i class="fas fa-book-open"></i></span>
-                                    <span class="aih-link-label">See the menu</span>
-                                    <i class="fas fa-arrow-right aih-link-arrow" aria-hidden="true"></i>
-                                    <span class="aih-link-rating" style="display:none"><i class="fas fa-star"></i> 4.9</span>
-                                </div>
-                                <div class="aih-block aih-link" style="--d:460ms;--tx:-170px;--ty:8px;--rot:-5deg;">
-                                    <span class="aih-link-ico" style="background:color-mix(in srgb,var(--c5) 18%,transparent);color:var(--c5)"><i class="fas fa-star"></i></span>
-                                    <span class="aih-link-label">Read reviews</span>
-                                    <i class="fas fa-arrow-right aih-link-arrow" aria-hidden="true" style="display:none"></i>
-                                    <span class="aih-link-rating" style="color:var(--c5)"><i class="fas fa-star"></i> 4.9</span>
-                                </div>
+                                @foreach ($aihLinkFly as $aihI => $aihFly)
+                                    @php($aihL = ($aihEx['links'] ?? [])[$aihI] ?? null)
+                                    <div class="aih-block aih-link" style="{{ $aihFly }}">
+                                        <span class="aih-link-ico" style="background:color-mix(in srgb,{{ $aihL['color'] ?? 'var(--c2)' }} 16%,transparent);color:{{ $aihL['color'] ?? 'var(--c2)' }}"><i class="fas {{ $aihL['icon'] ?? 'fa-link' }}"></i></span>
+                                        <span class="aih-link-label">{{ $aihL['label'] ?? '' }}</span>
+                                        <i class="fas fa-arrow-right aih-link-arrow" aria-hidden="true" @if(!empty($aihL['rating'])) style="display:none" @endif></i>
+                                        <span class="aih-link-rating" @if(empty($aihL['rating'])) style="display:none" @else style="color:{{ $aihL['color'] ?? 'var(--c5)' }}" @endif><i class="fas fa-star"></i> {{ $aihL['rating'] ?? '' }}</span>
+                                    </div>
+                                @endforeach
 
                                 {{-- Projects / gallery block (in from bottom) --}}
                                 <div class="aih-block aih-gallery" style="--d:580ms;--tx:0;--ty:140px;--rot:3deg;">
-                                    <img src="{{ asset('images/marketing/ai-hero/gallery-latte.webp') }}" alt="" loading="lazy" decoding="async" class="aih-shot">
-                                    <img src="{{ asset('images/marketing/ai-hero/gallery-beans.webp') }}" alt="" loading="lazy" decoding="async" class="aih-shot">
-                                    <img src="{{ asset('images/marketing/ai-hero/gallery-pastry.webp') }}" alt="" loading="lazy" decoding="async" class="aih-shot">
+                                    @if (!empty($aihEx['gallery']['imgs']))
+                                        @foreach ($aihEx['gallery']['imgs'] as $aihG)
+                                            <img src="{{ $aihG }}" alt="" loading="lazy" decoding="async" class="aih-shot">
+                                        @endforeach
+                                    @else
+                                        @foreach ($aihEx['gallery']['tiles'] ?? [] as $aihT)
+                                            <span class="aih-shot aih-shot-icon" style="background:color-mix(in srgb,{{ $aihT['color'] }} 16%,transparent);color:{{ $aihT['color'] }}"><i class="fas {{ $aihT['icon'] }}"></i></span>
+                                        @endforeach
+                                    @endif
                                 </div>
 
                                 {{-- Contacts row (in from right) --}}
@@ -167,7 +180,7 @@
                             <div class="w-8 h-8 rounded-xl flex items-center justify-center grad-bar"><i class="fas fa-check text-white text-xs"></i></div>
                             <div>
                                 <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">AI builder</div>
-                                <div class="text-xs font-bold text-white aih-time">Page built in 18s</div>
+                                <div class="text-xs font-bold text-white aih-time">Page built in {{ $aihEx['time'] ?? '' }}</div>
                             </div>
                         </div>
                     </div>
@@ -314,74 +327,12 @@
     if (window.__aihInit) return;
     window.__aihInit = true;
 
-    // Example businesses the demo cycles through to show breadth. The first
-    // entry mirrors the resting/no-JS markup (coffee brand, with real photos) so
-    // the armed sequence picks up seamlessly. Examples without photography use
-    // themed icon tiles for the avatar + gallery so the cycle stays coherent.
-    var IMG = {
-        avatar: '{{ asset('images/marketing/ai-hero/avatar.webp') }}',
-        latte: '{{ asset('images/marketing/ai-hero/gallery-latte.webp') }}',
-        beans: '{{ asset('images/marketing/ai-hero/gallery-beans.webp') }}',
-        pastry: '{{ asset('images/marketing/ai-hero/gallery-pastry.webp') }}',
-        avatarFitness: '{{ asset('images/marketing/ai-hero/avatar-fitness.webp') }}',
-        workout: '{{ asset('images/marketing/ai-hero/gallery-workout.webp') }}',
-        meal: '{{ asset('images/marketing/ai-hero/gallery-meal.webp') }}',
-        gym: '{{ asset('images/marketing/ai-hero/gallery-gym.webp') }}',
-        avatarMusic: '{{ asset('images/marketing/ai-hero/avatar-music.webp') }}',
-        live: '{{ asset('images/marketing/ai-hero/gallery-live.webp') }}',
-        vinyl: '{{ asset('images/marketing/ai-hero/gallery-vinyl.webp') }}',
-        studio: '{{ asset('images/marketing/ai-hero/gallery-studio.webp') }}'
-    };
-    var EXAMPLES = [
-        {
-            prompt: 'A link page for my coffee brand with shop, menu & reviews',
-            name: 'Daybreak Coffee', tag: 'Roasted fresh · shipped daily', time: '18s',
-            avatar: { img: IMG.avatar },
-            links: [
-                { icon: 'fa-store', label: 'Shop the beans', color: 'var(--c2)' },
-                { icon: 'fa-book-open', label: 'See the menu', color: 'var(--c1)' },
-                { icon: 'fa-star', label: 'Read reviews', color: 'var(--c5)', rating: '4.9' }
-            ],
-            gallery: { imgs: [IMG.latte, IMG.beans, IMG.pastry] }
-        },
-        {
-            prompt: 'A coaching page for my fitness business with bookings & reviews',
-            name: 'Mia Strong', tag: '1:1 coaching · online & in person', time: '16s',
-            avatar: { img: IMG.avatarFitness },
-            links: [
-                { icon: 'fa-calendar-check', label: 'Book a session', color: 'var(--c1)' },
-                { icon: 'fa-dumbbell', label: 'Free workout plan', color: 'var(--c2)' },
-                { icon: 'fa-star', label: 'Client reviews', color: 'var(--c5)', rating: '5.0' }
-            ],
-            gallery: { imgs: [IMG.workout, IMG.meal, IMG.gym] }
-        },
-        {
-            prompt: 'A page for my music with new songs, tour dates & merch',
-            name: 'Lyra Vale', tag: 'Indie folk · new single out now', time: '15s',
-            avatar: { img: IMG.avatarMusic },
-            links: [
-                { icon: 'fa-play', label: 'Listen now', color: 'var(--c5)' },
-                { icon: 'fa-calendar-day', label: 'Tour dates', color: 'var(--c1)' },
-                { icon: 'fa-shirt', label: 'Shop merch', color: 'var(--c2)' }
-            ],
-            gallery: { imgs: [IMG.live, IMG.vinyl, IMG.studio] }
-        },
-        {
-            prompt: 'A page for my restaurant with menu, bookings & directions',
-            name: 'Olive & Ember', tag: 'Wood-fired · open every night', time: '21s',
-            avatar: { icon: 'fa-utensils' },
-            links: [
-                { icon: 'fa-book-open', label: 'View the menu', color: 'var(--c5)' },
-                { icon: 'fa-calendar-check', label: 'Book a table', color: 'var(--c2)' },
-                { icon: 'fa-location-dot', label: 'Get directions', color: 'var(--c1)' }
-            ],
-            gallery: { tiles: [
-                { icon: 'fa-pizza-slice', color: 'var(--c5)' },
-                { icon: 'fa-wine-glass', color: 'var(--c2)' },
-                { icon: 'fa-fire', color: 'var(--c1)' }
-            ] }
-        }
-    ];
+    // Example businesses the demo cycles through to show breadth. Sourced from
+    // a single server-passed list (Common\Support\AiHeroExamples) that also
+    // drives the resting/no-JS markup above — so the armed sequence picks up
+    // seamlessly and adding/removing an example is a one-line data change.
+    var EXAMPLES = @json($aiHeroExamples ?? []);
+    if (!EXAMPLES.length) return;
 
     function init() {
         var root = document.getElementById('ai-builder-demo');
