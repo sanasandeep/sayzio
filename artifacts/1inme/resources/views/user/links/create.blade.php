@@ -246,11 +246,14 @@
                 </a>
             </div>
 
-            <div class="mb-6">
+            <div class="mb-6" x-data="aliasChecker('{{ route('user.links.check-alias') }}')" x-init="init()">
                 <label class="block text-sm font-medium text-white/60 mb-1.5">
                     Custom URL <span class="text-white/30 text-xs">(optional)</span>
                 </label>
-                <div class="flex items-stretch rounded-xl bg-white/5 border border-white/10 focus-within:ring-2 focus-within:ring-blue-500/40 overflow-hidden">
+                <div class="flex items-stretch rounded-xl bg-white/5 border overflow-hidden transition-colors"
+                     :class="state === 'available' ? 'border-emerald-500/40 focus-within:ring-2 focus-within:ring-emerald-500/40'
+                         : (isError ? 'border-red-500/40 focus-within:ring-2 focus-within:ring-red-500/40'
+                         : 'border-white/10 focus-within:ring-2 focus-within:ring-blue-500/40')">
                     <span class="flex items-center px-3 text-sm text-white/40 bg-white/[0.03] border-r border-white/10 select-none">
                         {{ $domainHost }}/
                     </span>
@@ -261,9 +264,21 @@
                            maxlength="{{ $aliasLimits['max'] }}"
                            pattern="[A-Za-z0-9_\-]+"
                            autocomplete="off" spellcheck="false"
+                           @input.debounce.400ms="check($event.target.value)"
+                           aria-describedby="create-link-alias-status"
                            class="flex-1 bg-transparent px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none">
+                    <span class="flex items-center px-3" x-show="state && state !== 'empty'" x-cloak>
+                        <i x-show="state === 'checking'" class="fas fa-spinner fa-spin text-white/40 text-sm"></i>
+                        <i x-show="state === 'available'" class="fas fa-circle-check text-emerald-400 text-sm"></i>
+                        <i x-show="isError" class="fas fa-circle-xmark text-red-400 text-sm"></i>
+                    </span>
                 </div>
                 @error('alias') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
+                <p id="create-link-alias-status" aria-live="polite"
+                   x-show="message && state && state !== 'empty'" x-cloak
+                   class="text-sm mt-1.5"
+                   :class="state === 'available' ? 'text-emerald-400' : (isError ? 'text-red-400' : 'text-white/40')"
+                   x-text="message"></p>
                 <p class="text-xs text-white/30 mt-1.5">
                     Leave blank and we'll generate one for you. Letters, numbers, dashes &amp; underscores only.
                     Length: {{ $aliasLimits['min'] }}–{{ $aliasLimits['max'] }} characters
@@ -418,6 +433,69 @@
 @push('scripts')
 <script>
 document.addEventListener('alpine:init', function () {
+    // Live "Custom URL available / taken" indicator for #create-link-alias.
+    // Debounced GET against user.links.check-alias, which mirrors the exact
+    // server-side alias rules (alpha_dash, plan length limits, unique, banned).
+    window.Alpine.data('aliasChecker', function (endpoint) {
+        return {
+            endpoint: endpoint,
+            state: '',        // '' | 'empty' | 'checking' | 'available' | <error status>
+            message: '',
+            reqToken: 0,
+            controller: null,
+
+            get isError() {
+                return this.state && this.state !== 'empty'
+                    && this.state !== 'checking' && this.state !== 'available';
+            },
+
+            init: function () {
+                var el = document.getElementById('create-link-alias');
+                if (el && el.value.trim()) { this.check(el.value); }
+            },
+
+            check: function (raw) {
+                var value = (raw || '').trim();
+                this.reqToken++;
+                var token = this.reqToken;
+
+                // Abort any in-flight request so a stale response can't win.
+                if (this.controller) { try { this.controller.abort(); } catch (e) {} }
+
+                if (value === '') {
+                    this.state = 'empty';
+                    this.message = '';
+                    return;
+                }
+
+                this.state = 'checking';
+                this.message = 'Checking availability…';
+
+                this.controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+                var self = this;
+
+                fetch(this.endpoint + '?alias=' + encodeURIComponent(value), {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                    signal: this.controller ? this.controller.signal : undefined
+                })
+                .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+                .then(function (data) {
+                    if (token !== self.reqToken) { return; }   // a newer check superseded this one
+                    self.state = data.status || '';
+                    self.message = data.message || '';
+                })
+                .catch(function (err) {
+                    if (err && err.name === 'AbortError') { return; }
+                    if (token !== self.reqToken) { return; }
+                    // Network/server hiccup — fail quietly; submit-time validation still guards.
+                    self.state = '';
+                    self.message = '';
+                });
+            },
+        };
+    });
+
     window.Alpine.data('linkTypePicker', function (config) {
         return {
             type: config.type || '',

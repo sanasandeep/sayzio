@@ -162,6 +162,83 @@ class LinkController extends Controller
     }
 
     /**
+     * Lightweight JSON endpoint backing the live "Custom URL availability"
+     * indicator on the Create Link page. Mirrors the exact alias rules used by
+     * chooseType() and the wizard's captureCustomAlias() (alpha_dash, the
+     * user's plan length limits, unique:links,alias, and the admin banned-names
+     * list) so what the indicator shows matches what those flows enforce on
+     * submit. A blank alias is the auto-generate case (no error).
+     */
+    public function checkAlias(Request $request)
+    {
+        $alias  = trim((string) $request->query('alias', (string) $request->input('alias', '')));
+        $limits = workspace_owner()->getAliasLengthLimits();
+
+        if ($alias === '') {
+            return response()->json([
+                'status'    => 'empty',
+                'available' => null,
+                'message'   => "Leave blank and we'll generate one for you.",
+            ]);
+        }
+
+        // alpha_dash equivalent (Laravel: \A[\pL\pM\pN_-]+\z with /u).
+        if (! preg_match('/\A[\pL\pM\pN_-]+\z/u', $alias)) {
+            return response()->json([
+                'status'    => 'invalid',
+                'available' => false,
+                'message'   => 'Only letters, numbers, dashes & underscores are allowed.',
+            ]);
+        }
+
+        $length = mb_strlen($alias);
+        if ($length < $limits['min']) {
+            return response()->json([
+                'status'    => 'too_short',
+                'available' => false,
+                'message'   => "Too short — use at least {$limits['min']} characters.",
+            ]);
+        }
+        if ($length > $limits['max']) {
+            return response()->json([
+                'status'    => 'too_long',
+                'available' => false,
+                'message'   => "Too long — use at most {$limits['max']} characters.",
+            ]);
+        }
+
+        // Admin-managed banned-names list (bypassed for privileged users,
+        // exactly as the NotBannedName rule does at submit time).
+        $banned = false;
+        (new \App\Modules\Admin\Rules\NotBannedName())
+            ->validate('alias', $alias, function () use (&$banned) { $banned = true; });
+        if ($banned) {
+            return response()->json([
+                'status'    => 'banned',
+                'available' => false,
+                'message'   => "This name is reserved and can't be used.",
+            ]);
+        }
+
+        // unique:links,alias — query the raw table so the check matches the
+        // validator (which ignores model scopes/soft-deletes) exactly.
+        $taken = \Illuminate\Support\Facades\DB::table('links')->where('alias', $alias)->exists();
+        if ($taken) {
+            return response()->json([
+                'status'    => 'taken',
+                'available' => false,
+                'message'   => 'This URL is already taken — try another.',
+            ]);
+        }
+
+        return response()->json([
+            'status'    => 'available',
+            'available' => true,
+            'message'   => 'This URL is available!',
+        ]);
+    }
+
+    /**
      * Step 2 for the standalone Paid Page — name + alias + project + a
      * starting template. The link bridges to the creator's existing
      * monetized feed (posts / tiers / PPV / tipping); the dedicated

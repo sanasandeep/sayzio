@@ -648,6 +648,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/wizard/finish',  [BiolinkWizardController::class, 'finish'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.wizard.finish');
         Route::post('links/wizard/ai-draft', [BiolinkWizardController::class, 'finishAi'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.wizard.ai-draft');
 
+        // Live "Custom URL availability" probe for the Create Link page — must
+        // sit BEFORE Route::resource('links', ...) so `links/check-alias` is
+        // matched as a literal path and not as the `links/{link}` show-route.
+        Route::get('links/check-alias', [LinkController::class, 'checkAlias'])->middleware('workspace.can:links.create')->name('links.check-alias');
+
         Route::resource('links', LinkController::class)->except(['store', 'update', 'destroy'])->middleware('workspace.can:links.view');
         Route::put('links/{link}',  [LinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.update');
         Route::patch('links/{link}',[LinkController::class, 'update'])->middleware('workspace.can:links.edit');
