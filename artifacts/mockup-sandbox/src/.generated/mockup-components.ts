@@ -4,5 +4,9 @@ export const modules: ModuleMap = {
   "./components/mockups/1inme-website/Brutalist.tsx": () => import("../components/mockups/1inme-website/Brutalist.tsx"),
   "./components/mockups/1inme-website/Editorial.tsx": () => import("../components/mockups/1inme-website/Editorial.tsx"),
   "./components/mockups/1inme-website/GlassDark.tsx": () => import("../components/mockups/1inme-website/GlassDark.tsx"),
-  "./components/mockups/1inme-website/MinimalMono.tsx": () => import("../components/mockups/1inme-website/MinimalMono.tsx")
+  "./components/mockups/1inme-website/MinimalMono.tsx": () => import("../components/mockups/1inme-website/MinimalMono.tsx"),
+  "./components/mockups/ai-hero-cards/BiolinkPage.tsx": () => import("../components/mockups/ai-hero-cards/BiolinkPage.tsx"),
+  "./components/mockups/ai-hero-cards/EventPage.tsx": () => import("../components/mockups/ai-hero-cards/EventPage.tsx"),
+  "./components/mockups/ai-hero-cards/StatsDashboard.tsx": () => import("../components/mockups/ai-hero-cards/StatsDashboard.tsx"),
+  "./components/mockups/ai-hero-cards/StoreMenu.tsx": () => import("../components/mockups/ai-hero-cards/StoreMenu.tsx")
 };
