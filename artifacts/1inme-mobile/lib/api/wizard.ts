@@ -62,13 +62,13 @@ export type WizardTaxonomy = {
   personas: Record<string, WizardPersona[]>;
   // Optional niche refinement keyed by persona slug (specific-only).
   industries_by_persona: Record<string, WizardIndustry[]>;
-  // Goal (link type) => the persona group (and, for goals that map to exactly
-  // one persona, the persona slug) the guided wizard pre-seeds, mirroring the
-  // web Create Link page (LinkTypeCategories::wizardGroups()). A null `group`
-  // means "no group pre-seed" (the generic wizard); a non-null `persona` seeds
-  // the persona too so the wizard skips its second question and lands on the
-  // starting-design step. Goals absent from this map have no wizard path and
-  // keep the manual create flow.
+  // Goal (link type) => guided-wizard pre-seed, mirroring the web Create Link
+  // page (LinkTypeCategories::wizardGroups()). Each entry carries a persona
+  // `group` and an optional `persona`: a goal with a group-only entry stops on
+  // the persona step, while a persona-pinned goal (e.g. restaurant_menu →
+  // Food/chef) skips straight to the starting-design step. A null `group` means
+  // "no pre-seed" (the generic wizard). Goals absent from this map have no
+  // wizard path and keep the manual create flow.
   wizard_groups: Record<
     string,
     { group: string | null; persona: string | null }

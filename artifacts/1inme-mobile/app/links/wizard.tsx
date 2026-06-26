@@ -241,10 +241,20 @@ export default function BiolinkWizardScreen() {
   const prefilled = useRef(false);
   useEffect(() => {
     if (prefilled.current) return;
-    if (!params.prefillCategory && !params.prefillAnswers && !params.prefillGroup)
+    if (
+      !params.prefillCategory &&
+      !params.prefillAnswers &&
+      !params.prefillGroup &&
+      !params.prefillPersona
+    )
       return;
-    // Both the category match and the group seed need the taxonomy loaded.
-    if ((params.prefillCategory || params.prefillGroup) && !taxonomyQ.data)
+    // The category match and the group/persona seeds all need the taxonomy.
+    if (
+      (params.prefillCategory ||
+        params.prefillGroup ||
+        params.prefillPersona) &&
+      !taxonomyQ.data
+    )
       return; // wait for taxonomy
 
     prefilled.current = true;
@@ -281,10 +291,12 @@ export default function BiolinkWizardScreen() {
     }
 
     // One-tap guided path from the "Create Link" screen: `prefillGroup=<persona
-    // group>` seeds the group step so a user who already picked a goal skips the
-    // first ("What are you building?") question and lands on persona selection.
-    // Mirrors the web wizard's `?group=` handoff. Only applied for a valid group
-    // and when a more-specific category match didn't already advance the flow.
+    // group>` (+ optional `prefillPersona=<persona slug>`) seeds the flow so a
+    // user who already picked a goal skips ahead. A group-only goal lands on the
+    // persona step ("Who is this for?"); a persona-pinned goal (e.g.
+    // restaurant_menu → Food/chef) skips straight to the starting-design step.
+    // Mirrors the web wizard's `?group=&persona=` handoff. Only applied for a
+    // valid group and when a category match didn't already advance the flow.
     if (!matchedCategory) {
       const grp = params.prefillGroup;
       if (
@@ -299,11 +311,11 @@ export default function BiolinkWizardScreen() {
         // `?persona=` handoff. The persona must belong to the prefilled group;
         // a foreign/unknown slug silently falls back to the persona step.
         const pers = params.prefillPersona;
-        const inGroup =
+        const personaValid =
           typeof pers === "string" &&
           !!pers &&
           (taxonomyQ.data?.personas[grp] ?? []).some((p) => p.slug === pers);
-        if (inGroup) {
+        if (personaValid) {
           setPersona(pers);
           setStep("design");
         } else {

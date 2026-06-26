@@ -64,10 +64,11 @@ export default function CreateTab() {
   const wizardGroups = taxonomyQ.data?.wizard_groups;
 
   // Open the guided wizard for a goal that supports it, pre-seeding the matching
-  // persona group so the user skips the wizard's first question (parity with the
-  // web one-tap path). For goals that map to exactly one persona we ALSO seed
-  // that persona (`prefillPersona`), so the wizard skips its second question and
-  // lands on the starting-design step. A null group means "generic wizard".
+  // persona group — and, for goals pinned to a single persona, the persona too —
+  // so the user skips ahead (parity with the web one-tap path). Each map entry
+  // is a `{ group, persona }` object: a group-only goal lands on the persona
+  // step, a persona-pinned goal skips to the starting-design step, and a null
+  // group means "generic wizard" (no pre-seed).
   const openGuided = useCallback(
     (apiType: string) => {
       if (!wizardGroups || !(apiType in wizardGroups)) return;
@@ -76,11 +77,9 @@ export default function CreateTab() {
         router.push("/links/wizard" as never);
         return;
       }
-      let href = `/links/wizard?prefillGroup=${encodeURIComponent(group)}`;
-      if (persona) {
-        href += `&prefillPersona=${encodeURIComponent(persona)}`;
-      }
-      router.push(href as never);
+      const qs = new URLSearchParams({ prefillGroup: group });
+      if (persona) qs.set("prefillPersona", persona);
+      router.push(`/links/wizard?${qs.toString()}` as never);
     },
     [router, wizardGroups],
   );
