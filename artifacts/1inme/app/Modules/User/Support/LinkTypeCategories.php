@@ -172,7 +172,9 @@ class LinkTypeCategories
      *                                    builds menus, so it lands on chef
      *   - paid_page       → Creators     creator monetization (posts/tiers/tips)
      *   - reviews         → Business     brands/shops/agencies collecting reviews
-     *   - resume          → Services     freelancers/consultants/pros (portfolio)
+     *   - resume          → Services / freelancer  a resume/portfolio is the
+     *                                    freelancer's "portfolio + hire-me" page,
+     *                                    so it lands straight on freelancer
      *
      * Every `group` here must be a valid PersonaCatalog group, and every
      * `persona` must belong to its `group`.
@@ -186,7 +188,7 @@ class LinkTypeCategories
             'restaurant_menu' => ['group' => 'Food',     'persona' => 'chef'],
             'paid_page'       => ['group' => 'Creators', 'persona' => null],
             'reviews'         => ['group' => 'Business', 'persona' => null],
-            'resume'          => ['group' => 'Services', 'persona' => null],
+            'resume'          => ['group' => 'Services', 'persona' => 'freelancer'],
         ];
     }
 

@@ -127,7 +127,7 @@ class BiolinkWizardGoalPrefillTest extends TestCase
             'restaurant_menu' => ['group' => 'Food',     'persona' => 'chef'],
             'paid_page'       => ['group' => 'Creators', 'persona' => null],
             'reviews'         => ['group' => 'Business', 'persona' => null],
-            'resume'          => ['group' => 'Services', 'persona' => null],
+            'resume'          => ['group' => 'Services', 'persona' => 'freelancer'],
         ], LinkTypeCategories::wizardGroups());
     }
 
