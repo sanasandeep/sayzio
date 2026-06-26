@@ -74,6 +74,43 @@
             </div>
         </button>
     </form>
+    @else
+    {{-- AI BUILDER teaser: the engine is off / unavailable, but we keep the
+         card visible so users discover the capability and get a clear path
+         to turn it on (admins) or upgrade (everyone else). --}}
+    @php
+        $aiTeaserHref = !empty($aiBuilderAdminCanEnable)
+            ? route('admin.ai-engine.edit')
+            : route('user.upgrade');
+        $aiTeaserCta = !empty($aiBuilderAdminCanEnable) ? 'Enable AI' : 'Upgrade';
+    @endphp
+    <a href="{{ $aiTeaserHref }}"
+       class="block relative overflow-hidden glass rounded-3xl p-6 sm:p-8 mb-8 border border-white/10 bg-white/[0.03] hover:border-fuchsia-500/30 hover:bg-fuchsia-500/[0.06] transition-all group">
+        <div class="relative flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6">
+            <div class="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 text-white/40 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-wand-magic-sparkles text-2xl"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/50 bg-white/5 border border-white/10 rounded-full px-2.5 py-0.5 mb-2">
+                    <i class="fas fa-lock text-[9px]"></i> {{ !empty($aiBuilderAdminCanEnable) ? 'Currently off' : 'Locked' }}
+                </span>
+                <div class="text-xl sm:text-2xl font-bold text-white/70">Describe it and AI builds your page</div>
+                <div class="text-sm text-white/40 mt-1.5 max-w-xl">Skip the blank page — describe your page, paste your links, and add photos. AI assembles a complete Link in Bio for you to refine in the editor.
+                    @if(!empty($aiBuilderAdminCanEnable))
+                        Turn on the AI Engine to make this available.
+                    @else
+                        Available on a higher plan.
+                    @endif
+                </div>
+            </div>
+            <div class="flex items-center gap-2 text-fuchsia-200 font-medium flex-shrink-0">
+                <span class="text-sm hidden sm:inline">{{ $aiTeaserCta }}</span>
+                <span class="w-10 h-10 rounded-full bg-fuchsia-500/15 border border-fuchsia-400/20 flex items-center justify-center group-hover:bg-fuchsia-500/25 group-hover:translate-x-0.5 transition-all">
+                    <i class="fas fa-arrow-right"></i>
+                </span>
+            </div>
+        </div>
+    </a>
     @endif
 
     <form method="POST" action="{{ route('user.links.choose-type') }}"

@@ -93,12 +93,22 @@ class LinkController extends Controller
                                ->orderBy('id')->first();
         $domainHost     = $primaryDomain->domain ?? $request->getHost();
 
+        // When the AI builder is off, the card now renders as a teaser
+        // instead of disappearing. Admins who can manage settings get an
+        // "Enable AI" CTA to the engine settings; everyone else gets an
+        // "Upgrade" CTA so the capability stays discoverable.
+        $admin = $user->adminAccount();
+        $aiBuilderAdminCanEnable = $admin !== null
+            && $admin->status === 'active'
+            && $admin->hasPermission('settings.manage');
+
         return view('user.links.create', [
             'prefillAlias' => (string) $request->query('alias', ''),
             'lastType'     => $lastType,
             'aliasLimits'  => $aliasLimits,
             'domainHost'   => $domainHost,
             'aiBuilderEnabled' => \App\Services\AI\AiEngineSettings::isEnabled(),
+            'aiBuilderAdminCanEnable' => $aiBuilderAdminCanEnable,
         ]);
     }
 
