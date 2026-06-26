@@ -153,10 +153,14 @@
     <form method="POST" action="{{ route('user.links.choose-type') }}"
           x-data="linkTypePicker({ type: '{{ old('type', $lastType ?? '') }}', searchIndex: {{ Illuminate\Support\Js::from(\App\Modules\User\Support\LinkTypeCategories::searchIndex()) }}, cats: {{ \Illuminate\Support\Js::from($linkFilterCats) }}, wizardPaths: {{ \Illuminate\Support\Js::from($wizardIntentUrls) }} })"
           x-init="window.__voiceSurface = { name: 'create_link' }"
+          @alias-verdict="aliasBlocked = $event.detail.blocked"
+          @submit="guardAliasSubmit($event)"
           @voice-action.window="
               if ($event.detail && $event.detail.type === 'select_link_type' && $event.detail.link_type) {
                   type = $event.detail.link_type;
-                  $nextTick(() => $el.submit());
+                  // requestSubmit() (not submit()) so the alias guard and native
+                  // validation still run on the voice-driven path.
+                  $nextTick(() => ($el.requestSubmit ? $el.requestSubmit() : $el.submit()));
               }
           ">
         @csrf
@@ -449,6 +453,25 @@ document.addEventListener('alpine:init', function () {
 
             // Goal => guided-wizard URL map for the one-tap guided path.
             wizardPaths: config.wizardPaths || {},
+
+            // Mirrors the nested aliasChecker verdict (via the bubbling
+            // `alias-verdict` event) so Continue can be blocked client-side when
+            // the typed Custom URL is known taken/invalid/banned.
+            aliasBlocked: false,
+
+            // Block submit when the alias is in a known-error state, surfacing
+            // the inline message by focusing/scrolling to the field. Format and
+            // length are also caught natively by the input's pattern/min/max, so
+            // this primarily guards taken/banned aliases the browser can't see.
+            guardAliasSubmit: function (e) {
+                if (!this.aliasBlocked) { return; }
+                if (e && typeof e.preventDefault === 'function') { e.preventDefault(); }
+                var el = document.getElementById('create-link-alias');
+                if (!el) { return; }
+                try { el.focus(); } catch (err) {}
+                var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+            },
 
             // Build the guided-wizard href for a goal, layering on the typed
             // Custom URL alias so a user who fills it in keeps it through the

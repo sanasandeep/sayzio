@@ -29,6 +29,18 @@ document.addEventListener('alpine:init', function () {
                     && this.state !== 'checking' && this.state !== 'available';
             },
 
+            // Tell the surrounding form whether the current alias should block
+            // submit. The event bubbles up so a parent form (e.g. the Create
+            // Link linkTypePicker) can guard Continue without reaching into this
+            // child scope. Forms that don't listen simply ignore it.
+            emit: function () {
+                this.$dispatch('alias-verdict', {
+                    blocked: this.isError,
+                    state: this.state,
+                    message: this.message,
+                });
+            },
+
             init: function () {
                 var el = this.$el.querySelector('input[name=alias]');
                 if (el && el.value.trim()) { this.check(el.value); }
@@ -45,11 +57,13 @@ document.addEventListener('alpine:init', function () {
                 if (value === '') {
                     this.state = 'empty';
                     this.message = '';
+                    this.emit();
                     return;
                 }
 
                 this.state = 'checking';
                 this.message = 'Checking availability…';
+                this.emit();
 
                 this.controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
                 var self = this;
@@ -64,6 +78,7 @@ document.addEventListener('alpine:init', function () {
                     if (token !== self.reqToken) { return; }   // a newer check superseded this one
                     self.state = data.status || '';
                     self.message = data.message || '';
+                    self.emit();
                 })
                 .catch(function (err) {
                     if (err && err.name === 'AbortError') { return; }
@@ -71,6 +86,7 @@ document.addEventListener('alpine:init', function () {
                     // Network/server hiccup — fail quietly; submit-time validation still guards.
                     self.state = '';
                     self.message = '';
+                    self.emit();
                 });
             },
         };
