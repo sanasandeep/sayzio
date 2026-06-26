@@ -69,7 +69,7 @@ export default function OAuthCallback() {
         server_error: "The provider had a server error. Try again shortly.",
         temporarily_unavailable: "The provider is temporarily unavailable. Try again shortly.",
         redirect_uri_mismatch:
-          "The mobile redirect URL isn't allowed by the backend. Tell support the redirect URI 1inme://oauth-callback isn't whitelisted.",
+          "The mobile redirect URL isn't allowed by the backend. Tell support the redirect URI sayzio://oauth-callback isn't whitelisted.",
       };
       // Don't blame the provider when the user simply cancelled.
       if (label && errParam !== "access_denied") setProviderLabel(label);

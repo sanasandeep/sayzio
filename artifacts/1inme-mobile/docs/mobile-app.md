@@ -34,7 +34,7 @@ Base URL resolution lives in `lib/api.ts` (`getBaseUrl()`), checked in order:
 1. `EXPO_PUBLIC_API_BASE_URL` — explicit full API base URL.
 2. `EXPO_PUBLIC_DOMAIN` — a bare domain, `https://` is prepended.
 3. On web, `window.location.origin`.
-4. Default: `https://1inme.com`.
+4. Default: `https://sayzio.app`.
 
 `apiFetch` (in `lib/api.ts`) is the single fetch wrapper: it injects
 `Authorization: Bearer <token>`, a `User-Agent`, and an `X-1INME-Client` header
@@ -83,7 +83,7 @@ Key env vars:
 
 Because `EXPO_PUBLIC_DOMAIN` defaults to the Replit dev domain, the app talks to
 the **same repl's** Sayzio backend in development. Point `EXPO_PUBLIC_API_BASE_URL`
-at production (`https://1inme.com/api/v1`) to test against live data.
+at production (`https://sayzio.app/api/v1`) to test against live data.
 
 Type-check the app with `pnpm --filter @workspace/1inme-mobile run typecheck`.
 

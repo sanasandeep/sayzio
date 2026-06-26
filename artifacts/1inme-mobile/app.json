@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "Sayzio",
-    "slug": "1inme-mobile",
+    "slug": "sayzio-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "1inme",
+    "scheme": "sayzio",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {

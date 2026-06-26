@@ -8,7 +8,7 @@ export default function HowNfcWorks() {
       sections={[
         {
           heading: "What gets written",
-          body: "We only write a public URL pointing to your Sayzio profile (for example, https://1inme.com/yourhandle). No private data, contacts, or tokens leave your device.",
+          body: "We only write a public URL pointing to your Sayzio profile (for example, https://sayzio.app/yourhandle). No private data, contacts, or tokens leave your device.",
         },
         {
           heading: "Compatible tags",

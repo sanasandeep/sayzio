@@ -20,7 +20,7 @@ export default function Privacy() {
         },
         {
           heading: "Contact",
-          body: "Email privacy@1inme.com for data export or deletion requests.",
+          body: "Email privacy@sayzio.app for data export or deletion requests.",
         },
       ]}
     />

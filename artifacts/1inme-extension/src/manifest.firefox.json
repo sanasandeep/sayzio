@@ -30,7 +30,7 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://1in.me/extension/handshake*"],
+      "matches": ["https://sayzio.app/extension/handshake*", "https://1in.me/extension/handshake*"],
       "js": ["content-handshake.js"],
       "run_at": "document_idle"
     }

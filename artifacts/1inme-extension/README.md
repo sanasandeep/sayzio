@@ -1,6 +1,6 @@
 # Sayzio Browser Extension
 
-Cross-browser MV3 extension (Chrome, Firefox, Edge) for [Sayzio](https://1inme.com).
+Cross-browser MV3 extension (Chrome, Firefox, Edge) for [Sayzio](https://sayzio.app).
 
 > **Related docs:** [REST API reference](../1inme/docs/api.md) · [Mobile app](../1inme-mobile/docs/mobile-app.md)
 
@@ -24,7 +24,7 @@ From `src/manifest.chrome.json` / `src/manifest.firefox.json` (both MV3):
 
 - `permissions`: `activeTab`, `storage`, `contextMenus`, `scripting`, `notifications`, `tabs`, `alarms`.
 - `host_permissions`: `<all_urls>` (Chrome/Edge also declare `optional_host_permissions` for `http(s)://*/*`).
-- **Static content script**: `content-handshake.js`, matched against `https://1inme.com/extension/handshake*`.
+- **Static content script**: `content-handshake.js`, matched against `https://sayzio.app/extension/handshake*`.
 - **Dynamically registered content scripts** (via the `scripting` API): the backlink **radar** against `http(s)://*/*` (minus muted hosts) and a **handshake** script against your configured `webBaseUrl` when it differs from the default.
 - **Background**: a module service worker (`background.js`) on Chrome/Edge; Firefox uses a non-service-worker background `scripts` entry (`browser_specific_settings.gecko`, `strict_min_version` 115). The worker manages context menus, orchestrates auth handshakes, coordinates radar scans, performs clipboard writes via injected scripting, and runs an `alarms`-driven periodic sync (~30s) for the pending-thanks queue.
 
@@ -128,7 +128,7 @@ Temporary add-ons in Firefox are removed when the browser closes — sign the zi
 
 Two options from the popup:
 
-- **Sign in with Sayzio** — opens `https://1inme.com/extension/handshake` in a new tab. After you're logged in there, the page exposes a freshly-minted Sanctum token in a JSON `<script>` tag; the extension's content script captures it via `browser.runtime.sendMessage` and stores it in `browser.storage.local`. The handshake tab then closes itself.
+- **Sign in with Sayzio** — opens `https://sayzio.app/extension/handshake` in a new tab. After you're logged in there, the page exposes a freshly-minted Sanctum token in a JSON `<script>` tag; the extension's content script captures it via `browser.runtime.sendMessage` and stores it in `browser.storage.local`. The handshake tab then closes itself.
 - **Email + password** — calls `POST /api/v1/auth/login` directly from the popup.
 
 The bearer token is attached as `Authorization: Bearer …` to every API call. A 401 clears the stored token and re-prompts.
@@ -137,7 +137,7 @@ The bearer token is attached as `Authorization: Bearer …` to every API call. A
 
 ## Settings
 
-Open the gear icon in the popup header to override the API/web base URLs (default `https://1inme.com`). Useful when testing against a local Sayzio workflow — point both URLs at your dev domain (e.g. `https://<repl-id>.replit.dev` and `https://<repl-id>.replit.dev/api/v1`). The Settings tab also surfaces contact-save preferences (default tags, one-click toggle, contact workspace) and the workspace tracking-pixels badge.
+Open the gear icon in the popup header to override the API/web base URLs (default `https://sayzio.app`). Useful when testing against a local Sayzio workflow — point both URLs at your dev domain (e.g. `https://<repl-id>.replit.dev` and `https://<repl-id>.replit.dev/api/v1`). The Settings tab also surfaces contact-save preferences (default tags, one-click toggle, contact workspace) and the workspace tracking-pixels badge.
 
 ## Storage shape
 

@@ -18,7 +18,7 @@ body {
   justify-content: space-between;
   padding: 14px 16px;
   border-bottom: 1px solid #e5e7eb;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #3d6bff 0%, #6e61ff 100%);
   color: white;
 }
 .header h1 { font-size: 16px; margin: 0; font-weight: 600; }
@@ -35,7 +35,7 @@ body {
   font-size: 14px;
   outline: none;
 }
-.field input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+.field input:focus { border-color: #3d6bff; box-shadow: 0 0 0 2px rgba(61,107,255,0.15); }
 
 .url-card {
   background: #f8fafc;
@@ -61,10 +61,10 @@ button {
 }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-primary {
-  background: #6366f1;
+  background: #3d6bff;
   color: white;
 }
-.btn-primary:hover:not(:disabled) { background: #4f46e5; }
+.btn-primary:hover:not(:disabled) { background: #2f56e6; }
 .btn-secondary {
   background: #f1f5f9;
   color: #0f172a;
@@ -73,7 +73,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
 .btn-link {
   background: none;
-  color: #6366f1;
+  color: #3d6bff;
   padding: 4px 6px;
   font-size: 12px;
 }
@@ -139,14 +139,14 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   color: #64748b;
   font-weight: 500;
 }
-.tabs button.active { color: #6366f1; border-bottom-color: #6366f1; }
+.tabs button.active { color: #3d6bff; border-bottom-color: #3d6bff; }
 .tab-badge {
   display: inline-block;
   margin-left: 6px;
   min-width: 16px;
   padding: 1px 5px;
   border-radius: 999px;
-  background: #6366f1;
+  background: #3d6bff;
   color: #fff;
   font-size: 10px;
   font-weight: 600;
@@ -171,7 +171,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   outline: none;
   min-width: 0;
 }
-.ab-row input:focus { border-color: #6366f1; }
+.ab-row input:focus { border-color: #3d6bff; }
 .ab-label { width: 50px; }
 .ab-url { flex: 1; }
 .ab-weight { width: 56px; text-align: right; }
@@ -272,7 +272,7 @@ body { width: 380px; }
 .ab-card-title { font-weight: 500; color: #0f172a; word-break: break-all; font-size: 12px; }
 .ab-badge {
   display: inline-block;
-  background: #6366f1;
+  background: #3d6bff;
   color: white;
   padding: 1px 6px;
   font-size: 10px;
@@ -304,7 +304,7 @@ body { width: 380px; }
   border: 1px solid #e2e8f0; border-radius: 6px;
   font-size: 12px;
 }
-.recent-row a { color: #4f46e5; text-decoration: none; }
+.recent-row a { color: #2f56e6; text-decoration: none; }
 
 .error-text.full { flex-basis: 100%; }
 
@@ -372,7 +372,7 @@ body { width: 380px; }
 
 .smart-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #3d6bff, #6e61ff);
   color: white;
   font-size: 10px;
   font-weight: 600;
@@ -424,7 +424,7 @@ body { width: 380px; }
   padding: 2px 4px 2px 8px;
   border-radius: 999px;
 }
-.tag .btn-link { padding: 0 4px; color: #6366f1; }
+.tag .btn-link { padding: 0 4px; color: #3d6bff; }
 
 .backlink-page a { color: #1e40af; text-decoration: none; font-weight: 500; font-size: 13px; }
 .backlink-page a:hover { text-decoration: underline; }

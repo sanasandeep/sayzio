@@ -578,8 +578,8 @@ function PublishingSummaryCard({
   // Prefer the URL the publishing endpoint just handed back; otherwise
   // fall back to a synthesized one so the link stays visible across
   // navigations even before the user re-publishes.
-  const pageUrl = publishedUrl ?? (handle ? `https://1inme.com/${handle}/resume` : null);
-  const pdfUrl = resume.public_pdf_url ?? (handle ? `https://1inme.com/${handle}/resume.pdf` : null);
+  const pageUrl = publishedUrl ?? (handle ? `https://sayzio.app/${handle}/resume` : null);
+  const pdfUrl = resume.public_pdf_url ?? (handle ? `https://sayzio.app/${handle}/resume.pdf` : null);
 
   const visMeta = VISIBILITY_OPTIONS.find((o) => o.value === resume.visibility);
 

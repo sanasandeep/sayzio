@@ -13,7 +13,7 @@ export default function CancelChangeScreen() {
   const colors = useColors();
   const router = useRouter();
   // Deep link shape (sent in the cancel-link email):
-  //   1inme://cancel-change?id=123&token=abc
+  //   sayzio://cancel-change?id=123&token=abc
   // The screen lives under (auth) so it works whether the user is signed
   // in on the device or not — the API endpoint accepts the token-only
   // form for the unauthenticated case.

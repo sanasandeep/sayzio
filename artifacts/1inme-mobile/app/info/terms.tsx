@@ -4,7 +4,7 @@ export default function Terms() {
   return (
     <InfoPage
       title="Terms of Service"
-      intro="By creating a Sayzio account or using this app you agree to the following terms. The full legal version lives at https://1inme.com/terms."
+      intro="By creating a Sayzio account or using this app you agree to the following terms. The full legal version lives at https://sayzio.app/terms."
       sections={[
         {
           heading: "Your account",

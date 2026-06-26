@@ -20,7 +20,7 @@ export default function Help() {
         },
         {
           heading: "Contact us",
-          body: "Email support@1inme.com or visit https://1inme.com/help for live chat.",
+          body: "Email support@sayzio.app or visit https://sayzio.app/help for live chat.",
         },
       ]}
     />

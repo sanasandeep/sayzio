@@ -283,18 +283,18 @@ export default function AuthLanding() {
     }
     setBusy(`social-${provider}`);
     try {
-      const ret = encodeURIComponent("1inme://oauth-callback");
+      const ret = encodeURIComponent("sayzio://oauth-callback");
       // Backend route: /user/social-oauth/{provider}/login (see
       // routes/modules/user.php). It performs the OAuth dance and
       // redirects back to `return` with the token / user payload.
       const url = `${getBaseUrl()}/user/social-oauth/${provider}/login?source=mobile&return=${ret}`;
       // openAuthSessionAsync handles iOS ASWebAuthenticationSession +
       // Android Custom Tabs, returning {type: 'success', url} when the
-      // backend redirects back to our `1inme://oauth-callback` scheme.
+      // backend redirects back to our `sayzio://oauth-callback` scheme.
       // The scheme is registered in app.json so this should always
       // round-trip; if it doesn't, surface a clear error rather than
       // silently giving up.
-      const result = await WebBrowser.openAuthSessionAsync(url, "1inme://oauth-callback");
+      const result = await WebBrowser.openAuthSessionAsync(url, "sayzio://oauth-callback");
       if (result.type === "success") {
         // Success URL handling lives in oauth-callback.tsx, which the
         // deep link router opens automatically. Nothing to do here.

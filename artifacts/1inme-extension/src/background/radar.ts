@@ -31,7 +31,7 @@ import {
 
 const PROPERTIES_TTL_MS = 60 * 60 * 1000; // 1 hour
 const MATCHES_KEY = "radarTabMatches";
-const RADAR_BADGE_COLOR = "#6366f1";
+const RADAR_BADGE_COLOR = "#3d6bff";
 
 /** Lowercased, www-stripped host. */
 function normalizeHost(h: string | null | undefined): string {

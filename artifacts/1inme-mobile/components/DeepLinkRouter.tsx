@@ -8,7 +8,7 @@ import { getBiolink } from "@/lib/api/biolinks";
 // Hostnames whose `/{single-segment}` URLs we even consider routing as
 // biolinks. Anything else is left to the OS/browser. Keeps the app from
 // hijacking arbitrary https URLs that happen to reach it.
-const APP_HOSTS = new Set<string>(["1in.me", "www.1in.me"]);
+const APP_HOSTS = new Set<string>(["sayzio.app", "www.sayzio.app", "1in.me", "www.1in.me"]);
 
 // First-segment paths the website owns that are NOT biolink aliases. The
 // list mirrors the regex on the web's catch-all routes plus a few defensive
@@ -36,7 +36,7 @@ type Parsed = { host: string | null; alias: string | null };
 export function _aliasFromUrl(url: string): Parsed {
   try {
     const parsed = Linking.parse(url);
-    // Custom-scheme deep links (`1inme://...`) are routed by expo-router
+    // Custom-scheme deep links (`sayzio://...`) are routed by expo-router
     // itself; nothing to do here.
     if (parsed.scheme && parsed.scheme !== "https" && parsed.scheme !== "http") {
       return { host: null, alias: null };

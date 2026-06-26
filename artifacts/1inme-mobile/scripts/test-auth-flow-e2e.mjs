@@ -324,7 +324,7 @@ async function clearSessionKeepOnboarding(page) {
 
 // Load the deep-link return screen directly with a given query string,
 // exactly as the OS would when the provider redirects to
-// 1inme://oauth-callback?… . On web that maps to /oauth-callback?… .
+// sayzio://oauth-callback?… . On web that maps to /oauth-callback?… .
 async function gotoOAuthCallback(page, query) {
   const url = `${appBaseUrl.replace(/\/$/, "")}/oauth-callback${query}`;
   await page.goto(url, {
@@ -1060,7 +1060,7 @@ async function runOAuthCallbackNativeError(page, social) {
 // mocked. Unlike Google (a native-SDK id_token flow), these providers go
 // through WebBrowser.openAuthSessionAsync to the backend
 // /user/social-oauth/{provider}/login URL, which on success redirects back to
-// 1inme://oauth-callback. On native the OS deep-links that return into the app;
+// sayzio://oauth-callback. On native the OS deep-links that return into the app;
 // on web there's no OS, so the mocked backend (context.route in main) stands in
 // for that round-trip by navigating the opener to /oauth-callback?provider=…&
 // id_token=… — exactly the params the deep-link would carry. oauth-callback.tsx
@@ -1151,9 +1151,9 @@ async function runWebProviderSuccessPath(page, social, webOauth, providerId, lab
       `${label}: backend login URL missing source=mobile (${webOauth.req.url})`,
     );
   }
-  if (oauthUrl.searchParams.get("return") !== "1inme://oauth-callback") {
+  if (oauthUrl.searchParams.get("return") !== "sayzio://oauth-callback") {
     fail(
-      `${label}: backend login URL must return to 1inme://oauth-callback, got ` +
+      `${label}: backend login URL must return to sayzio://oauth-callback, got ` +
         `${oauthUrl.searchParams.get("return")}`,
     );
   }
