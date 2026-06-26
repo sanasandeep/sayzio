@@ -2538,7 +2538,7 @@ function SpecialCreateModal(props: {
           {mode === "ai" ? (
             <View style={{ gap: 6 }}>
               <Text style={[styles.createFieldLabel, { color: colors.mutedForeground }]}>
-                Persona
+                Agent
               </Text>
               {personasQ.isLoading ? (
                 <ActivityIndicator color={colors.primary} />
@@ -2550,7 +2550,7 @@ function SpecialCreateModal(props: {
                     fontFamily: "SpaceGrotesk_400Regular",
                   }}
                 >
-                  You don&apos;t have an AI persona yet. Create one below to wire
+                  You don&apos;t have an AI agent yet. Create one below to wire
                   it into your companion.
                 </Text>
               ) : personas.length > 0 ? (
@@ -2599,7 +2599,7 @@ function SpecialCreateModal(props: {
                       fontSize: 13,
                     }}
                   >
-                    + New persona
+                    + New agent
                   </Text>
                 </Pressable>
               ) : (
@@ -2621,7 +2621,7 @@ function SpecialCreateModal(props: {
                         { color: colors.mutedForeground },
                       ]}
                     >
-                      Persona name
+                      Agent name
                     </Text>
                     <TextInput
                       value={personaName}
@@ -2673,7 +2673,7 @@ function SpecialCreateModal(props: {
                   {createPersona.isError ? (
                     <Text style={{ color: colors.destructive, fontSize: 12 }}>
                       {(createPersona.error as { message?: string })?.message ||
-                        "Couldn't create persona. Try again."}
+                        "Couldn't create agent. Try again."}
                     </Text>
                   ) : null}
 
@@ -2683,7 +2683,7 @@ function SpecialCreateModal(props: {
                         label={
                           createPersona.isPending
                             ? "Creating…"
-                            : "Create persona"
+                            : "Create agent"
                         }
                         onPress={() => createPersona.mutate()}
                         disabled={!canCreatePersona}
