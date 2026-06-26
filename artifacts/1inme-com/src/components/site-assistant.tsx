@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useTheme } from "@/components/theme-provider";
 import { ASSISTANT_API_BASE } from "@/config";
 import zioBotMascot from "@assets/ChatGPT_Image_Jun_26,_2026_at_09_24_23_AM_1782451375104.png";
+import zioBotPeek from "@assets/ChatGPT_Image_Jun_26,_2026_at_11_40_07_AM_1782454328455.png";
 
 /**
  * Floating "Zio Bot" assistant widget for the marketing site.
@@ -442,6 +443,7 @@ export default function SiteAssistant() {
   );
 
   const avatar = cfg?.avatar_url || bootAvatar || zioBotMascot;
+  const reduceMotion = useReducedMotion();
   const brand = cfg?.brand_name || "Zio Bot";
   const subheading = cfg?.subheading || "How can I help?";
   const placeholder = cfg?.input_placeholder || "Type a message…";
@@ -675,6 +677,44 @@ export default function SiteAssistant() {
                 {sendLabel}
               </button>
             </div>
+          </motion.div>
+        )}
+
+        {/* mascot peeking over the top edge of the panel */}
+        {open && (
+          <motion.div
+            key="peek"
+            initial={reduceMotion ? false : { opacity: 0, y: 34 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+            style={{
+              position: "absolute",
+              bottom: "calc(78px + min(560px, 100vh - 120px) - 12px)",
+              right: "calc(min(380px, 100vw - 32px) / 2 - clamp(72px, 18vw, 96px) / 2)",
+              width: "clamp(72px, 18vw, 96px)",
+              pointerEvents: "none",
+              zIndex: 1,
+              lineHeight: 0,
+            }}
+          >
+            <motion.img
+              src={zioBotPeek}
+              alt=""
+              aria-hidden="true"
+              animate={reduceMotion ? undefined : { y: [0, -6, 0] }}
+              transition={
+                reduceMotion
+                  ? undefined
+                  : { duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1 }
+              }
+              style={{
+                width: "100%",
+                height: "auto",
+                display: "block",
+                filter: "drop-shadow(0 6px 10px rgba(15,23,42,.35))",
+              }}
+            />
           </motion.div>
         )}
       </AnimatePresence>

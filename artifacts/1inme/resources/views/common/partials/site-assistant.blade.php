@@ -20,6 +20,7 @@
      data-accent="{{ $__sa_cfg['accent_color'] }}"
      data-avatar="{{ \App\Services\AI\SiteAssistantSettings::avatarUrlFor($__sa_cfg) }}"
      data-brand="{{ \App\Services\AI\SiteAssistantSettings::brandNameFor($__sa_cfg) }}"
+     data-peek-avatar="{{ asset('branding/zio-bot-peek.png') }}"
      data-bootstrap-url="{{ url('/assistant/bootstrap') }}"
      data-session-url="{{ url('/assistant/session') }}"
      data-message-url="{{ url('/assistant/message') }}"
@@ -124,11 +125,20 @@
   #sa-launcher,#sa-launcher .sa-spark,#sa-launcher .sa-icon-mascot{animation:none}
   .sa-tooltip,.sa-tooltip.sa-show{transition:none;animation:none}
 }
-#sa-panel{position:fixed;bottom:90px;width:380px;max-width:calc(100vw - 24px);height:560px;max-height:calc(100vh - 120px);background:#0f172a;color:#e2e8f0;border-radius:16px;box-shadow:0 25px 60px rgba(0,0,0,.5);display:none;flex-direction:column;overflow:hidden;z-index:99999;border:1px solid rgba(255,255,255,.08);font-family:'Space Grotesk','system-ui',sans-serif}
-#sa-panel.sa-pos-right{right:20px}
-#sa-panel.sa-pos-left{left:20px}
-#sa-panel.sa-open{display:flex}
-@media (max-width:480px){#sa-panel{width:calc(100vw - 16px);right:8px!important;left:8px!important;bottom:80px;height:calc(100vh - 100px)}}
+#sa-panel-wrap{position:fixed;bottom:90px;width:380px;max-width:calc(100vw - 24px);z-index:99999;display:none;flex-direction:column;align-items:stretch}
+#sa-panel-wrap.sa-pos-right{right:20px}
+#sa-panel-wrap.sa-pos-left{left:20px}
+#sa-panel-wrap.sa-open{display:flex}
+#sa-panel{position:relative;width:100%;height:560px;max-height:calc(100vh - 120px);background:#0f172a;color:#e2e8f0;border-radius:16px;box-shadow:0 25px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,.08);font-family:'Space Grotesk','system-ui',sans-serif}
+/* Zio Bot mascot peeking over the top edge of the chat panel: it sits above
+   the panel (a flex sibling) and dips ~12px into the top edge so its hands read
+   as gripping the border. Centered so it never covers the header text/close. */
+#sa-peek{align-self:center;width:104px;max-width:60%;margin-bottom:-12px;pointer-events:none;z-index:1;line-height:0;transform-origin:bottom center;animation:sa-peek-rise .85s cubic-bezier(.22,1,.36,1) both,sa-peek-bob 4.5s ease-in-out 1s infinite}
+#sa-peek img{width:100%;height:auto;display:block;filter:drop-shadow(0 6px 10px rgba(15,23,42,.35))}
+@keyframes sa-peek-rise{0%{opacity:0;transform:translateY(34px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes sa-peek-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@media (max-width:480px){#sa-panel-wrap{width:calc(100vw - 16px);right:8px!important;left:8px!important;bottom:80px}#sa-panel{height:calc(100vh - 100px)}#sa-peek{width:84px}}
+@media (prefers-reduced-motion:reduce){#sa-peek{animation:none;opacity:1}}
 .sa-header{padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.06)}
 .sa-header img,.sa-header .sa-avatar{width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
 .sa-header img{object-fit:contain;padding:1px}
@@ -349,7 +359,15 @@ window.__SA_CHROME = {
   launcherWrap.appendChild(tooltip);
   document.body.appendChild(launcherWrap);
 
+  var panelWrap=el('div',{id:'sa-panel-wrap',class:pos});
   var panel=el('div',{id:'sa-panel',class:pos,style:{'--sa-accent':ds.accent||'#3d6bff'}});
+  // Decorative mascot that peeks over the top edge of the panel. Sits above the
+  // panel (a flex sibling, not clipped by the panel's overflow:hidden) and dips
+  // into the top edge so it reads as a character gripping the border.
+  if(ds.peekAvatar){
+    var peek=el('div',{id:'sa-peek','aria-hidden':'true',html:'<img src="'+escapeHtml(ds.peekAvatar)+'" alt="">'});
+    panelWrap.appendChild(peek);
+  }
   var avatarHtml = ds.avatar ? '<img src="'+escapeHtml(ds.avatar)+'" alt="">' : '<div class="sa-avatar">★</div>';
   // Subheading is rendered server-side using the localized
   // `subheading` field exposed by the partial, so visitors with a
@@ -383,13 +401,14 @@ window.__SA_CHROME = {
   sendBtn.onclick=sendMessage;
   inputRow.appendChild(ta); inputRow.appendChild(sendBtn);
   panel.appendChild(inputRow);
-  document.body.appendChild(panel);
+  panelWrap.appendChild(panel);
+  document.body.appendChild(panelWrap);
 
   launcher.onclick=function(){ togglePanel(!open); };
 
   function togglePanel(on){
     open = !!on;
-    panel.classList.toggle('sa-open', open);
+    panelWrap.classList.toggle('sa-open', open);
     if(open){
       unread=0; badge.style.display='none';
       hideTooltip();
@@ -940,16 +959,16 @@ window.__SA_CHROME = {
     var hostUp = !!document.querySelector('.cc-host');
     var z = hostUp ? SA_Z_OVER_COOKIE : '';
     if (launcherWrap.style.zIndex !== z) launcherWrap.style.zIndex = z;
-    if (panel.style.zIndex !== z) panel.style.zIndex = z;
+    if (panelWrap.style.zIndex !== z) panelWrap.style.zIndex = z;
 
     var bottom = saComputeBottom();
     var bpx = bottom + 'px';
     if (launcherWrap.style.bottom !== bpx) launcherWrap.style.bottom = bpx;
     // Keep the open panel sitting just above the (possibly lifted) launcher.
-    // On mobile the stylesheet pins the panel with !important, so this inline
+    // On mobile the stylesheet pins the wrapper with !important, so this inline
     // value is ignored there — which is the behaviour we want.
     var ppx = (bottom + SA_PANEL_GAP) + 'px';
-    if (panel.style.bottom !== ppx) panel.style.bottom = ppx;
+    if (panelWrap.style.bottom !== ppx) panelWrap.style.bottom = ppx;
   }
 
   function saWatchCookieCard(){

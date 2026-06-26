@@ -27,3 +27,17 @@ added only to the blade widget will be missing on 1inme.com.
 to the bundled mascot `public/branding/zio-bot.png` (absolute via `asset()`)
 when no admin avatar is set; `brandNameFor()` falls back to "Zio Bot". Stored
 `avatar_url` default stays null so admin-clearing still yields the mascot.
+
+**Panel clips its own decorations — peek mascot lives in a wrapper:** the chat
+panel (`#sa-panel` blade / the panel `motion.div` React) has `overflow:hidden`
+(rounded corners + body scroll), so anything meant to peek ABOVE the top edge
+cannot be a child of it. The peek mascot is a sibling: blade wraps the panel in
+`#sa-panel-wrap` (a flex column that owns the fixed positioning + `.sa-open`
+toggle), React renders it as a second keyed child inside the same
+`AnimatePresence` positioned with `bottom: calc(panelBottom + panelHeight - overlap)`.
+**Why:** the cookie-consent stacking-lift JS (`saApplyOffset`) writes
+`style.bottom`/`style.zIndex` — after the wrapper refactor it must target
+`#sa-panel-wrap`, not `#sa-panel`, or the open panel stops following the lifted
+launcher. The peek image is a built-in decorative asset
+(`public/branding/zio-bot-peek.png` / `@assets` import), NOT the configurable
+admin avatar.
