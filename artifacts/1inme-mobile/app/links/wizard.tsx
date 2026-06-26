@@ -979,7 +979,7 @@ export default function BiolinkWizardScreen() {
                           <AppIcon
                             name="fa-circle-check"
                             size={16}
-                            color="#22c55e"
+                            color={colors.success}
                           />
                         ) : aliasStatus === "taken" ||
                           aliasStatus === "invalid" ? (
@@ -1005,7 +1005,7 @@ export default function BiolinkWizardScreen() {
                     ) : !aliasError && aliasStatus === "available" ? (
                       <Text
                         style={{
-                          color: "#22c55e",
+                          color: colors.success,
                           fontFamily: "SpaceGrotesk_500Medium",
                           fontSize: 12,
                           marginTop: 6,

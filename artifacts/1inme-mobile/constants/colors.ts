@@ -14,6 +14,8 @@ const brand = {
   indigoLight: "#9c92ff",
   magenta500: "#d76dff",
   magenta400: "#e29bff",
+  green500: "#22c55e",
+  green400: "#4ade80",
 };
 
 const colors = {
@@ -41,6 +43,9 @@ const colors = {
 
     destructive: "#ef4444",
     destructiveForeground: "#ffffff",
+
+    success: brand.green500,
+    successForeground: "#ffffff",
 
     border: "#e6e8f2",
     input: "#e6e8f2",
@@ -73,6 +78,9 @@ const colors = {
 
     destructive: "#f87171",
     destructiveForeground: "#0a0a0f",
+
+    success: brand.green400,
+    successForeground: "#0a0a0f",
 
     border: "#23232f",
     input: "#23232f",
