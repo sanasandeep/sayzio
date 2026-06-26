@@ -185,6 +185,15 @@
         }
         .zio-core-label i { color: var(--c2); font-size: 10px; }
 
+        /* ---- Tablet (single-column, sm→below-lg): the orbit is stacked under the
+               copy in a wide column, so the vw-based size leaves it looking small and
+               lost. Bump --size here so it fills the column with more presence. Every
+               sub-element (mascot, node radius) derives from --size, so they scale in
+               lockstep. Does NOT touch the ≥lg two-column desktop layout. ---- */
+        @media (min-width: 640px) and (max-width: 1023.98px) {
+            .zio-orbit { --size: clamp(340px, 52vw, 440px); }
+        }
+
         /* ---- Light mode ---- */
         html.light-mode .zio-glow {
             background: radial-gradient(circle at 50% 45%, rgba(61,107,255,.18), rgba(110,97,255,.08) 45%, transparent 70%);
