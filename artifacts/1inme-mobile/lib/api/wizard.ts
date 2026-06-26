@@ -146,6 +146,30 @@ export async function getWizardStartingDesigns(params: {
   return res.data.starting_designs;
 }
 
+// Live custom-alias (Custom URL) availability check for the wizard's basics
+// step. Mirrors the same rules the generator enforces (alpha_dash, plan-driven
+// length, unique, not-banned) so the inline verdict matches what /generate
+// would accept. `empty` = blank alias (auto-generated server-side).
+export type WizardAliasStatus = "empty" | "available" | "taken" | "invalid";
+
+export type WizardAliasCheck = {
+  alias: string;
+  status: WizardAliasStatus;
+  available: boolean;
+  message: string | null;
+};
+
+export async function checkWizardAlias(
+  alias: string,
+): Promise<WizardAliasCheck> {
+  const qs = new URLSearchParams();
+  qs.set("alias", alias);
+  const res = await apiFetch<{ data: WizardAliasCheck }>(
+    `/links/wizard/alias-availability?${qs}`,
+  );
+  return res.data;
+}
+
 export async function getWizardQuestions(params: {
   category: string;
   page_type: string;

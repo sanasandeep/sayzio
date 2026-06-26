@@ -175,6 +175,73 @@ class BiolinkWizardController extends Controller
         ]);
     }
 
+    /**
+     * Live availability check for an optional custom alias (Custom URL), used
+     * by the mobile wizard's "basics" step to validate as the user types —
+     * mirroring the same rules generate() enforces via resolveCustomAlias()
+     * (alpha_dash, plan-driven length, unique, not-banned). Returns a small
+     * status envelope the client renders inline:
+     *   - `empty`     — blank alias (auto-generate); no message.
+     *   - `available` — passes every rule.
+     *   - `taken`     — the format is fine but the alias is already in use.
+     *   - `invalid`   — fails a format/length/banned rule (message explains).
+     */
+    public function checkAlias(Request $request)
+    {
+        $owner = $request->user();
+        $alias = trim((string) $request->query('alias', ''));
+
+        if ($alias === '') {
+            return $this->ok([
+                'alias'     => '',
+                'status'    => 'empty',
+                'available' => false,
+                'message'   => null,
+            ]);
+        }
+
+        $limits = $owner->getAliasLengthLimits();
+
+        // Format/length/banned first so a malformed alias reports as `invalid`
+        // (with the offending rule's message) rather than being conflated with
+        // an already-taken one.
+        $format = Validator::make(['alias' => $alias], [
+            'alias' => [
+                'string', 'alpha_dash',
+                'min:' . $limits['min'],
+                'max:' . $limits['max'],
+                new NotBannedName(),
+            ],
+        ]);
+
+        if ($format->fails()) {
+            return $this->ok([
+                'alias'     => $alias,
+                'status'    => 'invalid',
+                'available' => false,
+                'message'   => $format->errors()->first('alias'),
+            ]);
+        }
+
+        // Uniqueness mirrors generate()'s `unique:links,alias` so an "available"
+        // verdict here can't turn into a 422 at generate time.
+        if (Link::where('alias', $alias)->exists()) {
+            return $this->ok([
+                'alias'     => $alias,
+                'status'    => 'taken',
+                'available' => false,
+                'message'   => 'That custom URL is already taken.',
+            ]);
+        }
+
+        return $this->ok([
+            'alias'     => $alias,
+            'status'    => 'available',
+            'available' => true,
+            'message'   => null,
+        ]);
+    }
+
     /** Generate the biolink page from the collected answers. */
     public function generate(Request $request)
     {

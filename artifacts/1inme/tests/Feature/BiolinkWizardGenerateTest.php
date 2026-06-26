@@ -329,6 +329,80 @@ class BiolinkWizardGenerateTest extends TestCase
         $this->assertSame(0, Link::where('user_id', $user->id)->where('type', 'biolink')->count());
     }
 
+    // ── API live alias availability ───────────────────────────────────
+
+    /**
+     * GET /api/v1/links/wizard/alias-availability reports a free custom URL as
+     * available so the mobile basics step can show an inline verdict before the
+     * user reaches Generate.
+     */
+    public function test_api_alias_availability_reports_available(): void
+    {
+        $user = $this->makeUser($this->plan());
+        $this->withToken($this->token($user));
+
+        $resp = $this->getJson('/api/v1/links/wizard/alias-availability?alias=fresh-handle');
+
+        $resp->assertStatus(200);
+        $resp->assertJsonPath('data.status', 'available');
+        $resp->assertJsonPath('data.available', true);
+    }
+
+    /**
+     * An already-used alias is reported as taken — mirroring the unique guard the
+     * generate() endpoint enforces, so the user fixes it before Generate.
+     */
+    public function test_api_alias_availability_reports_taken(): void
+    {
+        $user = $this->makeUser($this->plan());
+
+        Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'short',
+            'alias'     => 'already-taken',
+            'long_url'  => 'https://example.com',
+            'is_active' => true,
+        ]);
+
+        $this->withToken($this->token($user));
+        $resp = $this->getJson('/api/v1/links/wizard/alias-availability?alias=already-taken');
+
+        $resp->assertStatus(200);
+        $resp->assertJsonPath('data.status', 'taken');
+        $resp->assertJsonPath('data.available', false);
+    }
+
+    /**
+     * A malformed alias (illegal characters) is reported as invalid, surfacing
+     * the same alpha_dash/length/banned rules generate() applies.
+     */
+    public function test_api_alias_availability_reports_invalid(): void
+    {
+        $user = $this->makeUser($this->plan());
+        $this->withToken($this->token($user));
+
+        $resp = $this->getJson('/api/v1/links/wizard/alias-availability?alias=' . urlencode('no spaces!'));
+
+        $resp->assertStatus(200);
+        $resp->assertJsonPath('data.status', 'invalid');
+        $resp->assertJsonPath('data.available', false);
+    }
+
+    /**
+     * A blank alias reports the empty status (auto-generate) without error.
+     */
+    public function test_api_alias_availability_blank_is_empty(): void
+    {
+        $user = $this->makeUser($this->plan());
+        $this->withToken($this->token($user));
+
+        $resp = $this->getJson('/api/v1/links/wizard/alias-availability?alias=');
+
+        $resp->assertStatus(200);
+        $resp->assertJsonPath('data.status', 'empty');
+        $resp->assertJsonPath('data.available', false);
+    }
+
     // ── Plan caps: API ────────────────────────────────────────────────
 
     /**

@@ -37,12 +37,14 @@ import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
 import { listLinks } from "@/lib/api/links";
 import {
   aiGenerateWizardPage,
+  checkWizardAlias,
   generateWizardPage,
   getWizardQuestions,
   getWizardResources,
   getWizardStartingDesigns,
   getWizardTaxonomy,
   uploadWizardImage,
+  type WizardAliasStatus,
   type WizardIndustry,
   type WizardPersona,
   type WizardQuestion,
@@ -150,6 +152,12 @@ export default function BiolinkWizardScreen() {
   // = the server auto-generates one, exactly as before. Mirrors the web wizard.
   const [alias, setAlias] = useState("");
   const [aliasError, setAliasError] = useState<string | null>(null);
+  // Live availability check for the Custom URL field on the basics step. As the
+  // user types we debounce a call to /links/wizard/alias-availability and show
+  // an inline available / taken / invalid verdict — mirroring the same rules
+  // the generator enforces, so they don't bounce back from Generate.
+  const [aliasStatus, setAliasStatus] = useState<"idle" | "checking" | WizardAliasStatus>("idle");
+  const [aliasStatusMsg, setAliasStatusMsg] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
@@ -405,6 +413,44 @@ export default function BiolinkWizardScreen() {
     else router.back();
   }
 
+  // Debounced live availability check for the Custom URL. Runs only while the
+  // user is on the basics step; a blank field resets to idle (auto-generate).
+  // A network hiccup falls back to idle rather than blocking — the server still
+  // validates the alias for real at generate time.
+  useEffect(() => {
+    const trimmed = alias.trim();
+    if (step !== "basics" || trimmed === "") {
+      setAliasStatus("idle");
+      setAliasStatusMsg(null);
+      return;
+    }
+    setAliasStatus("checking");
+    setAliasStatusMsg(null);
+    let cancelled = false;
+    const handle = setTimeout(() => {
+      checkWizardAlias(trimmed)
+        .then((res) => {
+          if (cancelled) return;
+          if (res.status === "empty") {
+            setAliasStatus("idle");
+            setAliasStatusMsg(null);
+          } else {
+            setAliasStatus(res.status);
+            setAliasStatusMsg(res.message);
+          }
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setAliasStatus("idle");
+          setAliasStatusMsg(null);
+        });
+    }, 450);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [alias, step]);
+
   // Map a server 422 `details` bag (key → string[] | string) into the flat
   // key → message shape the inline field errors use. Returns true when at
   // least one field error was extracted so callers can short-circuit.
@@ -466,6 +512,13 @@ export default function BiolinkWizardScreen() {
 
   function continueFromBasics() {
     if (!validateLocalStep(basicsQuestions)) return;
+    // Block advancing with a custom URL we already know is taken/invalid so the
+    // user fixes it here instead of bouncing back from Generate. A still-pending
+    // ("checking") or unverified value is allowed — the server validates for real.
+    if (aliasStatus === "taken" || aliasStatus === "invalid") {
+      setAliasError(aliasStatusMsg ?? "That custom URL isn't available.");
+      return;
+    }
     reset("additional");
   }
 
@@ -885,7 +938,12 @@ export default function BiolinkWizardScreen() {
                   <View style={styles.sectionBody}>
                     <TextField
                       hint="Letters, numbers, dashes and underscores only."
-                      error={aliasError ?? undefined}
+                      error={
+                        aliasError ??
+                        (aliasStatus === "taken" || aliasStatus === "invalid"
+                          ? (aliasStatusMsg ?? "That custom URL isn't available.")
+                          : undefined)
+                      }
                       value={alias}
                       onChangeText={(v) => {
                         setAlias(v);
@@ -894,7 +952,51 @@ export default function BiolinkWizardScreen() {
                       placeholder="your-custom-url"
                       autoCapitalize="none"
                       autoCorrect={false}
+                      trailing={
+                        aliasStatus === "checking" ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.mutedForeground}
+                          />
+                        ) : aliasStatus === "available" ? (
+                          <AppIcon
+                            name="fa-circle-check"
+                            size={16}
+                            color="#22c55e"
+                          />
+                        ) : aliasStatus === "taken" ||
+                          aliasStatus === "invalid" ? (
+                          <AppIcon
+                            name="x-circle"
+                            size={16}
+                            color={colors.destructive}
+                          />
+                        ) : undefined
+                      }
                     />
+                    {!aliasError && aliasStatus === "checking" ? (
+                      <Text
+                        style={{
+                          color: colors.mutedForeground,
+                          fontFamily: "SpaceGrotesk_400Regular",
+                          fontSize: 12,
+                          marginTop: 6,
+                        }}
+                      >
+                        Checking availability…
+                      </Text>
+                    ) : !aliasError && aliasStatus === "available" ? (
+                      <Text
+                        style={{
+                          color: "#22c55e",
+                          fontFamily: "SpaceGrotesk_500Medium",
+                          fontSize: 12,
+                          marginTop: 6,
+                        }}
+                      >
+                        This custom URL is available.
+                      </Text>
+                    ) : null}
                   </View>
                 </View>
               ) : null}

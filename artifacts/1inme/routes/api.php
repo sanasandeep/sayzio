@@ -390,6 +390,7 @@ Route::prefix('v1')->group(function () {
         Route::get ('/links/wizard/taxonomy',  [BiolinkWizardController::class, 'taxonomy']);
         Route::get ('/links/wizard/starting-designs', [BiolinkWizardController::class, 'startingDesigns']);
         Route::get ('/links/wizard/questions', [BiolinkWizardController::class, 'questions']);
+        Route::get ('/links/wizard/alias-availability', [BiolinkWizardController::class, 'checkAlias']);
         Route::post('/links/wizard/image',     [BiolinkWizardController::class, 'uploadImage']);
         Route::post('/links/wizard/generate',  [BiolinkWizardController::class, 'generate']);
         Route::post('/links/wizard/ai-generate', [BiolinkWizardController::class, 'aiGenerate']);
