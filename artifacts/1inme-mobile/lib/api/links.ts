@@ -50,6 +50,24 @@ export async function listLinks(params: {
   return res.data;
 }
 
+export type AliasCheck = {
+  status:
+    | "empty"
+    | "invalid"
+    | "too_short"
+    | "too_long"
+    | "banned"
+    | "taken"
+    | "available";
+  available: boolean | null;
+  message: string;
+};
+
+export async function checkAlias(alias: string): Promise<AliasCheck> {
+  const qs = new URLSearchParams({ alias });
+  return apiFetch<AliasCheck>(`/links/check-alias?${qs}`);
+}
+
 export async function getLink(id: number): Promise<Link> {
   const res = await apiFetch<{ data: { link: Link } }>(`/links/${id}`);
   return res.data.link;

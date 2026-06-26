@@ -38,6 +38,26 @@ class LinkController extends Controller
         };
     }
 
+    /**
+     * Live "Custom URL availability" check — mobile parity for the web
+     * Create Link page's indicator. Shares AliasAvailability with
+     * User\LinkController::checkAlias so the {status, available, message}
+     * shape and the alias rules (alpha_dash, the caller's plan length
+     * limits, the admin banned-names list and unique:links,alias) match
+     * exactly what gets enforced when the link is actually created.
+     *
+     * Returns the plain shape (not the {data} envelope) so it mirrors the
+     * web endpoint 1:1; a blank alias is the auto-generate case.
+     */
+    public function checkAlias(Request $request)
+    {
+        $alias = (string) $request->query('alias', (string) $request->input('alias', ''));
+
+        return response()->json(
+            \App\Modules\User\Support\AliasAvailability::check($request->user(), $alias)
+        );
+    }
+
     public function index(Request $request)
     {
         $q = Link::where('user_id', $request->user()->id)->with('domain');

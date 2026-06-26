@@ -383,6 +383,10 @@ Route::prefix('v1')->group(function () {
         // Links
         Route::get('/links',         [LinkController::class, 'index']);
         Route::post('/links',        [LinkController::class, 'store']);
+        // Live Custom URL availability check (mobile parity for the web
+        // user.links.check-alias). Literal `check-alias` wins over the
+        // whereNumber-guarded `/links/{id}` route below.
+        Route::get('/links/check-alias', [LinkController::class, 'checkAlias']);
         // Guided Link-in-Bio wizard (mobile parity for web user.links.wizard.*).
         // Stateless: the client drives the steps and submits all answers to
         // /generate. Literal `wizard` segments win over `/links/{id}` (which is

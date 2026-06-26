@@ -23,7 +23,7 @@ import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
 import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import { listAvailableDomains } from "@/lib/api/domains";
-import { createLink } from "@/lib/api/links";
+import { checkAlias, createLink, type AliasCheck } from "@/lib/api/links";
 import { metaForKind, type LinkKind } from "@/lib/linkKinds";
 import { PAID_PAGE_TEMPLATES } from "@/lib/paidPage";
 import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
@@ -56,6 +56,39 @@ export default function CreateLinkScreen() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Live "Custom URL availability" check — mobile parity for the web Create
+  // Link page's debounced indicator. A blank alias is the auto-generate case
+  // (status "empty"), so we surface it as a neutral hint, not an error.
+  const [aliasCheck, setAliasCheck] = useState<AliasCheck | null>(null);
+  const [aliasChecking, setAliasChecking] = useState(false);
+
+  useEffect(() => {
+    const trimmed = alias.trim();
+    if (trimmed === "") {
+      setAliasCheck(null);
+      setAliasChecking(false);
+      return;
+    }
+    setAliasChecking(true);
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const res = await checkAlias(trimmed);
+        if (!cancelled) setAliasCheck(res);
+      } catch {
+        // Network/transient errors leave the last known state; the create
+        // submit still enforces the rules server-side regardless.
+        if (!cancelled) setAliasCheck(null);
+      } finally {
+        if (!cancelled) setAliasChecking(false);
+      }
+    }, 450);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [alias]);
 
   // Tell the floating Voice Assistant that voice turns started while
   // this form is open should prefer the create-link tools.
@@ -216,6 +249,30 @@ export default function CreateLinkScreen() {
           autoCorrect={false}
           trailing={<DictationMic onText={dictateInto(setAlias)} />}
         />
+        {alias.trim() !== "" ? (
+          <Text
+            style={[
+              styles.aliasStatus,
+              {
+                color: aliasChecking
+                  ? colors.mutedForeground
+                  : aliasCheck?.available
+                    ? colors.scheme === "dark"
+                      ? "#4ade80"
+                      : "#16a34a"
+                    : aliasCheck
+                      ? colors.destructive
+                      : colors.mutedForeground,
+              },
+            ]}
+          >
+            {aliasChecking
+              ? "Checking availability…"
+              : aliasCheck
+                ? `${aliasCheck.available ? "✓" : "✕"} ${aliasCheck.message}`
+                : ""}
+          </Text>
+        ) : null}
 
         <DomainPicker
           value={domainId}
@@ -375,6 +432,11 @@ export default function CreateLinkScreen() {
 
 const styles = StyleSheet.create({
   body: { padding: 20, gap: 14, paddingBottom: 40 },
+  aliasStatus: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 12,
+    marginTop: -8,
+  },
   blurb: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 14, lineHeight: 20 },
   lockBanner: {
     flexDirection: "row",
