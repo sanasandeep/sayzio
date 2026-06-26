@@ -2526,8 +2526,8 @@
      The home page now matches all other marketing pages, which use a sticky
      sidebar TOC (features, faqs, policy) instead of a horizontal sub-nav. --}}
 
-@include('home.partials.ai-hero')
 @include('home.partials.hero')
+@include('home.partials.ai-hero')
 {{-- ============================ "1IN.ME is Sayzio" BRAND SECTION ============================ --}}
 @include('home.partials.brand-sayzio')
 {{-- ============================ MARQUEE STRIP ============================ --}}

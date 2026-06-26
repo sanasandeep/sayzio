@@ -1,32 +1,30 @@
 {{--
-    AI-first lead hero — sits at the very top of the homepage, above the classic
-    "I am a [role]" hero. Frames Sayzio around its built-in AI: type a prompt and
-    the AI builds the page, writes the copy, answers visitors and coaches growth.
+    AI builder spotlight — a lighter SUPPORTING section (not a hero). The page is
+    led by the Zio orbital hero (home.partials.hero); this band zooms in on the
+    one AI capability that hero only mentions in passing: the prompt → full page
+    builder, shown with a live "Generating" demo. Demoted from a full-height hero
+    to avoid two stacked heroes at the top of the page.
 
     Reuses the homepage's existing design system only (glass, reveal, rd-*,
     grad-text, grad-bar, btn-bounce, btn-glow, float-*, --c1..--c5) so dark/light
-    modes, animations and reduced-motion handling all carry over for free. CTAs
-    follow the same open-auth + trackMarketingEvent pattern as the classic hero.
+    modes, animations and reduced-motion handling all carry over for free. CTA
+    keeps the same open-auth + trackMarketingEvent pattern and the #ai-suite anchor.
 --}}
-<section class="relative pt-28 pb-16 lg:pt-44 lg:pb-20 xl:pt-52 overflow-hidden" aria-labelledby="ai-hero-h">
-    {{-- Drifting confetti (matches the classic hero's playful motion) --}}
-    <div class="confetti drift-a" style="left:12%; bottom:-22vh;"><div class="w-3 h-3 rounded-sm" style="background:var(--c2)"></div></div>
-    <div class="confetti drift-b" style="left:84%; bottom:-28vh; animation-delay:-5s"><div class="w-2 h-6 rounded-full" style="background:var(--c1)"></div></div>
-
+<section class="relative py-16 lg:py-24 overflow-hidden" aria-labelledby="ai-hero-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
         <div class="grid grid-cols-1 gap-y-12 lg:grid-cols-[1.05fr_1fr] lg:gap-x-12 xl:gap-x-16 lg:items-center">
             {{-- Copy column --}}
             <div class="text-center lg:text-left lg:max-w-[600px]">
-                <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-8">
+                <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-6">
                     <span class="relative flex h-2 w-2">
                         <span class="absolute inline-flex h-full w-full rounded-full" style="background:var(--c2)"></span>
                         <span class="ring-pulse" style="inset:0;background:var(--c2);"></span>
                     </span>
-                    <span class="grad-text">AI-first link platform · Builder · Coach · Chatbot · Voice</span>
+                    <span class="grad-text">AI builder · page in seconds</span>
                 </div>
 
-                <h1 id="ai-hero-h" class="reveal rd-1 text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight mb-8">
-                    <span class="block">Your AI builds</span>
+                <h2 id="ai-hero-h" class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold leading-[1.1] tracking-tight mb-6">
+                    <span>Your AI builds </span>
                     <span class="relative inline-block">
                         <span class="grad-text">the whole page.</span>
                         <svg class="absolute -bottom-3 left-0 w-full" height="14" viewBox="0 0 220 14" preserveAspectRatio="none" aria-hidden="true">
@@ -34,9 +32,9 @@
                             <defs><linearGradient id="ai-hero-underline"><stop offset="0%" stop-color="#3d6bff"/><stop offset="100%" stop-color="#1bd4d9"/></linearGradient></defs>
                         </svg>
                     </span>
-                </h1>
+                </h2>
 
-                <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed">
+                <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
                     Describe your idea and <strong class="text-white">your AI</strong> builds the Link in Bio, writes the copy, picks the theme and lays out every block. Then it keeps working — an <strong class="text-white">AI chatbot</strong> answering visitors, a <strong class="text-white">voice assistant</strong> taking calls and a <strong class="text-white">Performance Coach</strong> turning your numbers into next steps — <strong class="text-white">free forever</strong>, no card required.
                 </p>
 
@@ -49,7 +47,7 @@
                     </a>
                 </div>
 
-                <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-3 mt-12 justify-center lg:justify-start text-sm">
+                <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-3 mt-10 justify-center lg:justify-start text-sm">
                     <span class="flex items-center gap-2 text-gray-400">
                         <i class="fas fa-wand-magic-sparkles text-[13px]" style="color:var(--c2)"></i>
                         <span class="font-bold text-white">AI builder</span>
