@@ -1,9 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -16,6 +17,7 @@ import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import {
+  deleteCalendarEvent,
   getCalendar,
   toggleCalendarFollow,
   type CalendarDetail,
@@ -84,6 +86,32 @@ export default function CalendarDetailScreen() {
     },
   });
 
+  const removeEvent = useMutation({
+    mutationFn: (eventId: number) => deleteCalendarEvent(id, eventId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["calendar", id] });
+      qc.invalidateQueries({ queryKey: ["calendars"] });
+      qc.invalidateQueries({ queryKey: ["my-calendar"] });
+      qc.invalidateQueries({ queryKey: ["my-calendar-today"] });
+    },
+    onError: (e) =>
+      Alert.alert(
+        "Couldn't delete event",
+        (e as { message?: string })?.message ?? "Please try again.",
+      ),
+  });
+
+  const confirmDeleteEvent = (event: CalendarEventItem) => {
+    Alert.alert("Delete event?", `"${event.title}" will be removed. This can't be undone.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => removeEvent.mutate(event.id),
+      },
+    ]);
+  };
+
   const accent = cal?.accent_color || colors.primary;
 
   const addToCalendar = async (event: CalendarEventItem) => {
@@ -142,11 +170,34 @@ export default function CalendarDetailScreen() {
                 ) : null}
 
                 {cal.is_owner ? (
-                  <View style={[styles.ownerNote, { backgroundColor: colors.muted, borderRadius: colors.radius }]}>
-                    <Feather name="info" size={14} color={colors.mutedForeground} />
-                    <Text style={[styles.ownerNoteText, { color: colors.mutedForeground }]}>
-                      You own this calendar. Manage it from the web app.
-                    </Text>
+                  <View style={styles.ownerActions}>
+                    <Button
+                      label="Add event"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/calendars/event",
+                          params: { calendar: String(id) },
+                        })
+                      }
+                      style={{ flex: 1 }}
+                      leading={
+                        <Feather name="plus" size={16} color={colors.primaryForeground} />
+                      }
+                    />
+                    <Button
+                      label="Edit"
+                      variant="outline"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/calendars/edit",
+                          params: { id: String(id) },
+                        })
+                      }
+                      style={{ flex: 1 }}
+                      leading={
+                        <Feather name="settings" size={16} color={colors.foreground} />
+                      }
+                    />
                   </View>
                 ) : (
                   <Button
@@ -253,6 +304,36 @@ export default function CalendarDetailScreen() {
                     </Text>
                   </Pressable>
                 ) : null}
+
+                {cal.is_owner ? (
+                  <View style={[styles.eventOwnerRow, { borderTopColor: colors.border }]}>
+                    <Pressable
+                      onPress={() =>
+                        router.push({
+                          pathname: "/calendars/event",
+                          params: { calendar: String(id), id: String(item.id) },
+                        })
+                      }
+                      hitSlop={8}
+                      style={styles.eventOwnerBtn}
+                    >
+                      <Feather name="edit-2" size={14} color={colors.mutedForeground} />
+                      <Text style={[styles.eventOwnerBtnText, { color: colors.mutedForeground }]}>
+                        Edit
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => confirmDeleteEvent(item)}
+                      hitSlop={8}
+                      style={styles.eventOwnerBtn}
+                    >
+                      <Feather name="trash-2" size={14} color={colors.destructive} />
+                      <Text style={[styles.eventOwnerBtnText, { color: colors.destructive }]}>
+                        Delete
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : null}
               </View>
             </View>
           )}
@@ -294,11 +375,13 @@ const styles = StyleSheet.create({
   title: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 18 },
   meta: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13 },
   desc: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 14, lineHeight: 20 },
-  ownerNote: {
+  ownerActions: { flexDirection: "row", gap: 10 },
+  eventOwnerRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
+    gap: 18,
+    marginTop: 8,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   ownerNoteText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, flex: 1 },
   subscribeRow: {
@@ -310,6 +393,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   subscribeText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12, flex: 1 },
+  eventOwnerBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
+  eventOwnerBtnText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
   pastToggle: {
     flexDirection: "row",
     alignItems: "center",

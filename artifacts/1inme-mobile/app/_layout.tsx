@@ -156,6 +156,8 @@ function RootLayoutNav() {
       <Stack.Screen name="api-usage" options={{ title: "API usage" }} />
       <Stack.Screen name="calendars/index" options={{ title: "My Calendar" }} />
       <Stack.Screen name="calendars/[id]" options={{ title: "Calendar" }} />
+      <Stack.Screen name="calendars/edit" options={{ title: "Calendar" }} />
+      <Stack.Screen name="calendars/event" options={{ title: "Event" }} />
       <Stack.Screen name="dialer" options={{ title: "Dialer" }} />
       <Stack.Screen name="dialer-profile" options={{ title: "Profile" }} />
       <Stack.Screen name="call/active" options={{ headerShown: false }} />

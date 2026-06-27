@@ -783,6 +783,12 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/my-calendar/today',               [\App\Modules\Api\Controllers\MyCalendarController::class, 'today']);
         Route::get   ('/calendars/{calendar}',            [\App\Modules\Api\Controllers\MyCalendarController::class, 'show'])->whereNumber('calendar');
         Route::post  ('/calendars/{calendar}/follow',     [\App\Modules\Api\Controllers\MyCalendarController::class, 'toggleFollow'])->whereNumber('calendar');
+        // Owner-only calendar management (create/edit calendar + event CRUD).
+        Route::post  ('/calendars',                                  [\App\Modules\Api\Controllers\MyCalendarController::class, 'store']);
+        Route::patch ('/calendars/{calendar}',                       [\App\Modules\Api\Controllers\MyCalendarController::class, 'update'])->whereNumber('calendar');
+        Route::post  ('/calendars/{calendar}/events',                [\App\Modules\Api\Controllers\MyCalendarController::class, 'storeEvent'])->whereNumber('calendar');
+        Route::patch ('/calendars/{calendar}/events/{event}',        [\App\Modules\Api\Controllers\MyCalendarController::class, 'updateEvent'])->whereNumber('calendar')->whereNumber('event');
+        Route::delete('/calendars/{calendar}/events/{event}',        [\App\Modules\Api\Controllers\MyCalendarController::class, 'destroyEvent'])->whereNumber('calendar')->whereNumber('event');
 
         // Vault (read-only on mobile; secret reveal stays on web)
         Route::get   ('/vault/clients',     [VaultController::class, 'clients']);

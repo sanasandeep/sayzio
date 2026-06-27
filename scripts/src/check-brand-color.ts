@@ -213,6 +213,12 @@ const ALLOWLIST: AllowEntry[] = [
     reason: "Categorical block-variant palette mirror (multi-color choices).",
   },
   {
+    path: "artifacts/1inme-mobile/app/calendars/edit.tsx",
+    kind: "file",
+    reason:
+      "Calendar accent-color picker is a multi-color categorical user-choice palette (not the brand accent); the default stays brand blue #3d6bff.",
+  },
+  {
     path: "artifacts/1inme-mobile/lib/paidPage.ts",
     kind: "file",
     reason: "Categorical paid-page template palette mirror (multi-color choices).",

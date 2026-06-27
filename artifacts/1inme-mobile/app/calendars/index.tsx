@@ -143,16 +143,25 @@ export default function CalendarsScreen() {
       });
       return;
     }
-    showUpgradePrompt({
-      title: "Create a calendar on the web",
-      message:
-        "Building and publishing a followable calendar lives in the web app. You can browse and follow calendars right here on your phone.",
-    });
+    router.push("/calendars/edit");
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: "My Calendar", headerBackTitle: "Back" }} />
+      <Stack.Screen
+        options={{
+          title: "My Calendar",
+          headerBackTitle: "Back",
+          headerRight:
+            tab === "browse"
+              ? () => (
+                  <Pressable onPress={onCreatePress} hitSlop={10} style={{ paddingHorizontal: 4 }}>
+                    <Feather name="plus" size={22} color={colors.primary} />
+                  </Pressable>
+                )
+              : undefined,
+        }}
+      />
 
       {/* Tab switcher */}
       <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>

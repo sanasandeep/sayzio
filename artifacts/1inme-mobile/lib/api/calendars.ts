@@ -139,3 +139,96 @@ export async function getTodayEvents(): Promise<{
   }>("/my-calendar/today");
   return res.data;
 }
+
+// ── Owner-only writes ─────────────────────────────────────────────
+// Mirror MyCalendarController's create/edit calendar + event CRUD. These are
+// owner-only server-side; following a calendar never grants edit rights. The
+// server plan-gates calendar creation (module_calendar / max_calendars) and
+// event creation (max_calendar_events) with a 402 + recommended-plan hint, so
+// callers should route errors through `handlePlanLockedError`.
+
+/** Fields for creating or editing a calendar's settings. */
+export type CalendarInput = {
+  title: string;
+  description?: string | null;
+  timezone: string;
+  accent_color?: string | null;
+  is_public: boolean;
+};
+
+/** Fields for creating or editing a calendar event. */
+export type CalendarEventInput = {
+  title: string;
+  description?: string | null;
+  /** Wall-clock start, e.g. "2026-06-28T14:00" — parsed in `timezone`. */
+  start_at: string;
+  /** Optional wall-clock end (>= start). */
+  end_at?: string | null;
+  all_day?: boolean;
+  /** Defaults to the calendar's timezone server-side when omitted. */
+  timezone?: string | null;
+  location?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  /** Space/comma-separated hashtags (with or without leading #). */
+  hashtags?: string | null;
+  payment_url?: string | null;
+};
+
+/** Create a new followable calendar. */
+export async function createCalendar(
+  input: CalendarInput,
+): Promise<CalendarSummary> {
+  const res = await apiFetch<{ data: { calendar: CalendarSummary } }>(
+    "/calendars",
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data.calendar;
+}
+
+/** Update an owned calendar's settings. */
+export async function updateCalendar(
+  id: number,
+  input: CalendarInput,
+): Promise<CalendarSummary> {
+  const res = await apiFetch<{ data: { calendar: CalendarSummary } }>(
+    `/calendars/${id}`,
+    { method: "PATCH", body: JSON.stringify(input) },
+  );
+  return res.data.calendar;
+}
+
+/** Add an event to an owned calendar. */
+export async function createCalendarEvent(
+  calendarId: number,
+  input: CalendarEventInput,
+): Promise<CalendarEventItem> {
+  const res = await apiFetch<{ data: { event: CalendarEventItem } }>(
+    `/calendars/${calendarId}/events`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data.event;
+}
+
+/** Edit an event on an owned calendar. */
+export async function updateCalendarEvent(
+  calendarId: number,
+  eventId: number,
+  input: CalendarEventInput,
+): Promise<CalendarEventItem> {
+  const res = await apiFetch<{ data: { event: CalendarEventItem } }>(
+    `/calendars/${calendarId}/events/${eventId}`,
+    { method: "PATCH", body: JSON.stringify(input) },
+  );
+  return res.data.event;
+}
+
+/** Delete an event from an owned calendar. */
+export async function deleteCalendarEvent(
+  calendarId: number,
+  eventId: number,
+): Promise<void> {
+  await apiFetch(`/calendars/${calendarId}/events/${eventId}`, {
+    method: "DELETE",
+  });
+}
