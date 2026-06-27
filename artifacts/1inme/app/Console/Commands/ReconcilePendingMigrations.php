@@ -174,6 +174,23 @@ class ReconcilePendingMigrations extends Command
 
         $msg = strtolower($e->getMessage());
 
-        return str_contains($msg, 'already exists');
+        if (str_contains($msg, 'already exists')) {
+            return true;
+        }
+
+        // A racing/orphaned CREATE (table, type, index, constraint, sequence)
+        // surfaces NOT as 42P07 but as 23505 (unique_violation) on a pg_catalog
+        // uniqueness index — e.g. pg_type_typname_nsp_index (a table's rowtype /
+        // an enum already exists), pg_class_relname_nsp_index (a relation name),
+        // pg_constraint_conname_nsp_index. We require BOTH the 23505 SQLSTATE and a
+        // pg_-prefixed (system catalog) constraint name: user-table constraints
+        // (e.g. site_pages_slug_unique) are never pg_-prefixed, so a genuine DATA
+        // unique-violation still aborts loudly, and gating on the SQLSTATE avoids
+        // depending on localized "violates unique constraint" message prose.
+        if (in_array('23505', $states, true) && str_contains($msg, 'constraint "pg_')) {
+            return true;
+        }
+
+        return false;
     }
 }
