@@ -176,6 +176,47 @@ html.light-mode footer.bg-\[\#161b26\] {
     background-color: #f9fafb !important;
 }
 
+/* ---- Floating glass navbar (public header) ---- */
+.mkt-navbar-bar {
+    width: 92%;
+    margin: 0.85rem auto 0;
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 1rem;
+    background-color: rgba(30,35,48,0.55);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 20px 45px -18px rgba(0,0,0,0.55);
+    transition: width .35s ease, margin .35s ease, background-color .35s ease,
+                border-radius .35s ease, border-color .35s ease, box-shadow .35s ease;
+}
+@media (min-width: 640px)  { .mkt-navbar-bar { width: 90%; } }
+@media (min-width: 1024px) { .mkt-navbar-bar { width: 85%; } }
+@media (min-width: 1280px) { .mkt-navbar-bar { width: 80%; } }
+
+.mkt-navbar-bar.is-stuck {
+    width: 100%;
+    margin-top: 0;
+    border-radius: 0;
+    border-color: transparent;
+    border-bottom-color: rgba(255,255,255,0.06);
+    background-color: rgba(30,35,48,0.92);
+    box-shadow: none;
+}
+
+html.light-mode .mkt-navbar-bar {
+    background-color: rgba(255,255,255,0.60);
+    border-color: rgba(15,23,42,0.10);
+}
+html.light-mode .mkt-navbar-bar.is-stuck {
+    background-color: rgba(255,255,255,0.92);
+    border-color: transparent;
+    border-bottom-color: rgba(15,23,42,0.10);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mkt-navbar-bar { transition: none; }
+}
+
 /* ---- Translucent white surfaces become subtle dark tints ---- */
 html.light-mode .bg-white\/5,
 html.light-mode .bg-white\/10,

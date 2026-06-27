@@ -43,15 +43,23 @@
     ];
     $navUseCases = \App\Modules\Common\Support\SitePagesContent::useCaseMeta();
 @endphp
-<div x-data="{ mobileOpen:false, mobileGroup:null, openMenu:null {{ $useModal ? ', authOpen:false, authTab:\'login\'' : '' }} }"
+<div x-data="{ mobileOpen:false, mobileGroup:null, openMenu:null, scrolled:false {{ $useModal ? ', authOpen:false, authTab:\'login\'' : '' }} }"
+     x-init="scrolled = window.scrollY > 8"
+     @scroll.window.passive="scrolled = window.scrollY > 8"
      x-effect="document.body.style.overflow = (mobileOpen{{ $useModal ? ' || authOpen' : '' }}) ? 'hidden' : ''"
      @keydown.escape.window="openMenu=null; mobileOpen=false; mobileGroup=null"{!! $useModal ? ' @open-auth.window="authTab = ($event.detail && $event.detail.tab) || \'register\'; authOpen = true; mobileOpen = false"' : '' !!}>
-<nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }} bg-[#1e2330]/90 backdrop-blur-xl border-b border-white/5" style="top: var(--inme-anno-h, 0px);">
+<nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }}" style="top: var(--inme-anno-h, 0px);">
+    <div class="mkt-navbar-bar" :class="scrolled ? 'is-stuck' : ''">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-            {{-- Brand --}}
-            <a href="{{ route('home') }}" class="inline-flex items-center" aria-label="Sayzio home">
+        <div class="relative flex items-center justify-between h-16">
+            {{-- Brand (desktop wordmark) --}}
+            <a href="{{ route('home') }}" class="hidden lg:inline-flex items-center" aria-label="Sayzio home">
                 @include('common.partials.brand-logo', ['height' => 'h-9'])
+            </a>
+
+            {{-- Brand (mobile centered icon) --}}
+            <a href="{{ route('home') }}" class="lg:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center" aria-label="Sayzio home">
+                @include('common.partials.brand-logo', ['variant' => 'icon', 'height' => 'h-9'])
             </a>
 
             {{-- Desktop nav --}}
@@ -247,7 +255,7 @@
                 @endauth
             </div>
 
-            <div class="lg:hidden flex items-center gap-2">
+            <div class="lg:hidden flex items-center gap-2 ml-auto">
                 <button type="button"
                         x-data="{ light: document.documentElement.classList.contains('light-mode') }"
                         x-init="window.addEventListener('inme-theme-changed', e => light = e.detail.light)"
@@ -348,6 +356,7 @@
                 @endauth
             </div>
         </div>
+    </div>
     </div>
 </nav>
 @if($useModal)
