@@ -7,7 +7,7 @@ import {
   Lightbulb,
   type LucideIcon,
 } from "lucide-react";
-import oneMark from "@assets/icon_1782472971059.png";
+import oneMark from "@assets/icon_1782550094277.png";
 import sayzioMascot from "@assets/icon_1782472986927.png";
 
 /**
