@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
+import { RegistrationPausedNotice } from "@/components/RegistrationPausedNotice";
 import { SocialMergePrompt } from "@/components/SocialMergePrompt";
 import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
@@ -136,6 +137,12 @@ export default function AuthLanding() {
         maybeOfferBiometricEnrollment(auth);
       })
       .catch((e: ApiError) => {
+        // New sign-ups are paused by an admin — show the branded notice
+        // instead of a generic error (existing users are unaffected).
+        if (e?.code === "registration_paused") {
+          setPausedMessage(e?.message ?? "");
+          return;
+        }
         // The Google account (or its email) already belongs to a different
         // Sayzio account — offer the web merge flow instead of a dead-end error.
         if (e?.code === "identity_taken") {
@@ -153,6 +160,11 @@ export default function AuthLanding() {
   const [identifier, setIdentifier] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Set to the backend message when an account-creation attempt is rejected
+  // because an admin has paused new sign-ups (`registration_paused`, HTTP
+  // 403). Drives the full-screen "we're upgrading" notice. Existing-user
+  // sign-in is unaffected — only new-account paths return this code.
+  const [pausedMessage, setPausedMessage] = useState<string | null>(null);
   // Set to the provider name when a social sign-in hits an account conflict
   // (`identity_taken`); drives the inline "merge accounts?" prompt.
   const [mergeProvider, setMergeProvider] = useState<string | null>(null);
@@ -221,6 +233,13 @@ export default function AuthLanding() {
       });
     } catch (e) {
       const err = e as ApiError;
+      // New sign-ups are paused by an admin — show the branded notice
+      // instead of a generic error. Only new-account OTP sends return this;
+      // existing users still get their code.
+      if (err?.code === "registration_paused") {
+        setPausedMessage(err?.message ?? "");
+        return;
+      }
       // Surface the most useful piece: backend validation field errors
       // win over the generic message so users see "Email is invalid"
       // instead of "Request failed (422)".
@@ -322,6 +341,18 @@ export default function AuthLanding() {
 
   const webTop = Platform.OS === "web" ? 67 : 0;
   const webBottom = Platform.OS === "web" ? 34 : 0;
+
+  if (pausedMessage !== null) {
+    return (
+      <RegistrationPausedNotice
+        message={pausedMessage}
+        onBack={() => {
+          setPausedMessage(null);
+          setError(null);
+        }}
+      />
+    );
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>

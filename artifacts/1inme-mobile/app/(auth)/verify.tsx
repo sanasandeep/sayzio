@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
+import { RegistrationPausedNotice } from "@/components/RegistrationPausedNotice";
 import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -46,6 +47,11 @@ export default function Verify() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState<null | "verify" | "resend">(null);
   const [error, setError] = useState<string | null>(null);
+  // Set to the backend message when an account-creation attempt is rejected
+  // because an admin has paused new sign-ups (`registration_paused`, HTTP
+  // 403). Only new-account verify/resend paths return this — existing users
+  // sign in normally.
+  const [pausedMessage, setPausedMessage] = useState<string | null>(null);
   const [resentAt, setResentAt] = useState<number | null>(null);
   // Admin "Demo mode" toggle: when on, the backend returns the actual code so
   // it can be shown on screen (no real inbox/phone needed). Seeded from the
@@ -84,6 +90,12 @@ export default function Verify() {
       maybeOfferBiometricEnrollment(auth);
     } catch (e) {
       const err = e as ApiError;
+      // New sign-ups paused by an admin — show the branded notice rather
+      // than a generic "code did not match" error.
+      if (err?.code === "registration_paused") {
+        setPausedMessage(err?.message ?? "");
+        return;
+      }
       let msg = err?.message ?? "Code did not match";
       if (mode === "backup" && err?.status === 400) {
         msg = "That backup code isn't valid (or has already been used).";
@@ -105,13 +117,27 @@ export default function Verify() {
       setResentAt(Date.now());
       cooldown.start();
     } catch (e) {
-      setError((e as ApiError)?.message ?? "Could not resend");
+      const err = e as ApiError;
+      if (err?.code === "registration_paused") {
+        setPausedMessage(err?.message ?? "");
+        return;
+      }
+      setError(err?.message ?? "Could not resend");
     } finally {
       setBusy(null);
     }
   };
 
   const webBottom = Platform.OS === "web" ? 34 : 0;
+
+  if (pausedMessage !== null) {
+    return (
+      <RegistrationPausedNotice
+        message={pausedMessage}
+        onBack={() => router.replace("/(auth)")}
+      />
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { RegistrationPausedNotice } from "@/components/RegistrationPausedNotice";
 import { SocialMergePrompt } from "@/components/SocialMergePrompt";
 import { useAuth, type AuthUser } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -39,6 +40,10 @@ export default function OAuthCallback() {
   }>();
 
   const [error, setError] = useState<string | null>(null);
+  // Set to the backend message when the social sign-in is rejected because
+  // an admin has paused new sign-ups (`registration_paused`, HTTP 403).
+  // Drives the full-screen "we're upgrading" notice.
+  const [pausedMessage, setPausedMessage] = useState<string | null>(null);
   // The provider that failed, when the redirect tells us which one it was.
   // Drives the provider-specific guidance line on the failure screen.
   const [providerLabel, setProviderLabel] = useState<string | null>(null);
@@ -116,6 +121,12 @@ export default function OAuthCallback() {
           maybeOfferBiometricEnrollment(auth);
         })
         .catch((e: ApiError) => {
+          // New sign-ups are paused by an admin — show the branded notice
+          // instead of a generic error (existing users are unaffected).
+          if (e?.code === "registration_paused") {
+            setPausedMessage(e?.message ?? "");
+            return;
+          }
           // Identity (or its email) already bound to another Sayzio account —
           // offer the web merge flow instead of a dead-end error.
           if (e?.code === "identity_taken") {
@@ -132,6 +143,15 @@ export default function OAuthCallback() {
       "Sign-in did not return a session. The backend redirect must include either ?token=… or ?provider=…&id_token=… for mobile.",
     );
   }, [params, applySession, socialLogin, router]);
+
+  if (pausedMessage !== null) {
+    return (
+      <RegistrationPausedNotice
+        message={pausedMessage}
+        onBack={() => router.replace("/(auth)")}
+      />
+    );
+  }
 
   return (
     <View
