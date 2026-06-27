@@ -36,6 +36,10 @@
     html.light-mode .faq-chip { color: #475569; }
     html.light-mode .faq-chip:hover { color: #0f172a; }
     html.light-mode .faq-chip.is-active { color: #fff; }
+    /* The search highlight keeps a translucent-blue surface in both modes; over
+       the white light-mode page that resolves to a pale blue, leaving the
+       hardcoded white text near-invisible. Flip it to a dark blue here. */
+    html.light-mode mark.faq-hl { color: #1e3a8a; }
 </style>
 @endpush
 
