@@ -137,6 +137,29 @@ class BiolinkWizardGoalPrefillTest extends TestCase
         $this->assertSame(2, (int) $draft->step);
     }
 
+    /**
+     * The "Share my resume" (resume) shortcut pre-seeds the Services/freelancer
+     * persona and lands on the starting-design step.
+     */
+    public function test_resume_persona_prefill_seeds_starting_design_step(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user)
+            ->get('/user/links/wizard?group=Services&persona=freelancer')
+            ->assertOk();
+
+        $draft = BiolinkWizardDraft::where('actor_user_id', $user->id)->latest('id')->first();
+        $this->assertNotNull($draft, 'a draft should be seeded from the prefill');
+        $this->assertSame('Services', $draft->persona_group);
+        $this->assertSame('freelancer', $draft->persona);
+        // Resolved legacy combo so the question set + recipe engine work.
+        $this->assertSame('personal', $draft->category);
+        $this->assertSame('professional', $draft->page_type);
+        // Step 2 = the starting-design step.
+        $this->assertSame(2, (int) $draft->step);
+    }
+
     /** A persona that doesn't belong to the group is ignored (group-only). */
     public function test_foreign_persona_prefill_falls_back_to_group_step(): void
     {
