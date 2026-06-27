@@ -6,6 +6,7 @@
 @php($canCreateUsers = $operator?->hasPermission('users.create'))
 @php($canBulkPlan = $operator?->hasPermission('users.bulk_plan'))
 @php($canBulkCredits = $operator?->hasPermission('users.bulk_credits'))
+@php($canBulkBadges = $operator?->hasPermission('users.edit'))
 @php($canBulk = $canBulkPlan || $canBulkCredits)
 @php($canDeleteUsers = $operator?->hasPermission('users.delete'))
 @section('content')
@@ -36,6 +37,14 @@
                 <option value="{{ $plan->id }}" {{ request('plan') == $plan->id ? 'selected' : '' }}>{{ $plan->name }}</option>
             @endforeach
         </select>
+        @if($badges->isNotEmpty())
+        <select name="badge" class="px-3 py-2 border border-white/10 rounded-xl text-sm">
+            <option value="">All Badges</option>
+            @foreach($badges as $badge)
+                <option value="{{ $badge->id }}" {{ request('badge') == $badge->id ? 'selected' : '' }}>{{ $badge->name }}</option>
+            @endforeach
+        </select>
+        @endif
         <button type="submit" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm hover:bg-white/[0.06]">Filter</button>
     </form>
     @if($canCreateUsers)
@@ -66,8 +75,22 @@
                     class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white">
                 @if($canBulkPlan)<option value="assign_plan">Assign plan</option>@endif
                 @if($canBulkCredits)<option value="grant_coins">Grant coins</option>@endif
+                @if($canBulkBadges && $badges->isNotEmpty())
+                <option value="assign_badge">Assign badge</option>
+                <option value="remove_badge">Remove badge</option>
+                @endif
             </select>
         </div>
+        @if($canBulkBadges && $badges->isNotEmpty())
+        <div x-show="action === 'assign_badge' || action === 'remove_badge'">
+            <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Badge</label>
+            <select name="badge_id" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white">
+                @foreach($badges as $badge)
+                    <option value="{{ $badge->id }}">{{ $badge->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        @endif
         <div x-show="action === 'assign_plan'">
             <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Plan</label>
             <select name="plan_id" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white">
@@ -137,6 +160,16 @@
                                 </span>
                             @else
                                 <span class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] text-white/30 border border-white/10">Not an admin</span>
+                            @endif
+                            @if($user->accountBadges->isNotEmpty())
+                            <div class="mt-1 flex flex-wrap gap-1">
+                                @foreach($user->accountBadges as $badge)
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium"
+                                          style="background: {{ $badge->color }}1f; color: {{ $badge->color }};">
+                                        <i class="fas fa-certificate text-[8px]"></i>{{ $badge->name }}
+                                    </span>
+                                @endforeach
+                            </div>
                             @endif
                         </div>
                     </div>

@@ -7,6 +7,7 @@
     $showOperator = auth('admin')->user();
     $canAssignPlan = $showOperator?->hasPermission('users.assign_plan');
     $canSuspend = $showOperator?->hasPermission('users.suspend');
+    $canManageBadges = $showOperator?->hasPermission('users.edit');
 @endphp
 @if($user->isSuspended())
 <div class="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 flex flex-wrap items-center justify-between gap-3">
@@ -134,7 +135,7 @@
         </div>
     </div>
 
-    @if($canAssignPlan || $canSuspend)
+    @if($canAssignPlan || $canSuspend || $canManageBadges)
     <div class="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
         @if($canAssignPlan)
         {{-- Assign plan, optionally as a complimentary / time-limited grant.
@@ -168,6 +169,38 @@
                     Assign plan
                 </button>
             </form>
+        </div>
+        @endif
+
+        @if($canManageBadges)
+        {{-- Account badges: staff-only labels. Submitting the full set of
+             checked badges replaces this account's badges (unchecked = removed). --}}
+        <div class="glass rounded-2xl border border-white/10 p-6">
+            <h3 class="text-lg font-semibold text-white mb-1">Account badges</h3>
+            <p class="text-xs text-white/40 mb-4">Staff-only labels. Shown on the user's own dashboard, never on their public biolink.</p>
+            @if($badges->isEmpty())
+                <p class="text-sm text-white/50">No badges defined yet. <a href="{{ route('admin.badges.index') }}" class="text-blue-300 hover:underline">Create one</a>.</p>
+            @else
+            <form method="POST" action="{{ route('admin.users.badges.update', $user) }}" class="space-y-4">
+                @csrf @method('PUT')
+                <div class="flex flex-wrap gap-2">
+                    @foreach($badges as $badge)
+                        <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition">
+                            <input type="checkbox" name="badge_ids[]" value="{{ $badge->id }}"
+                                   {{ in_array($badge->id, $userBadgeIds) ? 'checked' : '' }}
+                                   class="rounded bg-white/5 border-white/20">
+                            <span class="inline-flex items-center gap-1 text-xs font-medium"
+                                  style="color: {{ $badge->color }};">
+                                <i class="fas fa-certificate text-[10px]"></i>{{ $badge->name }}
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
+                    Save badges
+                </button>
+            </form>
+            @endif
         </div>
         @endif
 

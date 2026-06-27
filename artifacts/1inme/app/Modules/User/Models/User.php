@@ -316,6 +316,21 @@ class User extends Authenticatable
     public function pinnedPost()    { return $this->hasOne(CreatorPost::class)->whereNotNull('pinned_at')->whereNotNull('published_at')->latest('pinned_at'); }
     public function notifications() { return $this->hasMany(UserNotification::class)->latest('created_at'); }
 
+    /**
+     * Admin-managed account badges currently attached to this account.
+     * Staff-only labelling (segment/filter/bulk-action the admin user
+     * list); the user sees their own badges read-only on the dashboard.
+     */
+    public function accountBadges()
+    {
+        return $this->belongsToMany(
+            \App\Modules\Admin\Models\AccountBadge::class,
+            'account_badge_user',
+            'user_id',
+            'account_badge_id'
+        )->withTimestamps()->orderBy('name');
+    }
+
     public function wallet() { return $this->hasOne(Wallet::class); }
     public function walletTransactions() { return $this->hasMany(WalletTransaction::class)->orderByDesc('id'); }
 

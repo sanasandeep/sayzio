@@ -42,8 +42,16 @@ class UserManagementController extends Controller
             $query->where('plan_id', $request->plan);
         }
 
+        if ($request->filled('badge')) {
+            $badgeId = (int) $request->badge;
+            $query->whereHas('accountBadges', fn ($q) => $q->where('account_badges.id', $badgeId));
+        }
+
+        $query->with('accountBadges');
+
         $users = $query->latest()->paginate(15)->withQueryString();
         $plans = Plan::active()->ordered()->get();
+        $badges = \App\Modules\Admin\Models\AccountBadge::orderBy('name')->get();
 
         // Admin status for the current page, in one query. The admin pool
         // is a separate table linked to a user by email, so we batch-load
@@ -84,13 +92,15 @@ class UserManagementController extends Controller
             ->map(fn ($e) => strtolower(trim((string) $e)))
             ->flip();
 
-        return view('admin.users.index', compact('users', 'plans', 'adminAccounts', 'canManageAdminAccess', 'protectedEmails'));
+        return view('admin.users.index', compact('users', 'plans', 'badges', 'adminAccounts', 'canManageAdminAccess', 'protectedEmails'));
     }
 
     public function show(Request $request, User $user)
     {
-        $user->load('plan');
+        $user->load('plan', 'accountBadges');
         $plans = Plan::active()->ordered()->get();
+        $badges = \App\Modules\Admin\Models\AccountBadge::orderBy('name')->get();
+        $userBadgeIds = $user->accountBadges->pluck('id')->all();
         $wallet = app(WalletService::class)->walletFor($user);
         $walletEnabled = WalletService::isEnabled();
         $walletTransactions = $wallet->transactions()->limit(10)->get();
@@ -139,7 +149,7 @@ class UserManagementController extends Controller
         $isProtected = ProtectedAccount::isProtected($user);
 
         return view('admin.users.show', compact(
-            'user', 'plans', 'wallet', 'walletEnabled', 'walletTransactions',
+            'user', 'plans', 'badges', 'userBadgeIds', 'wallet', 'walletEnabled', 'walletTransactions',
             'roleAudits', 'auditFilters', 'auditRoleSlugs', 'auditActions',
             'auditSources', 'auditRanges', 'isProtected'
         ));
@@ -417,6 +427,31 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Replace the full set of account badges attached to a single user.
+     * Staff-only labelling — the user sees but cannot change these. A
+     * missing/empty `badge_ids` clears every badge from the account.
+     */
+    public function updateBadges(Request $request, User $user, AdminActionLogger $audit)
+    {
+        $data = $request->validate([
+            'badge_ids'   => 'nullable|array',
+            'badge_ids.*' => 'integer|exists:account_badges,id',
+        ]);
+
+        $ids = array_values(array_unique(array_map('intval', $data['badge_ids'] ?? [])));
+        $previousIds = $user->accountBadges()->pluck('account_badges.id')->all();
+
+        $user->accountBadges()->sync($ids);
+
+        $audit->log(AdminActionLogger::BADGE_ASSIGNED, $user, [
+            'badge_ids'          => $ids,
+            'previous_badge_ids' => $previousIds,
+        ]);
+
+        return back()->with('success', 'Badges updated.');
+    }
+
+    /**
      * Bulk "assign plan" / "grant coins" over a set of selected users,
      * reusing the single-user logic. Coin grants go through the wallet
      * chokepoint with a per-(batch,user) idempotency key so a duplicate
@@ -430,12 +465,13 @@ class UserManagementController extends Controller
         UserAccountNotifier $notifier
     ) {
         $data = $request->validate([
-            'action'      => 'required|in:assign_plan,grant_coins',
+            'action'      => 'required|in:assign_plan,grant_coins,assign_badge,remove_badge',
             'user_ids'    => 'required|array|min:1',
             'user_ids.*'  => 'integer|exists:users,id',
             'plan_id'     => 'required_if:action,assign_plan|nullable|exists:plans,id',
             'coins'       => 'required_if:action,grant_coins|nullable|integer|min:1|max:1000000',
             'reason'      => 'required_if:action,grant_coins|nullable|string|max:255',
+            'badge_id'    => 'required_if:action,assign_badge,remove_badge|nullable|exists:account_badges,id',
         ]);
 
         // Per-action gate: this endpoint multiplexes two distinct
@@ -443,7 +479,11 @@ class UserManagementController extends Controller
         // action server-side. The route only guarantees the operator holds
         // at least one of the two bulk permissions.
         $operator = Auth::guard('admin')->user();
-        $needed = $data['action'] === 'assign_plan' ? 'users.bulk_plan' : 'users.bulk_credits';
+        $needed = match ($data['action']) {
+            'assign_plan'                  => 'users.bulk_plan',
+            'grant_coins'                  => 'users.bulk_credits',
+            'assign_badge', 'remove_badge' => 'users.edit',
+        };
         if (! $operator || ! $operator->hasPermission($needed)) {
             abort(403, 'Unauthorized action.');
         }
@@ -451,6 +491,30 @@ class UserManagementController extends Controller
         $users = User::whereIn('id', array_unique($data['user_ids']))->get();
         $operatorId = Auth::guard('admin')->id();
         $count = 0;
+
+        if (in_array($data['action'], ['assign_badge', 'remove_badge'], true)) {
+            $badge = \App\Modules\Admin\Models\AccountBadge::findOrFail($data['badge_id']);
+            $assigning = $data['action'] === 'assign_badge';
+
+            foreach ($users as $u) {
+                if ($assigning) {
+                    // Idempotent: re-assigning an already-attached badge is a no-op.
+                    $u->accountBadges()->syncWithoutDetaching([$badge->id]);
+                } else {
+                    $u->accountBadges()->detach($badge->id);
+                }
+                $audit->log(
+                    $assigning ? AdminActionLogger::BADGE_ASSIGNED : AdminActionLogger::BADGE_REMOVED,
+                    $u,
+                    ['badge_id' => $badge->id, 'badge_name' => $badge->name, 'bulk' => true]
+                );
+                $count++;
+            }
+
+            $verb = $assigning ? 'Assigned' : 'Removed';
+            $prep = $assigning ? 'to' : 'from';
+            return back()->with('success', "{$verb} badge \"{$badge->name}\" {$prep} {$count} account(s).");
+        }
 
         if ($data['action'] === 'assign_plan') {
             $plan = Plan::findOrFail($data['plan_id']);

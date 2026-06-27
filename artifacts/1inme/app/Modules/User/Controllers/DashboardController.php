@@ -16,7 +16,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $user->load('plan');
+        $user->load('plan', 'accountBadges');
 
         // One aggregate over the links table for the three headline tiles
         // (total / active / lifetime clicks) instead of three separate

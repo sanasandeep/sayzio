@@ -91,6 +91,18 @@
     ],
 ])
 
+@if($user->accountBadges->isNotEmpty())
+    <div class="mb-5 flex flex-wrap items-center gap-2">
+        <span class="text-[11px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Your badges</span>
+        @foreach($user->accountBadges as $badge)
+            <span class="badge inline-flex items-center gap-1.5"
+                  style="background: {{ $badge->color }}26; color: {{ $badge->color }}; border: 1px solid {{ $badge->color }}40;">
+                <i class="fas fa-certificate text-[10px]"></i>{{ $badge->name }}
+            </span>
+        @endforeach
+    </div>
+@endif
+
 @if(!empty($channelFilter))
     <div class="mb-5 flex flex-wrap items-center gap-2 px-4 py-3 rounded-xl"
          style="background: rgba(110,97,255,0.08); border: 1px solid rgba(110,97,255,0.25);">

@@ -32,6 +32,8 @@ class AdminActionLogger
     public const PROTECTED_REMOVED   = 'protected.removed';
     public const DELETE_BLOCKED      = 'account.delete_blocked';
     public const SUSPEND_BLOCKED     = 'account.suspend_blocked';
+    public const BADGE_ASSIGNED      = 'badge.assigned';
+    public const BADGE_REMOVED       = 'badge.removed';
 
     /**
      * Record one action.

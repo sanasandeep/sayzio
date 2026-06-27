@@ -31,6 +31,7 @@ use App\Modules\Admin\Controllers\GatewaySettingsController;
 use App\Modules\Admin\Controllers\PendingPaymentController;
 use App\Modules\Admin\Controllers\DemoContentController;
 use App\Modules\Admin\Controllers\ProtectedAccountController;
+use App\Modules\Admin\Controllers\AccountBadgeController;
 use App\Modules\Admin\Controllers\TestimonialController;
 use App\Modules\Admin\Controllers\SiteStatController;
 use App\Modules\Admin\Middleware\CheckPermission;
@@ -692,6 +693,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{user}/assign-plan', [UserManagementController::class, 'assignPlan'])->middleware(CheckPermission::class . ':users.assign_plan')->whereNumber('user')->name('assign-plan');
             Route::post('{user}/suspend',     [UserManagementController::class, 'suspend'])->middleware(CheckPermission::class . ':users.suspend')->whereNumber('user')->name('suspend');
             Route::post('{user}/reactivate',  [UserManagementController::class, 'reactivate'])->middleware(CheckPermission::class . ':users.suspend')->whereNumber('user')->name('reactivate');
+
+            // Attach/detach admin account badges for a single user.
+            Route::put('{user}/badges', [UserManagementController::class, 'updateBadges'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('badges.update');
+        });
+
+        // Admin-managed account badges (definition CRUD). Listing mirrors
+        // the user list (`users.view`); mutations require `users.edit`.
+        Route::prefix('badges')->name('badges.')->group(function () {
+            Route::get('/',            [AccountBadgeController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('index');
+            Route::post('/',           [AccountBadgeController::class, 'store'])->middleware(CheckPermission::class . ':users.edit')->name('store');
+            Route::put('{badge}',      [AccountBadgeController::class, 'update'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('badge')->name('update');
+            Route::delete('{badge}',   [AccountBadgeController::class, 'destroy'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('badge')->name('destroy');
         });
     });
 });
