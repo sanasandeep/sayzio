@@ -75,6 +75,13 @@ Route::prefix('v1')->group(function () {
     // Demo login (non-prod). Mirrors the web "Try as Demo" button.
     Route::post('/auth/demo', [OtpController::class, 'demo'])->middleware('throttle:20,1');
 
+    // Cloud File OAuth landing (PUBLIC — the provider redirect carries no
+    // bearer token). State is an APP_KEY-encrypted, short-lived token minted by
+    // the authed POST /cloud-files/{provider}/connect; the handler exchanges
+    // the code and bounces back to the app deep link. See CloudFilesApiController.
+    Route::get('/cloud-files/oauth/callback', [\App\Modules\Api\Controllers\CloudFilesApiController::class, 'oauthCallback'])
+        ->middleware('throttle:30,1');
+
     // ── Public, visibility-aware (optional bearer token) ────────────
     Route::middleware('api.optional_auth')->group(function () {
         Route::get('/biolinks/{alias}',            [BiolinkController::class, 'show']);
@@ -302,6 +309,24 @@ Route::prefix('v1')->group(function () {
 
         Route::get   ('/adult-content', [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'adultShow']);
         Route::post  ('/adult-content', [\App\Modules\Api\Controllers\CreatorPayoutsApiController::class, 'adultUpdate']);
+
+        // ── Cloud File Library (Google Drive / Dropbox / OneDrive) ──
+        // Web parity for connect/browse/library/attach. Workspace
+        // permissions (files.view / files.create / files.delete) are enforced
+        // inside the controller, mirroring the web `workspace.can:*`
+        // middleware. The OAuth landing is a separate PUBLIC route (below,
+        // outside auth:sanctum) because the provider redirect carries no
+        // bearer token.
+        Route::get   ('/cloud-files/connections',            [\App\Modules\Api\Controllers\CloudFilesApiController::class, 'connections']);
+        Route::post  ('/cloud-files/{provider}/connect',     [\App\Modules\Api\Controllers\CloudFilesApiController::class, 'connect']);
+        Route::delete('/cloud-files/connections/{connection}',[\App\Modules\Api\Controllers\CloudFilesApiController::class, 'disconnect'])->whereNumber('connection');
+        Route::get   ('/cloud-files/picker/{connection}',    [\App\Modules\Api\Controllers\CloudFilesApiController::class, 'browse'])->whereNumber('connection');
+        Route::get   ('/cloud-files',                         [\App\Modules\Api\Controllers\CloudFilesApiController::class, 'library']);
+        Route::post  ('/cloud-files',                         [\App\Modules\Api\Controllers\CloudFilesApiController::class, 'store']);
+        Route::delete('/cloud-files/{cloudFile}',            [\App\Modules\Api\Controllers\CloudFilesApiController::class, 'destroy'])->whereNumber('cloudFile');
+        Route::get   ('/cloud-files/attachments',            [\App\Modules\Api\Controllers\CloudFilesApiController::class, 'attachments']);
+        Route::post  ('/cloud-files/attach',                 [\App\Modules\Api\Controllers\CloudFilesApiController::class, 'attach']);
+        Route::delete('/cloud-files/attach/{attachment}',    [\App\Modules\Api\Controllers\CloudFilesApiController::class, 'detach'])->whereNumber('attachment');
 
         // Mail / SMTP settings (super-admin parity). Status + a live
         // "send test email" plus full editing of the transport, all mirroring

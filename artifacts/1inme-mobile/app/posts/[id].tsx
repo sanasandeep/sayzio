@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { CloudAttachSection } from "@/components/CloudAttachSection";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { listPosts, updatePost } from "@/lib/api/posts";
@@ -95,6 +96,8 @@ export default function EditPostScreen() {
           onPress={() => body.trim() && m.mutate()}
           disabled={m.isPending || !body.trim()}
         />
+
+        <CloudAttachSection targetType="post" targetId={id} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

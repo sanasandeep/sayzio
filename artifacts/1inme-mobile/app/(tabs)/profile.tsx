@@ -80,6 +80,7 @@ const TOOL_PAGES: {
     | "/contacts"
     | "/dialer"
     | "/forms"
+    | "/cloud-files"
     | "/followers"
     | "/social"
     | "/notifications"
@@ -109,6 +110,7 @@ const TOOL_PAGES: {
   { href: "/contacts", label: "Contacts", icon: "users" },
   { href: "/dialer", label: "Dialer", icon: "phone" },
   { href: "/forms", label: "Forms", icon: "file-text" },
+  { href: "/cloud-files", label: "Cloud files", icon: "cloud" },
   { href: "/followers", label: "Followers & Following", icon: "user-check" },
   { href: "/subscribers", label: "Subscribers", icon: "user-plus" },
   { href: "/social", label: "Social accounts", icon: "share-2" },
