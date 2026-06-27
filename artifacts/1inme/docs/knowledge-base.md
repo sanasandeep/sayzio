@@ -148,6 +148,14 @@ pro features.
 **Good to know.** The pricing page also shows **coin packages** and a
 side-by-side competitor comparison so you can see where Sayzio stands.
 
+**Add-ons.** Some plans let you attach **add-ons** to your subscription to raise a
+specific allowance (you can buy more than one of an add-on). Add-ons stack on top
+of your plan, so your effective limits are "plan + add-ons" everywhere in the app.
+
+**Brand-new subscriptions** may show a **first-term intro discount** (the normal
+price struck through with a savings badge). It applies only to your first billing
+term; renewals and upgrades charge the normal price.
+
 ---
 
 ## 5. Coin wallet & AI credits
@@ -280,6 +288,14 @@ shared **global domains**.
 - **Backlinks** — a radar that tracks where your links are being shared across
   the web (works alongside the browser extension).
 
+### Embedding a link elsewhere
+
+**What it is.** A way to drop any Sayzio link into another website. Page-style
+links (like a biolink) appear as an embedded **iframe**; quick links (short, file,
+event, contact) show a compact **card** with a tap-through action. You can paste a
+ready-made embed snippet, and a small `embed.js` script auto-sizes it for you.
+Private links instead show a "view on site" prompt.
+
 ---
 
 ## 9. The biolink editor
@@ -351,11 +367,20 @@ Blocks are grouped into categories in the picker. Highlights:
 - **Social Icons / Hub**, platform **feeds** (YouTube, Instagram, TikTok, X), and
   **RSS Feed**.
 
+**Maps & location**
+- **Map** / **Yandex Map** and a **Location** block — drop a pin on a map (search
+  for an address or drag the pin to place it exactly), with an optional **Get
+  directions** button. Great for a shop, venue, or meeting point.
+
 ### Per-block styling & display rules
 
 - **Block styling** — each block has its own style controls (font, colors, corner
   radius, shadow, effects) plus ready-made templates; you can also set a global
   theme and let individual blocks override it.
+- **Layout variants** — some blocks offer alternate looks: link/button blocks can
+  switch between **button-style layouts** (e.g. plain text vs. an image-cover
+  card), and the **Profile Card** comes in identity layouts (Classic, Cover,
+  Stats, Badges).
 - **Display / visibility settings** — show or hide a block based on a **schedule**,
   **location**, **device**, **OS**, **browser**, or **language**, so different
   visitors see different blocks.
@@ -464,6 +489,16 @@ whole workspace. You can **reset** a link's counters if you want a clean start.
 Google Analytics, GTM, LinkedIn, X, Pinterest, TikTok, Snapchat, Quora) so visits
 and conversions also flow to your own marketing tools.
 
+**Exporting your data.** You can export analytics (link clicks, your follower /
+subscriber lists, and slide stats) and the creator-stats dashboard to **CSV** —
+CSV export is a plan feature, so on lower tiers the export button may be locked
+until you upgrade.
+
+**How far back you can see.** Each plan keeps analytics history for a set length
+of time (higher tiers keep more; some keep it indefinitely). Older click and
+visit detail beyond your plan's window is periodically pruned, but your running
+totals stay.
+
 ---
 
 ## 15. Audience & engagement
@@ -516,6 +551,10 @@ increase conversions.
 **How to use it.** Create a Buzz campaign, pick a notification **type** (there are
 7, e.g. recent activity, live visitor count, review popups), customize the design,
 set targeting rules, and attach it to a biolink.
+
+**Good to know.** Plans can include a monthly cap on how many Buzz views are
+served. If you reach the cap, your widgets pause for the rest of the month and
+resume automatically next period — upgrade for a higher (or unlimited) allowance.
 
 ---
 
@@ -641,6 +680,11 @@ Other AI helpers appear inside specific tools — e.g. **resume tailoring** and
 [**Scan a card or brochure**](#scan-a-card-or-brochure) tool, which extracts
 contact details, socials, and a logo from a photo or PDF.
 
+**Plan-based availability.** Which AI tools you can use, and how many Knowledge
+Bases, AI Agents, and Chat Widgets you can create, depends on your plan — higher
+tiers unlock more of these (and higher counts). If a tool is greyed out, your
+current plan doesn't include it yet.
+
 ---
 
 ## 21. Tools
@@ -659,6 +703,12 @@ Find it under **Forms**.
    new submissions.
 4. Save, then share the public URL, grab the **embed** code, or add the form to a
    biolink. View entries under **Submissions**.
+
+**Charging for submissions.** Forms can collect payment when someone submits. Set
+a **fixed price**, or turn on **per-field pricing** so the total changes with what
+the submitter picks (each priced option adds to the total). There's also a
+dedicated **Pricing / Package** field for offering selectable packages. The
+running total is shown to the submitter before they pay.
 
 ### Contact cards (vCard)
 
@@ -766,7 +816,10 @@ link with PDF download. Find it under **Resume / Portfolio**.
 
 - **Events** — create **Event** links; visitors add them to their calendar and
   RSVP, and you can view/export the guest list.
-- **Calendar Sync** — connect Google/Microsoft calendars to manage availability.
+- **Calendar link & sync** — publish a **Calendar** link (a followable calendar of
+  your events). On supported plans (the `calendar_sync` feature), your events stay
+  in **two-way sync** with your connected calendar (Google; Outlook where
+  supported); connect or disconnect calendar accounts under **Calendar**.
 
 ### Projects & Task Boards
 
@@ -900,6 +953,10 @@ code each time you sign in.
 Phone/WhatsApp login is an optional method that an administrator must enable;
 email sign-in is always available.
 
+**Why can't I create a new account?**
+An administrator may have temporarily paused new sign-ups. Existing accounts can
+still sign in normally; check back later or contact the site's administrator.
+
 **How do I change my handle?**
 Open **Profile**, edit the handle field, and save. Your handle is your public
 address (`@yourname`) and is used in the Creators directory.
@@ -924,6 +981,11 @@ or need a pro feature (custom domain, custom CSS/JS, custom branding, etc.).
 **Do my new plan features apply right away?**
 Yes — once payment succeeds, higher limits and unlocked features apply
 immediately.
+
+**What are add-ons?**
+Add-ons are optional extras you can attach to your subscription to raise a
+specific limit (and you can buy more than one). They stack on top of your plan, so
+your effective allowance is "plan + add-ons" across the app.
 
 ### Links
 
@@ -952,6 +1014,16 @@ backup automatically.
 
 **Can I see where my link has been shared?**
 Yes — the **Backlinks** radar tracks where your links appear across the web.
+
+**Can I embed my link on another website?**
+Yes — every link offers an embed snippet. Page-style links show as an iframe;
+quick links (short, file, event, contact) show a tap-through card. Private links
+show a "view on site" prompt instead.
+
+**Can I create many biolink pages at once?**
+Yes — use **bulk create**: upload or paste a spreadsheet and Sayzio generates a
+page per row, filling in `{{placeholders}}` from your columns. The batch counts
+against both your total-links and biolink-pages limits.
 
 ### Biolink editor
 
@@ -1024,6 +1096,15 @@ Yes — add tracking **pixels** (Meta, Google, TikTok, etc.) under **Pixel**.
 **Can I reset a link's numbers?**
 Yes — use **reset analytics** on the link.
 
+**How far back can I see my stats?**
+It depends on your plan — higher tiers keep analytics history longer (some keep it
+indefinitely). Detail older than your plan's window is periodically pruned, but
+your running totals stay.
+
+**Why can't I export my data to CSV?**
+CSV export (clicks, follower/subscriber lists, slide stats, creator-stats) is a
+plan feature. If the export button is locked, upgrade to a plan that includes it.
+
 ### Audience, reviews & referrals
 
 **How do people subscribe to me?**
@@ -1076,6 +1157,11 @@ must pass an age gate.
 21 — including text, email, phone, dropdown, rating, scale, signature, file
 upload, and section/group fields. You can get notified by email, SMS, or webhook.
 
+**Can my form collect payment?**
+Yes — set a fixed price, or use **per-field pricing** so the total changes with
+what the submitter selects (there's also a **Pricing / Package** field for
+selectable packages). The submitter sees the running total before paying.
+
 **Can I sync my phone contacts?**
 Yes — connect **Google Contacts** for two-way sync, then use the **Dialer** (T9
 search, speed dial, recents). Calls/emails use your device's native apps.
@@ -1106,6 +1192,11 @@ You do (the owner), from your AI credits — visitors don't pay.
 **What is the Account Assistant?**
 An AI assistant that reviews your account and gives plain-language advice on how
 to improve your links and pages.
+
+**Which AI features come with my plan?**
+It varies by plan — your plan controls which AI tools are available and how many
+Knowledge Bases, AI Agents, and Chat Widgets you can create. If something is
+greyed out, your current plan doesn't include it yet; upgrade to unlock more.
 
 **Why is "Scan a card or brochure" disabled?**
 You'll see "AI scanning is currently disabled by your administrator" when AI

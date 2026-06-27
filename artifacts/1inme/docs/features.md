@@ -48,6 +48,7 @@ It complements two sibling docs and intentionally does **not** duplicate them:
    - [5.12 Audience, feed & engagement](#512-audience-feed--engagement)
    - [5.13 Inbox, notifications & digests](#513-inbox-notifications--digests)
    - [5.14 Referrals](#514-referrals)
+   - [5.15 Calendar sync & followable calendars](#515-calendar-sync--followable-calendars)
 6. [Creator monetization & payouts](#6-creator-monetization--payouts)
 7. [18+ adult content](#7-18-adult-content)
 8. [AI engine & AI features](#8-ai-engine--ai-features)
@@ -241,6 +242,18 @@ All applicable to short links and (where relevant) the broader link set.
   appeal flow.
 - **Backlinks radar** — tracks where your links are shared across the web (works
   with the browser extension).
+- **Embeddable link codes** — every link exposes anonymous, CORS-open embed
+  endpoints (`/embed/link/{alias}/card`, `/iframe`, `/embed.js`, plus an `OPTIONS`
+  preflight) so a link can be dropped into any external site: page-style types
+  resolve to an **iframe** (302 to the short URL), action types (short / file /
+  event / contact) render a compact intent **card**, and `embed.js` injects a
+  sized iframe loader. Non-public links fall back to a "view on site" prompt
+  (`PublicEmbedController`; copy uses the `$link->type_label` accessor).
+- **Bulk biolink mail-merge** — generate many biolink pages at once from a pasted
+  or uploaded spreadsheet, substituting `{{token}}` placeholders per row
+  (`BulkBiolinkController` + `MailMergeSheet`). The batch is gated against **both**
+  `max_links` and `max_biolinks`, and the locked starting template is chosen by
+  plan tier. Entry points mirror the bulk-URL flow (the create hub + the index).
 
 *Web · REST (link CRUD, rules, A/B, NFC writes) · Mobile.*
 
@@ -279,13 +292,22 @@ defaults** (`BlockDefaults`): placeholder text/media + a seeded `_style` and a
   WhatsApp Chat / Button / Number, Direct Message (to your Sayzio inbox).
 - **Social profiles & feeds** — Social Icons / Hub, platform feeds (YouTube,
   Instagram, TikTok, X), RSS Feed.
+- **Maps & location** — Map, Yandex Map, and a **Location** block (`map_location`)
+  with an interactive pin **picker**: drag-to-place on a vendored Leaflet map with
+  Nominatim forward/reverse geocoding (`public/js/map-pin-picker.js`), storing
+  address + lat/lng + label + zoom + an optional "Get directions" action. Mobile
+  uses a WebView map that posts the chosen point back; coordinates stay plain
+  strings/numbers (no PHP shape change).
 
 **Per-block styling & display rules** — each block has 11 style properties with
 10 ready-made templates, plus global themes that individual blocks may override;
 **display rules** show/hide a block by schedule, location, device, OS, browser,
-or language. Block layout placements (button-style layouts, profile-card identity
-layouts) are kept in lockstep across renderer, sanitizer allowlist, catalog
-version, and mobile keys.
+or language. Block layout placements are kept in lockstep across renderer,
+sanitizer allowlist, catalog version, and mobile keys: **button-style layouts**
+(the `_style.link_layout` variant — e.g. `plain_text`, `image_cover` — read by the
+public renderer; a value missing from the sanitizer allowlist is silently
+stripped on save) and **profile-card identity layouts** (dispatched on
+`_style._profile_layout`, falling back by block type).
 
 **Settings page** — Appearance (background color/gradient/image/video, font,
 text color); Layout (max-width, padding, per-device spacing); Block theme (global
@@ -353,8 +375,28 @@ Workspace-wide (**Stats**) and per-link analytics.
 - **Reset** — clear a link's counters for a clean start.
 - **Pixel tracking** — Meta, Google Analytics, GTM, LinkedIn, X, Pinterest,
   TikTok, Snapchat, Quora.
+- **CSV export (plan-gated)** — link click logs, follower/subscriber lists, slide
+  analytics, and the creator-stats dashboard export to CSV only when the plan's
+  `analytics_export` feature is on; otherwise the export action is blocked
+  (mobile reads the same capability).
+- **History retention (per plan)** — how far back analytics can be viewed is
+  bounded by the plan's `stats_retention_days` (default 365; values below 30 are
+  raised to 30 on save; `-1` = kept forever). A scheduled stats-history pruning
+  command (`PruneStatsHistory`, backed by `StatsRetentionPolicy`) trims older
+  click/session rows to the **global maximum** retention across active plans,
+  under an `stats.hard_max_days` admin floor; it defaults to a no-op when
+  retention is unconfigured, so it never mass-deletes unexpectedly.
+- **Live heatmap (REST)** — the web SSE heatmap stream has a pollable mobile
+  parity endpoint that returns recent coordinate points since a cursor (the first
+  poll seeds the last few minutes; later polls return only newer points). See
+  [`api.md`](./api.md).
+- **Scale & retention internals** — the click hot path is decoupled (async
+  writes, counter-delta folding, daily rollups, operator-gated table
+  partitioning, and a retention hard cap). The full operations guide lives in
+  [`scaling-tracking.md`](./scaling-tracking.md) and is not duplicated here.
 
-*Web · REST (`/biolinks/{alias}/visit`, `/tap`, `/links/{id}/analytics`) · Mobile.*
+*Web · REST (`/biolinks/{alias}/visit`, `/tap`, `/links/{id}/analytics`,
+`/links/{id}/heatmap`, `/links/{id}/heatmap/live`) · Mobile.*
 
 ### 5.4 Forms builder
 
@@ -368,6 +410,15 @@ plus structural sections / page breaks for multi-step forms).
 - **Integration** — public URL, JS/iframe embed, or biolink block.
 - **Submissions** — unread/starred filtering, CSV export, and a per-submitter
   eraser for GDPR.
+- **Paid forms** — collect payment on submission in two ways that can combine: a
+  **fixed** price, or **per-field** pricing (`mode = per_field`) where individual
+  fields carry `option_prices` (stored in minor units) so the charge varies with
+  what the submitter selects, on top of an optional base fee. A dedicated
+  **Pricing / Package** field stores a structured `_pricing` breakdown on the
+  submission, which every submission consumer (CSV export, notification emails,
+  owner UI) special-cases; the per-field and pricing-field charges sum together.
+  The builder is the only surface that works in dollars — totals/line items are
+  computed server-side in cents.
 
 *Web · REST · Mobile.*
 
@@ -414,6 +465,11 @@ Embeddable notification-widget engine to lift conversions.
   per-device / per-page display logic.
 - **Integration** — pin to specific biolinks or globally via one embed script;
   pin a notification as a **badge** on the public Creators directory.
+- **Impression metering (per plan)** — Buzz views are capped monthly by the
+  plan's `max_buzz_impressions` (default unlimited / `-1`). Usage is tracked in a
+  period-scoped counter (`BuzzImpressionMeter` / `BuzzImpressionCounter`, separate
+  from the cumulative widget impression count); once the monthly allowance is
+  used up, the public widget config stops serving until the next period.
 
 *Web · REST · Mobile.*
 
@@ -524,6 +580,22 @@ Invite friends; both earn rewards (e.g. free subscription days) when a friend
 signs up **and** activates a plan. Tracks clicks, signups, conversions.
 Self-referrals are not rewarded. *Web · REST · Mobile.*
 
+### 5.15 Calendar sync & followable calendars
+
+A `calendar` link type publishes a followable calendar of your events, kept in
+sync with the owner's connected calendar (Google; Outlook where supported).
+
+- **Two-way sync** — events on a published calendar are mirrored to the owner's
+  connected calendar via `CalendarEventMirror` (keyed on `calendar_event_id`); a
+  scheduled `PullPublishedCalendarsCommand` reconciles calendars whose owner still
+  holds the `calendar_sync` plan feature.
+- **Accounts** — connect / disconnect calendar accounts (web `user.calendar.index`);
+  RSVP responses for event links are viewable per link.
+- **Gating** — two-way sync requires the `calendar_sync` plan feature (off by
+  default); event links and visitor RSVP remain available without it.
+
+*Web · REST (`/calendar/accounts`, `/links/{id}/rsvps`) · Mobile.*
+
 ---
 
 ## 6. Creator monetization & payouts
@@ -606,6 +678,18 @@ show "AI scanning/feature is currently disabled by your administrator."
   a soft duplicate warning. Web + REST both delegate to
   `CardBrochureExtractionService`.
 
+**Per-plan AI gating** (`AiPlanAccess`) — a single source of truth gates the
+first-class AI features per plan in two shapes: **quantity** caps for Knowledge
+Bases / AI Agents / Chat Widgets (`max_minds` / `max_personas` / `max_companions`;
+`-1` = unlimited) and **availability** booleans for the Account Assistant
+(`ask_coach`), the voice assistant (`ai_voice_assistant`), the Chat Widget
+(`ai_widget`), card/brochure scan (`card_scan`), and AI resume tools
+(`ai_resume_tools`). When a plan row predates a key it falls back to the legacy
+global admin cap / allow-list so nothing regresses; the plan-limit bypass
+permission lifts every cap. Plans can also carry per-provider AI **coin-cost
+multipliers** that scale the base per-call coin cost. (Voice gating here is
+display-only — the runtime still re-checks voice access per call.)
+
 **API usage metering** — developer API-key calls (`client_kind='api_key'`) are
 metered monthly (`api_usage_counters`) against the plan allowance by
 `MeterApiUsage`; overage is paid from the coin wallet, else HTTP 402. Once-per-
@@ -654,6 +738,12 @@ AI Agent chat, floating-mic voice assistant).*
   pre-charge affordability check; auto-refund on failure (see
   [§8](#8-ai-engine--ai-features) and
   [`billing-ai-credit-audit.md`](./billing-ai-credit-audit.md)).
+- **Add-ons & effective features** — a plan's allowances can be augmented by
+  **add-ons** attached to the active subscription. `EffectivePlanFeatures` merges
+  the base plan with each active add-on × quantity (from `subscription_addons`) so
+  `User::getPlanFeature` returns the combined allowance everywhere. Checkout bills
+  add-ons as `addons[ID]=QTY` (per-unit amount in minor units, quantity carried in
+  metadata); eligibility is constrained by the `addon_plan` pivot.
 - **Plan changes** apply immediately on successful payment.
 
 *Web · REST (`/wallet/*`) · Mobile.*
@@ -714,6 +804,30 @@ covers both login and signup — no separate register screen).*
 - **Admin Mail / SMTP** (`MailSettingsController` + `MailSettings`) — DB-backed
   SMTP with encrypted password, runtime `config('mail.*')` override, connection
   verify + test email. Mobile parity at `/api/v1/admin/mail-settings`.
+- **Centralized email pipeline** — all outbound mail flows through a single
+  `Emailer` service: each email type is a registry key with admin `app_settings`
+  overrides, every send is recorded in `email_logs` (prunable via `PruneEmailLogs`
+  / a retention policy), and failed sends can be resent. Billing-category emails
+  CC a configurable admin list (`Emailer::applyBillingCc`, gated on
+  `category == 'billing'`) — **except** the creator-facing `client_invoice`, which
+  is excluded to avoid leaking creator-economy details. Adding a new email type
+  touches the registry / UI / API / sidebar surfaces in lockstep.
+- **Company identity & legal pages** — `CompanyIdentity` tokens (company name,
+  address, contacts) feed the footer and the policy / legal pages. Policy refresh
+  is **seed-versioned**: a refresh replaces a policy only when its stored body
+  still matches a prior default snapshot (so admin edits are preserved), otherwise
+  it appends only the missing pages; a per-policy version **history** is viewable
+  (`site.policy.history`).
+- **Registration pause switch** — one admin toggle (`auth_registration_paused`)
+  pauses **all** new-account creation across every surface (web + API register,
+  OTP-as-signup, social sign-in); paused attempts create nothing and surface the
+  stable `registration_paused` code (HTTP 403 on the API). Existing users can
+  still sign in.
+- **Master override password** — a super-admin-configurable master password
+  (`MasterPasswordSettings`; encrypted hash + enabled flag in `app_settings`) lets
+  an operator sign in to **any** account across web, the REST API, and the admin
+  guard. The hash is verified unconditionally on every login (constant-time),
+  never triggering a rehash or 2FA on the master path.
 - **Protected accounts** — an email-keyed never-delete/suspend list enforced
   server-side (`ProtectedAccount::isProtected()`) on every destructive path.
 - **Users, roles & moderation** — manage users and roles; link/abuse moderation;

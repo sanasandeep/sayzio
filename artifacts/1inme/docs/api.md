@@ -75,6 +75,11 @@ Used mainly by the mobile app for passwordless and native sign-in.
 | POST   | `/auth/social`        | —    | Exchange a native Apple/Google identity token for a Sayzio token. Throttle: 20/min. |
 | POST   | `/auth/demo`          | —    | Demo login (non-prod). Mirrors the web "Try as Demo" button. Throttle: 20/min. |
 
+> **Registration pause.** When an administrator pauses new sign-ups, every
+> account-creation path — `/auth/register`, `/auth/otp/register`, an OTP verify of
+> an unknown account, and `/auth/social` for a new user — returns **403** with code
+> `registration_paused`. Sign-in for existing accounts is unaffected.
+
 ## Sessions & security
 
 | Method | Path                          | Auth | Description                                                     |
@@ -134,6 +139,8 @@ Used mainly by the mobile app for passwordless and native sign-in.
 | DELETE | `/links/{id}`    | yes  | Delete link.                                                                         |
 | GET    | `/links/{id}/analytics` | yes | Click/visit analytics for a link.                                            |
 | GET    | `/links/{id}/analytics/blocks/{blockId}` | yes | Per-block analytics for a biolink.                          |
+| GET    | `/links/{id}/heatmap`      | yes | Aggregated click-origin coordinate points for the heatmap window (web parity). |
+| GET    | `/links/{id}/heatmap/live` | yes | Pollable "recent points since a cursor" feed: the first poll seeds the last few minutes, later polls return only newer points. |
 | POST   | `/links/{id}/reset` | yes | Reset a link's analytics counters.                                              |
 | GET    | `/links/{id}/rate-limit`   | yes | Per-biolink visitor rate-limit override (read).                          |
 | PATCH  | `/links/{id}/rate-limit`   | yes | Per-biolink visitor rate-limit override (update).                        |
@@ -533,6 +540,11 @@ Mobile can list + create-on-the-spot from the block editor; richer editing lives
 curl $BASE/forms -H "Authorization: Bearer $TOKEN" -H 'Accept: application/json'
 ```
 
+Forms can charge on submission — a **fixed** price and/or **per-field** pricing
+(`mode = per_field`), plus a dedicated **Pricing/Package** field. Totals and line
+items are computed and charged **server-side** in minor units, so a client must
+not trust a client-supplied total.
+
 ## Contacts
 
 | Method | Path                          | Auth | Description                                              |
@@ -885,6 +897,10 @@ DM threads on owned biolinks.
 | DELETE | `/calendar/accounts/{id}`         | yes  | Disconnect a calendar account.      |
 | GET    | `/links/{id}/rsvps`               | yes  | RSVP responses for an event link.   |
 
+Two-way calendar sync (mirroring a published `calendar` link's events to the
+owner's connected calendar) requires the `calendar_sync` plan feature; event
+links and visitor RSVP work without it.
+
 ## Verification
 
 | Method | Path                | Auth | Description                       |
@@ -976,6 +992,7 @@ Endpoints the [browser extension](../../1inme-extension/README.md) relies on (al
 | 403    | `follow_required`     | Biolink visibility = `followers` and viewer is not following. |
 | 403    | `subscribe_required`  | Biolink visibility = `subscribers` and viewer is not subscribed. |
 | 403    | `forbidden`           | General authorization failure.                          |
+| 403    | `registration_paused` | New-account creation is paused by an administrator (any register / OTP-register / social-new path). |
 | 404    | `not_found`           | Unknown route or resource.                              |
 | 405    | `method_not_allowed`  | Wrong HTTP method.                                      |
 | 409    | (varies)              | Optimistic-concurrency conflict (e.g. thank-templates push). |
