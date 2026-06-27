@@ -12,6 +12,7 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\WorkspaceContext;
+use App\Modules\User\Support\CalendarIcs;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
@@ -483,5 +484,121 @@ class FollowableCalendarTest extends TestCase
     public function test_ics_feed_404s_for_a_missing_calendar(): void
     {
         $this->get(route('public.calendars.ics', 999999))->assertStatus(404);
+    }
+
+    // ── ICS date/time correctness ──────────────────────────────────────────
+
+    public function test_ics_timed_event_uses_event_timezone_local_wall_clock(): void
+    {
+        $owner = $this->makeUser();
+        $cal   = $this->makeCalendar($owner, ['timezone' => 'America/New_York']);
+
+        // Stored in UTC; in July New York is UTC-4, so 19:00 UTC == 15:00 local.
+        CalendarEvent::create([
+            'calendar_id' => $cal->id,
+            'user_id'     => $owner->id,
+            'title'       => 'Evening Show',
+            'start_at'    => Carbon::parse('2026-07-01 19:00:00', 'UTC'),
+            'end_at'      => Carbon::parse('2026-07-01 21:30:00', 'UTC'),
+            'timezone'    => 'America/New_York',
+            'all_day'     => false,
+        ]);
+
+        $body = $this->get(route('public.calendars.ics', $cal->id))->assertOk()->getContent();
+
+        // Local wall-clock in the event timezone, tagged with the TZID — NOT UTC.
+        $this->assertStringContainsString('DTSTART;TZID=America/New_York:20260701T150000', $body);
+        $this->assertStringContainsString('DTEND;TZID=America/New_York:20260701T173000', $body);
+        // It must not be emitted as a bare UTC instant.
+        $this->assertStringNotContainsString('DTSTART:20260701T190000Z', $body);
+    }
+
+    public function test_ics_all_day_event_uses_value_date_with_exclusive_dtend(): void
+    {
+        $owner = $this->makeUser();
+        $cal   = $this->makeCalendar($owner);
+
+        CalendarEvent::create([
+            'calendar_id' => $cal->id,
+            'user_id'     => $owner->id,
+            'title'       => 'Conference Day',
+            'start_at'    => Carbon::parse('2026-07-01 00:00:00', 'UTC'),
+            'timezone'    => 'UTC',
+            'all_day'     => true,
+        ]);
+
+        $body = $this->get(route('public.calendars.ics', $cal->id))->assertOk()->getContent();
+
+        // All-day events are VALUE=DATE and DTEND is exclusive (start + 1 day).
+        $this->assertStringContainsString('DTSTART;VALUE=DATE:20260701', $body);
+        $this->assertStringContainsString('DTEND;VALUE=DATE:20260702', $body);
+        // No time component for an all-day event.
+        $this->assertStringNotContainsString('DTSTART;TZID', $body);
+    }
+
+    public function test_ics_from_to_range_inclusively_filters_events(): void
+    {
+        $owner = $this->makeUser();
+        $cal   = $this->makeCalendar($owner);
+
+        $make = function (string $title, string $startUtc) use ($cal, $owner) {
+            CalendarEvent::create([
+                'calendar_id' => $cal->id,
+                'user_id'     => $owner->id,
+                'title'       => $title,
+                'start_at'    => Carbon::parse($startUtc, 'UTC'),
+                'timezone'    => 'UTC',
+            ]);
+        };
+
+        $make('Before Window', '2026-07-01 12:00:00');   // before ?from — excluded
+        $make('On From Boundary', '2026-07-05 00:30:00'); // same day as ?from — included
+        $make('Inside Window', '2026-07-07 18:00:00');    // inside — included
+        $make('On To Boundary', '2026-07-10 23:00:00');   // same day as ?to — included
+        $make('After Window', '2026-07-12 09:00:00');     // after ?to — excluded
+
+        $body = $this->get(route('public.calendars.ics', $cal->id) . '?from=2026-07-05&to=2026-07-10')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('SUMMARY:On From Boundary', $body);
+        $this->assertStringContainsString('SUMMARY:Inside Window', $body);
+        $this->assertStringContainsString('SUMMARY:On To Boundary', $body);
+
+        $this->assertStringNotContainsString('SUMMARY:Before Window', $body);
+        $this->assertStringNotContainsString('SUMMARY:After Window', $body);
+    }
+
+    public function test_calendar_ics_build_respects_explicit_from_to_bounds(): void
+    {
+        $owner = $this->makeUser();
+        $cal   = $this->makeCalendar($owner);
+
+        CalendarEvent::create([
+            'calendar_id' => $cal->id,
+            'user_id'     => $owner->id,
+            'title'       => 'Out Of Range',
+            'start_at'    => Carbon::parse('2026-08-01 10:00:00', 'UTC'),
+            'timezone'    => 'UTC',
+        ]);
+        CalendarEvent::create([
+            'calendar_id' => $cal->id,
+            'user_id'     => $owner->id,
+            'title'       => 'In Range',
+            'start_at'    => Carbon::parse('2026-08-15 10:00:00', 'UTC'),
+            'timezone'    => 'UTC',
+        ]);
+
+        // Reload with the events relation so build() iterates the full collection.
+        $cal = Calendar::with('events')->find($cal->id);
+
+        $ics = CalendarIcs::build(
+            $cal,
+            Carbon::parse('2026-08-10 00:00:00', 'UTC'),
+            Carbon::parse('2026-08-20 23:59:59', 'UTC'),
+        );
+
+        $this->assertStringContainsString('SUMMARY:In Range', $ics);
+        $this->assertStringNotContainsString('SUMMARY:Out Of Range', $ics);
     }
 }
