@@ -211,6 +211,17 @@
         .aih-stage { overflow: hidden; }
         .aih-page { display: flex; flex-direction: column; gap: 9px; }
 
+        /* Keep the inner preview "device" dark in BOTH modes. The stage uses the
+           `bg-[#0a0a14]` utility, which the homepage's generic light-mode rule
+           flips to white — but every child below (.aih-name/.aih-link-label/
+           .aih-contact/.aih-soc/…) uses hardcoded white text + icons, so the
+           flipped white surface left them white-on-white. A dark phone preview
+           on a light page keeps all that content legible with no per-child work. */
+        html.light-mode .aih-stage {
+            background-color: #0a0a14 !important;
+            border-color: rgba(255,255,255,.05) !important;
+        }
+
         .aih-block {
             opacity: 1;
             transform: none;
