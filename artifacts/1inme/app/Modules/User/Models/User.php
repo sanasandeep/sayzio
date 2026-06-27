@@ -606,6 +606,11 @@ class User extends Authenticatable
         return $this->hasMany(QrCode::class);
     }
 
+    public function brandKits()
+    {
+        return $this->hasMany(\App\Modules\User\Models\BrandKit::class);
+    }
+
     public function splashPages()
     {
         return $this->hasMany(SplashPage::class);

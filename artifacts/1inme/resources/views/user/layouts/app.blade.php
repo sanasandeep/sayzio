@@ -905,6 +905,13 @@
                             <span class="nav-label">Chat Widgets</span>
                             <span class="sidebar-tooltip">Chat Widgets</span>
                         </a>
+                        <a href="{{ route('user.brand-kits.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.brand-kits.*') ? 'active' : '' }}"
+                           style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-palette"></i></div>
+                            <span class="nav-label">Brand Kit</span>
+                            <span class="sidebar-tooltip">Brand Kit</span>
+                        </a>
                         <a href="{{ route('user.ai.coach.show') }}"
                            class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"
                            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
@@ -1403,6 +1410,7 @@
                                 <a href="{{ route('user.ai-personas.index') }}" class="sidebar-link {{ request()->routeIs('user.ai-personas.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div> <span>AI Agents</span></a>
                                 <a href="{{ route('user.ai.companion.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.companion.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comments"></i></div> <span>AI Chat</span></a>
                                 <a href="{{ route('user.ai-companions.index') }}" class="sidebar-link {{ request()->routeIs('user.ai-companions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div> <span>Chat Widgets</span></a>
+                                <a href="{{ route('user.brand-kits.index') }}" class="sidebar-link {{ request()->routeIs('user.brand-kits.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-palette"></i></div> <span>Brand Kit</span></a>
                                 <a href="{{ route('user.ai.coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div> <span>Growth Coach</span></a>
                                 @if(auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
                                 <a href="{{ route('user.ai.ask-coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.ask-coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div> <span>Account Assistant</span></a>

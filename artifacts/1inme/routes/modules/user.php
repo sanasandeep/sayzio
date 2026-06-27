@@ -786,6 +786,16 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/ai-builder/estimate', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'estimate'])->middleware(['workspace.can:links.edit', 'throttle:30,1'])->name('links.ai-builder.estimate');
         Route::post('links/{link}/ai-builder/generate', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'generate'])->middleware(['workspace.can:links.edit', 'throttle:10,1'])->name('links.ai-builder.generate');
 
+        // AI Brand Kit — persistent per-creator brand identity (palette, fonts,
+        // voice, taglines, bio, recommended block theme). Plan-gated via the
+        // max_brand_kits quantity cap; can be applied to a biolink or QR code.
+        Route::get   ('brand-kits',                              [\App\Modules\User\Controllers\BrandKitController::class, 'index'])->middleware('workspace.can:links.view')->name('brand-kits.index');
+        Route::post  ('brand-kits/estimate',                     [\App\Modules\User\Controllers\BrandKitController::class, 'estimate'])->middleware(['workspace.can:links.create', 'throttle:30,1'])->name('brand-kits.estimate');
+        Route::post  ('brand-kits/generate',                     [\App\Modules\User\Controllers\BrandKitController::class, 'generate'])->middleware(['workspace.can:links.create', 'throttle:10,1'])->name('brand-kits.generate');
+        Route::delete('brand-kits/{brandKit}',                   [\App\Modules\User\Controllers\BrandKitController::class, 'destroy'])->middleware('workspace.can:links.create')->name('brand-kits.destroy');
+        Route::post  ('brand-kits/{brandKit}/apply/biolink/{link}', [\App\Modules\User\Controllers\BrandKitController::class, 'applyToBiolink'])->middleware('workspace.can:links.edit')->name('brand-kits.apply.biolink');
+        Route::post  ('brand-kits/{brandKit}/apply/qr/{qrCode}',    [\App\Modules\User\Controllers\BrandKitController::class, 'applyToQr'])->middleware('workspace.can:links.edit')->name('brand-kits.apply.qr');
+
         // Biolink blocks live under a link — same gating as the parent link.
         Route::get('links/{link}/blocks', [BiolinkBlockController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.blocks.editor');
         Route::get('links/{link}/settings', [BiolinkBlockController::class, 'settings'])->middleware('workspace.can:links.view')->name('links.blocks.settings');

@@ -30,6 +30,7 @@ class AiPlanAccess
         'minds'      => 'max_minds',
         'personas'   => 'max_personas',
         'companions' => 'max_companions',
+        'brand_kits' => 'max_brand_kits',
     ];
 
     /**

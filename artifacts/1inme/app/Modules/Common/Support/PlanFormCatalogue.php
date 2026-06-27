@@ -73,6 +73,7 @@ class PlanFormCatalogue
             ['key' => 'min_alias_length',     'label' => 'Min alias length',        'default' => 3,   'module' => 'module_short_links', 'hint' => 'Minimum length for the visitor-facing alias.', 'max' => 191],
             ['key' => 'max_alias_length',     'label' => 'Max alias length',        'default' => 50,  'module' => 'module_short_links', 'hint' => 'Hard cap is 191 characters.', 'max' => 191],
             ['key' => 'max_forms',            'label' => 'Max forms',               'default' => 1,   'module' => 'module_forms',       'hint' => 'Custom form definitions a user can publish.'],
+            ['key' => 'max_brand_kits',       'label' => 'Max AI brand kits',       'default' => 0,   'module' => 'module_branding',    'hint' => 'AI-generated brand kits (palette, fonts, voice, taglines) a user can save. 0 = feature hidden / upgrade prompt; -1 = unlimited.'],
             ['key' => 'max_buzz_items',       'label' => 'Max buzz pop-ups',        'default' => 0,   'module' => null,                 'hint' => 'On-site notification pop-ups.'],
             ['key' => 'max_buzz_impressions', 'label' => 'Max buzz views / mo',     'default' => -1,  'module' => null,                 'hint' => 'Monthly Buzz notification views (impressions). Beyond this, widgets pause until next month. -1 = unlimited.'],
             ['key' => 'max_splash_pages',     'label' => 'Max splash pages',        'default' => 0,   'module' => null,                 'hint' => 'Branded splash / coming-soon pages.'],
