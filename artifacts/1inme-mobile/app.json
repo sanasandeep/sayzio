@@ -27,7 +27,9 @@
         "NSLocationWhenInUseUsageDescription": "Sayzio records the approximate location of NFC tag writes so you can see where each tag was provisioned. This is optional and only used while the app is open.",
         "NFCReaderUsageDescription": "Sayzio writes your short link to NFC tags so a tap opens your profile.",
         "NSFaceIDUsageDescription": "Sayzio uses Face ID so you can unlock the app without re-entering your code.",
-        "NSMicrophoneUsageDescription": "Sayzio records short voice clips when you tap the mic so the in-app assistant can transcribe what you said and reply by voice."
+        "NSMicrophoneUsageDescription": "Sayzio records short voice clips when you tap the mic so the in-app assistant can transcribe what you said and reply by voice.",
+        "NSCalendarsUsageDescription": "Sayzio adds events from calendars you follow to your device calendar so you don't miss them.",
+        "NSCalendarsWriteOnlyAccessUsageDescription": "Sayzio adds events from calendars you follow to your device calendar so you don't miss them."
       }
     },
     "android": {
@@ -41,7 +43,9 @@
         "android.permission.READ_CONTACTS",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.VIBRATE",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR"
       ],
       "intentFilters": [
         {
@@ -109,6 +113,12 @@
         "expo-contacts",
         {
           "contactsPermission": "Sayzio can read your contacts so you can save someone you just met as a contact card."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Sayzio adds events from calendars you follow to your device calendar so you don't miss them."
         }
       ],
       [

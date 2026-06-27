@@ -21,6 +21,7 @@ import {
   type CalendarDetail,
   type CalendarEventItem,
 } from "@/lib/api/calendars";
+import { addEventWithFeedback, subscribeToIcs } from "@/lib/deviceCalendar";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
 
 function formatEventTime(event: CalendarEventItem): string {
@@ -45,6 +46,7 @@ export default function CalendarDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const id = Number(params.id);
   const [showPast, setShowPast] = useState(false);
+  const [addingId, setAddingId] = useState<number | null>(null);
 
   const q = useQuery({
     queryKey: ["calendar", id, showPast],
@@ -83,6 +85,15 @@ export default function CalendarDetailScreen() {
   });
 
   const accent = cal?.accent_color || colors.primary;
+
+  const addToCalendar = async (event: CalendarEventItem) => {
+    setAddingId(event.id);
+    try {
+      await addEventWithFeedback(event);
+    } finally {
+      setAddingId(null);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -152,6 +163,19 @@ export default function CalendarDetailScreen() {
                     }
                   />
                 )}
+
+                {cal.ics_url ? (
+                  <Pressable
+                    onPress={() => subscribeToIcs(cal.ics_url)}
+                    style={[styles.subscribeRow, { borderColor: colors.border, borderRadius: colors.radius }]}
+                  >
+                    <Feather name="rss" size={14} color={colors.mutedForeground} />
+                    <Text style={[styles.subscribeText, { color: colors.mutedForeground }]} numberOfLines={1}>
+                      Subscribe — keep this calendar in sync
+                    </Text>
+                    <Feather name="external-link" size={14} color={colors.mutedForeground} />
+                  </Pressable>
+                ) : null}
               </View>
 
               <Pressable
@@ -209,6 +233,26 @@ export default function CalendarDetailScreen() {
                     ))}
                   </View>
                 ) : null}
+                {item.start_at ? (
+                  <Pressable
+                    onPress={() => addToCalendar(item)}
+                    disabled={addingId === item.id}
+                    hitSlop={6}
+                    style={[
+                      styles.addBtn,
+                      { borderColor: accent, borderRadius: colors.radius },
+                    ]}
+                  >
+                    {addingId === item.id ? (
+                      <ActivityIndicator size="small" color={accent} />
+                    ) : (
+                      <Feather name="calendar" size={14} color={accent} />
+                    )}
+                    <Text style={[styles.addBtnText, { color: accent }]}>
+                      Add to my calendar
+                    </Text>
+                  </Pressable>
+                ) : null}
               </View>
             </View>
           )}
@@ -257,6 +301,15 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   ownerNoteText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, flex: 1 },
+  subscribeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+  },
+  subscribeText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12, flex: 1 },
   pastToggle: {
     flexDirection: "row",
     alignItems: "center",
@@ -276,4 +329,16 @@ const styles = StyleSheet.create({
   tagWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 },
   eventTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   eventTagText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 11 },
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 8,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderWidth: 1,
+  },
+  addBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
 });

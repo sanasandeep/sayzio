@@ -25,6 +25,7 @@ import {
   type MyCalendarFilters,
 } from "@/lib/api/calendars";
 import { getProfile } from "@/lib/api/profile";
+import { addEventWithFeedback } from "@/lib/deviceCalendar";
 import { showUpgradePrompt } from "@/lib/upgradePrompt";
 
 type Tab = "agenda" | "today" | "browse";
@@ -530,6 +531,15 @@ function EventCard({
   onTagPress?: (tag: string) => void;
 }) {
   const accent = event.calendar?.accent_color || colors.primary;
+  const [adding, setAdding] = useState(false);
+  const addToCalendar = async () => {
+    setAdding(true);
+    try {
+      await addEventWithFeedback(event);
+    } finally {
+      setAdding(false);
+    }
+  };
   return (
     <Pressable
       onPress={() =>
@@ -571,6 +581,21 @@ function EventCard({
               </Pressable>
             ))}
           </View>
+        ) : null}
+        {event.start_at ? (
+          <Pressable
+            onPress={addToCalendar}
+            disabled={adding}
+            hitSlop={6}
+            style={[styles.addBtn, { borderColor: accent, borderRadius: colors.radius }]}
+          >
+            {adding ? (
+              <ActivityIndicator size="small" color={accent} />
+            ) : (
+              <Feather name="calendar" size={14} color={accent} />
+            )}
+            <Text style={[styles.addBtnText, { color: accent }]}>Add to my calendar</Text>
+          </Pressable>
         ) : null}
       </View>
     </Pressable>
@@ -679,6 +704,18 @@ const styles = StyleSheet.create({
   tagWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 },
   eventTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   eventTagText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 11 },
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 8,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderWidth: 1,
+  },
+  addBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
   calCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderWidth: 1 },
   calIcon: {
     width: 40,
