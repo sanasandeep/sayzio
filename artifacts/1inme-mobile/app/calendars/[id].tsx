@@ -26,6 +26,7 @@ import {
 import {
   addEventsWithFeedback,
   addEventWithFeedback,
+  removeEventsWithFeedback,
   removeEventWithFeedback,
   subscribeToIcs,
   syncEventsWithFeedback,
@@ -58,6 +59,7 @@ export default function CalendarDetailScreen() {
   const [removingId, setRemovingId] = useState<number | null>(null);
   const [bulkAdding, setBulkAdding] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [bulkRemoving, setBulkRemoving] = useState(false);
 
   const q = useQuery({
     queryKey: ["calendar", id, showPast],
@@ -170,6 +172,34 @@ export default function CalendarDetailScreen() {
     } finally {
       setSyncing(false);
     }
+  };
+
+  const removeAllAdded = async () => {
+    if (syncable.length === 0) return;
+    setBulkRemoving(true);
+    try {
+      await removeEventsWithFeedback(syncable);
+    } finally {
+      setBulkRemoving(false);
+    }
+  };
+
+  const confirmRemoveAll = () => {
+    if (syncable.length === 0) return;
+    Alert.alert(
+      "Remove all from my calendar?",
+      "This deletes every copy of this calendar's events that was added to your device calendar. Your followed calendar stays intact.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove all",
+          style: "destructive",
+          onPress: () => {
+            void removeAllAdded();
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -295,6 +325,23 @@ export default function CalendarDetailScreen() {
                     )}
                     <Text style={[styles.syncBtnText, { color: accent }]}>
                       Refresh added events
+                    </Text>
+                  </Pressable>
+                ) : null}
+
+                {syncable.length > 0 ? (
+                  <Pressable
+                    onPress={confirmRemoveAll}
+                    disabled={bulkRemoving}
+                    style={[styles.syncBtn, { borderColor: colors.destructive, borderRadius: colors.radius }]}
+                  >
+                    {bulkRemoving ? (
+                      <ActivityIndicator size="small" color={colors.destructive} />
+                    ) : (
+                      <Feather name="trash-2" size={14} color={colors.destructive} />
+                    )}
+                    <Text style={[styles.syncBtnText, { color: colors.destructive }]}>
+                      Remove all from my calendar
                     </Text>
                   </Pressable>
                 ) : null}

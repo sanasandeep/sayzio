@@ -41,6 +41,13 @@ export type RemoveEventResult =
   | { status: "web-unsupported" }
   | { status: "error"; message: string };
 
+export type BulkRemoveResult =
+  | { status: "done"; removed: number; notFound: number; failed: number }
+  | { status: "denied" }
+  | { status: "unavailable" }
+  | { status: "web-unsupported" }
+  | { status: "error"; message: string };
+
 /** Stable, per-event identifier shared with the .ics UID and notes marker. */
 function eventUid(event: CalendarEventItem): string {
   return `sayzio-event-${event.id}@1in.me`;
@@ -516,6 +523,59 @@ export async function syncEventsInDeviceCalendar(
   }
 }
 
+/**
+ * Bulk "remove all" — deletes every previously-added device copy of these
+ * events from the device calendar, matched on the hidden Sayzio UID marker.
+ * One batched lookup (generous window so date-shifted copies are still caught
+ * by their marker), then a delete per match. Events with no copy on the device
+ * are reported as not-found; the whole call is a graceful no-op when none are
+ * present.
+ */
+export async function removeEventsFromDeviceCalendar(
+  events: CalendarEventItem[],
+): Promise<BulkRemoveResult> {
+  const datable = events.filter((e) => eventBounds(e) !== null);
+  if (datable.length === 0) {
+    return { status: "error", message: "There are no events to remove." };
+  }
+
+  // The web "add" path only downloads an .ics — there's no device event we own
+  // to delete, so bulk removal can't be performed programmatically.
+  if (Platform.OS === "web") return { status: "web-unsupported" };
+
+  const Calendar = await import("expo-calendar").catch(() => null);
+  if (!Calendar) return { status: "unavailable" };
+
+  try {
+    const { status } = await Calendar.requestCalendarPermissionsAsync();
+    if (status !== "granted") return { status: "denied" };
+
+    // Wide window (a year each side) so a copy whose date moved far from the
+    // original is still matched by its UID marker — mirrors the bulk sync lookup.
+    const present = await collectExistingEventMap(Calendar, datable, 366);
+
+    let removed = 0;
+    let notFound = 0;
+    let failed = 0;
+    for (const event of datable) {
+      const deviceId = present.get(String(event.id));
+      if (!deviceId) {
+        notFound += 1;
+        continue;
+      }
+      try {
+        await Calendar.deleteEventAsync(deviceId);
+        removed += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    return { status: "done", removed, notFound, failed };
+  } catch (e) {
+    return { status: "error", message: (e as Error)?.message ?? "Couldn't remove the events." };
+  }
+}
+
 /** Convenience wrapper that surfaces the right Alert/message for each outcome. */
 export async function addEventWithFeedback(event: CalendarEventItem): Promise<boolean> {
   const result = await addEventToDeviceCalendar(event);
@@ -714,6 +774,51 @@ export async function syncEventsWithFeedback(events: CalendarEventItem[]): Promi
       return false;
     default:
       Alert.alert("Couldn't refresh events", result.message);
+      return false;
+  }
+}
+
+/**
+ * Bulk wrapper: removes every previously-added device copy of these events and
+ * surfaces a single summary Alert.
+ */
+export async function removeEventsWithFeedback(events: CalendarEventItem[]): Promise<boolean> {
+  const result = await removeEventsFromDeviceCalendar(events);
+  switch (result.status) {
+    case "done": {
+      if (result.removed === 0) {
+        Alert.alert(
+          "Nothing to remove",
+          "None of these events were on your device calendar.",
+        );
+        return false;
+      }
+      const parts = [`Removed ${result.removed}`];
+      if (result.notFound) parts.push(`${result.notFound} weren't on your calendar`);
+      if (result.failed) parts.push(`${result.failed} couldn't be removed`);
+      Alert.alert("Calendar updated", `${parts.join(", ")}.`);
+      return true;
+    }
+    case "web-unsupported":
+      Alert.alert(
+        "Not available here",
+        "Removing from the device calendar isn't supported on the web. Delete them from your calendar app instead.",
+      );
+      return false;
+    case "denied":
+      Alert.alert(
+        "Permission needed",
+        "Allow calendar access in Settings to remove events from your device calendar.",
+      );
+      return false;
+    case "unavailable":
+      Alert.alert(
+        "Not available",
+        "Removing from the device calendar isn't available on this build.",
+      );
+      return false;
+    default:
+      Alert.alert("Couldn't remove events", result.message);
       return false;
   }
 }
