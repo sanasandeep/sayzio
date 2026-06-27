@@ -1,6 +1,7 @@
-@php $__iconV = 'v=20260421'; @endphp
-<link rel="icon" type="image/x-icon" href="{{ url('/favicon.ico') }}?{{ $__iconV }}">
-<link rel="icon" type="image/png" sizes="32x32" href="{{ url('/favicon-32x32.png') }}?{{ $__iconV }}">
-<link rel="icon" type="image/png" sizes="16x16" href="{{ url('/favicon-16x16.png') }}?{{ $__iconV }}">
+@php $__iconV = 'v=20260627'; @endphp
+<link rel="icon" type="image/png" sizes="96x96" href="{{ url('/favicon-96x96.png') }}?{{ $__iconV }}">
+<link rel="icon" type="image/svg+xml" href="{{ url('/favicon.svg') }}?{{ $__iconV }}">
+<link rel="shortcut icon" href="{{ url('/favicon.ico') }}?{{ $__iconV }}">
 <link rel="apple-touch-icon" sizes="180x180" href="{{ url('/apple-touch-icon.png') }}?{{ $__iconV }}">
-<link rel="icon" type="image/png" sizes="512x512" href="{{ url('/icon-512.png') }}?{{ $__iconV }}">
+<meta name="apple-mobile-web-app-title" content="SAYZIO">
+<link rel="manifest" href="{{ url('/site.webmanifest') }}?{{ $__iconV }}">
