@@ -26,6 +26,7 @@ import {
 import {
   addEventsWithFeedback,
   addEventWithFeedback,
+  removeEventWithFeedback,
   subscribeToIcs,
   syncEventsWithFeedback,
 } from "@/lib/deviceCalendar";
@@ -54,6 +55,7 @@ export default function CalendarDetailScreen() {
   const id = Number(params.id);
   const [showPast, setShowPast] = useState(false);
   const [addingId, setAddingId] = useState<number | null>(null);
+  const [removingId, setRemovingId] = useState<number | null>(null);
   const [bulkAdding, setBulkAdding] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
@@ -138,6 +140,15 @@ export default function CalendarDetailScreen() {
       await addEventWithFeedback(event);
     } finally {
       setAddingId(null);
+    }
+  };
+
+  const removeFromCalendar = async (event: CalendarEventItem) => {
+    setRemovingId(event.id);
+    try {
+      await removeEventWithFeedback(event);
+    } finally {
+      setRemovingId(null);
     }
   };
 
@@ -358,24 +369,44 @@ export default function CalendarDetailScreen() {
                   </View>
                 ) : null}
                 {item.start_at ? (
-                  <Pressable
-                    onPress={() => addToCalendar(item)}
-                    disabled={addingId === item.id}
-                    hitSlop={6}
-                    style={[
-                      styles.addBtn,
-                      { borderColor: accent, borderRadius: colors.radius },
-                    ]}
-                  >
-                    {addingId === item.id ? (
-                      <ActivityIndicator size="small" color={accent} />
-                    ) : (
-                      <Feather name="calendar" size={14} color={accent} />
-                    )}
-                    <Text style={[styles.addBtnText, { color: accent }]}>
-                      Add to my calendar
-                    </Text>
-                  </Pressable>
+                  <View style={styles.deviceCalRow}>
+                    <Pressable
+                      onPress={() => addToCalendar(item)}
+                      disabled={addingId === item.id || removingId === item.id}
+                      hitSlop={6}
+                      style={[
+                        styles.addBtn,
+                        { borderColor: accent, borderRadius: colors.radius },
+                      ]}
+                    >
+                      {addingId === item.id ? (
+                        <ActivityIndicator size="small" color={accent} />
+                      ) : (
+                        <Feather name="calendar" size={14} color={accent} />
+                      )}
+                      <Text style={[styles.addBtnText, { color: accent }]}>
+                        Add to my calendar
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => removeFromCalendar(item)}
+                      disabled={addingId === item.id || removingId === item.id}
+                      hitSlop={6}
+                      style={[
+                        styles.addBtn,
+                        { borderColor: colors.border, borderRadius: colors.radius },
+                      ]}
+                    >
+                      {removingId === item.id ? (
+                        <ActivityIndicator size="small" color={colors.mutedForeground} />
+                      ) : (
+                        <Feather name="x-circle" size={14} color={colors.mutedForeground} />
+                      )}
+                      <Text style={[styles.addBtnText, { color: colors.mutedForeground }]}>
+                        Remove from my calendar
+                      </Text>
+                    </Pressable>
+                  </View>
                 ) : null}
 
                 {cal.is_owner ? (
@@ -506,12 +537,12 @@ const styles = StyleSheet.create({
   tagWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 },
   eventTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   eventTagText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 11 },
+  deviceCalRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    marginTop: 8,
     alignSelf: "flex-start",
     paddingHorizontal: 12,
     paddingVertical: 7,

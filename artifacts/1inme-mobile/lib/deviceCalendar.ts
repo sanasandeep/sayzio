@@ -33,6 +33,14 @@ export type BulkSyncResult =
   | { status: "web-download"; count: number }
   | { status: "error"; message: string };
 
+export type RemoveEventResult =
+  | { status: "removed" }
+  | { status: "not-found" }
+  | { status: "denied" }
+  | { status: "unavailable" }
+  | { status: "web-unsupported" }
+  | { status: "error"; message: string };
+
 /** Stable, per-event identifier shared with the .ics UID and notes marker. */
 function eventUid(event: CalendarEventItem): string {
   return `sayzio-event-${event.id}@1in.me`;
@@ -352,6 +360,39 @@ export async function updateEventInDeviceCalendar(
 }
 
 /**
+ * Remove the previously-added copy of this event from the device calendar.
+ * Locates it by the same UID marker used for dedupe/update, then deletes it via
+ * expo-calendar. Returns "not-found" when there's nothing to remove (e.g. the
+ * user already deleted it from their calendar app).
+ */
+export async function removeEventFromDeviceCalendar(
+  event: CalendarEventItem,
+): Promise<RemoveEventResult> {
+  const bounds = eventBounds(event);
+  if (!bounds) return { status: "error", message: "This event has no start time." };
+
+  // The web "add" path only downloads an .ics — there's no device event we own
+  // to delete, so removal can't be performed programmatically.
+  if (Platform.OS === "web") return { status: "web-unsupported" };
+
+  const Calendar = await import("expo-calendar").catch(() => null);
+  if (!Calendar) return { status: "unavailable" };
+
+  try {
+    const { status } = await Calendar.requestCalendarPermissionsAsync();
+    if (status !== "granted") return { status: "denied" };
+
+    const existingId = await findExistingDeviceEvent(Calendar, event, bounds);
+    if (!existingId) return { status: "not-found" };
+
+    await Calendar.deleteEventAsync(existingId);
+    return { status: "removed" };
+  } catch (e) {
+    return { status: "error", message: (e as Error)?.message ?? "Couldn't remove the event." };
+  }
+}
+
+/**
  * Bulk "add all" — writes every passed event into the device calendar, skipping
  * any that are already present (matched on the hidden Sayzio UID marker).
  * Reuses the same single-event writer so behaviour stays in lockstep.
@@ -552,6 +593,46 @@ export async function updateEventWithFeedback(event: CalendarEventItem): Promise
       return true;
     default:
       Alert.alert("Couldn't update event", result.message);
+      return false;
+  }
+}
+
+/** Wrapper that removes the device copy of an event and reports the outcome. */
+export async function removeEventWithFeedback(event: CalendarEventItem): Promise<boolean> {
+  const result = await removeEventFromDeviceCalendar(event);
+  switch (result.status) {
+    case "removed":
+      Alert.alert(
+        "Removed from calendar",
+        `"${event.title}" was removed from your device calendar.`,
+      );
+      return true;
+    case "not-found":
+      Alert.alert(
+        "Not on your calendar",
+        `"${event.title}" wasn't found on your device calendar — it may have already been removed.`,
+      );
+      return false;
+    case "web-unsupported":
+      Alert.alert(
+        "Not available here",
+        "Removing from the device calendar isn't supported on the web. Delete it from your calendar app instead.",
+      );
+      return false;
+    case "denied":
+      Alert.alert(
+        "Permission needed",
+        "Allow calendar access in Settings to remove events from your device calendar.",
+      );
+      return false;
+    case "unavailable":
+      Alert.alert(
+        "Not available",
+        "Removing from the device calendar isn't available on this build.",
+      );
+      return false;
+    default:
+      Alert.alert("Couldn't remove event", result.message);
       return false;
   }
 }
