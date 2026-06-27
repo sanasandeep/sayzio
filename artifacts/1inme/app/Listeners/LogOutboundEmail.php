@@ -66,7 +66,7 @@ class LogOutboundEmail
                 'category'  => EmailTemplateRegistry::categoryFor($key),
                 'recipient' => $to,
                 'subject'   => $message->getSubject() ? mb_substr((string) $message->getSubject(), 0, 255) : null,
-                'body'      => $body !== '' ? $body : null,
+                'body'      => $body !== '' ? $body : null, // capped by EmailLog's body mutator
                 'format'    => $format,
                 'status'    => 'sent',
                 'meta'      => $cc ? ['cc' => $cc] : null,

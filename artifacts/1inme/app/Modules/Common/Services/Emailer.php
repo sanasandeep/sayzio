@@ -288,7 +288,7 @@ class Emailer
                 'category'     => EmailTemplateRegistry::categoryFor($key),
                 'recipient'    => $to,
                 'subject'      => $subject !== '' ? mb_substr($subject, 0, 255) : null,
-                'body'         => $body,
+                'body'         => $body, // capped by EmailLog's body mutator
                 'format'       => $format,
                 'status'       => $status,
                 'error'        => $error,

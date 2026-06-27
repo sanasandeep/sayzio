@@ -419,3 +419,16 @@ Schedule::command('stats:prune-history')
     ->dailyAt('04:05')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Daily (off-peak): prune the email_logs activity table so it can't grow
+// forever. Every outbound email writes a row (subject + full rendered body),
+// so across ~70 email types this table bloats the shared RDS and slows the
+// admin Email Log screen. Two tiers (windows configurable via AppSetting):
+// null the heavy stored body of rows older than `email_logs.body_retention_days`
+// (keeps the audit row), then delete whole rows older than
+// `email_logs.retention_days`. A -1 window disables that tier (keep forever);
+// chunked + capped so a single run can never mass-mutate the table.
+Schedule::command('email-logs:prune-history')
+    ->dailyAt('04:25')
+    ->withoutOverlapping()
+    ->onOneServer();
