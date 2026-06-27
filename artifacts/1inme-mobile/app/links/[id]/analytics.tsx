@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -13,6 +13,10 @@ import {
   View,
 } from "react-native";
 
+import {
+  ClickHeatmap,
+  type ClickHeatmapHandle,
+} from "@/components/ClickHeatmap";
 import { StatTile } from "@/components/StatTile";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -21,6 +25,8 @@ import {
   type VisitorType,
   getAnalytics,
   getBlockAnalytics,
+  getHeatmap,
+  getLiveHeatmap,
   getNfcCount,
   getRateLimit,
   updateRateLimit,
@@ -96,6 +102,8 @@ export default function LinkAnalyticsScreen() {
             hint="Excluded from totals"
           />
         </View>
+
+        <HeatmapSection linkId={id} />
 
         {data.blocked_by_day && data.blocked_by_day.length > 0 ? (
           <Section
@@ -613,6 +621,151 @@ function RateLimitSection({
             </Text>
           </Pressable>
         </View>
+      </View>
+    </Section>
+  );
+}
+
+function HeatmapSection({ linkId }: { linkId: number }) {
+  const colors = useColors();
+  const mapRef = useRef<ClickHeatmapHandle>(null);
+  const lastIdRef = useRef(0);
+  const [liveMode, setLiveMode] = useState(false);
+  const [liveMeta, setLiveMeta] = useState<{
+    unique_visitors: number;
+    count: number;
+  } | null>(null);
+
+  const h = useQuery({
+    queryKey: ["heatmap", linkId],
+    queryFn: () => getHeatmap(linkId),
+    enabled: Number.isFinite(linkId),
+  });
+
+  // Live polling: every 10s fetch clicks newer than the last cursor and pulse
+  // them onto the map. Replaces the web SSE stream with a poll loop.
+  useEffect(() => {
+    if (!liveMode) return;
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const live = await getLiveHeatmap(linkId, {
+          lastId: lastIdRef.current || undefined,
+        });
+        if (cancelled) return;
+        if (live.meta.last_id > lastIdRef.current) {
+          lastIdRef.current = live.meta.last_id;
+        }
+        setLiveMeta({
+          unique_visitors: live.meta.unique_visitors,
+          count: live.points.length,
+        });
+        if (live.points.length) {
+          mapRef.current?.addLivePoints(
+            live.points.map((p) => ({ id: p.id, lat: p.lat, lng: p.lng })),
+          );
+        }
+      } catch {
+        // transient network/poll error — keep the interval running
+      }
+    };
+
+    poll();
+    const t = setInterval(poll, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [liveMode, linkId]);
+
+  const points = h.data?.points ?? [];
+  const maxWeight = h.data?.meta.max_weight ?? 1;
+  const totalGeo = h.data?.meta.total_clicks ?? 0;
+
+  return (
+    <Section
+      title="Click map"
+      subtitle="Where your clicks come from over the last 30 days"
+    >
+      <View style={{ gap: 12 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: liveMode ? "#22c55e" : colors.mutedForeground,
+              }}
+            />
+            <Text
+              style={{
+                color: colors.foreground,
+                fontFamily: "SpaceGrotesk_600SemiBold",
+                fontSize: 12,
+              }}
+            >
+              {liveMode
+                ? liveMeta
+                  ? `Live · ${liveMeta.unique_visitors} active`
+                  : "Live · listening…"
+                : "Live mode"}
+            </Text>
+          </View>
+          <Switch value={liveMode} onValueChange={setLiveMode} />
+        </View>
+
+        {h.isLoading ? (
+          <View style={{ paddingVertical: 28, alignItems: "center" }}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : h.error ? (
+          <Text style={{ color: colors.destructive, fontSize: 12 }}>
+            Couldn't load the click map.
+          </Text>
+        ) : points.length === 0 ? (
+          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+            No located clicks yet. Once visitors with a known location tap this
+            link, they'll appear on the map.
+            {liveMode
+              ? " Live pulses will still show new clicks as they arrive."
+              : ""}
+          </Text>
+        ) : (
+          <>
+            <ClickHeatmap
+              ref={mapRef}
+              points={points}
+              maxWeight={maxWeight}
+            />
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontFamily: "SpaceGrotesk_500Medium",
+                fontSize: 11,
+              }}
+            >
+              {totalGeo.toLocaleString()} located click
+              {totalGeo === 1 ? "" : "s"} across {points.length} location
+              {points.length === 1 ? "" : "s"}.
+            </Text>
+          </>
+        )}
+
+        {liveMode && points.length === 0 ? (
+          <View
+            style={{ height: 200, borderRadius: 12, overflow: "hidden" }}
+          >
+            <ClickHeatmap ref={mapRef} points={[]} maxWeight={1} height={200} />
+          </View>
+        ) : null}
       </View>
     </Section>
   );

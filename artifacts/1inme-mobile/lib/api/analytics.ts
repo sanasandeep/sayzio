@@ -92,6 +92,81 @@ export async function getBlockAnalytics(
   return res.data.analytics;
 }
 
+export type HeatmapPoint = {
+  lat: number;
+  lng: number;
+  count: number;
+  city: string | null;
+  country_code: string | null;
+  approximate: boolean;
+};
+
+export type Heatmap = {
+  type: "FeatureCollection";
+  features: unknown[];
+  points: HeatmapPoint[];
+  meta: {
+    max_weight: number;
+    point_count: number;
+    total_clicks: number;
+    shown_clicks: number;
+    period_start: string;
+    period_end: string;
+  };
+};
+
+export type LiveHeatmapPoint = {
+  id: number;
+  lat: number;
+  lng: number;
+  city: string | null;
+  country_code: string | null;
+  channel: string | null;
+  channel_label: string | null;
+  clicked_at: string | null;
+  ts: number | null;
+};
+
+export type LiveHeatmap = {
+  points: LiveHeatmapPoint[];
+  meta: {
+    count: number;
+    unique_visitors: number;
+    window_seconds: number;
+    server_time: string;
+    server_ts: number;
+    last_id: number;
+  };
+};
+
+export async function getHeatmap(
+  linkId: number,
+  rangeDays = 30,
+): Promise<Heatmap> {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - rangeDays);
+  const qs = `?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
+  const res = await apiFetch<{ data: { heatmap: Heatmap } }>(
+    `/links/${linkId}/heatmap${qs}`,
+  );
+  return res.data.heatmap;
+}
+
+export async function getLiveHeatmap(
+  linkId: number,
+  opts?: { since?: number; lastId?: number },
+): Promise<LiveHeatmap> {
+  const params = new URLSearchParams();
+  if (opts?.lastId) params.set("lastId", String(opts.lastId));
+  if (opts?.since) params.set("since", String(opts.since));
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  const res = await apiFetch<{ data: { live: LiveHeatmap } }>(
+    `/links/${linkId}/heatmap/live${qs}`,
+  );
+  return res.data.live;
+}
+
 export async function getNfcCount(linkId: number): Promise<number> {
   const res = await apiFetch<{
     data: { items: unknown[]; meta: { total: number } };

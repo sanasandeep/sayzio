@@ -110,3 +110,4 @@
 - [Editor e2e heartbeat saturation](editor-e2e-heartbeat-saturation.md) — preview-iframe tracking heartbeats starve PHP-CLI workers & flake the editor e2e suite (cascading 30s timeouts); gate beacons behind `window.__E2E__`.
 - [Centralized email pipeline](centralized-email-pipeline.md) — all outbound mail via Emailer (registry keys + app_settings overrides + email_logs + resend); adding a type = lockstep registry/UI/API/sidebar surfaces.
 - [Company identity + legal seed versioning](company-identity-legal-pages.md) — CompanyIdentity tokens feed policies/footer; policy refresh matches ANY prior default snapshot (V1+rich) to replace-untouched vs append-missing.
+- [Heatmap API live parity](heatmap-api-live-parity.md) — web per-link SSE heatmap stream is mirrored on /api/v1 as a pollable lastId-cursor "live" endpoint; first poll seeds last 5min, later polls return id>cursor only.

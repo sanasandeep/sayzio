@@ -465,6 +465,14 @@ Route::prefix('v1')->group(function () {
         Route::put ('/links/{id}/conversational', [\App\Modules\Api\Controllers\ConversationFlowController::class, 'save'])->whereNumber('id');
         Route::get   ('/links/{id}/analytics', [LinkController::class, 'analytics'])->whereNumber('id');
         Route::get   ('/links/{id}/analytics/blocks/{blockId}', [LinkController::class, 'blockAnalytics'])->whereNumber('id')->whereNumber('blockId');
+
+        // Geographic click heatmap (parity with web /links/{link}/heatmap).
+        // `heatmap` returns aggregated coordinate points for the window;
+        // `heatmap/live` is the pollable "recent points since X" feed mobile
+        // uses in place of the web's SSE live stream.
+        Route::get   ('/links/{id}/heatmap',      [LinkController::class, 'heatmap'])->whereNumber('id');
+        Route::get   ('/links/{id}/heatmap/live', [LinkController::class, 'heatmapLive'])->whereNumber('id');
+
         Route::post  ('/links/{id}/reset',     [LinkController::class, 'reset'])->whereNumber('id');
 
         // Per-biolink visitor rate-limit override (used by VisitorRateLimiter).

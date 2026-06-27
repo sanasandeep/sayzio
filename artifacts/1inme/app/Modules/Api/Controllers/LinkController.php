@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\LinkResource;
+use App\Modules\Common\Services\CityLookupService;
 use App\Modules\User\Controllers\LinkController as UserLinkController;
 use App\Modules\User\Models\AbVariant;
 use App\Modules\User\Models\Domain;
@@ -501,6 +502,249 @@ class LinkController extends Controller
         return $this->ok([
             'analytics' => BlockAnalyticsAggregator::aggregate($link, $blockId, $from, $to),
         ]);
+    }
+
+    /**
+     * Per-link geographic click heatmap (mobile + API parity with the web
+     * /links/{link}/heatmap surface). Aggregates `link_clicks` by exact
+     * (lat, lng) over an optional [from, to] window into GeoJSON features +
+     * a flat `points` array the mobile map can render directly. Older clicks
+     * with a known city/country but no stored coordinates are resolved to a
+     * coarse pin via the offline CityLookupService so they still appear.
+     *
+     * Bot/throttled rows are excluded automatically by the LinkClick global
+     * scope applied to `$link->clicks()`. Scoped to the authenticated owner,
+     * mirroring the sibling analytics endpoints (the Sanctum path never binds
+     * a workspace context for the `workspace.can:stats.view` middleware, so
+     * ownership is enforced directly here instead).
+     */
+    public function heatmap(Request $request, int $id)
+    {
+        $link = Link::where('user_id', $request->user()->id)->find($id);
+        if (!$link) return $this->notFound('Link not found');
+
+        $from = $request->date('from') ?? now()->subDays(30);
+        $to   = $request->date('to')   ?? now();
+
+        // True period total (never truncated by the points cap below).
+        $totalGeoClicks = (int) $link->clicks()
+            ->whereBetween('clicked_at', [$from, $to])
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->count();
+
+        // Aggregate by exact (lat, lng) so each point is a real marker.
+        // Capped at the busiest 5000 hotspots to bound response size.
+        $rows = $link->clicks()
+            ->whereBetween('clicked_at', [$from, $to])
+            ->whereNotNull('latitude')->whereNotNull('longitude')
+            ->select('latitude', 'longitude')
+            ->selectRaw('count(*) as click_count')
+            ->selectRaw('max(city) as city')
+            ->selectRaw('max(country_code) as country_code')
+            ->groupBy('latitude', 'longitude')
+            ->orderByDesc('click_count')
+            ->limit(5000)
+            ->get();
+
+        $features = [];
+        $maxWeight = 0;
+        $shownClicks = 0;
+        foreach ($rows as $r) {
+            $count = (int) $r->click_count;
+            $shownClicks += $count;
+            if ($count > $maxWeight) $maxWeight = $count;
+            $features[] = [
+                'type' => 'Feature',
+                'geometry' => [
+                    'type' => 'Point',
+                    'coordinates' => [(float) $r->longitude, (float) $r->latitude],
+                ],
+                'properties' => [
+                    'lat'          => (float) $r->latitude,
+                    'lng'          => (float) $r->longitude,
+                    'count'        => $count,
+                    'weight'       => $count,
+                    'city'         => $r->city,
+                    'country_code' => $r->country_code,
+                    'country'      => $r->country_code,
+                ],
+            ];
+        }
+
+        // Second pass: rows with a known city + country_code but no stored
+        // lat/lng. Group by (city, country_code) and resolve each group to a
+        // coarser pin via the offline CityLookupService so they still show up.
+        $cityRows = $link->clicks()
+            ->whereBetween('clicked_at', [$from, $to])
+            ->where(function ($q) {
+                $q->whereNull('latitude')->orWhereNull('longitude');
+            })
+            ->whereNotNull('city')
+            ->whereNotNull('country_code')
+            ->selectRaw('city, country_code, count(*) as click_count')
+            ->groupBy('city', 'country_code')
+            ->get();
+
+        if ($cityRows->isNotEmpty()) {
+            $lookup = app(CityLookupService::class);
+            $resolvedTotal = 0;
+            foreach ($cityRows as $r) {
+                $coords = $lookup->lookup($r->city, $r->country_code);
+                if (!$coords) continue;
+                $count = (int) $r->click_count;
+                $resolvedTotal += $count;
+                $shownClicks += $count;
+                if ($count > $maxWeight) $maxWeight = $count;
+                $features[] = [
+                    'type' => 'Feature',
+                    'geometry' => [
+                        'type' => 'Point',
+                        'coordinates' => [(float) $coords['longitude'], (float) $coords['latitude']],
+                    ],
+                    'properties' => [
+                        'lat'          => (float) $coords['latitude'],
+                        'lng'          => (float) $coords['longitude'],
+                        'count'        => $count,
+                        'weight'       => $count,
+                        'city'         => $r->city,
+                        'country_code' => $r->country_code,
+                        'country'      => $r->country_code,
+                        'approximate'  => true,
+                    ],
+                ];
+            }
+            $totalGeoClicks += $resolvedTotal;
+            usort($features, fn($a, $b) => $b['properties']['count'] <=> $a['properties']['count']);
+        }
+
+        $points = array_map(fn($f) => [
+            'lat'          => $f['properties']['lat'],
+            'lng'          => $f['properties']['lng'],
+            'count'        => $f['properties']['count'],
+            'city'         => $f['properties']['city'],
+            'country_code' => $f['properties']['country_code'],
+            'approximate'  => $f['properties']['approximate'] ?? false,
+        ], $features);
+
+        return $this->ok([
+            'heatmap' => [
+                'type'     => 'FeatureCollection',
+                'features' => $features,
+                'points'   => $points,
+                'meta'     => [
+                    'max_weight'   => $maxWeight,
+                    'point_count'  => count($features),
+                    'total_clicks' => $totalGeoClicks,
+                    'shown_clicks' => $shownClicks,
+                    'period_start' => $from->toIso8601String(),
+                    'period_end'   => $to->toIso8601String(),
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Pollable "live" heatmap feed — the mobile-friendly counterpart to the
+     * web SSE stream (/links/{link}/heatmap/live/stream). The client polls
+     * this every few seconds passing the `last_id` it last saw; we return
+     * only rows newer than that cursor so pins never duplicate across polls.
+     *
+     *  - First poll (no cursor): seeds the last 5 minutes of clicks so the
+     *    "X live visitors" pill is accurate the moment live mode opens —
+     *    matching the web `heatmapLive()` polling endpoint.
+     *  - Subsequent polls (`lastId` set): returns every click with id greater
+     *    than the cursor, regardless of the 5-minute window, so nothing is
+     *    missed between polls (mirrors the web stream's tail loop).
+     */
+    public function heatmapLive(Request $request, int $id)
+    {
+        $link = Link::where('user_id', $request->user()->id)->find($id);
+        if (!$link) return $this->notFound('Link not found');
+
+        $lastId  = (int) $request->query('lastId', 0);
+        $sinceTs = $request->query('since');
+
+        $cols = ['id', 'latitude', 'longitude', 'city', 'country_code', 'channel', 'clicked_at', 'ip_address'];
+
+        if ($lastId > 0) {
+            // Incremental tail: everything newer than the cursor.
+            $rows = $link->clicks()
+                ->where('id', '>', $lastId)
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->orderBy('id')
+                ->limit(200)
+                ->get($cols);
+        } else {
+            // Initial seed window: last 5 minutes (or an explicit `since` ts).
+            $windowStart = $sinceTs
+                ? \Carbon\Carbon::createFromTimestamp((int) $sinceTs)
+                : now()->subMinutes(5);
+            $rows = $link->clicks()
+                ->where('clicked_at', '>=', $windowStart)
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->orderBy('id')
+                ->limit(200)
+                ->get($cols);
+        }
+
+        $points = $this->formatLivePoints($rows);
+
+        $maxId = $lastId;
+        foreach ($rows as $r) {
+            if ((int) $r->id > $maxId) $maxId = (int) $r->id;
+        }
+
+        // Unique humans seen in the rolling 5-minute window, independent of
+        // the incremental cursor, so the live pill stays stable between polls.
+        $uniqueVisitors = $link->clicks()
+            ->where('clicked_at', '>=', now()->subMinutes(5))
+            ->whereNotNull('ip_address')
+            ->distinct('ip_address')
+            ->count('ip_address');
+
+        return $this->ok([
+            'live' => [
+                'points' => $points,
+                'meta'   => [
+                    'count'           => count($points),
+                    'unique_visitors' => $uniqueVisitors,
+                    'window_seconds'  => 300,
+                    'server_time'     => now()->toIso8601String(),
+                    'server_ts'       => now()->getTimestamp(),
+                    'last_id'         => $maxId,
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Shared point formatter for the live heatmap feed — mirrors the web
+     * LinkController::formatLivePoints() so mobile receives the same shape
+     * the browser live stream emits.
+     */
+    private function formatLivePoints($rows): array
+    {
+        $points = [];
+        foreach ($rows as $r) {
+            $channelKey = $r->channel ?: null;
+            $points[] = [
+                'id'            => (int) $r->id,
+                'lat'           => (float) $r->latitude,
+                'lng'           => (float) $r->longitude,
+                'city'          => $r->city,
+                'country_code'  => $r->country_code,
+                'channel'       => $channelKey,
+                'channel_label' => $channelKey
+                    ? \App\Modules\Common\Services\ChannelClassifier::labelFor($channelKey)
+                    : null,
+                'clicked_at'    => optional($r->clicked_at)->toIso8601String(),
+                'ts'            => optional($r->clicked_at)->getTimestamp(),
+            ];
+        }
+        return $points;
     }
 
     /**
