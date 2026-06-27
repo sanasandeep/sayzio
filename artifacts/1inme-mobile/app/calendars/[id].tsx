@@ -23,7 +23,11 @@ import {
   type CalendarDetail,
   type CalendarEventItem,
 } from "@/lib/api/calendars";
-import { addEventWithFeedback, subscribeToIcs } from "@/lib/deviceCalendar";
+import {
+  addEventsWithFeedback,
+  addEventWithFeedback,
+  subscribeToIcs,
+} from "@/lib/deviceCalendar";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
 
 function formatEventTime(event: CalendarEventItem): string {
@@ -49,6 +53,7 @@ export default function CalendarDetailScreen() {
   const id = Number(params.id);
   const [showPast, setShowPast] = useState(false);
   const [addingId, setAddingId] = useState<number | null>(null);
+  const [bulkAdding, setBulkAdding] = useState(false);
 
   const q = useQuery({
     queryKey: ["calendar", id, showPast],
@@ -114,12 +119,29 @@ export default function CalendarDetailScreen() {
 
   const accent = cal?.accent_color || colors.primary;
 
+  // Events still in the future — the "add all" action only ever syncs upcoming
+  // ones, even when the past toggle is on.
+  const now = Date.now();
+  const upcomingAddable = events.filter(
+    (e) => e.start_at && new Date(e.start_at).getTime() >= now,
+  );
+
   const addToCalendar = async (event: CalendarEventItem) => {
     setAddingId(event.id);
     try {
       await addEventWithFeedback(event);
     } finally {
       setAddingId(null);
+    }
+  };
+
+  const addAllUpcoming = async () => {
+    if (upcomingAddable.length === 0) return;
+    setBulkAdding(true);
+    try {
+      await addEventsWithFeedback(upcomingAddable);
+    } finally {
+      setBulkAdding(false);
     }
   };
 
@@ -214,6 +236,24 @@ export default function CalendarDetailScreen() {
                     }
                   />
                 )}
+
+                {upcomingAddable.length > 0 ? (
+                  <Pressable
+                    onPress={addAllUpcoming}
+                    disabled={bulkAdding}
+                    style={[styles.bulkBtn, { backgroundColor: accent, borderRadius: colors.radius }]}
+                  >
+                    {bulkAdding ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Feather name="calendar" size={15} color="#fff" />
+                    )}
+                    <Text style={styles.bulkBtnText}>
+                      Add all {upcomingAddable.length} upcoming event
+                      {upcomingAddable.length === 1 ? "" : "s"}
+                    </Text>
+                  </Pressable>
+                ) : null}
 
                 {cal.ics_url ? (
                   <Pressable
@@ -395,6 +435,15 @@ const styles = StyleSheet.create({
   subscribeText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12, flex: 1 },
   eventOwnerBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
   eventOwnerBtnText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
+  bulkBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  bulkBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13, color: "#fff" },
   pastToggle: {
     flexDirection: "row",
     alignItems: "center",
