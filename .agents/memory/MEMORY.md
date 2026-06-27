@@ -106,3 +106,4 @@
 - [Brand-color guard](brand-color-guard.md) — `brand-color` validation blocks retired purple (hex/rgb/violet-/purple-) in primary UI; intentional palettes live in the script ALLOWLIST, brand accent is blue `--color-primary-*`.
 - [ml-auto collapses absolute-only blocks](orbital-hero-layout-gotcha.md) — `mx-auto`/`ml-auto` on a grid item kills stretch; a visual whose children are all absolute collapses to ~0 width. Use definite width + flex wrapper.
 - [Editor e2e heartbeat saturation](editor-e2e-heartbeat-saturation.md) — preview-iframe tracking heartbeats starve PHP-CLI workers & flake the editor e2e suite (cascading 30s timeouts); gate beacons behind `window.__E2E__`.
+- [Centralized email pipeline](centralized-email-pipeline.md) — all outbound mail via Emailer (registry keys + app_settings overrides + email_logs + resend); adding a type = lockstep registry/UI/API/sidebar surfaces.

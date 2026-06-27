@@ -129,7 +129,7 @@ class LoginAlertService
         try {
             $url = URL::signedRoute('user.security.logins.revoke', ['token' => $event->revoke_token], now()->addDays(30));
             $label = $this->reasonsLabel($reasons);
-            Mail::to($user->email)->send(new SuspiciousLoginMail($user, $event, $url, $label));
+            \App\Modules\Common\Services\Emailer::sendMailable('security.suspicious_login', $user->email, new SuspiciousLoginMail($user, $event, $url, $label), [], ['user' => $user->id, 'related' => $event]);
             $event->forceFill(['alert_sent' => true])->save();
         } catch (\Throwable $e) {
             Log::warning('login_alert_send_failed: ' . $e->getMessage(), [

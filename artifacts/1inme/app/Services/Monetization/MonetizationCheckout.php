@@ -1070,9 +1070,11 @@ class MonetizationCheckout
     {
         if (!$creator->email) return;
         try {
-            \Illuminate\Support\Facades\Mail::raw($body, function ($m) use ($creator, $subject) {
-                $m->to($creator->email)->subject($subject);
-            });
+            \App\Modules\Common\Services\Emailer::send('monetization.creator_notice', $creator->email, [], [
+                'user'    => $creator->id,
+                'subject' => $subject,
+                'body'    => $body,
+            ]);
         } catch (\Throwable $e) {
             Log::warning('monetization.notify_email.failed', ['err' => $e->getMessage()]);
         }

@@ -62,7 +62,7 @@ class ReviewVerifier
             return;
         }
         try {
-            Mail::to($review->author_email)->send(new ReviewVerificationMail($link, $review));
+            \App\Modules\Common\Services\Emailer::sendMailable('reviews.verification', $review->author_email, new ReviewVerificationMail($link, $review), ['title' => $link->title], ['related' => $review, 'user' => $link->user_id]);
         } catch (\Throwable $e) {
             Log::warning('Review verification email failed', [
                 'review_id' => $review->id,

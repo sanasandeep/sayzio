@@ -113,22 +113,19 @@ class SubscriptionLifecycle
         try {
             $email = optional($subscription->user)->email;
             if (!$email) return;
-            $subject = match ($kind) {
-                'renewal_failed' => 'Renewal failed — we couldn\'t charge your payment method',
-                'grace_ending'   => 'Your plan is about to downgrade',
-                'downgraded'     => 'Your plan has been downgraded',
-                default          => 'Subscription update',
+            $key = match ($kind) {
+                'renewal_failed' => 'billing.subscription_renewal_failed',
+                'grace_ending'   => 'billing.subscription_grace_ending',
+                'downgraded'     => 'billing.subscription_downgraded',
+                default          => 'billing.subscription_update',
             };
-            $body = match ($kind) {
-                'renewal_failed' => "We couldn't process your renewal for {$subscription->plan?->name}.\nYour plan features remain active until "
-                    . ($extra['grace_until'] ?? 'the grace period ends') . ". Please update your payment method before then.",
-                'grace_ending'   => "Your {$subscription->plan?->name} plan will downgrade in less than 24 hours unless you renew.",
-                'downgraded'     => "Your {$subscription->plan?->name} plan has been downgraded to Free because the grace period ended.",
-                default          => "Your subscription status has changed.",
-            };
-            Mail::raw($body, function ($m) use ($email, $subject) {
-                $m->to($email)->subject($subject);
-            });
+            \App\Modules\Common\Services\Emailer::send($key, $email, [
+                'plan_name'   => $subscription->plan?->name,
+                'grace_until' => $extra['grace_until'] ?? 'the grace period ends',
+            ], [
+                'user'    => optional($subscription->user)->id,
+                'related' => $subscription,
+            ]);
         } catch (\Throwable $e) {
             Log::warning('Lifecycle notify failed: ' . $e->getMessage());
         }

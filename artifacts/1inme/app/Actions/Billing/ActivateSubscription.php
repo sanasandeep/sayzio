@@ -270,16 +270,19 @@ class ActivateSubscription
             $email = optional($invoice->user)->email;
             if (!$email) return;
             $pdf = InvoiceService::renderPdf($invoice);
-            Mail::raw(
-                "Thanks for your payment.\n\nInvoice: {$invoice->number}\nAmount: "
-                . number_format($invoice->grand_total_minor / 100, 2) . " {$invoice->currency}\n\n"
-                . "Your tax invoice is attached (and also available in your billing history).",
-                function ($m) use ($email, $invoice, $pdf) {
-                    $m->to($email)
-                      ->subject("Receipt {$invoice->number}")
-                      ->attachData($pdf, $invoice->number . '.pdf', ['mime' => 'application/pdf']);
-                }
-            );
+            \App\Modules\Common\Services\Emailer::send('billing.receipt', $email, [
+                'invoice_number' => $invoice->number,
+                'amount'         => number_format($invoice->grand_total_minor / 100, 2),
+                'currency'       => $invoice->currency,
+            ], [
+                'user'        => $invoice->user_id,
+                'related'     => $invoice,
+                'attachments' => [[
+                    'data' => $pdf,
+                    'name' => $invoice->number . '.pdf',
+                    'mime' => 'application/pdf',
+                ]],
+            ]);
         } catch (\Throwable $e) {
             Log::warning('Receipt email failed: ' . $e->getMessage(), ['invoice' => $invoice->number]);
         }

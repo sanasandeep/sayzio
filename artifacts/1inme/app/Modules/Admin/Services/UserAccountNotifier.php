@@ -71,9 +71,11 @@ class UserAccountNotifier
 
         if ($user->email) {
             try {
-                Mail::raw($body, function ($m) use ($user, $subject) {
-                    $m->to($user->email)->subject($subject);
-                });
+                \App\Modules\Common\Services\Emailer::send('account.notice', $user->email, [], [
+                    'user'    => $user->id,
+                    'subject' => $subject,
+                    'body'    => $body,
+                ]);
             } catch (\Throwable $e) {
                 Log::info('UserAccountNotifier email skipped: ' . $e->getMessage());
             }

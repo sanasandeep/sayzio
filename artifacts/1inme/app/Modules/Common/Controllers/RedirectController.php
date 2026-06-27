@@ -1471,7 +1471,7 @@ class RedirectController extends Controller
         // Confirmation + organizer notify (best-effort, swallow failures).
         try {
             if ($rsvp->email && ($rsvpSettings['send_confirmation'] ?? true)) {
-                \Mail::to($rsvp->email)->send(new \App\Mail\EventRsvpConfirmationMail($link, $rsvp));
+                \App\Modules\Common\Services\Emailer::sendMailable('events.rsvp_confirmation', $rsvp->email, new \App\Mail\EventRsvpConfirmationMail($link, $rsvp), ['title' => $link->title], ['related' => $link, 'user' => $link->user_id]);
             }
         } catch (\Throwable $e) {
             logger()->warning('RSVP confirmation email failed: ' . $e->getMessage());
@@ -1480,7 +1480,7 @@ class RedirectController extends Controller
             if (($rsvpSettings['notify_owner'] ?? true)) {
                 $ownerEmail = $link->user?->email;
                 if ($ownerEmail) {
-                    \Mail::to($ownerEmail)->send(new \App\Mail\EventRsvpNotifyOwnerMail($link, $rsvp));
+                    \App\Modules\Common\Services\Emailer::sendMailable('events.rsvp_notify_owner', $ownerEmail, new \App\Mail\EventRsvpNotifyOwnerMail($link, $rsvp), ['title' => $link->title, 'name' => $rsvp->name], ['related' => $link, 'user' => $link->user_id]);
                 }
             }
         } catch (\Throwable $e) {

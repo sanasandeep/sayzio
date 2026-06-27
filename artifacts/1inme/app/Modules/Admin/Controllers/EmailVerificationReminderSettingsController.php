@@ -263,16 +263,17 @@ class EmailVerificationReminderSettingsController extends Controller
         }
 
         try {
-            Mail::send(
-                'emails.verify-email-reminder',
-                ['user' => $recipient, 'verificationUrl' => $verificationUrl, 'unsubscribeUrl' => $unsubscribeUrl],
-                function ($message) use ($admin, $unsubscribeUrl) {
-                    $message->to($admin->email);
-                    $message->subject('[Sample] Reminder: verify your Sayzio email');
-                    $message->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubscribeUrl . '>');
-                    $message->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
-                }
-            );
+            \App\Modules\Common\Services\Emailer::send('auth.verify_email_reminder', $admin->email, [
+                'name'             => $recipient->name,
+                'verification_url' => $verificationUrl,
+            ], [
+                'subject'   => '[Sample] Reminder: verify your Sayzio email',
+                'view_data' => ['user' => $recipient, 'verificationUrl' => $verificationUrl, 'unsubscribeUrl' => $unsubscribeUrl],
+                'headers'   => [
+                    'List-Unsubscribe'      => '<' . $unsubscribeUrl . '>',
+                    'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
+                ],
+            ]);
         } catch (\Throwable $e) {
             return back()->with('error', 'Sample reminder failed: ' . $e->getMessage());
         }

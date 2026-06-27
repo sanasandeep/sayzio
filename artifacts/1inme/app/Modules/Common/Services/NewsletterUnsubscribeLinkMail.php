@@ -40,9 +40,12 @@ class NewsletterUnsubscribeLinkMail
         ];
 
         try {
-            Mail::send('emails.newsletter-unsubscribe-link', $viewData, function ($m) use ($subscriber, $subject) {
-                $m->to($subscriber->email)->subject($subject);
-            });
+            \App\Modules\Common\Services\Emailer::send('newsletter.unsubscribe_link', $subscriber->email, [
+                'app_name' => config('app.name'),
+            ], [
+                'related'   => $subscriber,
+                'view_data' => $viewData,
+            ]);
         } catch (\Throwable $e) {
             Log::warning("newsletter-unsubscribe-link email failed for subscriber {$subscriber->id}: " . $e->getMessage());
             return false;

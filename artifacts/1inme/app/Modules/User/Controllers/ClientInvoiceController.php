@@ -123,13 +123,14 @@ class ClientInvoiceController extends Controller
         ])->save();
 
         $payUrl = URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
-        Mail::send('emails.client-invoice', [
-            'invoice' => $invoice,
-            'payUrl'  => $payUrl,
-        ], function ($m) use ($invoice) {
-            $m->to($invoice->recipient_email)
-              ->subject('Invoice ' . $invoice->number);
-        });
+        \App\Modules\Common\Services\Emailer::send('billing.client_invoice', $invoice->recipient_email, [
+            'invoice_number' => $invoice->number,
+            'pay_url'        => $payUrl,
+        ], [
+            'user'      => $invoice->user_id,
+            'related'   => $invoice,
+            'view_data' => ['invoice' => $invoice, 'payUrl' => $payUrl],
+        ]);
 
         return back()->with('success', 'Invoice emailed to ' . $invoice->recipient_email);
     }

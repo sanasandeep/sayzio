@@ -229,13 +229,14 @@ class RefundService
             $email = optional($refund->user)->email;
             if (!$email) return;
             $amount = number_format($refund->amount_minor / 100, 2);
-            Mail::raw(
-                "A refund of {$amount} {$refund->currency} has been issued for invoice {$refund->invoice->number}.\n"
-                . "A credit note is available in your billing history.",
-                function ($m) use ($email, $refund) {
-                    $m->to($email)->subject("Refund issued for invoice {$refund->invoice->number}");
-                }
-            );
+            \App\Modules\Common\Services\Emailer::send('billing.refund_issued', $email, [
+                'amount'         => $amount,
+                'currency'       => $refund->currency,
+                'invoice_number' => $refund->invoice->number,
+            ], [
+                'user'    => optional($refund->user)->id,
+                'related' => $refund,
+            ]);
         } catch (\Throwable $e) {
             Log::warning('Refund email failed: ' . $e->getMessage());
         }
@@ -247,13 +248,14 @@ class RefundService
             $email = optional($refund->user)->email;
             if (!$email) return;
             $amount = number_format($refund->amount_minor / 100, 2);
-            Mail::raw(
-                "We've received your refund request of {$amount} {$refund->currency} for invoice {$refund->invoice->number}.\n"
-                . "Offline refunds are processed manually; you'll get a second email with the credit note once the payout is confirmed.",
-                function ($m) use ($email, $refund) {
-                    $m->to($email)->subject("Refund request received for invoice {$refund->invoice->number}");
-                }
-            );
+            \App\Modules\Common\Services\Emailer::send('billing.refund_acknowledged', $email, [
+                'amount'         => $amount,
+                'currency'       => $refund->currency,
+                'invoice_number' => $refund->invoice->number,
+            ], [
+                'user'    => optional($refund->user)->id,
+                'related' => $refund,
+            ]);
         } catch (\Throwable $e) {
             Log::warning('Refund ack email failed: ' . $e->getMessage());
         }

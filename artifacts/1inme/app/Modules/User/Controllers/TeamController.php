@@ -320,8 +320,10 @@ class TeamController extends Controller
 
         try {
             if ($email) {
-                Mail::raw("You've been removed from the '{$ws->name}' workspace on " . config('app.name') . '.',
-                    fn ($m) => $m->to($email)->subject("Removed from workspace: {$ws->name}"));
+                \App\Modules\Common\Services\Emailer::send('workspace.member_removed', $email, [
+                    'workspace_name' => $ws->name,
+                    'app_name'       => config('app.name'),
+                ], ['user' => $userId, 'related' => $ws]);
             }
         } catch (\Throwable $e) { /* best effort */ }
 
@@ -335,7 +337,9 @@ class TeamController extends Controller
     protected function sendInviteEmail(WorkspaceInvite $invite): void
     {
         try {
-            Mail::to($invite->email)->send(new WorkspaceInviteMailable($invite));
+            \App\Modules\Common\Services\Emailer::sendMailable('workspace.invite', $invite->email, new WorkspaceInviteMailable($invite), [
+                'workspace_name' => optional($invite->workspace)->name,
+            ], ['related' => $invite, 'user' => $invite->inviter_user_id]);
         } catch (\Throwable $e) { /* best effort — surface in invites list */ }
     }
 }

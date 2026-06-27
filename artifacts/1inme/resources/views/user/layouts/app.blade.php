@@ -1003,6 +1003,13 @@
                             <span class="sidebar-tooltip">API keys</span>
                         </a>
                         @endif
+                        <a href="{{ route('user.emails.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.emails.*') ? 'active' : '' }}"
+                           style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-envelope-open-text"></i></div>
+                            <span class="nav-label">Email history</span>
+                            <span class="sidebar-tooltip">Email history</span>
+                        </a>
                     </div>
                 </div>
                 @endif
@@ -1432,6 +1439,7 @@
                                 <a href="{{ route('user.api-keys.index') }}" class="sidebar-link {{ request()->routeIs('user.api-keys.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-key"></i></div> <span>API keys</span></a>
                                 @endif
                                 <a href="{{ route('user.identifiers.index') }}" class="sidebar-link {{ request()->routeIs('user.identifiers.*') || request()->routeIs('user.merge.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div> <span>Linked identifiers</span></a>
+                                <a href="{{ route('user.emails.index') }}" class="sidebar-link {{ request()->routeIs('user.emails.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-envelope-open-text"></i></div> <span>Email history</span></a>
                             </div>
                         </div>
                         @endif

@@ -37,10 +37,11 @@ class PasswordResetController extends Controller
         $resetUrl = route('admin.password.reset', ['token' => $token, 'email' => $admin->email]);
 
         try {
-            Mail::send('emails.admin-password-reset', ['resetUrl' => $resetUrl, 'admin' => $admin], function ($message) use ($admin) {
-                $message->to($admin->email);
-                $message->subject('Reset Your Admin Password - Sayzio');
-            });
+            \App\Modules\Common\Services\Emailer::send('admin.password_reset', $admin->email, [
+                'reset_url' => $resetUrl,
+            ], [
+                'view_data' => ['resetUrl' => $resetUrl, 'admin' => $admin],
+            ]);
         } catch (\Exception $e) {
             \Log::warning('Admin password reset email failed: ' . $e->getMessage());
         }

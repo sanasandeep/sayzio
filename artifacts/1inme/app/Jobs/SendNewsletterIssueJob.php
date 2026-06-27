@@ -70,18 +70,21 @@ class SendNewsletterIssueJob implements ShouldQueue
                                 'site.newsletter.unsubscribe',
                                 ['subscriber' => $sub->id]
                             );
-                            Mail::html($html, function ($m) use ($sub, $issue, $fromAddress, $fromName, $unsubUrl) {
-                                $m->to($sub->email)
-                                  ->subject($issue->subject)
-                                  ->from($fromAddress, $fromName);
-                                // RFC 2369 / RFC 8058 headers so Gmail, Apple
-                                // Mail and Outlook render their native
-                                // "Unsubscribe" chip next to the sender name
-                                // and can perform a one-click POST opt-out
-                                // without the recipient ever opening the mail.
-                                $m->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubUrl . '>');
-                                $m->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
-                            });
+                            // RFC 2369 / RFC 8058 List-Unsubscribe headers so
+                            // Gmail, Apple Mail and Outlook render their native
+                            // "Unsubscribe" chip and can one-click POST opt-out.
+                            \App\Modules\Common\Services\Emailer::send('newsletter.issue', $sub->email, [
+                                'subject' => $issue->subject,
+                            ], [
+                                'related' => $issue,
+                                'subject' => $issue->subject,
+                                'body'    => $html,
+                                'from'    => ['address' => $fromAddress, 'name' => $fromName],
+                                'headers' => [
+                                    'List-Unsubscribe'      => '<' . $unsubUrl . '>',
+                                    'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
+                                ],
+                            ]);
                             $sent++;
                         } catch (\Throwable $e) {
                             $failed++;

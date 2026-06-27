@@ -100,13 +100,12 @@ class CreatorDigestService
         if (!$digest) return false;
 
         try {
-            Mail::send(
-                ['html' => 'emails.creator-digest', 'text' => 'emails.creator-digest-text'],
-                $digest['viewData'],
-                function ($m) use ($creator, $digest) {
-                    $m->to($creator->email, $creator->name)->subject($digest['subject']);
-                }
-            );
+            \App\Modules\Common\Services\Emailer::send('digests.creator', $creator->email, [], [
+                'user'      => $creator->id,
+                'subject'   => $digest['subject'],
+                'to_name'   => $creator->name,
+                'view_data' => $digest['viewData'],
+            ]);
             if (!$isSample) {
                 $creator->forceFill(['creator_digest_last_sent_at' => now()])->save();
             }

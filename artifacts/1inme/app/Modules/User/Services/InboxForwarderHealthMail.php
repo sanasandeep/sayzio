@@ -87,9 +87,14 @@ class InboxForwarderHealthMail
         ];
 
         try {
-            Mail::send('emails.inbox-forward-broken', $viewData, function ($m) use ($user, $subject) {
-                $m->to($user->email)->subject($subject);
-            });
+            \App\Modules\Common\Services\Emailer::send('connections.inbox_forward_broken', $user->email, [
+                'label' => $destination->label,
+            ], [
+                'user'      => $user->id,
+                'related'   => $destination,
+                'subject'   => $subject,
+                'view_data' => $viewData,
+            ]);
         } catch (\Throwable $e) {
             Log::warning("inbox-forward-broken email failed for destination {$destination->id}: " . $e->getMessage());
             return false;

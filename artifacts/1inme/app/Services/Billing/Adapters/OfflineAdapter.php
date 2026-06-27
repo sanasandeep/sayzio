@@ -238,9 +238,18 @@ class OfflineAdapter extends AbstractAdapter
             $body    = implode("\n", $lines);
             $subject = "Action required: pay your {$planName} renewal ({$invoice->number})";
 
-            Mail::raw($body, function ($m) use ($email, $subject) {
-                $m->to($email)->subject($subject);
-            });
+            \App\Modules\Common\Services\Emailer::send('billing.offline_renewal', $email, [
+                'plan_name'      => $planName,
+                'invoice_number' => $invoice->number,
+                'amount'         => $amount,
+                'due_date'       => $dueDate,
+                'invoice_url'    => $invoiceUrl,
+            ], [
+                'user'    => optional($subscription->user)->id,
+                'related' => $invoice,
+                'subject' => $subject,
+                'body'    => $body,
+            ]);
         } catch (\Throwable $e) {
             Log::warning('Offline renewal email failed: ' . $e->getMessage(), [
                 'subscription_id' => $subscription->id,

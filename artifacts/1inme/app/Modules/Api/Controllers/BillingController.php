@@ -236,13 +236,14 @@ class BillingController extends Controller
         $payUrl = URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
 
         try {
-            Mail::send('emails.client-invoice', [
-                'invoice' => $invoice,
-                'payUrl'  => $payUrl,
-            ], function ($m) use ($invoice) {
-                $m->to($invoice->recipient_email)
-                  ->subject('Invoice ' . $invoice->number);
-            });
+            \App\Modules\Common\Services\Emailer::send('billing.client_invoice', $invoice->recipient_email, [
+                'invoice_number' => $invoice->number,
+                'pay_url'        => $payUrl,
+            ], [
+                'user'      => $invoice->user_id,
+                'related'   => $invoice,
+                'view_data' => ['invoice' => $invoice, 'payUrl' => $payUrl],
+            ]);
         } catch (\Throwable $e) {
             // Email transport failure shouldn't block the sent_at stamp -
             // the pay URL is still returned to the caller.

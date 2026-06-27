@@ -165,9 +165,9 @@ class ViewerAuthController extends Controller
         ]);
         if ($creator->notify_new_follower) {
             try {
-                \Mail::raw("{$me->name} just followed you on Sayzio.", function ($m) use ($creator) {
-                    $m->to($creator->email)->subject('New follower on Sayzio');
-                });
+                \App\Modules\Common\Services\Emailer::send('follow.new_follower', $creator->email, [
+                    'follower_name' => $me->name,
+                ], ['user' => $creator->id, 'related' => $me]);
             } catch (\Throwable $e) {}
         }
 

@@ -205,9 +205,9 @@ class InsiderBlockController extends Controller
                 || (bool) $prefs['notify_email'];
             if ($wantsEmail && !empty($member->email)) {
                 try {
-                    Mail::to($member->email)->queue(
-                        new InsiderPostMail($link, $post, $creator->name)
-                    );
+                    \App\Modules\Common\Services\Emailer::sendMailable('insider.new_post', $member->email,
+                        new InsiderPostMail($link, $post, $creator->name),
+                        ['creator_name' => $creator->name, 'title' => $post->title], ['related' => $post, 'queue' => true]);
                 } catch (\Throwable $e) {
                     \Log::warning('Insider post email failed: ' . $e->getMessage());
                 }

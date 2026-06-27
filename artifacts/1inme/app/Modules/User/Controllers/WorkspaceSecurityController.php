@@ -106,13 +106,13 @@ class WorkspaceSecurityController extends Controller
             if (empty($member->email)) continue;
 
             try {
-                Mail::to($member->email)->send(new WorkspaceTwoFactorPolicyMailable(
+                \App\Modules\Common\Services\Emailer::sendMailable('workspace.two_factor_policy', $member->email, new WorkspaceTwoFactorPolicyMailable(
                     workspace: $ws,
                     memberName: $member->name ?: $member->email,
                     graceDeadline: $deadlineStr,
                     setupUrl: $setupUrl,
                     alreadyEnrolled: $enrolled,
-                ));
+                ), ['workspace_name' => $ws->name], ['user' => $member->id, 'related' => $ws]);
                 $sent++;
             } catch (\Throwable $e) {
                 \Log::warning('Workspace 2FA policy email failed: ' . $e->getMessage(), [

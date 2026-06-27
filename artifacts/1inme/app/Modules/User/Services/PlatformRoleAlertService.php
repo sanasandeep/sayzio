@@ -173,7 +173,7 @@ class PlatformRoleAlertService
 
         foreach ($emails as $email) {
             try {
-                Mail::to($email)->send(new PlatformRoleAttachedAlertMail($grants));
+                \App\Modules\Common\Services\Emailer::sendMailable('security.platform_role_attached', $email, new PlatformRoleAttachedAlertMail($grants));
             } catch (\Throwable $e) {
                 Log::warning('PlatformRoleAlertService: alert mail failed', [
                     'audit_ids' => array_map(fn ($g) => $g['audit']->id, $grants),

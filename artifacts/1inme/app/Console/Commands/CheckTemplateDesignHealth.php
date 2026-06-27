@@ -255,9 +255,11 @@ class CheckTemplateDesignHealth extends Command
         $sent = 0;
         foreach ($emails as $email) {
             try {
-                Mail::raw($body . "\n\n" . $url, function ($m) use ($email, $subject) {
-                    $m->to($email)->subject($subject);
-                });
+                \App\Modules\Common\Services\Emailer::send('system.health_alert', $email, [], [
+                    'subject' => $subject,
+                    'body'    => $body . "\n\n" . $url,
+                    'format'  => 'text',
+                ]);
                 $sent++;
             } catch (\Throwable $e) {
                 Log::warning("template-design-health alert email to {$email} failed: " . $e->getMessage());

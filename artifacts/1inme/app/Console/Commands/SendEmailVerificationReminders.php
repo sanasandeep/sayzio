@@ -157,16 +157,18 @@ class SendEmailVerificationReminders extends Command
                 ['user' => $user->id]
             );
 
-            Mail::send(
-                'emails.verify-email-reminder',
-                ['user' => $user, 'verificationUrl' => $verificationUrl, 'unsubscribeUrl' => $unsubscribeUrl],
-                function ($message) use ($user, $unsubscribeUrl) {
-                    $message->to($user->email);
-                    $message->subject('Reminder: verify your Sayzio email');
-                    $message->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubscribeUrl . '>');
-                    $message->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
-                }
-            );
+            \App\Modules\Common\Services\Emailer::send('auth.verify_email_reminder', $user->email, [
+                'name'             => $user->name,
+                'verification_url' => $verificationUrl,
+            ], [
+                'user'      => $user->id,
+                'related'   => $user,
+                'view_data' => ['user' => $user, 'verificationUrl' => $verificationUrl, 'unsubscribeUrl' => $unsubscribeUrl],
+                'headers'   => [
+                    'List-Unsubscribe'      => '<' . $unsubscribeUrl . '>',
+                    'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
+                ],
+            ]);
 
             return true;
         } catch (\Throwable $e) {

@@ -271,6 +271,13 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/me/reviews/{review}/reply',   [\App\Modules\Api\Controllers\ReviewApiController::class, 'reply'])->whereNumber('review');
         Route::delete('/me/reviews/{review}',         [\App\Modules\Api\Controllers\ReviewApiController::class, 'destroy'])->whereNumber('review');
 
+        // ── Email history (self-scoped) ──────────────────────────────
+        // Bearer-token parity for the web /user/emails screen: the user's own
+        // transactional emails plus a throttled, allow-listed resend (invoices /
+        // receipts / verification) to their own address.
+        Route::get ('/me/emails',                  [\App\Modules\Api\Controllers\EmailHistoryController::class, 'index']);
+        Route::post('/me/emails/{emailLog}/resend', [\App\Modules\Api\Controllers\EmailHistoryController::class, 'resend'])->whereNumber('emailLog')->middleware('throttle:5,1');
+
         // Creator Payouts + Adult-content (Task #1208) ───────────────
         // Mobile parity for the "Earnings & Payouts" dashboard. The
         // hosted-onboarding URL is returned to the app to open in an
@@ -290,6 +297,23 @@ Route::prefix('v1')->group(function () {
         Route::get ('/admin/mail-settings',      [\App\Modules\Api\Controllers\MailSettingsController::class, 'status']);
         Route::put ('/admin/mail-settings',      [\App\Modules\Api\Controllers\MailSettingsController::class, 'update']);
         Route::post('/admin/mail-settings/test', [\App\Modules\Api\Controllers\MailSettingsController::class, 'sendTest'])->middleware('throttle:10,1');
+
+        // Email templates (super-admin parity): list every templated email by
+        // category, edit/reset a subject/body override and preview it with
+        // sample data through the same central pipeline as real sends. Gated
+        // behind `settings.manage`.
+        Route::get   ('/admin/email-templates',                [\App\Modules\Api\Controllers\EmailTemplateController::class, 'index']);
+        Route::get   ('/admin/email-templates/{key}',          [\App\Modules\Api\Controllers\EmailTemplateController::class, 'show'])->where('key', '[A-Za-z0-9._-]+');
+        Route::put   ('/admin/email-templates/{key}',          [\App\Modules\Api\Controllers\EmailTemplateController::class, 'update'])->where('key', '[A-Za-z0-9._-]+');
+        Route::delete('/admin/email-templates/{key}',          [\App\Modules\Api\Controllers\EmailTemplateController::class, 'reset'])->where('key', '[A-Za-z0-9._-]+');
+        Route::post  ('/admin/email-templates/{key}/preview',  [\App\Modules\Api\Controllers\EmailTemplateController::class, 'preview'])->where('key', '[A-Za-z0-9._-]+');
+
+        // Email activity log (super-admin parity): browse/search/filter every
+        // outbound email and resend any one (throttled). Gated behind
+        // `settings.manage`.
+        Route::get ('/admin/email-logs',                  [\App\Modules\Api\Controllers\EmailLogController::class, 'index']);
+        Route::get ('/admin/email-logs/{emailLog}',       [\App\Modules\Api\Controllers\EmailLogController::class, 'show'])->whereNumber('emailLog');
+        Route::post('/admin/email-logs/{emailLog}/resend', [\App\Modules\Api\Controllers\EmailLogController::class, 'resend'])->whereNumber('emailLog')->middleware('throttle:30,1');
 
         // Schema-column repair (super-admin parity). Read-only drift report
         // plus the destructive-adjacent one-click repair, mirroring the web

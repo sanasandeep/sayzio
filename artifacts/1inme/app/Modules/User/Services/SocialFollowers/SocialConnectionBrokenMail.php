@@ -76,9 +76,14 @@ class SocialConnectionBrokenMail
         ];
 
         try {
-            Mail::send('emails.social-connection-broken', $viewData, function ($m) use ($user, $subject) {
-                $m->to($user->email)->subject($subject);
-            });
+            \App\Modules\Common\Services\Emailer::send('connections.social_broken', $user->email, [
+                'provider' => $platformLabel,
+            ], [
+                'user'      => $user->id,
+                'related'   => $connection,
+                'subject'   => $subject,
+                'view_data' => $viewData,
+            ]);
         } catch (\Throwable $e) {
             Log::warning("social-connection-broken email failed for connection {$connection->id}: " . $e->getMessage());
             return false;

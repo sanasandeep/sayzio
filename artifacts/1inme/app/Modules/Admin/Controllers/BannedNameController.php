@@ -398,9 +398,16 @@ class BannedNameController extends Controller
         ];
 
         try {
-            Mail::send('emails.handle-banned', $viewData, function ($m) use ($user, $subject) {
-                $m->to($user->email)->subject($subject);
-            });
+            \App\Modules\Common\Services\Emailer::send('account.handle_banned', $user->email, [
+                'user_name'   => $user->name ?: 'there',
+                'handle'      => $user->handle,
+                'profile_url' => $profileUrl,
+            ], [
+                'user'      => $user->id,
+                'related'   => $user,
+                'subject'   => $subject,
+                'view_data' => $viewData,
+            ]);
         } catch (\Throwable $e) {
             Log::warning("handle-banned email failed for user {$user->id}: " . $e->getMessage());
             return 'failed';

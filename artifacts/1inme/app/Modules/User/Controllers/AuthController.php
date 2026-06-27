@@ -583,10 +583,14 @@ class AuthController extends Controller
                 ['id' => $user->id, 'hash' => sha1($user->email)]
             );
 
-            Mail::send('emails.verify-email', ['verificationUrl' => $verificationUrl, 'user' => $user], function ($message) use ($user) {
-                $message->to($user->email);
-                $message->subject('Verify Your Email - Sayzio');
-            });
+            \App\Modules\Common\Services\Emailer::send('auth.verify_email', $user->email, [
+                'name'             => $user->name,
+                'verification_url' => $verificationUrl,
+            ], [
+                'user'      => $user->id,
+                'related'   => $user,
+                'view_data' => ['verificationUrl' => $verificationUrl, 'user' => $user],
+            ]);
         } catch (\Exception $e) {
             \Log::warning('Verification email resend failed: ' . $e->getMessage());
         }

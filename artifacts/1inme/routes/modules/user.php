@@ -395,6 +395,11 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get   ('api-keys',            [\App\Modules\User\Controllers\ApiKeyController::class, 'index'])->name('api-keys.index');
             Route::post  ('api-keys',            [\App\Modules\User\Controllers\ApiKeyController::class, 'store'])->middleware('throttle:20,1')->name('api-keys.store');
             Route::delete('api-keys/{key}',      [\App\Modules\User\Controllers\ApiKeyController::class, 'destroy'])->whereNumber('key')->name('api-keys.destroy');
+
+            // Email history: the user's own transactional emails + self-scoped,
+            // throttled, allow-listed resend (invoices/receipts/verification).
+            Route::get ('emails',                 [\App\Modules\User\Controllers\EmailHistoryController::class, 'index'])->name('emails.index');
+            Route::post('emails/{emailLog}/resend', [\App\Modules\User\Controllers\EmailHistoryController::class, 'resend'])->whereNumber('emailLog')->name('emails.resend');
         });
 
         // Creator Profile editor (Task #1207). Lives next to the regular

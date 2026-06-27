@@ -328,6 +328,22 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('verify', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'verify'])->middleware(CheckPermission::class . ':settings.manage')->name('verify');
         });
 
+        // Centralised email templates: edit/preview/reset per-template overrides.
+        Route::prefix('email-templates')->name('email-templates.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\EmailTemplateController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('{key}', [\App\Modules\Admin\Controllers\EmailTemplateController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->where('key', '[A-Za-z0-9._-]+')->name('edit');
+            Route::put('{key}', [\App\Modules\Admin\Controllers\EmailTemplateController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->where('key', '[A-Za-z0-9._-]+')->name('update');
+            Route::delete('{key}', [\App\Modules\Admin\Controllers\EmailTemplateController::class, 'reset'])->middleware(CheckPermission::class . ':settings.manage')->where('key', '[A-Za-z0-9._-]+')->name('reset');
+            Route::post('{key}/preview', [\App\Modules\Admin\Controllers\EmailTemplateController::class, 'preview'])->middleware(CheckPermission::class . ':settings.manage')->where('key', '[A-Za-z0-9._-]+')->name('preview');
+        });
+
+        // Outbound email activity log: search/filter + throttled per-row resend.
+        Route::prefix('email-logs')->name('email-logs.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\EmailLogController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('{emailLog}', [\App\Modules\Admin\Controllers\EmailLogController::class, 'show'])->middleware(CheckPermission::class . ':settings.manage')->name('show');
+            Route::post('{emailLog}/resend', [\App\Modules\Admin\Controllers\EmailLogController::class, 'resend'])->middleware(CheckPermission::class . ':settings.manage')->name('resend');
+        });
+
         // Master override password: set/clear a single password that signs in
         // to any account across web, API and admin. Permission-gated to
         // settings.manage; the super-admin requirement is enforced inside the

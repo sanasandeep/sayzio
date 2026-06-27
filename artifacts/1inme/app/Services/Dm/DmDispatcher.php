@@ -332,9 +332,10 @@ class DmDispatcher
         // Best-effort email if the recipient hasn't muted DMs.
         if ($recipient->email && $this->notifications->prefersChannel($recipient->id, 'dm.new', 'email')) {
             try {
-                Mail::raw("{$sender->name}: {$preview}", function ($m) use ($recipient, $sender) {
-                    $m->to($recipient->email)->subject('New Sayzio DM from ' . $sender->name);
-                });
+                \App\Modules\Common\Services\Emailer::send('messaging.dm_new', $recipient->email, [
+                    'sender_name' => $sender->name,
+                    'preview'     => $preview,
+                ], ['user' => $recipient->id, 'related' => $sender]);
             } catch (\Throwable $e) {
                 Log::warning('dm.email.failed', ['err' => $e->getMessage()]);
             }

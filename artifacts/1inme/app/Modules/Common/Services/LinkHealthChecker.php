@@ -624,8 +624,7 @@ class LinkHealthChecker
         try {
             if ($this->notifications->prefersChannel($user->id, $type, 'email')
                 && !empty($user->email)) {
-                \Illuminate\Support\Facades\Mail::to($user->email)
-                    ->send(new \App\Mail\LinkInsuranceAlertMail($link, $type, $payload));
+                \App\Modules\Common\Services\Emailer::sendMailable('link.insurance_alert', $user->email, new \App\Mail\LinkInsuranceAlertMail($link, $type, $payload), [], ['user' => $user->id, 'related' => $link]);
             }
         } catch (\Throwable $e) {
             Log::warning('LinkInsurance email send failed', [

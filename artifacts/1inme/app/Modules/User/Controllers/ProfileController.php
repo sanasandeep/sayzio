@@ -295,13 +295,11 @@ class ProfileController extends Controller
         $composed = FollowerDigestComposer::compose($user, $pending, true);
 
         try {
-            Mail::send(
-                ['emails.follower-digest', 'emails.follower-digest-text'],
-                $composed['viewData'],
-                function ($m) use ($user, $composed) {
-                    $m->to($user->email)->subject($composed['subject']);
-                }
-            );
+            \App\Modules\Common\Services\Emailer::send('digests.follower', $user->email, [], [
+                'user'      => $user->id,
+                'subject'   => $composed['subject'],
+                'view_data' => $composed['viewData'],
+            ]);
         } catch (\Throwable $e) {
             \Log::warning('sample digest send failed for user ' . $user->id . ': ' . $e->getMessage());
             return back()->with('error', "Couldn't send the sample right now. Please try again in a moment.");

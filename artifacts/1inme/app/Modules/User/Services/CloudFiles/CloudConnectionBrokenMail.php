@@ -55,9 +55,14 @@ class CloudConnectionBrokenMail
         ];
 
         try {
-            Mail::send('emails.cloud-connection-broken', $viewData, function ($m) use ($user, $subject) {
-                $m->to($user->email)->subject($subject);
-            });
+            \App\Modules\Common\Services\Emailer::send('connections.cloud_broken', $user->email, [
+                'provider' => $providerLabel,
+            ], [
+                'user'      => $user->id,
+                'related'   => $connection,
+                'subject'   => $subject,
+                'view_data' => $viewData,
+            ]);
         } catch (\Throwable $e) {
             Log::warning("cloud-connection-broken email failed for connection {$connection->id}: " . $e->getMessage());
             return false;

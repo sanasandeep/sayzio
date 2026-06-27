@@ -133,15 +133,15 @@ class BacklinkDigestService
         );
 
         try {
-            Mail::send(
-                ['emails.backlink-digest', 'emails.backlink-digest-text'],
-                $built['viewData'],
-                function ($m) use ($user, $built, $unsubscribeUrl) {
-                    $m->to($user->email)->subject($built['subject']);
-                    $m->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubscribeUrl . '>');
-                    $m->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
-                }
-            );
+            \App\Modules\Common\Services\Emailer::send('digests.backlink', $user->email, [], [
+                'user'      => $user->id,
+                'subject'   => $built['subject'],
+                'view_data' => $built['viewData'],
+                'headers'   => [
+                    'List-Unsubscribe'      => '<' . $unsubscribeUrl . '>',
+                    'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
+                ],
+            ]);
             return true;
         } catch (\Throwable $e) {
             Log::warning('backlink digest send failed for user ' . $user->id . ': ' . $e->getMessage());

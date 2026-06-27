@@ -175,9 +175,11 @@ class CheckSiteAssistantCutoffs extends Command
         $emailsSent = 0;
         foreach ($emails as $email) {
             try {
-                Mail::raw($body . "\n\n" . $url, function ($m) use ($email, $subject) {
-                    $m->to($email)->subject($subject);
-                });
+                \App\Modules\Common\Services\Emailer::send('system.health_alert', $email, [], [
+                    'subject' => $subject,
+                    'body'    => $body . "\n\n" . $url,
+                    'format'  => 'text',
+                ]);
                 $emailsSent++;
             } catch (\Throwable $e) {
                 Log::warning("site-assistant cut-off alert email to {$email} failed: " . $e->getMessage());
@@ -275,9 +277,11 @@ class CheckSiteAssistantCutoffs extends Command
         $emailsSent = 0;
         foreach ($emails as $email) {
             try {
-                Mail::raw($body . "\n\n" . $url, function ($m) use ($email, $subject) {
-                    $m->to($email)->subject($subject);
-                });
+                \App\Modules\Common\Services\Emailer::send('system.health_alert', $email, [], [
+                    'subject' => $subject,
+                    'body'    => $body . "\n\n" . $url,
+                    'format'  => 'text',
+                ]);
                 $emailsSent++;
             } catch (\Throwable $e) {
                 Log::warning("site-assistant cut-off recovery email to {$email} failed: " . $e->getMessage());

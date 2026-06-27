@@ -36,9 +36,13 @@ class RoadmapShippedMail
         ];
 
         try {
-            Mail::send('emails.roadmap-shipped', $viewData, function ($m) use ($email, $subject) {
-                $m->to($email)->subject($subject);
-            });
+            \App\Modules\Common\Services\Emailer::send('roadmap.shipped', $email, [
+                'app_name' => $appName,
+                'title'    => $item->title,
+            ], [
+                'related'   => $item,
+                'view_data' => $viewData,
+            ]);
             return true;
         } catch (\Throwable $e) {
             Log::warning('roadmap_shipped_mail_failed', [

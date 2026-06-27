@@ -44,9 +44,12 @@ class NewsletterWelcomeMail
         ];
 
         try {
-            Mail::send('emails.newsletter-welcome', $viewData, function ($m) use ($subscriber, $subject) {
-                $m->to($subscriber->email)->subject($subject);
-            });
+            \App\Modules\Common\Services\Emailer::send('newsletter.welcome', $subscriber->email, [
+                'app_name' => config('app.name'),
+            ], [
+                'related'   => $subscriber,
+                'view_data' => $viewData,
+            ]);
         } catch (\Throwable $e) {
             Log::warning("newsletter-welcome email failed for subscriber {$subscriber->id}: " . $e->getMessage());
             return false;

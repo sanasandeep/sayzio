@@ -305,9 +305,16 @@ class MeterApiUsage
                 if ($user->email && $notifications->prefersChannel($user->id, $note['type'], 'email')) {
                     $subject = $note['subject'];
                     $body    = $note['body'];
-                    Mail::raw($body, function ($m) use ($user, $subject) {
-                        $m->to($user->email)->subject($subject);
-                    });
+                    $emailKey = match ($subject) {
+                        "You've used your full monthly API allowance" => 'api.usage_full',
+                        'Your API calls are being rejected'           => 'api.usage_rejected',
+                        default                                       => 'api.usage_nearing',
+                    };
+                    \App\Modules\Common\Services\Emailer::send($emailKey, $user->email, [], [
+                        'user'    => $user->id,
+                        'subject' => $subject,
+                        'body'    => $body,
+                    ]);
                 }
 
                 // Push to the 1inme-mobile app (task #1403). Preference-aware

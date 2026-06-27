@@ -153,14 +153,13 @@ class SendStarterFreeWindowReminders extends Command
         // Email — only if the user hasn't muted the email channel for this type.
         if ($prefs->prefersChannel($user->id, 'starter.free_window_renewal', 'email')) {
             try {
-                Mail::send(
-                    'emails.starter-free-window-reminder',
-                    ['user' => $user, 'renewUrl' => $renewUrl, 'endsAt' => $endsAt],
-                    function ($message) use ($user) {
-                        $message->to($user->email);
-                        $message->subject('Keep your free Sayzio Starter plan — renew for another year');
-                    }
-                );
+                \App\Modules\Common\Services\Emailer::send('starter.free_window_reminder', $user->email, [
+                    'name'      => $user->name,
+                    'renew_url' => $renewUrl,
+                ], [
+                    'user'      => $user->id,
+                    'view_data' => ['user' => $user, 'renewUrl' => $renewUrl, 'endsAt' => $endsAt],
+                ]);
                 $delivered = true;
             } catch (\Throwable $e) {
                 \Log::warning('Starter free-window reminder email failed for user ' . $user->id . ': ' . $e->getMessage());

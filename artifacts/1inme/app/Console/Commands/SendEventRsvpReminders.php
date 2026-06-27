@@ -65,7 +65,7 @@ class SendEventRsvpReminders extends Command
                     $cacheKey = 'rsvp_reminder:' . $r->id . ':' . md5($occIso);
                     if (\Cache::has($cacheKey)) continue;
                     try {
-                        Mail::to($r->email)->send(new EventRsvpReminderMail($link, $r, $occ['start']));
+                        \App\Modules\Common\Services\Emailer::sendMailable('events.rsvp_reminder', $r->email, new EventRsvpReminderMail($link, $r, $occ['start']), ['title' => $link->title], ['related' => $link, 'user' => $link->user_id]);
                         \Cache::put($cacheKey, 1, now()->addDays(30));
                         $sent++;
                     } catch (\Throwable $e) {

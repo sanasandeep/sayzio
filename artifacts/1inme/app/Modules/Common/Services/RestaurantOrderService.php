@@ -127,9 +127,14 @@ class RestaurantOrderService
 
         if ($owner->email && $this->notifications->prefersChannel($owner->id, 'restaurant.new_order', 'email')) {
             try {
-                Mail::raw($body . "\n\nManage orders: " . $ordersUrl, function ($m) use ($owner, $subject) {
-                    $m->to($owner->email)->subject($subject);
-                });
+                \App\Modules\Common\Services\Emailer::send('restaurant.new_order', $owner->email, [
+                    'where'      => $where,
+                    'count'      => $count,
+                    'currency'   => $order->currency,
+                    'subtotal'   => number_format((float) $order->subtotal, 2),
+                    'link_title' => $link->title,
+                    'orders_url' => $ordersUrl,
+                ], ['user' => $owner->id, 'related' => $order]);
             } catch (\Throwable $e) {
                 Log::warning('restaurant new_order email failed: ' . $e->getMessage());
             }

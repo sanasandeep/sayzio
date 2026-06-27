@@ -531,13 +531,10 @@ class CreatorPostController extends Controller
             ]);
 
             try {
-                \Mail::raw(
-                    $message . "\n\nReview it: " . route('user.posts.index'),
-                    function ($m) use ($recipient) {
-                        $m->to($recipient->email)
-                          ->subject('A post is waiting for your review');
-                    }
-                );
+                \App\Modules\Common\Services\Emailer::send('posts.review_request', $recipient->email, [
+                    'message' => $message,
+                    'url'     => route('user.posts.index'),
+                ], ['user' => $recipient->id]);
                 UserNotification::where('user_id', $recipient->id)
                     ->where('type', 'post_review_request')
                     ->whereNull('emailed_at')
@@ -585,12 +582,10 @@ class CreatorPostController extends Controller
         ]);
 
         try {
-            \Mail::raw(
-                $message . "\n\nOpen your posts: " . route('user.posts.index'),
-                function ($m) use ($editor) {
-                    $m->to($editor->email)->subject('Update on your post review');
-                }
-            );
+            \App\Modules\Common\Services\Emailer::send('posts.review_decision', $editor->email, [
+                'message' => $message,
+                'url'     => route('user.posts.index'),
+            ], ['user' => $editor->id]);
             $notif->emailed_at = now();
             $notif->save();
         } catch (\Throwable $e) {}

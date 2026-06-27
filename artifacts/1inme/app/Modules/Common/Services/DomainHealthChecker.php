@@ -179,7 +179,7 @@ class DomainHealthChecker
 
         try {
             if ($this->notifications->prefersChannel($user->id, $type, 'email') && !empty($user->email)) {
-                Mail::to($user->email)->send(new DomainHealthAlertMail($domain, $type, $payload));
+                \App\Modules\Common\Services\Emailer::sendMailable('domain.health_alert', $user->email, new DomainHealthAlertMail($domain, $type, $payload), ['domain' => $domain->domain ?? ''], ['user' => $user->id, 'related' => $domain]);
             }
         } catch (\Throwable $e) {
             Log::warning('domain.dns.email_failed', [

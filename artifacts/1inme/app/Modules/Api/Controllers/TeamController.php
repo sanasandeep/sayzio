@@ -126,7 +126,9 @@ class TeamController extends Controller
         ]);
 
         try {
-            Mail::to($invite->email)->send(new WorkspaceInviteMailable($invite));
+            \App\Modules\Common\Services\Emailer::sendMailable('workspace.invite', $invite->email, new WorkspaceInviteMailable($invite), [
+                'workspace_name' => optional($invite->workspace)->name,
+            ], ['related' => $invite, 'user' => $invite->inviter_user_id]);
         } catch (\Throwable $e) { /* best effort */ }
 
         return $this->created(['invite' => [

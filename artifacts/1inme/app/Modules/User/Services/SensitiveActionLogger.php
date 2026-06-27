@@ -131,9 +131,9 @@ class SensitiveActionLogger
     {
         try {
             foreach ($this->ownerRecipients($workspace) as $owner) {
-                Mail::to($owner->email)->send(
-                    new SensitiveWorkspaceActionMail($event->fresh(), $workspace, $owner)
-                );
+                \App\Modules\Common\Services\Emailer::sendMailable('workspace.sensitive_action', $owner->email,
+                    new SensitiveWorkspaceActionMail($event->fresh(), $workspace, $owner),
+                    ['workspace_name' => $workspace->name], ['user' => $owner->id, 'related' => $event]);
             }
         } catch (\Throwable $e) {
             Log::warning('SensitiveActionLogger alert mail failed', [

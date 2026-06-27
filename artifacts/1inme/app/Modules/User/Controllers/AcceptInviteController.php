@@ -68,9 +68,14 @@ class AcceptInviteController extends Controller
 
         // Notify the inviter (best-effort).
         try {
-            \Mail::raw("{$user->name} ({$user->email}) accepted your invite to '{$ws->name}'.",
-                fn ($m) => $m->to(optional($invite->inviter)->email)
-                    ->subject("Invite accepted: {$ws->name}"));
+            $inviterEmail = optional($invite->inviter)->email;
+            if ($inviterEmail) {
+                \App\Modules\Common\Services\Emailer::send('workspace.invite_accepted', $inviterEmail, [
+                    'user_name'      => $user->name,
+                    'user_email'     => $user->email,
+                    'workspace_name' => $ws->name,
+                ], ['user' => optional($invite->inviter)->id, 'related' => $ws]);
+            }
         } catch (\Throwable $e) {}
 
         return redirect()->route('user.dashboard')->with('success', "Welcome to {$ws->name}.");

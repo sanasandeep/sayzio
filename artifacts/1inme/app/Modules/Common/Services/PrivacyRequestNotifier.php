@@ -114,7 +114,7 @@ class PrivacyRequestNotifier
             return;
         }
         try {
-            Mail::to($email)->send(new PrivacyRequestMail($pr, $stage, $actionUrl));
+            \App\Modules\Common\Services\Emailer::sendMailable('privacy.request', $email, new PrivacyRequestMail($pr, $stage, $actionUrl), ['stage' => $stage], ['related' => $pr]);
         } catch (\Throwable $e) {
             Log::warning("Privacy-request '{$stage}' email to {$email} failed: " . $e->getMessage());
         }

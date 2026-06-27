@@ -119,10 +119,10 @@ class OtpService
     public function sendEmail(string $email, string $code): void
     {
         try {
-            \Mail::raw("Your Sayzio verification code is: {$code}\n\nThis code expires in " . self::TTL_MINUTES . " minutes.\n\nIf you didn't request this code, you can safely ignore this email.", function ($message) use ($email) {
-                $message->to($email);
-                $message->subject('Your Sayzio Verification Code');
-            });
+            \App\Modules\Common\Services\Emailer::send('auth.otp_code', $email, [
+                'code'        => $code,
+                'ttl_minutes' => self::TTL_MINUTES,
+            ]);
         } catch (\Exception $e) {
             \Log::warning('OTP email send failed: ' . $e->getMessage());
         }

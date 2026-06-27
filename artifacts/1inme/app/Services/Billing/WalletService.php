@@ -259,9 +259,11 @@ class WalletService
         ]);
         if ($user->email) {
             try {
-                Mail::raw($body, function ($m) use ($user, $subject) {
-                    $m->to($user->email)->subject($subject);
-                });
+                \App\Modules\Common\Services\Emailer::send('billing.wallet_low', $user->email, [], [
+                    'user'    => $user->id,
+                    'subject' => $subject,
+                    'body'    => $body,
+                ]);
             } catch (\Throwable $e) {
                 Log::info('Wallet email skipped: ' . $e->getMessage());
             }

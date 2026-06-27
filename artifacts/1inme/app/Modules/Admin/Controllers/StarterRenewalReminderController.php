@@ -190,14 +190,10 @@ class StarterRenewalReminderController extends Controller
         }
 
         try {
-            Mail::send(
-                'emails.starter-free-window-reminder',
-                ['user' => $previewUser, 'renewUrl' => $renewUrl, 'endsAt' => $endsAt],
-                function ($message) use ($admin) {
-                    $message->to($admin->email);
-                    $message->subject('[Test] Keep your free Sayzio Starter plan — renew for another year');
-                }
-            );
+            \App\Modules\Common\Services\Emailer::send('starter.free_window_reminder', $admin->email, [], [
+                'subject'   => '[Test] Keep your free Sayzio Starter plan — renew for another year',
+                'view_data' => ['user' => $previewUser, 'renewUrl' => $renewUrl, 'endsAt' => $endsAt],
+            ]);
         } catch (\Throwable $e) {
             return back()->with('error', 'Test reminder email failed: ' . $e->getMessage());
         }
