@@ -2350,12 +2350,30 @@
             box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 14px -8px rgba(15,23,42,.10);
         }
 
-        /* Keep the two #features product-preview panels dark on white — they
-           frame the biolink "blocks" list + the vivid phone, both built for
-           dark, matching the intentionally-dark hero .stack-card motif. */
+        /* In light mode the two #features product-preview panels render as
+           light cards (matching the white "Themes & design controls" / hero
+           tiles), so pin them explicitly white with a subtle border. This makes
+           the surface unambiguous for the dark `.bl-*` labels below — never
+           dark-on-dark. Dark mode keeps the original dark fill (via the base
+           `bg-[#0a0a14]` utility on the element). */
         html.light-mode .feat-preview {
-            background-color: #0a0a14;
-            border-color: rgba(255,255,255,.06);
+            background-color: #ffffff;
+            border-color: rgba(15,23,42,.08);
+        }
+
+        /* ---- Editor-mock block labels (.bl-*) ----
+           The "Reorder blocks" build-list renders on a light card in light
+           mode, but its label colours are calibrated for a dark panel: titles
+           are #fff (invisible on white), subtitles/column labels are near-white,
+           and chip pills use translucent-white fills. Re-skin them so every
+           block label reads clearly on the light card. Dark mode is unaffected. */
+        html.light-mode .bl-title { color: #0f172a; }
+        html.light-mode .bl-sub   { color: #64748b; }
+        html.light-mode .bl-col-t { color: #334155; }
+        html.light-mode .bl-chip  {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #475569;
         }
 
         /* ---- Hero showcase tile rail ---- */
