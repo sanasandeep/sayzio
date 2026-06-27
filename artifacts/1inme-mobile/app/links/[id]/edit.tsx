@@ -382,6 +382,13 @@ export default function EditLinkScreen() {
               onPress={() => router.push(`/links/${id}/blocks` as any)}
             />
           ) : null}
+          {meta.kind === "biolink" ? (
+            <ActionTile
+              icon="map"
+              label="Roadmap"
+              onPress={() => router.push(`/links/${id}/roadmap` as any)}
+            />
+          ) : null}
           {meta.kind === "ai_chat" ? (
             <ActionTile
               icon="message-circle"

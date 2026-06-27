@@ -271,6 +271,18 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/me/reviews/{review}/reply',   [\App\Modules\Api\Controllers\ReviewApiController::class, 'reply'])->whereNumber('review');
         Route::delete('/me/reviews/{review}',         [\App\Modules\Api\Controllers\ReviewApiController::class, 'destroy'])->whereNumber('review');
 
+        // ── Roadmap triage (owner-scoped) ────────────────────────────
+        // Bearer-token parity for the web /user/links/{link}/roadmap
+        // triage dashboard so a creator can manage their biolink's public
+        // roadmap submissions from mobile: list items + counts, change an
+        // item's status/fields, delete an idea, and merge a duplicate into
+        // another. Ownership is the same `links.edit` gate as the web — the
+        // link must belong to the caller and be a biolink-family page.
+        Route::get   ('/links/{link}/roadmap',                  [\App\Modules\Api\Controllers\RoadmapTriageController::class, 'index'])->whereNumber('link');
+        Route::patch ('/links/{link}/roadmap/items/{item}',     [\App\Modules\Api\Controllers\RoadmapTriageController::class, 'update'])->whereNumber('link')->whereNumber('item');
+        Route::delete('/links/{link}/roadmap/items/{item}',     [\App\Modules\Api\Controllers\RoadmapTriageController::class, 'destroy'])->whereNumber('link')->whereNumber('item');
+        Route::post  ('/links/{link}/roadmap/items/{item}/merge',[\App\Modules\Api\Controllers\RoadmapTriageController::class, 'merge'])->whereNumber('link')->whereNumber('item');
+
         // ── Email history (self-scoped) ──────────────────────────────
         // Bearer-token parity for the web /user/emails screen: the user's own
         // transactional emails plus a throttled, allow-listed resend (invoices /
