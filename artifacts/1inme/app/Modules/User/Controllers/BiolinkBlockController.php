@@ -248,6 +248,12 @@ class BiolinkBlockController extends Controller
         return view('user.links.settings.advanced', compact('link'));
     }
 
+    public function settingsEmbed(Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
+        return view('user.links.settings.embed', compact('link'));
+    }
+
     public function store(Request $request, Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);

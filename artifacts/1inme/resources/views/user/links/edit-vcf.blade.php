@@ -30,5 +30,7 @@
             </button>
         </div>
     </form>
+
+    @include('user.links.partials.embed-panel', ['link' => $link])
 </div>
 @endsection

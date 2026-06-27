@@ -61,6 +61,34 @@
     </div>
 </section>
 
+{{-- EMBED ANYWHERE --}}
+<section class="relative pb-24">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="rounded-3xl border border-white/10 bg-white/[0.02] p-8 sm:p-10" data-anim="fade-up">
+            <div class="grid lg:grid-cols-2 gap-8 items-center">
+                <div>
+                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-400/20 text-xs text-blue-300 uppercase tracking-wider font-semibold">
+                        <i class="fas fa-code text-[10px]"></i> Embed anywhere
+                    </span>
+                    <h2 class="mt-4 text-2xl sm:text-3xl font-bold text-white">Drop any link onto your own site.</h2>
+                    <p class="mt-3 text-gray-400 leading-relaxed">
+                        Every link comes with a copy-paste embed code in its Settings. Pages render as a responsive
+                        iframe; short links, files, events and contacts render as a compact card with the right
+                        action button — and every view &amp; click still counts in your analytics.
+                    </p>
+                    <a href="{{ route('register.page') }}" class="mt-6 inline-flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">
+                        Get your embed code <i class="fas fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+                <div class="rounded-2xl border border-white/10 bg-black/30 p-4 overflow-x-auto">
+                    <pre class="text-[12px] leading-relaxed text-blue-200/90 whitespace-pre-wrap break-all"><code>&lt;script src="{{ rtrim(config('app.url'), '/') }}/embed/link/your-alias/embed.js" async&gt;&lt;/script&gt;
+&lt;div data-1inme-embed="your-alias"&gt;&lt;/div&gt;</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- CTA --}}
 <section class="relative pb-28">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

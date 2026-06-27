@@ -780,6 +780,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/settings/layout', [BiolinkBlockController::class, 'settingsLayout'])->middleware('workspace.can:links.view')->name('links.settings.layout');
         Route::get('links/{link}/settings/block-theme', [BiolinkBlockController::class, 'settingsBlockTheme'])->middleware('workspace.can:links.view')->name('links.settings.block-theme');
         Route::get('links/{link}/settings/advanced', [BiolinkBlockController::class, 'settingsAdvanced'])->middleware('workspace.can:links.view')->name('links.settings.advanced');
+        Route::get('links/{link}/settings/embed', [BiolinkBlockController::class, 'settingsEmbed'])->middleware('workspace.can:links.view')->name('links.settings.embed');
 
         // ── Scheduled biolink themes (save current look + schedule it for a window) ──
         Route::get   ('links/{link}/themes',                          [\App\Modules\User\Controllers\BiolinkThemeController::class, 'settingsIndex'])->middleware('workspace.can:links.view')->name('links.themes.settings');

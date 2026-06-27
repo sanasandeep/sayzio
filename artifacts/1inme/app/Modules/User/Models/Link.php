@@ -665,4 +665,79 @@ protected $fillable = [
 
         return $alias;
     }
+
+    /* ------------------------------------------------------------------ *
+     * Embeddable Link Codes (task #2617)
+     *
+     * Any link can be embedded on an external site. Page-style links (the
+     * biolink family + standalone full pages such as paid_page/resume/
+     * reviews) embed as a responsive iframe of the page. Compact action
+     * links (short/file/event/contact) embed as a small "card" with an
+     * intent-labelled button. None of this touches the link schema — it is
+     * all derived from existing columns/relations at render time.
+     * ------------------------------------------------------------------ */
+
+    /** Link types that embed as a compact action card (not a full-page iframe). */
+    public const EMBED_CARD_TYPES = ['url', 'file', 'pdf', 'ics', 'vcf'];
+
+    /** Whether this link embeds as a compact card (vs a full-page iframe). */
+    public function isEmbedCard(): bool
+    {
+        return in_array($this->type, self::EMBED_CARD_TYPES, true);
+    }
+
+    /** Embed presentation: 'card' for action links, 'iframe' for pages. */
+    public function embedKind(): string
+    {
+        return $this->isEmbedCard() ? 'card' : 'iframe';
+    }
+
+    /**
+     * Intent-matched action button for the embed card. The label/icon make
+     * the card's call-to-action obvious on a third-party page.
+     *
+     * @return array{label:string,icon:string}
+     */
+    public function embedAction(): array
+    {
+        return match ($this->type) {
+            'file', 'pdf' => ['label' => 'Download',        'icon' => 'download'],
+            'ics'         => ['label' => 'Add to calendar', 'icon' => 'calendar'],
+            'vcf'         => ['label' => 'Save contact',    'icon' => 'contact'],
+            'url'         => ['label' => 'Open',            'icon' => 'open'],
+            default       => ['label' => 'View',            'icon' => 'open'],
+        };
+    }
+
+    /**
+     * Host the embed snippets/endpoints should be built on. Mirrors
+     * {@see getShortUrl()} — a verified custom domain when attached, else
+     * the platform APP_URL — so the embed resolves on whichever host the
+     * short link itself lives on.
+     */
+    public function embedBaseUrl(): string
+    {
+        if ($this->domain) {
+            return 'https://' . $this->domain->domain;
+        }
+        return rtrim(config('app.url'), '/');
+    }
+
+    /** Auto-rendering `<script>` embed snippet (injects a sized iframe). */
+    public function embedScriptSnippet(): string
+    {
+        $base = $this->embedBaseUrl();
+        return '<script src="' . $base . '/embed/link/' . $this->alias . '/embed.js" async></script>' . "\n"
+             . '<div data-1inme-embed="' . $this->alias . '"></div>';
+    }
+
+    /** Static `<iframe>` embed snippet (no JavaScript required). */
+    public function embedIframeSnippet(): string
+    {
+        $src = $this->embedBaseUrl() . '/embed/link/' . $this->alias . '/iframe';
+        if ($this->isEmbedCard()) {
+            return '<iframe src="' . $src . '" style="width:100%;max-width:420px;height:188px;border:0;" loading="lazy"></iframe>';
+        }
+        return '<iframe src="' . $src . '" style="width:100%;height:80vh;min-height:560px;border:0;" loading="lazy"></iframe>';
+    }
 }

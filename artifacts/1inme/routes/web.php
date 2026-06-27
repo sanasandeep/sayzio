@@ -206,6 +206,15 @@ Route::get('/f/{slug}/iframe',   [\App\Modules\User\Controllers\FormController::
 Route::get('/f/{slug}/embed.js', [\App\Modules\User\Controllers\FormController::class, 'publicEmbedJs'])->name('forms.public.embed')->where('slug', '[a-z0-9-]+');
 Route::post('/f/{slug}',         [\App\Modules\User\Controllers\FormController::class, 'publicSubmit'])->name('forms.public.submit')->where('slug', '[a-z0-9-]+')->middleware('throttle:10,1');
 
+// ---- Embeddable Link Codes (task #2617): card / iframe / loader, CORS-open ----
+// Multi-segment under the reserved `embed` prefix so they never collide with the
+// /{alias} catch-all. Page-style links iframe the live page; action links render
+// a compact card. All views/clicks track through the canonical short URL.
+Route::get    ('/embed/link/{alias}/card',     [\App\Modules\Common\Controllers\PublicEmbedController::class, 'card'])->name('public.embed.card')->where('alias', '[A-Za-z0-9._-]+');
+Route::get    ('/embed/link/{alias}/iframe',   [\App\Modules\Common\Controllers\PublicEmbedController::class, 'iframe'])->name('public.embed.iframe')->where('alias', '[A-Za-z0-9._-]+');
+Route::get    ('/embed/link/{alias}/embed.js', [\App\Modules\Common\Controllers\PublicEmbedController::class, 'js'])->name('public.embed.js')->where('alias', '[A-Za-z0-9._-]+');
+Route::options('/embed/link/{alias}/{any}',    [\App\Modules\Common\Controllers\PublicEmbedController::class, 'preflight'])->where('alias', '[A-Za-z0-9._-]+')->where('any', '.*');
+
 // ---- Public marketing & legal pages (must precede the catch-all /{alias} routes) ----
 Route::get('/login',    fn () => redirect()->route('user.login'))->name('login.page');
 Route::get('/register', fn () => redirect()->route('user.register'))->name('register.page');

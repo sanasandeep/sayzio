@@ -445,6 +445,8 @@
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium">Save Changes</button>
         </div>
     </form>
+
+    @include('user.links.partials.embed-panel', ['link' => $link])
 </div>
 
 @push('scripts')
