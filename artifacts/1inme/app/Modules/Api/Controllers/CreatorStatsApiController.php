@@ -12,6 +12,7 @@ use App\Modules\User\Models\Follow;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Mobile parity for the unified creator Stats home (Task #1211, web
@@ -25,6 +26,15 @@ use Illuminate\Support\Carbon;
  * earnings split the phone surfaces. Earnings are returned in major
  * currency units (dollars) because the mobile screen formats them as
  * `${currency} ${value.toFixed(2)}`.
+ *
+ * On top of the KPI totals this also returns daily `trends` (new
+ * followers + posts published per day, zero-filled across the range) so
+ * the phone can draw the same growth sparkline the web dashboard charts,
+ * and the `analytics_export` capability so the screen can gate its CSV
+ * export action without a second profile round-trip. The requested range
+ * is clamped to the plan's `stats_retention_days` window (mirroring the
+ * web LinkController analytics clamp) so callers can't read history older
+ * than their plan retains.
  */
 class CreatorStatsApiController extends Controller
 {
@@ -43,7 +53,7 @@ class CreatorStatsApiController extends Controller
         $user = $request->user();
         if (!$user) return $this->unauthorized();
 
-        [, $start, $end] = $this->resolveRange($request);
+        [, $start, $end] = $this->resolveRange($request, $user);
 
         $postIds = CreatorPost::query()->withoutGlobalScope('workspace')
             ->where('user_id', $user->id)->pluck('id');
@@ -109,17 +119,77 @@ class CreatorStatsApiController extends Controller
                 'payouts_total' => round($payoutsCents / 100, 2),
                 'currency'      => $currency,
             ],
+            // Daily, zero-filled series mirroring the web dashboard's
+            // audience/content growth charts so the phone can draw a
+            // sparkline instead of just standalone totals.
+            'trends' => [
+                'followers' => $this->dailySeries(
+                    Follow::query()->where('creator_id', $user->id),
+                    'created_at', $start, $end
+                ),
+                'posts' => $this->dailySeries(
+                    CreatorPost::query()->withoutGlobalScope('workspace')
+                        ->where('user_id', $user->id)->whereNotNull('published_at'),
+                    'published_at', $start, $end
+                ),
+            ],
+            // Mirror the web `analytics_export` ("Stats CSV export") paid
+            // gate so the screen can show/hide the export action from the
+            // same payload (defaults true, matching the server fallback).
+            'capabilities' => [
+                'analytics_export' => (bool) $user->getPlanFeature('analytics_export', true),
+            ],
         ]);
     }
 
-    /** @return array{0:string,1:Carbon,2:Carbon} */
-    protected function resolveRange(Request $request): array
+    /**
+     * Resolve the requested preset range, clamping the start to the plan's
+     * stats-history retention window so callers can't read analytics older
+     * than their plan retains (`-1` = unlimited, no clamp). Mirrors the web
+     * LinkController analytics clamp.
+     *
+     * @return array{0:string,1:Carbon,2:Carbon}
+     */
+    protected function resolveRange(Request $request, $user): array
     {
         $range = $request->query('range', '30d');
         if (!isset(self::RANGES[$range])) $range = '30d';
         $days  = self::RANGES[$range];
         $end   = now()->endOfDay();
         $start = now()->subDays($days - 1)->startOfDay();
+
+        $retentionDays = $user->statsRetentionDays();
+        if ($retentionDays !== -1) {
+            $earliest = now()->subDays($retentionDays)->startOfDay();
+            if ($start->lt($earliest)) {
+                $start = $earliest;
+            }
+        }
+
         return [$range, $start, $end];
+    }
+
+    /**
+     * Walk every day in the range and return a list of {date, value}
+     * points (zero-filled). Looped in PHP rather than relying on
+     * DB-specific date_trunc so the same code runs on Postgres + MySQL,
+     * matching the web CreatorStatsController::dailySeries().
+     *
+     * @return list<array{date:string,value:int}>
+     */
+    protected function dailySeries($baseQuery, string $column, Carbon $start, Carbon $end): array
+    {
+        $rows = (clone $baseQuery)
+            ->select(DB::raw("DATE($column) as d"), DB::raw('COUNT(*) as c'))
+            ->whereBetween($column, [$start, $end])
+            ->groupBy(DB::raw("DATE($column)"))
+            ->pluck('c', 'd')->all();
+
+        $out = [];
+        for ($d = $start->copy(); $d <= $end; $d->addDay()) {
+            $key = $d->format('Y-m-d');
+            $out[] = ['date' => $key, 'value' => (int) ($rows[$key] ?? 0)];
+        }
+        return $out;
     }
 }

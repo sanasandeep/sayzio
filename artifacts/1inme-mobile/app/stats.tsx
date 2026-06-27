@@ -3,17 +3,20 @@ import { useQuery } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import Svg, { Polyline } from "react-native-svg";
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { apiFetch, getBaseUrl } from "@/lib/api";
 import { getProfile } from "@/lib/api/profile";
 
-// Task #1211 — mobile parity stub for the unified Stats home (web
-// route: /user/stats). The web view ships the chart-heavy "how am I
-// doing this week?" dashboard; the phone surfaces the same KPI tiles
-// and defers chart drill-downs / CSV export to the browser via a
-// "Open full dashboard" button.
+// Mobile parity for the unified Stats home (web route: /user/stats).
+// The web view ships the chart-heavy "how am I doing this week?"
+// dashboard; the phone surfaces the same KPI tiles plus daily growth
+// sparklines, and defers full chart drill-downs / CSV export to the
+// browser via a "Open full dashboard" button.
+
+type TrendPoint = { date: string; value: number };
 
 type StatsResponse = {
   range: { from: string; to: string };
@@ -21,6 +24,8 @@ type StatsResponse = {
   content: { posts: number; views: number; comments: number };
   engagement: { reactions: number; tips: number };
   earnings: { tips_total: number; subs_total: number; payouts_total: number; currency: string };
+  trends?: { followers: TrendPoint[]; posts: TrendPoint[] };
+  capabilities?: { analytics_export?: boolean };
 };
 
 const RANGES = [
@@ -37,6 +42,30 @@ async function fetchStats(range: RangeKey): Promise<StatsResponse> {
   return res.data;
 }
 
+// Lightweight zero-dependency sparkline (uses the SVG lib already
+// bundled for QR/link art). Falls back to a flat baseline when the
+// series is empty or all-zero so the card never collapses.
+function Sparkline({ data, color, width = 280, height = 48 }: { data: number[]; color: string; width?: number; height?: number }) {
+  const pad = 4;
+  const max = Math.max(1, ...data);
+  const n = data.length;
+  const points =
+    n <= 1
+      ? `${pad},${height - pad} ${width - pad},${height - pad}`
+      : data
+          .map((v, i) => {
+            const x = pad + (i * (width - pad * 2)) / (n - 1);
+            const y = height - pad - (v / max) * (height - pad * 2);
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+          })
+          .join(" ");
+  return (
+    <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+      <Polyline points={points} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 export default function StatsScreen() {
   const colors = useColors();
   const [range, setRange] = useState<RangeKey>("30d");
@@ -48,9 +77,11 @@ export default function StatsScreen() {
     profileQ.refetch();
   }, [q, profileQ]);
   // Mirror the web `analytics_export` ("Stats CSV export") paid gate.
-  // Default-true matches the server helper's fallback, so the control
-  // only hides once we know the plan lacks the feature.
-  const canExport = profileQ.data?.capabilities?.analytics_export ?? true;
+  // Prefer the capability the stats payload now carries; fall back to
+  // the profile (and finally default-true, matching the server helper's
+  // fallback) so the control only hides once we know the plan lacks it.
+  const canExport =
+    q.data?.capabilities?.analytics_export ?? profileQ.data?.capabilities?.analytics_export ?? true;
 
   const tile = (icon: any, label: string, value: string, sub?: string) => (
     <View style={[styles.tile, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
@@ -128,6 +159,26 @@ export default function StatsScreen() {
               {tile("star", "Subscribers", fmt(q.data?.audience?.subscribers))}
             </View>
 
+            {q.data?.trends ? (
+              <>
+                <Text style={[styles.section, { color: colors.foreground }]}>Trends</Text>
+                <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+                  <View style={styles.chartHead}>
+                    <Feather name="trending-up" size={14} color={colors.primary} />
+                    <Text style={[styles.chartLabel, { color: colors.mutedForeground }]}>New followers</Text>
+                  </View>
+                  <Sparkline data={(q.data.trends.followers ?? []).map((p) => p.value)} color={colors.primary} />
+                </View>
+                <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+                  <View style={styles.chartHead}>
+                    <Feather name="file-text" size={14} color={colors.primary} />
+                    <Text style={[styles.chartLabel, { color: colors.mutedForeground }]}>Posts published</Text>
+                  </View>
+                  <Sparkline data={(q.data.trends.posts ?? []).map((p) => p.value)} color={colors.primary} />
+                </View>
+              </>
+            ) : null}
+
             <Text style={[styles.section, { color: colors.foreground }]}>Content & engagement</Text>
             <View style={styles.row}>
               {tile("file-text", "Posts", fmt(q.data?.content?.posts))}
@@ -186,4 +237,7 @@ const styles = StyleSheet.create({
   tileValue: { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold" },
   tileSub: { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
   card: { padding: 16, borderWidth: 1, borderRadius: 12 },
+  chartCard: { padding: 14, borderWidth: 1, gap: 8 },
+  chartHead: { flexDirection: "row", alignItems: "center", gap: 6 },
+  chartLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_500Medium", textTransform: "uppercase", letterSpacing: 0.4 },
 });

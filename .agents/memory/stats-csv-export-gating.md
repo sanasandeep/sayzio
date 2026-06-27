@@ -28,6 +28,10 @@ owner chose to gate everything rather than un-gate the others. Do NOT
 (default-true fallback) and hide/disable the control with upgrade
 messaging client-side. Mobile reads the capability, never re-derives it.
 
-Note: `/api/v1/stats` (the data feed the mobile Stats screen tries to
-fetch) is NOT implemented — the screen is a stub that errors, so the
-gated button is currently unreachable until that endpoint exists.
+Note: `/api/v1/stats` (`CreatorStatsApiController`) IS implemented — it
+returns KPI totals, daily `trends` (followers + posts, zero-filled),
+earnings, AND its own `capabilities.analytics_export` flag, with the
+range start clamped to `User::statsRetentionDays()` (mirrors the web
+LinkController analytics clamp). The mobile screen prefers the stats
+payload's `capabilities.analytics_export`, then the profile capability,
+then default-true.

@@ -58,8 +58,64 @@ class CreatorStatsApiTest extends TestCase
                     'content'    => ['posts', 'views', 'comments'],
                     'engagement' => ['reactions', 'tips'],
                     'earnings'   => ['tips_total', 'subs_total', 'payouts_total', 'currency'],
+                    'trends'     => [
+                        'followers' => [['date', 'value']],
+                        'posts'     => [['date', 'value']],
+                    ],
+                    'capabilities' => ['analytics_export'],
                 ],
             ]);
+    }
+
+    public function test_trends_are_zero_filled_across_the_range(): void
+    {
+        $user = $this->makeUser();
+
+        $res = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token($user)])
+            ->getJson('/api/v1/stats?range=7d')
+            ->assertOk();
+
+        // 7d preset = 7 zero-filled daily points per series.
+        $this->assertCount(7, $res->json('data.trends.followers'));
+        $this->assertCount(7, $res->json('data.trends.posts'));
+        $this->assertSame(0, $res->json('data.trends.followers.0.value'));
+    }
+
+    public function test_trend_series_counts_activity_by_day(): void
+    {
+        $creator = $this->makeUser();
+        $fan     = $this->makeUser();
+
+        Follow::create([
+            'follower_id' => $fan->id,
+            'creator_id'  => $creator->id,
+            'created_at'  => now()->subDay(),
+        ]);
+
+        $res = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token($creator)])
+            ->getJson('/api/v1/stats?range=7d')
+            ->assertOk();
+
+        $followerTrend = collect($res->json('data.trends.followers'));
+        $this->assertSame(1, $followerTrend->sum('value'));
+        $this->assertSame(1, $followerTrend->firstWhere('date', now()->subDay()->format('Y-m-d'))['value']);
+    }
+
+    public function test_range_start_is_clamped_to_plan_retention_window(): void
+    {
+        // A plan-less user resolves to the 30-day retention default
+        // (User::statsRetentionDays()). Asking for 1y (365 days) must clamp
+        // the window so callers can't read history older than the plan
+        // retains.
+        $user = $this->makeUser();
+
+        $res = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token($user)])
+            ->getJson('/api/v1/stats?range=1y')
+            ->assertOk();
+
+        $from = $res->json('data.range.from');
+        $earliest = now()->subDays(30)->startOfDay()->format('Y-m-d');
+        $this->assertSame($earliest, $from);
     }
 
     public function test_stats_reflects_creator_activity_in_range(): void
