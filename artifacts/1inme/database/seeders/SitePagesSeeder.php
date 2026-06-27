@@ -218,6 +218,10 @@ class SitePagesSeeder extends Seeder
         // Policy pages: insert if missing; otherwise only append default
         // sections that don't already exist (matched by stable id), so we
         // never overwrite an admin-edited body.
+        // Prior generations of policy defaults (richDefaults + each
+        // policyDefaultsV*), used to detect a still-untouched page so we
+        // can refresh it wholesale to the current copy.
+        $previousDefaults = SitePagesContent::policyPreviousDefaults();
         foreach ($policySlugs as $slug) {
             if (!isset($policyDefaults[$slug])) continue;
             $data = $policyDefaults[$slug];
@@ -234,32 +238,48 @@ class SitePagesSeeder extends Seeder
                 ]);
                 continue;
             }
-            $previousRich = $rich[$slug] ?? null;
+            $prevList = $previousDefaults[$slug] ?? [];
+            $prevSectionSets = array_map(static fn ($p) => $p['sections'] ?? [], $prevList);
             $current = is_array($existing->sections) ? $existing->sections : [];
-            // If the page still holds the previously-seeded rich defaults
+            // If the page still holds any previously-seeded defaults
             // wholesale, replace them. Otherwise, only append missing
             // sections so admin edits are preserved.
-            if ($previousRich && SitePagesContent::sectionsMatchExactly($current, $previousRich['sections'] ?? [])) {
+            $isUntouched = SitePagesContent::sectionsMatchAnyPrevious($current, $prevSectionSets);
+            if ($isUntouched) {
                 $merged = SitePagesContent::normalizeSections($data['sections']);
             } else {
                 $merged = SitePagesContent::mergeMissingSections($current, $data['sections']);
             }
-            // Only refresh title/meta if they still hold a previously-seeded
-            // default, so admin-edited values are preserved.
+            // Only refresh title/meta/intro if they still hold a
+            // previously-seeded default, so admin-edited values are kept.
             $newTitle = $existing->title;
             $newMeta = $existing->meta_description;
-            if ($previousRich && trim((string) $existing->title) === trim((string) ($previousRich['title'] ?? ''))) {
-                $newTitle = $data['title'];
+            $newIntro = $existing->intro;
+            $newLastUpdated = $existing->last_updated_at;
+            foreach ($prevList as $prev) {
+                if (trim((string) $existing->title) === trim((string) ($prev['title'] ?? ''))) {
+                    $newTitle = $data['title'];
+                }
+                if (trim((string) $existing->meta_description) === trim((string) ($prev['meta_description'] ?? ''))) {
+                    $newMeta = $data['meta_description'] ?? $existing->meta_description;
+                }
+                if (trim((string) $existing->intro) === trim((string) ($prev['intro'] ?? ''))) {
+                    $newIntro = $data['intro'] ?? $existing->intro;
+                }
             }
-            if ($previousRich && trim((string) $existing->meta_description) === trim((string) ($previousRich['meta_description'] ?? ''))) {
-                $newMeta = $data['meta_description'] ?? $existing->meta_description;
+            // Stamp the "last updated" date forward only when we actually
+            // refreshed the body wholesale from the new defaults.
+            if ($isUntouched) {
+                $newLastUpdated = $data['last_updated_at'] ?? $existing->last_updated_at;
+            } elseif (empty($newLastUpdated)) {
+                $newLastUpdated = $data['last_updated_at'] ?? null;
             }
             $existing->fill([
                 'title'            => $newTitle,
                 'meta_description' => $newMeta,
                 'sections'         => $merged,
-                'intro'            => $existing->intro ?: ($data['intro'] ?? null),
-                'last_updated_at'  => $existing->last_updated_at ?: ($data['last_updated_at'] ?? null),
+                'intro'            => $newIntro ?: ($data['intro'] ?? null),
+                'last_updated_at'  => $newLastUpdated,
             ]);
             $existing->save();
         }

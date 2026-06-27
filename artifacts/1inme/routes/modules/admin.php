@@ -191,6 +191,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/', [\App\Modules\Admin\Controllers\SocialLinksController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
         });
 
+        Route::prefix('company-identity')->name('company-identity.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\CompanyIdentityController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::post('/', [\App\Modules\Admin\Controllers\CompanyIdentityController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+
         Route::prefix('spam-rules')->name('spam-rules.')->group(function () {
             Route::get('/', [SpamRuleStatsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
         });

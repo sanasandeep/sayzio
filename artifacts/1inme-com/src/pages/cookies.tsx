@@ -4,9 +4,11 @@ export default function Cookies() {
   return (
     <LegalPage
       metaTitle="Cookie Policy"
-      metaDescription="What cookies and similar technologies Sayzio uses, why we use them, and how you can control them."
+      metaDescription="What cookies, local storage, tracking and optional marketing pixels Sayzio uses, why we use them, and how you can control them."
       titleLead="Cookie"
       titleHighlight="Policy"
+      lastUpdated="June 27, 2026"
+      intro="This policy explains the cookies, local storage and tracking technologies Sayzio uses, and the choices you have. It complements our Privacy Policy."
       sections={[
         {
           title: "What cookies are",
@@ -27,21 +29,27 @@ export default function Cookies() {
           ],
         },
         {
-          title: "Analytics cookies",
+          title: "Analytics, click and scan tracking",
           body: [
-            "We use first-party analytics to understand which features are used and where people get stuck, so we can improve the product. The data is aggregated and never sold. Where required by law we ask for your consent before setting these.",
+            "We use first-party analytics to record link clicks, QR-code scans, page sessions, referrers, approximate location (from IP), device and browser, so we can run and improve the product. We also use your browser's local storage and session storage to keep you signed in and avoid double-counting events. This data is aggregated and never sold. Where required by law we ask for your consent before setting non-essential analytics.",
+          ],
+        },
+        {
+          title: "Optional marketing pixels",
+          body: [
+            "On our public marketing pages we may load optional third-party advertising/analytics pixels to measure campaigns, only where you have consented if consent is required. These may include Facebook (Meta) Pixel, Google Analytics / Google Tag Manager, LinkedIn Insight Tag, Twitter/X Pixel, Pinterest Tag, TikTok Pixel, Snapchat Pixel and Quora Pixel. They are not injected into the pages you publish for your own visitors.",
           ],
         },
         {
           title: "Cookies on your published pages",
           body: [
-            "Pages you publish on Sayzio set only the strictly necessary cookies needed to run them. We do not inject third-party advertising or marketing cookies into your visitors' browsers.",
+            "Pages you publish on Sayzio set only the strictly necessary cookies needed to run them, plus the first-party analytics above. We do not inject third-party advertising or marketing cookies into your visitors' browsers.",
           ],
         },
         {
           title: "How to control cookies",
           body: [
-            "You can clear and block cookies from your browser settings at any time. Disabling strictly necessary cookies will sign you out and break parts of the dashboard; disabling functional or analytics cookies is safe but may make the experience less convenient.",
+            "You can clear and block cookies from your browser settings at any time, and change your consent for non-essential cookies and marketing pixels through our cookie preferences. Disabling strictly necessary cookies will sign you out and break parts of the dashboard; disabling functional or analytics cookies is safe but may make the experience less convenient.",
           ],
         },
       ]}

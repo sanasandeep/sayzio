@@ -423,6 +423,14 @@
             <span class="sidebar-tooltip">Social Links</span>
         </a>
 
+        <a href="{{ route('admin.company-identity.edit') }}"
+           class="sidebar-link {{ request()->routeIs('admin.company-identity.*') ? 'active' : '' }}"
+           style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-building-shield"></i></div>
+            <span class="nav-label">Company Identity</span>
+            <span class="sidebar-tooltip">Company Identity</span>
+        </a>
+
         <a href="{{ route('admin.contact-inbox.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.contact-inbox.*') ? 'active' : '' }}"
            style="--nav-tint:#f97316; --nav-tint-soft:rgba(249,115,22,0.12);">

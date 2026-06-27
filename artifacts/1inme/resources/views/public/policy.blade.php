@@ -25,7 +25,7 @@
             </p>
         @endif
         @if($page->intro)
-            <p class="mt-5 text-lg text-gray-300 leading-relaxed max-w-3xl">{{ $page->intro }}</p>
+            <p class="mt-5 text-lg text-gray-300 leading-relaxed max-w-3xl">{{ \App\Modules\Common\Support\CompanyIdentity::substitute($page->intro) }}</p>
         @endif
     </div>
 </section>
@@ -64,7 +64,7 @@
                             </h2>
                         @endif
                         <div class="prose-light text-gray-300 leading-relaxed space-y-3">
-                            {!! \App\Services\SafeHtml::render($s['body'] ?? '') !!}
+                            {!! \App\Services\SafeHtml::render(\App\Modules\Common\Support\CompanyIdentity::substitute($s['body'] ?? '')) !!}
                         </div>
                     </article>
                 @endforeach

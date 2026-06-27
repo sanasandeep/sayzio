@@ -7,6 +7,8 @@ export default function Refunds() {
       metaDescription="How refunds work for Sayzio paid plans — eligibility, timing, exceptions and how to request one."
       titleLead="Refunds"
       titleHighlight="Policy"
+      lastUpdated="June 27, 2026"
+      intro="This Refunds Policy applies to paid plans and add-ons for Sayzio, operated by Sayzio with its registered office in Hyderabad, Telangana, India."
       sections={[
         {
           title: "7-day refund window",
@@ -29,13 +31,19 @@ export default function Refunds() {
         {
           title: "How to request a refund",
           body: [
-            "Email our team from your account email, include the invoice number, and tell us briefly what didn't work for you (it helps us improve). We process approved refunds within 5 business days back to the original payment method.",
+            "Contact our team from your account email through the contact form, include the invoice number, and tell us briefly what didn't work for you (it helps us improve). We process approved refunds within 5 business days back to the original payment method.",
           ],
         },
         {
           title: "Chargebacks",
           body: [
             "Please contact us first before raising a chargeback — we can almost always resolve the issue faster than your bank can. Accounts with unresolved chargebacks may be suspended pending review.",
+          ],
+        },
+        {
+          title: "Contact",
+          body: [
+            "Questions about this policy or a specific charge? Contact Sayzio through the contact form. Our registered office is in Hyderabad, Telangana, India.",
           ],
         },
       ]}

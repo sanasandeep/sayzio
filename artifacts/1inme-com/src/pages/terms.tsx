@@ -4,9 +4,11 @@ export default function Terms() {
   return (
     <LegalPage
       metaTitle="Terms & Conditions"
-      metaDescription="The terms governing your use of Sayzio — your account, what you can publish, billing, intellectual property and how we end the relationship."
+      metaDescription="The terms governing your use of Sayzio — your account, what you can publish, billing, intellectual property, governing law and how we end the relationship."
       titleLead="Terms &"
       titleHighlight="Conditions"
+      lastUpdated="June 27, 2026"
+      intro="These terms govern your use of Sayzio, operated by Sayzio with its registered office in Hyderabad, Telangana, India. By creating an account or using the service you agree to be bound by them."
       sections={[
         {
           title: "1. Acceptance",
@@ -45,15 +47,33 @@ export default function Terms() {
           ],
         },
         {
-          title: "7. Termination",
+          title: "7. Hosting and AI providers",
+          body: [
+            "We host the service on Amazon Web Services (AWS), using Amazon RDS for our database and Amazon S3 for files and media. Some features rely on AI providers — OpenAI (text), OpenAI Whisper (speech-to-text) and ElevenLabs (text-to-speech) — which process the content you submit when you choose to use those features. See our Privacy Policy for the full hosting and sub-processor details.",
+          ],
+        },
+        {
+          title: "8. Termination",
           body: [
             "You can close your account at any time from your settings. We may suspend or close accounts that violate these terms, with notice where reasonable. On termination, your published pages stop resolving and your data is removed within a reasonable period.",
           ],
         },
         {
-          title: "8. Changes to these terms",
+          title: "9. Governing law and disputes",
+          body: [
+            "These terms are governed by the laws of India. The courts located in Hyderabad, Telangana, India have exclusive jurisdiction over any dispute, except where mandatory law assigns jurisdiction to another court such as your local consumer court. Before raising a formal claim, please contact us so we can try to resolve the matter informally.",
+          ],
+        },
+        {
+          title: "10. Changes to these terms",
           body: [
             "We may update these terms when the service changes or the law requires. Material changes are announced by email and inside the dashboard at least 14 days before they take effect.",
+          ],
+        },
+        {
+          title: "11. Contact",
+          body: [
+            "Questions about these terms? Contact Sayzio through the contact form. Our registered office is in Hyderabad, Telangana, India.",
           ],
         },
       ]}

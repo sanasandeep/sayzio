@@ -4,9 +4,11 @@ export default function Gdpr() {
   return (
     <LegalPage
       metaTitle="GDPR Policy"
-      metaDescription="Our compliance with the EU General Data Protection Regulation, including lawful bases, your rights and international data transfers."
+      metaDescription="Our compliance with the EU General Data Protection Regulation, including lawful bases, your rights, sub-processors (AWS, OpenAI, ElevenLabs) and international data transfers."
       titleLead="GDPR"
       titleHighlight="Policy"
+      lastUpdated="June 27, 2026"
+      intro="This statement explains how Sayzio, registered office Hyderabad, Telangana, India, complies with the EU GDPR and the UK GDPR."
       sections={[
         {
           title: "Who this applies to",
@@ -15,9 +17,9 @@ export default function Gdpr() {
           ],
         },
         {
-          title: "Roles",
+          title: "Who we are (controller)",
           body: [
-            "For your account information you are the data subject and we are the data controller. For the personal data of your visitors and contacts that you collect through Sayzio (form submissions, leads, followers), you are the data controller and we act as your data processor.",
+            "The service is operated by Sayzio, with its registered office in Hyderabad, Telangana, India. For your account information you are the data subject and we are the data controller. For the personal data of your visitors and contacts that you collect through Sayzio (form submissions, leads, followers), you are the data controller and we act as your data processor.",
           ],
         },
         {
@@ -33,9 +35,15 @@ export default function Gdpr() {
           ],
         },
         {
+          title: "Sub-processors",
+          body: [
+            "We engage trusted sub-processors, each bound by a data-processing agreement: Amazon Web Services (AWS — Amazon RDS for our database and Amazon S3 for files/media) for hosting and storage; OpenAI, OpenAI Whisper and ElevenLabs for the AI features that process content you submit; plus transactional email, SMS, payments, analytics and error monitoring. The current list is available on request.",
+          ],
+        },
+        {
           title: "International data transfers",
           body: [
-            "Where personal data is transferred outside the EU/EEA or UK, we rely on the European Commission's Standard Contractual Clauses (and the UK addendum where applicable) with each sub-processor to provide an adequate level of protection.",
+            "Because we use AWS and the AI providers above, personal data may be transferred outside the EU/EEA or UK. Where that happens we rely on the European Commission's Standard Contractual Clauses (and the UK addendum where applicable) with each sub-processor to provide an adequate level of protection.",
           ],
         },
         {

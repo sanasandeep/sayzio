@@ -126,7 +126,11 @@
         </div>
     </div>
     <div class="border-t border-white/5 py-5 text-center text-xs text-gray-500">
-        © {{ date('Y') }} {{ config('app.name', 'Sayzio') }}. All rights reserved.
+        @php $__company = \App\Modules\Common\Support\CompanyIdentity::all(); @endphp
+        © {{ date('Y') }} {{ $__company['company_legal_name'] ?: config('app.name', 'Sayzio') }}. All rights reserved.
+        @if(!empty($__company['company_registered_address']))
+            <span class="block mt-1 text-[11px] text-gray-600">{{ \Illuminate\Support\Str::of($__company['company_registered_address'])->replace(["\r\n", "\n"], ', ') }}</span>
+        @endif
         @php
             $__ccCfg = \App\Modules\Common\Support\CookieConsentConfig::shouldRender('site')
                 ? \App\Modules\Common\Support\CookieConsentConfig::get() : null;

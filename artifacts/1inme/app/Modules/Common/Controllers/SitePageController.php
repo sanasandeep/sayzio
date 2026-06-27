@@ -131,6 +131,12 @@ class SitePageController extends Controller
         }
         if (in_array($slug, SitePagesContent::policySlugs(), true)) {
             $hasHistory = SitePageRevision::where('site_page_id', $page->id)->exists();
+            // Resolve company-identity tokens (e.g. {{app_name}}) in the SEO
+            // title/description too, not just the body — these feed the
+            // <title>/<meta description> via MarketingSeo. Mutating the model
+            // in-memory only; the row keeps its tokenised template.
+            $page->title = \App\Modules\Common\Support\CompanyIdentity::substitute((string) $page->title);
+            $page->meta_description = \App\Modules\Common\Support\CompanyIdentity::substitute((string) $page->meta_description);
             return view('public.policy', ['page' => $page, 'hasHistory' => $hasHistory]);
         }
         if ($slug === 'how-it-works') {
