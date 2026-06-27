@@ -49,6 +49,14 @@ Schedule::command('calendars:sync')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Every 15 minutes: inbound half of two-way sync — pull owner edits/deletes from
+// connected Google calendars back into published (followable) calendars so
+// followers see updates without re-subscribing.
+Schedule::command('calendars:pull-published')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every 30 minutes: pull/push Google Contacts for all connected accounts.
 Schedule::command('contacts:sync')
     ->everyThirtyMinutes()

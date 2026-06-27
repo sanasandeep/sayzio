@@ -131,9 +131,9 @@
                         <input type="date" name="to" class="{{ $inputClass }}">
                     </div>
                     <button type="submit" class="px-4 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white">
-                        <i class="fas fa-sync-alt mr-1"></i> Sync to {{ $syncAccount->providerLabel() }}
+                        <i class="fas fa-sync-alt mr-1"></i> Sync with {{ $syncAccount->providerLabel() }}
                     </button>
-                    <span class="text-[11px] text-white/40">Leave dates empty to sync the whole calendar.</span>
+                    <span class="text-[11px] text-white/40">Two-way: pushes your events up and pulls your Google edits back in. Leave dates empty to sync the whole calendar.</span>
                 </form>
             @endif
         </div>

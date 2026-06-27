@@ -347,6 +347,159 @@ class CalendarSyncService
         $mirror->delete();
     }
 
+    /**
+     * Full two-way reconcile for a followable {@see Calendar}: first push every
+     * Sayzio event up to the external calendar, then pull the owner's external
+     * edits/deletes back down. Lets owners manage their calendar from either
+     * side and keeps followers seeing the latest without re-subscribing.
+     *
+     * @return array{pushed:int,failed:int,total:int,updated:int,deleted:int,skipped:int,errors:int}
+     */
+    public function syncCalendar(CalendarAccount $account, Calendar $calendar, ?CarbonInterface $from = null, ?CarbonInterface $to = null): array
+    {
+        // Pull first so the owner's external edits/deletes win over a stale local
+        // copy, then push so brand-new local events and the reconciled state land
+        // back on the external calendar.
+        $pull = $this->pullCalendar($account, $calendar, $from, $to);
+        $push = $this->pushCalendar($account, $calendar, $from, $to);
+
+        return array_merge($push, $pull);
+    }
+
+    /**
+     * Pull the owner's external (e.g. Google) edits back into a followable
+     * {@see Calendar}. This is the inbound half of two-way sync.
+     *
+     * Reconcile-only by design: it never invents new followable events from the
+     * owner's private external calendar — it only touches events Sayzio already
+     * pushed (tracked via CalendarEventMirror, source='push', keyed on
+     * calendar_event_id). For each such event still present externally it copies
+     * the external title/description/location/time changes down; events the owner
+     * deleted externally (within the listed window) are removed locally so they
+     * disappear for followers too.
+     *
+     * @return array{updated:int,deleted:int,skipped:int,errors:int}
+     */
+    public function pullCalendar(CalendarAccount $account, Calendar $calendar, ?CarbonInterface $from = null, ?CarbonInterface $to = null): array
+    {
+        $stats = ['updated' => 0, 'deleted' => 0, 'skipped' => 0, 'errors' => 0];
+
+        $eventIds = $calendar->events()->pluck('id');
+        if ($eventIds->isEmpty()) {
+            return $stats;
+        }
+
+        $mirrors = CalendarEventMirror::where('calendar_account_id', $account->id)
+            ->where('source', 'push')
+            ->whereIn('calendar_event_id', $eventIds)
+            ->with('calendarEvent')
+            ->get()
+            ->keyBy('external_event_id');
+
+        if ($mirrors->isEmpty()) {
+            return $stats;
+        }
+
+        $provider = $this->registry->get($account->provider);
+        $from = $from ? Carbon::instance($from) : now()->subDays(7);
+        $to   = $to   ? Carbon::instance($to)   : now()->addMonths(6);
+
+        $account->update(['last_sync_status' => 'running', 'last_sync_error' => null]);
+
+        try {
+            $seen = [];
+            foreach ($provider->listEvents($account, $from, $to) as $external) {
+                $extId  = $external['external_event_id'];
+                $mirror = $mirrors->get($extId);
+                if (!$mirror) {
+                    continue; // not one of our pushed events — leave it alone.
+                }
+                $seen[$extId] = true;
+                try {
+                    $stats[$this->applyExternalToEvent($mirror, $external)]++;
+                } catch (\Throwable $e) {
+                    $stats['errors']++;
+                    Log::warning('Calendar pull-back update failed', ['mirror' => $mirror->id, 'err' => $e->getMessage()]);
+                }
+            }
+
+            // Events the owner deleted externally — only act on the window we listed,
+            // and only when the whole listing succeeded (no errors), so a transient
+            // provider hiccup can never wipe the owner's published events.
+            if ($stats['errors'] === 0) {
+                foreach ($mirrors as $extId => $mirror) {
+                    if (isset($seen[$extId])) {
+                        continue;
+                    }
+                    $event = $mirror->calendarEvent;
+                    if ($event && $event->start_at && $event->start_at->betweenIncluded($from, $to)) {
+                        $event->delete();
+                        $mirror->delete();
+                        $stats['deleted']++;
+                    }
+                }
+            }
+
+            $account->update([
+                'last_sync_status' => 'ok',
+                'last_synced_at'   => now(),
+                'last_sync_error'  => null,
+            ]);
+        } catch (\Throwable $e) {
+            $stats['errors']++;
+            $account->update([
+                'last_sync_status' => 'error',
+                'last_sync_error'  => Str::limit($e->getMessage(), 500),
+            ]);
+            Log::error('Calendar pull-back failed', ['account' => $account->id, 'calendar' => $calendar->id, 'err' => $e->getMessage()]);
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Copy a single external event's changes onto the followable CalendarEvent
+     * behind a push mirror. Returns 'updated' when something changed, else
+     * 'skipped'. Sayzio-only fields (payment_url, lat/lng, hashtags, params) are
+     * left untouched — the external provider doesn't carry them.
+     *
+     * @return 'updated'|'skipped'
+     */
+    protected function applyExternalToEvent(CalendarEventMirror $mirror, array $external): string
+    {
+        $event = $mirror->calendarEvent;
+        if (!$event) {
+            return 'skipped';
+        }
+
+        // Nothing changed since we last saw this event — cheap no-op.
+        if ($mirror->etag && !empty($external['etag']) && $mirror->etag === $external['etag']) {
+            $mirror->update(['last_seen_at' => now()]);
+
+            return 'skipped';
+        }
+
+        return DB::transaction(function () use ($event, $mirror, $external) {
+            $event->update([
+                'title'       => $external['summary'] ?: '(no title)',
+                'description' => $external['description'],
+                'location'    => $external['location'],
+                'start_at'    => $external['start'],
+                'end_at'      => $external['end'],
+                'timezone'    => $external['timezone'] ?: 'UTC',
+                'all_day'     => (bool) $external['all_day'],
+            ]);
+            $mirror->update([
+                'etag'                => $external['etag'] ?: null,
+                'ical_uid'            => $external['ical_uid'] ?? $mirror->ical_uid,
+                'external_updated_at' => $external['updated_at'],
+                'last_seen_at'        => now(),
+            ]);
+
+            return 'updated';
+        });
+    }
+
     private function makeAlias(string $base): string
     {
         $slug = Str::slug(Str::limit($base, 40, ''));

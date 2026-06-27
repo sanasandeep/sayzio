@@ -92,10 +92,11 @@ class CalendarController extends Controller
     }
 
     /**
-     * Push every event of an owned calendar to a connected Google account,
-     * reusing the existing CalendarSyncService / CalendarEventMirror machinery.
-     * Plan-gated behind the `calendar_sync` feature; supports an optional
-     * ?from / ?to date range for a partial export.
+     * Two-way sync an owned calendar with a connected Google account, reusing
+     * the existing CalendarSyncService / CalendarEventMirror machinery: pushes
+     * every Sayzio event up, then pulls the owner's Google edits/deletes back
+     * down. Plan-gated behind the `calendar_sync` feature; supports an optional
+     * ?from / ?to date range for a partial sync.
      */
     public function syncToGoogle(Request $request, Link $link)
     {
@@ -121,14 +122,23 @@ class CalendarController extends Controller
 
         try {
             $result = app(\App\Modules\User\Services\Calendar\CalendarSyncService::class)
-                ->pushCalendar($account, $calendar, $from, $to);
+                ->syncCalendar($account, $calendar, $from, $to);
         } catch (\Throwable $e) {
             return back()->with('error', 'Google sync failed: ' . $e->getMessage());
         }
 
-        $msg = "Synced {$result['pushed']} event(s) to {$account->providerLabel()}.";
-        if ($result['failed'] > 0) {
-            $msg .= " {$result['failed']} could not be synced — try again later.";
+        $msg = "Synced with {$account->providerLabel()}: pushed {$result['pushed']} event(s)";
+        $pulled = ($result['updated'] ?? 0) + ($result['deleted'] ?? 0);
+        if ($pulled > 0) {
+            $msg .= ", pulled {$result['updated']} edit(s)";
+            if (($result['deleted'] ?? 0) > 0) {
+                $msg .= " and removed {$result['deleted']} deleted event(s)";
+            }
+        }
+        $msg .= '.';
+        if (($result['failed'] ?? 0) > 0 || ($result['errors'] ?? 0) > 0) {
+            $failed = ($result['failed'] ?? 0) + ($result['errors'] ?? 0);
+            $msg .= " {$failed} item(s) couldn't be synced — try again later.";
         }
 
         return back()->with('success', $msg);
