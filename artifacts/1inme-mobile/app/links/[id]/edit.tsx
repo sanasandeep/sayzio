@@ -489,6 +489,13 @@ export default function EditLinkScreen() {
             label={nfcCount > 0 ? `NFC · ${nfcCount}` : "Write NFC"}
             onPress={() => setNfcOpen(true)}
           />
+          <ActionTile
+            icon="shield"
+            label="Insurance"
+            onPress={() =>
+              router.push(`/links/${id}/settings/insurance` as any)
+            }
+          />
         </View>
         <NfcWriteSheet
           visible={nfcOpen}

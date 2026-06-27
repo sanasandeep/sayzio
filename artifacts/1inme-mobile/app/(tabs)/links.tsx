@@ -78,21 +78,34 @@ export default function LinksTab() {
           <Text style={[styles.title, { color: colors.foreground }]}>
             Links
           </Text>
-          <Pressable
-            onPress={() => router.push("/(tabs)/create")}
-            hitSlop={8}
-            style={[
-              styles.newBtn,
-              { backgroundColor: colors.primary, borderRadius: colors.radius },
-            ]}
-          >
-            <Feather name="plus" size={16} color={colors.primaryForeground} />
-            <Text
-              style={[styles.newBtnText, { color: colors.primaryForeground }]}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Pressable
+              onPress={() => router.push("/links/insurance" as any)}
+              hitSlop={8}
+              accessibilityLabel="Link Health"
+              style={[
+                styles.healthBtn,
+                { borderColor: colors.border, borderRadius: colors.radius },
+              ]}
             >
-              New
-            </Text>
-          </Pressable>
+              <Feather name="shield" size={16} color={colors.foreground} />
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/(tabs)/create")}
+              hitSlop={8}
+              style={[
+                styles.newBtn,
+                { backgroundColor: colors.primary, borderRadius: colors.radius },
+              ]}
+            >
+              <Feather name="plus" size={16} color={colors.primaryForeground} />
+              <Text
+                style={[styles.newBtnText, { color: colors.primaryForeground }]}
+              >
+                New
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
         <View
@@ -220,6 +233,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   newBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  healthBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   search: {
     flexDirection: "row",
     alignItems: "center",

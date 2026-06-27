@@ -477,6 +477,19 @@ Route::prefix('v1')->group(function () {
         Route::patch('/links/{id}',  [LinkController::class, 'update'])->whereNumber('id');
         Route::delete('/links/{id}', [LinkController::class, 'destroy'])->whereNumber('id');
 
+        // ── Link Insurance (Task #2602) ──────────────────────────────
+        // Bearer-token parity for the web /user/insurance + per-link
+        // /user/links/{link}/insurance surfaces: workspace dashboard,
+        // per-link settings, update + replace backups, restore primary,
+        // and an on-demand probe. The probe/failover/restore engine is
+        // reused verbatim from LinkHealthChecker — no new logic. The
+        // signed-email one-click restore/promote-next routes stay web-only.
+        Route::get ('/insurance',                    [\App\Modules\Api\Controllers\LinkInsuranceController::class, 'dashboard']);
+        Route::get ('/links/{id}/insurance',         [\App\Modules\Api\Controllers\LinkInsuranceController::class, 'show'])->whereNumber('id');
+        Route::put ('/links/{id}/insurance',         [\App\Modules\Api\Controllers\LinkInsuranceController::class, 'update'])->whereNumber('id');
+        Route::post('/links/{id}/insurance/restore', [\App\Modules\Api\Controllers\LinkInsuranceController::class, 'restore'])->whereNumber('id');
+        Route::post('/links/{id}/insurance/probe',   [\App\Modules\Api\Controllers\LinkInsuranceController::class, 'probe'])->whereNumber('id')->middleware('throttle:30,1');
+
         // Full-page AI chat link editor (links.type = ai_chat). Mirrors
         // the web user.links.ai-chat.{editor,save} routes, reusing the AI
         // Companion infra via the shared AiChatPageManager.
