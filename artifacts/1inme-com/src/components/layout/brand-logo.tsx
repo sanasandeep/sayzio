@@ -11,11 +11,14 @@ import { fetchBrandLogos, type BrandLogos } from "@/lib/branding";
 export function BrandLogo({
   imgHeight = 28,
   textClassName,
+  variant = "full",
 }: {
   /** Rendered logo image height in px. */
   imgHeight?: number;
   /** Class applied to the text-wordmark fallback. */
   textClassName?: string;
+  /** `full` shows the wordmark logo; `icon` shows the square brand mark. */
+  variant?: "full" | "icon";
 }) {
   const { theme } = useTheme();
   const [logos, setLogos] = useState<BrandLogos | null>(null);
@@ -47,7 +50,9 @@ export function BrandLogo({
 
   const resolved = theme === "system" ? (systemDark ? "dark" : "light") : theme;
 
-  const src = resolved === "dark" ? logos?.logoDark : logos?.logoLight;
+  const wordmark = resolved === "dark" ? logos?.logoDark : logos?.logoLight;
+  // The icon mark is theme-agnostic; fall back to the wordmark for the variant.
+  const src = variant === "icon" ? logos?.icon ?? wordmark : wordmark;
 
   if (src) {
     return (
@@ -58,6 +63,10 @@ export function BrandLogo({
         className="block"
       />
     );
+  }
+
+  if (variant === "icon") {
+    return <span className={textClassName}>S</span>;
   }
 
   return <span className={textClassName}>Sayzio</span>;

@@ -282,6 +282,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileOpenGroup, setMobileOpenGroup] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeGroup = megaGroups.find((group) => group.label === openMenu) ?? null;
@@ -314,6 +315,14 @@ export function Header() {
     };
   }, [mobileMenuOpen]);
 
+  // Snap the floating pill solid to the top once the page scrolls.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // Escape closes whichever surface is open.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -328,13 +337,32 @@ export function Header() {
 
   return (
     <header
-      className="fixed inset-x-0 z-50 glass-card border-x-0 border-t-0"
+      className="fixed inset-x-0 z-50"
       style={{ top: "var(--inme-anno-h, 0px)" }}
     >
-      <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+      <div className={`mkt-navbar-bar ${scrolled ? "is-stuck" : ""}`}>
+      <div className="container relative mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center" aria-label="Sayzio home">
+          {/* Desktop wordmark */}
+          <Link
+            href="/"
+            className="hidden lg:flex items-center"
+            aria-label="Sayzio home"
+          >
             <BrandLogo imgHeight={28} textClassName="text-xl font-bold tracking-tight text-primary" />
+          </Link>
+
+          {/* Mobile centered brand icon */}
+          <Link
+            href="/"
+            className="lg:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center"
+            aria-label="Sayzio home"
+          >
+            <BrandLogo
+              variant="icon"
+              imgHeight={30}
+              textClassName="text-xl font-bold tracking-tight text-primary"
+            />
           </Link>
 
           <div
@@ -630,6 +658,7 @@ export function Header() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </header>
   );
 }
