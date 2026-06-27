@@ -90,6 +90,7 @@ const TOOL_PAGES: {
     | "/qr-studio"
     | "/splash"
     | "/calendar"
+    | "/calendars"
     | "/resume"
     | "/backlinks"
     | "/visitors"
@@ -118,7 +119,8 @@ const TOOL_PAGES: {
   { href: "/qr", label: "QR codes", icon: "grid" },
   { href: "/qr-studio", label: "QR studio", icon: "grid" },
   { href: "/splash", label: "Splash pages", icon: "layout" },
-  { href: "/calendar", label: "Calendars", icon: "calendar" },
+  { href: "/calendars", label: "My Calendar", icon: "calendar" },
+  { href: "/calendar", label: "Calendar sync", icon: "refresh-cw" },
   { href: "/notifications", label: "Notifications", icon: "bell" },
   { href: "/resume", label: "Resume builder", icon: "file-text" },
   { href: "/backlinks", label: "Backlinks", icon: "link" },

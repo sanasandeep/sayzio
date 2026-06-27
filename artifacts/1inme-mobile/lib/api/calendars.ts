@@ -1,0 +1,141 @@
+import { apiFetch } from "@/lib/api";
+
+// Mobile parity for the followable `calendar` link type. These mirror the
+// stateless Sanctum endpoints in artifacts/1inme
+// (App\Modules\Api\Controllers\MyCalendarController): the calendars the
+// signed-in user owns or follows, a single public calendar with its events,
+// the cross-calendar "My Calendar" agenda, today's events, and the public
+// follow toggle. The bearer-token user IS the follower identity, so there is
+// no viewer session to thread through.
+
+export type CalendarSummary = {
+  id: number;
+  title: string;
+  description: string | null;
+  timezone: string;
+  accent_color: string | null;
+  is_public: boolean;
+  followers_count: number;
+  events_count: number;
+  is_owner: boolean;
+  is_following: boolean;
+};
+
+export type CalendarEventCalendar = {
+  id: number;
+  title: string;
+  accent_color: string | null;
+};
+
+export type CalendarEventItem = {
+  id: number;
+  calendar_id: number;
+  title: string;
+  description: string | null;
+  start_at: string | null;
+  end_at: string | null;
+  all_day: boolean;
+  timezone: string;
+  location: string | null;
+  lat: number | null;
+  lng: number | null;
+  hashtags: string[];
+  payment_url: string | null;
+  params: Record<string, unknown> | null;
+  calendar: CalendarEventCalendar | null;
+};
+
+export type CalendarDetail = CalendarSummary & {
+  ics_url: string;
+};
+
+export type FeedMeta = {
+  current_page: number;
+  per_page: number;
+  total: number;
+  last_page: number;
+};
+
+/** Calendars the user owns or follows, with counts + following flag. */
+export async function listCalendars(): Promise<CalendarSummary[]> {
+  const res = await apiFetch<{ data: { items: CalendarSummary[] } }>(
+    "/calendars",
+  );
+  return res.data.items;
+}
+
+/** A single public (or owned) calendar with its upcoming events. */
+export async function getCalendar(
+  id: number,
+  opts: { past?: boolean } = {},
+): Promise<{ calendar: CalendarDetail; events: CalendarEventItem[] }> {
+  const qs = opts.past ? "?past=1" : "";
+  const res = await apiFetch<{
+    data: { calendar: CalendarDetail; events: CalendarEventItem[] };
+  }>(`/calendars/${id}${qs}`);
+  return res.data;
+}
+
+/** Follow / unfollow a public calendar. */
+export async function toggleCalendarFollow(
+  id: number,
+): Promise<{ following: boolean; followers_count: number }> {
+  const res = await apiFetch<{
+    data: { following: boolean; followers_count: number };
+  }>(`/calendars/${id}/follow`, { method: "POST" });
+  return res.data;
+}
+
+export type MyCalendarFilters = {
+  /** 'all' | 'owned' | 'followed' — which calendars to draw events from. */
+  source?: "all" | "owned" | "followed";
+  /** Restrict to a single owned/followed calendar id. */
+  calendar?: number | null;
+  /** Inclusive ISO date (YYYY-MM-DD) lower bound. */
+  from?: string | null;
+  /** Inclusive ISO date (YYYY-MM-DD) upper bound. */
+  to?: string | null;
+  /** Single hashtag (with or without leading #). */
+  tag?: string | null;
+  /** Free-text search across title / description / location. */
+  q?: string | null;
+  /** Include events that already started/ended. */
+  past?: boolean;
+  page?: number;
+  perPage?: number;
+};
+
+/**
+ * "My Calendar" agenda — events from every calendar the user owns OR follows,
+ * with the same source / date / hashtag / search filters as the web view.
+ */
+export async function getMyCalendar(
+  filters: MyCalendarFilters = {},
+): Promise<{ items: CalendarEventItem[]; meta: FeedMeta }> {
+  const q = new URLSearchParams();
+  if (filters.source && filters.source !== "all") q.set("source", filters.source);
+  if (filters.calendar != null) q.set("calendar", String(filters.calendar));
+  if (filters.from) q.set("from", filters.from);
+  if (filters.to) q.set("to", filters.to);
+  if (filters.tag) q.set("tag", filters.tag);
+  if (filters.q) q.set("q", filters.q);
+  if (filters.past) q.set("past", "1");
+  if (filters.page) q.set("page", String(filters.page));
+  if (filters.perPage) q.set("per_page", String(filters.perPage));
+  const qs = q.toString();
+  const res = await apiFetch<{
+    data: { items: CalendarEventItem[]; meta: FeedMeta };
+  }>(`/my-calendar${qs ? `?${qs}` : ""}`);
+  return res.data;
+}
+
+/** Today's events across owned + followed calendars (user's local timezone). */
+export async function getTodayEvents(): Promise<{
+  date: string;
+  items: CalendarEventItem[];
+}> {
+  const res = await apiFetch<{
+    data: { date: string; items: CalendarEventItem[] };
+  }>("/my-calendar/today");
+  return res.data;
+}

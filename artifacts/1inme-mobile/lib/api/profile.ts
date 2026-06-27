@@ -32,6 +32,13 @@ export type Profile = {
     link_smart_rules?: boolean;
     max_smart_rules?: number;
     analytics_export?: boolean;
+    // Followable `calendar` link type gating (mirrors UserResource). The
+    // mobile calendar surface uses these to gate the "create a calendar"
+    // upgrade prompt without a second round-trip. -1 = unlimited.
+    module_calendar?: boolean;
+    max_calendars?: number;
+    max_calendar_events?: number;
+    calendar_sync?: boolean;
   };
 };
 
