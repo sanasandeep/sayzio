@@ -26,6 +26,13 @@ export type BulkAddResult =
   | { status: "web-download"; count: number }
   | { status: "error"; message: string };
 
+export type BulkSyncResult =
+  | { status: "done"; updated: number; missing: number; failed: number }
+  | { status: "denied" }
+  | { status: "unavailable" }
+  | { status: "web-download"; count: number }
+  | { status: "error"; message: string };
+
 /** Stable, per-event identifier shared with the .ics UID and notes marker. */
 function eventUid(event: CalendarEventItem): string {
   return `sayzio-event-${event.id}@1in.me`;
@@ -213,39 +220,61 @@ async function findExistingDeviceEvent(
 
 /**
  * Bulk-friendly variant of {@link findExistingDeviceEvent}: with one query over
- * the whole batch's date window, return the set of Sayzio event ids (as
- * strings) already present on any device calendar, matched on the UID marker.
- * Best-effort — failures just yield an empty set (no dedupe rather than error).
+ * the whole batch's date window, return a map from Sayzio event id (as a
+ * string) to the *device* event id of the copy already present on any device
+ * calendar, matched on the UID marker. `padDays` widens the search window each
+ * side — dedupe uses a tight pad, sync a generous one so a copy whose time was
+ * moved well away from the new time is still found by its marker.
+ * Best-effort — failures just yield an empty map (no match rather than error).
  */
-async function collectExistingEventIds(
+async function collectExistingEventMap(
   Calendar: ExpoCalendar,
   events: CalendarEventItem[],
-): Promise<Set<string>> {
-  const ids = new Set<string>();
+  padDays: number,
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
   const bounds = events
     .map(eventBounds)
     .filter((b): b is { start: Date; end: Date } => b !== null);
-  if (bounds.length === 0) return ids;
+  if (bounds.length === 0) return map;
 
   const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT).catch(
     () => [] as Awaited<ReturnType<ExpoCalendar["getCalendarsAsync"]>>,
   );
   const calIds = calendars.map((c) => c.id);
-  if (calIds.length === 0) return ids;
+  if (calIds.length === 0) return map;
 
   const minStart = new Date(Math.min(...bounds.map((b) => b.start.getTime())));
   const maxEnd = new Date(Math.max(...bounds.map((b) => b.end.getTime())));
-  // Pad the window by a day each side so timezone/all-day fuzz can't hide a match.
-  minStart.setDate(minStart.getDate() - 1);
-  maxEnd.setDate(maxEnd.getDate() + 1);
+  minStart.setDate(minStart.getDate() - padDays);
+  maxEnd.setDate(maxEnd.getDate() + padDays);
 
   try {
     const existing = await Calendar.getEventsAsync(calIds, minStart, maxEnd);
-    for (const ev of existing) extractMarkerIds(ev.notes ?? "", ids);
+    for (const ev of existing) {
+      const ids = new Set<string>();
+      extractMarkerIds(ev.notes ?? "", ids);
+      for (const sayzioId of ids) {
+        if (!map.has(sayzioId)) map.set(sayzioId, ev.id);
+      }
+    }
   } catch {
-    // Couldn't read the calendar — fall back to no dedupe rather than failing.
+    // Couldn't read the calendar — fall back to no match rather than failing.
   }
-  return ids;
+  return map;
+}
+
+/**
+ * The Sayzio event ids (as strings) already present on any device calendar.
+ * Thin wrapper over {@link collectExistingEventMap} for the bulk-add dedupe,
+ * which only needs to know *whether* an event exists, with a tight ±1d window.
+ */
+async function collectExistingEventIds(
+  Calendar: ExpoCalendar,
+  events: CalendarEventItem[],
+): Promise<Set<string>> {
+  const map = await collectExistingEventMap(Calendar, events, 1);
+  return new Set(map.keys());
 }
 
 /** Write one event into the device calendar (or download an .ics on web). */
@@ -381,6 +410,71 @@ export async function addEventsToDeviceCalendar(
   }
 }
 
+/**
+ * Re-sync the already-added device copies of these events so they reflect the
+ * latest time/title/location from Sayzio. Only events that already exist on a
+ * device calendar (matched on the hidden Sayzio UID marker) are updated —
+ * missing ones are left alone, never freshly created. Uses a generous search
+ * window so a copy whose time was moved well away from the new time is still
+ * found by its marker.
+ */
+export async function syncEventsInDeviceCalendar(
+  events: CalendarEventItem[],
+): Promise<BulkSyncResult> {
+  const datable = events.filter((e) => eventBounds(e) !== null);
+  if (datable.length === 0) {
+    return { status: "error", message: "There are no events to sync." };
+  }
+
+  if (Platform.OS === "web") {
+    // No tracked device copy on web — re-export an .ics so the user can
+    // re-import the refreshed events into whatever calendar app they use.
+    try {
+      downloadIcsOnWeb(datable, "sayzio-events.ics");
+      return { status: "web-download", count: datable.length };
+    } catch (e) {
+      return { status: "error", message: (e as Error)?.message ?? "Couldn't export the events." };
+    }
+  }
+
+  const Calendar = await import("expo-calendar").catch(() => null);
+  if (!Calendar) return { status: "unavailable" };
+
+  try {
+    const { status } = await Calendar.requestCalendarPermissionsAsync();
+    if (status !== "granted") return { status: "denied" };
+
+    // Wide window (a year each side) so a copy whose date moved far from the
+    // new time is still matched by its UID marker.
+    const present = await collectExistingEventMap(Calendar, datable, 366);
+
+    let updated = 0;
+    let missing = 0;
+    let failed = 0;
+    for (const event of datable) {
+      const bounds = eventBounds(event);
+      if (!bounds) {
+        failed += 1;
+        continue;
+      }
+      const deviceId = present.get(String(event.id));
+      if (!deviceId) {
+        missing += 1;
+        continue;
+      }
+      try {
+        await Calendar.updateEventAsync(deviceId, eventDetails(event, bounds));
+        updated += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    return { status: "done", updated, missing, failed };
+  } catch (e) {
+    return { status: "error", message: (e as Error)?.message ?? "Couldn't sync the events." };
+  }
+}
+
 /** Convenience wrapper that surfaces the right Alert/message for each outcome. */
 export async function addEventWithFeedback(event: CalendarEventItem): Promise<boolean> {
   const result = await addEventToDeviceCalendar(event);
@@ -497,6 +591,48 @@ export async function addEventsWithFeedback(events: CalendarEventItem[]): Promis
       return false;
     default:
       Alert.alert("Couldn't add events", result.message);
+      return false;
+  }
+}
+
+/**
+ * Bulk wrapper: refreshes the already-added device copies of these events and
+ * surfaces a single summary Alert.
+ */
+export async function syncEventsWithFeedback(events: CalendarEventItem[]): Promise<boolean> {
+  const result = await syncEventsInDeviceCalendar(events);
+  switch (result.status) {
+    case "done": {
+      if (result.updated === 0) {
+        Alert.alert(
+          "Nothing to refresh",
+          "None of these events are on your device calendar yet. Add them first to keep them in sync.",
+        );
+        return false;
+      }
+      const parts = [`Refreshed ${result.updated}`];
+      if (result.missing) parts.push(`${result.missing} not added yet`);
+      if (result.failed) parts.push(`${result.failed} couldn't be updated`);
+      Alert.alert("Calendar up to date", `${parts.join(", ")} on your device calendar.`);
+      return true;
+    }
+    case "web-download":
+      // The browser handles the downloaded .ics; no alert needed.
+      return true;
+    case "denied":
+      Alert.alert(
+        "Permission needed",
+        "Allow calendar access in Settings to refresh events on your device calendar.",
+      );
+      return false;
+    case "unavailable":
+      Alert.alert(
+        "Not available",
+        "Updating the device calendar isn't available on this build.",
+      );
+      return false;
+    default:
+      Alert.alert("Couldn't refresh events", result.message);
       return false;
   }
 }

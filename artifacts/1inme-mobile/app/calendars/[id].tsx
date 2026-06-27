@@ -27,6 +27,7 @@ import {
   addEventsWithFeedback,
   addEventWithFeedback,
   subscribeToIcs,
+  syncEventsWithFeedback,
 } from "@/lib/deviceCalendar";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
 
@@ -54,6 +55,7 @@ export default function CalendarDetailScreen() {
   const [showPast, setShowPast] = useState(false);
   const [addingId, setAddingId] = useState<number | null>(null);
   const [bulkAdding, setBulkAdding] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const q = useQuery({
     queryKey: ["calendar", id, showPast],
@@ -126,6 +128,10 @@ export default function CalendarDetailScreen() {
     (e) => e.start_at && new Date(e.start_at).getTime() >= now,
   );
 
+  // Every dated event on screen is a candidate for re-syncing; the sync itself
+  // only touches copies the user already added (matched on the UID marker).
+  const syncable = events.filter((e) => e.start_at);
+
   const addToCalendar = async (event: CalendarEventItem) => {
     setAddingId(event.id);
     try {
@@ -142,6 +148,16 @@ export default function CalendarDetailScreen() {
       await addEventsWithFeedback(upcomingAddable);
     } finally {
       setBulkAdding(false);
+    }
+  };
+
+  const refreshAdded = async () => {
+    if (syncable.length === 0) return;
+    setSyncing(true);
+    try {
+      await syncEventsWithFeedback(syncable);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -251,6 +267,23 @@ export default function CalendarDetailScreen() {
                     <Text style={styles.bulkBtnText}>
                       Add all {upcomingAddable.length} upcoming event
                       {upcomingAddable.length === 1 ? "" : "s"}
+                    </Text>
+                  </Pressable>
+                ) : null}
+
+                {syncable.length > 0 ? (
+                  <Pressable
+                    onPress={refreshAdded}
+                    disabled={syncing}
+                    style={[styles.syncBtn, { borderColor: accent, borderRadius: colors.radius }]}
+                  >
+                    {syncing ? (
+                      <ActivityIndicator size="small" color={accent} />
+                    ) : (
+                      <Feather name="refresh-cw" size={14} color={accent} />
+                    )}
+                    <Text style={[styles.syncBtnText, { color: accent }]}>
+                      Refresh added events
                     </Text>
                   </Pressable>
                 ) : null}
@@ -444,6 +477,16 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   bulkBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13, color: "#fff" },
+  syncBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+  },
+  syncBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
   pastToggle: {
     flexDirection: "row",
     alignItems: "center",
