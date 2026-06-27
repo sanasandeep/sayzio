@@ -15,7 +15,7 @@ return new class extends Migration
             $existing = DB::table('site_pages')->where('slug', $slug)->first();
 
             if (!$existing) {
-                DB::table('site_pages')->insert([
+                DB::table('site_pages')->insertOrIgnore([
                     'slug' => $slug,
                     'title' => $data['title'],
                     'meta_description' => $data['meta_description'] ?? null,
@@ -44,7 +44,7 @@ return new class extends Migration
             $exists = DB::table('site_pages')->where('slug', $slug)->exists();
             if (!$exists) {
                 $fallback = SitePagesContent::fallbackForMissing($slug);
-                DB::table('site_pages')->insert([
+                DB::table('site_pages')->insertOrIgnore([
                     'slug' => $slug,
                     'title' => $fallback['title'],
                     'meta_description' => $fallback['meta_description'] ?? null,
