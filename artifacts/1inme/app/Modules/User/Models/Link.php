@@ -606,6 +606,15 @@ protected $fillable = [
      */
     public const TYPE_PAID_PAGE      = 'paid_page';
 
+    /**
+     * Followable "Calendar" — a user-owned, publishable collection of events
+     * other users can follow, with a "My Calendar" aggregation, in-app
+     * reminders, ICS feed/subscribe and Google sync. Deliberately NOT part of
+     * BIOLINK_FAMILY: it is rendered by its own dedicated public view, not the
+     * biolink block engine, and is distinct from the single-invite `ics` type.
+     */
+    public const TYPE_CALENDAR       = 'calendar';
+
     public const BIOLINK_FAMILY = [
         self::TYPE_BIOLINK,
         self::TYPE_CONVERSATIONAL,
@@ -640,6 +649,16 @@ protected $fillable = [
     public function resume()
     {
         return $this->belongsTo(Resume::class);
+    }
+
+    /**
+     * Calendar relationship — the standalone followable Calendar collection
+     * this link surfaces (links.type = 'calendar'). Nullable for every other
+     * link type.
+     */
+    public function calendar()
+    {
+        return $this->belongsTo(Calendar::class);
     }
 
     /**

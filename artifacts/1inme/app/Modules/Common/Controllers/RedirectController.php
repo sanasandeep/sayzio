@@ -445,6 +445,7 @@ class RedirectController extends Controller
             'reviews' => $this->handleReviewsPage($request, $link),
             'resume' => $this->handleResumePage($request, $link),
             'paid_page' => $this->handlePaidPage($request, $link),
+            'calendar' => $this->handleCalendarPage($request, $link),
             default => abort(404),
         };
     }
@@ -1160,6 +1161,107 @@ class RedirectController extends Controller
                 'isOwner'  => $isOwner,
                 'template' => $template,
             ])),
+            $request
+        );
+    }
+
+    /**
+     * Public, standalone followable Calendar page. Renders the calendar's
+     * events (with optional search / hashtag / time-range filters), a follow
+     * affordance, and ICS / Google subscribe links. Honours the same
+     * permissive framing headers as biolink pages so the in-app editor
+     * preview iframe can render it. Link-level visibility/password/expiry
+     * gates already ran in handle() before this match.
+     */
+    protected function handleCalendarPage(Request $request, Link $link)
+    {
+        $calendar = $link->calendar
+            ?: \App\Modules\User\Models\Calendar::where('link_id', $link->id)->first();
+        abort_unless($calendar, 404);
+
+        $viewer  = \App\Modules\Common\Services\ViewerSession::user() ?? $request->user();
+        $isOwner = $viewer && (int) $viewer->id === (int) $calendar->user_id;
+        $isFollowing = $viewer ? $calendar->isFollowedBy($viewer) : false;
+
+        $query = $calendar->events();
+
+        // Default to upcoming; allow ?past=1 to include history.
+        if (!$request->boolean('past')) {
+            $query->where(function ($q) {
+                $q->where('start_at', '>=', now()->startOfDay())
+                  ->orWhere('end_at', '>=', now());
+            });
+        }
+
+        if ($tag = $request->query('tag')) {
+            $tag = \App\Modules\User\Models\CalendarEvent::normalizeHashtags($tag)[0] ?? null;
+            if ($tag) {
+                $query->whereJsonContains('hashtags', $tag);
+            }
+        }
+
+        // Explicit date-range filter (overrides the upcoming-only default above).
+        $from = trim((string) $request->query('from', ''));
+        $to   = trim((string) $request->query('to', ''));
+        if ($from !== '') {
+            try { $query->where('start_at', '>=', \Illuminate\Support\Carbon::parse($from)->startOfDay()); } catch (\Throwable $e) { $from = ''; }
+        }
+        if ($to !== '') {
+            try { $query->where('start_at', '<=', \Illuminate\Support\Carbon::parse($to)->endOfDay()); } catch (\Throwable $e) { $to = ''; }
+        }
+
+        // Location filter (matches against the event location text).
+        $location = trim((string) $request->query('location', ''));
+        if ($location !== '') {
+            $locLike = '%' . str_replace(['%', '_'], ['\%', '\_'], $location) . '%';
+            $query->where('location', 'ilike', $locLike);
+        }
+
+        if ($search = trim((string) $request->query('q', ''))) {
+            $like = '%' . str_replace(['%', '_'], ['\%', '\_'], $search) . '%';
+            $query->where(function ($q) use ($like) {
+                $q->where('title', 'ilike', $like)
+                  ->orWhere('description', 'ilike', $like)
+                  ->orWhere('location', 'ilike', $like);
+            });
+        }
+
+        $events = $query->orderBy('start_at')->orderBy('id')->get();
+
+        // Distinct hashtag chips for the filter bar (from upcoming+all events).
+        $allTags = $calendar->events()
+            ->whereNotNull('hashtags')
+            ->pluck('hashtags')
+            ->flatMap(fn ($t) => is_array($t) ? $t : [])
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $icsUrl = route('public.calendars.ics', $calendar->id);
+        // Google Calendar "subscribe from URL" deep link (https → cid).
+        $googleUrl = 'https://calendar.google.com/calendar/r?cid=' . urlencode($icsUrl);
+
+        return $this->applyBiolinkFramingHeaders(
+            response()->view('common.calendar-page', [
+                'link'        => $link,
+                'calendar'    => $calendar,
+                'events'      => $events,
+                'allTags'     => $allTags,
+                'viewer'      => $viewer,
+                'isOwner'     => $isOwner,
+                'isFollowing' => $isFollowing,
+                'icsUrl'      => $icsUrl,
+                'googleUrl'   => $googleUrl,
+                'filters'     => [
+                    'q'        => $search ?? '',
+                    'tag'      => $tag ?? '',
+                    'past'     => $request->boolean('past'),
+                    'from'     => $from ?? '',
+                    'to'       => $to ?? '',
+                    'location' => $location ?? '',
+                ],
+            ]),
             $request
         );
     }

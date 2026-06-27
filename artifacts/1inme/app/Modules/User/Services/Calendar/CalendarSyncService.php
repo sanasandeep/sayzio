@@ -2,11 +2,14 @@
 
 namespace App\Modules\User\Services\Calendar;
 
+use App\Modules\User\Models\Calendar;
 use App\Modules\User\Models\CalendarAccount;
+use App\Modules\User\Models\CalendarEvent;
 use App\Modules\User\Models\CalendarEventMirror;
 use App\Modules\User\Models\IcsData;
 use App\Modules\User\Models\Link;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -242,6 +245,104 @@ class CalendarSyncService
             $this->registry->get($account->provider)->deleteEvent($account, $mirror->external_event_id);
         } catch (\Throwable $e) {
             Log::warning('Calendar push-delete failed', ['link' => $link->id, 'err' => $e->getMessage()]);
+        }
+        $mirror->delete();
+    }
+
+    /**
+     * Push every event of a followable {@see Calendar} to the connected
+     * external calendar (full export, or a date range when $from/$to given).
+     * Reuses the same provider + CalendarEventMirror machinery as `ics` links,
+     * but keys mirrors on calendar_event_id instead of link_id.
+     *
+     * @return array{pushed:int,failed:int,total:int}
+     */
+    public function pushCalendar(CalendarAccount $account, Calendar $calendar, ?CarbonInterface $from = null, ?CarbonInterface $to = null): array
+    {
+        $events = $calendar->events()
+            ->when($from, fn ($q) => $q->where('start_at', '>=', $from))
+            ->when($to, fn ($q) => $q->where('start_at', '<=', $to))
+            ->orderBy('start_at')
+            ->get();
+
+        $pushed = 0;
+        $failed = 0;
+        foreach ($events as $event) {
+            try {
+                $this->pushCalendarEvent($account, $event);
+                $pushed++;
+            } catch (\Throwable $e) {
+                $failed++;
+                Log::warning('Calendar event push failed', ['event' => $event->id, 'err' => $e->getMessage()]);
+            }
+        }
+
+        return ['pushed' => $pushed, 'failed' => $failed, 'total' => $events->count()];
+    }
+
+    /** Create or update a single followable CalendarEvent in the external calendar. */
+    public function pushCalendarEvent(CalendarAccount $account, CalendarEvent $event): void
+    {
+        if (!$account->push_enabled) {
+            return;
+        }
+        $start = $event->start_at;
+        if (!$start) {
+            return;
+        }
+        $end = $event->end_at ?: (clone $start)->addHour();
+
+        $provider = $this->registry->get($account->provider);
+        $payload  = [
+            'summary'     => $event->title,
+            'description' => $event->description,
+            'location'    => $event->location,
+            'start'       => $start,
+            'end'         => $end,
+            'timezone'    => $event->effectiveTimezone() ?: 'UTC',
+            'all_day'     => (bool) $event->all_day,
+            'url'         => $event->payment_url,
+        ];
+
+        $existing = CalendarEventMirror::where('calendar_account_id', $account->id)
+            ->where('calendar_event_id', $event->id)->first();
+
+        if ($existing) {
+            $res = $provider->updateEvent($account, $existing->external_event_id, $payload);
+            $existing->update([
+                'etag'                => $res['etag'] ?? null,
+                'external_updated_at' => now(),
+                'last_seen_at'        => now(),
+            ]);
+        } else {
+            $res = $provider->createEvent($account, $payload);
+            CalendarEventMirror::create([
+                'calendar_account_id'  => $account->id,
+                'link_id'              => null,
+                'calendar_event_id'    => $event->id,
+                'external_calendar_id' => $res['external_calendar_id'] ?? null,
+                'external_event_id'    => $res['external_event_id'],
+                'etag'                 => $res['etag'] ?? null,
+                'ical_uid'             => $res['ical_uid'] ?? null,
+                'source'               => 'push',
+                'external_updated_at'  => now(),
+                'last_seen_at'         => now(),
+            ]);
+        }
+    }
+
+    /** Delete a previously pushed followable CalendarEvent from the external calendar. */
+    public function deletePushedEvent(CalendarAccount $account, CalendarEvent $event): void
+    {
+        $mirror = CalendarEventMirror::where('calendar_account_id', $account->id)
+            ->where('calendar_event_id', $event->id)->where('source', 'push')->first();
+        if (!$mirror) {
+            return;
+        }
+        try {
+            $this->registry->get($account->provider)->deleteEvent($account, $mirror->external_event_id);
+        } catch (\Throwable $e) {
+            Log::warning('Calendar event push-delete failed', ['event' => $event->id, 'err' => $e->getMessage()]);
         }
         $mirror->delete();
     }

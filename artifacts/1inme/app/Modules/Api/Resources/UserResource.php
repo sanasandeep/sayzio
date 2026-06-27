@@ -58,6 +58,14 @@ class UserResource
                     'buzz_popups'             => (bool) $u->getPlanFeature('buzz_popups', false),
                     'max_buzz_impressions'    => \App\Services\BuzzImpressionMeter::allowanceFor($u),
                     'buzz_impressions_used'   => \App\Services\BuzzImpressionMeter::used((int) $u->id),
+                    // Followable `calendar` link type: whether the module is
+                    // enabled and the per-plan caps (-1 = unlimited) so the
+                    // mobile calendar surface can gate creation + show the
+                    // right upgrade prompt without a second round-trip.
+                    'module_calendar'         => (bool) $u->planFeatureEnabled('module_calendar'),
+                    'max_calendars'           => (int) $u->getPlanFeature('max_calendars', -1),
+                    'max_calendar_events'     => (int) $u->getPlanFeature('max_calendar_events', -1),
+                    'calendar_sync'           => (bool) $u->getPlanFeature('calendar_sync', false),
                 ],
             ]);
         }

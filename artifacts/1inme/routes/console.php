@@ -18,6 +18,15 @@ Schedule::command('tasks:send-due-reminders')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: notify calendar owners and followers about events happening today.
+// Recipient-tz aware (User.timezone) — the command only fires for a recipient
+// whose local time is 8 AM, so a UTC server delivers 8-AM reminders in every
+// recipient's own timezone. Dedup-protected per recipient/event/local-day.
+Schedule::command('calendars:send-today-reminders')
+    ->hourlyAt(0)
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Hourly: end any biolink layout A/B test whose stop condition (sample
 // size or end date) has been met. Most experiments end inline as
 // visitors trickle in, so this is the safety net for low-traffic pages.

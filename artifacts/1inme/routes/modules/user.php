@@ -750,6 +750,19 @@ Route::prefix('user')->name('user.')->group(function () {
         // Standalone Paid Page link: step-2 create + design editor. Posts and
         // tiers reuse the existing per-creator dashboards.
         Route::get ('links-paid-page/create', [LinkController::class, 'createPaidPage'])->middleware('workspace.can:links.create')->name('links.paid-page.create');
+        // Followable Calendar link type: step-2 create + dedicated event editor,
+        // per-calendar settings, event CRUD, and the cross-calendar "My Calendar"
+        // agenda (owned + followed). Distinct from the external CalendarAccount
+        // Google-sync routes (calendar.* / events.*) above — these use the
+        // `calendars` prefix and the `user.calendars.*` name space.
+        Route::get   ('calendars/create',               [\App\Modules\User\Controllers\CalendarController::class, 'create'])->middleware('workspace.can:links.create')->name('calendars.create');
+        Route::get   ('my-calendar',                     [\App\Modules\User\Controllers\CalendarController::class, 'myCalendar'])->name('calendars.mine');
+        Route::get   ('calendars/{link}/editor',         [\App\Modules\User\Controllers\CalendarController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('calendars.editor');
+        Route::post  ('calendars/{link}/settings',       [\App\Modules\User\Controllers\CalendarController::class, 'updateSettings'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('calendars.settings');
+        Route::post  ('calendars/{link}/sync',           [\App\Modules\User\Controllers\CalendarController::class, 'syncToGoogle'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('calendars.sync');
+        Route::post  ('calendars/{link}/events',         [\App\Modules\User\Controllers\CalendarController::class, 'storeEvent'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('calendars.events.store');
+        Route::put   ('calendars/{link}/events/{event}', [\App\Modules\User\Controllers\CalendarController::class, 'updateEvent'])->whereNumber('link')->whereNumber('event')->middleware('workspace.can:links.edit')->name('calendars.events.update');
+        Route::delete('calendars/{link}/events/{event}', [\App\Modules\User\Controllers\CalendarController::class, 'destroyEvent'])->whereNumber('link')->whereNumber('event')->middleware('workspace.can:links.edit')->name('calendars.events.destroy');
         Route::get ('links/{link}/paid-page', [\App\Modules\User\Controllers\PaidPageController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.paid-page.editor');
         Route::post('links/{link}/paid-page', [\App\Modules\User\Controllers\PaidPageController::class, 'update'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.paid-page.update');
         Route::get ('links/{link}/reviews', [\App\Modules\User\Controllers\ReviewsController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.reviews.editor');

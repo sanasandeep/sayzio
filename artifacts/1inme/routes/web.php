@@ -102,6 +102,13 @@ Route::get   ('/viewer/me',         [\App\Modules\Common\Controllers\ViewerAuthC
 Route::post  ('/viewer/logout',     [\App\Modules\Common\Controllers\ViewerAuthController::class, 'logout'])->name('viewer.logout');
 Route::post  ('/viewer/follow/{creator}', [\App\Modules\Common\Controllers\ViewerAuthController::class, 'toggleFollow'])->middleware('throttle:30,1')->name('viewer.follow.toggle')->where('creator', '[0-9]+');
 
+// ---- Followable Calendar (public): follow toggle + ICS feed/subscribe ----
+// Two-segment paths so they never collide with the single-segment /{alias}
+// catch-all. Follow works for ViewerSession OR dashboard auth; the ICS feed
+// is a public subscribe URL for Google / Apple / Outlook calendars.
+Route::post('/calendars/{calendar}/follow', [\App\Modules\Common\Controllers\PublicCalendarController::class, 'toggleFollow'])->whereNumber('calendar')->middleware('throttle:30,1')->name('public.calendars.follow');
+Route::get ('/calendars/{calendar}/calendar.ics', [\App\Modules\Common\Controllers\PublicCalendarController::class, 'icsFeed'])->whereNumber('calendar')->name('public.calendars.ics');
+
 // ---- Community Layer (public): Insider feed, comments/reactions/polls, fan leaderboard ----
 // Bound to a parent Link + (optional) BiolinkBlock so the controller can authorize per-block visibility.
 Route::prefix('community/{link}')->where(['link' => '[0-9]+'])->group(function () {

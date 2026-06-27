@@ -123,7 +123,7 @@ class LinkController extends Controller
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
-            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page',
+            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page,calendar',
             'alias' => [
                 'nullable', 'string', 'alpha_dash',
                 'min:' . $limits['min'],
@@ -158,6 +158,7 @@ class LinkController extends Controller
             'reviews'        => redirect()->route('user.links.reviews.create', $params),
             'resume'         => redirect()->route('user.links.resume.create', $params),
             'paid_page'      => redirect()->route('user.links.paid-page.create', $params),
+            'calendar'       => redirect()->route('user.calendars.create', $params),
         };
     }
 
@@ -306,6 +307,7 @@ class LinkController extends Controller
             'reviews'         => ['module' => 'module_reviews',         'cap' => 'max_reviews',         'label' => 'Reviews'],
             'resume'          => ['module' => 'module_resume',          'cap' => 'max_resume',          'label' => 'Resume / Portfolio'],
             'paid_page'       => ['module' => 'module_paid_page',       'cap' => 'max_paid_page',       'label' => 'Bizs Profile'],
+            'calendar'        => ['module' => 'module_calendar',        'cap' => 'max_calendars',       'label' => 'Calendar'],
         ];
         $cfg = $map[$type] ?? null;
         if (!$cfg) {
@@ -332,7 +334,7 @@ class LinkController extends Controller
         $userId = workspace_owner_id();
 
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page',
+            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page,calendar',
             'paid_page_template' => 'nullable|string|in:' . implode(',', \App\Modules\User\Support\PaidPageTemplates::ids()),
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
             'redirect_type' => 'nullable|in:301,302',
@@ -500,6 +502,35 @@ class LinkController extends Controller
             $link->save();
         }
 
+        // Calendar links bridge 1:1 to a followable Calendar collection. Seed
+        // the owner-authored title / timezone / accent and default the page to
+        // public so it is discoverable + followable; the dedicated calendar
+        // editor takes over to add events.
+        if ($link->type === 'calendar') {
+            $tz = (string) $request->input('calendar_timezone', '');
+            if ($tz === '' || !in_array($tz, timezone_identifiers_list(), true)) {
+                $tz = workspace_owner()->timezone ?: 'UTC';
+            }
+            $accent = (string) $request->input('calendar_accent_color', '#3d6bff');
+            if (!preg_match('/^#[0-9a-fA-F]{6}$/', $accent)) {
+                $accent = '#3d6bff';
+            }
+
+            \App\Modules\User\Models\Calendar::create([
+                'link_id'     => $link->id,
+                'user_id'     => $link->user_id,
+                'title'       => $link->title ?: 'My Calendar',
+                'slug'        => $link->alias,
+                'description' => (string) $request->input('calendar_description', ''),
+                'timezone'    => $tz,
+                'accent_color' => $accent,
+                'is_public'   => true,
+            ]);
+            $link->calendar_id = \App\Modules\User\Models\Calendar::where('link_id', $link->id)->value('id');
+            $link->visibility = 'public';
+            $link->save();
+        }
+
         if (!empty($pixelIds)) {
             $link->pixels()->sync($pixelIds);
         }
@@ -556,6 +587,10 @@ class LinkController extends Controller
         if ($link->type === 'paid_page') {
             return redirect()->route('user.links.paid-page.editor', $link)
                 ->with('success', 'Bizs Profile created — just pick a design. Your posts and tiers appear here automatically; there is no linking step.');
+        }
+        if ($link->type === 'calendar') {
+            return redirect()->route('user.calendars.editor', $link)
+                ->with('success', 'Calendar created — add your events and share it so people can follow.');
         }
 
         // "Build with AI" start mode — skip the picker and send the user to

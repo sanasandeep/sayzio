@@ -45,6 +45,7 @@ class LinkTypeCategories
                     ['value' => 'slides',          'icon' => 'fa-clone',      'badge' => 'bg-fuchsia-500/15 text-fuchsia-300', 'label' => 'Slides',             'desc' => 'Present a swipeable deck of slides from a single link.'],
                     ['value' => 'restaurant_menu', 'icon' => 'fa-utensils',   'badge' => 'bg-orange-500/15 text-orange-300',   'label' => 'Restaurant Menu',    'desc' => 'A digital menu with sections, items and prices.'],
                     ['value' => 'resume',          'icon' => 'fa-file-lines', 'badge' => 'bg-indigo-500/15 text-indigo-300',   'label' => 'Resume / Portfolio', 'desc' => 'A shareable resume / portfolio page with PDF download.'],
+                    ['value' => 'calendar',        'icon' => 'fa-calendar-days', 'badge' => 'bg-lime-500/15 text-lime-300',    'label' => 'Calendar',           'desc' => 'A followable calendar of events visitors can subscribe to.'],
                 ],
             ],
             [
@@ -90,6 +91,7 @@ class LinkTypeCategories
             ['type' => 'biolink',         'icon' => 'fa-id-card',      'label' => 'Build a profile page'],
             ['type' => 'resume',          'icon' => 'fa-file-lines',   'label' => 'Share my resume'],
             ['type' => 'ics',             'icon' => 'fa-calendar',     'label' => 'Invite to an event'],
+            ['type' => 'calendar',        'icon' => 'fa-calendar-days','label' => 'Publish a calendar'],
         ];
 
         return array_map(static function (array $intent) use ($aliases): array {
@@ -111,7 +113,8 @@ class LinkTypeCategories
         return [
             'url'             => ['shorten', 'short link', 'shortener', 'url', 'redirect', 'tiny link', 'trim link', 'tracking link'],
             'file'            => ['file', 'document', 'pdf', 'download', 'upload', 'attachment', 'share a file', 'doc'],
-            'ics'             => ['event', 'calendar', 'invite', 'meeting', 'rsvp', 'appointment', 'date', 'webinar', 'add to calendar'],
+            'ics'             => ['event', 'invite', 'meeting', 'rsvp', 'appointment', 'date', 'webinar', 'add to calendar'],
+            'calendar'        => ['calendar', 'events calendar', 'schedule', 'agenda', 'event series', 'subscribe', 'follow events', 'upcoming events', 'event listing'],
             'vcf'             => ['contact', 'business card', 'vcard', 'save my number', 'phone number', 'contact details', 'digital card'],
             'biolink'         => ['bio', 'link in bio', 'profile', 'mini site', 'links page', 'instagram bio', 'socials', 'all my links'],
             'slides'          => ['slides', 'presentation', 'deck', 'pitch', 'swipeable', 'story', 'carousel'],

@@ -553,6 +553,15 @@
                     <span class="sidebar-tooltip">Create Link</span>
                 </a>
                 @endif
+                @if($__can['links_view'])
+                <a href="{{ route('user.calendars.mine') }}"
+                   class="sidebar-link {{ request()->routeIs('user.calendars.*') ? 'active' : '' }}"
+                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-calendar-days"></i></div>
+                    <span class="nav-label">My Calendar</span>
+                    <span class="sidebar-tooltip">My Calendar</span>
+                </a>
+                @endif
                 @if($__can['inbox_view'])
                 <a href="{{ route('user.inbox.unified.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.inbox.unified.*') ? 'active' : '' }}"
@@ -1232,6 +1241,9 @@
                         @endif
                         @if($__can['links_create'])
                         <a href="{{ route('user.links.create') }}" class="sidebar-link {{ request()->routeIs('user.links.create') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plus-circle"></i></div> <span>Create Link</span></a>
+                        @endif
+                        @if($__can['links_view'])
+                        <a href="{{ route('user.calendars.mine') }}" class="sidebar-link {{ request()->routeIs('user.calendars.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-days"></i></div> <span>My Calendar</span></a>
                         @endif
                         @if($__can['inbox_view'])
                         <a href="{{ route('user.inbox.unified.index') }}" class="sidebar-link {{ request()->routeIs('user.inbox.unified.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div> <span>Inbox
