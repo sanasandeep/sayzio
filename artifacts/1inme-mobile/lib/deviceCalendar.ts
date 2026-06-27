@@ -12,10 +12,28 @@ import type { CalendarEventItem } from "@/lib/api/calendars";
 
 export type AddEventResult =
   | { status: "added" }
+  | { status: "updated" }
+  | { status: "duplicate" }
   | { status: "denied" }
   | { status: "unavailable" }
   | { status: "web-download" }
   | { status: "error"; message: string };
+
+/** Stable, per-event identifier shared with the .ics UID and notes marker. */
+function eventUid(event: CalendarEventItem): string {
+  return `sayzio-event-${event.id}@1in.me`;
+}
+
+/**
+ * Build the device-event notes, appending a hidden-ish UID marker on its own
+ * line so we can recognise events we previously added (expo-calendar exposes
+ * no UID field, but `notes` is readable cross-platform).
+ */
+function buildNotes(event: CalendarEventItem): string {
+  const marker = `[${eventUid(event)}]`;
+  const base = event.description?.trim() ?? "";
+  return base ? `${base}\n\n${marker}` : marker;
+}
 
 function eventBounds(event: CalendarEventItem): { start: Date; end: Date } | null {
   if (!event.start_at) return null;
@@ -72,7 +90,7 @@ function buildIcs(event: CalendarEventItem, start: Date, end: Date): string {
     "PRODID:-//Sayzio//Calendar//EN",
     "CALSCALE:GREGORIAN",
     "BEGIN:VEVENT",
-    `UID:sayzio-event-${event.id}@1in.me`,
+    `UID:${eventUid(event)}`,
     `DTSTAMP:${icsStamp(new Date())}`,
     `DTSTART:${icsStamp(start)}`,
     `DTEND:${icsStamp(end)}`,
@@ -99,6 +117,54 @@ function downloadIcsOnWeb(event: CalendarEventItem, start: Date, end: Date): voi
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+type ExpoCalendar = typeof import("expo-calendar");
+
+/** Shared event details used by both create and update. */
+function eventDetails(
+  event: CalendarEventItem,
+  bounds: { start: Date; end: Date },
+) {
+  return {
+    title: event.title || "Event",
+    startDate: bounds.start,
+    endDate: bounds.end,
+    allDay: event.all_day,
+    location: event.location ?? undefined,
+    notes: buildNotes(event),
+    timeZone: event.timezone || undefined,
+  };
+}
+
+/**
+ * Look for an event we previously added (matched by its UID marker in the
+ * notes) within a window around the event's date range. Returns the device
+ * event id if found, otherwise null.
+ */
+async function findExistingDeviceEvent(
+  Calendar: ExpoCalendar,
+  event: CalendarEventItem,
+  bounds: { start: Date; end: Date },
+): Promise<string | null> {
+  const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT).catch(
+    () => [] as Awaited<ReturnType<ExpoCalendar["getCalendarsAsync"]>>,
+  );
+  const ids = calendars.map((c) => c.id);
+  if (ids.length === 0) return null;
+
+  // Pad the search window by a day each side so all-day/timezone-shifted copies
+  // are still caught.
+  const day = 24 * 60 * 60 * 1000;
+  const from = new Date(bounds.start.getTime() - day);
+  const to = new Date(bounds.end.getTime() + day);
+  const events = await Calendar.getEventsAsync(ids, from, to).catch(
+    () => [] as Awaited<ReturnType<ExpoCalendar["getEventsAsync"]>>,
+  );
+
+  const marker = `[${eventUid(event)}]`;
+  const match = events.find((ev) => (ev.notes ?? "").includes(marker));
+  return match?.id ?? null;
+}
+
 /** Write one event into the device calendar (or download an .ics on web). */
 export async function addEventToDeviceCalendar(
   event: CalendarEventItem,
@@ -122,19 +188,54 @@ export async function addEventToDeviceCalendar(
     const { status } = await Calendar.requestCalendarPermissionsAsync();
     if (status !== "granted") return { status: "denied" };
 
+    const existingId = await findExistingDeviceEvent(Calendar, event, bounds);
+    if (existingId) return { status: "duplicate" };
+
     const calendarId = await pickWritableCalendarId(Calendar);
-    await Calendar.createEventAsync(calendarId, {
-      title: event.title || "Event",
-      startDate: bounds.start,
-      endDate: bounds.end,
-      allDay: event.all_day,
-      location: event.location ?? undefined,
-      notes: event.description ?? undefined,
-      timeZone: event.timezone || undefined,
-    });
+    await Calendar.createEventAsync(calendarId, eventDetails(event, bounds));
     return { status: "added" };
   } catch (e) {
     return { status: "error", message: (e as Error)?.message ?? "Couldn't add the event." };
+  }
+}
+
+/**
+ * Update the previously-added copy of this event on the device calendar. If no
+ * existing copy is found, a fresh one is created instead.
+ */
+export async function updateEventInDeviceCalendar(
+  event: CalendarEventItem,
+): Promise<AddEventResult> {
+  const bounds = eventBounds(event);
+  if (!bounds) return { status: "error", message: "This event has no start time." };
+
+  if (Platform.OS === "web") {
+    try {
+      downloadIcsOnWeb(event, bounds.start, bounds.end);
+      return { status: "web-download" };
+    } catch (e) {
+      return { status: "error", message: (e as Error)?.message ?? "Couldn't export the event." };
+    }
+  }
+
+  const Calendar = await import("expo-calendar").catch(() => null);
+  if (!Calendar) return { status: "unavailable" };
+
+  try {
+    const { status } = await Calendar.requestCalendarPermissionsAsync();
+    if (status !== "granted") return { status: "denied" };
+
+    const existingId = await findExistingDeviceEvent(Calendar, event, bounds);
+    if (existingId) {
+      await Calendar.updateEventAsync(existingId, eventDetails(event, bounds));
+      return { status: "updated" };
+    }
+
+    const calendarId = await pickWritableCalendarId(Calendar);
+    await Calendar.createEventAsync(calendarId, eventDetails(event, bounds));
+    return { status: "added" };
+  } catch (e) {
+    return { status: "error", message: (e as Error)?.message ?? "Couldn't update the event." };
   }
 }
 
@@ -144,6 +245,25 @@ export async function addEventWithFeedback(event: CalendarEventItem): Promise<bo
   switch (result.status) {
     case "added":
       Alert.alert("Added to calendar", `"${event.title}" is now on your device calendar.`);
+      return true;
+    case "duplicate":
+      // Already on the calendar — offer to refresh it rather than duplicating.
+      Alert.alert(
+        "Already on your calendar",
+        `"${event.title}" is already on your device calendar.`,
+        [
+          { text: "OK", style: "cancel" },
+          {
+            text: "Update it",
+            onPress: () => {
+              void updateEventWithFeedback(event);
+            },
+          },
+        ],
+      );
+      return true;
+    case "updated":
+      Alert.alert("Updated", `"${event.title}" was updated on your device calendar.`);
       return true;
     case "web-download":
       // The browser handles the downloaded .ics; no alert needed.
@@ -162,6 +282,39 @@ export async function addEventWithFeedback(event: CalendarEventItem): Promise<bo
       return false;
     default:
       Alert.alert("Couldn't add event", result.message);
+      return false;
+  }
+}
+
+/** Wrapper that updates the device copy of an event and reports the outcome. */
+export async function updateEventWithFeedback(event: CalendarEventItem): Promise<boolean> {
+  const result = await updateEventInDeviceCalendar(event);
+  switch (result.status) {
+    case "updated":
+      Alert.alert("Updated", `"${event.title}" was updated on your device calendar.`);
+      return true;
+    case "added":
+      Alert.alert("Added to calendar", `"${event.title}" is now on your device calendar.`);
+      return true;
+    case "web-download":
+      return true;
+    case "denied":
+      Alert.alert(
+        "Permission needed",
+        "Allow calendar access in Settings to update events on your device calendar.",
+      );
+      return false;
+    case "unavailable":
+      Alert.alert(
+        "Not available",
+        "Updating the device calendar isn't available on this build.",
+      );
+      return false;
+    case "duplicate":
+      // Not expected from an update, but treat as a no-op success.
+      return true;
+    default:
+      Alert.alert("Couldn't update event", result.message);
       return false;
   }
 }
