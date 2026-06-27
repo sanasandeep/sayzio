@@ -50,6 +50,13 @@ class OtpController extends Controller
 
         $user = $this->resolve($data['identifier'], $data['type']);
 
+        // The OTP path doubles as sign-up for unknown identifiers. When
+        // registrations are paused and no account exists, issue no code and
+        // create nothing — return the structured upgrade message instead.
+        if (!$user && AuthMethods::registrationPaused()) {
+            return $this->fail(AuthMethods::registrationPausedMessage(), 403, AuthMethods::ERROR_REGISTRATION_PAUSED);
+        }
+
         // Always issue + try to send when a real user exists. Generic
         // success either way to avoid enumeration. Only a code we actually
         // generated (real account) is ever eligible for demo reveal — the
@@ -125,6 +132,10 @@ class OtpController extends Controller
 
         if ($denied = $this->guardMobile($data['type'], $data['identifier'])) {
             return $denied;
+        }
+
+        if (AuthMethods::registrationPaused()) {
+            return $this->fail(AuthMethods::registrationPausedMessage(), 403, AuthMethods::ERROR_REGISTRATION_PAUSED);
         }
 
         $existing = $this->resolve($data['identifier'], $data['type']);

@@ -98,6 +98,36 @@
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
+                <h2 class="text-base font-semibold text-white">New registrations</h2>
+                <p class="text-xs text-white/50">Temporarily stop creating brand-new accounts. Existing users are never affected — they keep signing in and using everything as normal.</p>
+            </div>
+
+            <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">
+                <input type="hidden" name="registration_paused" value="0">
+                <input type="checkbox"
+                       name="registration_paused"
+                       value="1"
+                       @checked(old('registration_paused', $registrationPaused))
+                       class="mt-1 w-5 h-5 accent-amber-500 cursor-pointer">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-semibold text-white">Pause new registrations</span>
+                        @if($registrationPaused)
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300">Paused</span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-white/50 mt-0.5">
+                        When on, new visitors trying to sign up (via the register form, a one-time code for an unknown email/phone, social sign-in for an unlinked account, or the mobile app) see a branded &ldquo;we&rsquo;re upgrading&rdquo; page instead of getting an account. Takes effect immediately.
+                    </p>
+                    <p class="text-xs text-amber-300/80 mt-1">
+                        Existing users keep logging in normally. You can always reach this page to switch it back off.
+                    </p>
+                </div>
+            </label>
+        </div>
+
+        <div class="glass rounded-2xl p-6 space-y-4">
+            <div>
                 <h2 class="text-base font-semibold text-white">Demo mode</h2>
                 <p class="text-xs text-white/50">For demos and reviews where a real inbox or phone isn't available.</p>
             </div>

@@ -26,6 +26,7 @@ class AuthSettingsController extends Controller
             'emailPasswordEnabled'       => AuthMethods::emailPasswordEnabled(),
             'emailOtpEnabled'            => AuthMethods::emailOtpEnabled(),
             'emailVerificationRequired'  => AuthMethods::emailVerificationRequired(),
+            'registrationPaused'         => AuthMethods::registrationPaused(),
             'demoRevealOtpEnabled'       => AuthMethods::demoRevealOtpEnabled(),
             'allowedCodesText'     => implode("\n", AuthMethods::allowedCountryCodes()),
             'credsConfigured'      => (bool) $credsConfigured,
@@ -38,6 +39,7 @@ class AuthSettingsController extends Controller
             'email_password_enabled'       => ['nullable', 'boolean'],
             'email_otp_enabled'            => ['nullable', 'boolean'],
             'email_verification_required'  => ['nullable', 'boolean'],
+            'registration_paused'          => ['nullable', 'boolean'],
             'demo_reveal_otp_enabled'      => ['nullable', 'boolean'],
             'mobile_login_enabled'         => ['nullable', 'boolean'],
             'allowed_country_codes'        => ['nullable', 'string', 'max:2000'],
@@ -70,6 +72,10 @@ class AuthSettingsController extends Controller
         AppSetting::put(
             AuthMethods::SETTING_EMAIL_VERIFICATION_REQUIRED,
             (bool) ($data['email_verification_required'] ?? false)
+        );
+        AppSetting::put(
+            AuthMethods::SETTING_REGISTRATION_PAUSED,
+            (bool) ($data['registration_paused'] ?? false)
         );
         AppSetting::put(
             AuthMethods::SETTING_DEMO_REVEAL_OTP,

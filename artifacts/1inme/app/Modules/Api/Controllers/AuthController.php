@@ -21,6 +21,10 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        if (AuthMethods::registrationPaused()) {
+            return $this->fail(AuthMethods::registrationPausedMessage(), 403, AuthMethods::ERROR_REGISTRATION_PAUSED);
+        }
+
         $data = $request->validate([
             'name'     => ['required', 'string', 'max:120'],
             'email'    => ['required', 'email', 'max:190', Rule::unique('users', 'email')],

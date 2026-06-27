@@ -22,6 +22,14 @@ class AuthController extends Controller
     public function showRegister(Request $request)
     {
         if (Auth::check()) return redirect()->route('user.dashboard');
+
+        // When an admin has paused new registrations, show the branded
+        // "we're upgrading" page instead of the sign-up form. Existing
+        // users still sign in through the login page as normal.
+        if (AuthMethods::registrationPaused()) {
+            return response()->view('user.auth.registration-paused');
+        }
+
         $prefilledRef = $request->query('ref') ?: $request->cookie(ReferralService::COOKIE_NAME);
         return view('user.auth.register', [
             'prefilledRef'         => $prefilledRef,
@@ -39,6 +47,13 @@ class AuthController extends Controller
             \Log::info('Registration honeypot tripped', ['ip' => $request->ip()]);
             return redirect()->route('user.login')
                 ->with('status', 'If your account was created, we sent a code to your inbox.');
+        }
+
+        // New registrations paused by an admin: create nothing and show the
+        // branded upgrade page. Placed after the honeypot so bots still get
+        // the silent 200, but before any validation/account creation.
+        if (AuthMethods::registrationPaused()) {
+            return response()->view('user.auth.registration-paused');
         }
 
         $passwordEnabled = AuthMethods::emailPasswordEnabled();
@@ -285,6 +300,12 @@ class AuthController extends Controller
         $user = $this->resolveUserByIdentifier($identifier, $type);
 
         if (!$user) {
+            // The OTP path doubles as sign-up for unknown identifiers. When
+            // registrations are paused we must not issue a code or create an
+            // account — show the branded upgrade page instead.
+            if (AuthMethods::registrationPaused()) {
+                return response()->view('user.auth.registration-paused');
+            }
             session(['otp_identifier' => $identifier, 'otp_type' => $type]);
             return redirect()->route('user.otp.verify.form')->with('status', 'If an account exists, an OTP has been sent to your ' . $type . '.');
         }

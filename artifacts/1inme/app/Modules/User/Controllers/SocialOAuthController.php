@@ -149,6 +149,16 @@ class SocialOAuthController extends Controller
             if (! $user && $email) {
                 $user = LinkedIdentifier::resolveUser('email', $email)
                     ?: User::where('email', $email)->first();
+                if (! $user && \App\Modules\Common\Support\AuthMethods::registrationPaused()) {
+                    // No existing account for this social identity/email and an
+                    // admin has paused new registrations: create nothing. Web
+                    // visitors land on the branded upgrade page (shown at
+                    // /register while paused); mobile bounces with a code.
+                    if ($isMobile) {
+                        return redirect()->away($mobileReturn . '?error=' . rawurlencode(\App\Modules\Common\Support\AuthMethods::ERROR_REGISTRATION_PAUSED));
+                    }
+                    return redirect()->route('user.register');
+                }
                 if (! $user) {
                     $freePlan = Plan::defaultPlan();
                     $user = User::create([

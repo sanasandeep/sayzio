@@ -27,6 +27,16 @@ class AuthMethods
     public const SETTING_EMAIL_VERIFICATION_REQUIRED = 'auth_email_verification_required';
 
     /**
+     * Temporary "pause new registrations" switch. When on, no NEW account
+     * can be created on any surface (web register form/submit, OTP
+     * login-as-signup for an unknown identifier, social sign-in for an
+     * unlinked identity, mobile/API register endpoints) — instead the
+     * visitor sees the branded "we're upgrading" page/message. Existing
+     * users keep signing in and using everything exactly as before.
+     */
+    public const SETTING_REGISTRATION_PAUSED = 'auth_registration_paused';
+
+    /**
      * Demo mode: when on, the actual one-time code is surfaced on screen
      * after it is sent (alongside the normal email/WhatsApp delivery). This
      * exists so reviewers and demo accounts can complete OTP sign-in without
@@ -55,6 +65,12 @@ class AuthMethods
      * skipped regardless of this setting.
      */
     public const DEFAULT_EMAIL_VERIFICATION_REQUIRED = true;
+
+    /**
+     * New registrations are accepted by default — the pause switch is an
+     * explicit, temporary action an admin takes.
+     */
+    public const DEFAULT_REGISTRATION_PAUSED = false;
 
     /**
      * Demo-reveal defaults ON so out-of-the-box demo/review environments can
@@ -100,6 +116,35 @@ class AuthMethods
             self::DEFAULT_EMAIL_VERIFICATION_REQUIRED
         );
     }
+
+    /**
+     * Are new account registrations currently paused by an admin? When true,
+     * every account-creation path is blocked and the visitor is shown the
+     * branded "we're upgrading" page/message. Defaults to OFF.
+     */
+    public static function registrationPaused(): bool
+    {
+        return (bool) AppSetting::get(
+            self::SETTING_REGISTRATION_PAUSED,
+            self::DEFAULT_REGISTRATION_PAUSED
+        );
+    }
+
+    /**
+     * The user-facing message shown (web + API) when a new sign-up is
+     * attempted while registrations are paused. Kept here so every surface
+     * speaks with one voice.
+     */
+    public static function registrationPausedMessage(): string
+    {
+        return "We're upgrading and aren't accepting new sign-ups right now. If you already have an account, you can still sign in.";
+    }
+
+    /**
+     * Stable machine code for the paused-registration condition, used in the
+     * unified API error envelope so mobile clients can branch on it.
+     */
+    public const ERROR_REGISTRATION_PAUSED = 'registration_paused';
 
     /**
      * Is verifying a user's email address meaningful under the current

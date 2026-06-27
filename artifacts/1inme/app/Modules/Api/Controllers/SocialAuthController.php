@@ -5,6 +5,7 @@ namespace App\Modules\Api\Controllers;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\UserResource;
 use App\Modules\Common\Services\LoginAlertService;
+use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Plan;
@@ -73,6 +74,12 @@ class SocialAuthController extends Controller
 
         $created = false;
         if (!$user) {
+            // No existing account for this social identity/email. When an
+            // admin has paused new registrations, create nothing and return
+            // the structured upgrade message instead.
+            if (AuthMethods::registrationPaused()) {
+                return $this->fail(AuthMethods::registrationPausedMessage(), 403, AuthMethods::ERROR_REGISTRATION_PAUSED);
+            }
             $freePlan = Plan::defaultPlan();
             $user = User::create([
                 'name'              => $name ?: ucfirst($data['provider']) . ' user',
