@@ -299,6 +299,13 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('go-to-dashboard', [\App\Modules\User\Controllers\OnboardingController::class, 'goToDashboard'])->name('go-to-dashboard');
             Route::post('dismiss-banner', [\App\Modules\User\Controllers\OnboardingController::class, 'dismissBanner'])->name('dismiss-banner');
             Route::post('dismiss-whatsapp-prompt', [\App\Modules\User\Controllers\OnboardingController::class, 'dismissWhatsappPrompt'])->name('dismiss-whatsapp-prompt');
+
+            // Post-registration WhatsApp connect step + the shared inline
+            // add/verify endpoints (also used by the dashboard nudge card).
+            Route::get ('whatsapp',        [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappStep'])->name('whatsapp');
+            Route::post('whatsapp/send',   [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappSend'])->middleware('throttle:5,1')->name('whatsapp.send');
+            Route::post('whatsapp/verify', [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappVerify'])->middleware('throttle:10,1')->name('whatsapp.verify');
+            Route::post('whatsapp/skip',   [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappSkip'])->name('whatsapp.skip');
         });
 
         // ===== Social: followers, posts, notifications (dashboard) =====

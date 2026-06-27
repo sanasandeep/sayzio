@@ -350,6 +350,22 @@ class User extends Authenticatable
         return $this->linkedIdentifiers()->where('is_primary', true)->first();
     }
 
+    /**
+     * Whether this account has a verified WhatsApp (phone) number attached.
+     * A number is only "real" once it has been confirmed via the OTP flow,
+     * so an unverified phone identifier does not count. Single source of
+     * truth for the WhatsApp connect step, dashboard nudge and the weekly
+     * reminder command so they can never disagree on who still needs to add
+     * a number.
+     */
+    public function hasWhatsappNumber(): bool
+    {
+        return $this->linkedIdentifiers()
+            ->where('kind', 'phone')
+            ->whereNotNull('verified_at')
+            ->exists();
+    }
+
     public function isFollowing(int $creatorId): bool
     {
         return Follow::where('follower_id', $this->id)->where('creator_id', $creatorId)->exists();

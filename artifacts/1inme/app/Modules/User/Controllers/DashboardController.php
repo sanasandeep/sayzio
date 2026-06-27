@@ -4,10 +4,8 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\ChannelClassifier;
-use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Models\Backlink;
 use App\Modules\User\Models\LinkClick;
-use App\Modules\User\Models\LinkedIdentifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -94,20 +92,22 @@ class DashboardController extends Controller
             ->where('first_seen_at', '>=', now()->subDays(7))
             ->count();
 
-        // WhatsApp prompt — only when an admin has switched on WhatsApp login,
-        // the user hasn't already linked a phone number, and they haven't
-        // dismissed the nudge. Lets returning users add a WhatsApp identifier
-        // so they can use the faster OTP sign-in.
-        $whatsappPromptDismissed = !empty($user->settings['whatsapp_prompt_dismissed_at'] ?? null);
-        $showWhatsappPrompt = AuthMethods::mobileLoginEnabled()
-            && !$whatsappPromptDismissed
-            && !LinkedIdentifier::where('user_id', $user->id)->where('kind', 'phone')->exists();
+        // WhatsApp nudge — shown to any user who hasn't shared a verified
+        // WhatsApp number yet, letting them add/verify one inline and follow
+        // our channel. Dismissing it snoozes the card for a week rather than
+        // hiding it forever, so it returns on the weekly cadence until a
+        // number is added; users who already have one are never nagged.
+        $dismissedAt = $user->settings['whatsapp_prompt_dismissed_at'] ?? null;
+        $whatsappPromptSnoozed = $dismissedAt
+            && \Illuminate\Support\Carbon::parse($dismissedAt)->gt(now()->subWeek());
+        $showWhatsappPrompt = !$whatsappPromptSnoozed && !$user->hasWhatsappNumber();
+        $whatsappChannelUrl = trim((string) \App\Modules\Admin\Models\AppSetting::get('marketing_whatsapp_channel_url', ''));
 
         return view('user.dashboard.index', compact(
             'user', 'totalLinks', 'totalClicks', 'totalProjects',
             'activeLinks', 'recentLinks', 'clicksToday',
             'channelStats', 'channelFilter', 'backlinksThisWeek',
-            'showWhatsappPrompt'
+            'showWhatsappPrompt', 'whatsappChannelUrl'
         ));
     }
 }

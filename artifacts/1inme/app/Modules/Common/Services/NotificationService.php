@@ -187,6 +187,16 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => false,
             ],
+            // Recurring "add your WhatsApp number" reminder for users who
+            // haven't shared a verified number yet. Stops once a number is
+            // added and respects the dashboard nudge's snooze.
+            'whatsapp.connect_reminder' => [
+                'label'          => 'WhatsApp number reminders',
+                'description'    => 'Occasional reminders to add and verify your WhatsApp number and follow our channel, shown until you add one.',
+                'default_in_app' => true,
+                'default_email'  => false,
+                'default_push'   => false,
+            ],
             // Developer API usage warnings (Task #1396, push added #1403).
             'api.usage_warning' => [
                 'label'          => 'API usage warnings',

@@ -108,6 +108,16 @@ Schedule::command('starter:send-free-window-reminders')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Weekly (Tue 10:45 UTC): nudge users who still haven't shared a verified
+// WhatsApp number to add one and follow our channel (in-app only). Self
+// rate-limited — stops once a number exists, honours the dashboard nudge's
+// one-week snooze, respects a per-user cooldown, and skips brand-new accounts
+// for a short grace window so it never overlaps the post-registration step.
+Schedule::command('whatsapp:send-connect-reminders')
+    ->weeklyOn(2, '10:45')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Hourly: probe verified user-owned custom domains for DNS drift and run
 // the takeover-protection state machine. Healthy → drifting transitions
 // alert the creator (in-app + email) with the exact CNAME records to fix;

@@ -3,9 +3,14 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Admin\Models\PageTemplate;
 use App\Modules\Admin\Services\TemplateService;
+use App\Modules\Common\Support\AuthMethods;
+use App\Modules\Common\Services\OtpService;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\LinkedIdentifier;
+use App\Modules\User\Models\User;
 use App\Modules\User\Services\PersonaCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -299,7 +304,12 @@ class OnboardingController extends Controller
         return back();
     }
 
-    /** Hide the "add a WhatsApp number" dashboard nudge for this user. */
+    /**
+     * Snooze the "add a WhatsApp number" dashboard nudge for this user. The
+     * dashboard treats this stamp as a one-week snooze (not a permanent hide),
+     * so the card returns on the weekly cadence until a number is added; the
+     * weekly reminder command honours the same stamp.
+     */
     public function dismissWhatsappPrompt(Request $request)
     {
         $user = Auth::user();
@@ -307,5 +317,126 @@ class OnboardingController extends Controller
         $settings['whatsapp_prompt_dismissed_at'] = now()->toIso8601String();
         $user->forceFill(['settings' => $settings])->save();
         return back();
+    }
+
+    /**
+     * One-time post-registration step inviting a freshly onboarded user to
+     * share + verify their WhatsApp number and follow our channel. Reached via
+     * the onboarding gate; skipping records that it was shown so it never fires
+     * again. Users who already have a verified number skip straight through.
+     */
+    public function whatsappStep()
+    {
+        $user = Auth::user();
+
+        if ($user->hasWhatsappNumber()) {
+            $this->markWhatsappStepShown($user);
+            return redirect()->route('user.dashboard');
+        }
+
+        return view('user.onboarding.whatsapp', [
+            'channelUrl' => $this->whatsappChannelUrl(),
+            'pending'    => session('whatsapp_connect_pending'),
+        ]);
+    }
+
+    /** Send a verification code over WhatsApp to the entered number. */
+    public function whatsappSend(Request $request)
+    {
+        $request->validate(['mobile' => 'required|string|max:32']);
+        $user  = Auth::user();
+        $value = LinkedIdentifier::normalize('phone', (string) $request->input('mobile'));
+
+        // Reject if already attached to *any* account (mirrors the linked
+        // identifier add flow so the unique constraint can never 500).
+        $existing = LinkedIdentifier::where('kind', 'phone')->where('value', $value)->first();
+        if ($existing) {
+            return back()->with('error', $existing->user_id === $user->id
+                ? 'That number is already linked to your account.'
+                : 'That number is already linked to another account.');
+        }
+
+        $otp  = new OtpService();
+        $code = $otp->generate($value, 'mobile', 'link', 'web', $request->ip());
+        try {
+            $otp->sendWhatsApp($value, $code);
+        } catch (\Throwable $e) {
+            \Log::warning('WhatsApp connect OTP send failed: ' . $e->getMessage());
+        }
+
+        session(['whatsapp_connect_pending' => $value]);
+        return back()
+            ->with('status', 'We sent a 6-digit code to ' . $value . ' on WhatsApp.')
+            ->with('otp_demo_reveal', AuthMethods::demoRevealMessage($code));
+    }
+
+    /** Verify the code and link the WhatsApp number to this account. */
+    public function whatsappVerify(Request $request)
+    {
+        $request->validate(['code' => 'required|string|size:6']);
+        $user  = Auth::user();
+        $value = session('whatsapp_connect_pending');
+        if (!$value) {
+            return back()->with('error', 'Enter your WhatsApp number first.');
+        }
+
+        $otp = new OtpService();
+        if (!$otp->verify($value, $request->code, 'mobile', 'link', 'web')) {
+            return back()->with('error', 'Invalid or expired code.');
+        }
+
+        // Re-check under the unique constraint (idempotent for this user, a
+        // clear error if someone else linked it between Send and Verify).
+        $existing = LinkedIdentifier::where('kind', 'phone')->where('value', $value)->first();
+        if ($existing && $existing->user_id !== $user->id) {
+            session()->forget('whatsapp_connect_pending');
+            return back()->with('error', 'That number was just linked to another account.');
+        }
+        if (!$existing) {
+            LinkedIdentifier::create([
+                'user_id'     => $user->id,
+                'kind'        => 'phone',
+                'value'       => $value,
+                'verified_at' => now(),
+                'is_primary'  => false,
+            ]);
+        } elseif (!$existing->verified_at) {
+            $existing->forceFill(['verified_at' => now()])->save();
+        }
+
+        session()->forget('whatsapp_connect_pending');
+        $this->markWhatsappStepShown($user);
+
+        return redirect()->route('user.dashboard')
+            ->with('success', 'Your WhatsApp number is connected.');
+    }
+
+    /** Skip the post-registration WhatsApp step and continue to the dashboard. */
+    public function whatsappSkip()
+    {
+        $user = Auth::user();
+        session()->forget('whatsapp_connect_pending');
+        $this->markWhatsappStepShown($user);
+
+        return redirect()->route('user.dashboard')
+            ->with('success', "No problem — you can add your WhatsApp number anytime from your dashboard.");
+    }
+
+    /**
+     * Record that the one-time WhatsApp step has been shown so the onboarding
+     * gate never redirects this user to it again.
+     */
+    private function markWhatsappStepShown(User $user): void
+    {
+        $settings = $user->settings ?? [];
+        if (empty($settings['whatsapp_step_shown_at'] ?? null)) {
+            $settings['whatsapp_step_shown_at'] = now()->toIso8601String();
+            $user->forceFill(['settings' => $settings])->save();
+        }
+    }
+
+    private function whatsappChannelUrl(): string
+    {
+        return trim((string) AppSetting::get('marketing_whatsapp_channel_url', ''));
     }
 }

@@ -113,3 +113,4 @@
 - [Company identity + legal seed versioning](company-identity-legal-pages.md) — CompanyIdentity tokens feed policies/footer; policy refresh matches ANY prior default snapshot (V1+rich) to replace-untouched vs append-missing.
 - [Heatmap API live parity](heatmap-api-live-parity.md) — web per-link SSE heatmap stream is mirrored on /api/v1 as a pollable lastId-cursor "live" endpoint; first poll seeds last 5min, later polls return id>cursor only.
 - [Billing email CC list](billing-cc-recipients.md) — admin CC on billing emails gated by category=='billing' in Emailer::applyBillingCc; client_invoice excluded (creator-economy leak).
+- [WhatsApp connect prompts](whatsapp-connect-prompts.md) — 3 web surfaces (post-reg step + dashboard card + weekly cmd) share one gate User::hasWhatsappNumber() & whatsapp.send/verify OTP routes; register-with-mobile auto-verifies so those users self-skip.

@@ -400,19 +400,66 @@
             </div>
             @endif
             @if($showWhatsappPrompt ?? false)
-            <div class="m-4 mb-0 rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-600/10 to-green-500/5 p-4 flex items-start gap-3">
-                <div class="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
-                    <i class="fab fa-whatsapp text-emerald-300 text-lg"></i>
+            @php $waPending = session('whatsapp_connect_pending'); @endphp
+            <div class="m-4 mb-0 rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-600/10 to-green-500/5 p-4"
+                 x-data="{ open: {{ ($waPending || session('status') || $errors->any()) ? 'true' : 'false' }}, phase: '{{ $waPending ? 'code' : 'number' }}' }">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                        <i class="fab fa-whatsapp text-emerald-300 text-lg"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-white">Add your WhatsApp number</p>
+                        <p class="text-xs text-white/50 mt-0.5">Verify a WhatsApp number to sign in faster with a one-time code — no password needed — and follow our channel for updates.</p>
+                    </div>
+                    <button type="button" @click="open = !open"
+                            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition flex-shrink-0">
+                        <span x-show="!open">Add WhatsApp</span>
+                        <span x-show="open" x-cloak>Close</span>
+                    </button>
+                    <form method="POST" action="{{ route('user.onboarding.dismiss-whatsapp-prompt') }}">
+                        @csrf
+                        <button type="submit" class="text-white/30 hover:text-white/70 px-2 py-1.5" title="Dismiss for now"><i class="fas fa-times text-xs"></i></button>
+                    </form>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-white">Add your WhatsApp number</p>
-                    <p class="text-xs text-white/50 mt-0.5">Link a WhatsApp number to sign in faster with a one-time code — no password needed.</p>
+
+                {{-- Inline add / verify --}}
+                <div x-show="open" x-cloak class="mt-4 pt-4 border-t border-white/10 space-y-3">
+                    @if(session('status'))
+                        <div class="px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 text-xs">{{ session('status') }}</div>
+                    @endif
+                    @if(session('otp_demo_reveal'))
+                        <div class="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-400/30 text-amber-200 text-xs"><i class="fas fa-flask text-[10px] mr-1"></i> {{ session('otp_demo_reveal') }}</div>
+                    @endif
+                    @if(session('error'))
+                        <div class="px-3 py-2 rounded-lg bg-red-500/10 border border-red-400/30 text-red-200 text-xs">{{ session('error') }}</div>
+                    @endif
+                    @if($errors->any())
+                        <div class="px-3 py-2 rounded-lg bg-red-500/10 border border-red-400/30 text-red-200 text-xs">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>
+                    @endif
+
+                    {{-- Phase 1: number --}}
+                    <form method="POST" action="{{ route('user.onboarding.whatsapp.send') }}" x-show="phase === 'number'" class="flex flex-col sm:flex-row gap-2">
+                        @csrf
+                        <input type="tel" name="mobile" value="{{ old('mobile', $waPending) }}" required placeholder="+1 555 123 4567" autocomplete="tel"
+                               class="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:border-emerald-400/50 focus:outline-none">
+                        <button type="submit" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition whitespace-nowrap">Send code</button>
+                    </form>
+
+                    {{-- Phase 2: code --}}
+                    <form method="POST" action="{{ route('user.onboarding.whatsapp.verify') }}" x-show="phase === 'code'" x-cloak class="flex flex-col sm:flex-row gap-2">
+                        @csrf
+                        <input type="text" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="123456" autocomplete="one-time-code"
+                               class="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white tracking-[0.3em] text-center font-mono focus:border-emerald-400/50 focus:outline-none">
+                        <button type="submit" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition whitespace-nowrap">Verify &amp; connect</button>
+                    </form>
+
+                    @if(($whatsappChannelUrl ?? '') !== '')
+                        <a href="{{ $whatsappChannelUrl }}" target="_blank" rel="noopener"
+                           class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-emerald-400/30 text-emerald-200 text-xs font-semibold transition">
+                            <i class="fab fa-whatsapp"></i> Follow our channel
+                        </a>
+                    @endif
                 </div>
-                <a href="{{ route('user.identifiers.index') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition flex-shrink-0">Add WhatsApp</a>
-                <form method="POST" action="{{ route('user.onboarding.dismiss-whatsapp-prompt') }}">
-                    @csrf
-                    <button type="submit" class="text-white/30 hover:text-white/70 px-2 py-1.5" title="Dismiss"><i class="fas fa-times text-xs"></i></button>
-                </form>
             </div>
             @endif
             @if($showPersonaBanner)
