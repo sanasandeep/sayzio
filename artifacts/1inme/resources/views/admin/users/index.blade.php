@@ -2,9 +2,14 @@
 @section('title', 'Users')
 @section('page-title', 'User Management')
 
-@php($canManageUsers = auth('admin')->user()?->hasPermission('users.edit'))
+@php($operator = auth('admin')->user())
+@php($canCreateUsers = $operator?->hasPermission('users.create'))
+@php($canBulkPlan = $operator?->hasPermission('users.bulk_plan'))
+@php($canBulkCredits = $operator?->hasPermission('users.bulk_credits'))
+@php($canBulk = $canBulkPlan || $canBulkCredits)
+@php($canDeleteUsers = $operator?->hasPermission('users.delete'))
 @section('content')
-<div x-data="bulkUsers()">
+<div @if($canBulk) x-data="bulkUsers()" @endif>
 @if(request('promote'))
 <div class="mb-6 flex items-start gap-3 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20">
     <i class="fas fa-user-shield text-blue-300 mt-0.5"></i>
@@ -33,7 +38,7 @@
         </select>
         <button type="submit" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm hover:bg-white/[0.06]">Filter</button>
     </form>
-    @if($canManageUsers)
+    @if($canCreateUsers)
     <a href="{{ route('admin.users.create') }}"
        class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition whitespace-nowrap">
         <i class="fas fa-user-plus mr-1"></i> Create account
@@ -41,7 +46,7 @@
     @endif
 </div>
 
-@if($canManageUsers)
+@if($canBulk)
 {{-- Bulk action bar — appears once one or more users are selected. Submits
      a single POST to the bulk endpoint; selected ids are injected as
      hidden inputs by Alpine. Grant-coins idempotency is handled server-side. --}}
@@ -59,8 +64,8 @@
             <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Action</label>
             <select name="action" x-model="action"
                     class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white">
-                <option value="assign_plan">Assign plan</option>
-                <option value="grant_coins">Grant coins</option>
+                @if($canBulkPlan)<option value="assign_plan">Assign plan</option>@endif
+                @if($canBulkCredits)<option value="grant_coins">Grant coins</option>@endif
             </select>
         </div>
         <div x-show="action === 'assign_plan'">
@@ -94,7 +99,7 @@
     <table class="enhanced-table w-full">
         <thead class="bg-white/5">
             <tr>
-                @if($canManageUsers)
+                @if($canBulk)
                 <th class="px-4 py-3 text-left" data-no-sort>
                     <input type="checkbox" class="rounded bg-white/5 border-white/20"
                            @change="toggleAll($event)" title="Select all on this page">
@@ -110,7 +115,7 @@
         <tbody class="divide-y divide-white/5">
             @forelse($users as $user)
             <tr class="hover:bg-white/5">
-                @if($canManageUsers)
+                @if($canBulk)
                 <td class="px-4 py-4">
                     <input type="checkbox" value="{{ $user->id }}" class="bulk-cb rounded bg-white/5 border-white/20"
                            @change="toggle({{ $user->id }}, $event)">
@@ -158,6 +163,7 @@
                             <button type="submit" class="text-white/30 hover:text-amber-400" title="Login as user"><i class="fas fa-user-secret"></i></button>
                         </form>
                         @endif
+                        @if($canDeleteUsers)
                         @if(isset($protectedEmails) && $protectedEmails->has(strtolower(trim((string) $user->email))))
                         <span class="text-emerald-400/70" title="Protected — cannot be deleted or suspended"><i class="fas fa-shield-alt"></i></span>
                         @else
@@ -166,11 +172,12 @@
                             <button type="submit" class="text-white/30 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
                         </form>
                         @endif
+                        @endif
                     </div>
                 </td>
             </tr>
             @empty
-            <tr><td colspan="{{ $canManageUsers ? 6 : 5 }}" class="px-6 py-8 text-center text-white/30">No users found</td></tr>
+            <tr><td colspan="{{ $canBulk ? 6 : 5 }}" class="px-6 py-8 text-center text-white/30">No users found</td></tr>
             @endforelse
         </tbody>
     </table>
@@ -180,12 +187,12 @@
 </div>
 </div>
 @include('common.partials.enhanced-table')
-@if($canManageUsers)
+@if($canBulk)
 <script>
     function bulkUsers() {
         return {
             selected: [],
-            action: 'assign_plan',
+            action: '{{ $canBulkPlan ? 'assign_plan' : 'grant_coins' }}',
             toggle(id, e) {
                 if (e.target.checked) {
                     if (!this.selected.includes(id)) this.selected.push(id);

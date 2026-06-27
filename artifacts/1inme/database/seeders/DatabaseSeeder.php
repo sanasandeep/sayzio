@@ -59,12 +59,23 @@ class DatabaseSeeder extends Seeder
                 ['name' => 'Edit Users', 'slug' => 'users.edit'],
                 ['name' => 'Delete Users', 'slug' => 'users.delete'],
                 ['name' => 'Impersonate Users', 'slug' => 'users.impersonate'],
+                ['name' => 'Provision New Accounts', 'slug' => 'users.create'],
+                ['name' => 'Suspend / Reactivate Accounts', 'slug' => 'users.suspend'],
+                ['name' => 'Assign User Roles', 'slug' => 'users.assign_roles'],
+            ],
+            'billing' => [
+                ['name' => 'Grant / Deduct Credits', 'slug' => 'users.credits'],
+                ['name' => 'Assign / Comp Plans', 'slug' => 'users.assign_plan'],
+                ['name' => 'Bulk Credit Grants', 'slug' => 'users.bulk_credits'],
+                ['name' => 'Bulk Plan Assignment', 'slug' => 'users.bulk_plan'],
             ],
             'staff' => [
                 ['name' => 'View Staff', 'slug' => 'staff.view'],
                 ['name' => 'Create Staff', 'slug' => 'staff.create'],
                 ['name' => 'Edit Staff', 'slug' => 'staff.edit'],
                 ['name' => 'Delete Staff', 'slug' => 'staff.delete'],
+                ['name' => 'Grant Staff Admin Access', 'slug' => 'users.grant_admin'],
+                ['name' => 'Revoke Staff Admin Access', 'slug' => 'users.revoke_admin'],
             ],
             'roles' => [
                 ['name' => 'View Roles', 'slug' => 'roles.view'],
@@ -101,7 +112,10 @@ class DatabaseSeeder extends Seeder
                 ]);
                 $allPermIds[] = $p->id;
 
-                if (in_array($group, ['users', 'links', 'analytics'])) {
+                // Support keeps its narrower scope: the user-billing actions
+                // (billing group) plus the user/links/analytics groups, but
+                // never the staff group (incl. grant/revoke admin access).
+                if (in_array($group, ['users', 'links', 'analytics', 'billing'])) {
                     $supportPermIds[] = $p->id;
                 }
             }

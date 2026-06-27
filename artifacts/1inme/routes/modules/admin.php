@@ -665,9 +665,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Admin/staff user-management suite (Task #2106). Literal
             // paths declared before the `{user}` wildcard so they're not
             // swallowed by the show route.
-            Route::get ('create', [UserManagementController::class, 'create'])->middleware(CheckPermission::class . ':users.edit')->name('create');
-            Route::post('/',       [UserManagementController::class, 'store'])->middleware(CheckPermission::class . ':users.edit')->name('store');
-            Route::post('bulk',    [UserManagementController::class, 'bulkAction'])->middleware(CheckPermission::class . ':users.edit')->name('bulk');
+            Route::get ('create', [UserManagementController::class, 'create'])->middleware(CheckPermission::class . ':users.create')->name('create');
+            Route::post('/',       [UserManagementController::class, 'store'])->middleware(CheckPermission::class . ':users.create')->name('store');
+            // Bulk multiplexes plan-assign + credit-grant; require at least
+            // one of the two bulk perms here, enforce the specific one per
+            // action inside the controller.
+            Route::post('bulk',    [UserManagementController::class, 'bulkAction'])->middleware(CheckPermission::class . ':users.bulk_credits|users.bulk_plan')->name('bulk');
 
             // Activity log (audit viewer) — read access mirrors the user list.
             Route::get('activity-log',        [ActivityLogController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('activity-log.index');
@@ -678,17 +681,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('{user}', [UserManagementController::class, 'destroy'])->middleware(CheckPermission::class . ':users.delete')->name('destroy');
             Route::post('{user}/impersonate', [UserManagementController::class, 'impersonate'])->middleware(CheckPermission::class . ':users.impersonate')->name('impersonate');
             Route::post('stop-impersonation', [UserManagementController::class, 'stopImpersonation'])->name('stop-impersonation');
-            Route::post('{user}/wallet/adjust', [UserManagementController::class, 'adjustWallet'])->middleware(CheckPermission::class . ':users.edit')->name('wallet.adjust');
-            Route::get ('{user}/roles', [\App\Modules\Admin\Controllers\UserRoleController::class, 'edit'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.edit');
-            Route::put ('{user}/roles', [\App\Modules\Admin\Controllers\UserRoleController::class, 'update'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.update');
+            Route::post('{user}/wallet/adjust', [UserManagementController::class, 'adjustWallet'])->middleware(CheckPermission::class . ':users.credits')->name('wallet.adjust');
+            Route::get ('{user}/roles', [\App\Modules\Admin\Controllers\UserRoleController::class, 'edit'])->middleware(CheckPermission::class . ':users.assign_roles|users.grant_admin|users.revoke_admin')->whereNumber('user')->name('roles.edit');
+            Route::put ('{user}/roles', [\App\Modules\Admin\Controllers\UserRoleController::class, 'update'])->middleware(CheckPermission::class . ':users.assign_roles')->whereNumber('user')->name('roles.update');
             Route::get ('{user}/roles/audit.csv', [\App\Modules\Admin\Controllers\UserRoleController::class, 'export'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('roles.audit.export');
-            Route::post  ('{user}/admin-access', [\App\Modules\Admin\Controllers\UserRoleController::class, 'grantAdminAccess'])->middleware(CheckPermission::class . ':staff.create')->whereNumber('user')->name('admin-access.grant');
-            Route::delete('{user}/admin-access', [\App\Modules\Admin\Controllers\UserRoleController::class, 'revokeAdminAccess'])->middleware(CheckPermission::class . ':staff.delete')->whereNumber('user')->name('admin-access.revoke');
+            Route::post  ('{user}/admin-access', [\App\Modules\Admin\Controllers\UserRoleController::class, 'grantAdminAccess'])->middleware(CheckPermission::class . ':users.grant_admin')->whereNumber('user')->name('admin-access.grant');
+            Route::delete('{user}/admin-access', [\App\Modules\Admin\Controllers\UserRoleController::class, 'revokeAdminAccess'])->middleware(CheckPermission::class . ':users.revoke_admin')->whereNumber('user')->name('admin-access.revoke');
 
             // Plan assignment (incl. comp / time-limited) + temporary hold.
-            Route::post('{user}/assign-plan', [UserManagementController::class, 'assignPlan'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('assign-plan');
-            Route::post('{user}/suspend',     [UserManagementController::class, 'suspend'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('suspend');
-            Route::post('{user}/reactivate',  [UserManagementController::class, 'reactivate'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('reactivate');
+            Route::post('{user}/assign-plan', [UserManagementController::class, 'assignPlan'])->middleware(CheckPermission::class . ':users.assign_plan')->whereNumber('user')->name('assign-plan');
+            Route::post('{user}/suspend',     [UserManagementController::class, 'suspend'])->middleware(CheckPermission::class . ':users.suspend')->whereNumber('user')->name('suspend');
+            Route::post('{user}/reactivate',  [UserManagementController::class, 'reactivate'])->middleware(CheckPermission::class . ':users.suspend')->whereNumber('user')->name('reactivate');
         });
     });
 });

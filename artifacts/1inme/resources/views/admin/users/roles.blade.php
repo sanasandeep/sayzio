@@ -27,6 +27,7 @@
             grants a bundle of permissions used across the user-facing app.
         </p>
 
+        @if($canAssignRoles)
         <form method="POST" action="{{ route('admin.users.roles.update', $user) }}" class="space-y-3">
             @csrf @method('PUT')
 
@@ -65,6 +66,9 @@
                 </button>
             </div>
         </form>
+        @else
+        <p class="text-xs text-white/40">You don't have permission to change this user's roles.</p>
+        @endif
     </div>
 
     {{-- Admin access panel (Part 1: promote a user to admin / change the

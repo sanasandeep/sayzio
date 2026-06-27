@@ -42,8 +42,9 @@ class UserRoleController extends Controller
             ->with(['permissions' => fn ($q) => $q->orderBy('group')->orderBy('name')])
             ->orderBy('name')
             ->get();
-        $canGrantAdmin   = $operator && $operator->hasPermission('staff.create');
-        $canRevokeAdmin  = $operator && $operator->hasPermission('staff.delete');
+        $canGrantAdmin   = $operator && $operator->hasPermission('users.grant_admin');
+        $canRevokeAdmin  = $operator && $operator->hasPermission('users.revoke_admin');
+        $canAssignRoles  = $operator && $operator->hasPermission('users.assign_roles');
 
         // Per-user role-change history. Surfaced to anyone with
         // `users.edit` (the existing route guard) so back-office
@@ -82,6 +83,7 @@ class UserRoleController extends Controller
             'adminRoles'     => $adminRoles,
             'canGrantAdmin'  => $canGrantAdmin,
             'canRevokeAdmin' => $canRevokeAdmin,
+            'canAssignRoles' => $canAssignRoles,
             'audits'         => $audits,
             'auditFilters'   => $auditFilters,
             'auditRoleSlugs' => UserRoleAudit::distinctRoleSlugs(),

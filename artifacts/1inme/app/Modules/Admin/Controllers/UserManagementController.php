@@ -71,7 +71,10 @@ class UserManagementController extends Controller
         }
 
         $operator = Auth::guard('admin')->user();
-        $canManageAdminAccess = $operator && $operator->hasPermission('staff.create');
+        $canManageAdminAccess = $operator && (
+            $operator->hasPermission('users.grant_admin')
+            || $operator->hasPermission('users.revoke_admin')
+        );
 
         // Lowercased set of protected emails on this page so the view can
         // hide delete/suspend controls for protected accounts.
@@ -435,6 +438,16 @@ class UserManagementController extends Controller
             'reason'      => 'required_if:action,grant_coins|nullable|string|max:255',
         ]);
 
+        // Per-action gate: this endpoint multiplexes two distinct
+        // capabilities, so enforce the specific permission for the chosen
+        // action server-side. The route only guarantees the operator holds
+        // at least one of the two bulk permissions.
+        $operator = Auth::guard('admin')->user();
+        $needed = $data['action'] === 'assign_plan' ? 'users.bulk_plan' : 'users.bulk_credits';
+        if (! $operator || ! $operator->hasPermission($needed)) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $users = User::whereIn('id', array_unique($data['user_ids']))->get();
         $operatorId = Auth::guard('admin')->id();
         $count = 0;
@@ -518,6 +531,20 @@ class UserManagementController extends Controller
             'plan_id' => 'sometimes|nullable|exists:plans,id',
             'plan_expires_at' => 'sometimes|nullable|date',
         ]);
+
+        // Granular enforcement: this basic edit route is gated only by
+        // `users.edit`, so it must NOT become a backdoor for privileged
+        // mutations. Plan assignment requires `users.assign_plan` and account
+        // status changes require `users.suspend`; an operator lacking the
+        // dedicated permission cannot change those fields here (name edits
+        // still go through). Mirrors the dedicated assign-plan / suspend routes.
+        $operator = Auth::guard('admin')->user();
+        if (! $operator?->hasPermission('users.assign_plan')) {
+            unset($validated['plan_id'], $validated['plan_expires_at']);
+        }
+        if (! $operator?->hasPermission('users.suspend')) {
+            unset($validated['status']);
+        }
 
         // Changing a protected account's status to anything that blocks
         // sign-in (banned/suspended/inactive) is a suspend in disguise —

@@ -3,6 +3,11 @@
 @section('page-title', 'User: ' . $user->name)
 
 @section('content')
+@php
+    $showOperator = auth('admin')->user();
+    $canAssignPlan = $showOperator?->hasPermission('users.assign_plan');
+    $canSuspend = $showOperator?->hasPermission('users.suspend');
+@endphp
 @if($user->isSuspended())
 <div class="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 flex flex-wrap items-center justify-between gap-3">
     <div class="text-sm text-rose-200">
@@ -13,7 +18,7 @@
             <span class="block text-xs text-rose-200/60 mt-1">Auto-reactivates on {{ $user->reactivate_at->format('M j, Y') }}</span>
         @endif
     </div>
-    @if(auth('admin')->user()?->hasPermission('users.edit'))
+    @if(auth('admin')->user()?->hasPermission('users.suspend'))
     <form method="POST" action="{{ route('admin.users.reactivate', $user) }}">
         @csrf
         <button type="submit" class="px-4 py-2 bg-emerald-500/20 text-emerald-200 rounded-xl text-sm font-medium hover:bg-emerald-500/30 transition">
@@ -56,12 +61,14 @@
                 </form>
             </div>
             @endif
+            @if(auth('admin')->user()?->hasPermission('users.assign_roles') || auth('admin')->user()?->hasPermission('users.grant_admin') || auth('admin')->user()?->hasPermission('users.revoke_admin'))
             <div class="mt-3">
                 <a href="{{ route('admin.users.roles.edit', $user) }}"
                    class="block w-full text-center px-4 py-2 bg-blue-500/10 text-blue-300 rounded-xl text-sm font-medium hover:bg-blue-500/20 transition">
                     <i class="fas fa-user-shield mr-1"></i> Manage roles
                 </a>
             </div>
+            @endif
         </div>
     </div>
 
@@ -79,6 +86,7 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-white/80 mb-1">Status</label>
+                            @if($canSuspend)
                             <select name="status" @if(!empty($isProtected)) disabled @endif class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none @if(!empty($isProtected)) opacity-60 cursor-not-allowed @endif">
                                 <option value="active" {{ $user->status == 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="inactive" {{ $user->status == 'inactive' ? 'selected' : '' }}>Inactive</option>
@@ -89,22 +97,35 @@
                             <input type="hidden" name="status" value="{{ $user->status }}">
                             <p class="mt-1 text-xs text-emerald-400/80"><i class="fas fa-shield-alt mr-1"></i> Protected account — status is locked.</p>
                             @endif
+                            @else
+                            {{-- No users.suspend permission: show status read-only and submit nothing (server strips it too). --}}
+                            <div class="w-full px-4 py-2.5 border border-white/10 rounded-xl bg-white/5 text-white/70">{{ ucfirst($user->status) }}</div>
+                            <p class="mt-1 text-xs text-white/40"><i class="fas fa-lock mr-1"></i> Requires the Suspend / Reactivate permission.</p>
+                            @endif
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-white/80 mb-1">Plan</label>
+                            @if($canAssignPlan)
                             <select name="plan_id" class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none">
                                 <option value="">No Plan</option>
                                 @foreach($plans as $plan)
                                     <option value="{{ $plan->id }}" {{ $user->plan_id == $plan->id ? 'selected' : '' }}>{{ $plan->name }}</option>
                                 @endforeach
                             </select>
+                            @else
+                            {{-- No users.assign_plan permission: show plan read-only and submit nothing (server strips it too). --}}
+                            <div class="w-full px-4 py-2.5 border border-white/10 rounded-xl bg-white/5 text-white/70">{{ $user->plan->name ?? 'No Plan' }}</div>
+                            <p class="mt-1 text-xs text-white/40"><i class="fas fa-lock mr-1"></i> Requires the Assign / Comp Plans permission.</p>
+                            @endif
                         </div>
                     </div>
+                    @if($canAssignPlan)
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Plan Expires At</label>
                         <input type="datetime-local" name="plan_expires_at" value="{{ $user->plan_expires_at?->format('Y-m-d\TH:i') }}"
                                class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
+                    @endif
                     <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
                         Update User
                     </button>
@@ -113,8 +134,9 @@
         </div>
     </div>
 
-    @if(auth('admin')->user()?->hasPermission('users.edit'))
+    @if($canAssignPlan || $canSuspend)
     <div class="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        @if($canAssignPlan)
         {{-- Assign plan, optionally as a complimentary / time-limited grant.
              Leaving "Complimentary days" blank assigns the plan permanently
              and clears any prior comp window. --}}
@@ -147,7 +169,9 @@
                 </button>
             </form>
         </div>
+        @endif
 
+        @if($canSuspend)
         {{-- Suspend / reactivate. Suspension takes a required reason and an
              optional auto-reactivation date enforced at login + by a job. --}}
         <div class="glass rounded-2xl border border-white/10 p-6">
@@ -184,6 +208,7 @@
                 </form>
             @endif
         </div>
+        @endif
     </div>
     @endif
 
@@ -360,6 +385,7 @@
             <div class="text-2xl font-bold text-amber-300">{{ number_format($wallet->balance) }} 🪙</div>
         </div>
 
+        @if(auth('admin')->user()?->hasPermission('users.credits'))
         <form method="POST" action="{{ route('admin.users.wallet.adjust', $user) }}" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
             @csrf
             <input type="number" name="delta" placeholder="Δ coins (use - to debit)" required
@@ -368,6 +394,7 @@
                    class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm md:col-span-1">
             <button class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Apply adjustment</button>
         </form>
+        @endif
 
         @if($walletTransactions->isEmpty())
             <p class="text-sm text-white/40">No transactions yet.</p>
