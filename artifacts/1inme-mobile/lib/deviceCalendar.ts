@@ -292,6 +292,37 @@ async function collectExistingEventIds(
   return new Set(map.keys());
 }
 
+/**
+ * Detect which of these events are already saved on the device calendar,
+ * returning the set of Sayzio event ids (as strings) that have a copy present.
+ * Reuses the same UID-marker lookup as add/remove via {@link collectExistingEventIds}.
+ *
+ * Returns `null` when the saved state can't be determined — on web (no tracked
+ * device copy), when calendar access hasn't been granted, or on a build without
+ * expo-calendar. Callers should treat `null` as "unknown" and default to the
+ * Add action. Crucially this checks the *existing* permission (it never
+ * prompts), so opening the screen won't trigger a permission dialog.
+ */
+export async function getSavedDeviceEventIds(
+  events: CalendarEventItem[],
+): Promise<Set<string> | null> {
+  const datable = events.filter((e) => eventBounds(e) !== null);
+  if (datable.length === 0) return new Set();
+
+  if (Platform.OS === "web") return null;
+
+  const Calendar = await import("expo-calendar").catch(() => null);
+  if (!Calendar) return null;
+
+  try {
+    const { status } = await Calendar.getCalendarPermissionsAsync();
+    if (status !== "granted") return null;
+    return await collectExistingEventIds(Calendar, datable);
+  } catch {
+    return null;
+  }
+}
+
 /** Write one event into the device calendar (or download an .ics on web). */
 export async function addEventToDeviceCalendar(
   event: CalendarEventItem,

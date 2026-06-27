@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -26,6 +26,7 @@ import {
 import {
   addEventsWithFeedback,
   addEventWithFeedback,
+  getSavedDeviceEventIds,
   removeEventsWithFeedback,
   removeEventWithFeedback,
   subscribeToIcs,
@@ -60,6 +61,9 @@ export default function CalendarDetailScreen() {
   const [bulkAdding, setBulkAdding] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [bulkRemoving, setBulkRemoving] = useState(false);
+  // Sayzio event ids already on the device calendar. `null` = not yet known /
+  // can't be determined (web, no permission), in which case we default to Add.
+  const [savedIds, setSavedIds] = useState<Set<string> | null>(null);
 
   const q = useQuery({
     queryKey: ["calendar", id, showPast],
@@ -136,12 +140,39 @@ export default function CalendarDetailScreen() {
   // only touches copies the user already added (matched on the UID marker).
   const syncable = events.filter((e) => e.start_at);
 
+  // Re-read which events are already on the device calendar. Used on load and
+  // after every add/remove/bulk action so each event shows the right action.
+  const refreshSavedState = async () => {
+    if (events.length === 0) {
+      setSavedIds(new Set());
+      return;
+    }
+    setSavedIds(await getSavedDeviceEventIds(events));
+  };
+
+  // Detect saved state up front whenever the loaded event set changes (its ids
+  // form a stable key so this doesn't re-run on every render).
+  const eventKey = events.map((e) => e.id).join(",");
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const ids =
+        events.length === 0 ? new Set<string>() : await getSavedDeviceEventIds(events);
+      if (!cancelled) setSavedIds(ids);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventKey]);
+
   const addToCalendar = async (event: CalendarEventItem) => {
     setAddingId(event.id);
     try {
       await addEventWithFeedback(event);
     } finally {
       setAddingId(null);
+      void refreshSavedState();
     }
   };
 
@@ -151,6 +182,7 @@ export default function CalendarDetailScreen() {
       await removeEventWithFeedback(event);
     } finally {
       setRemovingId(null);
+      void refreshSavedState();
     }
   };
 
@@ -161,6 +193,7 @@ export default function CalendarDetailScreen() {
       await addEventsWithFeedback(upcomingAddable);
     } finally {
       setBulkAdding(false);
+      void refreshSavedState();
     }
   };
 
@@ -171,6 +204,7 @@ export default function CalendarDetailScreen() {
       await syncEventsWithFeedback(syncable);
     } finally {
       setSyncing(false);
+      void refreshSavedState();
     }
   };
 
@@ -181,6 +215,7 @@ export default function CalendarDetailScreen() {
       await removeEventsWithFeedback(syncable);
     } finally {
       setBulkRemoving(false);
+      void refreshSavedState();
     }
   };
 
@@ -417,42 +452,58 @@ export default function CalendarDetailScreen() {
                 ) : null}
                 {item.start_at ? (
                   <View style={styles.deviceCalRow}>
-                    <Pressable
-                      onPress={() => addToCalendar(item)}
-                      disabled={addingId === item.id || removingId === item.id}
-                      hitSlop={6}
-                      style={[
-                        styles.addBtn,
-                        { borderColor: accent, borderRadius: colors.radius },
-                      ]}
-                    >
-                      {addingId === item.id ? (
-                        <ActivityIndicator size="small" color={accent} />
-                      ) : (
-                        <Feather name="calendar" size={14} color={accent} />
-                      )}
-                      <Text style={[styles.addBtnText, { color: accent }]}>
-                        Add to my calendar
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => removeFromCalendar(item)}
-                      disabled={addingId === item.id || removingId === item.id}
-                      hitSlop={6}
-                      style={[
-                        styles.addBtn,
-                        { borderColor: colors.border, borderRadius: colors.radius },
-                      ]}
-                    >
-                      {removingId === item.id ? (
-                        <ActivityIndicator size="small" color={colors.mutedForeground} />
-                      ) : (
-                        <Feather name="x-circle" size={14} color={colors.mutedForeground} />
-                      )}
-                      <Text style={[styles.addBtnText, { color: colors.mutedForeground }]}>
-                        Remove from my calendar
-                      </Text>
-                    </Pressable>
+                    {savedIds?.has(String(item.id)) ? (
+                      <>
+                        <View
+                          style={[
+                            styles.savedBadge,
+                            { backgroundColor: accent + "22", borderRadius: colors.radius },
+                          ]}
+                        >
+                          <Feather name="check-circle" size={14} color={accent} />
+                          <Text style={[styles.savedBadgeText, { color: accent }]}>
+                            Saved to your calendar
+                          </Text>
+                        </View>
+                        <Pressable
+                          onPress={() => removeFromCalendar(item)}
+                          disabled={addingId === item.id || removingId === item.id}
+                          hitSlop={6}
+                          style={[
+                            styles.addBtn,
+                            { borderColor: colors.border, borderRadius: colors.radius },
+                          ]}
+                        >
+                          {removingId === item.id ? (
+                            <ActivityIndicator size="small" color={colors.mutedForeground} />
+                          ) : (
+                            <Feather name="x-circle" size={14} color={colors.mutedForeground} />
+                          )}
+                          <Text style={[styles.addBtnText, { color: colors.mutedForeground }]}>
+                            Remove
+                          </Text>
+                        </Pressable>
+                      </>
+                    ) : (
+                      <Pressable
+                        onPress={() => addToCalendar(item)}
+                        disabled={addingId === item.id || removingId === item.id}
+                        hitSlop={6}
+                        style={[
+                          styles.addBtn,
+                          { borderColor: accent, borderRadius: colors.radius },
+                        ]}
+                      >
+                        {addingId === item.id ? (
+                          <ActivityIndicator size="small" color={accent} />
+                        ) : (
+                          <Feather name="calendar" size={14} color={accent} />
+                        )}
+                        <Text style={[styles.addBtnText, { color: accent }]}>
+                          Add to my calendar
+                        </Text>
+                      </Pressable>
+                    )}
                   </View>
                 ) : null}
 
@@ -596,4 +647,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   addBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
+  savedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  savedBadgeText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
 });
