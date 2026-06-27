@@ -337,6 +337,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Centralised email templates: edit/preview/reset per-template overrides.
         Route::prefix('email-templates')->name('email-templates.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\EmailTemplateController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('billing-cc', [\App\Modules\Admin\Controllers\EmailTemplateController::class, 'updateBillingCc'])->middleware(CheckPermission::class . ':settings.manage')->name('billing-cc');
             Route::get('{key}', [\App\Modules\Admin\Controllers\EmailTemplateController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->where('key', '[A-Za-z0-9._-]+')->name('edit');
             Route::put('{key}', [\App\Modules\Admin\Controllers\EmailTemplateController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->where('key', '[A-Za-z0-9._-]+')->name('update');
             Route::delete('{key}', [\App\Modules\Admin\Controllers\EmailTemplateController::class, 'reset'])->middleware(CheckPermission::class . ':settings.manage')->where('key', '[A-Za-z0-9._-]+')->name('reset');

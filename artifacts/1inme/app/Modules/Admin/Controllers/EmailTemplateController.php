@@ -5,8 +5,10 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\Emailer;
 use App\Modules\Common\Services\EmailTemplateRegistry;
+use App\Services\Integrations\BillingNotificationSettings;
 use App\Services\Integrations\EmailTemplateSettings;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 /**
@@ -39,8 +41,37 @@ class EmailTemplateController extends Controller
         }
 
         return view('admin.email-templates.index', [
-            'grouped' => $grouped,
+            'grouped'          => $grouped,
+            'billingCc'        => BillingNotificationSettings::ccRecipients(),
+            'billingCcDefault' => !BillingNotificationSettings::isConfigured(),
         ]);
+    }
+
+    /**
+     * Save the admin-managed CC list applied to platform billing emails
+     * (receipts + payment reminders). Accepts newline/comma separated addresses;
+     * each must be a well-formed email. An empty list is allowed and disables CC.
+     */
+    public function updateBillingCc(Request $request)
+    {
+        $emails = collect(preg_split('/[\r\n,]+/', (string) $request->input('billing_cc', '')))
+            ->map(fn ($e) => trim($e))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        Validator::make(
+            ['billing_cc' => $emails],
+            ['billing_cc.*' => ['email:rfc']],
+            ['billing_cc.*.email' => 'Each line must be a valid email address.'],
+        )->validate();
+
+        BillingNotificationSettings::put($emails);
+
+        return redirect()
+            ->route('admin.email-templates.index')
+            ->with('success', 'Billing notification CC list saved. New billing emails will be CC\'d to these addresses.');
     }
 
     public function edit(string $key)

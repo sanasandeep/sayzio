@@ -3,6 +3,7 @@
 namespace App\Modules\Common\Services;
 
 use App\Modules\Common\Models\EmailLog;
+use App\Services\Integrations\BillingNotificationSettings;
 use App\Services\Integrations\EmailTemplateSettings;
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Log;
@@ -85,6 +86,7 @@ class Emailer
 
         // No override: send the Mailable as-is, tag it so the listener logs the
         // final rendered message under this key.
+        $opts = self::applyBillingCc($key, $opts);
         try {
             $mailable->withSymfonyMessage(function ($message) use ($key) {
                 $message->getHeaders()->addTextHeader(self::KEY_HEADER, $key);
@@ -223,6 +225,7 @@ class Emailer
      */
     private static function dispatch(string $key, string $to, string $subject, string $body, string $format, array $opts): ?EmailLog
     {
+        $opts   = self::applyBillingCc($key, $opts);
         $status = 'sent';
         $error  = null;
 
@@ -302,6 +305,48 @@ class Emailer
             Log::warning("Emailer::writeLog failed [{$key}]: " . $e->getMessage());
             return null;
         }
+    }
+
+    /**
+     * Merge the admin-managed billing CC list into $opts['cc'] when this key is a
+     * platform-billing email. The primary recipient's copy is unchanged; the CC
+     * addresses are added in addition. De-duplicates case-insensitively while
+     * preserving order, and is idempotent (safe to call more than once per send).
+     *
+     * @param  array<string,mixed>  $opts
+     * @return array<string,mixed>
+     */
+    private static function applyBillingCc(string $key, array $opts): array
+    {
+        if (!BillingNotificationSettings::shouldCc($key)) {
+            return $opts;
+        }
+
+        $recipients = BillingNotificationSettings::ccRecipients();
+        if (empty($recipients)) {
+            return $opts;
+        }
+
+        $existing = $opts['cc'] ?? [];
+        $existing = is_array($existing) ? $existing : [$existing];
+
+        $seen = [];
+        $out  = [];
+        foreach (array_merge($existing, $recipients) as $addr) {
+            $addr = is_string($addr) ? trim($addr) : $addr;
+            if (!is_string($addr) || $addr === '') {
+                continue;
+            }
+            $lower = strtolower($addr);
+            if (isset($seen[$lower])) {
+                continue;
+            }
+            $seen[$lower] = true;
+            $out[] = $addr;
+        }
+
+        $opts['cc'] = $out;
+        return $opts;
     }
 
     private static function normalizeUserId($user): ?int
