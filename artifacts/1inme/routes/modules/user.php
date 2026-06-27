@@ -1338,6 +1338,10 @@ Route::prefix('user')->name('user.')->group(function () {
             // every existing source (forms, subscribers, viewer DMs).
             Route::prefix('unified')->name('unified.')->group(function () {
                 Route::get('/',                 [\App\Modules\User\Controllers\InboxUnifiedController::class, 'index'])->name('index');
+                // Inbox Agent: settings panel + manual AI reply drafting.
+                Route::get('agent',             [\App\Modules\User\Controllers\InboxUnifiedController::class, 'agentSettings'])->middleware('workspace.owner')->name('agent');
+                Route::post('agent',            [\App\Modules\User\Controllers\InboxUnifiedController::class, 'agentSettingsUpdate'])->middleware('workspace.owner')->name('agent.update');
+                Route::post('{thread}/ai-draft',[\App\Modules\User\Controllers\InboxUnifiedController::class, 'aiDraft'])->whereNumber('thread')->middleware('workspace.can:inbox.reply')->name('ai-draft');
                 Route::get('snippets',          [\App\Modules\User\Controllers\InboxUnifiedController::class, 'snippetsIndex'])->name('snippets.index');
                 Route::post('snippets',         [\App\Modules\User\Controllers\InboxUnifiedController::class, 'snippetsStore'])->middleware('workspace.can:inbox.edit')->name('snippets.store');
                 Route::delete('snippets/{snippet}', [\App\Modules\User\Controllers\InboxUnifiedController::class, 'snippetsDestroy'])->whereNumber('snippet')->middleware('workspace.can:inbox.delete')->name('snippets.destroy');

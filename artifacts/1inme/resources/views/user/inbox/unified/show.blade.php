@@ -7,7 +7,31 @@
         ->where('workspace_id', $thread->workspace_id)
         ->orderBy('name')->get();
 @endphp
-<div class="max-w-6xl mx-auto" x-data="{ replyText: '', showSnippets: false }">
+<div class="max-w-6xl mx-auto"
+     x-data="{
+        replyText: @js($thread->needsReview() ? (string) $thread->ai_draft : ''),
+        showSnippets: false,
+        aiDrafting: false,
+        aiError: '',
+        async draftWithAi() {
+            this.aiDrafting = true; this.aiError = '';
+            try {
+                const res = await fetch(@js(route('user.inbox.unified.ai-draft', $thread->id)), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await res.json();
+                if (!res.ok) { this.aiError = (data.error && data.error.message) ? data.error.message : 'Could not draft a reply.'; return; }
+                this.replyText = data.data && data.data.draft ? data.data.draft : this.replyText;
+            } catch (e) { this.aiError = 'Network error while drafting.'; }
+            finally { this.aiDrafting = false; }
+        }
+     }">
     <a href="{{ url()->previous() }}" class="inline-flex items-center text-sm mb-4" style="color: var(--text-muted);">
         <i class="fas fa-arrow-left mr-2"></i> Back
     </a>
@@ -31,6 +55,12 @@
                         <div class="flex items-center gap-2 flex-wrap mt-2">
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded inline-flex items-center gap-1" style="background: rgba(0,0,0,0.25); color: {{ $thread->channelColor() }};"><i class="{{ $thread->channelIcon() }}"></i>{{ $thread->channelLabel() }}</span>
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: {{ $thread->categoryColor() }}22; color: {{ $thread->categoryColor() }};">{{ $thread->categoryLabel() }}</span>
+                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: {{ $thread->priorityColor() }}22; color: {{ $thread->priorityColor() }};"><i class="fas fa-flag mr-1"></i>{{ $thread->priorityLabel() }}</span>
+                            @if($thread->wasSentByAi())
+                                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: rgba(92,131,255,0.15); color: #5c83ff;" title="Replied automatically by the Inbox Agent {{ optional($thread->ai_handled_at)->diffForHumans() }}"><i class="fas fa-robot mr-1"></i>Sent by AI</span>
+                            @elseif($thread->needsReview())
+                                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: rgba(92,131,255,0.15); color: #5c83ff;"><i class="fas fa-robot mr-1"></i>AI draft ready</span>
+                            @endif
                             @if($thread->isOverdue())
                                 <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: rgba(239,68,68,0.15); color: #f87171;"><i class="fas fa-clock mr-1"></i>Overdue {{ $thread->sla_due_at->diffForHumans() }}</span>
                             @elseif($thread->sla_due_at)
@@ -49,6 +79,16 @@
                 </div>
 
                 <div class="text-sm font-semibold mt-4" style="color: var(--text-primary);">{{ $thread->subject }}</div>
+
+                @if($thread->summary)
+                    <div class="mt-3 p-3 rounded-lg flex items-start gap-2" style="background: rgba(92,131,255,0.08); border: 1px solid rgba(92,131,255,0.2);">
+                        <i class="fas fa-wand-magic-sparkles mt-0.5" style="color:#5c83ff;"></i>
+                        <div>
+                            <div class="text-[10px] font-bold uppercase tracking-wider mb-0.5" style="color:#5c83ff;">AI summary @if($thread->triage_source === 'ai')<span class="opacity-60">· model</span>@else<span class="opacity-60">· rules</span>@endif</div>
+                            <div class="text-xs" style="color: var(--text-secondary);">{{ $thread->summary }}</div>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             {{-- Messages --}}
@@ -126,7 +166,26 @@
             {{-- Reply composer --}}
             @canInWorkspace('inbox.reply')
             <form method="POST" action="{{ route('user.inbox.unified.reply', $thread->id) }}" class="card-premium p-5 space-y-3">@csrf
-                <div class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-faint);">Reply via {{ $thread->channelLabel() }}</div>
+                <div class="flex items-center justify-between gap-2">
+                    <div class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-faint);">Reply via {{ $thread->channelLabel() }}</div>
+                    <button type="button" @click="draftWithAi()" :disabled="aiDrafting"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5"
+                            style="background: rgba(92,131,255,0.15); color: #bccfff; border: 1px solid rgba(92,131,255,0.3);">
+                        <i class="fas" :class="aiDrafting ? 'fa-spinner fa-spin' : 'fa-robot'"></i>
+                        <span x-text="aiDrafting ? 'Drafting…' : (replyText ? 'Regenerate with AI' : 'Draft with AI')"></span>
+                    </button>
+                </div>
+
+                @if($thread->needsReview())
+                    <div class="p-2.5 rounded-lg text-[11px] flex items-start gap-2" style="background: rgba(92,131,255,0.08); border: 1px solid rgba(92,131,255,0.2); color: #bccfff;">
+                        <i class="fas fa-robot mt-0.5"></i>
+                        <span>The Inbox Agent drafted this reply automatically and is waiting for your review. Edit it as needed, then send.</span>
+                    </div>
+                @endif
+
+                <div x-show="aiError" x-cloak class="p-2.5 rounded-lg text-[11px]" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #fca5a5;">
+                    <i class="fas fa-circle-exclamation mr-1"></i><span x-text="aiError"></span>
+                </div>
 
                 @if(!empty($suggestions))
                 <div class="flex flex-wrap gap-2">

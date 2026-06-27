@@ -7,11 +7,13 @@
         'title' => 'Inbox 2.0',
         'subtitle' => 'Every channel in one triaged stream',
         'icon' => 'fa-inbox',
-        'chips' => [
+        'chips' => array_values(array_filter([
             ['icon' => 'fa-envelope text-blue-400', 'text' => number_format($counts['unread']) . ' unread'],
             ['icon' => 'fa-clock text-amber-400',    'text' => number_format($counts['overdue']) . ' overdue'],
-        ],
+            ($counts['review'] ?? 0) > 0 ? ['icon' => 'fa-robot text-blue-400', 'text' => number_format($counts['review']) . ' to review'] : null,
+        ])),
         'actions' => [
+            ['label' => 'Inbox Agent',      'url' => route('user.inbox.unified.agent'),          'icon' => 'fa-robot', 'class' => 'btn-ghost'],
             ['label' => 'Snippets',         'url' => route('user.inbox.unified.snippets.index'), 'icon' => 'fa-bolt',  'class' => 'btn-ghost'],
             ['label' => 'Classic inbox',    'url' => route('user.inbox.index'),                  'icon' => 'fa-arrow-rotate-left', 'class' => 'btn-ghost'],
         ],
@@ -87,8 +89,12 @@
                 <label class="flex items-center gap-2 text-xs mb-1" style="color: var(--text-secondary);">
                     <input type="checkbox" name="starred" value="1" {{ $filters['starred'] ? 'checked' : '' }} onchange="this.form.submit()"> Starred only
                 </label>
-                <label class="flex items-center gap-2 text-xs mb-3" style="color: var(--text-secondary);">
+                <label class="flex items-center gap-2 text-xs mb-1" style="color: var(--text-secondary);">
                     <input type="checkbox" name="overdue" value="1" {{ $filters['overdue'] ? 'checked' : '' }} onchange="this.form.submit()"> Overdue SLA only
+                </label>
+                <label class="flex items-center gap-2 text-xs mb-3" style="color: var(--text-secondary);">
+                    <input type="checkbox" name="review" value="1" {{ ($filters['review'] ?? false) ? 'checked' : '' }} onchange="this.form.submit()">
+                    <span><i class="fas fa-robot mr-1" style="color:#5c83ff;"></i>Awaiting AI review @if(($counts['review'] ?? 0) > 0)<span class="ml-1 text-[10px] opacity-70">({{ $counts['review'] }})</span>@endif</span>
                 </label>
 
                 <button class="w-full px-3 py-2 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg,#5c83ff,#2342c7);">Apply</button>
@@ -136,6 +142,14 @@
                                                 <i class="{{ $t->channelIcon() }}"></i> {{ $t->channelLabel() }}
                                             </span>
                                             <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: {{ $t->categoryColor() }}22; color: {{ $t->categoryColor() }};">{{ $t->categoryLabel() }}</span>
+                                            @if(in_array($t->priority, ['high','urgent'], true))
+                                                <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: {{ $t->priorityColor() }}22; color: {{ $t->priorityColor() }};"><i class="fas fa-flag mr-1"></i>{{ $t->priorityLabel() }}</span>
+                                            @endif
+                                            @if($t->wasSentByAi())
+                                                <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(92,131,255,0.15); color: #5c83ff;" title="Replied automatically by the Inbox Agent"><i class="fas fa-robot mr-1"></i>Sent by AI</span>
+                                            @elseif($t->needsReview())
+                                                <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(92,131,255,0.15); color: #5c83ff;" title="The Inbox Agent drafted a reply awaiting your review"><i class="fas fa-robot mr-1"></i>AI draft</span>
+                                            @endif
                                             @if($t->isOverdue())
                                                 <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(239,68,68,0.15); color: #f87171;"><i class="fas fa-clock mr-1"></i>Overdue</span>
                                             @elseif($t->sla_due_at)
@@ -146,7 +160,11 @@
                                             @endif
                                         </div>
                                         <div class="text-xs truncate mt-0.5" style="color: var(--text-muted);">{{ $t->subject }}</div>
-                                        <div class="text-[11px] truncate mt-0.5" style="color: var(--text-faint);">{{ $t->preview }}</div>
+                                        @if($t->summary)
+                                            <div class="text-[11px] truncate mt-0.5" style="color: var(--text-muted);" title="AI summary"><i class="fas fa-wand-magic-sparkles mr-1" style="color:#5c83ff;"></i>{{ $t->summary }}</div>
+                                        @else
+                                            <div class="text-[11px] truncate mt-0.5" style="color: var(--text-faint);">{{ $t->preview }}</div>
+                                        @endif
                                     </a>
                                     <div class="text-[10px] text-right flex-shrink-0" style="color: var(--text-faint);" title="{{ $t->last_message_at?->format('Y-m-d H:i') }}">
                                         {{ $t->last_message_at?->diffForHumans() }}

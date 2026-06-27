@@ -9,6 +9,7 @@ use App\Modules\User\Models\FormSubmission;
 use App\Modules\User\Models\InboxMessage;
 use App\Modules\User\Models\InboxThread;
 use App\Modules\User\Models\Subscriber;
+use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -23,6 +24,8 @@ class InboxThreadSync
 {
     public function __construct(
         protected InboxClassifier $classifier,
+        protected InboxAiTriage $triage,
+        protected InboxAutopilot $autopilot,
     ) {}
 
     /** Sync everything visible for the given workspace. */
@@ -32,8 +35,26 @@ class InboxThreadSync
         $touched += $this->syncFormSubmissions($ws);
         $touched += $this->syncSubscribers($ws);
         $touched += $this->syncViewerDms($ws);
+
+        // Once every source is threaded, let the agent act on anything new
+        // that just landed (drafts + autonomous sends). Best-effort: this
+        // never throws and is a no-op unless autopilot is configured.
+        $this->autopilot->run($ws);
+
         return $touched;
     }
+
+    /** Resolve the workspace owner once for AI metering during a sync pass. */
+    protected function owner(Workspace $ws): ?User
+    {
+        if (!array_key_exists($ws->id, $this->ownerCache)) {
+            $this->ownerCache[$ws->id] = User::find($ws->owner_user_id);
+        }
+        return $this->ownerCache[$ws->id];
+    }
+
+    /** @var array<int,?User> */
+    protected array $ownerCache = [];
 
     protected function syncFormSubmissions(Workspace $ws): int
     {
@@ -63,9 +84,12 @@ class InboxThreadSync
             ]);
 
             if (!$thread->exists) {
-                $cls = $this->classifier->classify($body, $sub->form?->title, 'form', (bool) $sub->is_spam);
+                $cls = $this->triage->triage($body, $sub->form?->title, 'form', (bool) $sub->is_spam, $this->owner($ws), $ws);
                 if ($isSponsorship && $cls['confidence'] < 0.8) {
-                    $cls = ['category' => 'sponsorship', 'confidence' => 0.85, 'reason' => 'sponsorship_form_title'];
+                    $cls['category']   = 'sponsorship';
+                    $cls['confidence'] = 0.85;
+                    $cls['priority']   = $cls['priority'] === 'urgent' ? 'urgent' : 'high';
+                    $cls['reason']     = 'sponsorship_form_title';
                 }
                 $thread->fill([
                     'workspace_id'        => $ws->id,
@@ -75,6 +99,9 @@ class InboxThreadSync
                     'category'            => $cls['category'],
                     'category_confidence' => $cls['confidence'],
                     'category_source'     => 'auto',
+                    'priority'            => $cls['priority'],
+                    'triage_source'       => $cls['source'],
+                    'summary'             => $cls['summary'],
                     'sla_due_at'          => $this->defaultSla($cls['category'], $sub->created_at),
                     'meta'                => ['classifier_reason' => $cls['reason']],
                 ]);
@@ -130,7 +157,7 @@ class InboxThreadSync
             ]);
 
             if (!$thread->exists) {
-                $cls = $this->classifier->classify($body, null, 'email', (bool) $sub->is_spam);
+                $cls = $this->triage->triage($body, null, 'email', (bool) $sub->is_spam, $this->owner($ws), $ws);
                 $thread->fill([
                     'workspace_id'        => $ws->id,
                     'user_id'             => $ws->owner_user_id,
@@ -139,6 +166,9 @@ class InboxThreadSync
                     'category'            => $cls['category'],
                     'category_confidence' => $cls['confidence'],
                     'category_source'     => 'auto',
+                    'priority'            => $cls['priority'],
+                    'triage_source'       => $cls['source'],
+                    'summary'             => $cls['summary'],
                     'sla_due_at'          => $this->defaultSla($cls['category'], $sub->subscribed_at ?? $sub->created_at),
                     'meta'                => ['subscriber_type' => $sub->type, 'classifier_reason' => $cls['reason']],
                 ]);
@@ -188,15 +218,19 @@ class InboxThreadSync
             ]);
 
             if (!$thread->exists) {
-                $cls = $this->classifier->classify((string) $c->last_message_preview, null, 'biolink_dm', $c->status === 'blocked');
+                $cls = $this->triage->triage((string) $c->last_message_preview, null, 'biolink_dm', $c->status === 'blocked', $this->owner($ws), $ws);
+                $blocked = $c->status === 'blocked';
                 $thread->fill([
                     'workspace_id'        => $ws->id,
                     'user_id'             => $ws->owner_user_id,
                     'channel'             => 'biolink_dm',
                     'subject'             => 'DM via /' . ($c->link?->alias ?? 'biolink'),
-                    'category'            => $c->status === 'blocked' ? 'spam' : $cls['category'],
+                    'category'            => $blocked ? 'spam' : $cls['category'],
                     'category_confidence' => $cls['confidence'],
                     'category_source'     => 'auto',
+                    'priority'            => $blocked ? 'low' : $cls['priority'],
+                    'triage_source'       => $cls['source'],
+                    'summary'             => $cls['summary'],
                     'sla_due_at'          => $this->defaultSla($cls['category'], $c->last_message_at),
                     'meta'                => ['classifier_reason' => $cls['reason']],
                 ]);

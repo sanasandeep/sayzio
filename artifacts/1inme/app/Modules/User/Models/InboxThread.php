@@ -14,8 +14,9 @@ class InboxThread extends Model
 
     protected $fillable = [
         'workspace_id', 'user_id', 'source_type', 'source_id', 'channel',
-        'subject', 'preview', 'sender_name', 'sender_email', 'sender_handle', 'sender_avatar',
-        'category', 'category_confidence', 'category_source',
+        'subject', 'preview', 'summary', 'sender_name', 'sender_email', 'sender_handle', 'sender_avatar',
+        'category', 'category_confidence', 'category_source', 'priority', 'triage_source',
+        'ai_draft', 'ai_draft_at', 'autopilot_state', 'sent_by_ai', 'ai_handled_at',
         'assignee_user_id', 'status', 'is_private', 'sla_due_at', 'sla_overdue_notified',
         'last_message_at', 'last_sender', 'is_starred', 'is_read', 'unread_count', 'meta',
     ];
@@ -24,6 +25,9 @@ class InboxThread extends Model
         'sla_due_at'           => 'datetime',
         'sla_overdue_notified' => 'boolean',
         'last_message_at'      => 'datetime',
+        'ai_draft_at'          => 'datetime',
+        'ai_handled_at'        => 'datetime',
+        'sent_by_ai'           => 'boolean',
         'is_starred'           => 'boolean',
         'is_read'              => 'boolean',
         'is_private'           => 'boolean',
@@ -34,6 +38,22 @@ class InboxThread extends Model
 
     public const CATEGORIES = ['lead', 'fan', 'sponsorship', 'support', 'spam'];
     public const STATUSES   = ['open', 'archived', 'snoozed'];
+
+    /** Triage priority buckets, ascending urgency. */
+    public const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
+
+    /** Friendly label + color per priority for list/detail surfaces. */
+    public const PRIORITY_LABELS = [
+        'low'    => ['Low',    '#64748b'],
+        'normal' => ['Normal', '#3b82f6'],
+        'high'   => ['High',   '#f59e0b'],
+        'urgent' => ['Urgent', '#ef4444'],
+    ];
+
+    /** Autopilot decision states. */
+    public const AUTOPILOT_SENT    = 'sent';
+    public const AUTOPILOT_REVIEW  = 'review';
+    public const AUTOPILOT_SKIPPED = 'skipped';
 
     public const CHANNEL_LABELS = [
         'instagram'    => ['Instagram',     'fab fa-instagram',  '#E4405F'],
@@ -109,5 +129,33 @@ class InboxThread extends Model
     public function isOverdue(): bool
     {
         return $this->sla_due_at && $this->sla_due_at->isPast() && $this->status === 'open';
+    }
+
+    public function priorityLabel(): string
+    {
+        return self::PRIORITY_LABELS[$this->priority ?? 'normal'][0] ?? ucfirst((string) ($this->priority ?: 'Normal'));
+    }
+
+    public function priorityColor(): string
+    {
+        return self::PRIORITY_LABELS[$this->priority ?? 'normal'][1] ?? '#3b82f6';
+    }
+
+    /** True when the agent autonomously handled (replied to) this thread. */
+    public function wasSentByAi(): bool
+    {
+        return (bool) $this->sent_by_ai;
+    }
+
+    /** True when the agent staged a draft awaiting human review. */
+    public function needsReview(): bool
+    {
+        return $this->autopilot_state === self::AUTOPILOT_REVIEW;
+    }
+
+    /** Threads the agent staged for a human to approve/edit/send. */
+    public function scopeAwaitingReview($query)
+    {
+        return $query->where('autopilot_state', self::AUTOPILOT_REVIEW);
     }
 }

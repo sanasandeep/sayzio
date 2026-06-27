@@ -19,13 +19,20 @@ use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Models\TaskBoard;
 use App\Modules\User\Models\TaskCard;
 use App\Modules\User\Models\TaskColumn;
+use App\Modules\User\Models\User;
 use App\Modules\User\Models\VaultClient;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceMember;
+use App\Modules\User\Services\Inbox\InboxAgentSettings;
+use App\Modules\User\Services\Inbox\InboxAiReplyDrafter;
 use App\Modules\User\Services\Inbox\InboxClassifier;
+use App\Modules\User\Services\Inbox\InboxReplyDispatcher;
 use App\Modules\User\Services\Inbox\InboxReplySuggester;
 use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Services\Inbox\InboxThreadSync;
+use App\Services\AI\AiEngineSettings;
+use App\Services\AI\AiPlanAccess;
+use App\Services\AI\InsufficientCoinsForAiException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +53,8 @@ class InboxUnifiedController
         protected InboxThreadSync $sync,
         protected InboxClassifier $classifier,
         protected InboxReplySuggester $suggester,
+        protected InboxReplyDispatcher $dispatcher,
+        protected InboxAiReplyDrafter $drafter,
     ) {}
 
     public function index(Request $request)
@@ -61,6 +70,7 @@ class InboxUnifiedController
             'assignee'  => $request->get('assignee'),
             'starred'   => $request->boolean('starred'),
             'overdue'   => $request->boolean('overdue'),
+            'review'    => $request->boolean('review'),
         ];
 
         $q = InboxThread::query()->where('workspace_id', $ws->id);
@@ -89,6 +99,7 @@ class InboxUnifiedController
         elseif (is_numeric($filters['assignee'])) $q->where('assignee_user_id', (int) $filters['assignee']);
         if ($filters['starred']) $q->where('is_starred', true);
         if ($filters['overdue']) $q->whereNotNull('sla_due_at')->where('sla_due_at', '<', now())->where('status', 'open');
+        if ($filters['review'])  $q->awaitingReview();
         if ($filters['q'] !== '') {
             $needle = '%' . $filters['q'] . '%';
             $q->where(function ($w) use ($needle) {
@@ -110,6 +121,7 @@ class InboxUnifiedController
             'unread'  => InboxThread::where('workspace_id', $ws->id)->where('status', 'open')->where('is_read', false)->count(),
             'overdue' => InboxThread::where('workspace_id', $ws->id)->where('status', 'open')
                             ->whereNotNull('sla_due_at')->where('sla_due_at', '<', now())->count(),
+            'review'  => InboxThread::where('workspace_id', $ws->id)->awaitingReview()->count(),
         ];
         $byCategory = InboxThread::where('workspace_id', $ws->id)
             ->where('status', 'open')
@@ -175,49 +187,112 @@ class InboxUnifiedController
         $data = $request->validate(['body' => ['required', 'string', 'min:1', 'max:20000']]);
         $body = trim($data['body']);
 
-        $sentVia = $this->dispatchReply($thread, $body, $request);
+        $sentVia = $this->dispatcher->sendReply($thread, $body, $request->user());
         if ($sentVia['error']) {
             return back()->withInput()->with('error', $sentVia['error']);
         }
 
-        InboxMessage::create([
-            'thread_id'      => $thread->id,
-            'direction'      => 'out',
-            'sender_name'    => $request->user()->name ?? 'You',
-            'sender_user_id' => auth()->id(),
-            'body'           => $body,
-            'sent_at'        => now(),
-            'meta'           => ['via' => $sentVia['via']],
-        ]);
-
-        $thread->update([
-            'last_message_at' => now(),
-            'last_sender'     => 'out',
-            'sla_due_at'      => null, // SLA satisfied by reply
-            'sla_overdue_notified' => false,
-        ]);
-
-        // Activity feed: workspace teammates can see "Alice replied to a
-        // Sponsorship thread" without seeing the body. Private threads emit
-        // a `registered`-visibility event so it stays inside the team.
-        \App\Modules\User\Models\FeedEvent::create([
-            'user_id'      => auth()->id(),
-            'type'         => 'inbox.reply',
-            'subject_id'   => $thread->id,
-            'subject_type' => InboxThread::class,
-            'data'         => [
-                'channel'      => $thread->channel,
-                'category'     => $thread->category,
-                'workspace_id' => $thread->workspace_id,
-                'sender_name'  => $thread->sender_name,
-                'subject'      => $thread->subject,
-                'via'          => $sentVia['via'],
-            ],
-            'occurred_at'  => now(),
-            'visibility'   => $thread->is_private ? 'registered' : 'public',
-        ]);
-
         return back()->with('success', 'Reply sent via ' . $sentVia['via'] . '.');
+    }
+
+    /**
+     * Generate an AI reply draft for a thread (manual "Draft with AI" /
+     * "Regenerate" composer action). Charged to the workspace owner via
+     * OpenAiService metering. Returns JSON for the inline composer.
+     */
+    public function aiDraft(Request $request, InboxThread $thread)
+    {
+        $this->authorize($thread);
+        $ws = $this->workspace();
+        $owner = User::find($ws->owner_user_id) ?? $request->user();
+
+        if (!AiEngineSettings::isEnabled()) {
+            return response()->json(['error' => ['message' => 'AI features are currently unavailable. Please try again later.']], 503);
+        }
+        if (!AiPlanAccess::featureAllowed($owner, 'inbox_agent')) {
+            $plan = AiPlanAccess::featureUpgradePlan($owner, 'inbox_agent');
+            return response()->json([
+                'error' => [
+                    'message'      => 'AI inbox drafting is not included in your current plan.',
+                    'upgrade_plan' => $plan?->name,
+                    'upgrade_url'  => route('user.upgrade'),
+                ],
+            ], 403);
+        }
+
+        try {
+            $result = $this->drafter->draft($thread, $owner, $ws);
+        } catch (InsufficientCoinsForAiException $e) {
+            return response()->json([
+                'error' => [
+                    'message'  => 'Not enough coins to draft this reply. Top up your wallet to continue.',
+                    'required' => $e->required,
+                    'balance'  => $e->balance,
+                    'topup_url'=> route('user.wallet.show'),
+                ],
+            ], 402);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => ['message' => 'Could not draft a reply right now. Please try again.']], 502);
+        }
+
+        $thread->update(['ai_draft' => $result['draft'], 'ai_draft_at' => now()]);
+
+        return response()->json([
+            'data' => [
+                'draft'         => $result['draft'],
+                'credits_spent' => $result['credits_spent'],
+            ],
+        ]);
+    }
+
+    /** Inbox Agent settings panel. */
+    public function agentSettings(Request $request)
+    {
+        $ws = $this->workspace();
+        $owner = User::find($ws->owner_user_id) ?? $request->user();
+
+        $settings   = InboxAgentSettings::for($ws);
+        $engineOn   = AiEngineSettings::isEnabled();
+        $planAllows = AiPlanAccess::featureAllowed($owner, 'inbox_agent');
+        $upgradePlan = $planAllows ? null : AiPlanAccess::featureUpgradePlan($owner, 'inbox_agent');
+
+        return view('user.inbox.unified.agent', [
+            'settings'    => $settings,
+            'tones'       => InboxAgentSettings::TONES,
+            'categories'  => array_values(array_diff(InboxThread::CATEGORIES, InboxAgentSettings::AUTOPILOT_FORBIDDEN_CATEGORIES)),
+            'engineOn'    => $engineOn,
+            'planAllows'  => $planAllows,
+            'upgradePlan' => $upgradePlan,
+        ]);
+    }
+
+    /** Persist Inbox Agent settings. */
+    public function agentSettingsUpdate(Request $request)
+    {
+        $ws = $this->workspace();
+
+        $data = $request->validate([
+            'ai_triage'              => ['nullable', 'boolean'],
+            'tone'                   => ['nullable', 'string', 'in:' . implode(',', array_keys(InboxAgentSettings::TONES))],
+            'persona'                => ['nullable', 'string', 'max:2000'],
+            'signature'              => ['nullable', 'string', 'max:500'],
+            'autopilot_enabled'      => ['nullable', 'boolean'],
+            'autopilot_categories'   => ['nullable', 'array'],
+            'autopilot_categories.*' => ['string', 'in:' . implode(',', InboxThread::CATEGORIES)],
+            'confidence_threshold'   => ['nullable', 'numeric', 'min:0.5', 'max:0.99'],
+        ]);
+
+        InboxAgentSettings::save($ws, [
+            'ai_triage'            => $request->boolean('ai_triage'),
+            'tone'                 => $data['tone'] ?? 'auto',
+            'persona'              => $data['persona'] ?? '',
+            'signature'            => $data['signature'] ?? '',
+            'autopilot_enabled'    => $request->boolean('autopilot_enabled'),
+            'autopilot_categories' => $data['autopilot_categories'] ?? [],
+            'confidence_threshold' => $data['confidence_threshold'] ?? 0.8,
+        ]);
+
+        return redirect()->route('user.inbox.unified.agent')->with('success', 'Inbox Agent settings saved.');
     }
 
     public function update(Request $request, InboxThread $thread)
@@ -562,77 +637,6 @@ class InboxUnifiedController
     {
         if ((int) $ws->owner_user_id === $userId) return true;
         return WorkspaceMember::where('workspace_id', $ws->id)->where('user_id', $userId)->exists();
-    }
-
-    /**
-     * Send the reply back through the original channel (DM endpoint, email
-     * mailer, etc.). Returns ['via'=>'…', 'error'=>null|string].
-     */
-    protected function dispatchReply(InboxThread $thread, string $body, Request $request): array
-    {
-        if ($thread->source_type === 'viewer_dm') {
-            $c = ViewerDmConversation::find($thread->source_id);
-            if (!$c) return ['via' => 'biolink_dm', 'error' => 'Conversation not found.'];
-            if ($c->isBlocked()) return ['via' => 'biolink_dm', 'error' => 'Conversation is blocked.'];
-            DB::transaction(function () use ($c, $body) {
-                ViewerDmMessage::create([
-                    'conversation_id' => $c->id,
-                    'sender_type'     => 'owner',
-                    'sender_user_id'  => workspace_owner_id(),
-                    'body'            => $body,
-                ]);
-                $c->owner_msg_count++;
-                $c->owner_replied = true;
-                $c->viewer_unread_count++;
-                $c->last_message_at = now();
-                $c->last_message_preview = Str::limit(preg_replace('/\s+/', ' ', $body), 220, '…');
-                $c->last_sender = 'owner';
-                $c->save();
-            });
-            return ['via' => 'biolink DM', 'error' => null];
-        }
-
-        // Form / subscriber / sponsorship → email reply (when we have one).
-        $to = $thread->sender_email;
-        if (!$to || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
-            return ['via' => 'email', 'error' => 'No usable email address on this thread.'];
-        }
-        $user = $request->user();
-        $subSettings = ($user->settings ?? [])['subscription'] ?? [];
-        $fromName    = $subSettings['email_from_name']    ?? config('app.name');
-        $fromAddress = $subSettings['email_from_address'] ?? config('mail.from.address', 'noreply@1inme.com');
-        $replyTo     = $subSettings['email_reply_to']     ?? null;
-
-        try {
-            \Illuminate\Support\Facades\Mail::html(nl2br(e($body)), function ($m) use ($to, $thread, $fromName, $fromAddress, $replyTo) {
-                $m->to($to)->subject('Re: ' . ($thread->subject ?: 'Your message'))->from($fromAddress, $fromName);
-                if ($replyTo) $m->replyTo($replyTo);
-            });
-        } catch (\Throwable $e) {
-            return ['via' => 'email', 'error' => $e->getMessage()];
-        }
-
-        $reply = InboxReply::create([
-            'user_id'    => $thread->user_id,
-            'item_type'  => $thread->source_type === 'form_submission' ? 'form_submission' : 'subscriber',
-            'item_id'    => $thread->source_id,
-            'to_email'   => $to,
-            'from_email' => $fromAddress,
-            'from_name'  => $fromName,
-            'subject'    => 'Re: ' . ($thread->subject ?: 'Your message'),
-            'body'       => $body,
-            'status'     => 'sent',
-            'sent_at'    => now(),
-        ]);
-
-        WorkspaceActivityRecorder::record(
-            null, 'inbox.reply', 'inbox_thread', $reply->id,
-            'Reply to ' . $to . ' — ' . ($thread->subject ?: 'Your message'),
-            route('user.inbox.unified.index'),
-            ['thread_id' => $thread->id, 'to' => $to],
-        );
-
-        return ['via' => 'email', 'error' => null];
     }
 
     protected function markSourceRead(InboxThread $thread): void
