@@ -257,16 +257,21 @@ class ClientInvoiceService
             abort(422, 'Pick a recipient email before sending.');
         }
 
-        // Deliver first so a synchronous transport failure surfaces to the
-        // caller (the sent_at stamp is only written once delivery succeeds).
+        // Deliver first so a transport failure surfaces to the caller (the
+        // sent_at stamp is only written once delivery succeeds). The central
+        // Emailer otherwise swallows transport failures (logs a `failed` row and
+        // returns), so opt in to throw_on_failure: a genuine SMTP failure now
+        // raises EmailDeliveryException instead of letting us stamp "sent" for
+        // an email the client never received.
         $payUrl = \Illuminate\Support\Facades\URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
         \App\Modules\Common\Services\Emailer::send('billing.client_invoice', $invoice->recipient_email, [
             'invoice_number' => $invoice->number,
             'pay_url'        => $payUrl,
         ], array_merge([
-            'user'      => $invoice->user_id,
-            'related'   => $invoice,
-            'view_data' => ['invoice' => $invoice, 'payUrl' => $payUrl],
+            'user'             => $invoice->user_id,
+            'related'          => $invoice,
+            'view_data'        => ['invoice' => $invoice, 'payUrl' => $payUrl],
+            'throw_on_failure' => true,
         ], $this->companyEmailOpts($invoice, 'billing.client_invoice')));
 
         $invoice->forceFill([

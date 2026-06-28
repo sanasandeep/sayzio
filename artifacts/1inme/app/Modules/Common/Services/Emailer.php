@@ -251,6 +251,7 @@ class Emailer
             }
         }
 
+        $thrown = null;
         try {
             $callback = function ($m) use ($to, $subject, $opts) {
                 $m->to($to, $opts['to_name'] ?? null);
@@ -290,10 +291,25 @@ class Emailer
         } catch (\Throwable $e) {
             $status = 'failed';
             $error  = $e->getMessage();
+            $thrown = $e;
             Log::warning("Emailer::dispatch failed [{$key}]: " . $error);
         }
 
-        return self::writeLog($key, $to, $subject, $body, $format, $status, $error, $opts);
+        $log = self::writeLog($key, $to, $subject, $body, $format, $status, $error, $opts);
+
+        // Opt-in: callers that must NOT proceed on a silent transport failure
+        // (e.g. stamping a client invoice "sent" only after real delivery) pass
+        // throw_on_failure so the swallowed error surfaces — after the failed
+        // email_logs row is still written for the admin log + resend.
+        if ($thrown !== null && !empty($opts['throw_on_failure'])) {
+            throw new \App\Modules\Common\Exceptions\EmailDeliveryException(
+                "Email delivery failed [{$key}]: " . $thrown->getMessage(),
+                $log,
+                $thrown,
+            );
+        }
+
+        return $log;
     }
 
     private static function writeLog(string $key, string $to, string $subject, ?string $body, string $format, string $status, ?string $error, array $opts): ?EmailLog

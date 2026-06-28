@@ -6,10 +6,17 @@ description: Emailer::send never propagates a mail transport failure; how to tes
 # Emailer swallows transport errors
 
 `Emailer::dispatch()` wraps `Mail::html`/`Mail::raw` in a `catch (\Throwable)` that
-logs a `failed` email_logs row and returns — it never re-throws. `writeLog()` and the
-`view`-render branch in `resolveBody()` are likewise guarded. So
-`Emailer::send(...)` (and `sendMailable`) **cannot propagate a mail transport
-failure** to its caller.
+logs a `failed` email_logs row and returns — it never re-throws **by default**.
+`writeLog()` and the `view`-render branch in `resolveBody()` are likewise guarded. So
+`Emailer::send(...)` (and `sendMailable`) **does not propagate a mail transport
+failure** to its caller unless you opt in.
+
+**Opt-in throw:** pass `'throw_on_failure' => true` in `Emailer::send` opts. On a
+transport failure dispatch still writes the `failed` email_logs row, then throws
+`App\Modules\Common\Exceptions\EmailDeliveryException` (carries the EmailLog).
+`ClientInvoiceService::markSent` uses this so a down SMTP no longer stamps an
+invoice "sent". `sendMailable` has its own catch (logs failed, returns) and does
+NOT honor throw_on_failure.
 
 **Why it matters:** code like `ClientInvoiceService::markSent()` is written to
 "deliver first, stamp `sent_at` only on success" assuming the send throws on

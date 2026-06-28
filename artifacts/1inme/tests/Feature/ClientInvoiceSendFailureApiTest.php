@@ -2,12 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Modules\Api\Controllers\BillingController;
+use App\Modules\Common\Models\EmailLog;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\WorkspaceContext;
-use App\Services\Billing\ClientInvoiceService;
 use App\Services\InvoiceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -24,6 +23,11 @@ use Tests\TestCase;
  * status once delivery succeeds, and the Sanctum API surfaces a transport
  * failure as a 502 carrying a fallback pay link (so the owner can still
  * share it manually) instead of silently marking the invoice "sent".
+ *
+ * The failure case here drives a REAL mail transport failure (the central
+ * Emailer swallows transport errors and logs a `failed` row — markSent opts
+ * into Emailer's throw_on_failure so the swallowed error surfaces) rather
+ * than mocking the service method, so it exercises the actual no-stamp path.
  *
  * If this regressed an invoice could be flagged as sent that the client
  * never received.
@@ -84,13 +88,14 @@ class ClientInvoiceSendFailureApiTest extends TestCase
         $ws = app(WorkspaceContext::class)->resolve($u);
         $invoice = $this->draftInvoice($u, $ws);
 
-        // Simulate the send step throwing (e.g. a synchronous mail transport
-        // failure). markSent must NOT have stamped the invoice when it raises.
-        $svc = \Mockery::mock(ClientInvoiceService::class);
-        $svc->shouldReceive('markSent')
-            ->once()
+        // Drive a REAL mail transport failure: the resolved mailer's html()
+        // throws (as a down SMTP would). The central Emailer would normally
+        // swallow this (log a `failed` row + return), but markSent opts into
+        // throw_on_failure so the error surfaces and the invoice is NOT stamped.
+        $mailer = \Mockery::mock();
+        $mailer->shouldReceive('html')
             ->andThrow(new \RuntimeException('smtp down'));
-        $this->app->instance(ClientInvoiceService::class, $svc);
+        Mail::shouldReceive('mailer')->andReturn($mailer);
 
         $resp = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token($u)])
             ->postJson("/api/v1/billing/invoices/{$invoice->id}/send");
@@ -107,17 +112,25 @@ class ClientInvoiceSendFailureApiTest extends TestCase
         $fresh = $invoice->fresh();
         $this->assertSame('draft', $fresh->status);
         $this->assertNull($fresh->sent_at);
+
+        // The Emailer still recorded the failed delivery for the admin log.
+        $this->assertDatabaseHas('email_logs', [
+            'email_key' => 'billing.client_invoice',
+            'recipient' => $invoice->recipient_email,
+            'status'    => 'failed',
+        ]);
     }
 
     public function test_successful_send_stamps_sent_at(): void
     {
-        Mail::fake();
-
+        // The test mailer defaults to the in-memory `array` transport (see
+        // phpunit.xml MAIL_MAILER=array), so this is a genuine successful
+        // delivery — NOT Mail::fake(), whose MailFake has no html() and would
+        // now (correctly) trip the throw_on_failure path.
         $u  = $this->makeUser();
         $ws = app(WorkspaceContext::class)->resolve($u);
         $invoice = $this->draftInvoice($u, $ws);
 
-        // Real service this time — delivery succeeds, so the stamp is written.
         $resp = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token($u)])
             ->postJson("/api/v1/billing/invoices/{$invoice->id}/send");
 
@@ -128,5 +141,12 @@ class ClientInvoiceSendFailureApiTest extends TestCase
         $fresh = $invoice->fresh();
         $this->assertSame('sent', $fresh->status);
         $this->assertNotNull($fresh->sent_at);
+
+        // Delivery succeeded, so the logged row is `sent`, not `failed`.
+        $this->assertDatabaseHas('email_logs', [
+            'email_key' => 'billing.client_invoice',
+            'recipient' => $invoice->recipient_email,
+            'status'    => 'sent',
+        ]);
     }
 }

@@ -117,7 +117,19 @@ class ClientInvoiceController extends Controller
         if (!$invoice->recipient_email) {
             return back()->with('error', 'Pick a recipient email before sending.');
         }
-        $svc->markSent($invoice);
+        // markSent delivers first and only stamps "sent" once delivery succeeds;
+        // a genuine transport failure now raises instead of silently marking the
+        // invoice sent. Surface it to the owner (with the pay link to share
+        // manually) rather than 500ing.
+        try {
+            $svc->markSent($invoice);
+        } catch (\Throwable $e) {
+            report($e);
+            $payUrl = \Illuminate\Support\Facades\URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
+            return back()
+                ->with('error', 'Could not email the invoice — the email failed to send. Share this pay link manually: ' . $payUrl)
+                ->with('pay_url', $payUrl);
+        }
         return back()->with('success', 'Invoice emailed to ' . $invoice->recipient_email);
     }
 
