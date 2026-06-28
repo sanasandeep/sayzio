@@ -26,6 +26,11 @@
                 <i class="fas fa-triangle-exclamation mt-0.5" style="color:#e11d48;"></i>
                 <div class="flex-1">
                     <p class="text-sm font-semibold" style="color:#e11d48;">Last send failed — this invoice was not delivered.</p>
+                    @if(!empty($lastSendReason))
+                        <p class="text-xs mt-1 font-medium" style="color:#e11d48;">
+                            <i class="fas fa-circle-info mr-1"></i>{{ $lastSendReason }}
+                        </p>
+                    @endif
                     <p class="text-xs mt-1" style="color: var(--text-muted);">
                         The invoice email to {{ $invoice->recipient_email ?? 'the recipient' }} couldn't be delivered. Retry the send, or copy the pay link below to share it manually.
                     </p>

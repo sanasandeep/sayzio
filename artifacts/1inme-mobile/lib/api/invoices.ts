@@ -23,6 +23,8 @@ export type Invoice = {
   kind?: string | null;
   /** True when the most recent attempt to email this invoice failed (client invoices only). */
   last_send_failed?: boolean;
+  /** Sanitized, human-friendly reason the latest send failed (client invoices only). */
+  last_send_reason?: string | null;
   /** Signed hosted pay link to share manually (client invoices only). */
   pay_url?: string | null;
 };

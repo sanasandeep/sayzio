@@ -357,6 +357,11 @@ export default function InvoiceDetailScreen() {
                   Last send failed — not delivered
                 </Text>
               </View>
+              {inv.last_send_reason ? (
+                <Text style={[styles.sub, { color: colors.destructive, fontWeight: "600" }]}>
+                  {inv.last_send_reason}
+                </Text>
+              ) : null}
               <Text style={[styles.sub, { color: colors.mutedForeground }]}>
                 The invoice email couldn't be delivered. Retry the send, or share
                 the pay link manually.

@@ -74,8 +74,10 @@ class ClientInvoiceController extends Controller
         $emails  = VaultClientEmail::query()->where('workspace_id', $ws->id)->get();
         // Persistent "last send failed" signal + the manual pay link to share.
         $lastSendFailed = $invoice->lastSendFailed();
+        // Human-friendly, sanitized reason for the latest failed send (if any).
+        $lastSendReason = $lastSendFailed ? $invoice->lastSendFailedReason() : null;
         $payUrl = URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
-        return view('user.client_invoices.edit', compact('invoice', 'clients', 'emails', 'lastSendFailed', 'payUrl'));
+        return view('user.client_invoices.edit', compact('invoice', 'clients', 'emails', 'lastSendFailed', 'lastSendReason', 'payUrl'));
     }
 
     public function update(Request $request, Invoice $invoice, ClientInvoiceService $svc)

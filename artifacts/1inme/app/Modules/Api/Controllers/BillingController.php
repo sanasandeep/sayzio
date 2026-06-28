@@ -401,7 +401,11 @@ class BillingController extends Controller
         // affordance as the web edit screen. Only client invoices are emailed
         // with a hosted pay link, so the signal is scoped to them.
         if ($i->isClientInvoice()) {
-            $out['last_send_failed'] = $lastSendFailed ?? $i->lastSendFailed();
+            $failed = $lastSendFailed ?? $i->lastSendFailed();
+            $out['last_send_failed'] = $failed;
+            // Sanitized, human-friendly cause of the latest failed send so the
+            // app can show the same concrete reason as the web edit banner.
+            $out['last_send_reason'] = $failed ? $i->lastSendFailedReason() : null;
             $out['pay_url'] = URL::signedRoute('client-invoice.pay', ['invoice' => $i->id]);
         }
 

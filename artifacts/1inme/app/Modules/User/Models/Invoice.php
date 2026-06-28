@@ -101,6 +101,29 @@ class Invoice extends Model
     }
 
     /**
+     * A short, human-friendly reason the most recent send attempt failed,
+     * derived from the latest email_logs `error` for this invoice. Returns null
+     * when the latest attempt did NOT fail (or there is no attempt logged).
+     * The raw transport error is sanitized via EmailErrorSummary so no
+     * sensitive/internal detail is exposed to creators.
+     */
+    public function lastSendFailedReason(): ?string
+    {
+        $row = \App\Modules\Common\Models\EmailLog::query()
+            ->where('email_key', self::SEND_EMAIL_KEY)
+            ->where('related_type', $this->getMorphClass())
+            ->where('related_id', (string) $this->getKey())
+            ->orderByDesc('id')
+            ->first(['status', 'error']);
+
+        if (!$row || $row->status !== 'failed') {
+            return null;
+        }
+
+        return \App\Modules\Common\Support\EmailErrorSummary::summarize($row->error);
+    }
+
+    /**
      * Batch the "last send attempt failed" signal for a collection of invoices
      * so list screens don't N+1 the email_logs table. Returns a map keyed by
      * invoice id => bool (true when the latest send attempt failed).
