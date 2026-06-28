@@ -81,6 +81,7 @@ import {
   createBiolinkCompanion,
   createAiPersona,
   updateAiPersonaBrandKit,
+  updateAiPersona,
 } from "@/lib/api/aiCompanions";
 import { getProfile } from "@/lib/api/profile";
 
@@ -2332,6 +2333,9 @@ function SpecialCreateModal(props: {
   const [personaPrompt, setPersonaPrompt] = useState("");
   // On-Brand AI (Task #2664): default-on; injects the owner's Brand Kit voice.
   const [personaUseBrandKit, setPersonaUseBrandKit] = useState(true);
+  // Rename buffer for the selected existing agent (Task #2686). Seeded from
+  // the selected persona; committed via the rename mutation on save.
+  const [renameValue, setRenameValue] = useState("");
 
   useEffect(() => {
     if (visible) {
@@ -2343,6 +2347,7 @@ function SpecialCreateModal(props: {
       setPersonaName("");
       setPersonaPrompt("");
       setPersonaUseBrandKit(true);
+      setRenameValue("");
     }
   }, [visible, mode]);
 
@@ -2353,10 +2358,13 @@ function SpecialCreateModal(props: {
     staleTime: 60_000,
   });
 
-  // Default the persona selection to the first available one once loaded.
+  // Default the persona selection to the first enabled agent once loaded
+  // (the list is sorted enabled-first, but fall back to any agent so a
+  // user whose agents are all retired can still see + re-enable one).
   useEffect(() => {
     if (mode === "ai" && personaId == null) {
-      const first = personasQ.data?.items?.[0];
+      const items = personasQ.data?.items ?? [];
+      const first = items.find((p) => !p.is_disabled) ?? items[0];
       if (first) setPersonaId(first.id);
     }
   }, [mode, personaId, personasQ.data]);
@@ -2398,6 +2406,22 @@ function SpecialCreateModal(props: {
     onSuccess: () => personasQ.refetch(),
   });
 
+  // Rename the selected existing agent (Task #2686). Mirrors the web persona
+  // editor's name field, but as a focused PATCH of just `name`.
+  const renamePersona = useMutation({
+    mutationFn: async (next: string) =>
+      updateAiPersona(personaId!, { name: next }),
+    onSuccess: () => personasQ.refetch(),
+  });
+
+  // Retire / re-enable the selected agent (Task #2686). Disabled agents stay
+  // in the list (sorted last) so they can be toggled back on.
+  const toggleDisabled = useMutation({
+    mutationFn: async (nextDisabled: boolean) =>
+      updateAiPersona(personaId!, { is_disabled: nextDisabled }),
+    onSuccess: () => personasQ.refetch(),
+  });
+
   const create = useMutation({
     mutationFn: async () => {
       const trimmed = name.trim();
@@ -2417,6 +2441,9 @@ function SpecialCreateModal(props: {
   const nameLabel = mode === "forms" ? "Form title" : "Name";
   const personas = personasQ.data?.items ?? [];
   const selectedPersona = personas.find((p) => p.id === personaId) ?? null;
+  // A disabled (retired) agent can't be wired to a new Companion — the
+  // backend store() rejects it — so gate creation on it being enabled.
+  const selectedPersonaDisabled = selectedPersona?.is_disabled ?? false;
   const canSubmit =
     name.trim().length > 0 &&
     !create.isPending &&
@@ -2424,9 +2451,21 @@ function SpecialCreateModal(props: {
       ? true
       : mode === "buzz"
         ? !!buzzType
-        : personaId != null);
+        : personaId != null && !selectedPersonaDisabled);
   const canCreatePersona =
     personaName.trim().length > 0 && !createPersona.isPending;
+  // Keep the rename buffer in sync with the selected agent's current name
+  // (Task #2686), unless a rename is mid-flight.
+  useEffect(() => {
+    if (!renamePersona.isPending) {
+      setRenameValue(selectedPersona?.name ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPersona?.id, selectedPersona?.name]);
+  const renameDirty =
+    selectedPersona != null &&
+    renameValue.trim().length > 0 &&
+    renameValue.trim() !== selectedPersona.name;
 
   return (
     <Modal
@@ -2591,6 +2630,7 @@ function SpecialCreateModal(props: {
                           {
                             backgroundColor: active ? colors.primary : colors.card,
                             borderColor: active ? colors.primary : colors.border,
+                            opacity: p.is_disabled && !active ? 0.55 : 1,
                           },
                         ]}
                       >
@@ -2604,6 +2644,7 @@ function SpecialCreateModal(props: {
                           }}
                         >
                           {p.name}
+                          {p.is_disabled ? " · Off" : ""}
                         </Text>
                       </Pressable>
                     );
@@ -2653,6 +2694,140 @@ function SpecialCreateModal(props: {
                     />
                   )}
                 </View>
+              ) : null}
+
+              {selectedPersona && !showPersonaForm ? (
+                <View
+                  style={{
+                    gap: 12,
+                    marginTop: 4,
+                    padding: 12,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: colors.radius,
+                    backgroundColor: colors.card,
+                  }}
+                >
+                  {/* Rename the selected agent (Task #2686) */}
+                  <View style={{ gap: 6 }}>
+                    <Text
+                      style={[
+                        styles.createFieldLabel,
+                        { color: colors.foreground },
+                      ]}
+                    >
+                      Agent name
+                    </Text>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <TextInput
+                        value={renameValue}
+                        onChangeText={setRenameValue}
+                        placeholder="Agent name"
+                        placeholderTextColor={colors.mutedForeground}
+                        editable={!renamePersona.isPending}
+                        style={[
+                          styles.createInput,
+                          {
+                            flex: 1,
+                            backgroundColor: colors.background,
+                            borderColor: colors.border,
+                            color: colors.foreground,
+                            borderRadius: colors.radius,
+                          },
+                        ]}
+                      />
+                      <Pressable
+                        onPress={() =>
+                          renamePersona.mutate(renameValue.trim())
+                        }
+                        disabled={!renameDirty || renamePersona.isPending}
+                        style={{
+                          paddingHorizontal: 14,
+                          justifyContent: "center",
+                          borderRadius: colors.radius,
+                          backgroundColor:
+                            renameDirty && !renamePersona.isPending
+                              ? colors.primary
+                              : colors.border,
+                        }}
+                      >
+                        {renamePersona.isPending ? (
+                          <ActivityIndicator
+                            color={colors.primaryForeground}
+                            size="small"
+                          />
+                        ) : (
+                          <Text
+                            style={{
+                              color: renameDirty
+                                ? colors.primaryForeground
+                                : colors.mutedForeground,
+                              fontFamily: "SpaceGrotesk_600SemiBold",
+                              fontSize: 13,
+                            }}
+                          >
+                            Save
+                          </Text>
+                        )}
+                      </Pressable>
+                    </View>
+                    {renamePersona.isError ? (
+                      <Text style={{ color: colors.destructive, fontSize: 12 }}>
+                        {(renamePersona.error as { message?: string })
+                          ?.message || "Couldn't rename. Try again."}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  {/* Retire / re-enable the selected agent (Task #2686) */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 12,
+                    }}
+                  >
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text
+                        style={[
+                          styles.createFieldLabel,
+                          { color: colors.foreground },
+                        ]}
+                      >
+                        Enabled
+                      </Text>
+                      <Text
+                        style={{ color: colors.mutedForeground, fontSize: 12 }}
+                      >
+                        {toggleDisabled.isError
+                          ? (toggleDisabled.error as { message?: string })
+                              ?.message || "Couldn't update. Try again."
+                          : selectedPersona.is_disabled
+                            ? "Retired — turn on to use this agent again."
+                            : "Turn off to retire this agent without deleting it."}
+                      </Text>
+                    </View>
+                    {toggleDisabled.isPending ? (
+                      <ActivityIndicator color={colors.primary} />
+                    ) : (
+                      <Switch
+                        value={!selectedPersona.is_disabled}
+                        onValueChange={(v) => toggleDisabled.mutate(!v)}
+                        trackColor={{
+                          true: colors.primary,
+                          false: colors.border,
+                        }}
+                      />
+                    )}
+                  </View>
+                </View>
+              ) : null}
+
+              {selectedPersonaDisabled && !showPersonaForm ? (
+                <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+                  This agent is retired. Enable it above to wire it into a
+                  companion.
+                </Text>
               ) : null}
 
               {!showPersonaForm ? (

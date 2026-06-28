@@ -52,16 +52,21 @@ class AiCompanionController extends Controller
             return $this->ok(['items' => []]);
         }
 
+        // Include disabled (retired) agents so mobile can show + re-enable
+        // them (Task #2686). Enabled ones sort first, then alphabetically,
+        // so the picker's auto-select-first still lands on a usable agent.
         $items = AiPersonaAgent::where('user_id', $request->user()->id)
-            ->where('is_disabled', false)
+            ->orderBy('is_disabled')
             ->orderBy('name')
-            ->get(['id', 'name', 'use_brand_kit'])
+            ->get(['id', 'name', 'use_brand_kit', 'is_disabled'])
             ->map(fn ($p) => [
                 'id'            => (int) $p->id,
                 'name'          => $p->name,
                 // On-Brand AI (Task #2664): default on — null/legacy rows
                 // count as on, mirroring the runtime's `!== false` check.
                 'use_brand_kit' => $p->use_brand_kit !== false,
+                // Retired/enabled state (Task #2686) so mobile can toggle it.
+                'is_disabled'   => (bool) $p->is_disabled,
             ])
             ->values()->all();
 
@@ -69,12 +74,15 @@ class AiCompanionController extends Controller
     }
 
     /**
-     * Toggle On-Brand AI (`use_brand_kit`) for an existing Persona from
-     * mobile. The web persona editor exposes this as part of a full form
-     * save; mobile only needs to flip this one reversible setting on an
-     * agent it already owns, so this is a focused update that writes a new
-     * persona version (mirroring the web save) without re-collecting every
-     * other knob.
+     * Focused update for an existing Persona from mobile. The web persona
+     * editor exposes these knobs only inside a full form save; mobile sends
+     * just the field(s) it wants to change on an agent it already owns and
+     * the backend writes a new persona version (mirroring the web save)
+     * without re-collecting every other knob. Currently supports:
+     *  - `name`          rename the agent (Task #2686)
+     *  - `is_disabled`   retire / re-enable the agent (Task #2686)
+     *  - `use_brand_kit` toggle On-Brand AI (Task #2664)
+     * Every field is optional, but at least one must be present.
      */
     public function updatePersona(Request $request, AiPersonaAgent $persona)
     {
@@ -88,21 +96,42 @@ class AiCompanionController extends Controller
         }
 
         $data = $request->validate([
-            'use_brand_kit' => 'required|boolean',
+            'name'          => 'sometimes|required|string|max:120',
+            'is_disabled'   => 'sometimes|required|boolean',
+            'use_brand_kit' => 'sometimes|required|boolean',
         ]);
 
-        DB::transaction(function () use ($persona, $data) {
-            $persona->forceFill([
-                'use_brand_kit' => (bool) $data['use_brand_kit'],
-            ])->save();
+        if (count($data) === 0) {
+            return $this->fail('Nothing to update.', 422, 'no_changes');
+        }
 
-            $this->writeVersion($persona, 'On-Brand AI ' . ($data['use_brand_kit'] ? 'enabled' : 'disabled'));
+        DB::transaction(function () use ($persona, $data) {
+            $changes  = [];
+            $summary  = [];
+
+            if (array_key_exists('name', $data)) {
+                $changes['name'] = trim($data['name']);
+                $summary[] = 'Renamed to "' . $changes['name'] . '"';
+            }
+            if (array_key_exists('use_brand_kit', $data)) {
+                $changes['use_brand_kit'] = (bool) $data['use_brand_kit'];
+                $summary[] = 'On-Brand AI ' . ($changes['use_brand_kit'] ? 'enabled' : 'disabled');
+            }
+            if (array_key_exists('is_disabled', $data)) {
+                $changes['is_disabled'] = (bool) $data['is_disabled'];
+                $summary[] = 'Agent ' . ($changes['is_disabled'] ? 'disabled' : 'enabled');
+            }
+
+            $persona->forceFill($changes)->save();
+
+            $this->writeVersion($persona, implode('; ', $summary));
         });
 
         return $this->ok(['persona' => [
             'id'            => (int) $persona->id,
             'name'          => $persona->name,
             'use_brand_kit' => $persona->use_brand_kit !== false,
+            'is_disabled'   => (bool) $persona->is_disabled,
         ]]);
     }
 
