@@ -33,5 +33,8 @@ is what made tables vanish after merges. Both legs are gone.
 **How to apply:** to reset a schema in dev/test, point `DB_*` at the local
 Postgres — not the RDS — or set the escape-hatch env var on purpose.
 
+## Concurrent post-merge migrate is serialized (advisory lock)
+Post-merge calls `php artisan migrate:guarded` (not bare `migrate || reconcile`): it holds a session-scoped Postgres advisory lock across the whole run so two merges can't migrate the shared RDS at once. It **fails closed** — if it can't get the lock it skips (exits 0), never migrates unlocked. The CommandStarting destructive guard also now resolves the `--database` option, so a destructive cmd aimed at a non-default RDS connection is blocked too. Details: `post-merge-migration-serialization.md`.
+
 ## Pure-data migrations need hasTable guards too
 A data-only migration that writes to a table it does NOT create (e.g. `DB::table('site_pages')->...->update()`) will HARD-FAIL the whole `migrate` run with `SQLSTATE[42P01]` if that table is transiently absent — which happens on the shared RDS when a concurrent forked-agent reset drops tables mid-drain. One such failure stops the entire backlog, so a far-future migration (the one the homepage actually needs, e.g. `plans.is_internal`) never applies. Guard every pure-data writer with `if (!Schema::hasTable('<t>')) return;` (and the row-exists check it already has). This is additive/idempotent and lets the drain skip-and-continue instead of stopping.

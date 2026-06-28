@@ -226,7 +226,21 @@ class AppServiceProvider extends ServiceProvider
                     return;
                 }
 
+                // Resolve the connection the command actually targets: a
+                // destructive command can be aimed at a non-default connection
+                // via `--database=`, and several of ours (the test connection
+                // included) point at the same shared RDS host. Falling back to
+                // the default connection when no option is given.
                 $connection = config('database.default');
+                try {
+                    $optionConnection = $event->input?->getOption('database');
+                    if (is_string($optionConnection) && $optionConnection !== '') {
+                        $connection = $optionConnection;
+                    }
+                } catch (\Throwable $e) {
+                    // Command does not define a --database option; keep default.
+                }
+
                 $host       = (string) config("database.connections.{$connection}.host");
                 $database   = (string) config("database.connections.{$connection}.database");
 

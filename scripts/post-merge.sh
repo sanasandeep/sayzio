@@ -40,9 +40,15 @@ if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
     echo "::1inme:: POST-MERGE WARNING: core Laravel table 'plans' is missing. NOT running migrate:fresh (it would wipe the shared/live database). Applying additive migrations only — investigate the database immediately." >&2
   fi
 
-  # Additive schema sync with self-healing for orphaned migrations.
-  php artisan migrate --force \
-    || php artisan db:reconcile-migrations --force \
+  # Additive schema sync with self-healing for orphaned migrations, serialized
+  # across concurrent merges. `migrate:guarded` holds a cross-process Postgres
+  # advisory lock for the duration of the run so two merges that land close
+  # together cannot migrate the shared RDS database simultaneously (that race
+  # caused intermittent "cached plan must not change result type" and partial
+  # backlog drains). It runs `migrate --force` and, on failure, falls back to
+  # `db:reconcile-migrations --force` INSIDE the same lock. The lock auto-releases
+  # if the run dies (session-scoped), so there is no deadlock risk.
+  php artisan migrate:guarded \
     || echo "::1inme:: POST-MERGE: migrations did not fully apply — schema may be incomplete. The hourly db:check-pending-migrations check will alert admins. Non-fatal; continuing." >&2
 
   # Catalog + onboarding seeders, ALL detached to the background.
