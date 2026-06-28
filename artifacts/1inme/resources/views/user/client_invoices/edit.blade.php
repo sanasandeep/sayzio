@@ -107,12 +107,22 @@
     </form>
 
     @if($invoice->status !== 'paid')
-        <form action="{{ route('user.client-invoices.send', $invoice) }}" method="POST" class="mt-6">
-            @csrf
-            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold border" style="border-color: var(--border-strong); color: var(--text-primary);">
-                <i class="fas fa-paper-plane mr-1"></i> Send invoice with pay link
-            </button>
-        </form>
+        <div class="mt-6 flex flex-wrap items-center gap-3">
+            <form action="{{ route('user.client-invoices.send', $invoice) }}" method="POST">
+                @csrf
+                <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold border" style="border-color: var(--border-strong); color: var(--text-primary);">
+                    <i class="fas fa-paper-plane mr-1"></i> Send invoice with pay link
+                </button>
+            </form>
+            @if($invoice->sent_at && !in_array($invoice->status, ['refunded', 'partially_refunded'], true))
+                <form action="{{ route('user.client-invoices.remind', $invoice) }}" method="POST">
+                    @csrf
+                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold border" style="border-color: var(--border-strong); color: var(--text-primary);">
+                        <i class="fas fa-bell mr-1"></i> Send payment reminder
+                    </button>
+                </form>
+            @endif
+        </div>
     @endif
 </div>
 @endsection

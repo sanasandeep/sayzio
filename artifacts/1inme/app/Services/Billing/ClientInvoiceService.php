@@ -283,6 +283,39 @@ class ClientInvoiceService
     }
 
     /**
+     * Email a payment reminder for an unpaid/overdue invoice, nudging the
+     * client with the hosted pay link. Routes through the issuing company's
+     * SMTP + per-company template override exactly like the invoice/receipt
+     * sends. The invoice must already be sent (not a draft) and not settled.
+     */
+    public function sendReminder(Invoice $invoice): Invoice
+    {
+        if (!$invoice->recipient_email) {
+            abort(422, 'Pick a recipient email before sending a reminder.');
+        }
+        if (in_array($invoice->status, ['paid', 'refunded', 'partially_refunded'], true)) {
+            abort(422, 'This invoice is already settled.');
+        }
+        if (!$invoice->sent_at) {
+            abort(422, 'Send the invoice before reminding about it.');
+        }
+
+        $payUrl = \Illuminate\Support\Facades\URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
+        \App\Modules\Common\Services\Emailer::send('billing.payment_reminder', $invoice->recipient_email, [
+            'invoice_number' => $invoice->number,
+            'amount'         => number_format((int) $invoice->grand_total_minor / 100, 2),
+            'currency'       => strtoupper((string) $invoice->currency),
+            'due_date'       => $invoice->due_date ? $invoice->due_date->format('M j, Y') : '—',
+            'pay_url'        => $payUrl,
+        ], array_merge([
+            'user'      => $invoice->user_id,
+            'related'   => $invoice,
+        ], $this->companyEmailOpts($invoice, 'billing.payment_reminder')));
+
+        return $invoice;
+    }
+
+    /**
      * Email a receipt PDF/link to the invoice recipient (after payment).
      */
     public function emailReceipt(Invoice $invoice): ?Receipt

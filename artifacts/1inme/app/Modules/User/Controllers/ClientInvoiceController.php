@@ -133,6 +133,23 @@ class ClientInvoiceController extends Controller
         return back()->with('success', 'Invoice emailed to ' . $invoice->recipient_email);
     }
 
+    /** Email the client a payment reminder for an unpaid/overdue invoice. */
+    public function sendReminder(Request $request, Invoice $invoice, ClientInvoiceService $svc)
+    {
+        $this->authorizeInvoice($invoice);
+        if (!$invoice->recipient_email) {
+            return back()->with('error', 'Pick a recipient email before sending a reminder.');
+        }
+        if (in_array($invoice->status, ['paid', 'refunded', 'partially_refunded'], true)) {
+            return back()->with('error', 'This invoice is already settled.');
+        }
+        if (!$invoice->sent_at) {
+            return back()->with('error', 'Send the invoice before reminding about it.');
+        }
+        $svc->sendReminder($invoice);
+        return back()->with('success', 'Payment reminder sent to ' . $invoice->recipient_email);
+    }
+
     /** Standalone invoice creation form (not derived from kanban cards). */
     public function create(Request $request)
     {

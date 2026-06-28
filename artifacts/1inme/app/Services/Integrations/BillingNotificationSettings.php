@@ -40,6 +40,7 @@ class BillingNotificationSettings
      */
     private const EXCLUDED_KEYS = [
         'billing.client_invoice',
+        'billing.payment_reminder',
     ];
 
     /**

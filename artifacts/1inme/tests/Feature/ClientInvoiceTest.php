@@ -195,6 +195,63 @@ class ClientInvoiceTest extends TestCase
         $this->assertNotSame(401, $resp->status(), 'Signed POST should not be 401.');
     }
 
+    public function test_send_reminder_emails_unpaid_sent_invoice(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $this->actingAs($u)->post('/user/tasks/boards', ['name' => 'R', 'scope' => 'team']);
+        $board = TaskBoard::where('name', 'R')->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $card  = TaskCard::create([
+            'workspace_id' => $ws->id, 'board_id' => $board->id, 'column_id' => $col->id,
+            'title' => 'R', 'position' => 1, 'priority' => 'normal',
+            'billable' => true, 'rate_type' => 'flat', 'rate_amount_minor' => 7700,
+        ]);
+        $invoice = app(ClientInvoiceService::class)->draftFromCards([$card->id], $ws, $u->id);
+        $invoice->forceFill([
+            'recipient_email' => 'client@ex.com',
+            'sent_at'         => now(),
+            'status'          => 'sent',
+        ])->save();
+
+        $this->actingAs($u)
+            ->post(route('user.client-invoices.remind', $invoice))
+            ->assertStatus(302);
+
+        // Emailer always writes an email_logs row (Mail::fake can't observe
+        // raw/html sends), so assert delivery via the log under the new key.
+        $this->assertDatabaseHas('email_logs', [
+            'email_key' => 'billing.payment_reminder',
+            'recipient' => 'client@ex.com',
+        ]);
+    }
+
+    public function test_send_reminder_blocked_before_invoice_is_sent(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $this->actingAs($u)->post('/user/tasks/boards', ['name' => 'RB', 'scope' => 'team']);
+        $board = TaskBoard::where('name', 'RB')->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $card  = TaskCard::create([
+            'workspace_id' => $ws->id, 'board_id' => $board->id, 'column_id' => $col->id,
+            'title' => 'RB', 'position' => 1, 'priority' => 'normal',
+            'billable' => true, 'rate_type' => 'flat', 'rate_amount_minor' => 5000,
+        ]);
+        $invoice = app(ClientInvoiceService::class)->draftFromCards([$card->id], $ws, $u->id);
+        $invoice->forceFill(['recipient_email' => 'client@ex.com'])->save();
+
+        // Draft (never sent) → reminder is refused and no email is logged.
+        $this->actingAs($u)
+            ->post(route('user.client-invoices.remind', $invoice))
+            ->assertStatus(302);
+
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'billing.payment_reminder',
+            'recipient' => 'client@ex.com',
+        ]);
+    }
+
     public function test_timer_start_and_stop_logs_minutes(): void
     {
         $u  = $this->user();

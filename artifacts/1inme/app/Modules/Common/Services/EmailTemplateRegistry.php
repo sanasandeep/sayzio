@@ -131,6 +131,22 @@ class EmailTemplateRegistry
                     'pay_url' => ['label' => 'Pay link', 'sample' => 'https://sayzio.app/invoice/1/pay'],
                 ],
             ],
+            'billing.payment_reminder' => [
+                'category' => 'billing',
+                'label' => 'Invoice payment reminder',
+                'description' => 'A creator-issued reminder nudging a client about an unpaid or overdue invoice, with the pay link.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => 'Reminder: invoice {{invoice_number}} is awaiting payment',
+                'body' => "This is a friendly reminder that invoice {{invoice_number}} for {{amount}} {{currency}} is still awaiting payment.\n\nDue date: {{due_date}}\n\nYou can view and pay the invoice here:\n{{pay_url}}\n\nIf you've already paid, please disregard this message.",
+                'variables' => [
+                    'invoice_number' => ['label' => 'Invoice number', 'sample' => 'INV-1042'],
+                    'amount' => ['label' => 'Amount due', 'sample' => '19.00'],
+                    'currency' => ['label' => 'Currency', 'sample' => 'USD'],
+                    'due_date' => ['label' => 'Due date', 'sample' => 'Jul 30, 2026'],
+                    'pay_url' => ['label' => 'Pay link', 'sample' => 'https://sayzio.app/invoice/1/pay'],
+                ],
+            ],
             'billing.refund_issued' => [
                 'category' => 'billing',
                 'label' => 'Refund issued',

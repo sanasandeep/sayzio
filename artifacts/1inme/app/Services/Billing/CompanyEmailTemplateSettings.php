@@ -23,13 +23,15 @@ class CompanyEmailTemplateSettings
 {
     /**
      * The client-facing accounting templates a creator may customise per
-     * company. These are the existing registry keys delivered to a company's
-     * clients (the invoice email — also reused for recurring auto-send — and
-     * the payment receipt). No new email types are introduced.
+     * company. These are the registry keys delivered to a company's clients:
+     * the invoice email (also reused for recurring auto-send), the payment
+     * receipt, and the payment reminder nudging clients about unpaid/overdue
+     * invoices.
      */
     public const KEYS = [
         'billing.client_invoice',
         'billing.receipt',
+        'billing.payment_reminder',
     ];
 
     public static function isEditable(string $key): bool

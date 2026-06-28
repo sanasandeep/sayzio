@@ -1463,6 +1463,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get('{invoice}',                  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'edit'])->name('edit');
             Route::put('{invoice}',                  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'update'])->middleware('workspace.can:tasks.edit')->name('update');
             Route::post('{invoice}/send',            [\App\Modules\User\Controllers\ClientInvoiceController::class, 'send'])->middleware('workspace.can:tasks.edit')->name('send');
+            Route::post('{invoice}/remind',          [\App\Modules\User\Controllers\ClientInvoiceController::class, 'sendReminder'])->middleware(['workspace.can:tasks.edit', 'throttle:10,1'])->name('remind');
             Route::post('{invoice}/mark-paid',       [\App\Modules\User\Controllers\ClientInvoiceController::class, 'markPaid'])->middleware('workspace.can:tasks.edit')->name('mark-paid');
             Route::post('{invoice}/refund',          [\App\Modules\User\Controllers\ClientInvoiceController::class, 'refund'])->middleware('workspace.can:tasks.edit')->name('refund');
             Route::get('{invoice}/receipt',          [\App\Modules\User\Controllers\ClientInvoiceController::class, 'receipt'])->name('receipt');
