@@ -4,7 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -93,6 +93,7 @@ function toDraft(c: BillingCompany): Draft {
 export default function BillingCompaniesScreen() {
   const colors = useColors();
   const qc = useQueryClient();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [draft, setDraft] = useState<Draft>(empty);
@@ -265,6 +266,64 @@ export default function BillingCompaniesScreen() {
               loading={save.isPending}
               disabled={!draft.name.trim()}
             />
+
+            {editId ? (
+              <View style={{ gap: 10, marginTop: 4 }}>
+                <Text style={[styles.label, { color: colors.mutedForeground }]}>
+                  Outbound mail
+                </Text>
+                <View
+                  style={[
+                    styles.linkList,
+                    { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+                  ]}
+                >
+                  {(
+                    [
+                      {
+                        icon: "send" as const,
+                        label: "Email sending (SMTP)",
+                        sub: "Send invoices & receipts from your own server",
+                        to: `/billing/companies/${editId}/smtp`,
+                      },
+                      {
+                        icon: "mail" as const,
+                        label: "Client email templates",
+                        sub: "Customise the invoice & receipt emails",
+                        to: `/billing/companies/${editId}/emails`,
+                      },
+                    ]
+                  ).map((link, i) => (
+                    <Pressable
+                      key={link.to}
+                      onPress={() => {
+                        setOpen(false);
+                        router.push(link.to as never);
+                      }}
+                      style={({ pressed }) => [
+                        styles.linkItem,
+                        {
+                          borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                          borderTopColor: colors.border,
+                          opacity: pressed ? 0.7 : 1,
+                        },
+                      ]}
+                    >
+                      <Feather name={link.icon} size={18} color={colors.primary} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.name, { color: colors.foreground }]}>
+                          {link.label}
+                        </Text>
+                        <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+                          {link.sub}
+                        </Text>
+                      </View>
+                      <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : null}
           </ScrollView>
         </View>
       </Modal>
@@ -275,6 +334,8 @@ export default function BillingCompaniesScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   row: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderWidth: 1 },
+  linkList: { borderWidth: 1, overflow: "hidden" },
+  linkItem: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
   name: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
   sub: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
   label: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 },

@@ -850,6 +850,21 @@ Route::prefix('v1')->group(function () {
         Route::patch ('/billing/companies/{id}',     [AccountingController::class, 'updateCompany'])->whereNumber('id');
         Route::delete('/billing/companies/{id}',     [AccountingController::class, 'destroyCompany'])->whereNumber('id');
 
+        // Per-company outbound mail (SMTP) + client-facing email template
+        // editor — mobile parity for the web company SMTP section and the
+        // invoice/receipt template editor. Owner-scoped to the creator's own
+        // companies; the SMTP password is never returned, only masked.
+        Route::get ('/billing/companies/{id}/smtp',        [\App\Modules\Api\Controllers\CompanyMailController::class, 'smtpShow'])->whereNumber('id');
+        Route::put ('/billing/companies/{id}/smtp',        [\App\Modules\Api\Controllers\CompanyMailController::class, 'smtpUpdate'])->whereNumber('id');
+        Route::post('/billing/companies/{id}/smtp/verify', [\App\Modules\Api\Controllers\CompanyMailController::class, 'smtpVerify'])->whereNumber('id')->middleware('throttle:10,1');
+        Route::post('/billing/companies/{id}/smtp/test',   [\App\Modules\Api\Controllers\CompanyMailController::class, 'smtpTest'])->whereNumber('id')->middleware('throttle:10,1');
+
+        Route::get   ('/billing/companies/{id}/emails',                 [\App\Modules\Api\Controllers\CompanyMailController::class, 'templatesIndex'])->whereNumber('id');
+        Route::get   ('/billing/companies/{id}/emails/{key}',           [\App\Modules\Api\Controllers\CompanyMailController::class, 'templateShow'])->whereNumber('id')->where('key', '[A-Za-z0-9._-]+');
+        Route::put   ('/billing/companies/{id}/emails/{key}',           [\App\Modules\Api\Controllers\CompanyMailController::class, 'templateUpdate'])->whereNumber('id')->where('key', '[A-Za-z0-9._-]+');
+        Route::delete('/billing/companies/{id}/emails/{key}',           [\App\Modules\Api\Controllers\CompanyMailController::class, 'templateReset'])->whereNumber('id')->where('key', '[A-Za-z0-9._-]+');
+        Route::post  ('/billing/companies/{id}/emails/{key}/preview',   [\App\Modules\Api\Controllers\CompanyMailController::class, 'templatePreview'])->whereNumber('id')->where('key', '[A-Za-z0-9._-]+');
+
         Route::get   ('/billing/tax-rules',          [AccountingController::class, 'taxRules']);
         Route::post  ('/billing/tax-rules',          [AccountingController::class, 'storeTaxRule']);
         Route::patch ('/billing/tax-rules/{id}',     [AccountingController::class, 'updateTaxRule'])->whereNumber('id');
