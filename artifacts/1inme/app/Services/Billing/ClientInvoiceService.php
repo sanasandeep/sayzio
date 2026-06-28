@@ -317,6 +317,14 @@ class ClientInvoiceService
 
     /**
      * Email a receipt PDF/link to the invoice recipient (after payment).
+     *
+     * Opts in to throw_on_failure: the central Emailer otherwise swallows a
+     * transport failure (logs a `failed` email_logs row and returns), which
+     * would let a caller believe the receipt was delivered when it never left
+     * the building. Because this runs AFTER the payment is already recorded,
+     * the throw does NOT roll anything back — the payment and receipt row stay
+     * intact; callers catch EmailDeliveryException to surface the failure (and
+     * the owner can re-send from the admin email log's per-row Resend).
      */
     public function emailReceipt(Invoice $invoice): ?Receipt
     {
@@ -329,9 +337,10 @@ class ClientInvoiceService
             'amount'         => number_format($receipt->amount_minor / 100, 2),
             'currency'       => $receipt->currency,
         ], array_merge([
-            'user'      => $invoice->user_id,
-            'related'   => $invoice,
-            'view_data' => ['invoice' => $invoice, 'receipt' => $receipt],
+            'user'             => $invoice->user_id,
+            'related'          => $invoice,
+            'view_data'        => ['invoice' => $invoice, 'receipt' => $receipt],
+            'throw_on_failure' => true,
         ], $this->companyEmailOpts($invoice, 'billing.receipt')));
 
         return $receipt;

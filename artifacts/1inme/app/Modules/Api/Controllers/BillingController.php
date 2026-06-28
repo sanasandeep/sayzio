@@ -280,10 +280,23 @@ class BillingController extends Controller
             'email_receipt' => 'nullable|boolean',
         ]);
         $svc->markPaidManual($invoice, $data['method'] ?? 'manual', $data['reference'] ?? null);
+        $receiptEmailed = null;
         if (!empty($data['email_receipt'])) {
-            $svc->emailReceipt($invoice->fresh());
+            // The payment is already recorded; a receipt-email transport failure
+            // must NOT roll that back or 500 the request. Report the outcome in a
+            // field so the owner knows to re-send (admin email log Resend).
+            try {
+                $svc->emailReceipt($invoice->fresh());
+                $receiptEmailed = true;
+            } catch (\App\Modules\Common\Exceptions\EmailDeliveryException $e) {
+                report($e);
+                $receiptEmailed = false;
+            }
         }
-        return $this->ok(['invoice' => $this->transformInvoice($invoice->refresh())]);
+        return $this->ok([
+            'invoice'         => $this->transformInvoice($invoice->refresh()),
+            'receipt_emailed' => $receiptEmailed,
+        ]);
     }
 
     /** Issue a full or partial refund against a paid invoice. */

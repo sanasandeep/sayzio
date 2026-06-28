@@ -207,7 +207,17 @@ class ClientInvoiceController extends Controller
         ]);
         $svc->markPaidManual($invoice, $data['method'] ?? 'manual', $data['reference'] ?? null);
         if ($request->boolean('email_receipt')) {
-            $svc->emailReceipt($invoice->fresh());
+            // The payment is already recorded; a receipt-email transport failure
+            // must NOT roll that back. Surface it to the owner (who can re-send
+            // from the admin email log) instead of silently claiming delivery.
+            try {
+                $svc->emailReceipt($invoice->fresh());
+            } catch (\App\Modules\Common\Exceptions\EmailDeliveryException $e) {
+                report($e);
+                return back()
+                    ->with('success', 'Invoice marked as paid.')
+                    ->with('error', 'The receipt email could not be sent. You can re-send it from the email log.');
+            }
         }
         return back()->with('success', 'Invoice marked as paid.');
     }

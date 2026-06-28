@@ -18,6 +18,15 @@ transport failure dispatch still writes the `failed` email_logs row, then throws
 invoice "sent". `sendMailable` has its own catch (logs failed, returns) and does
 NOT honor throw_on_failure.
 
+`ClientInvoiceService::emailReceipt` ALSO opts into throw_on_failure, but its
+contract differs from markSent: it runs AFTER the payment is recorded, so the
+callers (`ClientInvoiceController::markPaid` web, `BillingController::markPaidInvoice`
+API) CATCH the EmailDeliveryException — they must never let it roll back the
+payment or 500. Web flashes both `success` (paid) + `error` (re-send from email
+log); API returns `data.receipt_emailed` (true / false / null when not requested).
+So `markSent` lets the throw propagate to 502; `emailReceipt` callers swallow it
+into a non-fatal signal.
+
 **Why it matters:** code like `ClientInvoiceService::markSent()` is written to
 "deliver first, stamp `sent_at` only on success" assuming the send throws on
 failure. With the real Emailer a transport failure is swallowed, so `markSent`
