@@ -9,6 +9,12 @@ use App\Modules\User\Models\Project;
 use App\Modules\User\Support\QrCodeCatalog;
 use App\Modules\User\Support\QrCodeDesignSanitizer;
 use App\Modules\User\Support\QrCodeTypeRegistry;
+use App\Services\AI\AiPlanAccess;
+use App\Services\AI\AiUsageCharger;
+use App\Services\AI\InsufficientCoinsForAiException;
+use App\Services\AI\QrArtGenerationException;
+use App\Services\AI\QrArtService;
+use App\Services\AI\QrArtUnavailableException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Validation\Rule;
@@ -117,6 +123,139 @@ class QrCodeController extends Controller
             $created[] = $this->transform($q);
         }
         return $this->created(['items' => $created, 'count' => count($created)]);
+    }
+
+    /**
+     * AI Artistic QR availability + cost, mirroring the web builder's gating
+     * variables so the mobile builder can render preview / plan-locked / live
+     * states and show the coin balance + per-generation cost up front.
+     *
+     * Unlike the cached design catalog, this is intentionally NOT cached: the
+     * coin balance must stay fresh between generations. Style presets come from
+     * the same QrCodeCatalog source the web builder uses.
+     */
+    public function artAvailability(Request $request)
+    {
+        $user = $request->user();
+        $art  = app(QrArtService::class);
+
+        $allowed = AiPlanAccess::featureAllowed($user, 'qr_art');
+        $plan    = $allowed ? null : $user->planThatUnlocks('qr_art');
+
+        return $this->ok([
+            'enabled' => $art->enabled(),
+            'allowed' => $allowed,
+            'cost'    => $art->coinCost($user),
+            'balance' => app(AiUsageCharger::class)->getBalance($user),
+            'recommended_plan' => $plan ? ['slug' => $plan->slug, 'name' => $plan->name] : null,
+            'presets' => QrCodeCatalog::aiArtStylePresets(),
+        ]);
+    }
+
+    /**
+     * Generate an AI Artistic QR for the mobile builder, mirroring the web
+     * generateArt controller: gated on feature availability + plan access +
+     * coin balance, with a coin charge and auto-refund on failure handled by
+     * QrArtService. Returns the stored artwork URL the client drops into
+     * design.ai_art.
+     *
+     * Sanctum has no workspace binding, so the authenticated user IS the owner
+     * and is charged directly (matching the brand-kit / other AI API surfaces).
+     *
+     * Accepts either a pre-resolved `data` string (matching the web flow) or a
+     * `link_id` / `type` + `payload` combination which it resolves server-side
+     * via the same QrCodeTypeRegistry the saved QR will encode with, so the
+     * artwork's woven control image matches the QR the user persists. The
+     * resolved string is returned as `encoded` so the client can persist it in
+     * design.ai_art.data.
+     */
+    public function generateArt(Request $request, QrArtService $art)
+    {
+        $user = $request->user();
+
+        if (!$art->enabled()) {
+            return $this->fail(
+                "AI Artistic QR isn't available yet — an administrator needs to add a Replicate API key.",
+                422,
+                'disabled'
+            );
+        }
+
+        if (!AiPlanAccess::featureAllowed($user, 'qr_art')) {
+            return $this->planGate(
+                "Your plan doesn't include AI Artistic QR.",
+                'qr_art',
+                $user,
+                403,
+                'plan_upgrade_required'
+            );
+        }
+
+        $typeKeys = array_keys(QrCodeTypeRegistry::types());
+        try {
+            $validated = validator($request->all(), [
+                'data'            => ['nullable', 'string', 'max:2048'],
+                'link_id'         => ['nullable', Rule::exists('links', 'id')->where('user_id', $user->id)],
+                'type'            => ['nullable', Rule::in($typeKeys)],
+                'payload'         => ['nullable', 'array'],
+                'prompt'          => ['required', 'string', 'max:600'],
+                'style'           => ['nullable', 'string', 'max:60'],
+                'negative_prompt' => ['nullable', 'string', 'max:600'],
+            ])->validate();
+        } catch (ValidationException $e) {
+            return $this->fail('Validation failed', 422, 'validation_error', $e->errors());
+        }
+
+        // Resolve the scanner-visible string the artwork is woven around. Prefer
+        // an explicit `data` (web parity); otherwise derive it from the link or
+        // the type+payload exactly like the saved QR will encode.
+        $data = trim((string) ($validated['data'] ?? ''));
+        if ($data === '') {
+            if (!empty($validated['link_id'])) {
+                $link = Link::where('user_id', $user->id)->find($validated['link_id']);
+                $data = $link ? (string) $link->getShortUrl() : '';
+            } else {
+                try {
+                    $data = QrCodeTypeRegistry::buildPayloadString(
+                        $validated['type'] ?? 'url',
+                        (array) ($validated['payload'] ?? [])
+                    );
+                } catch (\Throwable $e) {
+                    $data = '';
+                }
+            }
+        }
+        if ($data === '') {
+            return $this->fail('Add your QR content first.', 422, 'missing_data');
+        }
+
+        try {
+            $result = $art->generate($user, $data, $validated['prompt'], [
+                'negative_prompt' => $validated['negative_prompt'] ?? null,
+            ]);
+        } catch (InsufficientCoinsForAiException $e) {
+            return $this->fail(
+                "Not enough coins — this needs {$e->required}, your balance is {$e->balance}.",
+                402,
+                'insufficient_credits',
+                ['required' => $e->required, 'balance' => $e->balance]
+            );
+        } catch (QrArtUnavailableException $e) {
+            return $this->fail($e->getMessage(), 422, 'disabled');
+        } catch (\InvalidArgumentException $e) {
+            return $this->fail($e->getMessage(), 422, 'invalid');
+        } catch (QrArtGenerationException $e) {
+            return $this->fail($e->getMessage(), 422, 'failed');
+        }
+
+        return $this->ok([
+            'image_url' => $result['image_url'] ?? null,
+            'file_id'   => $result['file_id'] ?? null,
+            'cost'      => $result['cost'] ?? null,
+            'balance'   => $result['balance'] ?? null,
+            'style'     => $validated['style'] ?? null,
+            'encoded'   => $data,
+        ]);
     }
 
     /**

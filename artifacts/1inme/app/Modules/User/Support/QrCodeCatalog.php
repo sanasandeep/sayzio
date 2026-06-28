@@ -525,4 +525,27 @@ class QrCodeCatalog
             ],
         ];
     }
+
+    // -------------------- AI ARTISTIC QR STYLE PRESETS --------------------
+    /**
+     * One-tap artwork style starters for the AI Artistic QR feature. Each
+     * preset seeds the generation prompt and stamps the selected style label.
+     *
+     * Single source of truth shared by the web QR Studio builder and the
+     * mobile QR builder (served via the REST art-availability endpoint), so
+     * both surfaces always offer the same styles.
+     *
+     * @return array<int, array{label:string, prompt:string}>
+     */
+    public static function aiArtStylePresets(): array
+    {
+        return [
+            ['label' => 'Cyberpunk',  'prompt' => 'a neon cyberpunk city street at night, rain-slick road, glowing signs, cinematic lighting'],
+            ['label' => 'Watercolor', 'prompt' => 'soft watercolor floral painting, pastel petals, delicate brush strokes, paper texture'],
+            ['label' => 'Nature',     'prompt' => 'a lush forest landscape, sun rays through tall trees, misty morning, photorealistic'],
+            ['label' => 'Geometric',  'prompt' => 'clean geometric abstract pattern, bold overlapping shapes, minimal flat design'],
+            ['label' => 'Galaxy',     'prompt' => 'a deep space galaxy, swirling nebula, scattered stars, vivid cosmic colors'],
+            ['label' => 'Vintage',    'prompt' => 'vintage travel poster illustration, warm retro tones, screen-printed look'],
+        ];
+    }
 }

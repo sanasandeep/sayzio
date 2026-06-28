@@ -31,9 +31,50 @@ export type QrCatalog = {
   default_design: Record<string, unknown>;
 };
 
+export type QrArtPreset = { label: string; prompt: string };
+
+export type QrArtAvailability = {
+  enabled: boolean;
+  allowed: boolean;
+  cost: number;
+  balance: number;
+  recommended_plan: { slug: string; name: string } | null;
+  presets: QrArtPreset[];
+};
+
+export type QrArtResult = {
+  image_url: string | null;
+  file_id: number | null;
+  cost: number | null;
+  balance: number | null;
+  style: string | null;
+  encoded: string;
+};
+
 export async function listQrCodes(): Promise<QrCode[]> {
   const res = await apiFetch<{ data: { items: QrCode[] } }>("/qr-codes");
   return res.data.items;
+}
+
+export async function getQrArtAvailability(): Promise<QrArtAvailability> {
+  const res = await apiFetch<{ data: QrArtAvailability }>("/qr-codes/art-availability");
+  return res.data;
+}
+
+export async function generateQrArt(p: {
+  prompt: string;
+  style?: string | null;
+  negative_prompt?: string | null;
+  data?: string;
+  link_id?: number | null;
+  type?: string;
+  payload?: Record<string, unknown>;
+}): Promise<QrArtResult> {
+  const res = await apiFetch<{ data: QrArtResult }>("/qr-codes/generate-art", {
+    method: "POST",
+    body: JSON.stringify(p),
+  });
+  return res.data;
 }
 
 export async function getQrCatalog(): Promise<QrCatalog> {

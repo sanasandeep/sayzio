@@ -742,6 +742,12 @@ Route::prefix('v1')->group(function () {
         // QR codes
         Route::get   ('/qr-codes',          [QrCodeController::class, 'index']);
         Route::get   ('/qr-codes/catalog',  [QrCodeController::class, 'catalog']);
+        // AI Artistic QR (Task #2690) — mobile parity for the web QR Studio
+        // generateArt flow: availability/cost/balance probe + gated generation
+        // (feature enabled + plan access + coin charge with auto-refund inside
+        // QrArtService). Must precede the numeric /qr-codes/{id} routes.
+        Route::get   ('/qr-codes/art-availability', [QrCodeController::class, 'artAvailability']);
+        Route::post  ('/qr-codes/generate-art',     [QrCodeController::class, 'generateArt'])->middleware('throttle:20,1');
         Route::post  ('/qr-codes',          [QrCodeController::class, 'store']);
         Route::post  ('/qr-codes/bulk',     [QrCodeController::class, 'bulk']);
         Route::get   ('/qr-codes/{id}',     [QrCodeController::class, 'show'])->whereNumber('id');

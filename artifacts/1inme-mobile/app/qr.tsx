@@ -27,8 +27,11 @@ import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
 import {
   createQrCode,
   deleteQrCode,
+  generateQrArt,
+  getQrArtAvailability,
   getQrCatalog,
   listQrCodes,
+  type QrArtResult,
   type QrCode,
   type QrPreset,
 } from "@/lib/api/qr";
@@ -51,23 +54,79 @@ export default function QrScreen() {
   const [preset, setPreset] = useState<QrPreset | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // AI Artistic QR (Task #2690) — prompt + style preset + generated artwork.
+  const [artPrompt, setArtPrompt] = useState("");
+  const [artStyle, setArtStyle] = useState<string | null>(null);
+  const [art, setArt] = useState<QrArtResult | null>(null);
+  const [artError, setArtError] = useState("");
+
+  const resetForm = () => {
+    setShowNew(false);
+    setName("");
+    setValue("");
+    setPreset(null);
+    setErrors({});
+    setArtPrompt("");
+    setArtStyle(null);
+    setArt(null);
+    setArtError("");
+  };
+
+  const payloadFor = () =>
+    type === "url" ? { url: value } : type === "wifi" ? { ssid: value } : { text: value };
+
   const q = useQuery({ queryKey: ["qr-codes"], queryFn: listQrCodes });
   const catalog = useQuery({ queryKey: ["qr-catalog"], queryFn: getQrCatalog, staleTime: 5 * 60 * 1000 });
+  const artAvail = useQuery({
+    queryKey: ["qr-art-availability"],
+    queryFn: getQrArtAvailability,
+    enabled: showNew,
+  });
+
+  const generateArt = useMutation({
+    mutationFn: () =>
+      generateQrArt({
+        prompt: artPrompt.trim(),
+        style: artStyle,
+        type,
+        payload: payloadFor(),
+      }),
+    onSuccess: (r) => {
+      setArt(r);
+      setArtError("");
+      if (typeof r.balance === "number") {
+        artAvail.refetch();
+      }
+    },
+    onError: (e: any) => {
+      if (handlePlanLockedError(e)) return;
+      setArtError(e?.message ?? "Generation failed — please try again.");
+      artAvail.refetch();
+    },
+  });
 
   const create = useMutation({
     mutationFn: () =>
       createQrCode({
         name: name.trim(),
         type,
-        payload: type === "url" ? { url: value } : type === "wifi" ? { ssid: value } : { text: value },
-        design: preset?.design,
+        payload: payloadFor(),
+        design: art
+          ? {
+              ...(preset?.design ?? {}),
+              ai_art: {
+                enabled: true,
+                image_url: art.image_url,
+                prompt: artPrompt.trim(),
+                style: art.style,
+                data: art.encoded,
+                provider: "replicate",
+              },
+            }
+          : preset?.design,
       }),
     onSuccess: () => {
-      setShowNew(false);
-      setName("");
-      setValue("");
-      setPreset(null);
-      setErrors({});
+      resetForm();
       qc.invalidateQueries({ queryKey: ["qr-codes"] });
     },
     onError: (e: any) => {
@@ -167,7 +226,7 @@ export default function QrScreen() {
         />
       )}
 
-      <Modal visible={showNew} animationType="slide" transparent onRequestClose={() => setShowNew(false)}>
+      <Modal visible={showNew} animationType="slide" transparent onRequestClose={resetForm}>
         <View style={styles.modalBackdrop}>
           <View
             style={[
@@ -176,6 +235,12 @@ export default function QrScreen() {
             ]}
           >
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>New QR code</Text>
+            <ScrollView
+              style={{ maxHeight: 460 }}
+              contentContainerStyle={{ gap: 14, paddingBottom: 4 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
             <TextField label="Name" value={name} onChangeText={setName} error={errors.name} />
             <View style={styles.segment}>
               {TYPES.map((t) => {
@@ -266,8 +331,152 @@ export default function QrScreen() {
                 </ScrollView>
               </View>
             )}
+
+            {/* AI Artistic QR — prompt-driven artwork woven into the code. */}
+            <View style={{ gap: 8 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Feather name="image" size={13} color={colors.mutedForeground} />
+                <Text style={[styles.sub, { color: colors.mutedForeground }]}>AI ARTISTIC</Text>
+                {artAvail.data && !artAvail.data.allowed ? <UpgradeLockBadge /> : null}
+              </View>
+
+              {artAvail.isLoading ? (
+                <ActivityIndicator color={colors.primary} style={{ alignSelf: "flex-start" }} />
+              ) : !artAvail.data?.enabled ? (
+                <Text style={[styles.lockHint, { color: colors.mutedForeground }]}>
+                  AI Artistic QR isn’t available yet — an administrator needs to
+                  connect an image provider.
+                </Text>
+              ) : !artAvail.data.allowed ? (
+                <>
+                  <Text style={[styles.lockHint, { color: colors.mutedForeground }]}>
+                    Turn your QR into AI artwork. This is a plan feature
+                    {artAvail.data.recommended_plan
+                      ? ` — upgrade to ${artAvail.data.recommended_plan.name} to unlock it.`
+                      : "."}
+                  </Text>
+                  <Button
+                    label="Upgrade to unlock"
+                    variant="outline"
+                    onPress={() =>
+                      showUpgradePrompt({
+                        message:
+                          "AI Artistic QR isn't included in your current plan. Upgrade to generate artwork-styled QR codes.",
+                        hint: artAvail.data?.recommended_plan
+                          ? {
+                              planSlug: artAvail.data.recommended_plan.slug,
+                              planName: artAvail.data.recommended_plan.name,
+                              feature: "qr_art",
+                            }
+                          : { feature: "qr_art" },
+                      })
+                    }
+                  />
+                </>
+              ) : (
+                <>
+                  <TextField
+                    label="Describe the artwork"
+                    value={artPrompt}
+                    onChangeText={(t) => {
+                      setArtPrompt(t);
+                      setArtError("");
+                    }}
+                    placeholder="e.g. a neon cyberpunk city at night"
+                    multiline
+                  />
+                  {artAvail.data.presets.length > 0 ? (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={{ gap: 8 }}
+                    >
+                      {artAvail.data.presets.map((p) => {
+                        const active = artStyle === p.label;
+                        return (
+                          <Pressable
+                            key={p.label}
+                            onPress={() => {
+                              if (active) {
+                                setArtStyle(null);
+                              } else {
+                                setArtStyle(p.label);
+                                setArtPrompt(p.prompt);
+                              }
+                              setArtError("");
+                            }}
+                            style={[
+                              styles.presetChip,
+                              {
+                                backgroundColor: active ? colors.primary : colors.card,
+                                borderColor: active ? colors.primary : colors.border,
+                                borderRadius: colors.radius - 4,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={{
+                                fontFamily: "SpaceGrotesk_600SemiBold",
+                                fontSize: 12,
+                                color: active ? colors.primaryForeground : colors.foreground,
+                              }}
+                            >
+                              {p.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </ScrollView>
+                  ) : null}
+
+                  <View style={styles.balanceRow}>
+                    <Text style={[styles.meta, { color: colors.mutedForeground }]}>
+                      Balance: {artAvail.data.balance} coins
+                    </Text>
+                    <Text style={[styles.meta, { color: colors.foreground }]}>
+                      Cost: {artAvail.data.cost} coin{artAvail.data.cost === 1 ? "" : "s"}
+                    </Text>
+                  </View>
+
+                  {art?.image_url ? (
+                    <View style={{ gap: 8 }}>
+                      <Image
+                        source={{ uri: art.image_url }}
+                        style={styles.artPreview}
+                        resizeMode="contain"
+                      />
+                      <View style={[styles.caveat, { backgroundColor: colors.primary + "14", borderRadius: colors.radius - 4 }]}>
+                        <Feather name="alert-triangle" size={13} color={colors.primary} />
+                        <Text style={[styles.caveatText, { color: colors.foreground }]}>
+                          Artistic blending can reduce scan reliability — test the
+                          final image before sharing.
+                        </Text>
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {artError ? (
+                    <Text style={[styles.lockHint, { color: colors.destructive }]}>{artError}</Text>
+                  ) : null}
+
+                  <Button
+                    label={art ? "Regenerate artwork" : "Generate artwork"}
+                    variant="outline"
+                    loading={generateArt.isPending}
+                    disabled={!value.trim() || !artPrompt.trim() || generateArt.isPending}
+                    onPress={() => generateArt.mutate()}
+                  />
+                  {art ? (
+                    <Pressable onPress={() => setArt(null)} hitSlop={6} style={{ alignSelf: "flex-start" }}>
+                      <Text style={[styles.meta, { color: colors.mutedForeground }]}>Remove artwork</Text>
+                    </Pressable>
+                  ) : null}
+                </>
+              )}
+            </View>
+            </ScrollView>
             <View style={{ flexDirection: "row", gap: 8 }}>
-              <Button label="Cancel" variant="outline" onPress={() => setShowNew(false)} style={{ flex: 1 }} />
+              <Button label="Cancel" variant="outline" onPress={resetForm} style={{ flex: 1 }} />
               <Button
                 label="Create"
                 onPress={() => create.mutate()}
@@ -305,6 +514,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   lockHint: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  balanceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  meta: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 12,
+  },
+  artPreview: {
+    width: "100%",
+    aspectRatio: 1,
+    borderRadius: 12,
+  },
+  caveat: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: 10,
+  },
+  caveatText: {
+    flex: 1,
     fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 11,
     lineHeight: 15,

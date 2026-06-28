@@ -66,10 +66,11 @@ class QrCodeController extends Controller
         $qrArtAllowed  = AiPlanAccess::featureAllowed($owner, 'qr_art');
         $qrArtCost     = $art->coinCost($owner);
         $qrArtBalance  = app(AiUsageCharger::class)->getBalance($owner);
+        $qrArtPresets  = QrCodeCatalog::aiArtStylePresets();
 
         return view('user.qr-codes.builder', compact(
             'qrCode', 'types', 'projects', 'links', 'defaultDesign', 'presets',
-            'qrArtEnabled', 'qrArtAllowed', 'qrArtCost', 'qrArtBalance'
+            'qrArtEnabled', 'qrArtAllowed', 'qrArtCost', 'qrArtBalance', 'qrArtPresets'
         ));
     }
 

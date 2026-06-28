@@ -779,14 +779,7 @@ function qrBuilder() {
             busy: false,
             error: '',
         },
-        aiPresets: [
-            { label: 'Cyberpunk', prompt: 'a neon cyberpunk city street at night, rain-slick road, glowing signs, cinematic lighting' },
-            { label: 'Watercolor', prompt: 'soft watercolor floral painting, pastel petals, delicate brush strokes, paper texture' },
-            { label: 'Nature', prompt: 'a lush forest landscape, sun rays through tall trees, misty morning, photorealistic' },
-            { label: 'Geometric', prompt: 'clean geometric abstract pattern, bold overlapping shapes, minimal flat design' },
-            { label: 'Galaxy', prompt: 'a deep space galaxy, swirling nebula, scattered stars, vivid cosmic colors' },
-            { label: 'Vintage', prompt: 'vintage travel poster illustration, warm retro tones, screen-printed look' },
-        ],
+        aiPresets: @js($qrArtPresets),
 
         init() {
             this.$watch('payload', () => this.scheduleResolve(), { deep: true });
