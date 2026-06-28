@@ -39,17 +39,28 @@ class ClientInvoicePdfRenderer
         $cacheKey = sprintf('client_invoice_pdf:%d:%s', $invoice->id, $version);
 
         $body = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($invoice) {
-            $html = view('user.client_invoices.pdf', [
-                'invoice' => $invoice,
-                'brand'   => $this->resolveBrand($invoice),
-            ])->render();
-            return $this->toPdf($html);
+            return $this->toPdf($this->invoiceHtml($invoice));
         });
 
         return [
             'filename' => $this->slugNumber($invoice->number) . '.pdf',
             'body'     => $body,
         ];
+    }
+
+    /**
+     * Render the invoice print HTML (pre-PDF). Exposed as a hook so the figures
+     * laid out by the Blade template — subtotal, discount, per-line totals and
+     * grand total — can be asserted directly without parsing the binary PDF,
+     * guarding against the stored InvoiceCalculator shape drifting away from
+     * what the web/API surfaces show.
+     */
+    public function invoiceHtml(Invoice $invoice): string
+    {
+        return view('user.client_invoices.pdf', [
+            'invoice' => $invoice,
+            'brand'   => $this->resolveBrand($invoice),
+        ])->render();
     }
 
     /**
@@ -61,18 +72,27 @@ class ClientInvoicePdfRenderer
         $cacheKey = sprintf('client_receipt_pdf:%d:%s', $receipt->id, substr(sha1($version), 0, 12));
 
         $body = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($invoice, $receipt) {
-            $html = view('user.client_invoices.receipt-pdf', [
-                'invoice' => $invoice,
-                'receipt' => $receipt,
-                'brand'   => $this->resolveBrand($invoice),
-            ])->render();
-            return $this->toPdf($html);
+            return $this->toPdf($this->receiptHtml($invoice, $receipt));
         });
 
         return [
             'filename' => $this->slugNumber($receipt->number) . '.pdf',
             'body'     => $body,
         ];
+    }
+
+    /**
+     * Render the receipt print HTML (pre-PDF). Companion hook to
+     * {@see invoiceHtml()} so the receipt's figures can be asserted without
+     * parsing the binary PDF.
+     */
+    public function receiptHtml(Invoice $invoice, Receipt $receipt): string
+    {
+        return view('user.client_invoices.receipt-pdf', [
+            'invoice' => $invoice,
+            'receipt' => $receipt,
+            'brand'   => $this->resolveBrand($invoice),
+        ])->render();
     }
 
     private function toPdf(string $html): string
