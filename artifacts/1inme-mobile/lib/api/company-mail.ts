@@ -25,6 +25,10 @@ export type CompanySmtpStatus = {
   is_configured: boolean;
   verified_at: string | null;
   encryption_options: string[];
+  // Addresses a test send may target. The server restricts the test send to
+  // addresses the creator controls (account email, company contact email,
+  // sender address) so it can't be abused as a spam relay to third parties.
+  allowed_test_recipients: string[];
 };
 
 export type CompanySmtpVerify = { ok: boolean; error: string | null };

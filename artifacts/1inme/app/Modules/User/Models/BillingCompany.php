@@ -59,6 +59,41 @@ class BillingCompany extends Model
         return $this->hasMany(TaxRule::class, 'billing_company_id');
     }
 
+    /**
+     * The addresses a SMTP test message may be sent to. Restricting the test
+     * send to addresses the creator already controls (their own account email,
+     * this company's contact email, and its configured sender address) stops
+     * the feature being abused as an open relay for unsolicited mail to
+     * arbitrary third parties. All entries are lowercased + de-duplicated.
+     *
+     * @return array<int,string>
+     */
+    public function allowedTestRecipients(?User $user = null): array
+    {
+        $user = $user ?: $this->user;
+
+        $candidates = [
+            $user?->email,
+            $this->email,
+            $this->smtp_from_address,
+        ];
+
+        $allowed = [];
+        foreach ($candidates as $candidate) {
+            $candidate = trim((string) $candidate);
+            if ($candidate === '') continue;
+            $allowed[strtolower($candidate)] = strtolower($candidate);
+        }
+
+        return array_values($allowed);
+    }
+
+    /** True when $email is one of this company's permitted test-send recipients. */
+    public function allowsTestRecipient(string $email, ?User $user = null): bool
+    {
+        return in_array(strtolower(trim($email)), $this->allowedTestRecipients($user), true);
+    }
+
     /** Flat snapshot stored on invoices/receipts so later edits never mutate history. */
     public function toSnapshot(): array
     {

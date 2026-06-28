@@ -182,6 +182,7 @@
         <section class="mt-6 p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
             <h2 class="font-bold mb-1" style="color: var(--text-primary);">Verify &amp; test SMTP</h2>
             <p class="text-xs mb-3" style="color: var(--text-muted);">Save your changes first, then check the connection or send yourself a test message.</p>
+            @php($allowedTestRecipients = $company->allowedTestRecipients(auth()->user()))
             <div class="flex flex-col sm:flex-row gap-3">
                 <form action="{{ route('user.billing.companies.smtp.verify', $company) }}" method="POST">
                     @csrf
@@ -191,13 +192,29 @@
                 </form>
                 <form action="{{ route('user.billing.companies.smtp.test', $company) }}" method="POST" class="flex gap-2 flex-1">
                     @csrf
-                    <input type="email" name="test_email" required placeholder="you@example.com"
+                    <input type="email" name="test_email" required
+                           value="{{ old('test_email', $allowedTestRecipients[0] ?? '') }}"
+                           list="smtp-test-recipients"
+                           placeholder="{{ $allowedTestRecipients[0] ?? 'you@example.com' }}"
                            class="flex-1 p-2 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                    @if(!empty($allowedTestRecipients))
+                        <datalist id="smtp-test-recipients">
+                            @foreach($allowedTestRecipients as $recipient)
+                                <option value="{{ $recipient }}"></option>
+                            @endforeach
+                        </datalist>
+                    @endif
                     <button class="px-3 py-2 rounded-lg border text-sm" style="border-color: var(--border-soft); color: var(--text-primary);">
                         <i class="fas fa-paper-plane mr-1"></i>Send test
                     </button>
                 </form>
             </div>
+            <p class="text-[11px] mt-2" style="color: var(--text-muted);">
+                <i class="fas fa-shield-alt mr-1"></i>To prevent abuse, test emails can only be sent to your own account email, this company's contact email, or its sender (from) address.
+            </p>
+            @error('test_email')
+                <p class="text-[11px] mt-1" style="color: var(--danger, #ef4444);">{{ $message }}</p>
+            @enderror
         </section>
 
         <section class="mt-6 p-4 rounded-xl border flex items-center justify-between gap-3" style="border-color: var(--border-soft); background: var(--bg-card);">

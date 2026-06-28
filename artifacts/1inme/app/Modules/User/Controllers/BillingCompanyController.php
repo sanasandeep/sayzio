@@ -79,11 +79,25 @@ class BillingCompanyController extends Controller
             : back()->with('error', 'SMTP check failed: ' . $res['error']);
     }
 
-    /** Send a sample message through this company's SMTP and report the result. */
+    /**
+     * Send a sample message through this company's SMTP and report the result.
+     *
+     * The recipient is restricted to an address the creator already controls
+     * (their own account email, this company's contact email, or its configured
+     * sender address) so the test send can't be abused as a spam relay to
+     * arbitrary third parties.
+     */
     public function testSmtp(Request $request, BillingCompany $company)
     {
         $this->authorizeOwn($company);
         $data = $request->validate(['test_email' => 'required|email']);
+
+        if (!$company->allowsTestRecipient($data['test_email'], $request->user())) {
+            return back()->withErrors([
+                'test_email' => 'Test emails can only be sent to your own account email, this company\'s contact email, or its sender (from) address.',
+            ])->withInput();
+        }
+
         $res = CompanyMailSettings::for($company)->sendTest($data['test_email']);
         return $res['ok']
             ? back()->with('success', 'Test email sent to ' . $data['test_email'] . '.')

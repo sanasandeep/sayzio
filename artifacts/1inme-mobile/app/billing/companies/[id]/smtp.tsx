@@ -350,6 +350,45 @@ export default function CompanySmtpScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+              {data.allowed_test_recipients?.length ? (
+                <View style={{ gap: 6 }}>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 17 }}>
+                    To prevent abuse, test emails can only go to an address you
+                    control. Tap one to use it:
+                  </Text>
+                  <View style={styles.chipRow}>
+                    {data.allowed_test_recipients.map((addr) => {
+                      const on = testEmail.trim().toLowerCase() === addr.toLowerCase();
+                      return (
+                        <Pressable
+                          key={addr}
+                          onPress={() => {
+                            setTestEmail(addr);
+                            setError(null);
+                          }}
+                          style={[
+                            styles.chip,
+                            {
+                              backgroundColor: on ? colors.primary + "22" : colors.background,
+                              borderColor: on ? colors.primary : colors.border,
+                              borderRadius: colors.radius - 4,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={{
+                              color: on ? colors.primary : colors.foreground,
+                              fontSize: 12,
+                            }}
+                          >
+                            {addr}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
               <Button
                 label="Send test email"
                 variant="outline"
@@ -381,6 +420,8 @@ const styles = StyleSheet.create({
   },
   switchRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   checkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: { paddingVertical: 7, paddingHorizontal: 10, borderWidth: 1 },
   segment: { flexDirection: "row", padding: 4, borderWidth: 1 },
   segmentItem: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 10 },
   segmentText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12, textTransform: "uppercase" },

@@ -116,13 +116,29 @@ class CompanyMailController extends Controller
         ]);
     }
 
-    /** Send a sample message through this company's SMTP and report the result. */
+    /**
+     * Send a sample message through this company's SMTP and report the result.
+     *
+     * The recipient is restricted to an address the creator already controls
+     * (their own account email, this company's contact email, or its configured
+     * sender address) so the test send can't be abused as a spam relay to
+     * arbitrary third parties — mirrors the web testSmtp() restriction.
+     */
     public function smtpTest(Request $request, int $id)
     {
         $company = $this->resolve($request, $id);
         if (!$company) return $this->notFound('Company not found');
 
         $data = $request->validate(['test_email' => 'required|email|max:255']);
+
+        if (!$company->allowsTestRecipient($data['test_email'], $request->user())) {
+            return $this->fail(
+                'Test emails can only be sent to your own account email, this company\'s contact email, or its sender (from) address.',
+                422,
+                'test_recipient_not_allowed',
+                ['allowed' => $company->allowedTestRecipients($request->user())],
+            );
+        }
 
         $result = CompanyMailSettings::for($company)->sendTest($data['test_email']);
         if (!$result['ok']) {
@@ -283,6 +299,9 @@ class CompanyMailController extends Controller
             'is_configured'      => $settings->isConfigured(),
             'verified_at'        => optional($company->smtp_verified_at)->toIso8601String(),
             'encryption_options' => CompanyMailSettings::ENCRYPTION_OPTIONS,
+            // Recipients a test send may target — the test send is restricted to
+            // addresses the creator controls so it can't be used as a spam relay.
+            'allowed_test_recipients' => $company->allowedTestRecipients(),
         ];
     }
 
