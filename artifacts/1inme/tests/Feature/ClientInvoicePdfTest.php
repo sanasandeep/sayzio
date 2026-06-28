@@ -72,6 +72,31 @@ class ClientInvoicePdfTest extends TestCase
         ], $ws, $u->id);
     }
 
+    /**
+     * An inclusive-tax invoice: each unit price already includes the tax, so the
+     * calculator backs the net out of the gross. Every figure is distinct so an
+     * assertSee can't pass on a coincidental collision, and — crucially — the net
+     * subtotal is *less* than the sum of the gross line amounts, which is what
+     * proves the PDF prints the backed-out net (not the gross) on screen:
+     *   - Line "Consulting": 12000 gross @ 20% inclusive => net 10000 + tax 2000
+     *   - Line "Support"   :  6000 gross @ 20% inclusive => net  5000 + tax 1000
+     *   - subtotal (net)    = 15000               (USD 150.00)
+     *   - tax (VAT 20%)     =  3000               (USD 30.00)
+     *   - grand total       = 15000 + 3000 = 18000 (USD 180.00)
+     *   - line amount cells  = 12000 / 6000        (USD 120.00 / USD 60.00, the gross)
+     */
+    private function inclusiveFixtureInvoice(User $u, Workspace $ws)
+    {
+        return app(ClientInvoiceService::class)->createStandalone([
+            'recipient_email' => 'client@ex.com',
+            'currency'        => 'USD',
+            'line_items'      => [
+                ['label' => 'Consulting', 'amount_minor' => 12000, 'quantity' => 1, 'tax_rate_bps' => 2000, 'tax_inclusive' => true, 'tax_name' => 'VAT'],
+                ['label' => 'Support',    'amount_minor' => 6000,  'quantity' => 1, 'tax_rate_bps' => 2000, 'tax_inclusive' => true, 'tax_name' => 'VAT'],
+            ],
+        ], $ws, $u->id);
+    }
+
     public function test_calculator_persists_the_expected_fixture_totals(): void
     {
         // Sanity-pin the stored figures the PDF reads back — these are the same
@@ -104,6 +129,39 @@ class ClientInvoicePdfTest extends TestCase
         $this->assertStringContainsString('USD 44.00', $html);  // VAT 20%
         $this->assertStringContainsString('USD 264.00', $html); // grand total
         // The grouped tax row is labelled from the stored breakdown.
+        $this->assertStringContainsString('VAT', $html);
+    }
+
+    public function test_calculator_persists_the_backed_out_inclusive_tax_totals(): void
+    {
+        // Inclusive tax backs the net out of the gross, so the stored subtotal is
+        // the net (15000), strictly below the 18000 gross the line cells show.
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $invoice = $this->inclusiveFixtureInvoice($u, $ws);
+
+        $this->assertSame(15000, (int) $invoice->subtotal_minor);
+        $this->assertSame(0, (int) $invoice->discount_minor);
+        $this->assertSame(3000, (int) $invoice->tax_total_minor);
+        $this->assertSame(18000, (int) $invoice->grand_total_minor);
+    }
+
+    public function test_invoice_pdf_html_shows_the_backed_out_inclusive_tax_figures(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $invoice = $this->inclusiveFixtureInvoice($u, $ws);
+
+        $html = app(ClientInvoicePdfRenderer::class)->invoiceHtml($invoice);
+
+        // Per-line amount cells show the gross (tax-inclusive) figures.
+        $this->assertStringContainsString('USD 120.00', $html); // Consulting 12000 gross
+        $this->assertStringContainsString('USD 60.00', $html);  // Support 6000 gross
+        // Totals block shows the backed-out net subtotal, the tax and the grand
+        // total — the subtotal (150.00) is the net, NOT the 180.00 gross sum.
+        $this->assertStringContainsString('USD 150.00', $html); // net subtotal
+        $this->assertStringContainsString('USD 30.00', $html);  // VAT 20% backed out
+        $this->assertStringContainsString('USD 180.00', $html); // grand total
         $this->assertStringContainsString('VAT', $html);
     }
 
