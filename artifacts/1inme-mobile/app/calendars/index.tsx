@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -25,7 +25,11 @@ import {
   type MyCalendarFilters,
 } from "@/lib/api/calendars";
 import { getProfile } from "@/lib/api/profile";
-import { addEventWithFeedback } from "@/lib/deviceCalendar";
+import {
+  addEventWithFeedback,
+  getSavedDeviceEventIds,
+  removeEventWithFeedback,
+} from "@/lib/deviceCalendar";
 import { showUpgradePrompt } from "@/lib/upgradePrompt";
 
 type Tab = "agenda" | "today" | "browse";
@@ -69,6 +73,45 @@ function rangeToFilter(range: RangeKey): Pick<MyCalendarFilters, "from" | "to" |
     return { from: isoDate(now), to: isoDate(to) };
   }
   return {}; // upcoming = server default (>= today)
+}
+
+/**
+ * Detect which of these events are already on the device calendar so each card
+ * can show the correct single action (Add vs Saved/Remove). Mirrors the
+ * calendar-detail screen: probes once whenever the event set changes (keyed on
+ * the stable list of ids) and exposes a `refresh` to re-read after add/remove.
+ * `savedIds` is `null` until known / when it can't be determined (web, no
+ * permission), in which case callers default to the Add action.
+ */
+function useSavedDeviceEvents(items: CalendarEventItem[]): {
+  savedIds: Set<string> | null;
+  refresh: () => Promise<void>;
+} {
+  const [savedIds, setSavedIds] = useState<Set<string> | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (items.length === 0) {
+      setSavedIds(new Set());
+      return;
+    }
+    setSavedIds(await getSavedDeviceEventIds(items));
+  }, [items]);
+
+  const eventKey = items.map((e) => e.id).join(",");
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const ids =
+        items.length === 0 ? new Set<string>() : await getSavedDeviceEventIds(items);
+      if (!cancelled) setSavedIds(ids);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventKey]);
+
+  return { savedIds, refresh };
 }
 
 export default function CalendarsScreen() {
@@ -240,6 +283,7 @@ function AgendaTab({
   setTag: (t: string | null) => void;
 }) {
   const items = q.data?.items ?? [];
+  const { savedIds, refresh } = useSavedDeviceEvents(items);
 
   return (
     <View style={{ flex: 1 }}>
@@ -325,7 +369,13 @@ function AgendaTab({
           keyExtractor={(e) => String(e.id)}
           contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 40 }}
           renderItem={({ item }) => (
-            <EventCard event={item} colors={colors} onTagPress={setTag} />
+            <EventCard
+              event={item}
+              colors={colors}
+              onTagPress={setTag}
+              saved={savedIds?.has(String(item.id)) ?? false}
+              onChanged={refresh}
+            />
           )}
           ListEmptyComponent={
             q.isError ? (
@@ -364,6 +414,7 @@ function TodayTab({
   colors: ReturnType<typeof useColors>;
 }) {
   const items = q.data?.items ?? [];
+  const { savedIds, refresh } = useSavedDeviceEvents(items);
   const dateLabel = q.data?.date
     ? new Date(q.data.date + "T00:00:00").toLocaleDateString(undefined, {
         weekday: "long",
@@ -392,7 +443,14 @@ function TodayTab({
           </Text>
         ) : null
       }
-      renderItem={({ item }) => <EventCard event={item} colors={colors} />}
+      renderItem={({ item }) => (
+        <EventCard
+          event={item}
+          colors={colors}
+          saved={savedIds?.has(String(item.id)) ?? false}
+          onChanged={refresh}
+        />
+      )}
       ListEmptyComponent={
         q.isError ? (
           <EmptyState
@@ -534,19 +592,36 @@ function EventCard({
   event,
   colors,
   onTagPress,
+  saved = false,
+  onChanged,
 }: {
   event: CalendarEventItem;
   colors: ReturnType<typeof useColors>;
   onTagPress?: (tag: string) => void;
+  // Whether this event already has a copy on the device calendar.
+  saved?: boolean;
+  // Re-probe saved state after this card adds/removes its device copy.
+  onChanged?: () => void;
 }) {
   const accent = event.calendar?.accent_color || colors.primary;
   const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const addToCalendar = async () => {
     setAdding(true);
     try {
       await addEventWithFeedback(event);
     } finally {
       setAdding(false);
+      onChanged?.();
+    }
+  };
+  const removeFromCalendar = async () => {
+    setRemoving(true);
+    try {
+      await removeEventWithFeedback(event);
+    } finally {
+      setRemoving(false);
+      onChanged?.();
     }
   };
   return (
@@ -592,19 +667,55 @@ function EventCard({
           </View>
         ) : null}
         {event.start_at ? (
-          <Pressable
-            onPress={addToCalendar}
-            disabled={adding}
-            hitSlop={6}
-            style={[styles.addBtn, { borderColor: accent, borderRadius: colors.radius }]}
-          >
-            {adding ? (
-              <ActivityIndicator size="small" color={accent} />
+          <View style={styles.deviceCalRow}>
+            {saved ? (
+              <>
+                <View
+                  style={[
+                    styles.savedBadge,
+                    { backgroundColor: accent + "22", borderRadius: colors.radius },
+                  ]}
+                >
+                  <Feather name="check-circle" size={14} color={accent} />
+                  <Text style={[styles.savedBadgeText, { color: accent }]}>
+                    Saved to your calendar
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={removeFromCalendar}
+                  disabled={adding || removing}
+                  hitSlop={6}
+                  style={[
+                    styles.addBtn,
+                    { borderColor: colors.border, borderRadius: colors.radius },
+                  ]}
+                >
+                  {removing ? (
+                    <ActivityIndicator size="small" color={colors.mutedForeground} />
+                  ) : (
+                    <Feather name="x-circle" size={14} color={colors.mutedForeground} />
+                  )}
+                  <Text style={[styles.addBtnText, { color: colors.mutedForeground }]}>
+                    Remove
+                  </Text>
+                </Pressable>
+              </>
             ) : (
-              <Feather name="calendar" size={14} color={accent} />
+              <Pressable
+                onPress={addToCalendar}
+                disabled={adding || removing}
+                hitSlop={6}
+                style={[styles.addBtn, { borderColor: accent, borderRadius: colors.radius }]}
+              >
+                {adding ? (
+                  <ActivityIndicator size="small" color={accent} />
+                ) : (
+                  <Feather name="calendar" size={14} color={accent} />
+                )}
+                <Text style={[styles.addBtnText, { color: accent }]}>Add to my calendar</Text>
+              </Pressable>
             )}
-            <Text style={[styles.addBtnText, { color: accent }]}>Add to my calendar</Text>
-          </Pressable>
+          </View>
         ) : null}
       </View>
     </Pressable>
@@ -713,18 +824,27 @@ const styles = StyleSheet.create({
   tagWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 },
   eventTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   eventTagText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 11 },
+  deviceCalRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    marginTop: 8,
     alignSelf: "flex-start",
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderWidth: 1,
   },
   addBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
+  savedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  savedBadgeText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
   calCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderWidth: 1 },
   calIcon: {
     width: 40,
