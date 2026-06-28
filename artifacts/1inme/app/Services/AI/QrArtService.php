@@ -5,6 +5,8 @@ namespace App\Services\AI;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * AI Artistic QR generator.
@@ -41,6 +43,52 @@ class QrArtService
         $base = AiEngineSettings::qrArtCoinsPerGeneration();
         $mult = AiPlanAccess::coinMultiplier($user, 'replicate');
         return max(1, (int) ceil($base * $mult));
+    }
+
+    /**
+     * Unmetered "Test connection" probe for the Replicate token. Hits the
+     * cheap, authenticated GET /v1/account endpoint to confirm the token is
+     * valid without queuing a prediction or spending anything. Prefers the
+     * token passed in (just typed into the admin form); falls back to the
+     * stored/env token. Returns an ok/fail array for inline JSON rendering.
+     *
+     * @return array{ok:bool,message:string,status?:int,account?:string}
+     */
+    public function testToken(?string $token = null): array
+    {
+        $token = ($token !== null && trim($token) !== '') ? trim($token) : AiEngineSettings::replicateKey();
+        if (!$token) {
+            return ['ok' => false, 'message' => 'No Replicate token is configured. Paste a token above (or save one) and try again.'];
+        }
+
+        try {
+            $res = Http::withToken($token)
+                ->acceptJson()
+                ->timeout(20)
+                ->get('https://api.replicate.com/v1/account');
+        } catch (\Throwable $e) {
+            Log::warning('Replicate test connection threw: ' . $e->getMessage());
+            return ['ok' => false, 'message' => 'Network error reaching Replicate: ' . Str::limit($e->getMessage(), 160)];
+        }
+
+        if ($res->successful()) {
+            $account = (string) ($res->json('username') ?: $res->json('name') ?: '');
+            $message = $account !== ''
+                ? "Success — Replicate accepted the token (account \"{$account}\")."
+                : 'Success — Replicate accepted the token.';
+            return ['ok' => true, 'account' => $account, 'message' => $message];
+        }
+
+        $status = $res->status();
+        $apiMsg = (string) ($res->json('detail') ?? '');
+        $message = match (true) {
+            $status === 401 => 'Invalid token — Replicate rejected it (401 Unauthorized).',
+            $status === 403 => 'Token lacks access (403). Check the account permissions.',
+            $status === 429 => 'Rate limited (429). The token works but is temporarily throttled.',
+            default => "Replicate returned HTTP {$status}" . ($apiMsg !== '' ? ': ' . Str::limit($apiMsg, 160) : '.'),
+        };
+
+        return ['ok' => false, 'status' => $status, 'message' => $message];
     }
 
     /**

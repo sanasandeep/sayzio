@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\ElevenLabsService;
 use App\Services\AI\OpenAiService;
+use App\Services\AI\QrArtService;
 use App\Services\AI\WhisperService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -280,6 +281,22 @@ class AiEngineController extends Controller
 
         return response()->json(
             $eleven->testKey($typed !== '' ? $typed : null)
+        );
+    }
+
+    /**
+     * Unmetered "Test connection" action for the Replicate (AI Artistic QR)
+     * token. Hits the cheap authenticated GET /v1/account endpoint using the
+     * token just typed into the form (preferred) or the stored/env token, and
+     * reports the result as JSON for inline rendering. No coins are charged and
+     * the AI Engine does not need to be enabled.
+     */
+    public function testReplicateConnection(Request $request, QrArtService $qrArt)
+    {
+        $typed = trim((string) $request->input('replicate_api_key', ''));
+
+        return response()->json(
+            $qrArt->testToken($typed !== '' ? $typed : null)
         );
     }
 }

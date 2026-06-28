@@ -367,6 +367,17 @@
             <p class="text-[11px] text-white/30 mt-1">Encrypted at rest. Falls back to <code>REPLICATE_API_TOKEN</code> when no token is stored here.</p>
         </div>
 
+        <div class="pt-4 border-t border-white/10 space-y-3">
+            <div class="flex flex-wrap items-center gap-3">
+                <button type="button" onclick="testReplicateConnection(this)"
+                        class="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-lg text-xs font-medium">
+                    <i class="fas fa-plug mr-1"></i> Test connection
+                </button>
+                <span id="replicate-test-result" class="text-xs text-white/50"></span>
+            </div>
+            <p class="text-[11px] text-white/30">Makes a lightweight authenticated call to Replicate to confirm the token works. No prediction is queued and no coins are charged. Tests the token typed above, or the stored/environment token when the field is blank.</p>
+        </div>
+
         <div class="pt-4 border-t border-white/10">
             <label class="text-white/70 text-xs">Coins charged per generation</label>
             <input type="number" min="1" max="100000" step="1" name="qr_art_coins" value="{{ $qrArtCoins }}"
@@ -403,6 +414,38 @@ async function testOpenAiConnection(btn) {
                 'X-CSRF-TOKEN': tokenField ? tokenField.value : '',
             },
             body: JSON.stringify({ openai_api_key: keyField ? keyField.value : '' }),
+        });
+        const data = await res.json().catch(function () {
+            return { ok: false, message: 'Unexpected response from server.' };
+        });
+        result.className = 'text-xs ' + (data.ok ? 'text-emerald-300' : 'text-red-300');
+        result.innerHTML = '<i class="fas ' + (data.ok ? 'fa-circle-check' : 'fa-circle-xmark') + ' mr-1"></i>';
+        result.appendChild(document.createTextNode(data.message || (data.ok ? 'Connection OK.' : 'Connection failed.')));
+    } catch (e) {
+        result.className = 'text-xs text-red-300';
+        result.textContent = 'Request failed: ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function testReplicateConnection(btn) {
+    const result = document.getElementById('replicate-test-result');
+    if (!result) return;
+    const keyField = document.querySelector('input[name="replicate_api_key"]');
+    const tokenField = document.querySelector('input[name="_token"]');
+    result.className = 'text-xs text-white/50';
+    result.textContent = 'Testing…';
+    btn.disabled = true;
+    try {
+        const res = await fetch(@json(route('admin.ai-engine.test-replicate')), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': tokenField ? tokenField.value : '',
+            },
+            body: JSON.stringify({ replicate_api_key: keyField ? keyField.value : '' }),
         });
         const data = await res.json().catch(function () {
             return { ok: false, message: 'Unexpected response from server.' };
