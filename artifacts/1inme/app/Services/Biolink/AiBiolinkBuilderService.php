@@ -144,7 +144,7 @@ class AiBiolinkBuilderService
      *                              in the user's own facts; never invents URLs.
      * @return list<array{role:string,content:string}>
      */
-    public function buildMessages(User $user, string $description, array $links, array $images, array $files = [], string $grounding = ''): array
+    public function buildMessages(User $user, string $description, array $links, array $images, array $files = [], string $grounding = '', string $brandDirectives = ''): array
     {
         $description = trim($description);
         if ($description === '') {
@@ -211,6 +211,15 @@ class AiBiolinkBuilderService
             . $schemaHint;
 
         $userParts = ["WHAT THE USER WANTS:\n" . $description];
+
+        // On-Brand AI (Task #2664): prepend the creator's saved Brand Kit
+        // voice/palette directives right after the description so the model
+        // treats them as binding style guidance for the whole page.
+        $brandDirectives = trim($brandDirectives);
+        if ($brandDirectives !== '') {
+            $userParts[] = mb_substr($brandDirectives, 0, self::MAX_DESCRIPTION_LEN);
+        }
+
         $grounding = trim($grounding);
         if ($grounding !== '') {
             // Cap so a large knowledge base can't blow the model window.
@@ -241,10 +250,10 @@ class AiBiolinkBuilderService
     /**
      * Worst-case credit cost shown before the user clicks Generate.
      */
-    public function estimateCredits(User $user, string $description, array $links, array $images, array $files = [], string $grounding = ''): int
+    public function estimateCredits(User $user, string $description, array $links, array $images, array $files = [], string $grounding = '', string $brandDirectives = ''): int
     {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
-        $messages = $this->buildMessages($user, $description, $links, $images, $files, $grounding);
+        $messages = $this->buildMessages($user, $description, $links, $images, $files, $grounding, $brandDirectives);
         return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
     }
 
@@ -256,13 +265,13 @@ class AiBiolinkBuilderService
      *
      * @return array{credits_spent:int,blocks:int,model:string}
      */
-    public function generate(User $user, Link $link, string $description, array $links, array $images, array $files = [], string $grounding = '', bool $replaceBlocks = true): array
+    public function generate(User $user, Link $link, string $description, array $links, array $images, array $files = [], string $grounding = '', bool $replaceBlocks = true, string $brandDirectives = ''): array
     {
         $links  = $this->cleanUrls($links);
         $images = $this->cleanImageUrls($images);
         $files  = $this->cleanImageUrls($files);
 
-        $messages = $this->buildMessages($user, $description, $links, $images, $files, $grounding);
+        $messages = $this->buildMessages($user, $description, $links, $images, $files, $grounding, $brandDirectives);
         $model    = AiEngineSettings::featureModel(self::FEATURE);
 
         $result = $this->openai->chat($user, $model, $messages, [

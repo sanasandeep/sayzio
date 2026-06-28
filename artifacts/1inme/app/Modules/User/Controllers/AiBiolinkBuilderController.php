@@ -3,7 +3,9 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Models\BrandKit;
 use App\Modules\User\Models\Link;
+use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\InsufficientCoinsForAiException;
@@ -32,14 +34,18 @@ class AiBiolinkBuilderController extends Controller
     {
         $this->authorizeLink($link);
 
+        $onBrandAllowed = AiPlanAccess::featureAllowed($request->user(), 'brand_consistency');
+
         return view('user.links.ai-builder', [
-            'link'         => $link,
-            'aiEnabled'    => AiEngineSettings::isEnabled(),
-            'balance'      => AiEngineSettings::isEnabled() ? $this->credits->getBalance($request->user()) : 0,
-            'allowedTypes' => $this->builder->allowedTypesFor($request->user()),
-            'maxLinks'     => 25,
-            'maxImages'    => 25,
-            'maxFiles'     => 15,
+            'link'           => $link,
+            'aiEnabled'      => AiEngineSettings::isEnabled(),
+            'balance'        => AiEngineSettings::isEnabled() ? $this->credits->getBalance($request->user()) : 0,
+            'allowedTypes'   => $this->builder->allowedTypesFor($request->user()),
+            'maxLinks'       => 25,
+            'maxImages'      => 25,
+            'maxFiles'       => 15,
+            'onBrandAllowed' => $onBrandAllowed,
+            'brandKit'       => $onBrandAllowed ? BrandKit::defaultFor(workspace_owner_id()) : null,
         ]);
     }
 
@@ -60,6 +66,8 @@ class AiBiolinkBuilderController extends Controller
                 $data['links'],
                 $data['images'],
                 $data['files'],
+                '',
+                $this->brandDirectives($request, $data['use_brand_kit']),
             );
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -89,6 +97,9 @@ class AiBiolinkBuilderController extends Controller
                 $data['links'],
                 $data['images'],
                 $data['files'],
+                '',
+                true,
+                $this->brandDirectives($request, $data['use_brand_kit']),
             );
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
@@ -109,26 +120,48 @@ class AiBiolinkBuilderController extends Controller
     }
 
     /**
-     * @return array{description:string,links:list<string>,images:list<string>,files:list<string>}
+     * @return array{description:string,links:list<string>,images:list<string>,files:list<string>,use_brand_kit:bool}
      */
     private function validatePayload(Request $request): array
     {
         $data = $request->validate([
-            'description' => ['required', 'string', 'min:10', 'max:4000'],
-            'links'       => ['nullable', 'array', 'max:25'],
-            'links.*'     => ['string', 'max:2048'],
-            'images'      => ['nullable', 'array', 'max:25'],
-            'images.*'    => ['string', 'max:2048'],
-            'files'       => ['nullable', 'array', 'max:15'],
-            'files.*'     => ['string', 'max:2048'],
+            'description'   => ['required', 'string', 'min:10', 'max:4000'],
+            'links'         => ['nullable', 'array', 'max:25'],
+            'links.*'       => ['string', 'max:2048'],
+            'images'        => ['nullable', 'array', 'max:25'],
+            'images.*'      => ['string', 'max:2048'],
+            'files'         => ['nullable', 'array', 'max:15'],
+            'files.*'       => ['string', 'max:2048'],
+            'use_brand_kit' => ['nullable', 'boolean'],
         ]);
 
         return [
-            'description' => $data['description'],
-            'links'       => array_values($data['links'] ?? []),
-            'images'      => array_values($data['images'] ?? []),
-            'files'       => array_values($data['files'] ?? []),
+            'description'   => $data['description'],
+            'links'         => array_values($data['links'] ?? []),
+            'images'        => array_values($data['images'] ?? []),
+            'files'         => array_values($data['files'] ?? []),
+            // On-brand by default; the intake form sends an explicit opt-out.
+            'use_brand_kit' => $request->has('use_brand_kit') ? $request->boolean('use_brand_kit') : true,
         ];
+    }
+
+    /**
+     * Resolve the creator's saved Brand Kit voice/palette directives to feed
+     * the builder, honoring the per-request opt-out and the plan gate. Returns
+     * '' when off, ungated, or the creator has no kit — so generation is
+     * unaffected for everyone who hasn't opted into On-Brand AI.
+     */
+    private function brandDirectives(Request $request, bool $useBrandKit): string
+    {
+        if (!$useBrandKit) {
+            return '';
+        }
+        if (!AiPlanAccess::featureAllowed($request->user(), 'brand_consistency')) {
+            return '';
+        }
+        $kit = BrandKit::defaultFor(workspace_owner_id());
+
+        return $kit ? $kit->promptDirectives(true) : '';
     }
 
     private function authorizeLink(Link $link): void

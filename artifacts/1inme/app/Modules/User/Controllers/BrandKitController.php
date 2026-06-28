@@ -11,6 +11,7 @@ use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\Brand\AiBrandKitService;
+use App\Services\Brand\BrandConsistencyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -47,26 +48,40 @@ class BrandKitController extends Controller
         $upgrade    = $canCreate ? null : AiPlanAccess::quantityUpgradePlan($user, 'brand_kits', $count);
         $aiEnabled  = AiEngineSettings::isEnabled();
 
-        // Targets the user can apply a kit to.
+        // Targets the user can apply a kit to. `settings`/`type` are needed by
+        // the Brand Consistency audit below (it reads settings['biolink']).
         $biolinks = Link::where('user_id', workspace_owner_id())
             ->where('type', 'biolink')
             ->orderByDesc('id')
-            ->get(['id', 'title', 'alias']);
+            ->get(['id', 'title', 'alias', 'type', 'settings']);
         $qrCodes = QrCode::where('user_id', workspace_owner_id())
             ->orderByDesc('id')
             ->get(['id', 'name']);
 
+        // Brand Consistency Score (Task #2664): audit the creator's biolinks
+        // against their default Brand Kit. Plan-gated behind the legacy-safe
+        // `brand_consistency` feature; null when ungated or no kit exists.
+        $consistency  = null;
+        $onBrandKit   = AiPlanAccess::featureAllowed($user, 'brand_consistency')
+            ? BrandKit::defaultFor($user->id)
+            : null;
+        if ($onBrandKit) {
+            $consistency = app(BrandConsistencyService::class)->audit($onBrandKit, $biolinks);
+        }
+
         return view('user.brand-kits.index', [
-            'kits'        => $list,
-            'count'       => $count,
-            'cap'         => $cap,
-            'canCreate'   => $canCreate,
-            'upgradePlan' => $upgrade,
-            'aiEnabled'   => $aiEnabled,
-            'balance'     => $aiEnabled ? $this->credits->getBalance($user) : 0,
-            'biolinks'    => $biolinks,
-            'qrCodes'     => $qrCodes,
-            'blockThemes' => $this->kits->allowedBlockThemes(),
+            'kits'         => $list,
+            'count'        => $count,
+            'cap'          => $cap,
+            'canCreate'    => $canCreate,
+            'upgradePlan'  => $upgrade,
+            'aiEnabled'    => $aiEnabled,
+            'balance'      => $aiEnabled ? $this->credits->getBalance($user) : 0,
+            'biolinks'     => $biolinks,
+            'qrCodes'      => $qrCodes,
+            'blockThemes'  => $this->kits->allowedBlockThemes(),
+            'consistency'  => $consistency,
+            'consistencyKit' => $onBrandKit,
         ]);
     }
 

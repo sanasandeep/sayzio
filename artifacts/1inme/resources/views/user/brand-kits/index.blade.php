@@ -18,6 +18,73 @@
         </div>
     </div>
 
+    @if($consistency && $consistency['links_total'] > 0)
+        @php
+            $sc = $consistency['score'];
+            $ring = $sc >= 90 ? 'text-emerald-300' : ($sc >= 75 ? 'text-lime-300' : ($sc >= 50 ? 'text-amber-300' : 'text-red-300'));
+        @endphp
+        <div class="rounded-2xl border border-white/10 bg-gradient-to-br from-violet-500/[0.07] to-fuchsia-500/[0.04] p-6">
+            <div class="flex items-start gap-5 flex-wrap">
+                <div class="flex items-center gap-4">
+                    <div class="relative w-20 h-20 shrink-0">
+                        <svg viewBox="0 0 36 36" class="w-20 h-20 -rotate-90">
+                            <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3"></circle>
+                            <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                    class="{{ $ring }}"
+                                    stroke-dasharray="{{ round($sc / 100 * 97.4, 1) }} 97.4"></circle>
+                        </svg>
+                        <span class="absolute inset-0 flex items-center justify-center text-lg font-bold text-white">{{ $sc }}</span>
+                    </div>
+                    <div>
+                        <h2 class="text-white font-semibold">Brand Consistency Score</h2>
+                        <p class="text-sm {{ $ring }} font-medium">{{ $consistency['label'] }} <span class="text-white/40 font-normal">· grade {{ $consistency['grade'] }}</span></p>
+                        <p class="text-[11px] text-white/40 mt-0.5">
+                            {{ $consistency['links_on_brand'] }} of {{ $consistency['links_total'] }} pages on-brand against “{{ $consistency['kit_name'] }}”
+                        </p>
+                    </div>
+                </div>
+                @if(empty($consistency['findings']))
+                    <p class="text-sm text-emerald-300 self-center"><i class="fas fa-circle-check mr-1"></i>Every Link in Bio matches your Brand Kit. Nice and tidy.</p>
+                @endif
+            </div>
+
+            @if(!empty($consistency['findings']))
+                <div class="mt-5 space-y-2">
+                    @foreach($consistency['findings'] as $f)
+                        @php
+                            $tone = match($f['severity']) {
+                                'critical' => 'border-red-500/25 bg-red-500/[0.06]',
+                                'warning'  => 'border-amber-500/25 bg-amber-500/[0.06]',
+                                default    => 'border-white/10 bg-white/[0.03]',
+                            };
+                        @endphp
+                        <div class="rounded-xl border {{ $tone }} p-4 flex items-start justify-between gap-4 flex-wrap">
+                            <div class="min-w-0">
+                                <p class="text-sm text-white font-medium">{{ $f['headline'] }}</p>
+                                <p class="text-xs text-white/55 mt-0.5">{{ $f['reason'] }}</p>
+                                @if(!empty($f['mismatches']))
+                                    <div class="flex flex-wrap gap-1.5 mt-2">
+                                        @foreach($f['mismatches'] as $m)
+                                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/60">
+                                                {{ $m['label'] }}: <span class="text-white/40">{{ $m['current'] ?? '—' }}</span> → <span class="text-white/80">{{ $m['expected'] }}</span>
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                            <form method="POST" action="{{ $f['apply_url'] }}" class="shrink-0">
+                                @csrf
+                                <button class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium whitespace-nowrap">
+                                    <i class="fas fa-wand-magic-sparkles mr-1"></i>Apply fix
+                                </button>
+                            </form>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    @endif
+
     @if(!$aiEnabled)
         <div class="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-6 text-amber-200">
             <p class="font-semibold"><i class="fas fa-triangle-exclamation mr-2"></i>AI Engine is currently disabled.</p>

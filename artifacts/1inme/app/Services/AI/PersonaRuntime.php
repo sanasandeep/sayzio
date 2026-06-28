@@ -6,6 +6,7 @@ use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiMindChunk;
 use App\Modules\User\Models\AiMindSource;
 use App\Modules\User\Models\AiPersonaAgent;
+use App\Modules\User\Models\BrandKit;
 use App\Modules\User\Models\User;
 
 /**
@@ -204,6 +205,21 @@ class PersonaRuntime
         }
         if ($persona->style_guide) {
             $parts[] = "Style guide:\n" . $persona->style_guide;
+        }
+
+        // On-Brand AI (Task #2664): inject the owner's saved Brand Kit voice
+        // & tone so the Companion stays on-brand. Opt-out per persona via
+        // use_brand_kit (default on — null/legacy rows count as on), and
+        // plan-gated behind the legacy-safe `brand_consistency` feature.
+        if ($persona->use_brand_kit !== false) {
+            $owner = $persona->user;
+            if ($owner && AiPlanAccess::featureAllowed($owner, 'brand_consistency')) {
+                $kit = BrandKit::defaultFor($owner->id);
+                $directives = $kit ? $kit->promptDirectives(false) : '';
+                if ($directives !== '') {
+                    $parts[] = $directives;
+                }
+            }
         }
 
         $langs = $persona->languages ?: [];

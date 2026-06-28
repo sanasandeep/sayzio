@@ -169,6 +169,9 @@ class AiPlanAccess
             'ai_widget'          => true,
             'card_scan'          => true,
             'ai_resume_tools'    => true,
+            // Brand consistency score + On-Brand AI (Task #2664) — legacy-safe
+            // default-on; per-plan unlock applies once plans carry the key.
+            'brand_consistency'  => true,
             default              => true,
         };
     }

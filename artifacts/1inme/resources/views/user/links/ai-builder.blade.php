@@ -89,6 +89,17 @@
                 </div>
             </div>
 
+            @if(!empty($onBrandAllowed) && $brandKit)
+            {{-- On-Brand AI (Task #2664): ground the build in the saved Brand Kit --}}
+            <label class="flex items-start gap-3 cursor-pointer rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                <input type="checkbox" x-model="useBrandKit" class="mt-0.5 rounded border-white/20 bg-white/5 text-blue-500">
+                <span class="text-sm">
+                    <span class="text-white font-medium"><i class="fas fa-palette text-blue-300 mr-1"></i> Keep it on-brand</span>
+                    <span class="block text-xs text-white/40 mt-0.5">Use your “{{ $brandKit->name }}” Brand Kit — its voice, tone and palette — to guide the page.</span>
+                </span>
+            </label>
+            @endif
+
             {{-- Documents / files --}}
             <div>
                 <label class="block text-sm font-medium text-white/70 mb-1.5">Files <span class="text-white/30 font-normal">(optional)</span></label>
@@ -163,6 +174,7 @@ function aiBiolinkBuilder() {
         links: [''],
         images: [],
         files: [],
+        useBrandKit: @json(!empty($onBrandAllowed) && $brandKit !== null),
         balance: @json($balance),
         estimate: null,
         estimating: false,
@@ -323,6 +335,7 @@ function aiBiolinkBuilder() {
                     links: this.cleanLinks,
                     images: this.images,
                     files: this.files.map(f => f.url),
+                    use_brand_kit: this.useBrandKit,
                 }),
             });
             const body = await res.json().catch(() => ({}));

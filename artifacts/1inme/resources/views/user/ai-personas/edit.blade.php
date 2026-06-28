@@ -83,6 +83,16 @@
                     <textarea name="style_guide" rows="3" maxlength="{{ $caps['max_style_guide_chars'] }}"
                         class="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">{{ old('style_guide', $persona->style_guide) }}</textarea>
                 </div>
+                {{-- On-Brand AI (Task #2664): inject the saved Brand Kit voice/tone --}}
+                <label class="flex items-start gap-2 cursor-pointer">
+                    <input type="hidden" name="use_brand_kit" value="0">
+                    <input type="checkbox" name="use_brand_kit" value="1" @checked(old('use_brand_kit', $persona->use_brand_kit ?? true))
+                        class="mt-0.5 rounded border-white/20 bg-white/5 text-pink-500">
+                    <span class="text-sm text-white">
+                        Keep replies on-brand
+                        <span class="block text-[10px] text-white/40">Blend your saved Brand Kit’s voice &amp; tone into this Companion’s system prompt.</span>
+                    </span>
+                </label>
             </div>
 
             {{-- Model knobs --}}

@@ -35,7 +35,7 @@ class AiPersonaAgent extends Model
 
     protected $fillable = [
         'user_id', 'slug', 'name', 'description', 'avatar_url',
-        'system_prompt', 'tone_preset', 'style_guide',
+        'system_prompt', 'tone_preset', 'style_guide', 'use_brand_kit',
         'model', 'temperature_x100', 'max_tokens', 'languages',
         'allowed_actions', 'fallback_behavior',
         'greeting', 'starter_questions', 'end_cta_label', 'end_cta_url',
@@ -50,6 +50,7 @@ class AiPersonaAgent extends Model
             'allowed_actions'   => 'array',
             'starter_questions' => 'array',
             'use_default_mind'  => 'boolean',
+            'use_brand_kit'     => 'boolean',
             'is_disabled'       => 'boolean',
             'temperature_x100'  => 'integer',
             'max_tokens'        => 'integer',
@@ -95,6 +96,7 @@ class AiPersonaAgent extends Model
             'system_prompt'     => $this->system_prompt,
             'tone_preset'       => $this->tone_preset,
             'style_guide'       => $this->style_guide,
+            'use_brand_kit'     => (bool) ($this->use_brand_kit ?? true),
             'model'             => $this->model,
             'temperature_x100'  => (int) $this->temperature_x100,
             'max_tokens'        => (int) $this->max_tokens,
