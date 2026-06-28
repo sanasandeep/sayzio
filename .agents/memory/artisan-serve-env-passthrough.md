@@ -29,3 +29,6 @@ server runs via the artisan-serve workflow, so the child must inherit it.
 **How to apply / verify:** after restarting the workflow, confirm the child has
 it: `for p in $(pgrep -f "php -S"); do tr '\0' '\n' < /proc/$p/environ | grep -c '^DB_PASSWORD='; done` should print `1`. Parent-only checks (tinker, db:show)
 will pass regardless and will mislead you — always check the child process.
+
+## Don't chase a phantom second DB
+When diagnosing 1inme DB state: the HTTP-serving `artisan serve` child uses the SAME cross-region RDS `postgres` as shell tools / `post-merge.sh` (DB_* IS passed through). The `.env` `DB_HOST=helium`/`DB_DATABASE=heliumdb` values are STALE and auth-fail (`password authentication failed for "oimpostgres"`) — there is only ONE live DB (the RDS). Confirm the serving DB from the APP_DEBUG error body (it prints `Host:`/`Database:`), not from `.env`. A live homepage `SQLSTATE[42703]` (undefined COLUMN, e.g. `plans.is_internal`) = RDS under-migrated, not a code bug.
