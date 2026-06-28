@@ -9,7 +9,7 @@
 
     <div class="flex items-end justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-bold text-white"><i class="fas fa-palette text-violet-300 mr-2"></i>AI Brand Kit</h1>
+            <h1 class="text-2xl font-bold text-white"><i class="fas fa-palette text-primary-300 mr-2"></i>AI Brand Kit</h1>
             <p class="text-sm text-white/50 mt-1">Generate a cohesive brand identity — palette, fonts, voice, taglines and a recommended theme — then apply it to your Link in Bio pages and QR codes.</p>
             <p class="text-[11px] text-white/40 mt-1">
                 {{ $count }} of {{ $cap == -1 ? '∞' : $cap }} brand kits used
@@ -25,8 +25,8 @@
         </div>
     @elseif(!$canCreate)
         {{-- Plan cap reached / plan-less → upgrade prompt --}}
-        <div class="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.08] to-fuchsia-500/[0.05] p-8 text-center">
-            <i class="fas fa-wand-magic-sparkles text-4xl text-violet-300"></i>
+        <div class="rounded-2xl border border-primary-500/20 bg-gradient-to-br from-primary-500/[0.08] to-primary-400/[0.05] p-8 text-center">
+            <i class="fas fa-wand-magic-sparkles text-4xl text-primary-300"></i>
             <p class="mt-3 text-white font-semibold text-lg">
                 @if($cap == 0)
                     AI Brand Kits aren’t included on your current plan
@@ -38,7 +38,7 @@
                 Upgrade to generate AI brand kits — a full palette, font pairing, voice/tone, taglines and bio you can apply across your links and QR codes in one click.
             </p>
             <a href="{{ route('user.upgrade') }}"
-               class="inline-block mt-4 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium">
+               class="inline-block mt-4 px-5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium">
                 <i class="fas fa-arrow-up mr-1"></i>
                 @if($upgradePlan) Upgrade to {{ $upgradePlan->name }} @else See upgrade options @endif
             </a>
@@ -50,20 +50,20 @@
             <div>
                 <label class="block text-xs text-white/50 mb-1">Describe your brand</label>
                 <textarea x-model="form.prompt" rows="3"
-                          class="w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-violet-400 focus:outline-none"
+                          class="w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-primary-400 focus:outline-none"
                           placeholder="e.g. A calm, modern wellness studio for busy professionals — earthy but premium."></textarea>
             </div>
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs text-white/50 mb-1">Website URL <span class="text-white/30">(optional)</span></label>
                     <input x-model="form.website_url" type="url"
-                           class="w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-violet-400 focus:outline-none"
+                           class="w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-primary-400 focus:outline-none"
                            placeholder="https://yourbrand.com">
                 </div>
                 <div>
                     <label class="block text-xs text-white/50 mb-1">Logo URL <span class="text-white/30">(optional)</span></label>
                     <input x-model="form.logo_url" type="url"
-                           class="w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-violet-400 focus:outline-none"
+                           class="w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-primary-400 focus:outline-none"
                            placeholder="https://.../logo.png">
                 </div>
             </div>
@@ -75,7 +75,7 @@
                         Estimate cost
                     </button>
                     <button type="button" @click="generate()" :disabled="busy"
-                            class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm disabled:opacity-50">
+                            class="px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-sm disabled:opacity-50">
                         <i class="fas fa-wand-magic-sparkles mr-1"></i>
                         <span x-text="busy ? 'Generating…' : 'Generate brand kit'"></span>
                     </button>
@@ -88,7 +88,7 @@
     {{-- Saved kits --}}
     @if($kits->isEmpty())
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
-            <i class="fas fa-swatchbook text-4xl text-violet-400/70"></i>
+            <i class="fas fa-swatchbook text-4xl text-primary-400/70"></i>
             <p class="mt-3 text-white font-semibold">No brand kits yet.</p>
             <p class="text-sm text-white/50 mt-1">Generate your first brand kit above to lock in a consistent look.</p>
         </div>

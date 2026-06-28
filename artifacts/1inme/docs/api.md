@@ -629,6 +629,21 @@ Single resume per user — resolved from the bearer token, so the URL never carr
 | POST   | `/resume/versions/{version}/duplicate`     | yes  | Duplicate a version.                      |
 | POST   | `/resume/versions/{version}/default`       | yes  | Set the default version.                  |
 
+## AI Brand Kit
+
+Mobile parity for the web `/user/brand-kits` flow. AI crafts a cohesive brand identity (palette, fonts, voice, taglines, bio and a recommended block theme) from a prompt and optional website/logo URL, then applies it to a biolink or QR code. Kits are owned by the bearer-token user; generation is gated by the per-plan `max_brand_kits` quantity cap and charged in AI credits, with an automatic refund if generation fails (handled in `AiBrandKitService`).
+
+| Method | Path                                          | Auth | Description                                                                 |
+| ------ | --------------------------------------------- | ---- | -------------------------------------------------------------------------- |
+| GET    | `/brand-kits`                                 | yes  | List kits + apply targets (biolinks, QR codes), plan cap/gating, credit balance and allowed block themes. |
+| POST   | `/brand-kits/estimate`                        | yes  | Upfront, worst-case credit cost. Body: `prompt?`, `website_url?`, `logo_url?`. Throttle 30/min. |
+| POST   | `/brand-kits/generate`                        | yes  | Run generation and save a kit. Same body as estimate. Throttle 10/min. `402 insufficient_credits` when the wallet can't cover the charge. |
+| DELETE | `/brand-kits/{brandKit}`                      | yes  | Delete a kit.                                                               |
+| POST   | `/brand-kits/{brandKit}/apply/biolink/{link}` | yes  | Apply a kit (palette, fonts, block theme) to one of the user's biolinks.    |
+| POST   | `/brand-kits/{brandKit}/apply/qr/{qrCode}`    | yes  | Apply a kit's palette to one of the user's QR codes.                        |
+
+Plan-gated rejections use the standard `{error:{code:"plan_limit", details:{recommended_plan, recommended_plan_name, feature}}}` envelope; `503 ai_unavailable` when the AI engine is disabled.
+
 ## Projects
 
 | Method | Path               | Auth | Description           |

@@ -88,6 +88,7 @@ const TOOL_PAGES: {
     | "/projects"
     | "/qr"
     | "/qr-studio"
+    | "/brand-kits"
     | "/splash"
     | "/calendar"
     | "/calendars"
@@ -118,6 +119,7 @@ const TOOL_PAGES: {
   { href: "/projects", label: "Projects", icon: "folder" },
   { href: "/qr", label: "QR codes", icon: "grid" },
   { href: "/qr-studio", label: "QR studio", icon: "grid" },
+  { href: "/brand-kits", label: "Brand kit", icon: "feather" },
   { href: "/splash", label: "Splash pages", icon: "layout" },
   { href: "/calendars", label: "My Calendar", icon: "calendar" },
   { href: "/calendar", label: "Calendar sync", icon: "refresh-cw" },

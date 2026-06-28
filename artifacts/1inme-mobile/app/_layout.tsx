@@ -138,6 +138,7 @@ function RootLayoutNav() {
       <Stack.Screen name="resume" options={{ title: "Resume" }} />
       <Stack.Screen name="payouts" options={{ title: "Earnings & Payouts" }} />
       <Stack.Screen name="qr-studio" options={{ title: "QR studio" }} />
+      <Stack.Screen name="brand-kits" options={{ title: "Brand kits" }} />
       <Stack.Screen name="backlinks" options={{ title: "Backlinks" }} />
       <Stack.Screen name="visitors" options={{ title: "Visitors" }} />
       <Stack.Screen name="carbon" options={{ title: "Carbon" }} />

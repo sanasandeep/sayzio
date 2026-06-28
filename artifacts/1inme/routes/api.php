@@ -738,6 +738,18 @@ Route::prefix('v1')->group(function () {
         Route::patch ('/qr-codes/{id}',     [QrCodeController::class, 'update'])->whereNumber('id');
         Route::delete('/qr-codes/{id}',     [QrCodeController::class, 'destroy'])->whereNumber('id');
 
+        // AI Brand Kit (Task #2666) — mobile parity for the web
+        // /user/brand-kits flow: list + apply targets, an upfront credit
+        // estimate, AI generation (gated by the per-plan max_brand_kits cap,
+        // charged + auto-refunded inside AiBrandKitService), delete, and
+        // apply-to-biolink / apply-to-qr. Throttles mirror the web routes.
+        Route::get   ('/brand-kits',          [\App\Modules\Api\Controllers\BrandKitController::class, 'index']);
+        Route::post  ('/brand-kits/estimate', [\App\Modules\Api\Controllers\BrandKitController::class, 'estimate'])->middleware('throttle:30,1');
+        Route::post  ('/brand-kits/generate', [\App\Modules\Api\Controllers\BrandKitController::class, 'generate'])->middleware('throttle:10,1');
+        Route::delete('/brand-kits/{brandKit}', [\App\Modules\Api\Controllers\BrandKitController::class, 'destroy'])->whereNumber('brandKit');
+        Route::post  ('/brand-kits/{brandKit}/apply/biolink/{link}', [\App\Modules\Api\Controllers\BrandKitController::class, 'applyToBiolink'])->whereNumber('brandKit')->whereNumber('link');
+        Route::post  ('/brand-kits/{brandKit}/apply/qr/{qrCode}',    [\App\Modules\Api\Controllers\BrandKitController::class, 'applyToQr'])->whereNumber('brandKit')->whereNumber('qrCode');
+
         // Restaurant menu (Task #1536) — owner orders dashboard parity.
         Route::get ('/restaurant/links/{link}/orders',                [RestaurantController::class, 'ownerOrders'])->whereNumber('link');
         Route::get ('/restaurant/links/{link}/orders/poll',           [RestaurantController::class, 'ownerPoll'])->whereNumber('link');

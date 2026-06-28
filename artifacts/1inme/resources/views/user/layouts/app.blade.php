@@ -907,7 +907,7 @@
                         </a>
                         <a href="{{ route('user.brand-kits.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.brand-kits.*') ? 'active' : '' }}"
-                           style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                           style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-palette"></i></div>
                             <span class="nav-label">Brand Kit</span>
                             <span class="sidebar-tooltip">Brand Kit</span>
