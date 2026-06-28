@@ -9,6 +9,7 @@ export type LinkKind =
   | "ai_chat"
   | "resume"
   | "paid_page"
+  | "brand_kit"
   | "conversational"
   | "slides"
   | "restaurant_menu"
@@ -27,6 +28,7 @@ export type LinkKindMeta = {
     | "ai_chat"
     | "resume"
     | "paid_page"
+    | "brand_kit"
     | "conversational"
     | "slides"
     | "restaurant_menu"
@@ -95,6 +97,14 @@ export const LINK_KINDS: LinkKindMeta[] = [
     icon: "award",
   },
   {
+    kind: "brand_kit",
+    apiType: "brand_kit",
+    label: "Brand / Press Kit",
+    blurb:
+      "A shareable press kit from your saved Brand Kit — logos, colours, fonts & boilerplate.",
+    icon: "feather",
+  },
+  {
     kind: "slides",
     apiType: "slides",
     label: "Slides",
@@ -150,7 +160,7 @@ export const LINK_KIND_CATEGORIES: LinkKindCategory[] = [
   {
     label: "Business & monetization",
     desc: "Grow your reputation and earn from your audience.",
-    kinds: ["paid_page", "reviews"],
+    kinds: ["paid_page", "brand_kit", "reviews"],
   },
   {
     label: "AI-powered",

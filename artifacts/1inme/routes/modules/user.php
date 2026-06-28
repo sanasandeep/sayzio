@@ -750,6 +750,9 @@ Route::prefix('user')->name('user.')->group(function () {
         // Standalone Paid Page link: step-2 create + design editor. Posts and
         // tiers reuse the existing per-creator dashboards.
         Route::get ('links-paid-page/create', [LinkController::class, 'createPaidPage'])->middleware('workspace.can:links.create')->name('links.paid-page.create');
+        // Standalone Brand / Press Kit link: step-2 create + dedicated editor.
+        // The editor is prefilled from the owner's saved AI Brand Kit.
+        Route::get ('links-brand-kit/create', [LinkController::class, 'createBrandKit'])->middleware('workspace.can:links.create')->name('links.brand-kit.create');
         // Followable Calendar link type: step-2 create + dedicated event editor,
         // per-calendar settings, event CRUD, and the cross-calendar "My Calendar"
         // agenda (owned + followed). Distinct from the external CalendarAccount
@@ -765,6 +768,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('calendars/{link}/events/{event}', [\App\Modules\User\Controllers\CalendarController::class, 'destroyEvent'])->whereNumber('link')->whereNumber('event')->middleware('workspace.can:links.edit')->name('calendars.events.destroy');
         Route::get ('links/{link}/paid-page', [\App\Modules\User\Controllers\PaidPageController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.paid-page.editor');
         Route::post('links/{link}/paid-page', [\App\Modules\User\Controllers\PaidPageController::class, 'update'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.paid-page.update');
+        Route::get ('links/{link}/brand-kit', [\App\Modules\User\Controllers\BrandKitPageController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.brand-kit.editor');
+        Route::post('links/{link}/brand-kit', [\App\Modules\User\Controllers\BrandKitPageController::class, 'update'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.brand-kit.update');
         Route::get ('links/{link}/reviews', [\App\Modules\User\Controllers\ReviewsController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.reviews.editor');
         Route::post('links/{link}/reviews/settings', [\App\Modules\User\Controllers\ReviewsController::class, 'updateSettings'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.reviews.settings');
         Route::post('links/{link}/reviews/questions', [\App\Modules\User\Controllers\ReviewsController::class, 'storeQuestion'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.reviews.questions.store');

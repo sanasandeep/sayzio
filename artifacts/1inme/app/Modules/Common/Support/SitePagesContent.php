@@ -1103,6 +1103,7 @@ class SitePagesContent
             ['name' => 'Event',           'icon' => 'fa-calendar-day',        'color' => '#f472b6', 'new' => false, 'desc' => 'A shareable calendar event visitors can add to their own calendar in a single tap.'],
             ['name' => 'Contact Card',    'icon' => 'fa-address-card',        'color' => '#ff8a3c', 'new' => true,  'desc' => 'A downloadable vCard so people can save your full contact details with one tap.'],
             ['name' => 'Reviews Page',    'icon' => 'fa-star',                'color' => '#ffc845', 'new' => true,  'desc' => 'A review wall that collects and shows star ratings and feedback from your visitors.'],
+            ['name' => 'Brand / Press Kit', 'icon' => 'fa-palette',           'color' => '#8b5cf6', 'new' => true,  'desc' => 'A polished press page with logo downloads, copy-able colour swatches, fonts and brand boilerplate.'],
         ];
     }
 
@@ -1184,7 +1185,7 @@ class SitePagesContent
                 'id' => 'link-types',
                 'icon' => 'fa-shapes',
                 'heading' => 'Link types — everything you can create',
-                'intro' => 'One dashboard, ten distinct kinds of link. Pick the format that fits the moment — from a simple short link to a full chat experience — and every one is tracked, themeable, and shareable from a single URL.',
+                'intro' => 'One dashboard, many distinct kinds of link. Pick the format that fits the moment — from a simple short link to a full chat experience — and every one is tracked, themeable, and shareable from a single URL.',
                 'features' => [
                     ['name' => 'Short Link', 'icon' => 'fa-link', 'description' => 'Turn long URLs into clean, branded short links you can repoint anytime, with click analytics, expiry dates and click limits.'],
                     ['name' => 'Link in Bio', 'icon' => 'fa-square-share-nodes', 'description' => 'A drag-and-drop one-link landing page with a deep block library, custom themes and a guided setup wizard.'],
@@ -1196,6 +1197,7 @@ class SitePagesContent
                     ['name' => 'Event', 'icon' => 'fa-calendar-day', 'description' => 'A shareable calendar event with a downloadable .ics file visitors can add to their own calendar in one tap.'],
                     ['name' => 'Contact Card', 'icon' => 'fa-address-card', 'description' => 'A downloadable vCard so people can save your full contact details — phones, emails, socials — with one tap.'],
                     ['name' => 'Reviews Page', 'icon' => 'fa-star', 'description' => 'A dedicated review wall that collects and shows star ratings and feedback from your visitors.'],
+                    ['name' => 'Brand / Press Kit', 'icon' => 'fa-palette', 'description' => 'A polished, shareable press kit built from your saved Brand Kit — logo downloads, copy-able colour swatches, your font pairing, brand voice and boilerplate.'],
                 ],
             ],
             self::aiSuiteFeaturesCategory(),

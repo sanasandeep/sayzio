@@ -30,7 +30,7 @@ class LinkTypeExplainerSeeder extends Seeder
      * untouched pages get refreshed on the next seed. Edited pages are
      * still left alone (see refresh guard in seedPage()).
      */
-    private const SEED_VERSION = 2;
+    private const SEED_VERSION = 3;
 
     public function run(): void
     {
@@ -420,6 +420,23 @@ class LinkTypeExplainerSeeder extends Seeder
                 'cta_label' => 'Start collecting reviews',
                 'cta_url' => $create('reviews'),
                 'cta_icon' => 'fa-star',
+            ],
+            [
+                'alias' => 'demo-type-brand-kit',
+                'link_type' => 'brand_kit',
+                'title' => 'Brand / Press Kit — explained',
+                'heading' => 'Brand / Press Kit 🎨',
+                'intro' => 'Turn your saved Brand Kit into a polished, shareable press page — everything journalists, partners and collaborators need to represent you correctly, in one link.',
+                'features' => [
+                    'One-tap logo downloads in every variant you add',
+                    'Copy-able colour swatches — click any hex to copy',
+                    'Your heading and body font pairing, shown live',
+                    'Brand voice, taglines and a copy-able press boilerplate',
+                    'Social links and a press contact, all themeable',
+                ],
+                'cta_label' => 'Create your press kit',
+                'cta_url' => $create('brand_kit'),
+                'cta_icon' => 'fa-palette',
             ],
         ];
     }

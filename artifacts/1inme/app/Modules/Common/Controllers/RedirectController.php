@@ -445,6 +445,7 @@ class RedirectController extends Controller
             'reviews' => $this->handleReviewsPage($request, $link),
             'resume' => $this->handleResumePage($request, $link),
             'paid_page' => $this->handlePaidPage($request, $link),
+            'brand_kit' => $this->handleBrandKitPage($request, $link),
             'calendar' => $this->handleCalendarPage($request, $link),
             default => abort(404),
         };
@@ -670,7 +671,7 @@ class RedirectController extends Controller
         // Only the biolink family and the redirect/download types carry a
         // meaningful visibility gate. Any other type stays public.
         if (!$link->isBiolinkFamily()
-            && !in_array($link->type, ['url', 'file', 'ics', 'vcf', 'reviews', 'paid_page'], true)) {
+            && !in_array($link->type, ['url', 'file', 'ics', 'vcf', 'reviews', 'paid_page', 'brand_kit'], true)) {
             return null;
         }
 
@@ -1161,6 +1162,34 @@ class RedirectController extends Controller
                 'isOwner'  => $isOwner,
                 'template' => $template,
             ])),
+            $request
+        );
+    }
+
+    /**
+     * Render the standalone Brand / Press Kit page. The per-link config in
+     * settings['brand_kit'] (seeded from the owner's saved AI Brand Kit) is
+     * normalised then handed to a dedicated public view. Page-level visibility
+     * (public vs registered-gated) has already been enforced by
+     * enforceVisibility() in handle() before this match.
+     */
+    protected function handleBrandKitPage(Request $request, Link $link)
+    {
+        $creator = \App\Modules\User\Models\User::find($link->user_id);
+        abort_unless($creator, 404);
+
+        $config = \App\Modules\User\Support\BrandKitPageTemplates::normalize(
+            is_array($link->settings['brand_kit'] ?? null) ? $link->settings['brand_kit'] : []
+        );
+        $template = \App\Modules\User\Support\BrandKitPageTemplates::get($config['template'] ?? null);
+
+        return $this->applyBiolinkFramingHeaders(
+            response()->view('public.brand-kit', [
+                'link'     => $link,
+                'creator'  => $creator,
+                'config'   => $config,
+                'template' => $template,
+            ]),
             $request
         );
     }

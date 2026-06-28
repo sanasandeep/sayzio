@@ -123,7 +123,7 @@ class LinkController extends Controller
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
-            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page,calendar',
+            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit',
             'alias' => [
                 'nullable', 'string', 'alpha_dash',
                 'min:' . $limits['min'],
@@ -158,6 +158,7 @@ class LinkController extends Controller
             'reviews'        => redirect()->route('user.links.reviews.create', $params),
             'resume'         => redirect()->route('user.links.resume.create', $params),
             'paid_page'      => redirect()->route('user.links.paid-page.create', $params),
+            'brand_kit'      => redirect()->route('user.links.brand-kit.create', $params),
             'calendar'       => redirect()->route('user.calendars.create', $params),
         };
     }
@@ -197,6 +198,33 @@ class LinkController extends Controller
             'prefillAlias' => (string) $request->query('alias', ''),
             'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
             'templates' => \App\Modules\User\Support\PaidPageTemplates::all(),
+        ]);
+    }
+
+    /**
+     * Step 2 for the standalone Brand / Press Kit page — name + alias +
+     * project only. On store() the link is seeded from the owner's saved AI
+     * Brand Kit (palette / fonts / voice / taglines / bio) into
+     * settings['brand_kit'] and the user drops into the dedicated brand-kit
+     * editor. AI generation is out of scope; this consumes a saved kit.
+     */
+    public function createBrandKit(Request $request)
+    {
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
+        $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
+
+        $kits = \App\Modules\User\Models\BrandKit::where('user_id', workspace_owner_id())
+            ->orderByDesc('is_default')
+            ->orderByDesc('id')
+            ->get(['id', 'name', 'is_default']);
+
+        return view('user.links.create-brand-kit', [
+            'projects' => $projects,
+            'domains'  => $domains,
+            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+            'prefillAlias' => (string) $request->query('alias', ''),
+            'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
+            'kits' => $kits,
         ]);
     }
 
@@ -308,6 +336,7 @@ class LinkController extends Controller
             'resume'          => ['module' => 'module_resume',          'cap' => 'max_resume',          'label' => 'Resume / Portfolio'],
             'paid_page'       => ['module' => 'module_paid_page',       'cap' => 'max_paid_page',       'label' => 'Bizs Profile'],
             'calendar'        => ['module' => 'module_calendar',        'cap' => 'max_calendars',       'label' => 'Calendar'],
+            'brand_kit'       => ['module' => 'module_brand_kit',       'cap' => 'max_brand_kit_pages', 'label' => 'Brand / Press Kit'],
         ];
         $cfg = $map[$type] ?? null;
         if (!$cfg) {
@@ -334,8 +363,9 @@ class LinkController extends Controller
         $userId = workspace_owner_id();
 
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page,calendar',
+            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit',
             'paid_page_template' => 'nullable|string|in:' . implode(',', \App\Modules\User\Support\PaidPageTemplates::ids()),
+            'brand_kit_id' => "nullable|integer|exists:brand_kits,id,user_id,{$userId}",
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
             'redirect_type' => 'nullable|in:301,302',
             'alias' => array_merge(
@@ -502,6 +532,31 @@ class LinkController extends Controller
             $link->save();
         }
 
+        // Brand / Press Kit links seed their per-link config from the owner's
+        // saved AI Brand Kit (palette / fonts / voice / taglines / bio) so the
+        // page is presentable the moment it is created; the dedicated editor
+        // lets the owner refine it. Pages default to public. AI generation is
+        // out of scope — this consumes a kit the user already saved.
+        if ($link->type === 'brand_kit') {
+            $kit = null;
+            $requestedKitId = $request->integer('brand_kit_id');
+            if ($requestedKitId) {
+                $kit = \App\Modules\User\Models\BrandKit::where('user_id', workspace_owner_id())
+                    ->find($requestedKitId);
+            }
+            if (!$kit) {
+                $kit = \App\Modules\User\Models\BrandKit::where('user_id', workspace_owner_id())
+                    ->orderByDesc('is_default')
+                    ->orderByDesc('id')
+                    ->first();
+            }
+            $settings = $link->settings ?? [];
+            $settings['brand_kit'] = \App\Modules\User\Support\BrandKitPageTemplates::prefillFromKit($kit, workspace_owner());
+            $link->settings = $settings;
+            $link->visibility = 'public';
+            $link->save();
+        }
+
         // Calendar links bridge 1:1 to a followable Calendar collection. Seed
         // the owner-authored title / timezone / accent and default the page to
         // public so it is discoverable + followable; the dedicated calendar
@@ -587,6 +642,10 @@ class LinkController extends Controller
         if ($link->type === 'paid_page') {
             return redirect()->route('user.links.paid-page.editor', $link)
                 ->with('success', 'Bizs Profile created — just pick a design. Your posts and tiers appear here automatically; there is no linking step.');
+        }
+        if ($link->type === 'brand_kit') {
+            return redirect()->route('user.links.brand-kit.editor', $link)
+                ->with('success', 'Brand / Press Kit created — we filled it in from your saved kit. Review and publish.');
         }
         if ($link->type === 'calendar') {
             return redirect()->route('user.calendars.editor', $link)

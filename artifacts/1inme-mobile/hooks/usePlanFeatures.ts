@@ -27,6 +27,7 @@ const GATED_LINK_TYPES = new Set<string>([
   "reviews",
   "resume",
   "paid_page",
+  "brand_kit",
   "conversational",
   "slides",
   "ai_chat",

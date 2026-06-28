@@ -615,6 +615,17 @@ protected $fillable = [
      */
     public const TYPE_CALENDAR       = 'calendar';
 
+    /**
+     * Standalone "Brand / Press Kit" page. Turns a creator's saved AI Brand
+     * Kit (palette, fonts, voice, taglines, boilerplate) into a polished,
+     * shareable public page with logo downloads, copy-able colour swatches
+     * and a font pairing. Deliberately NOT part of BIOLINK_FAMILY: like
+     * resume / paid_page it is rendered by its own dedicated public view,
+     * not the biolink block engine. AI generation is out of scope here —
+     * the page consumes a kit the user already saved.
+     */
+    public const TYPE_BRAND_KIT      = 'brand_kit';
+
     public const BIOLINK_FAMILY = [
         self::TYPE_BIOLINK,
         self::TYPE_CONVERSATIONAL,

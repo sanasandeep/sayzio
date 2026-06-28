@@ -95,7 +95,7 @@ class LinkController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page'])],
+            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit'])],
             'alias'      => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('links', 'alias')],
             'title'      => ['nullable', 'string', 'max:200'],
             'long_url'   => ['nullable', 'url', 'max:2048'],
@@ -199,6 +199,24 @@ class LinkController extends Controller
                 : \App\Modules\User\Support\PaidPageTemplates::DEFAULT_ID;
             $settings['paid_page'] = $paidPage;
             $link->settings = $settings;
+            $link->save();
+        }
+
+        // Brand / Press Kit links seed their per-link config from the owner's
+        // saved AI Brand Kit (palette / fonts / voice / taglines / bio) so the
+        // public page is presentable the moment it is created — mirrors the web
+        // LinkController::store() behavior. Pages default to public.
+        if ($link->type === 'brand_kit') {
+            $kit = \App\Modules\User\Models\BrandKit::where('user_id', $request->user()->id)
+                ->orderByDesc('is_default')
+                ->orderByDesc('id')
+                ->first();
+            $settings = (array) ($link->settings ?? []);
+            $settings['brand_kit'] = \App\Modules\User\Support\BrandKitPageTemplates::prefillFromKit($kit, $request->user());
+            $link->settings = $settings;
+            if (($link->visibility ?? null) === null) {
+                $link->visibility = 'public';
+            }
             $link->save();
         }
 
