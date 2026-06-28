@@ -80,6 +80,7 @@ import {
   listAiPersonas,
   createBiolinkCompanion,
   createAiPersona,
+  updateAiPersonaBrandKit,
 } from "@/lib/api/aiCompanions";
 import { getProfile } from "@/lib/api/profile";
 
@@ -2378,6 +2379,15 @@ function SpecialCreateModal(props: {
     },
   });
 
+  // On-Brand AI (Task #2679): flip `use_brand_kit` on the already-selected
+  // agent. Web only exposes this inside a full persona save; mobile makes it
+  // a real, reversible setting by patching just this field and refetching.
+  const updateBrandKit = useMutation({
+    mutationFn: async (next: boolean) =>
+      updateAiPersonaBrandKit(personaId!, next),
+    onSuccess: () => personasQ.refetch(),
+  });
+
   const create = useMutation({
     mutationFn: async () => {
       const trimmed = name.trim();
@@ -2396,6 +2406,7 @@ function SpecialCreateModal(props: {
         : "New AI companion";
   const nameLabel = mode === "forms" ? "Form title" : "Name";
   const personas = personasQ.data?.items ?? [];
+  const selectedPersona = personas.find((p) => p.id === personaId) ?? null;
   const canSubmit =
     name.trim().length > 0 &&
     !create.isPending &&
@@ -2587,6 +2598,50 @@ function SpecialCreateModal(props: {
                       </Pressable>
                     );
                   })}
+                </View>
+              ) : null}
+
+              {selectedPersona && !showPersonaForm ? (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                    marginTop: 4,
+                    padding: 12,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: colors.radius,
+                    backgroundColor: colors.card,
+                  }}
+                >
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text
+                      style={[
+                        styles.createFieldLabel,
+                        { color: colors.foreground },
+                      ]}
+                    >
+                      On-Brand AI
+                    </Text>
+                    <Text
+                      style={{ color: colors.mutedForeground, fontSize: 12 }}
+                    >
+                      {updateBrandKit.isError
+                        ? (updateBrandKit.error as { message?: string })
+                            ?.message || "Couldn't update. Try again."
+                        : `Use your Brand Kit voice and tone in ${selectedPersona.name}'s replies.`}
+                    </Text>
+                  </View>
+                  {updateBrandKit.isPending ? (
+                    <ActivityIndicator color={colors.primary} />
+                  ) : (
+                    <Switch
+                      value={selectedPersona.use_brand_kit}
+                      onValueChange={(v) => updateBrandKit.mutate(v)}
+                      trackColor={{ true: colors.primary, false: colors.border }}
+                    />
+                  )}
                 </View>
               ) : null}
 

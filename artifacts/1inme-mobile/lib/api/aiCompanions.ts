@@ -21,7 +21,9 @@ export async function listBiolinkCompanions(): Promise<{
 
 // An enabled AI Persona — the "brain" a Companion must be wired to. A
 // Companion can only be created on the spot if the user has at least one.
-export type AiPersona = { id: number; name: string };
+// `use_brand_kit` is the reversible On-Brand AI setting (Task #2664) so
+// mobile can both show and edit it for existing agents.
+export type AiPersona = { id: number; name: string; use_brand_kit: boolean };
 
 export async function listAiPersonas(): Promise<{ items: AiPersona[] }> {
   const res = await apiFetch<{ data: { items: AiPersona[] } }>(
@@ -55,6 +57,21 @@ export async function createAiPersona(payload: {
   const res = await apiFetch<{ data: { persona: AiPersona } }>(
     `/ai-companions/personas`,
     { method: "POST", body: JSON.stringify(payload) },
+  );
+  return res.data.persona;
+}
+
+// On-Brand AI (Task #2664): flip `use_brand_kit` on an existing agent.
+// The web persona editor only exposes this as part of a full form save;
+// mobile sends just this one reversible setting and the backend writes a
+// new persona version, mirroring the web save.
+export async function updateAiPersonaBrandKit(
+  personaId: number,
+  useBrandKit: boolean,
+): Promise<AiPersona> {
+  const res = await apiFetch<{ data: { persona: AiPersona } }>(
+    `/ai-companions/personas/${personaId}`,
+    { method: "PATCH", body: JSON.stringify({ use_brand_kit: useBrandKit }) },
   );
   return res.data.persona;
 }

@@ -55,11 +55,55 @@ class AiCompanionController extends Controller
         $items = AiPersonaAgent::where('user_id', $request->user()->id)
             ->where('is_disabled', false)
             ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn ($p) => ['id' => (int) $p->id, 'name' => $p->name])
+            ->get(['id', 'name', 'use_brand_kit'])
+            ->map(fn ($p) => [
+                'id'            => (int) $p->id,
+                'name'          => $p->name,
+                // On-Brand AI (Task #2664): default on — null/legacy rows
+                // count as on, mirroring the runtime's `!== false` check.
+                'use_brand_kit' => $p->use_brand_kit !== false,
+            ])
             ->values()->all();
 
         return $this->ok(['items' => $items]);
+    }
+
+    /**
+     * Toggle On-Brand AI (`use_brand_kit`) for an existing Persona from
+     * mobile. The web persona editor exposes this as part of a full form
+     * save; mobile only needs to flip this one reversible setting on an
+     * agent it already owns, so this is a focused update that writes a new
+     * persona version (mirroring the web save) without re-collecting every
+     * other knob.
+     */
+    public function updatePersona(Request $request, AiPersonaAgent $persona)
+    {
+        if (!AiEngineSettings::isEnabled()) {
+            return $this->fail('AI Personas are not available right now.', 422, 'ai_disabled');
+        }
+
+        $user = $request->user();
+        if ((int) $persona->user_id !== (int) $user->id) {
+            return $this->fail('Persona not found.', 404, 'not_found');
+        }
+
+        $data = $request->validate([
+            'use_brand_kit' => 'required|boolean',
+        ]);
+
+        DB::transaction(function () use ($persona, $data) {
+            $persona->forceFill([
+                'use_brand_kit' => (bool) $data['use_brand_kit'],
+            ])->save();
+
+            $this->writeVersion($persona, 'On-Brand AI ' . ($data['use_brand_kit'] ? 'enabled' : 'disabled'));
+        });
+
+        return $this->ok(['persona' => [
+            'id'            => (int) $persona->id,
+            'name'          => $persona->name,
+            'use_brand_kit' => $persona->use_brand_kit !== false,
+        ]]);
     }
 
     /**
@@ -195,6 +239,35 @@ class AiCompanionController extends Controller
             'id'   => (int) $persona->id,
             'name' => $persona->name,
         ]]);
+    }
+
+    /**
+     * Write a new persona version row, point the persona at it, and trim
+     * old versions past the admin-configured cap. Mirrors the web
+     * PersonasController@writeVersion so mobile edits keep the same
+     * version history / rollback behaviour.
+     */
+    protected function writeVersion(AiPersonaAgent $persona, ?string $summary): void
+    {
+        $caps = PersonaSettings::caps();
+        $next = (int) AiPersonaAgentVersion::where('persona_id', $persona->id)->max('revision') + 1;
+
+        $version = AiPersonaAgentVersion::create([
+            'persona_id'         => $persona->id,
+            'revision'           => $next,
+            'config'             => $persona->snapshotConfig(),
+            'summary'            => $summary,
+            'created_by_user_id' => $persona->user_id,
+            'created_at'         => now(),
+        ]);
+        $persona->forceFill(['active_version_id' => $version->id])->save();
+
+        $keep = max(1, (int) $caps['max_versions_per_persona']);
+        $oldIds = AiPersonaAgentVersion::where('persona_id', $persona->id)
+            ->orderByDesc('revision')->skip($keep)->take(1000)->pluck('id');
+        if ($oldIds->isNotEmpty()) {
+            AiPersonaAgentVersion::whereIn('id', $oldIds)->delete();
+        }
     }
 
     /** Write the initial version row and point the persona at it. */

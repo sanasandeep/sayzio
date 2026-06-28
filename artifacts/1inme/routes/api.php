@@ -671,6 +671,7 @@ Route::prefix('v1')->group(function () {
         Route::get ('/ai-companions',                     [\App\Modules\Api\Controllers\AiCompanionController::class, 'index']);
         Route::get ('/ai-companions/personas',            [\App\Modules\Api\Controllers\AiCompanionController::class, 'personas']);
         Route::post('/ai-companions/personas',            [\App\Modules\Api\Controllers\AiCompanionController::class, 'storePersona']);
+        Route::patch('/ai-companions/personas/{persona}', [\App\Modules\Api\Controllers\AiCompanionController::class, 'updatePersona'])->whereNumber('persona');
         Route::post('/ai-companions',                     [\App\Modules\Api\Controllers\AiCompanionController::class, 'store']);
 
         // Inbox (DM threads on owned biolinks)
