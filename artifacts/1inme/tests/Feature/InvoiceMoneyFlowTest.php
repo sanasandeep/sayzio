@@ -369,21 +369,101 @@ class InvoiceMoneyFlowTest extends TestCase
         $svc = app(RecurringInvoiceService::class);
 
         // First run: due today.
-        $this->assertSame(1, $svc->generateDue(now()));
+        $this->assertSame(1, $svc->generateDue(now())['generated']);
 
         // Second run: advance to whenever the template now says it's next due
         // (read the real advanced date so this is robust on month-end dates),
         // which exhausts the template (max 2).
         $nextDue = Carbon::parse($tpl->fresh()->next_run_date)->copy()->addDay();
-        $this->assertSame(1, $svc->generateDue($nextDue));
+        $this->assertSame(1, $svc->generateDue($nextDue)['generated']);
 
         $tpl->refresh();
         $this->assertSame(2, (int) $tpl->occurrences_count);
         $this->assertSame('completed', $tpl->status);
 
         // Third pass must NOT bill again — template is completed.
-        $this->assertSame(0, $svc->generateDue($nextDue->copy()->addMonths(3)));
+        $this->assertSame(0, $svc->generateDue($nextDue->copy()->addMonths(3))['generated']);
         $this->assertSame(2, Invoice::where('recurring_invoice_id', $tpl->id)->count());
+    }
+
+    // ------------------------------------------------------------------
+    // Resilience: a failed auto-send email must not unwind billing
+    // ------------------------------------------------------------------
+
+    public function test_run_once_still_bills_and_advances_when_auto_send_throws(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $tpl = $this->recurringTemplate($u, $ws);
+        $tpl->forceFill(['auto_send' => true])->save();
+
+        // Simulate a transport failure on the auto-send email. createStandalone
+        // and every other ClientInvoiceService method keep their real behaviour
+        // (partial mock) — only markSent blows up, mid-transaction.
+        $this->partialMock(ClientInvoiceService::class, function ($mock) {
+            $mock->shouldReceive('markSent')
+                ->once()
+                ->andThrow(new \RuntimeException('SMTP transport failed'));
+        });
+
+        $invoice = app(RecurringInvoiceService::class)->runOnce($tpl, now());
+
+        // The generated invoice survives the email failure...
+        $this->assertNotNull($invoice);
+        $this->assertSame('client', $invoice->kind);
+        $this->assertNull($invoice->sent_at, 'send never completed, so sent_at stays null');
+        $this->assertSame(1, Invoice::where('recurring_invoice_id', $tpl->id)->count());
+
+        // ...and the schedule advanced exactly once (no skipped / double billing).
+        $tpl->refresh();
+        $this->assertSame(1, (int) $tpl->occurrences_count);
+        $this->assertSame('active', $tpl->status);
+        $this->assertNotNull($tpl->last_run_at);
+        $this->assertTrue(
+            Carbon::parse($tpl->next_run_date)->gt(now()->startOfDay()),
+            'next_run_date should still advance even though the email failed'
+        );
+    }
+
+    public function test_generate_due_one_failing_template_does_not_halt_the_batch(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+
+        // Three due templates; the middle one is wired to blow up on generation.
+        $good1 = $this->recurringTemplate($u, $ws);
+        $good1->forceFill(['recipient_email' => 'good1@ex.com'])->save();
+        $bad   = $this->recurringTemplate($u, $ws);
+        $bad->forceFill(['recipient_email' => 'bad@ex.com'])->save();
+        $good2 = $this->recurringTemplate($u, $ws);
+        $good2->forceFill(['recipient_email' => 'good2@ex.com'])->save();
+
+        $this->partialMock(ClientInvoiceService::class, function ($mock) {
+            $mock->shouldReceive('createStandalone')
+                ->withArgs(fn ($data) => ($data['recipient_email'] ?? '') === 'bad@ex.com')
+                ->andThrow(new \RuntimeException('billing backend exploded'));
+            // Every other template generates for real.
+            $mock->shouldReceive('createStandalone')
+                ->withArgs(fn ($data) => ($data['recipient_email'] ?? '') !== 'bad@ex.com')
+                ->passthru();
+        });
+
+        $tally = app(RecurringInvoiceService::class)->generateDue(now());
+
+        // The two healthy templates still billed despite the bad one throwing.
+        $this->assertSame(2, $tally['generated']);
+        $this->assertSame(1, Invoice::where('recurring_invoice_id', $good1->id)->count());
+        $this->assertSame(1, Invoice::where('recurring_invoice_id', $good2->id)->count());
+
+        // The bad template's run rolled back wholesale — no invoice, no advance.
+        $this->assertSame(0, Invoice::where('recurring_invoice_id', $bad->id)->count());
+        $bad->refresh();
+        $this->assertSame(0, (int) $bad->occurrences_count);
+        $this->assertNull($bad->last_run_at);
+
+        // The healthy templates advanced their schedules.
+        $this->assertSame(1, (int) $good1->fresh()->occurrences_count);
+        $this->assertSame(1, (int) $good2->fresh()->occurrences_count);
     }
 
     // ------------------------------------------------------------------
