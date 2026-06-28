@@ -147,6 +147,50 @@ class ClientInvoicePdfTest extends TestCase
         $this->assertStringContainsString($receipt->number, $html);
     }
 
+    public function test_receipt_pdf_html_shows_a_partial_refund(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $invoice = $this->fixtureInvoice($u, $ws);
+        app(ClientInvoiceService::class)->markPaidManual($invoice, 'bank_transfer', 'TXN-77');
+
+        // Refund 5000 (USD 50.00) of the 26400 (USD 264.00) grand total — a
+        // figure distinct from every other amount on the receipt so the
+        // assertions can't pass on a coincidental collision.
+        app(ClientInvoiceService::class)->refund($invoice->fresh(), 5000, 'partial test');
+
+        $invoice = $invoice->fresh();
+        $this->assertSame('partially_refunded', $invoice->status);
+        $this->assertSame(5000, $invoice->refundedTotalMinor());
+
+        $receipt = Receipt::where('invoice_id', $invoice->id)->latest('id')->firstOrFail();
+        $html = app(ClientInvoicePdfRenderer::class)->receiptHtml($invoice, $receipt);
+
+        $this->assertStringContainsString('USD 264.00', $html); // total paid (unchanged)
+        $this->assertStringContainsString('-USD 50.00', $html); // refunded line
+    }
+
+    public function test_receipt_pdf_html_shows_a_full_refund(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $invoice = $this->fixtureInvoice($u, $ws);
+        app(ClientInvoiceService::class)->markPaidManual($invoice, 'bank_transfer', 'TXN-77');
+
+        // A zero amount refunds the whole refundable balance (26400 / USD 264.00).
+        app(ClientInvoiceService::class)->refund($invoice->fresh(), 0, 'full test');
+
+        $invoice = $invoice->fresh();
+        $this->assertSame('refunded', $invoice->status);
+        $this->assertSame(26400, $invoice->refundedTotalMinor());
+
+        $receipt = Receipt::where('invoice_id', $invoice->id)->latest('id')->firstOrFail();
+        $html = app(ClientInvoicePdfRenderer::class)->receiptHtml($invoice, $receipt);
+
+        $this->assertStringContainsString('USD 264.00', $html);  // total paid
+        $this->assertStringContainsString('-USD 264.00', $html); // refunded line (full)
+    }
+
     public function test_receipt_pdf_route_requires_a_valid_signature(): void
     {
         $u  = $this->user();
