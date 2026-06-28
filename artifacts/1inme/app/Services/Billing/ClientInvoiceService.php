@@ -3,7 +3,6 @@
 namespace App\Services\Billing;
 
 use App\Modules\User\Models\BillingCompany;
-use App\Modules\User\Models\CreditNote;
 use App\Modules\User\Models\FeedEvent;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\Receipt;
@@ -419,20 +418,15 @@ class ClientInvoiceService
                 'processed_at'   => now(),
             ]);
 
-            // Reversing ledger entry.
-            $fy = InvoiceService::financialYearFor(now());
-            CreditNote::create([
-                'number'         => 'CN/' . $fy . '/' . $refund->id,
-                'financial_year' => $fy,
-                'seq'            => $refund->id,
-                'refund_id'      => $refund->id,
-                'invoice_id'     => $invoice->id,
-                'user_id'        => $invoice->user_id,
-                'currency'       => $invoice->currency,
-                'amount_minor'   => $amountMinor,
-                'snapshot'       => ['invoice_number' => $invoice->number, 'reason' => $reason],
-                'issued_at'      => now(),
-            ]);
+            // Reversing ledger entry. Numbering goes through CreditNoteService
+            // so it shares the row-locked, gap-free per-FY counter (prefix "CN")
+            // with the subscription refund path — instead of the old id-keyed
+            // 'CN/<fy>/<refund_id>' scheme, which produced gaps (refund ids are
+            // global, not per-FY), emitted unpadded numbers that diverged from
+            // invoices/receipts, and could collide against the unique
+            // credit_notes.number column once a refund id reached the counter's
+            // pad width.
+            CreditNoteService::issue($refund);
 
             $totalRefunded = $alreadyRefunded + $amountMinor;
             $invoice->forceFill([

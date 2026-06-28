@@ -770,4 +770,166 @@ class InvoiceMoneyFlowTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    // ------------------------------------------------------------------
+    // Credit-note numbering when refunds pile up
+    //
+    // The refund path mints a third numbered document — the credit note.
+    // Its numbers MUST share the same row-locked, gap-free per-(financial
+    // year, prefix="CN") counter in `invoice_counters` as invoices and
+    // receipts (the documented invariant: credit_notes.number is UNIQUE and
+    // the migration says "Numbering shares invoice_counters with prefix
+    // 'CN'"). ClientInvoiceService::refund() used to key the number off the
+    // global auto-increment refund id ('CN/<fy>/<refund_id>'), which left
+    // gaps, emitted unpadded numbers diverging from invoices/receipts, and
+    // could collide against the unique number column. These tests assert
+    // every credit note minted through the client-invoice refund path is
+    // unique, well-formed (CN/<fy>/<5-digit seq>), and gap-free per FY —
+    // including across the financial-year rollover.
+    // ------------------------------------------------------------------
+
+    /** Create + pay a standalone client invoice, returning the paid model. */
+    private function paidInvoice(Workspace $ws, User $u, int $amountMinor): Invoice
+    {
+        $svc = app(ClientInvoiceService::class);
+        $inv = $svc->createStandalone([
+            'line_items' => [['label' => 'Job', 'amount_minor' => $amountMinor, 'quantity' => 1]],
+        ], $ws, $u->id);
+        $svc->markPaidManual($inv, 'cash');
+        return $inv->fresh();
+    }
+
+    public function test_piledup_refund_credit_notes_are_unique_wellformed_and_gapfree(): void
+    {
+        $u   = $this->user();
+        $ws  = $this->bind($u);
+        $svc = app(ClientInvoiceService::class);
+
+        Carbon::setTestNow(Carbon::create(2025, 6, 15, 12));
+        $fy = InvoiceService::financialYearFor(now());
+
+        // 12 paid invoices. Half are refunded in two slices (partial +
+        // remainder => 2 credit notes each), half in a single full refund
+        // (1 credit note each) — a realistic pile-up of refunds across many
+        // invoices, interleaved so refund ids do NOT line up with CN seqs.
+        $creditNoteSeqs    = [];
+        $creditNoteNumbers = [];
+        for ($i = 0; $i < 12; $i++) {
+            $inv = $this->paidInvoice($ws, $u, 10000);
+
+            if ($i % 2 === 0) {
+                // Partial then remainder: two refunds, two credit notes.
+                $r1 = $svc->refund($inv->fresh(), 4000, 'partial');
+                $r2 = $svc->refund($inv->fresh(), 6000, 'remainder');
+                foreach ([$r1, $r2] as $r) {
+                    $cn = CreditNote::where('refund_id', $r->id)->firstOrFail();
+                    $creditNoteSeqs[]    = (int) $cn->seq;
+                    $creditNoteNumbers[] = $cn->number;
+                }
+            } else {
+                // Single full refund: one credit note.
+                $r = $svc->refund($inv->fresh(), 0, 'full'); // 0 => whole remaining balance
+                $cn = CreditNote::where('refund_id', $r->id)->firstOrFail();
+                $creditNoteSeqs[]    = (int) $cn->seq;
+                $creditNoteNumbers[] = $cn->number;
+            }
+        }
+
+        // 6 invoices * 2 CNs + 6 invoices * 1 CN = 18 credit notes.
+        $expected = 18;
+        $this->assertCount($expected, $creditNoteNumbers);
+
+        // Every number is globally unique (matches the DB UNIQUE constraint).
+        $this->assertSame(
+            $expected,
+            count(array_unique($creditNoteNumbers)),
+            'Credit-note numbers must never collide'
+        );
+        $this->assertSame(
+            $expected,
+            CreditNote::query()->distinct()->count('number'),
+            'Persisted credit-note numbers must be distinct in the DB'
+        );
+
+        // Sequence is strictly 1..N, gap-free, within the FY.
+        $this->assertGapFreeSequence($creditNoteSeqs, $expected, 'credit-note');
+
+        // Every number is well-formed: CN/<fy>/<5-digit zero-padded seq>.
+        foreach ($creditNoteNumbers as $idx => $number) {
+            $this->assertMatchesRegularExpression('#^CN/' . preg_quote($fy, '#') . '/\d{5}$#', $number);
+            $this->assertSame(
+                sprintf('CN/%s/%s', $fy, str_pad((string) $creditNoteSeqs[$idx], 5, '0', STR_PAD_LEFT)),
+                $number
+            );
+        }
+
+        // The shared counter landed exactly on N — proof nothing was skipped
+        // or double-allocated.
+        $this->assertSame($expected, (int) DB::table('invoice_counters')
+            ->where('financial_year', $fy)->where('prefix', 'CN')->value('last_seq'));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_credit_note_numbering_resets_and_stays_gapfree_across_fy_rollover(): void
+    {
+        $u   = $this->user();
+        $ws  = $this->bind($u);
+        $svc = app(ClientInvoiceService::class);
+
+        // Last moments of FY 2025-26 (FY starts in April): 31 Mar 2026.
+        Carbon::setTestNow(Carbon::create(2026, 3, 31, 23, 30));
+        $fyOld   = InvoiceService::financialYearFor(now()); // 2025-26
+        $oldSeqs = [];
+        $oldNums = [];
+        for ($i = 0; $i < 4; $i++) {
+            $inv = $this->paidInvoice($ws, $u, 5000);
+            $r   = $svc->refund($inv->fresh(), 0, 'old-fy');
+            $cn  = CreditNote::where('refund_id', $r->id)->firstOrFail();
+            $this->assertSame($fyOld, $cn->financial_year);
+            $oldSeqs[] = (int) $cn->seq;
+            $oldNums[] = $cn->number;
+        }
+
+        // Cross the boundary into FY 2026-27: 1 Apr 2026.
+        Carbon::setTestNow(Carbon::create(2026, 4, 1, 0, 5));
+        $fyNew = InvoiceService::financialYearFor(now()); // 2026-27
+        $this->assertNotSame($fyOld, $fyNew, 'Crossing 31 Mar -> 1 Apr must roll the financial year');
+
+        $newSeqs = [];
+        $newNums = [];
+        for ($i = 0; $i < 3; $i++) {
+            $inv = $this->paidInvoice($ws, $u, 5000);
+            $r   = $svc->refund($inv->fresh(), 0, 'new-fy');
+            $cn  = CreditNote::where('refund_id', $r->id)->firstOrFail();
+            $this->assertSame($fyNew, $cn->financial_year);
+            $newSeqs[] = (int) $cn->seq;
+            $newNums[] = $cn->number;
+        }
+
+        // Each FY is independently gap-free starting at 1; the new FY does
+        // NOT continue the old counter.
+        $this->assertGapFreeSequence($oldSeqs, 4, 'old-FY credit-note');
+        $this->assertGapFreeSequence($newSeqs, 3, 'new-FY credit-note');
+        $this->assertSame(1, min($newSeqs), 'New FY credit-note numbering must reset to 1');
+
+        // The FY label embedded in each number is correct on each side of the
+        // boundary, so numbers never collide across years even though the
+        // seqs repeat (1..n within each FY).
+        foreach ($oldNums as $number) {
+            $this->assertStringStartsWith('CN/' . $fyOld . '/', $number);
+        }
+        foreach ($newNums as $number) {
+            $this->assertStringStartsWith('CN/' . $fyNew . '/', $number);
+        }
+        $this->assertSame(7, count(array_unique(array_merge($oldNums, $newNums))));
+
+        // Two distinct counter rows exist — one per FY — each at its own max.
+        $this->assertSame(4, (int) DB::table('invoice_counters')
+            ->where('financial_year', $fyOld)->where('prefix', 'CN')->value('last_seq'));
+        $this->assertSame(3, (int) DB::table('invoice_counters')
+            ->where('financial_year', $fyNew)->where('prefix', 'CN')->value('last_seq'));
+
+        Carbon::setTestNow();
+    }
 }
