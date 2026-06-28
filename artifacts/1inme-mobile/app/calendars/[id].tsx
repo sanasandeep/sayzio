@@ -26,9 +26,10 @@ import {
 import {
   addEventsWithFeedback,
   addEventWithFeedback,
-  getSavedDeviceEventIds,
+  detectSavedDeviceEvents,
   removeEventsWithFeedback,
   removeEventWithFeedback,
+  requestCalendarAccessForDetection,
   subscribeToIcs,
   syncEventsWithFeedback,
 } from "@/lib/deviceCalendar";
@@ -64,6 +65,11 @@ export default function CalendarDetailScreen() {
   // Sayzio event ids already on the device calendar. `null` = not yet known /
   // can't be determined (web, no permission), in which case we default to Add.
   const [savedIds, setSavedIds] = useState<Set<string> | null>(null);
+  // True when saved-state detection genuinely works on this device but calendar
+  // access hasn't been granted — drives the inline "allow access" hint.
+  const [savedDetectionBlocked, setSavedDetectionBlocked] = useState(false);
+  const [hintDismissed, setHintDismissed] = useState(false);
+  const [requestingAccess, setRequestingAccess] = useState(false);
 
   const q = useQuery({
     queryKey: ["calendar", id, showPast],
@@ -140,14 +146,29 @@ export default function CalendarDetailScreen() {
   // only touches copies the user already added (matched on the UID marker).
   const syncable = events.filter((e) => e.start_at);
 
+  // Apply a detection result to local state: the resolved ids (or null when
+  // unknown) plus whether the "unknown" is specifically a missing-permission
+  // case worth hinting about.
+  const applyDetection = (
+    result: Awaited<ReturnType<typeof detectSavedDeviceEvents>>,
+  ) => {
+    if (result.status === "ready") {
+      setSavedIds(result.savedIds);
+      setSavedDetectionBlocked(false);
+    } else if (result.status === "needs-permission") {
+      setSavedIds(null);
+      setSavedDetectionBlocked(true);
+    } else {
+      // Web / no expo-calendar — detection genuinely unavailable, no hint.
+      setSavedIds(null);
+      setSavedDetectionBlocked(false);
+    }
+  };
+
   // Re-read which events are already on the device calendar. Used on load and
   // after every add/remove/bulk action so each event shows the right action.
   const refreshSavedState = async () => {
-    if (events.length === 0) {
-      setSavedIds(new Set());
-      return;
-    }
-    setSavedIds(await getSavedDeviceEventIds(events));
+    applyDetection(await detectSavedDeviceEvents(events));
   };
 
   // Detect saved state up front whenever the loaded event set changes (its ids
@@ -156,15 +177,33 @@ export default function CalendarDetailScreen() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const ids =
-        events.length === 0 ? new Set<string>() : await getSavedDeviceEventIds(events);
-      if (!cancelled) setSavedIds(ids);
+      const result = await detectSavedDeviceEvents(events);
+      if (!cancelled) applyDetection(result);
     })();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventKey]);
+
+  // Ask for calendar access (or send the user to Settings if previously denied),
+  // then re-run detection so already-saved events show as "Saved" right away.
+  const enableSavedDetection = async () => {
+    setRequestingAccess(true);
+    try {
+      const result = await requestCalendarAccessForDetection();
+      if (result.status === "granted") {
+        await refreshSavedState();
+      } else if (result.status === "denied" && result.openedSettings) {
+        Alert.alert(
+          "Calendar access needed",
+          "Enable calendar access for this app in Settings, then return here to see which events you've already saved.",
+        );
+      }
+    } finally {
+      setRequestingAccess(false);
+    }
+  };
 
   const addToCalendar = async (event: CalendarEventItem) => {
     setAddingId(event.id);
@@ -394,6 +433,38 @@ export default function CalendarDetailScreen() {
                   </Pressable>
                 ) : null}
               </View>
+
+              {savedDetectionBlocked && !hintDismissed && syncable.length > 0 ? (
+                <View
+                  style={[
+                    styles.permHint,
+                    { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+                  ]}
+                >
+                  <Pressable
+                    onPress={enableSavedDetection}
+                    disabled={requestingAccess}
+                    hitSlop={6}
+                    style={styles.permHintMain}
+                  >
+                    {requestingAccess ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Feather name="info" size={16} color={colors.primary} />
+                    )}
+                    <Text style={[styles.permHintText, { color: colors.foreground }]}>
+                      Allow calendar access to see which events you&apos;ve already saved.
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setHintDismissed(true)}
+                    hitSlop={10}
+                    style={styles.permHintClose}
+                  >
+                    <Feather name="x" size={16} color={colors.mutedForeground} />
+                  </Pressable>
+                </View>
+              ) : null}
 
               <Pressable
                 onPress={() => setShowPast((v) => !v)}
@@ -625,6 +696,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   pastToggleText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 },
+  permHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingLeft: 14,
+    paddingRight: 8,
+    paddingVertical: 10,
+    borderWidth: 1,
+  },
+  permHintMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  permHintText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13, flex: 1, lineHeight: 18 },
+  permHintClose: { padding: 4 },
   eventCard: { flexDirection: "row", gap: 12, padding: 14, borderWidth: 1, overflow: "hidden" },
   accentBar: { width: 4, borderRadius: 999 },
   eventTime: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },

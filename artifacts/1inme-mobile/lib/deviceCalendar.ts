@@ -293,33 +293,100 @@ async function collectExistingEventIds(
 }
 
 /**
- * Detect which of these events are already saved on the device calendar,
- * returning the set of Sayzio event ids (as strings) that have a copy present.
+ * Outcome of attempting to detect saved events without prompting:
+ * - `ready` — permission is granted (or there's nothing dated to check); the
+ *   resolved set of saved Sayzio event ids is included.
+ * - `needs-permission` — saved-state detection genuinely works on this device
+ *   but calendar access hasn't been granted; `canAskAgain` says whether the OS
+ *   will still show the permission prompt (false ⇒ the user must enable it in
+ *   Settings).
+ * - `unavailable` — detection can't work here at all (web, or a build without
+ *   expo-calendar), so there's nothing to hint about.
+ */
+export type SavedEventsDetection =
+  | { status: "ready"; savedIds: Set<string> }
+  | { status: "needs-permission"; canAskAgain: boolean }
+  | { status: "unavailable" };
+
+/**
+ * Detect which of these events are already saved on the device calendar.
  * Reuses the same UID-marker lookup as add/remove via {@link collectExistingEventIds}.
  *
- * Returns `null` when the saved state can't be determined — on web (no tracked
- * device copy), when calendar access hasn't been granted, or on a build without
- * expo-calendar. Callers should treat `null` as "unknown" and default to the
- * Add action. Crucially this checks the *existing* permission (it never
- * prompts), so opening the screen won't trigger a permission dialog.
+ * Crucially this checks the *existing* permission (it never prompts), so opening
+ * the screen won't trigger a permission dialog. The discriminated result lets
+ * callers tell "unknown because no access" (worth a hint) apart from "detection
+ * isn't possible here" (web / no expo-calendar — stay silent).
+ */
+export async function detectSavedDeviceEvents(
+  events: CalendarEventItem[],
+): Promise<SavedEventsDetection> {
+  const datable = events.filter((e) => eventBounds(e) !== null);
+  if (datable.length === 0) return { status: "ready", savedIds: new Set() };
+
+  if (Platform.OS === "web") return { status: "unavailable" };
+
+  const Calendar = await import("expo-calendar").catch(() => null);
+  if (!Calendar) return { status: "unavailable" };
+
+  try {
+    const { status, canAskAgain } = await Calendar.getCalendarPermissionsAsync();
+    if (status !== "granted") return { status: "needs-permission", canAskAgain };
+    return { status: "ready", savedIds: await collectExistingEventIds(Calendar, datable) };
+  } catch {
+    return { status: "unavailable" };
+  }
+}
+
+/**
+ * Thin wrapper over {@link detectSavedDeviceEvents} kept for callers that only
+ * need the ids and treat anything else as "unknown" (defaulting to the Add
+ * action). Returns `null` whenever the saved state can't be determined.
  */
 export async function getSavedDeviceEventIds(
   events: CalendarEventItem[],
 ): Promise<Set<string> | null> {
-  const datable = events.filter((e) => eventBounds(e) !== null);
-  if (datable.length === 0) return new Set();
+  const result = await detectSavedDeviceEvents(events);
+  return result.status === "ready" ? result.savedIds : null;
+}
 
-  if (Platform.OS === "web") return null;
+/** Outcome of asking for calendar access so saved-state detection can run. */
+export type CalendarAccessRequest =
+  | { status: "granted" }
+  | { status: "denied"; openedSettings: boolean }
+  | { status: "unavailable" };
+
+/**
+ * Request calendar access specifically so saved-event detection can run. If the
+ * OS will still show the prompt we ask; if the user previously denied it (the OS
+ * won't prompt again) we send them to the app's Settings page instead. Returns a
+ * discriminated result so the caller can re-run detection / message accordingly.
+ */
+export async function requestCalendarAccessForDetection(): Promise<CalendarAccessRequest> {
+  if (Platform.OS === "web") return { status: "unavailable" };
 
   const Calendar = await import("expo-calendar").catch(() => null);
-  if (!Calendar) return null;
+  if (!Calendar) return { status: "unavailable" };
 
   try {
-    const { status } = await Calendar.getCalendarPermissionsAsync();
-    if (status !== "granted") return null;
-    return await collectExistingEventIds(Calendar, datable);
+    const current = await Calendar.getCalendarPermissionsAsync();
+    if (current.status === "granted") return { status: "granted" };
+
+    // Already permanently denied — the OS won't prompt again, so the only way
+    // back is the app's Settings page.
+    if (!current.canAskAgain) {
+      await Linking.openSettings().catch(() => {});
+      return { status: "denied", openedSettings: true };
+    }
+
+    const next = await Calendar.requestCalendarPermissionsAsync();
+    if (next.status === "granted") return { status: "granted" };
+    if (!next.canAskAgain) {
+      await Linking.openSettings().catch(() => {});
+      return { status: "denied", openedSettings: true };
+    }
+    return { status: "denied", openedSettings: false };
   } catch {
-    return null;
+    return { status: "unavailable" };
   }
 }
 
