@@ -77,6 +77,63 @@ class Invoice extends Model
         return ($this->kind ?? 'subscription') === 'client';
     }
 
+    /**
+     * The Emailer key used when a client invoice is emailed with its pay link
+     * (see ClientInvoiceService::markSent). The latest email_logs row for this
+     * key + invoice is what drives the persistent "last send failed" indicator
+     * in the UI.
+     */
+    public const SEND_EMAIL_KEY = 'billing.client_invoice';
+
+    /**
+     * Whether the most recent attempt to email this invoice's pay link failed
+     * (the invoice is therefore NOT delivered). Derived from the latest
+     * email_logs row so the signal survives reloads, unlike a one-shot flash.
+     */
+    public function lastSendFailed(): bool
+    {
+        return \App\Modules\Common\Models\EmailLog::query()
+            ->where('email_key', self::SEND_EMAIL_KEY)
+            ->where('related_type', $this->getMorphClass())
+            ->where('related_id', (string) $this->getKey())
+            ->orderByDesc('id')
+            ->value('status') === 'failed';
+    }
+
+    /**
+     * Batch the "last send attempt failed" signal for a collection of invoices
+     * so list screens don't N+1 the email_logs table. Returns a map keyed by
+     * invoice id => bool (true when the latest send attempt failed).
+     *
+     * @param  iterable<\App\Modules\User\Models\Invoice|int|string>  $invoices
+     * @return array<int,bool>
+     */
+    public static function sendFailedMap(iterable $invoices): array
+    {
+        $ids = collect($invoices)
+            ->map(fn ($i) => (string) ($i instanceof self ? $i->getKey() : $i))
+            ->filter(fn ($id) => $id !== '')
+            ->unique()
+            ->all();
+        if (empty($ids)) return [];
+
+        // Ordered by id DESC so the first row seen per related_id is the latest.
+        $rows = \App\Modules\Common\Models\EmailLog::query()
+            ->where('email_key', self::SEND_EMAIL_KEY)
+            ->where('related_type', (new self)->getMorphClass())
+            ->whereIn('related_id', $ids)
+            ->orderByDesc('id')
+            ->get(['related_id', 'status']);
+
+        $map = [];
+        foreach ($rows as $r) {
+            if (!array_key_exists((int) $r->related_id, $map)) {
+                $map[(int) $r->related_id] = $r->status === 'failed';
+            }
+        }
+        return $map;
+    }
+
     public function vaultClient()
     {
         return $this->belongsTo(\App\Modules\User\Models\VaultClient::class, 'vault_client_id');

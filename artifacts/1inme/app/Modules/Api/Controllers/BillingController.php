@@ -44,8 +44,10 @@ class BillingController extends Controller
         $page = Invoice::where('user_id', $request->user()->id)
             ->orderByDesc('id')
             ->paginate(min(100, max(1, (int) $request->input('per_page', 25))));
+        $items = collect($page->items());
+        $failedMap = Invoice::sendFailedMap($items->all());
         return $this->ok([
-            'items' => collect($page->items())->map(fn ($i) => $this->transformInvoice($i))->all(),
+            'items' => $items->map(fn ($i) => $this->transformInvoice($i, $failedMap[$i->id] ?? false))->all(),
             'meta'  => [
                 'current_page' => $page->currentPage(),
                 'per_page'     => $page->perPage(),
@@ -372,9 +374,14 @@ class BillingController extends Controller
             ->first();
     }
 
-    protected function transformInvoice(Invoice $i): array
+    /**
+     * @param  bool|null  $lastSendFailed  Precomputed "last send attempt failed"
+     *   signal (pass from a batched lookup to avoid N+1 on list endpoints); when
+     *   null it is derived per-invoice. Only meaningful for client invoices.
+     */
+    protected function transformInvoice(Invoice $i, ?bool $lastSendFailed = null): array
     {
-        return [
+        $out = [
             'id'                => $i->id,
             'number'            => $i->number,
             'status'            => $i->status,
@@ -388,5 +395,16 @@ class BillingController extends Controller
             'recipient_email'   => $i->recipient_email,
             'kind'              => $i->kind,
         ];
+
+        // Mobile billing parity: expose the persistent "last send failed" state
+        // plus the manual pay link so the app can render the same failed/retry
+        // affordance as the web edit screen. Only client invoices are emailed
+        // with a hosted pay link, so the signal is scoped to them.
+        if ($i->isClientInvoice()) {
+            $out['last_send_failed'] = $lastSendFailed ?? $i->lastSendFailed();
+            $out['pay_url'] = URL::signedRoute('client-invoice.pay', ['invoice' => $i->id]);
+        }
+
+        return $out;
     }
 }

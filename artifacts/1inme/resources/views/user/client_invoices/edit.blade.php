@@ -20,6 +20,35 @@
     @if(session('success'))<div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="mb-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm">{{ session('error') }}</div>@endif
 
+    @if(!empty($lastSendFailed) && $invoice->status !== 'paid')
+        <div class="mb-4 p-4 rounded-xl border" style="border-color: rgba(225,29,72,0.35); background: rgba(225,29,72,0.08);">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-triangle-exclamation mt-0.5" style="color:#e11d48;"></i>
+                <div class="flex-1">
+                    <p class="text-sm font-semibold" style="color:#e11d48;">Last send failed — this invoice was not delivered.</p>
+                    <p class="text-xs mt-1" style="color: var(--text-muted);">
+                        The invoice email to {{ $invoice->recipient_email ?? 'the recipient' }} couldn't be delivered. Retry the send, or copy the pay link below to share it manually.
+                    </p>
+                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                        <form action="{{ route('user.client-invoices.send', $invoice) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style="background:#e11d48;">
+                                <i class="fas fa-rotate-right mr-1"></i> Retry send
+                            </button>
+                        </form>
+                        <input type="text" readonly value="{{ $payUrl }}" onclick="this.select()"
+                               class="flex-1 min-w-[12rem] px-2 py-1.5 rounded-lg border text-xs font-mono"
+                               style="border-color: var(--border-soft); background: var(--bg-glass-input); color: var(--text-primary);">
+                        <a href="{{ $payUrl }}" target="_blank" rel="noopener"
+                           class="px-3 py-1.5 rounded-lg text-xs font-semibold border" style="border-color: var(--border-strong); color: var(--text-primary);">
+                            Open pay link
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <form action="{{ route('user.client-invoices.update', $invoice) }}" method="POST" class="space-y-6">
         @csrf @method('PUT')
 

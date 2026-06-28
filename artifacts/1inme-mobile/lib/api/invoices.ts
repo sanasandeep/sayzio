@@ -19,6 +19,12 @@ export type Invoice = {
   issued_at: string | null;
   paid_at: string | null;
   due_at: string | null;
+  recipient_email?: string | null;
+  kind?: string | null;
+  /** True when the most recent attempt to email this invoice failed (client invoices only). */
+  last_send_failed?: boolean;
+  /** Signed hosted pay link to share manually (client invoices only). */
+  pay_url?: string | null;
 };
 
 export type InvoiceDetail = Invoice & {

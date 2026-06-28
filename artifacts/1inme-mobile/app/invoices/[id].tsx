@@ -10,6 +10,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -76,8 +77,13 @@ export default function InvoiceDetailScreen() {
         `Pay link emailed to ${res.invoice.number ?? `#${res.invoice.id}`}.\n\n${res.pay_url}`,
       );
     },
-    onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't send invoice", e?.message ?? "Try again."),
+    onError: (e: { message?: string }) => {
+      // A failed send writes a new failed email_logs row, so refetch the
+      // invoice to surface the persistent "last send failed" banner right away.
+      qc.invalidateQueries({ queryKey: ["billing-invoice", id] });
+      qc.invalidateQueries({ queryKey: ["billing-invoices"] });
+      Alert.alert("Couldn't send invoice", e?.message ?? "Try again.");
+    },
   });
 
   const remove = useMutation({
@@ -161,6 +167,21 @@ export default function InvoiceDetailScreen() {
     } catch (e) {
       Alert.alert(
         "Couldn't open PDF",
+        e instanceof Error ? e.message : "Try again later.",
+      );
+    }
+  };
+
+  const sharePayLink = async () => {
+    if (!inv?.pay_url) return;
+    try {
+      await Share.share({
+        message: `Pay invoice ${inv.number ?? `#${inv.id}`}: ${inv.pay_url}`,
+        url: inv.pay_url,
+      });
+    } catch (e) {
+      Alert.alert(
+        "Couldn't share link",
         e instanceof Error ? e.message : "Try again later.",
       );
     }
@@ -318,6 +339,44 @@ export default function InvoiceDetailScreen() {
               </Text>
             </View>
           </View>
+
+          {inv.last_send_failed && status !== "paid" ? (
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: colors.destructive + "14",
+                  borderColor: colors.destructive + "59",
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Feather name="alert-triangle" size={18} color={colors.destructive} />
+                <Text style={[styles.label, { color: colors.destructive, flex: 1 }]}>
+                  Last send failed — not delivered
+                </Text>
+              </View>
+              <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+                The invoice email couldn't be delivered. Retry the send, or share
+                the pay link manually.
+              </Text>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <Button label="Retry send" onPress={() => setSendOpen(true)} />
+                </View>
+                {inv.pay_url ? (
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      label="Share pay link"
+                      variant="outline"
+                      onPress={sharePayLink}
+                    />
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          ) : null}
 
           {canManage ? (
             <Button

@@ -36,12 +36,23 @@ class ClientInvoiceController extends Controller
 
         $invoices = $q->orderByDesc('id')->paginate(25)->withQueryString();
 
+        // Persistent "last send attempt failed" signal per row (batched).
+        $sendFailedMap = Invoice::sendFailedMap($invoices->items());
+        // Signed manual pay links, only for the rows whose last send failed, so
+        // the list offers the same retry + share affordance as the edit screen.
+        $payUrls = [];
+        foreach ($invoices->items() as $inv) {
+            if (!empty($sendFailedMap[$inv->id])) {
+                $payUrls[$inv->id] = URL::signedRoute('client-invoice.pay', ['invoice' => $inv->id]);
+            }
+        }
+
         $totals = Invoice::query()
             ->where('workspace_id', $ws->id)->where('kind', 'client')
             ->selectRaw("status, SUM(grand_total_minor) AS amt, COUNT(*) AS c")
             ->groupBy('status')->get()->keyBy('status');
 
-        return view('user.client_invoices.dashboard', compact('invoices', 'totals', 'status'));
+        return view('user.client_invoices.dashboard', compact('invoices', 'totals', 'status', 'sendFailedMap', 'payUrls'));
     }
 
     public function createDraft(Request $request, ClientInvoiceService $svc)
@@ -61,7 +72,10 @@ class ClientInvoiceController extends Controller
         $ws = app('current_workspace');
         $clients = VaultClient::query()->where('workspace_id', $ws->id)->orderBy('name')->get(['id','name']);
         $emails  = VaultClientEmail::query()->where('workspace_id', $ws->id)->get();
-        return view('user.client_invoices.edit', compact('invoice', 'clients', 'emails'));
+        // Persistent "last send failed" signal + the manual pay link to share.
+        $lastSendFailed = $invoice->lastSendFailed();
+        $payUrl = URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
+        return view('user.client_invoices.edit', compact('invoice', 'clients', 'emails', 'lastSendFailed', 'payUrl'));
     }
 
     public function update(Request $request, Invoice $invoice, ClientInvoiceService $svc)
