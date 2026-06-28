@@ -4,6 +4,10 @@ namespace Tests\Unit\Services;
 
 use App\Modules\User\Models\BillingCompany;
 use App\Services\Billing\CompanyMailSettings;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Mail\Transport\ArrayTransport;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
@@ -150,5 +154,134 @@ class CompanyMailSettingsTransportTest extends TestCase
         $from = CompanyMailSettings::for($c)->emailOpts()['from'];
 
         $this->assertSame(['address' => 'studio@acme.test', 'name' => 'Acme Studio'], $from);
+    }
+
+    /**
+     * The default test mailer is the array transport (MAIL_MAILER=array), so the
+     * platform fallback path can be inspected without touching a real server.
+     */
+    private function platformArrayTransport(): ArrayTransport
+    {
+        $transport = Mail::mailer()->getSymfonyTransport();
+        $this->assertInstanceOf(
+            ArrayTransport::class,
+            $transport,
+            'Test env must use the array mailer so platform sends are inspectable.'
+        );
+        $transport->flush();
+        return $transport;
+    }
+
+    public function test_sendraw_falls_back_to_platform_default_mailer_when_smtp_disabled(): void
+    {
+        $c = $this->company([
+            // Disabled even though a host happens to be present.
+            'smtp_enabled' => false,
+            'smtp_host'    => 'smtp.acme.test',
+        ]);
+
+        $transport = $this->platformArrayTransport();
+
+        $label = CompanyMailSettings::for($c)
+            ->sendRaw('client@acme.test', 'Your portal access', 'Open the link');
+
+        // Falls back to the platform mailer and reports the 'system' label so the
+        // client-portal invite still goes out.
+        $this->assertSame('system', $label);
+
+        $messages = $transport->messages();
+        $this->assertCount(1, $messages, 'The invite must send through the default platform mailer.');
+
+        $email = $messages->first()->getOriginalMessage();
+        $this->assertSame('client@acme.test', $email->getTo()[0]->getAddress());
+        $this->assertSame('Your portal access', $email->getSubject());
+    }
+
+    public function test_sendraw_falls_back_to_platform_default_mailer_when_host_missing(): void
+    {
+        foreach ([null, '', '   '] as $host) {
+            $c = $this->company([
+                'smtp_enabled' => true,
+                'smtp_host'    => $host,
+            ]);
+
+            $transport = $this->platformArrayTransport();
+
+            $label = CompanyMailSettings::for($c)
+                ->sendRaw('client@acme.test', 'Your portal access', 'Open the link');
+
+            $this->assertSame(
+                'system',
+                $label,
+                'host=' . var_export($host, true) . ' must fall back to the platform mailer'
+            );
+            $this->assertCount(
+                1,
+                $transport->messages(),
+                'host=' . var_export($host, true) . ' must still deliver via the platform mailer'
+            );
+        }
+    }
+
+    public function test_sendraw_uses_company_transport_and_applies_from_identity(): void
+    {
+        $c = $this->company([
+            'id'                => 7,
+            'smtp_enabled'      => true,
+            'smtp_host'         => 'smtp.acme.test',
+            'smtp_username'     => 'apikey',
+            'smtp_from_address' => 'billing@acme.test',
+            'smtp_from_name'    => 'Acme Billing',
+        ]);
+        $settings = CompanyMailSettings::for($c);
+        $settings->setPassword('s3cret-pw');
+
+        // Capture the outgoing message and halt before the company SMTP transport
+        // tries to open a (non-existent) connection — returning false from a
+        // MessageSending listener cancels the actual delivery.
+        $captured = null;
+        Event::listen(MessageSending::class, function (MessageSending $event) use (&$captured) {
+            $captured = $event->message;
+            return false;
+        });
+
+        $label = $settings->sendRaw('client@acme.test', 'Your portal access', 'Open the link');
+
+        $this->assertSame('company:7', $label);
+        $this->assertNotNull($captured, 'The message must be dispatched through the company mailer.');
+
+        $from = $captured->getFrom();
+        $this->assertSame('billing@acme.test', $from[0]->getAddress());
+        $this->assertSame('Acme Billing', $from[0]->getName());
+        $this->assertSame('client@acme.test', $captured->getTo()[0]->getAddress());
+    }
+
+    public function test_sendraw_company_from_falls_back_to_company_email_and_name(): void
+    {
+        $c = $this->company([
+            'id'                => 9,
+            'smtp_enabled'      => true,
+            'smtp_host'         => 'smtp.acme.test',
+            'smtp_from_address' => null,
+            'smtp_from_name'    => null,
+            'email'             => 'studio@acme.test',
+            'name'              => 'Acme Studio',
+        ]);
+
+        $captured = null;
+        Event::listen(MessageSending::class, function (MessageSending $event) use (&$captured) {
+            $captured = $event->message;
+            return false;
+        });
+
+        $label = CompanyMailSettings::for($c)
+            ->sendRaw('client@acme.test', 'Your portal access', 'Open the link');
+
+        $this->assertSame('company:9', $label);
+        $this->assertNotNull($captured);
+
+        $from = $captured->getFrom();
+        $this->assertSame('studio@acme.test', $from[0]->getAddress());
+        $this->assertSame('Acme Studio', $from[0]->getName());
     }
 }
