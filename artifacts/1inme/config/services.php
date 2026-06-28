@@ -58,4 +58,15 @@ return [
         'client_secret' => env('MICROSOFT_CALENDAR_CLIENT_SECRET'),
         'tenant'        => env('MICROSOFT_CALENDAR_TENANT', 'common'),
     ],
+
+    // Replicate — hosted QR-ControlNet model that weaves a scannable QR
+    // into AI-generated artwork ("AI Artistic QR" in QR Studio). The token
+    // is also admin-configurable (encrypted) via AiEngineSettings, which
+    // falls back to this env value when no admin key is stored. Absent
+    // token = transparent preview / disabled mode. `qr_model` lets ops pin
+    // a specific Replicate model without a code change.
+    'replicate' => [
+        'api_token' => env('REPLICATE_API_TOKEN'),
+        'qr_model'  => env('REPLICATE_QR_MODEL', 'zylim0702/qr_code_controlnet'),
+    ],
 ];

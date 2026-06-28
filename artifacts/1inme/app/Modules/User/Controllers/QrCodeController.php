@@ -9,6 +9,12 @@ use App\Modules\User\Models\UserFile;
 use App\Modules\User\Support\QrCodeCatalog;
 use App\Modules\User\Support\QrCodeDesignSanitizer;
 use App\Modules\User\Support\QrCodeTypeRegistry;
+use App\Services\AI\AiPlanAccess;
+use App\Services\AI\AiUsageCharger;
+use App\Services\AI\InsufficientCoinsForAiException;
+use App\Services\AI\QrArtGenerationException;
+use App\Services\AI\QrArtService;
+use App\Services\AI\QrArtUnavailableException;
 use App\Services\UploadPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -50,7 +56,21 @@ class QrCodeController extends Controller
             ->get(['id', 'alias', 'title']);
         $defaultDesign = $this->defaultDesign();
         $presets       = QrCodeCatalog::presets();
-        return view('user.qr-codes.builder', compact('qrCode', 'types', 'projects', 'links', 'defaultDesign', 'presets'));
+
+        // AI Artistic QR availability for this user — drives the "AI Artistic"
+        // tab between preview/disabled and live states. Cost is the admin coin
+        // rate scaled by the plan provider multiplier.
+        $art           = app(QrArtService::class);
+        $owner         = workspace_owner();
+        $qrArtEnabled  = $art->enabled();
+        $qrArtAllowed  = AiPlanAccess::featureAllowed($owner, 'qr_art');
+        $qrArtCost     = $art->coinCost($owner);
+        $qrArtBalance  = app(AiUsageCharger::class)->getBalance($owner);
+
+        return view('user.qr-codes.builder', compact(
+            'qrCode', 'types', 'projects', 'links', 'defaultDesign', 'presets',
+            'qrArtEnabled', 'qrArtAllowed', 'qrArtCost', 'qrArtBalance'
+        ));
     }
 
     public function create(Request $request) { return $this->builder($request, null); }
@@ -128,6 +148,64 @@ class QrCodeController extends Controller
         return response()->json(['encoded' => $encoded]);
     }
 
+    /**
+     * Generate a scannable AI Artistic QR for the given destination + prompt
+     * via the Replicate QR-ControlNet model. Charges the coin wallet (with
+     * auto-refund on failure) and returns the stored artwork URL for the
+     * builder to drop into design.ai_art. Gated on feature availability,
+     * plan access, and a coin balance.
+     */
+    public function generateArt(Request $request, QrArtService $art)
+    {
+        // Charge + gate against the workspace OWNER, matching builder() and
+        // store() ownership semantics. In a team workspace the collaborator
+        // triggers the call but the owner's plan/wallet is authoritative, so
+        // billing the request user would mischarge and show wrong balances.
+        $user = workspace_owner();
+
+        if (!$art->enabled()) {
+            return response()->json([
+                'error' => "AI Artistic QR isn't available yet — an administrator needs to add a Replicate API key.",
+                'code'  => 'disabled',
+            ], 422);
+        }
+
+        if (!AiPlanAccess::featureAllowed($user, 'qr_art')) {
+            $plan = $user->planThatUnlocks('qr_art');
+            $msg  = "Your plan doesn't include AI Artistic QR."
+                . ($plan ? " Upgrade to {$plan->name} to unlock it." : '');
+            return response()->json(['error' => $msg, 'code' => 'plan'], 403);
+        }
+
+        $validated = $request->validate([
+            'data'            => 'required|string|max:2048',
+            'prompt'          => 'required|string|max:600',
+            'style'           => 'nullable|string|max:60',
+            'negative_prompt' => 'nullable|string|max:600',
+        ]);
+
+        try {
+            $result = $art->generate($user, $validated['data'], $validated['prompt'], [
+                'negative_prompt' => $validated['negative_prompt'] ?? null,
+            ]);
+        } catch (InsufficientCoinsForAiException $e) {
+            return response()->json([
+                'error'    => "Not enough coins — this needs {$e->required}, your balance is {$e->balance}.",
+                'code'     => 'coins',
+                'required' => $e->required,
+                'balance'  => $e->balance,
+            ], 402);
+        } catch (QrArtUnavailableException $e) {
+            return response()->json(['error' => $e->getMessage(), 'code' => 'disabled'], 422);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage(), 'code' => 'invalid'], 422);
+        } catch (QrArtGenerationException $e) {
+            return response()->json(['error' => $e->getMessage(), 'code' => 'failed'], 422);
+        }
+
+        return response()->json($result);
+    }
+
     // -------- internal --------
 
     private function validateRequest(Request $request): array
@@ -162,7 +240,7 @@ class QrCodeController extends Controller
 
         $payload = (array) $request->input('payload', []);
         $design  = $this->sanitizeDesign((array) $request->input('design', []));
-        return [
+        $out = [
             'name'       => $base['name'],
             'type'       => $base['type'],
             'project_id' => $base['project_id'] ?? null,
@@ -170,6 +248,12 @@ class QrCodeController extends Controller
             'payload'    => $payload,
             'design'     => $design,
         ];
+        // Persist the AI artwork as the saved preview so library thumbnails and
+        // PNG re-export use the generated image rather than a re-rendered SVG.
+        if (!empty($design['ai_art']['image_url'])) {
+            $out['preview_url'] = $design['ai_art']['image_url'];
+        }
+        return $out;
     }
 
     private function sanitizeDesign(array $d): array

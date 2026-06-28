@@ -1235,6 +1235,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('qr-codes/{qrCode}/duplicate', [QrCodeController::class, 'duplicate'])->middleware('workspace.can:links.create')->name('qr-codes.duplicate');
         Route::post  ('qr-codes/resolve',            [QrCodeController::class, 'resolvePayload'])->middleware('workspace.can:links.view')->name('qr-codes.resolve');
         Route::post  ('qr-codes/upload-logo',        [QrCodeController::class, 'uploadLogo'])->middleware('workspace.can:links.create')->name('qr-codes.upload-logo');
+        Route::post  ('qr-codes/generate-art',       [QrCodeController::class, 'generateArt'])->middleware('workspace.can:links.create')->name('qr-codes.generate-art');
 
         // Pixels — analytics tags, gated under stats feature.
         Route::resource('pixels', PixelController::class)->only(['index'])->middleware('workspace.can:stats.view');

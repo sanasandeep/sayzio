@@ -209,7 +209,7 @@
             <div class="lg:col-span-4 space-y-4">
                 <div class="card-premium p-2">
                     <div class="flex border-b" style="border-color: var(--border-glass);">
-                        @foreach(['templates'=>'Templates','shapes'=>'Shapes','colors'=>'Colors','logos'=>'Logos','frames'=>'Frames','more'=>'More','export'=>'Export'] as $k => $lbl)
+                        @foreach(['templates'=>'Templates','shapes'=>'Shapes','colors'=>'Colors','logos'=>'Logos','frames'=>'Frames','more'=>'More','ai'=>'AI Artistic','export'=>'Export'] as $k => $lbl)
                             <button type="button" @click="tab = '{{ $k }}'"
                                     class="qr-tab" :class="tab === '{{ $k }}' ? 'active' : ''">{{ $lbl }}</button>
                         @endforeach
@@ -497,6 +497,79 @@
                         </div>
                     </div>
 
+                    {{-- AI ARTISTIC tab --}}
+                    <div x-show="tab === 'ai'" x-cloak class="p-3 space-y-3">
+                        <template x-if="!qrArt.enabled">
+                            <div class="qr-section text-center py-6">
+                                <i class="fas fa-wand-magic-sparkles text-2xl mb-2" style="color: var(--text-faint);"></i>
+                                <p class="text-xs font-semibold" style="color: var(--text-primary);">AI Artistic QR isn't available yet</p>
+                                <p class="text-[11px] mt-1" style="color: var(--text-muted);">An administrator needs to add a Replicate API key before this can run.</p>
+                            </div>
+                        </template>
+
+                        <template x-if="qrArt.enabled && !qrArt.allowed">
+                            <div class="qr-section text-center py-6">
+                                <i class="fas fa-lock text-2xl mb-2" style="color: var(--text-faint);"></i>
+                                <p class="text-xs font-semibold" style="color: var(--text-primary);">Upgrade to unlock AI Artistic QR</p>
+                                <p class="text-[11px] mt-1" style="color: var(--text-muted);">Your current plan doesn't include this feature.</p>
+                                <a href="{{ url('/user/upgrade') }}" class="inline-block mt-3 px-3 py-1.5 text-xs rounded-lg font-semibold" style="background: var(--accent); color:#fff;">See plans</a>
+                            </div>
+                        </template>
+
+                        <template x-if="qrArt.enabled && qrArt.allowed">
+                            <div class="space-y-3">
+                                <p class="text-[11px]" style="color: var(--text-muted);">
+                                    Describe a scene and we'll weave your QR into AI artwork. Costs
+                                    <span class="font-semibold" x-text="qrArt.cost"></span> coins per image
+                                    (balance <span x-text="qrArt.balance"></span>). Auto-refunded if it fails.
+                                </p>
+
+                                <div class="qr-section">
+                                    <div class="text-[11px] font-semibold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Style presets</div>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <template x-for="p in aiPresets" :key="p.label">
+                                            <button type="button" @click="qrArt.prompt = p.prompt; qrArt.style = p.label"
+                                                    class="px-2 py-1 text-[10px] rounded-full"
+                                                    :style="qrArt.style === p.label ? 'background: var(--accent); color:#fff;' : 'background: var(--bg-glass-hover); color: var(--text-primary); border:1px solid var(--border-glass);'"
+                                                    x-text="p.label"></button>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <div class="qr-section">
+                                    <div class="text-[11px] font-semibold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Prompt</div>
+                                    <textarea x-model="qrArt.prompt" rows="3" maxlength="600"
+                                              placeholder="e.g. a serene japanese garden at sunset, koi pond, soft light"
+                                              class="w-full px-2 py-1.5 text-xs rounded outline-none" style="background: var(--bg-glass-input); border:1px solid var(--border-glass); color: var(--text-primary);"></textarea>
+                                    <label class="text-[10px] mt-2 block" style="color: var(--text-muted);">Avoid (optional)
+                                        <input type="text" x-model="qrArt.negative" maxlength="600" placeholder="text, watermark, blurry"
+                                               class="w-full mt-0.5 px-2 py-1.5 text-xs rounded outline-none" style="background: var(--bg-glass-input); border:1px solid var(--border-glass); color: var(--text-primary);">
+                                    </label>
+                                </div>
+
+                                <p x-show="qrArt.error" x-text="qrArt.error" class="text-[11px]" style="color:#f87171;"></p>
+
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button type="button" @click="generateArt()" :disabled="qrArt.busy"
+                                            class="px-3 py-2 text-xs rounded-lg font-semibold" style="background: var(--accent); color:#fff;">
+                                        <i class="fas fa-wand-magic-sparkles"></i>
+                                        <span x-text="qrArt.busy ? 'Generating…' : (design.ai_art && design.ai_art.image_url ? 'Regenerate' : 'Generate')"></span>
+                                    </button>
+                                    <button type="button" @click="clearAiArt()" x-show="design.ai_art && design.ai_art.image_url"
+                                            class="px-3 py-2 text-xs rounded-lg font-semibold" style="background: var(--bg-glass-hover); color: var(--text-primary); border:1px solid var(--border-glass);">
+                                        <i class="fas fa-rotate-left"></i> Use standard QR
+                                    </button>
+                                </div>
+
+                                <div x-show="design.ai_art && design.ai_art.image_url" class="qr-section">
+                                    <p class="text-[10px]" style="color: var(--text-faint);">
+                                        <i class="fas fa-circle-info"></i> Artistic blending reduces scan reliability — always test the final image before sharing. Save to keep this artwork as your QR.
+                                    </p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
                     {{-- EXPORT tab --}}
                     <div x-show="tab === 'export'" x-cloak class="p-3 space-y-3">
                         <div class="qr-section">
@@ -694,6 +767,27 @@ function qrBuilder() {
         bulkBusy: false,
         bulkProgress: 0,
 
+        // AI Artistic QR (Replicate) — availability + form state.
+        qrArt: {
+            enabled: @js($qrArtEnabled),
+            allowed: @js($qrArtAllowed),
+            cost: @js($qrArtCost),
+            balance: @js($qrArtBalance),
+            prompt: '',
+            style: '',
+            negative: '',
+            busy: false,
+            error: '',
+        },
+        aiPresets: [
+            { label: 'Cyberpunk', prompt: 'a neon cyberpunk city street at night, rain-slick road, glowing signs, cinematic lighting' },
+            { label: 'Watercolor', prompt: 'soft watercolor floral painting, pastel petals, delicate brush strokes, paper texture' },
+            { label: 'Nature', prompt: 'a lush forest landscape, sun rays through tall trees, misty morning, photorealistic' },
+            { label: 'Geometric', prompt: 'clean geometric abstract pattern, bold overlapping shapes, minimal flat design' },
+            { label: 'Galaxy', prompt: 'a deep space galaxy, swirling nebula, scattered stars, vivid cosmic colors' },
+            { label: 'Vintage', prompt: 'vintage travel poster illustration, warm retro tones, screen-printed look' },
+        ],
+
         init() {
             this.$watch('payload', () => this.scheduleResolve(), { deep: true });
             this.$watch('type', () => this.scheduleResolve());
@@ -732,6 +826,21 @@ function qrBuilder() {
             this.renderTimer = setTimeout(async () => {
                 if (!window.QrStudio) return;
                 const opts = this.engineOpts(this.encoded || 'preview');
+                // AI Artistic QR — when a generated artwork is active, show the
+                // image instead of the SVG and re-run the scannability heuristic
+                // with an explicit reliability caveat for artistic blending.
+                if (this.design.ai_art && this.design.ai_art.enabled && this.design.ai_art.image_url) {
+                    const at = document.getElementById('qrTarget');
+                    if (at) at.innerHTML = '<img src="' + this.design.ai_art.image_url + '" alt="AI Artistic QR" class="w-full h-auto rounded-lg" />';
+                    try {
+                        if (typeof window.QrStudio.analyzeScannability === 'function') {
+                            const s = window.QrStudio.analyzeScannability(opts) || { score: 0, level: '', issues: [] };
+                            s.issues = [...(s.issues || []), { level: 'warn', text: 'Artistic blending can reduce scan reliability — test the final image before sharing.' }];
+                            this.scan = s;
+                        }
+                    } catch (e) {}
+                    return;
+                }
                 // Preload remote/uploaded logos as data URLs so the SVG (and any
                 // PNG export from it) is fully self-contained and won't taint
                 // the canvas with cross-origin pixels.
@@ -755,6 +864,61 @@ function qrBuilder() {
                     }
                 } catch (e) { this.scan = null; }
             }, 60);
+        },
+
+        async generateArt() {
+            if (!this.qrArt.enabled || !this.qrArt.allowed) return;
+            if (!this.encoded || this.encoded === 'preview') {
+                this.qrArt.error = 'Add your QR content first (left panel).';
+                return;
+            }
+            if (!this.qrArt.prompt.trim()) {
+                this.qrArt.error = 'Describe the artwork you want.';
+                return;
+            }
+            this.qrArt.busy = true;
+            this.qrArt.error = '';
+            try {
+                const fd = new FormData();
+                fd.append('_token', '{{ csrf_token() }}');
+                fd.append('data', this.encoded);
+                fd.append('prompt', this.qrArt.prompt.trim());
+                if (this.qrArt.style) fd.append('style', this.qrArt.style);
+                if (this.qrArt.negative.trim()) fd.append('negative_prompt', this.qrArt.negative.trim());
+                const r = await fetch(@js(route('user.qr-codes.generate-art')), {
+                    method: 'POST', body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) {
+                    this.qrArt.error = j.error || 'Generation failed — please try again.';
+                    if (typeof j.balance === 'number') this.qrArt.balance = j.balance;
+                    return;
+                }
+                this.design.ai_art = {
+                    enabled: true,
+                    image_url: j.image_url,
+                    prompt: this.qrArt.prompt.trim(),
+                    style: this.qrArt.style || null,
+                    data: this.encoded,
+                    scan: this.scan ? { score: this.scan.score, level: this.scan.level } : null,
+                    provider: 'replicate',
+                };
+                if (typeof j.balance === 'number') this.qrArt.balance = j.balance;
+                this.render();
+            } catch (e) {
+                this.qrArt.error = 'Network error — please try again.';
+            } finally {
+                this.qrArt.busy = false;
+            }
+        },
+
+        clearAiArt() {
+            this.design.ai_art = {
+                enabled: false, image_url: null, prompt: null,
+                style: null, data: null, scan: null, provider: 'replicate',
+            };
+            this.render();
         },
 
         engineOpts(data) {
@@ -852,8 +1016,43 @@ function qrBuilder() {
             this.lastResult = result;
             return { result, preload: r };
         },
+        // ---- AI Artistic QR export helpers ----
+        // When an AI artwork is active the exportable QR is the generated raster
+        // image, not a re-rendered geometric SVG. These helpers rasterize that
+        // stored image so PNG/PDF/print exports embed the artwork the user saw.
+        _aiArtActive() {
+            return !!(this.design.ai_art && this.design.ai_art.enabled && this.design.ai_art.image_url);
+        },
+        async _aiArtPngDataUrl(targetPx) {
+            const url = this.design.ai_art.image_url;
+            try {
+                const img = await new Promise((res, rej) => {
+                    const im = new Image();
+                    im.crossOrigin = 'anonymous';
+                    im.onload = () => res(im);
+                    im.onerror = () => rej(new Error('load'));
+                    im.src = url;
+                });
+                const natural = img.naturalWidth || 800;
+                const size = Math.max(targetPx || natural, natural);
+                const c = document.createElement('canvas');
+                c.width = size; c.height = size;
+                c.getContext('2d').drawImage(img, 0, 0, size, size);
+                return c.toDataURL('image/png');
+            } catch (e) {
+                // Cross-origin (e.g. S3/CloudFront without CORS) taints the
+                // canvas — let callers fall back to a direct URL download.
+                return null;
+            }
+        },
         async downloadPng() {
             try {
+                if (this._aiArtActive()) {
+                    const target = Math.max(this.design.size || 800, 400);
+                    const dataUrl = await this._aiArtPngDataUrl(target);
+                    window.QrStudio.downloadDataUrl(dataUrl || this.design.ai_art.image_url, 'qr-code.png');
+                    return;
+                }
                 const { result, preload } = await this._renderForExport();
                 if (!preload.ok) alert('Some logos could not be embedded for download (CORS): ' + Object.keys(preload.errors).join(', '));
                 const target = Math.max(this.design.size || 800, 400);
@@ -864,6 +1063,10 @@ function qrBuilder() {
         },
         async downloadSvg() {
             try {
+                if (this._aiArtActive()) {
+                    alert('AI Artistic QR is a raster image — please use the PNG export instead.');
+                    return;
+                }
                 const { result, preload } = await this._renderForExport();
                 if (!preload.ok) alert('Some logos could not be embedded for download (CORS): ' + Object.keys(preload.errors).join(', '));
                 window.QrStudio.downloadSvg(result.svg, 'qr-code.svg');
@@ -898,12 +1101,21 @@ function qrBuilder() {
             if (this.exporting) return;
             this.exporting = true;
             try {
-                const { result, preload } = await this._renderForExport();
-                if (!preload.ok) alert('Some logos could not be embedded (CORS): ' + Object.keys(preload.errors).join(', '));
-                const ratio = result.height / result.width;
-                const pxPerMm = this.print.dpi / 25.4;
-                const qrPx = Math.max(Math.round(this.print.sizeMm * pxPerMm), result.width);
-                const dataUrl = await window.QrStudio.toPngDataUrl(result.svg, result.width, result.height, Math.max(1, qrPx / result.width));
+                let dataUrl, ratio;
+                if (this._aiArtActive()) {
+                    const pxPerMm = this.print.dpi / 25.4;
+                    const qrPx = Math.max(Math.round(this.print.sizeMm * pxPerMm), 400);
+                    dataUrl = await this._aiArtPngDataUrl(qrPx);
+                    if (!dataUrl) { alert('Could not embed the AI artwork into a PDF (image security). Use the PNG export instead.'); return; }
+                    ratio = 1;
+                } else {
+                    const { result, preload } = await this._renderForExport();
+                    if (!preload.ok) alert('Some logos could not be embedded (CORS): ' + Object.keys(preload.errors).join(', '));
+                    ratio = result.height / result.width;
+                    const pxPerMm = this.print.dpi / 25.4;
+                    const qrPx = Math.max(Math.round(this.print.sizeMm * pxPerMm), result.width);
+                    dataUrl = await window.QrStudio.toPngDataUrl(result.svg, result.width, result.height, Math.max(1, qrPx / result.width));
+                }
                 const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
                 if (!jsPDFCtor) { alert('PDF library failed to load.'); return; }
                 const drawW = this.print.sizeMm;
@@ -921,11 +1133,17 @@ function qrBuilder() {
             if (this.exporting) return;
             this.exporting = true;
             try {
-                const { result, preload } = await this._renderForExport();
-                if (!preload.ok) alert('Some logos could not be embedded (CORS): ' + Object.keys(preload.errors).join(', '));
                 const pxPerMm = this.print.dpi / 25.4;
-                const qrPx = Math.max(Math.round(this.print.sizeMm * pxPerMm), result.width);
-                const dataUrl = await window.QrStudio.toPngDataUrl(result.svg, result.width, result.height, Math.max(1, qrPx / result.width));
+                let dataUrl;
+                if (this._aiArtActive()) {
+                    const qrPx = Math.max(Math.round(this.print.sizeMm * pxPerMm), 400);
+                    dataUrl = await this._aiArtPngDataUrl(qrPx) || this.design.ai_art.image_url;
+                } else {
+                    const { result, preload } = await this._renderForExport();
+                    if (!preload.ok) alert('Some logos could not be embedded (CORS): ' + Object.keys(preload.errors).join(', '));
+                    const qrPx = Math.max(Math.round(this.print.sizeMm * pxPerMm), result.width);
+                    dataUrl = await window.QrStudio.toPngDataUrl(result.svg, result.width, result.height, Math.max(1, qrPx / result.width));
+                }
                 window.QrStudio.downloadDataUrl(dataUrl, 'qr-code-' + this.print.dpi + 'dpi.png');
             } catch (e) { alert('Hi-res PNG export failed: ' + e.message); }
             finally { this.exporting = false; }

@@ -47,6 +47,36 @@ class QrCodeDesignSanitizer
             'logo_background'     => self::sanitizeLogo($d['logo_background'] ?? [], $defaults['logo_background'], $clamp),
             'logo_foreground'     => self::sanitizeLogo($d['logo_foreground'] ?? [], $defaults['logo_foreground'], $clamp),
             'frame'               => self::sanitizeFrame($d['frame'] ?? [], $defaults['frame'], $hex),
+            'ai_art'              => self::sanitizeAiArt($d['ai_art'] ?? []),
+        ];
+    }
+
+    /**
+     * AI Artistic QR metadata. Holds the Replicate-generated artwork URL
+     * (a stored UserFile), the prompt/style that produced it, the encoded
+     * destination, and the last scannability snapshot. The public renderer
+     * uses `image_url` to show the artwork instead of the SVG QR.
+     */
+    private static function sanitizeAiArt($a): array
+    {
+        if (!is_array($a)) $a = [];
+        $url = is_string($a['image_url'] ?? null) && filter_var($a['image_url'], FILTER_VALIDATE_URL)
+            ? mb_substr($a['image_url'], 0, 2000) : null;
+        $scan = null;
+        if (is_array($a['scan'] ?? null)) {
+            $scan = [
+                'score' => (int) max(0, min(100, (int) ($a['scan']['score'] ?? 0))),
+                'level' => is_string($a['scan']['level'] ?? null) ? mb_substr($a['scan']['level'], 0, 16) : null,
+            ];
+        }
+        return [
+            'enabled'   => (bool) ($a['enabled'] ?? false) && $url !== null,
+            'image_url' => $url,
+            'prompt'    => is_string($a['prompt'] ?? null) ? mb_substr(trim($a['prompt']), 0, 600) : null,
+            'style'     => is_string($a['style'] ?? null) ? mb_substr($a['style'], 0, 60) : null,
+            'data'      => is_string($a['data'] ?? null) ? mb_substr($a['data'], 0, 2048) : null,
+            'scan'      => $scan,
+            'provider'  => 'replicate',
         ];
     }
 
@@ -132,6 +162,10 @@ class QrCodeDesignSanitizer
             'frame' => [
                 'template' => 'none', 'text' => 'SCAN ME', 'font' => 'Inter',
                 'bg_color' => '#071437', 'text_color' => '#ffffff',
+            ],
+            'ai_art' => [
+                'enabled' => false, 'image_url' => null, 'prompt' => null,
+                'style' => null, 'data' => null, 'scan' => null, 'provider' => 'replicate',
             ],
         ];
     }

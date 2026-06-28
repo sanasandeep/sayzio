@@ -30,6 +30,13 @@ class AiEngineSettings
     public const KEY_MODELS         = 'ai.models';
     public const KEY_FEATURE_MODELS = 'ai.feature_models';
 
+    // ── AI Artistic QR (Replicate QR-ControlNet) ──────────────────
+    // Replicate token (Crypt-encrypted) with an env fallback, plus the
+    // admin-configurable per-generation coin price for this image API.
+    public const KEY_REPLICATE_KEY_ENC = 'ai.replicate_api_key_enc';
+    public const KEY_QR_ART_COINS      = 'ai.qr_art.coins_per_generation';
+    public const DEFAULT_QR_ART_COINS  = 20;
+
     // ── Voice Assistant (Whisper STT + GPT + ElevenLabs TTS) ──────
     public const KEY_VOICE_ENABLED          = 'ai.voice.enabled';
     public const KEY_VOICE_PLANS            = 'ai.voice.enabled_plans';
@@ -541,6 +548,55 @@ PROMPT;
     public static function setVoiceTurnsPerMinute(int $n): void
     {
         AppSetting::put(self::KEY_VOICE_RATE_PER_MINUTE, max(1, $n));
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // AI Artistic QR (Replicate) accessors
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Decrypted Replicate API token. Prefers the admin-stored (encrypted)
+     * key and falls back to the deploy-time `services.replicate.api_token`
+     * (REPLICATE_API_TOKEN env) so the feature works either way. Returns
+     * null when neither is set — callers treat that as preview/disabled.
+     */
+    public static function replicateKey(): ?string
+    {
+        $stored = self::decryptKey(self::KEY_REPLICATE_KEY_ENC);
+        if ($stored !== null && $stored !== '') {
+            return $stored;
+        }
+        $fallback = config('services.replicate.api_token');
+        return is_string($fallback) && $fallback !== '' ? $fallback : null;
+    }
+
+    public static function setReplicateKey(?string $key): void
+    {
+        self::storeKey(self::KEY_REPLICATE_KEY_ENC, $key);
+    }
+
+    /** Whether an admin-supplied key is stored (vs falling back to env). */
+    public static function hasStoredReplicateKey(): bool
+    {
+        return self::decryptKey(self::KEY_REPLICATE_KEY_ENC) !== null;
+    }
+
+    public static function maskedReplicateKey(): ?string
+    {
+        $k = self::replicateKey();
+        if (!$k) return null;
+        return 'r8_•••••••' . substr($k, -4);
+    }
+
+    /** Admin-set coins charged per AI Artistic QR generation (>= 1). */
+    public static function qrArtCoinsPerGeneration(): int
+    {
+        return max(1, (int) AppSetting::get(self::KEY_QR_ART_COINS, self::DEFAULT_QR_ART_COINS));
+    }
+
+    public static function setQrArtCoinsPerGeneration(int $n): void
+    {
+        AppSetting::put(self::KEY_QR_ART_COINS, max(1, $n));
     }
 
     private static function decryptKey(string $key): ?string

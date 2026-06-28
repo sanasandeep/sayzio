@@ -335,6 +335,46 @@
         @endif
     </div>
 
+    {{-- AI Artistic QR (Replicate QR-ControlNet) --}}
+    <div class="glass rounded-2xl border border-white/10 p-6 space-y-5">
+        <div>
+            <h3 class="font-semibold text-white">AI Artistic QR</h3>
+            <p class="text-xs text-white/40">
+                Weaves a scannable QR into AI-generated artwork via Replicate's QR-ControlNet model.
+                Without a token the QR Studio "AI Artistic" tab runs in preview / disabled mode.
+            </p>
+        </div>
+
+        <div>
+            <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Replicate API token</label>
+            @if($hasStoredReplicateKey)
+                <p class="text-xs text-white/60 mb-2">Stored: <span class="font-mono text-amber-300">{{ $maskedReplicateKey }}</span></p>
+            @elseif($hasReplicateKey)
+                <p class="text-xs text-white/60 mb-2">Using environment token <span class="font-mono text-amber-300">{{ $maskedReplicateKey }}</span> (<code>REPLICATE_API_TOKEN</code>).</p>
+            @else
+                <p class="text-xs text-amber-300/80 mb-2">No token configured — AI Artistic QR is in preview / disabled mode.</p>
+            @endif
+            <input type="password" name="replicate_api_key" autocomplete="off"
+                   placeholder="{{ $hasStoredReplicateKey ? 'Paste a new token to replace' : 'r8_…' }}"
+                   class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+            @if($hasStoredReplicateKey)
+                <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
+                    <input type="hidden" name="clear_replicate_api_key" value="0">
+                    <input type="checkbox" name="clear_replicate_api_key" value="1" class="accent-red-500">
+                    Remove the stored token (fall back to the environment value, if any)
+                </label>
+            @endif
+            <p class="text-[11px] text-white/30 mt-1">Encrypted at rest. Falls back to <code>REPLICATE_API_TOKEN</code> when no token is stored here.</p>
+        </div>
+
+        <div class="pt-4 border-t border-white/10">
+            <label class="text-white/70 text-xs">Coins charged per generation</label>
+            <input type="number" min="1" max="100000" step="1" name="qr_art_coins" value="{{ $qrArtCoins }}"
+                   class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+            <p class="text-[11px] text-white/30 mt-1">Flat coin price billed from the user's wallet for each AI Artistic QR (auto-refunded if generation fails).</p>
+        </div>
+    </div>
+
     <div class="flex items-center justify-between">
         <a href="{{ route('admin.ai-usage.index') }}" class="text-xs text-blue-300 hover:underline">
             View AI usage report →

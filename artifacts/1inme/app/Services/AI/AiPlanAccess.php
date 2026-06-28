@@ -172,6 +172,9 @@ class AiPlanAccess
             // Brand consistency score + On-Brand AI (Task #2664) — legacy-safe
             // default-on; per-plan unlock applies once plans carry the key.
             'brand_consistency'  => true,
+            // AI Artistic QR — no per-plan gating before this; keep it on by
+            // default so the per-plan flag is purely additive when seeded.
+            'qr_art'             => true,
             default              => true,
         };
     }

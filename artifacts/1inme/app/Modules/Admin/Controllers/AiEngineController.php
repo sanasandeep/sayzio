@@ -57,6 +57,12 @@ class AiEngineController extends Controller
             'voicePriceStt'        => AiEngineSettings::voiceSttCoinsPerMinute(),
             'voicePriceTts'        => AiEngineSettings::voiceTtsCoinsPer1kChars(),
             'voiceRateLimit'       => AiEngineSettings::voiceTurnsPerMinute(),
+
+            // AI Artistic QR (Replicate)
+            'maskedReplicateKey'    => AiEngineSettings::maskedReplicateKey(),
+            'hasReplicateKey'       => AiEngineSettings::replicateKey() !== null,
+            'hasStoredReplicateKey' => AiEngineSettings::hasStoredReplicateKey(),
+            'qrArtCoins'            => AiEngineSettings::qrArtCoinsPerGeneration(),
         ]);
     }
 
@@ -90,6 +96,11 @@ class AiEngineController extends Controller
             'voice_price_stt'               => 'nullable|numeric|min:0|max:100000',
             'voice_price_tts'               => 'nullable|numeric|min:0|max:100000',
             'voice_rate_per_minute'         => 'nullable|integer|min:1|max:600',
+
+            // AI Artistic QR (Replicate)
+            'replicate_api_key'             => 'nullable|string|max:255',
+            'clear_replicate_api_key'       => 'nullable|boolean',
+            'qr_art_coins'                  => 'nullable|integer|min:1|max:100000',
         ]);
 
         // Validate that no AI feature ends up pointing at a missing,
@@ -201,6 +212,16 @@ class AiEngineController extends Controller
         }
         if (isset($data['voice_rate_per_minute'])) {
             AiEngineSettings::setVoiceTurnsPerMinute((int) $data['voice_rate_per_minute']);
+        }
+
+        // AI Artistic QR (Replicate)
+        if ($request->boolean('clear_replicate_api_key')) {
+            AiEngineSettings::setReplicateKey(null);
+        } elseif (!empty($data['replicate_api_key'])) {
+            AiEngineSettings::setReplicateKey($data['replicate_api_key']);
+        }
+        if (isset($data['qr_art_coins'])) {
+            AiEngineSettings::setQrArtCoinsPerGeneration((int) $data['qr_art_coins']);
         }
 
         return redirect()->route('admin.ai-engine.edit')
