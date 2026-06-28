@@ -33,18 +33,71 @@ export async function getInvoice(id: number): Promise<InvoiceDetail> {
   return res.data.invoice;
 }
 
+export type InvoiceLineInput = {
+  label: string;
+  amount_minor: number;
+  quantity?: number;
+  tax_rate_bps?: number;
+  tax_name?: string;
+  tax_inclusive?: boolean;
+  catalog_item_id?: number;
+};
+
 export async function createInvoice(input: {
   currency?: string;
   recipient_email?: string;
   vault_client_id?: number;
+  billing_company_id?: number;
   notes_md?: string;
   due_date?: string;
+  discount_minor?: number;
+  inbox_thread_id?: number;
+  line_items?: InvoiceLineInput[];
 }): Promise<Invoice> {
   const res = await apiFetch<{ data: { invoice: Invoice } }>(
     "/billing/invoices",
     { method: "POST", body: JSON.stringify(input) },
   );
   return res.data.invoice;
+}
+
+export async function markInvoicePaid(
+  id: number,
+  input: { method?: string; reference?: string; email_receipt?: boolean } = {},
+): Promise<Invoice> {
+  const res = await apiFetch<{ data: { invoice: Invoice } }>(
+    `/billing/invoices/${id}/mark-paid`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data.invoice;
+}
+
+export async function refundInvoice(
+  id: number,
+  input: { amount_minor?: number; reason?: string } = {},
+): Promise<Invoice> {
+  const res = await apiFetch<{ data: { invoice: Invoice } }>(
+    `/billing/invoices/${id}/refund`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data.invoice;
+}
+
+export type InvoiceReceipt = {
+  id: number;
+  number: string | null;
+  method: string | null;
+  gateway: string | null;
+  gateway_ref: string | null;
+  created_at: string | null;
+  invoice: Invoice;
+};
+
+export async function getInvoiceReceipt(id: number): Promise<InvoiceReceipt> {
+  const res = await apiFetch<{ data: { receipt: InvoiceReceipt } }>(
+    `/billing/invoices/${id}/receipt`,
+  );
+  return res.data.receipt;
 }
 
 export async function updateInvoice(

@@ -16,6 +16,9 @@ class Invoice extends Model
         // Client-invoice (kanban -> Stripe) extensions:
         'kind', 'workspace_id', 'vault_client_id', 'recipient_email',
         'discount_minor', 'due_date', 'notes_md', 'sent_at',
+        // Invoicing & accounting suite extensions:
+        'billing_company_id', 'recurring_invoice_id', 'inbox_thread_id',
+        'amount_paid_minor', 'paid_method',
     ];
 
     protected function casts(): array
@@ -34,7 +37,39 @@ class Invoice extends Model
             'discount_minor'           => 'integer',
             'due_date'                 => 'date',
             'sent_at'                  => 'datetime',
+            'amount_paid_minor'        => 'integer',
         ];
+    }
+
+    public function billingCompany()
+    {
+        return $this->belongsTo(\App\Modules\User\Models\BillingCompany::class, 'billing_company_id');
+    }
+
+    public function recurringInvoice()
+    {
+        return $this->belongsTo(\App\Modules\User\Models\RecurringInvoice::class, 'recurring_invoice_id');
+    }
+
+    public function receipts()
+    {
+        return $this->hasMany(\App\Modules\User\Models\Receipt::class);
+    }
+
+    public function latestReceipt()
+    {
+        return $this->hasOne(\App\Modules\User\Models\Receipt::class)->latestOfMany();
+    }
+
+    /** Net amount still owed after partial payments + refunds. */
+    public function refundedTotalMinor(): int
+    {
+        return (int) $this->refunds()->where('status', 'succeeded')->sum('amount_minor');
+    }
+
+    public function balanceMinor(): int
+    {
+        return max(0, (int) $this->grand_total_minor - (int) $this->amount_paid_minor);
     }
 
     public function isClientInvoice(): bool

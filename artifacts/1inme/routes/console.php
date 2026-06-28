@@ -459,3 +459,12 @@ Schedule::command('email-logs:prune-history')
     ->dailyAt('04:25')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Daily: generate concrete client invoices from active recurring-invoice
+// templates whose next_run_date is due, then advance each template's
+// schedule. Idempotent per template per due date (next_run_date is advanced
+// after each run), so a missed day self-heals on the next run.
+Schedule::command('invoices:run-recurring')
+    ->dailyAt('06:00')
+    ->withoutOverlapping()
+    ->onOneServer();

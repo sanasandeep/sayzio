@@ -93,19 +93,40 @@ class BillingController extends Controller
      * can then PATCH it to add line items, set a recipient and discount,
      * and POST /send to email the hosted pay link.
      */
-    public function storeInvoice(Request $request)
+    public function storeInvoice(Request $request, ClientInvoiceService $svc)
     {
         $data = $request->validate([
-            'currency'        => 'nullable|string|size:3',
-            'recipient_email' => 'nullable|email|max:190',
-            'vault_client_id' => 'nullable|integer',
-            'notes_md'        => 'nullable|string|max:4000',
-            'due_date'        => 'nullable|date',
+            'currency'                     => 'nullable|string|size:3',
+            'recipient_email'              => 'nullable|email|max:190',
+            'vault_client_id'              => 'nullable|integer',
+            'billing_company_id'           => 'nullable|integer',
+            'notes_md'                     => 'nullable|string|max:4000',
+            'due_date'                     => 'nullable|date',
+            'discount_minor'               => 'nullable|integer|min:0',
+            'inbox_thread_id'              => 'nullable|integer',
+            'line_items'                   => 'nullable|array',
+            'line_items.*.label'           => 'required_with:line_items|string|max:240',
+            'line_items.*.amount_minor'    => 'required_with:line_items|integer|min:0',
+            'line_items.*.quantity'        => 'nullable|integer|min:1|max:9999',
+            'line_items.*.tax_rate_bps'    => 'nullable|integer|min:0|max:100000',
+            'line_items.*.tax_name'        => 'nullable|string|max:64',
+            'line_items.*.tax_inclusive'   => 'nullable|boolean',
+            'line_items.*.catalog_item_id' => 'nullable|integer',
         ]);
 
         $user = $request->user();
         $ws   = $this->ctx->resolve($user);
         if (!$ws) return $this->fail('No active workspace.', 422);
+
+        // Standalone create: when line items are supplied, build a fully
+        // costed invoice via the shared calculator (web/API/mobile parity).
+        if (!empty($data['line_items'])) {
+            $invoice = $svc->createStandalone($data, $ws, (int) $user->id);
+            if (($thread = (int) ($data['inbox_thread_id'] ?? 0)) && \Illuminate\Support\Facades\Schema::hasTable('inbox_thread_conversions')) {
+                DB::table('inbox_thread_conversions')->where('thread_id', $thread)->update(['invoice_id' => $invoice->id]);
+            }
+            return $this->created(['invoice' => $this->transformInvoice($invoice)]);
+        }
 
         $invoice = DB::transaction(function () use ($user, $ws, $data) {
             $fy     = \App\Services\InvoiceService::financialYearFor(now());
@@ -212,7 +233,7 @@ class BillingController extends Controller
         return $this->noContent();
     }
 
-    public function sendInvoice(Request $request, int $id)
+    public function sendInvoice(Request $request, ClientInvoiceService $svc, int $id)
     {
         $invoice = $this->findClientInvoice($request, $id);
         if (!$invoice) return $this->notFound('Invoice not found');
@@ -228,31 +249,74 @@ class BillingController extends Controller
             return $this->fail('Pick a recipient email before sending.', 422);
         }
 
-        $invoice->forceFill([
-            'status'  => $invoice->status === 'draft' ? 'sent' : $invoice->status,
-            'sent_at' => now(),
-        ])->save();
-
+        // Reuse the shared send path (delivers, then stamps sent_at) so a
+        // transport failure is surfaced to the caller instead of swallowed.
         $payUrl = URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
-
         try {
-            \App\Modules\Common\Services\Emailer::send('billing.client_invoice', $invoice->recipient_email, [
-                'invoice_number' => $invoice->number,
-                'pay_url'        => $payUrl,
-            ], [
-                'user'      => $invoice->user_id,
-                'related'   => $invoice,
-                'view_data' => ['invoice' => $invoice, 'payUrl' => $payUrl],
-            ]);
+            $svc->markSent($invoice);
         } catch (\Throwable $e) {
-            // Email transport failure shouldn't block the sent_at stamp -
-            // the pay URL is still returned to the caller.
+            report($e);
+            return $this->fail('Could not send the invoice email. The pay link is still available to share manually.', 502, null, [
+                'pay_url' => $payUrl,
+            ]);
         }
 
         return $this->ok([
             'invoice' => $this->transformInvoice($invoice->refresh()),
             'pay_url' => $payUrl,
         ]);
+    }
+
+    /** Owner marks an invoice paid manually (cash / bank transfer / etc). */
+    public function markPaidInvoice(Request $request, ClientInvoiceService $svc, int $id)
+    {
+        $invoice = $this->findClientInvoice($request, $id);
+        if (!$invoice) return $this->notFound('Invoice not found');
+        if ($invoice->status === 'paid') return $this->fail('Invoice already paid.', 422);
+
+        $data = $request->validate([
+            'method'        => 'nullable|string|max:32',
+            'reference'     => 'nullable|string|max:190',
+            'email_receipt' => 'nullable|boolean',
+        ]);
+        $svc->markPaidManual($invoice, $data['method'] ?? 'manual', $data['reference'] ?? null);
+        if (!empty($data['email_receipt'])) {
+            $svc->emailReceipt($invoice->fresh());
+        }
+        return $this->ok(['invoice' => $this->transformInvoice($invoice->refresh())]);
+    }
+
+    /** Issue a full or partial refund against a paid invoice. */
+    public function refundInvoice(Request $request, ClientInvoiceService $svc, int $id)
+    {
+        $invoice = $this->findClientInvoice($request, $id);
+        if (!$invoice) return $this->notFound('Invoice not found');
+        if ($invoice->status !== 'paid') return $this->fail('Only paid invoices can be refunded.', 422);
+
+        $data = $request->validate([
+            'amount_minor' => 'nullable|integer|min:0',
+            'reason'       => 'nullable|string|max:240',
+        ]);
+        $svc->refund($invoice, (int) ($data['amount_minor'] ?? 0), $data['reason'] ?? null, true);
+        return $this->ok(['invoice' => $this->transformInvoice($invoice->refresh())]);
+    }
+
+    /** Latest receipt for a paid invoice. */
+    public function invoiceReceipt(Request $request, int $id)
+    {
+        $invoice = $this->findClientInvoice($request, $id);
+        if (!$invoice) return $this->notFound('Invoice not found');
+        $receipt = \App\Modules\User\Models\Receipt::where('invoice_id', $invoice->id)->latest('id')->first();
+        if (!$receipt) return $this->notFound('No receipt yet.');
+        return $this->ok(['receipt' => [
+            'id'         => $receipt->id,
+            'number'     => $receipt->number,
+            'method'     => $receipt->method,
+            'gateway'    => $receipt->gateway,
+            'gateway_ref'=> $receipt->gateway_ref,
+            'created_at' => optional($receipt->created_at)->toIso8601String(),
+            'invoice'    => $this->transformInvoice($invoice),
+        ]]);
     }
 
     protected function findClientInvoice(Request $request, int $id): ?Invoice

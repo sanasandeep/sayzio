@@ -1458,9 +1458,59 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::prefix('client-invoices')->name('client-invoices.')->middleware('workspace.can:tasks.view')->group(function () {
             Route::get('/',                          [\App\Modules\User\Controllers\ClientInvoiceController::class, 'dashboard'])->name('dashboard');
             Route::post('drafts',                    [\App\Modules\User\Controllers\ClientInvoiceController::class, 'createDraft'])->middleware('workspace.can:tasks.edit')->name('draft');
+            Route::get('create',                     [\App\Modules\User\Controllers\ClientInvoiceController::class, 'create'])->middleware('workspace.can:tasks.edit')->name('create');
+            Route::post('/',                         [\App\Modules\User\Controllers\ClientInvoiceController::class, 'store'])->middleware('workspace.can:tasks.edit')->name('store');
             Route::get('{invoice}',                  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'edit'])->name('edit');
             Route::put('{invoice}',                  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'update'])->middleware('workspace.can:tasks.edit')->name('update');
             Route::post('{invoice}/send',            [\App\Modules\User\Controllers\ClientInvoiceController::class, 'send'])->middleware('workspace.can:tasks.edit')->name('send');
+            Route::post('{invoice}/mark-paid',       [\App\Modules\User\Controllers\ClientInvoiceController::class, 'markPaid'])->middleware('workspace.can:tasks.edit')->name('mark-paid');
+            Route::post('{invoice}/refund',          [\App\Modules\User\Controllers\ClientInvoiceController::class, 'refund'])->middleware('workspace.can:tasks.edit')->name('refund');
+            Route::get('{invoice}/receipt',          [\App\Modules\User\Controllers\ClientInvoiceController::class, 'receipt'])->name('receipt');
+        });
+
+        // ---- Invoicing & Accounting Suite ----
+        Route::prefix('billing')->name('billing.')->middleware('workspace.can:tasks.view')->group(function () {
+            // Billing companies (issuing legal entities).
+            Route::get('companies',                  [\App\Modules\User\Controllers\BillingCompanyController::class, 'index'])->name('companies.index');
+            Route::get('companies/create',           [\App\Modules\User\Controllers\BillingCompanyController::class, 'create'])->middleware('workspace.can:tasks.edit')->name('companies.create');
+            Route::post('companies',                 [\App\Modules\User\Controllers\BillingCompanyController::class, 'store'])->middleware('workspace.can:tasks.edit')->name('companies.store');
+            Route::get('companies/{company}/edit',   [\App\Modules\User\Controllers\BillingCompanyController::class, 'edit'])->middleware('workspace.can:tasks.edit')->name('companies.edit');
+            Route::put('companies/{company}',        [\App\Modules\User\Controllers\BillingCompanyController::class, 'update'])->middleware('workspace.can:tasks.edit')->name('companies.update');
+            Route::delete('companies/{company}',     [\App\Modules\User\Controllers\BillingCompanyController::class, 'destroy'])->middleware('workspace.can:tasks.edit')->name('companies.destroy');
+
+            // Tax rules.
+            Route::get('tax-rules',                  [\App\Modules\User\Controllers\TaxRuleController::class, 'index'])->name('tax-rules.index');
+            Route::post('tax-rules',                 [\App\Modules\User\Controllers\TaxRuleController::class, 'store'])->middleware('workspace.can:tasks.edit')->name('tax-rules.store');
+            Route::put('tax-rules/{taxRule}',        [\App\Modules\User\Controllers\TaxRuleController::class, 'update'])->middleware('workspace.can:tasks.edit')->name('tax-rules.update');
+            Route::delete('tax-rules/{taxRule}',     [\App\Modules\User\Controllers\TaxRuleController::class, 'destroy'])->middleware('workspace.can:tasks.edit')->name('tax-rules.destroy');
+
+            // Catalog (categories + items).
+            Route::get('catalog',                    [\App\Modules\User\Controllers\CatalogController::class, 'index'])->name('catalog.index');
+            Route::post('catalog/categories',        [\App\Modules\User\Controllers\CatalogController::class, 'storeCategory'])->middleware('workspace.can:tasks.edit')->name('catalog.categories.store');
+            Route::delete('catalog/categories/{category}', [\App\Modules\User\Controllers\CatalogController::class, 'destroyCategory'])->middleware('workspace.can:tasks.edit')->name('catalog.categories.destroy');
+            Route::post('catalog/items',             [\App\Modules\User\Controllers\CatalogController::class, 'storeItem'])->middleware('workspace.can:tasks.edit')->name('catalog.items.store');
+            Route::put('catalog/items/{item}',       [\App\Modules\User\Controllers\CatalogController::class, 'updateItem'])->middleware('workspace.can:tasks.edit')->name('catalog.items.update');
+            Route::delete('catalog/items/{item}',    [\App\Modules\User\Controllers\CatalogController::class, 'destroyItem'])->middleware('workspace.can:tasks.edit')->name('catalog.items.destroy');
+
+            // Expenses.
+            Route::get('expenses',                   [\App\Modules\User\Controllers\ExpenseController::class, 'index'])->name('expenses.index');
+            Route::post('expenses',                  [\App\Modules\User\Controllers\ExpenseController::class, 'store'])->middleware('workspace.can:tasks.edit')->name('expenses.store');
+            Route::put('expenses/{expense}',         [\App\Modules\User\Controllers\ExpenseController::class, 'update'])->middleware('workspace.can:tasks.edit')->name('expenses.update');
+            Route::delete('expenses/{expense}',      [\App\Modules\User\Controllers\ExpenseController::class, 'destroy'])->middleware('workspace.can:tasks.edit')->name('expenses.destroy');
+
+            // Recurring invoices.
+            Route::get('recurring',                  [\App\Modules\User\Controllers\RecurringInvoiceController::class, 'index'])->name('recurring.index');
+            Route::get('recurring/create',           [\App\Modules\User\Controllers\RecurringInvoiceController::class, 'create'])->middleware('workspace.can:tasks.edit')->name('recurring.create');
+            Route::post('recurring',                 [\App\Modules\User\Controllers\RecurringInvoiceController::class, 'store'])->middleware('workspace.can:tasks.edit')->name('recurring.store');
+            Route::get('recurring/{recurring}/edit', [\App\Modules\User\Controllers\RecurringInvoiceController::class, 'edit'])->middleware('workspace.can:tasks.edit')->name('recurring.edit');
+            Route::put('recurring/{recurring}',      [\App\Modules\User\Controllers\RecurringInvoiceController::class, 'update'])->middleware('workspace.can:tasks.edit')->name('recurring.update');
+            Route::delete('recurring/{recurring}',   [\App\Modules\User\Controllers\RecurringInvoiceController::class, 'destroy'])->middleware('workspace.can:tasks.edit')->name('recurring.destroy');
+            Route::post('recurring/{recurring}/toggle', [\App\Modules\User\Controllers\RecurringInvoiceController::class, 'toggle'])->middleware('workspace.can:tasks.edit')->name('recurring.toggle');
+            Route::post('recurring/{recurring}/run', [\App\Modules\User\Controllers\RecurringInvoiceController::class, 'runNow'])->middleware('workspace.can:tasks.edit')->name('recurring.run');
+
+            // Ledger / P&L report.
+            Route::get('ledger',                     [\App\Modules\User\Controllers\LedgerController::class, 'index'])->name('ledger.index');
+            Route::get('ledger/export',              [\App\Modules\User\Controllers\LedgerController::class, 'export'])->name('ledger.export');
         });
 
         // ---- Workspace Vault: encrypted credentials + client records ----

@@ -2,11 +2,16 @@
 
 namespace App\Services\Billing;
 
+use App\Modules\User\Models\BillingCompany;
+use App\Modules\User\Models\CreditNote;
 use App\Modules\User\Models\FeedEvent;
 use App\Modules\User\Models\Invoice;
+use App\Modules\User\Models\Receipt;
+use App\Modules\User\Models\Refund;
 use App\Modules\User\Models\TaskActivity;
 use App\Modules\User\Models\TaskCard;
 use App\Modules\User\Models\TaskTimeEntry;
+use App\Modules\User\Models\TaxRule;
 use App\Modules\User\Models\Workspace;
 use App\Services\InvoiceService;
 use Illuminate\Support\Collection;
@@ -87,9 +92,9 @@ class ClientInvoiceService
      *
      * Idempotent: re-entrant deliveries return immediately.
      */
-    public function markPaid(Invoice $invoice, string $gateway, ?string $gatewayRef = null): Invoice
+    public function markPaid(Invoice $invoice, string $gateway, ?string $gatewayRef = null, bool $manual = false): Invoice
     {
-        return DB::transaction(function () use ($invoice, $gateway, $gatewayRef) {
+        return DB::transaction(function () use ($invoice, $gateway, $gatewayRef, $manual) {
             /** @var Invoice $fresh */
             $fresh = Invoice::query()->withoutGlobalScopes()
                 ->whereKey($invoice->id)->lockForUpdate()->firstOrFail();
@@ -97,11 +102,19 @@ class ClientInvoiceService
                 return $fresh;
             }
 
+            // A manual payment can carry a specific method label (bank_transfer,
+            // cash, card, other) in $gateway while the category stays "manual".
+            $isManual = $manual || $gateway === 'manual';
+
             $fresh->forceFill([
-                'status'  => 'paid',
-                'gateway' => $gateway,
-                'paid_at' => now(),
+                'status'            => 'paid',
+                'gateway'           => $gateway,
+                'paid_at'           => now(),
+                'amount_paid_minor' => (int) $fresh->grand_total_minor,
+                'paid_method'       => $isManual ? 'manual' : 'online',
             ])->save();
+
+            $this->generateReceipt($fresh, $isManual ? 'manual' : 'online', $gateway, $gatewayRef);
 
             $cards = TaskCard::query()->withoutGlobalScopes()
                 ->whereIn('id', DB::table('client_invoice_cards')->where('invoice_id', $fresh->id)->pluck('card_id'))
@@ -152,11 +165,256 @@ class ClientInvoiceService
         });
     }
 
+    /**
+     * Create a standalone client invoice (not derived from kanban cards):
+     * pick a billing company + client + free-form/catalog line items + tax
+     * + discount + due date + notes. Numbering reuses the shared counter.
+     */
+    public function createStandalone(array $data, Workspace $ws, int $userId): Invoice
+    {
+        $company = isset($data['billing_company_id'])
+            ? BillingCompany::query()->where('user_id', $userId)->find($data['billing_company_id'])
+            : null;
+
+        $currency = strtoupper((string) ($data['currency']
+            ?? $company?->default_currency
+            ?? $ws->currency
+            ?? config('billing.merchant.currency', 'USD')));
+
+        return DB::transaction(function () use ($data, $ws, $userId, $currency, $company) {
+            $invoice = $this->reserveDraftInvoice($ws, $userId, $currency, $company);
+            $invoice->forceFill(array_filter([
+                'billing_company_id' => $company?->id,
+                'vault_client_id'    => $data['vault_client_id'] ?? null,
+                'recipient_email'    => $data['recipient_email'] ?? null,
+                'due_date'           => $data['due_date'] ?? null,
+                'notes_md'           => $data['notes_md'] ?? null,
+                'inbox_thread_id'    => $data['inbox_thread_id'] ?? null,
+            ], fn ($v) => $v !== null));
+            if ($company) {
+                $invoice->merchant_snapshot = $company->toSnapshot();
+            }
+            $invoice->save();
+
+            $this->applyEdits($invoice, $data, $company);
+            return $invoice->fresh();
+        });
+    }
+
+    /**
+     * Recompute line items + tax + discount via the shared calculator and
+     * persist totals. `$data['line_items']` each may carry tax_rate_bps /
+     * tax_inclusive / tax_name or a catalog_item_id; otherwise the company
+     * default tax rule applies.
+     */
+    public function applyEdits(Invoice $invoice, array $data, ?BillingCompany $company = null): Invoice
+    {
+        $company = $company
+            ?: ($invoice->billing_company_id ? BillingCompany::find($invoice->billing_company_id) : null);
+
+        $fallbackRule = $company?->default_tax_rule_id
+            ? TaxRule::find($company->default_tax_rule_id)
+            : null;
+
+        $items = is_array($data['line_items'] ?? null)
+            ? array_values($data['line_items'])
+            : (is_array($invoice->line_items) ? $invoice->line_items : []);
+
+        $discount = (int) ($data['discount_minor'] ?? $invoice->discount_minor ?? 0);
+
+        $calc = app(InvoiceCalculator::class)->compute($items, $discount, $fallbackRule);
+
+        $invoice->forceFill([
+            'line_items'        => $calc['line_items'],
+            'subtotal_minor'    => $calc['subtotal_minor'],
+            'discount_minor'    => $calc['discount_minor'],
+            'tax_total_minor'   => $calc['tax_total_minor'],
+            'tax_breakdown'     => $calc['tax_breakdown'],
+            'grand_total_minor' => $calc['grand_total_minor'],
+        ])->save();
+
+        return $invoice;
+    }
+
+    /**
+     * Owner-initiated "mark as paid": records method/date manually and
+     * generates a receipt. Idempotent on already-paid invoices.
+     */
+    public function markPaidManual(Invoice $invoice, ?string $method = 'manual', ?string $reference = null): Invoice
+    {
+        // markPaid() records amount_paid_minor + paid_method=manual and issues
+        // the receipt; the specific $method (bank_transfer/cash/card/other) is
+        // preserved as the gateway label, and $reference as the gateway ref.
+        return $this->markPaid($invoice, $method ?: 'manual', $reference, true);
+    }
+
+    /**
+     * Stamp an invoice as sent and email a hosted pay link. Centralizes the
+     * web controller's send flow so the API + recurring auto-send reuse it.
+     */
+    public function markSent(Invoice $invoice): Invoice
+    {
+        if (!$invoice->recipient_email) {
+            abort(422, 'Pick a recipient email before sending.');
+        }
+
+        // Deliver first so a synchronous transport failure surfaces to the
+        // caller (the sent_at stamp is only written once delivery succeeds).
+        $payUrl = \Illuminate\Support\Facades\URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
+        \App\Modules\Common\Services\Emailer::send('billing.client_invoice', $invoice->recipient_email, [
+            'invoice_number' => $invoice->number,
+            'pay_url'        => $payUrl,
+        ], [
+            'user'      => $invoice->user_id,
+            'related'   => $invoice,
+            'view_data' => ['invoice' => $invoice, 'payUrl' => $payUrl],
+        ]);
+
+        $invoice->forceFill([
+            'status'  => $invoice->status === 'draft' ? 'sent' : $invoice->status,
+            'sent_at' => now(),
+        ])->save();
+
+        return $invoice;
+    }
+
+    /**
+     * Email a receipt PDF/link to the invoice recipient (after payment).
+     */
+    public function emailReceipt(Invoice $invoice): ?Receipt
+    {
+        $receipt = Receipt::where('invoice_id', $invoice->id)->latest('id')->first();
+        if (!$receipt || !$invoice->recipient_email) return $receipt;
+
+        \App\Modules\Common\Services\Emailer::send('billing.receipt', $invoice->recipient_email, [
+            'receipt_number' => $receipt->number,
+            'invoice_number' => $invoice->number,
+            'amount'         => number_format($receipt->amount_minor / 100, 2),
+            'currency'       => $receipt->currency,
+        ], [
+            'user'      => $invoice->user_id,
+            'related'   => $invoice,
+            'view_data' => ['invoice' => $invoice, 'receipt' => $receipt],
+        ]);
+
+        return $receipt;
+    }
+
+    /**
+     * Generate (once) a receipt for a paid invoice. Returns the existing
+     * receipt on re-entry so online + manual paths can't double-issue.
+     */
+    public function generateReceipt(Invoice $invoice, string $methodKind, string $gateway, ?string $ref = null): Receipt
+    {
+        $existing = Receipt::where('invoice_id', $invoice->id)->first();
+        if ($existing) return $existing;
+
+        return DB::transaction(function () use ($invoice, $methodKind, $gateway, $ref) {
+            $fy     = InvoiceService::financialYearFor(now());
+            $prefix = (string) config('billing.receipt.prefix', 'RCP');
+            $pad    = (int) config('billing.invoice.pad', 5);
+
+            DB::table('invoice_counters')->insertOrIgnore([
+                'financial_year' => $fy, 'prefix' => $prefix, 'last_seq' => 0,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $row = DB::table('invoice_counters')
+                ->where('financial_year', $fy)->where('prefix', $prefix)
+                ->lockForUpdate()->first();
+            $next = ((int) $row->last_seq) + 1;
+            DB::table('invoice_counters')->where('id', $row->id)
+                ->update(['last_seq' => $next, 'updated_at' => now()]);
+
+            $number = sprintf('%s/%s/%s', $prefix, $fy, str_pad((string) $next, $pad, '0', STR_PAD_LEFT));
+
+            return Receipt::create([
+                'number'             => $number,
+                'financial_year'     => $fy,
+                'seq'                => $next,
+                'invoice_id'         => $invoice->id,
+                'user_id'            => $invoice->user_id,
+                'billing_company_id' => $invoice->billing_company_id,
+                'currency'           => $invoice->currency,
+                'amount_minor'       => (int) $invoice->grand_total_minor,
+                'method'             => $methodKind === 'manual' ? 'manual' : 'online',
+                'gateway'            => $gateway,
+                'gateway_ref'        => $ref,
+                'paid_at'            => $invoice->paid_at ?: now(),
+                'snapshot'           => [
+                    'invoice_number' => $invoice->number,
+                    'line_items'     => $invoice->line_items,
+                    'merchant'       => $invoice->merchant_snapshot,
+                    'recipient'      => $invoice->recipient_email,
+                ],
+                'issued_at'          => now(),
+            ]);
+        });
+    }
+
+    /**
+     * Issue a full/partial refund against a paid invoice. Records a Refund
+     * + CreditNote (the reversing ledger entry) and downgrades the invoice
+     * status to refunded / partially_refunded.
+     */
+    public function refund(Invoice $invoice, int $amountMinor, ?string $reason = null, bool $userInitiated = true): Refund
+    {
+        if ($invoice->status !== 'paid' && $invoice->status !== 'partially_refunded') {
+            abort(422, 'Only paid invoices can be refunded.');
+        }
+        $alreadyRefunded = $invoice->refundedTotalMinor();
+        $remaining = max(0, (int) $invoice->grand_total_minor - $alreadyRefunded);
+        $amountMinor = (int) $amountMinor;
+        if ($amountMinor <= 0) $amountMinor = $remaining;
+        if ($amountMinor > $remaining) {
+            abort(422, 'Refund exceeds the refundable balance.');
+        }
+
+        return DB::transaction(function () use ($invoice, $amountMinor, $reason, $userInitiated, $alreadyRefunded) {
+            $refund = Refund::create([
+                'invoice_id'     => $invoice->id,
+                'user_id'        => $invoice->user_id,
+                'amount_minor'   => $amountMinor,
+                'currency'       => $invoice->currency,
+                'status'         => 'succeeded',
+                'gateway'        => $invoice->gateway ?: 'manual',
+                'gateway_ref'    => 'refund_' . \Illuminate\Support\Str::random(12),
+                'reason'         => $reason,
+                'user_initiated' => $userInitiated,
+                'processed_at'   => now(),
+            ]);
+
+            // Reversing ledger entry.
+            $fy = InvoiceService::financialYearFor(now());
+            CreditNote::create([
+                'number'         => 'CN/' . $fy . '/' . $refund->id,
+                'financial_year' => $fy,
+                'seq'            => $refund->id,
+                'refund_id'      => $refund->id,
+                'invoice_id'     => $invoice->id,
+                'user_id'        => $invoice->user_id,
+                'currency'       => $invoice->currency,
+                'amount_minor'   => $amountMinor,
+                'snapshot'       => ['invoice_number' => $invoice->number, 'reason' => $reason],
+                'issued_at'      => now(),
+            ]);
+
+            $totalRefunded = $alreadyRefunded + $amountMinor;
+            $invoice->forceFill([
+                'status'            => $totalRefunded >= (int) $invoice->grand_total_minor ? 'refunded' : 'partially_refunded',
+                'amount_paid_minor' => max(0, (int) $invoice->grand_total_minor - $totalRefunded),
+            ])->save();
+
+            return $refund;
+        });
+    }
+
     /** Same numbering scheme as subscription invoices, but kind=client. */
-    protected function reserveDraftInvoice(Workspace $ws, int $userId, string $currency): Invoice
+    protected function reserveDraftInvoice(Workspace $ws, int $userId, string $currency, ?BillingCompany $company = null): Invoice
     {
         $fy     = InvoiceService::financialYearFor(now());
-        $prefix = (string) config('billing.invoice.prefix', 'INV');
+        $prefix = $company && $company->invoice_prefix
+            ? (string) $company->invoice_prefix
+            : (string) config('billing.invoice.prefix', 'INV');
         $pad    = (int) config('billing.invoice.pad', 5);
 
         DB::table('invoice_counters')->insertOrIgnore([
@@ -185,6 +443,7 @@ class ClientInvoiceService
             'kind'                     => 'client',
             'workspace_id'             => $ws->id,
             'user_id'                  => $userId,
+            'billing_company_id'       => $company?->id,
             'currency'                 => $currency,
             'subtotal_minor'           => 0,
             'tax_total_minor'          => 0,

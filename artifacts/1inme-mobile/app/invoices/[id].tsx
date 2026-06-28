@@ -11,6 +11,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -22,6 +23,9 @@ import { useColors } from "@/hooks/useColors";
 import {
   deleteInvoice,
   getInvoice,
+  getInvoiceReceipt,
+  markInvoicePaid,
+  refundInvoice,
   sendInvoice,
 } from "@/lib/api/invoices";
 
@@ -48,6 +52,10 @@ export default function InvoiceDetailScreen() {
   const qc = useQueryClient();
   const [sendOpen, setSendOpen] = useState(false);
   const [recipient, setRecipient] = useState("");
+  const [paidOpen, setPaidOpen] = useState(false);
+  const [payMethod, setPayMethod] = useState("bank_transfer");
+  const [payRef, setPayRef] = useState("");
+  const [emailReceipt, setEmailReceipt] = useState(true);
 
   const q = useQuery({
     queryKey: ["billing-invoice", id],
@@ -82,9 +90,59 @@ export default function InvoiceDetailScreen() {
       Alert.alert("Couldn't delete invoice", e?.message ?? "Try again."),
   });
 
+  const markPaid = useMutation({
+    mutationFn: () =>
+      markInvoicePaid(id, {
+        method: payMethod,
+        reference: payRef.trim() || undefined,
+        email_receipt: emailReceipt,
+      }),
+    onSuccess: () => {
+      setPaidOpen(false);
+      setPayRef("");
+      qc.invalidateQueries({ queryKey: ["billing-invoice", id] });
+      qc.invalidateQueries({ queryKey: ["billing-invoices"] });
+      Alert.alert("Marked as paid", "A receipt has been recorded for this invoice.");
+    },
+    onError: (e: { message?: string }) =>
+      Alert.alert("Couldn't mark paid", e?.message ?? "Try again."),
+  });
+
+  const refund = useMutation({
+    mutationFn: (reason?: string) => refundInvoice(id, reason ? { reason } : {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["billing-invoice", id] });
+      qc.invalidateQueries({ queryKey: ["billing-invoices"] });
+      Alert.alert("Refunded", "This invoice has been marked as refunded.");
+    },
+    onError: (e: { message?: string }) =>
+      Alert.alert("Couldn't refund", e?.message ?? "Try again."),
+  });
+
+  const viewReceipt = useMutation({
+    mutationFn: () => getInvoiceReceipt(id),
+    onSuccess: (r) => {
+      Alert.alert(
+        `Receipt ${r.number ?? `#${r.id}`}`,
+        [
+          r.method ? `Method: ${r.method}` : null,
+          r.gateway ? `Gateway: ${r.gateway}` : null,
+          r.gateway_ref ? `Reference: ${r.gateway_ref}` : null,
+          r.created_at ? `Date: ${r.created_at.slice(0, 10)}` : null,
+        ]
+          .filter(Boolean)
+          .join("\n") || "Receipt recorded.",
+      );
+    },
+    onError: (e: { message?: string }) =>
+      Alert.alert("No receipt", e?.message ?? "No receipt found for this invoice."),
+  });
+
   const inv = q.data;
   const tint = statusTint(colors)[String(inv?.status ?? "").toLowerCase()] ?? colors.primary;
-  const canManage = inv?.status !== "paid";
+  const status = String(inv?.status ?? "").toLowerCase();
+  const canManage = status !== "paid" && status !== "refunded";
+  const isPaid = status === "paid";
 
   const openPdf = async () => {
     if (!inv?.pdf_url) return;
@@ -256,6 +314,41 @@ export default function InvoiceDetailScreen() {
               onPress={() => setSendOpen(true)}
             />
           ) : null}
+          {canManage ? (
+            <Button
+              label="Mark as paid"
+              variant="secondary"
+              onPress={() => setPaidOpen(true)}
+            />
+          ) : null}
+          {isPaid ? (
+            <Button
+              label="View receipt"
+              variant="outline"
+              onPress={() => viewReceipt.mutate()}
+              loading={viewReceipt.isPending}
+            />
+          ) : null}
+          {isPaid ? (
+            <Button
+              label="Refund invoice"
+              variant="ghost"
+              onPress={() =>
+                Alert.alert(
+                  "Refund invoice?",
+                  "This marks the invoice as refunded and records a refund receipt.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Refund",
+                      style: "destructive",
+                      onPress: () => refund.mutate(undefined),
+                    },
+                  ],
+                )
+              }
+            />
+          ) : null}
           {inv.pdf_url ? (
             <Button label="Open PDF" onPress={openPdf} variant="outline" />
           ) : null}
@@ -321,6 +414,108 @@ export default function InvoiceDetailScreen() {
                   label="Send"
                   onPress={() => send.mutate()}
                   loading={send.isPending}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={paidOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setPaidOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+              Mark as paid
+            </Text>
+            <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+              Record a manual payment for this invoice and generate a receipt.
+            </Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {[
+                ["bank_transfer", "Bank transfer"],
+                ["cash", "Cash"],
+                ["card", "Card"],
+                ["other", "Other"],
+              ].map(([value, label]) => (
+                <Pressable
+                  key={value}
+                  onPress={() => setPayMethod(value)}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderWidth: 1,
+                    borderRadius: 999,
+                    borderColor: payMethod === value ? colors.primary : colors.border,
+                    backgroundColor:
+                      payMethod === value ? colors.primary + "1c" : colors.background,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: payMethod === value ? colors.primary : colors.mutedForeground,
+                      fontFamily: "SpaceGrotesk_500Medium",
+                      fontSize: 13,
+                    }}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <TextInput
+              value={payRef}
+              onChangeText={setPayRef}
+              placeholder="Reference (optional)"
+              placeholderTextColor={colors.mutedForeground}
+              style={[
+                styles.input,
+                {
+                  color: colors.foreground,
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                },
+              ]}
+            />
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text style={[styles.label, { color: colors.foreground }]}>
+                Email receipt to client
+              </Text>
+              <Switch value={emailReceipt} onValueChange={setEmailReceipt} />
+            </View>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label="Cancel"
+                  variant="ghost"
+                  onPress={() => setPaidOpen(false)}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label="Confirm"
+                  onPress={() => markPaid.mutate()}
+                  loading={markPaid.isPending}
                 />
               </View>
             </View>

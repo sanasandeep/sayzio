@@ -979,6 +979,69 @@
                 </div>
                 @endif
 
+                {{-- ========== BILLING & ACCOUNTING (collapsible) ========== --}}
+                @if($__can['tasks_view'])
+                @php $grpBillingActive = request()->routeIs('user.client-invoices.*') || request()->routeIs('user.billing.*'); @endphp
+                <div x-data="{ open: {{ $grpBillingActive ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
+                            class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
+                        <span>Billing &amp; Accounting</span>
+                        <i class="fas fa-chevron-down grp-chevron"></i>
+                    </button>
+                    <div x-show="open || sidebarMode === 'icons'" x-cloak>
+                        <a href="{{ route('user.client-invoices.dashboard') }}"
+                           class="sidebar-link {{ request()->routeIs('user.client-invoices.*') ? 'active' : '' }}"
+                           style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-file-invoice-dollar"></i></div>
+                            <span class="nav-label">Invoices</span>
+                            <span class="sidebar-tooltip">Invoices</span>
+                        </a>
+                        <a href="{{ route('user.billing.recurring.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.billing.recurring.*') ? 'active' : '' }}"
+                           style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-repeat"></i></div>
+                            <span class="nav-label">Recurring</span>
+                            <span class="sidebar-tooltip">Recurring Invoices</span>
+                        </a>
+                        <a href="{{ route('user.billing.expenses.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.billing.expenses.*') ? 'active' : '' }}"
+                           style="--nav-tint:#ef4444; --nav-tint-soft:rgba(239,68,68,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-receipt"></i></div>
+                            <span class="nav-label">Expenses</span>
+                            <span class="sidebar-tooltip">Expenses</span>
+                        </a>
+                        <a href="{{ route('user.billing.catalog.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.billing.catalog.*') ? 'active' : '' }}"
+                           style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-boxes-stacked"></i></div>
+                            <span class="nav-label">Catalog</span>
+                            <span class="sidebar-tooltip">Item Catalog</span>
+                        </a>
+                        <a href="{{ route('user.billing.companies.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.billing.companies.*') ? 'active' : '' }}"
+                           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-building"></i></div>
+                            <span class="nav-label">Companies</span>
+                            <span class="sidebar-tooltip">Billing Companies</span>
+                        </a>
+                        <a href="{{ route('user.billing.tax-rules.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.billing.tax-rules.*') ? 'active' : '' }}"
+                           style="--nav-tint:#64748b; --nav-tint-soft:rgba(100,116,139,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-percent"></i></div>
+                            <span class="nav-label">Tax Rules</span>
+                            <span class="sidebar-tooltip">Tax Rules</span>
+                        </a>
+                        <a href="{{ route('user.billing.ledger.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.billing.ledger.*') ? 'active' : '' }}"
+                           style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div>
+                            <span class="nav-label">Ledger</span>
+                            <span class="sidebar-tooltip">Ledger / P&amp;L</span>
+                        </a>
+                    </div>
+                </div>
+                @endif
+
                 {{-- ========== ACCOUNT (collapsible) ========== --}}
                 @if($__can['settings_view'])
                 @php $grpAccountActive = request()->routeIs('user.profile.*') || (request()->routeIs('user.verification.*') && !request()->routeIs('user.verification.admin*')) || request()->routeIs('user.settings.sessions.*') || request()->routeIs('user.api-keys.*'); @endphp
@@ -1438,6 +1501,26 @@
                                 <a href="{{ route('user.events.index') }}" class="sidebar-link {{ request()->routeIs('user.events.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-day"></i></div> <span>Events</span></a>
                                 <a href="{{ route('user.calendar.index') }}" class="sidebar-link {{ request()->routeIs('user.calendar.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-alt"></i></div> <span>Calendar Sync</span></a>
                                 @endif
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- ========== BILLING & ACCOUNTING (collapsible) ========== --}}
+                        @if($__can['tasks_view'])
+                        <div x-data="{ open: {{ (request()->routeIs('user.client-invoices.*') || request()->routeIs('user.billing.*')) ? 'true' : 'false' }} }">
+                            <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
+                                    class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
+                                <span>Billing &amp; Accounting</span>
+                                <i class="fas fa-chevron-down grp-chevron"></i>
+                            </button>
+                            <div x-show="open" x-cloak class="space-y-0.5">
+                                <a href="{{ route('user.client-invoices.dashboard') }}" class="sidebar-link {{ request()->routeIs('user.client-invoices.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-invoice-dollar"></i></div> <span>Invoices</span></a>
+                                <a href="{{ route('user.billing.recurring.index') }}" class="sidebar-link {{ request()->routeIs('user.billing.recurring.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-repeat"></i></div> <span>Recurring</span></a>
+                                <a href="{{ route('user.billing.expenses.index') }}" class="sidebar-link {{ request()->routeIs('user.billing.expenses.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-receipt"></i></div> <span>Expenses</span></a>
+                                <a href="{{ route('user.billing.catalog.index') }}" class="sidebar-link {{ request()->routeIs('user.billing.catalog.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-boxes-stacked"></i></div> <span>Catalog</span></a>
+                                <a href="{{ route('user.billing.companies.index') }}" class="sidebar-link {{ request()->routeIs('user.billing.companies.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-building"></i></div> <span>Companies</span></a>
+                                <a href="{{ route('user.billing.tax-rules.index') }}" class="sidebar-link {{ request()->routeIs('user.billing.tax-rules.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-percent"></i></div> <span>Tax Rules</span></a>
+                                <a href="{{ route('user.billing.ledger.index') }}" class="sidebar-link {{ request()->routeIs('user.billing.ledger.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div> <span>Ledger</span></a>
                             </div>
                         </div>
                         @endif

@@ -40,6 +40,7 @@ use App\Modules\Api\Controllers\IntegrationController;
 use App\Modules\Api\Controllers\CalendarController;
 use App\Modules\Api\Controllers\VaultController;
 use App\Modules\Api\Controllers\VerificationController;
+use App\Modules\Api\Controllers\AccountingController;
 use App\Modules\Api\Controllers\BillingController;
 use App\Modules\Api\Controllers\RevenueCatBillingController;
 use App\Modules\Api\Controllers\DialerController;
@@ -838,6 +839,41 @@ Route::prefix('v1')->group(function () {
         Route::patch ('/billing/invoices/{id}',    [BillingController::class, 'updateInvoice'])->whereNumber('id');
         Route::delete('/billing/invoices/{id}',    [BillingController::class, 'destroyInvoice'])->whereNumber('id');
         Route::post  ('/billing/invoices/{id}/send', [BillingController::class, 'sendInvoice'])->whereNumber('id')->middleware('throttle:30,1');
+        Route::post  ('/billing/invoices/{id}/mark-paid', [BillingController::class, 'markPaidInvoice'])->whereNumber('id');
+        Route::post  ('/billing/invoices/{id}/refund',    [BillingController::class, 'refundInvoice'])->whereNumber('id');
+        Route::get   ('/billing/invoices/{id}/receipt',   [BillingController::class, 'invoiceReceipt'])->whereNumber('id');
+
+        // Accounting suite: billing companies, tax rules, catalog, expenses,
+        // recurring invoices, ledger (all user-scoped; mirrors web).
+        Route::get   ('/billing/companies',          [AccountingController::class, 'companies']);
+        Route::post  ('/billing/companies',          [AccountingController::class, 'storeCompany']);
+        Route::patch ('/billing/companies/{id}',     [AccountingController::class, 'updateCompany'])->whereNumber('id');
+        Route::delete('/billing/companies/{id}',     [AccountingController::class, 'destroyCompany'])->whereNumber('id');
+
+        Route::get   ('/billing/tax-rules',          [AccountingController::class, 'taxRules']);
+        Route::post  ('/billing/tax-rules',          [AccountingController::class, 'storeTaxRule']);
+        Route::patch ('/billing/tax-rules/{id}',     [AccountingController::class, 'updateTaxRule'])->whereNumber('id');
+        Route::delete('/billing/tax-rules/{id}',     [AccountingController::class, 'destroyTaxRule'])->whereNumber('id');
+
+        Route::get   ('/billing/catalog',            [AccountingController::class, 'catalog']);
+        Route::post  ('/billing/catalog/categories', [AccountingController::class, 'storeCategory']);
+        Route::delete('/billing/catalog/categories/{id}', [AccountingController::class, 'destroyCategory'])->whereNumber('id');
+        Route::post  ('/billing/catalog/items',      [AccountingController::class, 'storeItem']);
+        Route::patch ('/billing/catalog/items/{id}', [AccountingController::class, 'updateItem'])->whereNumber('id');
+        Route::delete('/billing/catalog/items/{id}', [AccountingController::class, 'destroyItem'])->whereNumber('id');
+
+        Route::get   ('/billing/expenses',           [AccountingController::class, 'expenses']);
+        Route::post  ('/billing/expenses',           [AccountingController::class, 'storeExpense']);
+        Route::patch ('/billing/expenses/{id}',      [AccountingController::class, 'updateExpense'])->whereNumber('id');
+        Route::delete('/billing/expenses/{id}',      [AccountingController::class, 'destroyExpense'])->whereNumber('id');
+
+        Route::get   ('/billing/recurring',          [AccountingController::class, 'recurring']);
+        Route::post  ('/billing/recurring',          [AccountingController::class, 'storeRecurring']);
+        Route::patch ('/billing/recurring/{id}',     [AccountingController::class, 'updateRecurring'])->whereNumber('id');
+        Route::delete('/billing/recurring/{id}',     [AccountingController::class, 'destroyRecurring'])->whereNumber('id');
+        Route::post  ('/billing/recurring/{id}/run', [AccountingController::class, 'runRecurring'])->whereNumber('id');
+
+        Route::get   ('/billing/ledger',             [AccountingController::class, 'ledger']);
 
         // Client portals
         Route::get   ('/client-portals',           [\App\Modules\Api\Controllers\ClientPortalController::class, 'index']);
