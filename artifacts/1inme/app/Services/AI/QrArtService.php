@@ -166,7 +166,7 @@ class QrArtService
             'url'                   => $data,
             'prompt'                => $prompt,
             'negative_prompt'       => $negative,
-            'qr_conditioning_scale' => 1.5,
+            'qr_conditioning_scale' => $this->conditioningScale($opts['strength'] ?? null),
             'num_inference_steps'   => 40,
             'guidance_scale'        => 7.5,
             'batch_size'            => 1,
@@ -215,6 +215,20 @@ class QrArtService
             throw new QrArtGenerationException('Could not download the generated image.');
         }
         return $img->body();
+    }
+
+    /**
+     * Map the user-facing "artistic strength" (0 = most reliable, 100 = most
+     * artistic) onto the model's `qr_conditioning_scale`. A higher conditioning
+     * scale enforces the QR pattern more strongly (more scannable, less
+     * artistic), so strength and scale move in opposite directions. The default
+     * (strength 60 → ~1.46) keeps parity with the previous fixed 1.5 value.
+     */
+    protected function conditioningScale(?int $strength): float
+    {
+        $s = max(0, min(100, (int) ($strength ?? 60)));
+        // strength 0 → 2.0 (most faithful), strength 100 → 1.1 (most artistic)
+        return round(2.0 - ($s / 100) * 0.9, 2);
     }
 
     protected function errorFrom($json, string $fallback): string

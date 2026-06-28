@@ -547,6 +547,21 @@
                                     </label>
                                 </div>
 
+                                <div class="qr-section">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <div class="text-[11px] font-semibold uppercase tracking-wider" style="color: var(--text-faint);">Artistic strength</div>
+                                        <span class="text-[11px] font-semibold" style="color: var(--text-primary);" x-text="qrArt.strength + '%'"></span>
+                                    </div>
+                                    <input type="range" min="0" max="100" step="5" x-model.number="qrArt.strength" class="w-full">
+                                    <div class="flex justify-between text-[10px] mt-0.5" style="color: var(--text-muted);">
+                                        <span>More reliable</span>
+                                        <span>More artistic</span>
+                                    </div>
+                                    <p class="text-[10px] mt-1" style="color: var(--text-faint);">
+                                        Higher strength looks better but is harder to scan. If verification fails, lower this and regenerate.
+                                    </p>
+                                </div>
+
                                 <p x-show="qrArt.error" x-text="qrArt.error" class="text-[11px]" style="color:#f87171;"></p>
 
                                 <div class="grid grid-cols-2 gap-2">
@@ -561,7 +576,51 @@
                                     </button>
                                 </div>
 
-                                <div x-show="design.ai_art && design.ai_art.image_url" class="qr-section">
+                                <div x-show="design.ai_art && design.ai_art.image_url" class="qr-section space-y-2">
+                                    {{-- Real decode verification: we run jsQR on the returned
+                                         artwork to confirm it actually scans to the right place.
+                                         Purely client-side, so there's no extra coin charge. --}}
+                                    <template x-if="aiVerify.status === 'checking'">
+                                        <p class="text-[11px] flex items-center gap-1.5" style="color: var(--text-muted);">
+                                            <i class="fas fa-spinner fa-spin"></i> Checking this image actually scans…
+                                        </p>
+                                    </template>
+                                    <template x-if="aiVerify.status === 'pass'">
+                                        <p class="text-[11px] flex items-start gap-1.5" style="color:#34d399;">
+                                            <i class="fas fa-circle-check mt-0.5"></i>
+                                            <span>Verified — this image scans and points to the correct destination.</span>
+                                        </p>
+                                    </template>
+                                    <template x-if="aiVerify.status === 'mismatch'">
+                                        <p class="text-[11px] flex items-start gap-1.5" style="color:#fbbf24;">
+                                            <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                                            <span>This image scans, but to a <strong>different</strong> destination than expected. Regenerate before sharing.</span>
+                                        </p>
+                                    </template>
+                                    <template x-if="aiVerify.status === 'fail'">
+                                        <p class="text-[11px] flex items-start gap-1.5" style="color:#f87171;">
+                                            <i class="fas fa-circle-xmark mt-0.5"></i>
+                                            <span>We couldn't read a QR code in this image — it likely won't scan. Lower the artistic strength and regenerate.</span>
+                                        </p>
+                                    </template>
+                                    <template x-if="aiVerify.status === 'unknown'">
+                                        <p class="text-[11px] flex items-start gap-1.5" style="color: var(--text-faint);">
+                                            <i class="fas fa-circle-info mt-0.5"></i>
+                                            <span>Couldn't auto-verify this image — please scan it yourself before sharing.</span>
+                                        </p>
+                                    </template>
+
+                                    <div x-show="aiVerify.status === 'fail' || aiVerify.status === 'mismatch'" class="flex gap-2">
+                                        <button type="button" @click="generateArt()" :disabled="qrArt.busy"
+                                                class="px-2.5 py-1.5 text-[11px] rounded-lg font-semibold" style="background: var(--accent); color:#fff;">
+                                            <i class="fas fa-wand-magic-sparkles"></i> Regenerate
+                                        </button>
+                                        <button type="button" @click="verifyAiArt()"
+                                                class="px-2.5 py-1.5 text-[11px] rounded-lg font-semibold" style="background: var(--bg-glass-hover); color: var(--text-primary); border:1px solid var(--border-glass);">
+                                            <i class="fas fa-rotate"></i> Re-check
+                                        </button>
+                                    </div>
+
                                     <p class="text-[10px]" style="color: var(--text-faint);">
                                         <i class="fas fa-circle-info"></i> Artistic blending reduces scan reliability — always test the final image before sharing. Save to keep this artwork as your QR.
                                     </p>
@@ -647,6 +706,9 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+{{-- Self-hosted jsQR (pinned 1.4.0) — decodes the generated artwork client-side
+     so we can confirm an AI Artistic QR really scans. No SRI per vendored-libs policy. --}}
+<script src="{{ asset('js/vendor/jsqr.min.js') }}?v={{ filemtime(public_path('js/vendor/jsqr.min.js')) }}"></script>
 <script src="{{ asset('js/qr-studio/engine.js') }}?v={{ filemtime(public_path('js/qr-studio/engine.js')) }}"></script>
 
 <script>
@@ -776,9 +838,13 @@ function qrBuilder() {
             prompt: '',
             style: '',
             negative: '',
+            strength: 60,
             busy: false,
             error: '',
         },
+        // Real client-side decode result for the generated artwork.
+        // status: idle | checking | pass | mismatch | fail | unknown
+        aiVerify: { status: 'idle', value: null },
         aiPresets: @js($qrArtPresets),
 
         init() {
@@ -787,6 +853,14 @@ function qrBuilder() {
             this.$watch('linkId', () => this.useExistingLink && this.resolveLinkPayload());
             this.$watch('useExistingLink', v => { if (!v) { this.linkId = null; this.scheduleResolve(); } });
             this.$watch('design', () => this.render(), { deep: true });
+            // Editing a saved QR that already carries AI artwork: restore the
+            // strength used and re-run the decode check so the verdict is live
+            // (it costs nothing) rather than trusting a stale stored status.
+            const art = this.design && this.design.ai_art;
+            if (art && art.image_url) {
+                if (typeof art.strength === 'number') this.qrArt.strength = art.strength;
+                this.$nextTick(() => this.verifyAiArt());
+            }
             this.scheduleResolve();
         },
 
@@ -876,6 +950,7 @@ function qrBuilder() {
                 fd.append('_token', '{{ csrf_token() }}');
                 fd.append('data', this.encoded);
                 fd.append('prompt', this.qrArt.prompt.trim());
+                fd.append('strength', this.qrArt.strength);
                 if (this.qrArt.style) fd.append('style', this.qrArt.style);
                 if (this.qrArt.negative.trim()) fd.append('negative_prompt', this.qrArt.negative.trim());
                 const r = await fetch(@js(route('user.qr-codes.generate-art')), {
@@ -893,12 +968,17 @@ function qrBuilder() {
                     image_url: j.image_url,
                     prompt: this.qrArt.prompt.trim(),
                     style: this.qrArt.style || null,
+                    strength: this.qrArt.strength,
                     data: this.encoded,
                     scan: this.scan ? { score: this.scan.score, level: this.scan.level } : null,
+                    verify: null,
                     provider: 'replicate',
                 };
                 if (typeof j.balance === 'number') this.qrArt.balance = j.balance;
                 this.render();
+                // Verify the *actual* returned image really scans. Client-side,
+                // so it never costs the user a coin.
+                this.verifyAiArt();
             } catch (e) {
                 this.qrArt.error = 'Network error — please try again.';
             } finally {
@@ -909,9 +989,73 @@ function qrBuilder() {
         clearAiArt() {
             this.design.ai_art = {
                 enabled: false, image_url: null, prompt: null,
-                style: null, data: null, scan: null, provider: 'replicate',
+                style: null, strength: null, data: null, scan: null, verify: null, provider: 'replicate',
             };
+            this.aiVerify = { status: 'idle', value: null };
             this.render();
+        },
+
+        // Decode the generated artwork with jsQR and compare it to the data we
+        // asked Replicate to encode. Purely client-side — no server round-trip,
+        // no coin charge.
+        async verifyAiArt() {
+            const art = this.design.ai_art;
+            if (!art || !art.image_url) { this.aiVerify = { status: 'idle', value: null }; return; }
+            if (typeof window.jsQR !== 'function') { this.aiVerify = { status: 'unknown', value: null }; return; }
+            this.aiVerify = { status: 'checking', value: null };
+            let result;
+            try {
+                result = await this.decodeImageUrl(art.image_url);
+            } catch (e) {
+                result = { ok: false, value: null };
+            }
+            if (!result.ok) {
+                // Couldn't read the pixels (e.g. cross-origin taint) — can't auto-verify.
+                this.aiVerify = { status: 'unknown', value: null };
+            } else if (!result.value) {
+                this.aiVerify = { status: 'fail', value: null };
+            } else if (result.value === (art.data || this.encoded)) {
+                this.aiVerify = { status: 'pass', value: result.value };
+            } else {
+                this.aiVerify = { status: 'mismatch', value: result.value };
+            }
+            // Persist onto the design so the result round-trips on save/reload.
+            if (this.design.ai_art) this.design.ai_art.verify = { ...this.aiVerify };
+        },
+
+        // Load an image and run jsQR over its pixels. Resolves
+        // { ok, value } where ok=false means the pixels were unreadable.
+        decodeImageUrl(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    try {
+                        let w = img.naturalWidth || img.width;
+                        let h = img.naturalHeight || img.height;
+                        if (!w || !h) { resolve({ ok: false, value: null }); return; }
+                        // Cap very large images for speed; QR artwork is usually ~768px.
+                        const max = 1600;
+                        if (Math.max(w, h) > max) {
+                            const s = max / Math.max(w, h);
+                            w = Math.round(w * s); h = Math.round(h * s);
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                        ctx.drawImage(img, 0, 0, w, h);
+                        let pixels;
+                        try { pixels = ctx.getImageData(0, 0, w, h); }
+                        catch (taint) { resolve({ ok: false, value: null }); return; }
+                        const code = window.jsQR(pixels.data, w, h, { inversionAttempts: 'attemptBoth' });
+                        resolve({ ok: true, value: code ? code.data : null });
+                    } catch (e) {
+                        resolve({ ok: false, value: null });
+                    }
+                };
+                img.onerror = () => resolve({ ok: false, value: null });
+                img.src = url;
+            });
         },
 
         engineOpts(data) {

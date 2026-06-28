@@ -69,13 +69,25 @@ class QrCodeDesignSanitizer
                 'level' => is_string($a['scan']['level'] ?? null) ? mb_substr($a['scan']['level'], 0, 16) : null,
             ];
         }
+        // Real client-side jsQR decode outcome, so the library knows whether this
+        // artwork was confirmed scannable. status: pass|mismatch|fail|unknown|idle|checking
+        $verify = null;
+        if (is_array($a['verify'] ?? null)) {
+            $allowed = ['idle', 'checking', 'pass', 'mismatch', 'fail', 'unknown'];
+            $status  = is_string($a['verify']['status'] ?? null) ? $a['verify']['status'] : 'idle';
+            $verify  = ['status' => in_array($status, $allowed, true) ? $status : 'idle'];
+        }
+        $strength = $a['strength'] ?? null;
+        $strength = is_numeric($strength) ? (int) max(0, min(100, (int) $strength)) : null;
         return [
             'enabled'   => (bool) ($a['enabled'] ?? false) && $url !== null,
             'image_url' => $url,
             'prompt'    => is_string($a['prompt'] ?? null) ? mb_substr(trim($a['prompt']), 0, 600) : null,
             'style'     => is_string($a['style'] ?? null) ? mb_substr($a['style'], 0, 60) : null,
+            'strength'  => $strength,
             'data'      => is_string($a['data'] ?? null) ? mb_substr($a['data'], 0, 2048) : null,
             'scan'      => $scan,
+            'verify'    => $verify,
             'provider'  => 'replicate',
         ];
     }
@@ -165,7 +177,8 @@ class QrCodeDesignSanitizer
             ],
             'ai_art' => [
                 'enabled' => false, 'image_url' => null, 'prompt' => null,
-                'style' => null, 'data' => null, 'scan' => null, 'provider' => 'replicate',
+                'style' => null, 'strength' => null, 'data' => null,
+                'scan' => null, 'verify' => null, 'provider' => 'replicate',
             ],
         ];
     }

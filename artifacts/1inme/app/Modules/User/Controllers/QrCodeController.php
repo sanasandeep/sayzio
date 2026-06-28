@@ -183,11 +183,13 @@ class QrCodeController extends Controller
             'prompt'          => 'required|string|max:600',
             'style'           => 'nullable|string|max:60',
             'negative_prompt' => 'nullable|string|max:600',
+            'strength'        => 'nullable|integer|min:0|max:100',
         ]);
 
         try {
             $result = $art->generate($user, $validated['data'], $validated['prompt'], [
                 'negative_prompt' => $validated['negative_prompt'] ?? null,
+                'strength'        => $validated['strength'] ?? null,
             ]);
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
