@@ -2,10 +2,17 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void
     {
+        // Pure data migration: skip cleanly if the table is transiently absent
+        // (e.g. a concurrent reset on the shared RDS) so the backlog keeps draining.
+        if (!Schema::hasTable('site_pages')) {
+            return;
+        }
+
         $row = DB::table('site_pages')->where('slug', 'about')->first();
         if (!$row) {
             return;
