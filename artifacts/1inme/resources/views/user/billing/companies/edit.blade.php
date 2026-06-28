@@ -14,7 +14,7 @@
     @if(session('error'))<div class="mb-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm">{{ session('error') }}</div>@endif
     @if($errors->any())<div class="mb-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm">{{ $errors->first() }}</div>@endif
 
-    <form action="{{ $company->exists ? route('user.billing.companies.update', $company) : route('user.billing.companies.store') }}" method="POST" class="space-y-6">
+    <form action="{{ $company->exists ? route('user.billing.companies.update', $company) : route('user.billing.companies.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
         @csrf
         @if($company->exists)@method('PUT')@endif
 
@@ -36,6 +36,28 @@
                 <label class="text-xs" style="color: var(--text-muted);">Default currency
                     <input name="default_currency" maxlength="3" value="{{ old('default_currency', $company->default_currency ?: 'USD') }}" class="block w-full mt-1 p-2 rounded-lg border uppercase" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
                 </label>
+            </div>
+        </section>
+
+        <section class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
+            <h2 class="font-bold mb-1" style="color: var(--text-primary);">Logo</h2>
+            <p class="text-xs mb-3" style="color: var(--text-muted);">Shown on this company's invoice &amp; receipt PDFs. PNG, JPG, GIF, WEBP or SVG, up to 2&nbsp;MB.</p>
+            <div class="flex items-center gap-4">
+                @if($company->exists && $company->logo_path)
+                    <img src="{{ asset('storage/' . $company->logo_path) }}" alt="Company logo"
+                         class="w-16 h-16 rounded-xl object-contain bg-white p-1" style="border: 1px solid var(--border-soft);">
+                @endif
+                <div class="flex-1">
+                    <input type="file" name="logo" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+                           class="block w-full text-xs" style="color: var(--text-primary);">
+                    @if($company->exists && $company->logo_path)
+                        <label class="flex items-center gap-2 mt-2 text-[11px]" style="color: var(--text-muted);">
+                            <input type="hidden" name="remove_logo" value="0">
+                            <input type="checkbox" name="remove_logo" value="1" class="accent-rose-500">
+                            Remove the current logo
+                        </label>
+                    @endif
+                </div>
             </div>
         </section>
 

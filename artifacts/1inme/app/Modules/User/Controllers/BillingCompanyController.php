@@ -8,6 +8,7 @@ use App\Modules\User\Models\TaxRule;
 use App\Services\Billing\CompanyMailSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /** Per-user "billing companies" — the legal entities that issue documents. */
 class BillingCompanyController extends Controller
@@ -37,10 +38,12 @@ class BillingCompanyController extends Controller
     {
         $data = $this->validated($request);
         $this->validateSmtp($request);
+        $this->validateLogo($request);
         $data['user_id'] = auth()->id();
         $data['workspace_id'] = optional(app('current_workspace'))->id;
         $company = DB::transaction(function () use ($data, $request) {
             $c = BillingCompany::create($data);
+            $this->applyLogo($c, $request);
             $this->applySmtp($c, $request);
             $this->syncDefault($c);
             return $c;
@@ -53,8 +56,10 @@ class BillingCompanyController extends Controller
         $this->authorizeOwn($company);
         $data = $this->validated($request);
         $this->validateSmtp($request);
+        $this->validateLogo($request);
         DB::transaction(function () use ($company, $data, $request) {
             $company->update($data);
+            $this->applyLogo($company, $request);
             $this->applySmtp($company, $request);
             $this->syncDefault($company);
         });
@@ -124,6 +129,50 @@ class BillingCompanyController extends Controller
             'notes'               => 'nullable|string|max:2000',
             'is_default'          => 'nullable|boolean',
         ]);
+    }
+
+    /** Validate the optional logo upload (an image, ≤2MB). */
+    protected function validateLogo(Request $request): void
+    {
+        $request->validate([
+            'logo'        => 'nullable|image|mimes:jpeg,jpg,png,gif,webp,svg|max:2048',
+            'remove_logo' => 'nullable|boolean',
+        ]);
+    }
+
+    /**
+     * Persist (or clear) the company logo on the public disk so the invoice /
+     * receipt PDF renderer can inline it (ClientInvoicePdfRenderer::logoDataUri
+     * checks the public disk first). Replacing or removing a logo deletes the
+     * previous file so orphans don't accumulate.
+     */
+    protected function applyLogo(BillingCompany $company, Request $request): void
+    {
+        if ($request->boolean('remove_logo') && $company->logo_path) {
+            $this->deleteLogoFile($company->logo_path);
+            $company->logo_path = null;
+            $company->save();
+            return;
+        }
+
+        if ($request->hasFile('logo')) {
+            $old = $company->logo_path;
+            $company->logo_path = $request->file('logo')->store('billing/company-logos', 'public');
+            $company->save();
+            if ($old) {
+                $this->deleteLogoFile($old);
+            }
+        }
+    }
+
+    /** Best-effort delete of a stored logo file from the public disk. */
+    private function deleteLogoFile(string $path): void
+    {
+        try {
+            Storage::disk('public')->delete($path);
+        } catch (\Throwable $e) {
+            // ignore — the row no longer references it
+        }
     }
 
     /** Validate the per-company SMTP fields (secrets handled separately). */
