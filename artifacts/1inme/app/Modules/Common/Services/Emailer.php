@@ -49,8 +49,14 @@ class Emailer
      */
     public static function send(string $key, string $to, array $tokens = [], array $opts = []): ?EmailLog
     {
-        $entry    = EmailTemplateRegistry::get($key) ?? [];
-        $override = EmailTemplateSettings::get($key);
+        $entry = EmailTemplateRegistry::get($key) ?? [];
+
+        // A per-send template override (e.g. a creator's per-company customisation
+        // of a client-facing accounting email) takes precedence over the
+        // admin/global override, which in turn falls back to the registry default.
+        $override = (isset($opts['template_override']) && is_array($opts['template_override']))
+            ? $opts['template_override']
+            : EmailTemplateSettings::get($key);
 
         $format  = $override['format'] ?? $opts['format'] ?? $entry['format'] ?? 'html';
         $subject = self::resolveSubject($key, $entry, $override, $tokens, $opts);
@@ -229,6 +235,22 @@ class Emailer
         $status = 'sent';
         $error  = null;
 
+        // An optional per-send mailer (e.g. a creator's per-company SMTP) lets a
+        // single message go out through a transport other than the platform
+        // default without disturbing global mail config. Registered just-in-time
+        // and purged so a fresh transport is built from the supplied values.
+        $mailerName = null;
+        if (!empty($opts['mailer']) && is_string($opts['mailer'])
+            && !empty($opts['mailer_config']) && is_array($opts['mailer_config'])) {
+            $mailerName = $opts['mailer'];
+            config(["mail.mailers.{$mailerName}" => $opts['mailer_config']]);
+            try {
+                Mail::purge($mailerName);
+            } catch (\Throwable $e) {
+                // purge is best-effort; the mailer will still resolve fresh config.
+            }
+        }
+
         try {
             $callback = function ($m) use ($to, $subject, $opts) {
                 $m->to($to, $opts['to_name'] ?? null);
@@ -259,10 +281,11 @@ class Emailer
                 $m->getHeaders()->addTextHeader(self::KEY_HEADER, $key);
             };
 
+            $mailer = $mailerName ? Mail::mailer($mailerName) : Mail::mailer();
             if ($format === 'text') {
-                Mail::raw($body, $callback);
+                $mailer->raw($body, $callback);
             } else {
-                Mail::html($body, $callback);
+                $mailer->html($body, $callback);
             }
         } catch (\Throwable $e) {
             $status = 'failed';
@@ -283,6 +306,7 @@ class Emailer
             if (!empty($opts['from']))        $meta['from'] = $opts['from'];
             if (!empty($opts['attachments'])) $meta['has_attachments'] = true;
             if (!empty($opts['resent_from'])) $meta['resent_from'] = $opts['resent_from'];
+            if (!empty($opts['transport_label'])) $meta['transport'] = $opts['transport_label'];
 
             [$relatedType, $relatedId] = self::normalizeRelated($opts['related'] ?? null);
 

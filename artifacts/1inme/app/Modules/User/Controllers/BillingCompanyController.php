@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\BillingCompany;
 use App\Modules\User\Models\TaxRule;
+use App\Services\Billing\CompanyMailSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -35,25 +36,53 @@ class BillingCompanyController extends Controller
     public function store(Request $request)
     {
         $data = $this->validated($request);
+        $this->validateSmtp($request);
         $data['user_id'] = auth()->id();
         $data['workspace_id'] = optional(app('current_workspace'))->id;
-        $company = DB::transaction(function () use ($data) {
+        $company = DB::transaction(function () use ($data, $request) {
             $c = BillingCompany::create($data);
+            $this->applySmtp($c, $request);
             $this->syncDefault($c);
             return $c;
         });
-        return redirect()->route('user.billing.companies.index')->with('success', 'Company created.');
+        return redirect()->route('user.billing.companies.edit', $company)->with('success', 'Company created.');
     }
 
     public function update(Request $request, BillingCompany $company)
     {
         $this->authorizeOwn($company);
         $data = $this->validated($request);
-        DB::transaction(function () use ($company, $data) {
+        $this->validateSmtp($request);
+        DB::transaction(function () use ($company, $data, $request) {
             $company->update($data);
+            $this->applySmtp($company, $request);
             $this->syncDefault($company);
         });
-        return redirect()->route('user.billing.companies.index')->with('success', 'Company updated.');
+        return redirect()->route('user.billing.companies.edit', $company)->with('success', 'Company updated.');
+    }
+
+    /**
+     * Open an SMTP handshake against this company's transport (no message sent)
+     * and stamp it verified on success. Mirrors the admin Mail settings action.
+     */
+    public function verifySmtp(BillingCompany $company)
+    {
+        $this->authorizeOwn($company);
+        $res = CompanyMailSettings::for($company)->verifyConnection();
+        return $res['ok']
+            ? back()->with('success', 'SMTP connection verified successfully.')
+            : back()->with('error', 'SMTP check failed: ' . $res['error']);
+    }
+
+    /** Send a sample message through this company's SMTP and report the result. */
+    public function testSmtp(Request $request, BillingCompany $company)
+    {
+        $this->authorizeOwn($company);
+        $data = $request->validate(['test_email' => 'required|email']);
+        $res = CompanyMailSettings::for($company)->sendTest($data['test_email']);
+        return $res['ok']
+            ? back()->with('success', 'Test email sent to ' . $data['test_email'] . '.')
+            : back()->with('error', 'Test email failed: ' . $res['error']);
     }
 
     public function destroy(BillingCompany $company)
@@ -95,6 +124,59 @@ class BillingCompanyController extends Controller
             'notes'               => 'nullable|string|max:2000',
             'is_default'          => 'nullable|boolean',
         ]);
+    }
+
+    /** Validate the per-company SMTP fields (secrets handled separately). */
+    protected function validateSmtp(Request $request): void
+    {
+        $request->validate([
+            'smtp_enabled'      => 'nullable|boolean',
+            'smtp_host'         => 'nullable|string|max:255|required_if:smtp_enabled,1',
+            'smtp_port'         => 'nullable|integer|min:1|max:65535',
+            'smtp_encryption'   => 'nullable|in:tls,ssl,none',
+            'smtp_username'     => 'nullable|string|max:255',
+            'smtp_password'     => 'nullable|string|max:1024',
+            'smtp_from_address' => 'nullable|email|max:255',
+            'smtp_from_name'    => 'nullable|string|max:190',
+        ]);
+    }
+
+    /**
+     * Persist the per-company SMTP settings: scalar fields by forceFill, the
+     * password via CompanyMailSettings (Crypt), and invalidate a prior
+     * verification stamp whenever a connection-affecting field changed.
+     */
+    protected function applySmtp(BillingCompany $company, Request $request): void
+    {
+        $company->forceFill([
+            'smtp_enabled'      => $request->boolean('smtp_enabled'),
+            'smtp_host'         => $this->nullableTrim($request->input('smtp_host')),
+            'smtp_port'         => $request->input('smtp_port') ?: null,
+            'smtp_encryption'   => $request->input('smtp_encryption') ?: null,
+            'smtp_username'     => $this->nullableTrim($request->input('smtp_username')),
+            'smtp_from_address' => $this->nullableTrim($request->input('smtp_from_address')),
+            'smtp_from_name'    => $this->nullableTrim($request->input('smtp_from_name')),
+        ]);
+
+        $settings = CompanyMailSettings::for($company);
+        if ($request->boolean('smtp_clear_password')) {
+            $settings->setPassword(null);
+        } elseif (filled($request->input('smtp_password'))) {
+            $settings->setPassword($request->input('smtp_password'));
+        }
+
+        if ($company->isDirty(['smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_username', 'smtp_password_enc'])) {
+            $company->smtp_verified_at = null;
+        }
+
+        $company->save();
+    }
+
+    private function nullableTrim($value): ?string
+    {
+        if ($value === null) return null;
+        $value = trim((string) $value);
+        return $value === '' ? null : $value;
     }
 
     protected function authorizeOwn(BillingCompany $company): void

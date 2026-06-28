@@ -3,6 +3,7 @@
 namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Services\Billing\CompanyMailSettings;
 use App\Modules\User\Models\ClientPortal;
 use App\Modules\User\Models\ClientPortalLink;
 use App\Modules\User\Models\Workspace;
@@ -184,13 +185,19 @@ class ClientPortalController extends Controller
             'sent_at'      => now(),
         ]);
 
-        $url = route('portal.start', ['token' => $link->token]);
+        $url     = route('portal.start', ['token' => $link->token]);
+        $subject = $portal->brandingName() . ' — your portal access';
+        $body    = "You've been given access to the {$portal->brandingName()} client portal.\n\n"
+            . "Open: {$url}\n\nThis link expires in {$expiresIn} day(s).";
         try {
-            Mail::raw(
-                "You've been given access to the {$portal->brandingName()} client portal.\n\n"
-                . "Open: {$url}\n\nThis link expires in {$expiresIn} day(s).",
-                fn ($m) => $m->to($data['email'])->subject($portal->brandingName() . ' — your portal access')
-            );
+            // Client-facing send: route through the workspace's default billing
+            // company SMTP when configured, otherwise the platform mailer.
+            $companyMail = CompanyMailSettings::forWorkspaceDefault($portal->workspace_id);
+            if ($companyMail) {
+                $companyMail->sendRaw($data['email'], $subject, $body);
+            } else {
+                Mail::raw($body, fn ($m) => $m->to($data['email'])->subject($subject));
+            }
         } catch (\Throwable $e) {
             // best effort
         }

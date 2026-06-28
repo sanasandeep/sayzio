@@ -18,6 +18,14 @@ class BillingCompany extends Model
         'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'country',
         'tax_id_label', 'tax_id_value', 'secondary_tax_label', 'secondary_tax_value',
         'default_currency', 'invoice_prefix', 'default_tax_rule_id', 'notes', 'is_default',
+        // Per-company outbound mail (the encrypted password + verified stamp are
+        // never mass-assigned — see CompanyMailSettings / the controller).
+        'smtp_enabled', 'smtp_host', 'smtp_port', 'smtp_encryption',
+        'smtp_username', 'smtp_from_address', 'smtp_from_name',
+    ];
+
+    protected $hidden = [
+        'smtp_password_enc',
     ];
 
     protected function casts(): array
@@ -25,7 +33,15 @@ class BillingCompany extends Model
         return [
             'is_default'          => 'boolean',
             'default_tax_rule_id' => 'integer',
+            'smtp_enabled'        => 'boolean',
+            'smtp_port'           => 'integer',
+            'smtp_verified_at'    => 'datetime',
         ];
+    }
+
+    public function emailTemplates()
+    {
+        return $this->hasMany(CompanyEmailTemplate::class, 'billing_company_id');
     }
 
     public function user()

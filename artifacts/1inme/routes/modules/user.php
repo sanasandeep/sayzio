@@ -1478,6 +1478,17 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::put('companies/{company}',        [\App\Modules\User\Controllers\BillingCompanyController::class, 'update'])->middleware('workspace.can:tasks.edit')->name('companies.update');
             Route::delete('companies/{company}',     [\App\Modules\User\Controllers\BillingCompanyController::class, 'destroy'])->middleware('workspace.can:tasks.edit')->name('companies.destroy');
 
+            // Per-company SMTP actions (handshake check + test send).
+            Route::post('companies/{company}/smtp/verify', [\App\Modules\User\Controllers\BillingCompanyController::class, 'verifySmtp'])->middleware('workspace.can:tasks.edit')->name('companies.smtp.verify');
+            Route::post('companies/{company}/smtp/test',   [\App\Modules\User\Controllers\BillingCompanyController::class, 'testSmtp'])->middleware('workspace.can:tasks.edit')->name('companies.smtp.test');
+
+            // Per-company client-facing email templates (invoice + receipt).
+            Route::get('companies/{company}/emails',              [\App\Modules\User\Controllers\CompanyEmailTemplateController::class, 'index'])->name('companies.emails.index');
+            Route::get('companies/{company}/emails/{key}/edit',   [\App\Modules\User\Controllers\CompanyEmailTemplateController::class, 'edit'])->middleware('workspace.can:tasks.edit')->name('companies.emails.edit');
+            Route::put('companies/{company}/emails/{key}',        [\App\Modules\User\Controllers\CompanyEmailTemplateController::class, 'update'])->middleware('workspace.can:tasks.edit')->name('companies.emails.update');
+            Route::delete('companies/{company}/emails/{key}',     [\App\Modules\User\Controllers\CompanyEmailTemplateController::class, 'reset'])->middleware('workspace.can:tasks.edit')->name('companies.emails.reset');
+            Route::post('companies/{company}/emails/{key}/preview', [\App\Modules\User\Controllers\CompanyEmailTemplateController::class, 'preview'])->middleware('workspace.can:tasks.edit')->name('companies.emails.preview');
+
             // Tax rules.
             Route::get('tax-rules',                  [\App\Modules\User\Controllers\TaxRuleController::class, 'index'])->name('tax-rules.index');
             Route::post('tax-rules',                 [\App\Modules\User\Controllers\TaxRuleController::class, 'store'])->middleware('workspace.can:tasks.edit')->name('tax-rules.store');

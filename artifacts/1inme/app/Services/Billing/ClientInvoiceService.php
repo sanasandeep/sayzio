@@ -264,11 +264,11 @@ class ClientInvoiceService
         \App\Modules\Common\Services\Emailer::send('billing.client_invoice', $invoice->recipient_email, [
             'invoice_number' => $invoice->number,
             'pay_url'        => $payUrl,
-        ], [
+        ], array_merge([
             'user'      => $invoice->user_id,
             'related'   => $invoice,
             'view_data' => ['invoice' => $invoice, 'payUrl' => $payUrl],
-        ]);
+        ], $this->companyEmailOpts($invoice, 'billing.client_invoice')));
 
         $invoice->forceFill([
             'status'  => $invoice->status === 'draft' ? 'sent' : $invoice->status,
@@ -291,13 +291,49 @@ class ClientInvoiceService
             'invoice_number' => $invoice->number,
             'amount'         => number_format($receipt->amount_minor / 100, 2),
             'currency'       => $receipt->currency,
-        ], [
+        ], array_merge([
             'user'      => $invoice->user_id,
             'related'   => $invoice,
             'view_data' => ['invoice' => $invoice, 'receipt' => $receipt],
-        ]);
+        ], $this->companyEmailOpts($invoice, 'billing.receipt')));
 
         return $receipt;
+    }
+
+    /**
+     * Build the per-company Emailer options for a client-facing accounting
+     * email: deliver through the issuing BillingCompany's own SMTP (with its
+     * "from") when it has one enabled, and apply the creator's per-company
+     * subject/body override for the template. Falls back to the platform
+     * MailSettings transport + admin/registry template when the company has no
+     * SMTP / no override — so nothing changes for companies that don't opt in,
+     * and platform/global emails are untouched.
+     *
+     * @return array<string,mixed>
+     */
+    private function companyEmailOpts(Invoice $invoice, string $key): array
+    {
+        $companyId = $invoice->billing_company_id ?? null;
+        if (!$companyId) {
+            return [];
+        }
+
+        $company = \App\Modules\User\Models\BillingCompany::find($companyId);
+        if (!$company) {
+            return [];
+        }
+
+        // Transport: company SMTP when configured, otherwise platform default
+        // (emailOpts() returns a 'system' transport label in that case).
+        $opts = \App\Services\Billing\CompanyMailSettings::for($company)->emailOpts();
+
+        // Template: the creator's per-company override (wins over admin/global).
+        $override = \App\Services\Billing\CompanyEmailTemplateSettings::get($company->id, $key);
+        if ($override && !empty($override['body'])) {
+            $opts['template_override'] = $override;
+        }
+
+        return $opts;
     }
 
     /**
