@@ -25,9 +25,14 @@ class RunRecurringInvoices extends Command
             ? Carbon::parse((string) $this->option('as-of'))
             : null;
 
-        $count = $service->generateDue($asOf);
+        $tally = $service->generateDue($asOf);
 
-        $this->info("Generated {$count} recurring invoice(s).");
+        $this->info(sprintf(
+            'Generated %d recurring invoice(s): %d emailed to client, %d left as draft.',
+            $tally['generated'],
+            $tally['sent'],
+            $tally['drafts'],
+        ));
 
         return self::SUCCESS;
     }

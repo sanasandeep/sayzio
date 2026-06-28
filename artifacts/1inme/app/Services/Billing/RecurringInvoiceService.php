@@ -25,23 +25,32 @@ class RecurringInvoiceService
 
     /**
      * Generate invoices for every active template whose next_run_date is due.
-     * @return int number of invoices generated.
+     *
+     * @return array{generated:int,sent:int,drafts:int} a tally of how many
+     *         invoices were generated, of which emailed to the client
+     *         (auto_send templates) vs left as drafts for manual review.
      */
-    public function generateDue(?Carbon $asOf = null): int
+    public function generateDue(?Carbon $asOf = null): array
     {
         $asOf = $asOf ?: now();
-        $count = 0;
+        $tally = ['generated' => 0, 'sent' => 0, 'drafts' => 0];
 
         RecurringInvoice::query()
             ->where('status', 'active')
             ->whereNotNull('next_run_date')
             ->whereDate('next_run_date', '<=', $asOf->toDateString())
             ->orderBy('id')
-            ->chunkById(50, function ($templates) use (&$count, $asOf) {
+            ->chunkById(50, function ($templates) use (&$tally, $asOf) {
                 foreach ($templates as $template) {
                     try {
-                        if ($this->runOnce($template, $asOf)) {
-                            $count++;
+                        $invoice = $this->runOnce($template, $asOf);
+                        if ($invoice) {
+                            $tally['generated']++;
+                            if ($invoice->sent_at) {
+                                $tally['sent']++;
+                            } else {
+                                $tally['drafts']++;
+                            }
                         }
                     } catch (\Throwable $e) {
                         report($e);
@@ -49,7 +58,7 @@ class RecurringInvoiceService
                 }
             });
 
-        return $count;
+        return $tally;
     }
 
     /** Generate a single invoice from a template and advance its state. */
