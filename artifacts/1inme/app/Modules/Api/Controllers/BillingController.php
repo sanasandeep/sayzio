@@ -291,7 +291,12 @@ class BillingController extends Controller
     {
         $invoice = $this->findClientInvoice($request, $id);
         if (!$invoice) return $this->notFound('Invoice not found');
-        if ($invoice->status !== 'paid') return $this->fail('Only paid invoices can be refunded.', 422);
+        // A partially_refunded invoice can still be refunded down to zero —
+        // mirror ClientInvoiceService::refund() (and the web controller) so
+        // the partial -> full refund flow can complete over the API too.
+        if (!in_array($invoice->status, ['paid', 'partially_refunded'], true)) {
+            return $this->fail('Only paid invoices can be refunded.', 422);
+        }
 
         $data = $request->validate([
             'amount_minor' => 'nullable|integer|min:0',
