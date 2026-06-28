@@ -19,6 +19,7 @@ use App\Services\Billing\RecurringInvoiceService;
 use App\Services\InvoiceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -567,5 +568,206 @@ class InvoiceMoneyFlowTest extends TestCase
         $this->assertNotNull($invoiceId);
         $this->assertSame(25000, (int) Invoice::find($invoiceId)->grand_total_minor);
         $this->assertSame(1, (int) $tpl->fresh()->occurrences_count);
+    }
+
+    // ------------------------------------------------------------------
+    // Concurrent reservations: gap-free invoice & receipt numbering
+    //
+    // Invoice + receipt numbers come from a shared per-(financial_year,
+    // prefix) counter in `invoice_counters`, bumped under lockForUpdate
+    // inside a transaction (reserveDraftInvoice / generateReceipt). That
+    // is what stops two simultaneous payments from minting duplicate or
+    // skipped numbers — a legal/accounting hazard for client money.
+    //
+    // PHPUnit can't truly fork DB workers, so (mirroring the burst pattern
+    // in BiolinkBlockLimitsTest) we fire a rapid back-to-back burst of
+    // reservations and assert the persisted sequence is unique, strictly
+    // sequential, and gap-free per financial year — plus that it resets at
+    // the FY rollover boundary.
+    // ------------------------------------------------------------------
+
+    /** Assert a list of seq numbers is unique and forms exactly 1..N with no gaps. */
+    private function assertGapFreeSequence(array $seqs, int $expectedCount, string $label = 'sequence'): void
+    {
+        $this->assertCount($expectedCount, $seqs, "Wrong number of {$label} reservations");
+        $this->assertSame(
+            $expectedCount,
+            count(array_unique($seqs)),
+            "{$label} numbers must be unique (no duplicates)"
+        );
+        sort($seqs);
+        $this->assertSame(
+            range(1, $expectedCount),
+            $seqs,
+            "{$label} must be strictly 1..N with no gaps"
+        );
+    }
+
+    public function test_concurrent_invoice_reservations_are_unique_sequential_and_gapfree(): void
+    {
+        $u   = $this->user();
+        $ws  = $this->bind($u);
+        $svc = app(ClientInvoiceService::class);
+
+        Carbon::setTestNow(Carbon::create(2025, 6, 15, 12));
+        $fy = InvoiceService::financialYearFor(now());
+
+        $count    = 25;
+        $invoices = [];
+        for ($i = 0; $i < $count; $i++) {
+            $invoices[] = $svc->createStandalone([
+                'line_items' => [['label' => 'Work ' . $i, 'amount_minor' => 1000, 'quantity' => 1]],
+            ], $ws, $u->id);
+        }
+
+        $seqs    = array_map(fn ($inv) => (int) $inv->seq, $invoices);
+        $numbers = array_map(fn ($inv) => $inv->number, $invoices);
+
+        $this->assertGapFreeSequence($seqs, $count, 'invoice');
+        $this->assertSame($count, count(array_unique($numbers)), 'Invoice numbers must all be unique');
+        foreach ($invoices as $inv) {
+            $this->assertSame($fy, $inv->financial_year);
+            $this->assertSame(
+                sprintf('INV/%s/%s', $fy, str_pad((string) $inv->seq, 5, '0', STR_PAD_LEFT)),
+                $inv->number
+            );
+        }
+        // The counter row landed exactly on N — proof nothing was skipped.
+        $this->assertSame($count, (int) DB::table('invoice_counters')
+            ->where('financial_year', $fy)->where('prefix', 'INV')->value('last_seq'));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_concurrent_receipt_reservations_are_unique_sequential_and_gapfree(): void
+    {
+        $u   = $this->user();
+        $ws  = $this->bind($u);
+        $svc = app(ClientInvoiceService::class);
+
+        Carbon::setTestNow(Carbon::create(2025, 6, 15, 12));
+        $fy = InvoiceService::financialYearFor(now());
+
+        $count          = 20;
+        $receiptSeqs    = [];
+        $receiptNumbers = [];
+        for ($i = 0; $i < $count; $i++) {
+            $inv = $svc->createStandalone([
+                'line_items' => [['label' => 'Job ' . $i, 'amount_minor' => 5000, 'quantity' => 1]],
+            ], $ws, $u->id);
+            $svc->markPaidManual($inv, 'cash');
+            $receipt = Receipt::where('invoice_id', $inv->id)->firstOrFail();
+            $receiptSeqs[]    = (int) $receipt->seq;
+            $receiptNumbers[] = $receipt->number;
+        }
+
+        $this->assertGapFreeSequence($receiptSeqs, $count, 'receipt');
+        $this->assertSame($count, count(array_unique($receiptNumbers)), 'Receipt numbers must all be unique');
+        foreach ($receiptNumbers as $idx => $number) {
+            $this->assertSame(
+                sprintf('RCP/%s/%s', $fy, str_pad((string) $receiptSeqs[$idx], 5, '0', STR_PAD_LEFT)),
+                $number
+            );
+        }
+        $this->assertSame($count, (int) DB::table('invoice_counters')
+            ->where('financial_year', $fy)->where('prefix', 'RCP')->value('last_seq'));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_interleaved_invoice_and_receipt_counters_stay_independent_and_gapfree(): void
+    {
+        $u   = $this->user();
+        $ws  = $this->bind($u);
+        $svc = app(ClientInvoiceService::class);
+
+        Carbon::setTestNow(Carbon::create(2025, 9, 1, 9));
+
+        $count       = 15;
+        $invoiceSeqs = [];
+        $receiptSeqs = [];
+        $pending     = [];
+
+        // Mixed traffic: every loop reserves a new invoice number AND, once
+        // there's a backlog, pays an earlier invoice (reserving a receipt
+        // number). The two prefixes share the counters table but must keep
+        // strictly independent, gap-free runs.
+        for ($i = 0; $i < $count; $i++) {
+            $inv = $svc->createStandalone([
+                'line_items' => [['label' => 'Mix ' . $i, 'amount_minor' => 2500, 'quantity' => 1]],
+            ], $ws, $u->id);
+            $invoiceSeqs[] = (int) $inv->seq;
+            $pending[]     = $inv;
+
+            if ($i % 2 === 1) {
+                $toPay = array_shift($pending);
+                $svc->markPaidManual($toPay, 'cash');
+                $receiptSeqs[] = (int) Receipt::where('invoice_id', $toPay->id)->value('seq');
+            }
+        }
+        // Drain the remaining unpaid invoices into receipts.
+        foreach ($pending as $toPay) {
+            $svc->markPaidManual($toPay, 'cash');
+            $receiptSeqs[] = (int) Receipt::where('invoice_id', $toPay->id)->value('seq');
+        }
+
+        $this->assertGapFreeSequence($invoiceSeqs, $count, 'invoice');
+        $this->assertGapFreeSequence($receiptSeqs, $count, 'receipt');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_numbering_resets_and_stays_gapfree_across_financial_year_rollover(): void
+    {
+        $u   = $this->user();
+        $ws  = $this->bind($u);
+        $svc = app(ClientInvoiceService::class);
+
+        // Last moments of FY 2025-26 (FY starts in April): 31 Mar 2026.
+        Carbon::setTestNow(Carbon::create(2026, 3, 31, 23, 30));
+        $fyOld   = InvoiceService::financialYearFor(now()); // 2025-26
+        $oldSeqs = [];
+        for ($i = 0; $i < 4; $i++) {
+            $inv = $svc->createStandalone([
+                'line_items' => [['label' => 'Old ' . $i, 'amount_minor' => 1000, 'quantity' => 1]],
+            ], $ws, $u->id);
+            $this->assertSame($fyOld, $inv->financial_year);
+            $oldSeqs[] = (int) $inv->seq;
+        }
+
+        // Cross the boundary into FY 2026-27: 1 Apr 2026.
+        Carbon::setTestNow(Carbon::create(2026, 4, 1, 0, 5));
+        $fyNew = InvoiceService::financialYearFor(now()); // 2026-27
+        $this->assertNotSame($fyOld, $fyNew, 'Crossing 31 Mar -> 1 Apr must roll the financial year');
+
+        $newSeqs     = [];
+        $newInvoices = [];
+        for ($i = 0; $i < 3; $i++) {
+            $inv = $svc->createStandalone([
+                'line_items' => [['label' => 'New ' . $i, 'amount_minor' => 1000, 'quantity' => 1]],
+            ], $ws, $u->id);
+            $this->assertSame($fyNew, $inv->financial_year);
+            $newSeqs[]     = (int) $inv->seq;
+            $newInvoices[] = $inv;
+        }
+
+        // Each FY is independently gap-free starting at 1; the new FY does
+        // NOT continue the old counter.
+        $this->assertGapFreeSequence($oldSeqs, 4, 'old-FY invoice');
+        $this->assertGapFreeSequence($newSeqs, 3, 'new-FY invoice');
+        $this->assertSame(1, min($newSeqs), 'New FY numbering must reset to 1');
+
+        // Numbers carry their own FY label, so they can never collide across
+        // years even though the seqs repeat (1..n within each FY).
+        $this->assertStringStartsWith('INV/' . $fyNew . '/', $newInvoices[0]->number);
+        $this->assertStringStartsWith('INV/' . $fyOld . '/00001', sprintf('INV/%s/%s', $fyOld, str_pad((string) min($oldSeqs), 5, '0', STR_PAD_LEFT)));
+
+        // Two distinct counter rows exist — one per FY — each at its own max.
+        $this->assertSame(4, (int) DB::table('invoice_counters')
+            ->where('financial_year', $fyOld)->where('prefix', 'INV')->value('last_seq'));
+        $this->assertSame(3, (int) DB::table('invoice_counters')
+            ->where('financial_year', $fyNew)->where('prefix', 'INV')->value('last_seq'));
+
+        Carbon::setTestNow();
     }
 }
