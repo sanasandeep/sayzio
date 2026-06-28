@@ -744,6 +744,9 @@ Route::prefix('v1')->group(function () {
         // charged + auto-refunded inside AiBrandKitService), delete, and
         // apply-to-biolink / apply-to-qr. Throttles mirror the web routes.
         Route::get   ('/brand-kits',          [\App\Modules\Api\Controllers\BrandKitController::class, 'index']);
+        // Brand Consistency Score (Task #2664) — audit of the caller's biolinks
+        // vs their default kit; mobile turns findings into one-tap "Apply fix".
+        Route::get   ('/brand-kits/consistency', [\App\Modules\Api\Controllers\BrandKitController::class, 'consistency']);
         Route::post  ('/brand-kits/estimate', [\App\Modules\Api\Controllers\BrandKitController::class, 'estimate'])->middleware('throttle:30,1');
         Route::post  ('/brand-kits/generate', [\App\Modules\Api\Controllers\BrandKitController::class, 'generate'])->middleware('throttle:10,1');
         Route::delete('/brand-kits/{brandKit}', [\App\Modules\Api\Controllers\BrandKitController::class, 'destroy'])->whereNumber('brandKit');

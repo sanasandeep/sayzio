@@ -98,6 +98,51 @@ export async function getBrandKits(): Promise<BrandKitsIndex> {
   return res.data;
 }
 
+// Brand Consistency Score (Task #2664) — audit of the caller's biolinks
+// against their default kit. Plan-gated behind `brand_consistency`; each
+// finding becomes a one-tap "Apply fix" via applyBrandKitToBiolink(kit_id, link_id).
+export type BrandConsistencyMismatch = {
+  key: string;
+  label: string;
+  current: string | null;
+  expected: string | null;
+};
+
+export type BrandConsistencyFinding = {
+  link_id: number;
+  title: string;
+  alias: string;
+  score: number;
+  severity: "win" | "tip" | "warning" | "critical";
+  headline: string;
+  reason: string;
+  mismatches: BrandConsistencyMismatch[];
+};
+
+export type BrandConsistencyAudit = {
+  score: number;
+  grade: string;
+  label: string;
+  kit_id: number;
+  kit_name: string;
+  links_total: number;
+  links_on_brand: number;
+  findings: BrandConsistencyFinding[];
+};
+
+export type BrandConsistencyResponse = {
+  available: boolean;
+  has_kit: boolean;
+  audit: BrandConsistencyAudit | null;
+};
+
+export async function getBrandConsistency(): Promise<BrandConsistencyResponse> {
+  const res = await apiFetch<{ data: BrandConsistencyResponse }>(
+    "/brand-kits/consistency",
+  );
+  return res.data;
+}
+
 function generatePayload(input: BrandKitGenerateInput): Record<string, unknown> {
   const body: Record<string, unknown> = {};
   if (input.prompt) body.prompt = input.prompt;

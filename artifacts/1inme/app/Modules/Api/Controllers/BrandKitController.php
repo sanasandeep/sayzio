@@ -11,6 +11,7 @@ use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\Brand\AiBrandKitService;
+use App\Services\Brand\BrandConsistencyService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Validation\ValidationException;
@@ -91,6 +92,65 @@ class BrandKitController extends Controller
             'biolinks'     => $biolinks,
             'qr_codes'     => $qrCodes,
             'block_themes' => $this->kits->allowedBlockThemes(),
+        ]);
+    }
+
+    /**
+     * Brand Consistency Score (Task #2664 web parity).
+     *
+     * Audits the caller's biolinks against their default Brand Kit and returns
+     * the 0-100 on-brand score plus per-link findings with plain-English
+     * reasons. Plan-gated behind the legacy-safe `brand_consistency` feature.
+     * The mobile client turns each finding into a one-tap "Apply fix" by
+     * calling the existing apply-to-biolink endpoint with the returned
+     * `kit_id` + `link_id`, so there is no new apply path. Mirrors the audit
+     * the web BrandKitController@index embeds in the page.
+     */
+    public function consistency(Request $request)
+    {
+        $user = $request->user();
+
+        if (!AiPlanAccess::featureAllowed($user, 'brand_consistency')) {
+            return $this->ok(['available' => false, 'has_kit' => false, 'audit' => null]);
+        }
+
+        $kit = BrandKit::defaultFor($user->id);
+        if (!$kit) {
+            return $this->ok(['available' => true, 'has_kit' => false, 'audit' => null]);
+        }
+
+        $biolinks = Link::where('user_id', $user->id)
+            ->where('type', 'biolink')
+            ->orderByDesc('id')
+            ->get(['id', 'title', 'alias', 'type', 'settings']);
+
+        $audit = app(BrandConsistencyService::class)->audit($kit, $biolinks);
+
+        return $this->ok([
+            'available' => true,
+            'has_kit'   => true,
+            'audit'     => [
+                'score'          => $audit['score'],
+                'grade'          => $audit['grade'],
+                'label'          => $audit['label'],
+                'kit_id'         => $audit['kit_id'],
+                'kit_name'       => $audit['kit_name'],
+                'links_total'    => $audit['links_total'],
+                'links_on_brand' => $audit['links_on_brand'],
+                // Off-brand pages only (worst-first), each with the kit-vs-page
+                // mismatches a one-tap "Apply fix" resolves. apply_url (a web
+                // route) is dropped — mobile applies via kit_id + link_id.
+                'findings'       => array_map(fn ($f) => [
+                    'link_id'    => $f['link_id'],
+                    'title'      => $f['title'],
+                    'alias'      => $f['alias'],
+                    'score'      => $f['score'],
+                    'severity'   => $f['severity'],
+                    'headline'   => $f['headline'],
+                    'reason'     => $f['reason'],
+                    'mismatches' => $f['mismatches'],
+                ], $audit['findings']),
+            ],
         ]);
     }
 

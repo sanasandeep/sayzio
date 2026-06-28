@@ -48,6 +48,9 @@ export async function createBiolinkCompanion(payload: {
 export async function createAiPersona(payload: {
   name: string;
   system_prompt?: string;
+  // On-Brand AI (Task #2664): when on (default), the Companion injects the
+  // owner's default Brand Kit voice into replies. Send false to opt out.
+  use_brand_kit?: boolean;
 }): Promise<AiPersona> {
   const res = await apiFetch<{ data: { persona: AiPersona } }>(
     `/ai-companions/personas`,

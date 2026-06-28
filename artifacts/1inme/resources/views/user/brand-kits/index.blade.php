@@ -23,7 +23,7 @@
             $sc = $consistency['score'];
             $ring = $sc >= 90 ? 'text-emerald-300' : ($sc >= 75 ? 'text-lime-300' : ($sc >= 50 ? 'text-amber-300' : 'text-red-300'));
         @endphp
-        <div class="rounded-2xl border border-white/10 bg-gradient-to-br from-violet-500/[0.07] to-fuchsia-500/[0.04] p-6">
+        <div class="rounded-2xl border border-white/10 bg-gradient-to-br from-primary-500/[0.07] to-primary-400/[0.04] p-6">
             <div class="flex items-start gap-5 flex-wrap">
                 <div class="flex items-center gap-4">
                     <div class="relative w-20 h-20 shrink-0">
@@ -74,7 +74,7 @@
                             </div>
                             <form method="POST" action="{{ $f['apply_url'] }}" class="shrink-0">
                                 @csrf
-                                <button class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium whitespace-nowrap">
+                                <button class="px-3 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-500 text-white text-xs font-medium whitespace-nowrap">
                                     <i class="fas fa-wand-magic-sparkles mr-1"></i>Apply fix
                                 </button>
                             </form>

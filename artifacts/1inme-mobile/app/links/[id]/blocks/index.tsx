@@ -2319,6 +2319,8 @@ function SpecialCreateModal(props: {
   const [showPersonaForm, setShowPersonaForm] = useState(false);
   const [personaName, setPersonaName] = useState("");
   const [personaPrompt, setPersonaPrompt] = useState("");
+  // On-Brand AI (Task #2664): default-on; injects the owner's Brand Kit voice.
+  const [personaUseBrandKit, setPersonaUseBrandKit] = useState(true);
 
   useEffect(() => {
     if (visible) {
@@ -2329,6 +2331,7 @@ function SpecialCreateModal(props: {
       setShowPersonaForm(false);
       setPersonaName("");
       setPersonaPrompt("");
+      setPersonaUseBrandKit(true);
     }
   }, [visible, mode]);
 
@@ -2364,6 +2367,7 @@ function SpecialCreateModal(props: {
       createAiPersona({
         name: personaName.trim(),
         system_prompt: personaPrompt.trim() || undefined,
+        use_brand_kit: personaUseBrandKit,
       }),
     onSuccess: async (persona) => {
       await personasQ.refetch();
@@ -2667,6 +2671,35 @@ function SpecialCreateModal(props: {
                           textAlignVertical: "top",
                         },
                       ]}
+                    />
+                  </View>
+
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 12,
+                    }}
+                  >
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text
+                        style={[
+                          styles.createFieldLabel,
+                          { color: colors.foreground },
+                        ]}
+                      >
+                        On-Brand AI
+                      </Text>
+                      <Text
+                        style={{ color: colors.mutedForeground, fontSize: 12 }}
+                      >
+                        Use your Brand Kit voice and tone in replies.
+                      </Text>
+                    </View>
+                    <Switch
+                      value={personaUseBrandKit}
+                      onValueChange={setPersonaUseBrandKit}
+                      trackColor={{ true: colors.primary, false: colors.border }}
                     />
                   </View>
 

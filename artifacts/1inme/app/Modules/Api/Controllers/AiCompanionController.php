@@ -151,9 +151,16 @@ class AiCompanionController extends Controller
         $data = $request->validate([
             'name'           => 'required|string|max:120',
             'system_prompt'  => "nullable|string|max:{$caps['max_system_prompt_chars']}",
+            // On-Brand AI (Task #2664) opt-out — when on (default), the Companion
+            // runtime injects the owner's default Brand Kit voice into replies.
+            'use_brand_kit'  => 'nullable|boolean',
         ]);
 
-        $persona = DB::transaction(function () use ($user, $data) {
+        // Default on; mobile sends an explicit opt-out, mirroring the web
+        // persona edit form's "Use my Brand Kit voice" checkbox.
+        $useBrandKit = $request->has('use_brand_kit') ? $request->boolean('use_brand_kit') : true;
+
+        $persona = DB::transaction(function () use ($user, $data, $useBrandKit) {
             $allowed = collect(AiPersonaAgent::ACTIONS)->keys()
                 ->mapWithKeys(fn ($k) => [$k => false])
                 ->all();
@@ -174,6 +181,7 @@ class AiCompanionController extends Controller
                 'fallback_behavior' => 'clarify',
                 'starter_questions' => [],
                 'use_default_mind'  => true,
+                'use_brand_kit'     => $useBrandKit,
             ]);
             $persona->slug = Str::slug($persona->name) . '-' . $persona->id;
             $persona->save();

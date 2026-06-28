@@ -24,7 +24,10 @@ import {
   deleteBrandKit,
   estimateBrandKit,
   generateBrandKit,
+  getBrandConsistency,
   getBrandKits,
+  type BrandConsistencyFinding,
+  type BrandConsistencyResponse,
   type BrandKit,
   type BrandKitsIndex,
 } from "@/lib/api/brandKits";
@@ -58,6 +61,14 @@ export default function BrandKitsScreen() {
     queryFn: getBrandKits,
   });
   const data = query.data;
+
+  // Brand Consistency Score — audit of the creator's biolinks against their
+  // default kit. Plan-gated server-side; hidden when unavailable or no kit.
+  const consistencyQuery = useQuery<BrandConsistencyResponse>({
+    queryKey: ["brand-consistency"],
+    queryFn: getBrandConsistency,
+  });
+  const consistency = consistencyQuery.data;
 
   const hasInput = useMemo(
     () =>
@@ -131,11 +142,26 @@ export default function BrandKitsScreen() {
     onSuccess: () => {
       setApplyKit(null);
       setApplyKind(null);
+      qc.invalidateQueries({ queryKey: ["brand-consistency"] });
       Alert.alert("Brand kit applied", "Your changes have been saved.");
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
       Alert.alert("Couldn't apply", e?.message ?? "Please try again.");
+    },
+  });
+
+  // One-tap "Apply fix" from a Brand Consistency finding: applies the default
+  // kit to that off-brand biolink, then re-audits (the page now scores 100).
+  const fixMut = useMutation({
+    mutationFn: (vars: { kitId: number; linkId: number }) =>
+      applyBrandKitToBiolink(vars.kitId, vars.linkId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["brand-consistency"] });
+    },
+    onError: (e: any) => {
+      if (handlePlanLockedError(e)) return;
+      Alert.alert("Couldn't apply fix", e?.message ?? "Please try again.");
     },
   });
 
@@ -182,6 +208,20 @@ export default function BrandKitsScreen() {
               Describe your brand and let AI craft a palette, fonts, voice and
               taglines you can apply to a Link in Bio or QR code.
             </Text>
+
+            {/* Brand Consistency Score */}
+            {consistency?.available && consistency.has_kit && consistency.audit ? (
+              <ConsistencyCard
+                audit={consistency.audit}
+                colors={colors}
+                onFix={(linkId) =>
+                  fixMut.mutate({ kitId: consistency.audit!.kit_id, linkId })
+                }
+                fixingLinkId={
+                  fixMut.isPending ? fixMut.variables?.linkId ?? null : null
+                }
+              />
+            ) : null}
 
             {/* Generate form */}
             <Card style={styles.card}>
@@ -406,6 +446,129 @@ export default function BrandKitsScreen() {
   );
 }
 
+function scoreColor(
+  score: number,
+  colors: ReturnType<typeof useColors>,
+): string {
+  if (score >= 90) return colors.success;
+  if (score >= 75) return colors.primary;
+  if (score >= 50) return colors.warning;
+  return colors.destructive;
+}
+
+function ConsistencyCard({
+  audit,
+  colors,
+  onFix,
+  fixingLinkId,
+}: {
+  audit: NonNullable<BrandConsistencyResponse["audit"]>;
+  colors: ReturnType<typeof useColors>;
+  onFix: (linkId: number) => void;
+  fixingLinkId: number | null;
+}) {
+  const tint = scoreColor(audit.score, colors);
+  const allOnBrand =
+    audit.findings.length === 0 && audit.links_total > 0;
+
+  return (
+    <Card style={styles.card}>
+      <View style={styles.scoreHeader}>
+        <View style={[styles.scoreBadge, { borderColor: tint }]}>
+          <Text style={[styles.scoreNumber, { color: tint }]}>
+            {audit.score}
+          </Text>
+          <Text style={[styles.scoreOutOf, { color: colors.mutedForeground }]}>
+            /100
+          </Text>
+        </View>
+        <View style={styles.flex}>
+          <Text style={[styles.scoreLabel, { color: colors.foreground }]}>
+            {audit.label}
+          </Text>
+          <Text style={[styles.meta, { color: colors.mutedForeground }]}>
+            {audit.links_total === 0
+              ? "No Link in Bio pages to check yet."
+              : `${audit.links_on_brand} of ${audit.links_total} page${
+                  audit.links_total === 1 ? "" : "s"
+                } on-brand · ${audit.kit_name}`}
+          </Text>
+        </View>
+      </View>
+
+      {audit.links_total === 0 ? (
+        <Text style={[styles.body, { color: colors.mutedForeground }]}>
+          Create a Link in Bio to see how on-brand it is.
+        </Text>
+      ) : allOnBrand ? (
+        <View style={styles.notice}>
+          <Feather name="check-circle" size={16} color={colors.success} />
+          <Text style={[styles.noticeText, { color: colors.foreground }]}>
+            Every page matches your Brand Kit. Nice work!
+          </Text>
+        </View>
+      ) : (
+        <>
+          <Text style={[styles.findingsTitle, { color: colors.foreground }]}>
+            Off-brand pages ({audit.findings.length})
+          </Text>
+          {audit.findings.map((finding) => (
+            <FindingRow
+              key={finding.link_id}
+              finding={finding}
+              colors={colors}
+              onFix={() => onFix(finding.link_id)}
+              fixing={fixingLinkId === finding.link_id}
+            />
+          ))}
+        </>
+      )}
+    </Card>
+  );
+}
+
+function FindingRow({
+  finding,
+  colors,
+  onFix,
+  fixing,
+}: {
+  finding: BrandConsistencyFinding;
+  colors: ReturnType<typeof useColors>;
+  onFix: () => void;
+  fixing: boolean;
+}) {
+  const tint = scoreColor(finding.score, colors);
+  return (
+    <View style={[styles.finding, { borderColor: colors.border }]}>
+      <View style={styles.findingHeader}>
+        <View
+          style={[styles.findingDot, { backgroundColor: tint }]}
+        />
+        <Text
+          style={[styles.findingTitle, { color: colors.foreground }]}
+          numberOfLines={1}
+        >
+          {finding.title}
+        </Text>
+        <Text style={[styles.findingScore, { color: tint }]}>
+          {finding.score}%
+        </Text>
+      </View>
+      <Text style={[styles.body, { color: colors.mutedForeground }]}>
+        {finding.reason}
+      </Text>
+      <Button
+        label={fixing ? "Applying…" : "Apply fix"}
+        variant="outline"
+        loading={fixing}
+        disabled={fixing}
+        onPress={onFix}
+      />
+    </View>
+  );
+}
+
 function BrandKitCard({
   kit,
   colors,
@@ -560,6 +723,33 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
+  scoreHeader: { flexDirection: "row", alignItems: "center", gap: 14 },
+  scoreBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scoreNumber: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 22 },
+  scoreOutOf: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11, marginTop: -2 },
+  scoreLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 17 },
+  findingsTitle: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 14,
+    marginTop: 4,
+  },
+  finding: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+  },
+  findingHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  findingDot: { width: 8, height: 8, borderRadius: 4 },
+  findingTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15, flex: 1 },
+  findingScore: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 14 },
   swatchRow: { flexDirection: "row", gap: 6 },
   swatch: { width: 32, height: 32, borderRadius: 8, borderWidth: 1 },
   tagWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
