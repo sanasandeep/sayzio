@@ -5,12 +5,14 @@ description: Why the registered `e2e` validation step gates a curated subset, th
 
 The `e2e` validation step (created via `setValidationCommand`) runs
 `artifacts/1inme/tests/Browser/run-validation.sh` scoped to a curated subset.
-The gated set, the `test:e2e:ci` package script, the `.replit` `e2e` workflow
-args, and the Browser README's documented command must stay in lockstep when the
-set changes. Currently five specs: `home-auth-modal-mobile`,
-`biolink-editor-card-gallery-preview`, `biolink-editor-palette-dnd`,
-`cookie-consent-footer-gap`, `cookie-consent-layout-styles` (space-separated
-args forwarded to `playwright test`).
+FOUR lockstep surfaces must stay in sync when the gated set changes: the `e2e`
+validation command (re-register via `setValidationCommand`), the `test:e2e:ci`
+package script, the `.replit` `e2e` workflow args (platform-owned — driven by
+`setValidationCommand`, don't edit `.replit`), and the Browser README (the
+documented command + the "Why these N specs are gated" heading/count + its spec
+description). The set grows over time (was 5, now 11) — re-read `test:e2e:ci` in
+`package.json` for the authoritative current list rather than trusting a count
+here. Args are space-separated and forwarded to `playwright test`.
 
 **Warm-server strategy (the real lever):** the dominant cost is the *first*
 render of each route — cold home ~25-30s, cold biolink-editor ~20s, warm ~2-3s —

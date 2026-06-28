@@ -48,7 +48,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   voice-assistant-bridge.spec.ts \
   slides-mode.spec.ts \
   cookie-consent-footer-reserve.spec.ts \
-  home-hero-orbit-popover.spec.ts
+  home-hero-orbit-popover.spec.ts \
+  brand-consistency-apply-fix.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -100,7 +101,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these ten specs are gated (and not the whole suite)
+### Why these eleven specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -163,13 +164,21 @@ The gate covers the specs that run reliably as an unattended check here:
   the right title + description), clicking another node switches (the first
   closes), re-clicking the open node closes it, and Escape / an outside click
   both close it — with exactly one popover open at any time.
+- `brand-consistency-apply-fix.spec.ts` — self-bootstrapping: it seeds a default
+  Brand Kit and a deliberately off-brand biolink (bringing every other biolink in
+  the workspace on-brand first) via `php artisan tinker`, logs in as the demo
+  user, and on `/user/brand-kits` asserts the Brand Consistency gauge reads below
+  100 and a finding renders, then clicks "Apply fix" (submitting the finding's
+  form via JS and waiting only for the POST so the heavy editor redirect never
+  blocks) and re-audits: the gauge now reads 100 with no findings. Gating it
+  catches regressions in the consistency audit or the apply-fix round-trip.
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the ten gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the eleven gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
