@@ -1,0 +1,211 @@
+<?php
+
+namespace App\Modules\Api\Controllers;
+
+use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Modules\Api\Resources\LinkResource;
+use App\Modules\User\Models\BrandKit;
+use App\Modules\User\Models\Link;
+use App\Services\AI\AiEngineSettings;
+use App\Services\AI\AiPlanAccess;
+use App\Services\AI\AiUsageCharger;
+use App\Services\AI\InsufficientCoinsForAiException;
+use App\Services\Biolink\AiBiolinkBuilderService;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+
+/**
+ * Mobile (Sanctum) parity for the web "Build my Link in Bio with AI" flow
+ * (App\Modules\User\Controllers\AiBiolinkBuilderController).
+ *
+ *   GET  links/{link}/ai-builder            → intake context (engine on?, balance, limits, On-Brand)
+ *   POST links/{link}/ai-builder/estimate   → upfront credit cost
+ *   POST links/{link}/ai-builder/generate   → run the build, replace the page's blocks
+ *
+ * Both surfaces delegate to the same {@see AiBiolinkBuilderService}, so the
+ * plan/AI-credit gating, the safe block subset, and the auto-refund-on-parse-
+ * failure all live in one place and never drift. Like the web flow this
+ * operates on an existing biolink and replaces its blocks; the mobile client
+ * then opens the standard block editor on the result.
+ *
+ * On-Brand AI (Task #2664): `use_brand_kit` (default on) injects the owner's
+ * default Brand Kit voice/palette directives into the build, gated behind the
+ * `brand_consistency` feature — exact parity with the web intake form's
+ * "Use my Brand Kit voice" opt-out.
+ */
+class AiBiolinkBuilderController extends Controller
+{
+    use ApiResponses;
+
+    public function __construct(
+        private AiBiolinkBuilderService $builder,
+        private AiUsageCharger $credits,
+    ) {}
+
+    /**
+     * Intake context for the mobile builder screen: whether the AI engine is
+     * on, the caller's credit balance, the input caps, the curated block types
+     * this user may use, and the On-Brand AI availability + a light Brand Kit
+     * summary. Mirrors the web intake() view payload.
+     */
+    public function intake(Request $request, int $linkId)
+    {
+        $link = $this->ownedBiolink($request, $linkId);
+        if (!$link) {
+            return $this->notFound('Link in Bio not found');
+        }
+
+        $user = $request->user();
+        $aiEnabled = AiEngineSettings::isEnabled();
+        $onBrandAllowed = AiPlanAccess::featureAllowed($user, 'brand_consistency');
+        $kit = $onBrandAllowed ? BrandKit::defaultFor($user->id) : null;
+
+        return $this->ok([
+            'ai_enabled'      => $aiEnabled,
+            'balance'         => $aiEnabled ? $this->credits->getBalance($user) : 0,
+            'allowed_types'   => $this->builder->allowedTypesFor($user),
+            'max_links'       => 25,
+            'max_images'      => 25,
+            'max_files'       => 15,
+            'on_brand_allowed' => $onBrandAllowed,
+            'brand_kit'       => $kit ? [
+                'id'   => (int) $kit->id,
+                'name' => (string) $kit->name,
+            ] : null,
+        ]);
+    }
+
+    public function estimate(Request $request, int $linkId)
+    {
+        $link = $this->ownedBiolink($request, $linkId);
+        if (!$link) {
+            return $this->notFound('Link in Bio not found');
+        }
+
+        if (!AiEngineSettings::isEnabled()) {
+            return $this->fail('AI generation is currently unavailable.', 503, 'ai_unavailable');
+        }
+
+        $data = $this->validatePayload($request);
+
+        try {
+            $cost = $this->builder->estimateCredits(
+                $request->user(),
+                $data['description'],
+                $data['links'],
+                $data['images'],
+                $data['files'],
+                '',
+                $this->brandDirectives($request, $data['use_brand_kit']),
+            );
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'invalid_request');
+        }
+
+        return $this->ok([
+            'estimated_credits' => $cost,
+            'balance'           => $this->credits->getBalance($request->user()),
+        ]);
+    }
+
+    public function generate(Request $request, int $linkId)
+    {
+        $link = $this->ownedBiolink($request, $linkId);
+        if (!$link) {
+            return $this->notFound('Link in Bio not found');
+        }
+
+        if (!AiEngineSettings::isEnabled()) {
+            return $this->fail('AI generation is currently unavailable.', 503, 'ai_unavailable');
+        }
+
+        $data = $this->validatePayload($request);
+
+        try {
+            $result = $this->builder->generate(
+                $request->user(),
+                $link,
+                $data['description'],
+                $data['links'],
+                $data['images'],
+                $data['files'],
+                '',
+                true,
+                $this->brandDirectives($request, $data['use_brand_kit']),
+            );
+        } catch (InsufficientCoinsForAiException $e) {
+            return $this->fail('Not enough AI credits to build this page.', 402, 'insufficient_credits', [
+                'required' => $e->required ?? null,
+                'balance'  => $e->balance ?? null,
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'generation_failed');
+        }
+
+        return $this->ok([
+            'blocks'        => $result['blocks'],
+            'credits_spent' => $result['credits_spent'],
+            'balance'       => $this->credits->getBalance($request->user()),
+            'link'          => LinkResource::toArray($link->fresh()),
+        ]);
+    }
+
+    /**
+     * @return array{description:string,links:list<string>,images:list<string>,files:list<string>,use_brand_kit:bool}
+     */
+    private function validatePayload(Request $request): array
+    {
+        $data = $request->validate([
+            'description'   => ['required', 'string', 'min:10', 'max:4000'],
+            'links'         => ['nullable', 'array', 'max:25'],
+            'links.*'       => ['string', 'max:2048'],
+            'images'        => ['nullable', 'array', 'max:25'],
+            'images.*'      => ['string', 'max:2048'],
+            'files'         => ['nullable', 'array', 'max:15'],
+            'files.*'       => ['string', 'max:2048'],
+            'use_brand_kit' => ['nullable', 'boolean'],
+        ]);
+
+        return [
+            'description'   => $data['description'],
+            'links'         => array_values($data['links'] ?? []),
+            'images'        => array_values($data['images'] ?? []),
+            'files'         => array_values($data['files'] ?? []),
+            // On-brand by default; the mobile form sends an explicit opt-out.
+            'use_brand_kit' => $request->has('use_brand_kit') ? $request->boolean('use_brand_kit') : true,
+        ];
+    }
+
+    /**
+     * Resolve the creator's saved Brand Kit voice/palette directives to feed
+     * the builder, honoring the per-request opt-out and the plan gate. Returns
+     * '' when off, ungated, or the creator has no kit — so generation is
+     * unaffected for everyone who hasn't opted into On-Brand AI. Mirrors the
+     * web controller, but resolves the kit by the caller id (the Sanctum API
+     * path never binds an active workspace) like the rest of the API module.
+     */
+    private function brandDirectives(Request $request, bool $useBrandKit): string
+    {
+        if (!$useBrandKit) {
+            return '';
+        }
+        if (!AiPlanAccess::featureAllowed($request->user(), 'brand_consistency')) {
+            return '';
+        }
+        $kit = BrandKit::defaultFor($request->user()->id);
+
+        return $kit ? $kit->promptDirectives(true) : '';
+    }
+
+    /**
+     * The caller's own biolink (strictly `type = biolink`, matching the web
+     * authorizeLink gate). Returns null when missing/not-owned/not-a-biolink so
+     * the caller surfaces a 404.
+     */
+    private function ownedBiolink(Request $request, int $id): ?Link
+    {
+        return Link::where('user_id', $request->user()->id)
+            ->where('type', 'biolink')
+            ->find($id);
+    }
+}

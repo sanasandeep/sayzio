@@ -550,6 +550,16 @@ Route::prefix('v1')->group(function () {
         Route::delete('/links/{id}/blocks/{blockId}',       [BiolinkBlockController::class, 'destroy'])->whereNumber('id')->whereNumber('blockId');
         Route::post  ('/links/{id}/blocks/reorder',         [BiolinkBlockController::class, 'reorder'])->whereNumber('id');
 
+        // "Build my Link in Bio with AI" (mobile parity for the web
+        // links/{link}/ai-builder flow). Prompt + optional images/links →
+        // a full page assembled by the shared AiBiolinkBuilderService, which
+        // replaces the biolink's blocks. Honors the same plan/AI-credit gating,
+        // auto-refund-on-parse-failure, and On-Brand AI `use_brand_kit` opt-in
+        // as web. Throttles mirror the web routes.
+        Route::get ('/links/{id}/ai-builder',          [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'intake'])->whereNumber('id');
+        Route::post('/links/{id}/ai-builder/estimate', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'estimate'])->whereNumber('id')->middleware('throttle:30,1');
+        Route::post('/links/{id}/ai-builder/generate', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'generate'])->whereNumber('id')->middleware('throttle:10,1');
+
         // Biolink themes (saved looks + scheduled application). Mobile
         // creators can save the current look, schedule it for a date
         // range, and cancel/end early. Public viewers always see the
