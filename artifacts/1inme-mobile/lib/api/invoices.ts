@@ -23,6 +23,7 @@ export type Invoice = {
 
 export type InvoiceDetail = Invoice & {
   pdf_url: string | null;
+  receipt_pdf_url: string | null;
   lines: InvoiceLine[];
 };
 
@@ -90,6 +91,7 @@ export type InvoiceReceipt = {
   gateway: string | null;
   gateway_ref: string | null;
   created_at: string | null;
+  pdf_url: string | null;
   invoice: Invoice;
 };
 

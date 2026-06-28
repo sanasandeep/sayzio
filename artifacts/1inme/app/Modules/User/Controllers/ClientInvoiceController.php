@@ -242,6 +242,43 @@ class ClientInvoiceController extends Controller
         return view('user.client_invoices.receipt', compact('invoice', 'receipt'));
     }
 
+    /**
+     * Signed, downloadable PDF of the invoice. The signed-URL HMAC is the
+     * only authorization (no session needed) so the in-app button, the
+     * REST/mobile clients and emailed links can all share one route.
+     */
+    public function pdf(Request $request, Invoice $invoice, \App\Services\Billing\ClientInvoicePdfRenderer $renderer)
+    {
+        if (!$request->hasValidSignature()) abort(401, 'Download link expired.');
+        if ($invoice->kind !== 'client') abort(404);
+
+        $out = $renderer->renderInvoice($invoice);
+        return response($out['body'], 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $out['filename'] . '"',
+            'Content-Length'      => (string) strlen($out['body']),
+            'Cache-Control'       => 'private, max-age=0, no-store',
+        ]);
+    }
+
+    /** Signed, downloadable PDF of the latest receipt for a paid invoice. */
+    public function receiptPdf(Request $request, Invoice $invoice, \App\Services\Billing\ClientInvoicePdfRenderer $renderer)
+    {
+        if (!$request->hasValidSignature()) abort(401, 'Download link expired.');
+        if ($invoice->kind !== 'client') abort(404);
+
+        $receipt = \App\Modules\User\Models\Receipt::where('invoice_id', $invoice->id)->latest('id')->first();
+        if (!$receipt) abort(404, 'No receipt for this invoice yet.');
+
+        $out = $renderer->renderReceipt($invoice, $receipt);
+        return response($out['body'], 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $out['filename'] . '"',
+            'Content-Length'      => (string) strlen($out['body']),
+            'Cache-Control'       => 'private, max-age=0, no-store',
+        ]);
+    }
+
     /** Public, signed pay page — no auth required. */
     public function payPage(Request $request, Invoice $invoice)
     {

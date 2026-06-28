@@ -123,3 +123,4 @@
 - [AI Artistic QR decode check](ai-qr-decode-verify.md) — vendored jsQR (window.jsQR, UMD browser branch) decodes the returned artwork client-side (free, no coin); cross-origin S3-without-CORS taint degrades to status 'unknown'; artistic-strength→qr_conditioning_scale is inverse.
 - [Emailer swallows transport errors](emailer-swallows-transport-errors.md) — Emailer::send never re-throws a mail failure (dispatch catches all); to test email-failure recovery mock the service method, not the Mail facade.
 - [Credit-note two mint paths](credit-note-two-mint-paths.md) — both refund paths must mint CN numbers via CreditNoteService::issue (locked per-FY counter), never id-keyed; number column is UNIQUE.
+- [Client invoice/receipt PDF](client-invoice-pdf.md) — client-invoice PDFs are public signed-URL only (no session) so web/API/mobile share one route; branding falls back BillingCompany→snapshot→config.

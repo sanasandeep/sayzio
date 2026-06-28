@@ -122,8 +122,7 @@ export default function InvoiceDetailScreen() {
   const viewReceipt = useMutation({
     mutationFn: () => getInvoiceReceipt(id),
     onSuccess: (r) => {
-      Alert.alert(
-        `Receipt ${r.number ?? `#${r.id}`}`,
+      const body =
         [
           r.method ? `Method: ${r.method}` : null,
           r.gateway ? `Gateway: ${r.gateway}` : null,
@@ -131,7 +130,16 @@ export default function InvoiceDetailScreen() {
           r.created_at ? `Date: ${r.created_at.slice(0, 10)}` : null,
         ]
           .filter(Boolean)
-          .join("\n") || "Receipt recorded.",
+          .join("\n") || "Receipt recorded.";
+      Alert.alert(
+        `Receipt ${r.number ?? `#${r.id}`}`,
+        body,
+        [
+          ...(r.pdf_url
+            ? [{ text: "Download PDF", onPress: () => openUrl(r.pdf_url as string) }]
+            : []),
+          { text: "Close", style: "cancel" as const },
+        ],
       );
     },
     onError: (e: { message?: string }) =>
@@ -144,10 +152,9 @@ export default function InvoiceDetailScreen() {
   const canManage = status !== "paid" && status !== "refunded";
   const isPaid = status === "paid";
 
-  const openPdf = async () => {
-    if (!inv?.pdf_url) return;
+  const openUrl = async (url: string) => {
     try {
-      await WebBrowser.openBrowserAsync(inv.pdf_url, {
+      await WebBrowser.openBrowserAsync(url, {
         toolbarColor: colors.background,
         controlsColor: colors.primary,
       });
@@ -157,6 +164,10 @@ export default function InvoiceDetailScreen() {
         e instanceof Error ? e.message : "Try again later.",
       );
     }
+  };
+
+  const openPdf = () => {
+    if (inv?.pdf_url) openUrl(inv.pdf_url);
   };
 
   return (

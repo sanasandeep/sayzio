@@ -76,15 +76,30 @@ class BillingController extends Controller
         }
 
         $pdfUrl = null;
+        $receiptPdfUrl = null;
         try {
-            $pdfUrl = route('user.invoices.pdf', ['invoice' => $invoice->id]);
+            if ($invoice->kind === 'client') {
+                // Signed, session-less PDF so the mobile WebBrowser can open it.
+                $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                    'client-invoice.pdf', now()->addHours(6), ['invoice' => $invoice->id]
+                );
+                if ($invoice->status === 'paid'
+                    && \App\Modules\User\Models\Receipt::where('invoice_id', $invoice->id)->exists()) {
+                    $receiptPdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                        'client-invoice.receipt-pdf', now()->addHours(6), ['invoice' => $invoice->id]
+                    );
+                }
+            } else {
+                $pdfUrl = route('user.invoices.pdf', ['invoice' => $invoice->id]);
+            }
         } catch (\Throwable $e) {
             $pdfUrl = null;
         }
 
         return $this->ok(['invoice' => array_merge($this->transformInvoice($invoice), [
-            'lines'   => $lines,
-            'pdf_url' => $pdfUrl,
+            'lines'           => $lines,
+            'pdf_url'         => $pdfUrl,
+            'receipt_pdf_url' => $receiptPdfUrl,
         ])]);
     }
 
@@ -326,6 +341,14 @@ class BillingController extends Controller
         if (!$invoice) return $this->notFound('Invoice not found');
         $receipt = \App\Modules\User\Models\Receipt::where('invoice_id', $invoice->id)->latest('id')->first();
         if (!$receipt) return $this->notFound('No receipt yet.');
+        $pdfUrl = null;
+        try {
+            $pdfUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                'client-invoice.receipt-pdf', now()->addHours(6), ['invoice' => $invoice->id]
+            );
+        } catch (\Throwable $e) {
+            $pdfUrl = null;
+        }
         return $this->ok(['receipt' => [
             'id'         => $receipt->id,
             'number'     => $receipt->number,
@@ -333,6 +356,7 @@ class BillingController extends Controller
             'gateway'    => $receipt->gateway,
             'gateway_ref'=> $receipt->gateway_ref,
             'created_at' => optional($receipt->created_at)->toIso8601String(),
+            'pdf_url'    => $pdfUrl,
             'invoice'    => $this->transformInvoice($invoice),
         ]]);
     }

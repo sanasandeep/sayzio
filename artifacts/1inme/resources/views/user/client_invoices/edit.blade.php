@@ -7,7 +7,14 @@
             <h1 class="hero-title">Invoice {{ $invoice->number }}</h1>
             <p class="hero-subtitle">Status: <strong>{{ strtoupper($invoice->status) }}</strong> · {{ strtoupper($invoice->currency) }}</p>
         </div>
-        <a href="{{ route('user.client-invoices.dashboard') }}" class="hero-back"><i class="fas fa-arrow-left"></i></a>
+        <div class="flex items-center gap-2">
+            <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('client-invoice.pdf', now()->addDay(), ['invoice' => $invoice->id]) }}"
+               class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border"
+               style="border-color: var(--border-soft); color: var(--text-primary); background: var(--bg-card);">
+                <i class="fas fa-file-pdf"></i> Download PDF
+            </a>
+            <a href="{{ route('user.client-invoices.dashboard') }}" class="hero-back"><i class="fas fa-arrow-left"></i></a>
+        </div>
     </div>
 
     @if(session('success'))<div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>@endif

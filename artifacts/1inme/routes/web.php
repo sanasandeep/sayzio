@@ -73,6 +73,12 @@ Route::get('/dialer/vcard', [\App\Modules\User\Controllers\DialerVcardController
 Route::get('/pay/invoice/{invoice}',  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'payPage'])->name('client-invoice.pay');
 Route::post('/pay/invoice/{invoice}', [\App\Modules\User\Controllers\ClientInvoiceController::class, 'payHandoff'])->name('client-invoice.pay.handoff');
 
+// Signed, downloadable PDFs of a client invoice + its receipt. Signed-URL
+// HMAC is the only authorization (no session), so the in-app button, the
+// REST API/mobile clients and emailed links can all share these routes.
+Route::get('/pay/invoice/{invoice}/pdf',         [\App\Modules\User\Controllers\ClientInvoiceController::class, 'pdf'])->name('client-invoice.pdf');
+Route::get('/pay/invoice/{invoice}/receipt.pdf', [\App\Modules\User\Controllers\ClientInvoiceController::class, 'receiptPdf'])->name('client-invoice.receipt-pdf');
+
 // ---- Universal Links / App Links manifests for the iOS + Android apps ----
 Route::get('/.well-known/apple-app-site-association',
     [\App\Modules\Common\Controllers\UniversalLinksController::class, 'appleAppSiteAssociation'])
