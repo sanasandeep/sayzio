@@ -145,7 +145,8 @@
 .sa-header img{object-fit:contain;padding:1px}
 .sa-header h4{margin:0;font-size:14px;font-weight:600;color:#fff}
 .sa-header .sa-sub{font-size:11px;opacity:.65}
-.sa-close{margin-left:auto;background:transparent;border:0;color:#94a3b8;font-size:18px;cursor:pointer}
+.sa-close{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:transparent;border:0;color:#94a3b8;font-size:20px;line-height:1;border-radius:8px;cursor:pointer;transition:background .15s ease,color .15s ease}
+.sa-close:hover{background:rgba(255,255,255,.08);color:#e2e8f0}
 .sa-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
 .sa-msg{max-width:85%;padding:10px 12px;border-radius:14px;font-size:13.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
 .sa-msg.user{align-self:flex-end;background:var(--sa-accent,#3d6bff);color:#fff;border-bottom-right-radius:4px}
@@ -172,9 +173,11 @@
 .sa-qc-tabs{display:flex;gap:6px;flex-wrap:wrap}
 .sa-qc-tab{flex:1;min-width:80px;background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.12)!important;color:#cbd5e1!important;padding:7px 8px!important;border-radius:8px!important;font-size:12px!important;font-weight:500!important;cursor:pointer}
 .sa-qc-tab.sa-qc-on{background:var(--sa-accent,#3d6bff)!important;border-color:transparent!important;color:#fff!important}
-.sa-contact-btn{margin-left:auto;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#e2e8f0;font-size:11.5px;font-weight:600;font-family:inherit;padding:5px 10px;border-radius:999px;cursor:pointer}
-.sa-contact-btn:hover{background:var(--sa-accent,#3d6bff);border-color:transparent;color:#fff}
-.sa-contact-btn svg{width:13px;height:13px}
+.sa-actions{display:flex;padding:12px 14px 2px}
+.sa-contact-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(61,107,255,.12);border:1px solid rgba(61,107,255,.34);color:#c7d4ff;font-size:12.5px;font-weight:600;font-family:inherit;line-height:1;padding:9px 15px;border-radius:999px;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .15s ease}
+.sa-contact-btn:hover{background:var(--sa-accent,#3d6bff);border-color:transparent;color:#fff;transform:translateY(-1px)}
+.sa-contact-btn:active{transform:translateY(0)}
+.sa-contact-btn svg{width:14px;height:14px}
 .sa-contact{flex:1;overflow-y:auto;padding:14px;display:none;flex-direction:column;gap:10px}
 .sa-contact.sa-show{display:flex}
 .sa-contact-back{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;background:transparent;border:0;color:#94a3b8;font-size:12px;cursor:pointer;font-family:inherit;padding:0}
@@ -221,7 +224,7 @@ html.light-mode .sa-form{background:rgba(15,23,42,.03);border:1px solid rgba(15,
 html.light-mode .sa-form input,html.light-mode .sa-form textarea{background:#ffffff;border:1px solid rgba(15,23,42,.15);color:#1e293b}
 html.light-mode .sa-qc-tab{background:rgba(15,23,42,.05)!important;border:1px solid rgba(15,23,42,.12)!important;color:#475569!important}
 html.light-mode .sa-qc-tab.sa-qc-on{background:var(--sa-accent,#3d6bff)!important;color:#fff!important;border-color:transparent!important}
-html.light-mode .sa-contact-btn{background:rgba(15,23,42,.05);border:1px solid rgba(15,23,42,.12);color:#334155}
+html.light-mode .sa-contact-btn{background:rgba(61,107,255,.09);border-color:rgba(61,107,255,.28);color:#2742a8}
 html.light-mode .sa-contact-btn:hover{background:var(--sa-accent,#3d6bff);border-color:transparent;color:#fff}
 html.light-mode .sa-contact-back{color:#64748b}
 html.light-mode .sa-contact-back:hover{color:#1e293b}
@@ -421,11 +424,17 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   var PHONE_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
   var contactBtn=el('button',{class:'sa-contact-btn',type:'button','aria-label':@json(__('Contact us')),html:PHONE_SVG+'<span>'+escapeHtml(@json(__('Contact us')))+'</span>'});
   contactBtn.onclick=function(){ openContact(); };
-  header.appendChild(contactBtn);
   var closeBtn=el('button',{class:'sa-close',type:'button','aria-label':'Close'},'×');
   closeBtn.onclick=function(){ togglePanel(false); };
   header.appendChild(closeBtn);
   panel.appendChild(header);
+
+  // "Contact us" entry point lives on its own action row directly below
+  // the header so it reads as a distinct, one-tap action with breathing
+  // room — no longer squeezed between the brand title and the close (×).
+  var actions=el('div',{class:'sa-actions'});
+  actions.appendChild(contactBtn);
+  panel.appendChild(actions);
 
   var suggested=el('div',{class:'sa-suggested',id:'sa-suggested'});
   panel.appendChild(suggested);
@@ -913,6 +922,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   }
   function openContact(){
     if(!contactBuilt){ buildContactForm(); contactBuilt=true; }
+    actions.style.display='none';
     suggested.style.display='none';
     body.style.display='none';
     inputRow.style.display='none';
@@ -921,6 +931,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   }
   function closeContact(){
     contactPane.classList.remove('sa-show');
+    actions.style.display='';
     suggested.style.display='';
     body.style.display='';
     inputRow.style.display='';

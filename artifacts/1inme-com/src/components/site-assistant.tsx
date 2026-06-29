@@ -583,47 +583,88 @@ export default function SiteAssistant() {
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{brand}</div>
                 <div style={{ fontSize: 11, color: t.sub }}>{subheading}</div>
               </div>
-              {!contactView && (
-                <button
-                  type="button"
-                  aria-label="Contact us"
-                  onClick={openContact}
-                  style={{
-                    marginLeft: "auto",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                    background: t.chip,
-                    border: `1px solid ${t.chipBorder}`,
-                    color: t.chipText,
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    fontFamily: "inherit",
-                    padding: "5px 10px",
-                    borderRadius: 999,
-                    cursor: "pointer",
-                  }}
-                >
-                  <Phone size={13} /> Contact us
-                </button>
-              )}
               <button
                 type="button"
                 aria-label="Close assistant"
                 onClick={() => toggle(false)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = isDark
+                    ? "rgba(255,255,255,0.08)"
+                    : "rgba(17,17,30,0.06)";
+                  e.currentTarget.style.color = t.text;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = t.sub;
+                }}
                 style={{
-                  marginLeft: contactView ? "auto" : 8,
+                  marginLeft: "auto",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 30,
+                  height: 30,
                   background: "transparent",
                   border: 0,
+                  borderRadius: 8,
                   color: t.sub,
                   fontSize: 20,
                   lineHeight: 1,
                   cursor: "pointer",
+                  transition: "background .15s ease, color .15s ease",
                 }}
               >
                 ×
               </button>
             </div>
+
+            {/* "Contact us" entry point on its own action row below the header
+                so it reads as a distinct, one-tap action with breathing room —
+                no longer squeezed between the brand title and the close (×).
+                Mirrors the Laravel widget's .sa-actions / .sa-contact-btn. */}
+            {!contactView && (
+              <div style={{ display: "flex", padding: "12px 14px 2px" }}>
+                <button
+                  type="button"
+                  aria-label="Contact us"
+                  onClick={openContact}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = BRAND_ACCENT;
+                    e.currentTarget.style.borderColor = "transparent";
+                    e.currentTarget.style.color = "#fff";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = t.chip;
+                    e.currentTarget.style.borderColor = t.chipBorder;
+                    e.currentTarget.style.color = t.chipText;
+                    e.currentTarget.style.transform = "none";
+                  }}
+                  onMouseDown={(e) => {
+                    e.currentTarget.style.transform = "none";
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 7,
+                    background: t.chip,
+                    border: `1px solid ${t.chipBorder}`,
+                    color: t.chipText,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    fontFamily: "inherit",
+                    lineHeight: 1,
+                    padding: "9px 15px",
+                    borderRadius: 999,
+                    cursor: "pointer",
+                    transition:
+                      "background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease",
+                  }}
+                >
+                  <Phone size={14} /> Contact us
+                </button>
+              </div>
+            )}
 
             {contactView ? (
               <AssistantContactView
