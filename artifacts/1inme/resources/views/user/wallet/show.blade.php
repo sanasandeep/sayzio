@@ -3,6 +3,21 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto px-4 py-8 space-y-6">
+    @if(!empty($locked))
+        @include('user.partials._feature-locked', [
+            'title'       => 'Wallet & Coins',
+            'icon'        => 'fa-solid fa-coins',
+            'description' => 'Your coin wallet powers the pay-as-you-go side of the platform — top up a balance once and spend it across the features that bill in coins.',
+            'offers'      => [
+                'Keep a coin balance you can see and top up at any time',
+                'Buy coins in packages priced in your local currency',
+                'Pay for AI features straight from your wallet',
+                'Cover usage overages (like extra API calls) without a separate purchase',
+            ],
+            'cta'         => 'Contact your admin',
+            'ctaUrl'      => null,
+        ])
+    @else
     @if(session('status'))<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('status') }}</div>@endif
     @if(session('error'))<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">{{ session('error') }}</div>@endif
 
@@ -47,5 +62,6 @@
         </table>
         @endif
     </div>
+    @endif
 </div>
 @endsection

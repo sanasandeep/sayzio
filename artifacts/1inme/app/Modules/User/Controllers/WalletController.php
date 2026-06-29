@@ -29,11 +29,17 @@ class WalletController extends Controller
 
     public function show(Request $request)
     {
-        if (!WalletService::isEnabled()) abort(404);
+        // When the admin has turned the Wallet & Coins feature off we render
+        // the page in a "locked by admin" state instead of a bare 404, so the
+        // user understands the feature exists but is currently disabled.
+        if (!WalletService::isEnabled()) {
+            return view('user.wallet.show', ['locked' => true]);
+        }
         $user = $request->user();
         $wallet = $this->wallets->walletFor($user);
         $transactions = $wallet->transactions()->limit(10)->get();
         return view('user.wallet.show', [
+            'locked'       => false,
             'wallet'       => $wallet,
             'transactions' => $transactions,
             'currency'     => PricingResolver::currencyForUser($user),
