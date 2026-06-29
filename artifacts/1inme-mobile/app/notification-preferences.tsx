@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -30,6 +30,7 @@ type LocalState = Record<
 export default function NotificationPreferencesScreen() {
   const colors = useColors();
   const qc = useQueryClient();
+  const router = useRouter();
 
   const q = useQuery({
     queryKey: ["notification-preferences"],
@@ -118,7 +119,7 @@ export default function NotificationPreferencesScreen() {
                 </Text>
                 <Text style={[styles.desc, { color: colors.mutedForeground }]}>
                   {waq.data && !waq.data.has_whatsapp_number
-                    ? "Verify a WhatsApp number on the web app to get pinged on new subscribers, tips, unlocks and paid forms."
+                    ? "Verify a WhatsApp number to get pinged on new subscribers, tips, unlocks and paid forms."
                     : "Get a one-way WhatsApp ping for new subscribers, tips, unlocks and paid form payments."}
                 </Text>
               </View>
@@ -136,6 +137,17 @@ export default function NotificationPreferencesScreen() {
                 />
               )}
             </View>
+            {waq.data && !waq.data.has_whatsapp_number ? (
+              <TouchableOpacity
+                onPress={() => router.push("/whatsapp-verify")}
+                style={[styles.verifyBtn, { borderColor: colors.primary }]}
+              >
+                <Feather name="message-circle" size={15} color={colors.primary} />
+                <Text style={[styles.verifyText, { color: colors.primary }]}>
+                  Verify a WhatsApp number
+                </Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
 
           {q.data?.map((pref) => (
@@ -278,6 +290,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   waHeaderText: { flex: 1 },
+  verifyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    marginTop: 12,
+  },
+  verifyText: { fontSize: 14, fontWeight: "600" },
   channelRow: {
     flexDirection: "row",
     alignItems: "center",

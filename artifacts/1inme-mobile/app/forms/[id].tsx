@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -28,6 +29,7 @@ import {
 
 export default function FormDetailScreen() {
   const colors = useColors();
+  const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
   const id = Number(params.id);
 
@@ -174,9 +176,24 @@ export default function FormDetailScreen() {
                 </View>
                 <Text style={[styles.waDesc, { color: colors.mutedForeground }]}>
                   {waq.data && !waq.data.has_whatsapp_number
-                    ? "Verify a WhatsApp number on the web app to get a ping here for every new submission."
+                    ? "Verify a WhatsApp number to get a ping here for every new submission."
                     : "Get a one-way WhatsApp ping on your verified number for every new submission."}
                 </Text>
+                {waq.data && !waq.data.has_whatsapp_number ? (
+                  <TouchableOpacity
+                    onPress={() => router.push("/whatsapp-verify")}
+                    style={[styles.waVerifyBtn, { borderColor: colors.primary }]}
+                  >
+                    <Feather
+                      name="message-circle"
+                      size={15}
+                      color={colors.primary}
+                    />
+                    <Text style={[styles.waVerifyText, { color: colors.primary }]}>
+                      Verify a WhatsApp number
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
               <Text style={[styles.summary, { color: colors.mutedForeground }]}>
                 {sq.data?.total ?? 0} submissions
@@ -340,6 +357,17 @@ const styles = StyleSheet.create({
   waHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
   waTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
   waDesc: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, lineHeight: 17 },
+  waVerifyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 9,
+    marginTop: 10,
+  },
+  waVerifyText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
   card: { padding: 16, borderWidth: 1, gap: 6 },
   when: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11 },
   kv: { gap: 2, marginTop: 4 },

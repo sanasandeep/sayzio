@@ -605,6 +605,13 @@ Route::prefix('v1')->group(function () {
         Route::get ('/me/whatsapp-payment-alerts',     [NotificationController::class, 'whatsappPaymentAlerts']);
         Route::put ('/me/whatsapp-payment-alerts',     [NotificationController::class, 'updateWhatsappPaymentAlerts']);
 
+        // Add + verify a WhatsApp number from mobile (parity with the web
+        // onboarding WhatsApp connect step). Unblocks the alert toggles above,
+        // which require a verified number. Stateless: verify carries the number
+        // back alongside the code. Throttled like the other OTP buckets.
+        Route::post('/me/whatsapp/send',   [\App\Modules\Api\Controllers\WhatsappController::class, 'send'])->middleware('throttle:otp-send');
+        Route::post('/me/whatsapp/verify', [\App\Modules\Api\Controllers\WhatsappController::class, 'verify'])->middleware('throttle:otp-verify');
+
         // Expo push-token registration (1inme-mobile push delivery).
         Route::post  ('/me/push-tokens',               [PushTokenController::class, 'store']);
         Route::delete('/me/push-tokens',               [PushTokenController::class, 'destroy']);
