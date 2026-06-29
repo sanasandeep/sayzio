@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Phone, X } from "lucide-react";
 import {
@@ -32,6 +32,13 @@ export default function QuickContact() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState("");
   const [error, setError] = useState("");
+  // Time-trap: stamp when the form opened so the server can quarantine a
+  // submission filled+posted implausibly fast (a bot signal). A same-clock
+  // delta, so it carries no wall-clock/timezone info and survives clock skew.
+  const openedAtRef = useRef<number>(Date.now());
+  useEffect(() => {
+    if (open) openedAtRef.current = Date.now();
+  }, [open]);
   const t = assistantTokens(isDark);
 
   const submit = async (values: Record<string, string>) => {
@@ -46,6 +53,7 @@ export default function QuickContact() {
           phone: values.phone || "",
           email: values.email || "",
           message: values.message || "",
+          elapsed_ms: Date.now() - openedAtRef.current,
         }
       );
       if (res?.ok) {

@@ -577,6 +577,71 @@ class QuickContactTest extends TestCase
         ]);
     }
 
+    // ---- time-trap: implausibly fast submissions -------------------
+
+    public function test_too_fast_submission_is_classified_by_the_service(): void
+    {
+        // Below the floor → too fast (bot). At/above the floor → human.
+        $this->assertTrue(QuickContactService::tooFastSubmission(0));
+        $this->assertTrue(QuickContactService::tooFastSubmission(QuickContactService::MIN_FILL_MS - 1));
+        $this->assertFalse(QuickContactService::tooFastSubmission(QuickContactService::MIN_FILL_MS));
+        $this->assertFalse(QuickContactService::tooFastSubmission(QuickContactService::MIN_FILL_MS + 5000));
+
+        // Missing / garbage / negative values never penalize a real lead.
+        $this->assertFalse(QuickContactService::tooFastSubmission(null));
+        $this->assertFalse(QuickContactService::tooFastSubmission(''));
+        $this->assertFalse(QuickContactService::tooFastSubmission('not-a-number'));
+        $this->assertFalse(QuickContactService::tooFastSubmission(-50));
+    }
+
+    public function test_web_implausibly_fast_submission_is_quarantined_not_emailed(): void
+    {
+        AppSetting::put('contact_recipient_email', 'inbox@example.com');
+
+        // A bot that fills + posts the form in well under two seconds trips the
+        // time-trap. It gets the same friendly success copy (no signal), but the
+        // lead is quarantined for review and the admin is never emailed.
+        $resp = $this->postJson('/assistant/quick-contact', [
+            'name'       => 'Speedy Bot',
+            'channel'    => 'email',
+            'email'      => 'fast@example.com',
+            'message'    => 'Call me back.',
+            'elapsed_ms' => 150,
+        ]);
+
+        $resp->assertOk();
+        $resp->assertJson(['ok' => true]);
+
+        $row = ContactMessage::firstOrFail();
+        $this->assertSame(QuickContactService::SPAM_STATUS, $row->status);
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'support.contact_request',
+        ]);
+    }
+
+    public function test_web_human_paced_submission_is_not_quarantined(): void
+    {
+        AppSetting::put('contact_recipient_email', 'inbox@example.com');
+
+        // A real visitor who took several seconds to fill the form flows through
+        // normally even with the time field present.
+        $resp = $this->postJson('/assistant/quick-contact', [
+            'name'       => 'Real Lead',
+            'channel'    => 'callback',
+            'phone'      => '+91 98765 43210',
+            'message'    => 'Please call me back about the Pro plan.',
+            'elapsed_ms' => 9000,
+        ]);
+
+        $resp->assertOk();
+        $row = ContactMessage::firstOrFail();
+        $this->assertSame('new', $row->status);
+        $this->assertDatabaseHas('email_logs', [
+            'email_key' => 'support.contact_request',
+            'status'    => 'sent',
+        ]);
+    }
+
     // ---- global-rate guard: distributed-IP burst -------------------
 
     public function test_spam_burst_across_varied_ips_and_messages_does_not_flood_inbox(): void

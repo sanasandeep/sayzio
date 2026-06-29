@@ -305,6 +305,12 @@ class SiteAssistantController extends Controller
             // bots fill in. Kept nullable so an absent/empty value always
             // passes for legitimate web + mobile callers.
             'website' => 'nullable|string|max:200',
+            // Time-trap: ms elapsed between the widget form opening and submit,
+            // as measured on the client (a same-clock delta, immune to clock
+            // skew). A human never clears the form in under MIN_FILL_MS; a
+            // sub-floor value quarantines the lead. Nullable + bounded so older
+            // clients that omit it (and odd timers) are never penalized.
+            'elapsed_ms' => 'nullable|integer|min:0|max:86400000',
         ]);
 
         // The friendly confirmation we return on success — and also on a
@@ -346,13 +352,15 @@ class SiteAssistantController extends Controller
 
         // Spam guard for distributed bots that rotate IPs + vary the message
         // (so the per-caller dedupe can't catch them). A clearly spammy body
-        // (links / known spam patterns) OR an implausible global submission
-        // burst quarantines the lead: it is still persisted for review but is
-        // kept out of the default inbox and never emails the admin. Real
-        // single leads from new visitors trip neither check, so they flow
-        // through normally.
+        // (links / known spam patterns), an implausible global submission
+        // burst, OR a form filled+posted faster than a human plausibly could
+        // (the time-trap) quarantines the lead: it is still persisted for
+        // review but is kept out of the default inbox and never emails the
+        // admin. Real single leads from new visitors trip none of these
+        // checks, so they flow through normally.
         $isBurst = QuickContactService::registerSubmissionAndDetectBurst();
-        $quarantine = $isBurst || QuickContactService::looksSpammy($message);
+        $tooFast = QuickContactService::tooFastSubmission($data['elapsed_ms'] ?? null);
+        $quarantine = $isBurst || $tooFast || QuickContactService::looksSpammy($message);
         $status = $quarantine ? QuickContactService::SPAM_STATUS : 'new';
 
         $label = QuickContactService::channelLabel($channel);

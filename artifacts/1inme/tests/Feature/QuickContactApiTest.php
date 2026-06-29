@@ -205,6 +205,31 @@ class QuickContactApiTest extends TestCase
         ]);
     }
 
+    public function test_api_implausibly_fast_submission_is_quarantined_not_emailed(): void
+    {
+        $this->setRecipient();
+
+        // A bot that posts the form faster than a human plausibly could trips
+        // the time-trap. It still gets a friendly success (no signal), but the
+        // lead is quarantined for review and the admin is never emailed.
+        $resp = $this->postJson(self::ROUTE, [
+            'name'       => 'Speedy Bot',
+            'channel'    => 'email',
+            'email'      => 'fast@example.com',
+            'message'    => 'Call me back.',
+            'elapsed_ms' => 150,
+        ]);
+
+        $resp->assertOk();
+        $resp->assertJson(['ok' => true]);
+
+        $row = ContactMessage::firstOrFail();
+        $this->assertSame('spam', $row->status);
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'support.contact_request',
+        ]);
+    }
+
     // ---- failure path: invalid input surfaces a readable 422 -----------
 
     public function test_api_callback_rejects_a_non_indian_number_with_a_readable_422(): void

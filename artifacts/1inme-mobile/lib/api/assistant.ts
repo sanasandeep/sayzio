@@ -23,6 +23,10 @@ export type QuickContactInput = {
   // any submission whose `website` is non-empty. Sent only when populated so
   // genuine requests post nothing for it.
   website?: string | null;
+  // Time-trap: ms elapsed between the form opening and submit (a same-clock
+  // delta, immune to clock skew). The server quarantines a submission posted
+  // faster than a human plausibly could. Omitted when not measured.
+  elapsedMs?: number | null;
 };
 
 export type QuickContactResult = {
@@ -42,6 +46,10 @@ export async function sendQuickContact(
       phone: input.phone?.trim() || undefined,
       message: input.message?.trim() || undefined,
       website: input.website?.trim() || undefined,
+      elapsed_ms:
+        typeof input.elapsedMs === "number" && input.elapsedMs >= 0
+          ? Math.round(input.elapsedMs)
+          : undefined,
     }),
   });
 }

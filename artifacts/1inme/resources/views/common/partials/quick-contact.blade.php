@@ -92,6 +92,10 @@
     function buildForm(){
         bodyEl.innerHTML='';
         var selected='callback';
+        // Time-trap: stamp when the form opened so the server can reject a
+        // submission filled+posted implausibly fast (a bot signal). A same-clock
+        // delta, so it carries no wall-clock/timezone info.
+        var openedAt=Date.now();
         var errBox=el('div',{class:'qc-err'}); errBox.style.display='none';
         var tabs=el('div',{class:'qc-tabs'});
         var contact=el('input',{type:'tel',class:'qc-input',placeholder:CHANNELS[0].placeholder});
@@ -127,7 +131,7 @@
             if(busy) return;
             var val=(contact.value||'').trim();
             if(!val){ contact.style.borderColor='#ef4444'; return; }
-            var payload={channel:selected, message:(msg.value||'').trim(), website:(trap.value||'')};
+            var payload={channel:selected, message:(msg.value||'').trim(), website:(trap.value||''), elapsed_ms:(Date.now()-openedAt)};
             if(selected==='email'){ payload.email=val; } else { payload.phone=val; }
             busy=true; send.disabled=true; send.textContent=T.sending; errBox.style.display='none';
             fetch(url,{

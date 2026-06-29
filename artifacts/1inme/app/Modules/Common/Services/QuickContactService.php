@@ -52,6 +52,18 @@ class QuickContactService
     public const GLOBAL_RATE_WINDOW_SECONDS = 300; // 5 minutes
     public const GLOBAL_RATE_MAX = 40;             // accepted submissions per window before quarantine
 
+    /**
+     * Minimum plausible time (milliseconds) a human takes to read the widget,
+     * pick a channel, type a phone/email and submit. A real visitor never
+     * clears this in under two seconds; a form filled and posted faster than
+     * this is almost always a script. The client reports the elapsed time
+     * since the form opened (a same-clock delta, so it is immune to client
+     * clock skew). Absent/garbage values are treated as "not fast" so older
+     * clients and odd timers never penalize a real lead — the honeypot and
+     * volume guards still cover those.
+     */
+    public const MIN_FILL_MS = 2000;
+
     /** Human label for each channel, for the inbox + admin email. */
     public static function channelLabel(?string $channel): string
     {
@@ -282,6 +294,28 @@ class QuickContactService
             Log::warning('QuickContactService global-rate guard failed: ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Whether a submission was filled and posted implausibly fast (a strong
+     * bot signal that supplements the honeypot). $elapsedMs is the client-
+     * reported time since the widget form opened. Only a present, non-negative,
+     * numeric value below the floor counts as too fast; everything else
+     * (missing field, non-numeric, negative) is treated as a genuine human so
+     * legitimate leads are never penalized.
+     *
+     * @param  mixed  $elapsedMs
+     */
+    public static function tooFastSubmission($elapsedMs): bool
+    {
+        if ($elapsedMs === null || $elapsedMs === '' || !is_numeric($elapsedMs)) {
+            return false;
+        }
+        $ms = (int) $elapsedMs;
+        if ($ms < 0) {
+            return false;
+        }
+        return $ms < self::MIN_FILL_MS;
     }
 
     /**

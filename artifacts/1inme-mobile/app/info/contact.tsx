@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -76,6 +76,10 @@ export default function QuickContactScreen() {
   // `website` is non-empty.
   const [website, setWebsite] = useState("");
   const [sent, setSent] = useState<string | null>(null);
+  // Time-trap: stamp when the screen mounted so the server can quarantine a
+  // submission posted implausibly fast (a bot signal). A same-clock delta,
+  // immune to clock skew.
+  const openedAtRef = useRef<number>(Date.now());
 
   const active = CHANNELS.find((c) => c.value === channel)!;
 
@@ -88,6 +92,7 @@ export default function QuickContactScreen() {
         phone: channel === "email" ? null : phone,
         message,
         website,
+        elapsedMs: Date.now() - openedAtRef.current,
       }),
     onSuccess: (res) => {
       setSent(res.message);
