@@ -130,6 +130,81 @@ class QuickContactApiTest extends TestCase
         $this->assertStringContainsString('reach@example.com', (string) $log->body);
     }
 
+    // ---- anti-spam: dedupe burst + honeypot ----------------------------
+
+    public function test_api_identical_burst_produces_at_most_one_inbox_row(): void
+    {
+        $this->setRecipient();
+
+        // A frustrated double-tap or a scripted flood of the SAME request
+        // from the same caller must collapse to a single lead — every call
+        // still gets a friendly success, but only one inbox row + one email.
+        $payload = [
+            'name'    => 'Double Tapper',
+            'channel' => 'callback',
+            'phone'   => '+91 98765 43210',
+            'message' => 'Please call me back.',
+        ];
+
+        for ($i = 0; $i < 5; $i++) {
+            $resp = $this->postJson(self::ROUTE, $payload);
+            $resp->assertOk();
+            $resp->assertJson(['ok' => true]);
+        }
+
+        $this->assertDatabaseCount('contact_messages', 1);
+        $this->assertSame(
+            1,
+            EmailLog::where('email_key', 'support.contact_request')->count(),
+            'A burst of identical submissions must trigger at most one admin email.'
+        );
+    }
+
+    public function test_api_distinct_submissions_are_not_deduplicated(): void
+    {
+        $this->setRecipient();
+
+        // A genuine follow-up with a different message is a different lead
+        // and must still reach the inbox — the guard never blocks real users.
+        $this->postJson(self::ROUTE, [
+            'channel' => 'callback',
+            'phone'   => '+91 98765 43210',
+            'message' => 'First request.',
+        ])->assertOk();
+
+        $this->postJson(self::ROUTE, [
+            'channel' => 'callback',
+            'phone'   => '+91 98765 43210',
+            'message' => 'Second, different request.',
+        ])->assertOk();
+
+        $this->assertDatabaseCount('contact_messages', 2);
+    }
+
+    public function test_api_honeypot_field_silently_drops_the_submission(): void
+    {
+        $this->setRecipient();
+
+        // A blind bot that fills every field trips the decoy `website`
+        // honeypot. We return success so it gets no signal, but persist
+        // nothing and notify no one.
+        $resp = $this->postJson(self::ROUTE, [
+            'name'    => 'Spam Bot',
+            'channel' => 'email',
+            'email'   => 'reach@example.com',
+            'message' => 'Buy my stuff.',
+            'website' => 'http://spam.example',
+        ]);
+
+        $resp->assertOk();
+        $resp->assertJson(['ok' => true]);
+
+        $this->assertDatabaseCount('contact_messages', 0);
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'support.contact_request',
+        ]);
+    }
+
     // ---- failure path: invalid input surfaces a readable 422 -----------
 
     public function test_api_callback_rejects_a_non_indian_number_with_a_readable_422(): void

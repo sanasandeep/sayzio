@@ -301,7 +301,21 @@ class SiteAssistantController extends Controller
             'channel' => 'required|in:callback,whatsapp,email',
             'phone'   => 'nullable|string|max:40',
             'message' => 'nullable|string|max:2000',
+            // Honeypot: a decoy field a real client leaves empty but blind
+            // bots fill in. Kept nullable so an absent/empty value always
+            // passes for legitimate web + mobile callers.
+            'website' => 'nullable|string|max:200',
         ]);
+
+        // The friendly confirmation we return on success — and also on a
+        // silently-dropped submission (honeypot trip / duplicate) so an
+        // abuser gets no signal that their attempt was rejected.
+        $successMessage = "Thanks! We've got your request and will be in touch soon.";
+
+        // Honeypot tripped: pretend success, persist nothing, notify no one.
+        if (trim((string) ($data['website'] ?? '')) !== '') {
+            return response()->json(['ok' => true, 'message' => $successMessage]);
+        }
 
         $channel = (string) $data['channel'];
         $phone   = $data['phone'] ?? null;
@@ -311,6 +325,25 @@ class SiteAssistantController extends Controller
         }
 
         $name = trim((string) ($data['name'] ?? $request->user()?->name ?? ''));
+        $message = (string) ($data['message'] ?? '');
+
+        // De-duplicate identical bursts from the same caller within a short
+        // window (double-taps, retries, scripted floods). The claim is
+        // atomic; a losing claim returns the same success copy WITHOUT a
+        // second inbox row or admin email. Built from post-validation
+        // (normalized) values so cosmetic differences still collapse.
+        $fingerprint = QuickContactService::fingerprint([
+            'ip'      => $request->ip(),
+            'user_id' => $request->user()?->id,
+            'channel' => $channel,
+            'phone'   => $phone,
+            'email'   => $email,
+            'message' => $message,
+        ]);
+        if (!QuickContactService::claimSubmission($fingerprint)) {
+            return response()->json(['ok' => true, 'message' => $successMessage]);
+        }
+
         $label = QuickContactService::channelLabel($channel);
         $reach = $channel === 'email' ? $email : (string) $phone;
 
@@ -320,7 +353,7 @@ class SiteAssistantController extends Controller
         if ($name !== '')  $body .= 'Name: ' . $name . "\n";
         if ($email !== '') $body .= 'Account email: ' . $email . "\n";
         if ($user = $request->user()) $body .= "Signed-in user: {$user->email} (#{$user->id})\n";
-        if (!empty($data['message'])) $body .= "\nMessage:\n" . $data['message'] . "\n";
+        if ($message !== '') $body .= "\nMessage:\n" . $message . "\n";
 
         QuickContactService::create([
             'name'    => $name,
@@ -334,7 +367,7 @@ class SiteAssistantController extends Controller
 
         return response()->json([
             'ok'      => true,
-            'message' => "Thanks! We've got your request and will be in touch soon.",
+            'message' => $successMessage,
         ]);
     }
 

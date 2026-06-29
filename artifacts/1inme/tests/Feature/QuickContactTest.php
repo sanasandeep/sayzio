@@ -204,7 +204,95 @@ class QuickContactTest extends TestCase
         $this->assertStringContainsString('Email', (string) $log->body);
     }
 
+    // ---- claimSubmission(): atomic per-fingerprint dedupe -----------
+
+    public function test_claim_submission_is_only_granted_once_per_fingerprint(): void
+    {
+        $fingerprint = QuickContactService::fingerprint([
+            'ip'      => '203.0.113.9',
+            'channel' => 'callback',
+            'phone'   => '+919876543210',
+            'message' => 'Call me.',
+        ]);
+
+        // First claim wins; identical follow-ups within the window lose.
+        $this->assertTrue(QuickContactService::claimSubmission($fingerprint));
+        $this->assertFalse(QuickContactService::claimSubmission($fingerprint));
+
+        // A different fingerprint (different message) is unaffected.
+        $other = QuickContactService::fingerprint([
+            'ip'      => '203.0.113.9',
+            'channel' => 'callback',
+            'phone'   => '+919876543210',
+            'message' => 'Different message.',
+        ]);
+        $this->assertTrue(QuickContactService::claimSubmission($other));
+    }
+
+    public function test_fingerprint_ignores_email_casing_and_whitespace(): void
+    {
+        $a = QuickContactService::fingerprint([
+            'ip'      => '203.0.113.9',
+            'channel' => 'email',
+            'email'   => 'Lead@Example.com',
+            'message' => '  hi  ',
+        ]);
+        $b = QuickContactService::fingerprint([
+            'ip'      => '203.0.113.9',
+            'channel' => 'email',
+            'email'   => 'lead@example.com',
+            'message' => 'hi',
+        ]);
+        $this->assertSame($a, $b);
+    }
+
     // ---- POST /assistant/quick-contact (anonymous, throttled) ------
+
+    public function test_web_identical_burst_produces_at_most_one_inbox_row(): void
+    {
+        AppSetting::put('contact_recipient_email', 'inbox@example.com');
+
+        // The web widget shares the same controller + dedupe guard. A flood
+        // of identical posts must collapse to a single admin lead.
+        $payload = [
+            'name'    => 'Burst Visitor',
+            'channel' => 'whatsapp',
+            'phone'   => '+1 555 123 4567',
+            'message' => 'Ping me on WhatsApp.',
+        ];
+
+        for ($i = 0; $i < 4; $i++) {
+            $this->postJson('/assistant/quick-contact', $payload)
+                ->assertOk()
+                ->assertJson(['ok' => true]);
+        }
+
+        $this->assertDatabaseCount('contact_messages', 1);
+        $this->assertSame(
+            1,
+            EmailLog::where('email_key', 'support.contact_request')->count()
+        );
+    }
+
+    public function test_web_honeypot_field_silently_drops_the_submission(): void
+    {
+        AppSetting::put('contact_recipient_email', 'inbox@example.com');
+
+        $resp = $this->postJson('/assistant/quick-contact', [
+            'channel' => 'email',
+            'email'   => 'reach@example.com',
+            'message' => 'spam',
+            'website' => 'filled-by-a-bot',
+        ]);
+
+        $resp->assertOk();
+        $resp->assertJson(['ok' => true]);
+        $this->assertDatabaseCount('contact_messages', 0);
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'support.contact_request',
+        ]);
+    }
+
 
     public function test_anonymous_quick_contact_route_persists_row_and_emails_admin(): void
     {

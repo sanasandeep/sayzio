@@ -4,6 +4,7 @@ namespace App\Modules\Common\Services;
 
 use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\ContactMessage;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -21,6 +22,14 @@ use Illuminate\Support\Str;
 class QuickContactService
 {
     public const CHANNELS = ['callback', 'whatsapp', 'email'];
+
+    /**
+     * How long an identical submission from the same caller is treated as a
+     * duplicate. Long enough to absorb double-taps, retries and scripted
+     * floods; short enough that a genuine follow-up minutes later still
+     * reaches the inbox.
+     */
+    public const DEDUPE_WINDOW_SECONDS = 120;
 
     /** Human label for each channel, for the inbox + admin email. */
     public static function channelLabel(?string $channel): string
@@ -149,6 +158,39 @@ class QuickContactService
         self::notifyAdmin($contact);
 
         return $contact;
+    }
+
+    /**
+     * Build a stable fingerprint for a submission so identical requests from
+     * the same caller collapse to one. Phone/email are taken AFTER channel
+     * validation (normalized + lower-cased email) so cosmetic differences
+     * (spaces, casing) still count as the same lead.
+     *
+     * @param  array{ip?:?string,user_id?:int|string|null,channel?:?string,phone?:?string,email?:?string,message?:?string}  $attrs
+     */
+    public static function fingerprint(array $attrs): string
+    {
+        $parts = [
+            (string) ($attrs['ip'] ?? ''),
+            (string) ($attrs['user_id'] ?? ''),
+            (string) ($attrs['channel'] ?? ''),
+            (string) ($attrs['phone'] ?? ''),
+            mb_strtolower(trim((string) ($attrs['email'] ?? ''))),
+            trim((string) ($attrs['message'] ?? '')),
+        ];
+
+        return 'quick_contact:dedupe:' . sha1(implode('|', $parts));
+    }
+
+    /**
+     * Atomically claim a submission fingerprint for the dedupe window.
+     * Returns true when newly claimed (the caller should proceed to create
+     * the lead), or false when an identical submission was already claimed
+     * within the window (the caller should skip persisting a duplicate).
+     */
+    public static function claimSubmission(string $fingerprint): bool
+    {
+        return Cache::add($fingerprint, true, self::DEDUPE_WINDOW_SECONDS);
     }
 
     /**
