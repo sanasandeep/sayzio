@@ -138,7 +138,7 @@ test.describe("home hero orbital tool popovers", () => {
     await expect(pop).toBeVisible();
     await expect(pop.locator(".zio-pop-title")).toHaveText("AI Page Builder");
     await expect(pop.locator(".zio-pop-desc")).toHaveText(
-      "Describe it — Zio builds your page in seconds.",
+      "Describe your idea in a sentence and Zio assembles a complete, on-brand page for you.",
     );
     // The node button reflects the open state for assistive tech.
     await expect(nodeButton(page, 0)).toHaveAttribute("aria-expanded", "true");
@@ -242,6 +242,17 @@ const SMALL_VIEWPORTS = [
   { w: 390, h: 844 },
 ] as const;
 
+// Representative widths for the orbit's other two sizing breakpoints (see
+// hero.blade.php): the tablet block `@media (min-width:640px) and
+// (max-width:1023.98px)` where `--size` grows to clamp(360px,54vw,460px), and
+// the two-column desktop layout `@media (min-width:1024px)` where `--size`
+// climbs to 500px. The radii/node clamps differ there, so the phone-only guard
+// wouldn't catch crowding reintroduced at these sizes.
+const LARGE_VIEWPORTS = [
+  { w: 768, h: 1024, label: "tablet" },
+  { w: 1280, h: 900, label: "desktop" },
+] as const;
+
 /** Collect every node tile rect plus the mascot rect and the orbit centre. */
 async function collectOrbitGeometry(page: Page): Promise<{
   nodes: { title: string; rect: Rect }[];
@@ -286,6 +297,73 @@ function pointToRectDistance(px: number, py: number, r: Rect): number {
   return Math.hypot(dx, dy);
 }
 
+/**
+ * Pin a viewport + colour scheme, load the home page, and assert the orbit
+ * geometry is uncrowded: every tile clears the central mascot disk and no two
+ * tiles overlap. Shared by the small-phone guard and the tablet/desktop guard
+ * so all three sizing breakpoints (see hero.blade.php) get identical checks.
+ */
+async function assertOrbitGeometryClear(
+  page: Page,
+  theme: "dark" | "light",
+  vp: { w: number; h: number },
+): Promise<void> {
+  // Pin the colour scheme deterministically: the home page falls back to the
+  // OS `prefers-color-scheme` when no preference is stored, so a bare "dark"
+  // run could render light on a light-preferring headless browser. The
+  // `1inme_theme` cookie is read on first paint (see home.blade.php).
+  await page.context().addCookies([
+    { name: "1inme_theme", value: theme, domain: "localhost", path: "/" },
+  ]);
+  await page.setViewportSize({ width: vp.w, height: vp.h });
+  await gotoHome(page);
+
+  // Sanity: the intended theme actually applied (guards the cookie path so the
+  // "light mode" run isn't silently testing dark mode).
+  const isLight = await page.evaluate(() =>
+    document.documentElement.classList.contains("light-mode"),
+  );
+  expect(isLight).toBe(theme === "light");
+
+  const { nodes, mascot, center } = await collectOrbitGeometry(page);
+  expect(mascot).not.toBeNull();
+  expect(center).not.toBeNull();
+  // Mascot must be laid out — its width feeds the keep-out disk radius.
+  expect(mascot!.width).toBeGreaterThan(0);
+  // All 17 nodes must be present and laid out (not collapsed/hidden).
+  expect(nodes.length).toBe(NODE_TITLES.length);
+  for (const n of nodes) {
+    expect(n.rect.width).toBeGreaterThan(0);
+    expect(n.rect.height).toBeGreaterThan(0);
+  }
+
+  // (1) No tile may encroach the central mascot disk (radius = mascot
+  // half-width, centred on the orbit). Allow 1px slack for sub-pixel
+  // rounding; the design clearance here is several px.
+  const mascotRadius = mascot!.width / 2;
+  const mascotHits = nodes
+    .filter((n) => {
+      const d = pointToRectDistance(center!.x, center!.y, n.rect);
+      return mascotRadius - d > 1;
+    })
+    .map((n) => n.title);
+  expect(
+    mascotHits,
+    `tiles overlapping the central mascot: ${mascotHits.join(", ")}`,
+  ).toEqual([]);
+
+  // (2) No two tiles may overlap each other.
+  const pairHits: string[] = [];
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      if (rectsOverlap(nodes[i].rect, nodes[j].rect)) {
+        pairHits.push(`${nodes[i].title} ↔ ${nodes[j].title}`);
+      }
+    }
+  }
+  expect(pairHits, `overlapping tile pairs: ${pairHits.join("; ")}`).toEqual([]);
+}
+
 test.describe("home hero orbital legibility on small phones", () => {
   // Freeze the orbit so nodes are statically placed and geometry is stable.
   test.use({ reducedMotion: "reduce" });
@@ -296,64 +374,32 @@ test.describe("home hero orbital legibility on small phones", () => {
         page,
       }) => {
         test.setTimeout(60_000);
+        await assertOrbitGeometryClear(page, theme, vp);
+      });
+    }
+  }
+});
 
-        // Pin the colour scheme deterministically: the home page falls back to
-        // the OS `prefers-color-scheme` when no preference is stored, so a bare
-        // "dark" run could render light on a light-preferring headless browser.
-        // The `1inme_theme` cookie is read on first paint (see home.blade.php).
-        await page.context().addCookies([
-          { name: "1inme_theme", value: theme, domain: "localhost", path: "/" },
-        ]);
-        await page.setViewportSize({ width: vp.w, height: vp.h });
-        await gotoHome(page);
+// ---------------------------------------------------------------------------
+// Tablet + desktop legibility guard.
+//
+// The orbit also changes geometry at the tablet block (640–1023px, `--size`
+// clamp(360px,54vw,460px)) and the two-column desktop layout (≥1024px, `--size`
+// up to 500px). A future change to the radius/node-clamp fractions could
+// reintroduce node-on-node or node-on-mascot crowding at those widths without
+// failing the phone-only guard above, so pin the same geometry contract here.
+// ---------------------------------------------------------------------------
+test.describe("home hero orbital legibility at tablet and desktop sizes", () => {
+  // Freeze the orbit so nodes are statically placed and geometry is stable.
+  test.use({ reducedMotion: "reduce" });
 
-        // Sanity: the intended theme actually applied (guards the cookie path so
-        // the "light mode" run isn't silently testing dark mode).
-        const isLight = await page.evaluate(() =>
-          document.documentElement.classList.contains("light-mode"),
-        );
-        expect(isLight).toBe(theme === "light");
-
-        const { nodes, mascot, center } = await collectOrbitGeometry(page);
-        expect(mascot).not.toBeNull();
-        expect(center).not.toBeNull();
-        // Mascot must be laid out — its width feeds the keep-out disk radius.
-        expect(mascot!.width).toBeGreaterThan(0);
-        // All 17 nodes must be present and laid out (not collapsed/hidden).
-        expect(nodes.length).toBe(NODE_TITLES.length);
-        for (const n of nodes) {
-          expect(n.rect.width).toBeGreaterThan(0);
-          expect(n.rect.height).toBeGreaterThan(0);
-        }
-
-        // (1) No tile may encroach the central mascot disk (radius = mascot
-        // half-width, centred on the orbit). Allow 1px slack for sub-pixel
-        // rounding; the design clearance here is several px.
-        const mascotRadius = mascot!.width / 2;
-        const mascotHits = nodes
-          .filter((n) => {
-            const d = pointToRectDistance(center!.x, center!.y, n.rect);
-            return mascotRadius - d > 1;
-          })
-          .map((n) => n.title);
-        expect(
-          mascotHits,
-          `tiles overlapping the central mascot: ${mascotHits.join(", ")}`,
-        ).toEqual([]);
-
-        // (2) No two tiles may overlap each other.
-        const pairHits: string[] = [];
-        for (let i = 0; i < nodes.length; i++) {
-          for (let j = i + 1; j < nodes.length; j++) {
-            if (rectsOverlap(nodes[i].rect, nodes[j].rect)) {
-              pairHits.push(`${nodes[i].title} ↔ ${nodes[j].title}`);
-            }
-          }
-        }
-        expect(
-          pairHits,
-          `overlapping tile pairs: ${pairHits.join("; ")}`,
-        ).toEqual([]);
+  for (const theme of ["dark", "light"] as const) {
+    for (const vp of LARGE_VIEWPORTS) {
+      test(`nodes clear the mascot and each other @ ${vp.w}px ${vp.label} (${theme} mode)`, async ({
+        page,
+      }) => {
+        test.setTimeout(60_000);
+        await assertOrbitGeometryClear(page, theme, vp);
       });
     }
   }
