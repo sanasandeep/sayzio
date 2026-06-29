@@ -346,6 +346,9 @@
                        class="text-xs mt-1.5"
                        :class="state === 'available' ? 'text-emerald-400' : (isError ? 'text-red-400' : 'text-white/40')"
                        x-text="message"></p>
+                    <p class="text-xs mt-1.5" style="color: var(--text-faint);">
+                        <i class="fas fa-info-circle mr-1"></i>{{ ($aliasLimits ?? ['min'=>3])['min'] }}–{{ ($aliasLimits ?? ['max'=>50])['max'] }} characters · letters, numbers, hyphens &amp; underscores
+                    </p>
                     @error('alias') <p class="text-red-400 text-xs mt-1.5">{{ $message }}</p> @enderror
                 </div>
                 <div>

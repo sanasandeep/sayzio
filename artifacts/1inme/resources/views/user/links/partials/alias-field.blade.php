@@ -7,6 +7,7 @@
       $aliasLimits  — ['min' => int, 'max' => int]
 --}}
 @include('user.links.partials.alias-checker')
+@php $aliasFieldLimits = $aliasLimits ?? ['min' => 3, 'max' => 50]; @endphp
 <div x-data="aliasChecker('{{ route('user.links.check-alias') }}')" x-init="init()">
     <label class="block text-sm font-medium text-white/60 mb-1">{{ $aliasLabel ?? 'Custom Alias' }}</label>
     <div class="flex items-stretch rounded-xl bg-white/5 border overflow-hidden transition-colors"
@@ -15,8 +16,8 @@
              : 'border-white/10 focus-within:ring-2 focus-within:ring-blue-500/40')">
         <input type="text" name="alias" value="{{ old('alias', $prefillAlias ?? '') }}"
                placeholder="auto-generated"
-               minlength="{{ ($aliasLimits ?? ['min'=>3])['min'] }}"
-               maxlength="{{ ($aliasLimits ?? ['max'=>50])['max'] }}"
+               minlength="{{ $aliasFieldLimits['min'] }}"
+               maxlength="{{ $aliasFieldLimits['max'] }}"
                pattern="[A-Za-z0-9_\-]+" autocomplete="off" spellcheck="false"
                @input.debounce.400ms="check($event.target.value)"
                class="flex-1 bg-transparent px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none">
@@ -31,4 +32,7 @@
        class="text-sm mt-1.5"
        :class="state === 'available' ? 'text-emerald-400' : (isError ? 'text-red-400' : 'text-white/40')"
        x-text="message"></p>
+    <p class="text-xs text-white/40 mt-1.5">
+        <i class="fas fa-info-circle mr-1"></i>{{ $aliasFieldLimits['min'] }}–{{ $aliasFieldLimits['max'] }} characters · letters, numbers, hyphens &amp; underscores
+    </p>
 </div>
