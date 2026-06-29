@@ -142,31 +142,3 @@ AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
 CONTACT_ADMIN_TOKEN = "RP8TvxVjeyRZabgOUgSjT-fBNw-IaNBA"
 APP_NAME = "Sayzio"
-
-[[ports]]
-localPort = 5000
-externalPort = 5000
-
-[[ports]]
-localPort = 5050
-externalPort = 3001
-
-[[ports]]
-localPort = 8080
-externalPort = 8080
-
-[[ports]]
-localPort = 8081
-externalPort = 8081
-
-[[ports]]
-localPort = 20346
-externalPort = 3000
-
-[[ports]]
-localPort = 22245
-externalPort = 80
-
-[[ports]]
-localPort = 23680
-externalPort = 3003
