@@ -600,6 +600,10 @@ Route::prefix('v1')->group(function () {
         Route::get ('/notifications/dismissed',         [NotificationController::class, 'dismissed']);
         Route::get ('/me/notification-preferences',    [NotificationController::class, 'preferences']);
         Route::put ('/me/notification-preferences',    [NotificationController::class, 'updatePreferences']);
+        // Account-level one-way WhatsApp payment alerts (new subscriber, tip,
+        // PPV/unlock, paid form) — gated on a verified WhatsApp number.
+        Route::get ('/me/whatsapp-payment-alerts',     [NotificationController::class, 'whatsappPaymentAlerts']);
+        Route::put ('/me/whatsapp-payment-alerts',     [NotificationController::class, 'updateWhatsappPaymentAlerts']);
 
         // Expo push-token registration (1inme-mobile push delivery).
         Route::post  ('/me/push-tokens',               [PushTokenController::class, 'store']);
@@ -673,6 +677,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/forms/{id}/analytics',               [FormController::class, 'analytics'])->whereNumber('id');
         Route::get('/forms/{id}/payment',                 [FormController::class, 'payment'])->whereNumber('id');
         Route::put('/forms/{id}/payment',                 [FormController::class, 'updatePayment'])->whereNumber('id');
+        // One-way WhatsApp alert for new submissions — gated on a verified number.
+        Route::get('/forms/{id}/whatsapp-alert',          [FormController::class, 'whatsappAlert'])->whereNumber('id');
+        Route::put('/forms/{id}/whatsapp-alert',          [FormController::class, 'updateWhatsappAlert'])->whereNumber('id');
         Route::get('/forms/{id}/submissions',             [FormController::class, 'submissions'])->whereNumber('id');
         Route::get('/forms/{id}/submissions.csv',         [FormController::class, 'exportSubmissions'])->whereNumber('id');
         Route::post('/forms/{id}/submissions/{submissionId}/refund', [FormController::class, 'refundSubmission'])->whereNumber('id')->whereNumber('submissionId');

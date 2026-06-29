@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
@@ -11,18 +11,27 @@ import {
   RefreshControl,
   Share,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
 
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
-import { fetchSubmissionsCsv, getForm, listSubmissions } from "@/lib/api/forms";
+import {
+  fetchSubmissionsCsv,
+  getForm,
+  getFormWhatsappAlert,
+  listSubmissions,
+  updateFormWhatsappAlert,
+} from "@/lib/api/forms";
 
 export default function FormDetailScreen() {
   const colors = useColors();
   const params = useLocalSearchParams<{ id: string }>();
   const id = Number(params.id);
+
+  const qc = useQueryClient();
 
   const fq = useQuery({
     queryKey: ["form", id],
@@ -33,6 +42,21 @@ export default function FormDetailScreen() {
     queryKey: ["form", id, "submissions"],
     queryFn: () => listSubmissions(id),
     enabled: !!id,
+  });
+  const waq = useQuery({
+    queryKey: ["form", id, "whatsapp-alert"],
+    queryFn: () => getFormWhatsappAlert(id),
+    enabled: !!id,
+  });
+
+  const waMutation = useMutation({
+    mutationFn: (enabled: boolean) => updateFormWhatsappAlert(id, enabled),
+    onSuccess: (data) => {
+      qc.setQueryData(["form", id, "whatsapp-alert"], data);
+    },
+    onError: (e: any) => {
+      Alert.alert("Couldn't save", e?.message ?? "Try again");
+    },
   });
 
   const fields = fq.data?.fields ?? [];
@@ -112,7 +136,48 @@ export default function FormDetailScreen() {
             />
           }
           ListHeaderComponent={
-            <View style={{ paddingBottom: 8 }}>
+            <View style={{ paddingBottom: 8, gap: 12 }}>
+              <View
+                style={[
+                  styles.waCard,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    borderRadius: colors.radius,
+                  },
+                ]}
+              >
+                <View style={styles.waHeader}>
+                  <View style={styles.waHeaderLeft}>
+                    <Feather
+                      name="message-circle"
+                      size={16}
+                      color={colors.primary}
+                    />
+                    <Text style={[styles.waTitle, { color: colors.foreground }]}>
+                      WhatsApp alerts
+                    </Text>
+                  </View>
+                  {waq.isLoading || waMutation.isPending ? (
+                    <ActivityIndicator color={colors.primary} size="small" />
+                  ) : (
+                    <Switch
+                      value={!!waq.data?.enabled}
+                      disabled={
+                        !waq.data?.has_whatsapp_number || waMutation.isPending
+                      }
+                      onValueChange={(v) => waMutation.mutate(v)}
+                      trackColor={{ false: colors.border, true: colors.primary }}
+                      thumbColor="#fff"
+                    />
+                  )}
+                </View>
+                <Text style={[styles.waDesc, { color: colors.mutedForeground }]}>
+                  {waq.data && !waq.data.has_whatsapp_number
+                    ? "Verify a WhatsApp number on the web app to get a ping here for every new submission."
+                    : "Get a one-way WhatsApp ping on your verified number for every new submission."}
+                </Text>
+              </View>
               <Text style={[styles.summary, { color: colors.mutedForeground }]}>
                 {sq.data?.total ?? 0} submissions
               </Text>
@@ -266,6 +331,15 @@ export default function FormDetailScreen() {
 
 const styles = StyleSheet.create({
   summary: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
+  waCard: { padding: 16, borderWidth: 1, gap: 8 },
+  waHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  waHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  waTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
+  waDesc: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, lineHeight: 17 },
   card: { padding: 16, borderWidth: 1, gap: 6 },
   when: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11 },
   kv: { gap: 2, marginTop: 4 },

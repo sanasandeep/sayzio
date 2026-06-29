@@ -161,4 +161,44 @@ class NotificationController extends Controller
 
         return $this->preferences($request);
     }
+
+    /**
+     * Read the account-level WhatsApp payment-alert preference (new
+     * subscriber, tip, PPV/unlock, paid form) — mobile parity for the web
+     * NotificationController@updatePreferences. Also reports whether the
+     * account has a verified WhatsApp number so the client can gate the
+     * switch exactly like the web does.
+     */
+    public function whatsappPaymentAlerts(Request $request)
+    {
+        $user = $request->user();
+
+        return $this->ok([
+            'enabled'             => $user->wantsWhatsappPaymentAlerts(),
+            'has_whatsapp_number' => (bool) $user->hasWhatsappNumber(),
+        ]);
+    }
+
+    /**
+     * Toggle the account-level WhatsApp payment alerts. Mirrors the web
+     * gating: the preference can only ever be stored as enabled when the
+     * account has a verified WhatsApp number, so it can never be "enabled
+     * but undeliverable". Persisted in the user `settings` JSON.
+     */
+    public function updateWhatsappPaymentAlerts(Request $request)
+    {
+        $data = $request->validate(['enabled' => 'required|boolean']);
+
+        $user      = $request->user();
+        $hasNumber = (bool) $user->hasWhatsappNumber();
+
+        $settings = $user->settings ?? [];
+        $settings['whatsapp_payment_alerts'] = ((bool) $data['enabled']) && $hasNumber;
+        $user->forceFill(['settings' => $settings])->save();
+
+        return $this->ok([
+            'enabled'             => (bool) $settings['whatsapp_payment_alerts'],
+            'has_whatsapp_number' => $hasNumber,
+        ]);
+    }
 }

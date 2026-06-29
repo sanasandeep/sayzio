@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -15,7 +16,9 @@ import {
 import { useColors } from "@/hooks/useColors";
 import {
   getNotificationPreferences,
+  getWhatsappPaymentAlerts,
   updateNotificationPreferences,
+  updateWhatsappPaymentAlerts,
   type NotificationPreference,
 } from "@/lib/api/notifications";
 
@@ -31,6 +34,21 @@ export default function NotificationPreferencesScreen() {
   const q = useQuery({
     queryKey: ["notification-preferences"],
     queryFn: getNotificationPreferences,
+  });
+
+  const waq = useQuery({
+    queryKey: ["whatsapp-payment-alerts"],
+    queryFn: getWhatsappPaymentAlerts,
+  });
+
+  const waMutation = useMutation({
+    mutationFn: (enabled: boolean) => updateWhatsappPaymentAlerts(enabled),
+    onSuccess: (data) => {
+      qc.setQueryData(["whatsapp-payment-alerts"], data);
+    },
+    onError: (e: any) => {
+      Alert.alert("Couldn't save", e?.message ?? "Try again");
+    },
   });
 
   // Local mirror so toggles feel instant; we PUT on Save.
@@ -86,6 +104,39 @@ export default function NotificationPreferencesScreen() {
           <Text style={[styles.intro, { color: colors.mutedForeground }]}>
             Choose which alerts reach you, and where.
           </Text>
+
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <View style={styles.waHeader}>
+              <View style={styles.waHeaderText}>
+                <Text style={[styles.label, { color: colors.text }]}>
+                  WhatsApp payment alerts
+                </Text>
+                <Text style={[styles.desc, { color: colors.mutedForeground }]}>
+                  {waq.data && !waq.data.has_whatsapp_number
+                    ? "Verify a WhatsApp number on the web app to get pinged on new subscribers, tips, unlocks and paid forms."
+                    : "Get a one-way WhatsApp ping for new subscribers, tips, unlocks and paid form payments."}
+                </Text>
+              </View>
+              {waq.isLoading || waMutation.isPending ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <Switch
+                  value={!!waq.data?.enabled}
+                  disabled={
+                    !waq.data?.has_whatsapp_number || waMutation.isPending
+                  }
+                  onValueChange={(v) => waMutation.mutate(v)}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor="#fff"
+                />
+              )}
+            </View>
+          </View>
 
           {q.data?.map((pref) => (
             <PrefRow
@@ -220,6 +271,13 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 15, fontWeight: "600" },
   desc: { fontSize: 12, marginTop: 4, marginBottom: 10 },
+  waHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  waHeaderText: { flex: 1 },
   channelRow: {
     flexDirection: "row",
     alignItems: "center",

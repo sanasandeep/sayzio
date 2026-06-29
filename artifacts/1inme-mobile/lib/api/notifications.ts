@@ -73,3 +73,25 @@ export async function updateNotificationPreferences(
   );
   return res.data.items;
 }
+
+export type WhatsappPaymentAlerts = {
+  enabled: boolean;
+  has_whatsapp_number: boolean;
+};
+
+export async function getWhatsappPaymentAlerts(): Promise<WhatsappPaymentAlerts> {
+  const res = await apiFetch<{ data: WhatsappPaymentAlerts }>(
+    `/me/whatsapp-payment-alerts`,
+  );
+  return res.data;
+}
+
+export async function updateWhatsappPaymentAlerts(
+  enabled: boolean,
+): Promise<WhatsappPaymentAlerts> {
+  const res = await apiFetch<{ data: WhatsappPaymentAlerts }>(
+    `/me/whatsapp-payment-alerts`,
+    { method: "PUT", body: JSON.stringify({ enabled }) },
+  );
+  return res.data;
+}

@@ -71,6 +71,31 @@ export async function listSubmissions(
   return { items: res.data.items, total: res.data.meta.total };
 }
 
+export type FormWhatsappAlert = {
+  enabled: boolean;
+  has_whatsapp_number: boolean;
+};
+
+export async function getFormWhatsappAlert(
+  id: number,
+): Promise<FormWhatsappAlert> {
+  const res = await apiFetch<{ data: FormWhatsappAlert }>(
+    `/forms/${id}/whatsapp-alert`,
+  );
+  return res.data;
+}
+
+export async function updateFormWhatsappAlert(
+  id: number,
+  enabled: boolean,
+): Promise<FormWhatsappAlert> {
+  const res = await apiFetch<{ data: FormWhatsappAlert }>(
+    `/forms/${id}/whatsapp-alert`,
+    { method: "PUT", body: JSON.stringify({ enabled }) },
+  );
+  return res.data;
+}
+
 export async function fetchSubmissionsCsv(id: number): Promise<string> {
   const token = await getToken();
   const res = await fetch(

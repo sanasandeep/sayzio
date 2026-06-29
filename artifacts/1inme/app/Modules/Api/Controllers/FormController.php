@@ -163,6 +163,49 @@ class FormController extends Controller
         return $this->ok(['payment' => $f->fresh()->paymentConfig()]);
     }
 
+    /**
+     * Read the form's one-way WhatsApp alert toggle — mobile parity for the
+     * web FormController@notifications. Returns whether the owner currently
+     * has the alert on, plus whether they even have a verified WhatsApp
+     * number (so the client can gate the switch exactly like the web does).
+     */
+    public function whatsappAlert(Request $request, int $id)
+    {
+        $f = Form::where('user_id', $request->user()->id)->find($id);
+        if (!$f) return $this->notFound('Form not found');
+
+        $n = array_replace_recursive(Form::defaultNotifications(), $f->notifications ?? []);
+
+        return $this->ok([
+            'enabled'             => (bool) ($n['whatsapp']['enabled'] ?? false),
+            'has_whatsapp_number' => (bool) $request->user()->hasWhatsappNumber(),
+        ]);
+    }
+
+    /**
+     * Toggle the form's one-way WhatsApp alert. Mirrors the web gating: the
+     * alert can only ever be stored as enabled when the owner has a verified
+     * WhatsApp number on file, so it can never be "enabled but undeliverable".
+     * Other notification channels in the JSON are preserved untouched.
+     */
+    public function updateWhatsappAlert(Request $request, int $id)
+    {
+        $f = Form::where('user_id', $request->user()->id)->find($id);
+        if (!$f) return $this->notFound('Form not found');
+
+        $data = $request->validate(['enabled' => 'required|boolean']);
+
+        $hasNumber = (bool) $request->user()->hasWhatsappNumber();
+        $n = array_replace_recursive(Form::defaultNotifications(), $f->notifications ?? []);
+        $n['whatsapp'] = ['enabled' => ((bool) $data['enabled']) && $hasNumber];
+        $f->update(['notifications' => $n]);
+
+        return $this->ok([
+            'enabled'             => (bool) $n['whatsapp']['enabled'],
+            'has_whatsapp_number' => $hasNumber,
+        ]);
+    }
+
     /** Advanced form analytics (Pro and above) — mobile parity. */
     public function analytics(Request $request, int $id)
     {
