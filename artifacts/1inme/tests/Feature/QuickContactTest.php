@@ -256,4 +256,93 @@ class QuickContactTest extends TestCase
             'email_key' => 'support.contact_request',
         ]);
     }
+
+    public function test_anonymous_quick_contact_route_accepts_the_whatsapp_channel(): void
+    {
+        AppSetting::put('contact_recipient_email', 'inbox@example.com');
+
+        $resp = $this->postJson('/assistant/quick-contact', [
+            'name'    => 'WhatsApp Lead',
+            'channel' => 'whatsapp',
+            'phone'   => '+1 555 123 4567',
+            'message' => 'Ping me on WhatsApp.',
+        ]);
+
+        $resp->assertOk();
+        $resp->assertJson(['ok' => true]);
+
+        $this->assertDatabaseCount('contact_messages', 1);
+        $row = ContactMessage::firstOrFail();
+        $this->assertSame('whatsapp',      $row->contact_channel);
+        $this->assertSame('+15551234567',  $row->contact_phone);
+        $this->assertSame('WhatsApp Lead', $row->name);
+
+        $this->assertDatabaseHas('email_logs', [
+            'email_key' => 'support.contact_request',
+            'recipient' => 'inbox@example.com',
+            'status'    => 'sent',
+        ]);
+    }
+
+    public function test_anonymous_quick_contact_route_accepts_the_email_channel(): void
+    {
+        AppSetting::put('contact_recipient_email', 'inbox@example.com');
+
+        $resp = $this->postJson('/assistant/quick-contact', [
+            'name'    => 'Email Lead',
+            'channel' => 'email',
+            'email'   => 'reach@example.com',
+            'phone'   => '9876543210', // ignored / cleared on the email channel
+            'message' => 'Email me back.',
+        ]);
+
+        $resp->assertOk();
+        $resp->assertJson(['ok' => true]);
+
+        // Landed in the admin Contact Inbox on the email channel with the
+        // phone cleared — the email itself is the reach.
+        $this->assertDatabaseCount('contact_messages', 1);
+        $row = ContactMessage::firstOrFail();
+        $this->assertSame('email',             $row->contact_channel);
+        $this->assertNull($row->contact_phone);
+        $this->assertSame('reach@example.com', $row->email);
+
+        $log = EmailLog::where('email_key', 'support.contact_request')->firstOrFail();
+        $this->assertSame('inbox@example.com', $log->recipient);
+        $this->assertSame('sent', $log->status);
+        $this->assertStringContainsString('reach@example.com', (string) $log->body);
+    }
+
+    public function test_anonymous_quick_contact_route_rejects_an_invalid_email_without_persisting(): void
+    {
+        AppSetting::put('contact_recipient_email', 'inbox@example.com');
+
+        // The email channel demands a syntactically valid address. Laravel's
+        // request validation (`email` rule) rejects a malformed address with
+        // a 422 before the controller body runs, so nothing is persisted and
+        // no admin email is sent.
+        $resp = $this->postJson('/assistant/quick-contact', [
+            'name'    => 'Bad Email Lead',
+            'channel' => 'email',
+            'email'   => 'not-an-email',
+        ]);
+
+        $resp->assertStatus(422);
+        $this->assertDatabaseCount('contact_messages', 0);
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'support.contact_request',
+        ]);
+    }
+
+    public function test_anonymous_quick_contact_route_rejects_a_missing_channel(): void
+    {
+        // The channel is required; omitting it is a 422 with nothing left
+        // behind — a malformed widget submission can't create an empty lead.
+        $resp = $this->postJson('/assistant/quick-contact', [
+            'name' => 'No Channel Lead',
+        ]);
+
+        $resp->assertStatus(422);
+        $this->assertDatabaseCount('contact_messages', 0);
+    }
 }
