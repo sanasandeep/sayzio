@@ -433,4 +433,116 @@ class QuickContactTest extends TestCase
         $resp->assertStatus(422);
         $this->assertDatabaseCount('contact_messages', 0);
     }
+
+    // ---- looksSpammy(): content-aware classification ---------------
+
+    public function test_looks_spammy_flags_links_and_spam_patterns(): void
+    {
+        $spam = [
+            'Check out https://cheap-deals.example for offers',
+            'visit www.spam.test now',
+            'great rates at promo.biz/landing today',
+            'Buy now and earn money fast',
+            'best seo service and backlink packages',
+            '<a href="x">click</a>',
+        ];
+        foreach ($spam as $m) {
+            $this->assertTrue(QuickContactService::looksSpammy($m), "Expected spam: $m");
+        }
+    }
+
+    public function test_looks_spammy_does_not_flag_normal_leads_or_bare_emails(): void
+    {
+        $ham = [
+            'Please call me back tomorrow morning.',
+            'Reach me at john.doe@gmail.com whenever works.',
+            'Interested in the Pro plan, can someone ring me?',
+            'My number changed, ping me on WhatsApp.',
+            '',
+        ];
+        foreach ($ham as $m) {
+            $this->assertFalse(QuickContactService::looksSpammy($m), "Expected ham: $m");
+        }
+    }
+
+    // ---- content-aware quarantine on the route ---------------------
+
+    public function test_web_message_with_a_link_is_quarantined_not_emailed(): void
+    {
+        AppSetting::put('contact_recipient_email', 'inbox@example.com');
+
+        $resp = $this->postJson('/assistant/quick-contact', [
+            'name'    => 'Linky Bot',
+            'channel' => 'email',
+            'email'   => 'bot@example.com',
+            'message' => 'Amazing deals at https://spam.example/buy — click here!',
+        ]);
+
+        // The bot gets the same friendly success copy — no signal it was caught.
+        $resp->assertOk();
+        $resp->assertJson(['ok' => true]);
+
+        // Persisted for review under the spam queue, but the admin is NOT
+        // emailed, so the inbox isn't flooded with notifications.
+        $row = ContactMessage::firstOrFail();
+        $this->assertSame(QuickContactService::SPAM_STATUS, $row->status);
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'support.contact_request',
+        ]);
+    }
+
+    public function test_legitimate_single_lead_is_not_quarantined(): void
+    {
+        AppSetting::put('contact_recipient_email', 'inbox@example.com');
+
+        $resp = $this->postJson('/assistant/quick-contact', [
+            'name'    => 'Real Lead',
+            'channel' => 'callback',
+            'phone'   => '+91 98765 43210',
+            'message' => 'Please call me back about the Pro plan.',
+        ]);
+
+        $resp->assertOk();
+        $row = ContactMessage::firstOrFail();
+        $this->assertSame('new', $row->status);
+        $this->assertDatabaseHas('email_logs', [
+            'email_key' => 'support.contact_request',
+            'status'    => 'sent',
+        ]);
+    }
+
+    // ---- global-rate guard: distributed-IP burst -------------------
+
+    public function test_spam_burst_across_varied_ips_and_messages_does_not_flood_inbox(): void
+    {
+        AppSetting::put('contact_recipient_email', 'inbox@example.com');
+
+        // A distributed bot rotates IPs and varies the message, so neither the
+        // per-caller dedupe nor the per-IP throttle catches it. Send well past
+        // the global window ceiling; each call uses a fresh IP (dodging the
+        // per-IP throttle) and a unique message (dodging the dedupe).
+        $total = QuickContactService::GLOBAL_RATE_MAX + 15;
+        for ($i = 0; $i < $total; $i++) {
+            $this->withServerVariables(['REMOTE_ADDR' => '10.0.' . intdiv($i, 250) . '.' . ($i % 250 + 1)])
+                ->postJson('/assistant/quick-contact', [
+                    'name'    => 'Bot ' . $i,
+                    'channel' => 'whatsapp',
+                    'phone'   => '+1 555 ' . str_pad((string) $i, 3, '0', STR_PAD_LEFT) . ' 4567',
+                    'message' => 'Distributed spam variant number ' . $i,
+                ])
+                ->assertOk()
+                ->assertJson(['ok' => true]);
+        }
+
+        // Every submission is persisted, but once the global ceiling is
+        // crossed the rest are quarantined — so the inbox (new) and admin
+        // emails are bounded by the ceiling, not the flood size.
+        $newCount = ContactMessage::where('status', 'new')->count();
+        $spamCount = ContactMessage::where('status', QuickContactService::SPAM_STATUS)->count();
+        $emailCount = EmailLog::where('email_key', 'support.contact_request')->count();
+
+        $this->assertSame(QuickContactService::GLOBAL_RATE_MAX, $newCount);
+        $this->assertSame($total - QuickContactService::GLOBAL_RATE_MAX, $spamCount);
+        $this->assertLessThanOrEqual(QuickContactService::GLOBAL_RATE_MAX, $emailCount);
+    }
 }

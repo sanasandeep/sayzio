@@ -344,6 +344,17 @@ class SiteAssistantController extends Controller
             return response()->json(['ok' => true, 'message' => $successMessage]);
         }
 
+        // Spam guard for distributed bots that rotate IPs + vary the message
+        // (so the per-caller dedupe can't catch them). A clearly spammy body
+        // (links / known spam patterns) OR an implausible global submission
+        // burst quarantines the lead: it is still persisted for review but is
+        // kept out of the default inbox and never emails the admin. Real
+        // single leads from new visitors trip neither check, so they flow
+        // through normally.
+        $isBurst = QuickContactService::registerSubmissionAndDetectBurst();
+        $quarantine = $isBurst || QuickContactService::looksSpammy($message);
+        $status = $quarantine ? QuickContactService::SPAM_STATUS : 'new';
+
         $label = QuickContactService::channelLabel($channel);
         $reach = $channel === 'email' ? $email : (string) $phone;
 
@@ -363,6 +374,7 @@ class SiteAssistantController extends Controller
             'channel' => $channel,
             'phone'   => $phone,
             'ip'      => $request->ip(),
+            'status'  => $status,
         ]);
 
         return response()->json([

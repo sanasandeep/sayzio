@@ -31,6 +31,27 @@ class QuickContactService
      */
     public const DEDUPE_WINDOW_SECONDS = 120;
 
+    /**
+     * Status given to a submission that looks spammy (link/spam-pattern body)
+     * or arrives during an implausible global burst. It is still persisted so
+     * a false positive stays recoverable, but it is queued in a separate
+     * review bucket and NEVER emails the admin — so a distributed flood that
+     * rotates IPs and varies the message can't bury real leads or spam the
+     * inbox with notifications.
+     */
+    public const SPAM_STATUS = 'spam';
+
+    /**
+     * Rolling global-volume guard. Quick-contact is a low-traffic surface, so
+     * an implausibly high number of submissions across ALL callers in a short
+     * window is a distributed-bot signal even when each IP/message differs.
+     * Once the window ceiling is crossed, further submissions are quarantined
+     * (status=spam) rather than dropped, so a genuine lead caught in the burst
+     * is still reviewable.
+     */
+    public const GLOBAL_RATE_WINDOW_SECONDS = 300; // 5 minutes
+    public const GLOBAL_RATE_MAX = 40;             // accepted submissions per window before quarantine
+
     /** Human label for each channel, for the inbox + admin email. */
     public static function channelLabel(?string $channel): string
     {
@@ -144,6 +165,8 @@ class QuickContactService
     public static function create(array $attrs): ContactMessage
     {
         $channel = (string) ($attrs['channel'] ?? '');
+        $status  = (string) ($attrs['status'] ?? 'new');
+        $status  = $status === self::SPAM_STATUS ? self::SPAM_STATUS : 'new';
         $contact = ContactMessage::create([
             'name'            => Str::limit(trim((string) ($attrs['name'] ?? '')), 250, ''),
             'email'           => Str::limit(trim((string) ($attrs['email'] ?? '')), 250, ''),
@@ -152,10 +175,14 @@ class QuickContactService
             'contact_channel' => in_array($channel, self::CHANNELS, true) ? $channel : null,
             'contact_phone'   => Str::limit(trim((string) ($attrs['phone'] ?? '')), 40, '') ?: null,
             'ip'              => $attrs['ip'] ?? null,
-            'status'          => 'new',
+            'status'          => $status,
         ]);
 
-        self::notifyAdmin($contact);
+        // Quarantined submissions are queued for review only — never email
+        // the admin, so a distributed flood can't spam the support inbox.
+        if ($contact->status !== self::SPAM_STATUS) {
+            self::notifyAdmin($contact);
+        }
 
         return $contact;
     }
@@ -191,6 +218,70 @@ class QuickContactService
     public static function claimSubmission(string $fingerprint): bool
     {
         return Cache::add($fingerprint, true, self::DEDUPE_WINDOW_SECONDS);
+    }
+
+    /**
+     * Whether a message body looks clearly spammy. Quick-contact leads are
+     * short "call me back / email me" notes; bots paste links and promo copy.
+     * Tuned to avoid false positives on real leads: a bare email address in
+     * the body (e.g. "reach me at john@gmail.com") is NOT a link, so domains
+     * are only flagged with an explicit scheme/www or a trailing path.
+     */
+    public static function looksSpammy(?string $message): bool
+    {
+        $m = mb_strtolower(trim((string) $message));
+        if ($m === '') {
+            return false;
+        }
+
+        // Explicit URLs / link markup — the strongest signal on this surface.
+        if (preg_match('~https?://|www\.~i', $m)) {
+            return true;
+        }
+        // A domain carrying a path ("foo.biz/promo") — bare email addresses
+        // never have a trailing slash+path, so this stays false-positive safe.
+        if (preg_match('~\b[a-z0-9-]+\.[a-z]{2,}/\S~i', $m)) {
+            return true;
+        }
+        // HTML / BBCode link markup.
+        if (preg_match('~</?a\b|\[url[=\]]|\[link[=\]]~i', $m)) {
+            return true;
+        }
+
+        // Known spam keyword clusters.
+        $patterns = [
+            'viagra', 'cialis', 'casino', 'crypto', 'bitcoin', 'forex',
+            'backlink', 'seo service', 'escort', 'porn', 'xxx',
+            'click here', 'buy now', 'earn money', 'make money',
+        ];
+        foreach ($patterns as $p) {
+            if (str_contains($m, $p)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Record one submission against the rolling global-volume counter and
+     * report whether the window ceiling is now exceeded. Counts ALL callers
+     * (the guard is intentionally IP-agnostic so a distributed bot rotating
+     * IPs still trips it). Best-effort: a cache backend error never blocks a
+     * legitimate lead.
+     */
+    public static function registerSubmissionAndDetectBurst(): bool
+    {
+        try {
+            $bucket = (int) floor(time() / self::GLOBAL_RATE_WINDOW_SECONDS);
+            $key = 'quick_contact:global:count:' . $bucket;
+            Cache::add($key, 0, self::GLOBAL_RATE_WINDOW_SECONDS + 60);
+            $count = (int) Cache::increment($key);
+            return $count > self::GLOBAL_RATE_MAX;
+        } catch (\Throwable $e) {
+            Log::warning('QuickContactService global-rate guard failed: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**

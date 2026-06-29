@@ -6,9 +6,11 @@
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-white">Contact Inbox</h2>
             <div class="flex items-center gap-2">
-                @foreach(['all'=>'All','new'=>'New','read'=>'Read','archived'=>'Archived'] as $key=>$label)
+                @foreach(['all'=>'All','new'=>'New','read'=>'Read','archived'=>'Archived','spam'=>'Spam'] as $key=>$label)
                     <a href="{{ route('admin.contact-inbox.index', ['status'=>$key]) }}"
-                       class="px-3 py-1.5 rounded-lg text-xs {{ $status===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">{{ $label }}</a>
+                       class="px-3 py-1.5 rounded-lg text-xs {{ $status===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">
+                        {{ $label }}@if($key==='spam' && ($spamCount ?? 0) > 0) <span class="ml-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 text-[10px]">{{ $spamCount }}</span>@endif
+                    </a>
                 @endforeach
                 <a href="{{ route('admin.contact-inbox.index', ['status'=>$status,'sort'=>$sort==='asc'?'desc':'asc']) }}"
                    class="px-3 py-1.5 rounded-lg text-xs bg-white/5 text-white/70 hover:bg-white/10">
@@ -29,7 +31,7 @@
                                     <span class="text-sm font-semibold text-white">{{ $m->name }}</span>
                                     <span class="text-xs text-white/40">&lt;{{ $m->email }}&gt;</span>
                                     <span class="text-[10px] px-2 py-0.5 rounded-full
-                                        {{ $m->status==='new' ? 'bg-blue-500/20 text-blue-300' : ($m->status==='read' ? 'bg-white/10 text-white/60' : 'bg-gray-500/20 text-gray-400') }}">
+                                        {{ $m->status==='new' ? 'bg-blue-500/20 text-blue-300' : ($m->status==='read' ? 'bg-white/10 text-white/60' : ($m->status==='spam' ? 'bg-red-500/20 text-red-300' : 'bg-gray-500/20 text-gray-400')) }}">
                                         {{ ucfirst($m->status) }}
                                     </span>
                                     @if(!empty($m->contact_channel))
