@@ -6,6 +6,7 @@ use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Common\Services\OtpService;
 use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Models\LinkedIdentifier;
+use App\Modules\User\Services\AccountMergeService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
@@ -109,5 +110,88 @@ class WhatsappController extends Controller
             'has_whatsapp_number' => true,
             'mobile'              => $value,
         ]);
+    }
+
+    /**
+     * Report the currently connected WhatsApp number (masked) so the mobile
+     * settings surface can show what is on file and whether it can be removed.
+     * `can_remove` mirrors the web linked-identifier guards (you can't remove a
+     * primary identifier or the last verified email/phone), surfacing the same
+     * reason up-front instead of only failing on the disconnect call.
+     */
+    public function status(Request $request)
+    {
+        $user = $request->user();
+
+        $identifier = $user->linkedIdentifiers()
+            ->where('kind', 'phone')
+            ->whereNotNull('verified_at')
+            ->first();
+
+        $reason = $identifier ? $this->removeBlockedReason($user, $identifier) : null;
+
+        return $this->ok([
+            'has_whatsapp_number'   => (bool) $identifier,
+            'mobile_masked'         => $user->maskedWhatsappNumber(),
+            'can_remove'            => $identifier ? $reason === null : false,
+            'remove_blocked_reason' => $reason,
+        ]);
+    }
+
+    /**
+     * Disconnect the verified WhatsApp number from this account. Mirrors the web
+     * disconnect path (Account Settings → linked identifiers → remove), reusing
+     * AccountMergeService::unlink so the same guards apply (can't drop a primary
+     * identifier or the last verified email/phone). Once removed the dependent
+     * alert toggles can no longer deliver, so they read as disabled (gated on a
+     * verified number) the moment the client refetches.
+     */
+    public function disconnect(Request $request, AccountMergeService $service)
+    {
+        $user = $request->user();
+
+        $identifier = $user->linkedIdentifiers()
+            ->where('kind', 'phone')
+            ->whereNotNull('verified_at')
+            ->first();
+
+        if (!$identifier) {
+            return $this->fail('No WhatsApp number is connected.', 422, 'no_number');
+        }
+
+        try {
+            $service->unlink($user, $identifier);
+        } catch (\Throwable $e) {
+            return $this->fail($e->getMessage(), 422, 'cannot_remove');
+        }
+
+        return $this->ok([
+            'has_whatsapp_number' => false,
+            'mobile_masked'       => null,
+        ]);
+    }
+
+    /**
+     * The reason a verified phone identifier cannot be removed, or null when it
+     * can. Pre-flights the AccountMergeService::unlink guards so the client can
+     * disable the Remove action with an explanation rather than discovering the
+     * block only on the DELETE call.
+     */
+    private function removeBlockedReason($user, LinkedIdentifier $identifier): ?string
+    {
+        if ($identifier->is_primary) {
+            return 'This is your primary number — make another verified email or phone primary first.';
+        }
+
+        $hasOtherContact = $user->verifiedIdentifiers()
+            ->where('id', '!=', $identifier->id)
+            ->whereIn('kind', ['email', 'phone'])
+            ->exists();
+
+        if (!$hasOtherContact) {
+            return 'You must keep at least one verified email or phone on your account.';
+        }
+
+        return null;
     }
 }

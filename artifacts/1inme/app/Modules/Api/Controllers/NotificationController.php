@@ -176,6 +176,7 @@ class NotificationController extends Controller
         return $this->ok([
             'enabled'             => $user->wantsWhatsappPaymentAlerts(),
             'has_whatsapp_number' => (bool) $user->hasWhatsappNumber(),
+            'mobile_masked'       => $user->maskedWhatsappNumber(),
         ]);
     }
 
@@ -199,6 +200,7 @@ class NotificationController extends Controller
         return $this->ok([
             'enabled'             => (bool) $settings['whatsapp_payment_alerts'],
             'has_whatsapp_number' => $hasNumber,
+            'mobile_masked'       => $user->maskedWhatsappNumber(),
         ]);
     }
 }

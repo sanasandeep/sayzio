@@ -384,6 +384,27 @@ class User extends Authenticatable
     }
 
     /**
+     * The verified WhatsApp number with all but the last four digits masked,
+     * e.g. "+1 555 123 4567" → "+••••••4567". Returned to surfaces that show
+     * which number is connected (mobile settings) without exposing it in full.
+     * Null when no verified number is on file.
+     */
+    public function maskedWhatsappNumber(): ?string
+    {
+        $value = $this->whatsappNumber();
+        if ($value === null) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value) ?? '';
+        $last   = substr($digits, -4);
+        $hidden = max(0, strlen($digits) - strlen($last));
+        $prefix = str_starts_with(trim($value), '+') ? '+' : '';
+
+        return $prefix . str_repeat('•', $hidden) . $last;
+    }
+
+    /**
      * Whether the creator opted in to WhatsApp payment alerts (new subscriber,
      * tip, PPV/unlock, paid form). Account-level preference stored in the
      * `settings` JSON; defaults off so we never message someone unprompted.

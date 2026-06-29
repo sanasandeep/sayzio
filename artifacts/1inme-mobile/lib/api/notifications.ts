@@ -77,6 +77,8 @@ export async function updateNotificationPreferences(
 export type WhatsappPaymentAlerts = {
   enabled: boolean;
   has_whatsapp_number: boolean;
+  // Connected number with all but the last 4 digits masked, or null when none.
+  mobile_masked: string | null;
 };
 
 export async function getWhatsappPaymentAlerts(): Promise<WhatsappPaymentAlerts> {

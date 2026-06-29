@@ -624,6 +624,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/me/whatsapp/send',   [\App\Modules\Api\Controllers\WhatsappController::class, 'send'])->middleware('throttle:otp-send');
         Route::post('/me/whatsapp/verify', [\App\Modules\Api\Controllers\WhatsappController::class, 'verify'])->middleware('throttle:otp-verify');
 
+        // View the connected WhatsApp number (masked) and disconnect it from the
+        // app — mirrors the web Account Settings linked-identifier remove path.
+        Route::get   ('/me/whatsapp', [\App\Modules\Api\Controllers\WhatsappController::class, 'status']);
+        Route::delete('/me/whatsapp', [\App\Modules\Api\Controllers\WhatsappController::class, 'disconnect']);
+
         // Expo push-token registration (1inme-mobile push delivery).
         Route::post  ('/me/push-tokens',               [PushTokenController::class, 'store']);
         Route::delete('/me/push-tokens',               [PushTokenController::class, 'destroy']);

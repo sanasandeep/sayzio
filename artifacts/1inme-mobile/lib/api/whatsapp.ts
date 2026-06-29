@@ -24,6 +24,22 @@ export type WhatsappVerifyResult = {
   mobile: string;
 };
 
+export type WhatsappStatus = {
+  has_whatsapp_number: boolean;
+  // Connected number with all but the last 4 digits masked, or null when none.
+  mobile_masked: string | null;
+  // Whether the number can be removed; mirrors the web linked-identifier guards
+  // (can't drop a primary identifier or the last verified email/phone).
+  can_remove: boolean;
+  // Human-readable reason the number can't be removed, or null when it can.
+  remove_blocked_reason: string | null;
+};
+
+export type WhatsappDisconnectResult = {
+  has_whatsapp_number: boolean;
+  mobile_masked: string | null;
+};
+
 /** Step 1 — send a 6-digit code over WhatsApp to the entered number. */
 export async function sendWhatsappCode(
   mobile: string,
@@ -43,6 +59,21 @@ export async function verifyWhatsappCode(
   const res = await apiFetch<{ data: WhatsappVerifyResult }>(
     "/me/whatsapp/verify",
     { method: "POST", body: JSON.stringify({ mobile, code }) },
+  );
+  return res.data;
+}
+
+/** Read the connected WhatsApp number (masked) and whether it can be removed. */
+export async function getWhatsappStatus(): Promise<WhatsappStatus> {
+  const res = await apiFetch<{ data: WhatsappStatus }>("/me/whatsapp");
+  return res.data;
+}
+
+/** Disconnect the connected WhatsApp number from this account. */
+export async function disconnectWhatsapp(): Promise<WhatsappDisconnectResult> {
+  const res = await apiFetch<{ data: WhatsappDisconnectResult }>(
+    "/me/whatsapp",
+    { method: "DELETE" },
   );
   return res.data;
 }

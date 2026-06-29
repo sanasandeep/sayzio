@@ -148,6 +148,29 @@ export default function NotificationPreferencesScreen() {
                 </Text>
               </TouchableOpacity>
             ) : null}
+            {waq.data && waq.data.has_whatsapp_number ? (
+              <TouchableOpacity
+                onPress={() => router.push("/whatsapp-verify")}
+                style={[styles.manageRow, { borderTopColor: colors.border }]}
+              >
+                <View style={styles.manageRowText}>
+                  <Feather
+                    name="message-circle"
+                    size={15}
+                    color={colors.mutedForeground}
+                  />
+                  <Text style={[styles.manageNumber, { color: colors.text }]}>
+                    {waq.data.mobile_masked ?? "Connected"}
+                  </Text>
+                </View>
+                <View style={styles.manageRowLink}>
+                  <Text style={[styles.manageLink, { color: colors.primary }]}>
+                    Manage
+                  </Text>
+                  <Feather name="chevron-right" size={16} color={colors.primary} />
+                </View>
+              </TouchableOpacity>
+            ) : null}
           </View>
 
           {q.data?.map((pref) => (
@@ -301,6 +324,23 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   verifyText: { fontSize: 14, fontWeight: "600" },
+  manageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    marginTop: 12,
+    paddingTop: 12,
+  },
+  manageRowText: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
+  },
+  manageNumber: { fontSize: 14, fontWeight: "600", letterSpacing: 0.5 },
+  manageRowLink: { flexDirection: "row", alignItems: "center", gap: 2 },
+  manageLink: { fontSize: 14, fontWeight: "600" },
   channelRow: {
     flexDirection: "row",
     alignItems: "center",
