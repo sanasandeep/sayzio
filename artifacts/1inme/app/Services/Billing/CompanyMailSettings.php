@@ -182,6 +182,128 @@ class CompanyMailSettings
     }
 
     /**
+     * Surface a warning when this company has SMTP enabled but recorded state
+     * shows its client-facing accounting emails are NOT actually going out
+     * through that server — so the creator can fix their settings instead of
+     * unknowingly sending platform-branded (or failed) mail.
+     *
+     * Driven only by recorded state, never guesswork:
+     *   1. email_logs — the most recent client invoice/receipt/reminder for
+     *      this company. If it went via the platform transport ('system')
+     *      instead of this company's ('company:{id}'), or failed on the
+     *      company transport, the creator's branded sender wasn't used.
+     *      {@see \App\Modules\Common\Services\Emailer} stamps meta.transport.
+     *   2. smtp_verified_at — when no conclusive recent send exists, an enabled
+     *      but never-verified (or change-invalidated) SMTP means the handshake
+     *      has never succeeded and a real send can silently fall back.
+     *
+     * Returns null when SMTP is off, the company is unsaved, or recorded state
+     * proves delivery is working.
+     *
+     * @return array{level:string,title:string,body:string}|null
+     */
+    public function deliveryWarning(): ?array
+    {
+        // Only relevant once the creator has opted into their own SMTP.
+        if (!$this->isConfigured() || !$this->company->id) {
+            return null;
+        }
+
+        $latest    = $this->latestClientEmailLog();
+        $transport = $latest && is_array($latest->meta) ? ($latest->meta['transport'] ?? null) : null;
+        $status    = $latest?->status;
+        $when      = $latest ? (optional($latest->created_at)->diffForHumans() ?: null) : null;
+
+        return $this->evaluateDeliveryWarning(
+            $transport,
+            $status,
+            $when,
+            $this->company->smtp_verified_at !== null,
+        );
+    }
+
+    /**
+     * Pure decision core of {@see deliveryWarning()} — given the recorded
+     * transport/status of this company's most recent client email (null when
+     * there is none) and whether its SMTP handshake has ever been verified,
+     * decide which (if any) warning to show. Kept side-effect-free so the
+     * branch matrix can be exercised in-memory without a DB.
+     *
+     * @param  string|null  $transport  email_logs.meta.transport of the latest send
+     * @param  string|null  $status     email_logs.status of the latest send
+     * @param  string|null  $when       human "x ago" of the latest send
+     * @param  bool         $verified   whether smtp_verified_at is set
+     * @return array{level:string,title:string,body:string}|null
+     */
+    public function evaluateDeliveryWarning(?string $transport, ?string $status, ?string $when, bool $verified): ?array
+    {
+        $expected = 'company:' . ($this->company->id ?? 'new');
+        $when     = $when ?: 'recently';
+
+        if ($transport !== null) {
+            // Proven working: the latest send went out via this company's SMTP.
+            if ($transport === $expected && $status === 'sent') {
+                return null;
+            }
+
+            if ($transport === $expected && $status === 'failed') {
+                return [
+                    'level' => 'danger',
+                    'title' => 'Your last client email failed to send through your SMTP server.',
+                    'body'  => "The most recent client email for this company ({$when}) couldn't be delivered through your mail server. Re-check the host, port and credentials below, then run “Verify connection”.",
+                ];
+            }
+
+            if ($transport !== $expected) {
+                return [
+                    'level' => 'warning',
+                    'title' => 'Recent client emails did not use your SMTP server.',
+                    'body'  => "Your most recent client email for this company ({$when}) went out through the platform mailer, not your own server, so it wasn't sent from your branded address. Re-verify your SMTP settings below.",
+                ];
+            }
+        }
+
+        // No conclusive recent send: enabled but the handshake has never
+        // succeeded (never verified, or invalidated by a settings change).
+        if (!$verified) {
+            return [
+                'level' => 'warning',
+                'title' => "Your SMTP settings haven't been verified yet.",
+                'body'  => "You've enabled your own mail server for this company, but the connection has never been confirmed. Until you verify it, client invoices and receipts may not be delivered from your branded address. Run “Verify connection” below.",
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * The most recent client-facing accounting email logged for one of this
+     * company's invoices (invoice / receipt / payment reminder), or null.
+     * related_id is stored as a string by the Emailer, so the invoice ids are
+     * cast to match.
+     */
+    private function latestClientEmailLog(): ?\App\Modules\Common\Models\EmailLog
+    {
+        $invoiceIds = \App\Modules\User\Models\Invoice::where('billing_company_id', $this->company->id)
+            ->orderByDesc('id')
+            ->limit(300)
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+
+        if (empty($invoiceIds)) {
+            return null;
+        }
+
+        return \App\Modules\Common\Models\EmailLog::query()
+            ->where('related_type', \App\Modules\User\Models\Invoice::class)
+            ->whereIn('related_id', $invoiceIds)
+            ->whereIn('email_key', ['billing.client_invoice', 'billing.receipt', 'billing.payment_reminder'])
+            ->orderByDesc('id')
+            ->first(['id', 'status', 'meta', 'created_at', 'email_key']);
+    }
+
+    /**
      * Open an SMTP handshake/auth against this company's transport without
      * sending a message. Stamps smtp_verified_at on success.
      *

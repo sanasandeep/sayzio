@@ -120,6 +120,17 @@
                 @endif
             </div>
 
+            @if(!empty($smtpWarning))
+                @php $isDanger = ($smtpWarning['level'] ?? 'warning') === 'danger'; @endphp
+                <div class="mt-3 p-3 rounded-lg border flex items-start gap-2 {{ $isDanger ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200' }}">
+                    <i class="fas {{ $isDanger ? 'fa-circle-exclamation text-rose-600' : 'fa-triangle-exclamation text-amber-600' }} mt-0.5"></i>
+                    <div class="text-xs {{ $isDanger ? 'text-rose-800' : 'text-amber-800' }}">
+                        <p class="font-semibold">{{ $smtpWarning['title'] }}</p>
+                        <p class="mt-0.5">{{ $smtpWarning['body'] }}</p>
+                    </div>
+                </div>
+            @endif
+
             <label class="flex items-center gap-2 mt-3 mb-1 text-sm" style="color: var(--text-primary);">
                 <input type="hidden" name="smtp_enabled" value="0">
                 <input type="checkbox" name="smtp_enabled" value="1" x-model="enabled" @checked(old('smtp_enabled', $company->smtp_enabled))>

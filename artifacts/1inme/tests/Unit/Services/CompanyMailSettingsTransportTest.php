@@ -284,4 +284,73 @@ class CompanyMailSettingsTransportTest extends TestCase
         $this->assertSame('studio@acme.test', $from[0]->getAddress());
         $this->assertSame('Acme Studio', $from[0]->getName());
     }
+
+    // ------------------------------------------------------------------
+    // deliveryWarning() decision core — exercised in-memory via the pure
+    // evaluateDeliveryWarning() so the branch matrix has no DB dependency.
+    // ------------------------------------------------------------------
+
+    private function settings(): CompanyMailSettings
+    {
+        return CompanyMailSettings::for($this->company([
+            'id'           => 7,
+            'smtp_enabled' => true,
+            'smtp_host'    => 'smtp.acme.test',
+        ]));
+    }
+
+    public function test_warning_when_latest_send_succeeds_on_company_transport_is_none(): void
+    {
+        // Proven working — even if the verified stamp is missing, a successful
+        // send via the company transport clears the warning.
+        $this->assertNull(
+            $this->settings()->evaluateDeliveryWarning('company:7', 'sent', '2 hours ago', false)
+        );
+    }
+
+    public function test_danger_warning_when_latest_send_failed_on_company_transport(): void
+    {
+        $w = $this->settings()->evaluateDeliveryWarning('company:7', 'failed', '5 minutes ago', true);
+
+        $this->assertNotNull($w);
+        $this->assertSame('danger', $w['level']);
+        $this->assertStringContainsString('5 minutes ago', $w['body']);
+    }
+
+    public function test_warning_when_latest_send_fell_back_to_platform_transport(): void
+    {
+        $w = $this->settings()->evaluateDeliveryWarning('system', 'sent', 'yesterday', true);
+
+        $this->assertNotNull($w);
+        $this->assertSame('warning', $w['level']);
+        $this->assertStringContainsString('platform mailer', $w['body']);
+    }
+
+    public function test_unverified_warning_when_no_recent_send_and_never_verified(): void
+    {
+        $w = $this->settings()->evaluateDeliveryWarning(null, null, null, false);
+
+        $this->assertNotNull($w);
+        $this->assertSame('warning', $w['level']);
+        $this->assertStringContainsString('verified', strtolower($w['title']));
+    }
+
+    public function test_no_warning_when_no_recent_send_but_verified(): void
+    {
+        $this->assertNull(
+            $this->settings()->evaluateDeliveryWarning(null, null, null, true)
+        );
+    }
+
+    public function test_no_warning_when_smtp_disabled(): void
+    {
+        // deliveryWarning() short-circuits before any DB lookup when SMTP is off.
+        $settings = CompanyMailSettings::for($this->company([
+            'id'           => 7,
+            'smtp_enabled' => false,
+            'smtp_host'    => 'smtp.acme.test',
+        ]));
+
+        $this->assertNull($settings->deliveryWarning());
+    }
 }

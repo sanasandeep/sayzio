@@ -22,16 +22,18 @@ class BillingCompanyController extends Controller
 
     public function create()
     {
-        $company  = new BillingCompany();
-        $taxRules = TaxRule::where('user_id', auth()->id())->where('is_active', true)->get();
-        return view('user.billing.companies.edit', compact('company', 'taxRules'));
+        $company    = new BillingCompany();
+        $taxRules   = TaxRule::where('user_id', auth()->id())->where('is_active', true)->get();
+        $smtpWarning = null;
+        return view('user.billing.companies.edit', compact('company', 'taxRules', 'smtpWarning'));
     }
 
     public function edit(BillingCompany $company)
     {
         $this->authorizeOwn($company);
-        $taxRules = TaxRule::where('user_id', auth()->id())->where('is_active', true)->get();
-        return view('user.billing.companies.edit', compact('company', 'taxRules'));
+        $taxRules    = TaxRule::where('user_id', auth()->id())->where('is_active', true)->get();
+        $smtpWarning = CompanyMailSettings::for($company)->deliveryWarning();
+        return view('user.billing.companies.edit', compact('company', 'taxRules', 'smtpWarning'));
     }
 
     public function store(Request $request)
