@@ -17,10 +17,10 @@
     <div class="confetti drift-b" style="left:86%; bottom:-28vh; animation-delay:-6s"><div class="w-2 h-6 rounded-full" style="background:var(--c2)"></div></div>
 
     <div class="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
-        <div class="grid grid-cols-1 gap-y-16 lg:grid-cols-[1.05fr_1fr] lg:gap-x-14 xl:gap-x-20 lg:items-center">
+        <div class="zio-hero-grid grid grid-cols-1 gap-y-16 lg:gap-x-14 xl:gap-x-20 lg:items-center">
 
-            {{-- Copy column --}}
-            <div class="text-center lg:text-left lg:max-w-[600px]">
+            {{-- Copy column (sits on the RIGHT at ≥lg via .zio-hero-copy order) --}}
+            <div class="zio-hero-copy text-center lg:text-left lg:max-w-[600px]">
                 <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-8">
                     <i class="fas fa-wand-magic-sparkles text-[11px]" style="color:var(--c2)"></i>
                     <span class="grad-text">One AI. Every tool. Free forever.</span>
@@ -59,8 +59,8 @@
                 </div>
             </div>
 
-            {{-- Orbital Zio visual --}}
-            <div class="reveal rd-2 zio-orbit-wrap">
+            {{-- Orbital Zio visual (sits on the LEFT at ≥lg via .zio-hero-visual order) --}}
+            <div class="reveal rd-2 zio-orbit-wrap zio-hero-visual">
                 <div class="zio-orbit" x-data="{ open: null }" @keydown.escape.window="open = null" @click.outside="open = null">
                     <span class="zio-glow" aria-hidden="true"></span>
                     <span class="zio-pulse zio-pulse--1" aria-hidden="true"></span>
@@ -145,6 +145,18 @@
             background: rgba(255,255,255,.07);
             border-color: rgba(255,255,255,.32);
             transform: translateY(-2px);
+        }
+
+        /* ============ Hero column order ============
+           At ≥lg the Zio universe visual sits on the LEFT and the copy on the
+           RIGHT (copy keeps the wider 1.05fr share for the headline). Below lg
+           the grid is a single column in DOM order (copy first) so the headline
+           still leads on mobile. Done in scoped CSS so no new Tailwind utilities
+           are needed (no rebuild). */
+        @media (min-width: 1024px) {
+            .zio-hero-grid { grid-template-columns: 1fr 1.05fr; }
+            .zio-hero-visual { order: 1; }
+            .zio-hero-copy { order: 2; }
         }
 
         /* ============ Orbital Zio visual ============ */
