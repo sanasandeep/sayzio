@@ -125,11 +125,19 @@
         $linkIntents    = \App\Modules\User\Support\LinkTypeCategories::intents();
         $cardIndex = 0;
         $linkFilterCats = [];
+        $linkTypeMeta   = [];
         foreach ($linkCategories as $catIdx => $cat) {
             $linkFilterCats['cat-' . $catIdx] = array_map(
                 static fn (array $t): array => ['label' => $t['label'], 'desc' => $t['desc']],
                 $cat['types']
             );
+            foreach ($cat['types'] as $t) {
+                $linkTypeMeta[$t['value']] = [
+                    'label' => $t['label'],
+                    'icon'  => $t['icon'],
+                    'badge' => $t['badge'],
+                ];
+            }
         }
 
         // Goal => guided-wizard URL for the goals the wizard can build,
@@ -151,7 +159,7 @@
     @endphp
 
     <form method="POST" action="{{ route('user.links.choose-type') }}"
-          x-data="linkTypePicker({ type: '{{ old('type', $lastType ?? '') }}', searchIndex: {{ Illuminate\Support\Js::from(\App\Modules\User\Support\LinkTypeCategories::searchIndex()) }}, cats: {{ \Illuminate\Support\Js::from($linkFilterCats) }}, wizardPaths: {{ \Illuminate\Support\Js::from($wizardIntentUrls) }} })"
+          x-data="linkTypePicker({ type: '{{ old('type', $lastType ?? '') }}', searchIndex: {{ Illuminate\Support\Js::from(\App\Modules\User\Support\LinkTypeCategories::searchIndex()) }}, cats: {{ \Illuminate\Support\Js::from($linkFilterCats) }}, typeMeta: {{ \Illuminate\Support\Js::from($linkTypeMeta) }}, wizardPaths: {{ \Illuminate\Support\Js::from($wizardIntentUrls) }} })"
           x-init="window.__voiceSurface = { name: 'create_link' }"
           @alias-verdict="aliasBlocked = $event.detail.blocked"
           @submit="guardAliasSubmit($event)"
@@ -362,41 +370,32 @@
                             <p class="text-xs text-white/40 mt-0.5">{{ $category['desc'] }}</p>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                             @foreach($category['types'] as $opt)
                                 <label id="lt-card-{{ $opt['value'] }}" class="relative cursor-pointer block group h-full lt-card-reveal"
                                        x-show="matches({{ \Illuminate\Support\Js::from($opt['label']) }}, {{ \Illuminate\Support\Js::from($opt['desc']) }}, 'cat-{{ $catIdx }}')"
-                                       style="animation-delay: {{ min($cardIndex++ * 45, 540) }}ms">
+                                       style="animation-delay: {{ min($cardIndex++ * 35, 420) }}ms">
                                     <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only peer">
-                                    <div class="h-full border rounded-2xl p-4 flex flex-col gap-3 transition-all duration-200 motion-safe:group-hover:-translate-y-1"
+                                    <div class="h-full border rounded-xl p-3 flex items-start gap-3 transition-all duration-200 motion-safe:group-hover:-translate-y-0.5"
                                          :class="type === '{{ $opt['value'] }}'
                                             ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30 shadow-lg shadow-blue-500/10'
-                                            : 'border-white/10 hover:border-white/20 hover:bg-white/[0.04] hover:shadow-lg hover:shadow-black/20'">
-                                        <div class="relative rounded-xl overflow-hidden border border-white/5 bg-white/[0.02] aspect-[5/3]">
-                                            <img src="{{ asset('img/link-types/' . $opt['value'] . '.svg') }}"
-                                                 alt="{{ $opt['label'] }} preview" loading="lazy"
-                                                 class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.06]"
-                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                            <div class="absolute inset-0 hidden items-center justify-center {{ $opt['badge'] }}">
-                                                <i class="fas {{ $opt['icon'] }} text-3xl"></i>
-                                            </div>
+                                            : 'border-white/10 hover:border-white/20 hover:bg-white/[0.04]'">
+                                        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 {{ $opt['badge'] }}">
+                                            <i class="fas {{ $opt['icon'] }} text-sm"></i>
                                         </div>
-                                        <div class="flex items-center justify-between gap-2">
-                                            <div class="flex items-center gap-2.5 min-w-0">
-                                                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 {{ $opt['badge'] }}">
-                                                    <i class="fas {{ $opt['icon'] }}"></i>
-                                                </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center justify-between gap-2">
                                                 <div class="text-sm font-semibold text-white truncate">{{ $opt['label'] }}</div>
+                                                <span class="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition-all"
+                                                      :class="type === '{{ $opt['value'] }}'
+                                                        ? 'border-blue-400 bg-blue-500'
+                                                        : 'border-white/20'">
+                                                    <i class="fas fa-check text-[8px] text-white transition-opacity"
+                                                       :class="type === '{{ $opt['value'] }}' ? 'opacity-100' : 'opacity-0'"></i>
+                                                </span>
                                             </div>
-                                            <span class="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition-all"
-                                                  :class="type === '{{ $opt['value'] }}'
-                                                    ? 'border-blue-400 bg-blue-500'
-                                                    : 'border-white/20'">
-                                                <i class="fas fa-check text-[10px] text-white transition-opacity"
-                                                   :class="type === '{{ $opt['value'] }}' ? 'opacity-100' : 'opacity-0'"></i>
-                                            </span>
+                                            <div class="text-xs text-white/50 leading-snug mt-0.5 line-clamp-2">{{ $opt['desc'] }}</div>
                                         </div>
-                                        <div class="text-xs text-white/50 leading-relaxed">{{ $opt['desc'] }}</div>
                                     </div>
                                 </label>
                             @endforeach
@@ -415,11 +414,41 @@
             </div>
             @error('type') <p class="text-red-400 text-sm mt-2">{{ $message }}</p> @enderror
 
-            <div class="flex items-center justify-end gap-3 mt-6">
-                <a href="{{ route('user.links.index') }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Cancel</a>
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
-                    Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
-                </button>
+            {{-- Sticky action bar: surfaces the current selection and keeps the
+                 Continue action in view while the user browses the list.
+                 Continue is disabled (real `disabled`, so it can't submit and is
+                 announced as such) until a link type is selected; the alias guard
+                 and server-side `type` validation remain as additional gates. --}}
+            <div class="sticky bottom-0 z-20 -mx-6 -mb-6 mt-6 px-6 py-4 rounded-b-2xl border-t border-white/10"
+                 style="background: var(--bg-body);">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0 flex items-center gap-2.5">
+                        <template x-if="type">
+                            <span class="flex items-center gap-2.5 min-w-0">
+                                <span class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" :class="selectedBadge()">
+                                    <i class="fas text-sm" :class="selectedIcon()"></i>
+                                </span>
+                                <span class="min-w-0">
+                                    <span class="block text-[10px] uppercase tracking-wide text-white/40 leading-none">Selected</span>
+                                    <span class="block text-sm font-semibold text-white truncate" x-text="selectedLabel()"></span>
+                                </span>
+                            </span>
+                        </template>
+                        <template x-if="!type">
+                            <span class="text-sm text-white/40">Pick a link type to continue</span>
+                        </template>
+                    </div>
+                    <div class="flex items-center gap-3 flex-shrink-0">
+                        <a href="{{ route('user.links.index') }}" class="px-4 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Cancel</a>
+                        <button type="submit" :disabled="!type"
+                                :class="type
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-lg hover:shadow-blue-500/20 cursor-pointer'
+                                    : 'bg-white/5 text-white/30 cursor-not-allowed'"
+                                class="px-6 py-2.5 rounded-xl text-sm font-medium transition-all">
+                            Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </form>
@@ -475,6 +504,14 @@ document.addEventListener('alpine:init', function () {
             search: '',
             activeCategory: 'all',
             cats: config.cats || {},
+
+            // value => { label, icon, badge } for the chosen type, used to mirror
+            // the current selection in the sticky action bar.
+            typeMeta: config.typeMeta || {},
+
+            selectedLabel: function () { return (this.typeMeta[this.type] || {}).label || ''; },
+            selectedIcon: function () { return (this.typeMeta[this.type] || {}).icon || ''; },
+            selectedBadge: function () { return (this.typeMeta[this.type] || {}).badge || ''; },
 
             // Goal => guided-wizard URL map for the one-tap guided path.
             wizardPaths: config.wizardPaths || {},
