@@ -35,6 +35,15 @@ Route::post('/webhooks/carbon/{provider}', [\App\Modules\Common\Controllers\Carb
 Route::post('/webhooks/payumoney/return', [WebhookController::class, 'payumoneyReturn'])
     ->name('webhooks.payumoney.return');
 
+// Two-way WhatsApp AI agent (Task #2759). GET is Meta's verification
+// handshake; POST is inbound message delivery (HMAC-verified in the
+// controller). Declared BEFORE the generic `webhooks/{gateway}` POST
+// catch-all so "whatsapp" isn't swallowed by it.
+Route::get('/webhooks/whatsapp', [\App\Modules\Common\Controllers\WhatsAppWebhookController::class, 'verify'])
+    ->name('webhooks.whatsapp.verify');
+Route::post('/webhooks/whatsapp', [\App\Modules\Common\Controllers\WhatsAppWebhookController::class, 'ingest'])
+    ->name('webhooks.whatsapp.ingest');
+
 Route::post('/webhooks/{gateway}', [WebhookController::class, 'handle'])
     ->where('gateway', '[a-z0-9_-]+')
     ->name('webhooks.handle');

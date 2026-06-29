@@ -31,4 +31,28 @@ return [
 
     // Graph API version used to build the messages endpoint URL.
     'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v21.0'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp AI Agent (inbound) — webhook + signature
+    |--------------------------------------------------------------------------
+    |
+    | Two-way conversational agent that lets verified, paid-plan users create
+    | and edit links by messaging the Sayzio WhatsApp number. These keys back
+    | the inbound webhook only — outbound session replies reuse the access
+    | token above. Admin values (API Keys hub) override these env fallbacks.
+    |
+    |   webhook_verify_token  the token Meta echoes during webhook setup
+    |                         (GET hub.verify_token must match).
+    |   app_secret            the Meta app secret used to validate the
+    |                         X-Hub-Signature-256 HMAC on every POST.
+    |   agent_enabled         master switch for the inbound agent.
+    |
+    */
+
+    'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
+
+    'app_secret' => env('WHATSAPP_APP_SECRET'),
+
+    'agent_enabled' => env('WHATSAPP_AGENT_ENABLED', false),
 ];

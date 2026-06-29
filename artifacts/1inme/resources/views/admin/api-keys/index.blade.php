@@ -96,6 +96,75 @@
             <p class="text-[11px] text-white/30">Token is encrypted at rest with the application key. Other fields are plain configuration.</p>
         </div>
 
+        {{-- WhatsApp AI agent (inbound webhook) --------------------- --}}
+        <div class="glass rounded-2xl border border-white/10 p-6 space-y-5">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h3 class="font-semibold text-white flex items-center gap-2">
+                        <i class="fas fa-robot text-emerald-400"></i> WhatsApp AI agent
+                    </h3>
+                    <p class="text-xs text-white/40">Lets verified, paid-plan users create &amp; edit links by messaging the WhatsApp number. Requires the Cloud API credentials above plus the inbound webhook below.</p>
+                </div>
+                <span class="shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-medium {{ $waAgentEnabled ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-white/5 text-white/50 border-white/10' }}">
+                    {{ $waAgentEnabled ? 'Enabled' : 'Disabled' }}
+                </span>
+            </div>
+
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="hidden" name="wa_agent_enabled" value="0">
+                <input type="checkbox" name="wa_agent_enabled" value="1" {{ $waAgentEnabled ? 'checked' : '' }}
+                       class="w-4 h-4 accent-emerald-500">
+                <span class="text-sm text-white">Enable the WhatsApp AI agent</span>
+            </label>
+
+            <div>
+                <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Callback URL</label>
+                <div class="flex items-center gap-2">
+                    <input type="text" readonly value="{{ $waCallbackUrl }}"
+                           class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white/70 font-mono">
+                </div>
+                <p class="text-[11px] text-white/30 mt-1">Set this as the webhook callback URL in the Meta app dashboard (subscribe to the <span class="font-mono">messages</span> field).</p>
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Webhook verify token</label>
+                    @if($waHasVerifyToken)
+                        <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $waMaskedVerify }}</span></p>
+                    @endif
+                    <input type="password" name="wa_webhook_verify_token" autocomplete="off"
+                           placeholder="{{ $waHasVerifyToken ? 'Paste to replace' : 'A secret string you choose' }}"
+                           class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    @if($waHasVerifyToken)
+                        <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
+                            <input type="hidden" name="clear_wa_verify_token" value="0">
+                            <input type="checkbox" name="clear_wa_verify_token" value="1" class="accent-red-500">
+                            Remove the stored verify token
+                        </label>
+                    @endif
+                    <p class="text-[11px] text-white/30 mt-1">Must match the "Verify token" entered in the Meta dashboard.</p>
+                </div>
+                <div>
+                    <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">App secret</label>
+                    @if($waHasAppSecret)
+                        <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $waMaskedAppSecret }}</span></p>
+                    @endif
+                    <input type="password" name="wa_app_secret" autocomplete="off"
+                           placeholder="{{ $waHasAppSecret ? 'Paste to replace' : 'Meta app secret' }}"
+                           class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    @if($waHasAppSecret)
+                        <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
+                            <input type="hidden" name="clear_wa_app_secret" value="0">
+                            <input type="checkbox" name="clear_wa_app_secret" value="1" class="accent-red-500">
+                            Remove the stored app secret
+                        </label>
+                    @endif
+                    <p class="text-[11px] text-white/30 mt-1">Used to verify the <span class="font-mono">X-Hub-Signature-256</span> on inbound payloads. Without it, signatures aren't enforced (preview mode).</p>
+                </div>
+            </div>
+            <p class="text-[11px] text-white/30">Verify token &amp; app secret are encrypted at rest with the application key.</p>
+        </div>
+
         {{-- Internal alerts (Slack / Discord) ---------------------- --}}
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-5">
             <div class="flex items-start justify-between gap-3">

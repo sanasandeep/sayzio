@@ -175,6 +175,10 @@ class AiPlanAccess
             // AI Artistic QR — no per-plan gating before this; keep it on by
             // default so the per-plan flag is purely additive when seeded.
             'qr_art'             => true,
+            // WhatsApp AI agent (Task #2759) — a paid-plan perk. Until plans
+            // carry the explicit key, gate it to any non-free plan so free
+            // accounts can't drive paid AI spend through the inbound webhook.
+            'whatsapp_agent'     => !$user->isOnFreePlan(),
             default              => true,
         };
     }

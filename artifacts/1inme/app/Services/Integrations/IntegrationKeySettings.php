@@ -29,6 +29,15 @@ class IntegrationKeySettings
     public const KEY_WA_TEMPLATE_LANG    = 'whatsapp.template_language';
     public const KEY_WA_GRAPH_VERSION    = 'whatsapp.graph_version';
 
+    // ── WhatsApp AI Agent (inbound webhook) ───────────────────────
+    // Master switch plus the two webhook secrets. The verify token is
+    // echoed back during Meta's GET handshake; the app secret validates
+    // the X-Hub-Signature-256 HMAC on every inbound POST. Both fall back
+    // to config/whatsapp.php (env) when no admin value is stored.
+    public const KEY_WA_AGENT_ENABLED      = 'whatsapp.agent_enabled';
+    public const KEY_WA_VERIFY_TOKEN_ENC   = 'whatsapp.webhook_verify_token_enc';
+    public const KEY_WA_APP_SECRET_ENC     = 'whatsapp.app_secret_enc';
+
     // ── Internal alerts (Slack / Discord) ─────────────────────────
     public const KEY_ALERTS_ENABLED      = 'alerts.enabled';
     public const KEY_ALERTS_SLACK_ENC    = 'alerts.slack_webhook_url_enc';
@@ -147,6 +156,78 @@ class IntegrationKeySettings
             return ['key' => 'env', 'label' => 'Using env fallback', 'tone' => 'amber'];
         }
         return ['key' => 'preview', 'label' => 'Preview mode', 'tone' => 'slate'];
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // WhatsApp AI Agent (inbound webhook)
+    // ─────────────────────────────────────────────────────────────
+
+    /** Master switch for the inbound WhatsApp agent (admin value first, then env). */
+    public static function whatsappAgentEnabled(): bool
+    {
+        $admin = AppSetting::get(self::KEY_WA_AGENT_ENABLED);
+        if ($admin !== null) return (bool) $admin;
+        return (bool) config('whatsapp.agent_enabled', false);
+    }
+
+    public static function setWhatsappAgentEnabled(bool $on): void
+    {
+        AppSetting::put(self::KEY_WA_AGENT_ENABLED, $on);
+    }
+
+    /** Webhook verify token echoed during Meta's GET handshake. */
+    public static function whatsappWebhookVerifyToken(): ?string
+    {
+        $admin = self::decrypt(self::KEY_WA_VERIFY_TOKEN_ENC);
+        if ($admin !== null && $admin !== '') return $admin;
+        $cfg = (string) config('whatsapp.webhook_verify_token', '');
+        return $cfg !== '' ? $cfg : null;
+    }
+
+    public static function setWhatsappWebhookVerifyToken(?string $v): void
+    {
+        self::storeSecret(self::KEY_WA_VERIFY_TOKEN_ENC, $v);
+    }
+
+    public static function maskedWhatsappWebhookVerifyToken(): ?string
+    {
+        $t = self::whatsappWebhookVerifyToken();
+        if (!$t) return null;
+        return '••••••••' . substr($t, -4);
+    }
+
+    /** Meta app secret used to validate the X-Hub-Signature-256 HMAC. */
+    public static function whatsappAppSecret(): ?string
+    {
+        $admin = self::decrypt(self::KEY_WA_APP_SECRET_ENC);
+        if ($admin !== null && $admin !== '') return $admin;
+        $cfg = (string) config('whatsapp.app_secret', '');
+        return $cfg !== '' ? $cfg : null;
+    }
+
+    public static function setWhatsappAppSecret(?string $v): void
+    {
+        self::storeSecret(self::KEY_WA_APP_SECRET_ENC, $v);
+    }
+
+    public static function maskedWhatsappAppSecret(): ?string
+    {
+        $t = self::whatsappAppSecret();
+        if (!$t) return null;
+        return '••••••••' . substr($t, -4);
+    }
+
+    /**
+     * The agent can fully run only when the master switch is on, delivery
+     * credentials exist (to reply) and the webhook verify token is set (to
+     * complete Meta's handshake). The app secret is recommended but the
+     * webhook also accepts unsigned posts in preview mode.
+     */
+    public static function whatsappAgentReady(): bool
+    {
+        return self::whatsappAgentEnabled()
+            && self::whatsappConfigured()
+            && self::whatsappWebhookVerifyToken() !== null;
     }
 
     // ─────────────────────────────────────────────────────────────

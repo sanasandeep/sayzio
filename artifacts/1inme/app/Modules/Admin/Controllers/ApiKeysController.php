@@ -44,6 +44,14 @@ class ApiKeysController extends Controller
             'waLanguage'      => IntegrationKeySettings::whatsappTemplateLanguage(),
             'waGraphVersion'  => IntegrationKeySettings::whatsappGraphVersion(),
 
+            // WhatsApp AI agent (inbound webhook)
+            'waAgentEnabled'  => IntegrationKeySettings::whatsappAgentEnabled(),
+            'waHasVerifyToken'=> IntegrationKeySettings::whatsappWebhookVerifyToken() !== null,
+            'waMaskedVerify'  => IntegrationKeySettings::maskedWhatsappWebhookVerifyToken(),
+            'waHasAppSecret'  => IntegrationKeySettings::whatsappAppSecret() !== null,
+            'waMaskedAppSecret' => IntegrationKeySettings::maskedWhatsappAppSecret(),
+            'waCallbackUrl'   => url('/webhooks/whatsapp'),
+
             // Internal alerts
             'alertsStatus'      => IntegrationKeySettings::alertsStatus(),
             'alertsEnabled'     => IntegrationKeySettings::alertsEnabled(),
@@ -73,6 +81,13 @@ class ApiKeysController extends Controller
             'wa_template_language' => ['nullable', 'string', 'max:16'],
             'wa_graph_version'     => ['nullable', 'string', 'max:16'],
 
+            // WhatsApp AI agent (inbound webhook)
+            'wa_agent_enabled'        => ['nullable', 'boolean'],
+            'wa_webhook_verify_token' => ['nullable', 'string', 'max:256'],
+            'clear_wa_verify_token'   => ['nullable', 'boolean'],
+            'wa_app_secret'           => ['nullable', 'string', 'max:256'],
+            'clear_wa_app_secret'     => ['nullable', 'boolean'],
+
             // Internal alerts
             'alerts_enabled'       => ['nullable', 'boolean'],
             'slack_webhook_url'    => ['nullable', 'string', 'url', 'max:1024'],
@@ -95,6 +110,21 @@ class ApiKeysController extends Controller
             IntegrationKeySettings::setWhatsappAccessToken(null);
         } elseif (!empty($data['wa_access_token'])) {
             IntegrationKeySettings::setWhatsappAccessToken($data['wa_access_token']);
+        }
+
+        // ── WhatsApp AI agent ─────────────────────────────────────
+        IntegrationKeySettings::setWhatsappAgentEnabled($request->boolean('wa_agent_enabled'));
+
+        if ($request->boolean('clear_wa_verify_token')) {
+            IntegrationKeySettings::setWhatsappWebhookVerifyToken(null);
+        } elseif (!empty($data['wa_webhook_verify_token'])) {
+            IntegrationKeySettings::setWhatsappWebhookVerifyToken($data['wa_webhook_verify_token']);
+        }
+
+        if ($request->boolean('clear_wa_app_secret')) {
+            IntegrationKeySettings::setWhatsappAppSecret(null);
+        } elseif (!empty($data['wa_app_secret'])) {
+            IntegrationKeySettings::setWhatsappAppSecret($data['wa_app_secret']);
         }
 
         // ── Internal alerts ───────────────────────────────────────
