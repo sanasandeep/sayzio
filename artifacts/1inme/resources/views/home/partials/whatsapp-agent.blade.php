@@ -17,7 +17,7 @@
                     Build links by <span class="wa-grad">chatting on WhatsApp.</span>
                 </h2>
                 <p class="reveal rd-2 text-lg text-gray-400 leading-relaxed mb-8 max-w-xl">
-                    Message your Sayzio agent like a teammate. It creates and edits short links,
+                    Message Ask Zio like a teammate. It creates and edits short links,
                     QR codes, contact cards, calendar events and file links — right inside the chat.
                     Send a voice note and it transcribes it; send a photo and it understands it.
                 </p>
@@ -50,14 +50,14 @@
 
             {{-- Chat mockup --}}
             <div class="reveal rd-2 wa-phone-wrap">
-                <div class="wa-phone" role="img" aria-label="Example WhatsApp conversation with the Sayzio agent">
+                <div class="wa-phone" role="img" aria-label="Example WhatsApp conversation with Ask Zio">
                     <div class="wa-phone-bar">
                         <span class="wa-avatar"><i class="fab fa-whatsapp"></i></span>
-                        <span class="wa-phone-name">Sayzio Agent<small>online</small></span>
+                        <span class="wa-phone-name">Ask Zio<small>online</small></span>
                     </div>
                     <div class="wa-thread">
                         <div class="wa-msg wa-msg-out">Make a short link for my new pricing page sayzio.com/pricing</div>
-                        <div class="wa-msg wa-msg-in">Done — your short link is <b>szio.to/pricing</b> 🎉 Want a QR code for it too?</div>
+                        <div class="wa-msg wa-msg-in">Done — your short link is <b>sayzio.app/pricing</b> 🎉 Want a QR code for it too?</div>
                         <div class="wa-msg wa-msg-out wa-voice">
                             <i class="fas fa-microphone"></i>
                             <span class="wa-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>

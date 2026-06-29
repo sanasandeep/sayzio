@@ -257,7 +257,7 @@ export default function Home() {
                 <span style={{ color: "#1da851" }}>chatting on WhatsApp</span>
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed mb-7 max-w-xl">
-                Message your Sayzio agent like a teammate. It creates and edits
+                Message Ask Zio like a teammate. It creates and edits
                 short links, QR codes, contact cards, calendar events and file
                 links — right inside the chat. Send a voice note and it
                 transcribes it; send a photo and it understands it.
@@ -318,7 +318,7 @@ export default function Home() {
                     <MessageCircle className="w-5 h-5" />
                   </span>
                   <span className="flex flex-col leading-tight">
-                    <span className="font-bold text-[#e9edef]">Sayzio Agent</span>
+                    <span className="font-bold text-[#e9edef]">Ask Zio</span>
                     <span className="text-[0.7rem] text-[#8fa3ad]">online</span>
                   </span>
                 </div>
@@ -331,7 +331,7 @@ export default function Home() {
                   </div>
                   <div className="self-start max-w-[82%] rounded-2xl rounded-tl-sm px-3 py-2 text-sm text-[#e9edef]" style={{ backgroundColor: "#202c33" }}>
                     Done — your short link is{" "}
-                    <b style={{ color: "#6ff7b0" }}>szio.to/pricing</b> 🎉 Want a
+                    <b style={{ color: "#6ff7b0" }}>sayzio.app/pricing</b> 🎉 Want a
                     QR code for it too?
                   </div>
                   <div className="self-end inline-flex items-center gap-2 max-w-[82%] rounded-2xl rounded-tr-sm px-3 py-2 text-sm text-[#cfe9d8]" style={{ backgroundColor: "#005c4b" }}>
