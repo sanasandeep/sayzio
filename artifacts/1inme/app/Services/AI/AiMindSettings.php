@@ -31,6 +31,8 @@ class AiMindSettings
             'max_docs_per_mind'      => 50,
             'max_doc_size_mb'        => 20,
             'max_links_per_mind'     => 50,
+            'max_webhooks_per_mind'  => 25,
+            'max_connectors_per_mind'=> 25,
             'max_link_refreshes_per_day' => 200,
             'link_refresh_min_minutes'   => 60,
             'max_chunks_per_source'  => 500,

@@ -88,7 +88,7 @@
         <div class="flex items-center justify-between">
             <h3 class="text-white font-semibold">Add a source</h3>
             <div class="flex gap-1 text-xs">
-                @foreach(['text'=>'Text','faq'=>'FAQ','document'=>'Document','link'=>'Link','feature'=>'Sayzio data'] as $k=>$lbl)
+                @foreach(['text'=>'Text','faq'=>'FAQ','document'=>'Document','link'=>'Link','webhook'=>'Webhook','connector'=>'API connector','feature'=>'Sayzio data'] as $k=>$lbl)
                     <button type="button" @click="addType='{{ $k }}'" :class="addType==='{{ $k }}' ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'"
                         class="px-3 py-1.5 rounded-lg">{{ $lbl }}</button>
                 @endforeach
@@ -142,6 +142,46 @@
             <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Add link</button>
         </form>
 
+        {{-- WEBHOOK --}}
+        <form method="POST" action="{{ route('user.minds.sources.store', $mind) }}" x-show="addType==='webhook'" class="space-y-3">
+            @csrf <input type="hidden" name="type" value="webhook">
+            <p class="text-xs text-white/40">Creates an inbound URL with a secret token. POST content to it from any external system to keep this knowledge base in sync. Up to {{ $caps['max_webhooks_per_mind'] }} webhook sources per knowledge base.</p>
+            <input name="title" required placeholder="Webhook source title" maxlength="200" class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+            <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Create webhook</button>
+        </form>
+
+        {{-- API CONNECTOR --}}
+        <form method="POST" action="{{ route('user.minds.sources.store', $mind) }}" x-show="addType==='connector'" x-data="{ auth: 'none' }" class="space-y-3">
+            @csrf <input type="hidden" name="type" value="connector">
+            <p class="text-xs text-white/40">Pulls content from an external API endpoint on a schedule. Credentials are encrypted at rest. Up to {{ $caps['max_connectors_per_mind'] }} connectors per knowledge base.</p>
+            <input name="title" required placeholder="Connector title" maxlength="200" class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+            <input name="endpoint" required type="url" placeholder="https://api.example.com/data" maxlength="2048" class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+            <div class="flex flex-wrap items-end gap-3">
+                <div>
+                    <label class="text-xs text-white/50 block mb-1">Authentication</label>
+                    <select name="auth_method" x-model="auth" class="bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+                        <option value="none">None</option>
+                        <option value="header">Header API key</option>
+                        <option value="bearer">Bearer token</option>
+                    </select>
+                </div>
+                <div x-show="auth==='header'">
+                    <label class="text-xs text-white/50 block mb-1">Header name</label>
+                    <input name="header_name" placeholder="X-API-Key" maxlength="120" class="w-40 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+                </div>
+                <div x-show="auth!=='none'" class="flex-1 min-w-[12rem]">
+                    <label class="text-xs text-white/50 block mb-1" x-text="auth==='bearer' ? 'Bearer token' : 'API key value'"></label>
+                    <input name="credential" type="password" autocomplete="new-password" placeholder="••••••••" maxlength="2048" class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+                </div>
+            </div>
+            <div>
+                <label class="text-xs text-white/50">Refresh every (minutes, min {{ max(15, $caps['link_refresh_min_minutes']) }})</label>
+                <input name="refresh_minutes" type="number" min="{{ max(15, $caps['link_refresh_min_minutes']) }}" max="43200" value="1440"
+                    class="w-32 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+            </div>
+            <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm">Add connector</button>
+        </form>
+
         {{-- FEATURE --}}
         <form method="POST" action="{{ route('user.minds.sources.store', $mind) }}" x-show="addType==='feature'" class="space-y-3">
             @csrf <input type="hidden" name="type" value="feature">
@@ -169,15 +209,18 @@
         @else
             <ul class="divide-y divide-white/5">
                 @foreach($sources as $s)
-                    <li class="py-3 flex items-center gap-3">
+                    <li class="py-3">
+                      <div class="flex items-center gap-3">
                         <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/60">
-                            <i class="fas {{ ['text'=>'fa-align-left','faq'=>'fa-circle-question','document'=>'fa-file-lines','link'=>'fa-link','feature'=>'fa-cubes-stacked'][$s->type] ?? 'fa-file' }}"></i>
+                            <i class="fas {{ ['text'=>'fa-align-left','faq'=>'fa-circle-question','document'=>'fa-file-lines','link'=>'fa-link','webhook'=>'fa-bolt','connector'=>'fa-plug','feature'=>'fa-cubes-stacked'][$s->type] ?? 'fa-file' }}"></i>
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-white text-sm truncate">{{ $s->title }}</p>
                             <p class="text-[11px] text-white/40 truncate">
-                                {{ ucfirst($s->type) }}
+                                {{ $s->type === 'connector' ? 'API connector' : ucfirst($s->type) }}
                                 @if($s->type==='link') · <a href="{{ $s->url }}" target="_blank" rel="noopener" class="hover:underline">{{ $s->url }}</a> · refresh every {{ $s->refresh_minutes }}m @endif
+                                @if($s->type==='connector') · <a href="{{ $s->connectorEndpoint() ?: $s->url }}" target="_blank" rel="noopener" class="hover:underline">{{ $s->connectorEndpoint() ?: $s->url }}</a> · {{ $s->connectorAuthMethod()==='none' ? 'no auth' : ($s->connectorAuthMethod()==='bearer' ? 'bearer token' : 'header key') }} · refresh every {{ $s->refresh_minutes }}m @endif
+                                @if($s->type==='webhook') · @if($s->webhookLastReceivedAt()) last received {{ $s->webhookLastReceivedAt()->diffForHumans() }} @else awaiting first delivery @endif @endif
                                 @if($s->type==='document') · {{ number_format(($s->size_bytes ?? 0)/1024, 1) }} KB @endif
                                 @if($s->type==='feature') · {{ \App\Services\AI\AiMindFeatureAdapter::label($s->feature_key) }} @endif
                                 · {{ number_format($s->chunks_count ?? $s->chunks()->count()) }} chunks
@@ -197,6 +240,41 @@
                             <button class="text-xs text-red-300/80 hover:text-red-200 px-2 py-1"><i class="fas fa-trash"></i></button>
                         </form>
                         @endif
+                      </div>
+
+                      @if($s->type==='webhook' && (!$isPlatform || auth()->user()->hasPermission('user.ai_minds.manage_platform')))
+                        @php($whUrl = route('mind.webhook.ingest', $s))
+                        @php($revealed = session('revealed_webhook'))
+                        @php($whToken = ($revealed && (int)($revealed['id'] ?? 0) === (int)$s->id) ? $revealed['token'] : null)
+                        <div class="mt-2 ml-11 rounded-xl border border-white/10 bg-black/20 p-3 space-y-2 text-[11px]">
+                            <div>
+                                <span class="text-white/40 block mb-1">Inbound URL — POST your content here</span>
+                                <div class="flex items-center gap-2">
+                                    <code class="flex-1 min-w-0 truncate text-cyan-200 bg-white/5 rounded px-2 py-1">{{ $whUrl }}</code>
+                                    <button type="button" onclick="navigator.clipboard.writeText(@js($whUrl)); window.toast && window.toast('Copied URL')" class="text-white/60 hover:text-white px-2 py-1"><i class="fas fa-copy"></i></button>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-white/40 block mb-1">Signing token — send as <code class="text-white/60">X-Mind-Webhook-Token</code> header (or <code class="text-white/60">?token=</code>)</span>
+                                @if($whToken)
+                                <div class="flex items-center gap-2">
+                                    <code class="flex-1 min-w-0 truncate text-amber-200 bg-white/5 rounded px-2 py-1">{{ $whToken }}</code>
+                                    <button type="button" onclick="navigator.clipboard.writeText(@js($whToken)); window.toast && window.toast('Copied token')" class="text-white/60 hover:text-white px-2 py-1"><i class="fas fa-copy"></i></button>
+                                </div>
+                                <p class="text-amber-300/70 mt-1">Copy it now — for security this token is shown only once.</p>
+                                @else
+                                <div class="flex items-center gap-2">
+                                    <code class="flex-1 min-w-0 truncate text-white/30 bg-white/5 rounded px-2 py-1 select-none">••••••••••••••••••••••••••••</code>
+                                    <form method="POST" action="{{ route('user.minds.sources.rotate-webhook', [$mind, $s]) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Regenerate webhook token?', message: 'The current token will stop working immediately. Update any system using it.', confirmText: 'Regenerate', confirmIcon: 'fa-rotate', iconClass: 'fa-rotate'})">
+                                        @csrf
+                                        <button type="submit" class="whitespace-nowrap text-cyan-300 hover:text-cyan-200 px-2 py-1"><i class="fas fa-rotate"></i> Regenerate</button>
+                                    </form>
+                                </div>
+                                <p class="text-white/30 mt-1">Hidden for security. Lost it? Regenerate a new token.</p>
+                                @endif
+                            </div>
+                        </div>
+                      @endif
                     </li>
                 @endforeach
             </ul>

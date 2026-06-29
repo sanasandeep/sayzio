@@ -689,6 +689,9 @@ Sayzio includes several AI helpers (all metered with **AI credits**):
 - **Knowledge Bases / Note Summarizer** — build and manage private knowledge bases:
   upload documents and links to "train" your AI so its answers reflect your real
   information, and summarize raw notes into clear next steps with **Note Summarizer**.
+  Knowledge Bases can also stay in sync with outside systems through two
+  connection sources — an inbound **Webhook** and an outbound **API connector**
+  (see [Keeping a Knowledge Base in sync](#keeping-a-knowledge-base-in-sync)).
 
 Other AI helpers appear inside specific tools — e.g. **resume tailoring** and
 **cover-letter generation** in the Resume builder, and the
@@ -699,6 +702,39 @@ contact details, socials, and a logo from a photo or PDF.
 Bases, AI Agents, and Chat Widgets you can create, depends on your plan — higher
 tiers unlock more of these (and higher counts). If a tool is greyed out, your
 current plan doesn't include it yet.
+
+### Keeping a Knowledge Base in sync
+
+Besides pasting text, uploading documents, adding FAQs, and crawling links, a
+Knowledge Base can pull from external systems with two connection sources. Both
+respect your plan's per–Knowledge-Base limits and ingestion caps, and any
+secrets you enter are **encrypted at rest**.
+
+**Webhook (inbound).** Open a Knowledge Base, choose **Add a source → Webhook**,
+and give it a title. Sayzio generates a unique **inbound URL** and a **secret
+token**. Copy both into the third-party system that should feed this Knowledge
+Base. Whenever that system **POSTs** content to the URL, Sayzio verifies the
+token, stores the payload, and re-trains the Knowledge Base automatically.
+
+- Send the token in the `X-Mind-Webhook-Token` request header, as a `?token=…`
+  query parameter, or as a `token` field in the body.
+- The request body becomes the source content: JSON is flattened into readable
+  lines, HTML is reduced to text, and plain text is used as-is.
+- The source shows when it **last received** a delivery so you can confirm the
+  connection is live.
+- For security, the token is shown **only once**, right after you create it (or
+  regenerate it). Copy it immediately. If you lose it, use **Regenerate** on the
+  source to issue a new token — the old one stops working right away, so update
+  any system that was using it.
+
+**API connector (outbound).** Choose **Add a source → API connector**, enter the
+**endpoint URL**, pick an **authentication method** (none, a header API key, or a
+bearer token), supply the credential if needed, and set a **refresh interval**.
+Sayzio fetches the endpoint on that schedule (clamped to the platform minimum),
+turns the response into text, and re-trains the Knowledge Base. Credentials are
+never shown again after you save them — re-enter a value only when you want to
+change it. For security, connectors and webhooks refuse private or local network
+addresses.
 
 ---
 

@@ -154,7 +154,12 @@ class AiMindIngestor
                 // text/FAQ already store user-supplied body; feature has no
                 // body. For documents and links, body would otherwise be
                 // empty and force the highlighter into its fallback callout.
-                if (in_array($source->type, [AiMindSource::TYPE_DOCUMENT, AiMindSource::TYPE_LINK], true)) {
+                if (in_array($source->type, [
+                    AiMindSource::TYPE_DOCUMENT,
+                    AiMindSource::TYPE_LINK,
+                    AiMindSource::TYPE_CONNECTOR,
+                    AiMindSource::TYPE_WEBHOOK,
+                ], true)) {
                     $attrs['body'] = $text;
                 }
                 $source->forceFill($attrs)->save();
@@ -188,7 +193,11 @@ class AiMindIngestor
      */
     public function nextRefreshAt(AiMindSource $source): ?\Carbon\Carbon
     {
-        if ($source->type !== AiMindSource::TYPE_LINK) return null;
+        // Only link + connector sources pull on a schedule. Webhook
+        // sources are push-only (they refresh on inbound delivery).
+        if (!in_array($source->type, [AiMindSource::TYPE_LINK, AiMindSource::TYPE_CONNECTOR], true)) {
+            return null;
+        }
         $minMin = max(15, AiMindSettings::cap('link_refresh_min_minutes'));
         $mins   = max($minMin, (int) ($source->refresh_minutes ?? (60 * 24)));
         return now()->addMinutes($mins);
@@ -198,11 +207,13 @@ class AiMindIngestor
     public function extractText(AiMindSource $source): string
     {
         return match ($source->type) {
-            AiMindSource::TYPE_TEXT     => (string) $source->body,
-            AiMindSource::TYPE_FAQ      => $this->flattenFaq($source->body),
-            AiMindSource::TYPE_DOCUMENT => $this->extractDocument($source),
-            AiMindSource::TYPE_LINK     => $this->fetchLink($source),
-            default                     => '',
+            AiMindSource::TYPE_TEXT      => (string) $source->body,
+            AiMindSource::TYPE_FAQ       => $this->flattenFaq($source->body),
+            AiMindSource::TYPE_DOCUMENT  => $this->extractDocument($source),
+            AiMindSource::TYPE_LINK      => $this->fetchLink($source),
+            AiMindSource::TYPE_WEBHOOK   => $this->extractWebhook($source),
+            AiMindSource::TYPE_CONNECTOR => $this->fetchConnector($source),
+            default                      => '',
         };
     }
 
@@ -680,6 +691,109 @@ class AiMindIngestor
         }
         $html = (string) $resp->body();
         return $this->htmlToText($html);
+    }
+
+    /**
+     * Webhook sources carry their content in `body`, written by the
+     * public inbound endpoint on each delivery. JSON payloads are
+     * flattened to readable "key: value" lines; anything that looks
+     * like HTML is stripped to text; plain text passes through.
+     */
+    protected function extractWebhook(AiMindSource $source): string
+    {
+        $body = trim((string) $source->body);
+        if ($body === '') return '';
+
+        $decoded = json_decode($body, true);
+        if (is_array($decoded)) {
+            return $this->flattenStructured($decoded);
+        }
+        if (preg_match('/<[a-z!][\s\S]*>/i', $body)) {
+            return $this->htmlToText($body);
+        }
+        return $body;
+    }
+
+    /**
+     * Fetch a remote API endpoint with the source's configured auth and
+     * turn the response into text. JSON is flattened to key/value lines;
+     * HTML is stripped; plain text passes through.
+     */
+    protected function fetchConnector(AiMindSource $source): string
+    {
+        $url = trim((string) ($source->connectorEndpoint() ?: $source->url));
+        if ($url === '') return '';
+
+        $host = parse_url($url, PHP_URL_HOST) ?: '';
+        if ($this->isPrivateHost($host)) {
+            throw new \RuntimeException('Refusing to connect to a private or local address.');
+        }
+
+        $headers = [
+            'User-Agent' => '1INMEMindBot/1.0 (+https://1inme.com/bots)',
+            'Accept'     => 'application/json, text/plain;q=0.9, */*;q=0.8',
+        ];
+        $method = $source->connectorAuthMethod();
+        $cred   = $source->connectorCredential();
+        if ($method === AiMindSource::CONNECTOR_AUTH_BEARER && $cred) {
+            $headers['Authorization'] = 'Bearer ' . $cred;
+        } elseif ($method === AiMindSource::CONNECTOR_AUTH_HEADER && $cred) {
+            $name = $source->connectorHeaderName() ?: 'Authorization';
+            $headers[$name] = $cred;
+        }
+
+        $resp = Http::withHeaders($headers)->timeout(20)->get($url);
+        if ($resp->failed()) {
+            throw new \RuntimeException("API connector fetch failed (HTTP {$resp->status()}).");
+        }
+
+        $raw = (string) $resp->body();
+        if ($raw === '') return '';
+
+        $contentType = strtolower((string) $resp->header('Content-Type'));
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            return $this->flattenStructured($decoded);
+        }
+        if (str_contains($contentType, 'html') || preg_match('/<[a-z!][\s\S]*>/i', $raw)) {
+            return $this->htmlToText($raw);
+        }
+        return trim($raw);
+    }
+
+    /**
+     * Flatten an arbitrary decoded-JSON structure into readable
+     * "path: value" lines so the chunker/embedder gets meaningful text
+     * from API/webhook payloads of any shape.
+     *
+     * @param array<mixed> $data
+     */
+    protected function flattenStructured(array $data, string $prefix = ''): string
+    {
+        $lines = [];
+        foreach ($data as $key => $value) {
+            $path = $prefix === '' ? (string) $key : $prefix . '.' . $key;
+            if (is_array($value)) {
+                $nested = $this->flattenStructured($value, $path);
+                if ($nested !== '') $lines[] = $nested;
+            } elseif (is_bool($value)) {
+                $lines[] = $path . ': ' . ($value ? 'true' : 'false');
+            } elseif ($value === null) {
+                continue;
+            } else {
+                $lines[] = $path . ': ' . (string) $value;
+            }
+        }
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Public SSRF guard so controllers can reject private/local hosts
+     * before persisting a connector source.
+     */
+    public static function hostIsPrivate(string $host): bool
+    {
+        return (new self(app(OpenAiService::class)))->isPrivateHost($host);
     }
 
     protected function fetchRobots(string $url): ?string

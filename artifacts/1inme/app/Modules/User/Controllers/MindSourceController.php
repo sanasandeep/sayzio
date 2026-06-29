@@ -68,16 +68,27 @@ class MindSourceController extends Controller
         }
 
         $source = match ($type) {
-            AiMindSource::TYPE_TEXT     => $this->createText($request, $mind, $caps),
-            AiMindSource::TYPE_FAQ      => $this->createFaq($request, $mind),
-            AiMindSource::TYPE_LINK     => $this->createLink($request, $mind, $caps),
-            AiMindSource::TYPE_DOCUMENT => $this->createDocument($request, $mind, $caps),
-            AiMindSource::TYPE_FEATURE  => $this->createFeature($request, $mind),
+            AiMindSource::TYPE_TEXT      => $this->createText($request, $mind, $caps),
+            AiMindSource::TYPE_FAQ       => $this->createFaq($request, $mind),
+            AiMindSource::TYPE_LINK      => $this->createLink($request, $mind, $caps),
+            AiMindSource::TYPE_DOCUMENT  => $this->createDocument($request, $mind, $caps),
+            AiMindSource::TYPE_FEATURE   => $this->createFeature($request, $mind),
+            AiMindSource::TYPE_WEBHOOK   => $this->createWebhook($request, $mind, $caps),
+            AiMindSource::TYPE_CONNECTOR => $this->createConnector($request, $mind, $caps),
         };
 
         if (is_string($source)) {
             // Helper returned an error message string instead of a model.
             return back()->with('error', $source);
+        }
+
+        // Webhook sources have nothing to ingest until their first inbound
+        // delivery — don't queue an ingest that would immediately fail.
+        // Reveal the signing token ONCE, right after creation, then never again.
+        if ($source->type === AiMindSource::TYPE_WEBHOOK) {
+            return back()
+                ->with('status', 'Webhook source created — copy the URL and token now. The token is shown only this once.')
+                ->with('revealed_webhook', ['id' => $source->id, 'token' => $source->webhookToken()]);
         }
 
         // Queue ingestion immediately. Feature sources finish synchronously
@@ -93,6 +104,25 @@ class MindSourceController extends Controller
         $source->forceFill(['status' => AiMindSource::STATUS_QUEUED, 'status_message' => null])->save();
         IngestAiMindSourceJob::dispatch($source->id);
         return back()->with('status', 'Source refresh queued.');
+    }
+
+    /**
+     * Regenerate a webhook source's signing token and reveal it once.
+     * The previous token stops working immediately.
+     */
+    public function rotateWebhook(Request $request, AiMind $mind, AiMindSource $source)
+    {
+        $this->guard($mind, $request->user());
+        if ((int) $source->mind_id !== (int) $mind->id) abort(404);
+        if ($source->type !== AiMindSource::TYPE_WEBHOOK) abort(404);
+
+        $token = \Illuminate\Support\Str::random(48);
+        $source->setWebhookToken($token);
+        $source->save();
+
+        return back()
+            ->with('status', 'Webhook token regenerated — copy the new token now. It is shown only this once and the old token no longer works.')
+            ->with('revealed_webhook', ['id' => $source->id, 'token' => $token]);
     }
 
     public function destroy(Request $request, AiMind $mind, AiMindSource $source)
@@ -219,6 +249,83 @@ class MindSourceController extends Controller
             'feature_key' => $key,
             'status'      => AiMindSource::STATUS_QUEUED,
         ]);
+    }
+
+    protected function createWebhook(Request $request, AiMind $mind, array $caps)
+    {
+        $count = $mind->sources()->where('type', AiMindSource::TYPE_WEBHOOK)->count();
+        if ($count >= $caps['max_webhooks_per_mind']) {
+            return "This Mind already has the maximum {$caps['max_webhooks_per_mind']} webhook source(s).";
+        }
+        $data = $request->validate([
+            'title' => 'required|string|max:200',
+        ]);
+        $source = new AiMindSource([
+            'mind_id'        => $mind->id,
+            'type'           => AiMindSource::TYPE_WEBHOOK,
+            'title'          => $data['title'],
+            'status'         => AiMindSource::STATUS_QUEUED,
+            'status_message' => 'Awaiting first webhook delivery.',
+        ]);
+        // Generate a one-off signing token, stored encrypted at rest.
+        $source->setWebhookToken(\Illuminate\Support\Str::random(48));
+        $source->save();
+        return $source;
+    }
+
+    protected function createConnector(Request $request, AiMind $mind, array $caps)
+    {
+        $count = $mind->sources()->where('type', AiMindSource::TYPE_CONNECTOR)->count();
+        if ($count >= $caps['max_connectors_per_mind']) {
+            return "This Mind already has the maximum {$caps['max_connectors_per_mind']} API connector source(s).";
+        }
+        $data = $request->validate([
+            'title'           => 'required|string|max:200',
+            'endpoint'        => 'required|url|max:2048',
+            'auth_method'     => 'required|in:' . implode(',', AiMindSource::CONNECTOR_AUTH_METHODS),
+            'header_name'     => 'nullable|string|max:120',
+            'credential'      => 'nullable|string|max:2048',
+            'refresh_minutes' => 'nullable|integer|min:15|max:43200',
+        ]);
+
+        // SSRF guard mirrors the link crawler — refuse private/local hosts.
+        $host = parse_url($data['endpoint'], PHP_URL_HOST) ?: '';
+        if (\App\Services\AI\AiMindIngestor::hostIsPrivate($host)) {
+            return 'Refusing to connect to a private or local address.';
+        }
+
+        $authMethod = $data['auth_method'];
+        if ($authMethod === AiMindSource::CONNECTOR_AUTH_HEADER) {
+            if (empty($data['header_name'])) {
+                return 'A header name is required for the "header API key" auth method.';
+            }
+            if (empty($data['credential'])) {
+                return 'An API key value is required for the "header API key" auth method.';
+            }
+        }
+        if ($authMethod === AiMindSource::CONNECTOR_AUTH_BEARER && empty($data['credential'])) {
+            return 'A bearer token is required for the "bearer token" auth method.';
+        }
+
+        $minMin  = max(15, $caps['link_refresh_min_minutes']);
+        $minutes = max($minMin, (int) ($data['refresh_minutes'] ?? (60 * 24)));
+
+        $source = new AiMindSource([
+            'mind_id'         => $mind->id,
+            'type'            => AiMindSource::TYPE_CONNECTOR,
+            'title'           => $data['title'],
+            'url'             => $data['endpoint'],
+            'refresh_minutes' => $minutes,
+            'status'          => AiMindSource::STATUS_QUEUED,
+        ]);
+        $source->setConnectorConfig(
+            $data['endpoint'],
+            $authMethod,
+            $data['header_name'] ?? null,
+            $data['credential'] ?? null,
+        );
+        $source->save();
+        return $source;
     }
 
     protected function guard(AiMind $mind, $user): void

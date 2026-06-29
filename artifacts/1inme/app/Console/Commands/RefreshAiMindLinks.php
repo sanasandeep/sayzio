@@ -8,14 +8,14 @@ use App\Services\AI\AiMindSettings;
 use Illuminate\Console\Command;
 
 /**
- * Re-crawls every link source whose `next_refresh_at` has passed.
- * Capped per run by `max_link_refreshes_per_day` so a single tick of
- * the scheduler can't fan out across the whole platform.
+ * Re-crawls every link + API connector source whose `next_refresh_at`
+ * has passed. Capped per run by `max_link_refreshes_per_day` so a single
+ * tick of the scheduler can't fan out across the whole platform.
  */
 class RefreshAiMindLinks extends Command
 {
     protected $signature = 'minds:refresh-links {--limit= : Override the per-run cap}';
-    protected $description = 'Re-crawl AI Mind link sources whose refresh window has elapsed.';
+    protected $description = 'Re-crawl AI Mind link & connector sources whose refresh window has elapsed.';
 
     public function handle(): int
     {
@@ -26,7 +26,7 @@ class RefreshAiMindLinks extends Command
         }
 
         $due = AiMindSource::query()
-            ->where('type', AiMindSource::TYPE_LINK)
+            ->whereIn('type', [AiMindSource::TYPE_LINK, AiMindSource::TYPE_CONNECTOR])
             ->where('status', '!=', AiMindSource::STATUS_DISABLED)
             ->whereNotNull('next_refresh_at')
             ->where('next_refresh_at', '<=', now())

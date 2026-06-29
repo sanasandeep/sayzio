@@ -115,6 +115,15 @@ Route::post  ('/viewer/follow/{creator}', [\App\Modules\Common\Controllers\Viewe
 Route::post('/calendars/{calendar}/follow', [\App\Modules\Common\Controllers\PublicCalendarController::class, 'toggleFollow'])->whereNumber('calendar')->middleware('throttle:30,1')->name('public.calendars.follow');
 Route::get ('/calendars/{calendar}/calendar.ics', [\App\Modules\Common\Controllers\PublicCalendarController::class, 'icsFeed'])->whereNumber('calendar')->name('public.calendars.ics');
 
+// ---- AI Mind webhook ingest (public): inbound content for a "webhook" Knowledge Base source ----
+// CSRF-exempt + unauthenticated; security is the per-source signing token
+// (header X-Mind-Webhook-Token, ?token=, or a `token` body field).
+Route::post('/mind-webhook/{source}', [\App\Modules\Common\Controllers\MindWebhookController::class, 'ingest'])
+    ->whereNumber('source')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+    ->middleware('throttle:60,1')
+    ->name('mind.webhook.ingest');
+
 // ---- Community Layer (public): Insider feed, comments/reactions/polls, fan leaderboard ----
 // Bound to a parent Link + (optional) BiolinkBlock so the controller can authorize per-block visibility.
 Route::prefix('community/{link}')->where(['link' => '[0-9]+'])->group(function () {

@@ -998,6 +998,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get ('{mind}/sources/{source}', [\App\Modules\User\Controllers\MindSourceController::class, 'show'])->whereNumber('mind')->whereNumber('source')->name('sources.show');
             Route::post('{mind}/sources',      [\App\Modules\User\Controllers\MindSourceController::class, 'store'])->whereNumber('mind')->name('sources.store');
             Route::post('{mind}/sources/{source}/refresh', [\App\Modules\User\Controllers\MindSourceController::class, 'refresh'])->whereNumber('mind')->whereNumber('source')->name('sources.refresh');
+            Route::post('{mind}/sources/{source}/rotate-webhook', [\App\Modules\User\Controllers\MindSourceController::class, 'rotateWebhook'])->whereNumber('mind')->whereNumber('source')->name('sources.rotate-webhook');
             Route::delete('{mind}/sources/{source}', [\App\Modules\User\Controllers\MindSourceController::class, 'destroy'])->whereNumber('mind')->whereNumber('source')->name('sources.destroy');
             // Test chat — AJAX in-page panel.
             Route::post('{mind}/ask',          [\App\Modules\User\Controllers\MindChatController::class, 'ask'])->whereNumber('mind')->middleware('throttle:20,1')->name('ask');
