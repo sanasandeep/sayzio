@@ -11,6 +11,11 @@
 @php
     $selectedIds   = collect($selectedIds ?? [])->map(fn($v) => (int) $v)->all();
     $platformOptIn = (bool) ($platformOptIn ?? false);
+    // Route name prefix for the save/clear default actions. Defaults to
+    // the `user.ai.<feature>` convention (Persona, Coach), but callers
+    // whose routes live elsewhere (e.g. Brand Kit at user.brand-kits.*)
+    // can pass an explicit $defaultRoute.
+    $defaultRoute = $defaultRoute ?? ('user.ai.' . ($defaultFeature ?? ''));
 @endphp
 <div class="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
     <div class="flex items-center justify-between">
@@ -69,7 +74,7 @@
             </p>
             <div class="flex items-center gap-2">
                 <button type="submit"
-                        formaction="{{ route('user.ai.' . $defaultFeature . '.defaults.save') }}"
+                        formaction="{{ route($defaultRoute . '.defaults.save') }}"
                         formmethod="POST"
                         formnovalidate
                         class="px-3 py-1.5 rounded-lg bg-white/10 border border-white/10 text-white/80 text-xs hover:bg-white/20">
@@ -83,7 +88,7 @@
                          clearDefaults action without affecting the
                          "Use as default" POST. --}}
                     <button type="submit"
-                            formaction="{{ route('user.ai.' . $defaultFeature . '.defaults.clear') }}"
+                            formaction="{{ route($defaultRoute . '.defaults.clear') }}"
                             formmethod="POST"
                             formnovalidate
                             name="_method" value="DELETE"

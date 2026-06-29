@@ -3,10 +3,14 @@
 namespace App\Modules\User\Controllers\AI;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Models\AiMind;
+use App\Modules\User\Models\AiMindDefault;
 use App\Modules\User\Models\AskCoachMessage;
 use App\Modules\User\Models\AskCoachThread;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
+use App\Services\AI\AiMindProvisioner;
+use App\Services\AI\AiMindQueryService;
 use App\Services\AI\AskCoach\AskCoachToolRegistry;
 use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\OpenAiService;
@@ -50,6 +54,7 @@ class AskCoachController extends Controller
         protected OpenAiService $ai,
         protected AiUsageCharger $credits,
         protected AskCoachToolRegistry $tools,
+        protected AiMindQueryService $minds,
     ) {}
 
     public function show(Request $request, ?int $thread = null)
@@ -69,6 +74,17 @@ class AskCoachController extends Controller
         $this->ensureEnabled($request);
         $user = $request->user();
         $wsId = $this->workspaceId();
+
+        // Ensure the user's own Minds exist, then pre-populate the KB
+        // picker from a fresh session selection or the user's saved
+        // Ask Coach default (mirrors Coach / Persona).
+        AiMindProvisioner::ensureForUser($user);
+        $input   = session('ai.ask_coach.input', []);
+        $default = AiMindDefault::forUserFeature($user->id, 'ask_coach');
+        if ($default && !array_key_exists('mind_ids', $input)) {
+            $input['mind_ids']         = $default->mind_ids ?? [];
+            $input['include_platform'] = $default->include_platform;
+        }
 
         $search = trim((string) $request->query('q', ''));
 
@@ -139,7 +155,64 @@ class AskCoachController extends Controller
             'snippets' => $snippets,
             'titles'   => $titles,
             'tools'    => $this->tools->tools(),
+            'input'        => $input,
+            'mineMinds'    => $this->userMinds($user),
+            'platformMind' => $this->platformMind(),
+            'hasDefault'   => (bool) $default,
+            'defaultFeature' => 'ask_coach',
         ]);
+    }
+
+    /**
+     * Save the current Mind selection (from the picker form) as this
+     * user's default for Ask Coach. Subsequent visits pre-populate it.
+     */
+    public function saveDefaults(Request $request)
+    {
+        $this->ensureEnabled($request);
+        $data = $request->validate([
+            'mind_ids'         => 'nullable|array',
+            'mind_ids.*'       => 'integer',
+            'include_platform' => 'nullable|boolean',
+        ]);
+
+        $user = $request->user();
+        $mindIds = array_values(array_unique(array_map('intval', $data['mind_ids'] ?? [])));
+        // Constrain to the user's own active Minds so we don't store
+        // stale or cross-user ids in defaults.
+        if ($mindIds) {
+            $mindIds = AiMind::where('user_id', $user->id)
+                ->where('is_disabled', false)
+                ->whereIn('id', $mindIds)
+                ->pluck('id')
+                ->map(fn($id) => (int) $id)
+                ->all();
+        }
+
+        AiMindDefault::updateOrCreate(
+            ['user_id' => $user->id, 'feature' => 'ask_coach'],
+            [
+                'mind_ids'         => $mindIds,
+                'include_platform' => (bool) ($data['include_platform'] ?? false),
+            ],
+        );
+
+        return redirect()->route('user.ai.ask-coach.show')
+            ->with('status', 'Saved as your default Mind selection for Ask Coach.');
+    }
+
+    /**
+     * Forget this user's default Mind selection for Ask Coach.
+     */
+    public function clearDefaults(Request $request)
+    {
+        $this->ensureEnabled($request);
+        AiMindDefault::where('user_id', $request->user()->id)
+            ->where('feature', 'ask_coach')
+            ->delete();
+
+        return redirect()->route('user.ai.ask-coach.show')
+            ->with('status', 'Cleared your default Mind selection for Ask Coach.');
     }
 
     public function store(Request $request)
@@ -162,18 +235,30 @@ class AskCoachController extends Controller
     {
         $this->ensureEnabled($request);
         $data = $request->validate([
-            'message' => 'required|string|min:1|max:2000',
+            'message'          => 'required|string|min:1|max:2000',
+            'mind_ids'         => 'nullable|array',
+            'mind_ids.*'       => 'integer',
+            'include_platform' => 'nullable|boolean',
         ]);
 
         $user = $request->user();
         $threadModel = $this->threadQuery($user->id, $this->workspaceId())->find($thread);
         if (!$threadModel) abort(404);
 
+        $mindIds         = array_map('intval', $data['mind_ids'] ?? []);
+        $includePlatform = (bool) ($data['include_platform'] ?? false);
+        // Remember the picker selection so a full page reload re-checks
+        // the same Minds (the picker form posts here, not to show()).
+        session()->flash('ai.ask_coach.input', [
+            'mind_ids'         => $mindIds,
+            'include_platform' => $includePlatform,
+        ]);
+
         // Branch into the SSE variant when the client opts in. Web UI
         // and mobile screen both use this so words land as they're
         // generated instead of after a full round-trip.
         if ($this->wantsStream($request)) {
-            return $this->sendStream($request, $threadModel, $data['message']);
+            return $this->sendStream($request, $threadModel, $data['message'], $mindIds, $includePlatform);
         }
 
         $now = now();
@@ -195,7 +280,12 @@ class AskCoachController extends Controller
             ->reverse()
             ->values();
 
-        $systemPrompt = AiEngineSettings::askCoachSystemPrompt();
+        // Resolve the picked Knowledge Bases and pull the most relevant
+        // chunks for this turn. Selecting none leaves $kb empty → the
+        // prompt and spend are identical to today's behavior.
+        $kb = $this->resolveKb($user, $mindIds, $includePlatform, $data['message']);
+
+        $systemPrompt = $this->appendKbContext(AiEngineSettings::askCoachSystemPrompt(), $kb['kbContext']);
         $messages = array_merge(
             [['role' => 'system', 'content' => $systemPrompt]],
             $recent->map(fn($m) => ['role' => $m->role, 'content' => $m->content])->all(),
@@ -309,6 +399,7 @@ class AskCoachController extends Controller
                     $fallbackPrompt .= "\n[{$inv['tool']}]\n" . $inv['summary'] . "\n";
                 }
             }
+            $fallbackPrompt = $this->appendKbContext($fallbackPrompt, $kb['kbContext']);
             $fallbackMessages = array_merge(
                 [['role' => 'system', 'content' => $fallbackPrompt]],
                 $recent->map(fn($m) => ['role' => $m->role, 'content' => $m->content])->all(),
@@ -337,10 +428,11 @@ class AskCoachController extends Controller
             'role'       => 'assistant',
             'content'    => $out['content'],
             'meta'       => [
-                'credits_spent' => $totalCredits,
+                'credits_spent' => $totalCredits + $kb['creditsSpent'],
                 'model'         => $out['model'] ?? null,
                 'tools_used'    => array_values(array_unique($picks)),
-                'citations'     => $citations,
+                'citations'     => array_merge($citations, $kb['citations']),
+                'minds_used'    => $this->mindsUsed($kb['selectedMinds'], $kb['mindStats']),
                 'insights'      => $insights,
                 'actions'       => array_values(array_filter($actions)),
                 'fallback'      => $usedFallback,
@@ -363,7 +455,7 @@ class AskCoachController extends Controller
      * final "done" frame with citations / insights / actions / id so
      * the bubble matches what a fresh page load would show.
      */
-    protected function sendStream(Request $request, AskCoachThread $threadModel, string $message): StreamedResponse
+    protected function sendStream(Request $request, AskCoachThread $threadModel, string $message, array $mindIds = [], bool $includePlatform = false): StreamedResponse
     {
         $user = $request->user();
         $now  = now();
@@ -388,6 +480,13 @@ class AskCoachController extends Controller
             foreach ($r['actions'] ?? [] as $a) if ($a) $actions[] = $a;
         }
 
+        // Resolve the picked Knowledge Bases and pull the most relevant
+        // chunks. Selecting none leaves $kb empty → unchanged behavior.
+        $kb = $this->resolveKb($user, $mindIds, $includePlatform, $message);
+        $kbCitations = $kb['citations'];
+        $kbCredits   = $kb['creditsSpent'];
+        $mindsUsed   = $this->mindsUsed($kb['selectedMinds'], $kb['mindStats']);
+
         $recent = AskCoachMessage::query()
             ->where('thread_id', $threadModel->id)
             ->orderByDesc('id')
@@ -403,13 +502,14 @@ class AskCoachController extends Controller
                 $systemPrompt .= "\n[{$inv['tool']}]\n" . $inv['summary'] . "\n";
             }
         }
+        $systemPrompt = $this->appendKbContext($systemPrompt, $kb['kbContext']);
 
         $messages = array_merge(
             [['role' => 'system', 'content' => $systemPrompt]],
             $recent->map(fn($m) => ['role' => $m->role, 'content' => $m->content])->all(),
         );
 
-        $response = new StreamedResponse(function () use ($user, $messages, $threadModel, $picks, $citations, $insights, $actions, $message) {
+        $response = new StreamedResponse(function () use ($user, $messages, $threadModel, $picks, $citations, $insights, $actions, $message, $kbCitations, $kbCredits, $mindsUsed) {
             $emit = function (string $event, array $data): void {
                 echo "event: {$event}\n";
                 echo 'data: ' . json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n\n";
@@ -449,10 +549,11 @@ class AskCoachController extends Controller
                 'role'       => 'assistant',
                 'content'    => $out['content'],
                 'meta'       => [
-                    'credits_spent' => (int) $out['credits_spent'],
+                    'credits_spent' => (int) $out['credits_spent'] + $kbCredits,
                     'model'         => $out['model'] ?? null,
                     'tools_used'    => $picks,
-                    'citations'     => $citations,
+                    'citations'     => array_merge($citations, $kbCitations),
+                    'minds_used'    => $mindsUsed,
                     'insights'      => $insights,
                     'actions'       => array_values(array_filter($actions)),
                     'streamed'      => true,
@@ -654,5 +755,81 @@ class AskCoachController extends Controller
         if ($user && !\App\Services\AI\AiPlanAccess::featureAllowed($user, 'ask_coach')) {
             abort(403, 'Ask Coach is not available on your current plan.');
         }
+    }
+
+    /**
+     * Resolve the user's picked Minds (own + optional platform default,
+     * ownership validated server-side) and retrieve the most relevant
+     * KB chunks for $query. Picking none returns an empty context so
+     * the caller's prompt and spend are unchanged.
+     *
+     * @return array{selectedMinds:array<int,AiMind>,kbContext:string,citations:array,creditsSpent:int,mindStats:array}
+     */
+    protected function resolveKb($user, array $mindIds, bool $includePlatform, string $query): array
+    {
+        $selectedMinds = $this->minds->resolveMindsForUser($user, $mindIds, $includePlatform);
+        $kbContext = ''; $citations = []; $creditsSpent = 0; $mindStats = [];
+        if ($selectedMinds) {
+            try {
+                $retrieved   = $this->minds->retrieveContext($user, $selectedMinds, $query);
+                $kbContext   = $retrieved['context'];
+                $citations   = $retrieved['citations'];
+                $creditsSpent = (int) $retrieved['credits_spent'];
+                $mindStats   = $retrieved['mind_stats'] ?? [];
+            } catch (InsufficientCoinsForAiException $e) {
+                throw $e;
+            } catch (\Throwable $e) {
+                Log::warning('Ask Coach Mind retrieval failed: ' . $e->getMessage());
+            }
+        }
+        return compact('selectedMinds', 'kbContext', 'citations', 'creditsSpent', 'mindStats');
+    }
+
+    /** Append the retrieved KB context to a system prompt (no-op when empty). */
+    protected function appendKbContext(string $prompt, string $kbContext): string
+    {
+        if (trim($kbContext) === '') return $prompt;
+        return $prompt
+            . "\n\nWhen relevant, ground your answer in the Knowledge Base context below — "
+            . "reuse its terminology, products and audience details. Do not invent facts "
+            . "that are not in the context.\n\n"
+            . "Knowledge Base context:\n" . $kbContext;
+    }
+
+    /**
+     * Shape the selected Minds + retrieval stats for persistence in the
+     * assistant message meta (mirrors Coach's `minds_used`).
+     *
+     * @param array<int,AiMind> $selectedMinds
+     */
+    protected function mindsUsed(array $selectedMinds, array $mindStats): array
+    {
+        return array_map(
+            fn(AiMind $m) => [
+                'id'          => (int) $m->id,
+                'name'        => (string) $m->name,
+                'is_platform' => $m->isPlatform(),
+                'chunks_used' => (int) ($mindStats[(int) $m->id]['chunks_used'] ?? 0),
+                'top_score'   => (float) ($mindStats[(int) $m->id]['top_score'] ?? 0.0),
+            ],
+            $selectedMinds,
+        );
+    }
+
+    /** @return \Illuminate\Support\Collection<int,AiMind> */
+    protected function userMinds($user)
+    {
+        return AiMind::where('user_id', $user->id)
+            ->where('is_disabled', false)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    protected function platformMind(): ?AiMind
+    {
+        return AiMind::whereNull('user_id')
+            ->where('is_default', true)
+            ->where('is_disabled', false)
+            ->first(['id', 'name']);
     }
 }

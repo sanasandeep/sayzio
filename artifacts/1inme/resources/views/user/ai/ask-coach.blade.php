@@ -222,6 +222,22 @@
                     @endif
                 </div>
 
+                {{-- Knowledge base picker. Its own <form> so the save /
+                     clear default buttons round-trip server-side; the
+                     send stream reads the checked inputs from the DOM. --}}
+                <form method="POST" action="{{ route('user.ai.ask-coach.defaults.save') }}" data-kb-picker class="mt-4">
+                    @csrf
+                    @include('user.ai._partials.mind-picker', [
+                        'mineMinds'     => $mineMinds,
+                        'platformMind'  => $platformMind,
+                        'selectedIds'   => old('mind_ids', $input['mind_ids'] ?? []),
+                        'platformOptIn' => old('include_platform', $input['include_platform'] ?? false),
+                        'hasDefault'    => $hasDefault,
+                        'defaultFeature'=> $defaultFeature,
+                        'defaultRoute'  => 'user.ai.ask-coach',
+                    ])
+                </form>
+
                 <form method="POST" action="{{ route('user.ai.ask-coach.send', $active->id) }}"
                       data-coach-form
                       data-stream-url="{{ route('user.ai.ask-coach.send', $active->id) }}"
@@ -248,7 +264,18 @@
                     const csrf   = form.querySelector('input[name="_token"]').value;
                     const stream = form.dataset.streamUrl;
                     const reload = form.dataset.threadUrl;
-                    const list   = form.previousElementSibling; // chat scroll panel
+                    const list   = document.querySelector('[data-coach-form]').parentElement.querySelector('.overflow-y-auto') || form.previousElementSibling;
+                    const picker = document.querySelector('[data-kb-picker]');
+
+                    // Collect the picked knowledge bases from the picker
+                    // form so the streamed body matches a normal POST.
+                    function kbPayload() {
+                        if (!picker) return { mind_ids: [], include_platform: false };
+                        const mind_ids = Array.from(picker.querySelectorAll('input[name="mind_ids[]"]:checked'))
+                            .map(el => parseInt(el.value, 10));
+                        const cb = picker.querySelector('input[type="checkbox"][name="include_platform"]');
+                        return { mind_ids, include_platform: cb ? cb.checked : false };
+                    }
 
                     function bubble(role, text) {
                         const wrap = document.createElement('div');
@@ -294,7 +321,7 @@
                                     'X-CSRF-TOKEN': csrf,
                                     'X-Requested-With': 'XMLHttpRequest',
                                 },
-                                body: JSON.stringify({ message }),
+                                body: JSON.stringify({ message, ...kbPayload() }),
                                 credentials: 'same-origin',
                             });
 

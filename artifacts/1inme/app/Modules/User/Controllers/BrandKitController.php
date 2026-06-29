@@ -3,10 +3,14 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Models\AiMind;
+use App\Modules\User\Models\AiMindDefault;
 use App\Modules\User\Models\BrandKit;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\QrCode;
 use App\Services\AI\AiEngineSettings;
+use App\Services\AI\AiMindProvisioner;
+use App\Services\AI\AiMindQueryService;
 use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\InsufficientCoinsForAiException;
@@ -14,6 +18,7 @@ use App\Services\Brand\AiBrandKitService;
 use App\Services\Brand\BrandConsistencyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * AI Brand Kit endpoints (Task #2662).
@@ -35,6 +40,7 @@ class BrandKitController extends Controller
     public function __construct(
         protected AiBrandKitService $kits,
         protected AiUsageCharger $credits,
+        protected AiMindQueryService $minds,
     ) {}
 
     public function index(Request $request)
@@ -47,6 +53,17 @@ class BrandKitController extends Controller
         $canCreate  = AiPlanAccess::underQuantityCap($user, 'brand_kits', $count);
         $upgrade    = $canCreate ? null : AiPlanAccess::quantityUpgradePlan($user, 'brand_kits', $count);
         $aiEnabled  = AiEngineSettings::isEnabled();
+
+        // Ensure the user's own Minds exist, then pre-populate the KB
+        // picker from their saved Brand Kit default so they don't have
+        // to re-pick every visit (mirrors Coach / Persona).
+        AiMindProvisioner::ensureForUser($user);
+        $input   = [];
+        $default = AiMindDefault::forUserFeature($user->id, AiBrandKitService::FEATURE);
+        if ($default) {
+            $input['mind_ids']         = $default->mind_ids ?? [];
+            $input['include_platform'] = $default->include_platform;
+        }
 
         // Targets the user can apply a kit to. `settings`/`type` are needed by
         // the Brand Consistency audit below (it reads settings['biolink']).
@@ -82,7 +99,62 @@ class BrandKitController extends Controller
             'blockThemes'  => $this->kits->allowedBlockThemes(),
             'consistency'  => $consistency,
             'consistencyKit' => $onBrandKit,
+            'input'        => $input,
+            'mineMinds'    => $this->userMinds($user),
+            'platformMind' => $this->platformMind(),
+            'hasDefault'   => (bool) $default,
+            'defaultFeature' => AiBrandKitService::FEATURE,
         ]);
+    }
+
+    /**
+     * Save the current Mind selection (from the picker form) as this
+     * user's default for Brand Kit. Subsequent visits pre-populate it.
+     */
+    public function saveDefaults(Request $request)
+    {
+        $data = $request->validate([
+            'mind_ids'         => 'nullable|array',
+            'mind_ids.*'       => 'integer',
+            'include_platform' => 'nullable|boolean',
+        ]);
+
+        $user = $request->user();
+        $mindIds = array_values(array_unique(array_map('intval', $data['mind_ids'] ?? [])));
+        // Constrain to the user's own active Minds so we don't store
+        // stale or cross-user ids in defaults.
+        if ($mindIds) {
+            $mindIds = AiMind::where('user_id', $user->id)
+                ->where('is_disabled', false)
+                ->whereIn('id', $mindIds)
+                ->pluck('id')
+                ->map(fn($id) => (int) $id)
+                ->all();
+        }
+
+        AiMindDefault::updateOrCreate(
+            ['user_id' => $user->id, 'feature' => AiBrandKitService::FEATURE],
+            [
+                'mind_ids'         => $mindIds,
+                'include_platform' => (bool) ($data['include_platform'] ?? false),
+            ],
+        );
+
+        return redirect()->route('user.brand-kits.index')
+            ->with('status', 'Saved as your default Mind selection for Brand Kit.');
+    }
+
+    /**
+     * Forget this user's default Mind selection for Brand Kit.
+     */
+    public function clearDefaults(Request $request)
+    {
+        AiMindDefault::where('user_id', $request->user()->id)
+            ->where('feature', AiBrandKitService::FEATURE)
+            ->delete();
+
+        return redirect()->route('user.brand-kits.index')
+            ->with('status', 'Cleared your default Mind selection for Brand Kit.');
     }
 
     public function estimate(Request $request): JsonResponse
@@ -124,8 +196,35 @@ class BrandKitController extends Controller
 
         $data = $this->validatePayload($request);
 
+        // Resolve the picked Knowledge Bases (own minds + optional
+        // platform default), validate ownership server-side, and pull
+        // the most relevant chunks to ground the generation. Selecting
+        // none leaves $kbContext empty → identical to today's behavior.
+        $selectedMinds  = $this->minds->resolveMindsForUser($user, $data['mind_ids'], $data['include_platform']);
+        $kbContext      = '';
+        $kbCreditsSpent = 0;
+        $citations      = [];
+        $mindStats      = [];
+        if ($selectedMinds) {
+            $retrievalQuery = trim($data['prompt'] . ' ' . (string) $data['website_url'] . ' ' . (string) $data['logo_url']);
+            if ($retrievalQuery === '') {
+                $retrievalQuery = 'brand identity palette voice tagline';
+            }
+            try {
+                $retrieved      = $this->minds->retrieveContext($user, $selectedMinds, $retrievalQuery);
+                $kbContext      = $retrieved['context'];
+                $citations      = $retrieved['citations'];
+                $kbCreditsSpent = (int) $retrieved['credits_spent'];
+                $mindStats      = $retrieved['mind_stats'] ?? [];
+            } catch (InsufficientCoinsForAiException $e) {
+                throw $e;
+            } catch (\Throwable $e) {
+                Log::warning('Brand Kit Mind retrieval failed: ' . $e->getMessage());
+            }
+        }
+
         try {
-            $result = $this->kits->generate($user, $data['prompt'], $data['website_url'], $data['logo_url']);
+            $result = $this->kits->generate($user, $data['prompt'], $data['website_url'], $data['logo_url'], $kbContext);
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'message'  => 'Not enough AI credits to generate this brand kit.',
@@ -137,13 +236,24 @@ class BrandKitController extends Controller
         }
 
         return response()->json([
-            'credits_spent' => $result['credits_spent'],
+            'credits_spent' => (int) $result['credits_spent'] + $kbCreditsSpent,
             'balance'       => $this->credits->getBalance($user),
             'kit'           => [
                 'id'     => $result['kit']->id,
                 'name'   => $result['kit']->name,
                 'config' => $result['kit']->config,
             ],
+            'citations'     => $citations,
+            'minds_used'    => array_map(
+                fn(AiMind $m) => [
+                    'id'          => (int) $m->id,
+                    'name'        => (string) $m->name,
+                    'is_platform' => $m->isPlatform(),
+                    'chunks_used' => (int) ($mindStats[(int) $m->id]['chunks_used'] ?? 0),
+                    'top_score'   => (float) ($mindStats[(int) $m->id]['top_score'] ?? 0.0),
+                ],
+                $selectedMinds,
+            ),
             'redirect'      => route('user.brand-kits.index'),
         ]);
     }
@@ -196,21 +306,43 @@ class BrandKitController extends Controller
     }
 
     /**
-     * @return array{prompt:string,website_url:?string,logo_url:?string}
+     * @return array{prompt:string,website_url:?string,logo_url:?string,mind_ids:int[],include_platform:bool}
      */
     private function validatePayload(Request $request): array
     {
         $data = $request->validate([
-            'prompt'      => ['nullable', 'string', 'max:2000'],
-            'website_url' => ['nullable', 'string', 'max:2048'],
-            'logo_url'    => ['nullable', 'string', 'max:2048'],
+            'prompt'           => ['nullable', 'string', 'max:2000'],
+            'website_url'      => ['nullable', 'string', 'max:2048'],
+            'logo_url'         => ['nullable', 'string', 'max:2048'],
+            'mind_ids'         => ['nullable', 'array'],
+            'mind_ids.*'       => ['integer'],
+            'include_platform' => ['nullable', 'boolean'],
         ]);
 
         return [
-            'prompt'      => (string) ($data['prompt'] ?? ''),
-            'website_url' => $data['website_url'] ?? null,
-            'logo_url'    => $data['logo_url'] ?? null,
+            'prompt'           => (string) ($data['prompt'] ?? ''),
+            'website_url'      => $data['website_url'] ?? null,
+            'logo_url'         => $data['logo_url'] ?? null,
+            'mind_ids'         => array_map('intval', $data['mind_ids'] ?? []),
+            'include_platform' => (bool) ($data['include_platform'] ?? false),
         ];
+    }
+
+    /** @return \Illuminate\Support\Collection<int,AiMind> */
+    protected function userMinds($user)
+    {
+        return AiMind::where('user_id', $user->id)
+            ->where('is_disabled', false)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    protected function platformMind(): ?AiMind
+    {
+        return AiMind::whereNull('user_id')
+            ->where('is_default', true)
+            ->where('is_disabled', false)
+            ->first(['id', 'name']);
     }
 
     private function authorizeKit(Request $request, BrandKit $brandKit): void

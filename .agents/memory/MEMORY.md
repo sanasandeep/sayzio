@@ -131,3 +131,4 @@
 - [Client invoice/receipt PDF](client-invoice-pdf.md) — client-invoice PDFs are public signed-URL only (no session) so web/API/mobile share one route; branding falls back BillingCompany→snapshot→config.
 - [Site assistant widget tests](site-assistant-widget-tests.md) — Zio Bot sign-out + 401 recovery covered by vitest/jsdom in 1inme-com; blade widget is source-driven (strip @json/@php, run IIFE); standalone vitest.config (never import vite.config).
 - [Voice agent hosting](voice-agent-zio-panel-host.md) — full voice agent runs twice (admin Alpine floating widget + plain-JS in Zio panel composer); `voiceFloating` param decouples window.__voice; change both or they drift.
+- [AiMind grounding feature surfaces](aimind-grounding-feature-surfaces.md) — adding KB grounding to an AI feature = lockstep (service kbContext='' default + controller resolve/meta + defaults routes + picker $defaultRoute + own data-kb-picker form read by AJAX/stream JS); Coach/Persona canonical.

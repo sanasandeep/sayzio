@@ -134,6 +134,24 @@
                            placeholder="https://.../logo.png">
                 </div>
             </div>
+
+            {{-- Knowledge base picker. Its own <form> so the save/clear
+                 default buttons round-trip server-side; the generate /
+                 estimate AJAX calls read the checked inputs straight
+                 from the DOM (see brandKits() below). --}}
+            <form method="POST" action="{{ route('user.brand-kits.defaults.save') }}" data-kb-picker>
+                @csrf
+                @include('user.ai._partials.mind-picker', [
+                    'mineMinds'     => $mineMinds,
+                    'platformMind'  => $platformMind,
+                    'selectedIds'   => old('mind_ids', $input['mind_ids'] ?? []),
+                    'platformOptIn' => old('include_platform', $input['include_platform'] ?? false),
+                    'hasDefault'    => $hasDefault,
+                    'defaultFeature'=> $defaultFeature,
+                    'defaultRoute'  => 'user.brand-kits',
+                ])
+            </form>
+
             <div class="flex items-center justify-between gap-3 flex-wrap">
                 <p class="text-[11px] text-white/40" x-text="estimateText"></p>
                 <div class="flex items-center gap-2">
@@ -245,6 +263,17 @@ function brandKits() {
         error: '',
         estimateText: '',
         _csrf() { return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''; },
+        // Read the picked knowledge bases straight from the picker
+        // <form> so the AJAX body mirrors what a normal POST would send.
+        _payload() {
+            const root = document.querySelector('[data-kb-picker]');
+            const mind_ids = root
+                ? Array.from(root.querySelectorAll('input[name="mind_ids[]"]:checked')).map(el => parseInt(el.value, 10))
+                : [];
+            const cb = root ? root.querySelector('input[type="checkbox"][name="include_platform"]') : null;
+            const include_platform = cb ? cb.checked : false;
+            return { ...this.form, mind_ids, include_platform };
+        },
         async estimate() {
             this.error = '';
             this.estimateText = 'Estimating…';
@@ -252,7 +281,7 @@ function brandKits() {
                 const res = await fetch('{{ route('user.brand-kits.estimate') }}', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this._csrf(), 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-                    body: JSON.stringify(this.form),
+                    body: JSON.stringify(this._payload()),
                 });
                 const data = await res.json();
                 if (!res.ok) { this.estimateText = ''; this.error = data.message || 'Could not estimate cost.'; return; }
@@ -266,7 +295,7 @@ function brandKits() {
                 const res = await fetch('{{ route('user.brand-kits.generate') }}', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this._csrf(), 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
-                    body: JSON.stringify(this.form),
+                    body: JSON.stringify(this._payload()),
                 });
                 const data = await res.json();
                 if (!res.ok) { this.busy = false; this.error = data.message || 'Generation failed.'; return; }

@@ -64,7 +64,7 @@ class AiBrandKitService
      *
      * @return list<array{role:string,content:string}>
      */
-    public function buildMessages(User $user, string $prompt, ?string $websiteUrl = null, ?string $logoUrl = null): array
+    public function buildMessages(User $user, string $prompt, ?string $websiteUrl = null, ?string $logoUrl = null, string $kbContext = ''): array
     {
         $prompt     = trim($prompt);
         $websiteUrl = trim((string) $websiteUrl);
@@ -108,6 +108,14 @@ class AiBrandKitService
             . "pairing, a voice/tone, tagline options, a short about/bio, and the on-brand Link in Bio "
             . "block theme. Be tasteful and concrete.\n\n" . $schema;
 
+        $kbContext = trim($kbContext);
+        if ($kbContext !== '') {
+            $system .= "\n\nGround the brand identity in the Knowledge Base context below — reuse its "
+                . "terminology, products, audience and any stated brand preferences. Do not invent "
+                . "facts that contradict the context.\n\n"
+                . "Knowledge Base context:\n" . $kbContext;
+        }
+
         $parts = [];
         if ($prompt !== '') {
             $parts[] = "BRAND BRIEF:\n" . $prompt;
@@ -126,10 +134,10 @@ class AiBrandKitService
     }
 
     /** Worst-case credit cost shown before the user clicks Generate. */
-    public function estimateCredits(User $user, string $prompt, ?string $websiteUrl = null, ?string $logoUrl = null): int
+    public function estimateCredits(User $user, string $prompt, ?string $websiteUrl = null, ?string $logoUrl = null, string $kbContext = ''): int
     {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
-        $messages = $this->buildMessages($user, $prompt, $websiteUrl, $logoUrl);
+        $messages = $this->buildMessages($user, $prompt, $websiteUrl, $logoUrl, $kbContext);
         return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
     }
 
@@ -141,9 +149,9 @@ class AiBrandKitService
      *
      * @return array{kit:BrandKit,credits_spent:int,model:string}
      */
-    public function generate(User $user, string $prompt, ?string $websiteUrl = null, ?string $logoUrl = null): array
+    public function generate(User $user, string $prompt, ?string $websiteUrl = null, ?string $logoUrl = null, string $kbContext = ''): array
     {
-        $messages = $this->buildMessages($user, $prompt, $websiteUrl, $logoUrl);
+        $messages = $this->buildMessages($user, $prompt, $websiteUrl, $logoUrl, $kbContext);
         $model    = AiEngineSettings::featureModel(self::FEATURE);
 
         $result = $this->openai->chat($user, $model, $messages, [

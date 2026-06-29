@@ -797,6 +797,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get   ('brand-kits',                              [\App\Modules\User\Controllers\BrandKitController::class, 'index'])->middleware('workspace.can:links.view')->name('brand-kits.index');
         Route::post  ('brand-kits/estimate',                     [\App\Modules\User\Controllers\BrandKitController::class, 'estimate'])->middleware(['workspace.can:links.create', 'throttle:30,1'])->name('brand-kits.estimate');
         Route::post  ('brand-kits/generate',                     [\App\Modules\User\Controllers\BrandKitController::class, 'generate'])->middleware(['workspace.can:links.create', 'throttle:10,1'])->name('brand-kits.generate');
+        Route::post  ('brand-kits/defaults',                     [\App\Modules\User\Controllers\BrandKitController::class, 'saveDefaults'])->middleware('workspace.can:links.view')->name('brand-kits.defaults.save');
+        Route::delete('brand-kits/defaults',                     [\App\Modules\User\Controllers\BrandKitController::class, 'clearDefaults'])->middleware('workspace.can:links.view')->name('brand-kits.defaults.clear');
         Route::delete('brand-kits/{brandKit}',                   [\App\Modules\User\Controllers\BrandKitController::class, 'destroy'])->middleware('workspace.can:links.create')->name('brand-kits.destroy');
         Route::post  ('brand-kits/{brandKit}/apply/biolink/{link}', [\App\Modules\User\Controllers\BrandKitController::class, 'applyToBiolink'])->middleware('workspace.can:links.edit')->name('brand-kits.apply.biolink');
         Route::post  ('brand-kits/{brandKit}/apply/qr/{qrCode}',    [\App\Modules\User\Controllers\BrandKitController::class, 'applyToQr'])->middleware('workspace.can:links.edit')->name('brand-kits.apply.qr');
@@ -966,6 +968,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get   ('ask-coach/{thread}/export',              [\App\Modules\User\Controllers\AI\AskCoachController::class, 'export'])->whereNumber('thread')->name('ask-coach.export');
             Route::delete('ask-coach/{thread}',                     [\App\Modules\User\Controllers\AI\AskCoachController::class, 'destroy'])->whereNumber('thread')->name('ask-coach.destroy');
             Route::post  ('ask-coach/messages/{message}/feedback',  [\App\Modules\User\Controllers\AI\AskCoachController::class, 'feedback'])->whereNumber('message')->middleware('throttle:30,1')->name('ask-coach.feedback');
+            Route::post  ('ask-coach/defaults',                     [\App\Modules\User\Controllers\AI\AskCoachController::class, 'saveDefaults'])->name('ask-coach.defaults.save');
+            Route::delete('ask-coach/defaults',                     [\App\Modules\User\Controllers\AI\AskCoachController::class, 'clearDefaults'])->name('ask-coach.defaults.clear');
 
             // Voice Assistant — floating mic on every page. STT/LLM/TTS
             // are billed separately (`voice_stt`, `voice_llm`, `voice_tts`).
