@@ -144,11 +144,9 @@ class IcsLinkController extends Controller
     private function validateRequest(Request $request, ?Link $link): array
     {
         $aliasLimits = workspace_owner()->getAliasLengthLimits();
-        $aliasRule = ['nullable', 'string', 'alpha_dash',
+        $aliasRule = ['nullable', 'string', new \App\Modules\User\Rules\AliasFormat(),
             'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max']];
-        $aliasRule[] = $link
-            ? Rule::unique('links', 'alias')->ignore($link->id)
-            : Rule::unique('links', 'alias');
+        $aliasRule[] = new \App\Modules\User\Rules\UniqueAliasCi($link?->id);
         $aliasRule[] = new \App\Modules\Admin\Rules\NotBannedName();
 
         // Cross-midnight aware end-after-start rule. Same-day "9pm → 1am"

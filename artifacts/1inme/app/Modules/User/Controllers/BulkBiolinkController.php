@@ -443,7 +443,7 @@ class BulkBiolinkController extends Controller
     private function validateRows(array $rows, array $tokens, User $owner): array
     {
         $limits = $owner->getAliasLengthLimits();
-        $aliasPattern = '/^[A-Za-z0-9_\-]+$/';
+        $aliasPattern = \App\Modules\User\Rules\AliasFormat::REGEX;
 
         $providedAliases = collect($rows)
             ->pluck('alias_input')
@@ -485,7 +485,7 @@ class BulkBiolinkController extends Controller
             $finalAlias = $aliasInput;
             if ($aliasInput !== '') {
                 if (!preg_match($aliasPattern, $aliasInput)) {
-                    $errors[] = 'Handle may only contain letters, numbers, dashes and underscores.';
+                    $errors[] = 'Handle may only contain letters, numbers, dots, dashes and underscores.';
                 } elseif (mb_strlen($aliasInput) < $limits['min'] || mb_strlen($aliasInput) > $limits['max']) {
                     $errors[] = "Handle must be {$limits['min']}–{$limits['max']} characters.";
                 } else {

@@ -207,7 +207,7 @@ class BiolinkWizardController extends Controller
         // an already-taken one.
         $format = Validator::make(['alias' => $alias], [
             'alias' => [
-                'string', 'alpha_dash',
+                'string', new \App\Modules\User\Rules\AliasFormat(),
                 'min:' . $limits['min'],
                 'max:' . $limits['max'],
                 new NotBannedName(),
@@ -223,9 +223,10 @@ class BiolinkWizardController extends Controller
             ]);
         }
 
-        // Uniqueness mirrors generate()'s `unique:links,alias` so an "available"
-        // verdict here can't turn into a 422 at generate time.
-        if (Link::where('alias', $alias)->exists()) {
+        // Uniqueness mirrors generate()'s case-insensitive UniqueAliasCi so an
+        // "available" verdict here can't turn into a 422 at generate time, and a
+        // case-variant of an existing alias is correctly reported as taken.
+        if (Link::whereRaw('LOWER(alias) = ?', [mb_strtolower($alias)])->exists()) {
             return $this->ok([
                 'alias'     => $alias,
                 'status'    => 'taken',
@@ -599,10 +600,10 @@ class BiolinkWizardController extends Controller
         $limits = $owner->getAliasLengthLimits();
         $validator = Validator::make(['alias' => $alias], [
             'alias' => [
-                'string', 'alpha_dash',
+                'string', new \App\Modules\User\Rules\AliasFormat(),
                 'min:' . $limits['min'],
                 'max:' . $limits['max'],
-                'unique:links,alias',
+                new \App\Modules\User\Rules\UniqueAliasCi(),
                 new NotBannedName(),
             ],
         ]);

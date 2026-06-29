@@ -46,7 +46,7 @@ class FileLinkController extends Controller
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'alias' => array_merge(
-                ['nullable', 'string', 'alpha_dash', 'unique:links,alias'],
+                ['nullable', 'string', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi()],
                 ['min:' . workspace_owner()->getAliasLengthLimits()['min']],
                 ['max:' . workspace_owner()->getAliasLengthLimits()['max']],
                 [new \App\Modules\Admin\Rules\NotBannedName()],

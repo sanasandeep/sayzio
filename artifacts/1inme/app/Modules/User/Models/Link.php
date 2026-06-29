@@ -262,11 +262,26 @@ protected $fillable = [
             $domainId === null ? $q->whereNull('domain_id') : $q->where('domain_id', $domainId);
         };
 
+        // Aliases resolve case-insensitively so any casing of a custom URL
+        // reaches the same link (matching the case-insensitive uniqueness
+        // enforced at create/edit time). The exact-match query runs first so
+        // the common, correctly-cased visit still uses the `alias` index; the
+        // LOWER() fallback only runs when the exact lookup misses (e.g. the
+        // visitor typed a different case, or the stored alias is mixed-case).
+        $lower = mb_strtolower($alias);
+
         $query = static::where('alias', $alias);
         if ($host !== null) {
             $query->where($scope);
         }
         $link = $query->first();
+        if (! $link && $alias !== $lower) {
+            $ciQuery = static::whereRaw('LOWER(alias) = ?', [$lower]);
+            if ($host !== null) {
+                $ciQuery->where($scope);
+            }
+            $link = $ciQuery->first();
+        }
         if ($link) return $link;
 
         $extraQ = LinkAlias::where('alias', $alias);
@@ -274,6 +289,13 @@ protected $fillable = [
             $extraQ->whereHas('link', $scope);
         }
         $extra = $extraQ->first();
+        if (! $extra && $alias !== $lower) {
+            $extraQ = LinkAlias::whereRaw('LOWER(alias) = ?', [$lower]);
+            if ($host !== null) {
+                $extraQ->whereHas('link', $scope);
+            }
+            $extra = $extraQ->first();
+        }
         return $extra ? static::find($extra->link_id) : null;
     }
 

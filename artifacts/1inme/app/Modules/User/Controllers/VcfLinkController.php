@@ -142,11 +142,11 @@ class VcfLinkController extends Controller
     private function validatePayload(Request $request, ?Link $link = null): array
     {
         $aliasLimits = workspace_owner()->getAliasLengthLimits();
-        $aliasUnique = 'unique:links,alias' . ($link ? ',' . $link->id : '');
+        $aliasUnique = new \App\Modules\User\Rules\UniqueAliasCi($link?->id);
 
         return $request->validate([
             'alias' => array_merge(
-                ['nullable', 'string', 'alpha_dash', $aliasUnique],
+                ['nullable', 'string', new \App\Modules\User\Rules\AliasFormat(), $aliasUnique],
                 ['min:' . $aliasLimits['min']],
                 ['max:' . $aliasLimits['max']],
                 [new \App\Modules\Admin\Rules\NotBannedName()],

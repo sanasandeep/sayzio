@@ -718,10 +718,10 @@ SVG;
         $limits = workspace_owner()->getAliasLengthLimits();
         $validator = Validator::make(['alias' => $alias], [
             'alias' => [
-                'string', 'alpha_dash',
+                'string', new \App\Modules\User\Rules\AliasFormat(),
                 'min:' . $limits['min'],
                 'max:' . $limits['max'],
-                'unique:links,alias',
+                new \App\Modules\User\Rules\UniqueAliasCi(),
                 new \App\Modules\Admin\Rules\NotBannedName(),
             ],
         ]);

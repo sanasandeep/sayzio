@@ -59,10 +59,8 @@ class LinkAliasController extends Controller
         $validated = $request->validate([
             'alias' => [
                 'required', 'string', 'min:' . $aliasLimits['min'], 'max:60',
-                'regex:/^[a-zA-Z0-9_-]+$/',
+                new \App\Modules\User\Rules\AliasFormat(),
             ],
-        ], [
-            'alias.regex' => 'Only letters, numbers, hyphens and underscores are allowed.',
         ]);
 
         $alias = $validated['alias'];
@@ -77,9 +75,12 @@ class LinkAliasController extends Controller
             return $this->respond($request, false, "This name is reserved and can't be used.", 422);
         }
 
-        // Globally unique across both `links.alias` and `link_aliases.alias`.
-        $takenInPrimary = Link::where('alias', $alias)->exists();
-        $takenInExtras  = LinkAlias::where('alias', $alias)->exists();
+        // Globally unique across both `links.alias` and `link_aliases.alias`,
+        // matched case-insensitively so a case-variant of an existing alias is
+        // rejected as taken (mirrors UniqueAliasCi + case-insensitive resolution).
+        $lower = mb_strtolower($alias);
+        $takenInPrimary = Link::whereRaw('LOWER(alias) = ?', [$lower])->exists();
+        $takenInExtras  = LinkAlias::whereRaw('LOWER(alias) = ?', [$lower])->exists();
         if ($takenInPrimary || $takenInExtras) {
             return $this->respond($request, false, "'{$alias}' is already taken. Please choose another.", 422);
         }

@@ -39,12 +39,14 @@ class AliasAvailability
             ];
         }
 
-        // alpha_dash equivalent (Laravel: \A[\pL\pM\pN_-]+\z with /u).
-        if (! preg_match('/\A[\pL\pM\pN_-]+\z/u', $alias)) {
+        // Matches the unified alias character rule (letters, numbers, `.`, `_`,
+        // `-`) used at submit time by AliasFormat, so the live verdict can't
+        // disagree with what save accepts.
+        if (! preg_match(\App\Modules\User\Rules\AliasFormat::REGEX, $alias)) {
             return [
                 'status'    => 'invalid',
                 'available' => false,
-                'message'   => 'Only letters, numbers, dashes & underscores are allowed.',
+                'message'   => \App\Modules\User\Rules\AliasFormat::MESSAGE,
             ];
         }
 
@@ -81,7 +83,9 @@ class AliasAvailability
         // validator (which ignores model scopes/soft-deletes) exactly. On the
         // edit screen the link's own row is excluded so an unchanged alias
         // doesn't report as taken.
-        $takenQuery = DB::table('links')->where('alias', $alias);
+        // Case-insensitive so the live verdict matches UniqueAliasCi at submit:
+        // an alias differing only by letter case from an existing one is taken.
+        $takenQuery = DB::table('links')->whereRaw('LOWER(alias) = ?', [mb_strtolower($alias)]);
         if ($ignoreLinkId !== null) {
             $takenQuery->where('id', '!=', $ignoreLinkId);
         }

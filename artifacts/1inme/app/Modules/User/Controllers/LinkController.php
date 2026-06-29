@@ -125,10 +125,10 @@ class LinkController extends Controller
         $validated = $request->validate([
             'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit',
             'alias' => [
-                'nullable', 'string', 'alpha_dash',
+                'nullable', 'string', new \App\Modules\User\Rules\AliasFormat(),
                 'min:' . $limits['min'],
                 'max:' . $limits['max'],
-                'unique:links,alias',
+                new \App\Modules\User\Rules\UniqueAliasCi(),
                 new \App\Modules\Admin\Rules\NotBannedName(),
             ],
         ]);
@@ -369,7 +369,7 @@ class LinkController extends Controller
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
             'redirect_type' => 'nullable|in:301,302',
             'alias' => array_merge(
-                ['nullable', 'string', 'alpha_dash', 'unique:links,alias'],
+                ['nullable', 'string', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi()],
                 ['min:' . workspace_owner()->getAliasLengthLimits()['min']],
                 ['max:' . workspace_owner()->getAliasLengthLimits()['max']],
                 [new \App\Modules\Admin\Rules\NotBannedName()],
@@ -3109,12 +3109,13 @@ class LinkController extends Controller
                 'string',
                 'min:' . $aliasLimits['min'],
                 'max:60',
-                'regex:/^[a-zA-Z0-9_-]+$/',
-                'unique:links,alias,' . $link->id,
+                new \App\Modules\User\Rules\AliasFormat(),
+                new \App\Modules\User\Rules\UniqueAliasCi($link->id),
                 // Aliases must be globally unique across BOTH tables — also
                 // reject if the value is already used as an extra alias on
                 // any other link (an extra owned by THIS link is fine; we'll
-                // demote it implicitly below).
+                // demote it implicitly below). Matched case-insensitively so a
+                // case-variant of an existing extra alias is rejected too.
                 function ($attr, $value, $fail) use ($link) {
                     // Reserved top-level paths must never be claimed (mirror LinkAliasController).
                     $reserved = \App\Modules\User\Controllers\LinkAliasController::reservedAliases();
@@ -3122,16 +3123,13 @@ class LinkController extends Controller
                         $fail("'{$value}' is a reserved name and cannot be used.");
                         return;
                     }
-                    $exists = \App\Modules\User\Models\LinkAlias::where('alias', $value)
+                    $exists = \App\Modules\User\Models\LinkAlias::whereRaw('LOWER(alias) = ?', [mb_strtolower((string) $value)])
                         ->where('link_id', '!=', $link->id)
                         ->exists();
                     if ($exists) $fail('This alias is already taken. Please choose another.');
                 },
                 new \App\Modules\Admin\Rules\NotBannedName(),
             ],
-        ], [
-            'alias.regex' => 'Only letters, numbers, hyphens and underscores are allowed.',
-            'alias.unique' => 'This alias is already taken. Please choose another.',
         ]);
 
         // If the new primary value is currently an EXTRA alias on this same
@@ -3527,7 +3525,7 @@ class LinkController extends Controller
     private function validateBulkRows(array $rows, User $owner): array
     {
         $limits = $owner->getAliasLengthLimits();
-        $aliasPattern = '/^[A-Za-z0-9_\-]+$/';
+        $aliasPattern = \App\Modules\User\Rules\AliasFormat::REGEX;
 
         $providedAliases = collect($rows)
             ->pluck('alias')
@@ -3564,7 +3562,7 @@ class LinkController extends Controller
             $finalAlias = $alias;
             if ($alias !== '') {
                 if (!preg_match($aliasPattern, $alias)) {
-                    $errors[] = 'Alias may only contain letters, numbers, dashes and underscores.';
+                    $errors[] = 'Alias may only contain letters, numbers, dots, dashes and underscores.';
                 } elseif (mb_strlen($alias) < $limits['min'] || mb_strlen($alias) > $limits['max']) {
                     $errors[] = "Alias must be {$limits['min']}–{$limits['max']} characters.";
                 } else {
