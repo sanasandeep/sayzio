@@ -6,6 +6,7 @@
         emailEnabled: {{ ($notifications['email']['enabled'] ?? false) ? 'true' : 'false' }},
         autoEnabled: {{ ($notifications['autoresponder']['enabled'] ?? false) ? 'true' : 'false' }},
         smsEnabled: {{ ($notifications['sms']['enabled'] ?? false) ? 'true' : 'false' }},
+        whatsappEnabled: {{ ($notifications['whatsapp']['enabled'] ?? false) ? 'true' : 'false' }},
         webhooks: @js($notifications['webhooks'] ?? []),
         addHook() { this.webhooks.push({url:'',method:'POST',enabled:true,header_key:'',header_value:''}); },
      }">
@@ -162,6 +163,36 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        {{-- WHATSAPP --}}
+        <div class="card-premium p-6">
+            <div class="flex items-center justify-between gap-4 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(37,211,102,0.12);">
+                        <i class="fab fa-whatsapp" style="color: #25d366;"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">WhatsApp alert</h3>
+                        <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Get a quick WhatsApp message on your own verified number whenever someone submits this form.</p>
+                    </div>
+                </div>
+                @if($hasWhatsappNumber)
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="hidden" name="whatsapp_enabled" value="0">
+                    <input type="checkbox" name="whatsapp_enabled" value="1" class="sr-only peer" x-model="whatsappEnabled">
+                    <div class="w-11 h-6 rounded-full peer-checked:bg-green-500" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"></div>
+                    <div class="absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></div>
+                </label>
+                @endif
+            </div>
+            @unless($hasWhatsappNumber)
+            <div class="rounded-xl px-4 py-3 text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted); margin-left: 3.25rem;">
+                <i class="fas fa-info-circle mr-1.5" style="color: #25d366;"></i>
+                Connect and verify a WhatsApp number on your account to turn this on.
+                <a href="{{ route('user.onboarding.whatsapp') }}" class="font-semibold" style="color: #25d366;">Connect WhatsApp</a>
+            </div>
+            @endunless
         </div>
 
         {{-- WEBHOOKS --}}

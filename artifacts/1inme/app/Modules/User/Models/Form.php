@@ -432,6 +432,7 @@ protected $fillable = [
             'email' => ['enabled' => false, 'to' => '', 'subject' => 'New form submission', 'reply_to_field' => 'email', 'config_id' => null],
             'autoresponder' => ['enabled' => false, 'subject' => 'Thanks for your submission', 'body' => 'We received your submission and will get back to you soon.', 'email_field' => 'email', 'config_id' => null],
             'sms' => ['enabled' => false, 'to' => '', 'message' => 'New form submission on {form_title}', 'config_id' => null],
+            'whatsapp' => ['enabled' => false], // one-way alert to the form owner's verified WhatsApp number
             'webhooks' => [], // [{url, method, headers, enabled}]
         ];
     }

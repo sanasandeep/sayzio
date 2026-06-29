@@ -366,6 +366,33 @@ class User extends Authenticatable
             ->exists();
     }
 
+    /**
+     * The creator's verified WhatsApp (phone) number string, or null when none
+     * is on file. Prefers the primary identifier (linkedIdentifiers() is already
+     * ordered is_primary desc). Used by outbound WhatsApp alerts (Task #2765).
+     */
+    public function whatsappNumber(): ?string
+    {
+        $identifier = $this->linkedIdentifiers()
+            ->where('kind', 'phone')
+            ->whereNotNull('verified_at')
+            ->first();
+
+        $value = $identifier?->value;
+
+        return ($value !== null && trim($value) !== '') ? $value : null;
+    }
+
+    /**
+     * Whether the creator opted in to WhatsApp payment alerts (new subscriber,
+     * tip, PPV/unlock, paid form). Account-level preference stored in the
+     * `settings` JSON; defaults off so we never message someone unprompted.
+     */
+    public function wantsWhatsappPaymentAlerts(): bool
+    {
+        return (bool) (($this->settings['whatsapp_payment_alerts'] ?? false));
+    }
+
     public function isFollowing(int $creatorId): bool
     {
         return Follow::where('follower_id', $this->id)->where('creator_id', $creatorId)->exists();

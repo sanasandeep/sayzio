@@ -243,10 +243,18 @@ class NotificationController extends Controller
             $apiWarnThreshold = 80;
         }
 
+        // Account-level WhatsApp payment alerts (new subscriber, tip,
+        // PPV/unlock, paid form). Can only be turned ON when the account has a
+        // verified WhatsApp number on file, so the preference can never be
+        // "enabled but undeliverable". Stored in the `settings` JSON.
+        $settings = $user->settings ?? [];
+        $settings['whatsapp_payment_alerts'] = $request->boolean('whatsapp_payment_alerts') && $user->hasWhatsappNumber();
+
         $user->forceFill([
             'backlink_digest_preferred_weekday' => $weekday,
             'backlink_digest_preferred_hour'    => $hour,
             'api_usage_warning_threshold'       => $apiWarnThreshold,
+            'settings'                          => $settings,
         ])->save();
 
         return back()->with('success', 'Preferences saved.');

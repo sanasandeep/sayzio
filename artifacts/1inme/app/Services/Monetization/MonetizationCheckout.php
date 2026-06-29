@@ -935,6 +935,11 @@ class MonetizationCheckout
                     CreatorPaymentEvent::SOURCE_FORM, CreatorPaymentEvent::TYPE_FORM_PAID,
                     $submission, (int) $submission->amount_cents, (string) $submission->currency,
                 );
+                $this->whatsappPaymentAlert(
+                    $creator,
+                    '💳 Paid form submission on Sayzio: ' . $this->formatMoney((int) $submission->amount_cents, (string) $submission->currency)
+                        . ' on "' . ($form->title ?: 'your form') . '".',
+                );
             }
 
             // Fire owner notifications + forwarder now that the charge cleared
@@ -1008,6 +1013,12 @@ class MonetizationCheckout
             'created_at' => now(),
         ]);
         $this->emailCreatorBestEffort($creator, 'New Sayzio subscriber', $fan->name . ' just joined ' . ($tier?->name ?? 'your page') . '.');
+
+        $cents = (int) ($tier?->price_monthly_cents ?? 0);
+        $amount = $cents > 0
+            ? ' (' . strtoupper($tier?->currency ?? 'USD') . ' ' . number_format($cents / 100, 2) . '/mo)'
+            : '';
+        $this->whatsappPaymentAlert($creator, '🎉 New subscriber on Sayzio: ' . $fan->name . ' just joined ' . ($tier?->name ?? 'your page') . $amount . '.');
     }
 
     protected function notifyCreatorOfTip(User $creator, User $fan, CreatorTip $tip): void
@@ -1027,6 +1038,7 @@ class MonetizationCheckout
             'created_at' => now(),
         ]);
         $this->emailCreatorBestEffort($creator, 'New tip on Sayzio', ($tip->anonymous ? 'Someone' : $fan->name) . ' tipped you ' . $amount . '.');
+        $this->whatsappPaymentAlert($creator, '💸 New tip on Sayzio: ' . ($tip->anonymous ? 'Someone' : $fan->name) . ' tipped you ' . $amount . '.');
     }
 
     protected function notifyCreatorOfUnlock(User $creator, User $fan, int $postId, int $price, string $currency): void
@@ -1044,6 +1056,7 @@ class MonetizationCheckout
             ],
             'created_at' => now(),
         ]);
+        $this->whatsappPaymentAlert($creator, '🔓 ' . $fan->name . ' unlocked your paid post on Sayzio for $' . number_format($price / 100, 2) . '.');
     }
 
     protected function notifyCreatorOfCancellation(CreatorSubscription $sub): void
@@ -1064,6 +1077,18 @@ class MonetizationCheckout
             ],
             'created_at' => now(),
         ]);
+    }
+
+    /**
+     * Best-effort WhatsApp ping to the creator about a new payment event (new
+     * subscriber, tip, PPV/unlock, paid form). Only fires when the creator
+     * opted in via the account-level preference; never throws and degrades to
+     * preview-mode logging when delivery credentials are absent (Task #2765).
+     */
+    protected function whatsappPaymentAlert(?User $creator, string $message): void
+    {
+        if (!$creator || !$creator->wantsWhatsappPaymentAlerts()) return;
+        \App\Services\WhatsApp\WhatsAppAlerts::send($creator, $message);
     }
 
     protected function emailCreatorBestEffort(User $creator, string $subject, string $body): void

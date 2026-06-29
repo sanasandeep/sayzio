@@ -440,7 +440,8 @@ class FormController extends Controller
     {
         $this->authorizeForm($request, $form);
         $notifications = array_replace_recursive(Form::defaultNotifications(), $form->notifications ?? []);
-        return view('user.forms.notifications', compact('form', 'notifications'));
+        $hasWhatsappNumber = (bool) $form->user?->hasWhatsappNumber();
+        return view('user.forms.notifications', compact('form', 'notifications', 'hasWhatsappNumber'));
     }
 
     public function updateNotifications(Request $request, Form $form)
@@ -480,6 +481,14 @@ class FormController extends Controller
             'to' => trim((string) $request->input('sms_to', '')),
             'message' => $request->input('sms_message') ?: 'New form submission on {form_title}',
             'config_id' => $resolveConfigId($request->input('sms_config_id'), 'sms'),
+        ];
+
+        // WhatsApp — a one-way alert to the form owner's own verified WhatsApp
+        // number. Can only be turned ON when the owner actually has a verified
+        // number on file; otherwise it is forced off so the toggle can never be
+        // "enabled but undeliverable".
+        $n['whatsapp'] = [
+            'enabled' => $request->boolean('whatsapp_enabled') && (bool) $form->user?->hasWhatsappNumber(),
         ];
 
         $hooks = [];
@@ -1377,6 +1386,54 @@ class FormController extends Controller
                 $this->sendSmsViaConfig($form->user_id, (int) $n['sms']['config_id'], $n['sms']['to'], $msg);
             }
         } catch (\Throwable $e) { logger()->warning('Form SMS failed: ' . $e->getMessage()); }
+
+        // WhatsApp — best-effort, one-way ping to the form owner's verified
+        // number. Fires for both free and paid submissions (the paid path also
+        // routes here via finalizePaidSubmission once the charge clears).
+        // WhatsAppAlerts never throws and degrades to preview-mode logging when
+        // delivery credentials are absent.
+        try {
+            if (!empty($n['whatsapp']['enabled'])) {
+                $title = $form->title ?: 'your form';
+                $summary = $this->whatsappSubmissionSummary($submission);
+                $message = "📝 New submission on \"{$title}\".";
+                if ($summary !== '') {
+                    $message .= "\n" . $summary;
+                }
+                $message .= "\nCheck your Sayzio dashboard to view the details.";
+                \App\Services\WhatsApp\WhatsAppAlerts::send($form->user, $message);
+            }
+        } catch (\Throwable $e) { logger()->warning('Form WhatsApp alert failed: ' . $e->getMessage()); }
+    }
+
+    /**
+     * Build a short, safe one-or-two-field preview of a form submission for the
+     * WhatsApp alert body — just enough context for the creator to recognise the
+     * lead without opening the dashboard. Skips honeypot/internal keys and the
+     * structured pricing field, flattens array values, and truncates each value
+     * so the message stays a short notification rather than a data dump.
+     */
+    protected function whatsappSubmissionSummary(FormSubmission $submission): string
+    {
+        $lines = [];
+        foreach (($submission->data ?? []) as $key => $value) {
+            if (count($lines) >= 2) break;
+            $k = (string) $key;
+            if ($k === '' || str_starts_with($k, '_')) continue; // honeypot / internal
+            if (is_array($value) && !empty($value['_pricing'])) continue; // structured pricing handled elsewhere
+
+            $flat = is_array($value)
+                ? implode(', ', array_filter(array_map(fn ($x) => is_scalar($x) ? (string) $x : '', $value)))
+                : (string) $value;
+            $flat = trim(preg_replace('/\s+/', ' ', $flat));
+            if ($flat === '') continue;
+
+            $label = ucfirst(str_replace('_', ' ', $k));
+            if (mb_strlen($flat) > 60) $flat = mb_substr($flat, 0, 57) . '…';
+            $lines[] = $label . ': ' . $flat;
+        }
+
+        return implode("\n", $lines);
     }
 
     /**

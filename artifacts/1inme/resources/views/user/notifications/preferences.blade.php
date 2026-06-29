@@ -232,6 +232,28 @@
             </div>
         </div>
 
+        <div class="px-4 py-4" style="border-top:1px solid var(--border-soft);">
+            <div class="text-sm font-semibold mb-1" style="color: var(--text-primary);">
+                <i class="fab fa-whatsapp mr-1" style="color: #25d366;"></i> WhatsApp payment alerts
+            </div>
+            <p class="text-xs mb-3" style="color: var(--text-muted);">Get a WhatsApp message on your verified number whenever you earn — a new subscriber, a tip, an unlocked paid post, or a paid form submission.</p>
+            @if($user->hasWhatsappNumber())
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="hidden" name="whatsapp_payment_alerts" value="0"/>
+                    <input type="checkbox" name="whatsapp_payment_alerts" value="1"
+                           class="h-4 w-4 accent-green-600"
+                           @checked($user->wantsWhatsappPaymentAlerts())/>
+                    <span class="text-sm" style="color: var(--text-primary);">Send me payment alerts on WhatsApp</span>
+                </label>
+            @else
+                <div class="rounded-lg px-3 py-2 text-xs" style="background: var(--bg-soft, rgba(37,211,102,0.06)); border:1px solid var(--border-soft); color: var(--text-muted);">
+                    <i class="fas fa-info-circle mr-1" style="color: #25d366;"></i>
+                    Connect and verify a WhatsApp number on your account to enable payment alerts.
+                    <a href="{{ route('user.onboarding.whatsapp') }}" class="font-semibold" style="color: #25d366;">Connect WhatsApp</a>
+                </div>
+            @endif
+        </div>
+
         <div class="px-4 py-4 flex items-center justify-between" style="border-top:1px solid var(--border-soft);">
             <p class="text-xs" style="color: var(--text-faint);">Push delivery rolls out with the next mobile release.</p>
             <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white">
