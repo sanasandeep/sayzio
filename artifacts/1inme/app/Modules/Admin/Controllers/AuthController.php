@@ -66,13 +66,21 @@ class AuthController extends Controller
                 ['slug' => 'super-admin'],
                 ['name' => 'Super Admin', 'guard' => 'admin']
             );
-            $admin = Admin::create([
-                'name' => 'Admin',
-                'email' => 'official1inme@gmail.com',
-                'password' => Hash::make('password'),
-                'role_id' => $role->id,
-                'status' => 'active',
-            ]);
+            try {
+                // Concurrent demo-login requests can both pass the
+                // "not found" check above and race to INSERT. Catch the
+                // unique-email violation and re-fetch so both callers
+                // converge on the single demo admin instead of 500ing.
+                $admin = Admin::create([
+                    'name' => 'Admin',
+                    'email' => 'official1inme@gmail.com',
+                    'password' => Hash::make('password'),
+                    'role_id' => $role->id,
+                    'status' => 'active',
+                ]);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                $admin = Admin::where('email', 'official1inme@gmail.com')->firstOrFail();
+            }
         }
 
         Auth::guard('admin')->login($admin);

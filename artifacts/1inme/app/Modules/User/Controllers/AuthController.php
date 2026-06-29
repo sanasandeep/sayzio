@@ -528,14 +528,22 @@ class AuthController extends Controller
 
         if (!$user) {
             $freePlan = Plan::defaultPlan();
-            $user = User::create([
-                'name' => 'Demo User',
-                'email' => 'demo@1inme.com',
-                'password' => Hash::make('password'),
-                'plan_id' => $freePlan?->id,
-                'status' => 'active',
-                'email_verified_at' => now(),
-            ]);
+            try {
+                // Concurrent demo-login requests can both pass the
+                // "not found" check above and race to INSERT. Catch the
+                // unique-email violation and re-fetch so both callers
+                // converge on the single demo account instead of 500ing.
+                $user = User::create([
+                    'name' => 'Demo User',
+                    'email' => 'demo@1inme.com',
+                    'password' => Hash::make('password'),
+                    'plan_id' => $freePlan?->id,
+                    'status' => 'active',
+                    'email_verified_at' => now(),
+                ]);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                $user = User::where('email', 'demo@1inme.com')->firstOrFail();
+            }
         }
 
         // Demo accounts get the user-admin role so the platform-admin
