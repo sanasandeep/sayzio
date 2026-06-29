@@ -209,3 +209,152 @@ test.describe("home hero orbital tool popovers", () => {
     expect(await visiblePopoverCount(page)).toBe(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Small-phone legibility guard.
+//
+// The orbit grew from 8 to 17 nodes across 3 rings. On narrow screens the rings
+// tighten and tiles risk crowding the central Zio mascot or each other — the
+// popover contract above doesn't cover layout. This block pins the geometry at
+// real small-phone widths so a future radius / node-size / icon-count change
+// that reintroduces crowding fails CI instead of shipping.
+//
+// What "overlap" means here, and why two different checks:
+//  - Node vs node: the tiles are (rounded) squares, so their bounding boxes ARE
+//    the visible tile. A bounding-box intersection is a real visual collision.
+//  - Node vs mascot: the mascot's bounding box is its full PNG, which carries
+//    transparent padding and is nudged slightly upward by the "Zio runs it all"
+//    label that shares its centred column — so a raw bbox test would false-flag
+//    the transparent corners (and the mascot renders ABOVE the tiles anyway via
+//    z-index, hiding any incidental kiss). Instead we model the mascot the way
+//    the blade's own CSS comment reasons about it: a disk centred on the orbit,
+//    radius = half the mascot width (its `--size * 0.42`). A tile must stay
+//    outside that disk. This is robust (width is symmetric, no label shift) and
+//    catches the real regression: rings pulled in until the inner tiles sit on
+//    top of Zio.
+// ---------------------------------------------------------------------------
+
+type Rect = { x: number; y: number; width: number; height: number };
+
+/** Common small-phone CSS widths (iPhone SE/mini ... iPhone 14/15). */
+const SMALL_VIEWPORTS = [
+  { w: 360, h: 780 },
+  { w: 390, h: 844 },
+] as const;
+
+/** Collect every node tile rect plus the mascot rect and the orbit centre. */
+async function collectOrbitGeometry(page: Page): Promise<{
+  nodes: { title: string; rect: Rect }[];
+  mascot: Rect | null;
+  center: { x: number; y: number } | null;
+}> {
+  return page.evaluate(() => {
+    const toRect = (el: Element): Rect => {
+      const b = el.getBoundingClientRect();
+      return { x: b.x, y: b.y, width: b.width, height: b.height };
+    };
+    const nodes = Array.from(
+      document.querySelectorAll<HTMLElement>(".zio-node-btn"),
+    ).map((el, i) => ({
+      title: (el.getAttribute("aria-label") || `node ${i}`).split(":")[0],
+      rect: toRect(el),
+    }));
+    const mascotEl = document.querySelector(".zio-mascot");
+    const orbitEl = document.querySelector(".zio-orbit");
+    const orbit = orbitEl ? orbitEl.getBoundingClientRect() : null;
+    return {
+      nodes,
+      mascot: mascotEl ? toRect(mascotEl) : null,
+      center: orbit
+        ? { x: orbit.x + orbit.width / 2, y: orbit.y + orbit.height / 2 }
+        : null,
+    };
+  });
+}
+
+/** True when two rects share more than `eps` px on BOTH axes (a real overlap). */
+function rectsOverlap(a: Rect, b: Rect, eps = 0.5): boolean {
+  const ix = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+  const iy = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+  return ix > eps && iy > eps;
+}
+
+/** Shortest distance from a point to (the nearest edge/corner of) a rect. */
+function pointToRectDistance(px: number, py: number, r: Rect): number {
+  const dx = Math.max(r.x - px, 0, px - (r.x + r.width));
+  const dy = Math.max(r.y - py, 0, py - (r.y + r.height));
+  return Math.hypot(dx, dy);
+}
+
+test.describe("home hero orbital legibility on small phones", () => {
+  // Freeze the orbit so nodes are statically placed and geometry is stable.
+  test.use({ reducedMotion: "reduce" });
+
+  for (const theme of ["dark", "light"] as const) {
+    for (const vp of SMALL_VIEWPORTS) {
+      test(`nodes clear the mascot and each other @ ${vp.w}px (${theme} mode)`, async ({
+        page,
+      }) => {
+        test.setTimeout(60_000);
+
+        // Pin the colour scheme deterministically: the home page falls back to
+        // the OS `prefers-color-scheme` when no preference is stored, so a bare
+        // "dark" run could render light on a light-preferring headless browser.
+        // The `1inme_theme` cookie is read on first paint (see home.blade.php).
+        await page.context().addCookies([
+          { name: "1inme_theme", value: theme, domain: "localhost", path: "/" },
+        ]);
+        await page.setViewportSize({ width: vp.w, height: vp.h });
+        await gotoHome(page);
+
+        // Sanity: the intended theme actually applied (guards the cookie path so
+        // the "light mode" run isn't silently testing dark mode).
+        const isLight = await page.evaluate(() =>
+          document.documentElement.classList.contains("light-mode"),
+        );
+        expect(isLight).toBe(theme === "light");
+
+        const { nodes, mascot, center } = await collectOrbitGeometry(page);
+        expect(mascot).not.toBeNull();
+        expect(center).not.toBeNull();
+        // Mascot must be laid out — its width feeds the keep-out disk radius.
+        expect(mascot!.width).toBeGreaterThan(0);
+        // All 17 nodes must be present and laid out (not collapsed/hidden).
+        expect(nodes.length).toBe(NODE_TITLES.length);
+        for (const n of nodes) {
+          expect(n.rect.width).toBeGreaterThan(0);
+          expect(n.rect.height).toBeGreaterThan(0);
+        }
+
+        // (1) No tile may encroach the central mascot disk (radius = mascot
+        // half-width, centred on the orbit). Allow 1px slack for sub-pixel
+        // rounding; the design clearance here is several px.
+        const mascotRadius = mascot!.width / 2;
+        const mascotHits = nodes
+          .filter((n) => {
+            const d = pointToRectDistance(center!.x, center!.y, n.rect);
+            return mascotRadius - d > 1;
+          })
+          .map((n) => n.title);
+        expect(
+          mascotHits,
+          `tiles overlapping the central mascot: ${mascotHits.join(", ")}`,
+        ).toEqual([]);
+
+        // (2) No two tiles may overlap each other.
+        const pairHits: string[] = [];
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            if (rectsOverlap(nodes[i].rect, nodes[j].rect)) {
+              pairHits.push(`${nodes[i].title} ↔ ${nodes[j].title}`);
+            }
+          }
+        }
+        expect(
+          pairHits,
+          `overlapping tile pairs: ${pairHits.join("; ")}`,
+        ).toEqual([]);
+      });
+    }
+  }
+});

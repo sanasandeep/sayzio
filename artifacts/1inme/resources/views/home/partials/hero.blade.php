@@ -502,12 +502,18 @@
             .zio-orbit { --size: clamp(360px, 54vw, 460px); }
         }
 
-        /* ---- Very small phones: three rings of tiles get tight, and the outer ring
-               pokes past the orbit box (can clip against the section overflow on
-               ~320px screens). Pull all three radii in and shrink the tiles a touch
-               so every icon stays fully visible without colliding. The ≥sm
-               desktop/tablet sizing is untouched. ---- */
-        @media (max-width: 380px) {
+        /* ---- Narrow single-column phones (anything below the ≥640px tablet block).
+               Across this whole range `--size` sits pinned at its 300px floor
+               (40vw < 300px until ~750px), but the DEFAULT `--node` clamps up to its
+               38px MIN — i.e. ~0.127 of --size, which EXCEEDS the ~0.125 inter-ring
+               gap, so the inner/middle rings kiss at the shared 3- and 9-o'clock
+               nodes (and the outer ring pokes past the box on ~320px screens). Pull
+               all three radii in and shrink the tiles so every icon stays fully
+               visible, clears the central mascot, and never collides. Bounded at
+               639.98px so it dovetails exactly with the ≥640px tablet block (which
+               grows --size enough that the default radii breathe again). The
+               ≥640px tablet / ≥lg desktop sizing is untouched. ---- */
+        @media (max-width: 639.98px) {
             .zio-orbit {
                 --node: clamp(32px, calc(var(--size) * 0.088), 42px);
                 --r1: calc(var(--size) * 0.275);
