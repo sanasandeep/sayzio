@@ -214,12 +214,34 @@ class CompanyMailSettings
         $status    = $latest?->status;
         $when      = $latest ? (optional($latest->created_at)->diffForHumans() ?: null) : null;
 
-        return $this->evaluateDeliveryWarning(
+        $warning = $this->evaluateDeliveryWarning(
             $transport,
             $status,
             $when,
             $this->company->smtp_verified_at !== null,
         );
+
+        if ($warning === null) {
+            return null;
+        }
+
+        // When the warning is driven by a concrete recent send (one that
+        // failed or fell back to the platform mailer), link straight to the
+        // invoice it belongs to. The invoice page already exposes a "Send"
+        // (re-send to the client) action and its own failed-send banner, so the
+        // creator can re-deliver from their branded server in one click once
+        // they've fixed SMTP — instead of digging through the email log.
+        if ($latest !== null && $latest->related_id !== null) {
+            $invoiceId = (int) $latest->related_id;
+            if ($invoiceId > 0) {
+                $warning['link'] = [
+                    'url'   => route('user.client-invoices.edit', $invoiceId),
+                    'label' => 'Open the affected invoice to re-send',
+                ];
+            }
+        }
+
+        return $warning;
     }
 
     /**
@@ -300,7 +322,7 @@ class CompanyMailSettings
             ->whereIn('related_id', $invoiceIds)
             ->whereIn('email_key', ['billing.client_invoice', 'billing.receipt', 'billing.payment_reminder'])
             ->orderByDesc('id')
-            ->first(['id', 'status', 'meta', 'created_at', 'email_key']);
+            ->first(['id', 'status', 'meta', 'created_at', 'email_key', 'related_id']);
     }
 
     /**

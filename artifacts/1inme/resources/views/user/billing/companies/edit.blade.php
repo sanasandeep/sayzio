@@ -127,6 +127,11 @@
                     <div class="text-xs {{ $isDanger ? 'text-rose-800' : 'text-amber-800' }}">
                         <p class="font-semibold">{{ $smtpWarning['title'] }}</p>
                         <p class="mt-0.5">{{ $smtpWarning['body'] }}</p>
+                        @if(!empty($smtpWarning['link']))
+                            <a href="{{ $smtpWarning['link']['url'] }}" class="inline-flex items-center gap-1 mt-2 font-semibold underline {{ $isDanger ? 'text-rose-900 hover:text-rose-700' : 'text-amber-900 hover:text-amber-700' }}">
+                                <i class="fas fa-file-invoice"></i>{{ $smtpWarning['link']['label'] }}
+                            </a>
+                        @endif
                     </div>
                 </div>
             @endif

@@ -233,6 +233,58 @@ class CompanyInvoiceEmailTransportTest extends TestCase
         $this->assertStringContainsString($invoice->number, (string) $log->body);
     }
 
+    public function test_delivery_warning_links_to_the_affected_invoice(): void
+    {
+        $u  = $this->user();
+        $ws = $this->workspace($u);
+        $company = $this->company($u, $ws, [
+            'smtp_enabled' => true,
+            'smtp_host'    => 'smtp.acme.test',
+        ]);
+        $invoice = $this->invoice($u, $ws, $company);
+
+        // Record a failed client-invoice send on this company's transport, as
+        // the Emailer pipeline would after a real SMTP failure.
+        EmailLog::create([
+            'email_key'    => 'billing.client_invoice',
+            'recipient'    => $invoice->recipient_email,
+            'subject'      => 'Invoice ' . $invoice->number,
+            'body'         => 'body',
+            'status'       => 'failed',
+            'user_id'      => $u->id,
+            'related_type' => Invoice::class,
+            'related_id'   => (string) $invoice->id,
+            'meta'         => ['transport' => 'company:' . $company->id],
+        ]);
+
+        $warning = CompanyMailSettings::for($company)->deliveryWarning();
+
+        $this->assertNotNull($warning);
+        $this->assertSame('danger', $warning['level']);
+        $this->assertArrayHasKey('link', $warning);
+        $this->assertSame(
+            route('user.client-invoices.edit', $invoice->id),
+            $warning['link']['url']
+        );
+    }
+
+    public function test_unverified_warning_has_no_invoice_link(): void
+    {
+        $u  = $this->user();
+        $ws = $this->workspace($u);
+        // Enabled + host but never verified and no recent client email => the
+        // "not verified yet" warning, which has no concrete invoice to link to.
+        $company = $this->company($u, $ws, [
+            'smtp_enabled' => true,
+            'smtp_host'    => 'smtp.acme.test',
+        ]);
+
+        $warning = CompanyMailSettings::for($company)->deliveryWarning();
+
+        $this->assertNotNull($warning);
+        $this->assertArrayNotHasKey('link', $warning);
+    }
+
     public function test_platform_non_billing_emails_are_unaffected(): void
     {
         Mail::fake();
