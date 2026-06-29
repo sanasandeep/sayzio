@@ -49,7 +49,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   slides-mode.spec.ts \
   cookie-consent-footer-reserve.spec.ts \
   home-hero-orbit-popover.spec.ts \
-  brand-consistency-apply-fix.spec.ts
+  brand-consistency-apply-fix.spec.ts \
+  create-link-picker.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -101,7 +102,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these eleven specs are gated (and not the whole suite)
+### Why these twelve specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -172,19 +173,41 @@ The gate covers the specs that run reliably as an unattended check here:
   form via JS and waiting only for the POST so the heavy editor redirect never
   blocks) and re-audits: the gauge now reads 100 with no findings. Gating it
   catches regressions in the consistency audit or the apply-fix round-trip.
+- `create-link-picker.spec.ts` — self-bootstrapping: it seeds the demo user
+  (user-admin role) and a link that already owns a known alias via `php artisan
+  tinker`, logs in once, and drives the redesigned Create Link manual picker on
+  both a desktop and a mobile viewport. Asserts tapping a goal card selects the
+  matching link type (and moving to another goal moves the selection), the
+  free-text intent search selects the matching card (and a nonsense phrase
+  reports no match), the sticky Custom URL field shows live availability states
+  (available / already-taken / invalid), a taken alias blocks **Continue** and
+  focuses the field, and a blank alias still submits (routing to step 2 with no
+  `alias` param so it auto-generates). The banned state is not asserted because
+  the demo account holds `user.banned_names.bypass`, so for that privileged user
+  the live checker correctly treats banned names as available; the
+  taken/banned *guard* is covered via the taken alias.
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the eleven gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the twelve gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
 
 ## Specs
 
+- `create-link-picker.spec.ts` — Gated. Seeds the demo user (user-admin
+  role) plus a link that already owns a known alias, logs in once, and
+  drives the redesigned Create Link manual picker on a desktop and a
+  mobile viewport: goal-card → link-type selection, free-text intent
+  search → card selection, the sticky Custom URL field's live
+  availability states, a taken alias blocking **Continue** (focusing the
+  field), and a blank alias still submitting (auto-generate). All tests
+  share one logged-in context because the `demo-login` route is
+  rate-limited.
 - `slides-mode.spec.ts` — task #1059. Seeds a published 2-slide biolink
   at alias `e2e-slides-demo`, then in a real browser asserts both
   slides render, the active-slide class moves on `ArrowRight` /
