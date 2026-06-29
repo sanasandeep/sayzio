@@ -58,7 +58,7 @@ class LinkAliasController extends Controller
 
         $validated = $request->validate([
             'alias' => [
-                'required', 'string', 'min:' . $aliasLimits['min'], 'max:60',
+                'required', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'],
                 new \App\Modules\User\Rules\AliasFormat(),
             ],
         ]);

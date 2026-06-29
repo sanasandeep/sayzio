@@ -3108,7 +3108,7 @@ class LinkController extends Controller
                 'required',
                 'string',
                 'min:' . $aliasLimits['min'],
-                'max:60',
+                'max:' . $aliasLimits['max'],
                 new \App\Modules\User\Rules\AliasFormat(),
                 new \App\Modules\User\Rules\UniqueAliasCi($link->id),
                 // Aliases must be globally unique across BOTH tables — also
