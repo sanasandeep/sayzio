@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Common\Models\ContactMessage;
 use App\Modules\Common\Models\SiteAssistantConversation;
+use App\Modules\Common\Models\SiteAssistantLowBalanceClick;
 use App\Modules\Common\Models\SiteAssistantMessage;
 use App\Modules\User\Models\User;
 use App\Services\AI\AiEngineSettings;
@@ -41,15 +42,23 @@ use Tests\TestCase;
  *     persist NO conversation or message rows.
  *   - handoff returns the "not available here" envelope and creates NO
  *     Contact Inbox thread.
+ *   - session ({@see SiteAssistantController::session}) returns the
+ *     runtime's disabled payload (`ok=false` / `is_disabled=true`) and
+ *     never opens/seeds a conversation row.
  *   - OpenAI is never touched on any of these branches.
  *
- * The last two tests pin per-surface INDEPENDENCE — the asymmetric case
+ * Two further tests pin per-surface INDEPENDENCE — the asymmetric case
  * the both-off tests can't catch. With `enabled_app=false` but
  * `enabled_marketing=true`, a signed-in caller on surface=app is still
  * refused (persisting nothing), while the same caller on
  * surface=marketing completes a normal turn (OpenAI stubbed). This stops
  * a future change to `detectSurface`/`isEnabledFor` from silently
  * merging the two toggles.
+ *
+ * Finally, the low-balance click recorder
+ * ({@see SiteAssistantController::lowBalanceClick}) is documented here as
+ * an intentional EXCEPTION: it keeps recording click telemetry even when
+ * the surface is paused (see the test for the rationale).
  */
 class SiteAssistantDisabledSurfaceTest extends TestCase
 {
@@ -282,5 +291,77 @@ class SiteAssistantDisabledSurfaceTest extends TestCase
 
         $conv = SiteAssistantConversation::first();
         $this->assertSame('marketing', $conv->surface);
+    }
+
+    public function test_session_is_disabled_for_signed_in_user_when_surface_disabled(): void
+    {
+        $this->forbidOpenAi();
+
+        $user  = $this->makeUser();
+        $token = 'sa_' . Str::random(28);
+
+        $response = $this->actingAs($user)->postJson(route('site-assistant.session'), [
+            'visitor_token' => $token,
+            'surface'       => 'app',
+            'page'          => ['route' => 'home', 'path' => '/'],
+        ]);
+
+        // openSession short-circuits to the disabled envelope BEFORE it
+        // resolves (and would otherwise create) a conversation row.
+        $response->assertOk();
+        $response->assertJson([
+            'ok'          => false,
+            'is_disabled' => true,
+            'error'       => 'The assistant is not available here.',
+        ]);
+
+        // A paused surface must never open or seed a conversation: the
+        // session row is what every later turn hangs off, so leaking one
+        // here would defeat the pause entirely.
+        $this->assertSame(0, SiteAssistantConversation::count());
+        $this->assertSame(0, SiteAssistantMessage::count());
+    }
+
+    /**
+     * The low-balance CTA click recorder is INTENTIONALLY exempt from the
+     * surface-pause toggle, and this test pins that decision.
+     *
+     * Unlike session/message/choice/handoff, `low-balance-click` never
+     * touches the assistant runtime: it opens no conversation, sends no
+     * message, creates no Contact Inbox thread, and never calls OpenAI.
+     * It is a fire-and-forget keepalive POST that records a click on a
+     * Top-up / See-plans link the visitor *already* saw and followed —
+     * pure navigation telemetry, with no model spend or billable side
+     * effect. Refusing it would only drop analytics about a real
+     * click-through that has already happened, so we let it through even
+     * when the surface is paused. (Anonymous callers can't reach the
+     * assistant here either way — the click just isn't attributable.)
+     */
+    public function test_low_balance_click_is_recorded_even_when_surface_disabled(): void
+    {
+        $this->forbidOpenAi();
+
+        $user  = $this->makeUser();
+        $token = 'sa_' . Str::random(28);
+
+        $response = $this->actingAs($user)->postJson(route('site-assistant.low-balance-click'), [
+            'visitor_token' => $token,
+            'surface'       => 'app',
+            'target_url'    => 'https://example.com/pricing',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson(['ok' => true]);
+
+        // The click telemetry row is written despite the paused surface;
+        // it carries no conversation (none exists) and no model cost.
+        $this->assertSame(1, SiteAssistantLowBalanceClick::count());
+        $click = SiteAssistantLowBalanceClick::first();
+        $this->assertSame('app', $click->surface);
+        $this->assertSame((int) $user->id, (int) $click->user_id);
+        $this->assertNull($click->conversation_id);
+
+        // Recording a click must NOT seed an assistant conversation.
+        $this->assertSame(0, SiteAssistantConversation::count());
     }
 }
