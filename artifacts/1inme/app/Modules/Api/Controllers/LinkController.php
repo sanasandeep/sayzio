@@ -96,7 +96,12 @@ class LinkController extends Controller
     {
         $data = $request->validate([
             'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit'])],
-            'alias'      => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('links', 'alias')],
+            // The admin banned/reserved-names list is enforced on the mobile
+            // create submit too (privileged `user.banned_names.bypass` holders
+            // skip it), mirroring the web chooseType() rule and the live
+            // check-alias indicator so a reserved handle can't slip in via the
+            // REST create path.
+            'alias'      => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', new \App\Modules\Admin\Rules\NotBannedName(), Rule::unique('links', 'alias')],
             'title'      => ['nullable', 'string', 'max:200'],
             'long_url'   => ['nullable', 'url', 'max:2048'],
             'visibility' => ['nullable', Rule::in(['public', 'registered', 'followers', 'subscribers'])],
