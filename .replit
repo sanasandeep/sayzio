@@ -40,6 +40,10 @@ args = "brand-color"
 task = "workflow.run"
 args = "brand-color-build"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test:1inme-com"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -102,6 +106,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:brand-color-build"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "test:1inme-com"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-com run test"
 
 [workflows.workflow.metadata]
 isValidation = true
