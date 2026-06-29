@@ -117,6 +117,12 @@ class SiteAssistantSettings
             'assistant_error_network_locales'       => [],
             'assistant_error_generic'               => '',
             'assistant_error_generic_locales'       => [],
+            // Shown when an anonymous visitor tries to chat: the assistant
+            // now requires a signed-in account on every surface. Same
+            // fallback chain (per-locale override → admin default →
+            // built-in English copy) as the chrome strings above.
+            'assistant_auth_required'               => '',
+            'assistant_auth_required_locales'       => [],
         ];
     }
 
@@ -138,6 +144,7 @@ class SiteAssistantSettings
     public const DEFAULT_CUTOFF_RETRY_LABEL    = 'Retry';
     public const DEFAULT_ERROR_NETWORK         = 'Network error.';
     public const DEFAULT_ERROR_GENERIC         = 'Sorry, something went wrong.';
+    public const DEFAULT_AUTH_REQUIRED         = 'Please log in to chat with us.';
 
     public static function defaultSystemPrompt(): string
     {
@@ -677,6 +684,18 @@ P;
     }
 
     /**
+     * Resolve the locale-specific "log in to chat" note shown to anonymous
+     * visitors now that the assistant requires a signed-in account.
+     */
+    public static function authRequiredNoteFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        return self::resolveLocalizedShortString(
+            $cfg, 'assistant_auth_required', 'assistant_auth_required_locales',
+            self::DEFAULT_AUTH_REQUIRED, $acceptLanguage
+        );
+    }
+
+    /**
      * Normalizers for the chrome-string locale maps. Each delegates to
      * the shared short-string helper with a per-field max length so an
      * over-long override doesn't blow out the bubble layout.
@@ -688,6 +707,7 @@ P;
     public static function normalizeCutoffRetryLabelLocales(array $in): array { return self::normalizeShortStringLocales($in, 40); }
     public static function normalizeErrorNetworkLocales(array $in): array     { return self::normalizeShortStringLocales($in, 200); }
     public static function normalizeErrorGenericLocales(array $in): array     { return self::normalizeShortStringLocales($in, 240); }
+    public static function normalizeAuthRequiredLocales(array $in): array     { return self::normalizeShortStringLocales($in, 240); }
 
     /**
      * Shared resolver for "[locale => string]" fields that also have a

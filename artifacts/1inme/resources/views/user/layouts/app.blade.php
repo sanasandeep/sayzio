@@ -1707,6 +1707,8 @@
 
     @include('common.partials.site-assistant', ['surface' => 'app'])
 
+    @include('common.partials.quick-contact')
+
     @include('common.partials.global-shortcuts')
     @include('partials.voice-assistant')
     @include('user.links.partials.themed-confirm')

@@ -476,28 +476,42 @@ class SiteAssistantRuntime
         $name    = trim((string) ($intake['name'] ?? $user?->name ?? ''));
         $email   = trim((string) ($intake['email'] ?? $user?->email ?? ''));
         $summary = trim((string) ($intake['message'] ?? ''));
+        $channel = (string) ($intake['channel'] ?? '');
+        $phone   = $intake['phone'] ?? null;
 
-        if ($name === '' || $email === '') {
-            return ['ok' => false, 'error' => 'Please provide your name and email.'];
+        // Channel-specific validation: Indian phone for call back, country-
+        // coded phone for WhatsApp, valid email for email. Normalizes the
+        // phone in place. Email channel falls back to the user's email.
+        if ($error = \App\Modules\Common\Services\QuickContactService::validate($channel, $phone, $email)) {
+            return ['ok' => false, 'error' => $error];
         }
+        if ($name === '') {
+            $name = $email !== '' ? Str::before($email, '@') : 'Visitor';
+        }
+
+        $channelLabel = \App\Modules\Common\Services\QuickContactService::channelLabel($channel);
+        $reach = $channel === 'email' ? ($email ?: '(no email)') : ($phone ?: '(no phone)');
 
         $transcript = $conv->messages()->orderBy('id')->get()
             ->map(fn ($m) => '[' . strtoupper($m->role) . '] ' . trim((string) $m->content))
             ->implode("\n\n");
 
         $body  = "Visitor message:\n" . ($summary ?: '(none)') . "\n\n";
+        $body .= 'Preferred contact: ' . $channelLabel . "\n";
+        $body .= 'Reach them at: ' . $reach . "\n";
         $body .= "Surface: {$surface}\n";
         $body .= 'Page: ' . ($page['url'] ?? $page['path'] ?? 'unknown') . "\n";
         if ($user) $body .= "Signed-in user: {$user->email} (#{$user->id})\n";
         $body .= "\n— Transcript —\n" . $transcript;
 
-        $contact = ContactMessage::create([
-            'name'    => Str::limit($name, 250, ''),
-            'email'   => Str::limit($email, 250, ''),
-            'subject' => Str::limit('Assistant handoff: ' . ($summary ?: 'support request'), 500, ''),
+        $contact = \App\Modules\Common\Services\QuickContactService::create([
+            'name'    => $name,
+            'email'   => $email,
+            'subject' => 'Assistant handoff: ' . ($summary ?: 'support request'),
             'message' => $body,
+            'channel' => $channel,
+            'phone'   => $phone,
             'ip'      => $visitorMeta['ip'] ?? null,
-            'status'  => 'new',
         ]);
 
         $conv->forceFill([
@@ -507,10 +521,15 @@ class SiteAssistantRuntime
             'visitor_email'      => $email,
         ])->save();
 
+        $confirmReach = match ($channel) {
+            'callback' => "call you back on {$phone}",
+            'whatsapp' => "reach you on WhatsApp at {$phone}",
+            default    => "reply at {$email}",
+        };
         $confirm = SiteAssistantMessage::create([
             'conversation_id' => $conv->id,
             'role'            => 'assistant',
-            'content'         => "Thanks {$name} — our team has your message and will reply at {$email} shortly.",
+            'content'         => "Thanks {$name} — our team has your request and will {$confirmReach} shortly.",
             'meta'            => [
                 'handoff'            => true,
                 'contact_message_id' => $contact->id,

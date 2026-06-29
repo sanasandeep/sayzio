@@ -132,6 +132,9 @@ class SiteAssistantController extends Controller
             'assistant_error_generic'               => 'nullable|string|max:240',
             'assistant_error_generic_locales'       => 'nullable|array|max:50',
             'assistant_error_generic_locales.*'     => 'nullable|string|max:240',
+            'assistant_auth_required'               => 'nullable|string|max:240',
+            'assistant_auth_required_locales'       => 'nullable|array|max:50',
+            'assistant_auth_required_locales.*'     => 'nullable|string|max:240',
         ]);
         $payload = [
             'enabled_marketing'       => $request->boolean('enabled_marketing'),
@@ -215,6 +218,10 @@ class SiteAssistantController extends Controller
             'assistant_error_generic'        => mb_substr(trim((string) ($data['assistant_error_generic'] ?? '')), 0, 240),
             'assistant_error_generic_locales'=> SiteAssistantSettings::normalizeErrorGenericLocales(
                 (array) $request->input('assistant_error_generic_locales', [])
+            ),
+            'assistant_auth_required'        => mb_substr(trim((string) ($data['assistant_auth_required'] ?? '')), 0, 240),
+            'assistant_auth_required_locales'=> SiteAssistantSettings::normalizeAuthRequiredLocales(
+                (array) $request->input('assistant_auth_required_locales', [])
             ),
         ];
         SiteAssistantSettings::update($payload);

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import SiteAssistant from "@/components/site-assistant";
+import QuickContact from "@/components/quick-contact";
 
 import Home from "@/pages/home";
 import Features from "@/pages/features";
@@ -91,6 +92,7 @@ function App() {
             </WouterRouter>
             <Toaster />
             <SiteAssistant />
+            <QuickContact />
           </TooltipProvider>
         </QueryClientProvider>
       </MotionConfig>

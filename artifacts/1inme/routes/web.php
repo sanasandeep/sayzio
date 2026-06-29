@@ -179,6 +179,7 @@ Route::prefix('assistant')->name('site-assistant.')->group(function () {
     Route::post('stream',    [\App\Modules\Common\Controllers\SiteAssistantController::class, 'stream'])->middleware('throttle:60,1')->name('stream');
     Route::post('choice',    [\App\Modules\Common\Controllers\SiteAssistantController::class, 'choice'])->middleware('throttle:60,1')->name('choice');
     Route::post('handoff',   [\App\Modules\Common\Controllers\SiteAssistantController::class, 'handoff'])->middleware('throttle:10,1')->name('handoff');
+    Route::post('quick-contact', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'quickContact'])->middleware('throttle:10,1')->name('quick-contact');
     Route::post('low-balance-click', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'lowBalanceClick'])->middleware('throttle:60,1')->name('low-balance-click');
 });
 

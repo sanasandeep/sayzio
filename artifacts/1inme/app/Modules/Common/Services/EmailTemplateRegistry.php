@@ -774,6 +774,16 @@ class EmailTemplateRegistry
                 'body' => 'A system health check raised an alert.',
                 'variables' => [],
             ],
+            'support.contact_request' => [
+                'category' => 'system',
+                'label' => 'New contact request',
+                'description' => 'Sent to the support inbox when a visitor submits a quick-contact request (call back / WhatsApp / email) from the assistant or the standalone widget. Body is generated at the call site.',
+                'format' => 'text',
+                'body_type' => 'dynamic',
+                'subject' => 'New contact request',
+                'body' => 'A new contact request was submitted.',
+                'variables' => [],
+            ],
         ];
     }
 

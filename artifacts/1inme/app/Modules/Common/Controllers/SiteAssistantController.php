@@ -5,6 +5,7 @@ namespace App\Modules\Common\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Models\SiteAssistantConversation;
 use App\Modules\Common\Models\SiteAssistantLowBalanceClick;
+use App\Modules\Common\Services\QuickContactService;
 use App\Services\AI\SiteAssistantRuntime;
 use App\Services\AI\SiteAssistantSettings;
 use Illuminate\Http\Request;
@@ -55,9 +56,35 @@ class SiteAssistantController extends Controller
             'cutoff_retry_label'     => SiteAssistantSettings::cutoffRetryLabelFor($cfg),
             'error_network'          => SiteAssistantSettings::errorNetworkFor($cfg),
             'error_generic'          => SiteAssistantSettings::errorGenericFor($cfg),
+            // The assistant now requires a signed-in account on every
+            // surface. The widget shows the localized note + a login CTA
+            // (instead of the chat input) whenever auth_required is true.
+            'auth_required'          => !$request->user(),
+            'auth_required_note'     => SiteAssistantSettings::authRequiredNoteFor($cfg),
+            'login_url'              => url('/login'),
             'handoff_enabled'   => (bool) $cfg['handoff_enabled'],
             'templates'         => $this->runtime->listTemplates(),
         ]);
+    }
+
+    /**
+     * The assistant requires a signed-in account on every surface. This
+     * returns the standard JSON rejection (consumed by both front-ends to
+     * swap the input for a login CTA) when the caller is anonymous, or
+     * null when the caller is authenticated and may proceed.
+     */
+    protected function authGate(Request $request): ?array
+    {
+        if ($request->user()) {
+            return null;
+        }
+        $cfg = SiteAssistantSettings::get();
+        return [
+            'ok'            => false,
+            'auth_required' => true,
+            'login_url'     => url('/login'),
+            'error'         => SiteAssistantSettings::authRequiredNoteFor($cfg),
+        ];
     }
 
     public function session(Request $request)
@@ -87,6 +114,9 @@ class SiteAssistantController extends Controller
             'message'       => 'required|string|max:4000',
             'page'          => 'array',
         ]);
+        if ($gate = $this->authGate($request)) {
+            return response()->json($gate, 401);
+        }
         $surface = $this->detectSurface($request);
         return response()->json($this->runtime->turn(
             $data['visitor_token'], $request->user(), $surface,
@@ -109,6 +139,9 @@ class SiteAssistantController extends Controller
             'page'                 => 'array',
             'retry_of_message_id'  => 'nullable|integer',
         ]);
+        if ($gate = $this->authGate($request)) {
+            return response()->json($gate, 401);
+        }
         $surface = $this->detectSurface($request);
         $user = $request->user();
         $token = $data['visitor_token'];
@@ -156,6 +189,9 @@ class SiteAssistantController extends Controller
             'choice.values.*' => 'nullable|string|max:1000',
             'page'          => 'array',
         ]);
+        if ($gate = $this->authGate($request)) {
+            return response()->json($gate, 401);
+        }
         $surface = $this->detectSurface($request);
         $label = (string) ($data['choice']['label'] ?? $data['choice']['value'] ?? 'Selected option');
         return response()->json($this->runtime->turn(
@@ -215,18 +251,91 @@ class SiteAssistantController extends Controller
         $data = $request->validate([
             'visitor_token' => 'required|string|max:64',
             'surface'       => 'nullable|in:marketing,app',
-            'name'          => 'required|string|max:120',
-            'email'         => 'required|email|max:200',
+            'name'          => 'nullable|string|max:120',
+            'email'         => 'nullable|email|max:200',
+            'channel'       => 'required|in:callback,whatsapp,email',
+            'phone'         => 'nullable|string|max:40',
             'message'       => 'nullable|string|max:2000',
             'page'          => 'array',
         ]);
+        if ($gate = $this->authGate($request)) {
+            return response()->json($gate, 401);
+        }
+        $user = $request->user();
+
+        // Channel-specific validation (Indian phone for call back, country-
+        // coded phone for WhatsApp, valid email for email). For the email
+        // channel, fall back to the signed-in user's email when none given.
+        $channel = (string) $data['channel'];
+        $phone   = $data['phone'] ?? null;
+        $email   = trim((string) ($data['email'] ?? $user?->email ?? ''));
+        if ($error = QuickContactService::validate($channel, $phone, $email)) {
+            return response()->json(['ok' => false, 'error' => $error], 422);
+        }
+
         $surface = $this->detectSurface($request);
         return response()->json($this->runtime->handoff(
-            $data['visitor_token'], $request->user(), $surface,
+            $data['visitor_token'], $user, $surface,
             (array) ($data['page'] ?? []),
-            ['name' => $data['name'], 'email' => $data['email'], 'message' => $data['message'] ?? ''],
+            [
+                'name'    => $data['name'] ?? $user?->name ?? '',
+                'email'   => $email,
+                'message' => $data['message'] ?? '',
+                'channel' => $channel,
+                'phone'   => $phone,
+            ],
             $this->visitorMeta($request)
         ));
+    }
+
+    /**
+     * Standalone multi-channel quick-contact widget (NOT login-gated).
+     * Anyone can leave a call back / WhatsApp / email request which lands
+     * in the admin Contact Inbox and triggers an admin email.
+     */
+    public function quickContact(Request $request)
+    {
+        $data = $request->validate([
+            'name'    => 'nullable|string|max:120',
+            'email'   => 'nullable|email|max:200',
+            'channel' => 'required|in:callback,whatsapp,email',
+            'phone'   => 'nullable|string|max:40',
+            'message' => 'nullable|string|max:2000',
+        ]);
+
+        $channel = (string) $data['channel'];
+        $phone   = $data['phone'] ?? null;
+        $email   = trim((string) ($data['email'] ?? $request->user()?->email ?? ''));
+        if ($error = QuickContactService::validate($channel, $phone, $email)) {
+            return response()->json(['ok' => false, 'error' => $error], 422);
+        }
+
+        $name = trim((string) ($data['name'] ?? $request->user()?->name ?? ''));
+        $label = QuickContactService::channelLabel($channel);
+        $reach = $channel === 'email' ? $email : (string) $phone;
+
+        $body  = "Quick-contact request from the website.\n\n";
+        $body .= 'Preferred contact: ' . $label . "\n";
+        $body .= 'Reach them at: ' . ($reach ?: '(none)') . "\n";
+        if ($name !== '')  $body .= 'Name: ' . $name . "\n";
+        if ($email !== '') $body .= 'Account email: ' . $email . "\n";
+        if ($user = $request->user()) $body .= "Signed-in user: {$user->email} (#{$user->id})\n";
+        if (!empty($data['message'])) $body .= "\nMessage:\n" . $data['message'] . "\n";
+
+        QuickContactService::create([
+            'name'    => $name,
+            'email'   => $email,
+            'subject' => 'Quick contact: ' . $label,
+            'message' => $body,
+            'channel' => $channel,
+            'phone'   => $phone,
+            'ip'      => $request->ip(),
+        ]);
+
+        return response()->json([
+            'ok'      => true,
+            'message' => "Thanks! We've got your request and will be in touch soon.",
+        ]);
     }
 
     /**

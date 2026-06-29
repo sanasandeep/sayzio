@@ -32,8 +32,16 @@
                                         {{ $m->status==='new' ? 'bg-blue-500/20 text-blue-300' : ($m->status==='read' ? 'bg-white/10 text-white/60' : 'bg-gray-500/20 text-gray-400') }}">
                                         {{ ucfirst($m->status) }}
                                     </span>
+                                    @if(!empty($m->contact_channel))
+                                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-200">
+                                            {{ \App\Modules\Common\Services\QuickContactService::channelLabel($m->contact_channel) }}
+                                        </span>
+                                    @endif
                                 </div>
                                 <div class="text-sm text-white">{{ $m->subject }}</div>
+                                @if(!empty($m->contact_phone))
+                                    <div class="text-xs text-white/60 mt-1">{{ __('Phone') }}: <span class="text-white/80">{{ $m->contact_phone }}</span></div>
+                                @endif
                                 <div class="text-[11px] text-white/40 mt-1">{{ $m->created_at->format('M j, Y g:i a') }}</div>
                                 <div x-show="open" x-cloak class="mt-3 text-sm text-white/80 whitespace-pre-line">{{ $m->message }}</div>
                             </div>

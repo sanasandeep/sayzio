@@ -269,6 +269,11 @@
                     <input type="text" maxlength="240" name="assistant_error_generic" value="{{ $cfg['assistant_error_generic'] ?? '' }}" placeholder="Sorry, something went wrong." class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                     <p class="text-xs text-white/40 mt-1">Fallback when the server reports an error without copy. Leave blank to use <code>Sorry, something went wrong.</code>.</p>
                 </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-white/60 mb-1">Login-required note</label>
+                    <input type="text" maxlength="240" name="assistant_auth_required" value="{{ $cfg['assistant_auth_required'] ?? '' }}" placeholder="Please log in to chat with us." class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Shown to signed-out visitors, who must log in before chatting. Leave blank to use <code>Please log in to chat with us.</code>.</p>
+                </div>
             </div>
 
             <div class="pt-2 border-t border-white/10 space-y-3">

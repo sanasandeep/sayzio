@@ -168,6 +168,13 @@
 .sa-form{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .sa-form input,.sa-form textarea{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);color:#fff;padding:8px 10px;border-radius:8px;font-size:13px;font-family:inherit;width:100%;box-sizing:border-box}
 .sa-form button{background:var(--sa-accent,#3d6bff);color:#fff;border:0;padding:8px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
+.sa-qc-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.sa-qc-tab{flex:1;min-width:80px;background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.12)!important;color:#cbd5e1!important;padding:7px 8px!important;border-radius:8px!important;font-size:12px!important;font-weight:500!important;cursor:pointer}
+.sa-qc-tab.sa-qc-on{background:var(--sa-accent,#3d6bff)!important;border-color:transparent!important;color:#fff!important}
+.sa-gate{flex-direction:column;gap:8px;align-items:stretch;text-align:center}
+.sa-gate-note{font-size:12.5px;color:#cbd5e1;line-height:1.4}
+.sa-gate-cta{display:block;background:var(--sa-accent,#3d6bff);color:#fff;text-decoration:none;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:600}
+.sa-gate-cta:hover{filter:brightness(1.08)}
 .sa-suggested{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px}
 .sa-suggested .sa-btn{font-size:11.5px}
 .sa-low-balance{display:none;margin:0 10px 6px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35;align-items:center;gap:8px;flex-wrap:wrap}
@@ -201,6 +208,9 @@ html.light-mode .sa-list-item:hover{background:rgba(15,23,42,.06)}
 html.light-mode .sa-list-item .sa-li-title{color:#0f172a}
 html.light-mode .sa-form{background:rgba(15,23,42,.03);border:1px solid rgba(15,23,42,.08)}
 html.light-mode .sa-form input,html.light-mode .sa-form textarea{background:#ffffff;border:1px solid rgba(15,23,42,.15);color:#1e293b}
+html.light-mode .sa-qc-tab{background:rgba(15,23,42,.05)!important;border:1px solid rgba(15,23,42,.12)!important;color:#475569!important}
+html.light-mode .sa-qc-tab.sa-qc-on{background:var(--sa-accent,#3d6bff)!important;color:#fff!important;border-color:transparent!important}
+html.light-mode .sa-gate-note{color:#475569}
 html.light-mode .sa-low-balance{background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);color:#92400e}
 html.light-mode .sa-low-balance .sa-lb-cta{background:rgba(251,191,36,.24);border:1px solid rgba(251,191,36,.5);color:#92400e}
 html.light-mode .sa-low-balance .sa-lb-cta:hover{background:rgba(251,191,36,.4);color:#0f172a}
@@ -245,8 +255,11 @@ window.__SA_CHROME = {
   cutoff_notice:     @json(\App\Services\AI\SiteAssistantSettings::cutoffNoticeFor($__sa_cfg)),
   cutoff_retry_label:@json(\App\Services\AI\SiteAssistantSettings::cutoffRetryLabelFor($__sa_cfg)),
   error_network:     @json(\App\Services\AI\SiteAssistantSettings::errorNetworkFor($__sa_cfg)),
-  error_generic:     @json(\App\Services\AI\SiteAssistantSettings::errorGenericFor($__sa_cfg))
+  error_generic:     @json(\App\Services\AI\SiteAssistantSettings::errorGenericFor($__sa_cfg)),
+  auth_required:     @json(\App\Services\AI\SiteAssistantSettings::authRequiredNoteFor($__sa_cfg))
 };
+// Login URL the gate CTA points to when chat requires authentication.
+window.__SA_LOGIN_URL = @json(url('/login'));
 (function(){
   var root=document.getElementById('site-assistant-root');
   if(!root) return;
@@ -267,8 +280,15 @@ window.__SA_CHROME = {
     cutoff_notice: '⚠ This reply was cut off —',
     cutoff_retry_label: 'Retry',
     error_network: 'Network error.',
-    error_generic: 'Sorry, something went wrong.'
+    error_generic: 'Sorry, something went wrong.',
+    auth_required: 'Please log in to chat with us.'
   }, window.__SA_CHROME || {});
+  // Login gate state — set from the bootstrap response. When the chat
+  // requires authentication (anonymous visitor + admin gate on), the
+  // composer is swapped for a login CTA and message sending is blocked
+  // client-side (the server enforces it too).
+  var AUTH_REQUIRED=false;
+  var LOGIN_URL=(typeof window.__SA_LOGIN_URL==='string' && window.__SA_LOGIN_URL) ? window.__SA_LOGIN_URL : '/login';
 
   function pageMeta(){
     return {
@@ -429,6 +449,13 @@ window.__SA_CHROME = {
         ['subheading','typing_indicator','handoff_note','cutoff_notice','cutoff_retry_label','error_network','error_generic'].forEach(function(k){
           if(typeof data[k]==='string' && data[k]) CHROME[k]=data[k];
         });
+        // Login gate: the server tells us whether this surface requires
+        // authentication for the anonymous visitor. Capture it (and the
+        // localized note + login URL) so the composer is swapped for a
+        // login CTA once the greeting renders.
+        AUTH_REQUIRED = !!data.auth_required;
+        if(typeof data.auth_required_note==='string' && data.auth_required_note){ CHROME.auth_required = data.auth_required_note; }
+        if(typeof data.login_url==='string' && data.login_url){ LOGIN_URL = data.login_url; }
         // Subheading is shown in the header until the first message is
         // rendered, then replaced with the typing/handoff note. We
         // re-apply it here too so admin edits made between render and
@@ -461,7 +488,14 @@ window.__SA_CHROME = {
         // top of the static starter_prompts so visitors see the most
         // contextually relevant options first.
         var combined = [].concat(s.page_suggestions || [], s.starter_prompts || (cfg&&cfg.starter_prompts) || []);
-        renderSuggested(combined);
+        // When login is required we suppress starter prompts (they'd
+        // only hit a 401) and swap the composer for a login CTA.
+        if(AUTH_REQUIRED){
+          renderSuggested([]);
+          showLoginGate();
+        } else {
+          renderSuggested(combined);
+        }
         if(s.handed_off){ disableInput(true, CHROME.handoff_note); }
         renderLowBalance(s.low_balance);
         scrollBottom();
@@ -526,6 +560,21 @@ window.__SA_CHROME = {
     if(note){ document.getElementById('sa-sub').textContent=note; }
   }
 
+  // Replaces the message composer with a login prompt + CTA when the
+  // assistant requires authentication for this surface. The server
+  // independently blocks message/stream/choice/handoff for anonymous
+  // visitors — this is the matching client UX.
+  function showLoginGate(){
+    var row=document.querySelector('#sa-panel .sa-input-row');
+    if(!row) return;
+    row.innerHTML='';
+    row.classList.add('sa-gate');
+    var note=el('div',{class:'sa-gate-note'}, CHROME.auth_required || 'Please log in to chat with us.');
+    var cta=el('a',{class:'sa-gate-cta',href:LOGIN_URL,target:'_self',rel:'noopener'}, @json(__('Log in')));
+    row.appendChild(note);
+    row.appendChild(cta);
+  }
+
   function renderMessage(m){
     var d=el('div',{class:'sa-msg '+(m.role==='user'?'user':'assistant')});
     if(m.content){ d.innerHTML = mdLite(m.content); }
@@ -570,6 +619,13 @@ window.__SA_CHROME = {
         }
       });
     } else if(b.type==='form'){
+      // Handoff forms get the multi-channel quick-contact UI: pick how
+      // you want to be reached (Call back / WhatsApp / Email), then one
+      // contextual contact field. Other forms keep the generic renderer.
+      if(b.action==='handoff'){
+        renderHandoffForm(b, wrap);
+        return;
+      }
       var form=el('div',{class:'sa-form'});
       var inputs={};
       (b.fields||[]).forEach(function(f){
@@ -590,15 +646,58 @@ window.__SA_CHROME = {
           values[k]=v;
         });
         if(!ok) return;
-        if(b.action==='handoff'){
-          submitHandoff(values);
-        } else {
-          submitChoice({label:b.submit_label||'Submitted', values:values, template:b.template||null});
-        }
+        submitChoice({label:b.submit_label||'Submitted', values:values, template:b.template||null});
       };
       form.appendChild(submit);
       wrap.appendChild(form);
     }
+  }
+
+  // Channel definitions shared by the handoff form and the standalone
+  // quick-contact flow. `field` is the contextual input shown after a
+  // channel is chosen; callback/whatsapp collect a phone, email an
+  // email. Labels run through the translator for localization.
+  var QC_CHANNELS=[
+    {value:'callback', label:@json(__('Call back')),    field:'phone', placeholder:@json(__('Your phone (+91, 10 digits)')), inputType:'tel'},
+    {value:'whatsapp', label:@json(__('WhatsApp call')),field:'phone', placeholder:@json(__('WhatsApp number (with country code)')), inputType:'tel'},
+    {value:'email',    label:@json(__('Email')),         field:'email', placeholder:@json(__('Your email')), inputType:'email'}
+  ];
+
+  function renderHandoffForm(b, wrap){
+    var form=el('div',{class:'sa-form sa-qc'});
+    var selected='callback';
+    var tabs=el('div',{class:'sa-qc-tabs'});
+    var msg=el('textarea',{placeholder:(b.fields&&b.fields.length&&b.fields[0].label) || @json(__('How can we help? (optional)')),rows:'2'});
+    var contact=el('input',{type:'tel',placeholder:QC_CHANNELS[0].placeholder});
+    function applyChannel(ch){
+      selected=ch.value;
+      contact.value='';
+      contact.setAttribute('type', ch.inputType);
+      contact.setAttribute('placeholder', ch.placeholder);
+      contact.style.borderColor='';
+      Array.prototype.forEach.call(tabs.children,function(btn){
+        btn.classList.toggle('sa-qc-on', btn.getAttribute('data-ch')===ch.value);
+      });
+    }
+    QC_CHANNELS.forEach(function(ch){
+      var btn=el('button',{type:'button',class:'sa-qc-tab','data-ch':ch.value}, ch.label);
+      btn.onclick=function(){ applyChannel(ch); };
+      tabs.appendChild(btn);
+    });
+    form.appendChild(tabs);
+    form.appendChild(contact);
+    form.appendChild(msg);
+    var submit=el('button',{type:'button'}, b.submit_label || @json(__('Send request')));
+    submit.onclick=function(){
+      var val=(contact.value||'').trim();
+      if(!val){ contact.style.borderColor='#ef4444'; return; }
+      var values={message:(msg.value||'').trim(), channel:selected};
+      if(selected==='email'){ values.email=val; } else { values.phone=val; }
+      submitHandoff(values);
+    };
+    form.appendChild(submit);
+    applyChannel(QC_CHANNELS[0]);
+    wrap.appendChild(form);
   }
 
   function scrollBottom(){ body.scrollTop=body.scrollHeight; }
@@ -610,7 +709,7 @@ window.__SA_CHROME = {
   function removeTyping(){ var t=document.getElementById('sa-typing'); if(t) t.remove(); }
 
   function sendMessage(){
-    if(busy) return;
+    if(busy || AUTH_REQUIRED) return;
     var text=ta.value.trim(); if(!text) return;
     ta.value=''; busy=true; sendBtn.disabled=true;
     renderMessage({role:'user',content:text});
@@ -757,6 +856,8 @@ window.__SA_CHROME = {
       visitor_token: token,
       name: values.name||values.Name||'',
       email: values.email||values.Email||'',
+      phone: values.phone||values.Phone||'',
+      channel: values.channel||'',
       message: values.message||values.Message||'',
       page: pageMeta()
     }).then(function(res){

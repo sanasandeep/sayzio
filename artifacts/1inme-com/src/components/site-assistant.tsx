@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useTheme } from "@/components/theme-provider";
-import { ASSISTANT_API_BASE } from "@/config";
+import { ASSISTANT_API_BASE, LOGIN_URL } from "@/config";
 import zioBotMascot from "@assets/ChatGPT_Image_Jun_26,_2026_at_09_24_23_AM_1782451375104.png";
 import zioBotPeek from "@assets/ChatGPT_Image_Jun_26,_2026_at_11_40_07_AM_1782454328455.png";
 
@@ -73,6 +73,9 @@ interface BootstrapResponse {
   send_label?: string;
   subheading?: string;
   handoff_enabled?: boolean;
+  auth_required?: boolean;
+  auth_required_note?: string;
+  login_url?: string;
 }
 interface SessionResponse {
   ok?: boolean;
@@ -122,7 +125,7 @@ function api(path: string): string {
   return `${ASSISTANT_API_BASE}${path}`;
 }
 
-async function postJson<T>(path: string, body: unknown): Promise<T> {
+export async function postJson<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(api(path), {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -131,7 +134,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
-function useIsDark(): boolean {
+export function useIsDark(): boolean {
   const { theme } = useTheme();
   const [systemDark, setSystemDark] = useState(
     () =>
@@ -159,6 +162,12 @@ export default function SiteAssistant() {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [suggested, setSuggested] = useState<string[]>([]);
   const [handedOff, setHandedOff] = useState(false);
+  // Login gate: the marketing surface is always anonymous, so the server
+  // returns auth_required=true whenever the admin gate is on. We then
+  // swap the composer for a login CTA and block message sending.
+  const [authRequired, setAuthRequired] = useState(false);
+  const [authNote, setAuthNote] = useState("Please log in to chat with us.");
+  const [loginUrl, setLoginUrl] = useState(LOGIN_URL);
   const [input, setInput] = useState("");
   const [tooltip, setTooltip] = useState<string | null>(null);
   // Default mascot resolved from the backend bootstrap, populated on mount
@@ -251,6 +260,11 @@ export default function SiteAssistant() {
         return;
       }
       setCfg(data);
+      if (data.auth_required) {
+        setAuthRequired(true);
+        if (data.auth_required_note) setAuthNote(data.auth_required_note);
+        if (data.login_url) setLoginUrl(data.login_url);
+      }
       const session = await postJson<SessionResponse>("/assistant/session", {
         visitor_token: tokenRef.current,
         surface: "marketing",
@@ -354,7 +368,7 @@ export default function SiteAssistant() {
   const send = useCallback(
     async (text: string) => {
       const msg = text.trim();
-      if (!msg || sending) return;
+      if (!msg || sending || authRequired) return;
       setInput("");
       setSending(true);
       pushMessage({ role: "user", content: msg });
@@ -376,7 +390,7 @@ export default function SiteAssistant() {
         scrollBottom();
       }
     },
-    [sending, pushMessage, handleTurn, scrollBottom]
+    [sending, authRequired, pushMessage, handleTurn, scrollBottom]
   );
 
   const submitChoice = useCallback(
@@ -420,6 +434,8 @@ export default function SiteAssistant() {
           surface: "marketing",
           name: values.name || values.Name || "",
           email: values.email || values.Email || "",
+          phone: values.phone || values.Phone || "",
+          channel: values.channel || "",
           message: values.message || values.Message || "",
           page: pageMeta(),
         });
@@ -450,35 +466,7 @@ export default function SiteAssistant() {
   const sendLabel = cfg?.send_label || "Send";
 
   // ── theme tokens ────────────────────────────────────────────────
-  const t = isDark
-    ? {
-        panelBg: "rgba(15, 14, 26, 0.92)",
-        panelBorder: "rgba(255,255,255,0.08)",
-        text: "#e9e7f5",
-        sub: "rgba(233,231,245,0.6)",
-        botBubble: "rgba(255,255,255,0.06)",
-        botText: "#e9e7f5",
-        chip: "rgba(61,107,255,0.16)",
-        chipText: "#c4b5fd",
-        chipBorder: "rgba(61,107,255,0.4)",
-        inputBg: "rgba(255,255,255,0.05)",
-        inputBorder: "rgba(255,255,255,0.1)",
-        listBg: "rgba(255,255,255,0.04)",
-      }
-    : {
-        panelBg: "rgba(255,255,255,0.96)",
-        panelBorder: "rgba(17,17,30,0.08)",
-        text: "#1e1b2e",
-        sub: "rgba(30,27,46,0.55)",
-        botBubble: "rgba(61,107,255,0.07)",
-        botText: "#1e1b2e",
-        chip: "rgba(61,107,255,0.08)",
-        chipText: "#2342c7",
-        chipBorder: "rgba(61,107,255,0.25)",
-        inputBg: "rgba(17,17,30,0.03)",
-        inputBorder: "rgba(17,17,30,0.1)",
-        listBg: "rgba(61,107,255,0.05)",
-      };
+  const t = assistantTokens(isDark);
 
   if (cfg && cfg.enabled === false) return null;
 
@@ -586,7 +574,7 @@ export default function SiteAssistant() {
             </div>
 
             {/* suggested prompts */}
-            {!handedOff && suggested.length > 0 && (
+            {!handedOff && !authRequired && suggested.length > 0 && (
               <div
                 style={{
                   display: "flex",
@@ -608,63 +596,95 @@ export default function SiteAssistant() {
               </div>
             )}
 
-            {/* input */}
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                padding: 12,
-                borderTop: `1px solid ${t.panelBorder}`,
-              }}
-            >
-              <textarea
-                rows={1}
-                value={input}
-                disabled={handedOff}
-                placeholder={
-                  handedOff ? "Our team will reply by email." : placeholder
-                }
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void send(input);
-                  }
-                }}
+            {/* input — or the login gate when auth is required */}
+            {authRequired ? (
+              <div
                 style={{
-                  flex: 1,
-                  resize: "none",
-                  maxHeight: 96,
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: `1px solid ${t.inputBorder}`,
-                  background: t.inputBg,
-                  color: t.text,
-                  fontSize: 13,
-                  fontFamily: "inherit",
-                  outline: "none",
-                }}
-              />
-              <button
-                type="button"
-                disabled={handedOff || sending}
-                onClick={() => void send(input)}
-                style={{
-                  alignSelf: "stretch",
-                  padding: "0 16px",
-                  borderRadius: 12,
-                  border: 0,
-                  cursor: handedOff || sending ? "not-allowed" : "pointer",
-                  opacity: handedOff || sending ? 0.5 : 1,
-                  color: "#fff",
-                  fontWeight: 600,
-                  fontSize: 13,
-                  background: `linear-gradient(135deg, ${BRAND_ACCENT}, #a855f7)`,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  padding: 12,
+                  textAlign: "center",
+                  borderTop: `1px solid ${t.panelBorder}`,
                 }}
               >
-                {sendLabel}
-              </button>
-            </div>
+                <div style={{ fontSize: 12.5, color: t.sub, lineHeight: 1.4 }}>
+                  {authNote}
+                </div>
+                <a
+                  href={loginUrl}
+                  style={{
+                    display: "block",
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    color: "#fff",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    textDecoration: "none",
+                    background: `linear-gradient(135deg, ${BRAND_ACCENT}, #a855f7)`,
+                  }}
+                >
+                  Log in
+                </a>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  padding: 12,
+                  borderTop: `1px solid ${t.panelBorder}`,
+                }}
+              >
+                <textarea
+                  rows={1}
+                  value={input}
+                  disabled={handedOff}
+                  placeholder={
+                    handedOff ? "Our team will reply by email." : placeholder
+                  }
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void send(input);
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    resize: "none",
+                    maxHeight: 96,
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: `1px solid ${t.inputBorder}`,
+                    background: t.inputBg,
+                    color: t.text,
+                    fontSize: 13,
+                    fontFamily: "inherit",
+                    outline: "none",
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={handedOff || sending}
+                  onClick={() => void send(input)}
+                  style={{
+                    alignSelf: "stretch",
+                    padding: "0 16px",
+                    borderRadius: 12,
+                    border: 0,
+                    cursor: handedOff || sending ? "not-allowed" : "pointer",
+                    opacity: handedOff || sending ? 0.5 : 1,
+                    color: "#fff",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    background: `linear-gradient(135deg, ${BRAND_ACCENT}, #a855f7)`,
+                  }}
+                >
+                  {sendLabel}
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -789,7 +809,7 @@ export default function SiteAssistant() {
   );
 }
 
-interface ThemeTokens {
+export interface ThemeTokens {
   panelBg: string;
   panelBorder: string;
   text: string;
@@ -802,6 +822,40 @@ interface ThemeTokens {
   inputBg: string;
   inputBorder: string;
   listBg: string;
+}
+
+/** Build the assistant theme tokens for the given mode. Shared so the
+ *  standalone quick-contact widget matches the assistant chrome. */
+export function assistantTokens(isDark: boolean): ThemeTokens {
+  return isDark
+    ? {
+        panelBg: "rgba(15, 14, 26, 0.92)",
+        panelBorder: "rgba(255,255,255,0.08)",
+        text: "#e9e7f5",
+        sub: "rgba(233,231,245,0.6)",
+        botBubble: "rgba(255,255,255,0.06)",
+        botText: "#e9e7f5",
+        chip: "rgba(61,107,255,0.16)",
+        chipText: "#c4b5fd",
+        chipBorder: "rgba(61,107,255,0.4)",
+        inputBg: "rgba(255,255,255,0.05)",
+        inputBorder: "rgba(255,255,255,0.1)",
+        listBg: "rgba(255,255,255,0.04)",
+      }
+    : {
+        panelBg: "rgba(255,255,255,0.96)",
+        panelBorder: "rgba(17,17,30,0.08)",
+        text: "#1e1b2e",
+        sub: "rgba(30,27,46,0.55)",
+        botBubble: "rgba(61,107,255,0.07)",
+        botText: "#1e1b2e",
+        chip: "rgba(61,107,255,0.08)",
+        chipText: "#2342c7",
+        chipBorder: "rgba(61,107,255,0.25)",
+        inputBg: "rgba(17,17,30,0.03)",
+        inputBorder: "rgba(17,17,30,0.1)",
+        listBg: "rgba(61,107,255,0.05)",
+      };
 }
 
 function chipStyle(t: ThemeTokens): React.CSSProperties {
@@ -1007,6 +1061,15 @@ function BlockView({
     );
   }
   if (block.type === "form") {
+    if (block.action === "handoff") {
+      return (
+        <QuickContactFields
+          tokens={tokens}
+          submitLabel={block.submit_label || "Send request"}
+          onSubmit={onHandoff}
+        />
+      );
+    }
     return (
       <AssistantForm
         block={block}
@@ -1017,6 +1080,185 @@ function BlockView({
     );
   }
   return null;
+}
+
+// Channel options shared by the assistant handoff form and the
+// standalone quick-contact widget. callback/whatsapp collect a phone,
+// email collects an email; the backend validates each per channel
+// (callback = Indian phone, whatsapp = country-coded phone).
+interface QcChannel {
+  value: string;
+  label: string;
+  field: "phone" | "email";
+  placeholder: string;
+  inputType: string;
+}
+const QC_CHANNELS: QcChannel[] = [
+  {
+    value: "callback",
+    label: "Call back",
+    field: "phone",
+    placeholder: "Your phone (+91, 10 digits)",
+    inputType: "tel",
+  },
+  {
+    value: "whatsapp",
+    label: "WhatsApp call",
+    field: "phone",
+    placeholder: "WhatsApp number (with country code)",
+    inputType: "tel",
+  },
+  {
+    value: "email",
+    label: "Email",
+    field: "email",
+    placeholder: "Your email",
+    inputType: "email",
+  },
+];
+
+/**
+ * Multi-channel quick-contact fields: a channel selector + one
+ * contextual contact input + an optional message. Used both inside the
+ * assistant handoff and by the standalone QuickContact widget. Purely
+ * presentational — the caller decides where the values are submitted.
+ */
+export function QuickContactFields({
+  tokens,
+  busy,
+  submitLabel,
+  onSubmit,
+}: {
+  tokens: ThemeTokens;
+  busy?: boolean;
+  submitLabel: string;
+  onSubmit: (values: Record<string, string>) => void;
+}) {
+  const [channel, setChannel] = useState(QC_CHANNELS[0].value);
+  const [contact, setContact] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState(false);
+  const active = QC_CHANNELS.find((c) => c.value === channel) || QC_CHANNELS[0];
+
+  const submit = () => {
+    if (!contact.trim()) {
+      setError(true);
+      return;
+    }
+    const values: Record<string, string> = {
+      channel,
+      message: message.trim(),
+    };
+    if (active.field === "email") values.email = contact.trim();
+    else values.phone = contact.trim();
+    onSubmit(values);
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        padding: 10,
+        borderRadius: 12,
+        border: `1px solid ${tokens.chipBorder}`,
+        background: tokens.listBg,
+      }}
+    >
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {QC_CHANNELS.map((c) => {
+          const on = c.value === channel;
+          return (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => {
+                setChannel(c.value);
+                setContact("");
+                setError(false);
+              }}
+              style={{
+                flex: 1,
+                minWidth: 80,
+                padding: "7px 8px",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: "pointer",
+                border: on
+                  ? "1px solid transparent"
+                  : `1px solid ${tokens.chipBorder}`,
+                color: on ? "#fff" : tokens.text,
+                background: on
+                  ? `linear-gradient(135deg, ${BRAND_ACCENT}, #a855f7)`
+                  : tokens.chip,
+              }}
+            >
+              {c.label}
+            </button>
+          );
+        })}
+      </div>
+      <input
+        type={active.inputType}
+        value={contact}
+        placeholder={active.placeholder}
+        onChange={(e) => setContact(e.target.value)}
+        style={{
+          width: "100%",
+          padding: "8px 10px",
+          borderRadius: 10,
+          border: `1px solid ${
+            error && !contact.trim() ? "#ef4444" : tokens.inputBorder
+          }`,
+          background: tokens.inputBg,
+          color: tokens.text,
+          fontSize: 13,
+          fontFamily: "inherit",
+          outline: "none",
+          boxSizing: "border-box" as const,
+        }}
+      />
+      <textarea
+        rows={2}
+        value={message}
+        placeholder="How can we help? (optional)"
+        onChange={(e) => setMessage(e.target.value)}
+        style={{
+          width: "100%",
+          padding: "8px 10px",
+          borderRadius: 10,
+          border: `1px solid ${tokens.inputBorder}`,
+          background: tokens.inputBg,
+          color: tokens.text,
+          fontSize: 13,
+          fontFamily: "inherit",
+          outline: "none",
+          resize: "none",
+          boxSizing: "border-box" as const,
+        }}
+      />
+      <button
+        type="button"
+        disabled={busy}
+        onClick={submit}
+        style={{
+          padding: "9px 12px",
+          borderRadius: 10,
+          border: 0,
+          cursor: busy ? "not-allowed" : "pointer",
+          opacity: busy ? 0.6 : 1,
+          color: "#fff",
+          fontWeight: 600,
+          fontSize: 13,
+          background: `linear-gradient(135deg, ${BRAND_ACCENT}, #a855f7)`,
+        }}
+      >
+        {submitLabel}
+      </button>
+    </div>
+  );
 }
 
 function AssistantForm({
