@@ -27,7 +27,8 @@ class BiolinkController extends Controller
 
     public function show(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if ($link && !in_array($link->type, \App\Modules\User\Models\Link::BIOLINK_FAMILY, true)) $link = null;
         if (!$link || !$link->is_active) return $this->notFound('Link in Bio not found');
 
         $owner = $link->user;
@@ -228,7 +229,8 @@ class BiolinkController extends Controller
      */
     public function slideView(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if ($link && !in_array($link->type, \App\Modules\User\Models\Link::BIOLINK_FAMILY, true)) $link = null;
         if (!$link || !$link->is_active) return $this->notFound('Link in Bio not found');
         if (!$link->isAccessible())     return $this->notFound('Link in Bio not available');
 
@@ -302,7 +304,8 @@ class BiolinkController extends Controller
 
     public function visit(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if ($link && !in_array($link->type, \App\Modules\User\Models\Link::BIOLINK_FAMILY, true)) $link = null;
         if (!$link || !$link->is_active) return $this->notFound('Link in Bio not found');
 
         if (!$link->isAccessible()) {
@@ -330,7 +333,8 @@ class BiolinkController extends Controller
 
     public function tap(Request $request, string $alias, int $blockId)
     {
-        $link = Link::where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if ($link && !in_array($link->type, \App\Modules\User\Models\Link::BIOLINK_FAMILY, true)) $link = null;
         if (!$link || !$link->is_active) return $this->notFound('Link in Bio not found');
 
         if (!$link->isAccessible()) {
@@ -400,7 +404,8 @@ class BiolinkController extends Controller
 
     public function subscribe(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if ($link && !in_array($link->type, \App\Modules\User\Models\Link::BIOLINK_FAMILY, true)) $link = null;
         if (!$link) return $this->notFound('Link in Bio not found');
 
         $data = $request->validate([
@@ -444,7 +449,8 @@ class BiolinkController extends Controller
      */
     public function pollVote(Request $request, string $alias, int $blockId)
     {
-        $link = Link::where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if ($link && !in_array($link->type, \App\Modules\User\Models\Link::BIOLINK_FAMILY, true)) $link = null;
         if (!$link || !$link->is_active) return $this->notFound('Link in Bio not found');
         if (!$link->isAccessible()) return $this->notFound('Link in Bio not available');
 
@@ -527,7 +533,8 @@ class BiolinkController extends Controller
      */
     public function pollResults(Request $request, string $alias, int $blockId)
     {
-        $link = Link::where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if ($link && !in_array($link->type, \App\Modules\User\Models\Link::BIOLINK_FAMILY, true)) $link = null;
         if (!$link || !$link->is_active) return $this->notFound('Link in Bio not found');
         if (!$link->isAccessible()) return $this->notFound('Link in Bio not available');
 
@@ -649,7 +656,8 @@ class BiolinkController extends Controller
      */
     public function rsvpSubmit(Request $request, string $alias, int $blockId)
     {
-        $biolink = Link::where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
+        $biolink = Link::resolveByAlias($alias, $request->getHost());
+        if ($biolink && !in_array($biolink->type, \App\Modules\User\Models\Link::BIOLINK_FAMILY, true)) $biolink = null;
         if (!$biolink || !$biolink->is_active) return $this->notFound('Link in Bio not found');
         if (!$biolink->isAccessible()) return $this->notFound('Link in Bio not available');
 

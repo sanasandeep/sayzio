@@ -22,8 +22,8 @@ class BiolinkReportController extends Controller
      */
     public function store(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
-        if (!$link) {
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if (!$link || !in_array($link->type, \App\Modules\User\Models\Link::BIOLINK_FAMILY, true)) {
             return response()->json(['ok' => false, 'error' => 'not_found'], 404);
         }
 

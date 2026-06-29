@@ -15,9 +15,9 @@ class SlideEventController extends Controller
     /** Anonymous slide-view event from the web slides viewer. */
     public function view(Request $request, string $alias)
     {
-        $link = Link::withoutGlobalScope('workspace')
-            ->where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
-        if (!$link || !$link->is_active) abort(404);
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if (!$link || !in_array($link->type, \App\Modules\User\Models\Link::BIOLINK_FAMILY, true)) abort(404);
+        if (!$link->is_active) abort(404);
         if (!$link->isAccessible())     abort(404);
 
         if (!$this->viewerCanSee($link, $request->user())) {

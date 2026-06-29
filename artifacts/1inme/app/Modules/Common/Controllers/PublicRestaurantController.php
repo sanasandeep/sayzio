@@ -22,11 +22,9 @@ class PublicRestaurantController extends Controller
 
     protected function resolveMenu(string $alias): array
     {
-        $link = Link::where('alias', $alias)
-            ->where('type', Link::TYPE_RESTAURANT_MENU)
-            ->first();
+        $link = Link::resolveByAlias($alias, request()->getHost());
 
-        if (!$link || !$link->is_active) {
+        if (!$link || $link->type !== Link::TYPE_RESTAURANT_MENU || !$link->is_active) {
             return [null, null];
         }
 
