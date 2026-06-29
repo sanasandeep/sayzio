@@ -599,6 +599,8 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // Voice mic — only when the agent is hosted in this panel (app surface,
   // engine on). Available users get the full voice agent; plan-gated users
   // get a mic with a lock badge that routes to the upgrade gate.
+  // (MIC_SVG + voice state vars are declared above, before the DOM build, so
+  // the builders that run during construction don't get undefined refs.)
   var micBtn=null;
   if(VOICE_AVAILABLE || VOICE_GATED){
     micBtn=buildMicButton();
