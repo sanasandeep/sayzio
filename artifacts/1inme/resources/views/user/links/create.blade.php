@@ -167,6 +167,67 @@
 
         {{-- SECONDARY: pick a link type manually --}}
         <div class="glass rounded-2xl p-6 mb-6">
+
+            {{-- SHARED LINK ADDRESS: this applies to EVERY link type below, so
+                 it sits at the very top of the picker as a highlighted band and
+                 stays in view (sticky) while the user scrolls the goals and the
+                 link-type cards. It stays optional — blank auto-generates one.
+                 The aliasChecker Alpine component (live availability), error
+                 display, hints and prefill are all preserved here unchanged. --}}
+            @include('user.links.partials.alias-checker')
+            <div class="sticky top-0 z-20 -mx-6 -mt-6 mb-6 px-6 pt-6 pb-5 rounded-t-2xl border-b border-blue-500/20"
+                 style="background: var(--bg-body);"
+                 x-data="aliasChecker('{{ route('user.links.check-alias') }}')" x-init="init()">
+                <div class="rounded-2xl border border-blue-500/40 bg-gradient-to-br from-blue-500/[0.12] to-blue-500/[0.03] p-4 sm:p-5 shadow-lg shadow-blue-500/10">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-200 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-link text-xs"></i>
+                        </span>
+                        <h3 class="text-sm font-semibold text-white">Your new link address
+                            <span class="ml-1 align-middle text-[10px] font-medium uppercase tracking-wide text-blue-200/80 bg-blue-500/15 border border-blue-400/20 rounded-full px-2 py-0.5">Optional</span>
+                        </h3>
+                    </div>
+                    <p class="text-xs text-white/50 mb-3">This is the web address people will open — it works for whichever link type you pick below. Leave it blank and we'll create one for you automatically.</p>
+
+                    <div class="flex items-stretch rounded-xl bg-white/5 border overflow-hidden transition-colors"
+                         :class="state === 'available' ? 'border-emerald-500/40 focus-within:ring-2 focus-within:ring-emerald-500/40'
+                             : (isError ? 'border-red-500/40 focus-within:ring-2 focus-within:ring-red-500/40'
+                             : 'border-white/15 focus-within:ring-2 focus-within:ring-blue-500/40')">
+                        <span class="flex items-center px-3 text-sm text-white/40 bg-white/[0.03] border-r border-white/10 select-none">
+                            {{ $domainHost }}/
+                        </span>
+                        <input type="text" name="alias" id="create-link-alias"
+                               value="{{ old('alias', $prefillAlias ?? '') }}"
+                               placeholder="your-custom-name — or leave blank to auto-generate"
+                               minlength="{{ $aliasLimits['min'] }}"
+                               maxlength="{{ $aliasLimits['max'] }}"
+                               pattern="[A-Za-z0-9_\-]+"
+                               autocomplete="off" spellcheck="false"
+                               @input.debounce.400ms="check($event.target.value)"
+                               aria-describedby="create-link-alias-status"
+                               class="flex-1 bg-transparent px-3 py-2.5 text-sm text-white placeholder-white/25 outline-none min-w-0">
+                        <span class="flex items-center px-3" x-show="state && state !== 'empty'" x-cloak>
+                            <i x-show="state === 'checking'" class="fas fa-spinner fa-spin text-white/40 text-sm"></i>
+                            <i x-show="state === 'available'" class="fas fa-circle-check text-emerald-400 text-sm"></i>
+                            <i x-show="isError" class="fas fa-circle-xmark text-red-400 text-sm"></i>
+                        </span>
+                    </div>
+                    @error('alias') <p class="text-red-400 text-sm mt-1.5">{{ $message }}</p> @enderror
+                    <p id="create-link-alias-status" aria-live="polite"
+                       x-show="message && state && state !== 'empty'" x-cloak
+                       class="text-sm mt-1.5"
+                       :class="state === 'available' ? 'text-emerald-400' : (isError ? 'text-red-400' : 'text-white/40')"
+                       x-text="message"></p>
+                    <p class="text-xs text-white/40 mt-2">
+                        Optional — leave blank and we'll generate one for you. Letters, numbers, dashes &amp; underscores only.
+                        Length: {{ $aliasLimits['min'] }}–{{ $aliasLimits['max'] }} characters
+                        @if(!empty($aliasUpgradeHint))
+                            · <a href="{{ route('user.plans.index') }}" class="text-blue-400 hover:underline">upgrade for more</a>
+                        @endif.
+                    </p>
+                </div>
+            </div>
+
             <h2 class="text-base font-semibold text-white mb-1">…or pick a link type manually</h2>
             <p class="text-xs text-white/40 mb-6">Pick one to continue — we'll only ask for the fields that matter for that type.</p>
 
@@ -179,16 +240,23 @@
                     <h3 class="text-sm font-semibold text-white">What are you trying to do?</h3>
                 </div>
                 <p class="text-xs text-white/40 mb-3.5">Tap a goal and we'll pick the matching type for you — or just choose one below.</p>
-                <div class="flex flex-wrap gap-2">
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
                     @foreach($linkIntents as $intent)
                         <button type="button"
                                 @click="select('{{ $intent['type'] }}')"
-                                class="inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 border transition-all"
+                                aria-pressed="false" :aria-pressed="type === '{{ $intent['type'] }}'"
+                                class="group flex flex-col items-center justify-start text-center gap-2 rounded-xl border px-2.5 py-3.5 transition-all motion-safe:hover:-translate-y-0.5"
                                 :class="type === '{{ $intent['type'] }}'
-                                    ? 'border-blue-400 bg-blue-500/20 text-blue-100 shadow-lg shadow-blue-500/10'
-                                    : 'border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:bg-white/10 hover:text-white'">
-                            <i class="fas {{ $intent['icon'] }} text-[10px]"></i>
-                            {{ $intent['label'] }}
+                                    ? 'border-blue-400 bg-blue-500/15 shadow-lg shadow-blue-500/10'
+                                    : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]'">
+                            <span class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+                                  :class="type === '{{ $intent['type'] }}'
+                                      ? 'bg-blue-500/25 text-blue-100'
+                                      : 'bg-white/5 text-white/50 group-hover:text-white/80'">
+                                <i class="fas {{ $intent['icon'] }} text-sm"></i>
+                            </span>
+                            <span class="text-xs font-medium leading-tight"
+                                  :class="type === '{{ $intent['type'] }}' ? 'text-blue-100' : 'text-white/70'">{{ $intent['label'] }}</span>
                         </button>
                     @endforeach
                 </div>
@@ -248,49 +316,6 @@
                         <i class="fas fa-arrow-right text-xs group-hover:translate-x-0.5 transition-transform"></i>
                     </span>
                 </a>
-            </div>
-
-            @include('user.links.partials.alias-checker')
-            <div class="mb-6" x-data="aliasChecker('{{ route('user.links.check-alias') }}')" x-init="init()">
-                <label class="block text-sm font-medium text-white/60 mb-1.5">
-                    Custom URL <span class="text-white/30 text-xs">(optional)</span>
-                </label>
-                <div class="flex items-stretch rounded-xl bg-white/5 border overflow-hidden transition-colors"
-                     :class="state === 'available' ? 'border-emerald-500/40 focus-within:ring-2 focus-within:ring-emerald-500/40'
-                         : (isError ? 'border-red-500/40 focus-within:ring-2 focus-within:ring-red-500/40'
-                         : 'border-white/10 focus-within:ring-2 focus-within:ring-blue-500/40')">
-                    <span class="flex items-center px-3 text-sm text-white/40 bg-white/[0.03] border-r border-white/10 select-none">
-                        {{ $domainHost }}/
-                    </span>
-                    <input type="text" name="alias" id="create-link-alias"
-                           value="{{ old('alias', $prefillAlias ?? '') }}"
-                           placeholder="leave blank to auto-generate"
-                           minlength="{{ $aliasLimits['min'] }}"
-                           maxlength="{{ $aliasLimits['max'] }}"
-                           pattern="[A-Za-z0-9_\-]+"
-                           autocomplete="off" spellcheck="false"
-                           @input.debounce.400ms="check($event.target.value)"
-                           aria-describedby="create-link-alias-status"
-                           class="flex-1 bg-transparent px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none">
-                    <span class="flex items-center px-3" x-show="state && state !== 'empty'" x-cloak>
-                        <i x-show="state === 'checking'" class="fas fa-spinner fa-spin text-white/40 text-sm"></i>
-                        <i x-show="state === 'available'" class="fas fa-circle-check text-emerald-400 text-sm"></i>
-                        <i x-show="isError" class="fas fa-circle-xmark text-red-400 text-sm"></i>
-                    </span>
-                </div>
-                @error('alias') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
-                <p id="create-link-alias-status" aria-live="polite"
-                   x-show="message && state && state !== 'empty'" x-cloak
-                   class="text-sm mt-1.5"
-                   :class="state === 'available' ? 'text-emerald-400' : (isError ? 'text-red-400' : 'text-white/40')"
-                   x-text="message"></p>
-                <p class="text-xs text-white/30 mt-1.5">
-                    Leave blank and we'll generate one for you. Letters, numbers, dashes &amp; underscores only.
-                    Length: {{ $aliasLimits['min'] }}–{{ $aliasLimits['max'] }} characters
-                    @if(!empty($aliasUpgradeHint))
-                        · <a href="{{ route('user.plans.index') }}" class="text-blue-400 hover:underline">upgrade for more</a>
-                    @endif.
-                </p>
             </div>
 
             {{-- Search + category filters for the manual picker --}}
