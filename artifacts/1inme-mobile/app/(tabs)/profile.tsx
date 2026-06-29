@@ -62,6 +62,7 @@ const INFO_PAGES: {
     | "/info/privacy"
     | "/info/terms"
     | "/info/help"
+    | "/info/contact"
     | "/security-logins";
   label: string;
   icon: keyof typeof Feather.glyphMap;
@@ -70,6 +71,7 @@ const INFO_PAGES: {
   { href: "/info/about", label: "About Sayzio", icon: "info" },
   { href: "/info/nfc", label: "How NFC works", icon: "wifi" },
   { href: "/info/help", label: "Help & support", icon: "life-buoy" },
+  { href: "/info/contact", label: "Contact us", icon: "phone-call" },
   { href: "/info/privacy", label: "Privacy", icon: "shield" },
   { href: "/info/terms", label: "Terms of service", icon: "file-text" },
 ];

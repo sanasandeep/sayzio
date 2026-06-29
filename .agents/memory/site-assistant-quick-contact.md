@@ -24,3 +24,7 @@ A change to channels/validation must touch ALL of:
 
 - Submissions land in the admin Contact Inbox (`contact_messages.contact_channel` + `contact_phone`, additive guarded migration) AND trigger an admin email via the service. Inbox view shows a channel badge + phone.
 - **How to apply:** the standalone quick-contact endpoint `assistant/quick-contact` is NOT login-gated (anonymous can submit); only the assistant chat/handoff is gated.
+
+## Mobile parity (Expo)
+- Mobile reuses the SAME contract via `/api/v1/assistant/quick-contact` (routed straight to `SiteAssistantController::quickContact`, wrapped in `api.optional_auth` + `throttle:10,1`), so NO new controller/service — it shares QuickContactService validation/inbox/email. A 6th front-end surface lives at `artifacts/1inme-mobile/app/info/contact.tsx` (lib `lib/api/assistant.ts`), reachable from the Profile INFO_PAGES list + the Help page.
+- Mobile has NO assistant CHAT surface, so the login gate is N/A there; quick-contact is anonymous-capable but apiFetch attaches the bearer token so signed-in name/email default in.

@@ -20,7 +20,7 @@ export default function Help() {
         },
         {
           heading: "Contact us",
-          body: "Email support@sayzio.app or visit https://sayzio.app/help for live chat.",
+          body: "Tap \"Contact us\" on your Profile to request a call back, a WhatsApp call, or an email reply — our team picks it up from there. You can also email support@sayzio.app or visit https://sayzio.app/help for live chat.",
         },
       ]}
     />

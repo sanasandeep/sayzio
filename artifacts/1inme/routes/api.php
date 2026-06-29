@@ -222,6 +222,16 @@ Route::prefix('v1')->group(function () {
     // Mobile splash slider — admin-managed onboarding slides.
     Route::get('/onboarding/slides', [OnboardingSlideController::class, 'index']);
 
+    // Multi-channel quick-contact (Call back / WhatsApp call / Email) — mobile
+    // parity for the web standalone widget. Reuses the SAME contract +
+    // QuickContactService as POST /assistant/quick-contact (web), so a request
+    // lands in the admin Contact Inbox and triggers an admin email. NOT
+    // login-gated (mirrors the always-anonymous web widget), but optional_auth
+    // is applied so a signed-in caller's name/email default in. Throttled to
+    // match the web route's throttle:10,1.
+    Route::middleware(['api.optional_auth', 'throttle:10,1'])
+        ->post('/assistant/quick-contact', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'quickContact']);
+
     // ── Authenticated ───────────────────────────────────────────────
     Route::middleware(['auth:sanctum', \App\Modules\Api\Middleware\TouchSessionToken::class, \App\Modules\Api\Middleware\MeterApiUsage::class])->group(function () {
         Route::get('/auth/me',     [AuthController::class, 'me']);
