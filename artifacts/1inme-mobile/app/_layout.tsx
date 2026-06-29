@@ -160,6 +160,7 @@ function RootLayoutNav() {
       <Stack.Screen name="calendars/edit" options={{ title: "Calendar" }} />
       <Stack.Screen name="calendars/event" options={{ title: "Event" }} />
       <Stack.Screen name="whatsapp-verify" options={{ title: "Verify WhatsApp" }} />
+      <Stack.Screen name="identifiers" options={{ title: "Linked emails & phones" }} />
       <Stack.Screen name="dialer" options={{ title: "Dialer" }} />
       <Stack.Screen name="dialer-profile" options={{ title: "Profile" }} />
       <Stack.Screen name="call/active" options={{ headerShown: false }} />

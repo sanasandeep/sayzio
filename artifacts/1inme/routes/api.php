@@ -629,6 +629,19 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/me/whatsapp', [\App\Modules\Api\Controllers\WhatsappController::class, 'status']);
         Route::delete('/me/whatsapp', [\App\Modules\Api\Controllers\WhatsappController::class, 'disconnect']);
 
+        // Linked identifiers — the full Account Settings "Linked identifiers"
+        // surface (mobile parity for the web user.identifiers.* routes). List
+        // every verified email/phone/social, add + verify a new email/phone,
+        // remove a non-primary one, and promote any verified email/phone to
+        // primary. Remove + promote reuse AccountMergeService guards, so
+        // promoting unblocks removing a primary number (incl. WhatsApp).
+        // Stateless add: verify carries kind+value back alongside the code.
+        Route::get   ('/me/identifiers',                       [\App\Modules\Api\Controllers\IdentifierController::class, 'index']);
+        Route::post  ('/me/identifiers/send',                  [\App\Modules\Api\Controllers\IdentifierController::class, 'send'])->middleware('throttle:otp-send');
+        Route::post  ('/me/identifiers/verify',                [\App\Modules\Api\Controllers\IdentifierController::class, 'verify'])->middleware('throttle:otp-verify');
+        Route::delete('/me/identifiers/{identifier}',          [\App\Modules\Api\Controllers\IdentifierController::class, 'destroy'])->whereNumber('identifier');
+        Route::post  ('/me/identifiers/{identifier}/promote',  [\App\Modules\Api\Controllers\IdentifierController::class, 'promote'])->whereNumber('identifier');
+
         // Expo push-token registration (1inme-mobile push delivery).
         Route::post  ('/me/push-tokens',               [PushTokenController::class, 'store']);
         Route::delete('/me/push-tokens',               [PushTokenController::class, 'destroy']);

@@ -140,6 +140,7 @@ const TOOL_PAGES: {
 const SETTINGS_PAGES: {
   href:
     | "/profile-edit"
+    | "/identifiers"
     | "/account-sessions"
     | "/workspaces"
     | "/domains"
@@ -151,6 +152,7 @@ const SETTINGS_PAGES: {
   icon: keyof typeof Feather.glyphMap;
 }[] = [
   { href: "/profile-edit", label: "Edit profile", icon: "edit-3" },
+  { href: "/identifiers", label: "Linked emails & phones", icon: "at-sign" },
   { href: "/account-sessions", label: "Devices & sessions", icon: "shield" },
   { href: "/workspaces", label: "Workspaces", icon: "briefcase" },
   { href: "/domains", label: "Custom domains", icon: "globe" },
