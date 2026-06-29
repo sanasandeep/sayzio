@@ -170,6 +170,42 @@ export default function CompanySmtpScreen() {
               mail server. Leave SMTP off to keep using the platform default.
             </Text>
 
+            {data.delivery_warning ? (
+              <View
+                style={[
+                  styles.warningBox,
+                  {
+                    backgroundColor:
+                      (data.delivery_warning.level === "danger"
+                        ? colors.destructive
+                        : colors.warning) + "15",
+                    borderColor:
+                      data.delivery_warning.level === "danger"
+                        ? colors.destructive
+                        : colors.warning,
+                  },
+                ]}
+              >
+                <Feather
+                  name="alert-triangle"
+                  size={18}
+                  color={
+                    data.delivery_warning.level === "danger"
+                      ? colors.destructive
+                      : colors.warning
+                  }
+                />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={[styles.warningTitle, { color: colors.foreground }]}>
+                    {data.delivery_warning.title}
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12, lineHeight: 17 }}>
+                    {data.delivery_warning.body}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={styles.switchRow}>
                 <View style={{ flex: 1 }}>
@@ -433,4 +469,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
   },
+  warningBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  warningTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13, lineHeight: 18 },
 });

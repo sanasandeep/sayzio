@@ -298,6 +298,11 @@ class CompanyMailController extends Controller
             'masked_password'    => $settings->maskedPassword(),
             'is_configured'      => $settings->isConfigured(),
             'verified_at'        => optional($company->smtp_verified_at)->toIso8601String(),
+            // Recorded-state heads-up when SMTP is enabled but the company's
+            // client emails aren't actually going out through it (failed,
+            // unverified, or fell back to the platform mailer). Mirrors the web
+            // banner; null when delivery is proven working / SMTP is off.
+            'delivery_warning'   => $settings->deliveryWarning(),
             'encryption_options' => CompanyMailSettings::ENCRYPTION_OPTIONS,
             // Recipients a test send may target — the test send is restricted to
             // addresses the creator controls so it can't be used as a spam relay.

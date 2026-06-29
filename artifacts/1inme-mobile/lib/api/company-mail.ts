@@ -10,6 +10,16 @@ import { apiFetch } from "@/lib/api";
 
 // ── SMTP transport ─────────────────────────────────────────────────────────
 
+// Recorded-state heads-up shown when SMTP is enabled but this company's client
+// emails aren't actually going out through it (last send failed, fell back to
+// the platform mailer, or the handshake was never verified). Mirrors the web
+// banner; null when delivery is proven working or SMTP is off.
+export type CompanySmtpDeliveryWarning = {
+  level: "warning" | "danger" | string;
+  title: string;
+  body: string;
+};
+
 export type CompanySmtpStatus = {
   company_id: number;
   company_name: string;
@@ -24,6 +34,7 @@ export type CompanySmtpStatus = {
   masked_password: string | null;
   is_configured: boolean;
   verified_at: string | null;
+  delivery_warning: CompanySmtpDeliveryWarning | null;
   encryption_options: string[];
   // Addresses a test send may target. The server restricts the test send to
   // addresses the creator controls (account email, company contact email,
