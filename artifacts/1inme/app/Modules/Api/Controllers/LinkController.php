@@ -243,7 +243,11 @@ class LinkController extends Controller
         $data = $request->validate([
             'title'      => ['sometimes', 'nullable', 'string', 'max:200'],
             'long_url'   => ['sometimes', 'nullable', 'url', 'max:2048'],
-            'alias'      => ['sometimes', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('links', 'alias')->ignore($link->id)],
+            // The admin banned/reserved-names list is enforced on the mobile
+            // edit submit too (privileged `user.banned_names.bypass` holders
+            // skip it), mirroring the create path so a reserved handle can't
+            // slip in by renaming an existing link via the REST update path.
+            'alias'      => ['sometimes', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', new \App\Modules\Admin\Rules\NotBannedName(), Rule::unique('links', 'alias')->ignore($link->id)],
             'visibility' => ['sometimes', Rule::in(['public', 'registered', 'followers', 'subscribers'])],
             'is_active'  => ['sometimes', 'boolean'],
             'seo_title'  => ['sometimes', 'nullable', 'string', 'max:200'],
