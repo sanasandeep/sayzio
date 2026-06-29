@@ -152,6 +152,43 @@
 </div>
 @endif
 
+@if(!empty($contactRecipientHealth['available']) && empty($contactRecipientHealth['configured']))
+<div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08);">
+    <div class="flex items-start gap-4">
+        <div class="w-11 h-11 shrink-0 bg-amber-500/15 rounded-xl flex items-center justify-center">
+            <i class="fas fa-inbox text-amber-400 text-lg"></i>
+        </div>
+        <div class="min-w-0">
+            <h2 class="text-base font-semibold text-amber-300">Leads are arriving but no one is being notified</h2>
+            <p class="text-sm text-white/70 mt-1">
+                No contact recipient email is configured, so callback, WhatsApp and email
+                requests are saved to the Contact Inbox but <span class="text-amber-200">no notification is sent</span>.
+                @if(!empty($contactRecipientHealth['total_leads']))
+                    <span class="font-mono text-amber-200">{{ number_format($contactRecipientHealth['total_leads']) }}</span>
+                    lead{{ $contactRecipientHealth['total_leads'] === 1 ? ' has' : 's have' }} already arrived
+                    @if(!empty($contactRecipientHealth['pending_leads']))
+                        (<span class="font-mono text-amber-200">{{ number_format($contactRecipientHealth['pending_leads']) }}</span> still unread)
+                    @endif
+                    &mdash; set a recipient so future leads reach someone.
+                @else
+                    Set a recipient so leads reach someone.
+                @endif
+            </p>
+            <div class="mt-3 flex flex-wrap gap-2">
+                <a href="{{ route('admin.site-pages.index') }}"
+                   class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 transition">
+                    <i class="fas fa-envelope"></i> Set contact recipient
+                </a>
+                <a href="{{ route('admin.contact-inbox.index') }}"
+                   class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 transition">
+                    <i class="fas fa-inbox"></i> Open Contact Inbox
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="glass rounded-2xl p-6 border border-white/10 ">
         <div class="flex items-center justify-between">

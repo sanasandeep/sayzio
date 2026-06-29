@@ -3,6 +3,7 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Common\Support\ContactRecipientHealth;
 use App\Modules\Common\Support\ExpectedSchemaHealth;
 use App\Modules\Common\Support\SchemaHealth;
 use App\Modules\Common\Support\StatsStorageHealth;
@@ -49,7 +50,12 @@ class DashboardController extends Controller
         // table is over the alert threshold AND nothing will prune it. Cached.
         $statsStorage = StatsStorageHealth::cached();
 
-        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage'));
+        // Proactive lost-leads warning: no admin contact recipient is configured,
+        // so quick-contact / contact-form leads land in the inbox but nobody is
+        // notified by email. Cached.
+        $contactRecipientHealth = ContactRecipientHealth::cached();
+
+        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage', 'contactRecipientHealth'));
     }
 
     /**

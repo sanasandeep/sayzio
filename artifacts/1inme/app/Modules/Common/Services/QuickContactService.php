@@ -2,8 +2,8 @@
 
 namespace App\Modules\Common\Services;
 
-use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\ContactMessage;
+use App\Modules\Common\Support\ContactRecipientHealth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -291,11 +291,21 @@ class QuickContactService
      */
     public static function notifyAdmin(ContactMessage $contact): void
     {
-        $recipient = trim((string) AppSetting::get('contact_recipient_email', ''));
+        // Make sure the dashboard banner re-checks now that a fresh lead has
+        // landed (its cached snapshot counts pending leads).
+        ContactRecipientHealth::flush();
+
+        $recipient = ContactRecipientHealth::recipient();
         if ($recipient === '') {
-            $recipient = trim((string) config('mail.from.address', ''));
-        }
-        if ($recipient === '') {
+            // No recipient configured anywhere: the lead is still persisted as
+            // a ContactMessage (the caller created it), but nobody is actively
+            // notified. Don't swallow this — log a monitored warning so the
+            // silent-drop state is detectable. The admin dashboard also surfaces
+            // it as a banner via ContactRecipientHealth.
+            Log::warning('QuickContactService: no admin contact recipient configured — lead saved to inbox but no notification sent.', [
+                'contact_message_id' => $contact->id,
+                'channel'            => $contact->contact_channel,
+            ]);
             return;
         }
 

@@ -6,6 +6,7 @@ use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\ContactMessage;
 use App\Modules\Common\Models\EmailLog;
 use App\Modules\Common\Services\QuickContactService;
+use App\Modules\Common\Support\ContactRecipientHealth;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -244,6 +245,71 @@ class QuickContactTest extends TestCase
             'message' => 'hi',
         ]);
         $this->assertSame($a, $b);
+    }
+
+    // ---- create(): no recipient configured (leads must not be lost) -
+
+    public function test_create_persists_lead_even_when_no_recipient_is_configured(): void
+    {
+        // Simulate a fresh deploy: neither the admin setting nor the mail
+        // from-address fallback is set.
+        AppSetting::put('contact_recipient_email', null);
+        config(['mail.from.address' => '']);
+
+        $contact = QuickContactService::create([
+            'name'    => 'Unseen Lead',
+            'email'   => 'lead@example.com',
+            'subject' => 'Quick contact: Call back (phone)',
+            'message' => 'Please call me back.',
+            'channel' => 'callback',
+            'phone'   => '+919876543210',
+            'ip'      => '203.0.113.9',
+        ]);
+
+        // The lead is still persisted — it is NOT silently dropped.
+        $this->assertDatabaseCount('contact_messages', 1);
+        $fresh = ContactMessage::firstOrFail();
+        $this->assertSame('callback',      $fresh->contact_channel);
+        $this->assertSame('+919876543210', $fresh->contact_phone);
+        $this->assertSame($contact->id,    $fresh->id);
+
+        // No admin email could be sent (nowhere to send it).
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'support.contact_request',
+        ]);
+
+        // ...but the unconfigured-recipient state is detectable, so the
+        // dashboard can warn and the lead is never quietly lost.
+        ContactRecipientHealth::flush();
+        $health = ContactRecipientHealth::compute();
+        $this->assertTrue($health['available']);
+        $this->assertFalse($health['configured']);
+        $this->assertSame('', $health['recipient']);
+        $this->assertSame(1, $health['total_leads']);
+        $this->assertSame(1, $health['pending_leads']);
+    }
+
+    public function test_recipient_health_reports_configured_when_an_address_is_set(): void
+    {
+        AppSetting::put('contact_recipient_email', 'inbox@example.com');
+        ContactRecipientHealth::flush();
+
+        $this->assertTrue(ContactRecipientHealth::isConfigured());
+        $this->assertSame('inbox@example.com', ContactRecipientHealth::recipient());
+
+        $health = ContactRecipientHealth::compute();
+        $this->assertTrue($health['configured']);
+        $this->assertSame('inbox@example.com', $health['recipient']);
+    }
+
+    public function test_recipient_health_falls_back_to_mail_from_address(): void
+    {
+        AppSetting::put('contact_recipient_email', null);
+        config(['mail.from.address' => 'fallback@example.com']);
+        ContactRecipientHealth::flush();
+
+        $this->assertTrue(ContactRecipientHealth::isConfigured());
+        $this->assertSame('fallback@example.com', ContactRecipientHealth::recipient());
     }
 
     // ---- POST /assistant/quick-contact (anonymous, throttled) ------
