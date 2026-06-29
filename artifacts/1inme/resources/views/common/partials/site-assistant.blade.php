@@ -354,7 +354,28 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       method:'POST', credentials:'same-origin',
       headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'Accept':'application/json'},
       body: JSON.stringify(body||{})
-    }).then(function(r){ return r.json(); });
+    }).then(function(r){
+      // The web session expired/was revoked mid-chat: every gated
+      // /assistant/* call now 401s. Re-show the in-chat login gate in
+      // place instead of surfacing a raw error, and tag the parsed body
+      // so callers skip their error rendering. The anonymous visitor_token
+      // / conversation is left untouched.
+      if (r.status === 401){
+        handleUnauthorized();
+        return r.json().then(function(j){ j=j||{}; j.__unauthorized=true; return j; },
+                             function(){ return {ok:false, __unauthorized:true}; });
+      }
+      return r.json();
+    });
+  }
+
+  // Session-expiry recovery: flip on the login gate so the visitor can
+  // sign back in without losing the visible conversation. Safe to call
+  // repeatedly (showLoginGate rebuilds the composer each time).
+  function handleUnauthorized(){
+    AUTH_REQUIRED = true;
+    removeTyping();
+    showLoginGate();
   }
 
   function el(tag,attrs,children){
@@ -938,6 +959,13 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'Accept':'text/event-stream'},
       body: JSON.stringify({ visitor_token: token, message: text, page: pageMeta(), surface: SURFACE || undefined, retry_of_message_id: retryOfId || undefined })
     }).then(function(res){
+      // Session expired/revoked: re-show the login gate in place rather than
+      // falling back (which would only 401 again) or showing a raw error.
+      if(res.status===401){
+        if(bubble && bubble.parentNode) bubble.remove();
+        handleUnauthorized();
+        return;
+      }
       var ct=(res.headers && res.headers.get && res.headers.get('Content-Type'))||'';
       if(!res.ok || !res.body || ct.indexOf('text/event-stream')<0){
         return fallback();
@@ -1041,6 +1069,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       page: pageMeta()
     }).then(function(res){
       removeTyping();
+      if(res && res.__unauthorized) return; // login gate already shown
       if(res && res.ok){
         renderMessage(res.assistant_message);
         disableInput(true, CHROME.handoff_note);
@@ -1145,6 +1174,9 @@ window.__SA_LOGIN_URL = @json(url('/login'));
 
   function handleTurn(res){
     removeTyping();
+    // 401 already re-showed the login gate (jpost) — don't also render an
+    // error bubble.
+    if(res && res.__unauthorized) return;
     if(!res||!res.ok){
       // Server may rotate the token (e.g. auth state changed) — adopt
       // the new one and tell the user to retry.

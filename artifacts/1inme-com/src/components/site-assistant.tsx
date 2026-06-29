@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, Phone } from "lucide-react";
+import { ArrowLeft, LogOut, Phone } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { ASSISTANT_API_BASE, LOGIN_URL } from "@/config";
 import zioBotMascot from "@assets/ChatGPT_Image_Jun_26,_2026_at_09_24_23_AM_1782451375104.png";
@@ -43,6 +43,34 @@ function readAuthToken(): string {
   } catch {
     return "";
   }
+}
+
+/** Drop the stored bearer token (sign-out / token rejected). Leaves the
+ *  anonymous visitor_token + conversation untouched. */
+function clearAuthToken(): void {
+  try {
+    if (typeof window !== "undefined") localStorage.removeItem(AUTH_TOKEN_KEY);
+  } catch {
+    /* ignore storage failures */
+  }
+}
+
+/** Thrown by postJson when a gated /assistant/* call is rejected with 401
+ *  (token expired/revoked). Callers swallow it instead of rendering a raw
+ *  error — the registered handler re-shows the login gate in place. */
+class AssistantUnauthorizedError extends Error {
+  constructor() {
+    super("assistant_unauthorized");
+    this.name = "AssistantUnauthorizedError";
+  }
+}
+
+// Module-level hook the mounted widget registers so postJson (which lives
+// outside the component) can re-show the login gate when a bearer token is
+// rejected mid-chat. Cleared on unmount.
+let onUnauthorized: (() => void) | null = null;
+function setUnauthorizedHandler(fn: (() => void) | null): void {
+  onUnauthorized = fn;
 }
 
 interface AssistantBlockOption {
@@ -160,6 +188,15 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
     headers,
     body: JSON.stringify(body),
   });
+  // A stored bearer token that's expired/revoked yields 401 on any gated
+  // /assistant/* call. Drop the dead token and re-show the login gate
+  // instead of bubbling up a raw error — the conversation/visitor_token
+  // is left intact so the visitor can sign back in in place.
+  if (res.status === 401) {
+    clearAuthToken();
+    onUnauthorized?.();
+    throw new AssistantUnauthorizedError();
+  }
   return (await res.json()) as T;
 }
 
@@ -219,6 +256,10 @@ export default function SiteAssistant() {
   // ever opened. Empty until the first bootstrap resolves (then the
   // bundled import is used as the offline fallback).
   const [bootAvatar, setBootAvatar] = useState("");
+  // Whether a Sanctum bearer token is currently stored (signed in via the
+  // in-chat login). Drives the header "Sign out" control. Kept in state so
+  // the control appears/disappears as the token is minted/cleared.
+  const [authed, setAuthed] = useState<boolean>(() => !!readAuthToken());
 
   const tokenRef = useRef<string>(
     (typeof window !== "undefined" && localStorage.getItem(TOKEN_KEY)) || ""
@@ -308,11 +349,17 @@ export default function SiteAssistant() {
       }
       setCfg(data);
       if (data.auth_required) {
+        // auth_required while a bearer token is stored means the token was
+        // expired/revoked (a valid one would resolve a user). Drop the dead
+        // token so we stop replaying it; the visitor_token/conversation stays.
+        clearAuthToken();
+        setAuthed(false);
         setAuthRequired(true);
         if (data.auth_required_note) setAuthNote(data.auth_required_note);
         if (data.login_url) setLoginUrl(data.login_url);
       } else {
         setAuthRequired(false);
+        setAuthed(!!readAuthToken());
       }
       if (typeof data.email_otp_enabled === "boolean")
         setEmailOtpEnabled(data.email_otp_enabled);
@@ -382,6 +429,7 @@ export default function SiteAssistant() {
       } catch {
         /* ignore */
       }
+      setAuthed(true);
       setAuthRequired(false);
       setBooted(false);
       // Force a fresh bootstrap (now authenticated) instead of the cached one.
@@ -390,6 +438,30 @@ export default function SiteAssistant() {
     },
     [boot]
   );
+
+  // Header "Sign out" control: clear the bearer token and re-show the login
+  // gate WITHOUT touching the anonymous visitor_token / conversation, then
+  // re-bootstrap so the chat reflects the now-anonymous state in place.
+  const onSignOut = useCallback(() => {
+    clearAuthToken();
+    setAuthed(false);
+    setAuthRequired(true);
+    setBooted(false);
+    // Drop the cached (authenticated) bootstrap so the re-boot fetches the
+    // anonymous one and renders the gate.
+    bootstrapPromiseRef.current = null;
+    void boot();
+  }, [boot]);
+
+  // Let the module-level postJson re-show the login gate when a stored bearer
+  // token is rejected with 401 mid-chat (token already cleared in postJson).
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setAuthed(false);
+      setAuthRequired(true);
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   useEffect(() => {
     if (open) scrollBottom();
@@ -454,7 +526,10 @@ export default function SiteAssistant() {
           page: pageMeta(),
         });
         handleTurn(res);
-      } catch {
+      } catch (e) {
+        // A 401 already cleared the token + re-showed the login gate; don't
+        // also render a raw error bubble.
+        if (e instanceof AssistantUnauthorizedError) return;
         pushMessage({
           role: "assistant",
           content: "Network error. Please try again.",
@@ -485,7 +560,8 @@ export default function SiteAssistant() {
           page: pageMeta(),
         });
         handleTurn(res);
-      } catch {
+      } catch (e) {
+        if (e instanceof AssistantUnauthorizedError) return;
         pushMessage({
           role: "assistant",
           content: "Network error. Please try again.",
@@ -519,7 +595,8 @@ export default function SiteAssistant() {
         } else if (res?.error) {
           pushMessage({ role: "assistant", content: res.error });
         }
-      } catch {
+      } catch (e) {
+        if (e instanceof AssistantUnauthorizedError) return;
         pushMessage({
           role: "assistant",
           content: "Network error. Please try again.",
@@ -638,6 +715,44 @@ export default function SiteAssistant() {
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{brand}</div>
                 <div style={{ fontSize: 11, color: t.sub }}>{subheading}</div>
               </div>
+              {authed && (
+                <button
+                  type="button"
+                  aria-label="Sign out"
+                  title="Sign out"
+                  onClick={onSignOut}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = isDark
+                      ? "rgba(255,255,255,0.08)"
+                      : "rgba(17,17,30,0.06)";
+                    e.currentTarget.style.color = t.text;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = t.sub;
+                  }}
+                  style={{
+                    marginLeft: "auto",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    height: 30,
+                    padding: "0 9px",
+                    background: "transparent",
+                    border: 0,
+                    borderRadius: 8,
+                    color: t.sub,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    lineHeight: 1,
+                    cursor: "pointer",
+                    transition: "background .15s ease, color .15s ease",
+                  }}
+                >
+                  <LogOut size={14} aria-hidden="true" />
+                  <span>Sign out</span>
+                </button>
+              )}
               <button
                 type="button"
                 aria-label="Close assistant"
