@@ -174,10 +174,163 @@
     .wa-promo .wa-wave i:nth-child(5) { animation-delay: -.1s; }
     @keyframes waWave { 0%,100% { transform: scaleY(.5); } 50% { transform: scaleY(1.25); } }
 
+    /* ===== Live-conversation sequencing ===== */
+    /* When JS drives the thread, unrevealed bubbles are removed from layout so the
+       thread grows as each message lands (instead of reserving all the space up front). */
+    .wa-promo .wa-thread.wa-seq .wa-msg:not(.wa-show) { display: none; }
+    .wa-promo .wa-thread.wa-seq .wa-msg.wa-show {
+        animation: waPop .44s cubic-bezier(.2,.8,.25,1.2) forwards;
+    }
+    @keyframes waPop {
+        0%   { opacity: 0; transform: translateY(12px) scale(.96); }
+        60%  { opacity: 1; transform: translateY(-2px) scale(1.012); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    /* Loop reset: gently fade out whatever is on screen before replaying. */
+    .wa-promo .wa-thread.wa-fading .wa-msg,
+    .wa-promo .wa-thread.wa-fading .wa-indicator {
+        animation: none !important;
+        transition: opacity .5s ease, transform .5s ease !important;
+        opacity: 0 !important;
+        transform: translateY(-8px) !important;
+    }
+
+    /* Transient "typing…" bubble (incoming) */
+    .wa-promo .wa-typing { display: inline-flex; align-items: center; padding-top: .65rem; padding-bottom: .65rem; }
+    .wa-promo .wa-dots { display: inline-flex; align-items: center; gap: 4px; height: 8px; }
+    .wa-promo .wa-dots i {
+        width: 7px; height: 7px; border-radius: 9999px; background: #8fa3ad; opacity: .6;
+        animation: waDot 1.25s ease-in-out infinite;
+    }
+    .wa-promo .wa-dots i:nth-child(2) { animation-delay: .18s; }
+    .wa-promo .wa-dots i:nth-child(3) { animation-delay: .36s; }
+    @keyframes waDot {
+        0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+        30% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* Transient "recording…" bubble (outgoing) */
+    .wa-promo .wa-recording { display: inline-flex; align-items: center; gap: .55rem; }
+    .wa-promo .wa-recording > i { color: #8fe9b3; }
+    .wa-promo .wa-recording small { color: #cfe9d8; font-size: .72rem; }
+    .wa-promo .wa-rec-dot {
+        width: 9px; height: 9px; border-radius: 9999px; background: #ff5d5d; flex-shrink: 0;
+        animation: waRec 1s ease-in-out infinite;
+    }
+    @keyframes waRec { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .3; transform: scale(.78); } }
+
     @media (prefers-reduced-motion: reduce) {
         .wa-promo .wa-glow,
         .wa-promo .wa-grad,
         .wa-promo .wa-phone,
-        .wa-promo .wa-wave i { animation: none !important; }
+        .wa-promo .wa-wave i,
+        .wa-promo .wa-dots i,
+        .wa-promo .wa-rec-dot { animation: none !important; }
+        /* Never hide bubbles when motion is reduced — show the full thread at once. */
+        .wa-promo .wa-thread.wa-seq .wa-msg:not(.wa-show) { display: revert !important; }
+        .wa-promo .wa-thread.wa-seq .wa-msg { opacity: 1 !important; transform: none !important; animation: none !important; }
+        .wa-promo .wa-thread.wa-seq .wa-msg.wa-show { animation: none !important; }
     }
 </style>
+
+<script>
+(function () {
+    var section = document.getElementById('whatsapp-agent');
+    if (!section) return;
+    var thread = section.querySelector('.wa-thread');
+    if (!thread) return;
+
+    var msgs = Array.prototype.slice.call(thread.querySelectorAll('.wa-msg'));
+    if (msgs.length < 4) return;
+
+    var reduceMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var runId = 0;
+    var running = false;
+
+    function clearIndicators() {
+        var nodes = thread.querySelectorAll('.wa-indicator');
+        for (var i = 0; i < nodes.length; i++) nodes[i].parentNode.removeChild(nodes[i]);
+    }
+
+    function reset() {
+        thread.classList.remove('wa-fading');
+        for (var i = 0; i < msgs.length; i++) msgs[i].classList.remove('wa-show');
+        clearIndicators();
+    }
+
+    function sleep(ms, id) {
+        return new Promise(function (resolve, reject) {
+            setTimeout(function () { id === runId ? resolve() : reject(); }, ms);
+        });
+    }
+
+    function indicator(kind, beforeEl) {
+        var d = document.createElement('div');
+        d.setAttribute('aria-hidden', 'true');
+        if (kind === 'typing') {
+            d.className = 'wa-msg wa-msg-in wa-indicator wa-typing wa-show';
+            d.innerHTML = '<span class="wa-dots"><i></i><i></i><i></i></span>';
+        } else {
+            d.className = 'wa-msg wa-msg-out wa-indicator wa-recording wa-show';
+            d.innerHTML = '<i class="fas fa-microphone"></i><span class="wa-rec-dot"></span><small>recording\u2026</small>';
+        }
+        // Insert the transient bubble immediately before the message it precedes
+        // so it sits in the right conversational slot (last visible position).
+        thread.insertBefore(d, beforeEl);
+        return d;
+    }
+
+    function play(id) {
+        var ind;
+        return sleep(650, id)
+            .then(function () { msgs[0].classList.add('wa-show'); return sleep(620, id); })
+            .then(function () { ind = indicator('typing', msgs[1]); return sleep(1300, id); })
+            .then(function () { ind.parentNode.removeChild(ind); msgs[1].classList.add('wa-show'); return sleep(900, id); })
+            .then(function () { ind = indicator('recording', msgs[2]); return sleep(1450, id); })
+            .then(function () { ind.parentNode.removeChild(ind); msgs[2].classList.add('wa-show'); return sleep(750, id); })
+            .then(function () { ind = indicator('typing', msgs[3]); return sleep(1450, id); })
+            .then(function () { ind.parentNode.removeChild(ind); msgs[3].classList.add('wa-show'); return sleep(3400, id); })
+            .then(function () { thread.classList.add('wa-fading'); return sleep(580, id); })
+            .then(function () { reset(); return sleep(420, id); })
+            .then(function () { if (id === runId) play(id); })
+            .catch(function () {});
+    }
+
+    function start() {
+        if (reduceMq.matches || running) return;
+        running = true;
+        runId++;
+        thread.classList.add('wa-seq');
+        reset();
+        play(runId);
+    }
+
+    function stop() {
+        running = false;
+        runId++;
+        reset();
+    }
+
+    if (reduceMq.matches) return; // leave the full thread visible, no sequencing
+
+    thread.classList.add('wa-seq'); // hide bubbles until the section is in view
+
+    var io = new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+            entries[i].isIntersecting ? start() : stop();
+        }
+    }, { threshold: 0.25, rootMargin: '0px 0px -10% 0px' });
+    io.observe(section);
+
+    var onReduceChange = function (e) {
+        if (e.matches) {
+            running = false;
+            runId++;
+            thread.classList.remove('wa-seq');
+            reset();
+        }
+    };
+    if (reduceMq.addEventListener) reduceMq.addEventListener('change', onReduceChange);
+    else if (reduceMq.addListener) reduceMq.addListener(onReduceChange);
+})();
+</script>
