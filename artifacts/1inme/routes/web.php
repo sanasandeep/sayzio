@@ -181,6 +181,10 @@ Route::prefix('assistant')->name('site-assistant.')->group(function () {
     Route::post('handoff',   [\App\Modules\Common\Controllers\SiteAssistantController::class, 'handoff'])->middleware('throttle:10,1')->name('handoff');
     Route::post('quick-contact', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'quickContact'])->middleware('throttle:10,1')->name('quick-contact');
     Route::post('low-balance-click', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'lowBalanceClick'])->middleware('throttle:60,1')->name('low-balance-click');
+    // In-chat passwordless login/signup (email or phone → OTP). Reuses the
+    // same per-identifier+IP throttles as the rest of the OTP surfaces.
+    Route::post('auth/send-code',   [\App\Modules\Common\Controllers\SiteAssistantController::class, 'sendCode'])->middleware('throttle:otp-send')->name('auth.send-code');
+    Route::post('auth/verify-code', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'verifyCode'])->middleware('throttle:otp-verify')->name('auth.verify-code');
 });
 
 // ---- Public Social-Proof Widget ----

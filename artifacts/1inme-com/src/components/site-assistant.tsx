@@ -32,6 +32,18 @@ import zioBotPeek from "@assets/ChatGPT_Image_Jun_26,_2026_at_11_40_07_AM_178245
 
 const BRAND_ACCENT = "#3d6bff";
 const TOKEN_KEY = "sa_visitor_token_v1";
+// Sanctum bearer token minted by in-chat passwordless login. Distinct from
+// the anonymous visitor_token above (conversation continuity): this one
+// authenticates the visitor so the cross-origin widget can chat in place.
+const AUTH_TOKEN_KEY = "sa_auth_token_v1";
+
+function readAuthToken(): string {
+  try {
+    return (typeof window !== "undefined" && localStorage.getItem(AUTH_TOKEN_KEY)) || "";
+  } catch {
+    return "";
+  }
+}
 
 interface AssistantBlockOption {
   label?: string;
@@ -77,6 +89,9 @@ interface BootstrapResponse {
   auth_required?: boolean;
   auth_required_note?: string;
   login_url?: string;
+  email_otp_enabled?: boolean;
+  mobile_login_enabled?: boolean;
+  registration_paused?: boolean;
 }
 interface SessionResponse {
   ok?: boolean;
@@ -132,9 +147,17 @@ function api(path: string): string {
 }
 
 export async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  // After in-chat login the cross-origin widget has no session cookie, so it
+  // carries the Sanctum bearer token on every /assistant/* call.
+  const tok = readAuthToken();
+  if (tok) headers.Authorization = `Bearer ${tok}`;
   const res = await fetch(api(path), {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
   return (await res.json()) as T;
@@ -185,6 +208,10 @@ export default function SiteAssistant() {
   const [authRequired, setAuthRequired] = useState(false);
   const [authNote, setAuthNote] = useState("Please log in to chat with us.");
   const [loginUrl, setLoginUrl] = useState(LOGIN_URL);
+  // Which passwordless methods the in-chat login form may offer (from
+  // bootstrap). When both are false the gate shows the full-page login CTA.
+  const [emailOtpEnabled, setEmailOtpEnabled] = useState(true);
+  const [mobileLoginEnabled, setMobileLoginEnabled] = useState(false);
   const [input, setInput] = useState("");
   const [tooltip, setTooltip] = useState<string | null>(null);
   // Default mascot resolved from the backend bootstrap, populated on mount
@@ -230,8 +257,11 @@ export default function SiteAssistant() {
     if (!bootstrapPromiseRef.current) {
       bootstrapPromiseRef.current = (async () => {
         try {
+          const bootHeaders: Record<string, string> = { Accept: "application/json" };
+          const tok = readAuthToken();
+          if (tok) bootHeaders.Authorization = `Bearer ${tok}`;
           const res = await fetch(api("/assistant/bootstrap?surface=marketing"), {
-            headers: { Accept: "application/json" },
+            headers: bootHeaders,
           });
           return (await res.json()) as BootstrapResponse;
         } catch {
@@ -281,7 +311,13 @@ export default function SiteAssistant() {
         setAuthRequired(true);
         if (data.auth_required_note) setAuthNote(data.auth_required_note);
         if (data.login_url) setLoginUrl(data.login_url);
+      } else {
+        setAuthRequired(false);
       }
+      if (typeof data.email_otp_enabled === "boolean")
+        setEmailOtpEnabled(data.email_otp_enabled);
+      if (typeof data.mobile_login_enabled === "boolean")
+        setMobileLoginEnabled(data.mobile_login_enabled);
       const session = await postJson<SessionResponse>("/assistant/session", {
         visitor_token: tokenRef.current,
         surface: "marketing",
@@ -334,6 +370,25 @@ export default function SiteAssistant() {
       }
     },
     [booted, boot]
+  );
+
+  // In-chat passwordless login succeeded on the marketing (cross-origin)
+  // widget: persist the bearer token and re-bootstrap as the signed-in user
+  // so the chat unlocks in place — no full-page redirect.
+  const onAuthSuccess = useCallback(
+    (tok: string) => {
+      try {
+        localStorage.setItem(AUTH_TOKEN_KEY, tok);
+      } catch {
+        /* ignore */
+      }
+      setAuthRequired(false);
+      setBooted(false);
+      // Force a fresh bootstrap (now authenticated) instead of the cached one.
+      bootstrapPromiseRef.current = null;
+      void boot();
+    },
+    [boot]
   );
 
   useEffect(() => {
@@ -731,37 +786,16 @@ export default function SiteAssistant() {
               </div>
             )}
 
-            {/* input — or the login gate when auth is required */}
+            {/* input — or the in-chat login gate when auth is required */}
             {authRequired ? (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                  padding: 12,
-                  textAlign: "center",
-                  borderTop: `1px solid ${t.panelBorder}`,
-                }}
-              >
-                <div style={{ fontSize: 12.5, color: t.sub, lineHeight: 1.4 }}>
-                  {authNote}
-                </div>
-                <a
-                  href={loginUrl}
-                  style={{
-                    display: "block",
-                    padding: "10px 14px",
-                    borderRadius: 12,
-                    color: "#fff",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    textDecoration: "none",
-                    background: `linear-gradient(135deg, ${BRAND_ACCENT}, #a855f7)`,
-                  }}
-                >
-                  Log in
-                </a>
-              </div>
+              <LoginGate
+                t={t}
+                authNote={authNote}
+                loginUrl={loginUrl}
+                emailEnabled={emailOtpEnabled}
+                mobileEnabled={mobileLoginEnabled}
+                onSuccess={onAuthSuccess}
+              />
             ) : (
               <div
                 style={{
@@ -1253,6 +1287,340 @@ const QC_CHANNELS: QcChannel[] = [
     inputType: "email",
   },
 ];
+
+interface SendCodeResponse {
+  ok?: boolean;
+  message?: string;
+  demo_reveal?: string;
+  error?: string;
+}
+interface VerifyCodeResponse {
+  ok?: boolean;
+  token?: string;
+  twofactor?: boolean;
+  login_url?: string;
+  error?: string;
+}
+
+/**
+ * In-chat passwordless login/signup for the cross-origin marketing widget.
+ * A 2-step form (identifier → 6-digit code): login == signup, so a brand-new
+ * account is created server-side on first successful verification. On success
+ * the server mints a Sanctum bearer token (no cookies cross the origin) which
+ * the parent persists + replays on every /assistant/* call. Honeypot +
+ * time-trap mirror the quick-contact form. When no OTP method is enabled we
+ * fall back to the full-page login CTA.
+ */
+function LoginGate({
+  t,
+  authNote,
+  loginUrl,
+  emailEnabled,
+  mobileEnabled,
+  onSuccess,
+}: {
+  t: ThemeTokens;
+  authNote: string;
+  loginUrl: string;
+  emailEnabled: boolean;
+  mobileEnabled: boolean;
+  onSuccess: (token: string) => void;
+}) {
+  const openedAt = useRef<number>(Date.now());
+  const trapRef = useRef<HTMLInputElement | null>(null);
+  const [step, setStep] = useState<"identifier" | "code">("identifier");
+  const [type, setType] = useState<"email" | "mobile">(
+    emailEnabled ? "email" : "mobile"
+  );
+  const [identifier, setIdentifier] = useState("");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [hint, setHint] = useState("");
+  const [twofaUrl, setTwofaUrl] = useState("");
+
+  const fallbackUrl = twofaUrl || loginUrl;
+
+  // No passwordless method available → full-page login fallback only.
+  if (!emailEnabled && !mobileEnabled) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          padding: 12,
+          textAlign: "center",
+          borderTop: `1px solid ${t.panelBorder}`,
+        }}
+      >
+        <div style={{ fontSize: 12.5, color: t.sub, lineHeight: 1.4 }}>
+          {authNote}
+        </div>
+        <a href={loginUrl} style={gatePrimaryStyle}>
+          Log in
+        </a>
+      </div>
+    );
+  }
+
+  const trapValue = () => trapRef.current?.value || "";
+
+  const sendCode = async () => {
+    const idv = identifier.trim();
+    if (busy) return;
+    if (!idv) {
+      setError(
+        type === "email"
+          ? "Please enter your email."
+          : "Please enter your phone number."
+      );
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const d = await postJson<SendCodeResponse>("/assistant/auth/send-code", {
+        identifier: idv,
+        type,
+        website: trapValue(),
+        elapsed_ms: Date.now() - openedAt.current,
+      });
+      if (d?.ok) {
+        setStep("code");
+        setCode("");
+        setHint(
+          d.demo_reveal || d.message || "We sent you a code. Enter it below."
+        );
+      } else {
+        setError(d?.error || "Something went wrong. Please try again.");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verifyCode = async () => {
+    const c = code.trim();
+    if (busy || c.length < 6) return;
+    setBusy(true);
+    setError("");
+    try {
+      const d = await postJson<VerifyCodeResponse>(
+        "/assistant/auth/verify-code",
+        {
+          identifier: identifier.trim(),
+          type,
+          code: c,
+          issue_token: true,
+          device: "marketing-web",
+          website: trapValue(),
+          elapsed_ms: Date.now() - openedAt.current,
+        }
+      );
+      if (d?.ok && d.token) {
+        onSuccess(d.token);
+        return;
+      }
+      if (d?.twofactor) {
+        if (d.login_url) setTwofaUrl(d.login_url);
+        setError(
+          d.error ||
+            "Finish signing in on the login page to complete two-factor."
+        );
+        return;
+      }
+      setError(d?.error || "Invalid or expired code.");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const primaryLabel =
+    step === "code"
+      ? busy
+        ? "Verifying…"
+        : "Verify & continue"
+      : busy
+        ? "Sending…"
+        : "Send code";
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    boxSizing: "border-box",
+    background: t.inputBg,
+    border: `1px solid ${t.inputBorder}`,
+    color: t.text,
+    borderRadius: 10,
+    padding: "9px 12px",
+    fontSize: 13,
+    outline: "none",
+    fontFamily: "inherit",
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        padding: 12,
+        borderTop: `1px solid ${t.panelBorder}`,
+      }}
+    >
+      <div style={{ fontSize: 12.5, color: t.sub, lineHeight: 1.4 }}>
+        {authNote ||
+          "Sign in or create your account to start chatting — no password needed."}
+      </div>
+
+      {/* honeypot: off-screen decoy a human never fills */}
+      <input
+        ref={trapRef}
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: -9999,
+          width: 1,
+          height: 1,
+          opacity: 0,
+          pointerEvents: "none",
+        }}
+      />
+
+      {step === "identifier" ? (
+        <>
+          {emailEnabled && mobileEnabled && (
+            <div style={{ display: "flex", gap: 6 }}>
+              {(
+                [
+                  ["email", "Email"],
+                  ["mobile", "Phone"],
+                ] as [("email" | "mobile"), string][]
+              ).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => {
+                    setType(val);
+                    setIdentifier("");
+                  }}
+                  style={{
+                    flex: 1,
+                    cursor: "pointer",
+                    borderRadius: 9,
+                    padding: "6px 8px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: "inherit",
+                    border: `1px solid ${
+                      type === val ? BRAND_ACCENT : t.inputBorder
+                    }`,
+                    background: type === val ? BRAND_ACCENT : t.inputBg,
+                    color: type === val ? "#fff" : t.sub,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          <input
+            type={type === "email" ? "email" : "tel"}
+            value={identifier}
+            autoComplete={type === "email" ? "email" : "tel"}
+            placeholder={
+              type === "email"
+                ? "you@example.com"
+                : "Phone (with country code)"
+            }
+            onChange={(e) => setIdentifier(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void sendCode();
+              }
+            }}
+            style={inputStyle}
+          />
+        </>
+      ) : (
+        <input
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          value={code}
+          placeholder="6-digit code"
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void verifyCode();
+            }
+          }}
+          style={inputStyle}
+        />
+      )}
+
+      {hint && step === "code" && (
+        <div style={{ fontSize: 11.5, color: t.chipText, lineHeight: 1.4 }}>
+          {hint}
+        </div>
+      )}
+      {error && (
+        <div style={{ fontSize: 11.5, color: "#ef4444", lineHeight: 1.4 }}>
+          {error}
+        </div>
+      )}
+
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => (step === "code" ? void verifyCode() : void sendCode())}
+        style={{ ...gatePrimaryStyle, opacity: busy ? 0.6 : 1 }}
+      >
+        {primaryLabel}
+      </button>
+
+      <a
+        href={fallbackUrl}
+        style={{
+          fontSize: 11.5,
+          color: t.sub,
+          textDecoration: "underline",
+          textAlign: "center",
+        }}
+      >
+        Log in on full page
+      </a>
+    </div>
+  );
+}
+
+const gatePrimaryStyle: React.CSSProperties = {
+  display: "block",
+  width: "100%",
+  boxSizing: "border-box",
+  border: 0,
+  cursor: "pointer",
+  padding: "10px 14px",
+  borderRadius: 12,
+  color: "#fff",
+  fontWeight: 600,
+  fontSize: 13,
+  textDecoration: "none",
+  textAlign: "center",
+  fontFamily: "inherit",
+  background: `linear-gradient(135deg, ${BRAND_ACCENT}, #a855f7)`,
+};
 
 /**
  * In-assistant "Contact us" view. Replaces the chat surfaces with the

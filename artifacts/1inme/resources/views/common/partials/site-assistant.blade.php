@@ -28,7 +28,9 @@
      data-choice-url="{{ url('/assistant/choice') }}"
      data-handoff-url="{{ url('/assistant/handoff') }}"
      data-quick-contact-url="{{ url('/assistant/quick-contact') }}"
-     data-low-balance-click-url="{{ url('/assistant/low-balance-click') }}">
+     data-low-balance-click-url="{{ url('/assistant/low-balance-click') }}"
+     data-send-code-url="{{ url('/assistant/auth/send-code') }}"
+     data-verify-code-url="{{ url('/assistant/auth/verify-code') }}">
 </div>
 <style>
 /* Brand-gradient launcher: chat-tag silhouette with aura, breath, sheen, sparkle, and tooltip.
@@ -187,8 +189,20 @@
 .sa-contact-done{padding:16px 8px;text-align:center;font-size:13px;color:#e2e8f0;line-height:1.5}
 .sa-gate{flex-direction:column;gap:8px;align-items:stretch;text-align:center}
 .sa-gate-note{font-size:12.5px;color:#cbd5e1;line-height:1.4}
-.sa-gate-cta{display:block;background:var(--sa-accent,#3d6bff);color:#fff;text-decoration:none;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:600}
+.sa-gate-cta{display:block;width:100%;border:0;cursor:pointer;background:var(--sa-accent,#3d6bff);color:#fff;text-decoration:none;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:600}
 .sa-gate-cta:hover{filter:brightness(1.08)}
+.sa-gate-cta:disabled{opacity:.6;cursor:default}
+.sa-gate-input{width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);color:#e6ecff;border-radius:10px;padding:9px 12px;font-size:13px;outline:none}
+.sa-gate-input::placeholder{color:#94a3b8}
+.sa-gate-input:focus{border-color:var(--sa-accent,#3d6bff)}
+.sa-gate-tabs{display:flex;gap:6px}
+.sa-gate-tab{flex:1;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#cbd5e1;border-radius:9px;padding:6px 8px;font-size:12px;font-weight:600}
+.sa-gate-tab.sa-gate-on{background:var(--sa-accent,#3d6bff);border-color:var(--sa-accent,#3d6bff);color:#fff}
+.sa-gate-hint{font-size:11.5px;color:#9fb4ff;line-height:1.4}
+.sa-gate-err{font-size:11.5px;color:#fca5a5;line-height:1.4}
+.sa-gate-alt{font-size:11.5px;color:#94a3b8;text-decoration:underline}
+.sa-gate-alt:hover{color:#cbd5e1}
+.sa-gate-trap{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
 .sa-suggested{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px}
 .sa-suggested .sa-btn{font-size:11.5px}
 .sa-low-balance{display:none;margin:0 10px 6px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35;align-items:center;gap:8px;flex-wrap:wrap}
@@ -231,6 +245,12 @@ html.light-mode .sa-contact-back:hover{color:#1e293b}
 html.light-mode .sa-contact-intro{color:#475569}
 html.light-mode .sa-contact-done{color:#1e293b}
 html.light-mode .sa-gate-note{color:#475569}
+html.light-mode .sa-gate-input{background:#fff;border-color:#cbd5e1;color:#0f172a}
+html.light-mode .sa-gate-input::placeholder{color:#94a3b8}
+html.light-mode .sa-gate-tab{background:#f1f5f9;border-color:#cbd5e1;color:#475569}
+html.light-mode .sa-gate-tab.sa-gate-on{color:#fff}
+html.light-mode .sa-gate-hint{color:#4f6bd8}
+html.light-mode .sa-gate-alt{color:#64748b}
 html.light-mode .sa-low-balance{background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);color:#92400e}
 html.light-mode .sa-low-balance .sa-lb-cta{background:rgba(251,191,36,.24);border:1px solid rgba(251,191,36,.5);color:#92400e}
 html.light-mode .sa-low-balance .sa-lb-cta:hover{background:rgba(251,191,36,.4);color:#0f172a}
@@ -309,6 +329,10 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // client-side (the server enforces it too).
   var AUTH_REQUIRED=false;
   var LOGIN_URL=(typeof window.__SA_LOGIN_URL==='string' && window.__SA_LOGIN_URL) ? window.__SA_LOGIN_URL : '/login';
+  // Which passwordless methods the in-chat login form may offer. Updated
+  // from the bootstrap response; when both are false the gate falls back
+  // to the full-page login CTA.
+  var EMAIL_OTP_ENABLED=true, MOBILE_LOGIN_ENABLED=false;
 
   function pageMeta(){
     return {
@@ -494,6 +518,8 @@ window.__SA_LOGIN_URL = @json(url('/login'));
         AUTH_REQUIRED = !!data.auth_required;
         if(typeof data.auth_required_note==='string' && data.auth_required_note){ CHROME.auth_required = data.auth_required_note; }
         if(typeof data.login_url==='string' && data.login_url){ LOGIN_URL = data.login_url; }
+        if(typeof data.email_otp_enabled==='boolean'){ EMAIL_OTP_ENABLED = data.email_otp_enabled; }
+        if(typeof data.mobile_login_enabled==='boolean'){ MOBILE_LOGIN_ENABLED = data.mobile_login_enabled; }
         // Subheading is shown in the header until the first message is
         // rendered, then replaced with the typing/handoff note. We
         // re-apply it here too so admin edits made between render and
@@ -598,19 +624,134 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     if(note){ document.getElementById('sa-sub').textContent=note; }
   }
 
-  // Replaces the message composer with a login prompt + CTA when the
-  // assistant requires authentication for this surface. The server
-  // independently blocks message/stream/choice/handoff for anonymous
-  // visitors — this is the matching client UX.
+  // In-chat passwordless login/signup. Replaces the composer with a 2-step
+  // form (identifier → 6-digit code). Login == signup: a brand-new account is
+  // created server-side on first successful verification. Honeypot + time-trap
+  // mirror the quick-contact form. When no OTP method is enabled we fall back
+  // to the full-page login CTA.
   function showLoginGate(){
     var row=document.querySelector('#sa-panel .sa-input-row');
     if(!row) return;
     row.innerHTML='';
     row.classList.add('sa-gate');
-    var note=el('div',{class:'sa-gate-note'}, CHROME.auth_required || 'Please log in to chat with us.');
-    var cta=el('a',{class:'sa-gate-cta',href:LOGIN_URL,target:'_self',rel:'noopener'}, @json(__('Log in')));
+
+    // No passwordless method available → full-page login fallback only.
+    if(!EMAIL_OTP_ENABLED && !MOBILE_LOGIN_ENABLED){
+      row.appendChild(el('div',{class:'sa-gate-note'}, CHROME.auth_required || @json(__('Please log in to chat with us.'))));
+      row.appendChild(el('a',{class:'sa-gate-cta',href:LOGIN_URL,target:'_self',rel:'noopener'}, @json(__('Log in'))));
+      return;
+    }
+
+    var openedAt=Date.now();
+    var step='identifier', busyG=false;
+    var type = EMAIL_OTP_ENABLED ? 'email' : 'mobile';
+
+    var note=el('div',{class:'sa-gate-note'}, CHROME.auth_required || @json(__('Sign in or create your account to start chatting — no password needed.')));
+    var tabs=el('div',{class:'sa-gate-tabs'});
+    // Honeypot: a decoy field kept off-screen; bots fill it, humans don't.
+    var trap=el('input',{type:'text',name:'website',tabindex:'-1',autocomplete:'off','aria-hidden':'true',class:'sa-gate-trap'});
+    var idInput=el('input',{class:'sa-gate-input',type:'email',autocomplete:'email',placeholder:@json(__('you@example.com'))});
+    var codeInput=el('input',{class:'sa-gate-input',type:'text',inputmode:'numeric',autocomplete:'one-time-code',maxlength:'6',placeholder:@json(__('6-digit code'))});
+    codeInput.style.display='none';
+    var hint=el('div',{class:'sa-gate-hint'}); hint.style.display='none';
+    var errBox=el('div',{class:'sa-gate-err'}); errBox.style.display='none';
+    var primary=el('button',{class:'sa-gate-cta',type:'button'}, @json(__('Send code')));
+    var fallback=el('a',{class:'sa-gate-alt',href:LOGIN_URL,target:'_self',rel:'noopener'}, @json(__('Log in on full page')));
+
+    function showErr(m){ errBox.textContent=m; errBox.style.display=''; }
+    function clearErr(){ errBox.style.display='none'; }
+    function setType(t){
+      type=t;
+      idInput.setAttribute('type', t==='email'?'email':'tel');
+      idInput.setAttribute('placeholder', t==='email'? @json(__('you@example.com')) : @json(__('Phone (with country code)')));
+      Array.prototype.forEach.call(tabs.children,function(b){ b.classList.toggle('sa-gate-on', b.getAttribute('data-t')===t); });
+    }
+
+    if(EMAIL_OTP_ENABLED && MOBILE_LOGIN_ENABLED){
+      [['email',@json(__('Email'))],['mobile',@json(__('Phone'))]].forEach(function(p){
+        var b=el('button',{type:'button',class:'sa-gate-tab','data-t':p[0]}, p[1]);
+        b.onclick=function(){ setType(p[0]); idInput.focus(); };
+        tabs.appendChild(b);
+      });
+    }
+
+    function doSend(){
+      if(busyG) return;
+      var idv=(idInput.value||'').trim();
+      if(!idv){ idInput.style.borderColor='#ef4444'; return; }
+      idInput.style.borderColor=''; busyG=true; primary.disabled=true;
+      primary.textContent=@json(__('Sending…')); clearErr();
+      jpost(ds.sendCodeUrl, { identifier:idv, type:type, website:(trap.value||''), elapsed_ms:(Date.now()-openedAt) })
+        .then(function(d){
+          if(d && d.ok){
+            step='code';
+            tabs.style.display='none'; idInput.style.display='none';
+            codeInput.style.display=''; codeInput.value='';
+            hint.textContent = d.demo_reveal ? d.demo_reveal : (d.message || @json(__('We sent you a code. Enter it below.')));
+            hint.style.display='';
+            setTimeout(function(){ codeInput.focus(); },50);
+          } else {
+            showErr((d&&d.error) || @json(__('Something went wrong. Please try again.')));
+          }
+        })
+        .catch(function(){ showErr(@json(__('Network error. Please try again.'))); })
+        .finally(function(){ busyG=false; primary.disabled=false; primary.textContent = step==='code'? @json(__('Verify & continue')) : @json(__('Send code')); });
+    }
+
+    function doVerify(){
+      if(busyG) return;
+      var code=(codeInput.value||'').trim();
+      if(code.length<6){ codeInput.style.borderColor='#ef4444'; return; }
+      codeInput.style.borderColor=''; busyG=true; primary.disabled=true;
+      primary.textContent=@json(__('Verifying…')); clearErr();
+      jpost(ds.verifyCodeUrl, { identifier:(idInput.value||'').trim(), type:type, code:code, website:(trap.value||''), elapsed_ms:(Date.now()-openedAt) })
+        .then(function(d){
+          if(d && d.ok){ onLoginSuccess(); return; }
+          if(d && d.twofactor){
+            if(d.login_url){ LOGIN_URL=d.login_url; fallback.href=LOGIN_URL; }
+            showErr(d.error || @json(__('Finish signing in on the login page to complete two-factor.')));
+            return;
+          }
+          showErr((d&&d.error) || @json(__('Invalid or expired code.')));
+        })
+        .catch(function(){ showErr(@json(__('Network error. Please try again.'))); })
+        .finally(function(){ busyG=false; primary.disabled=false; primary.textContent=@json(__('Verify & continue')); });
+    }
+
+    primary.onclick=function(){ step==='code' ? doVerify() : doSend(); };
+    idInput.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); doSend(); } });
+    codeInput.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); doVerify(); } });
+
     row.appendChild(note);
-    row.appendChild(cta);
+    if(EMAIL_OTP_ENABLED && MOBILE_LOGIN_ENABLED) row.appendChild(tabs);
+    row.appendChild(idInput);
+    row.appendChild(codeInput);
+    row.appendChild(trap);
+    row.appendChild(hint);
+    row.appendChild(errBox);
+    row.appendChild(primary);
+    row.appendChild(fallback);
+    if(EMAIL_OTP_ENABLED && MOBILE_LOGIN_ENABLED) setType(type);
+    setTimeout(function(){ idInput.focus(); },50);
+  }
+
+  // Put the normal composer back after a successful in-chat login.
+  function restoreComposer(){
+    var row=document.querySelector('#sa-panel .sa-input-row');
+    if(!row) return;
+    row.innerHTML='';
+    row.classList.remove('sa-gate');
+    row.appendChild(ta); row.appendChild(sendBtn);
+    ta.disabled=false; sendBtn.disabled=false;
+  }
+
+  // Same-origin (blade) success: a web session now exists. Restore the
+  // composer and re-bootstrap so the greeting renders as the signed-in user.
+  function onLoginSuccess(){
+    AUTH_REQUIRED=false;
+    restoreComposer();
+    bootstrapped=false;
+    bootstrap();
   }
 
   function renderMessage(m){
