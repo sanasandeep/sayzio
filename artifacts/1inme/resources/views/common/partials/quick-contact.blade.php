@@ -96,6 +96,15 @@
         var tabs=el('div',{class:'qc-tabs'});
         var contact=el('input',{type:'tel',class:'qc-input',placeholder:CHANNELS[0].placeholder});
         var msg=el('textarea',{class:'qc-msg',rows:'2',placeholder:T.msg});
+        // Honeypot: an off-screen decoy a real visitor never sees or fills but
+        // automated form-fillers tend to complete. A non-empty value makes the
+        // server silently drop the submission. Hidden from sighted users and AT
+        // (aria-hidden + tabindex -1) and excluded from autofill.
+        var trap=el('input',{
+            type:'text', name:'website', tabindex:'-1', autocomplete:'off',
+            'aria-hidden':'true'
+        });
+        trap.style.cssText='position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none';
         var send=el('button',{type:'button',class:'qc-send'}, T.send);
 
         function applyChannel(ch){
@@ -118,7 +127,7 @@
             if(busy) return;
             var val=(contact.value||'').trim();
             if(!val){ contact.style.borderColor='#ef4444'; return; }
-            var payload={channel:selected, message:(msg.value||'').trim()};
+            var payload={channel:selected, message:(msg.value||'').trim(), website:(trap.value||'')};
             if(selected==='email'){ payload.email=val; } else { payload.phone=val; }
             busy=true; send.disabled=true; send.textContent=T.sending; errBox.style.display='none';
             fetch(url,{
@@ -140,6 +149,7 @@
         bodyEl.appendChild(errBox);
         bodyEl.appendChild(tabs);
         bodyEl.appendChild(contact);
+        bodyEl.appendChild(trap);
         bodyEl.appendChild(msg);
         bodyEl.appendChild(send);
         applyChannel(CHANNELS[0]);

@@ -19,6 +19,10 @@ export type QuickContactInput = {
   email?: string | null;
   phone?: string | null;
   message?: string | null;
+  // Honeypot decoy. A real user never fills this; the server silently drops
+  // any submission whose `website` is non-empty. Sent only when populated so
+  // genuine requests post nothing for it.
+  website?: string | null;
 };
 
 export type QuickContactResult = {
@@ -37,6 +41,7 @@ export async function sendQuickContact(
       email: input.email?.trim() || undefined,
       phone: input.phone?.trim() || undefined,
       message: input.message?.trim() || undefined,
+      website: input.website?.trim() || undefined,
     }),
   });
 }

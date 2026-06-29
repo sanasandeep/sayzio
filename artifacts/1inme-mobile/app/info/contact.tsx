@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -70,6 +71,10 @@ export default function QuickContactScreen() {
   const [email, setEmail] = useState(user?.email ?? "");
   const [name, setName] = useState(user?.display_name ?? "");
   const [message, setMessage] = useState("");
+  // Honeypot decoy: a real user never sees or fills this (rendered off-screen,
+  // not focusable, no autofill). The server silently drops any submission whose
+  // `website` is non-empty.
+  const [website, setWebsite] = useState("");
   const [sent, setSent] = useState<string | null>(null);
 
   const active = CHANNELS.find((c) => c.value === channel)!;
@@ -82,6 +87,7 @@ export default function QuickContactScreen() {
         email,
         phone: channel === "email" ? null : phone,
         message,
+        website,
       }),
     onSuccess: (res) => {
       setSent(res.message);
@@ -212,6 +218,25 @@ export default function QuickContactScreen() {
                   onChangeText={setName}
                 />
 
+                {/* Honeypot decoy — off-screen, not focusable, no autofill.
+                    Real users never reach it; scripted fillers tend to. */}
+                <TextInput
+                  style={styles.honeypot}
+                  value={website}
+                  onChangeText={setWebsite}
+                  autoComplete="off"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  textContentType="none"
+                  importantForAutofill="no"
+                  accessible={false}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  focusable={false}
+                  pointerEvents="none"
+                  aria-hidden
+                />
+
                 {channel === "email" ? (
                   <TextField
                     label="Email address"
@@ -311,5 +336,13 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  honeypot: {
+    position: "absolute",
+    left: -9999,
+    top: -9999,
+    width: 1,
+    height: 1,
+    opacity: 0,
   },
 });
