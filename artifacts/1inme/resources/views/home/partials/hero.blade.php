@@ -76,32 +76,35 @@
                         // (its own radius, speed and direction — see CSS). Angles are evenly
                         // spaced within each ring so tiles never crowd. `img` files live in
                         // public/images/zio-nodes/.
+                        // Each node carries a punchy title (t), an engaging one-line
+                        // detail (d) and a small stat/benefit chip (tag) shown in the
+                        // popover + the <noscript> fallback.
                         $zioRings = [
                             // Inner ring (4) — Zio's core AI brain.
                             ['cls' => 'r1', 'nodes' => [
-                                ['a' => 0,   'img' => 'ai.png',        'c' => 'var(--c2)', 't' => 'AI Page Builder', 'd' => 'Describe it — Zio builds your page in seconds.'],
-                                ['a' => 90,  'img' => 'growth.png',    'c' => 'var(--c1)', 't' => 'Growth Coach',     'd' => "Zio spots what's working and what to do next."],
-                                ['a' => 180, 'img' => 'calls.png',     'c' => 'var(--c4)', 't' => 'AI Phone',         'd' => 'Zio answers calls and turns them into leads.'],
-                                ['a' => 270, 'img' => 'analytics.png', 'c' => 'var(--c2)', 't' => 'Live Analytics',   'd' => 'Track every click, scan and visit in real time.'],
+                                ['a' => 0,   'img' => 'ai.png',        'c' => 'var(--c2)', 't' => 'AI Page Builder', 'd' => 'Describe your idea in a sentence and Zio assembles a complete, on-brand page for you.', 'tag' => 'Live in ~30s'],
+                                ['a' => 90,  'img' => 'growth.png',    'c' => 'var(--c1)', 't' => 'Growth Coach',     'd' => "Zio reads your stats, flags what's working and hands you the next move to grow.", 'tag' => 'Weekly tips'],
+                                ['a' => 180, 'img' => 'calls.png',     'c' => 'var(--c4)', 't' => 'AI Phone',         'd' => 'Zio answers your calls and turns every caller into a captured lead while you focus.', 'tag' => '24/7 answer'],
+                                ['a' => 270, 'img' => 'analytics.png', 'c' => 'var(--c2)', 't' => 'Live Analytics',   'd' => 'Watch every click, scan and visit land in real time on a live world map.', 'tag' => 'Real-time'],
                             ]],
                             // Middle ring (6) — everyday building & growth tools.
                             ['cls' => 'r2', 'nodes' => [
-                                ['a' => 30,  'img' => 'link.png',      'c' => 'var(--c2)', 't' => 'Smart Links',      'd' => 'Branded short links for everything you share.'],
-                                ['a' => 90,  'img' => 'qr.png',        'c' => 'var(--c3)', 't' => 'QR Studio',        'd' => 'Design scannable codes that track every scan.'],
-                                ['a' => 150, 'img' => 'store.png',     'c' => '#10b981',   't' => 'Built-in Store',   'd' => 'Sell products and take payments from one link.'],
-                                ['a' => 210, 'img' => 'forms.png',     'c' => 'var(--c2)', 't' => 'Forms',           'd' => 'Collect leads and payments with custom forms.'],
-                                ['a' => 270, 'img' => 'audience.png',  'c' => 'var(--c1)', 't' => 'Subscribers',     'd' => 'Grow an email and WhatsApp audience you own.'],
-                                ['a' => 330, 'img' => 'social.png',    'c' => 'var(--c3)', 't' => 'Social Proof',     'd' => 'Live popups that turn visits into action.'],
+                                ['a' => 30,  'img' => 'link.png',      'c' => 'var(--c2)', 't' => 'Smart Links',      'd' => 'Turn long URLs into branded short links you can track, tag and retarget.', 'tag' => 'Branded'],
+                                ['a' => 90,  'img' => 'qr.png',        'c' => 'var(--c3)', 't' => 'QR Studio',        'd' => 'Design on-brand codes with custom eyes and frames that track every single scan.', 'tag' => '16 types'],
+                                ['a' => 150, 'img' => 'store.png',     'c' => '#10b981',   't' => 'Built-in Store',   'd' => 'Sell products and take payments straight from your link — and keep every cent.', 'tag' => '0% fees'],
+                                ['a' => 210, 'img' => 'forms.png',     'c' => 'var(--c2)', 't' => 'Forms',           'd' => 'Collect leads, bookings and payments with 21 customizable field types.', 'tag' => '21 fields'],
+                                ['a' => 270, 'img' => 'audience.png',  'c' => 'var(--c1)', 't' => 'Subscribers',     'd' => 'Grow an email and WhatsApp audience you actually own — then message them anytime.', 'tag' => 'You own it'],
+                                ['a' => 330, 'img' => 'social.png',    'c' => 'var(--c3)', 't' => 'Social Proof',     'd' => 'Live popups surface real activity that nudges new visitors to take action.', 'tag' => '7 widgets'],
                             ]],
                             // Outer ring (7) — the wider feature universe + a new add-on.
                             ['cls' => 'r3', 'nodes' => [
-                                ['a' => 0,   'img' => 'code.png',      'c' => 'var(--c2)', 't' => 'Developer API',    'd' => 'Build on Sayzio with a full REST API.'],
-                                ['a' => 51,  'img' => 'reviews.png',   'c' => 'var(--c3)', 't' => 'Reviews',         'd' => 'Gather and showcase reviews that build trust.'],
-                                ['a' => 103, 'img' => 'menu.png',      'c' => '#10b981',   't' => 'Restaurant Menu', 'd' => 'QR menus with live orders sent to your staff.'],
-                                ['a' => 154, 'img' => 'resume.png',    'c' => 'var(--c2)', 't' => 'Resume',          'd' => 'Build a shareable resume and portfolio page.'],
-                                ['a' => 206, 'img' => 'calendar.png',  'c' => 'var(--c1)', 't' => 'Calendar',        'd' => 'Share events visitors can follow and book.'],
-                                ['a' => 257, 'img' => 'vcard.png',     'c' => 'var(--c2)', 't' => 'Digital Cards',    'd' => 'Share a tappable vCard that saves instantly.'],
-                                ['a' => 309, 'img' => 'domain.png',    'c' => 'var(--c4)', 't' => 'Custom Domain',    'd' => 'Put your whole universe on your own domain.'],
+                                ['a' => 0,   'img' => 'code.png',      'c' => 'var(--c2)', 't' => 'Developer API',    'd' => 'Build anything on Sayzio with a full, token-secured REST API.', 'tag' => 'REST API'],
+                                ['a' => 51,  'img' => 'reviews.png',   'c' => 'var(--c3)', 't' => 'Reviews',         'd' => 'Collect native reviews and pull in Google & Trustpilot ratings to build instant trust.', 'tag' => 'Google + more'],
+                                ['a' => 103, 'img' => 'menu.png',      'c' => '#10b981',   't' => 'Restaurant Menu', 'd' => 'QR menus with live ordering that sends tickets straight to your kitchen staff.', 'tag' => 'Live orders'],
+                                ['a' => 154, 'img' => 'resume.png',    'c' => 'var(--c2)', 't' => 'Resume',          'd' => 'Build a polished, shareable resume and portfolio with AI tailoring and PDF export.', 'tag' => 'AI-tailored'],
+                                ['a' => 206, 'img' => 'calendar.png',  'c' => 'var(--c1)', 't' => 'Calendar',        'd' => 'Share events visitors can follow and book, synced to Google Calendar.', 'tag' => 'Auto-sync'],
+                                ['a' => 257, 'img' => 'vcard.png',     'c' => 'var(--c2)', 't' => 'Digital Cards',    'd' => 'Share a tappable vCard that saves straight to any phone in one tap.', 'tag' => 'One tap'],
+                                ['a' => 309, 'img' => 'domain.png',    'c' => 'var(--c4)', 't' => 'Custom Domain',    'd' => 'Put your whole universe on your own domain for a fully branded presence.', 'tag' => 'Your brand'],
                             ]],
                         ];
                         // Flat list (in ring order) for the <noscript> fallback below.
@@ -127,6 +130,7 @@
                                         <div class="zio-pop" x-show="open === {{ $i }}" x-cloak x-transition.opacity.scale.95 @click.stop role="dialog" aria-label="{{ $n['t'] }}">
                                             <span class="zio-pop-title">{{ $n['t'] }}</span>
                                             <span class="zio-pop-desc">{{ $n['d'] }}</span>
+                                            <span class="zio-pop-tag"><i class="fas fa-bolt"></i>{{ $n['tag'] }}</span>
                                             <button type="button" class="zio-pop-x" @click.stop="open = null" aria-label="Close">&times;</button>
                                         </div>
                                     </div>
@@ -154,6 +158,7 @@
                                 <span class="zio-noscript-text">
                                     <strong class="zio-noscript-title" style="--ac:{{ $n['c'] }}">{{ $n['t'] }}</strong>
                                     <span class="zio-noscript-desc">{{ $n['d'] }}</span>
+                                    <span class="zio-noscript-tag" style="--ac:{{ $n['c'] }}">{{ $n['tag'] }}</span>
                                 </span>
                             </li>
                         @endforeach
@@ -271,6 +276,11 @@
         /* Lift the rotors above the central mascot (z-index:3) while a popover is
            open, so an active node's popover is never hidden behind Zio. */
         .zio-paused .zio-rotor { z-index: 6; }
+        /* Each rotor is its own stacking context, so lifting only the active NODE
+           (z-index:16) can't raise it above a sibling rotor that comes later in the
+           DOM — those rings' icons would paint over the open card. Lift the whole
+           rotor that contains the active node above every other ring instead. */
+        .zio-paused .zio-rotor:has(.zio-node--on) { z-index: 20; }
 
         /* Pause every ring (and its counter-rotation) while a popover is open OR a
            node is hovered/focused, so nodes are easy to click and popovers stay put. */
@@ -351,8 +361,8 @@
         .zio-pop {
             position: absolute; bottom: calc(100% + 13px); left: 50%;
             transform: translateX(-50%);
-            width: max-content; max-width: 210px;
-            padding: 11px 30px 12px 13px;
+            width: max-content; max-width: 232px;
+            padding: 11px 30px 13px 13px;
             text-align: left;
             border-radius: 15px;
             background: rgba(15,19,38,.94);
@@ -368,7 +378,18 @@
             border: 7px solid transparent; border-top-color: rgba(15,19,38,.94);
         }
         .zio-pop-title { display: block; font-size: 13px; font-weight: 800; color: #fff; line-height: 1.25; }
-        .zio-pop-desc  { display: block; margin-top: 3px; font-size: 11.5px; font-weight: 500; color: rgba(214,222,255,.82); line-height: 1.4; }
+        .zio-pop-desc  { display: block; margin-top: 4px; font-size: 11.5px; font-weight: 500; color: rgba(214,222,255,.82); line-height: 1.45; }
+        .zio-pop-tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            margin-top: 9px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 10px; font-weight: 800; letter-spacing: .02em;
+            color: color-mix(in srgb, var(--ac) 75%, white 25%);
+            background: color-mix(in srgb, var(--ac) 16%, transparent);
+            border: 1px solid color-mix(in srgb, var(--ac) 38%, transparent);
+        }
+        .zio-pop-tag i { font-size: 8px; opacity: .9; }
         .zio-pop-x {
             position: absolute; top: 7px; right: 7px;
             width: 18px; height: 18px; line-height: 1;
@@ -449,6 +470,16 @@
             vertical-align: middle;
         }
         .zio-noscript-desc { margin-top: 2px; font-size: 11.5px; font-weight: 500; color: rgba(214,222,255,.82); line-height: 1.4; }
+        .zio-noscript-tag {
+            align-self: flex-start;
+            margin-top: 6px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 9.5px; font-weight: 800; letter-spacing: .02em;
+            color: color-mix(in srgb, var(--ac, var(--c2)) 75%, white 25%);
+            background: color-mix(in srgb, var(--ac, var(--c2)) 16%, transparent);
+            border: 1px solid color-mix(in srgb, var(--ac, var(--c2)) 38%, transparent);
+        }
 
         html.light-mode .zio-noscript-item {
             background: #ffffff; border-color: #e2e8f0;
@@ -456,6 +487,11 @@
         }
         html.light-mode .zio-noscript-title { color: #0f172a; }
         html.light-mode .zio-noscript-desc { color: #475569; }
+        html.light-mode .zio-noscript-tag {
+            color: color-mix(in srgb, var(--ac, var(--c2)) 60%, black 40%);
+            background: color-mix(in srgb, var(--ac, var(--c2)) 12%, white 88%);
+            border-color: color-mix(in srgb, var(--ac, var(--c2)) 30%, white 70%);
+        }
 
         /* ---- Tablet (single-column, sm→below-lg): the orbit is stacked under the
                copy in a wide column, so the vw-based size leaves it looking small and
@@ -504,6 +540,11 @@
         html.light-mode .zio-pop::after { border-top-color: rgba(255,255,255,.97); }
         html.light-mode .zio-pop-title { color: #0f172a; }
         html.light-mode .zio-pop-desc { color: #475569; }
+        html.light-mode .zio-pop-tag {
+            color: color-mix(in srgb, var(--ac) 60%, black 40%);
+            background: color-mix(in srgb, var(--ac) 12%, white 88%);
+            border-color: color-mix(in srgb, var(--ac) 30%, white 70%);
+        }
         html.light-mode .zio-pop-x { color: #64748b; background: #f1f5f9; }
         html.light-mode .zio-pop-x:hover { color: #0f172a; background: #e2e8f0; }
         html.light-mode .zio-mascot-halo { background: radial-gradient(circle, rgba(61,107,255,.28), transparent 68%); }
