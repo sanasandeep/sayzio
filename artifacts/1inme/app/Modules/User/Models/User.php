@@ -1090,7 +1090,7 @@ class User extends Authenticatable
         if ($this->hasPermission('user.plan_limits.bypass')) {
             return ['min' => 1, 'max' => 191];
         }
-        $min = (int) $this->getPlanFeature('min_alias_length', 3);
+        $min = (int) $this->getPlanFeature('min_alias_length', 4);
         $max = (int) $this->getPlanFeature('max_alias_length', 50);
         if ($min < 1)    $min = 1;
         if ($max < 1)    $max = 1;

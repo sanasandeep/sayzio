@@ -94,6 +94,10 @@ class LinkController extends Controller
 
     public function store(Request $request)
     {
+        // Per-plan alias minimum (free/unconfigured = largest, paid tiers
+        // step down). Enforced on the REST create path so mobile/API clients
+        // land on the same floor as the web form and live checker.
+        $aliasLimits = $request->user()->getAliasLengthLimits();
         $data = $request->validate([
             'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit'])],
             // The admin banned/reserved-names list is enforced on the mobile
@@ -101,7 +105,7 @@ class LinkController extends Controller
             // skip it), mirroring the web chooseType() rule and the live
             // check-alias indicator so a reserved handle can't slip in via the
             // REST create path.
-            'alias'      => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', new \App\Modules\Admin\Rules\NotBannedName(), Rule::unique('links', 'alias')],
+            'alias'      => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', new \App\Modules\Admin\Rules\NotBannedName(), Rule::unique('links', 'alias')],
             'title'      => ['nullable', 'string', 'max:200'],
             'long_url'   => ['nullable', 'url', 'max:2048'],
             'visibility' => ['nullable', Rule::in(['public', 'registered', 'followers', 'subscribers'])],
@@ -240,6 +244,7 @@ class LinkController extends Controller
         $link = Link::where('user_id', $request->user()->id)->find($id);
         if (!$link) return $this->notFound('Link not found');
 
+        $aliasLimits = $request->user()->getAliasLengthLimits();
         $data = $request->validate([
             'title'      => ['sometimes', 'nullable', 'string', 'max:200'],
             'long_url'   => ['sometimes', 'nullable', 'url', 'max:2048'],
@@ -247,7 +252,7 @@ class LinkController extends Controller
             // edit submit too (privileged `user.banned_names.bypass` holders
             // skip it), mirroring the create path so a reserved handle can't
             // slip in by renaming an existing link via the REST update path.
-            'alias'      => ['sometimes', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', new \App\Modules\Admin\Rules\NotBannedName(), Rule::unique('links', 'alias')->ignore($link->id)],
+            'alias'      => ['sometimes', 'string', 'min:' . $aliasLimits['min'], 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', new \App\Modules\Admin\Rules\NotBannedName(), Rule::unique('links', 'alias')->ignore($link->id)],
             'visibility' => ['sometimes', Rule::in(['public', 'registered', 'followers', 'subscribers'])],
             'is_active'  => ['sometimes', 'boolean'],
             'seo_title'  => ['sometimes', 'nullable', 'string', 'max:200'],
@@ -787,10 +792,11 @@ class LinkController extends Controller
             return $this->planGate('Smart links are not available on your current plan.', 'link_smart_rules', $user);
         }
 
+        $aliasLimits = $user->getAliasLengthLimits();
         $data = $request->validate([
             'long_url'     => ['required', 'url', 'max:2048'],
             'title'        => ['nullable', 'string', 'max:200'],
-            'alias'        => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('links', 'alias')],
+            'alias'        => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('links', 'alias')],
             'workspace_id' => ['nullable', 'integer'],
             'rules'        => ['required', 'array', 'min:1'],
         ]);
@@ -918,9 +924,10 @@ class LinkController extends Controller
      */
     public function storeAb(Request $request)
     {
+        $aliasLimits = $request->user()->getAliasLengthLimits();
         $data = $request->validate([
             'title'        => ['nullable', 'string', 'max:200'],
-            'alias'        => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('links', 'alias')],
+            'alias'        => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('links', 'alias')],
             'workspace_id' => ['nullable', 'integer'],
             'variants'     => ['required', 'array', 'min:2'],
             'variants.*.label' => ['nullable', 'string', 'max:120'],

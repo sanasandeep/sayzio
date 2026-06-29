@@ -3098,11 +3098,16 @@ class LinkController extends Controller
     {
         abort_if($link->user_id !== workspace_owner_id(), 403);
 
+        // Per-plan alias minimum (free/unconfigured = largest, paid tiers
+        // step down). Editing the primary alias enforces the same floor as
+        // creation and the live availability checker.
+        $aliasLimits = workspace_owner()->getAliasLengthLimits();
+
         $validated = $request->validate([
             'alias' => [
                 'required',
                 'string',
-                'min:3',
+                'min:' . $aliasLimits['min'],
                 'max:60',
                 'regex:/^[a-zA-Z0-9_-]+$/',
                 'unique:links,alias,' . $link->id,

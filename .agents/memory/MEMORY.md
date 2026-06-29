@@ -135,3 +135,4 @@
 - [AI Mind external sources](ai-mind-external-sources.md) — webhook (inbound push) + connector (outbound scheduled) KB sources; secrets reveal-once+rotate (never re-render stored secret), SSRF-guarded, config in `meta` JSON (no migration).
 - [e2e demo user bypasses banned names](e2e-demo-user-banned-bypass.md) — demo@1inme.com holds user.banned_names.bypass, so alias checker reports banned names as available; e2e can't assert "banned" state, use taken+invalid instead.
 - [Banned-name @handle surfaces](handle-banned-name-surfaces.md) — NotBannedName must run on all 4 handle-setting surfaces (API register, API profile update, web profile update, claimHandle), not just link aliases.
+- [Alias length enforcement surfaces](alias-length-surfaces.md) — per-plan min via User::getAliasLengthLimits() (free biggest); Api LinkController create paths + updateAlias/LinkAliasController used to bypass it; overlay seeder needs a data-migration backfill.

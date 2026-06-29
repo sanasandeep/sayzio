@@ -51,9 +51,14 @@ class LinkAliasController extends Controller
             return $this->respond($request, false, $msg, 403);
         }
 
+        // Resolve the alias minimum through the owner's plan (free/unconfigured
+        // users land on the largest minimum; paid tiers step down) so extra
+        // aliases enforce the same floor as the primary alias.
+        $aliasLimits = $user->getAliasLengthLimits();
+
         $validated = $request->validate([
             'alias' => [
-                'required', 'string', 'min:3', 'max:60',
+                'required', 'string', 'min:' . $aliasLimits['min'], 'max:60',
                 'regex:/^[a-zA-Z0-9_-]+$/',
             ],
         ], [

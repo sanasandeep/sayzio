@@ -435,7 +435,9 @@ class PlansAndAddonsSeeder extends Seeder
                     'max_projects' => 1,
                     'contacts_max' => 100,
                     'max_aliases_per_link' => ['default' => 0, 'biolink' => 1, 'short' => 0],
-                    'min_alias_length' => 3,
+                    // Free/entry plan keeps the LARGEST alias minimum; paid tiers
+                    // step down (creator/professional = 3, business+ = 2) as a perk.
+                    'min_alias_length' => 4,
                     'max_alias_length' => 50,
                     'max_workspaces' => 1,
                     'max_seats_per_workspace' => 1,
