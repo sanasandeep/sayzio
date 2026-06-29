@@ -55,21 +55,53 @@ export default function InboxTab() {
         }}
       >
         <Text style={[styles.title, { color: colors.foreground }]}>Inbox</Text>
-        <Pressable
-          onPress={() => router.push("/notifications")}
-          hitSlop={8}
-          style={({ pressed }) => [
-            styles.bellWrap,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderRadius: 999,
-              opacity: pressed ? 0.7 : 1,
-            },
-          ]}
-        >
-          <Feather name="bell" size={18} color={colors.primary} />
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Pressable
+            onPress={() => router.push("/inbox/spam-settings")}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.bellWrap,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderRadius: 999,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Feather name="shield" size={18} color={colors.primary} />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/inbox/forwarding")}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.bellWrap,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderRadius: 999,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Feather name="send" size={18} color={colors.primary} />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/notifications")}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.bellWrap,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderRadius: 999,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Feather name="bell" size={18} color={colors.primary} />
+          </Pressable>
+        </View>
       </View>
 
       <View style={[styles.segment, { paddingHorizontal: 20 }]}>

@@ -405,6 +405,18 @@ Route::prefix('v1')->group(function () {
         Route::put ('/admin/plans/{plan}',                [\App\Modules\Api\Controllers\AdminPlanController::class, 'update'])->whereNumber('plan');
         Route::post('/admin/plans/{plan}/duplicate',      [\App\Modules\Api\Controllers\AdminPlanController::class, 'duplicate'])->whereNumber('plan');
 
+        // Banned names / reserved handles (mobile parity for the back-office
+        // page). Gated inside the controller behind the same admin-guard
+        // `settings.manage` permission the web routes use.
+        Route::get   ('/admin/banned-names',                 [\App\Modules\Api\Controllers\AdminBannedNameController::class, 'index']);
+        Route::post  ('/admin/banned-names',                 [\App\Modules\Api\Controllers\AdminBannedNameController::class, 'store']);
+        Route::post  ('/admin/banned-names/bulk',            [\App\Modules\Api\Controllers\AdminBannedNameController::class, 'bulkStore']);
+        Route::post  ('/admin/banned-names/restore-defaults',[\App\Modules\Api\Controllers\AdminBannedNameController::class, 'restoreDefaults']);
+        Route::get   ('/admin/banned-names/export',          [\App\Modules\Api\Controllers\AdminBannedNameController::class, 'export']);
+        Route::get   ('/admin/banned-names/{id}/conflicts',  [\App\Modules\Api\Controllers\AdminBannedNameController::class, 'conflicts'])->whereNumber('id');
+        Route::post  ('/admin/banned-names/{id}/force-rename',[\App\Modules\Api\Controllers\AdminBannedNameController::class, 'toggleForceRename'])->whereNumber('id');
+        Route::delete('/admin/banned-names/{id}',            [\App\Modules\Api\Controllers\AdminBannedNameController::class, 'destroy'])->whereNumber('id');
+
         // Wallet & coins (mobile parity).
         Route::get ('/wallet',              [WalletController::class, 'balance']);
         Route::get ('/wallet/transactions', [WalletController::class, 'transactions']);
@@ -674,7 +686,23 @@ Route::prefix('v1')->group(function () {
         Route::patch ('/contacts/{id}',             [ContactController::class, 'update'])->whereNumber('id');
         Route::post  ('/contacts/{id}/manual-profile', [ContactController::class, 'updateManualProfile'])->whereNumber('id');
         Route::post  ('/contacts/{id}/merge',       [ContactController::class, 'merge'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::post  ('/contacts/{id}/sms-biolink', [ContactController::class, 'smsBiolink'])->whereNumber('id')->middleware('throttle:30,1');
         Route::delete('/contacts/{id}',             [ContactController::class, 'destroy'])->whereNumber('id');
+
+        // Contacts — Google Contacts sync
+        Route::get   ('/contacts/google/status',     [ContactController::class, 'googleStatus']);
+        Route::post  ('/contacts/google/sync',       [ContactController::class, 'googleSync'])->middleware('throttle:12,1');
+        Route::patch ('/contacts/google',            [ContactController::class, 'googleUpdate']);
+        Route::delete('/contacts/google',            [ContactController::class, 'googleDisconnect']);
+
+        // Contacts — bulk import preview/commit (area 4)
+        Route::post  ('/contacts/import/parse',                  [ContactController::class, 'importParse'])->middleware('throttle:30,1');
+        Route::get   ('/contacts/import/preview/{token}',        [ContactController::class, 'importPreview']);
+        Route::patch ('/contacts/import/preview/{token}/rows/{index}', [ContactController::class, 'importRowUpdate'])->whereNumber('index');
+        Route::delete('/contacts/import/preview/{token}/rows/{index}', [ContactController::class, 'importRowSkip'])->whereNumber('index');
+        Route::delete('/contacts/import/preview/{token}',        [ContactController::class, 'importCancel']);
+        Route::post  ('/contacts/import/preview/{token}/confirm',[ContactController::class, 'importConfirm']);
+        Route::get   ('/contacts/import/status/{id}',            [ContactController::class, 'importStatus'])->whereNumber('id');
 
         // Forms (mobile can list + create-on-the-spot from the block
         // editor; richer editing lives on web).
@@ -708,6 +736,22 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/inbox/conversations/{id}/assign', [InboxController::class, 'assign'])->whereNumber('id');
         Route::delete('/inbox/conversations/{id}',        [InboxController::class, 'destroy'])->whereNumber('id');
         Route::get   ('/inbox/teammates',                 [InboxController::class, 'teammates']);
+
+        // Inbox spam settings (mobile parity for the Spam Settings page).
+        Route::get   ('/inbox/spam-settings',                 [\App\Modules\Api\Controllers\InboxSettingsController::class, 'show']);
+        Route::put   ('/inbox/spam-settings',                 [\App\Modules\Api\Controllers\InboxSettingsController::class, 'update']);
+        Route::post  ('/inbox/spam-settings/disable-keyword', [\App\Modules\Api\Controllers\InboxSettingsController::class, 'disableKeyword']);
+        Route::post  ('/inbox/spam-settings/enable-keyword',  [\App\Modules\Api\Controllers\InboxSettingsController::class, 'enableDefaultKeyword']);
+        Route::post  ('/inbox/spam-settings/import-trusted',  [\App\Modules\Api\Controllers\InboxSettingsController::class, 'importTrustedCsv']);
+
+        // Inbox forwarding rules (mobile parity for the Forwarding page).
+        Route::get   ('/inbox/forwards',                  [\App\Modules\Api\Controllers\InboxForwardController::class, 'index']);
+        Route::post  ('/inbox/forwards',                  [\App\Modules\Api\Controllers\InboxForwardController::class, 'store']);
+        Route::put   ('/inbox/forwards/{id}',             [\App\Modules\Api\Controllers\InboxForwardController::class, 'update'])->whereNumber('id');
+        Route::post  ('/inbox/forwards/{id}/toggle',      [\App\Modules\Api\Controllers\InboxForwardController::class, 'toggle'])->whereNumber('id');
+        Route::delete('/inbox/forwards/{id}',             [\App\Modules\Api\Controllers\InboxForwardController::class, 'destroy'])->whereNumber('id');
+        Route::post  ('/inbox/forwards/{id}/test',        [\App\Modules\Api\Controllers\InboxForwardController::class, 'test'])->whereNumber('id');
+        Route::post  ('/inbox/forward-deliveries/{id}/retry', [\App\Modules\Api\Controllers\InboxForwardController::class, 'retry'])->whereNumber('id');
 
         // Workspaces
         Route::get('/workspaces',                 [WorkspaceController::class, 'index']);

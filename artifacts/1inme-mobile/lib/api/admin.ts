@@ -209,3 +209,130 @@ export async function removeProtectedAccount(
   );
   return res.data;
 }
+
+// ---- Banned names / reserved handles (mobile parity for the web page) ----
+// Gated server-side behind the admin-guard `settings.manage` permission
+// (the `manage_settings` capability). 403 otherwise.
+
+export type BannedNameConflicts = {
+  users: number;
+  links: number;
+  extras: number;
+};
+
+export type BannedName = {
+  id: number;
+  name: string;
+  note: string | null;
+  force_rename_on_login: boolean;
+  created_at: string | null;
+  conflicts: BannedNameConflicts | null;
+  conflict_total: number | null;
+};
+
+export type BannedNamesList = {
+  items: BannedName[];
+  can_manage: boolean;
+};
+
+export type BannedNameConflictRow = {
+  kind: "user" | "link" | "extra";
+  id: number;
+  label: string;
+  detail: string;
+  owner: { id: number; name: string | null; handle: string | null } | null;
+  acknowledged: string | null;
+};
+
+export type BannedNameBulkResult = {
+  stats: { imported: number; duplicates: number; rejected: number };
+  imported: string[];
+  duplicates: string[];
+  rejected: { name: string; reason: string }[];
+};
+
+export type BannedNameExport = {
+  filename: string;
+  count: number;
+  items: { name: string; note: string | null; created_at: string | null }[];
+  csv: string;
+};
+
+export async function listBannedNames(): Promise<BannedNamesList> {
+  const res = await apiFetch<{ data: BannedNamesList }>("/admin/banned-names");
+  return res.data;
+}
+
+export async function createBannedName(
+  name: string,
+  note?: string,
+  forceRename = false,
+): Promise<BannedName> {
+  const res = await apiFetch<{ data: { item: BannedName } }>(
+    "/admin/banned-names",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        note: note?.trim() || undefined,
+        force_rename_on_login: forceRename,
+      }),
+    },
+  );
+  return res.data.item;
+}
+
+export async function toggleBannedNameForceRename(
+  id: number,
+): Promise<{ item: BannedName; message: string }> {
+  const res = await apiFetch<{ data: { item: BannedName; message: string } }>(
+    `/admin/banned-names/${id}/force-rename`,
+    { method: "POST" },
+  );
+  return res.data;
+}
+
+export async function bulkCreateBannedNames(
+  names: string,
+  note?: string,
+): Promise<BannedNameBulkResult> {
+  const res = await apiFetch<{ data: BannedNameBulkResult }>(
+    "/admin/banned-names/bulk",
+    {
+      method: "POST",
+      body: JSON.stringify({ names, note: note?.trim() || undefined }),
+    },
+  );
+  return res.data;
+}
+
+export async function deleteBannedName(id: number): Promise<void> {
+  await apiFetch(`/admin/banned-names/${id}`, { method: "DELETE" });
+}
+
+export async function restoreBannedNameDefaults(): Promise<{
+  inserted: number;
+  message: string;
+}> {
+  const res = await apiFetch<{ data: { inserted: number; message: string } }>(
+    "/admin/banned-names/restore-defaults",
+    { method: "POST" },
+  );
+  return res.data;
+}
+
+export async function getBannedNameConflicts(
+  id: number,
+): Promise<{ item: BannedName; rows: BannedNameConflictRow[] }> {
+  const res = await apiFetch<{
+    data: { item: BannedName; rows: BannedNameConflictRow[] };
+  }>(`/admin/banned-names/${id}/conflicts`);
+  return res.data;
+}
+
+export async function exportBannedNames(): Promise<BannedNameExport> {
+  const res = await apiFetch<{ data: BannedNameExport }>(
+    "/admin/banned-names/export",
+  );
+  return res.data;
+}

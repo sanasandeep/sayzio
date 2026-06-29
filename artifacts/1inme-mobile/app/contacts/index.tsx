@@ -106,6 +106,18 @@ export default function ContactsScreen() {
           headerRight: () => (
             <View style={{ flexDirection: "row", gap: 14, paddingRight: 12 }}>
               <Pressable
+                onPress={() => router.push("/contacts/google-sync")}
+                hitSlop={8}
+              >
+                <Feather name="refresh-cw" size={19} color={colors.primary} />
+              </Pressable>
+              <Pressable
+                onPress={() => router.push("/contacts/import")}
+                hitSlop={8}
+              >
+                <Feather name="upload" size={20} color={colors.primary} />
+              </Pressable>
+              <Pressable
                 onPress={() => router.push("/contacts/scan")}
                 hitSlop={8}
               >
@@ -153,6 +165,38 @@ export default function ContactsScreen() {
             }}
           />
         </View>
+        {q.data?.usage && !q.data.usage.unlimited ? (
+          <View
+            style={[
+              styles.usage,
+              {
+                backgroundColor: q.data.usage.at_cap
+                  ? colors.destructive + "1a"
+                  : q.data.usage.near_cap
+                    ? colors.primary + "14"
+                    : colors.card,
+                borderColor: colors.border,
+                borderRadius: colors.radius - 4,
+              },
+            ]}
+          >
+            <Feather
+              name={q.data.usage.at_cap ? "alert-triangle" : "users"}
+              size={13}
+              color={q.data.usage.at_cap ? colors.destructive : colors.mutedForeground}
+            />
+            <Text
+              style={{
+                color: q.data.usage.at_cap ? colors.destructive : colors.mutedForeground,
+                fontFamily: "SpaceGrotesk_400Regular",
+                fontSize: 12,
+              }}
+            >
+              {q.data.usage.count} / {q.data.usage.cap} contacts
+              {q.data.usage.at_cap ? " · limit reached" : ""}
+            </Text>
+          </View>
+        ) : null}
       </View>
       {q.isLoading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -241,6 +285,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
+  },
+  usage: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginTop: 8,
   },
   row: {
     flexDirection: "row",

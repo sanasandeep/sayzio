@@ -21,6 +21,7 @@ import {
   type ContactPayload,
   createContact,
   deleteContact,
+  smsBiolinkToContact,
   updateContact,
 } from "@/lib/api/contacts";
 
@@ -81,6 +82,14 @@ export default function ContactForm({
       qc.invalidateQueries({ queryKey: ["contacts"] });
       router.back();
     },
+  });
+
+  const smsBiolink = useMutation({
+    mutationFn: () => smsBiolinkToContact(contact!.id),
+    onSuccess: (r) =>
+      Alert.alert("Sent", `Your Link in Bio was texted to ${r.to}.`),
+    onError: (e: any) =>
+      Alert.alert("Couldn't text", e?.message ?? "Try again"),
   });
 
   return (
@@ -182,6 +191,44 @@ export default function ContactForm({
           onPress={() => save.mutate()}
           disabled={save.isPending}
         />
+        {mode === "edit" && phones.some((p) => p.value.trim()) ? (
+          <Pressable
+            onPress={() =>
+              Alert.alert(
+                "Text my Link in Bio?",
+                `Send your Sayzio page to ${phones[0].value} via SMS.`,
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { text: "Send", onPress: () => smsBiolink.mutate() },
+                ],
+              )
+            }
+            disabled={smsBiolink.isPending}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              paddingVertical: 12,
+              borderRadius: colors.radius,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+              opacity: smsBiolink.isPending ? 0.6 : 1,
+            }}
+          >
+            <Feather name="send" size={16} color={colors.primary} />
+            <Text
+              style={{
+                color: colors.primary,
+                fontFamily: "SpaceGrotesk_600SemiBold",
+                fontSize: 14,
+              }}
+            >
+              {smsBiolink.isPending ? "Sending…" : "Text my Link in Bio"}
+            </Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
     </KeyboardAvoidingView>
   );
