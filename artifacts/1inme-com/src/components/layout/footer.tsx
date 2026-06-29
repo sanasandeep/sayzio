@@ -124,7 +124,7 @@ export function Footer() {
               <BrandLogo imgHeight={32} textClassName="text-2xl font-bold text-primary" />
             </Link>
             <p className="text-muted-foreground mb-6 max-w-sm">
-              One link to everything. The all-in-one link, monetization &amp; growth stack —
+              One Platform. Endless Conversations. The all-in-one link, monetization &amp; growth stack —
               Link in Bio pages, short links, QR codes, analytics and AI, free forever.
             </p>
             <div className="flex flex-wrap gap-3">

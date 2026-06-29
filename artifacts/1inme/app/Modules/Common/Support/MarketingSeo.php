@@ -46,7 +46,7 @@ class MarketingSeo
                 'label' => 'Home',
                 'group' => 'Core',
                 'url' => '/',
-                'title' => 'One Link for Everything — Link in Bio, Short Links & QR Codes',
+                'title' => 'One Platform. Endless Conversations. — Link in Bio, Short Links & QR Codes',
                 'description' => 'Sayzio is the all-in-one link platform: build a drag-and-drop Link in Bio page, shorten and brand links, generate dynamic QR codes, and grow with live analytics.',
                 'keywords' => 'link in bio, biolink, link management, short links, url shortener, qr code generator, link analytics, sayzio',
             ],

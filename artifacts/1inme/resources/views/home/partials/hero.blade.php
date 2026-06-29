@@ -23,7 +23,7 @@
             <div class="zio-hero-copy text-center lg:text-left lg:max-w-[600px]">
                 <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-8">
                     <i class="fas fa-wand-magic-sparkles text-[11px]" style="color:var(--c2)"></i>
-                    <span class="grad-text">One AI. Every tool. Free forever.</span>
+                    <span class="grad-text">One Platform. Endless Conversations.</span>
                 </div>
 
                 <h1 id="hero-h" class="reveal rd-1 text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.04] tracking-tight mb-6">

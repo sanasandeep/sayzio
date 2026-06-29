@@ -124,7 +124,7 @@ export default function Home() {
             >
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary mb-6">
                 <Sparkles className="w-4 h-4" />
-                The AI-first marketing toolkit
+                One Platform. Endless Conversations.
               </span>
 
               <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-foreground mb-6 leading-[1.05]">

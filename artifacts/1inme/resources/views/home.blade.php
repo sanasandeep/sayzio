@@ -4522,7 +4522,7 @@
                     </a>
                     <span class="text-white/10">·</span>
                 @endif
-                <p>One link to everything.</p>
+                <p>One Platform. Endless Conversations.</p>
             </div>
         </div>
     </div>
