@@ -32,8 +32,22 @@
             && \App\Services\AI\AiEngineSettings::isEnabled()
             && \App\Services\AI\AiEngineSettings::voiceEnabled();
     } catch (\Throwable $e) {}
+    // When false, the standalone floating mic/panel is suppressed (the host
+    // layout embeds the voice agent elsewhere — e.g. inside the Zio chat
+    // panel on the user dashboard). The reusable dictation helper and the
+    // window.__voice config below still render so other surfaces keep voice.
+    $voiceFloating = $voiceFloating ?? true;
 @endphp
-@if($voicePlanGated)
+@if($voiceAvailable)
+<script>
+// Dictation endpoint config for reusable voiceDictation() controls
+// (header search, companion composer). Set independently of the floating
+// widget so dictation keeps working on surfaces that suppress it (e.g. the
+// user dashboard, where the full voice agent now lives inside the Zio panel).
+window.__voice = { dictateUrl: @js(route('user.ai.voice.transcribe')), csrf: @js(csrf_token()) };
+</script>
+@endif
+@if($voiceFloating && $voicePlanGated)
 {{-- Plan-gated: a floating mic that routes to the upgrade gate page
      instead of recording, so the feature isn't a silent dead end. --}}
 <div class="fixed bottom-5 right-5 z-[1000]" style="font-family: inherit">
@@ -49,14 +63,13 @@
     </a>
 </div>
 @endif
-@if($voiceAvailable)
+@if($voiceFloating && $voiceAvailable)
 <div
     x-data="voiceAssistant({
         turnUrl: @js(route('user.ai.voice.turn')),
         capUrl:  @js(route('user.ai.voice.capabilities')),
         csrf:    @js(csrf_token()),
     })"
-    x-init="$nextTick(() => { window.__voice = { dictateUrl: @js(route('user.ai.voice.transcribe')), csrf: @js(csrf_token()) }; })"
     x-cloak
     class="fixed bottom-5 right-5 z-[1000]"
     style="font-family: inherit"

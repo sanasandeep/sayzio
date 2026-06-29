@@ -9,6 +9,21 @@
     $__sa_route_name = optional(\Illuminate\Support\Facades\Route::current())->getName();
     $__sa_path = '/' . ltrim(request()->path() === '/' ? '' : request()->path(), '/');
     $__sa_route_hint = \App\Modules\Common\Models\SiteAssistantPageHint::resolve($__sa_route_name, $__sa_path, $__sa_surface);
+    // Voice agent eligibility — only meaningful on the authenticated app
+    // surface. When available the full voice agent (record → turn → spoken
+    // reply → confirmations → hands-free → surface bridge + "What I can do")
+    // is hosted inside this panel's composer (mic button) so there is one
+    // launcher. Plan-gated users get a mic that routes to the upgrade gate.
+    $__sa_voice_available = false;
+    $__sa_voice_gated = false;
+    if ($__sa_surface === 'app' && auth()->check()) {
+        try {
+            $__sa_voice_available = \App\Services\AI\AiEngineSettings::voiceAllowedFor(auth()->user());
+            $__sa_voice_gated = !$__sa_voice_available
+                && \App\Services\AI\AiEngineSettings::isEnabled()
+                && \App\Services\AI\AiEngineSettings::voiceEnabled();
+        } catch (\Throwable $e) {}
+    }
 @endphp
 @if(\App\Services\AI\SiteAssistantSettings::isEnabledFor($__sa_surface) && !($__sa_route_hint && $__sa_route_hint->disable_widget))
 <div id="site-assistant-root"
@@ -30,7 +45,12 @@
      data-quick-contact-url="{{ url('/assistant/quick-contact') }}"
      data-low-balance-click-url="{{ url('/assistant/low-balance-click') }}"
      data-send-code-url="{{ url('/assistant/auth/send-code') }}"
-     data-verify-code-url="{{ url('/assistant/auth/verify-code') }}">
+     data-verify-code-url="{{ url('/assistant/auth/verify-code') }}"
+     data-voice-available="{{ $__sa_voice_available ? '1' : '0' }}"
+     data-voice-gated="{{ $__sa_voice_gated ? '1' : '0' }}"
+     data-voice-turn-url="{{ $__sa_voice_available ? route('user.ai.voice.turn') : '' }}"
+     data-voice-cap-url="{{ $__sa_voice_available ? route('user.ai.voice.capabilities') : '' }}"
+     data-voice-gate-url="{{ ($__sa_voice_available || $__sa_voice_gated) ? route('user.ai.voice.show') : '' }}">
 </div>
 <style>
 /* Brand-gradient launcher: chat-tag silhouette with aura, breath, sheen, sparkle, and tooltip.
@@ -258,6 +278,57 @@ html.light-mode .sa-input-row{border-top:1px solid rgba(15,23,42,.08)}
 html.light-mode .sa-input-row textarea{background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.12);color:#1e293b}
 html.light-mode .sa-typing{color:#64748b}
 html.light-mode .sa-badge{border:2px solid #ffffff}
+/* ── Voice agent (mic in composer + activity strip + capabilities) ───── */
+.sa-mic{flex:0 0 auto;width:40px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:#cbd5e1;border-radius:10px;cursor:pointer;position:relative;padding:0;transition:background .15s,color .15s,border-color .15s}
+.sa-mic:hover{background:rgba(255,255,255,.12);color:#fff}
+.sa-mic:disabled{opacity:.5;cursor:default}
+.sa-mic svg{width:18px;height:18px}
+.sa-mic.sa-mic-rec{background:#ef4444;border-color:transparent;color:#fff;animation:sa-mic-pulse 1.3s ease-in-out infinite}
+@keyframes sa-mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}50%{box-shadow:0 0 0 7px rgba(239,68,68,0)}}
+.sa-mic-lock{position:absolute;top:-5px;right:-5px;width:15px;height:15px;border-radius:50%;background:#fbbf24;color:#0f172a;font-size:9px;line-height:1;display:flex;align-items:center;justify-content:center;border:2px solid #0d1118;font-weight:700}
+.sa-voice{padding:6px 12px 0;display:flex;flex-direction:column;gap:6px}
+.sa-voice-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sa-voice-tool{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#cbd5e1;font-size:11px;font-family:inherit;padding:4px 9px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;line-height:1}
+.sa-voice-tool:hover{background:rgba(255,255,255,.12);color:#fff}
+.sa-voice-tool.sa-on{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.4);color:#6ee7b7}
+.sa-voice-status{font-size:11px;color:#94a3b8;margin-left:auto;text-align:right}
+.sa-voice-confirm{display:none;flex-direction:column;gap:6px;border:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.08);border-radius:10px;padding:8px}
+.sa-voice-confirm.sa-show{display:flex}
+.sa-voice-confirm .sa-vc-title{font-size:11px;color:#fbbf24;font-weight:600}
+.sa-voice-confirm .sa-vc-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sa-voice-confirm .sa-vc-label{font-size:11px;color:#fde68a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.sa-voice-confirm .sa-vc-acts{display:flex;gap:6px;flex:0 0 auto}
+.sa-vc-yes{background:rgba(16,185,129,.85);border:0;color:#fff;font-size:11px;font-family:inherit;padding:3px 10px;border-radius:6px;cursor:pointer}
+.sa-vc-no{background:rgba(255,255,255,.12);border:0;color:#e2e8f0;font-size:11px;font-family:inherit;padding:3px 10px;border-radius:6px;cursor:pointer}
+.sa-voice-credits{display:none;font-size:10.5px;color:#94a3b8}
+.sa-voice-credits.sa-show{display:block}
+.sa-vcaps{position:absolute;inset:0;background:inherit;display:none;flex-direction:column;overflow:hidden}
+.sa-vcaps.sa-show{display:flex}
+.sa-vcaps-body{flex:1;overflow-y:auto;padding:6px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.sa-vcaps-h{font-size:11px;text-transform:capitalize;letter-spacing:.02em;color:#90acff;font-weight:700;margin:0 0 4px}
+.sa-vcaps-h.sa-vcaps-cant{color:#fca5a5}
+.sa-vcaps-list{display:flex;flex-direction:column;gap:6px}
+.sa-vcaps-item{display:flex;flex-direction:column;gap:1px}
+.sa-vcaps-name{font-size:12px;color:#e2e8f0;font-weight:600}
+.sa-vcaps-desc{font-size:11px;color:#94a3b8;line-height:1.35}
+.sa-vcaps-loading{font-size:12px;color:#94a3b8;padding:8px 0}
+@media (prefers-reduced-motion:reduce){.sa-mic.sa-mic-rec{animation:none}}
+html.light-mode .sa-mic{background:rgba(15,23,42,.04);border:1px solid rgba(15,23,42,.12);color:#475569}
+html.light-mode .sa-mic:hover{background:rgba(15,23,42,.08);color:#0f172a}
+html.light-mode .sa-mic-lock{border-color:#fff}
+html.light-mode .sa-voice-tool{background:rgba(15,23,42,.05);border-color:rgba(15,23,42,.12);color:#475569}
+html.light-mode .sa-voice-tool:hover{background:rgba(15,23,42,.1);color:#0f172a}
+html.light-mode .sa-voice-tool.sa-on{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:#047857}
+html.light-mode .sa-voice-status{color:#64748b}
+html.light-mode .sa-voice-confirm{border-color:rgba(180,83,9,.3);background:rgba(251,191,36,.12)}
+html.light-mode .sa-voice-confirm .sa-vc-title{color:#b45309}
+html.light-mode .sa-voice-confirm .sa-vc-label{color:#92400e}
+html.light-mode .sa-vc-no{background:rgba(15,23,42,.08);color:#334155}
+html.light-mode .sa-voice-credits{color:#64748b}
+html.light-mode .sa-vcaps-h{color:#3551c8}
+html.light-mode .sa-vcaps-h.sa-vcaps-cant{color:#dc2626}
+html.light-mode .sa-vcaps-name{color:#1e293b}
+html.light-mode .sa-vcaps-desc,html.light-mode .sa-vcaps-loading{color:#64748b}
 </style>
 <script>
 // Server-resolved localized chrome strings, exposed up front so the
@@ -329,6 +400,14 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // client-side (the server enforces it too).
   var AUTH_REQUIRED=false;
   var LOGIN_URL=(typeof window.__SA_LOGIN_URL==='string' && window.__SA_LOGIN_URL) ? window.__SA_LOGIN_URL : '/login';
+  // Voice agent config (computed server-side, app surface only). When
+  // available the mic in the composer drives the full voice agent inside
+  // this panel; when plan-gated the mic routes to the upgrade gate.
+  var VOICE_AVAILABLE = ds.voiceAvailable === '1';
+  var VOICE_GATED     = ds.voiceGated === '1';
+  var VOICE_TURN_URL  = ds.voiceTurnUrl || '';
+  var VOICE_CAP_URL   = ds.voiceCapUrl || '';
+  var VOICE_GATE_URL  = ds.voiceGateUrl || '';
   // Which passwordless methods the in-chat login form may offer. Updated
   // from the bootstrap response; when both are false the gate falls back
   // to the full-page login CTA.
@@ -501,8 +580,22 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   });
   var sendBtn=el('button',{type:'button',id:'sa-send'}, 'Send');
   sendBtn.onclick=sendMessage;
-  inputRow.appendChild(ta); inputRow.appendChild(sendBtn);
+  // Voice mic — only when the agent is hosted in this panel (app surface,
+  // engine on). Available users get the full voice agent; plan-gated users
+  // get a mic with a lock badge that routes to the upgrade gate.
+  var micBtn=null;
+  if(VOICE_AVAILABLE || VOICE_GATED){
+    micBtn=buildMicButton();
+    inputRow.appendChild(ta); inputRow.appendChild(micBtn); inputRow.appendChild(sendBtn);
+  } else {
+    inputRow.appendChild(ta); inputRow.appendChild(sendBtn);
+  }
+  // Voice activity strip (hands-free toggle, "What I can do", status,
+  // confirmation chips, credits) lives directly above the composer.
+  if(VOICE_AVAILABLE){ panel.appendChild(buildVoiceStrip()); }
   panel.appendChild(inputRow);
+  // Capabilities ("What I can do") overlay pane, hidden until requested.
+  if(VOICE_AVAILABLE){ panel.appendChild(buildCapsPane()); }
   panelWrap.appendChild(panel);
   document.body.appendChild(panelWrap);
 
@@ -762,7 +855,8 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     if(!row) return;
     row.innerHTML='';
     row.classList.remove('sa-gate');
-    row.appendChild(ta); row.appendChild(sendBtn);
+    if(micBtn){ row.appendChild(ta); row.appendChild(micBtn); row.appendChild(sendBtn); }
+    else { row.appendChild(ta); row.appendChild(sendBtn); }
     ta.disabled=false; sendBtn.disabled=false;
   }
 
@@ -773,6 +867,245 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     restoreComposer();
     bootstrapped=false;
     bootstrap();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Voice agent — the full record → turn → spoken reply → confirmation →
+  // hands-free → surface-bridge runtime, hosted inside this panel so the
+  // dashboard has ONE launcher. Mirrors the standalone widget's logic but
+  // in plain JS and rendered into the Zio chat body. Only wired up when
+  // VOICE_AVAILABLE; a gated mic just routes to the upgrade page.
+  var vrRecording=false, vrRec=null, vrChunks=[], vrLastAudio=null;
+  var vrMessages=[], vrPending=[], vrHandsFree=false, vrPendingNav=null;
+  var voiceStatusEl=null, voiceConfirmEl=null, voiceCreditsEl=null;
+  var voicePlayer=null, capsPaneEl=null, capsBodyEl=null, capsLoaded=false;
+
+  // Mic icon SVG (matches the standalone widget glyph).
+  var MIC_SVG='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>';
+
+  function buildMicButton(){
+    var b=el('button',{type:'button',class:'sa-mic','aria-label':'Talk to Zio',title: VOICE_GATED ? 'Upgrade to use voice' : 'Tap to talk', html: MIC_SVG});
+    if(VOICE_GATED){
+      b.appendChild(el('span',{class:'sa-mic-lock','aria-hidden':'true'},'★'));
+      b.onclick=function(){ if(VOICE_GATE_URL) window.location.assign(VOICE_GATE_URL); };
+    } else {
+      b.onclick=onMicClick;
+    }
+    return b;
+  }
+
+  function buildVoiceStrip(){
+    var strip=el('div',{class:'sa-voice',id:'sa-voice'});
+    var bar=el('div',{class:'sa-voice-bar'});
+    var hf=el('button',{type:'button',class:'sa-voice-tool',id:'sa-voice-hf'},'Hands-free: off');
+    hf.onclick=function(){
+      vrHandsFree=!vrHandsFree;
+      hf.classList.toggle('sa-on', vrHandsFree);
+      hf.textContent='Hands-free: '+(vrHandsFree?'on':'off');
+      if(vrHandsFree && !vrRecording && !vrPending.length){ startRecording(); }
+    };
+    var caps=el('button',{type:'button',class:'sa-voice-tool',id:'sa-voice-caps'},'What I can do');
+    caps.onclick=openCaps;
+    voiceStatusEl=el('span',{class:'sa-voice-status',id:'sa-voice-status'},'');
+    bar.appendChild(hf); bar.appendChild(caps); bar.appendChild(voiceStatusEl);
+    voiceConfirmEl=el('div',{class:'sa-voice-confirm',id:'sa-voice-confirm'});
+    voiceCreditsEl=el('div',{class:'sa-voice-credits',id:'sa-voice-credits'},'');
+    strip.appendChild(bar); strip.appendChild(voiceConfirmEl); strip.appendChild(voiceCreditsEl);
+    // Hidden audio element for the spoken reply.
+    voicePlayer=el('audio',{style:{display:'none'}});
+    voicePlayer.addEventListener('ended', afterReply);
+    strip.appendChild(voicePlayer);
+    return strip;
+  }
+
+  function buildCapsPane(){
+    capsPaneEl=el('div',{class:'sa-vcaps',id:'sa-vcaps'});
+    var head=el('div',{class:'sa-header'});
+    var ttl=el('div',{html:'<h4>What I can do</h4>'});
+    var back=el('button',{type:'button',class:'sa-close','aria-label':'Back'},'×');
+    back.onclick=closeCaps;
+    head.appendChild(ttl); head.appendChild(back);
+    capsBodyEl=el('div',{class:'sa-vcaps-body'});
+    capsPaneEl.appendChild(head); capsPaneEl.appendChild(capsBodyEl);
+    return capsPaneEl;
+  }
+
+  function setVoiceStatus(s){ if(voiceStatusEl) voiceStatusEl.textContent=s||''; }
+  function updateMicUI(){
+    if(!micBtn) return;
+    micBtn.classList.toggle('sa-mic-rec', vrRecording);
+    micBtn.title = vrRecording ? 'Stop and send' : 'Tap to talk';
+  }
+
+  function onMicClick(){
+    if(vrRecording){ return stopRecording(); }
+    if(!open){ togglePanel(true); }
+    startRecording();
+  }
+
+  function startRecording(){
+    if(!navigator.mediaDevices || typeof MediaRecorder==='undefined'){
+      setVoiceStatus('Voice recording is not supported here.'); return;
+    }
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+      var mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+      vrRec = new MediaRecorder(stream, mime ? {mimeType:mime} : undefined);
+      vrChunks=[];
+      vrRec.ondataavailable=function(e){ if(e.data && e.data.size) vrChunks.push(e.data); };
+      vrRec.onstop=function(){
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        var blob=new Blob(vrChunks, {type: vrRec.mimeType || 'audio/webm'});
+        vrLastAudio=blob;
+        sendTurn(blob, null);
+      };
+      vrRec.start();
+      vrRecording=true; updateMicUI(); setVoiceStatus('Listening…');
+    }).catch(function(){ setVoiceStatus('Microphone permission denied.'); });
+  }
+
+  function stopRecording(){
+    if(vrRec && vrRecording){
+      vrRecording=false; updateMicUI(); setVoiceStatus('Thinking…');
+      try{ vrRec.stop(); }catch(e){}
+    }
+  }
+
+  function sendTurn(blob, confirmedTools){
+    var fd=new FormData();
+    var ext=(blob.type.indexOf('webm')>=0) ? 'webm' : 'ogg';
+    fd.append('audio', blob, 'voice.'+ext);
+    fd.append('context', JSON.stringify({
+      messages: vrMessages,
+      confirmed_tools: confirmedTools || {},
+      surface: window.__voiceSurface || null
+    }));
+    fetch(VOICE_TURN_URL, {
+      method:'POST',
+      headers:{'X-CSRF-TOKEN':csrf,'Accept':'application/json'},
+      body: fd, credentials:'same-origin'
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(json){
+        if(!res.ok){ setVoiceStatus(json.error || ('Request failed ('+res.status+').')); return; }
+        if(json.transcript){ vrMessages.push({role:'user',content:json.transcript}); renderMessage({role:'user',content:json.transcript}); }
+        if(json.reply){ vrMessages.push({role:'assistant',content:json.reply}); renderMessage({role:'assistant',content:json.reply}); }
+        vrPending = json.pending_confirmations || [];
+        setVoiceStatus('');
+        updateCredits(json.credits || null, (json.balance!=null?json.balance:null));
+        renderConfirmations();
+        applyToolResults(json.tool_results || []);
+        if(json.audio_base64 && voicePlayer){
+          voicePlayer.src='data:audio/mpeg;base64,'+json.audio_base64;
+          var p=voicePlayer.play();
+          if(p && p.catch){ p.catch(function(){ afterReply(); }); }
+        } else {
+          afterReply();
+        }
+      });
+    }).catch(function(){ setVoiceStatus('Network error — please retry.'); });
+  }
+
+  // Bridge structured tool results to the current page: client_action →
+  // a `voice-action` window event the surface listens for; navigate_to →
+  // a navigation deferred until the spoken reply finishes.
+  function applyToolResults(results){
+    vrPendingNav=null;
+    (results || []).forEach(function(tr){
+      var r=(tr && tr.result) || {};
+      if(r.client_action){ window.dispatchEvent(new CustomEvent('voice-action',{detail:r.client_action})); }
+      if(r.navigate_to){ vrPendingNav=r.navigate_to; }
+    });
+  }
+
+  function afterReply(){
+    if(vrPendingNav){ var url=vrPendingNav; vrPendingNav=null; window.location.assign(url); return; }
+    if(vrHandsFree && !vrRecording && !vrPending.length){ startRecording(); }
+  }
+
+  function renderConfirmations(){
+    if(!voiceConfirmEl) return;
+    voiceConfirmEl.innerHTML='';
+    if(!vrPending.length){ voiceConfirmEl.classList.remove('sa-show'); return; }
+    voiceConfirmEl.classList.add('sa-show');
+    voiceConfirmEl.appendChild(el('div',{class:'sa-vc-title'},'Confirm before I run:'));
+    vrPending.forEach(function(c){
+      var row=el('div',{class:'sa-vc-row'});
+      row.appendChild(el('span',{class:'sa-vc-label',title:c.tool}, c.tool));
+      var acts=el('div',{class:'sa-vc-acts'});
+      var yes=el('button',{type:'button',class:'sa-vc-yes'},'Yes');
+      yes.onclick=function(){ confirmTool(c.tool, true); };
+      var no=el('button',{type:'button',class:'sa-vc-no'},'Cancel');
+      no.onclick=function(){ confirmTool(c.tool, false); };
+      acts.appendChild(yes); acts.appendChild(no);
+      row.appendChild(acts);
+      voiceConfirmEl.appendChild(row);
+    });
+  }
+
+  function confirmTool(name, accepted){
+    if(!accepted){
+      vrPending=vrPending.filter(function(c){ return c.tool!==name; });
+      vrMessages.push({role:'assistant',content:'Cancelled '+name+'.'});
+      renderMessage({role:'assistant',content:'Cancelled '+name+'.'});
+      renderConfirmations();
+      return;
+    }
+    if(!vrLastAudio) return;
+    var map={}; map[name]=true;
+    vrPending=vrPending.filter(function(c){ return c.tool!==name; });
+    renderConfirmations();
+    setVoiceStatus('Running…');
+    sendTurn(vrLastAudio, map);
+  }
+
+  function updateCredits(credits, balance){
+    if(!voiceCreditsEl) return;
+    if(!credits){ voiceCreditsEl.classList.remove('sa-show'); voiceCreditsEl.textContent=''; return; }
+    var txt='Last turn: STT '+(credits.stt||0)+' · LLM '+(credits.llm||0)+' · TTS '+(credits.tts||0)+' (= '+(credits.total||0)+' credits)';
+    if(balance!=null){ txt+=' · Balance '+balance; }
+    voiceCreditsEl.textContent=txt;
+    voiceCreditsEl.classList.add('sa-show');
+  }
+
+  function openCaps(){
+    if(!capsPaneEl) return;
+    capsPaneEl.classList.add('sa-show');
+    if(!capsLoaded){
+      capsBodyEl.innerHTML='';
+      capsBodyEl.appendChild(el('div',{class:'sa-vcaps-loading'},'Loading…'));
+      fetch(VOICE_CAP_URL,{headers:{'Accept':'application/json'},credentials:'same-origin'})
+        .then(function(r){ return r.json(); })
+        .then(function(json){ capsLoaded=true; renderCaps(json); })
+        .catch(function(){ renderCaps({tools:{},limitations:['Could not load capabilities.']}); });
+    }
+  }
+  function closeCaps(){ if(capsPaneEl) capsPaneEl.classList.remove('sa-show'); }
+
+  function renderCaps(caps){
+    if(!capsBodyEl) return;
+    capsBodyEl.innerHTML='';
+    caps=caps||{};
+    var tools=caps.tools||{};
+    Object.keys(tools).forEach(function(group){
+      var sec=el('div');
+      sec.appendChild(el('div',{class:'sa-vcaps-h'}, String(group).replace(/_/g,' ')));
+      var list=el('div',{class:'sa-vcaps-list'});
+      (tools[group]||[]).forEach(function(t){
+        var item=el('div',{class:'sa-vcaps-item'});
+        var nm=el('div',{class:'sa-vcaps-name'}, t.name || '');
+        if(t.destructive){ nm.appendChild(el('span',{style:{marginLeft:'6px',color:'#fbbf24',fontSize:'10px',fontWeight:'400'}},'⚠ confirms')); }
+        item.appendChild(nm);
+        if(t.description){ item.appendChild(el('div',{class:'sa-vcaps-desc'}, t.description)); }
+        list.appendChild(item);
+      });
+      sec.appendChild(list);
+      capsBodyEl.appendChild(sec);
+    });
+    var cant=el('div');
+    cant.appendChild(el('div',{class:'sa-vcaps-h sa-vcaps-cant'},"What I can't do"));
+    var clist=el('div',{class:'sa-vcaps-list'});
+    (caps.limitations||[]).forEach(function(lim){ clist.appendChild(el('div',{class:'sa-vcaps-desc'}, lim)); });
+    cant.appendChild(clist);
+    capsBodyEl.appendChild(cant);
   }
 
   function renderMessage(m){

@@ -1708,7 +1708,12 @@
     @include('common.partials.site-assistant', ['surface' => 'app'])
 
     @include('common.partials.global-shortcuts')
-    @include('partials.voice-assistant')
+    {{-- Voice agent: the full mic + agent now lives inside the Zio chat panel
+         (common.partials.site-assistant) so there is ONE launcher on the
+         dashboard. We still include this in non-floating mode so the reusable
+         voiceDictation() helper + window.__voice config stay defined for the
+         header search and companion composer. --}}
+    @include('partials.voice-assistant', ['voiceFloating' => false])
     @include('user.links.partials.themed-confirm')
     @stack('scripts')
 </body>

@@ -130,3 +130,4 @@
 - [Credit-note two mint paths](credit-note-two-mint-paths.md) — both refund paths must mint CN numbers via CreditNoteService::issue (locked per-FY counter), never id-keyed; number column is UNIQUE.
 - [Client invoice/receipt PDF](client-invoice-pdf.md) — client-invoice PDFs are public signed-URL only (no session) so web/API/mobile share one route; branding falls back BillingCompany→snapshot→config.
 - [Site assistant widget tests](site-assistant-widget-tests.md) — Zio Bot sign-out + 401 recovery covered by vitest/jsdom in 1inme-com; blade widget is source-driven (strip @json/@php, run IIFE); standalone vitest.config (never import vite.config).
+- [Voice agent hosting](voice-agent-zio-panel-host.md) — full voice agent runs twice (admin Alpine floating widget + plain-JS in Zio panel composer); `voiceFloating` param decouples window.__voice; change both or they drift.
