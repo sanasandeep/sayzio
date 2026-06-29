@@ -13,6 +13,7 @@
     "test:block-cache": "node scripts/test-block-cache.mjs",
     "test:login-auth-config": "node scripts/test-login-auth-config.mjs",
     "test:auth-flow": "node scripts/test-auth-flow.mjs",
+    "test:whatsapp-disconnect": "node scripts/test-whatsapp-disconnect.mjs",
     "test:wizard-flow": "node scripts/test-wizard-flow.mjs",
     "test:voice-bridge": "node scripts/test-voice-bridge.mjs",
     "test:auth-flow-e2e": "node scripts/test-auth-flow-e2e.mjs",
