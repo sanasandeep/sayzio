@@ -175,7 +175,7 @@
                  The aliasChecker Alpine component (live availability), error
                  display, hints and prefill are all preserved here unchanged. --}}
             @include('user.links.partials.alias-checker')
-            <div class="sticky top-0 z-20 -mx-6 -mt-6 mb-6 px-6 pt-6 pb-5 rounded-t-2xl border-b border-blue-500/20"
+            <div class="sm:sticky sm:top-0 z-20 -mx-6 -mt-6 mb-6 px-6 pt-6 pb-5 rounded-t-2xl border-b border-blue-500/20 sm:max-h-[60vh] sm:overflow-y-auto sm:overscroll-contain"
                  style="background: var(--bg-body);"
                  x-data="aliasChecker('{{ route('user.links.check-alias') }}')" x-init="init()">
                 <div class="rounded-2xl border border-blue-500/40 bg-gradient-to-br from-blue-500/[0.12] to-blue-500/[0.03] p-4 sm:p-5 shadow-lg shadow-blue-500/10">
