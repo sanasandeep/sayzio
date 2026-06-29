@@ -20,18 +20,31 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const CONSENT_COOKIE = "1inme_cookie_consent";
 
-// Node titles in ring order (mirrors $zioNodes in
-// resources/views/home/partials/hero.blade.php). The node button's aria-label is
+// Node titles in flat ring order — inner ring (4), then middle ring (6), then
+// outer ring (7) — mirroring $zioRings / $zioNodes in
+// resources/views/home/partials/hero.blade.php. The node button's aria-label is
 // "{title}: {description}" and the popover dialog's aria-label is "{title}".
 const NODE_TITLES = [
+  // Inner ring
   "AI Page Builder",
-  "Live Analytics",
   "Growth Coach",
-  "Built-in Store",
   "AI Phone",
+  "Live Analytics",
+  // Middle ring
   "Smart Links",
   "QR Studio",
+  "Built-in Store",
+  "Forms",
+  "Subscribers",
+  "Social Proof",
+  // Outer ring
   "Developer API",
+  "Reviews",
+  "Restaurant Menu",
+  "Resume",
+  "Calendar",
+  "Digital Cards",
+  "Custom Domain",
 ] as const;
 
 /**

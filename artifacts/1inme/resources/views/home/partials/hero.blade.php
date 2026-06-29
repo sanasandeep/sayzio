@@ -61,48 +61,79 @@
 
             {{-- Orbital Zio visual (sits on the LEFT at ≥lg via .zio-hero-visual order) --}}
             <div class="reveal rd-2 zio-orbit-wrap zio-hero-visual">
-                <div class="zio-orbit" x-data="{ open: null }" @keydown.escape.window="open = null" @click.outside="open = null">
+                <div class="zio-orbit" x-data="{ open: null }" @keydown.escape.window="open = null" @click.outside="open = null" :class="{ 'zio-paused': open !== null }">
                     <span class="zio-glow" aria-hidden="true"></span>
                     <span class="zio-pulse zio-pulse--1" aria-hidden="true"></span>
                     <span class="zio-pulse zio-pulse--2" aria-hidden="true"></span>
-                    <span class="zio-ring zio-ring--outer" aria-hidden="true"></span>
-                    <span class="zio-ring zio-ring--inner" aria-hidden="true"></span>
+                    <span class="zio-ring zio-ring--r1" aria-hidden="true"></span>
+                    <span class="zio-ring zio-ring--r2" aria-hidden="true"></span>
+                    <span class="zio-ring zio-ring--r3" aria-hidden="true"></span>
 
                     @php
-                        $zioNodes = [
-                            ['a' => 0,   'img' => 'ai.png',        'c' => 'var(--c2)', 't' => 'AI Page Builder', 'd' => 'Describe it — Zio builds your page in seconds.'],
-                            ['a' => 45,  'img' => 'analytics.png', 'c' => 'var(--c2)', 't' => 'Live Analytics',   'd' => 'Track every click, scan and visit in real time.'],
-                            ['a' => 90,  'img' => 'growth.png',    'c' => 'var(--c1)', 't' => 'Growth Coach',     'd' => "Zio spots what's working and what to do next."],
-                            ['a' => 135, 'img' => 'store.png',     'c' => '#10b981',   't' => 'Built-in Store',   'd' => 'Sell products and take payments from one link.'],
-                            ['a' => 180, 'img' => 'calls.png',     'c' => 'var(--c4)', 't' => 'AI Phone',         'd' => 'Zio answers calls and turns them into leads.'],
-                            ['a' => 225, 'img' => 'link.png',      'c' => 'var(--c2)', 't' => 'Smart Links',      'd' => 'Branded short links for everything you share.'],
-                            ['a' => 270, 'img' => 'qr.png',        'c' => 'var(--c3)', 't' => 'QR Studio',        'd' => 'Design scannable codes that track every scan.'],
-                            ['a' => 315, 'img' => 'code.png',      'c' => 'var(--c2)', 't' => 'Developer API',    'd' => 'Build on Sayzio with a full REST API.'],
+                        // Feature nodes split across three concentric rings. Zio's direct AI
+                        // powers sit on the inner ring; the wider feature universe fans out
+                        // across the middle and outer rings. Each ring rotates independently
+                        // (its own radius, speed and direction — see CSS). Angles are evenly
+                        // spaced within each ring so tiles never crowd. `img` files live in
+                        // public/images/zio-nodes/.
+                        $zioRings = [
+                            // Inner ring (4) — Zio's core AI brain.
+                            ['cls' => 'r1', 'nodes' => [
+                                ['a' => 0,   'img' => 'ai.png',        'c' => 'var(--c2)', 't' => 'AI Page Builder', 'd' => 'Describe it — Zio builds your page in seconds.'],
+                                ['a' => 90,  'img' => 'growth.png',    'c' => 'var(--c1)', 't' => 'Growth Coach',     'd' => "Zio spots what's working and what to do next."],
+                                ['a' => 180, 'img' => 'calls.png',     'c' => 'var(--c4)', 't' => 'AI Phone',         'd' => 'Zio answers calls and turns them into leads.'],
+                                ['a' => 270, 'img' => 'analytics.png', 'c' => 'var(--c2)', 't' => 'Live Analytics',   'd' => 'Track every click, scan and visit in real time.'],
+                            ]],
+                            // Middle ring (6) — everyday building & growth tools.
+                            ['cls' => 'r2', 'nodes' => [
+                                ['a' => 30,  'img' => 'link.png',      'c' => 'var(--c2)', 't' => 'Smart Links',      'd' => 'Branded short links for everything you share.'],
+                                ['a' => 90,  'img' => 'qr.png',        'c' => 'var(--c3)', 't' => 'QR Studio',        'd' => 'Design scannable codes that track every scan.'],
+                                ['a' => 150, 'img' => 'store.png',     'c' => '#10b981',   't' => 'Built-in Store',   'd' => 'Sell products and take payments from one link.'],
+                                ['a' => 210, 'img' => 'forms.png',     'c' => 'var(--c2)', 't' => 'Forms',           'd' => 'Collect leads and payments with custom forms.'],
+                                ['a' => 270, 'img' => 'audience.png',  'c' => 'var(--c1)', 't' => 'Subscribers',     'd' => 'Grow an email and WhatsApp audience you own.'],
+                                ['a' => 330, 'img' => 'social.png',    'c' => 'var(--c3)', 't' => 'Social Proof',     'd' => 'Live popups that turn visits into action.'],
+                            ]],
+                            // Outer ring (7) — the wider feature universe + a new add-on.
+                            ['cls' => 'r3', 'nodes' => [
+                                ['a' => 0,   'img' => 'code.png',      'c' => 'var(--c2)', 't' => 'Developer API',    'd' => 'Build on Sayzio with a full REST API.'],
+                                ['a' => 51,  'img' => 'reviews.png',   'c' => 'var(--c3)', 't' => 'Reviews',         'd' => 'Gather and showcase reviews that build trust.'],
+                                ['a' => 103, 'img' => 'menu.png',      'c' => '#10b981',   't' => 'Restaurant Menu', 'd' => 'QR menus with live orders sent to your staff.'],
+                                ['a' => 154, 'img' => 'resume.png',    'c' => 'var(--c2)', 't' => 'Resume',          'd' => 'Build a shareable resume and portfolio page.'],
+                                ['a' => 206, 'img' => 'calendar.png',  'c' => 'var(--c1)', 't' => 'Calendar',        'd' => 'Share events visitors can follow and book.'],
+                                ['a' => 257, 'img' => 'vcard.png',     'c' => 'var(--c2)', 't' => 'Digital Cards',    'd' => 'Share a tappable vCard that saves instantly.'],
+                                ['a' => 309, 'img' => 'domain.png',    'c' => 'var(--c4)', 't' => 'Custom Domain',    'd' => 'Put your whole universe on your own domain.'],
+                            ]],
                         ];
+                        // Flat list (in ring order) for the <noscript> fallback below.
+                        $zioNodes = array_merge(...array_map(fn ($r) => $r['nodes'], $zioRings));
+                        $zioIdx = 0;
                     @endphp
-                    <div class="zio-rotor" :class="{ 'zio-rotor--paused': open !== null }">
-                        @foreach($zioNodes as $n)
-                            @php $i = $loop->index; @endphp
-                            <div class="zio-node"
-                                 style="--a:{{ $n['a'] }}deg; --d:{{ 0.5 + $i * 0.09 }}s; --ac:{{ $n['c'] }}"
-                                 :class="{ 'zio-node--on': open === {{ $i }} }">
-                                <div class="zio-node-ic">
-                                    <button type="button"
-                                            class="zio-node-btn"
-                                            @click="open = (open === {{ $i }} ? null : {{ $i }})"
-                                            :aria-expanded="open === {{ $i }}"
-                                            aria-label="{{ $n['t'] }}: {{ $n['d'] }}">
-                                        <img class="zio-node-thumb" src="{{ asset('images/zio-nodes/' . $n['img']) }}" alt="" width="62" height="62" loading="lazy" decoding="async">
-                                    </button>
-                                    <div class="zio-pop" x-show="open === {{ $i }}" x-cloak x-transition.opacity.scale.95 @click.stop role="dialog" aria-label="{{ $n['t'] }}">
-                                        <span class="zio-pop-title">{{ $n['t'] }}</span>
-                                        <span class="zio-pop-desc">{{ $n['d'] }}</span>
-                                        <button type="button" class="zio-pop-x" @click.stop="open = null" aria-label="Close">&times;</button>
+
+                    @foreach($zioRings as $ring)
+                        <div class="zio-rotor zio-rotor--{{ $ring['cls'] }}">
+                            @foreach($ring['nodes'] as $n)
+                                @php $i = $zioIdx++; @endphp
+                                <div class="zio-node"
+                                     style="--a:{{ $n['a'] }}deg; --d:{{ 0.5 + $i * 0.06 }}s; --ac:{{ $n['c'] }}"
+                                     :class="{ 'zio-node--on': open === {{ $i }} }">
+                                    <div class="zio-node-ic">
+                                        <button type="button"
+                                                class="zio-node-btn"
+                                                @click="open = (open === {{ $i }} ? null : {{ $i }})"
+                                                :aria-expanded="open === {{ $i }}"
+                                                aria-label="{{ $n['t'] }}: {{ $n['d'] }}">
+                                            <img class="zio-node-thumb" src="{{ asset('images/zio-nodes/' . $n['img']) }}" alt="" width="58" height="58" loading="lazy" decoding="async">
+                                        </button>
+                                        <div class="zio-pop" x-show="open === {{ $i }}" x-cloak x-transition.opacity.scale.95 @click.stop role="dialog" aria-label="{{ $n['t'] }}">
+                                            <span class="zio-pop-title">{{ $n['t'] }}</span>
+                                            <span class="zio-pop-desc">{{ $n['d'] }}</span>
+                                            <button type="button" class="zio-pop-x" @click.stop="open = null" aria-label="Close">&times;</button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        @endforeach
-                    </div>
+                            @endforeach
+                        </div>
+                    @endforeach
 
                     <div class="zio-core" aria-hidden="true">
                         <span class="zio-mascot-halo"></span>
@@ -162,12 +193,16 @@
         /* ============ Orbital Zio visual ============ */
         .zio-orbit-wrap { display: flex; align-items: center; justify-content: center; width: 100%; }
         .zio-orbit {
-            --size: clamp(290px, 38vw, 460px);
-            --node: 62px;
-            /* Node-orbit radius == the outer dashed ring's radius (size/2) so each
-               icon's CENTER sits precisely on the dashed orbit path, instead of
-               hugging its inner edge. */
-            --r: calc(var(--size) / 2);
+            --size: clamp(300px, 40vw, 500px);
+            /* Node tiles scale WITH the orbit (proportional, not a fixed px) so the
+               radial clearance between the three rings holds at every breakpoint. */
+            --node: clamp(38px, calc(var(--size) * 0.092), 50px);
+            /* Three concentric node-orbit radii (fractions of --size). Each icon's
+               CENTER sits precisely on its dashed ring. The ~0.125 gap between rings
+               exceeds the node fraction (~0.092), so tiles never collide. */
+            --r1: calc(var(--size) * 0.300);
+            --r2: calc(var(--size) * 0.425);
+            --r3: calc(var(--size) * 0.550);
             position: relative;
             width: var(--size);
             height: var(--size);
@@ -201,37 +236,58 @@
             100% { transform: scale(2.1); opacity: 0; }
         }
 
+        /* Dashed orbit guides — one per node ring, each sitting on its ring radius.
+           inset = (0.5 − radiusFraction) of the box, so the dashed circle lines up
+           with the icon centers on that ring (r3 pokes a touch past the box). */
         .zio-ring {
             position: absolute; border-radius: 50%;
             border: 1.5px dashed rgba(120,140,255,.30);
             z-index: 1;
         }
-        .zio-ring--outer { inset: 0; }
-        .zio-ring--inner { inset: 15%; border-color: rgba(120,140,255,.18); }
+        .zio-ring--r1 { inset: 20%;   border-color: rgba(120,140,255,.16); }
+        .zio-ring--r2 { inset: 7.5%;  border-color: rgba(120,140,255,.22); }
+        .zio-ring--r3 { inset: -5%;   border-color: rgba(120,140,255,.30); }
 
+        /* Three independent rotors. Each spins at its own speed; the middle ring
+           runs in REVERSE so adjacent rings counter-rotate. Per-ring --r feeds the
+           node placement below. One shared keyframe (0→360); animation-direction
+           gives clockwise vs counter-clockwise. */
         .zio-rotor {
             position: absolute; inset: 0; z-index: 2;
-            animation: zioSpin 46s linear infinite;
+            /* Each rotor is a full-size (inset:0) layer; with three stacked, the
+               topmost (outer) one would otherwise swallow clicks aimed at the
+               inner rings' nodes. Make the rotor layers click-through and re-enable
+               pointer events only on the nodes themselves (below). */
+            pointer-events: none;
+            animation-name: zioSpin;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
         }
+        .zio-rotor--r1 { --r: var(--r1); animation-duration: 54s; animation-direction: normal;  }
+        .zio-rotor--r2 { --r: var(--r2); animation-duration: 64s; animation-direction: reverse; }
+        .zio-rotor--r3 { --r: var(--r3); animation-duration: 80s; animation-direction: normal;  }
         @keyframes zioSpin { to { transform: rotate(360deg); } }
 
-        /* Lift the rotor above the central mascot (z-index:3) while a popover is
+        /* Lift the rotors above the central mascot (z-index:3) while a popover is
            open, so an active node's popover is never hidden behind Zio. */
-        .zio-rotor--paused { z-index: 6; }
+        .zio-paused .zio-rotor { z-index: 6; }
 
-        /* Pause the orbit (and the counter-rotation) while a popover is open OR a
-           node is hovered, so nodes are easy to click and popovers stay put. */
-        .zio-rotor--paused,
-        .zio-rotor--paused .zio-node-ic,
-        .zio-rotor:has(.zio-node:hover),
-        .zio-rotor:has(.zio-node:hover) .zio-node-ic,
-        .zio-rotor:has(.zio-node-btn:focus-visible),
-        .zio-rotor:has(.zio-node-btn:focus-visible) .zio-node-ic { animation-play-state: paused; }
+        /* Pause every ring (and its counter-rotation) while a popover is open OR a
+           node is hovered/focused, so nodes are easy to click and popovers stay put. */
+        .zio-paused .zio-rotor,
+        .zio-paused .zio-node-ic,
+        .zio-orbit:has(.zio-node:hover) .zio-rotor,
+        .zio-orbit:has(.zio-node:hover) .zio-node-ic,
+        .zio-orbit:has(.zio-node-btn:focus-visible) .zio-rotor,
+        .zio-orbit:has(.zio-node-btn:focus-visible) .zio-node-ic { animation-play-state: paused; }
 
         .zio-node {
             position: absolute; top: 50%; left: 50%;
             width: var(--node); height: var(--node);
             margin: calc(var(--node) / -2);
+            /* Re-enable pointer events the parent rotor turned off, so the node's
+               button and its popover (close button / @click.stop) stay clickable. */
+            pointer-events: auto;
             transform: rotate(var(--a)) translate(0, calc(-1 * var(--r))) rotate(calc(-1 * var(--a)));
             animation: zioNodeFade .55s var(--d) ease backwards;
         }
@@ -243,9 +299,15 @@
         .zio-node-ic {
             position: relative;
             width: 100%; height: 100%;
-            animation: zioSpinRev 46s linear infinite;
+            animation-name: zioSpin;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
         }
-        @keyframes zioSpinRev { to { transform: rotate(-360deg); } }
+        /* Each tile counter-rotates with its OWN ring's duration but the OPPOSITE
+           direction, so the rotor spin is exactly cancelled and tiles stay upright. */
+        .zio-rotor--r1 .zio-node-ic { animation-duration: 54s; animation-direction: reverse; }
+        .zio-rotor--r2 .zio-node-ic { animation-duration: 64s; animation-direction: normal;  }
+        .zio-rotor--r3 .zio-node-ic { animation-duration: 80s; animation-direction: reverse; }
 
         .zio-node-btn {
             display: flex; align-items: center; justify-content: center;
@@ -404,13 +466,18 @@
             .zio-orbit { --size: clamp(360px, 54vw, 460px); }
         }
 
-        /* ---- Very small phones: with node centers on the outer ring each tile
-               pokes ~half its width past the orbit box, which can clip against the
-               section's overflow on ~320px screens. Pull the node orbit in a touch
-               here so edge icons stay fully visible (a hair inside the ring). The
-               ≥sm desktop/tablet centering is untouched. ---- */
+        /* ---- Very small phones: three rings of tiles get tight, and the outer ring
+               pokes past the orbit box (can clip against the section overflow on
+               ~320px screens). Pull all three radii in and shrink the tiles a touch
+               so every icon stays fully visible without colliding. The ≥sm
+               desktop/tablet sizing is untouched. ---- */
         @media (max-width: 380px) {
-            .zio-orbit { --r: calc(var(--size) / 2 - 18px); }
+            .zio-orbit {
+                --node: clamp(32px, calc(var(--size) * 0.088), 42px);
+                --r1: calc(var(--size) * 0.275);
+                --r2: calc(var(--size) * 0.390);
+                --r3: calc(var(--size) * 0.500);
+            }
         }
 
         /* ---- Light mode ---- */
@@ -419,7 +486,8 @@
         }
         html.light-mode .zio-pulse { border-color: rgba(37,66,199,.28); }
         html.light-mode .zio-ring { border-color: rgba(37,66,199,.26); }
-        html.light-mode .zio-ring--inner { border-color: rgba(37,66,199,.15); }
+        html.light-mode .zio-ring--r1 { border-color: rgba(37,66,199,.14); }
+        html.light-mode .zio-ring--r2 { border-color: rgba(37,66,199,.20); }
         html.light-mode .zio-node-btn {
             background: #ffffff; border-color: #e2e8f0;
             box-shadow: 0 10px 24px -14px rgba(15,23,42,.35);

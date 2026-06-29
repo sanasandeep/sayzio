@@ -786,6 +786,60 @@ uri = "file://artifacts/1inme/public/images/marketing/ai-hero/_src_gallery-desk.
 type = "image"
 title = "generated_image"
 
+[[generated]]
+id = "WLYEUBQi3fYw2hbLVanrw"
+uri = "file://artifacts/1inme/public/images/zio-nodes/forms.png"
+type = "image"
+title = "zio forms icon"
+
+[[generated]]
+id = "0vtXR00BKGu17wTyVUH0g"
+uri = "file://artifacts/1inme/public/images/zio-nodes/reviews.png"
+type = "image"
+title = "zio reviews icon"
+
+[[generated]]
+id = "wInG0jsX5hTtEjpS80DUu"
+uri = "file://artifacts/1inme/public/images/zio-nodes/menu.png"
+type = "image"
+title = "zio menu icon"
+
+[[generated]]
+id = "cSGWSwvRjcFtgy5BmAURA"
+uri = "file://artifacts/1inme/public/images/zio-nodes/resume.png"
+type = "image"
+title = "zio resume icon"
+
+[[generated]]
+id = "6eztbE1bEBNuLYqm338Cl"
+uri = "file://artifacts/1inme/public/images/zio-nodes/calendar.png"
+type = "image"
+title = "zio calendar icon"
+
+[[generated]]
+id = "Iht5EM9mLo412KTQc12QT"
+uri = "file://artifacts/1inme/public/images/zio-nodes/vcard.png"
+type = "image"
+title = "zio vcard icon"
+
+[[generated]]
+id = "ZwPwtFnMCL5cKHKK8tZ8M"
+uri = "file://artifacts/1inme/public/images/zio-nodes/social.png"
+type = "image"
+title = "zio social icon"
+
+[[generated]]
+id = "wu7Iog0Yj31he2YJwbhym"
+uri = "file://artifacts/1inme/public/images/zio-nodes/audience.png"
+type = "image"
+title = "zio audience icon"
+
+[[generated]]
+id = "w_tozzA7cqtYKsRjVtC7c"
+uri = "file://artifacts/1inme/public/images/zio-nodes/domain.png"
+type = "image"
+title = "zio domain icon"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"
