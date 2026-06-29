@@ -330,6 +330,9 @@ html.light-mode .sa-vcaps-h.sa-vcaps-cant{color:#dc2626}
 html.light-mode .sa-vcaps-name{color:#1e293b}
 html.light-mode .sa-vcaps-desc,html.light-mode .sa-vcaps-loading{color:#64748b}
 </style>
+{{-- Shared voice-runtime core (turn payload + surface bridge + capabilities),
+     also used by the floating widget partial — defined idempotently. --}}
+@include('common.partials.voice-runtime')
 <script>
 // Server-resolved localized chrome strings, exposed up front so the
 // initial DOM build (subheading) and any pre-bootstrap JS branches
@@ -978,49 +981,33 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   }
 
   function sendTurn(blob, confirmedTools){
-    var fd=new FormData();
-    var ext=(blob.type.indexOf('webm')>=0) ? 'webm' : 'ogg';
-    fd.append('audio', blob, 'voice.'+ext);
-    fd.append('context', JSON.stringify({
+    // Turn payload shape, POST, and response normalization live in the shared
+    // VoiceRuntime so this panel mic can never drift from the floating widget.
+    window.VoiceRuntime.sendTurn({
+      url: VOICE_TURN_URL,
+      csrf: csrf,
+      blob: blob,
       messages: vrMessages,
-      confirmed_tools: confirmedTools || {},
-      surface: window.__voiceSurface || null
-    }));
-    fetch(VOICE_TURN_URL, {
-      method:'POST',
-      headers:{'X-CSRF-TOKEN':csrf,'Accept':'application/json'},
-      body: fd, credentials:'same-origin'
-    }).then(function(res){
-      return res.json().catch(function(){ return {}; }).then(function(json){
-        if(!res.ok){ setVoiceStatus(json.error || ('Request failed ('+res.status+').')); return; }
-        if(json.transcript){ vrMessages.push({role:'user',content:json.transcript}); renderMessage({role:'user',content:json.transcript}); }
-        if(json.reply){ vrMessages.push({role:'assistant',content:json.reply}); renderMessage({role:'assistant',content:json.reply}); }
-        vrPending = json.pending_confirmations || [];
-        setVoiceStatus('');
-        updateCredits(json.credits || null, (json.balance!=null?json.balance:null));
-        renderConfirmations();
-        applyToolResults(json.tool_results || []);
-        if(json.audio_base64 && voicePlayer){
-          voicePlayer.src='data:audio/mpeg;base64,'+json.audio_base64;
-          var p=voicePlayer.play();
-          if(p && p.catch){ p.catch(function(){ afterReply(); }); }
-        } else {
-          afterReply();
-        }
-      });
+      confirmedTools: confirmedTools || {}
+    }).then(function(r){
+      if(!r.ok){ setVoiceStatus(r.error || ('Request failed ('+r.status+').')); return; }
+      if(r.transcript){ vrMessages.push({role:'user',content:r.transcript}); renderMessage({role:'user',content:r.transcript}); }
+      if(r.reply){ vrMessages.push({role:'assistant',content:r.reply}); renderMessage({role:'assistant',content:r.reply}); }
+      vrPending = r.pending;
+      setVoiceStatus('');
+      updateCredits(r.credits, (r.balance!=null?r.balance:null));
+      renderConfirmations();
+      // Surface bridge (client_action dispatch + navigate_to) is shared too;
+      // the returned nav is deferred until the spoken reply finishes.
+      vrPendingNav = window.VoiceRuntime.applyToolResults(r.toolResults);
+      if(r.audioBase64 && voicePlayer){
+        voicePlayer.src='data:audio/mpeg;base64,'+r.audioBase64;
+        var p=voicePlayer.play();
+        if(p && p.catch){ p.catch(function(){ afterReply(); }); }
+      } else {
+        afterReply();
+      }
     }).catch(function(){ setVoiceStatus('Network error — please retry.'); });
-  }
-
-  // Bridge structured tool results to the current page: client_action →
-  // a `voice-action` window event the surface listens for; navigate_to →
-  // a navigation deferred until the spoken reply finishes.
-  function applyToolResults(results){
-    vrPendingNav=null;
-    (results || []).forEach(function(tr){
-      var r=(tr && tr.result) || {};
-      if(r.client_action){ window.dispatchEvent(new CustomEvent('voice-action',{detail:r.client_action})); }
-      if(r.navigate_to){ vrPendingNav=r.navigate_to; }
-    });
   }
 
   function afterReply(){
@@ -1079,10 +1066,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     if(!capsLoaded){
       capsBodyEl.innerHTML='';
       capsBodyEl.appendChild(el('div',{class:'sa-vcaps-loading'},'Loading…'));
-      fetch(VOICE_CAP_URL,{headers:{'Accept':'application/json'},credentials:'same-origin'})
-        .then(function(r){ return r.json(); })
-        .then(function(json){ capsLoaded=true; renderCaps(json); })
-        .catch(function(){ renderCaps({tools:{},limitations:['Could not load capabilities.']}); });
+      window.VoiceRuntime.loadCaps(VOICE_CAP_URL).then(function(caps){ capsLoaded=true; renderCaps(caps); });
     }
   }
   function closeCaps(){ if(capsPaneEl) capsPaneEl.classList.remove('sa-show'); }

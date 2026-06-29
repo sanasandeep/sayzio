@@ -64,6 +64,10 @@ window.__voice = { dictateUrl: @js(route('user.ai.voice.transcribe')), csrf: @js
 </div>
 @endif
 @if($voiceFloating && $voiceAvailable)
+{{-- Shared voice-runtime core (turn payload + surface bridge + capabilities),
+     also used by the Zio panel mic (common.partials.site-assistant) — defined
+     idempotently so a page hosting both surfaces registers only one runtime. --}}
+@include('common.partials.voice-runtime')
 <div
     x-data="voiceAssistant({
         turnUrl: @js(route('user.ai.voice.turn')),
@@ -271,35 +275,32 @@ window.voiceAssistant = function (cfg) {
         },
 
         async sendTurn(blob, confirmedTools) {
-            const fd = new FormData();
-            const ext = (blob.type.includes('webm')) ? 'webm' : 'ogg';
-            fd.append('audio', blob, `voice.${ext}`);
-            fd.append('context', JSON.stringify({
-                messages: this.messages,
-                confirmed_tools: confirmedTools || {},
-                surface: window.__voiceSurface || null,
-            }));
             try {
-                const res = await fetch(this.cfg.turnUrl, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': this.cfg.csrf, 'Accept': 'application/json' },
-                    body: fd,
-                    credentials: 'same-origin',
+                // Turn payload shape + POST + response normalization all live in
+                // the shared VoiceRuntime so this surface can never drift from
+                // the Zio-panel mic. The surface bridge (client_action dispatch
+                // + navigate_to) is shared too; navigate_to is returned here and
+                // deferred until the spoken reply finishes (see afterReply).
+                const r = await window.VoiceRuntime.sendTurn({
+                    url: this.cfg.turnUrl,
+                    csrf: this.cfg.csrf,
+                    blob,
+                    messages: this.messages,
+                    confirmedTools: confirmedTools || {},
                 });
-                const json = await res.json().catch(() => ({}));
-                if (!res.ok) {
-                    this.status = json.error || `Request failed (${res.status}).`;
+                if (!r.ok) {
+                    this.status = r.error || `Request failed (${r.status}).`;
                     return;
                 }
-                if (json.transcript) this.messages.push({ role: 'user', content: json.transcript });
-                if (json.reply)      this.messages.push({ role: 'assistant', content: json.reply });
-                this.pendingConfirmations = json.pending_confirmations || [];
-                this.lastCredits = json.credits || null;
-                this.balance    = (json.balance ?? this.balance);
+                if (r.transcript) this.messages.push({ role: 'user', content: r.transcript });
+                if (r.reply)      this.messages.push({ role: 'assistant', content: r.reply });
+                this.pendingConfirmations = r.pending;
+                this.lastCredits = r.credits;
+                this.balance    = (r.balance != null ? r.balance : this.balance);
                 this.status     = '';
-                this.applyToolResults(json.tool_results || []);
-                if (json.audio_base64) {
-                    this.$refs.player.src = 'data:audio/mpeg;base64,' + json.audio_base64;
+                this.pendingNav = window.VoiceRuntime.applyToolResults(r.toolResults);
+                if (r.audioBase64) {
+                    this.$refs.player.src = 'data:audio/mpeg;base64,' + r.audioBase64;
                     this.$refs.player.play().catch(() => this.afterReply());
                 } else {
                     // No spoken reply — run the post-reply step immediately.
@@ -308,23 +309,6 @@ window.voiceAssistant = function (cfg) {
             } catch (e) {
                 this.status = 'Network error — please retry.';
             }
-        },
-
-        // Surface the assistant's structured tool results to whatever page
-        // the user is on: client_action → a `voice-action` window event the
-        // surface listens for; navigate_to → a deferred navigation that
-        // fires once the spoken reply has finished playing.
-        applyToolResults(results) {
-            this.pendingNav = null;
-            (results || []).forEach((tr) => {
-                const r = (tr && tr.result) || {};
-                if (r.client_action) {
-                    window.dispatchEvent(new CustomEvent('voice-action', { detail: r.client_action }));
-                }
-                if (r.navigate_to) {
-                    this.pendingNav = r.navigate_to;
-                }
-            });
         },
 
         // Called when the reply audio ends (or when there was none).
@@ -357,15 +341,7 @@ window.voiceAssistant = function (cfg) {
 
         async loadCaps() {
             if (this.caps) return;
-            try {
-                const res = await fetch(this.cfg.capUrl, {
-                    headers: { 'Accept': 'application/json' },
-                    credentials: 'same-origin',
-                });
-                this.caps = await res.json();
-            } catch (e) {
-                this.caps = { tools: {}, limitations: ['Could not load capabilities.'] };
-            }
+            this.caps = await window.VoiceRuntime.loadCaps(this.cfg.capUrl);
         },
     };
 };
