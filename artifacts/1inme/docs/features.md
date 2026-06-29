@@ -49,6 +49,7 @@ It complements two sibling docs and intentionally does **not** duplicate them:
    - [5.13 Inbox, notifications & digests](#513-inbox-notifications--digests)
    - [5.14 Referrals](#514-referrals)
    - [5.15 Calendar sync & followable calendars](#515-calendar-sync--followable-calendars)
+   - [5.16 Persona onboarding](#516-persona-onboarding)
 6. [Creator monetization & payouts](#6-creator-monetization--payouts)
 7. [18+ adult content](#7-18-adult-content)
 8. [AI engine & AI features](#8-ai-engine--ai-features)
@@ -478,16 +479,26 @@ Embeddable notification-widget engine to lift conversions.
 A personal CRM plus an in-app dialer with identity resolution.
 
 - **Google Contacts sync** — two-way, incremental, background sync via the People
-  API (`GoogleContactsSyncService`); scheduled `contacts:sync` every 30 min.
+  API (`GoogleContactsSyncService`); scheduled `contacts:sync` every 30 min. The
+  user connects/disconnects via a hosted OAuth flow and can trigger a manual sync;
+  status (connected account, last-sync time, in-progress flag) surfaces on web and
+  the mobile API.
 - **Dialer** — number pad with **T9 smart-search** (keypad-spelled names), speed
   dial, recents/frequent; call logging with outcomes/notes. `DialerData` is the
   single read/transform source for web + API.
-- **Identity resolution** — resolve a phone number to a Sayzio biolink profile
-  (`/dialer/lookup`); contacts whose verified phone matches a user get their
-  biolink auto-attached (with detach memory) via `linked_identifiers`.
-- **Import / management** — bulk CSV / VCF import (async for large files),
-  spam/block flagging. Calls/emails open the device's native `tel:` / `mailto:`
-  (no in-app VOIP).
+- **Identity resolution & biolink auto-attach** — resolve a phone number to a
+  Sayzio biolink profile (`/dialer/lookup`); contacts whose verified phone matches
+  a registered user get that user's biolink **auto-attached** to the contact via
+  `linked_identifiers`. Auto-attach has **detach memory** — if you manually detach
+  a biolink it won't be re-attached on the next sync. A contact can also carry a
+  **manual profile** (channels / socials / location) you set by hand.
+- **Plan-based contact limits** — the address book is capped by the plan's
+  `contacts_max` (and lead) allowance, enforced on create, bulk add, and import.
+- **Bulk-import preview workflow** — CSV / VCF import is staged: the upload is
+  **parsed** into a token-keyed preview where you fix or skip individual rows
+  before committing; **confirm** enqueues the import job, and large imports run
+  async with pollable progress (rows read/processed, created/updated/error counts).
+  Calls/emails open the device's native `tel:` / `mailto:` (no in-app VOIP).
 - **Scan a card or brochure** — AI tool (see [§8](#8-ai-engine--ai-features))
   that extracts contact details + logo from a photo/PDF to save a contact and/or
   seed a biolink draft.
@@ -566,6 +577,19 @@ items CRUD + reorder, publishing) · Mobile (shares the `ResumePresenter`).*
 
 - **Inbox** — unified inbound: biolink direct messages + form submissions (and
   paid DMs when enabled).
+- **Spam flagging + reasons** — every inbound item is run through `SpamChecker`
+  at intake; matches are flagged (`is_spam`) with a human-readable `spam_reason`
+  (e.g. the keyword that matched) and routed to a separate Spam view.
+- **Customizable spam keyword list** — Spam Settings hold your own
+  `blocked_keywords` plus a set of **built-in default keywords** you can disable
+  individually (with an audit trail of when each was disabled) and re-enable.
+  `trusted_emails` / `trusted_phones` allowlists exempt known senders, and a CSV
+  import bulk-adds trusted senders. State lives in `user.settings['spam']`.
+- **Forwarding + test forward** — auto-forward inbound items to an **email**
+  address or a **webhook**, optionally filtered by source. Each destination keeps
+  a delivery log, can be enabled/disabled, **test-fired**, and individual failed
+  deliveries retried; a scheduled health check emails you when a destination
+  starts failing.
 - **Notifications** — in-app activity feed (new subscribers, reviews, comments,
   security alerts, API-usage warnings); mark read, dismiss (restorable 30 days),
   mark all read; per-channel preferences.
@@ -595,6 +619,23 @@ sync with the owner's connected calendar (Google; Outlook where supported).
   default); event links and visitor RSVP remain available without it.
 
 *Web · REST (`/calendar/accounts`, `/links/{id}/rsvps`) · Mobile.*
+
+### 5.16 Persona onboarding
+
+A first-run wizard that gets a new user to a published page fast.
+
+- **Single page, two panels** — pick a **persona** (who you are, from
+  `PersonaCatalog`) on the left; matching **starter templates** (recommended-first)
+  appear on the right with a live mini-preview drawer.
+- **Resume hint** — the last template you previewed is remembered, so you can pick
+  up where you left off.
+- **Apply** — choosing "Use this template" builds your biolink from the template;
+  the wizard then drops you on the dashboard. (Replaces the older two-step
+  persona/template flow — old `/onboarding/persona` and `/onboarding/template`
+  URLs redirect to the single page.)
+
+*Web (the persona + template picker is web-only). Mobile reads admin-managed
+splash slides and onboarding status via the REST API.*
 
 ---
 
@@ -778,12 +819,20 @@ AI Agent chat, floating-mic voice assistant).*
   alerts on new device/browser/country.
 - **2FA** — optional extra challenge at sign-in (owner-enforceable for teams).
 - **Verification & linked identifiers** — identity/badge verification; verified
-  phone/email power dialer identity resolution.
+  phone/email power dialer identity resolution. Every email/phone you prove stays
+  on the account as a **linked identifier**.
+- **Account merge** — absorb a duplicate account you also control into your main
+  one. You prove ownership of the other account's email/phone with an OTP, then
+  **preview** exactly what moves (links, contacts, etc.) and which plan to keep
+  before confirming; the other account's identifiers become linked identifiers on
+  the surviving account (`AccountMergeService`). The mobile API mirrors the web
+  `/user/merge` flow statelessly via an encrypted merge token (no browser hop).
 - **Auth methods** — password, passwordless **OTP** (6-digit, email/optionally
   phone), social sign-in (Google/Apple where enabled).
 
-*Web · REST (`/auth/*`, sessions) · Mobile (OTP + social exchange; the OTP path
-covers both login and signup — no separate register screen).*
+*Web · REST (`/auth/*`, sessions, `/account/merge/*`) · Mobile (OTP + social
+exchange; the OTP path covers both login and signup — no separate register
+screen).*
 
 ---
 
@@ -831,10 +880,18 @@ covers both login and signup — no separate register screen).*
 - **Protected accounts** — an email-keyed never-delete/suspend list enforced
   server-side (`ProtectedAccount::isProtected()`) on every destructive path.
 - **Users, roles & moderation** — manage users and roles; link/abuse moderation;
-  banned-name rules; adult-content moderation. A Sanctum token's web user is
-  bridged to a back-office Admin by email (`User::adminAccount`), authorizing
-  `/api/v1/admin/*` from mobile (the mobile admin↔user "switch" is navigation, no
-  re-login).
+  adult-content moderation. A Sanctum token's web user is bridged to a back-office
+  Admin by email (`User::adminAccount`), authorizing `/api/v1/admin/*` from mobile
+  (the mobile admin↔user "switch" is navigation, no re-login).
+- **Banned names / reserved handles** — an admin-managed list of reserved words
+  (on top of built-in defaults) that can never be claimed as a handle or alias.
+  It is enforced by the `NotBannedName` rule on every handle/alias submit **and**
+  by the live availability checker (`AliasAvailability`), so the handle picker
+  rejects a reserved word before submit and suggests an alternative. Admins can
+  add entries singly or in bulk, attach a note, restore defaults, export the list,
+  and inspect **conflicts** (accounts/links already using a word). An entry can be
+  flagged `force_rename_on_login` to force any existing holder to choose a new
+  handle at their next sign-in. Mobile parity at `/api/v1/admin/banned-names`.
 - **Templates & background templates** — admin CRUD for page/block templates and
   background templates, with a preview pipeline.
 - **Maintenance mode** — "any admin" concept spanning admin guard, web users with

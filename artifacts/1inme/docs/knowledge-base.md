@@ -94,14 +94,24 @@ Sayzio supports several sign-in methods:
 always available, while phone/WhatsApp login is an optional toggle set by the
 administrator.
 
-### Onboarding
+### Onboarding (persona wizard)
 
-**What it is.** A guided first-run experience.
+**What it is.** A guided first-run experience on a single page: a **persona**
+picker on the left and matching **starter templates** on the right.
 
 **Why use it.** It gets you from empty account to a real, shareable page fast.
 
-**How to use it.** Pick a persona/goal, choose a template, and Sayzio drops in a
-starter layout you can immediately edit. You can re-run or skip it anytime.
+**How to use it.**
+1. Pick the **persona** that best describes you (e.g. Creator, Business). The
+   template list on the right updates to recommend designs that suit it.
+2. Click a template to open a **live preview** of how your page would look.
+3. Choose **"Use this template"** and Sayzio builds your page from it and drops
+   you on the dashboard, ready to edit.
+
+**Good to know.** The template you last previewed is remembered, so you can come
+back and pick up where you left off. You can skip onboarding and explore on your
+own, and the older two-step persona/template links still work — they just send
+you to this single page.
 
 ---
 
@@ -117,7 +127,10 @@ and it powers the public **Creators** directory.
 **How to use it.**
 1. Open **Profile** from the sidebar.
 2. Set your **display name**, **handle**, **bio** (up to ~500 characters), and
-   upload an **avatar**.
+   upload an **avatar**. As you type a handle, Sayzio checks **availability live**
+   and tells you right away if it's taken. Some handles are **reserved** (system
+   words) or **blocked** by the administrator — if you pick one, Sayzio explains it
+   isn't available and **suggests free alternatives** you can pick with one tap.
 3. Set your **timezone** and **language** so scheduling and daily digests arrive
    at the right time.
 4. Toggle **"Show me in the public Creators directory"** if you want to be
@@ -276,8 +289,10 @@ best-performing variant.
 default Sayzio domain.
 
 **How to use it.** Open **Custom Domains**, add and verify your domain by setting
-the DNS records shown, then choose it when creating links. Some plans also offer
-shared **global domains**.
+the DNS records shown, then choose it when creating links. When you create a link,
+the domain picker lists both your **own verified domains** and any shared **global
+domains** the administrator has made available to everyone — so even without your
+own domain you may have branded options to choose from.
 
 ### Splash pages ("Intros") & link insurance
 
@@ -725,15 +740,30 @@ compliant `.vcf`.
 **Contacts** and **Dialer**.
 
 **How to use it.**
-1. In **Contacts**, optionally connect **Google Contacts** for two-way sync (it
-   keeps both sides in step and runs automatically in the background).
+1. In **Contacts**, optionally connect **Google Contacts** for two-way sync. You
+   connect through Google's secure sign-in; afterwards Sayzio keeps both sides in
+   step automatically in the background, and you can also press **Sync now** for an
+   immediate refresh. The page shows the connected account and when it last synced.
 2. Open the **Dialer** for a number pad with **T9 search** (type digits to find
    names), **speed dial** favorites, and **recent/frequent** contacts.
 3. **Caller ID lookup** can resolve a phone number to a Sayzio profile, and contacts
    whose verified phone matches a Sayzio user get their biolink attached
-   automatically.
+   automatically (**biolink auto-attach**). If you detach a biolink by hand, Sayzio
+   remembers and won't re-attach it on the next sync. You can also add a **manual
+   profile** (extra contact channels, social links, and a location) to any contact.
 4. Calls and emails open your device's native dialer/mail (`tel:` / `mailto:`) —
    there's no in-app VOIP.
+
+**Bulk import (with preview).** To add many contacts at once, upload a **CSV or
+vCard** file. Sayzio first shows a **preview** of what it found so you can fix or
+**skip** individual rows before anything is saved. When you **confirm**, the
+import runs (large files process in the background) and you can watch its progress
+— rows read and processed, plus how many contacts were created, updated, or
+errored. Your plan sets a cap on how many contacts you can store, which is checked
+as the import runs.
+
+**Heads-up.** Your address book is limited by your plan. If an import would push
+you over the limit, you'll be prompted to upgrade or trim the file.
 
 ### Scan a card or brochure
 
@@ -859,6 +889,24 @@ direct messages, form submissions, and similar inbound communication.
 **How to use it.** Open **Inbox** to read and triage incoming messages in one
 place. (Paid DMs, if enabled, also flow through your messaging.)
 
+**Spam filtering.** Sayzio screens every incoming message and moves likely spam
+to a separate **Spam** view, showing **why** it was flagged (for example, the
+word that triggered it). Open **Spam Settings** to tune this:
+
+- **Blocked keywords** — add your own words/phrases that should mark a message as
+  spam. Sayzio also ships a set of **built-in default keywords**; you can switch
+  individual defaults **off** (and back on again) if they're catching the wrong
+  messages.
+- **Trusted senders** — add email addresses and phone numbers to an allowlist so
+  messages from people you know are never marked as spam. You can **import** a
+  list of trusted senders from a CSV file.
+
+**Forwarding.** Want inbox items to reach you elsewhere? Set up **forwarding** to
+an **email address** or a **webhook**, and optionally limit it to certain sources
+(e.g. only form submissions). You can **send a test** to confirm a destination
+works, turn destinations on/off, and retry any delivery that failed. Sayzio also
+warns you if a destination starts failing.
+
 ---
 
 ## 24. Notifications & digests
@@ -903,6 +951,28 @@ For teams and agencies, Sayzio scales beyond a single user:
   when there's a login from a new device, browser, or country.
 - **Two-factor authentication (2FA)** — turn on an extra challenge code at sign-in.
 - **Verification** — verify your identity/badges where applicable.
+- **Linked identifiers** — every email or phone number you've verified stays on
+  your account as a linked identifier. These power things like dialer caller-ID
+  and let you sign in with any of them.
+
+### Merging a duplicate account
+
+**What it is.** If you accidentally created **two accounts** (say one with email
+and one with a phone/social login), you can merge them into one without losing
+your work. Find it under **Security → Merge account** (also available in the
+mobile app).
+
+**How it works.**
+1. Enter the **email or phone** of the *other* account you control. Sayzio sends a
+   **one-time code** to it to confirm it's really yours.
+2. Enter the code, then review a **preview** that shows exactly what will move over
+   (links, contacts, and so on) and lets you choose **which account's plan to
+   keep**.
+3. Confirm. Everything from the other account moves into this one, and the other
+   account's email/phone become **linked identifiers** here.
+
+**Good to know.** Merging is one-way and can't be undone, which is why the preview
+and code check come first.
 
 ---
 

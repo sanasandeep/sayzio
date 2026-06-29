@@ -22,16 +22,16 @@ see [API usage metering](#api-usage-metering)).
 ## Contents
 
 - [Authentication](#authentication) · [OTP / social / demo](#otp-social--demo-auth) · [Sessions & security](#sessions--security)
-- [Profile](#profile) · [Onboarding](#onboarding) · [Dashboard & notifications](#dashboard--notifications) · [Push tokens](#push-tokens)
+- [Profile](#profile) · [Account merge](#account-merge) · [Onboarding](#onboarding) · [Dashboard & notifications](#dashboard--notifications) · [Push tokens](#push-tokens)
 - [Links](#links-own-resources) · [Link-in-bio wizard](#guided-link-in-bio-wizard) · [A/B links](#ab-links) · [Smart links & rules](#smart-links--rules) · [AI-chat links](#ai-chat-links) · [Conversational links](#conversational-links) · [Card templates](#card-templates) · [Page templates](#page-templates) · [NFC writes](#nfc-writes)
 - [Biolinks (public)](#biolinks-public-visibility-aware) · [Blocks](#biolink-blocks-authoring) · [Block live limits & interactions](#block-live-limits--interactions) · [Biolink themes](#biolink-themes)
 - [Reviews (public)](#reviews-public) · [Reviews moderation (owner)](#reviews-moderation-owner)
 - [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Paid pages](#paid-pages-public) · [Creator monetization](#creator-monetization) · [Product storefront](#product-storefront) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
-- [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Resume](#resume--portfolio) · [Projects](#projects)
+- [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Google Contacts sync](#google-contacts-sync) · [Bulk import](#bulk-import-preview-workflow) · [Resume](#resume--portfolio) · [Projects](#projects)
 - [Wallet & coins](#wallet--coins) · [AI](#ai-credits-knowledge-bases-voice-account-assistant-chat-widgets) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
-- [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms)
+- [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
-- [Admin (mobile back-office)](#admin-mobile-back-office) · [Admin mail / SMTP](#admin-mail--smtp-settings)
+- [Admin (mobile back-office)](#admin-mobile-back-office) · [Banned names / reserved handles](#banned-names--reserved-handles) · [Plan editor](#plan-editor) · [Admin mail / SMTP](#admin-mail--smtp-settings)
 - [Extension surface](#browser-extension-surface) (properties, backlinks, pixels, thank-yous) · [Pixel tracking](#pixel-tracking) · [Health](#health)
 - [Error codes](#error-codes) · [Pagination](#pagination-shape) · [API usage metering](#api-usage-metering)
 
@@ -97,13 +97,38 @@ Used mainly by the mobile app for passwordless and native sign-in.
 | GET    | `/profile`  | yes  | Same payload as `/auth/me`.                                          |
 | PATCH  | `/profile`  | yes  | Update `name`, `bio`, `handle`, `avatar`, `phone`, `timezone`, etc.  |
 
+## Account merge
+
+Stateless Bearer-token mirror of the web `/user/merge` flow, so a mobile user
+can absorb a duplicate account they also control without hopping to the browser.
+The flow is **challenge → verify → preview → confirm**; the proven secondary
+account id rides between steps inside an encrypted `merge_token` (no session
+state). All four steps run as the authenticated **primary** user.
+
+| Method | Path                        | Auth | Description                                                                       |
+| ------ | --------------------------- | ---- | -------------------------------------------------------------------------------- |
+| POST   | `/account/merge/challenge`  | yes  | Send an OTP to the secondary identifier. Body: `{ kind: "email"\|"phone", value }`. Throttled (`otp-send`). |
+| POST   | `/account/merge/verify`     | yes  | Verify the OTP. Body: `{ kind, value, code }`. Returns `{ merge_token, preview }`. Throttled (`otp-verify`). |
+| POST   | `/account/merge/preview`    | yes  | Re-fetch the move preview for a `merge_token`. Returns `{ merge_token, preview }`. |
+| POST   | `/account/merge/confirm`    | yes  | Run the merge. Body: `{ merge_token, keep_plan_from: "primary"\|"secondary" }`. Returns `{ merged, records_moved, kept_plan_from, user }`. Throttle: 10/min. |
+
+The `preview` payload reports `total_records`, the per-type `items` to be moved,
+the secondary account's `identifiers` (emails/phones that become linked
+identifiers on the primary), and the `primary`/`secondary` account summaries.
+
 ## Onboarding
+
+The mobile client reads admin-managed splash `slides` and the user's onboarding
+status/completion here. The **persona + starter-template** picker is a web-only
+single-page wizard (see [knowledge base](knowledge-base.md)); there is no
+persona/template API surface — mobile onboarding completes once the user has a
+handle and a first link.
 
 | Method | Path                    | Auth | Description                                              |
 | ------ | ----------------------- | ---- | ------------------------------------------------------- |
-| GET    | `/onboarding/slides`    | —    | Admin-managed mobile splash slides.                     |
-| GET    | `/onboarding`           | yes  | Current onboarding status/progress.                     |
-| POST   | `/onboarding/complete`  | yes  | Mark onboarding complete.                               |
+| GET    | `/onboarding/slides`    | —    | Admin-managed mobile splash slides (`{ items: [{ id, title, body, image_url, image_urls }] }`). |
+| GET    | `/onboarding`           | yes  | Current onboarding status: `onboarded_at`, `has_handle`, `email_verified`, `has_links`, `has_biolink`. |
+| POST   | `/onboarding/complete`  | yes  | Mark onboarding complete (stamps `onboarded_at`).       |
 
 ## Dashboard & notifications
 
@@ -555,9 +580,38 @@ not trust a client-supplied total.
 | POST   | `/contacts/bulk`              | yes  | Bulk import contacts.                                   |
 | GET    | `/contacts/{id}`              | yes  | Show a contact.                                         |
 | PATCH  | `/contacts/{id}`              | yes  | Update a contact.                                       |
-| POST   | `/contacts/{id}/manual-profile` | yes | Attach/override a manual biolink profile on a contact. |
+| POST   | `/contacts/{id}/manual-profile` | yes | Attach/override a manual biolink profile on a contact. Body: `{ channels:[{type,label,value}], socials:[…], location:{…} }`. Returns `{ manual_profile }`. |
 | POST   | `/contacts/{id}/merge`        | yes  | Merge into another contact. Throttle: 60/min.          |
 | DELETE | `/contacts/{id}`              | yes  | Delete a contact.                                       |
+
+### Google Contacts sync
+
+Mobile parity for the web two-way Google Contacts sync (People API). Connect /
+disconnect happens via the hosted OAuth flow on web; the mobile API exposes
+status plus a manual sync trigger.
+
+| Method | Path                          | Auth | Description                                                                |
+| ------ | ----------------------------- | ---- | ------------------------------------------------------------------------- |
+| GET    | `/contacts/google/status`     | yes  | Connection status: `{ connected, email, last_sync_at, is_syncing, … }`.   |
+| POST   | `/contacts/google/sync`       | yes  | Trigger an incremental sync now. Throttle: 12/min.                        |
+| PATCH  | `/contacts/google`            | yes  | Update sync preferences (e.g. direction).                                 |
+| DELETE | `/contacts/google`            | yes  | Disconnect the linked Google account.                                     |
+
+### Bulk import (preview workflow)
+
+A staged CSV/vCard import: **parse** the upload to a token-keyed preview, fix or
+skip individual rows, then **confirm** to enqueue the job and poll its status.
+The preview is what makes mobile parity with the web import wizard.
+
+| Method | Path                                            | Auth | Description                                                              |
+| ------ | ----------------------------------------------- | ---- | ---------------------------------------------------------------------- |
+| POST   | `/contacts/import/parse`                        | yes  | Upload a file → parsed, token-keyed preview. Throttle: 30/min.         |
+| GET    | `/contacts/import/preview/{token}`              | yes  | Fetch the parsed preview (rows + validation flags).                    |
+| PATCH  | `/contacts/import/preview/{token}/rows/{index}` | yes  | Edit one previewed row before import.                                  |
+| DELETE | `/contacts/import/preview/{token}/rows/{index}` | yes  | Skip one previewed row.                                                |
+| DELETE | `/contacts/import/preview/{token}`              | yes  | Cancel the staged import.                                              |
+| POST   | `/contacts/import/preview/{token}/confirm`      | yes  | Commit the preview and enqueue the import job.                         |
+| GET    | `/contacts/import/status/{id}`                  | yes  | Poll job progress: `{ status, total_rows, processed_rows, created_count, updated_count, error_count, finished_at }`. |
 
 ### Dialer
 
@@ -787,7 +841,7 @@ curl -X POST $BASE/adult-content \
 | Method | Path                          | Auth | Description                  |
 | ------ | ----------------------------- | ---- | --------------------------- |
 | GET    | `/domains`                    | yes  | List custom domains.        |
-| GET    | `/domains/available`          | yes  | Check availability.         |
+| GET    | `/domains/available`          | yes  | Domains the user can attach a link to: their own verified domains **plus** any admin-provisioned global domains. Returns `{ items:[{ id, domain, is_verified, is_global, … }], primary_domain_id, default_host, can_manage }`. |
 | POST   | `/domains`                    | yes  | Add a domain.               |
 | POST   | `/domains/{id}/primary`       | yes  | Make a domain primary.      |
 | DELETE | `/domains/{id}`               | yes  | Remove a domain.            |
@@ -882,6 +936,39 @@ DM threads on owned biolinks.
 | DELETE | `/inbox/conversations/{id}`               | yes  | Delete a conversation.              |
 | GET    | `/inbox/teammates`                        | yes  | Assignable teammates.               |
 
+### Spam settings
+
+Mobile parity for the web Spam Settings page. The unified inbox runs every
+inbound message through `SpamChecker` at intake; matches are flagged
+(`is_spam`) with a human-readable `spam_reason` (e.g. the matched keyword).
+State lives in `user.settings['spam']`: the user's own `blocked_keywords`, a set
+of built-in default keywords (individually disable-able with an audit trail),
+and `trusted_emails` / `trusted_phones` allowlists.
+
+| Method | Path                                       | Auth | Description                                                                |
+| ------ | ------------------------------------------ | ---- | ------------------------------------------------------------------------ |
+| GET    | `/inbox/spam-settings`                     | yes  | Current config: `{ spam, defaults, disabled_defaults }`.                  |
+| PUT    | `/inbox/spam-settings`                     | yes  | Replace `blocked_keywords`, `disabled_default_keywords`, `trusted_emails`, `trusted_phones`. |
+| POST   | `/inbox/spam-settings/disable-keyword`     | yes  | Disable one built-in default keyword. Body: `{ keyword }`.                |
+| POST   | `/inbox/spam-settings/enable-keyword`      | yes  | Re-enable a previously disabled default keyword. Body: `{ keyword }`.     |
+| POST   | `/inbox/spam-settings/import-trusted`      | yes  | Bulk-import trusted senders from a `csv` upload. Returns `{ stats, spam }`. |
+
+### Forwarding
+
+Auto-forward inbound inbox items to an email address or webhook, optionally
+filtered by source. Each destination keeps a delivery log; deliveries can be
+test-fired or retried.
+
+| Method | Path                                       | Auth | Description                                                                |
+| ------ | ------------------------------------------ | ---- | ------------------------------------------------------------------------ |
+| GET    | `/inbox/forwards`                          | yes  | List destinations + recent deliveries (`{ destinations, deliveries, source_labels }`). |
+| POST   | `/inbox/forwards`                          | yes  | Create a destination. Body: `{ label, type: "email"\|"webhook", target, method?, sources?, … }`. |
+| PUT    | `/inbox/forwards/{id}`                     | yes  | Update a destination.                                                     |
+| POST   | `/inbox/forwards/{id}/toggle`              | yes  | Enable/disable a destination.                                            |
+| DELETE | `/inbox/forwards/{id}`                     | yes  | Delete a destination.                                                     |
+| POST   | `/inbox/forwards/{id}/test`               | yes  | Send a test forward. Returns `{ sent, message, delivery }`.              |
+| POST   | `/inbox/forward-deliveries/{id}/retry`     | yes  | Retry a single failed delivery.                                          |
+
 ---
 
 ## Social connections & proofs
@@ -938,6 +1025,27 @@ Mobile parity for the back-office role / admin-access tooling and impersonation.
 | POST   | `/admin/users/{user}/admin-access`         | yes  | Grant back-office admin access to a user.           |
 | DELETE | `/admin/users/{user}/admin-access`         | yes  | Revoke back-office admin access.                    |
 | POST   | `/admin/users/{user}/impersonate`          | yes  | Impersonate a user. Throttle: 20/min.              |
+
+### Banned names / reserved handles
+
+Mobile parity for the admin banned-names manager. The list of reserved words
+(plus the built-in defaults) is enforced by the `NotBannedName` rule on every
+handle/alias submit and by the live availability checker, so a banned word can
+never be claimed as a handle. `force_rename_on_login` flags an entry that forces
+any existing holder to pick a new handle on their next login. `conflicts`
+reports accounts/links currently using a reserved word. Gated behind the same
+admin permission as the web manager.
+
+| Method | Path                                        | Auth | Description                                                              |
+| ------ | ------------------------------------------- | ---- | ---------------------------------------------------------------------- |
+| GET    | `/admin/banned-names`                       | yes  | List entries (`{ items:[{ id, name, note, force_rename_on_login, conflicts }], can_manage }`). |
+| POST   | `/admin/banned-names`                       | yes  | Add an entry. Body: `{ name, note?, force_rename_on_login? }`.          |
+| POST   | `/admin/banned-names/bulk`                  | yes  | Bulk add from `names` text or an uploaded `file`. Returns `{ stats, imported, … }`. |
+| POST   | `/admin/banned-names/restore-defaults`      | yes  | Restore the built-in default reserved words.                           |
+| GET    | `/admin/banned-names/export`                | yes  | Export the list.                                                        |
+| GET    | `/admin/banned-names/{id}/conflicts`        | yes  | Accounts/links currently using this reserved word.                     |
+| POST   | `/admin/banned-names/{id}/force-rename`     | yes  | Toggle force-rename-on-login for an entry.                              |
+| DELETE | `/admin/banned-names/{id}`                  | yes  | Delete an entry.                                                        |
 
 ### Plan editor
 
