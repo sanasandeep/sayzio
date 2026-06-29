@@ -152,7 +152,10 @@
         .zio-orbit {
             --size: clamp(290px, 38vw, 460px);
             --node: 62px;
-            --r: calc(var(--size) / 2 - 28px);
+            /* Node-orbit radius == the outer dashed ring's radius (size/2) so each
+               icon's CENTER sits precisely on the dashed orbit path, instead of
+               hugging its inner edge. */
+            --r: calc(var(--size) / 2);
             position: relative;
             width: var(--size);
             height: var(--size);
@@ -387,6 +390,15 @@
                lockstep. Does NOT touch the ≥lg two-column desktop layout. ---- */
         @media (min-width: 640px) and (max-width: 1023.98px) {
             .zio-orbit { --size: clamp(360px, 54vw, 460px); }
+        }
+
+        /* ---- Very small phones: with node centers on the outer ring each tile
+               pokes ~half its width past the orbit box, which can clip against the
+               section's overflow on ~320px screens. Pull the node orbit in a touch
+               here so edge icons stay fully visible (a hair inside the ring). The
+               ≥sm desktop/tablet centering is untouched. ---- */
+        @media (max-width: 380px) {
+            .zio-orbit { --r: calc(var(--size) / 2 - 18px); }
         }
 
         /* ---- Light mode ---- */
