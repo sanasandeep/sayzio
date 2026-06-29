@@ -408,6 +408,19 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   var VOICE_TURN_URL  = ds.voiceTurnUrl || '';
   var VOICE_CAP_URL   = ds.voiceCapUrl || '';
   var VOICE_GATE_URL  = ds.voiceGateUrl || '';
+
+  // Voice runtime state + element refs. These MUST be declared before the DOM
+  // build below: buildMicButton()/buildVoiceStrip()/buildCapsPane() run during
+  // construction and assign the element refs (and read MIC_SVG). Declaring them
+  // later would re-initialise the refs back to null AFTER the build, silently
+  // breaking credits, confirmation chips, the capabilities pane and the deferred
+  // audio playback (and rendering MIC_SVG as the literal string "undefined").
+  var vrRecording=false, vrRec=null, vrChunks=[], vrLastAudio=null;
+  var vrMessages=[], vrPending=[], vrHandsFree=false, vrPendingNav=null;
+  var voiceStatusEl=null, voiceConfirmEl=null, voiceCreditsEl=null;
+  var voicePlayer=null, capsPaneEl=null, capsBodyEl=null, capsLoaded=false;
+  // Mic icon SVG (matches the standalone widget glyph).
+  var MIC_SVG='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>';
   // Which passwordless methods the in-chat login form may offer. Updated
   // from the bootstrap response; when both are false the gate falls back
   // to the full-page login CTA.
@@ -875,14 +888,8 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // dashboard has ONE launcher. Mirrors the standalone widget's logic but
   // in plain JS and rendered into the Zio chat body. Only wired up when
   // VOICE_AVAILABLE; a gated mic just routes to the upgrade page.
-  var vrRecording=false, vrRec=null, vrChunks=[], vrLastAudio=null;
-  var vrMessages=[], vrPending=[], vrHandsFree=false, vrPendingNav=null;
-  var voiceStatusEl=null, voiceConfirmEl=null, voiceCreditsEl=null;
-  var voicePlayer=null, capsPaneEl=null, capsBodyEl=null, capsLoaded=false;
-
-  // Mic icon SVG (matches the standalone widget glyph).
-  var MIC_SVG='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>';
-
+  // (Voice state vars + MIC_SVG are declared above, before the DOM build, so the
+  // builders that run during construction don't get their refs clobbered.)
   function buildMicButton(){
     var b=el('button',{type:'button',class:'sa-mic','aria-label':'Talk to Zio',title: VOICE_GATED ? 'Upgrade to use voice' : 'Tap to talk', html: MIC_SVG});
     if(VOICE_GATED){

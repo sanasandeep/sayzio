@@ -46,6 +46,7 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   cookie-consent-layout-styles.spec.ts \
   cookie-consent-theme-match.spec.ts \
   voice-assistant-bridge.spec.ts \
+  voice-assistant-panel.spec.ts \
   slides-mode.spec.ts \
   cookie-consent-footer-reserve.spec.ts \
   home-hero-orbit-popover.spec.ts \
@@ -144,6 +145,23 @@ The gate covers the specs that run reliably as an unattended check here:
   reaching its surface (the header search box fills with the spoken query and
   navigates to the results). All tests share one logged-in context (the
   `demo-login` route is rate-limited).
+- `voice-assistant-panel.spec.ts` — self-bootstrapping: guards the NEW in-panel
+  voice runtime (the plain-JS port living in the Zio chat-panel composer), not the
+  standalone Alpine floating mic that `voice-assistant-bridge.spec.ts` covers. It
+  turns Voice on via `php artisan tinker` (no API key — the `/user/ai/voice/*`
+  endpoints and the chat bootstrap/session are mocked in the browser; getUserMedia
+  + MediaRecorder are stubbed so the real mic→stop→`sendTurn` pipeline runs against
+  a deterministic blob), logs in as the demo user, and asserts: the composer shows a
+  mic that opens the panel and starts recording; a turn round-trips transcript +
+  reply into the chat body with the per-turn credit meter; a destructive
+  `delete_biolink` is queued behind a confirmation chip and only runs (replaying the
+  clip with `confirmed_tools[delete_biolink]=true`) after **Yes**; "What I can do"
+  loads the capabilities pane; a `navigate_to` with spoken audio is deferred until
+  the reply's audio ends; and a read-only `client_action` dispatches the
+  `voice-action` surface-bridge event. Separate describe blocks then assert a
+  plan-gated user gets a lock-badged mic routing to the voice gate, and an anonymous
+  marketing visitor sees the launcher but no mic. The available/gated describes each
+  share one logged-in context (the `demo-login` route is rate-limited).
 - `slides-mode.spec.ts` — self-bootstrapping: it seeds a published 2-slide
   biolink via `php artisan tinker` and asserts both slides render, advance on
   keyboard + swipe, and ping the inline tracker. Its seed used to trip a
