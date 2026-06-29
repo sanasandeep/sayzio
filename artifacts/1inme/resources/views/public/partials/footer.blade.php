@@ -25,7 +25,7 @@
                 <li><a href="{{ route('site.premium-features') }}" class="hover:text-white transition-colors">Premium features</a></li>
             </ul>
         </div>
-        {{-- AI Suite (5) --}}
+        {{-- AI Suite (6) --}}
         <div>
             <div class="text-[11px] font-bold uppercase tracking-wider text-gray-300 mb-4">AI Suite</div>
             <ul class="space-y-2.5 text-gray-400">
@@ -33,6 +33,7 @@
                 <li><a href="{{ route('site.ai-agent') }}" class="hover:text-white transition-colors">AI Agent</a></li>
                 <li><a href="{{ route('site.ai-widget') }}" class="hover:text-white transition-colors">AI Widget</a></li>
                 <li><a href="{{ route('site.ai-voice-assistant') }}" class="hover:text-white transition-colors">AI Voice Assistant</a></li>
+                <li><a href="{{ route('site.whatsapp-agent') }}" class="hover:text-white transition-colors">WhatsApp Agent</a></li>
                 <li><a href="{{ route('site.resume-builder') }}" class="hover:text-white transition-colors">Résumé &amp; Portfolio</a></li>
             </ul>
         </div>

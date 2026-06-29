@@ -28,7 +28,7 @@ final class ReservedAlias
         'login', 'register', 'features', 'how-it-works', 'about', 'contact',
         'faqs', 'terms', 'refunds', 'privacy', 'gdpr', 'cookies', 'discovery',
         'creators-feed', 'workspace-team', 'buzz', 'ai-chatbot', 'ai-agent',
-        'ai-widget', 'ai-voice-assistant', 'docs', 'newsletter', 'pricing',
+        'ai-widget', 'ai-voice-assistant', 'whatsapp-agent', 'docs', 'newsletter', 'pricing',
         'coins', 'premium-features', 'blogs', 'legal', 'watermark',
         'signed-media', 'stats', 'moderation', 'u', 'p', 'c', 'm',
         'sustainability', 'checkout', 'analytics', 'audience', 'integrations',

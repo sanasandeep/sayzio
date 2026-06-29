@@ -28,12 +28,13 @@ export const featuresCategories: FeatureCategory[] = [
     id: "ai-suite",
     name: "AI suite",
     intro:
-      "A set of AI products that plug into your Sayzio — chat widgets for your Link in Bio, AI agents that run multi-step tasks, an embeddable widget for any site, and a voice assistant that picks up your calls.",
+      "A set of AI products that plug into your Sayzio — chat widgets for your Link in Bio, AI agents that run multi-step tasks, an embeddable widget for any site, a voice assistant that picks up your calls, and a WhatsApp agent that builds links straight from chat.",
     items: [
       { title: "Chat Widgets", description: "Trained 24/7 chatbot on your Link in Bio that answers in your voice, captures leads and hands off to a human when needed." },
       { title: "AI Agents", description: "Multi-step agents that run playbooks across your contacts, inbox and calendar — qualifying leads and following up on their own." },
       { title: "AI Widget", description: "Embeddable AI chat widget for any website — answers questions, captures leads and routes the hot ones to your unified inbox." },
       { title: "AI Voice Assistant", description: "AI receptionist that picks up calls to your number, qualifies callers and books or routes them — never a missed lead." },
+      { title: "WhatsApp Agent", description: "Build and edit links, QR codes, contact cards, calendar events and file links by chatting on WhatsApp — voice notes and photos understood automatically." },
     ],
   },
   {

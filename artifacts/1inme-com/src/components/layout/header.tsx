@@ -22,6 +22,7 @@ import {
   Bot,
   Workflow,
   PhoneCall,
+  MessageCircle,
   Sparkles,
   Building2,
   GraduationCap,
@@ -97,6 +98,7 @@ const aiIcons: Record<string, LucideIcon> = {
   "ai-agent": Workflow,
   "ai-widget": Code2,
   "ai-voice-assistant": PhoneCall,
+  "whatsapp-agent": MessageCircle,
 };
 
 const aiGroup: MegaGroup = {

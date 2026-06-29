@@ -20,6 +20,8 @@ import {
   Check,
   Link2,
   Globe,
+  MessageCircle,
+  Mic,
   type LucideIcon,
 } from "lucide-react";
 import zioMascot from "@assets/icon_1782443779300.png";
@@ -223,6 +225,136 @@ export default function Home() {
               </a>
             </Button>
           </motion.div>
+        </div>
+      </section>
+
+      {/* ─── WhatsApp Agent — build links from chat ───────────────── */}
+      <section
+        id="whatsapp-agent"
+        className="relative py-24 overflow-hidden scroll-mt-24"
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full blur-3xl"
+          style={{ backgroundColor: "#25d36622" }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-24 bottom-0 h-72 w-72 rounded-full blur-3xl"
+          style={{ backgroundColor: "#1da85118" }}
+        />
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            <motion.div {...reveal(0)}>
+              <span
+                className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] mb-4"
+                style={{ color: "#1da851" }}
+              >
+                <MessageCircle className="w-4 h-4" /> WhatsApp Agent
+              </span>
+              <h2 className="text-3xl lg:text-5xl font-bold tracking-tight mb-4">
+                Build links by{" "}
+                <span style={{ color: "#1da851" }}>chatting on WhatsApp</span>
+              </h2>
+              <p className="text-muted-foreground text-lg leading-relaxed mb-7 max-w-xl">
+                Message your Sayzio agent like a teammate. It creates and edits
+                short links, QR codes, contact cards, calendar events and file
+                links — right inside the chat. Send a voice note and it
+                transcribes it; send a photo and it understands it.
+              </p>
+              <ul className="space-y-3 mb-9 max-w-xl">
+                {[
+                  "Create & edit links, QR codes, vCards, events and file links",
+                  "Voice notes transcribed automatically (Whisper)",
+                  "Drop in a photo and the agent reads it",
+                  "No app to open — it all happens in WhatsApp",
+                ].map((line) => (
+                  <li key={line} className="flex items-start gap-3">
+                    <span
+                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white"
+                      style={{ backgroundColor: "#1da851" }}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </span>
+                    <span className="text-foreground/80">{line}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap items-center gap-4">
+                <Button
+                  asChild
+                  size="lg"
+                  className="rounded-full h-14 px-7 text-base text-white hover:opacity-90"
+                  style={{ backgroundColor: "#1da851" }}
+                >
+                  <a href={SIGNUP_URL}>
+                    Get started free <ArrowRight className="ml-2 w-5 h-5" />
+                  </a>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="rounded-full h-14 px-7 text-base">
+                  <Link href="/ai/whatsapp-agent">See how it works</Link>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-5 max-w-xl">
+                Available on paid plans. Each turn is metered and paid from your
+                coin wallet, with an automatic refund if a turn fails. Requires a
+                verified phone number.
+              </p>
+            </motion.div>
+
+            <motion.div className="flex justify-center" {...reveal(0.1)}>
+              <div
+                className="w-full max-w-sm rounded-[1.75rem] overflow-hidden border"
+                style={{ backgroundColor: "#0b141a", boxShadow: "0 40px 90px -40px rgba(0,0,0,0.55)" }}
+              >
+                <div
+                  className="flex items-center gap-3 px-4 py-3 border-b border-white/5"
+                  style={{ background: "linear-gradient(135deg,#1f2c33,#111b21)" }}
+                >
+                  <span
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-white"
+                    style={{ background: "linear-gradient(135deg,#25d366,#1da851)" }}
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                  </span>
+                  <span className="flex flex-col leading-tight">
+                    <span className="font-bold text-[#e9edef]">Sayzio Agent</span>
+                    <span className="text-[0.7rem] text-[#8fa3ad]">online</span>
+                  </span>
+                </div>
+                <div
+                  className="flex flex-col gap-2.5 p-4"
+                  style={{ minHeight: "320px" }}
+                >
+                  <div className="self-end max-w-[82%] rounded-2xl rounded-tr-sm px-3 py-2 text-sm text-[#e9edef]" style={{ backgroundColor: "#005c4b" }}>
+                    Make a short link for my new pricing page sayzio.com/pricing
+                  </div>
+                  <div className="self-start max-w-[82%] rounded-2xl rounded-tl-sm px-3 py-2 text-sm text-[#e9edef]" style={{ backgroundColor: "#202c33" }}>
+                    Done — your short link is{" "}
+                    <b style={{ color: "#6ff7b0" }}>szio.to/pricing</b> 🎉 Want a
+                    QR code for it too?
+                  </div>
+                  <div className="self-end inline-flex items-center gap-2 max-w-[82%] rounded-2xl rounded-tr-sm px-3 py-2 text-sm text-[#cfe9d8]" style={{ backgroundColor: "#005c4b" }}>
+                    <Mic className="w-4 h-4 text-[#8fe9b3]" />
+                    <span className="flex items-end gap-[3px] h-4">
+                      {[8, 14, 10, 15, 9, 13, 11, 15, 8, 12].map((h, i) => (
+                        <span
+                          key={i}
+                          className="w-[3px] rounded-full"
+                          style={{ height: `${h}px`, backgroundColor: "#8fe9b3", opacity: 0.85 }}
+                        />
+                      ))}
+                    </span>
+                    <span className="text-[0.7rem]">0:06</span>
+                  </div>
+                  <div className="self-start max-w-[82%] rounded-2xl rounded-tl-sm px-3 py-2 text-sm text-[#e9edef]" style={{ backgroundColor: "#202c33" }}>
+                    Got it 👍 I made a QR code and added it to a contact card with
+                    your number. Here you go.
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 

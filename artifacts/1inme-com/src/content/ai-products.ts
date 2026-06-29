@@ -133,6 +133,31 @@ export const aiProducts: AiProduct[] = [
       ...commonAiFaqs,
     ],
   },
+  {
+    slug: "whatsapp-agent",
+    eyebrow: "WhatsApp Agent",
+    tagline: "Build and edit links just by chatting on WhatsApp.",
+    navDesc: "Build & edit links by chatting on WhatsApp",
+    accent: "#25d366",
+    title: "WhatsApp Agent",
+    description:
+      "Build and edit links, QR codes, contact cards, calendar events and file links just by chatting on WhatsApp — voice notes and photos understood automatically.",
+    sections: [
+      { heading: "Build links by texting", body: "Open WhatsApp, describe what you need, and the agent builds it for you — short links, Link in Bio pages, QR codes, contact cards, calendar events and file links — without ever opening the dashboard." },
+      { heading: "Turn voice notes into links", body: "On the move? Send a quick voice note. The agent transcribes it, understands the request and creates the link for you — hands-free, in the chat you already use every day." },
+      { heading: "Send a photo, get a link", body: "Drop an image or a document into the chat and the agent saves it for you — turn it into a shareable download link, or add it straight to your Link in Bio page." },
+      { heading: "Edit what you already made", body: "Ask the agent to list your recent links and tweak them in place — repoint a destination, rename a page or update the details — all from the same conversation." },
+      { heading: "QR codes & contact cards on demand", body: "Ask for a QR code or a digital contact card and the agent generates trackable codes and vCards you can forward to anyone in seconds." },
+      { heading: "Tied securely to your account", body: "Add and verify your phone number once. Every message you send is matched to your Sayzio account, so what you create in the chat shows up in your dashboard instantly." },
+    ],
+    faqs: [
+      { question: "How do I start using the WhatsApp Agent?", answer: "Add and verify your phone number in your Sayzio account, then message the Sayzio WhatsApp number. The agent recognises you and gets to work straight away." },
+      { question: "Which plans include it?", answer: "The WhatsApp Agent is available on paid plans. Each reply is metered against your plan allowance, and any overage is covered by your coin wallet so you are never cut off mid-chat." },
+      { question: "Can it understand voice notes and photos?", answer: "Yes. Voice notes are transcribed automatically, and images or documents you send can be turned into download links or added to your Link in Bio." },
+      { question: "What can it create?", answer: "Short links, Link in Bio pages, QR codes, digital contact cards, calendar event links and file download links — all from an ordinary chat." },
+      { question: "Can I edit links I already made?", answer: "Yes. Ask the agent to list your recent links and it can update them in place — repoint, rename or tweak the details — without you opening the dashboard." },
+    ],
+  },
 ];
 
 export function getAiProduct(slug: string): AiProduct | undefined {

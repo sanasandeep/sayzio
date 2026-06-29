@@ -154,6 +154,7 @@ class SitePageController extends Controller
                 'ai-agent'           => 'ai_agent',
                 'ai-widget'          => 'ai_widget',
                 'ai-voice-assistant' => 'ai_voice_assistant',
+                'whatsapp-agent'     => 'whatsapp_agent',
                 default              => null,
             };
             $unlockedOn = [];

@@ -66,6 +66,7 @@ const columns: FooterColumn[] = [
       { href: "/ai/ai-agent", label: "AI Agents" },
       { href: "/ai/ai-widget", label: "AI Widget" },
       { href: "/ai/ai-voice-assistant", label: "AI Voice Assistant" },
+      { href: "/ai/whatsapp-agent", label: "WhatsApp Agent" },
       { href: "/resume-builder", label: "Resume builder" },
       { href: "/api-docs", label: "API & developers" },
     ],

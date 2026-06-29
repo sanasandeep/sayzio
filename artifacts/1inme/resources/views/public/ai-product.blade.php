@@ -30,6 +30,13 @@
             'icon'    => 'fa-headset',
             'accent'  => '#ff8a3c',
         ],
+        'whatsapp-agent' => [
+            'eyebrow'      => 'WhatsApp Agent',
+            'tagline'      => 'Build and edit links just by chatting on WhatsApp.',
+            'icon'         => 'fa-whatsapp',
+            'icon_prefix'  => 'fab',
+            'accent'       => '#25d366',
+        ],
     ];
     $slug    = $aiSlug ?? $page->slug;
     $meta    = $aiMeta[$slug] ?? $aiMeta['ai-chatbot'];
@@ -56,7 +63,7 @@
             <div data-anim="fade-right">
                 <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border"
                       style="background: {{ $meta['accent'] }}1a; border-color: {{ $meta['accent'] }}33; color: {{ $meta['accent'] }};">
-                    <i class="fas {{ $meta['icon'] }} text-[10px]"></i> {{ $meta['eyebrow'] }}
+                    <i class="{{ $meta['icon_prefix'] ?? 'fas' }} {{ $meta['icon'] }} text-[10px]"></i> {{ $meta['eyebrow'] }}
                 </span>
                 <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
                     {{ $page->title ?? $meta['eyebrow'] }}
@@ -83,7 +90,7 @@
             <div data-anim="fade-left" data-tilt="6" class="relative">
                 <div class="img-frame img-tilt aspect-[16/10] flex items-center justify-center"
                      style="background:{{ $meta['accent'] }}1f;">
-                    <i class="fas {{ $meta['icon'] }} text-[120px] opacity-80" style="color: {{ $meta['accent'] }};"></i>
+                    <i class="{{ $meta['icon_prefix'] ?? 'fas' }} {{ $meta['icon'] }} text-[120px] opacity-80" style="color: {{ $meta['accent'] }};"></i>
                 </div>
                 <div class="absolute -bottom-6 -left-6 bg-[#11101c] border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl float-y">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white"
@@ -145,7 +152,7 @@
                 <a href="{{ route('site.' . $otherSlug) }}" class="group glass rounded-2xl p-5 lift block">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white mb-3"
                          style="background: {{ $om['accent'] }};">
-                        <i class="fas {{ $om['icon'] }}"></i>
+                        <i class="{{ $om['icon_prefix'] ?? 'fas' }} {{ $om['icon'] }}"></i>
                     </div>
                     <div class="text-sm font-bold text-white">{{ $om['eyebrow'] }}</div>
                     <div class="text-xs text-gray-400 mt-1 leading-snug">{{ $om['tagline'] }}</div>

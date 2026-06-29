@@ -643,17 +643,17 @@ class SitePagesContent
     }
 
     /**
-     * The four AI suite marketing pages. Each entry is admin-editable
+     * The AI suite marketing pages. Each entry is admin-editable
      * via the standard SitePage editor (title, meta_description,
      * sections [heading/body], cta_label, cta_url).
      */
     public static function aiProductSlugs(): array
     {
-        return ['ai-chatbot', 'ai-agent', 'ai-widget', 'ai-voice-assistant'];
+        return ['ai-chatbot', 'ai-agent', 'ai-widget', 'ai-voice-assistant', 'whatsapp-agent'];
     }
 
     /**
-     * Default content for the four AI suite product pages. Returned as a
+     * Default content for the AI suite product pages. Returned as a
      * slug-keyed array so the seeder and migration can iterate it. Each
      * entry follows the standard SitePage shape (title, meta_description,
      * sections, cta_label, cta_url) plus an `extra` block that holds the
@@ -719,6 +719,20 @@ class SitePagesContent
                     ['heading' => 'You stay in control', 'body' => "Listen to recordings, edit the script, change voices, and set blackout hours when the assistant should hand straight to voicemail. Turn it off any time without losing the history."],
                 ],
             ],
+            'whatsapp-agent' => [
+                'title' => 'WhatsApp Agent',
+                'meta_description' => 'Build and edit links, QR codes, contact cards, calendar events and file links just by chatting on WhatsApp — voice notes and photos understood automatically.',
+                'cta_label' => 'Build links from WhatsApp',
+                'cta_url' => '/register',
+                'sections' => [
+                    ['heading' => 'Build links by texting', 'body' => "Open WhatsApp, describe what you need, and the agent builds it for you — short links, Link in Bio pages, QR codes, contact cards, calendar events and file links — without ever opening the dashboard."],
+                    ['heading' => 'Turn voice notes into links', 'body' => "On the move? Send a quick voice note. The agent transcribes it, understands the request and creates the link for you — hands-free, in the chat you already use every day."],
+                    ['heading' => 'Send a photo, get a link', 'body' => "Drop an image or a document into the chat and the agent saves it for you — turn it into a shareable download link, or add it straight to your Link in Bio page."],
+                    ['heading' => 'Edit what you already made', 'body' => "Ask the agent to list your recent links and tweak them in place — repoint a destination, rename a page or update the details — all from the same conversation."],
+                    ['heading' => 'QR codes & contact cards on demand', 'body' => "Ask for a QR code or a digital contact card and the agent generates trackable codes and vCards you can forward to anyone in seconds."],
+                    ['heading' => 'Tied securely to your account', 'body' => "Add and verify your phone number once. Every message you send is matched to your Sayzio account, so what you create in the chat shows up in your dashboard instantly."],
+                ],
+            ],
         ];
     }
 
@@ -730,6 +744,18 @@ class SitePagesContent
      */
     public static function aiProductFaqs(string $slug): array
     {
+        // The WhatsApp Agent is a build-by-chat tool, not a visitor-facing
+        // chatbot, so the shared "languages / hand-off to a human" common
+        // FAQs don't apply — it gets its own self-contained list.
+        if ($slug === 'whatsapp-agent') {
+            return [
+                ['q' => 'How do I start using the WhatsApp Agent?', 'a' => 'Add and verify your phone number in your Sayzio account, then message the Sayzio WhatsApp number. The agent recognises you and gets to work straight away.'],
+                ['q' => 'Which plans include it?', 'a' => 'The WhatsApp Agent is available on paid plans. Each reply is metered against your plan allowance, and any overage is covered by your coin wallet so you are never cut off mid-chat.'],
+                ['q' => 'Can it understand voice notes and photos?', 'a' => 'Yes. Voice notes are transcribed automatically, and images or documents you send can be turned into download links or added to your Link in Bio.'],
+                ['q' => 'What can it create?', 'a' => 'Short links, Link in Bio pages, QR codes, digital contact cards, calendar event links and file download links — all from an ordinary chat.'],
+                ['q' => 'Can I edit links I already made?', 'a' => 'Yes. Ask the agent to list your recent links and it can update them in place — repoint, rename or tweak the details — without you opening the dashboard.'],
+            ];
+        }
         $common = [
             ['q' => 'Do I need to write any prompts or code?', 'a' => 'No. You point it at your Link in Bio, your site or your inbox, set a tone, and it learns from your existing content. You can refine answers from the dashboard at any time.'],
             ['q' => 'What languages does it support?', 'a' => 'Out of the box it understands and replies in 30+ languages and auto-detects what each visitor uses, so you can serve a global audience without setting up separate flows.'],
@@ -1072,12 +1098,13 @@ class SitePagesContent
             'id' => 'ai-suite',
             'icon' => 'fa-robot',
             'heading' => 'AI suite',
-            'intro' => 'A set of AI products that plug into your Sayzio — a chatbot for your Link in Bio, an agent that runs multi-step tasks, an embeddable widget for any site, and a voice assistant that picks up your calls.',
+            'intro' => 'A set of AI products that plug into your Sayzio — a chatbot for your Link in Bio, an agent that runs multi-step tasks, an embeddable widget for any site, a voice assistant that picks up your calls, and a WhatsApp agent that builds links straight from chat.',
             'features' => [
                 ['name' => 'AI Chatbot', 'description' => 'Trained 24/7 chatbot on your Link in Bio that answers in your voice, captures leads and hands off to a human when needed.', 'link' => '/ai-chatbot'],
                 ['name' => 'AI Agent', 'description' => 'A multi-step agent that runs playbooks across your contacts, inbox and calendar — qualifying leads and following up on its own.', 'link' => '/ai-agent'],
                 ['name' => 'AI Widget', 'description' => 'Embeddable AI assistant for any website — answers questions, captures leads and routes the hot ones to your unified inbox.', 'link' => '/ai-widget'],
                 ['name' => 'AI Voice Assistant', 'description' => 'AI receptionist that picks up calls to your number, qualifies callers and books or routes them — never a missed lead.', 'link' => '/ai-voice-assistant'],
+                ['name' => 'WhatsApp Agent', 'description' => 'Build and edit links, QR codes, contact cards, calendar events and file links by chatting on WhatsApp — voice notes and photos understood automatically.', 'link' => '/whatsapp-agent'],
             ],
         ];
     }
