@@ -180,12 +180,13 @@ html.light-mode footer.bg-\[\#161b26\] {
 .mkt-navbar-bar {
     width: 92%;
     margin: 0.85rem auto 0;
-    border: 1px solid rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.14);
     border-radius: 1rem;
-    background-color: rgba(30,35,48,0.55);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
-    box-shadow: 0 20px 45px -18px rgba(0,0,0,0.55);
+    background-color: rgba(30,35,48,0.45);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    box-shadow: 0 20px 45px -18px rgba(0,0,0,0.55),
+                inset 0 1px 0 rgba(255,255,255,0.08);
     transition: width .35s ease, margin .35s ease, background-color .35s ease,
                 border-radius .35s ease, border-color .35s ease, box-shadow .35s ease;
 }
@@ -198,19 +199,33 @@ html.light-mode footer.bg-\[\#161b26\] {
     margin-top: 0;
     border-radius: 0;
     border-color: transparent;
-    border-bottom-color: rgba(255,255,255,0.06);
-    background-color: rgba(30,35,48,0.92);
-    box-shadow: none;
+    border-bottom-color: rgba(255,255,255,0.10);
+    background-color: rgba(30,35,48,0.62);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    backdrop-filter: blur(22px) saturate(160%);
+    box-shadow: 0 12px 30px -20px rgba(0,0,0,0.6);
 }
 
 html.light-mode .mkt-navbar-bar {
-    background-color: rgba(255,255,255,0.60);
+    background-color: rgba(255,255,255,0.45);
     border-color: rgba(15,23,42,0.10);
+    box-shadow: 0 20px 45px -18px rgba(15,23,42,0.18),
+                inset 0 1px 0 rgba(255,255,255,0.55);
 }
 html.light-mode .mkt-navbar-bar.is-stuck {
-    background-color: rgba(255,255,255,0.92);
+    background-color: rgba(255,255,255,0.62);
     border-color: transparent;
     border-bottom-color: rgba(15,23,42,0.10);
+    box-shadow: 0 12px 30px -20px rgba(15,23,42,0.16);
+}
+
+/* Graceful fallback where backdrop-filter is unsupported: lean on a more
+   opaque background so the bar stays legible without the blur. */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .mkt-navbar-bar { background-color: rgba(30,35,48,0.92); }
+    .mkt-navbar-bar.is-stuck { background-color: rgba(30,35,48,0.96); }
+    html.light-mode .mkt-navbar-bar { background-color: rgba(255,255,255,0.92); }
+    html.light-mode .mkt-navbar-bar.is-stuck { background-color: rgba(255,255,255,0.96); }
 }
 
 @media (prefers-reduced-motion: reduce) {
