@@ -21,3 +21,11 @@ independent state — the alpha_dash format check runs before the bypass branch.
 
 Also: the demo user's plan alias min-length is <=2 here, so `"ab"` reads as
 available — don't rely on "too short" either; use the illegal-character path.
+
+So the banned-block must be verified with an HTTP **feature test** (not the
+browser gate): act as a freshly-created plain User — no roles ⇒ owner of its
+own workspace ⇒ passes `workspace.can:links.create` with no bypass — seed a
+`BannedName` + flush its checker cache, then assert the rejection on both the
+live check and the submit. Add a bypass contrast by syncing the seeded
+`user-admin` web role. Roles/permissions ARE seeded in the RefreshDatabase
+test DB, so the role-sync trick works there.
