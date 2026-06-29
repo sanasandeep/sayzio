@@ -267,7 +267,7 @@ html.light-mode .sa-badge{border:2px solid #ffffff}
 // later overwrites window.__SA_CHROME with the same values once the
 // fetch completes — keeping a single source of truth at runtime.
 window.__SA_SUBHEADING = @json(\App\Services\AI\SiteAssistantSettings::subheadingFor($__sa_cfg));
-// Assistant display name ("Zio Bot" by default) shown in the chat header.
+// Assistant display name ("Ask Zio" by default) shown in the chat header.
 window.__SA_BRAND = @json(\App\Services\AI\SiteAssistantSettings::brandNameFor($__sa_cfg));
 // Rotating tooltip messages. We seed with a few inline brand defaults
 // passed through Laravel's translator (so installs that ship matching
@@ -315,7 +315,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // between render and open are picked up that way).
   var CHROME = Object.assign({
     subheading: 'How can I help?',
-    typing_indicator: 'Assistant is typing…',
+    typing_indicator: 'Ask Zio is typing…',
     handoff_note: 'Our team will reply by email.',
     cutoff_notice: '⚠ This reply was cut off —',
     cutoff_retry_label: 'Retry',

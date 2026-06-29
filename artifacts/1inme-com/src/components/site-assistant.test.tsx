@@ -4,7 +4,7 @@ import SiteAssistant from "@/components/site-assistant";
 import { ThemeProvider } from "@/components/theme-provider";
 
 /**
- * Sign-out + session-expiry recovery coverage for the marketing-site "Zio Bot"
+ * Sign-out + session-expiry recovery coverage for the marketing-site "Ask Zio"
  * widget (the cross-origin React client at src/components/site-assistant.tsx).
  *
  * The widget carries a Sanctum bearer token (sa_auth_token_v1) for the signed-in
@@ -59,7 +59,7 @@ describe("SiteAssistant — marketing widget sign-out", () => {
             enabled: true,
             auth_required: false,
             email_otp_enabled: true,
-            greeting: "Welcome back to Zio Bot",
+            greeting: "Welcome back to Ask Zio",
           });
         }
         return jsonResponse(200, {

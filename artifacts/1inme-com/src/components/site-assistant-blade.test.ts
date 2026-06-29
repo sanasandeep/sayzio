@@ -4,7 +4,7 @@ import { readFileSync } from "fs";
 import path from "path";
 
 /**
- * Session-expiry recovery coverage for the Laravel-rendered "Zio Bot" widget
+ * Session-expiry recovery coverage for the Laravel-rendered "Ask Zio" widget
  * (the in-app blade partial that shares the /assistant/* contract with the
  * marketing React widget — the two front-ends must stay in lockstep).
  *
@@ -84,7 +84,7 @@ function mountRoot() {
       data-position="right"
       data-accent="#3d6bff"
       data-avatar=""
-      data-brand="Zio Bot"
+      data-brand="Ask Zio"
       data-peek-avatar="/peek.png"
       data-bootstrap-url="/assistant/bootstrap"
       data-session-url="/assistant/session"
@@ -114,7 +114,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("Zio Bot blade widget — expired web session recovery", () => {
+describe("Ask Zio blade widget — expired web session recovery", () => {
   it("re-shows the in-chat login gate in place on a 401, preserving the visitor token + conversation and showing no error bubble", async () => {
     localStorage.setItem(VISITOR_TOKEN_KEY, "visitor-blade");
 

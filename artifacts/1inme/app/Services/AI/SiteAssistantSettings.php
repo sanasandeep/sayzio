@@ -21,7 +21,7 @@ class SiteAssistantSettings
             'accent_color'      => '#7c3aed',
             'avatar_url'        => null, // empty => bundled Zio Bot mascot (see avatarUrlFor)
             'brand_name'        => self::DEFAULT_BRAND_NAME,
-            'greeting'          => "Hi! I'm Zio Bot, your Sayzio assistant. Ask me anything about the platform or what you can do on this page.",
+            'greeting'          => "Hi! I'm Ask Zio, your Sayzio assistant. Ask me anything about the platform or what you can do on this page.",
             'system_prompt'     => self::defaultSystemPrompt(),
             'model'             => '', // empty = fall back to feature-mapped chat model
             'mind_ids'          => [], // empty = use platform-default minds
@@ -97,7 +97,7 @@ class SiteAssistantSettings
             'send_label_locales'        => [],
             // Default + per-locale overrides for the rest of the chat
             // chrome strings the visitor sees: the header subheading,
-            // the "Assistant is typing…" indicator, the disabled-input
+            // the "Ask Zio is typing…" indicator, the disabled-input
             // note shown after a handoff, the cut-off banner + Retry
             // button, and the two generic error toasts. Same fallback
             // chain as the placeholder/Send label fields above —
@@ -130,7 +130,7 @@ class SiteAssistantSettings
      *  assistant avatar when an admin hasn't uploaded a custom one. */
     public const DEFAULT_AVATAR_PATH = 'branding/zio-bot.png';
     /** Default display name for the assistant widget header. */
-    public const DEFAULT_BRAND_NAME = 'Zio Bot';
+    public const DEFAULT_BRAND_NAME = 'Ask Zio';
 
     public const DEFAULT_INPUT_PLACEHOLDER = 'Type a message…';
     public const DEFAULT_SEND_LABEL        = 'Send';
@@ -138,7 +138,7 @@ class SiteAssistantSettings
      *  admin/session greeting is set (the admin cleared the field). */
     public const DEFAULT_GREETING          = 'Hi! How can I help?';
     public const DEFAULT_SUBHEADING            = 'How can I help?';
-    public const DEFAULT_TYPING                = 'Assistant is typing…';
+    public const DEFAULT_TYPING                = 'Ask Zio is typing…';
     public const DEFAULT_HANDOFF_NOTE          = 'Our team will reply by email.';
     public const DEFAULT_CUTOFF_NOTICE         = '⚠ This reply was cut off —';
     public const DEFAULT_CUTOFF_RETRY_LABEL    = 'Retry';
@@ -207,7 +207,7 @@ P;
 
     /**
      * Resolve the assistant display name shown in the chat header,
-     * falling back to the built-in "Zio Bot" brand when unset.
+     * falling back to the built-in "Ask Zio" brand when unset.
      */
     public static function brandNameFor(array $cfg): string
     {
@@ -614,7 +614,7 @@ P;
     }
 
     /**
-     * Resolve the locale-specific "Assistant is typing…" indicator.
+     * Resolve the locale-specific "Ask Zio is typing…" indicator.
      */
     public static function typingIndicatorFor(array $cfg, ?string $acceptLanguage = null): string
     {

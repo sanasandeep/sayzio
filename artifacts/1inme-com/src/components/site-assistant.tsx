@@ -7,7 +7,7 @@ import zioBotMascot from "@assets/ChatGPT_Image_Jun_26,_2026_at_09_24_23_AM_1782
 import zioBotPeek from "@assets/ChatGPT_Image_Jun_26,_2026_at_11_40_07_AM_1782454328455.png";
 
 /**
- * Floating "Zio Bot" assistant widget for the marketing site.
+ * Floating "Ask Zio" assistant widget for the marketing site.
  *
  * The marketing site has no AI runtime of its own — this widget is a thin
  * cross-origin client for the product app's site-wide assistant endpoints
@@ -377,7 +377,7 @@ export default function SiteAssistant() {
         const greeting =
           data.greeting ||
           session?.greeting ||
-          "Hi! I'm Zio Bot. How can I help?";
+          "Hi! I'm Ask Zio. How can I help?";
         setMessages([{ role: "assistant", content: greeting }]);
       }
       const combined = [
@@ -651,7 +651,7 @@ export default function SiteAssistant() {
 
   const avatar = cfg?.avatar_url || bootAvatar || zioBotMascot;
   const reduceMotion = useReducedMotion();
-  const brand = cfg?.brand_name || "Zio Bot";
+  const brand = cfg?.brand_name || "Ask Zio";
   const subheading = cfg?.subheading || "How can I help?";
   const placeholder = cfg?.input_placeholder || "Type a message…";
   const sendLabel = cfg?.send_label || "Send";
@@ -873,7 +873,7 @@ export default function SiteAssistant() {
               ))}
               {sending && (
                 <div style={{ color: t.sub, fontSize: 12, fontStyle: "italic" }}>
-                  Zio Bot is typing…
+                  Ask Zio is typing…
                 </div>
               )}
             </div>
