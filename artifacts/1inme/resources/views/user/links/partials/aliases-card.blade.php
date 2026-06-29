@@ -17,6 +17,12 @@
         ?: (PlatformHosts::currentRequestHost() ?: PlatformHosts::primary());
     // Only show "also live on" hints for platform short links (no custom domain).
     $showHostsHint = !$link->domain;
+    // Live per-plan alias length range, surfaced inline so users see the
+    // constraint before validation rejects their input. Falls back to the
+    // permissive DB-width range if no owner is resolvable.
+    $aliasLimits = workspace_owner()?->getAliasLengthLimits() ?? ['min' => 1, 'max' => 191];
+    $aliasMin = $aliasLimits['min'];
+    $aliasMax = $aliasLimits['max'];
 @endphp
 
 <div class="card-premium p-6" x-data="{ editing: false, alias: @js($link->alias) }">
@@ -58,7 +64,7 @@
             <template x-if="editing">
                 <div class="flex-1 flex items-center">
                     <input x-ref="aliasInput" type="text" x-model="alias"
-                           minlength="3" maxlength="60" pattern="[a-zA-Z0-9_-]+"
+                           minlength="{{ $aliasMin }}" maxlength="{{ $aliasMax }}" pattern="[a-zA-Z0-9_-]+"
                            class="flex-1 px-3 py-2.5 text-sm font-medium bg-transparent outline-none"
                            style="color: var(--text-primary);"
                            @keydown.escape="editing = false; alias = @js($link->alias)">
@@ -85,6 +91,9 @@
                 </div>
             </template>
         </div>
+        <p class="text-[11px] mt-1.5" style="color: var(--text-faint);">
+            <i class="fas fa-info-circle mr-1"></i>{{ $aliasMin }}–{{ $aliasMax }} characters · letters, numbers, hyphens &amp; underscores
+        </p>
     </div>
 
     {{-- ADDITIONAL ALIASES --}}
@@ -121,12 +130,15 @@
         <form method="POST" action="{{ route('user.links.aliases.store', $link) }}" class="flex items-stretch rounded-lg overflow-hidden" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
             @csrf
             <span class="px-3 flex items-center text-xs flex-shrink-0" style="color: var(--text-faint); border-right: 1px dashed var(--border-glass); background: var(--bg-glass);">{{ $aliasHost }}/</span>
-            <input type="text" name="alias" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9_-]+"
+            <input type="text" name="alias" required minlength="{{ $aliasMin }}" maxlength="{{ $aliasMax }}" pattern="[a-zA-Z0-9_-]+"
                    placeholder="my-campaign" class="flex-1 px-3 py-2 text-sm bg-transparent outline-none" style="color: var(--text-primary);">
             <button type="submit" class="px-3 text-xs font-semibold whitespace-nowrap hover:bg-blue-500/10" style="color: #90acff;">
                 <i class="fas fa-plus text-[10px] mr-1"></i>Add alias
             </button>
         </form>
+        <p class="text-[11px] mt-1.5" style="color: var(--text-faint);">
+            <i class="fas fa-info-circle mr-1"></i>{{ $aliasMin }}–{{ $aliasMax }} characters · letters, numbers, hyphens &amp; underscores
+        </p>
         @error('alias') <p class="text-red-400 text-[11px] mt-1">{{ $message }}</p> @enderror
         @else
         <p class="text-[11px] mt-2" style="color: var(--text-faint);"><i class="fas fa-info-circle mr-1"></i> Alias limit reached on your current plan.</p>
