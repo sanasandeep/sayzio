@@ -29,7 +29,7 @@ class AuthController extends Controller
             'name'     => ['required', 'string', 'max:120'],
             'email'    => ['required', 'email', 'max:190', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:8', 'max:200'],
-            'handle'   => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/i', Rule::unique('users', 'handle')],
+            'handle'   => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/i', Rule::unique('users', 'handle'), new \App\Modules\Admin\Rules\NotBannedName()],
         ]);
 
         $user = User::create([

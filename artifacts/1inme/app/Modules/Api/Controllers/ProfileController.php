@@ -23,7 +23,7 @@ class ProfileController extends Controller
         $data = $request->validate([
             'name'             => ['sometimes', 'string', 'max:120'],
             'bio'              => ['sometimes', 'nullable', 'string', 'max:500'],
-            'handle'           => ['sometimes', 'nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/i', Rule::unique('users', 'handle')->ignore($user->id)],
+            'handle'           => ['sometimes', 'nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/i', Rule::unique('users', 'handle')->ignore($user->id), new \App\Modules\Admin\Rules\NotBannedName()],
             'avatar'           => ['sometimes', 'nullable', 'string', 'max:500'],
             'phone'            => ['sometimes', 'nullable', 'string', 'max:40'],
             'timezone'         => ['sometimes', 'nullable', 'string', 'max:60'],
