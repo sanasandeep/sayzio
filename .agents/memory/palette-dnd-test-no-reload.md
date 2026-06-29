@@ -26,3 +26,11 @@ timeouts (openEditor goto/waitForFunction 120s; dropPalette toHaveCount/toast
 60s) because cold editor renders + store round-trips over the distant RDS far
 exceed Playwright defaults — a 30s default here surfaces as an intermittent
 "waitForFunction timeout" that is really just slowness, not a logic bug.
+
+**Per-test cold-render settle guard:** any position-sensitive drop (index 1 /
+append / inside-card) MUST first `expect.poll(topLevelLabels).toEqual([Divider,
+Spacer,Card Container])` BEFORE calling `dropPalette`. `openEditor` only waits
+for `window.__editorTest` to exist — `#blockList` can still be rendering, so a
+drop fired immediately can land at the wrong index (the "BETWEEN two blocks"
+flake). The TOP test always had this guard; the BETWEEN/END/INSIDE tests did
+not and were the flaky ones — keep the baseline poll on every new drop test.

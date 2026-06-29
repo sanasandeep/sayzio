@@ -131,6 +131,46 @@ class CompanyInvoiceEmailTransportTest extends TestCase
         $this->assertSame('sent', $invoice->fresh()->status);
     }
 
+    public function test_configured_company_send_wires_the_companys_own_smtp_server_into_the_pipeline(): void
+    {
+        // The transport *label* alone doesn't prove the message would actually
+        // leave through the company's server — that requires the live pipeline
+        // to register a mailer pointed at the company's host/port/credentials.
+        // This asserts the runtime mail config the Emailer builds during a real
+        // markSent(), bridging emailOpts() (unit-tested in isolation) to the
+        // send path the controller/API/recurring auto-send all use.
+        Mail::fake();
+        $u  = $this->user();
+        $ws = $this->workspace($u);
+        $company = $this->company($u, $ws, [
+            'smtp_enabled'      => true,
+            'smtp_host'         => 'smtp.acme.test',
+            'smtp_port'         => 2525,
+            'smtp_encryption'   => 'tls',
+            'smtp_username'     => 'apikey',
+            'smtp_from_address' => 'billing@acme.test',
+            'smtp_from_name'    => 'Acme Billing',
+            '_password'         => 's3cret-pw',
+        ]);
+        $invoice = $this->invoice($u, $ws, $company);
+
+        app(ClientInvoiceService::class)->markSent($invoice);
+
+        $mailer = config('mail.mailers.company_smtp_' . $company->id);
+        $this->assertIsArray($mailer, 'The company SMTP mailer should be registered at send time.');
+        $this->assertSame('smtp', $mailer['transport'] ?? null);
+        $this->assertSame('smtp.acme.test', $mailer['host'] ?? null);
+        $this->assertSame(2525, $mailer['port'] ?? null);
+        $this->assertSame('smtp', $mailer['scheme'] ?? null);
+        $this->assertSame('apikey', $mailer['username'] ?? null);
+        // The password is stored Crypt-encrypted but handed to the live transport
+        // in clear, so a real send would authenticate against the company server.
+        $this->assertSame('s3cret-pw', $mailer['password'] ?? null);
+
+        // And the log still confirms this exact transport carried the message.
+        $this->assertSame('company:' . $company->id, $this->latestLog()->meta['transport'] ?? null);
+    }
+
     public function test_disabled_company_smtp_falls_back_to_platform_transport(): void
     {
         Mail::fake();

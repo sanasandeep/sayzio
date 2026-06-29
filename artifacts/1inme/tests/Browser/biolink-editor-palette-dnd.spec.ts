@@ -291,6 +291,16 @@ test.describe("biolink editor — palette drag-and-drop block creation", () => {
     await openEditor(page, baseline.linkId);
     const heading = await paletteLabel(page, "heading");
 
+    // Wait for the seeded baseline to fully render before dropping. An index-1
+    // insert is position-sensitive, so firing the drop while #blockList is still
+    // rendering can land the new block at the wrong index (a cold-render race the
+    // TOP test avoids with the same guard).
+    await expect.poll(() => topLevelLabels(page), { timeout: 60_000 }).toEqual([
+      "Divider",
+      "Spacer",
+      "Card Container",
+    ]);
+
     await dropPalette(page, "heading", null, 1);
 
     await expect.poll(() => topLevelLabels(page), { timeout: 60_000 }).toEqual([
@@ -304,6 +314,14 @@ test.describe("biolink editor — palette drag-and-drop block creation", () => {
   test("drops a palette tile at the END of the list", async ({ page }) => {
     await openEditor(page, baseline.linkId);
     const heading = await paletteLabel(page, "heading");
+
+    // Confirm the baseline rendered before dropping so the append lands after a
+    // settled three-block list (same cold-render guard as the other drops).
+    await expect.poll(() => topLevelLabels(page), { timeout: 60_000 }).toEqual([
+      "Divider",
+      "Spacer",
+      "Card Container",
+    ]);
 
     await dropPalette(page, "heading", null, 99);
 
@@ -319,10 +337,20 @@ test.describe("biolink editor — palette drag-and-drop block creation", () => {
     await openEditor(page, baseline.linkId);
     const link = await paletteLabel(page, "link");
 
+    // Confirm the baseline top-level list rendered before interacting so the
+    // card and its seeded child are present (cold-render guard, as above).
+    await expect.poll(() => topLevelLabels(page), { timeout: 60_000 }).toEqual([
+      "Divider",
+      "Spacer",
+      "Card Container",
+    ]);
+
     const childList = page.locator(
       `.card-child-list[data-card-id="${baseline.cardId}"]`,
     );
-    await expect(childList.locator("> .child-block-card")).toHaveCount(1);
+    await expect(childList.locator("> .child-block-card")).toHaveCount(1, {
+      timeout: 60_000,
+    });
 
     await dropPalette(page, "link", baseline.cardId, 0);
 

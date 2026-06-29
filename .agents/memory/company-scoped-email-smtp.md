@@ -24,6 +24,19 @@ Company override > admin/global override > registry default. Emailer takes a
 `template_override` opt that wins over the admin `EmailTemplateSettings::get()`.
 Reset removes only the company row.
 
+## How send-time routing/precedence is verified (don't duplicate)
+End-to-end proof lives in `CompanyInvoiceEmailTransportTest` (feature) +
+`CompanyMailSettingsTransportTest` (unit, in-memory). Assert on the **email_logs
+row** the Emailer always writes — `meta.transport` is `'company:{id}'` vs
+`'system'`, and `body`/`meta.from` prove the template/sender — NOT on `Mail::fake`
+(it doesn't record `raw()`/`html()`). To prove the *actual server* (not just the
+label) is wired, read `config('mail.mailers.company_smtp_{id}')` after a real
+`markSent()`: `dispatch()` registers it from `mailerConfig()` before sending, so
+host/port/scheme/username/decrypted-password are asserted deterministically
+regardless of the fake.
+**How to apply:** a future "confirm client emails send from the right company
+server" need is already covered; extend these files rather than adding a new one.
+
 ## Transport routing is BROADER than template editing
 Two separate concerns:
 - **SMTP transport** routes *every* client-facing accounting send through the
