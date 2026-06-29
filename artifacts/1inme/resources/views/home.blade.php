@@ -4593,6 +4593,5 @@
 </script>
 @include('common.partials.cookie-consent', ['surface' => 'site'])
 @include('common.partials.site-assistant', ['surface' => 'marketing'])
-@include('common.partials.quick-contact')
 </body>
 </html>

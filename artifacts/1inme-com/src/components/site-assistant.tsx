@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowLeft, Phone } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { ASSISTANT_API_BASE, LOGIN_URL } from "@/config";
 import zioBotMascot from "@assets/ChatGPT_Image_Jun_26,_2026_at_09_24_23_AM_1782451375104.png";
@@ -93,6 +94,11 @@ interface TurnResponse {
   handed_off?: boolean;
   error?: string;
 }
+interface QuickContactResponse {
+  ok?: boolean;
+  message?: string;
+  error?: string;
+}
 
 function escapeHtml(s: string): string {
   return String(s ?? "").replace(/[&<>"']/g, (c) => {
@@ -162,6 +168,17 @@ export default function SiteAssistant() {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [suggested, setSuggested] = useState<string[]>([]);
   const [handedOff, setHandedOff] = useState(false);
+  // "Contact us" view: the former standalone quick-contact widget, folded
+  // into the assistant. Unlike the chat it is NOT login-gated — it posts to
+  // /assistant/quick-contact (anonymous-friendly, time-trap protected) and
+  // lands in the admin Contact Inbox.
+  const [contactView, setContactView] = useState(false);
+  const [contactBusy, setContactBusy] = useState(false);
+  const [contactDone, setContactDone] = useState("");
+  const [contactError, setContactError] = useState("");
+  // Time-trap: stamp when the contact form opened so the server can reject a
+  // submission filled+posted implausibly fast. A same-clock delta.
+  const contactOpenedAt = useRef<number>(Date.now());
   // Login gate: the marketing surface is always anonymous, so the server
   // returns auth_required=true whenever the admin gate is on. We then
   // swap the composer for a login CTA and block message sending.
@@ -312,6 +329,8 @@ export default function SiteAssistant() {
         setTooltip(null);
         tooltipDismissed.current = true;
         if (!booted) void boot();
+      } else {
+        setContactView(false);
       }
     },
     [booted, boot]
@@ -458,6 +477,46 @@ export default function SiteAssistant() {
     [sending, pushMessage, scrollBottom]
   );
 
+  const openContact = useCallback(() => {
+    setContactDone("");
+    setContactError("");
+    contactOpenedAt.current = Date.now();
+    setContactView(true);
+  }, []);
+
+  const submitQuickContact = useCallback(
+    async (values: Record<string, string>) => {
+      if (contactBusy) return;
+      setContactBusy(true);
+      setContactError("");
+      try {
+        const res = await postJson<QuickContactResponse>(
+          "/assistant/quick-contact",
+          {
+            channel: values.channel || "",
+            phone: values.phone || "",
+            email: values.email || "",
+            message: values.message || "",
+            elapsed_ms: Date.now() - contactOpenedAt.current,
+          }
+        );
+        if (res?.ok) {
+          setContactDone(
+            res.message ||
+              "Thanks! We've got your request and will be in touch soon."
+          );
+        } else {
+          setContactError(res?.error || "Something went wrong. Please try again.");
+        }
+      } catch {
+        setContactError("Network error. Please try again.");
+      } finally {
+        setContactBusy(false);
+      }
+    },
+    [contactBusy]
+  );
+
   const avatar = cfg?.avatar_url || bootAvatar || zioBotMascot;
   const reduceMotion = useReducedMotion();
   const brand = cfg?.brand_name || "Zio Bot";
@@ -524,12 +583,36 @@ export default function SiteAssistant() {
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{brand}</div>
                 <div style={{ fontSize: 11, color: t.sub }}>{subheading}</div>
               </div>
+              {!contactView && (
+                <button
+                  type="button"
+                  aria-label="Contact us"
+                  onClick={openContact}
+                  style={{
+                    marginLeft: "auto",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    background: t.chip,
+                    border: `1px solid ${t.chipBorder}`,
+                    color: t.chipText,
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    fontFamily: "inherit",
+                    padding: "5px 10px",
+                    borderRadius: 999,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Phone size={13} /> Contact us
+                </button>
+              )}
               <button
                 type="button"
                 aria-label="Close assistant"
                 onClick={() => toggle(false)}
                 style={{
-                  marginLeft: "auto",
+                  marginLeft: contactView ? "auto" : 8,
                   background: "transparent",
                   border: 0,
                   color: t.sub,
@@ -542,6 +625,17 @@ export default function SiteAssistant() {
               </button>
             </div>
 
+            {contactView ? (
+              <AssistantContactView
+                tokens={t}
+                busy={contactBusy}
+                done={contactDone}
+                error={contactError}
+                onSubmit={submitQuickContact}
+                onBack={() => setContactView(false)}
+              />
+            ) : (
+              <>
             {/* messages */}
             <div
               ref={bodyRef}
@@ -684,6 +778,8 @@ export default function SiteAssistant() {
                   {sendLabel}
                 </button>
               </div>
+            )}
+              </>
             )}
           </motion.div>
         )}
@@ -1118,9 +1214,91 @@ const QC_CHANNELS: QcChannel[] = [
 ];
 
 /**
+ * In-assistant "Contact us" view. Replaces the chat surfaces with the
+ * multi-channel quick-contact form (Call back / WhatsApp / Email). This is
+ * the former standalone quick-contact widget, folded into the assistant so
+ * there is a single floating launcher. It is intentionally NOT login-gated.
+ */
+function AssistantContactView({
+  tokens,
+  busy,
+  done,
+  error,
+  onSubmit,
+  onBack,
+}: {
+  tokens: ThemeTokens;
+  busy: boolean;
+  done: string;
+  error: string;
+  onSubmit: (values: Record<string, string>) => void;
+  onBack: () => void;
+}) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: 14,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <button
+        type="button"
+        onClick={onBack}
+        style={{
+          alignSelf: "flex-start",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          background: "transparent",
+          border: 0,
+          color: tokens.sub,
+          fontSize: 12,
+          cursor: "pointer",
+          fontFamily: "inherit",
+          padding: 0,
+        }}
+      >
+        <ArrowLeft size={14} /> Back to chat
+      </button>
+      {done ? (
+        <div
+          style={{
+            padding: "16px 8px",
+            textAlign: "center",
+            fontSize: 13,
+            color: tokens.text,
+            lineHeight: 1.5,
+          }}
+        >
+          {done}
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize: 12.5, color: tokens.sub, lineHeight: 1.45 }}>
+            Prefer we reach out? Pick how you'd like to be contacted and we'll
+            get back to you.
+          </div>
+          {error && <div style={{ fontSize: 12, color: "#ef4444" }}>{error}</div>}
+          <QuickContactFields
+            tokens={tokens}
+            busy={busy}
+            submitLabel={busy ? "Sending…" : "Send request"}
+            onSubmit={onSubmit}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+/**
  * Multi-channel quick-contact fields: a channel selector + one
  * contextual contact input + an optional message. Used both inside the
- * assistant handoff and by the standalone QuickContact widget. Purely
+ * assistant handoff and the in-assistant "Contact us" view. Purely
  * presentational — the caller decides where the values are submitted.
  */
 export function QuickContactFields({

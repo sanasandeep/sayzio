@@ -27,6 +27,7 @@
      data-stream-url="{{ url('/assistant/stream') }}"
      data-choice-url="{{ url('/assistant/choice') }}"
      data-handoff-url="{{ url('/assistant/handoff') }}"
+     data-quick-contact-url="{{ url('/assistant/quick-contact') }}"
      data-low-balance-click-url="{{ url('/assistant/low-balance-click') }}">
 </div>
 <style>
@@ -171,6 +172,16 @@
 .sa-qc-tabs{display:flex;gap:6px;flex-wrap:wrap}
 .sa-qc-tab{flex:1;min-width:80px;background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.12)!important;color:#cbd5e1!important;padding:7px 8px!important;border-radius:8px!important;font-size:12px!important;font-weight:500!important;cursor:pointer}
 .sa-qc-tab.sa-qc-on{background:var(--sa-accent,#3d6bff)!important;border-color:transparent!important;color:#fff!important}
+.sa-contact-btn{margin-left:auto;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#e2e8f0;font-size:11.5px;font-weight:600;font-family:inherit;padding:5px 10px;border-radius:999px;cursor:pointer}
+.sa-contact-btn:hover{background:var(--sa-accent,#3d6bff);border-color:transparent;color:#fff}
+.sa-contact-btn svg{width:13px;height:13px}
+.sa-contact{flex:1;overflow-y:auto;padding:14px;display:none;flex-direction:column;gap:10px}
+.sa-contact.sa-show{display:flex}
+.sa-contact-back{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;background:transparent;border:0;color:#94a3b8;font-size:12px;cursor:pointer;font-family:inherit;padding:0}
+.sa-contact-back:hover{color:#e2e8f0}
+.sa-contact-intro{font-size:12.5px;color:#cbd5e1;line-height:1.45}
+.sa-contact-err{font-size:12px;color:#fca5a5}
+.sa-contact-done{padding:16px 8px;text-align:center;font-size:13px;color:#e2e8f0;line-height:1.5}
 .sa-gate{flex-direction:column;gap:8px;align-items:stretch;text-align:center}
 .sa-gate-note{font-size:12.5px;color:#cbd5e1;line-height:1.4}
 .sa-gate-cta{display:block;background:var(--sa-accent,#3d6bff);color:#fff;text-decoration:none;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:600}
@@ -210,6 +221,12 @@ html.light-mode .sa-form{background:rgba(15,23,42,.03);border:1px solid rgba(15,
 html.light-mode .sa-form input,html.light-mode .sa-form textarea{background:#ffffff;border:1px solid rgba(15,23,42,.15);color:#1e293b}
 html.light-mode .sa-qc-tab{background:rgba(15,23,42,.05)!important;border:1px solid rgba(15,23,42,.12)!important;color:#475569!important}
 html.light-mode .sa-qc-tab.sa-qc-on{background:var(--sa-accent,#3d6bff)!important;color:#fff!important;border-color:transparent!important}
+html.light-mode .sa-contact-btn{background:rgba(15,23,42,.05);border:1px solid rgba(15,23,42,.12);color:#334155}
+html.light-mode .sa-contact-btn:hover{background:var(--sa-accent,#3d6bff);border-color:transparent;color:#fff}
+html.light-mode .sa-contact-back{color:#64748b}
+html.light-mode .sa-contact-back:hover{color:#1e293b}
+html.light-mode .sa-contact-intro{color:#475569}
+html.light-mode .sa-contact-done{color:#1e293b}
 html.light-mode .sa-gate-note{color:#475569}
 html.light-mode .sa-low-balance{background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);color:#92400e}
 html.light-mode .sa-low-balance .sa-lb-cta{background:rgba(251,191,36,.24);border:1px solid rgba(251,191,36,.5);color:#92400e}
@@ -395,6 +412,16 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // happened mid-pageload) but the initial value is already correct.
   var subInit = (typeof window.__SA_SUBHEADING==='string' && window.__SA_SUBHEADING) ? window.__SA_SUBHEADING : 'How can I help?';
   var header=el('div',{class:'sa-header',html:'<div><h4>'+escapeHtml(window.__SA_BRAND||'Assistant')+'</h4><div class="sa-sub" id="sa-sub">'+escapeHtml(subInit)+'</div></div>'});
+  // "Contact us" entry point: opens the multi-channel quick-contact form
+  // (Call back / WhatsApp / Email) right inside the panel. This is the
+  // former standalone quick-contact widget, folded into the assistant so
+  // there's a single floating launcher. Unlike the chat, it is NOT login-
+  // gated — it posts to /assistant/quick-contact, which is anonymous-
+  // friendly and lands in the admin Contact Inbox.
+  var PHONE_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
+  var contactBtn=el('button',{class:'sa-contact-btn',type:'button','aria-label':@json(__('Contact us')),html:PHONE_SVG+'<span>'+escapeHtml(@json(__('Contact us')))+'</span>'});
+  contactBtn.onclick=function(){ openContact(); };
+  header.appendChild(contactBtn);
   var closeBtn=el('button',{class:'sa-close',type:'button','aria-label':'Close'},'×');
   closeBtn.onclick=function(){ togglePanel(false); };
   header.appendChild(closeBtn);
@@ -404,6 +431,8 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   panel.appendChild(suggested);
   var body=el('div',{class:'sa-body',id:'sa-body'});
   panel.appendChild(body);
+  var contactPane=el('div',{class:'sa-contact',id:'sa-contact'});
+  panel.appendChild(contactPane);
   var lowBalance=el('div',{class:'sa-low-balance',id:'sa-low-balance'});
   panel.appendChild(lowBalance);
   var inputRow=el('div',{class:'sa-input-row'});
@@ -869,6 +898,97 @@ window.__SA_LOGIN_URL = @json(url('/login'));
         renderMessage({role:'assistant',content:res.error});
       }
     }).finally(function(){ busy=false; sendBtn.disabled=false; });
+  }
+
+  // ── "Contact us" view (folded-in quick-contact widget) ─────────
+  // Swaps the chat surfaces for the multi-channel quick-contact form.
+  // Posts to /assistant/quick-contact (anonymous-friendly, honeypot +
+  // time-trap protected) so it works regardless of the login gate.
+  var BACK_SVG='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>';
+  var contactBuilt=false;
+  function makeBack(){
+    var b=el('button',{class:'sa-contact-back',type:'button',html:BACK_SVG+'<span>'+escapeHtml(@json(__('Back to chat')))+'</span>'});
+    b.onclick=closeContact;
+    return b;
+  }
+  function openContact(){
+    if(!contactBuilt){ buildContactForm(); contactBuilt=true; }
+    suggested.style.display='none';
+    body.style.display='none';
+    inputRow.style.display='none';
+    lowBalance.style.display='none';
+    contactPane.classList.add('sa-show');
+  }
+  function closeContact(){
+    contactPane.classList.remove('sa-show');
+    suggested.style.display='';
+    body.style.display='';
+    inputRow.style.display='';
+    lowBalance.style.display='';
+  }
+  function buildContactForm(){
+    contactPane.innerHTML='';
+    // Time-trap: stamp when the form opened so the server can reject a
+    // submission filled+posted implausibly fast (a bot signal). A same-
+    // clock delta, immune to clock skew / timezone.
+    var openedAt=Date.now();
+    var intro=el('div',{class:'sa-contact-intro'}, @json(__("Prefer we reach out? Pick how you'd like to be contacted and we'll get back to you.")));
+    var errBox=el('div',{class:'sa-contact-err'}); errBox.style.display='none';
+    var form=el('div',{class:'sa-form sa-qc'});
+    var selected=QC_CHANNELS[0].value;
+    var tabs=el('div',{class:'sa-qc-tabs'});
+    var contact=el('input',{type:QC_CHANNELS[0].inputType,placeholder:QC_CHANNELS[0].placeholder});
+    var msg=el('textarea',{rows:'2',placeholder:@json(__('How can we help? (optional)'))});
+    // Honeypot: a decoy field a real visitor never fills but blind bots do.
+    var trap=el('input',{type:'text',name:'website',tabindex:'-1',autocomplete:'off','aria-hidden':'true'});
+    trap.style.cssText='position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none';
+    var send=el('button',{type:'button'}, @json(__('Send request')));
+    function applyChannel(ch){
+      selected=ch.value;
+      contact.value='';
+      contact.setAttribute('type', ch.inputType);
+      contact.setAttribute('placeholder', ch.placeholder);
+      contact.style.borderColor='';
+      Array.prototype.forEach.call(tabs.children,function(btn){
+        btn.classList.toggle('sa-qc-on', btn.getAttribute('data-ch')===ch.value);
+      });
+    }
+    QC_CHANNELS.forEach(function(ch){
+      var btn=el('button',{type:'button',class:'sa-qc-tab','data-ch':ch.value}, ch.label);
+      btn.onclick=function(){ applyChannel(ch); };
+      tabs.appendChild(btn);
+    });
+    var busyQc=false;
+    send.onclick=function(){
+      if(busyQc) return;
+      var val=(contact.value||'').trim();
+      if(!val){ contact.style.borderColor='#ef4444'; return; }
+      var payload={channel:selected, message:(msg.value||'').trim(), website:(trap.value||''), elapsed_ms:(Date.now()-openedAt)};
+      if(selected==='email'){ payload.email=val; } else { payload.phone=val; }
+      busyQc=true; send.disabled=true; send.textContent=@json(__('Sending…')); errBox.style.display='none';
+      jpost(ds.quickContactUrl, payload)
+        .then(function(d){
+          if(d && d.ok){
+            contactPane.innerHTML='';
+            contactPane.appendChild(makeBack());
+            contactPane.appendChild(el('div',{class:'sa-contact-done'}, d.message || @json(__("Thanks! We've got your request and will be in touch soon."))));
+          } else {
+            errBox.textContent=(d && d.error) || @json(__('Something went wrong. Please try again.')); errBox.style.display='';
+          }
+        })
+        .catch(function(){ errBox.textContent=@json(__('Network error. Please try again.')); errBox.style.display=''; })
+        .finally(function(){ busyQc=false; send.disabled=false; send.textContent=@json(__('Send request')); });
+    };
+    form.appendChild(tabs);
+    form.appendChild(contact);
+    form.appendChild(trap);
+    form.appendChild(msg);
+    form.appendChild(send);
+    contactPane.appendChild(makeBack());
+    contactPane.appendChild(intro);
+    contactPane.appendChild(errBox);
+    contactPane.appendChild(form);
+    applyChannel(QC_CHANNELS[0]);
   }
 
   function handleTurn(res){
