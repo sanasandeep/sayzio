@@ -94,8 +94,58 @@ export function planPrice(
   return cycle === "monthly" ? plan.monthly : plan.annual;
 }
 
+export type ScheduledDowngrade = {
+  plan_id: number;
+  plan_name: string;
+  applies_at: string | null;
+};
+
+export type DowngradePlan = {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+  amount_minor: number;
+  formatted: string | null;
+  lost_addons: string[];
+};
+
+export type DowngradeOptions = {
+  subscription: {
+    id: number;
+    billing_cycle: string;
+    currency: string;
+    current_period_end: string | null;
+  } | null;
+  current_plan: {
+    id: number;
+    name: string | null;
+    formatted: string | null;
+  } | null;
+  plans: DowngradePlan[];
+  scheduled_downgrade: ScheduledDowngrade | null;
+};
+
+export type DowngradeMutationResponse = {
+  data: {
+    scheduled_downgrade: ScheduledDowngrade | null;
+    message: string;
+  };
+};
+
 export const billing = {
   plans: () => apiFetch<PlansResponse>("/billing/plans"),
+  downgradeOptions: () =>
+    apiFetch<{ data: DowngradeOptions }>("/billing/downgrade"),
+  scheduleDowngrade: (plan_id: number) =>
+    apiFetch<DowngradeMutationResponse>("/billing/downgrade/schedule", {
+      method: "POST",
+      body: JSON.stringify({ plan_id }),
+    }),
+  cancelDowngrade: () =>
+    apiFetch<DowngradeMutationResponse>("/billing/downgrade/cancel", {
+      method: "POST",
+    }),
   setCurrency: (currency: Currency) =>
     apiFetch<SetCurrencyResponse>("/billing/currency", {
       method: "POST",

@@ -2,11 +2,16 @@
 
 namespace App\Modules\Api\Controllers;
 
+use App\Modules\Admin\Models\Plan;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\User\Models\Subscription;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Services\Billing\ClientInvoiceService;
+use App\Services\Billing\ProrationCalculator;
+use App\Services\Billing\SubscriptionLifecycle;
+use App\Services\PricingResolver;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +44,7 @@ class BillingController extends Controller
         return $this->ok(['subscription' => [
             'id'                    => $sub->id,
             'plan_id'               => $sub->plan_id,
+            'plan_name'             => optional($sub->plan)->name,
             'status'                => $sub->status,
             'billing_cycle'         => $sub->billing_cycle,
             'current_period_start'  => optional($sub->current_period_start)->toIso8601String(),
@@ -49,6 +55,161 @@ class BillingController extends Controller
             'gateway'               => $sub->gateway,
             'currency'              => $sub->currency,
         ]]);
+    }
+
+    /**
+     * List the lower-priced PAID plans the user can schedule a downgrade to,
+     * with each plan's price in the subscription's currency and the add-ons
+     * that plan can't carry (so the app can warn before scheduling). Mirrors
+     * the web BillingController::downgrade() page. Returns an empty list when
+     * there is no active paid subscription.
+     */
+    public function downgradeOptions(Request $request)
+    {
+        $current = $this->activeSubscription($request->user());
+        if (!$current) {
+            return $this->ok([
+                'subscription'        => null,
+                'current_plan'        => null,
+                'plans'               => [],
+                'scheduled_downgrade' => null,
+            ]);
+        }
+
+        $current->loadMissing('scheduledDowngradePlan', 'plan');
+        $subCurrency  = (string) $current->currency;
+        $currentMinor = ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, null, $subCurrency);
+
+        $currentAddonIds = $current->addons()->pluck('addon_id')->map(fn ($id) => (int) $id)->all();
+        $currentAddonNames = $current->addons()->with('addon')->get()
+            ->mapWithKeys(fn ($sa) => [(int) $sa->addon_id => ($sa->addon->name ?? 'Add-on #' . $sa->addon_id)])
+            ->all();
+
+        $plans = Plan::active()->public()->ordered()->get()
+            ->filter(function (Plan $p) use ($current, $subCurrency, $currentMinor) {
+                if ($p->id === $current->plan_id) return false;
+                if ($p->is_default) return false; // Free is "cancel", not "downgrade"
+                $minor = ProrationCalculator::resolveMinor($p, $current->billing_cycle, null, $subCurrency);
+                return $minor > 0 && $minor < $currentMinor;
+            })
+            ->map(function (Plan $p) use ($currentAddonIds, $currentAddonNames, $current, $subCurrency) {
+                $eligible = $p->addons()->pluck('addons.id')->map(fn ($id) => (int) $id)->all();
+                $lost = [];
+                foreach ($currentAddonIds as $aid) {
+                    if (!in_array($aid, $eligible, true)) {
+                        $lost[] = $currentAddonNames[$aid] ?? ('Add-on #' . $aid);
+                    }
+                }
+                $priced = PricingResolver::priceForCurrency($p, $subCurrency, $current->billing_cycle);
+                return [
+                    'id'           => $p->id,
+                    'slug'         => $p->slug,
+                    'name'         => $p->name,
+                    'description'  => $p->description,
+                    'amount_minor' => (int) ($priced['amount_minor'] ?? 0),
+                    'formatted'    => $priced['formatted'] ?? null,
+                    'lost_addons'  => $lost,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $scheduled = null;
+        if ($current->scheduled_downgrade_plan_id && $current->scheduledDowngradePlan) {
+            $scheduled = [
+                'plan_id'    => $current->scheduledDowngradePlan->id,
+                'plan_name'  => $current->scheduledDowngradePlan->name,
+                'applies_at' => optional($current->current_period_end)->toIso8601String(),
+            ];
+        }
+
+        return $this->ok([
+            'subscription' => [
+                'id'                 => $current->id,
+                'billing_cycle'      => $current->billing_cycle,
+                'currency'           => $subCurrency,
+                'current_period_end' => optional($current->current_period_end)->toIso8601String(),
+            ],
+            'current_plan' => [
+                'id'        => $current->plan_id,
+                'name'      => optional($current->plan)->name,
+                'formatted' => (PricingResolver::priceForCurrency($current->plan, $subCurrency, $current->billing_cycle))['formatted'] ?? null,
+            ],
+            'plans'               => $plans,
+            'scheduled_downgrade' => $scheduled,
+        ]);
+    }
+
+    /**
+     * Schedule a change to a chosen lower PAID plan, applied at the end of
+     * the current cycle. Mirrors web BillingController::scheduleDowngrade().
+     */
+    public function scheduleDowngrade(Request $request, SubscriptionLifecycle $lc)
+    {
+        $data = $request->validate([
+            'plan_id' => 'required|integer|exists:plans,id',
+        ]);
+
+        $current = $this->activeSubscription($request->user());
+        if (!$current) return $this->notFound('No active subscription to downgrade.');
+
+        $target = Plan::active()->public()->find($data['plan_id']);
+        if (!$target || $target->is_default || $target->id === $current->plan_id) {
+            return $this->fail('That plan is not a valid downgrade option.', 422);
+        }
+
+        $subCurrency  = (string) $current->currency;
+        $currentMinor = ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, null, $subCurrency);
+        $targetMinor  = ProrationCalculator::resolveMinor($target, $current->billing_cycle, null, $subCurrency);
+        if ($targetMinor <= 0 || $targetMinor >= $currentMinor) {
+            return $this->fail('Pick a lower-priced paid plan to downgrade. To upgrade, use the upgrade option.', 422);
+        }
+
+        $lc->scheduleDowngrade($current, $target);
+
+        $when = $current->current_period_end
+            ? Carbon::parse($current->current_period_end)->toFormattedDateString()
+            : null;
+
+        return $this->ok([
+            'scheduled_downgrade' => [
+                'plan_id'    => $target->id,
+                'plan_name'  => $target->name,
+                'applies_at' => optional($current->current_period_end)->toIso8601String(),
+            ],
+            'message' => 'Your plan will change to ' . $target->name . ($when ? ' on ' . $when : '') . '. You can cancel this anytime before then.',
+        ]);
+    }
+
+    /** Cancel a pending scheduled downgrade. Mirrors web cancelDowngrade(). */
+    public function cancelDowngrade(Request $request, SubscriptionLifecycle $lc)
+    {
+        $sub = $this->activeSubscription($request->user());
+        if (!$sub) return $this->notFound('No active subscription.');
+
+        if (!$sub->scheduled_downgrade_plan_id) {
+            return $this->ok([
+                'scheduled_downgrade' => null,
+                'message'             => 'There is no scheduled downgrade to cancel.',
+            ]);
+        }
+
+        $lc->cancelScheduledDowngrade($sub);
+
+        return $this->ok([
+            'scheduled_downgrade' => null,
+            'message'             => 'Your scheduled downgrade has been cancelled. You will stay on your current plan.',
+        ]);
+    }
+
+    /** Resolve the user's downgrade-eligible subscription (web parity). */
+    protected function activeSubscription($user): ?Subscription
+    {
+        if (!$user) return null;
+        return Subscription::where('user_id', $user->id)
+            ->whereIn('status', ['active', 'past_due', 'grace'])
+            ->latest('id')
+            ->first();
     }
 
     public function invoices(Request $request)

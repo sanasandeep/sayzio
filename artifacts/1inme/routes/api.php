@@ -931,6 +931,9 @@ Route::prefix('v1')->group(function () {
 
         // Billing
         Route::get   ('/billing/subscription',     [BillingController::class, 'subscription']);
+        Route::get   ('/billing/downgrade',          [BillingController::class, 'downgradeOptions']);
+        Route::post  ('/billing/downgrade/schedule', [BillingController::class, 'scheduleDowngrade']);
+        Route::post  ('/billing/downgrade/cancel',   [BillingController::class, 'cancelDowngrade']);
         Route::get   ('/billing/invoices',         [BillingController::class, 'invoices']);
         Route::get   ('/billing/invoices/{id}',    [BillingController::class, 'showInvoice'])->whereNumber('id');
         Route::post  ('/billing/invoices',         [BillingController::class, 'storeInvoice']);

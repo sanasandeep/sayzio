@@ -190,6 +190,13 @@ export default function PlansScreen() {
   const data = plansQuery.data?.data;
   const plans = data?.plans ?? [];
 
+  // Show the downgrade entry point only when the user is on a paid plan
+  // (a lower paid plan exists to move to). Free users have nothing to
+  // downgrade — they'd cancel instead.
+  const currentPlan = plans.find((p) => p.is_current);
+  const onPaidPlan =
+    !!currentPlan && (currentPlan.monthly?.amount_minor ?? 0) > 0;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ title: "Plans & billing" }} />
@@ -384,6 +391,40 @@ export default function PlansScreen() {
           </Text>
         </Pressable>
 
+        {onPaidPlan ? (
+          <Pressable
+            onPress={() => router.push("/billing/downgrade" as never)}
+            style={[
+              styles.downgrade,
+              { borderColor: colors.border, borderRadius: colors.radius },
+            ]}
+          >
+            <Feather name="arrow-down-circle" size={18} color={colors.mutedForeground} />
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontFamily: "SpaceGrotesk_600SemiBold",
+                  fontSize: 14,
+                }}
+              >
+                Downgrade plan
+              </Text>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontFamily: "SpaceGrotesk_400Regular",
+                  fontSize: 12,
+                  marginTop: 2,
+                }}
+              >
+                Move to a lower paid plan at the end of your cycle.
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+          </Pressable>
+        ) : null}
+
         <Pressable onPress={() => router.push("/wallet" as never)}>
           <Text
             style={{
@@ -510,6 +551,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     paddingVertical: 12,
+  },
+  downgrade: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderWidth: 1,
   },
   modalOverlay: {
     flex: 1,
