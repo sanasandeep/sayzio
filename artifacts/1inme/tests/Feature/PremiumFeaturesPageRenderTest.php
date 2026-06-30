@@ -114,6 +114,51 @@ class PremiumFeaturesPageRenderTest extends TestCase
         $resp->assertDontSee('No plans are currently published.');
     }
 
+    public function test_premium_features_page_renders_analytics_and_alias_special_cells(): void
+    {
+        $this->clearSeededPlans();
+
+        // A plan with the advanced analytics select and a per-type
+        // `max_aliases_per_link` map (a non-scalar numeric branch in
+        // resolveCell that renders "Custom" when any type is non-zero).
+        $this->makePlan('Pro', 1, [
+            'analytics'            => 'advanced',
+            'max_aliases_per_link' => [
+                'short'   => 5,
+                'biolink' => 0,
+            ],
+        ], popular: true);
+
+        // A plan with the basic analytics select and an all-zero alias map
+        // (the off branch — renders "Basic" and an excluded alias cell).
+        $this->makePlan('Free', 2, [
+            'analytics'            => 'basic',
+            'max_aliases_per_link' => [
+                'short'   => 0,
+                'biolink' => 0,
+            ],
+        ]);
+
+        $resp = $this->get('/premium-features');
+        $resp->assertOk();
+
+        // The analytics-depth row label is present.
+        $resp->assertSee('Analytics depth');
+
+        // Assert the actual rendered cell markup, not the bare words — the
+        // words "Advanced"/"Basic"/"Custom" also appear in row labels and
+        // descriptions ("Advanced form analytics", "Basic plans show...",
+        // "Custom domains"), so a bare assertSee would give false positives.
+        // The advanced analytics select renders an emerald cell.
+        $resp->assertSee('<span class="text-emerald-300 font-semibold">Advanced</span>', false);
+        // The basic analytics select renders a muted (off) cell.
+        $resp->assertSee('<span class="text-gray-300">Basic</span>', false);
+
+        // The per-type alias map renders the "Custom" cell when non-zero.
+        $resp->assertSee('Extra aliases per link');
+        $resp->assertSee('<span class="text-white font-semibold">Custom</span>', false);
+    }
+
     public function test_premium_features_page_renders_empty_state_with_no_plans(): void
     {
         $this->clearSeededPlans();
