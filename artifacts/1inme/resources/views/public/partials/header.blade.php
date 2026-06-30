@@ -245,6 +245,25 @@
                 </button>
                 @auth
                     <a href="{{ route('user.dashboard') }}" class="px-6 py-2.5 bg-[#3d6bff] text-white rounded-full text-sm font-bold hover:bg-[#2342c7]">Dashboard</a>
+                    <div class="relative" x-data="{ acctOpen:false }" @keydown.escape="acctOpen=false">
+                        <button type="button" @click="acctOpen=!acctOpen" :aria-expanded="acctOpen"
+                                class="mkt-theme-toggle" title="Account" aria-label="Account menu">
+                            <i class="fas fa-user text-sm"></i>
+                        </button>
+                        <div x-show="acctOpen" x-cloak @click.outside="acctOpen=false"
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             class="absolute right-0 mt-2 w-44 rounded-xl mkt-navbar-bar border border-white/10 shadow-xl p-1.5 z-50">
+                            <form action="{{ route('user.logout') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="flex w-full items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-red-500/10 hover:text-red-400">
+                                    <i class="fas fa-sign-out-alt w-4 text-center text-sm"></i>
+                                    <span>Sign out</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 @else
                     @if($useModal)
                         <button type="button" @click="authTab='login'; authOpen=true" class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white">Login</button>
@@ -346,6 +365,13 @@
             <div class="pt-3 border-t border-white/10 space-y-2">
                 @auth
                     <a href="{{ route('user.dashboard') }}" class="block px-4 py-2.5 bg-[#3d6bff] text-white rounded-lg text-sm font-bold text-center">Dashboard</a>
+                    <form action="{{ route('user.logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="flex w-full items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-300 border border-white/10 hover:bg-red-500/10 hover:text-red-400">
+                            <i class="fas fa-sign-out-alt text-xs"></i>
+                            <span>Sign out</span>
+                        </button>
+                    </form>
                 @else
                     @if($useModal)
                         <button type="button" @click="authTab='login'; authOpen=true; mobileOpen=false" class="w-full text-left px-4 py-2 text-sm text-gray-300">Login</button>
