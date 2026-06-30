@@ -9,6 +9,21 @@
     @if(session('success'))<div class="mb-4 p-3 rounded-lg text-sm" style="background: rgba(16,185,129,0.12); color: #10b981;">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="mb-4 p-3 rounded-lg text-sm" style="background: rgba(239,68,68,0.12); color: #ef4444;">{{ session('error') }}</div>@endif
 
+    @if(!empty($tierSwitched))
+        {{-- Brief, auto-dismissing confirmation shown when a fan returns here
+             after their active tier actually changed. Fades in then out and
+             stays inert (opacity 0, no pointer events) afterwards. --}}
+        <div role="status" aria-live="polite"
+             x-data="{ vis: false }"
+             x-init="$nextTick(() => vis = true); setTimeout(() => vis = false, 4500)"
+             :style="`opacity: ${vis ? 1 : 0}; transition: opacity .25s ease;`"
+             class="fixed left-1/2 -translate-x-1/2 bottom-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold shadow-lg pointer-events-none"
+             style="background: #10b981; color: #ffffff;">
+            <i class="fas fa-check-circle"></i>
+            <span>You're now on {{ $tierSwitched }} for {{ $creator->name }}.</span>
+        </div>
+    @endif
+
     <div class="rounded-xl border p-5 mb-4" style="border-color: var(--border-color); background: var(--bg-card);">
         <div class="flex items-center justify-between mb-3">
             <div>

@@ -181,7 +181,23 @@ class CreatorMonetizationPublicController extends Controller
             ->where('fan_user_id', $viewer->id)
             ->where('creator_user_id', $creator->id)->first();
         if (!$sub) return redirect()->route('creator-profile.show', ['handle' => $handle]);
-        return view('public.monetization.manage', compact('creator', 'sub'));
+
+        // Brief confirmation when a fan returns here after their active tier
+        // actually changed (e.g. a switch completed in the provider's hosted
+        // checkout). Mirrors the native mobile toast (Task #3042): we remember
+        // the tier id last shown to this fan for this creator in the session,
+        // and confirm only when the now-current tier differs from it. Backing
+        // out without changing anything leaves the snapshot untouched, so no
+        // false confirmation is shown.
+        $snapKey  = 'sub_manage_tier.' . $creator->id;
+        $lastSeen = $request->session()->get($snapKey);
+        $current  = $sub->tier_id;
+        $tierSwitched = ($lastSeen !== null && (int) $lastSeen !== (int) $current)
+            ? ($sub->tier->name ?? 'your new tier')
+            : null;
+        $request->session()->put($snapKey, $current);
+
+        return view('public.monetization.manage', compact('creator', 'sub', 'tierSwitched'));
     }
 
     public function cancel(Request $request, string $handle)
