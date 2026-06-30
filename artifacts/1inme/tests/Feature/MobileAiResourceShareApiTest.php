@@ -406,4 +406,108 @@ class MobileAiResourceShareApiTest extends TestCase
             ->assertNoContent();
         $this->assertDatabaseMissing('ai_resource_shares', ['id' => $share->id]);
     }
+
+    // ===================================================================
+    // Off-boarding revokes shared AI access LIVE over the API (Task #2936).
+    //
+    // Access is resolved against the recipient's CURRENT memberships /
+    // badges on every request, so suspending a workspace seat or detaching
+    // a badge must immediately cut a teammate's view of previously shared
+    // Minds / Personas — no per-share cleanup, resolved on the next call.
+    // ===================================================================
+
+    public function test_suspending_a_member_revokes_their_shared_mind_over_the_api(): void
+    {
+        $owner  = $this->makeUser();
+        $member = $this->makeUser();
+        $team   = $this->team($owner, $member);
+        $mind   = $this->mind($owner, ['name' => 'Team KB']);
+
+        $this->asUser($owner)->postJson("/api/v1/ai/minds/{$mind->id}/shares", [
+            'audience' => "workspace:{$team->id}",
+            'access'   => 'use',
+        ])->assertCreated();
+
+        // The member sees it while their seat is active.
+        $resp = $this->asUser($member)->getJson('/api/v1/ai/shared');
+        $resp->assertOk();
+        $this->assertCount(1, collect($resp->json('data.minds')));
+
+        // Suspend the member's seat — no share row is touched.
+        WorkspaceMember::where('workspace_id', $team->id)
+            ->where('user_id', $member->id)
+            ->update(['suspended_at' => now()]);
+
+        // The share row still exists; only LIVE resolution drops it.
+        $this->assertDatabaseHas('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $mind->id,
+            'audience_type' => AiResourceShare::AUDIENCE_WORKSPACE,
+            'audience_id'   => $team->id,
+        ]);
+
+        $resp = $this->asUser($member)->getJson('/api/v1/ai/shared');
+        $resp->assertOk();
+        $this->assertCount(0, collect($resp->json('data.minds')));
+    }
+
+    public function test_suspending_a_member_revokes_their_shared_persona_over_the_api(): void
+    {
+        $owner   = $this->makeUser();
+        $member  = $this->makeUser();
+        $team    = $this->team($owner, $member);
+        $persona = $this->persona($owner, ['name' => 'Concierge']);
+
+        $this->asUser($owner)->postJson("/api/v1/ai/personas/{$persona->id}/shares", [
+            'audience' => "workspace:{$team->id}",
+            'access'   => 'edit',
+        ])->assertCreated();
+
+        $resp = $this->asUser($member)->getJson('/api/v1/ai/shared');
+        $resp->assertOk();
+        $this->assertCount(1, collect($resp->json('data.personas')));
+
+        WorkspaceMember::where('workspace_id', $team->id)
+            ->where('user_id', $member->id)
+            ->update(['suspended_at' => now()]);
+
+        $resp = $this->asUser($member)->getJson('/api/v1/ai/shared');
+        $resp->assertOk();
+        $this->assertCount(0, collect($resp->json('data.personas')));
+    }
+
+    public function test_detaching_a_badge_revokes_badge_shared_resources_over_the_api(): void
+    {
+        $owner  = $this->makeUser();
+        $member = $this->makeUser();
+        $badge  = AccountBadge::create(['name' => 'VIP ' . Str::random(3), 'color' => '#3b82f6']);
+        $owner->accountBadges()->attach($badge->id);
+        $member->accountBadges()->attach($badge->id);
+
+        $persona = $this->persona($owner, ['name' => 'Concierge']);
+
+        $this->asUser($owner)->postJson("/api/v1/ai/personas/{$persona->id}/shares", [
+            'audience' => "badge:{$badge->id}",
+            'access'   => 'use',
+        ])->assertCreated();
+
+        // Badge holder sees the shared persona.
+        $resp = $this->asUser($member)->getJson('/api/v1/ai/shared');
+        $resp->assertOk();
+        $this->assertCount(1, collect($resp->json('data.personas')));
+
+        // Detach the badge from the member — share row untouched.
+        $member->accountBadges()->detach($badge->id);
+
+        $this->assertDatabaseHas('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_PERSONA,
+            'resource_id'   => $persona->id,
+            'audience_type' => AiResourceShare::AUDIENCE_BADGE,
+            'audience_id'   => $badge->id,
+        ]);
+
+        $resp = $this->asUser($member)->getJson('/api/v1/ai/shared');
+        $resp->assertOk();
+        $this->assertCount(0, collect($resp->json('data.personas')));
+    }
 }
