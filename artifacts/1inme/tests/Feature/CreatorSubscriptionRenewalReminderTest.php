@@ -194,4 +194,99 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
             $this->assertNull($sub->renewal_reminder_sent_at, "expected null stamp for {$label} sub");
         }
     }
+
+    /**
+     * --force ignores the once-per-period guard: a sub already reminded this
+     * period is a no-op on a plain run, but --force re-sends on demand (the
+     * manual re-send path support uses).
+     */
+    public function test_force_re_sends_an_already_reminded_subscription(): void
+    {
+        $creator = $this->makeUser();
+        $tier    = $this->makeTier($creator);
+        $sub     = $this->makeSub($creator, $tier);
+
+        $this->run();
+        $this->assertSame(1, $this->reminderCount($sub->fan_user_id));
+
+        // Plain re-run in the same period is suppressed by the once-per-period
+        // dedup guard.
+        $this->run();
+        $this->assertSame(1, $this->reminderCount($sub->fan_user_id));
+
+        // --force ignores that guard and sends again on demand.
+        $this->run(['--force' => true]);
+        $this->assertSame(2, $this->reminderCount($sub->fan_user_id));
+    }
+
+    /**
+     * --force also ignores the lead-time window: a sub whose renewal is far
+     * outside the lead window (a plain no-op) is sent when forced.
+     */
+    public function test_force_ignores_the_lead_time_window(): void
+    {
+        $creator = $this->makeUser();
+        $tier    = $this->makeTier($creator);
+        $sub     = $this->makeSub($creator, $tier, [
+            'current_period_end' => now()->addDays(30),
+        ]);
+
+        // Far outside the 3-day lead window: a plain run sends nothing.
+        $this->run();
+        $this->assertSame(0, $this->reminderCount($sub->fan_user_id));
+
+        // --force ignores the window and sends on demand.
+        $this->run(['--force' => true]);
+        $this->assertSame(1, $this->reminderCount($sub->fan_user_id));
+    }
+
+    /**
+     * --force still respects the hard eligibility filters baked into the base
+     * query (status, cancel_at_period_end, price_cents). A canceled, set-to-lapse
+     * or zero-price sub must NEVER be reminded — not even with --force.
+     */
+    public function test_force_still_respects_hard_eligibility_filters(): void
+    {
+        $creator = $this->makeUser();
+        $tier    = $this->makeTier($creator);
+
+        $cases = [
+            'canceled'             => ['status' => CreatorSubscription::STATUS_CANCELED],
+            'cancel_at_period_end' => ['cancel_at_period_end' => true],
+            'zero_price'           => ['price_cents' => 0],
+        ];
+
+        $subs = [];
+        foreach ($cases as $label => $overrides) {
+            $subs[$label] = $this->makeSub($creator, $tier, $overrides);
+        }
+
+        $this->run(['--force' => true]);
+
+        foreach ($subs as $label => $sub) {
+            $sub = $sub->fresh();
+            $this->assertSame(0, $this->reminderCount($sub->fan_user_id), "expected no reminder for {$label} sub even with --force");
+            $this->assertNull($sub->renewal_reminder_sent_at, "expected null stamp for {$label} sub even with --force");
+        }
+    }
+
+    /**
+     * --sub=<id> narrows the run to a single targeted subscription; other
+     * otherwise-eligible subs are left untouched (manual single-sub re-send).
+     */
+    public function test_sub_option_only_reminds_the_targeted_subscription(): void
+    {
+        $creator = $this->makeUser();
+        $tier    = $this->makeTier($creator);
+        $target  = $this->makeSub($creator, $tier);
+        $other   = $this->makeSub($creator, $tier);
+
+        $this->run(['--sub' => $target->id]);
+
+        $this->assertSame(1, $this->reminderCount($target->fan_user_id));
+        $this->assertNotNull($target->fresh()->renewal_reminder_sent_at);
+
+        $this->assertSame(0, $this->reminderCount($other->fan_user_id));
+        $this->assertNull($other->fresh()->renewal_reminder_sent_at);
+    }
 }
