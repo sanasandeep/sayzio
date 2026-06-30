@@ -1,9 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as ImagePicker from "expo-image-picker";
+import { Image } from "expo-image";
 import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -21,6 +24,9 @@ import { useColors } from "@/hooks/useColors";
 import {
   getAiChat,
   saveAiChat,
+  saveAiChatWithAvatar,
+  validateAiAvatar,
+  type AiAvatarUpload,
   type AiChatTheme,
 } from "@/lib/api/aiChat";
 
@@ -48,6 +54,9 @@ export default function AiChatEditorScreen() {
   const [showBranding, setShowBranding] = useState(true);
   const [groundInProfile, setGroundInProfile] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState("");
+  // A device-picked image waiting to be uploaded on the next save. When set it
+  // takes precedence over the URL field (mirrors the web's upload/URL choice).
+  const [avatarUpload, setAvatarUpload] = useState<AiAvatarUpload | null>(null);
   const [customBrandingText, setCustomBrandingText] = useState("");
   const [customBrandingUrl, setCustomBrandingUrl] = useState("");
   const [starters, setStarters] = useState<string[]>(
@@ -67,6 +76,7 @@ export default function AiChatEditorScreen() {
     setShowBranding(d.config.show_branding ?? true);
     setGroundInProfile(d.config.ground_in_profile ?? true);
     setAvatarUrl(d.config.avatar_url ?? "");
+    setAvatarUpload(null);
     setCustomBrandingText(d.config.custom_branding_text ?? "");
     setCustomBrandingUrl(d.config.custom_branding_url ?? "");
     const filled = [...d.starters].slice(0, STARTER_SLOTS);
@@ -78,7 +88,7 @@ export default function AiChatEditorScreen() {
     mutationFn: () => {
       if (!name.trim()) throw new Error("Please enter a display name");
       if (!personaId) throw new Error("Please pick a persona");
-      return saveAiChat(id, {
+      const payload = {
         name: name.trim(),
         persona_id: personaId,
         config: {
@@ -93,16 +103,67 @@ export default function AiChatEditorScreen() {
           custom_branding_url: customBrandingUrl.trim() || null,
         },
         starters: starters.map((s) => s.trim()).filter(Boolean),
-      });
+      };
+      // When a device image is staged, send it as multipart so the server
+      // stores it in the vault; otherwise fall back to the JSON/URL path.
+      return avatarUpload
+        ? saveAiChatWithAvatar(id, payload, avatarUpload)
+        : saveAiChat(id, payload);
     },
     onSuccess: (data) => {
       qc.setQueryData(["ai-chat", id], data);
       qc.invalidateQueries({ queryKey: ["link", id] });
       qc.invalidateQueries({ queryKey: ["links"] });
+      setAvatarUpload(null);
+      setAvatarUrl(data.ai_chat.config.avatar_url ?? "");
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     },
   });
+
+  async function pickAvatar(source: "library" | "camera") {
+    const perm =
+      source === "camera"
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        source === "camera" ? "Camera access needed" : "Photos access needed",
+        `Allow ${
+          source === "camera" ? "camera" : "photo library"
+        } access in Settings to set an avatar.`,
+      );
+      return;
+    }
+    const res =
+      source === "camera"
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.85,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.85,
+          });
+    if (res.canceled || !res.assets?.[0]) return;
+    const asset = res.assets[0];
+    const picked: AiAvatarUpload = {
+      uri: asset.uri,
+      mimeType: asset.mimeType ?? null,
+      fileName: asset.fileName ?? null,
+      size: asset.fileSize ?? null,
+    };
+    const problem = validateAiAvatar(picked);
+    if (problem) {
+      Alert.alert("Can't use that image", problem);
+      return;
+    }
+    setAvatarUpload(picked);
+  }
 
   // Voice turns started while this editor is open prefer the general
   // in-app tools; dictation works via the per-field mics regardless.
@@ -377,19 +438,102 @@ export default function AiChatEditorScreen() {
 
           {d.branding.can_avatar ? (
             <>
+              <View style={styles.avatarRow}>
+                <View
+                  style={[
+                    styles.avatarPreview,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: avatarUpload ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  {avatarUpload ? (
+                    <Image
+                      source={{ uri: avatarUpload.uri }}
+                      style={styles.avatarImage}
+                      contentFit="cover"
+                    />
+                  ) : avatarUrl.trim() ? (
+                    <Image
+                      source={{ uri: avatarUrl.trim() }}
+                      style={styles.avatarImage}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Feather
+                      name="cpu"
+                      size={26}
+                      color={colors.mutedForeground}
+                    />
+                  )}
+                </View>
+                <View style={styles.avatarActions}>
+                  <Pressable
+                    onPress={() => pickAvatar("library")}
+                    style={[
+                      styles.avatarBtn,
+                      {
+                        backgroundColor: colors.primary + "1c",
+                        borderColor: colors.primary + "55",
+                        borderRadius: colors.radius,
+                      },
+                    ]}
+                  >
+                    <Feather name="image" size={15} color={colors.primary} />
+                    <Text style={[styles.avatarBtnText, { color: colors.primary }]}>
+                      Choose photo
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => pickAvatar("camera")}
+                    style={[
+                      styles.avatarBtn,
+                      {
+                        backgroundColor: colors.primary + "1c",
+                        borderColor: colors.primary + "55",
+                        borderRadius: colors.radius,
+                      },
+                    ]}
+                  >
+                    <Feather name="camera" size={15} color={colors.primary} />
+                    <Text style={[styles.avatarBtnText, { color: colors.primary }]}>
+                      Take photo
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              {avatarUpload ? (
+                <Pressable
+                  onPress={() => setAvatarUpload(null)}
+                  style={styles.avatarClear}
+                >
+                  <Feather name="x" size={13} color={colors.destructive} />
+                  <Text
+                    style={[styles.avatarClearText, { color: colors.destructive }]}
+                  >
+                    Discard picked image
+                  </Text>
+                </Pressable>
+              ) : null}
+
+              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                {avatarUpload
+                  ? "This image uploads when you save. It replaces the URL below."
+                  : "Pick a photo from your device, or paste an image URL below. Leave both blank to use the default robot avatar. Max 2MB (JPG, PNG, WebP, GIF)."}
+              </Text>
+
               <TextField
                 label="Agent avatar URL"
                 value={avatarUrl}
                 onChangeText={setAvatarUrl}
+                editable={!avatarUpload}
                 autoCapitalize="none"
                 autoCorrect={false}
                 maxLength={2048}
                 placeholder="https://…/avatar.png"
               />
-              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-                Paste an image URL. Leave blank to use the default robot avatar.
-                Upload from a file is available on the web app.
-              </Text>
             </>
           ) : (
             <LockedRow
@@ -692,6 +836,34 @@ const styles = StyleSheet.create({
     textTransform: "capitalize",
   },
   accentRow: { flexDirection: "row", alignItems: "flex-end", gap: 12 },
+  avatarRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  avatarPreview: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: { width: "100%", height: "100%" },
+  avatarActions: { flex: 1, gap: 8 },
+  avatarBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 10,
+    borderWidth: 1,
+  },
+  avatarBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
+  avatarClear: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 2,
+  },
+  avatarClearText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
   swatch: {
     width: 42,
     height: 42,
