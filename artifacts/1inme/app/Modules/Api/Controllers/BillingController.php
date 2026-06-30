@@ -2,12 +2,16 @@
 
 namespace App\Modules\Api\Controllers;
 
+use App\Actions\Billing\ActivateSubscription;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\User\Models\Subscription;
 use App\Modules\User\Models\Invoice;
+use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Services\Billing\ClientInvoiceService;
+use App\Services\Billing\GatewayManager;
+use App\Services\Billing\NotImplementedException;
 use App\Services\Billing\ProrationCalculator;
 use App\Services\Billing\SubscriptionLifecycle;
 use App\Services\PricingResolver;
@@ -199,6 +203,117 @@ class BillingController extends Controller
         return $this->ok([
             'scheduled_downgrade' => null,
             'message'             => 'Your scheduled downgrade has been cancelled. You will stay on your current plan.',
+        ]);
+    }
+
+    /**
+     * Cancel at period end (move to Free when the cycle ends). Mirrors web
+     * BillingController::cancel(); cancelling supersedes any scheduled paid
+     * downgrade (handled inside SubscriptionLifecycle::cancelAtPeriodEnd).
+     */
+    public function cancel(Request $request, SubscriptionLifecycle $lc)
+    {
+        $sub = $this->activeSubscription($request->user());
+        if (!$sub) return $this->notFound('No active subscription to cancel.');
+
+        $lc->cancelAtPeriodEnd($sub);
+        WorkspaceActivityRecorder::record(null, 'billing.cancel', 'billing', $sub->id, 'Cancel subscription #' . $sub->id, null);
+
+        $sub->refresh();
+        return $this->ok([
+            'cancel_at_period_end' => (bool) $sub->cancel_at_period_end,
+            'cancel_at'            => optional($sub->cancel_at)->toIso8601String(),
+            'scheduled_downgrade'  => null,
+            'message'              => 'Your plan will stop renewing at the end of the current billing period.',
+        ]);
+    }
+
+    /** Undo a pending cancel-at-period-end. Mirrors web BillingController::resume(). */
+    public function resume(Request $request, SubscriptionLifecycle $lc)
+    {
+        $sub = $this->activeSubscription($request->user());
+        if (!$sub) return $this->notFound('No active subscription.');
+
+        $lc->undoCancel($sub);
+        WorkspaceActivityRecorder::record(null, 'billing.resume', 'billing', $sub->id, 'Resume subscription #' . $sub->id, null);
+
+        $sub->refresh();
+        return $this->ok([
+            'cancel_at_period_end' => (bool) $sub->cancel_at_period_end,
+            'cancel_at'            => optional($sub->cancel_at)->toIso8601String(),
+            'message'              => 'Your plan will continue renewing.',
+        ]);
+    }
+
+    /**
+     * Start a full-price, no-proration upgrade to a higher-priced plan and
+     * hand off a gateway checkout the mobile app can open. Mirrors web
+     * BillingController::upgradeHandoff(): the buyer is charged the FULL
+     * target-plan price for a fresh cycle (leftover time is flagged for
+     * optional admin credit by ActivateSubscription, never netted off).
+     */
+    public function upgrade(Request $request, GatewayManager $gm)
+    {
+        $data = $request->validate([
+            'plan_id' => 'required|integer|exists:plans,id',
+            'gateway' => 'required|string|in:razorpay,stripe,paypal,cashfree,payumoney,offline',
+        ]);
+
+        $current = $this->activeSubscription($request->user());
+        if (!$current) return $this->notFound('No active subscription to upgrade.');
+
+        $target = Plan::active()->public()->find($data['plan_id']);
+        if (!$target) return $this->fail('That plan is not available.', 422);
+
+        $enabledSlugs = array_map(fn ($a) => $a->slug(), $gm->enabledAdapters());
+        if (!in_array($data['gateway'], $enabledSlugs, true)) {
+            return $this->fail('That payment method is not available right now.', 422);
+        }
+
+        // No proration: the target must be a strictly higher-priced plan,
+        // compared in the subscription's locked currency/cycle.
+        $currency     = (string) $current->currency;
+        $currentMinor = ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, null, $currency);
+        $amountMinor  = ProrationCalculator::resolveMinor($target, $current->billing_cycle, null, $currency);
+        if ($amountMinor <= $currentMinor || $amountMinor <= 0) {
+            return $this->fail('Choose a higher plan to upgrade. To move to a lower plan, use the downgrade option.', 422);
+        }
+
+        $cycleLabel = $current->billing_cycle === 'annual' ? 'annual' : 'monthly';
+        $items = [[
+            'label'        => 'Upgrade to ' . $target->name . ' (full ' . $cycleLabel . ' term)',
+            'amount_minor' => (int) $amountMinor,
+            'quantity'     => 1,
+            'meta'         => [
+                'kind'    => 'plan_upgrade',
+                'plan_id' => $target->id,
+                'cycle'   => $current->billing_cycle,
+                'upgrade_from_subscription_id' => $current->id,
+            ],
+        ]];
+        $invoice = ActivateSubscription::issuePendingInvoice($request->user(), $items, $current->currency);
+
+        try {
+            $result = $gm->for($data['gateway'])->createCheckout($invoice);
+        } catch (NotImplementedException $e) {
+            $invoice->forceFill(['status' => 'cancelled'])->save();
+            return $this->fail('That gateway is not available yet.', 503);
+        } catch (\Throwable $e) {
+            $invoice->forceFill(['status' => 'cancelled'])->save();
+            return $this->fail('Could not initiate checkout.', 500);
+        }
+
+        WorkspaceActivityRecorder::record(null, 'billing.upgrade', 'billing', $invoice->id, 'Upgrade to ' . $target->name, null, [
+            'target_plan_id' => $target->id, 'gateway' => $data['gateway'], 'invoice_id' => $invoice->id,
+        ]);
+
+        return $this->ok([
+            'invoice_id'   => $invoice->id,
+            'invoice_no'   => $invoice->number,
+            'amount_minor' => (int) $invoice->grand_total_minor,
+            'currency'     => $invoice->currency,
+            'target_plan'  => ['id' => $target->id, 'name' => $target->name],
+            'handoff'      => $result,
         ]);
     }
 

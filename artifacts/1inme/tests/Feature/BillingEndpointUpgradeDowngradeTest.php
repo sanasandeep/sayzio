@@ -519,5 +519,153 @@ class BillingEndpointUpgradeDowngradeTest extends TestCase
             ->assertStatus(401);
         $this->postJson('/api/v1/billing/downgrade/cancel')
             ->assertStatus(401);
+        $this->postJson('/api/v1/billing/upgrade', ['plan_id' => 1, 'gateway' => 'offline'])
+            ->assertStatus(401);
+        $this->postJson('/api/v1/billing/cancel')
+            ->assertStatus(401);
+        $this->postJson('/api/v1/billing/resume')
+            ->assertStatus(401);
+    }
+
+    // ==================================================================
+    // API — upgrade (full-price, no-proration) gateway handoff
+    // ==================================================================
+
+    public function test_api_upgrade_creates_full_price_upgrade_invoice(): void
+    {
+        $user = $this->makeBuyer();
+        $from = $this->makePlan('Starter', 20000);
+        $to   = $this->makePlan('Pro', 40000);
+        $sub  = $this->makeActiveSub($user, $from);
+
+        $res = $this->withToken($user->createToken('mobile-test')->plainTextToken)
+            ->postJson('/api/v1/billing/upgrade', [
+                'plan_id' => $to->id,
+                'gateway' => 'offline',
+            ])
+            ->assertStatus(200);
+
+        $res->assertJsonPath('data.target_plan.id', $to->id);
+
+        $invoice = Invoice::where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'awaiting_admin_approval'])
+            ->latest('id')->firstOrFail();
+
+        $this->assertSame($invoice->id, (int) $res->json('data.invoice_id'));
+
+        $line = $this->upgradeLine($invoice);
+        $this->assertNotNull($line, 'upgrade invoice must carry a plan_upgrade line item');
+        // No proration: the buyer is charged the FULL target-plan price.
+        $this->assertSame(40000, (int) $line['amount_minor']);
+        $this->assertSame($to->id, (int) $line['meta']['plan_id']);
+        $this->assertSame($sub->id, (int) $line['meta']['upgrade_from_subscription_id']);
+    }
+
+    public function test_api_upgrade_rejects_lower_or_same_plan_and_creates_no_invoice(): void
+    {
+        $user  = $this->makeBuyer();
+        $from  = $this->makePlan('Pro', 40000);
+        $lower = $this->makePlan('Starter', 20000);
+        $this->makeActiveSub($user, $from);
+        $token = $user->createToken('mobile-test')->plainTextToken;
+
+        $this->withToken($token)
+            ->postJson('/api/v1/billing/upgrade', ['plan_id' => $lower->id, 'gateway' => 'offline'])
+            ->assertStatus(422);
+
+        $this->withToken($token)
+            ->postJson('/api/v1/billing/upgrade', ['plan_id' => $from->id, 'gateway' => 'offline'])
+            ->assertStatus(422);
+
+        $this->assertSame(0, Invoice::where('user_id', $user->id)->count(),
+            'a rejected upgrade must not mint an invoice');
+    }
+
+    public function test_api_upgrade_requires_active_subscription(): void
+    {
+        $user = $this->makeBuyer();
+        $to   = $this->makePlan('Pro', 40000);
+
+        $this->withToken($user->createToken('mobile-test')->plainTextToken)
+            ->postJson('/api/v1/billing/upgrade', ['plan_id' => $to->id, 'gateway' => 'offline'])
+            ->assertStatus(404);
+    }
+
+    // ==================================================================
+    // API — cancel at period end / resume
+    // ==================================================================
+
+    public function test_api_cancel_sets_cancel_at_period_end(): void
+    {
+        $user = $this->makeBuyer();
+        $plan = $this->makePlan('Pro', 40000);
+        $end  = now()->addDays(12);
+        $sub  = $this->makeActiveSub($user, $plan, null, $end);
+
+        $this->withToken($user->createToken('mobile-test')->plainTextToken)
+            ->postJson('/api/v1/billing/cancel')
+            ->assertStatus(200)
+            ->assertJsonPath('data.cancel_at_period_end', true);
+
+        $sub->refresh();
+        $this->assertTrue((bool) $sub->cancel_at_period_end);
+        $this->assertNotNull($sub->cancel_at);
+        $this->assertEqualsWithDelta($end->timestamp, Carbon::parse($sub->cancel_at)->timestamp, 5);
+    }
+
+    public function test_api_cancel_supersedes_scheduled_downgrade(): void
+    {
+        $user   = $this->makeBuyer();
+        $higher = $this->makePlan('Pro', 40000);
+        $lower  = $this->makePlan('Starter', 20000);
+        $sub    = $this->makeActiveSub($user, $higher, null, null, [
+            'scheduled_downgrade_plan_id' => $lower->id,
+        ]);
+
+        $this->withToken($user->createToken('mobile-test')->plainTextToken)
+            ->postJson('/api/v1/billing/cancel')
+            ->assertStatus(200)
+            ->assertJsonPath('data.scheduled_downgrade', null);
+
+        $sub->refresh();
+        $this->assertTrue((bool) $sub->cancel_at_period_end);
+        $this->assertNull($sub->scheduled_downgrade_plan_id);
+    }
+
+    public function test_api_cancel_requires_active_subscription(): void
+    {
+        $user = $this->makeBuyer();
+
+        $this->withToken($user->createToken('mobile-test')->plainTextToken)
+            ->postJson('/api/v1/billing/cancel')
+            ->assertStatus(404);
+    }
+
+    public function test_api_resume_undoes_cancel_at_period_end(): void
+    {
+        $user = $this->makeBuyer();
+        $plan = $this->makePlan('Pro', 40000);
+        $sub  = $this->makeActiveSub($user, $plan, null, null, [
+            'cancel_at_period_end' => true,
+            'cancel_at'            => now()->addDays(10),
+        ]);
+
+        $this->withToken($user->createToken('mobile-test')->plainTextToken)
+            ->postJson('/api/v1/billing/resume')
+            ->assertStatus(200)
+            ->assertJsonPath('data.cancel_at_period_end', false);
+
+        $sub->refresh();
+        $this->assertFalse((bool) $sub->cancel_at_period_end);
+        $this->assertNull($sub->cancel_at);
+    }
+
+    public function test_api_resume_requires_active_subscription(): void
+    {
+        $user = $this->makeBuyer();
+
+        $this->withToken($user->createToken('mobile-test')->plainTextToken)
+            ->postJson('/api/v1/billing/resume')
+            ->assertStatus(404);
     }
 }
