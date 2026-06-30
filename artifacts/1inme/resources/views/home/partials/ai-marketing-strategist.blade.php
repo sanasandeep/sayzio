@@ -3,6 +3,15 @@
     $msUrl = \Illuminate\Support\Facades\Route::has('site.ai-marketing-strategist')
         ? route('site.ai-marketing-strategist')
         : url('/ai-marketing-strategist');
+
+    // Single source of truth for the demo examples (see
+    // Common\Support\AiStrategistExamples). The first entry is the resting /
+    // no-JS / reduced-motion state rendered as static markup below; the full
+    // list is handed to the JS cycle further down.
+    $msExamples = $aiStrategistExamples ?? \App\Modules\Common\Support\AiStrategistExamples::all();
+    $msEx = $msExamples[0] ?? [];
+    $msOrg = $msEx['organic']['items'] ?? [];
+    $msPaid = $msEx['paid']['items'] ?? [];
 @endphp
 <section id="ai-marketing-strategist" class="ms-promo py-24 lg:py-32 relative overflow-hidden">
     <div class="ms-glow ms-glow-a" aria-hidden="true"></div>
@@ -65,29 +74,30 @@
                     <div class="ms-card-body">
                         <div class="ms-goal-row">
                             <span class="ms-goal-label">Goal</span>
-                            <span class="ms-goal-text">Grow my email &amp; WhatsApp subscribers from my Link in Bio</span><span class="ms-goal-caret" aria-hidden="true">▍</span>
+                            <span class="ms-goal-text">{{ $msEx['goal'] ?? '' }}</span><span class="ms-goal-caret" aria-hidden="true">▍</span>
                         </div>
 
-                        <div class="ms-head ms-reveal"><span class="ms-head-mark" aria-hidden="true"></span> Turn bio traffic into owned subscribers</div>
+                        <div class="ms-head ms-reveal"><span class="ms-head-mark" aria-hidden="true"></span> <span class="ms-head-text">{{ $msEx['head'] ?? '' }}</span></div>
 
                         <div class="ms-plan">
-                            <div class="ms-plan-tag ms-plan-tag-org ms-reveal">Organic</div>
-                            <ul class="ms-plan-list">
-                                <li class="ms-reveal"><i class="fas fa-link"></i> Add a "Free guide" subscribe block above the fold</li>
-                                <li class="ms-reveal"><i class="fas fa-stream"></i> Schedule 3 Creator Feed posts a week</li>
-                                <li class="ms-reveal"><i class="fas fa-qrcode"></i> A print-ready QR code on every touchpoint</li>
+                            <div class="ms-plan-tag ms-plan-tag-org ms-reveal">{{ $msEx['organic']['tag'] ?? 'Organic' }}</div>
+                            <ul class="ms-plan-list ms-org-list">
+                                @foreach ($msOrg as $msItem)
+                                    <li class="ms-reveal"><i class="{{ $msItem['icon'] ?? 'fas fa-link' }}"></i> <span class="ms-item-text">{{ $msItem['text'] ?? '' }}</span></li>
+                                @endforeach
                             </ul>
                         </div>
 
                         <div class="ms-plan">
-                            <div class="ms-plan-tag ms-plan-tag-paid ms-reveal">Paid · $5–10/day</div>
-                            <ul class="ms-plan-list">
-                                <li class="ms-reveal"><i class="fab fa-facebook"></i> Retarget visitors via your connected Meta pixel</li>
-                                <li class="ms-reveal"><i class="fas fa-bullseye"></i> Send every click to the same lead-magnet page</li>
+                            <div class="ms-plan-tag ms-plan-tag-paid ms-reveal">{{ $msEx['paid']['tag'] ?? 'Paid' }}</div>
+                            <ul class="ms-plan-list ms-paid-list">
+                                @foreach ($msPaid as $msItem)
+                                    <li class="ms-reveal"><i class="{{ $msItem['icon'] ?? 'fas fa-bullseye' }}"></i> <span class="ms-item-text">{{ $msItem['text'] ?? '' }}</span></li>
+                                @endforeach
                             </ul>
                         </div>
 
-                        <div class="ms-kpi ms-reveal"><i class="fas fa-chart-line"></i> KPIs → subscriber growth · click-through · cost per lead</div>
+                        <div class="ms-kpi ms-reveal"><i class="fas fa-chart-line"></i> KPIs → <span class="ms-kpi-text">{{ $msEx['kpi'] ?? '' }}</span></div>
                     </div>
                 </div>
                 <div class="ms-badge float-y" style="bottom: -18px; left: -14px;">
@@ -281,6 +291,14 @@
     if (window.__msStrategistInit) return;
     window.__msStrategistInit = true;
 
+    // Example goals the strategist demo cycles through to show its breadth.
+    // Sourced from a single server-passed list (Common\Support
+    // \AiStrategistExamples) that also drives the resting/no-JS markup above —
+    // so the armed sequence picks up seamlessly and adding/removing an example
+    // is a one-line data change.
+    var EXAMPLES = @json($msExamples ?? []);
+    if (!EXAMPLES.length) return;
+
     function init() {
         var section = document.getElementById('ai-marketing-strategist');
         if (!section) return;
@@ -292,25 +310,61 @@
         if (reduce) return;
 
         var goalEl = card.querySelector('.ms-goal-text');
+        var headEl = card.querySelector('.ms-head-text');
+        var orgTagEl = card.querySelector('.ms-plan-tag-org');
+        var paidTagEl = card.querySelector('.ms-plan-tag-paid');
+        var kpiEl = card.querySelector('.ms-kpi-text');
+        var orgItems = card.querySelectorAll('.ms-org-list li');
+        var paidItems = card.querySelectorAll('.ms-paid-list li');
+        // Captured once; only the inner text/icons of these rows change per
+        // example (the row elements themselves are never recreated), so the
+        // NodeList stays valid across cycles.
         var reveals = card.querySelectorAll('.ms-reveal');
-        var goalText = goalEl ? goalEl.textContent : '';
+
+        // Paint one example's static content into the (hidden) rows. The goal
+        // line is typed separately (see build), so it is cleared here.
+        function applyExample(ex) {
+            if (headEl) headEl.textContent = ex.head || '';
+            if (orgTagEl) orgTagEl.textContent = (ex.organic && ex.organic.tag) || 'Organic';
+            if (paidTagEl) paidTagEl.textContent = (ex.paid && ex.paid.tag) || 'Paid';
+            if (kpiEl) kpiEl.textContent = ex.kpi || '';
+
+            function fill(rows, items) {
+                for (var r = 0; r < rows.length; r++) {
+                    var d = items && items[r];
+                    if (!d) continue;
+                    var ico = rows[r].querySelector('i');
+                    var txt = rows[r].querySelector('.ms-item-text');
+                    if (ico) ico.className = d.icon || 'fas fa-link';
+                    if (txt) txt.textContent = d.text || '';
+                }
+            }
+            fill(orgItems, ex.organic && ex.organic.items);
+            fill(paidItems, ex.paid && ex.paid.items);
+        }
 
         // Arm: hide the staggered rows + clear the goal, ready to write live.
         // Done up front so there's no flash of the finished card before play().
         card.classList.add('ms-armed');
         if (goalEl) goalEl.textContent = '';
 
+        var idx = 0;         // which example is on screen
         var visible = false; // section in view
         var running = false; // a write cycle is mid-flight
         var started = false; // first play() has fired
         function after(ms, fn) { return setTimeout(fn, ms); }
 
-        // Run one full "write the plan" cycle, then schedule a replay.
+        // Run one full "write the plan" cycle for EXAMPLES[idx], then schedule
+        // the next example.
         function cycle(isFirst) {
             if (running) return;
             running = true;
 
+            var ex = EXAMPLES[idx];
+            var goalText = ex.goal || '';
+
             function build() {
+                applyExample(ex);
                 card.classList.remove('ms-goal-done');
 
                 // 1. Type the goal character by character with a blinking caret.
@@ -333,7 +387,7 @@
                         last = 120 + ri * 150;
                         after(last, function () { el.classList.add('is-in'); });
                     });
-                    // Hold the finished plan, then replay (loops while in view).
+                    // Hold the finished plan, then hand off to the next example.
                     after(last + 600 + 3200, next);
                 }
                 type();
@@ -342,7 +396,8 @@
             if (isFirst) {
                 build();
             } else {
-                // Reset to the armed start state, then write it out again.
+                // Reset to the armed start state, swap content (while hidden),
+                // then write the next example out.
                 reveals.forEach(function (el) { el.classList.remove('is-in'); });
                 card.classList.remove('ms-goal-done');
                 if (goalEl) goalEl.textContent = '';
@@ -352,7 +407,8 @@
 
         function next() {
             running = false;
-            if (visible) cycle(false);
+            idx = (idx + 1) % EXAMPLES.length;
+            if (visible) cycle(false); // keep looping while in view
         }
 
         function play() {

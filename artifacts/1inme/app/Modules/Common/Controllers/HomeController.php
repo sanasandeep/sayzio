@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Models\SitePage;
 use App\Modules\Common\Support\AiHeroExamples;
+use App\Modules\Common\Support\AiStrategistExamples;
 use App\Modules\Common\Support\PlatformHosts;
 use App\Modules\Common\Support\ResumePersonas;
 use App\Modules\Common\Support\SitePagesContent;
@@ -83,7 +84,12 @@ class HomeController extends Controller
         // (no per-request variance), mirrors AiHeroExamples.
         $resumePersonas = ResumePersonas::all();
 
-        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes', 'aiHeroExamples', 'resumePersonas'));
+        // Example goals the AI Marketing Strategist demo cycles through (and the
+        // resting no-JS state). Static data (no per-request variance), mirrors
+        // AiHeroExamples.
+        $aiStrategistExamples = AiStrategistExamples::all();
+
+        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'linkTypes', 'aiHeroExamples', 'resumePersonas', 'aiStrategistExamples'));
     }
 
     /**
