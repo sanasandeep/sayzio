@@ -328,7 +328,7 @@ class User extends Authenticatable
             'account_badge_user',
             'user_id',
             'account_badge_id'
-        )->withTimestamps()->orderBy('name');
+        )->withTimestamps()->withPivot('assigned_by')->orderBy('name');
     }
 
     public function wallet() { return $this->hasOne(Wallet::class); }

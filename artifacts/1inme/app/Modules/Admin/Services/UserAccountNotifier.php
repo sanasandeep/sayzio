@@ -66,6 +66,22 @@ class UserAccountNotifier
             "Good news! Your request for the \"{$badgeName}\" badge has been approved and it now appears on your account.");
     }
 
+    /**
+     * Notify the recipient that another creator passed them a badge they hold
+     * (Task #3045). Mirrors badgeApproved so creator-granted badges reach the
+     * user through the same in-app + email path as admin approvals.
+     */
+    public function badgeGranted(User $user, string $badgeName, string $granterName): void
+    {
+        $this->dispatch($user, 'account.badge_granted', [
+            'badge'   => $badgeName,
+            'granter' => $granterName,
+            'message' => "{$granterName} gave you the \"{$badgeName}\" badge.",
+            'url'     => route('user.badge-requests.index'),
+        ], 'You received a new badge',
+            "{$granterName} gave you the \"{$badgeName}\" badge — it now appears on your account.");
+    }
+
     public function badgeRejected(User $user, string $badgeName, string $reason): void
     {
         $this->dispatch($user, 'account.badge_rejected', [

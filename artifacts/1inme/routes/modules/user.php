@@ -1628,6 +1628,12 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::prefix('badge-requests')->name('badge-requests.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/',  [\App\Modules\User\Controllers\BadgeRequestController::class, 'index'])->name('index');
             Route::post('/', [\App\Modules\User\Controllers\BadgeRequestController::class, 'store'])->middleware('workspace.can:settings.edit')->name('store');
+            // Creator → creator badge gifting (Task #3045): live handle lookup
+            // plus the give action (a creator passes on a badge they hold).
+            Route::get('give/lookup', [\App\Modules\User\Controllers\BadgeRequestController::class, 'lookupHandle'])
+                ->middleware('throttle:60,1')->name('give.lookup');
+            Route::post('give', [\App\Modules\User\Controllers\BadgeRequestController::class, 'give'])
+                ->middleware('workspace.can:settings.edit')->name('give');
         });
 
         // Carbon-Neutral Biolinks: per-workspace sustainability dashboard

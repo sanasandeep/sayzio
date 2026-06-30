@@ -28,6 +28,83 @@
     </div>
     @endif
 
+    {{-- Give a badge (Task #3045): a creator passes on a badge they hold to
+         another account, found by handle. Only badges the creator currently
+         holds are offered; ownership is re-verified server-side on submit. --}}
+    <div class="rounded-2xl border p-5 mb-8" style="background: var(--bg-card); border-color: var(--border-soft);">
+        <h2 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Give a badge</h2>
+        <p class="text-xs mb-4" style="color: var(--text-muted);">Pass one of your badges to another account by their handle. They'll be notified, and your name is recorded as the giver.</p>
+
+        @if($mine->isEmpty())
+            <div class="text-sm rounded-lg p-3" style="background: var(--bg-subtle); color: var(--text-muted); border:1px solid var(--border-soft);">
+                <i class="fas fa-circle-info mr-1.5"></i> You don't hold any badges yet, so there's nothing to give. Once you earn a badge it'll appear here to share.
+            </div>
+        @else
+        <form method="POST" action="{{ route('user.badge-requests.give') }}"
+              x-data="giveBadge('{{ route('user.badge-requests.give.lookup') }}')" @submit="onSubmit($event)">
+            @csrf
+            <div class="mb-4">
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Recipient handle</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color: var(--text-faint);">@</span>
+                    <input type="text" name="handle" x-model="handle" @input.debounce.400ms="lookup()" autocomplete="off"
+                           value="{{ old('handle') }}" maxlength="120" placeholder="theirhandle"
+                           class="w-full pl-7 pr-3 py-2.5 rounded-lg text-sm" style="background: var(--bg-subtle); border:1px solid var(--border-soft); color: var(--text-primary);">
+                </div>
+                <p class="text-xs mt-1.5 h-4" x-show="message"
+                   :class="found === true ? 'text-emerald-400' : (found === false ? 'text-red-400' : '')"
+                   :style="found === null ? 'color: var(--text-faint);' : ''"
+                   x-text="message"></p>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Badge to give</label>
+                <select name="account_badge_id" required class="w-full px-3 py-2.5 rounded-lg text-sm" style="background: var(--bg-subtle); border:1px solid var(--border-soft); color: var(--text-primary);">
+                    <option value="">— Choose one of your badges —</option>
+                    @foreach($mine as $b)
+                        <option value="{{ $b->id }}" {{ (string) old('account_badge_id') === (string) $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition disabled:opacity-50"
+                    :disabled="found === false">Give badge</button>
+        </form>
+        @endif
+    </div>
+
+    @once
+    @push('scripts')
+    <script>
+        function giveBadge(lookupUrl) {
+            return {
+                handle: @js(old('handle', '')),
+                found: null,
+                message: '',
+                async lookup() {
+                    const h = (this.handle || '').trim().replace(/^@/, '');
+                    if (!h) { this.found = null; this.message = ''; return; }
+                    try {
+                        const res = await fetch(lookupUrl + '?handle=' + encodeURIComponent(h), {
+                            headers: { 'Accept': 'application/json' },
+                        });
+                        const data = await res.json();
+                        this.found = data.found;
+                        this.message = data.message || '';
+                    } catch (e) {
+                        this.found = null;
+                        this.message = '';
+                    }
+                },
+                onSubmit(e) {
+                    if (this.found === false) { e.preventDefault(); }
+                },
+            };
+        }
+    </script>
+    @endpush
+    @endonce
+
     <div class="rounded-2xl border p-5 mb-8" style="background: var(--bg-card); border-color: var(--border-soft);">
         <h2 class="text-sm font-bold mb-4" style="color: var(--text-primary);">Request a badge</h2>
         <form method="POST" action="{{ route('user.badge-requests.store') }}" x-data="{ mode: '{{ old('custom_name') ? 'custom' : 'existing' }}' }">
