@@ -635,7 +635,7 @@ class LinkTypeExplainerSeeder extends Seeder
                 'cta_icon' => 'fa-star',
             ],
             [
-                'alias' => 'demo-type-brand-kit',
+                'alias' => 'demo-type-brand-press-kit',
                 'link_type' => 'brand_kit',
                 'title' => 'Brand / Press Kit — explained',
                 'heading' => 'Brand / Press Kit 🎨',
