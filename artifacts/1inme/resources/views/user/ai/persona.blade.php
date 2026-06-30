@@ -26,7 +26,7 @@
         @csrf
         <div>
             <label class="text-xs uppercase tracking-wider text-white/40">Audience *</label>
-            <input type="text" name="audience" required maxlength="400"
+            <input type="text" name="audience" id="persona-audience" required maxlength="400"
                    value="{{ old('audience', $input['audience'] ?? '') }}"
                    placeholder="e.g. Solo SaaS founders launching their first paid app"
                    class="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
@@ -53,7 +53,13 @@
             'platformOptIn' => old('include_platform', $input['include_platform'] ?? false),
         ])
 
-        <div class="flex justify-end">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            @include('user.ai._partials.cost-estimate', ['cost' => [
+                'feature' => 'persona',
+                'mode'    => 'live',
+                'input'   => '#persona-audience',
+                'prefix'  => 'Up to',
+            ]])
             <button class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
                 Generate persona
             </button>

@@ -88,7 +88,7 @@
                             Describe yourself, your role and your wins. AI will draft a summary, experience bullets and
                             skills you can review before merging. Uses your AI credits.
                         </p>
-                        <textarea class="resume-textarea mb-3" rows="5" maxlength="1500"
+                        <textarea class="resume-textarea mb-3" rows="5" maxlength="1500" id="resume-import-ai-prompt"
                                   placeholder="e.g. Senior product designer with 8 years in fintech. Led the redesign of…"
                                   x-model="importAiPrompt"></textarea>
                         <div class="flex flex-wrap gap-3 mb-3">
@@ -107,6 +107,14 @@
                                 <span x-text="importBusy ? 'Drafting…' : 'Draft with AI'"></span>
                             </button>
                         </div>
+                        @include('user.ai._partials.cost-estimate', ['cost' => [
+                            'feature'  => 'resume_import',
+                            'mode'     => 'live',
+                            'input'    => '#resume-import-ai-prompt',
+                            'minChars' => 10,
+                            'prefix'   => 'Up to',
+                            'class'    => 'mt-2',
+                        ]])
                     </div>
 
                     <template x-if="importError">

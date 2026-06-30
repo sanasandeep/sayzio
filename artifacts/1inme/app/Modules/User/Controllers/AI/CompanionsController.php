@@ -136,6 +136,16 @@ class CompanionsController extends Controller
 
         $usage = CompanionRuntime::monthlyUsage($companion);
 
+        // Approximate "coins/day" for this chat widget: averages this month's
+        // recorded spend, with a worst-case ceiling implied by the hard cap.
+        $estimate = app(\App\Services\AI\AiCostEstimator::class)->companionPerDay(
+            $request->user(),
+            $usage,
+            (int) $companion->free_turns_per_month,
+            (int) $companion->hard_cap_per_month,
+            0,
+        );
+
         return view('user.ai-companions.edit', [
             'companion'      => $companion,
             'personas'       => $personas,
@@ -145,6 +155,7 @@ class CompanionsController extends Controller
             'placements'     => AiCompanion::PLACEMENTS,
             'config'         => $companion->effectiveConfig(),
             'usage'          => $usage,
+            'estimate'       => $estimate,
             'embedScriptUrl' => url('/embed/companion.js'),
             'iframeUrl'      => route('public.companion.iframe', ['publicId' => $companion->public_id]),
             'balance'        => $this->credits->getBalance($request->user()),

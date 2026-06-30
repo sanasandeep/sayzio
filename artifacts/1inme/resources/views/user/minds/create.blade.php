@@ -24,6 +24,12 @@
                 class="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm" placeholder="Short note for yourself.">{{ old('description') }}</textarea>
             @error('description')<p class="text-xs text-red-300 mt-1">{{ $message }}</p>@enderror
         </div>
+        @include('user.ai._partials.cost-estimate', ['cost' => [
+            'feature' => 'minds',
+            'mode'    => 'fixed',
+            'prefix'  => '≈',
+            'note'    => 'per ~1,000 words of source you add',
+        ]])
         <div class="flex items-center justify-end gap-2 pt-2">
             <a href="{{ route('user.minds.index') }}" class="px-4 py-2 rounded-xl bg-white/5 text-white/70 text-sm">Cancel</a>
             <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium">Create knowledge base</button>

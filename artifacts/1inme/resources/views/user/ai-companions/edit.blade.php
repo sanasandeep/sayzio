@@ -34,7 +34,7 @@
         </a>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
             <p class="text-[10px] uppercase tracking-wider text-white/40">Turns this month</p>
             <p class="text-2xl font-bold text-white mt-1">{{ number_format($usage['turns']) }}</p>
@@ -44,6 +44,18 @@
             <p class="text-[10px] uppercase tracking-wider text-white/40">AI credits used</p>
             <p class="text-2xl font-bold text-white mt-1">{{ number_format($usage['credits']) }}</p>
             <p class="text-[10px] text-white/40">Balance: {{ number_format($balance) }}</p>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
+            <p class="text-[10px] uppercase tracking-wider text-white/40">Est. coins / day</p>
+            <p class="text-2xl font-bold text-white mt-1">&approx; {{ number_format($estimate['per_day']) }}</p>
+            <p class="text-[10px] text-white/40">
+                @if($estimate['based_on_usage'])
+                    ~{{ $estimate['avg_per_turn'] }} / paid turn so far
+                @else
+                    ~{{ $estimate['avg_per_turn'] }} / turn (estimate)
+                @endif
+                @if($estimate['ceiling_per_day']) &middot; up to ~{{ number_format($estimate['ceiling_per_day']) }}/day at cap @endif
+            </p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
             <p class="text-[10px] uppercase tracking-wider text-white/40">Free turns / mo</p>

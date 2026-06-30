@@ -983,6 +983,11 @@ Route::prefix('user')->name('user.')->group(function () {
         // unique `feature` tag so admin reporting can attribute spend
         // back to the right product on /admin/ai-usage.
         Route::prefix('ai')->name('ai.')->group(function () {
+
+            // Unified, read-only coin-cost estimate for AI triggers that don't
+            // own a feature-specific estimate route (persona, ask-coach, card
+            // scan, QR art, voice, minds, resume import/cover-letter).
+            Route::post('cost-estimate', [\App\Modules\User\Controllers\AI\AiCostEstimateController::class, 'estimate'])->middleware('throttle:60,1')->name('cost-estimate');
             Route::get ('mind',        [\App\Modules\User\Controllers\AI\MindController::class, 'show'])->name('mind.show');
             Route::post('mind/think',  [\App\Modules\User\Controllers\AI\MindController::class, 'think'])->middleware('throttle:30,1')->name('mind.think');
 

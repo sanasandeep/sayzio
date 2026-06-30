@@ -252,6 +252,13 @@
                         Send
                     </button>
                 </form>
+                @include('user.ai._partials.cost-estimate', ['cost' => [
+                    'feature' => 'ask_coach',
+                    'mode'    => 'live',
+                    'input'   => '[data-coach-input]',
+                    'prefix'  => 'Up to',
+                    'class'   => 'mt-2 px-1',
+                ]])
                 @error('message')<p class="text-xs text-red-300 mt-1">{{ $message }}</p>@enderror
 
                 <script>

@@ -455,6 +455,41 @@ class OpenAiService
     }
 
     /**
+     * Worst-case chat coin estimate for a single free-text input plus a
+     * fixed per-feature prompt overhead (system prompt + grounding the
+     * caller can't reconstruct cheaply). Mirrors {@see estimateChatCoins}
+     * — same model rates and per-plan multiplier — so the "Up to X coins"
+     * a creator sees lines up with what the wallet is actually charged.
+     * Returns 0 when the engine/model is off so the UI shows nothing.
+     */
+    public function estimateChatCoinsForText(string $model, string $text, int $overheadTokens = 0, int $maxOutputTokens = self::DEFAULT_MAX_OUTPUT_TOKENS, ?User $user = null): int
+    {
+        if (!AiEngineSettings::isEnabled()) return 0;
+        $cfg = AiEngineSettings::model($model);
+        if (!$cfg || !$cfg['enabled'] || $cfg['kind'] !== 'chat') return 0;
+        $multiplier = $user ? AiPlanAccess::coinMultiplier($user, 'openai') : 1.0;
+        // +4 framing tokens for the single user message, mirroring
+        // estimateChatPromptTokens()'s per-message overhead.
+        $tokensIn = max(1, (int) $overheadTokens + 4 + $this->estimateTextTokens($text));
+        return $this->computeCost($cfg, $tokensIn, max(1, $maxOutputTokens), $multiplier);
+    }
+
+    /**
+     * Worst-case embedding coin estimate for a free-text body. Used by the
+     * Minds note-summarizer "≈ X coins per N words" hint. Mirrors the
+     * embedding charge path (in-rate only, per-plan `openai` multiplier).
+     */
+    public function estimateEmbeddingCoinsForText(string $model, string $text, ?User $user = null): int
+    {
+        if (!AiEngineSettings::isEnabled()) return 0;
+        $cfg = AiEngineSettings::model($model);
+        if (!$cfg || !$cfg['enabled'] || $cfg['kind'] !== 'embedding') return 0;
+        $multiplier = $user ? AiPlanAccess::coinMultiplier($user, 'openai') : 1.0;
+        $tokensIn = $this->estimateTextTokens($text);
+        return $this->computeCost($cfg, $tokensIn, 0, $multiplier);
+    }
+
+    /**
      * Cheap, dependency-free token estimate. Always rounds *up* so the
      * worst-case gate stays conservative.
      */

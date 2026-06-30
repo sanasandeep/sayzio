@@ -56,6 +56,13 @@
             </p>
         </div>
 
+        @include('user.ai._partials.cost-estimate', ['cost' => [
+            'feature' => 'card_scan',
+            'mode'    => 'fixed',
+            'prefix'  => '≈',
+            'note'    => 'per scan',
+        ]])
+
         <div class="flex items-center justify-between pt-2 gap-3 flex-wrap">
             <a href="{{ route('user.contacts.index') }}" class="text-xs" style="color: var(--text-muted);">
                 <i class="fas fa-arrow-left mr-1"></i> Back to contacts

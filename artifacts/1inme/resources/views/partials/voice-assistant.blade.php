@@ -37,6 +37,17 @@
     // panel on the user dashboard). The reusable dictation helper and the
     // window.__voice config below still render so other surfaces keep voice.
     $voiceFloating = $voiceFloating ?? true;
+
+    // Approximate worst-case coins for a single voice turn (STT + reasoning +
+    // TTS), mirroring the real charge path + per-plan multiplier. Shown as a
+    // heads-up in the panel so the user knows roughly what a turn costs.
+    $voiceTurnCoins = 0;
+    try {
+        if ($voiceAvailable) {
+            $voiceTurnCoins = (int) app(\App\Services\AI\AiCostEstimator::class)
+                ->estimate($voiceUser, 'voice', '')['coins'];
+        }
+    } catch (\Throwable $e) {}
 @endphp
 @if($voiceAvailable)
 <script>
@@ -112,6 +123,12 @@ window.__voice = { dictateUrl: @js(route('user.ai.voice.transcribe')), csrf: @js
                     Tap the mic and ask anything — “open my dashboard”, “how many clicks today?”, “delete link 42”. Destructive actions always ask before running.
                 </p>
             </template>
+            @if($voiceTurnCoins > 0)
+            <p class="text-white/40 text-[11px] flex items-center gap-1">
+                <i class="fas fa-coins"></i> &approx; {{ $voiceTurnCoins }} {{ $voiceTurnCoins === 1 ? 'coin' : 'coins' }} per voice turn
+                · Balance <span x-text="balance"></span>
+            </p>
+            @endif
 
             <div class="max-h-64 overflow-y-auto space-y-2 pr-1">
                 <template x-for="(m, idx) in messages" :key="idx">
