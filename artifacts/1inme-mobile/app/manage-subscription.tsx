@@ -1,10 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
   Image,
   Platform,
@@ -45,6 +46,42 @@ export default function ManageSubscriptionScreen() {
     queryFn: listMySubscriptions,
   });
 
+  // Brief auto-dismissing confirmation shown when a fan returns from the
+  // subscribe flow and their active tier actually changed.
+  const [toast, setToast] = useState<string | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = useCallback(
+    (message: string) => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      setToast(message);
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: Platform.OS !== "web",
+      }).start();
+      toastTimer.current = setTimeout(() => {
+        Animated.timing(toastOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: Platform.OS !== "web",
+        }).start(() => setToast(null));
+      }, 4000);
+    },
+    [toastOpacity],
+  );
+  useEffect(
+    () => () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    },
+    [],
+  );
+
+  // Always keep a ref to the latest data so the focus effect can read it
+  // without taking `q.data` as a dependency (which would loop the effect).
+  const latestData = useRef<SubscriptionState[]>([]);
+  latestData.current = q.data ?? [];
+
   // A tier switch happens in the creator's subscribe flow (often via the
   // provider's hosted checkout). Refetch when this screen regains focus so a
   // completed tier change is reflected, skipping the initial mount fetch.
@@ -54,12 +91,33 @@ export default function ManageSubscriptionScreen() {
   const didMount = useRef(false);
   useFocusEffect(
     useCallback(() => {
-      if (didMount.current) {
-        refetch();
-      } else {
+      if (!didMount.current) {
         didMount.current = true;
+        return;
       }
-    }, [refetch]),
+      // Snapshot the active tier per creator BEFORE the refetch so we can tell
+      // whether the fan actually switched (vs. backed out with no change).
+      const before = new Map<string, number | null>();
+      for (const s of latestData.current) {
+        const h = s.creator?.handle?.toLowerCase();
+        if (h) before.set(h, s.tier?.id ?? null);
+      }
+      refetch()
+        .then((res) => {
+          const after = (res.data ?? []) as SubscriptionState[];
+          for (const s of after) {
+            const h = s.creator?.handle?.toLowerCase();
+            if (!h || !before.has(h)) continue; // new / unknown — not a "switch"
+            if (before.get(h) !== (s.tier?.id ?? null)) {
+              const tierName = s.tier?.name ?? "your new tier";
+              const creatorName = s.creator?.name || `@${s.creator?.handle}`;
+              showToast(`You're now on ${tierName} for ${creatorName}.`);
+              break;
+            }
+          }
+        })
+        .catch(() => {});
+    }, [refetch, showToast]),
   );
 
   const cancel = useMutation({
@@ -152,6 +210,21 @@ export default function ManageSubscriptionScreen() {
           }
         />
       )}
+
+      {toast ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.toast,
+            { backgroundColor: colors.success, opacity: toastOpacity },
+          ]}
+        >
+          <Feather name="check-circle" size={16} color="#fff" />
+          <Text style={styles.toastText} numberOfLines={2}>
+            {toast}
+          </Text>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
@@ -304,4 +377,22 @@ const styles = StyleSheet.create({
   },
   notice: { marginTop: 14, padding: 10, borderRadius: 10 },
   noticeText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
+  toast: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+  },
+  toastText: {
+    flex: 1,
+    color: "#fff",
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 13,
+  },
 });
