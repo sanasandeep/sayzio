@@ -23,7 +23,8 @@
     "test:stats-range": "node scripts/test-stats-range.mjs",
     "test:stats-export": "node scripts/test-stats-export.mjs",
     "test:upgrade-hint": "node scripts/test-upgrade-hint.mjs",
-    "test:quick-contact": "node scripts/test-quick-contact.mjs"
+    "test:quick-contact": "node scripts/test-quick-contact.mjs",
+    "test:premium-cells": "node scripts/test-premium-cells.mjs"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

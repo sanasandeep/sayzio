@@ -32,6 +32,25 @@ export type Plan = {
   prices?: PriceMatrix;
 };
 
+/**
+ * A single feature's resolved value for ONE plan — the serialized output of
+ * the Laravel `PremiumFeatures::resolveCell()` (the canonical resolver behind
+ * the web comparison grid). The mobile screen renders directly from this so it
+ * never re-implements the number / Unlimited / Advanced/Basic / Custom / on-off
+ * resolution logic divergently.
+ *  - kind      'number' (numeric allowance), 'analytics' (Basic/Advanced select)
+ *              or 'bool' (plain on/off capability)
+ *  - on        the plan includes / raises this feature
+ *  - unlimited the numeric value is -1 (render as "Unlimited")
+ *  - text      display string for numeric / analytics cells ('' for bools)
+ */
+export type PremiumFeatureCell = {
+  kind: "number" | "analytics" | "bool";
+  on: boolean;
+  unlimited: boolean;
+  text: string;
+};
+
 export type PremiumFeature = {
   key: string;
   group: string;
@@ -39,6 +58,8 @@ export type PremiumFeature = {
   description: string;
   unit?: string;
   unlocked_by: string[];
+  /** Resolved per-plan cell value, keyed by plan slug. */
+  cells?: Record<string, PremiumFeatureCell>;
 };
 
 export type Addon = {

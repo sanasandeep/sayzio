@@ -142,8 +142,18 @@ class RevenueCatBillingController extends Controller
             ->public()
             ->where('status', 'active')->where('is_archived', false)->get();
         $unlocks = \App\Modules\Common\Support\PremiumFeatures::unlocksByFeature($planModels);
+        // Per-plan resolved cell for every feature, keyed by plan slug, so the
+        // mobile Premium Features screen renders the SAME number / "Unlimited" /
+        // "Advanced"/"Basic" / "Custom" / on-off values the web grid shows
+        // without re-implementing PremiumFeatures::resolveCell() on the client.
         $premiumFeatures = collect(\App\Modules\Common\Support\PremiumFeatures::catalogue())
-            ->map(fn ($e) => $e + ['unlocked_by' => $unlocks[$e['key']] ?? []])
+            ->map(function ($e) use ($unlocks, $planModels) {
+                $cells = [];
+                foreach ($planModels as $p) {
+                    $cells[$p->slug] = \App\Modules\Common\Support\PremiumFeatures::resolveCell($p, $e);
+                }
+                return $e + ['unlocked_by' => $unlocks[$e['key']] ?? [], 'cells' => $cells];
+            })
             ->values()->all();
 
         return $this->ok([
