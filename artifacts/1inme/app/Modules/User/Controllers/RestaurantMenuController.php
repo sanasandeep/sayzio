@@ -53,17 +53,32 @@ class RestaurantMenuController extends Controller
         $menu = $this->menuFor($link);
 
         $data = $request->validate([
-            'mode'         => 'required|in:display,order',
-            'currency'     => 'required|string|size:3',
-            'accent_color' => 'nullable|string|max:16',
-            'settings'     => 'nullable|array',
+            'mode'            => 'required|in:display,order',
+            'currency'        => 'required|string|size:3',
+            'accent_color'    => 'nullable|string|max:16',
+            'whatsapp_number' => 'nullable|string|max:32',
+            'settings'        => 'nullable|array',
         ]);
+
+        $settings = $data['settings'] ?? $menu->settings ?? [];
+
+        // Optional WhatsApp click-to-chat number for order confirmations. Stored
+        // in the menu's settings JSON, normalized to the digits-only form
+        // wa.me expects. Blank/invalid input clears it (feature off).
+        if ($request->has('whatsapp_number')) {
+            $normalized = \App\Modules\Common\Services\WhatsappOrderLink::normalizeNumber($data['whatsapp_number'] ?? null);
+            if ($normalized) {
+                $settings['whatsapp_number'] = $normalized;
+            } else {
+                unset($settings['whatsapp_number']);
+            }
+        }
 
         $menu->update([
             'mode'         => $data['mode'],
             'currency'     => strtoupper($data['currency']),
             'accent_color' => $data['accent_color'] ?? $menu->accent_color,
-            'settings'     => $data['settings'] ?? $menu->settings,
+            'settings'     => $settings,
         ]);
 
         return response()->json(['data' => ['menu' => $menu->fresh()]]);

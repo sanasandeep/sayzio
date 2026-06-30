@@ -35,6 +35,12 @@ export type GuestOrderItem = {
   line_total: string;
 };
 
+export type WhatsappOrderLink = {
+  number: string;
+  message: string;
+  url: string;
+};
+
 export type GuestOrder = {
   public_token: string;
   status: string;
@@ -43,6 +49,7 @@ export type GuestOrder = {
   currency: string;
   table_label: string | null;
   items: GuestOrderItem[];
+  whatsapp: WhatsappOrderLink | null;
   created_at: string | null;
 };
 
@@ -196,6 +203,7 @@ export type OwnerMenu = {
   mode: "display" | "order";
   currency: string;
   accent_color: string | null;
+  whatsapp_number: string | null;
   order_enabled: boolean;
   public_url: string;
   categories: OwnerMenuCategory[];
@@ -213,7 +221,12 @@ export async function getOwnerMenu(
 
 export async function saveOwnerMenuSettings(
   linkId: number | string,
-  input: { mode: "display" | "order"; currency: string; accent_color?: string | null },
+  input: {
+    mode: "display" | "order";
+    currency: string;
+    accent_color?: string | null;
+    whatsapp_number?: string | null;
+  },
 ): Promise<OwnerMenu> {
   const res = await apiFetch<{ data: { menu: OwnerMenu } }>(
     `/restaurant/links/${linkId}/menu/settings`,

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -277,9 +278,18 @@ export default function RestaurantMenuScreen() {
               {placed.currency} {Number(placed.subtotal).toFixed(2)}. Pay your
               server directly.
             </Text>
+            {placed.whatsapp?.url ? (
+              <Pressable
+                onPress={() => Linking.openURL(placed.whatsapp!.url)}
+                style={[styles.placeBtn, styles.waBtn, { marginTop: 18 }]}
+              >
+                <Feather name="message-circle" size={16} color="#fff" />
+                <Text style={styles.placeBtnText}>Send order via WhatsApp</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={() => setPlaced(null)}
-              style={[styles.placeBtn, { backgroundColor: accent, marginTop: 18 }]}
+              style={[styles.placeBtn, { backgroundColor: accent, marginTop: 12 }]}
             >
               <Text style={styles.placeBtnText}>Done</Text>
             </Pressable>
@@ -369,6 +379,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   placeBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  waBtn: {
+    backgroundColor: "#25D366",
+    flexDirection: "row",
+    gap: 8,
+    alignSelf: "stretch",
+  },
   modalBg: {
     position: "absolute",
     inset: 0,

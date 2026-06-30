@@ -132,18 +132,18 @@ class RestaurantController extends Controller
             return $this->fail($e->getMessage(), 422, 'invalid_order');
         }
 
-        return $this->created(['order' => $this->guestOrder($order->fresh('items'))]);
+        return $this->created(['order' => $this->guestOrder($order->fresh('items'), $menu, $link)]);
     }
 
     /** Guest polls their own order status with the public token. */
     public function orderStatus(Request $request, string $token)
     {
-        $order = RestaurantOrder::with('items')->where('public_token', $token)->first();
+        $order = RestaurantOrder::with(['items', 'menu', 'link'])->where('public_token', $token)->first();
         if (!$order) {
             return $this->notFound('Order not found');
         }
 
-        return $this->ok(['order' => $this->guestOrder($order)]);
+        return $this->ok(['order' => $this->guestOrder($order, $order->menu, $order->link)]);
     }
 
     /**
@@ -300,15 +300,30 @@ class RestaurantController extends Controller
         }
 
         $data = $request->validate([
-            'mode'         => 'required|in:display,order',
-            'currency'     => 'required|string|size:3',
-            'accent_color' => 'nullable|string|max:16',
+            'mode'            => 'required|in:display,order',
+            'currency'        => 'required|string|size:3',
+            'accent_color'    => 'nullable|string|max:16',
+            'whatsapp_number' => 'nullable|string|max:32',
         ]);
+
+        $settings = $menu->settings ?? [];
+
+        // Optional WhatsApp click-to-chat number for order confirmations,
+        // normalized to wa.me's digits-only form. Blank/invalid clears it.
+        if ($request->has('whatsapp_number')) {
+            $normalized = \App\Modules\Common\Services\WhatsappOrderLink::normalizeNumber($data['whatsapp_number'] ?? null);
+            if ($normalized) {
+                $settings['whatsapp_number'] = $normalized;
+            } else {
+                unset($settings['whatsapp_number']);
+            }
+        }
 
         $menu->update([
             'mode'         => $data['mode'],
             'currency'     => strtoupper($data['currency']),
             'accent_color' => $data['accent_color'] ?? $menu->accent_color,
+            'settings'     => $settings,
         ]);
 
         return $this->ok(['menu' => $this->ownerMenuPayload($menu->fresh(), $link)]);
@@ -524,11 +539,12 @@ class RestaurantController extends Controller
         $itemsByCat = $menu->items->groupBy('category_id');
 
         return [
-            'mode'         => $menu->mode,
-            'currency'     => $menu->currency,
-            'accent_color' => $menu->accent_color,
-            'order_enabled'=> $menu->isOrderMode(),
-            'public_url'   => url('/' . $link->alias),
+            'mode'            => $menu->mode,
+            'currency'        => $menu->currency,
+            'accent_color'    => $menu->accent_color,
+            'whatsapp_number' => $menu->settings['whatsapp_number'] ?? null,
+            'order_enabled'   => $menu->isOrderMode(),
+            'public_url'      => url('/' . $link->alias),
             'categories'   => $menu->categories->map(fn ($c) => $this->ownerCategory(
                 $c,
                 $itemsByCat->get($c->id) ?? collect(),
@@ -579,8 +595,12 @@ class RestaurantController extends Controller
             ->count();
     }
 
-    protected function guestOrder(RestaurantOrder $order): array
+    protected function guestOrder(RestaurantOrder $order, ?RestaurantMenu $menu = null, ?Link $link = null): array
     {
+        $whatsapp = $menu
+            ? \App\Modules\Common\Services\WhatsappOrderLink::build($menu, $order, $link?->title)
+            : null;
+
         return [
             'public_token' => $order->public_token,
             'status'       => $order->status,
@@ -593,6 +613,7 @@ class RestaurantController extends Controller
                 'quantity'   => $i->quantity,
                 'line_total' => $i->line_total,
             ])->values(),
+            'whatsapp'     => $whatsapp,
             'created_at'   => $order->created_at?->toIso8601String(),
         ];
     }

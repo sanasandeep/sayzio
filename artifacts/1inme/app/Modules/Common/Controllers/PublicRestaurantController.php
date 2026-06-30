@@ -99,6 +99,8 @@ class PublicRestaurantController extends Controller
             return response()->json(['error' => ['message' => $e->getMessage(), 'code' => 'invalid_order']], 422);
         }
 
+        $order->loadMissing('items');
+
         return response()->json(['data' => [
             'order' => [
                 'public_token' => $order->public_token,
@@ -106,6 +108,7 @@ class PublicRestaurantController extends Controller
                 'subtotal'     => $order->subtotal,
                 'currency'     => $order->currency,
                 'table_label'  => $order->table_label,
+                'whatsapp'     => \App\Modules\Common\Services\WhatsappOrderLink::build($menu, $order, $link->title),
             ],
         ]], 201);
     }
@@ -113,10 +116,14 @@ class PublicRestaurantController extends Controller
     /** Guest polls their own order status with the public token. */
     public function orderStatus(Request $request, string $token)
     {
-        $order = RestaurantOrder::with('items')->where('public_token', $token)->first();
+        $order = RestaurantOrder::with(['items', 'menu', 'link'])->where('public_token', $token)->first();
         if (!$order) {
             return response()->json(['error' => ['message' => 'Order not found', 'code' => 'not_found']], 404);
         }
+
+        $whatsapp = $order->menu
+            ? \App\Modules\Common\Services\WhatsappOrderLink::build($order->menu, $order, $order->link?->title)
+            : null;
 
         return response()->json(['data' => [
             'order' => [
@@ -131,6 +138,7 @@ class PublicRestaurantController extends Controller
                     'quantity' => $i->quantity,
                     'line_total' => $i->line_total,
                 ]),
+                'whatsapp'     => $whatsapp,
                 'created_at'   => $order->created_at?->toIso8601String(),
             ],
         ]]);

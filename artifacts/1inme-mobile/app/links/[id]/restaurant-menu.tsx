@@ -87,6 +87,7 @@ export default function RestaurantMenuBuilderScreen() {
   const [mode, setMode] = useState<"display" | "order">("display");
   const [currency, setCurrency] = useState("USD");
   const [accent, setAccent] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
 
   useEffect(() => {
     const m = q.data;
@@ -94,6 +95,7 @@ export default function RestaurantMenuBuilderScreen() {
     setMode(m.mode);
     setCurrency(m.currency);
     setAccent(m.accent_color ?? "");
+    setWhatsapp(m.whatsapp_number ?? "");
   }, [q.data]);
 
   const invalidate = () =>
@@ -105,6 +107,7 @@ export default function RestaurantMenuBuilderScreen() {
         mode,
         currency: currency.trim().toUpperCase() || "USD",
         accent_color: accent.trim() || null,
+        whatsapp_number: whatsapp.trim() || null,
       }),
     onSuccess: (menu) => qc.setQueryData(["restaurant-owner-menu", linkId], menu),
     onError: (e: any) => {
@@ -330,6 +333,24 @@ export default function RestaurantMenuBuilderScreen() {
             autoCorrect={false}
             placeholder="#3d6bff"
           />
+          {mode === "order" ? (
+            <>
+              <TextField
+                label="WhatsApp number (optional)"
+                value={whatsapp}
+                onChangeText={setWhatsapp}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="phone-pad"
+                placeholder="e.g. +1 555 123 4567"
+              />
+              <Text style={[styles.helper, { color: colors.mutedForeground }]}>
+                Add your number with country code to let diners send their
+                confirmed order to your WhatsApp. Orders still appear on your
+                dashboard either way.
+              </Text>
+            </>
+          ) : null}
           <Button
             label="Save settings"
             onPress={() => settingsMut.mutate()}

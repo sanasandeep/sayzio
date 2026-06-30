@@ -118,6 +118,11 @@
                     <label class="rm-label">Accent color</label>
                     <input type="color" class="rm-input" x-model="menu.accent_color" @change="saveSettings()" style="height:42px;padding:4px">
                 </div>
+                <div class="rm-row" x-show="menu.mode === 'order'">
+                    <label class="rm-label">WhatsApp number (optional)</label>
+                    <input class="rm-input" x-model="menu.whatsapp_number" @change="saveSettings()" placeholder="e.g. +1 555 123 4567" inputmode="tel">
+                    <p class="text-xs mt-2" style="color:var(--text-muted)">Add your number with country code to let diners send their confirmed order to your WhatsApp. Orders still appear on your dashboard either way.</p>
+                </div>
                 <p class="text-xs" style="color:var(--text-faint)" x-text="savedMsg"></p>
             </div>
 
@@ -196,7 +201,7 @@
 @endphp
 function restaurantEditor() {
     return {
-        menu: @json(['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color]),
+        menu: @json(['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '']),
         categories: @json($menuCategories),
         items: @json($menuItems),
         tables: @json($menuTables),
@@ -244,7 +249,7 @@ function restaurantEditor() {
             return j.data;
         },
         async saveSettings(){
-            await this.api('POST','/settings',{ mode:this.menu.mode, currency:(this.menu.currency||'USD').toUpperCase(), accent_color:this.menu.accent_color });
+            await this.api('POST','/settings',{ mode:this.menu.mode, currency:(this.menu.currency||'USD').toUpperCase(), accent_color:this.menu.accent_color, whatsapp_number:this.menu.whatsapp_number||'' });
             this.savedMsg = 'Saved ✓'; setTimeout(()=>this.savedMsg='', 1500);
         },
         openCategory(cat){ this.catModal = cat ? {open:true,id:cat.id,name:cat.name,description:cat.description||''} : {open:true,id:null,name:'',description:''}; },
