@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Modules\Admin\Models\AccountBadge;
+use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiResourceShare;
+use App\Modules\User\Models\AskCoachThread;
+use App\Modules\User\Models\CompanionThread;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
@@ -14,6 +17,7 @@ use App\Services\AI\AiMindFeatureAdapter;
 use App\Services\AI\AiMindQueryService;
 use App\Services\AI\AiResourceShareService;
 use App\Services\AI\OpenAiService;
+use App\Services\AI\SiteAssistantRuntime;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -356,6 +360,395 @@ class AiGroundingSharedMindRevocationTest extends TestCase
         $this->assertFalse($shares->canUseMind($holder->fresh(), $shared));
 
         $this->callPersona($holder, [$ownMind->id, $shared->id]);
+        $this->assertEquals([$ownMind->id], $captured->lastIds());
+    }
+
+    // ===================================================================
+    // Ask Coach
+    //
+    // Ask Coach's chat send accepts a Mind picker directly in the request
+    // body (mind_ids), so a revoked teammate could literally name the
+    // owner's shared Mind id — yet AskCoachController::resolveKb resolves
+    // it through the owner-only resolveMindsForUser(), so it never reaches
+    // retrieveContext.
+    // ===================================================================
+
+    /** Create a fresh Ask Coach thread for $user via the real store route. */
+    private function newAskCoachThread(User $user): AskCoachThread
+    {
+        $this->actingAs($user->fresh())->post(route('user.ai.ask-coach.store'))->assertRedirect();
+        return AskCoachThread::where('user_id', $user->id)->latest('id')->firstOrFail();
+    }
+
+    private function callAskCoach(User $user, AskCoachThread $thread, array $mindIds)
+    {
+        return $this->actingAs($user->fresh())->post(
+            route('user.ai.ask-coach.send', $thread->id),
+            ['message' => 'How are my links doing?', 'mind_ids' => $mindIds]
+        );
+    }
+
+    public function test_ask_coach_grounding_excludes_shared_mind_before_and_after_seat_suspension(): void
+    {
+        $owner  = $this->user();
+        $member = $this->user();
+        $team   = $this->team($owner);
+        $ms     = $this->memberOf($team, $member);
+
+        $shared  = $this->mind($owner);
+        $this->shareMind($owner, $shared, AiResourceShare::AUDIENCE_WORKSPACE, $team->id);
+        $ownMind = $this->mind($member);
+
+        $shares   = app(AiResourceShareService::class);
+        $captured = $this->captureGroundingMinds();
+        $thread   = $this->newAskCoachThread($member);
+
+        $this->assertTrue($shares->canUseMind($member->fresh(), $shared));
+
+        $this->callAskCoach($member, $thread, [$ownMind->id, $shared->id]);
+        $this->assertEquals(
+            [$ownMind->id],
+            $captured->lastIds(),
+            'Ask Coach must ground only on the member\'s own Mind, never a shared one.'
+        );
+
+        $ms->forceFill(['suspended_at' => now()])->save();
+        $this->assertDatabaseHas('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $shared->id,
+        ]);
+        $this->assertFalse($shares->canUseMind($member->fresh(), $shared));
+
+        $this->callAskCoach($member, $thread, [$ownMind->id, $shared->id]);
+        $this->assertEquals([$ownMind->id], $captured->lastIds());
+    }
+
+    public function test_ask_coach_grounding_excludes_shared_mind_before_and_after_badge_detach(): void
+    {
+        $owner  = $this->user();
+        $holder = $this->user();
+        $badge  = $this->badge();
+        $owner->accountBadges()->attach($badge->id);
+        $holder->accountBadges()->attach($badge->id);
+
+        $shared  = $this->mind($owner);
+        $this->shareMind($owner, $shared, AiResourceShare::AUDIENCE_BADGE, $badge->id);
+        $ownMind = $this->mind($holder);
+
+        $shares   = app(AiResourceShareService::class);
+        $captured = $this->captureGroundingMinds();
+        $thread   = $this->newAskCoachThread($holder);
+
+        $this->assertTrue($shares->canUseMind($holder->fresh(), $shared));
+
+        $this->callAskCoach($holder, $thread, [$ownMind->id, $shared->id]);
+        $this->assertEquals([$ownMind->id], $captured->lastIds());
+
+        $holder->accountBadges()->detach($badge->id);
+        $this->assertDatabaseHas('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $shared->id,
+            'audience_type' => AiResourceShare::AUDIENCE_BADGE,
+            'audience_id'   => $badge->id,
+        ]);
+        $this->assertFalse($shares->canUseMind($holder->fresh(), $shared));
+
+        $this->callAskCoach($holder, $thread, [$ownMind->id, $shared->id]);
+        $this->assertEquals([$ownMind->id], $captured->lastIds());
+    }
+
+    // ===================================================================
+    // Brand Kit
+    //
+    // The AI Brand Kit generator also takes a Mind picker (mind_ids) in
+    // the request body. The acting user needs a plan whose
+    // `max_brand_kits` cap is positive to pass the quantity gate, after
+    // which BrandKitController::generate resolves the picked Minds through
+    // the owner-only resolveMindsForUser() before retrieval.
+    // ===================================================================
+
+    private function planWithBrandKits(int $max = 5): Plan
+    {
+        return Plan::create([
+            'name'          => 'BK ' . Str::random(4),
+            'slug'          => 'bk-' . Str::random(6),
+            'monthly_price' => 0,
+            'annual_price'  => 0,
+            'trial_days'    => 0,
+            'status'        => 'active',
+            'sort_order'    => 0,
+            'features'      => ['max_brand_kits' => $max],
+        ]);
+    }
+
+    private function assignPlan(User $user, Plan $plan): User
+    {
+        $user->forceFill(['plan_id' => $plan->id])->save();
+        return $user->fresh();
+    }
+
+    private function callBrandKit(User $user, array $mindIds)
+    {
+        return $this->actingAs($user->fresh())
+            ->withSession(['active_workspace_id' => $this->personalWorkspace($user)->id])
+            ->postJson(route('user.brand-kits.generate'), [
+                'prompt'   => 'A modern studio for creators.',
+                'mind_ids' => $mindIds,
+            ]);
+    }
+
+    public function test_brand_kit_grounding_excludes_shared_mind_before_and_after_seat_suspension(): void
+    {
+        $owner  = $this->user();
+        $member = $this->assignPlan($this->user(), $this->planWithBrandKits());
+        $team   = $this->team($owner);
+        $ms     = $this->memberOf($team, $member);
+
+        $shared  = $this->mind($owner);
+        $this->shareMind($owner, $shared, AiResourceShare::AUDIENCE_WORKSPACE, $team->id);
+        $ownMind = $this->mind($member);
+
+        $shares   = app(AiResourceShareService::class);
+        $captured = $this->captureGroundingMinds();
+
+        $this->assertTrue($shares->canUseMind($member->fresh(), $shared));
+
+        $this->callBrandKit($member, [$ownMind->id, $shared->id]);
+        $this->assertEquals(
+            [$ownMind->id],
+            $captured->lastIds(),
+            'Brand Kit must ground only on the member\'s own Mind, never a shared one.'
+        );
+
+        $ms->forceFill(['suspended_at' => now()])->save();
+        $this->assertDatabaseHas('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $shared->id,
+        ]);
+        $this->assertFalse($shares->canUseMind($member->fresh(), $shared));
+
+        $this->callBrandKit($member, [$ownMind->id, $shared->id]);
+        $this->assertEquals([$ownMind->id], $captured->lastIds());
+    }
+
+    public function test_brand_kit_grounding_excludes_shared_mind_before_and_after_badge_detach(): void
+    {
+        $owner  = $this->user();
+        $holder = $this->assignPlan($this->user(), $this->planWithBrandKits());
+        $badge  = $this->badge();
+        $owner->accountBadges()->attach($badge->id);
+        $holder->accountBadges()->attach($badge->id);
+
+        $shared  = $this->mind($owner);
+        $this->shareMind($owner, $shared, AiResourceShare::AUDIENCE_BADGE, $badge->id);
+        $ownMind = $this->mind($holder);
+
+        $shares   = app(AiResourceShareService::class);
+        $captured = $this->captureGroundingMinds();
+
+        $this->assertTrue($shares->canUseMind($holder->fresh(), $shared));
+
+        $this->callBrandKit($holder, [$ownMind->id, $shared->id]);
+        $this->assertEquals([$ownMind->id], $captured->lastIds());
+
+        $holder->accountBadges()->detach($badge->id);
+        $this->assertDatabaseHas('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $shared->id,
+            'audience_type' => AiResourceShare::AUDIENCE_BADGE,
+            'audience_id'   => $badge->id,
+        ]);
+        $this->assertFalse($shares->canUseMind($holder->fresh(), $shared));
+
+        $this->callBrandKit($holder, [$ownMind->id, $shared->id]);
+        $this->assertEquals([$ownMind->id], $captured->lastIds());
+    }
+
+    // ===================================================================
+    // AI Companion
+    //
+    // Companion carries its Mind selection on the THREAD (set at store
+    // time), and CompanionController::send re-resolves those ids through
+    // the owner-only resolveMindsForUser() every turn. We seed the thread
+    // model directly with BOTH ids (bypassing the store-time sanitizer) so
+    // the exclusion is proven at the send-time grounding boundary itself.
+    // ===================================================================
+
+    private function newCompanionThread(User $user, array $mindIds): CompanionThread
+    {
+        return CompanionThread::create([
+            'user_id'          => $user->id,
+            'workspace_id'     => $this->personalWorkspace($user)->id,
+            'title'            => 'New conversation',
+            'mind_ids'         => $mindIds,
+            'include_platform' => false,
+        ]);
+    }
+
+    private function callCompanion(User $user, CompanionThread $thread)
+    {
+        return $this->actingAs($user->fresh())
+            ->withSession(['active_workspace_id' => $this->personalWorkspace($user)->id])
+            ->post(route('user.ai.companion.send', $thread->id), [
+                'message' => 'How are my links doing?',
+            ]);
+    }
+
+    public function test_companion_grounding_excludes_shared_mind_before_and_after_seat_suspension(): void
+    {
+        $owner  = $this->user();
+        $member = $this->user();
+        $team   = $this->team($owner);
+        $ms     = $this->memberOf($team, $member);
+
+        $shared  = $this->mind($owner);
+        $this->shareMind($owner, $shared, AiResourceShare::AUDIENCE_WORKSPACE, $team->id);
+        $ownMind = $this->mind($member);
+        $thread  = $this->newCompanionThread($member, [$ownMind->id, $shared->id]);
+
+        $shares   = app(AiResourceShareService::class);
+        $captured = $this->captureGroundingMinds();
+
+        $this->assertTrue($shares->canUseMind($member->fresh(), $shared));
+
+        $this->callCompanion($member, $thread);
+        $this->assertEquals(
+            [$ownMind->id],
+            $captured->lastIds(),
+            'Companion must ground only on the member\'s own Mind, never a shared one.'
+        );
+
+        $ms->forceFill(['suspended_at' => now()])->save();
+        $this->assertDatabaseHas('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $shared->id,
+        ]);
+        $this->assertFalse($shares->canUseMind($member->fresh(), $shared));
+
+        $this->callCompanion($member, $thread);
+        $this->assertEquals([$ownMind->id], $captured->lastIds());
+    }
+
+    public function test_companion_grounding_excludes_shared_mind_before_and_after_badge_detach(): void
+    {
+        $owner  = $this->user();
+        $holder = $this->user();
+        $badge  = $this->badge();
+        $owner->accountBadges()->attach($badge->id);
+        $holder->accountBadges()->attach($badge->id);
+
+        $shared  = $this->mind($owner);
+        $this->shareMind($owner, $shared, AiResourceShare::AUDIENCE_BADGE, $badge->id);
+        $ownMind = $this->mind($holder);
+        $thread  = $this->newCompanionThread($holder, [$ownMind->id, $shared->id]);
+
+        $shares   = app(AiResourceShareService::class);
+        $captured = $this->captureGroundingMinds();
+
+        $this->assertTrue($shares->canUseMind($holder->fresh(), $shared));
+
+        $this->callCompanion($holder, $thread);
+        $this->assertEquals([$ownMind->id], $captured->lastIds());
+
+        $holder->accountBadges()->detach($badge->id);
+        $this->assertDatabaseHas('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $shared->id,
+            'audience_type' => AiResourceShare::AUDIENCE_BADGE,
+            'audience_id'   => $badge->id,
+        ]);
+        $this->assertFalse($shares->canUseMind($holder->fresh(), $shared));
+
+        $this->callCompanion($holder, $thread);
+        $this->assertEquals([$ownMind->id], $captured->lastIds());
+    }
+
+    // ===================================================================
+    // Site Assistant runtime
+    //
+    // The Site Assistant never takes a Mind picker from the visitor — its
+    // knowledgeMinds() resolves only the signed-in member's OWN Minds
+    // (through the owner-only resolveMindsForUser()) plus admin-pinned
+    // platform Minds. A Mind merely shared with the member can therefore
+    // never enter grounding, before OR after their seat / badge is pulled.
+    // We drive SiteAssistantRuntime::turn() directly as the member.
+    // ===================================================================
+
+    private function callSiteAssistant(User $member): array
+    {
+        return app(SiteAssistantRuntime::class)->turn(
+            'sa_' . Str::random(28),
+            $member->fresh(),
+            'app',
+            ['route' => 'dashboard', 'path' => '/user/dashboard'],
+            'Tell me about my account.'
+        );
+    }
+
+    public function test_site_assistant_grounding_excludes_shared_mind_before_and_after_seat_suspension(): void
+    {
+        $owner  = $this->user();
+        $member = $this->user();
+        $team   = $this->team($owner);
+        $ms     = $this->memberOf($team, $member);
+
+        $shared  = $this->mind($owner);
+        $this->shareMind($owner, $shared, AiResourceShare::AUDIENCE_WORKSPACE, $team->id);
+        $ownMind = $this->mind($member);
+
+        $shares   = app(AiResourceShareService::class);
+        $captured = $this->captureGroundingMinds();
+
+        $this->assertTrue($shares->canUseMind($member->fresh(), $shared));
+
+        $this->callSiteAssistant($member);
+        $this->assertEquals(
+            [$ownMind->id],
+            $captured->lastIds(),
+            'Site Assistant must ground only on the member\'s own Mind, never a shared one.'
+        );
+
+        $ms->forceFill(['suspended_at' => now()])->save();
+        $this->assertDatabaseHas('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $shared->id,
+        ]);
+        $this->assertFalse($shares->canUseMind($member->fresh(), $shared));
+
+        $this->callSiteAssistant($member);
+        $this->assertEquals([$ownMind->id], $captured->lastIds());
+    }
+
+    public function test_site_assistant_grounding_excludes_shared_mind_before_and_after_badge_detach(): void
+    {
+        $owner  = $this->user();
+        $holder = $this->user();
+        $badge  = $this->badge();
+        $owner->accountBadges()->attach($badge->id);
+        $holder->accountBadges()->attach($badge->id);
+
+        $shared  = $this->mind($owner);
+        $this->shareMind($owner, $shared, AiResourceShare::AUDIENCE_BADGE, $badge->id);
+        $ownMind = $this->mind($holder);
+
+        $shares   = app(AiResourceShareService::class);
+        $captured = $this->captureGroundingMinds();
+
+        $this->assertTrue($shares->canUseMind($holder->fresh(), $shared));
+
+        $this->callSiteAssistant($holder);
+        $this->assertEquals([$ownMind->id], $captured->lastIds());
+
+        $holder->accountBadges()->detach($badge->id);
+        $this->assertDatabaseHas('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $shared->id,
+            'audience_type' => AiResourceShare::AUDIENCE_BADGE,
+            'audience_id'   => $badge->id,
+        ]);
+        $this->assertFalse($shares->canUseMind($holder->fresh(), $shared));
+
+        $this->callSiteAssistant($holder);
         $this->assertEquals([$ownMind->id], $captured->lastIds());
     }
 }
