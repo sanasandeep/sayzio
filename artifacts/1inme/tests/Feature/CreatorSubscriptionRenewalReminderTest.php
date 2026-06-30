@@ -91,7 +91,7 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
         ], $overrides));
     }
 
-    private function run(array $options = []): void
+    private function runReminderCommand(array $options = []): void
     {
         Artisan::call('creator-subscriptions:send-renewal-reminders', $options);
     }
@@ -133,7 +133,7 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
         $tier    = $this->makeTier($creator);
         $sub     = $this->makeSub($creator, $tier);
 
-        $this->run();
+        $this->runReminderCommand();
 
         $this->assertSame(1, $this->reminderCount($sub->fan_user_id));
         $this->assertNotNull($sub->fresh()->renewal_reminder_sent_at);
@@ -145,13 +145,13 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
         $tier    = $this->makeTier($creator);
         $sub     = $this->makeSub($creator, $tier);
 
-        $this->run();
+        $this->runReminderCommand();
         $firstStamp = $sub->fresh()->renewal_reminder_sent_at;
         $this->assertSame(1, $this->reminderCount($sub->fan_user_id));
 
         // Same billing period, run again: dedup must suppress a second send and
         // leave the stamp untouched.
-        $this->run();
+        $this->runReminderCommand();
 
         $this->assertSame(1, $this->reminderCount($sub->fan_user_id));
         $this->assertTrue($firstStamp->equalTo($sub->fresh()->renewal_reminder_sent_at));
@@ -168,7 +168,7 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
             'current_period_end'   => Carbon::parse('2026-07-03 12:00:00'),
         ]);
 
-        $this->run();
+        $this->runReminderCommand();
         $this->assertSame(1, $this->reminderCount($sub->fan_user_id));
 
         // Period rolls forward a month: current_period_start now post-dates the
@@ -179,7 +179,7 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
             'current_period_end'   => Carbon::parse('2026-08-03 12:00:00'),
         ])->save();
 
-        $this->run();
+        $this->runReminderCommand();
 
         $this->assertSame(2, $this->reminderCount($sub->fan_user_id));
 
@@ -212,7 +212,7 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
             $subs[$label] = $this->makeSub($creator, $tier, $overrides);
         }
 
-        $this->run();
+        $this->runReminderCommand();
 
         foreach ($subs as $label => $sub) {
             $sub = $sub->fresh();
@@ -232,16 +232,16 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
         $tier    = $this->makeTier($creator);
         $sub     = $this->makeSub($creator, $tier);
 
-        $this->run();
+        $this->runReminderCommand();
         $this->assertSame(1, $this->reminderCount($sub->fan_user_id));
 
         // Plain re-run in the same period is suppressed by the once-per-period
         // dedup guard.
-        $this->run();
+        $this->runReminderCommand();
         $this->assertSame(1, $this->reminderCount($sub->fan_user_id));
 
         // --force ignores that guard and sends again on demand.
-        $this->run(['--force' => true]);
+        $this->runReminderCommand(['--force' => true]);
         $this->assertSame(2, $this->reminderCount($sub->fan_user_id));
     }
 
@@ -258,11 +258,11 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
         ]);
 
         // Far outside the 3-day lead window: a plain run sends nothing.
-        $this->run();
+        $this->runReminderCommand();
         $this->assertSame(0, $this->reminderCount($sub->fan_user_id));
 
         // --force ignores the window and sends on demand.
-        $this->run(['--force' => true]);
+        $this->runReminderCommand(['--force' => true]);
         $this->assertSame(1, $this->reminderCount($sub->fan_user_id));
     }
 
@@ -287,7 +287,7 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
             $subs[$label] = $this->makeSub($creator, $tier, $overrides);
         }
 
-        $this->run(['--force' => true]);
+        $this->runReminderCommand(['--force' => true]);
 
         foreach ($subs as $label => $sub) {
             $sub = $sub->fresh();
@@ -307,7 +307,7 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
         $target  = $this->makeSub($creator, $tier);
         $other   = $this->makeSub($creator, $tier);
 
-        $this->run(['--sub' => $target->id]);
+        $this->runReminderCommand(['--sub' => $target->id]);
 
         $this->assertSame(1, $this->reminderCount($target->fan_user_id));
         $this->assertNotNull($target->fresh()->renewal_reminder_sent_at);
@@ -333,7 +333,7 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
 
         $sub = $this->makeSub($creator, $tier, ['fan' => $fan]);
 
-        $this->run();
+        $this->runReminderCommand();
 
         $this->assertSame(0, $this->reminderCount($fan->id), 'fully-muted fan must get no in-app row');
         $this->assertSame(0, $this->emailLogCount($fan->email), 'fully-muted fan must get no email attempt');
@@ -356,7 +356,7 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
 
         $sub = $this->makeSub($creator, $tier, ['fan' => $fan]);
 
-        $this->run();
+        $this->runReminderCommand();
 
         $this->assertSame(0, $this->reminderCount($fan->id), 'in-app muted ⇒ no in-app row');
         $this->assertSame(1, $this->emailLogCount($fan->email), 'email on ⇒ exactly one email attempt');
