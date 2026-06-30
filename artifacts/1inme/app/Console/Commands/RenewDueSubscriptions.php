@@ -79,24 +79,44 @@ class RenewDueSubscriptions extends Command
         foreach ($subs as $sub) {
             if ($this->hasRenewalInvoice($sub)) continue;
 
-            // Returns the target plan after switching, or null when the
-            // schedule was invalid/stale and was simply cleared. Either way
-            // the sub's period has ended and it has no renewal invoice, so
-            // we charge a recurring renewal NOW (at the new lower plan, or
-            // at the existing plan if the schedule was cleared). We cannot
-            // leave it to renewUpcoming(): the immediately-following
-            // transitionUnpaidPastPeriod() would otherwise flip this
-            // period-ended, invoice-less sub straight to past_due.
-            $lifecycle->applyScheduledDowngrade($sub);
-
+            // The plan switch and the post-switch renewal charge are two
+            // separate, sequential commits, so an unexpected failure between
+            // them (the charge's failure handler throwing, the apply step
+            // partially exploding, a transient DB error) must NEVER abort the
+            // whole run or strand THIS creator on the lower plan with no grace
+            // window. We wrap the entire per-sub step so:
+            //   - applyScheduledDowngrade() is atomic: it either commits the
+            //     plan/add-on/user move in full or rolls back entirely. If it
+            //     rolled back, the schedule is intact and a later tick retries.
+            //   - if it committed but markRenewalFailed() then threw, the
+            //     schedule is already cleared and the sub is period-ended +
+            //     still active, so transitionUnpaidPastPeriod() — which runs
+            //     next in this SAME handle() — opens its grace window.
+            // Either way the loop and the remaining safety nets keep running.
             try {
-                $adapter = $gateways->for($sub->gateway ?? 'offline');
-                $adapter->chargeRecurring($sub);
-            } catch (NotImplementedException $e) {
-                $lifecycle->markRenewalFailed($sub);
+                // Returns the target plan after switching, or null when the
+                // schedule was invalid/stale and was simply cleared. Either way
+                // the sub's period has ended and it has no renewal invoice, so
+                // we charge a recurring renewal NOW (at the new lower plan, or
+                // at the existing plan if the schedule was cleared). We cannot
+                // leave it to renewUpcoming(): the immediately-following
+                // transitionUnpaidPastPeriod() would otherwise flip this
+                // period-ended, invoice-less sub straight to past_due.
+                $lifecycle->applyScheduledDowngrade($sub);
+
+                try {
+                    $adapter = $gateways->for($sub->gateway ?? 'offline');
+                    $adapter->chargeRecurring($sub);
+                } catch (NotImplementedException $e) {
+                    $lifecycle->markRenewalFailed($sub);
+                } catch (\Throwable $e) {
+                    Log::warning('downgrade chargeRecurring failed', ['sub' => $sub->id, 'err' => $e->getMessage()]);
+                    $lifecycle->markRenewalFailed($sub);
+                }
             } catch (\Throwable $e) {
-                Log::warning('downgrade chargeRecurring failed', ['sub' => $sub->id, 'err' => $e->getMessage()]);
-                $lifecycle->markRenewalFailed($sub);
+                Log::error('scheduled-downgrade renewal step failed unexpectedly', [
+                    'sub' => $sub->id, 'err' => $e->getMessage(),
+                ]);
             }
         }
     }

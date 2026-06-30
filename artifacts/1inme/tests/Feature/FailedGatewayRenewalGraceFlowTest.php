@@ -9,6 +9,7 @@ use App\Modules\User\Models\Subscription;
 use App\Modules\User\Models\SubscriptionAddon;
 use App\Modules\User\Models\User;
 use App\Services\Billing\Adapters\OfflineAdapter;
+use App\Services\Billing\SubscriptionLifecycle;
 use App\Services\PricingResolver;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -217,6 +218,153 @@ class FailedGatewayRenewalGraceFlowTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // 1b. Charge path errors in UNEXPECTED ways after the downgrade commits:
+    //     the failure-handler (markRenewalFailed) ITSELF throws once. The
+    //     creator must NOT be stranded downgraded-without-grace / active-with-
+    //     expired-access; the in-run safety net opens the grace window.
+    // ------------------------------------------------------------------
+
+    public function test_failing_renewal_handler_after_downgrade_never_strands_without_grace(): void
+    {
+        // A SubscriptionLifecycle whose markRenewalFailed() blows up the FIRST
+        // time it is called (the scheduled-downgrade branch), then behaves
+        // normally — modelling a transient DB hiccup in the failure handler
+        // AFTER the plan switch already committed.
+        FlakyMarkRenewalFailedLifecycle::reset(1);
+        $this->app->bind(SubscriptionLifecycle::class, FlakyMarkRenewalFailedLifecycle::class);
+
+        $user   = $this->makeBuyer();
+        $higher = $this->makePlan('Pro', 40000);
+        $lower  = $this->makePlan('Starter', 20000);
+
+        // The lower plan can carry $keep but NOT $drop.
+        $keep = \App\Modules\Admin\Models\Addon::create([
+            'name' => 'Analytics', 'slug' => 'analytics-' . Str::random(4),
+            'description' => 'Analytics', 'type' => 'recurring',
+            'monthly_price' => 1.00, 'annual_price' => 10.00,
+            'status' => 'active', 'is_archived' => false, 'sort_order' => 1,
+        ]);
+        $drop = \App\Modules\Admin\Models\Addon::create([
+            'name' => 'Priority support', 'slug' => 'priority-' . Str::random(4),
+            'description' => 'Priority support', 'type' => 'recurring',
+            'monthly_price' => 1.00, 'annual_price' => 10.00,
+            'status' => 'active', 'is_archived' => false, 'sort_order' => 1,
+        ]);
+        $lower->addons()->attach($keep->id);
+
+        $endedAt = now()->subMinute();
+        $sub = $this->makeActiveSub(
+            $user, $higher, now()->subMonth(), $endedAt,
+            ['scheduled_downgrade_plan_id' => $lower->id],
+        );
+        SubscriptionAddon::create(['subscription_id' => $sub->id, 'addon_id' => $keep->id, 'qty' => 1]);
+        SubscriptionAddon::create(['subscription_id' => $sub->id, 'addon_id' => $drop->id, 'qty' => 1]);
+
+        // The run must complete cleanly even though the charge throws AND the
+        // failure handler then throws on the downgrade branch. A crash here
+        // would skip the safety nets and leave this creator stranded.
+        $this->artisan('subscriptions:renew-due')->assertExitCode(0);
+
+        // markRenewalFailed was invoked twice: once on the downgrade branch
+        // (threw) and once by the transitionUnpaidPastPeriod() safety net in
+        // the SAME run (succeeded) — proving the net actually fired.
+        $this->assertSame(2, FlakyMarkRenewalFailedLifecycle::$calls, 'safety net re-marked the sub failed');
+
+        $sub->refresh();
+
+        // Downgrade committed: the plan move + add-on drops are consistent
+        // with the final subscription state (not half-applied).
+        $this->assertSame($lower->id, $sub->plan_id, 'downgrade applied and committed');
+        $this->assertNull($sub->scheduled_downgrade_plan_id, 'schedule cleared on apply');
+        $this->assertSame(0, SubscriptionAddon::where('subscription_id', $sub->id)
+            ->where('addon_id', $drop->id)->count(), 'ineligible add-on dropped');
+        $this->assertSame(1, SubscriptionAddon::where('subscription_id', $sub->id)
+            ->where('addon_id', $keep->id)->count(), 'eligible add-on retained');
+
+        // THE POINT: never left active-with-expired-access or downgraded-
+        // without-grace. The safety net opened the grace window.
+        $this->assertSame('past_due', $sub->status, 'transient handler failure still lands in past_due');
+        $this->assertNotContains($sub->status, ['active', 'cancelled', 'expired'], 'not stranded / torn down');
+        $this->assertNotNull($sub->grace_until, 'a grace window was opened despite the flaky handler');
+        $this->assertTrue(Carbon::parse($sub->grace_until)->isFuture(), 'grace window is still open');
+        $this->assertEqualsWithDelta(
+            $endedAt->copy()->addDays(7)->timestamp,
+            Carbon::parse($sub->grace_until)->timestamp,
+            120,
+            'grace_until = current_period_end + plan.grace_days',
+        );
+
+        $this->assertNoPaidInvoice($sub);
+
+        // The user plan_id move stays consistent with the subscription's final
+        // (lower) plan — access retained during grace, not torn down.
+        $user->refresh();
+        $this->assertSame($lower->id, $user->plan_id, 'user plan consistent with subscription');
+    }
+
+    // ------------------------------------------------------------------
+    // 1c. The downgrade APPLY step itself throws: it is atomic, so nothing is
+    //     half-applied. The run survives, the schedule is intact, and a later
+    //     tick retries the downgrade — never a silent un-renewal.
+    // ------------------------------------------------------------------
+
+    public function test_failing_apply_step_rolls_back_atomically_and_run_survives(): void
+    {
+        FlakyApplyDowngradeLifecycle::reset(1);
+        $this->app->bind(SubscriptionLifecycle::class, FlakyApplyDowngradeLifecycle::class);
+
+        $user   = $this->makeBuyer();
+        $higher = $this->makePlan('Pro', 40000);
+        $lower  = $this->makePlan('Starter', 20000);
+
+        $drop = \App\Modules\Admin\Models\Addon::create([
+            'name' => 'Priority support', 'slug' => 'priority-' . Str::random(4),
+            'description' => 'Priority support', 'type' => 'recurring',
+            'monthly_price' => 1.00, 'annual_price' => 10.00,
+            'status' => 'active', 'is_archived' => false, 'sort_order' => 1,
+        ]);
+
+        $endedAt = now()->subMinute();
+        $sub = $this->makeActiveSub(
+            $user, $higher, now()->subMonth(), $endedAt,
+            ['scheduled_downgrade_plan_id' => $lower->id],
+        );
+        SubscriptionAddon::create(['subscription_id' => $sub->id, 'addon_id' => $drop->id, 'qty' => 1]);
+
+        // First tick: the apply step throws. The run must not crash.
+        $this->artisan('subscriptions:renew-due')->assertExitCode(0);
+
+        $sub->refresh();
+
+        // Nothing half-applied: still on the higher plan, schedule intact,
+        // add-on retained, and crucially NOT stranded past its period with no
+        // schedule and no grace.
+        $this->assertSame($higher->id, $sub->plan_id, 'plan unchanged after atomic rollback');
+        $this->assertSame($lower->id, $sub->scheduled_downgrade_plan_id, 'schedule preserved for retry');
+        $this->assertSame('active', $sub->status, 'sub left intact, not torn down');
+        $this->assertNull($sub->grace_until);
+        $this->assertSame(1, SubscriptionAddon::where('subscription_id', $sub->id)
+            ->where('addon_id', $drop->id)->count(), 'add-on not dropped on rollback');
+
+        // Second tick (handler now healthy): downgrade applies, charge throws,
+        // and the sub lands in grace — proving the schedule was retried, not
+        // silently lost.
+        $this->artisan('subscriptions:renew-due')->assertExitCode(0);
+
+        $sub->refresh();
+        $this->assertSame($lower->id, $sub->plan_id, 'downgrade applied on retry');
+        $this->assertNull($sub->scheduled_downgrade_plan_id);
+        $this->assertSame('past_due', $sub->status, 'failed charge lands in grace on retry');
+        $this->assertNotNull($sub->grace_until);
+        $this->assertSame(0, SubscriptionAddon::where('subscription_id', $sub->id)
+            ->where('addon_id', $drop->id)->count(), 'ineligible add-on dropped on the applied downgrade');
+        $this->assertNoPaidInvoice($sub);
+
+        $user->refresh();
+        $this->assertSame($lower->id, $user->plan_id, 'user plan consistent with applied downgrade');
+    }
+
+    // ------------------------------------------------------------------
     // 2. Throwing gateway: a normal renewal drops cleanly into grace
     // ------------------------------------------------------------------
 
@@ -318,5 +466,61 @@ class ThrowingOfflineAdapter extends OfflineAdapter
     public function chargeRecurring(Subscription $subscription): array
     {
         throw new \RuntimeException('gateway declined the recurring charge');
+    }
+}
+
+/**
+ * Test double: a SubscriptionLifecycle whose markRenewalFailed() throws the
+ * first N times it is called, then behaves normally. Models a transient
+ * failure in the renewal failure-handler AFTER a scheduled downgrade has
+ * already committed — the case that could otherwise strand a creator on the
+ * lower plan with no grace window.
+ */
+class FlakyMarkRenewalFailedLifecycle extends SubscriptionLifecycle
+{
+    public static int $calls = 0;
+    public static int $throwTimes = 0;
+
+    public static function reset(int $throwTimes): void
+    {
+        self::$calls = 0;
+        self::$throwTimes = $throwTimes;
+    }
+
+    public function markRenewalFailed(Subscription $subscription): void
+    {
+        self::$calls++;
+        if (self::$calls <= self::$throwTimes) {
+            throw new \RuntimeException('markRenewalFailed exploded transiently');
+        }
+        parent::markRenewalFailed($subscription);
+    }
+}
+
+/**
+ * Test double: a SubscriptionLifecycle whose applyScheduledDowngrade() throws
+ * the first N times it is called, then behaves normally. Models the apply step
+ * itself blowing up — its work is wrapped in a transaction, so it must roll
+ * back atomically (nothing half-applied) and the schedule must survive for a
+ * later retry.
+ */
+class FlakyApplyDowngradeLifecycle extends SubscriptionLifecycle
+{
+    public static int $calls = 0;
+    public static int $throwTimes = 0;
+
+    public static function reset(int $throwTimes): void
+    {
+        self::$calls = 0;
+        self::$throwTimes = $throwTimes;
+    }
+
+    public function applyScheduledDowngrade(Subscription $subscription): ?\App\Modules\Admin\Models\Plan
+    {
+        self::$calls++;
+        if (self::$calls <= self::$throwTimes) {
+            throw new \RuntimeException('applyScheduledDowngrade exploded');
+        }
+        return parent::applyScheduledDowngrade($subscription);
     }
 }
