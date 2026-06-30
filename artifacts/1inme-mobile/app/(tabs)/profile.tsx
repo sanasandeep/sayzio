@@ -106,11 +106,13 @@ const TOOL_PAGES: {
     | "/leaderboard"
     | "/vault-audit"
     | "/orders"
+    | "/marketing-strategist"
     | "/links/conversational";
   label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
   { href: "/orders", label: "Orders", icon: "shopping-bag" },
+  { href: "/marketing-strategist", label: "Marketing Strategist", icon: "target" },
   { href: "/posts", label: "Posts", icon: "message-square" },
   { href: "/contacts", label: "Contacts", icon: "users" },
   { href: "/dialer", label: "Dialer", icon: "phone" },

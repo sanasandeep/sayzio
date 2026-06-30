@@ -1,4 +1,5 @@
 - [Internal (admin-only) plans](internal-admin-only-plans.md) — `Plan::scopePublic()` (is_internal=false) is the canonical filter; every self-serve list/upgrade surface adds `->public()`, admin list & assign-picker do not.
+- [Mobile apiFetch envelope](mobile-apifetch-envelope.md) — apiFetch returns the RAW {data} envelope; helpers must request `<{data:X}>` and return res.data (typecheck won't catch it).
 - [Plan upgrade/downgrade billing](plan-upgrade-downgrade-billing.md) — no proration: upgrade=full-price fresh cycle + admin credit review; downgrade=scheduled lower-paid plan applied at cycle end by renewal job; resolveMinor only compares prices.
 - [Protected accounts guard](protected-accounts-guard.md) — email-keyed never-delete/suspend list; call `ProtectedAccount::isProtected()` server-side on every destructive path, not just hide UI.
 - [Sharded PHPUnit runner](sharded-test-runner.md) — `composer test:sharded` bounds test memory by running shards; migrate once on shard 1, skip on the rest via SHARDED_TEST_SKIP_MIGRATION.

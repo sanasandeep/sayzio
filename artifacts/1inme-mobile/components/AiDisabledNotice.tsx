@@ -26,6 +26,8 @@ const FEATURE_BLURBS: Record<string, string> = {
     "Growth Coach gives you AI-powered suggestions to grow and fine-tune your links and pages.",
   "Account Assistant":
     "Account Assistant lets you chat with an AI advisor for tips on improving your account.",
+  "Marketing Strategist":
+    "Marketing Strategist is your AI digital performer — it grounds an organic + paid plan in your own Sayzio data and lets you act on it with one tap.",
   Voice:
     "Voice lets you talk to Sayzio hands-free to look things up and get around the app.",
 };

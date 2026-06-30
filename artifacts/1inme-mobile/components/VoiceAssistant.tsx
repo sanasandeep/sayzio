@@ -74,6 +74,8 @@ function mapNavTarget(url: string | undefined): string | null {
   if (u.includes("/user/ai/companion")) return "/ai-coach";
   if (u.includes("/user/ai/ask-coach") || u.includes("/user/ai/coach"))
     return "/ask-coach";
+  if (u.includes("/user/ai/marketing-strategist"))
+    return "/marketing-strategist";
   if (u.includes("/user/ai/personas")) return "/ai-persona";
   if (u.includes("/user/upgrade") || u.includes("/user/plans"))
     return "/upgrade";
