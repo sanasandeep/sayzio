@@ -219,6 +219,31 @@ class MarketingStrategistTest extends TestCase
         $this->app->instance(\App\Services\AI\OpenAiService::class, $mock);
     }
 
+    /** Mock the STREAMED chat path: stream one chunk, then return the turn. */
+    private function bindChatStream(string $content, int $creditsSpent): void
+    {
+        $mock = Mockery::mock(\App\Services\AI\OpenAiService::class);
+        $mock->shouldReceive('chatStream')
+            ->andReturnUsing(function ($user, $model, $messages, $opts, $onChunk) use ($content, $creditsSpent) {
+                $onChunk($content);
+                return [
+                    'content'       => $content,
+                    'credits_spent' => $creditsSpent,
+                    'model'         => $model,
+                    'raw'           => [],
+                ];
+            });
+        $this->app->instance(\App\Services\AI\OpenAiService::class, $mock);
+    }
+
+    /** Mock the STREAMED chat path to blow up so we can assert the SSE error frame. */
+    private function bindChatStreamThrows(\Throwable $e): void
+    {
+        $mock = Mockery::mock(\App\Services\AI\OpenAiService::class);
+        $mock->shouldReceive('chatStream')->andThrow($e);
+        $this->app->instance(\App\Services\AI\OpenAiService::class, $mock);
+    }
+
     private function spyCharger(): \Mockery\MockInterface
     {
         $charger = Mockery::spy(AiUsageCharger::class);
@@ -521,5 +546,69 @@ class MarketingStrategistTest extends TestCase
         $this->assertSame(MarketingStrategySuggestion::STATUS_ERROR, $s->status);
         $this->assertSame('The suggested link needs a valid destination URL.', $s->error);
         $this->assertSame(0, Link::where('user_id', $user->id)->count());
+    }
+
+    // ── 11. web chat (streamed): happy path persists the assistant turn ─────
+
+    public function test_web_chat_stream_persists_assistant_with_credits(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        $this->bindChatStream('A sharper refinement.', 3);
+
+        $resp = $this->actingAs($user, 'web')
+            ->post(route('user.ai.marketing-strategist.chat', $strategy->id), [
+                'message' => 'Make it punchier',
+            ]);
+
+        $resp->assertOk();
+        $body = $resp->streamedContent();
+        $this->assertStringContainsString('event: done', $body);
+
+        $assistant = $strategy->messages()->where('role', 'assistant')->first();
+        $this->assertNotNull($assistant);
+        $this->assertSame(3, (int) ($assistant->meta['credits_spent'] ?? 0));
+        $this->assertTrue((bool) ($assistant->meta['streamed'] ?? false));
+        $this->assertSame(1, $strategy->messages()->where('role', 'user')->count());
+    }
+
+    // ── 10. web chat out-of-coins → SSE error frame, no assistant turn ─────
+
+    public function test_web_chat_out_of_coins_streams_error_and_saves_no_assistant(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        $this->bindChatStreamThrows(new InsufficientCoinsForAiException(50, 1));
+
+        $resp = $this->actingAs($user, 'web')
+            ->post(route('user.ai.marketing-strategist.chat', $strategy->id), [
+                'message' => 'Refine this for me',
+            ]);
+
+        $resp->assertOk();
+        $body = $resp->streamedContent();
+        $this->assertStringContainsString('event: error', $body);
+        $this->assertStringContainsString('insufficient_credits', $body);
+        $this->assertSame(0, $strategy->messages()->where('role', 'assistant')->count());
+    }
+
+    // ── 11. web chat: SSE error frame when OpenAI throws ──────────────────
+
+    public function test_web_chat_stream_emits_error_frame_when_ai_throws(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        $this->bindChatStreamThrows(new \RuntimeException('boom'));
+
+        $resp = $this->actingAs($user, 'web')
+            ->post(route('user.ai.marketing-strategist.chat', $strategy->id), [
+                'message' => 'Refine this for me',
+            ]);
+
+        $resp->assertOk();
+        $body = $resp->streamedContent();
+        $this->assertStringContainsString('event: error', $body);
+        $this->assertStringContainsString('ai_unavailable', $body);
+        $this->assertSame(0, $strategy->messages()->where('role', 'assistant')->count());
     }
 }

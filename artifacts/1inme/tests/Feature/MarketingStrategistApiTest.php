@@ -213,6 +213,14 @@ class MarketingStrategistApiTest extends TestCase
         $this->app->instance(OpenAiService::class, $mock);
     }
 
+    /** Mock the STREAMED chat path to blow up so we can assert the SSE error frame. */
+    private function bindChatStreamThrows(\Throwable $e): void
+    {
+        $mock = Mockery::mock(OpenAiService::class);
+        $mock->shouldReceive('chatStream')->andThrow($e);
+        $this->app->instance(OpenAiService::class, $mock);
+    }
+
     private function spyCharger(): \Mockery\MockInterface
     {
         $charger = Mockery::spy(AiUsageCharger::class);
@@ -478,5 +486,96 @@ class MarketingStrategistApiTest extends TestCase
         $this->assertSame(MarketingStrategySuggestion::STATUS_ERROR, $s->status);
         $this->assertSame('The suggested link needs a valid destination URL.', $s->error);
         $this->assertSame(0, Link::where('user_id', $user->id)->count());
+    }
+
+    // ── chat (non-streamed): persists the assistant turn with credits_spent ─
+
+    public function test_api_chat_persists_assistant_message_with_credits(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        $this->bindChat('Here is a sharper plan.', 4);
+
+        $resp = $this->withToken($this->token($user))
+            ->postJson("/api/v1/ai/marketing-strategist/{$strategy->id}/chat", [
+                'message' => 'Make the headline punchier',
+            ]);
+
+        $resp->assertOk();
+        $resp->assertJsonPath('data.message.role', 'assistant');
+        $resp->assertJsonPath('data.message.content', 'Here is a sharper plan.');
+        $resp->assertJsonPath('data.message.meta.credits_spent', 4);
+
+        // The metered turn carried the chat meter feature, not the generate one.
+        $this->assertCount(1, $this->chatCalls);
+        $this->assertSame(
+            \App\Services\AI\MarketingStrategistService::CHAT_FEATURE,
+            $this->chatCalls[0]['opts']['feature'] ?? null,
+        );
+
+        // Both the user prompt and the assistant reply are persisted, and the
+        // spend is recorded in the assistant turn's meta (no silent burn).
+        $assistant = $strategy->messages()->where('role', 'assistant')->first();
+        $this->assertNotNull($assistant);
+        $this->assertSame(4, (int) ($assistant->meta['credits_spent'] ?? 0));
+        $this->assertSame(1, $strategy->messages()->where('role', 'user')->count());
+    }
+
+    // ── chat out-of-coins → 402 and NO assistant turn persisted ────────────
+
+    public function test_api_chat_out_of_coins_returns_402_and_persists_no_assistant(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        $this->bindChatThrows(new InsufficientCoinsForAiException(50, 2));
+
+        $resp = $this->withToken($this->token($user))
+            ->postJson("/api/v1/ai/marketing-strategist/{$strategy->id}/chat", [
+                'message' => 'Refine this for me',
+            ]);
+
+        $resp->assertStatus(402);
+        $resp->assertJsonPath('error.code', 'insufficient_credits');
+        $this->assertSame(0, $strategy->messages()->where('role', 'assistant')->count());
+    }
+
+    // ── chat (streamed): emits an SSE error frame when OpenAI throws ────────
+
+    public function test_api_chat_stream_emits_error_frame_when_ai_throws(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        $this->bindChatStreamThrows(new \RuntimeException('boom'));
+
+        $resp = $this->withToken($this->token($user))
+            ->post("/api/v1/ai/marketing-strategist/{$strategy->id}/chat", [
+                'message' => 'Refine this for me (streamed)',
+                'stream'  => true,
+            ], ['Accept' => 'text/event-stream']);
+
+        $resp->assertOk();
+        $body = $resp->streamedContent();
+        $this->assertStringContainsString('event: error', $body);
+        $this->assertStringContainsString('ai_unavailable', $body);
+        $this->assertSame(0, $strategy->messages()->where('role', 'assistant')->count());
+    }
+
+    public function test_api_chat_stream_emits_insufficient_credits_error_frame(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        $this->bindChatStreamThrows(new InsufficientCoinsForAiException(50, 2));
+
+        $resp = $this->withToken($this->token($user))
+            ->post("/api/v1/ai/marketing-strategist/{$strategy->id}/chat", [
+                'message' => 'Refine this for me (streamed, broke)',
+                'stream'  => true,
+            ], ['Accept' => 'text/event-stream']);
+
+        $resp->assertOk();
+        $body = $resp->streamedContent();
+        $this->assertStringContainsString('event: error', $body);
+        $this->assertStringContainsString('insufficient_credits', $body);
+        $this->assertSame(0, $strategy->messages()->where('role', 'assistant')->count());
     }
 }
