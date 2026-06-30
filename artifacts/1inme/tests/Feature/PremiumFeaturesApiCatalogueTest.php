@@ -156,6 +156,76 @@ class PremiumFeaturesApiCatalogueTest extends TestCase
     }
 
     /**
+     * `premium_features[].unlocked_by` is what the mobile grid uses to credit a
+     * plan for a feature. {@see \App\Modules\Common\Support\PremiumFeatures::unlocksByFeature()}
+     * builds it by calling {@see \App\Modules\Common\Support\PremiumFeatures::resolveCell()}
+     * per plan and keeping the slugs where the cell is `on`. The existing
+     * coverage only asserts `unlocked_by` for a numeric cell (`max_links`),
+     * leaving the boolean and analytics paths through resolveCell() unguarded —
+     * so a resolveCell() change could silently credit (or drop) a plan for a
+     * feature in the mobile grid. This pins both:
+     *   - a boolean capability (`custom_domains`) is credited to the plan that
+     *     has it true and NOT to the plan that has it false, and
+     *   - the `analytics` select is credited only to the 'advanced' plan, never
+     *     the 'basic' one (resolveCell() reports analytics off unless advanced).
+     */
+    public function test_billing_plans_premium_features_unlocked_by_covers_boolean_and_analytics(): void
+    {
+        $this->clearSeededPlans();
+
+        // Pro unlocks both: a boolean feature on (custom_domains=true) and the
+        // analytics select at 'advanced'.
+        $pro = $this->makePlan('Pro', 1, [
+            'max_links'      => 500,
+            'custom_domains' => true,
+            'analytics'      => 'advanced',
+        ]);
+
+        // Basic unlocks neither: the boolean is false and analytics is 'basic'
+        // (which resolveCell() reports as off).
+        $basic = $this->makePlan('Basic', 2, [
+            'max_links'      => 50,
+            'custom_domains' => false,
+            'analytics'      => 'basic',
+        ]);
+
+        $res = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token($this->makeUser())])
+            ->getJson('/api/v1/billing/plans')
+            ->assertOk();
+
+        $features = collect($res->json('data.premium_features'));
+        $this->assertNotEmpty($features, 'premium_features list missing from /billing/plans response');
+
+        // ---- Boolean path: custom_domains true ⇒ credited, false ⇒ excluded ----
+        $domains = $features->firstWhere('key', 'custom_domains');
+        $this->assertNotNull($domains, 'custom_domains entry missing from premium_features');
+        $this->assertContains(
+            $pro->slug,
+            $domains['unlocked_by'],
+            'plan with custom_domains=true must be credited in unlocked_by'
+        );
+        $this->assertNotContains(
+            $basic->slug,
+            $domains['unlocked_by'],
+            'plan with custom_domains=false must NOT be credited in unlocked_by'
+        );
+
+        // ---- Analytics path: 'advanced' ⇒ credited, 'basic' ⇒ excluded ----
+        $analytics = $features->firstWhere('key', 'analytics');
+        $this->assertNotNull($analytics, 'analytics entry missing from premium_features');
+        $this->assertContains(
+            $pro->slug,
+            $analytics['unlocked_by'],
+            "plan with analytics='advanced' must be credited in unlocked_by"
+        );
+        $this->assertNotContains(
+            $basic->slug,
+            $analytics['unlocked_by'],
+            "plan with analytics='basic' must NOT be credited in unlocked_by (resolveCell reports it off)"
+        );
+    }
+
+    /**
      * The numeric / "Unlimited" cells are covered above; this guards the other
      * two highlight kinds {@see \App\Modules\Common\Support\PremiumFeatures::planHighlights()}
      * emits and — critically — their ORDER, none of which was exercised before:
