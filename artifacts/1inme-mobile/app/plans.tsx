@@ -36,6 +36,17 @@ type Cycle = "monthly" | "annual";
 
 const CURRENCIES: Currency[] = ["USD", "INR"];
 
+function formatApplies(iso: string | null): string {
+  if (!iso) return "the end of your current cycle";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "the end of your current cycle";
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export default function PlansScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -54,6 +65,27 @@ export default function PlansScreen() {
   const plansQuery = useQuery({
     queryKey: ["billing", "plans"],
     queryFn: () => billing.plans(),
+  });
+
+  // Shares the cache key with the dedicated Downgrade screen so cancelling
+  // a scheduled downgrade from either surface keeps both in sync.
+  const downgradeQuery = useQuery({
+    queryKey: ["billing", "downgrade"],
+    queryFn: () => billing.downgradeOptions(),
+  });
+
+  const cancelDowngrade = useMutation({
+    mutationFn: () => billing.cancelDowngrade(),
+    onSuccess: async (res) => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["billing", "downgrade"] }),
+        qc.invalidateQueries({ queryKey: ["billing", "plans"] }),
+        qc.invalidateQueries({ queryKey: ["billing", "subscription"] }),
+      ]);
+      Alert.alert("Downgrade cancelled", res.data.message);
+    },
+    onError: (e: { message?: string }) =>
+      Alert.alert("Couldn't cancel", e?.message ?? "Please try again."),
   });
 
   // Seed the currency from the backend-resolved default (geo / profile /
@@ -190,6 +222,23 @@ export default function PlansScreen() {
   const data = plansQuery.data?.data;
   const plans = data?.plans ?? [];
 
+  const scheduledDowngrade = downgradeQuery.data?.data?.scheduled_downgrade ?? null;
+
+  const confirmCancelDowngrade = () => {
+    Alert.alert(
+      "Cancel scheduled downgrade?",
+      "You'll stay on your current plan and nothing will change at the end of your cycle.",
+      [
+        { text: "Keep downgrade", style: "cancel" },
+        {
+          text: "Cancel downgrade",
+          style: "destructive",
+          onPress: () => cancelDowngrade.mutate(),
+        },
+      ],
+    );
+  };
+
   // Show the downgrade entry point only when the user is on a paid plan
   // (a lower paid plan exists to move to). Free users have nothing to
   // downgrade — they'd cancel instead.
@@ -208,6 +257,47 @@ export default function PlansScreen() {
           gap: 16,
         }}
       >
+        {scheduledDowngrade ? (
+          <View
+            style={[
+              styles.scheduledCard,
+              {
+                backgroundColor: colors.primary + "14",
+                borderColor: colors.primary,
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <View style={styles.scheduledHeader}>
+              <Feather name="clock" size={18} color={colors.primary} />
+              <Text style={[styles.scheduledTitle, { color: colors.foreground }]}>
+                Downgrade scheduled
+              </Text>
+            </View>
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontFamily: "SpaceGrotesk_400Regular",
+                marginTop: 4,
+              }}
+            >
+              Your plan will change to {scheduledDowngrade.plan_name} on{" "}
+              {formatApplies(scheduledDowngrade.applies_at)}. Cancel to stay on
+              your current plan.
+            </Text>
+            <View style={{ marginTop: 12 }}>
+              <Button
+                label={
+                  cancelDowngrade.isPending ? "Cancelling…" : "Cancel downgrade"
+                }
+                variant="outline"
+                onPress={confirmCancelDowngrade}
+                disabled={cancelDowngrade.isPending}
+              />
+            </View>
+          </View>
+        ) : null}
+
         <View style={styles.switchers}>
           <View style={[styles.toggle, { borderColor: colors.border }]}>
             {(["monthly", "annual"] as Cycle[]).map((c) => {
@@ -515,6 +605,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 999,
   },
+  scheduledCard: { borderWidth: 1, padding: 16 },
+  scheduledHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  scheduledTitle: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 16 },
   card: {
     borderWidth: 1,
     padding: 16,
