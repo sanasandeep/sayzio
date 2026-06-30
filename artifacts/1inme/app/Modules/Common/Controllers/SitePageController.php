@@ -209,6 +209,17 @@ class SitePageController extends Controller
             ->get(['id', 'alias', 'title'])
             ->keyBy('alias');
 
+        // The live, working restaurant menu (order mode + WhatsApp confirmation)
+        // seeded at /demo-restaurant. When present, we surface a "Try it live"
+        // shortcut on the restaurant explainer card so visitors can jump
+        // straight into the ordering flow without first reading the explainer.
+        $hasLiveRestaurant = Link::query()
+            ->where('type', 'restaurant_menu')
+            ->where('is_active', true)
+            ->where('alias', 'demo-restaurant')
+            ->exists();
+        $restaurantExplainerAlias = 'demo-type-restaurant-menu';
+
         $cards = [];
         $seen = [];
         // Preserve the showcase order, dropping any link type whose demo
@@ -228,6 +239,12 @@ class SitePageController extends Controller
                 'icon'        => trim((string) ($lt['icon'] ?? '')) ?: 'fa-link',
                 'description' => trim((string) ($lt['description'] ?? '')),
                 'url'         => url('/' . $alias),
+                'live_url'    => ($hasLiveRestaurant && $alias === $restaurantExplainerAlias)
+                    ? url('/demo-restaurant')
+                    : null,
+                'live_label'  => ($hasLiveRestaurant && $alias === $restaurantExplainerAlias)
+                    ? 'Order live with WhatsApp'
+                    : null,
             ];
         }
         // Surface any seeded demo whose name no longer matches a showcase row
@@ -242,6 +259,12 @@ class SitePageController extends Controller
                 'icon'        => 'fa-link',
                 'description' => '',
                 'url'         => url('/' . $alias),
+                'live_url'    => ($hasLiveRestaurant && $alias === $restaurantExplainerAlias)
+                    ? url('/demo-restaurant')
+                    : null,
+                'live_label'  => ($hasLiveRestaurant && $alias === $restaurantExplainerAlias)
+                    ? 'Order live with WhatsApp'
+                    : null,
             ];
         }
 

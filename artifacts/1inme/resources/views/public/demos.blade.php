@@ -44,21 +44,29 @@
         @else
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
                 @foreach($cards as $card)
-                    <a href="{{ $card['url'] }}"
-                       target="_blank" rel="noopener"
-                       class="demo-card group relative flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] p-6 overflow-hidden">
-                        <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-400/20 text-blue-300 text-lg">
+                    <div class="demo-card group relative flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] p-6 overflow-hidden">
+                        {{-- The whole card opens the explainer page; layered links below sit above this overlay. --}}
+                        <a href="{{ $card['url'] }}" target="_blank" rel="noopener"
+                           class="absolute inset-0 z-0" aria-label="View {{ $card['name'] }} demo"></a>
+                        <span class="relative z-10 inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-400/20 text-blue-300 text-lg pointer-events-none">
                             <i class="fas {{ $card['icon'] }}"></i>
                         </span>
-                        <h3 class="mt-4 text-lg font-bold text-white">{{ $card['name'] }}</h3>
+                        <h3 class="relative z-10 mt-4 text-lg font-bold text-white pointer-events-none">{{ $card['name'] }}</h3>
                         @if($card['description'] !== '')
-                            <p class="mt-2 text-sm text-gray-400 leading-relaxed flex-1">{{ $card['description'] }}</p>
+                            <p class="relative z-10 mt-2 text-sm text-gray-400 leading-relaxed flex-1 pointer-events-none">{{ $card['description'] }}</p>
                         @endif
-                        <span class="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-300 group-hover:text-blue-200">
+                        <span class="relative z-10 mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-300 group-hover:text-blue-200 pointer-events-none">
                             View live demo
                             <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-0.5"></i>
                         </span>
-                    </a>
+                        @if(!empty($card['live_url']))
+                            <a href="{{ $card['live_url'] }}" target="_blank" rel="noopener"
+                               class="relative z-10 mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold">
+                                <i class="fas fa-bolt text-xs"></i>
+                                {{ $card['live_label'] ?: 'Try it live' }}
+                            </a>
+                        @endif
+                    </div>
                 @endforeach
             </div>
         @endif
