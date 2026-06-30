@@ -32,3 +32,11 @@ prices (which is higher/lower), never to compute a partial charge.
 BillingController (web) + views (upgrade/upgrade_confirm/show/downgrade), Api BillingController
 `subscription()` (`scheduled_downgrade` block), admin CreditReviewController + view, SubscriptionLifecycle
 (schedule/cancel/apply + notify), RenewDueSubscriptions. Mobile reads the API `scheduled_downgrade` field.
+
+**Testing gotcha (offline gateway):** With the offline/manual gateway (what `GatewaySettingsSeeder`
+enables in tests), `chargeRecurring` creates an UNPAID `awaiting_admin_approval` invoice — it does
+NOT extend `current_period_end`. So after `applyScheduledDowngrade` clears the schedule, the very next
+`transitionUnpaidPastPeriod` pass in the same command flips the period-ended sub to `past_due` (grace),
+NOT `active`. Don't assert `status==='active'` after `subscriptions:renew-due` for offline subs; assert
+the plan switched + the renewal invoice is at the lower price + status is not cancelled/expired. Only an
+immediately-paying gateway (which extends the period) would keep it `active`.
