@@ -129,11 +129,36 @@ class CreatorMonetizationApiController extends Controller
         ]);
     }
 
+    /**
+     * Every creator subscription the signed-in fan holds — the native
+     * "manage subscription" screen lists these so a fan can review and
+     * cancel/resume each one without leaving the app. Mirrors the web
+     * per-creator manage page (CreatorMonetizationPublicController@manage)
+     * but returns the whole set keyed by the fan rather than one creator.
+     */
+    public function mySubscriptions(Request $request)
+    {
+        if (!$request->user()) return $this->unauthorized();
+        $subs = CreatorSubscription::with(['tier', 'creator:id,name,handle,avatar'])
+            ->where('fan_user_id', $request->user()->id)
+            ->whereIn('status', [
+                CreatorSubscription::STATUS_ACTIVE,
+                CreatorSubscription::STATUS_TRIALING,
+                CreatorSubscription::STATUS_PAST_DUE,
+                CreatorSubscription::STATUS_PAUSED,
+            ])
+            ->orderByDesc('current_period_start')
+            ->get();
+        return $this->ok([
+            'items' => $subs->map(fn ($s) => $this->subShape($s))->all(),
+        ]);
+    }
+
     public function mySubscription(Request $request, string $handle)
     {
         $creator = $this->creatorOr404($handle);
         if (!$request->user()) return $this->unauthorized();
-        $sub = CreatorSubscription::with(['tier'])
+        $sub = CreatorSubscription::with(['tier', 'creator:id,name,handle,avatar'])
             ->where('fan_user_id', $request->user()->id)
             ->where('creator_user_id', $creator->id)->first();
         return $this->ok([
@@ -145,10 +170,29 @@ class CreatorMonetizationApiController extends Controller
     {
         $creator = $this->creatorOr404($handle);
         if (!$request->user()) return $this->unauthorized();
-        $sub = CreatorSubscription::where('fan_user_id', $request->user()->id)->where('creator_user_id', $creator->id)->first();
+        $sub = CreatorSubscription::with(['tier', 'creator:id,name,handle,avatar'])
+            ->where('fan_user_id', $request->user()->id)->where('creator_user_id', $creator->id)->first();
         if (!$sub) return $this->notFound();
         app(MonetizationCheckout::class)->cancelSubscription($sub, immediate: false);
-        return $this->ok(['subscription' => $this->subShape($sub->fresh())]);
+        return $this->ok(['subscription' => $this->subShape($sub->fresh(['tier', 'creator']))]);
+    }
+
+    /**
+     * Undo a scheduled cancellation. Mirrors the web
+     * CreatorMonetizationPublicController@resume exactly.
+     */
+    public function resumeSubscription(Request $request, string $handle)
+    {
+        $creator = $this->creatorOr404($handle);
+        if (!$request->user()) return $this->unauthorized();
+        $sub = CreatorSubscription::with(['tier', 'creator:id,name,handle,avatar'])
+            ->where('fan_user_id', $request->user()->id)->where('creator_user_id', $creator->id)->first();
+        if (!$sub) return $this->notFound();
+        $sub->cancel_at_period_end = false;
+        $sub->canceled_at = null;
+        $sub->status = CreatorSubscription::STATUS_ACTIVE;
+        $sub->save();
+        return $this->ok(['subscription' => $this->subShape($sub->fresh(['tier', 'creator']))]);
     }
 
     // ─── Owner dashboard surface ───────────────────────────────────
@@ -267,6 +311,10 @@ class CreatorMonetizationApiController extends Controller
             'tier'                 => $s->tier ? [
                 'id' => $s->tier->id, 'name' => $s->tier->name,
                 'color' => $s->tier->color, 'badge' => $s->tier->badge,
+            ] : null,
+            'creator'              => $s->creator ? [
+                'id' => $s->creator->id, 'name' => $s->creator->name,
+                'handle' => $s->creator->handle, 'avatar' => $s->creator->avatar,
             ] : null,
             'fan'                  => $s->fan ? [
                 'id' => $s->fan->id, 'name' => $s->fan->name,

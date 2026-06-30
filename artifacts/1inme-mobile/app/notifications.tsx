@@ -45,10 +45,12 @@ function nativeRouteFor(target: string): string | null {
   if (!path.startsWith("/")) path = `/${path}`;
 
   // Fan-facing "manage / cancel subscription" page (renewal reminders link
-  // here). There's no native screen for it yet, so return null to fall back to
-  // the in-app browser — otherwise the generic /@handle match below would route
-  // to the public profile screen instead. Must be checked before that match.
-  if (/^\/@[A-Za-z0-9_]+\/manage-subscription/.test(path)) return null;
+  // here). Route to the native manage-subscription screen, carrying the
+  // creator handle so it can highlight the relevant card. Must be checked
+  // before the generic /@handle match below (which would otherwise route to
+  // the public profile screen instead).
+  const manageSub = path.match(/^\/@([A-Za-z0-9_]+)\/manage-subscription/);
+  if (manageSub) return `/manage-subscription?handle=${manageSub[1]}`;
 
   // Public creator profile: /@handle (may carry post/roadmap hashes).
   const profile = path.match(/^\/@([A-Za-z0-9_]+)/);

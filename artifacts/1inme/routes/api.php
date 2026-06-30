@@ -125,6 +125,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/creators/{handle}/tip',                    [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'tip'])->middleware('throttle:30,1');
         Route::get ('/creators/{handle}/my-subscription',        [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'mySubscription']);
         Route::post('/creators/{handle}/my-subscription/cancel', [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'cancelSubscription']);
+        Route::post('/creators/{handle}/my-subscription/resume', [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'resumeSubscription']);
+
+        // All subscriptions the signed-in fan holds — backs the native
+        // "manage subscription" screen (Task #3019) so a fan can review
+        // and cancel/resume every creator subscription in-app.
+        Route::get ('/me/subscriptions', [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'mySubscriptions']);
 
         // Owner-side dashboard endpoints (Sanctum-authenticated creator).
         Route::get('/me/creator/earnings',     [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'earnings']);

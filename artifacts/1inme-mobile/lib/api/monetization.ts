@@ -35,6 +35,13 @@ export type SubscriptionFanRef = {
   avatar: string | null;
 };
 
+export type SubscriptionCreatorRef = {
+  id: number;
+  name: string;
+  handle: string | null;
+  avatar: string | null;
+};
+
 export type SubscriptionState = {
   id: number;
   status: string;
@@ -47,6 +54,7 @@ export type SubscriptionState = {
   current_period_end: string | null;
   started_at: string | null;
   tier: SubscriptionTierRef | null;
+  creator: SubscriptionCreatorRef | null;
   fan: SubscriptionFanRef | null;
 };
 
@@ -174,6 +182,25 @@ export async function cancelMySubscription(
     { method: "POST" },
   );
   return res.data.subscription;
+}
+
+export async function resumeMySubscription(
+  handle: string,
+): Promise<SubscriptionState> {
+  const res = await apiFetch<{ data: { subscription: SubscriptionState } }>(
+    `/creators/${encodeURIComponent(handle)}/my-subscription/resume`,
+    { method: "POST" },
+  );
+  return res.data.subscription;
+}
+
+// Every creator subscription the signed-in fan holds — backs the native
+// "manage subscription" screen (the renewal-reminder deep link lands here).
+export async function listMySubscriptions(): Promise<SubscriptionState[]> {
+  const res = await apiFetch<{ data: { items: SubscriptionState[] } }>(
+    `/me/subscriptions`,
+  );
+  return res.data.items;
 }
 
 // ── Owner-side dashboard endpoints ────────────────────────────────
