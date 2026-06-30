@@ -13,6 +13,11 @@
                                        dedicated /compare/{competitor} pages.
       $hideHeading (bool, default false) — hide the built-in section heading
                                        (the comparison pages supply their own).
+      $teaser (bool, default false) — when true, render only the heading and a
+                                       single CTA button linking to the full
+                                       comparison on /pricing#compare. Skips the
+                                       rival selector, VS cards, win counter and
+                                       all matrices. Used by the homepage.
 --}}
 @php
     use App\Modules\Common\Support\ComparisonContent;
@@ -21,6 +26,7 @@
     $anchorId    = $anchorId ?? 'compare';
     $only        = $only ?? null;
     $hideHeading = $hideHeading ?? false;
+    $teaser      = $teaser ?? false;
 
     $__cmpCompetitors = ComparisonContent::competitors();
     $__cmpGroups      = ComparisonContent::groups();
@@ -64,6 +70,19 @@
             </p>
         </div>
         @endunless
+
+        @if($teaser)
+        {{-- ========================================================
+             TEASER — single CTA to the full comparison on /pricing.
+             ======================================================== --}}
+        <div data-anim="fade-up" class="text-center">
+            <a href="{{ url('/pricing') }}#compare" class="cmp-cta">
+                <i class="fas fa-table-cells-large"></i>
+                See the full comparison
+                <i class="fas fa-arrow-right text-xs"></i>
+            </a>
+        </div>
+        @else
 
         {{-- ========================================================
              HEAD-TO-HEAD (Alpine tabs)
@@ -359,9 +378,12 @@
                 </div>
             @endif
         </div>
+        @endif
 
+        @unless($teaser)
         <p data-anim="fade-up" class="text-center text-xs text-gray-500 mt-6">
             Comparison reflects publicly listed feature sets at time of writing. We never quote a competitor's price.
         </p>
+        @endunless
     </div>
 </section>

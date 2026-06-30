@@ -4257,7 +4257,7 @@
 </section>
 
 {{-- ============================ HOW WE COMPARE ============================ --}}
-@include('public.partials._compare', ['compact' => true, 'eyebrowOverride' => 'How we compare'])
+@include('public.partials._compare', ['teaser' => true, 'eyebrowOverride' => 'How we compare'])
 @php
     // Legacy inline arrays kept commented out — replaced by shared partial above.
     /*

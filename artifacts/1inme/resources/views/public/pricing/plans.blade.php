@@ -1522,12 +1522,13 @@
     </div>
 </section>
 
-{{-- ============================ HEAD-TO-HEAD ONLY (compact) ============================
-     The 24-feature matrix is intentionally hidden on the pricing page (the
-     "Compare features at a glance" matrix above already serves that purpose
-     for plans). We force the compact path so visitors only see the more
-     creative 1-on-1 rival selector. --}}
-@include('public.partials._compare', ['compact' => true, 'anchorId' => 'compare'])
+{{-- ============================ FULL COMPETITOR BREAKDOWN ============================
+     The pricing page hosts the complete competitor comparison: head-to-head
+     rival selector PLUS the full multi-tool feature matrix (expanded by
+     default in non-compact mode). The homepage shows only a teaser that links
+     here via /pricing#compare. The "Compare features at a glance" matrix above
+     covers plan tiers; this section covers Sayzio vs other tools. --}}
+@include('public.partials._compare', ['compact' => false, 'anchorId' => 'compare'])
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Pricing changes, deals, and new plans.',
