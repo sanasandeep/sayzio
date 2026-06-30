@@ -25,6 +25,7 @@ import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { wallet as walletApi } from "@/lib/api";
 import { getAdminContext } from "@/lib/api/admin";
+import { getProfile } from "@/lib/api/profile";
 import {
   formatIdleTimeout,
   formatLockWarningLead,
@@ -205,6 +206,16 @@ export default function Profile() {
     staleTime: 60_000,
   });
   const hasAdminAccess = !!adminCtx.data?.has_admin_access;
+
+  // Admin-assigned account badges (name + color), mirroring the web
+  // dashboard/sidebar chips. Read-only; fails closed (no chips) on error.
+  const profileQuery = useQuery({
+    queryKey: ["profile-self"],
+    queryFn: getProfile,
+    retry: false,
+    staleTime: 60_000,
+  });
+  const accountBadges = profileQuery.data?.account_badges ?? [];
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const [biometricBusy, setBiometricBusy] = useState(false);
   const [wakeWordEnabled, setWakeWordEnabledState] = useState(false);
@@ -422,6 +433,27 @@ export default function Profile() {
               <Text style={[styles.badgeText, { color: colors.primary }]}>
                 {user.role}
               </Text>
+            </View>
+          ) : null}
+          {accountBadges.length > 0 ? (
+            <View style={styles.acctBadgeRow}>
+              {accountBadges.map((b) => (
+                <View
+                  key={b.id}
+                  style={[
+                    styles.acctBadge,
+                    {
+                      backgroundColor: b.color + "26",
+                      borderColor: b.color + "40",
+                    },
+                  ]}
+                >
+                  <Feather name="award" size={11} color={b.color} />
+                  <Text style={[styles.acctBadgeText, { color: b.color }]}>
+                    {b.name}
+                  </Text>
+                </View>
+              ))}
             </View>
           ) : null}
         </View>
@@ -1278,6 +1310,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 0.4,
     textTransform: "uppercase",
+  },
+  acctBadgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 8,
+  },
+  acctBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  acctBadgeText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 11,
+    letterSpacing: 0.3,
   },
   section: { gap: 8 },
   sectionLabel: {

@@ -38,6 +38,15 @@ class UserResource
                 'email_verification_meaningful' => \App\Modules\Common\Support\AuthMethods::emailVerificationMeaningful(),
                 'onboarded_at'      => optional($u->onboarded_at)->toIso8601String(),
                 'created_at'        => optional($u->created_at)->toIso8601String(),
+                // Admin-assigned account badges (name + color). Mirrors the web
+                // dashboard/sidebar badge chips so the mobile profile screen can
+                // show the same earned badges. Empty array when the user has
+                // none, so the client can render nothing gracefully.
+                'account_badges'    => $u->accountBadges->map(fn ($b) => [
+                    'id'    => (int) $b->id,
+                    'name'  => $b->name,
+                    'color' => $b->color,
+                ])->values()->all(),
                 // Plan capabilities relevant to the browser extension's
                 // smart-link rule builder. Surfaced here so the popup can
                 // gate the UI without a second round-trip.

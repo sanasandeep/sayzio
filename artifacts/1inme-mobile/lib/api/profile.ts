@@ -1,5 +1,11 @@
 import { apiFetch } from "@/lib/api";
 
+export type AccountBadge = {
+  id: number;
+  name: string;
+  color: string;
+};
+
 export type Profile = {
   id: number | string;
   name?: string | null;
@@ -24,6 +30,9 @@ export type Profile = {
   country_block_text?: string | null;
   country_allow_text?: string | null;
   dmca_email?: string | null;
+  // Admin-assigned account badges (name + color). Mirrors the web
+  // dashboard/sidebar badge chips. Empty/absent when the user has none.
+  account_badges?: AccountBadge[];
   // Plan capabilities surfaced on the self payload so screens can gate
   // UI without a second round-trip. `analytics_export` mirrors the web
   // "Stats CSV export" paid feature (default-true when the plan doesn't
