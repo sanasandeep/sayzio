@@ -243,23 +243,32 @@ class CalendarController extends Controller
             $calendarId = '';
         }
 
+        // Selected view (Month / Week / Day / Agenda) + the focus date the grid
+        // is centred on. Both ride the query string so they survive navigation.
+        $view = $request->query('view', 'agenda');
+        if (!in_array($view, ['month', 'week', 'day', 'agenda'], true)) {
+            $view = 'agenda';
+        }
+
+        $userTz = $user->timezone ?: config('app.timezone', 'UTC');
+        try {
+            $focus = $request->filled('date')
+                ? Carbon::parse((string) $request->query('date'), $userTz)
+                : Carbon::now($userTz);
+        } catch (\Throwable) {
+            $focus = Carbon::now($userTz);
+        }
+        $focus = $focus->startOfDay();
+
         $query = CalendarEvent::query()
-            ->with('calendar:id,title,accent_color,user_id')
+            ->with('calendar:id,link_id,title,accent_color,user_id')
             ->whereIn('calendar_id', $calendarIds);
 
-        // Date range — default to "from now" so the agenda is forward-looking.
         $from = $request->query('from');
         $to   = $request->query('to');
-        if ($from) {
-            $query->where('start_at', '>=', Carbon::parse($from)->startOfDay());
-        } elseif (!$request->boolean('past')) {
-            $query->where('start_at', '>=', now()->startOfDay());
-        }
-        if ($to) {
-            $query->where('start_at', '<=', Carbon::parse($to)->endOfDay());
-        }
+        $past = $request->boolean('past');
 
-        // Hashtag filter (single tag, normalized).
+        // Hashtag filter (single tag, normalized) — applies to every view.
         $tag = $request->query('tag');
         if ($tag) {
             $tag = CalendarEvent::normalizeHashtags($tag)[0] ?? null;
@@ -268,7 +277,7 @@ class CalendarController extends Controller
             }
         }
 
-        // Free-text search across title + description + location.
+        // Free-text search across title + description + location — every view.
         if ($search = trim((string) $request->query('q', ''))) {
             $like = '%' . str_replace(['%', '_'], ['\%', '\_'], $search) . '%';
             $query->where(function ($q) use ($like) {
@@ -278,26 +287,96 @@ class CalendarController extends Controller
             });
         }
 
-        $events = $query->orderBy('start_at')->orderBy('id')->paginate(40)->withQueryString();
+        $events     = null;
+        $gridEvents = collect();
+
+        if ($view === 'agenda') {
+            // Date range — default to "from now" so the agenda is forward-looking.
+            if ($from) {
+                $query->where('start_at', '>=', Carbon::parse($from)->startOfDay());
+            } elseif (!$past) {
+                $query->where('start_at', '>=', now()->startOfDay());
+            }
+            if ($to) {
+                $query->where('start_at', '<=', Carbon::parse($to)->endOfDay());
+            }
+
+            $events = $query->orderBy('start_at')->orderBy('id')->paginate(40)->withQueryString();
+        } else {
+            // Grid views widen the date window to the visible period. The window
+            // is computed in the viewer's tz, then padded a day on each side and
+            // queried in UTC so events authored in other zones near a boundary
+            // still land in the right cell (the blade only renders visible days).
+            [$winStart, $winEnd] = match ($view) {
+                'month' => [
+                    $focus->copy()->startOfMonth()->startOfWeek(Carbon::SUNDAY),
+                    $focus->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY),
+                ],
+                'week'  => [
+                    $focus->copy()->startOfWeek(Carbon::SUNDAY),
+                    $focus->copy()->endOfWeek(Carbon::SUNDAY),
+                ],
+                default => [ // day
+                    $focus->copy()->startOfDay(),
+                    $focus->copy()->endOfDay(),
+                ],
+            };
+
+            $query->where('start_at', '>=', $winStart->copy()->subDay()->utc())
+                  ->where('start_at', '<=', $winEnd->copy()->addDay()->utc());
+
+            // Honour an explicit date-range filter on top of the window.
+            if ($from) {
+                $query->where('start_at', '>=', Carbon::parse($from)->startOfDay());
+            } elseif (!$past) {
+                // "Include past events" off (default) clamps the lower bound to
+                // today — mirrors the agenda view so the filter behaves the same
+                // across every view (e.g. earlier days of the current month grid
+                // hide their past events unless the toggle is on).
+                $query->where('start_at', '>=', now()->startOfDay());
+            }
+            if ($to) {
+                $query->where('start_at', '<=', Carbon::parse($to)->endOfDay());
+            }
+
+            $gridEvents = $query->orderBy('start_at')->orderBy('id')->limit(2000)->get();
+        }
 
         $calendars = Calendar::whereIn('id', $ownedIds->merge($followedIds)->unique())
             ->withCount('events')
             ->orderBy('title')
             ->get();
 
+        // Distinct event tags across everything the user owns/follows, for the
+        // toggleable tag-filter chips.
+        $availableTags = CalendarEvent::whereIn('calendar_id', $ownedIds->merge($followedIds)->unique())
+            ->whereNotNull('hashtags')
+            ->pluck('hashtags')
+            ->flatMap(fn ($h) => is_array($h) ? $h : [])
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->take(40);
+
         return view('user.calendars.my-calendar', [
-            'events'      => $events,
-            'calendars'   => $calendars,
-            'ownedIds'    => $ownedIds,
-            'followedIds' => $followedIds,
-            'filters'     => [
+            'events'        => $events,
+            'gridEvents'    => $gridEvents,
+            'calendars'     => $calendars,
+            'ownedIds'      => $ownedIds,
+            'followedIds'   => $followedIds,
+            'view'          => $view,
+            'focusDate'     => $focus,
+            'userTz'        => $userTz,
+            'availableTags' => $availableTags,
+            'filters'       => [
                 'source'   => $source,
                 'calendar' => $calendarId,
                 'from'     => $from,
                 'to'       => $to,
                 'tag'      => $tag,
                 'q'        => $search ?? '',
-                'past'     => $request->boolean('past'),
+                'past'     => $past,
             ],
         ]);
     }
