@@ -35,6 +35,22 @@
     .aic-stat { display:flex; justify-content:space-between; font-size: 13px; padding: 8px 0; border-bottom: 1px dashed var(--border-glass); }
     .aic-stat:last-child { border-bottom: 0; }
     .aic-starter-rows { display:flex; flex-direction:column; gap: 8px; }
+
+    /* Live branding preview */
+    .aicp-frame {
+        border: 1px solid var(--border-glass); border-radius: .9rem; overflow: hidden;
+        background: var(--bg-glass-input); display: flex; flex-direction: column;
+    }
+    .aicp-header { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--border-glass); }
+    .aicp-avatar { width:34px; height:34px; border-radius:50%; flex:0 0 auto; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; }
+    .aicp-avatar img { width:100%; height:100%; object-fit:cover; }
+    .aicp-title { font-weight:700; font-size:14px; line-height:1.2; color:var(--text-primary); }
+    .aicp-sub { font-size:11px; color:var(--text-faint); }
+    .aicp-body { padding:14px; min-height:70px; }
+    .aicp-msg { display:inline-block; max-width:90%; padding:9px 12px; border-radius:14px; border-bottom-left-radius:5px; font-size:13.5px; line-height:1.45; white-space:pre-wrap; word-break:break-word; background:rgba(127,127,127,.14); color:var(--text-primary); }
+    .aicp-empty { font-size:12px; color:var(--text-faint); font-style:italic; }
+    .aicp-foot { font-size:10.5px; text-align:center; padding:9px; color:var(--text-faint); border-top:1px solid var(--border-glass); }
+    .aicp-foot a { color:inherit; text-decoration:underline; }
 </style>
 
 <div class="max-w-7xl mx-auto" x-data="aiChatEditor()">
@@ -60,7 +76,7 @@
                     <div class="aic-row">
                         <label class="aic-label" for="aic-name">Display name</label>
                         <input id="aic-name" class="aic-input" type="text" name="name" maxlength="120"
-                               value="{{ old('name', $companion->name) }}" required>
+                               value="{{ old('name', $companion->name) }}" x-model="name" required>
                         <div class="aic-hint">Shown in the chat header on the public page.</div>
                     </div>
                     <div class="aic-row">
@@ -154,6 +170,7 @@
                     <div class="aic-row">
                         <label class="aic-label" for="aic-greeting">Opening message</label>
                         <textarea id="aic-greeting" class="aic-textarea" name="config[greeting]" maxlength="1000"
+                                  x-model="greeting"
                                   placeholder="Hi! Ask me anything about…">{{ old('config.greeting', $config['greeting'] ?? '') }}</textarea>
                         <div class="aic-hint">Greets the visitor before they type. Leave blank to start empty.</div>
                     </div>
@@ -199,7 +216,7 @@
                         <div>
                             <label class="aic-label" for="aic-accent">Accent colour</label>
                             <input id="aic-accent" class="aic-input" type="color" name="config[accent]"
-                                   value="{{ old('config.accent', $config['accent'] ?? '#3d6bff') }}" style="height:42px;padding:4px">
+                                   value="{{ old('config.accent', $config['accent'] ?? '#3d6bff') }}" x-model="accent" style="height:42px;padding:4px">
                         </div>
                     </div>
                 </div>
@@ -243,6 +260,7 @@
                         @if($branding['can_hide_branding'])
                             <label class="aic-toggle">
                                 <input type="checkbox" name="config[show_branding]" value="1"
+                                       x-model="showBranding"
                                        @checked(old('config.show_branding', $config['show_branding'] ?? true))>
                                 <span><strong style="color:var(--text-primary)">Show "Powered by Sayzio"</strong>
                                     <span class="aic-hint" style="display:block;margin-top:2px">Uncheck to hide the footer entirely.</span>
@@ -264,9 +282,11 @@
                         @if($branding['can_custom_branding'])
                             <input class="aic-input" type="text" name="config[custom_branding_text]" maxlength="60"
                                    value="{{ old('config.custom_branding_text', $config['custom_branding_text'] ?? '') }}"
+                                   x-model="brandText"
                                    placeholder="Powered by Your Brand" style="margin-bottom:8px">
                             <input class="aic-input" type="url" name="config[custom_branding_url]" maxlength="300"
                                    value="{{ old('config.custom_branding_url', $config['custom_branding_url'] ?? '') }}"
+                                   x-model="brandUrl"
                                    placeholder="https://yourbrand.com">
                             <div class="aic-hint">Replaces "Powered by Sayzio" with your own text (and link). Leave blank to keep the default.</div>
                         @else
@@ -281,6 +301,44 @@
             </div>
 
             <div>
+                <div class="aic-card">
+                    <h5><i class="fas fa-eye text-[13px]" style="color:#90acff"></i> Live preview</h5>
+                    <div class="aicp-frame" :style="`--aicp-accent:${accent}`">
+                        <div class="aicp-header">
+                            <template x-if="effAvatar">
+                                <div class="aicp-avatar"><img :src="effAvatar" alt=""></div>
+                            </template>
+                            <template x-if="!effAvatar">
+                                <div class="aicp-avatar" :style="`background:${accent}`">🤖</div>
+                            </template>
+                            <div>
+                                <div class="aicp-title" x-text="displayName"></div>
+                                <div class="aicp-sub">AI assistant</div>
+                            </div>
+                        </div>
+                        <div class="aicp-body">
+                            <template x-if="greeting && greeting.trim()">
+                                <div class="aicp-msg" x-text="greeting"></div>
+                            </template>
+                            <template x-if="!greeting || !greeting.trim()">
+                                <div class="aicp-empty">No opening message — the chat starts empty.</div>
+                            </template>
+                        </div>
+                        <div class="aicp-foot" x-show="effShowBranding" x-cloak>
+                            <template x-if="effBrandText && effBrandUrl">
+                                <a :href="effBrandUrl" target="_blank" rel="noopener" x-text="effBrandText"></a>
+                            </template>
+                            <template x-if="effBrandText && !effBrandUrl">
+                                <span x-text="effBrandText"></span>
+                            </template>
+                            <template x-if="!effBrandText">
+                                <span>Powered by <a href="{{ url('/') }}" target="_blank" rel="noopener">Sayzio</a></span>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="aic-hint" style="margin-top:10px">How visitors see your agent. Branding reflects your current plan.</div>
+                </div>
+
                 <div class="aic-card">
                     <h5><i class="fas fa-link text-[13px]" style="color:#90acff"></i> Public page</h5>
                     <p class="aic-hint" style="margin-top:0">Visitors chat at:</p>
@@ -309,6 +367,59 @@
             personaId: {{ (int) old('persona_id', $companion->persona_id) }},
             boundPersonaId: {{ (int) $companion->persona_id }},
             get switched() { return this.personaId !== this.boundPersonaId; },
+
+            // Live branding preview — mirrors AiCompanion::brandingConfig() gating.
+            canHide:   {{ $branding['can_hide_branding'] ? 'true' : 'false' }},
+            canCustom: {{ $branding['can_custom_branding'] ? 'true' : 'false' }},
+            canAvatar: {{ $branding['can_avatar'] ? 'true' : 'false' }},
+            name:        @js(old('name', $companion->name)),
+            greeting:    @js(old('config.greeting', $config['greeting'] ?? '')),
+            accent:      @js(old('config.accent', $config['accent'] ?? '#3d6bff')),
+            showBranding: {{ old('config.show_branding', $config['show_branding'] ?? true) ? 'true' : 'false' }},
+            brandText:   @js(old('config.custom_branding_text', $config['custom_branding_text'] ?? '')),
+            brandUrl:    @js(old('config.custom_branding_url', $config['custom_branding_url'] ?? '')),
+            savedAvatar: @js($branding['can_avatar'] ? ($config['avatar_url'] ?? '') : ''),
+            avatarObjectUrl: '',
+            avatarRemoved: false,
+            _lastFile: null,
+
+            get displayName() {
+                const linkTitle = @js($link->title ?: '');
+                if (linkTitle) return linkTitle;
+                return (this.name || '').trim() || @js($link->alias);
+            },
+            get effShowBranding() { return this.canHide ? !!this.showBranding : true; },
+            get effBrandText() { return this.canCustom ? (this.brandText || '').trim() : ''; },
+            get effBrandUrl() { return this.canCustom ? (this.brandUrl || '').trim() : ''; },
+            get effAvatar() {
+                if (!this.canAvatar || this.avatarRemoved) return '';
+                return this.avatarObjectUrl || this.savedAvatar || '';
+            },
+
+            init() {
+                this.syncAvatar();
+                // The avatar dropzone injects files programmatically (upload, URL
+                // import, or vault pick) without firing a native change event, so
+                // poll the underlying input to keep the preview in sync.
+                setInterval(() => this.syncAvatar(), 400);
+            },
+            syncAvatar() {
+                const removeEl = document.querySelector('input[name="avatar_remove"]');
+                this.avatarRemoved = !!(removeEl && removeEl.checked);
+                const input = document.querySelector('input[name="avatar_upload"]');
+                const f = input && input.files && input.files[0];
+                if (f && f.type && f.type.indexOf('image/') === 0) {
+                    if (this._lastFile !== f) {
+                        if (this.avatarObjectUrl) URL.revokeObjectURL(this.avatarObjectUrl);
+                        this.avatarObjectUrl = URL.createObjectURL(f);
+                        this._lastFile = f;
+                    }
+                } else if (this.avatarObjectUrl) {
+                    URL.revokeObjectURL(this.avatarObjectUrl);
+                    this.avatarObjectUrl = '';
+                    this._lastFile = null;
+                }
+            },
         };
     }
 </script>
