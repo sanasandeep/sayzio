@@ -20,7 +20,7 @@ class SitePagesContent
         return [
             'features' => [
                 'title' => 'Features',
-                'meta_description' => 'Everything you get with Sayzio — all 10 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, file shares, events, contact cards, reviews), dynamic QR codes, deep analytics, forms, contacts, broadcasts and more.',
+                'meta_description' => 'Everything you get with Sayzio — all 15 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, store menus, file shares, events, calendars, contact cards, resume / portfolio pages, Bizs Profiles, reviews, brand / press kits), dynamic QR codes, deep analytics, forms, contacts, broadcasts and more.',
                 'sections' => [
                     ['heading' => 'A drag & drop Link in Bio page', 'body' => "Stack blocks for text, images, video, audio, embeds, products, donations and forms. Reorder by dragging, swap themes in a click, and publish a polished page in minutes — no design skills needed."],
                     ['heading' => 'Branded short links', 'body' => "Turn long URLs into clean, on-brand short links you can repoint at any time. Add UTMs automatically, password-protect sensitive links, expire them on a date or after N clicks, and route visitors by country, device or language."],
@@ -1126,9 +1126,13 @@ class SitePagesContent
             ['name' => 'Slides',          'icon' => 'fa-images',              'color' => '#fbbf24', 'new' => true,  'desc' => 'A swipeable, story-style page that presents your content as full-screen slides.'],
             ['name' => 'AI Chatbot',      'icon' => 'fa-robot',               'color' => '#a855f7', 'new' => false, 'desc' => 'An AI page that answers visitor questions about you using your own content, around the clock.'],
             ['name' => 'Restaurant Menu', 'icon' => 'fa-utensils',            'color' => '#fb7185', 'new' => true,  'desc' => 'A digital menu with categories, photos and prices — plus optional table-side ordering by QR.'],
+            ['name' => 'Store Menu',      'icon' => 'fa-store',               'color' => '#10b981', 'new' => true,  'desc' => 'A simple online store: products by category with a no-payment order-request cart for visitors.'],
             ['name' => 'File Share',      'icon' => 'fa-file-arrow-down',     'color' => '#38bdf8', 'new' => true,  'desc' => 'Upload a file and share it through a short link that streams the download to visitors.'],
             ['name' => 'Event',           'icon' => 'fa-calendar-day',        'color' => '#f472b6', 'new' => false, 'desc' => 'A shareable calendar event visitors can add to their own calendar in a single tap.'],
+            ['name' => 'Calendar',        'icon' => 'fa-calendar-days',       'color' => '#84cc16', 'new' => true,  'desc' => 'A followable calendar of your events visitors can subscribe to and sync to their own calendar.'],
             ['name' => 'Contact Card',    'icon' => 'fa-address-card',        'color' => '#ff8a3c', 'new' => true,  'desc' => 'A downloadable vCard so people can save your full contact details with one tap.'],
+            ['name' => 'Resume / Portfolio', 'icon' => 'fa-file-lines',       'color' => '#6366f1', 'new' => true,  'desc' => 'A polished, shareable resume / portfolio page with a one-tap PDF download and AI tailoring.'],
+            ['name' => 'Bizs Profile',    'icon' => 'fa-crown',               'color' => '#f43f5e', 'new' => true,  'desc' => 'A themeable creator home that automatically shows all your posts, tiers and tips — no linking needed.'],
             ['name' => 'Reviews Page',    'icon' => 'fa-star',                'color' => '#ffc845', 'new' => true,  'desc' => 'A review wall that collects and shows star ratings and feedback from your visitors.'],
             ['name' => 'Brand / Press Kit', 'icon' => 'fa-palette',           'color' => '#8b5cf6', 'new' => true,  'desc' => 'A polished press page with logo downloads, copy-able colour swatches, fonts and brand boilerplate.'],
         ];
@@ -1220,9 +1224,13 @@ class SitePagesContent
                     ['name' => 'Slides', 'icon' => 'fa-images', 'description' => 'A swipeable, story-style page that presents your content as full-screen slides, with background music and transitions.'],
                     ['name' => 'AI Chatbot', 'icon' => 'fa-robot', 'description' => 'An AI-powered page that answers visitor questions about you using your own content, around the clock.'],
                     ['name' => 'Restaurant Menu', 'icon' => 'fa-utensils', 'description' => 'A digital menu with categories, photos, descriptions and prices — plus optional table-side ordering by QR code.'],
+                    ['name' => 'Store Menu', 'icon' => 'fa-store', 'description' => 'A product catalog with categories and prices, plus a no-payment order-request cart that drops new orders straight into your dashboard.'],
                     ['name' => 'File Share', 'icon' => 'fa-file-arrow-down', 'description' => 'Upload a file and share it through a short link that streams the download straight to your visitors.'],
                     ['name' => 'Event', 'icon' => 'fa-calendar-day', 'description' => 'A shareable calendar event with a downloadable .ics file visitors can add to their own calendar in one tap.'],
+                    ['name' => 'Calendar', 'icon' => 'fa-calendar-days', 'description' => 'A followable calendar of your events that visitors can subscribe to, with one-tap sync to their own Google or device calendar.'],
                     ['name' => 'Contact Card', 'icon' => 'fa-address-card', 'description' => 'A downloadable vCard so people can save your full contact details — phones, emails, socials — with one tap.'],
+                    ['name' => 'Resume / Portfolio', 'icon' => 'fa-file-lines', 'description' => 'A shareable resume / portfolio page with named versions, a downloadable PDF, and AI tailoring for each role you apply to.'],
+                    ['name' => 'Bizs Profile', 'icon' => 'fa-crown', 'description' => 'A themeable creator home that automatically surfaces all your posts, membership tiers and tips in one gated profile — no manual linking needed.'],
                     ['name' => 'Reviews Page', 'icon' => 'fa-star', 'description' => 'A dedicated review wall that collects and shows star ratings and feedback from your visitors.'],
                     ['name' => 'Brand / Press Kit', 'icon' => 'fa-palette', 'description' => 'A polished, shareable press kit built from your saved Brand Kit — logo downloads, copy-able colour swatches, your font pairing, brand voice and boilerplate.'],
                 ],

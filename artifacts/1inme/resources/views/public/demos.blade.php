@@ -15,7 +15,7 @@
             See what you can <span class="grad-text">build</span>.
         </h1>
         <p class="mt-5 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed" data-anim="fade-up">
-            One dashboard, ten distinct kinds of link. Open any live example below to see exactly how it looks and works — then build your own in minutes.
+            One dashboard, fifteen distinct kinds of link. Open any live example below to see exactly how it looks and works — then build your own in minutes.
         </p>
         <div class="mt-7 flex flex-wrap items-center justify-center gap-3" data-anim="fade-up">
             @guest

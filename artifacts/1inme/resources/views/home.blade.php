@@ -3409,7 +3409,7 @@
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">What you can create</div>
             <h2 id="create-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Ten kinds of link.<br><span class="grad-text">One simple dashboard.</span>
+                Fifteen kinds of link.<br><span class="grad-text">One simple dashboard.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
                 A short link is just the start. Spin up a chat page, a slide story, a digital menu, a review wall and more — your AI helps draft each one, and every one is tracked and shareable from a single URL.

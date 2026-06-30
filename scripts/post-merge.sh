@@ -78,7 +78,8 @@ if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
     php artisan db:seed --class=Database\\\\Seeders\\\\StarterPageTemplatesSeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\PageTemplatePersonaSeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\ExpandedPageTemplateLibrarySeeder --force
-    echo \"[\$(date)] card-template + plan/addon + onboarding page-template seed finished\"
+    php artisan db:seed --class=Database\\\\Seeders\\\\LinkTypeExplainerSeeder --force
+    echo \"[\$(date)] card-template + plan/addon + onboarding page-template + link-type explainer seed finished\"
   " >> storage/logs/post-merge-recover.log 2>&1 < /dev/null &
   disown $! 2>/dev/null || true
 

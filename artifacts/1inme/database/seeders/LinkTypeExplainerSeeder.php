@@ -35,7 +35,7 @@ class LinkTypeExplainerSeeder extends Seeder
      * untouched pages get refreshed on the next seed. Edited pages are
      * still left alone (see refresh guard in seedPage()).
      */
-    private const SEED_VERSION = 4;
+    private const SEED_VERSION = 5;
 
     /**
      * Bump when the live demo restaurant menu (`/demo-restaurant`) content
@@ -388,7 +388,7 @@ class LinkTypeExplainerSeeder extends Seeder
     }
 
     /**
-     * The 10 marketing headline link types, each with consistent explainer
+     * The 15 marketing headline link types, each with consistent explainer
      * copy: a title, a heading, an intro, 4–5 feature bullets, and a CTA.
      */
     private function pages(): array
@@ -499,6 +499,23 @@ class LinkTypeExplainerSeeder extends Seeder
                 'cta_icon' => 'fa-utensils',
             ],
             [
+                'alias' => 'demo-type-store-menu',
+                'link_type' => 'store_menu',
+                'title' => 'Store Menu — explained',
+                'heading' => 'Store Menu 🛍️',
+                'intro' => 'A simple online store you can share as a link — list products by category and let visitors send you an order request. No checkout, no fees.',
+                'features' => [
+                    'Organise products into categories with photos and prices',
+                    'Visitors build a cart and send an order request — no payment needed',
+                    'New orders land in your dashboard with a New → Completed flow',
+                    'Pause ordering any time with a single toggle',
+                    'Optional one-tap “send my order on WhatsApp” button',
+                ],
+                'cta_label' => 'Build your store menu',
+                'cta_url' => $create('store_menu'),
+                'cta_icon' => 'fa-store',
+            ],
+            [
                 'alias' => 'demo-type-file-share',
                 'link_type' => 'file',
                 'title' => 'File Share — explained',
@@ -533,6 +550,23 @@ class LinkTypeExplainerSeeder extends Seeder
                 'cta_icon' => 'fa-calendar',
             ],
             [
+                'alias' => 'demo-type-calendar',
+                'link_type' => 'calendar',
+                'title' => 'Calendar — explained',
+                'heading' => 'Calendar 🗓️',
+                'intro' => 'Share all your upcoming events from a single link visitors can follow and sync. Great for communities, classes and anyone with a recurring schedule.',
+                'features' => [
+                    'List all your events on one shareable page',
+                    'Visitors follow your calendar and get new events automatically',
+                    'One-tap sync to Google or any device calendar',
+                    'Updates push out to everyone who subscribed',
+                    'Tracked and themeable like every Sayzio link',
+                ],
+                'cta_label' => 'Create your calendar',
+                'cta_url' => $create('calendar'),
+                'cta_icon' => 'fa-calendar-days',
+            ],
+            [
                 'alias' => 'demo-type-contact-card',
                 'link_type' => 'vcard',
                 'title' => 'Contact Card — explained',
@@ -548,6 +582,40 @@ class LinkTypeExplainerSeeder extends Seeder
                 'cta_label' => 'Make your contact card',
                 'cta_url' => $create('vcard'),
                 'cta_icon' => 'fa-id-card',
+            ],
+            [
+                'alias' => 'demo-type-resume-portfolio',
+                'link_type' => 'resume',
+                'title' => 'Resume / Portfolio — explained',
+                'heading' => 'Resume / Portfolio 📄',
+                'intro' => 'Turn your CV into a polished, shareable page with a one-tap PDF download. Built for job seekers, freelancers and anyone with work worth showing.',
+                'features' => [
+                    'Build a clean resume / portfolio page section by section',
+                    'Let visitors download a formatted PDF in one tap',
+                    'Keep multiple named versions for different roles',
+                    'Tailor it to a job with AI and draft a matching cover letter',
+                    'Import your details to get started in minutes',
+                ],
+                'cta_label' => 'Build your resume page',
+                'cta_url' => $create('resume'),
+                'cta_icon' => 'fa-file-lines',
+            ],
+            [
+                'alias' => 'demo-type-bizs-profile',
+                'link_type' => 'paid_page',
+                'title' => 'Bizs Profile — explained',
+                'heading' => 'Bizs Profile 👑',
+                'intro' => 'A themeable home for your whole creator brand that automatically shows your posts, membership tiers and tips — no manual linking needed.',
+                'features' => [
+                    'Automatically surfaces all your posts in one feed',
+                    'Offer membership tiers and collect tips in-page',
+                    'Gate content for followers, members or subscribers',
+                    'Fully themeable to match your brand',
+                    'Visitors follow, react and comment in one place',
+                ],
+                'cta_label' => 'Create your Bizs Profile',
+                'cta_url' => $create('paid_page'),
+                'cta_icon' => 'fa-crown',
             ],
             [
                 'alias' => 'demo-type-reviews-page',
