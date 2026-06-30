@@ -101,6 +101,12 @@ if (!$taken) {
   ]);
 }
 
+// Turn the AI builder card on so the "Build with AI" form renders and its
+// alias-trim submit can be exercised. The engine flag alone shows the card;
+// no OpenAI key is configured in this environment, so no real generation can
+// fire (and the test aborts the POST before it reaches the controller anyway).
+\\App\\Services\\AI\\AiEngineSettings::setEnabled(true);
+
 echo 'SEED_OK';
 `.trim();
 
@@ -296,6 +302,77 @@ for (const vp of VIEWPORTS) {
 
       // The blank alias was not forwarded — Step 2 will auto-generate one.
       expect(new URL(page.url()).searchParams.get("alias")).toBeNull();
+    });
+
+    test("typing an alias then opening the guided wizard carries it as ?alias=", async ({
+      page,
+    }) => {
+      await openPicker(page, vp.size);
+
+      // Type a custom address (with surrounding whitespace to prove the
+      // wizard card's onclick trims before forwarding).
+      const wizardAlias = `e2ewiz${Date.now()}`;
+      await page.locator("#create-link-alias").fill(`  ${wizardAlias}  `);
+
+      // Abort the heavy wizard navigation but capture the request the click
+      // produces, so we can assert the computed href without paying for the
+      // cold wizard render. The card's inline onclick reads #create-link-alias,
+      // trims it, and rewrites its own href to wizardBase?alias=<trimmed>.
+      await page.route("**/user/links/wizard*", (r) => r.abort());
+      const wizardReq = page.waitForRequest(
+        (r) => /\/user\/links\/wizard(\?|$)/.test(r.url()),
+        { timeout: 30_000 },
+      );
+      await page.locator("a[data-wizard-base]").click();
+      const req = await wizardReq;
+      await page.unroute("**/user/links/wizard*");
+
+      expect(new URL(req.url()).searchParams.get("alias")).toBe(wizardAlias);
+    });
+
+    test("the AI builder submit posts the trimmed alias", async ({ page }) => {
+      await openPicker(page, vp.size);
+
+      // The AI builder card (seeded on) is its own POST form to links.store;
+      // its onsubmit copies #create-link-alias into a hidden alias input,
+      // trimmed. Surrounding whitespace proves the trim happens.
+      const aiAlias = `e2eai${Date.now()}`;
+      await page.locator("#create-link-alias").fill(`  ${aiAlias}  `);
+
+      // Abort the store POST (so nothing is persisted) but capture its body.
+      await page.route("**/user/links", (r) => r.abort());
+      const storeReq = page.waitForRequest(
+        (r) => /\/user\/links$/.test(r.url()) && r.method() === "POST",
+        { timeout: 30_000 },
+      );
+      await page
+        .locator('form[action$="/user/links"] button[type="submit"]')
+        .click();
+      const req = await storeReq;
+      await page.unroute("**/user/links");
+
+      const body = req.postData() || "";
+      // Trimmed alias is posted, and the AI start mode is preserved.
+      expect(body).toContain(`alias=${aiAlias}`);
+      expect(body).not.toContain(`alias=+`); // no leading-space artefact
+      expect(body).toContain("start_mode=ai");
+    });
+
+    test("Continue stays disabled until a link type is selected", async ({
+      page,
+    }) => {
+      await openPicker(page, vp.size);
+
+      const cont = page.getByRole("button", { name: "Continue" });
+
+      // No type chosen on load → Continue is a real `disabled` button.
+      await expect(typeRadio(page, "url")).not.toBeChecked();
+      await expect(cont).toBeDisabled();
+
+      // Selecting a link type enables it.
+      await page.locator("#lt-card-url").click();
+      await expect(typeRadio(page, "url")).toBeChecked();
+      await expect(cont).toBeEnabled();
     });
   });
 }
