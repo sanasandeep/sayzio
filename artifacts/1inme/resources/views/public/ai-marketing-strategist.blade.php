@@ -7,69 +7,43 @@
 
     $accent = '#3d6bff';
 
-    // Pre-written strategy examples the hero "types out" live. Each one mirrors
-    // the real MarketingStrategistService output shape — a goal, a short
-    // summary, an organic + paid plan whose plays name concrete Sayzio
-    // features, and the KPIs to watch. Kept here (not live AI) so the page
-    // never makes an API call at load. Lines carry a `k` (kind) used purely
-    // for colour: head | sub | organic | paid | kpi | dim | plain.
-    $examples = [
-        [
-            'goal' => 'Grow my email + WhatsApp subscribers from my Link in Bio',
-            'lines' => [
-                ['k' => 'head', 't' => 'Turn bio traffic into owned subscribers'],
-                ['k' => 'dim',  't' => 'Convert the visitors you already get, then bring the warm ones back with a tiny paid budget.'],
-                ['k' => 'plain','t' => ''],
-                ['k' => 'sub',  't' => 'ORGANIC'],
-                ['k' => 'organic','t' => '1. Link in Bio — add a "Free guide" subscribe block above the fold'],
-                ['k' => 'dim',  't' => '   → captures email + WhatsApp straight into your Subscribers list'],
-                ['k' => 'organic','t' => '2. Creator Feed — schedule 3 posts a week teasing the guide'],
-                ['k' => 'organic','t' => '3. QR Code — a print-ready code on every offline touchpoint'],
-                ['k' => 'plain','t' => ''],
-                ['k' => 'sub',  't' => 'PAID  ·  $5–10/day'],
-                ['k' => 'paid', 't' => '1. Meta Ads — retarget visitors via your connected Facebook pixel'],
-                ['k' => 'paid', 't' => '2. Send every click to the same lead-magnet page'],
-                ['k' => 'plain','t' => ''],
-                ['k' => 'kpi',  't' => 'KPIs → subscriber growth · click-through · cost per lead'],
-            ],
-        ],
-        [
-            'goal' => 'Get more bookings for my studio this month',
-            'lines' => [
-                ['k' => 'head', 't' => 'Fill the calendar from a single link'],
-                ['k' => 'dim',  't' => 'Make booking the easiest action on your page, and back it with proof.'],
-                ['k' => 'plain','t' => ''],
-                ['k' => 'sub',  't' => 'ORGANIC'],
-                ['k' => 'organic','t' => '1. Link in Bio — pin a Calendar booking block to the very top'],
-                ['k' => 'organic','t' => '2. Reviews Wall — surface your 5-star reviews to build trust'],
-                ['k' => 'organic','t' => '3. Digital Card — share a vCard so referrals save you instantly'],
-                ['k' => 'plain','t' => ''],
-                ['k' => 'sub',  't' => 'PAID  ·  $8–15/day'],
-                ['k' => 'paid', 't' => '1. Google Ads — point local searches at your booking page'],
-                ['k' => 'paid', 't' => '2. Track every booking with your GA4 pixel on the link'],
-                ['k' => 'plain','t' => ''],
-                ['k' => 'kpi',  't' => 'KPIs → bookings · profile views · returning visitors'],
-            ],
-        ],
-        [
-            'goal' => 'Launch my new product drop',
-            'lines' => [
-                ['k' => 'head', 't' => 'Build hype, then convert on launch day'],
-                ['k' => 'dim',  't' => 'Collect a waitlist first so launch day starts with demand, not silence.'],
-                ['k' => 'plain','t' => ''],
-                ['k' => 'sub',  't' => 'ORGANIC'],
-                ['k' => 'organic','t' => '1. Link in Bio — a countdown + waitlist Form block'],
-                ['k' => 'organic','t' => '2. Creator Feed — a daily teaser post to your followers'],
-                ['k' => 'organic','t' => '3. Buzz — live social-proof notifications on new sign-ups'],
-                ['k' => 'plain','t' => ''],
-                ['k' => 'sub',  't' => 'PAID  ·  $10–20/day'],
-                ['k' => 'paid', 't' => '1. TikTok Ads — a short demo to the waitlist (TikTok pixel attached)'],
-                ['k' => 'paid', 't' => '2. Email the waitlist the moment you go live'],
-                ['k' => 'plain','t' => ''],
-                ['k' => 'kpi',  't' => 'KPIs → waitlist size · launch-day clicks · conversion rate'],
-            ],
-        ],
-    ];
+    // The hero terminal "types out" live example strategies, cycling through
+    // the SAME single source of truth the home strategist card uses
+    // (Common\Support\AiStrategistExamples, passed in as $aiStrategistExamples
+    // from the route). Each AiStrategistExamples entry — goal, head, organic
+    // {tag,items}, paid {tag,items}, kpi — is flattened here into the terminal's
+    // typed `lines` shape. Lines carry a `k` (kind) used purely for colour:
+    // head | sub | organic | paid | kpi | dim | plain. Keeping both surfaces on
+    // one data file means adding/removing an example is a one-line change.
+    $strategistSource = $aiStrategistExamples ?? \App\Modules\Common\Support\AiStrategistExamples::all();
+
+    $examples = [];
+    foreach ($strategistSource as $src) {
+        $lines = [
+            ['k' => 'head', 't' => $src['head'] ?? ''],
+            ['k' => 'plain', 't' => ''],
+            ['k' => 'sub', 't' => Illuminate\Support\Str::upper($src['organic']['tag'] ?? 'Organic')],
+        ];
+        foreach (($src['organic']['items'] ?? []) as $i => $item) {
+            $lines[] = ['k' => 'organic', 't' => ($i + 1) . '. ' . ($item['text'] ?? '')];
+        }
+
+        // Split the paid tag ("Paid · $5–10/day") so the budget hint survives
+        // the upper-casing applied to the "PAID" label.
+        $paidParts = array_map('trim', explode('·', $src['paid']['tag'] ?? 'Paid'));
+        $paidSub = 'PAID' . (isset($paidParts[1]) && $paidParts[1] !== '' ? '  ·  ' . $paidParts[1] : '');
+
+        $lines[] = ['k' => 'plain', 't' => ''];
+        $lines[] = ['k' => 'sub', 't' => $paidSub];
+        foreach (($src['paid']['items'] ?? []) as $i => $item) {
+            $lines[] = ['k' => 'paid', 't' => ($i + 1) . '. ' . ($item['text'] ?? '')];
+        }
+
+        $lines[] = ['k' => 'plain', 't' => ''];
+        $lines[] = ['k' => 'kpi', 't' => 'KPIs → ' . ($src['kpi'] ?? '')];
+
+        $examples[] = ['goal' => $src['goal'] ?? '', 'lines' => $lines];
+    }
 
     // The real data sources the strategist reads from (mirrors
     // MarketingStrategistService::SOURCES) — used in the "grounded in your
@@ -318,11 +292,19 @@
                         <span class="ms-term-title"><span class="ms-live" aria-hidden="true"></span> Sayzio · Marketing Strategist</span>
                     </div>
                     <div class="ms-term-body">
+                        @php $msFirst = $examples[0] ?? ['goal' => '', 'lines' => []]; @endphp
                         <div class="ms-goal-row">
                             <span class="ms-goal-label">Goal</span>
-                            <span class="ms-goal-text" id="msGoal"></span>
+                            {{-- Server-rendered first example so the card is assembled without
+                                 JS (no-JS / reduced-motion). The typewriter JS clears and
+                                 re-types these on enhanced clients. --}}
+                            <span class="ms-goal-text" id="msGoal">{{ $msFirst['goal'] ?? '' }}</span>
                         </div>
-                        <div class="ms-out" id="msOut"></div>
+                        <div class="ms-out" id="msOut">
+                            @foreach (($msFirst['lines'] ?? []) as $msLine)
+                                <div class="ms-line ms-k-{{ $msLine['k'] ?? 'plain' }}">{{ $msLine['t'] ?? '' }}</div>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
                 <div class="ms-badge float-y" style="bottom: -18px; left: -14px;">

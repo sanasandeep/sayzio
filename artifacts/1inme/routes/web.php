@@ -270,7 +270,13 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     // Standalone marketing page for the Résumé / Portfolio Builder module.
     Route::view('/resume-builder', 'public.resume-builder', ['seoKey' => 'resume-builder'])->name('site.resume-builder');
     // Standalone marketing page for the AI Marketing Strategist feature.
-    Route::view('/ai-marketing-strategist', 'public.ai-marketing-strategist', ['seoKey' => 'ai-marketing-strategist'])->name('site.ai-marketing-strategist');
+    Route::view('/ai-marketing-strategist', 'public.ai-marketing-strategist', [
+        'seoKey' => 'ai-marketing-strategist',
+        // Same single-source example goals the home strategist card cycles
+        // through (Common\Support\AiStrategistExamples), so both surfaces show
+        // the same breadth and stay in sync from one data file.
+        'aiStrategistExamples' => \App\Modules\Common\Support\AiStrategistExamples::all(),
+    ])->name('site.ai-marketing-strategist');
     Route::get('/services', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('services'))->name('site.services');
     // Competitor comparison "vs" landing pages. Data driven by ComparisonContent.
     Route::get('/compare', [\App\Modules\Common\Controllers\SitePageController::class, 'compareIndex'])->name('site.compare.index');
