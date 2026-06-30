@@ -195,10 +195,11 @@ class EmailTemplateRegistry
                 'format' => 'text',
                 'body_type' => 'inline',
                 'subject' => "Renewal failed — we couldn't charge your payment method",
-                'body' => "We couldn't process your renewal for {{plan_name}}.\nYour plan features remain active until {{grace_until}}. Please update your payment method before then.",
+                'body' => "We couldn't process your renewal for {{plan_name}}.\nYour plan features remain active until {{grace_until}}. Please update your payment method before then: {{update_url}}\nWe'll automatically retry the charge while your grace period is open, so once your card is fixed your plan keeps running.",
                 'variables' => [
                     'plan_name' => ['label' => 'Plan name', 'sample' => 'Pro'],
                     'grace_until' => ['label' => 'Grace period end', 'sample' => 'July 30, 2026'],
+                    'update_url' => ['label' => 'Update payment method link', 'sample' => 'https://app.example.com/user/billing'],
                 ],
             ],
             'billing.subscription_grace_ending' => [

@@ -11,7 +11,7 @@ class Subscription extends Model
         'user_id', 'plan_id', 'status', 'billing_cycle',
         'current_period_start', 'current_period_end', 'cancel_at',
         'cancel_at_period_end', 'replaced_by_id', 'grace_until',
-        'grace_ending_notified_at', 'scheduled_downgrade_plan_id',
+        'grace_ending_notified_at', 'renewal_retry_at', 'scheduled_downgrade_plan_id',
         'gateway', 'gateway_subscription_id', 'currency',
     ];
 
@@ -24,6 +24,7 @@ class Subscription extends Model
             'cancel_at_period_end'     => 'boolean',
             'grace_until'              => 'datetime',
             'grace_ending_notified_at' => 'datetime',
+            'renewal_retry_at'         => 'datetime',
         ];
     }
 

@@ -48,9 +48,21 @@ class RenewDueSubscriptions extends Command
      */
     private const RENEWAL_FAILURE_ALERT_THRESHOLD = 5;
 
+    /**
+     * Minimum hours between in-grace recurring-charge retries for a single
+     * subscription. The cron runs hourly; this throttles retries to roughly
+     * once a day so a still-declining card isn't hammered every hour, while
+     * a multi-day grace window still gets several recovery attempts.
+     */
+    private const RENEWAL_RETRY_INTERVAL_HOURS = 24;
+
     public function handle(GatewayManager $gateways, SubscriptionLifecycle $lifecycle): int
     {
         $this->processScheduledCancellations($lifecycle);
+        // Retry in-grace renewals FIRST, before any step that can freshly
+        // mark a sub past_due this run — so a brand-new failure waits for the
+        // next tick instead of being re-charged twice in the same run.
+        $this->retryDuringGrace($gateways);
         $this->applyScheduledDowngrades($gateways, $lifecycle);
         $this->transitionUnpaidPastPeriod($lifecycle);
         $this->renewUpcoming($gateways, $lifecycle);
@@ -235,6 +247,62 @@ class RenewDueSubscriptions extends Command
             );
         } catch (\Throwable $e) {
             Log::warning('Failed to dispatch renewal-failure alert: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Re-attempt the recurring charge for subscriptions sitting in their
+     * grace window (past_due/grace, grace_until still in the future).
+     *
+     * Why: a renewal can fail transiently — an expired card the creator has
+     * since replaced, a temporary gateway outage. Without a retry the sub
+     * would wait out the WHOLE grace window and then expire, even though the
+     * card would now succeed. A recovered charge issues a paid renewal
+     * invoice which ActivateSubscription settles, flipping the sub back to
+     * `active` and clearing grace_until — no extra code needed here.
+     *
+     * Throttled to ~once per day via `renewal_retry_at` so the hourly cron
+     * neither hammers a still-declining card nor floods the gateway, while
+     * still guaranteeing at least one attempt before grace ends. Skips any
+     * sub that already has a pending/awaiting/paid renewal invoice for this
+     * period so we never double-charge. A retry that fails again is left
+     * quietly in grace — markRenewalFailed already fired the first notice and
+     * opened the window; re-notifying every retry would just spam the user.
+     */
+    protected function retryDuringGrace(GatewayManager $gateways): void
+    {
+        $cutoff = now()->subHours(self::RENEWAL_RETRY_INTERVAL_HOURS);
+
+        $subs = Subscription::whereIn('status', ['past_due', 'grace'])
+            ->whereNotNull('grace_until')
+            ->where('grace_until', '>', now())
+            ->where(function ($q) use ($cutoff) {
+                $q->whereNull('renewal_retry_at')
+                  ->orWhere('renewal_retry_at', '<=', $cutoff);
+            })
+            ->get();
+
+        foreach ($subs as $sub) {
+            // A renewal invoice already covers this period (e.g. an offline
+            // awaiting-approval invoice from a prior retry) — don't re-charge.
+            if ($this->hasRenewalInvoice($sub)) continue;
+
+            // Stamp BEFORE attempting so a throwing/declining charge still
+            // throttles the next tick instead of retrying every hour.
+            $sub->forceFill(['renewal_retry_at' => now()])->save();
+
+            try {
+                $adapter = $gateways->for($sub->gateway ?? 'offline');
+                $adapter->chargeRecurring($sub);
+            } catch (NotImplementedException $e) {
+                // Gateway can't auto-charge (offline class) — leave it in grace
+                // to be settled manually; the first notice already went out.
+            } catch (\Throwable $e) {
+                // Still declining. Stay in grace and try again next interval.
+                Log::info('grace retry chargeRecurring failed', [
+                    'sub' => $sub->id, 'err' => $e->getMessage(),
+                ]);
+            }
         }
     }
 

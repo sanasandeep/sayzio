@@ -40,6 +40,9 @@ class SubscriptionLifecycle
                 'status'                   => 'past_due',
                 'grace_until'              => $graceUntil,
                 'grace_ending_notified_at' => null,
+                // Reset so the next cron tick re-attempts the charge from a
+                // clean slate for THIS grace window (a fixed card can recover).
+                'renewal_retry_at'         => null,
             ])->save();
 
             $this->notify($subscription, 'renewal_failed', [
@@ -240,6 +243,8 @@ class SubscriptionLifecycle
                 'target_plan'    => $extra['target_plan'] ?? null,
                 'effective'      => $extra['effective'] ?? null,
                 'dropped_addons' => $droppedSummary,
+                // Deep-link the creator to where they can fix the card on file.
+                'update_url'     => $this->billingManageUrl(),
             ], [
                 'user'    => optional($subscription->user)->id,
                 'related' => $subscription,
@@ -295,6 +300,21 @@ class SubscriptionLifecycle
             );
         } catch (\Throwable $e) {
             Log::warning('Lifecycle in-app notify failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Absolute URL of the billing dashboard, where the creator can update
+     * the payment method / card on file after a failed renewal. Falls back
+     * to a plain APP_URL path if route generation is unavailable (e.g. the
+     * route table isn't booted), so the notice always carries a working link.
+     */
+    protected function billingManageUrl(): string
+    {
+        try {
+            return route('user.billing.show');
+        } catch (\Throwable $e) {
+            return rtrim((string) config('app.url'), '/') . '/user/billing';
         }
     }
 }
