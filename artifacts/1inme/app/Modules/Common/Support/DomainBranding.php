@@ -104,6 +104,31 @@ class DomainBranding
     }
 
     /**
+     * The custom square icon to drive the browser-tab favicon, or null when
+     * none has been uploaded.
+     *
+     * A non-primary global domain's own icon takes priority; otherwise the
+     * platform admin-uploaded "Square icon" (Admin → Branding) is used. The
+     * bundled default path (`/branding/icon.jpg`) is treated as "not custom"
+     * so callers fall back to the crafted static favicon file set (.ico/.svg/
+     * multiple PNG sizes) instead of a single uploaded raster.
+     */
+    public static function faviconUrl(): ?string
+    {
+        $domain = self::currentGlobalDomain();
+        if ($domain && !empty($domain->brand_icon_url)) {
+            return $domain->brand_icon_url;
+        }
+
+        $icon = AppSetting::get('brand_icon_url', null);
+        if (is_string($icon) && $icon !== '' && ltrim($icon, '/') !== 'branding/icon.jpg') {
+            return $icon;
+        }
+
+        return null;
+    }
+
+    /**
      * Relationship payload for the non-primary domain's landing page, or
      * null when the current host is the primary domain / not a global
      * domain. Uses the admin-edited blurb when set, otherwise a sensible
