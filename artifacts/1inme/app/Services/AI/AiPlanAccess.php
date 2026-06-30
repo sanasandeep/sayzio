@@ -181,6 +181,10 @@ class AiPlanAccess
             'ai_widget'          => true,
             'card_scan'          => true,
             'ai_resume_tools'    => true,
+            // Inbox Agent (Inbox 2.0 AI) — had no per-plan gating before
+            // (fell through to default-on); keep it on so the per-plan flag
+            // is purely additive once plans carry the key.
+            'inbox_agent'        => true,
             // Brand consistency score + On-Brand AI (Task #2664) — legacy-safe
             // default-on; per-plan unlock applies once plans carry the key.
             'brand_consistency'  => true,

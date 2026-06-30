@@ -55,6 +55,7 @@ class PremiumFeatures
             ['key' => 'max_calendars', 'group' => 'Pages & link types', 'name' => 'Calendars', 'description' => 'How many followable calendar link pages (events, ICS feed, Google sync) you can publish.', 'unit' => 'calendars'],
             ['key' => 'max_calendar_events', 'group' => 'Pages & link types', 'name' => 'Events per calendar', 'description' => 'How many events each calendar page can hold.', 'unit' => 'events / calendar'],
             ['key' => 'max_brand_kit_pages', 'group' => 'Pages & link types', 'name' => 'Brand / Press Kit pages', 'description' => 'How many shareable Brand / Press Kit pages (logos, colours, fonts, voice, boilerplate) you can publish.', 'unit' => 'pages'],
+            ['key' => 'max_paid_page', 'group' => 'Pages & link types', 'name' => 'Paid / members pages', 'description' => 'How many paid, members-only content pages you can publish — gated behind a follow, subscription or one-off payment.', 'unit' => 'pages'],
             ['key' => 'calendar_sync', 'group' => 'Pages & link types', 'name' => 'Calendar sync', 'description' => 'Two-way sync between your calendar events and Google Calendar so updates flow both ways automatically.'],
 
             // ---- Short links & aliases ----
@@ -155,6 +156,11 @@ class PremiumFeatures
             ['key' => 'ask_coach', 'group' => 'AI suite', 'name' => 'Account Assistant', 'description' => 'Chat with an AI advisor for plain-English, one-tap tips on improving your account.'],
             ['key' => 'card_scan', 'group' => 'AI suite', 'name' => 'Card & Brochure Scanner', 'description' => 'Snap a business card or brochure and let AI extract the details straight into a Link in Bio or contact.'],
             ['key' => 'ai_resume_tools', 'group' => 'AI suite', 'name' => 'AI Resume Tools', 'description' => 'AI tailoring, cover-letter writing and resume import to build a polished, shareable resume in minutes.'],
+            ['key' => 'inbox_agent', 'group' => 'AI suite', 'name' => 'Inbox Agent', 'description' => 'AI that triages your unified inbox, drafts on-brand replies and can run on autopilot — staging anything sensitive for your review.'],
+            ['key' => 'brand_consistency', 'group' => 'AI suite', 'name' => 'Brand Consistency AI', 'description' => 'A live Brand Consistency Score plus on-brand prompt injection so every AI-generated page, reply and asset stays true to your brand kit.'],
+            ['key' => 'qr_art', 'group' => 'AI suite', 'name' => 'AI Artistic QR', 'description' => 'Generate eye-catching, on-brand artistic QR codes with AI that still scan reliably.'],
+            ['key' => 'whatsapp_agent', 'group' => 'AI suite', 'name' => 'WhatsApp AI Agent', 'description' => 'An AI responder for inbound WhatsApp messages that answers questions and captures leads in your voice, around the clock.'],
+            ['key' => 'marketing_strategist', 'group' => 'AI suite', 'name' => 'AI Marketing Strategist', 'description' => 'An AI strategist that analyses your account and audience to build saved, actionable marketing plans and campaign ideas.'],
         ];
     }
 

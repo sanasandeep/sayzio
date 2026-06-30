@@ -38,6 +38,7 @@ class PlanFormCatalogue
             'module_resume'       => ['label' => 'Resume / Portfolio',   'desc' => 'Standalone resume / portfolio link pages with PDF export.'],
             'module_calendar'     => ['label' => 'Calendars',            'desc' => 'Followable calendar link pages with events, ICS feed and Google sync.'],
             'module_brand_kit'    => ['label' => 'Brand / Press Kit',    'desc' => 'Shareable Brand / Press Kit pages (logos, colours, fonts, voice, boilerplate).'],
+            'module_paid_page'    => ['label' => 'Paid / Members Pages', 'desc' => 'Paid, members-only content pages gated behind a follow, subscription or payment.'],
             'module_projects'     => ['label' => 'Projects',             'desc' => 'Group links into separate brands or campaigns.'],
             'module_forms'        => ['label' => 'Custom Forms',         'desc' => 'Branded lead-capture forms inside Link in Bio pages.'],
             'module_contacts'     => ['label' => 'Contacts / CRM',       'desc' => 'CRM entries, follower opt-ins and Google Contacts sync.'],
@@ -69,6 +70,7 @@ class PlanFormCatalogue
             ['key' => 'max_resume',           'label' => 'Max resume / portfolio pages','default' => 1, 'module' => 'module_resume',     'hint' => 'How many resume / portfolio link pages a user can publish.'],
             ['key' => 'max_calendars',        'label' => 'Max calendars',           'default' => 1,   'module' => 'module_calendar',    'hint' => 'How many followable calendar link pages a user can publish.'],
             ['key' => 'max_brand_kit_pages',  'label' => 'Max Brand / Press Kit pages','default' => 1, 'module' => 'module_brand_kit',   'hint' => 'How many shareable Brand / Press Kit link pages a user can publish. (Distinct from the AI brand-kit save limit above.)'],
+            ['key' => 'max_paid_page',        'label' => 'Max paid / members pages','default' => 1,   'module' => 'module_paid_page',   'hint' => 'How many paid, members-only content pages a user can publish. 0 = feature hidden / upgrade prompt; -1 = unlimited.'],
             ['key' => 'max_calendar_events',  'label' => 'Max events per calendar', 'default' => 25,  'module' => 'module_calendar',    'hint' => 'How many events each calendar can hold. -1 = unlimited.'],
             ['key' => 'max_projects',         'label' => 'Max projects',            'default' => 3,   'module' => 'module_projects',    'hint' => 'Project / workspace buckets to organize links.'],
             ['key' => 'storage_limit_mb',     'label' => 'Total storage (MB)',      'default' => 100, 'module' => null,                 'hint' => 'Total disk space across all uploads. See the Storage section for a GB converter.'],
@@ -205,6 +207,11 @@ class PlanFormCatalogue
             ['key' => 'ai_agent',           'module' => 'module_ai_suite'],
             ['key' => 'ai_widget',          'module' => 'module_ai_suite'],
             ['key' => 'ai_voice_assistant', 'module' => 'module_ai_suite'],
+            ['key' => 'inbox_agent',          'module' => 'module_ai_suite'],
+            ['key' => 'brand_consistency',    'module' => 'module_ai_suite'],
+            ['key' => 'qr_art',               'module' => 'module_ai_suite'],
+            ['key' => 'whatsapp_agent',       'module' => 'module_ai_suite'],
+            ['key' => 'marketing_strategist', 'module' => 'module_ai_suite'],
         ];
     }
 
@@ -375,7 +382,9 @@ class PlanFormCatalogue
             'module_contacts'     => ['contacts_max', 'contacts_google_sync'],
             'module_teams'        => ['teams', 'max_workspaces', 'max_seats_per_workspace'],
             'module_ecommerce'    => ['ecommerce'],
-            'module_ai_suite'     => ['ai_chatbot', 'ai_agent', 'ai_widget', 'ai_voice_assistant'],
+            'module_paid_page'    => ['max_paid_page'],
+            'module_ai_suite'     => ['ai_chatbot', 'ai_agent', 'ai_widget', 'ai_voice_assistant',
+                                      'inbox_agent', 'brand_consistency', 'qr_art', 'whatsapp_agent', 'marketing_strategist'],
             'module_branding'     => ['custom_branding', 'remove_branding', 'custom_favicon', 'custom_code'],
             'module_domains'      => ['custom_domains', 'max_custom_domains'],
             'module_integrations' => ['integration_accounts_max', 'integration_providers_allowed'],
