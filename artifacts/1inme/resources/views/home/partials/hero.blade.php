@@ -34,49 +34,64 @@
                     <strong class="text-white">Zio</strong> is the AI at the heart of Sayzio. It builds your pages, coaches your growth, replies to visitors — even answers your calls. One smart link that markets you 24/7, <strong class="text-white">free forever</strong>, no card required.
                 </p>
 
-                @php
-                    // Canonical brand host for the "claim your link" prefix — read
-                    // from the platform's primary domain rather than hardcoded so a
-                    // rebrand carries through automatically.
-                    $claimHost = \App\Modules\Common\Support\PlatformHosts::PLATFORM_DOMAINS[0] ?? 'sayzio.app';
-                @endphp
-                {{-- Claim-your-link control: a higher-intent entry point than the
-                     generic CTA. The handle the visitor types is carried into the
-                     register modal (via the open-auth event) and reserved as their
-                     @handle right after sign-up. Empty submit just opens register. --}}
-                <form class="zio-claim-form reveal rd-3" onsubmit="return window.zioClaimSubmit(event)" aria-label="Claim your link"
-                      data-handle-check-url="{{ route('site.handle.available') }}">
-                    <label for="zio-claim-input" class="zio-claim-label">Claim your link — pick your handle</label>
-                    <div class="zio-claim" id="zio-claim-box">
-                        <span class="zio-claim-prefix" aria-hidden="true">{{ $claimHost }}/@</span>
-                        <input id="zio-claim-input" name="desired_handle" type="text"
-                               autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"
-                               maxlength="30" placeholder="yourname" class="zio-claim-input"
-                               aria-describedby="zio-claim-status">
-                        <span class="zio-claim-mark" id="zio-claim-mark" aria-hidden="true"></span>
-                        <button type="submit" class="zio-claim-btn btn-bounce grad-bar">
-                            Claim your link <i class="fas fa-arrow-right text-xs"></i>
-                        </button>
-                    </div>
-                    {{-- Live verdict + suggestions. role=status keeps it announced
-                         to screen readers; the message text is driven by the
-                         public site.handle.available endpoint (mirrors submit-time
-                         handle rules). --}}
-                    <p id="zio-claim-status" class="zio-claim-status" role="status" aria-live="polite" data-state=""></p>
-                    <div id="zio-claim-suggest" class="zio-claim-suggest" hidden>
-                        <span class="zio-claim-suggest-label">Try one of these:</span>
-                        <span id="zio-claim-suggest-list" class="zio-claim-suggest-list"></span>
-                    </div>
-                </form>
+                @guest
+                    @php
+                        // Canonical brand host for the "claim your link" prefix — read
+                        // from the platform's primary domain rather than hardcoded so a
+                        // rebrand carries through automatically.
+                        $claimHost = \App\Modules\Common\Support\PlatformHosts::PLATFORM_DOMAINS[0] ?? 'sayzio.app';
+                    @endphp
+                    {{-- Claim-your-link control: a higher-intent entry point than the
+                         generic CTA. The handle the visitor types is carried into the
+                         register modal (via the open-auth event) and reserved as their
+                         @handle right after sign-up. Empty submit just opens register.
+                         Signup-oriented, so guests only. --}}
+                    <form class="zio-claim-form reveal rd-3" onsubmit="return window.zioClaimSubmit(event)" aria-label="Claim your link"
+                          data-handle-check-url="{{ route('site.handle.available') }}">
+                        <label for="zio-claim-input" class="zio-claim-label">Claim your link — pick your handle</label>
+                        <div class="zio-claim" id="zio-claim-box">
+                            <span class="zio-claim-prefix" aria-hidden="true">{{ $claimHost }}/@</span>
+                            <input id="zio-claim-input" name="desired_handle" type="text"
+                                   autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"
+                                   maxlength="30" placeholder="yourname" class="zio-claim-input"
+                                   aria-describedby="zio-claim-status">
+                            <span class="zio-claim-mark" id="zio-claim-mark" aria-hidden="true"></span>
+                            <button type="submit" class="zio-claim-btn btn-bounce grad-bar">
+                                Claim your link <i class="fas fa-arrow-right text-xs"></i>
+                            </button>
+                        </div>
+                        {{-- Live verdict + suggestions. role=status keeps it announced
+                             to screen readers; the message text is driven by the
+                             public site.handle.available endpoint (mirrors submit-time
+                             handle rules). --}}
+                        <p id="zio-claim-status" class="zio-claim-status" role="status" aria-live="polite" data-state=""></p>
+                        <div id="zio-claim-suggest" class="zio-claim-suggest" hidden>
+                            <span class="zio-claim-suggest-label">Try one of these:</span>
+                            <span id="zio-claim-suggest-list" class="zio-claim-suggest-list"></span>
+                        </div>
+                    </form>
 
-                <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 justify-center lg:justify-start">
-                    <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','hero'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap shrink-0">
-                        Start free with AI <i class="fas fa-arrow-right text-sm"></i>
-                    </button>
-                    <a href="#ai-suite" class="zio-cta-ghost inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full text-base font-bold whitespace-nowrap">
-                        Meet the AI suite
-                    </a>
-                </div>
+                    <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 justify-center lg:justify-start">
+                        <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','hero'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap shrink-0">
+                            Start free with AI <i class="fas fa-arrow-right text-sm"></i>
+                        </button>
+                        <a href="#ai-suite" class="zio-cta-ghost inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full text-base font-bold whitespace-nowrap">
+                            Meet the AI suite
+                        </a>
+                    </div>
+                @else
+                    {{-- Already signed in: no signup CTAs. Send them straight to
+                         their dashboard instead of asking them to claim a handle /
+                         "start free" again. --}}
+                    <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 justify-center lg:justify-start">
+                        <a href="{{ route('user.dashboard') }}" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap shrink-0">
+                            Go to your dashboard <i class="fas fa-arrow-right text-sm"></i>
+                        </a>
+                        <a href="#ai-suite" class="zio-cta-ghost inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full text-base font-bold whitespace-nowrap">
+                            Meet the AI suite
+                        </a>
+                    </div>
+                @endguest
 
                 <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-3 mt-12 justify-center lg:justify-start text-sm">
                     <span class="flex items-center gap-2 text-gray-400">

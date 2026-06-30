@@ -35,9 +35,15 @@
                     @endforeach
                 </ul>
                 <div class="reveal rd-4 flex flex-wrap items-center gap-4">
-                    <a href="{{ route('register.page') }}" class="wa-btn wa-btn-primary">
-                        <i class="fab fa-whatsapp"></i> Get started free
-                    </a>
+                    @guest
+                        <a href="{{ route('register.page') }}" class="wa-btn wa-btn-primary">
+                            <i class="fab fa-whatsapp"></i> Get started free
+                        </a>
+                    @else
+                        <a href="{{ route('user.dashboard') }}" class="wa-btn wa-btn-primary">
+                            <i class="fab fa-whatsapp"></i> Go to your dashboard
+                        </a>
+                    @endguest
                     <a href="{{ $waUrl }}" class="wa-btn wa-btn-ghost">
                         See how it works <i class="fas fa-arrow-right text-xs"></i>
                     </a>
