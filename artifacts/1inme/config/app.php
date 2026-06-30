@@ -123,4 +123,18 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Favicon Cache-Bust Version
+    |--------------------------------------------------------------------------
+    |
+    | Single source of truth for the platform favicon/app-icon cache-busting
+    | query string. Bump this whenever the bundled icons are refreshed so every
+    | favicon reference (shared icon partial + editor preview fallbacks) picks
+    | up the new version in lockstep and previews can't drift.
+    |
+    */
+
+    'icon_version' => '20260630',
+
 ];
