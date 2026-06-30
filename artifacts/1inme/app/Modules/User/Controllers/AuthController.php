@@ -3,7 +3,6 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Admin\Rules\NotBannedName;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Plan;
@@ -16,9 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -202,27 +199,13 @@ class AuthController extends Controller
      */
     private function applyClaimedHandle(User $user, ?string $raw): ?string
     {
-        $handle = strtolower(trim((string) $raw));
-        if ($handle === '') {
-            return null;
-        }
-
-        $validator = Validator::make(['handle' => $handle], [
-            'handle' => [
-                'string', 'min:3', 'max:30',
-                'regex:/^[a-z0-9_]+$/i',
-                Rule::unique('users', 'handle'),
-                new NotBannedName(),
-            ],
-        ]);
-
-        if ($validator->fails()) {
-            return $handle;
-        }
-
-        $user->forceFill(['handle' => $handle])->save();
-
-        return null;
+        // Delegate to the shared helper so every sign-up surface that can
+        // receive a claimed handle (web register form + OTP/WhatsApp signup)
+        // validates it identically and can never drift. The helper preserves
+        // the same return contract: null when applied / nothing to do, or the
+        // sanitized handle when it couldn't be applied (so the caller can show
+        // a friendly "that one was taken" notice).
+        return \App\Modules\Common\Support\ClaimedHandle::apply($user, $raw);
     }
 
     public function showLogin()

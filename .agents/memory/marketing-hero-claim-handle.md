@@ -22,6 +22,16 @@ several lockstep surfaces — change them together or the handle silently drops:
 - **Standalone register page** carries it via `?handle=` query →
   `AuthController::showRegister` passes `$prefilledHandle` → hidden field.
 - **`AuthController::register`** calls `applyClaimedHandle()` AFTER `User::create`.
+- **OTP/WhatsApp sign-UP path** (`Api\OtpController::register`, mobile) honors a
+  `desired_handle` after create. NOTE the *web* WhatsApp/OTP variant
+  (`AuthController::sendOtp`/`verifyOtp`) is LOGIN-ONLY — it never creates an
+  account for an unknown identifier, so it can't drop a claimed handle; the web
+  claim only ever rides the register form.
+
+**Shared validation:** all sign-up surfaces now apply the handle through
+`App\Modules\Common\Support\ClaimedHandle::apply(User,?string)` (the canonical
+rules below live there) — keep new claim surfaces on that helper so they can't
+drift.
 
 **Why graceful, not validated-at-form:** `applyClaimedHandle` re-validates with
 the canonical claim rules (mirror `CreatorProfileController::claimHandle`:

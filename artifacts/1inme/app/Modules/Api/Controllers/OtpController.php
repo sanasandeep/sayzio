@@ -128,6 +128,12 @@ class OtpController extends Controller
             'identifier' => ['required', 'string', 'max:190'],
             'type'       => ['required', Rule::in(['email', 'mobile'])],
             'country'    => ['nullable', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
+            // A handle the visitor claimed up-front (e.g. the marketing
+            // hero's "claim your link" pill, carried through the WhatsApp/OTP
+            // sign-up path). Loosely bounded here; the canonical
+            // format/uniqueness/banned-name rules run in ClaimedHandle::apply,
+            // which silently skips anything invalid so sign-up never dead-ends.
+            'desired_handle' => ['nullable', 'string', 'max:60'],
         ]);
 
         if ($denied = $this->guardMobile($data['type'], $data['identifier'])) {
@@ -156,6 +162,13 @@ class OtpController extends Controller
         if (method_exists($user, 'ensureDefaultWorkspace')) {
             $user->ensureDefaultWorkspace();
         }
+
+        // If the visitor claimed a handle up-front (e.g. the marketing hero's
+        // "claim your link" pill routed into the WhatsApp/OTP sign-up path),
+        // reserve it now so it's waiting after verification. Validation mirrors
+        // the web register form; invalid/taken/banned values are silently
+        // skipped so sign-up never dead-ends.
+        \App\Modules\Common\Support\ClaimedHandle::apply($user, $data['desired_handle'] ?? null);
 
         $code = $otp->generate($data['identifier'], $data['type'], 'login', 'web', $request->ip());
         try {
