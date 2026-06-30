@@ -59,9 +59,15 @@
                     Plug in Instagram, TikTok, Facebook, X, LinkedIn and Pinterest with a single tap. Connections auto-retry when tokens expire, status is always visible, and you get a notification the moment something needs your attention.
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
-                        <i class="fas fa-rocket text-xs"></i> Connect your accounts
-                    </a>
+                    @guest
+                        <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                            <i class="fas fa-rocket text-xs"></i> Connect your accounts
+                        </a>
+                    @else
+                        <a href="{{ route('user.dashboard') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                            <i class="fas fa-rocket text-xs"></i> Go to your dashboard
+                        </a>
+                    @endguest
                     <a href="{{ route('site.features') }}#cat-integrations" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
                         See all integrations
                     </a>
@@ -165,7 +171,11 @@
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Plug it in. <span class="grad-text">Forget about it.</span></h3>
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up your free Sayzio, connect every network you live on, and let auto-retry keep things running while you ship.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Connect now — free</a>
+                    @guest
+                        <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Connect now — free</a>
+                    @else
+                        <a href="{{ route('user.dashboard') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Go to your dashboard</a>
+                    @endguest
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>
                 </div>
             </div>

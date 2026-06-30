@@ -90,7 +90,7 @@
     $ctaBody       = $or($ctaCfg['body']            ?? '', 'Whether you are a creator with feedback or a developer who wants to join, we love hearing from you.');
     $ctaPrimaryLbl = $or($ctaCfg['primary_label']   ?? '', 'Try Sayzio free');
     $ctaPrimaryUrl = trim((string)($ctaCfg['primary_url']   ?? ''));
-    if ($ctaPrimaryUrl === '') $ctaPrimaryUrl = route('register.page');
+    if ($ctaPrimaryUrl === '') $ctaPrimaryUrl = auth()->check() ? route('user.dashboard') : route('register.page');
     $ctaSecondaryLbl = $or($ctaCfg['secondary_label'] ?? '', 'Say hello');
     $ctaSecondaryUrl = trim((string)($ctaCfg['secondary_url'] ?? ''));
     if ($ctaSecondaryUrl === '') $ctaSecondaryUrl = route('site.contact');

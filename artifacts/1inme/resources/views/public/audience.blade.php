@@ -56,9 +56,15 @@
                     Lightweight viewer accounts, live follower counts, a public creators directory, daily digest emails with previews and test sends, and one-tap follow buttons on every social block. No algorithms, no middlemen.
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
-                        <i class="fas fa-rocket text-xs"></i> Start growing free
-                    </a>
+                    @guest
+                        <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                            <i class="fas fa-rocket text-xs"></i> Start growing free
+                        </a>
+                    @else
+                        <a href="{{ route('user.dashboard') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                            <i class="fas fa-rocket text-xs"></i> Go to your dashboard
+                        </a>
+                    @endguest
                     <a href="{{ route('site.features') }}#cat-feed" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
                         See all follower features
                     </a>
@@ -154,7 +160,11 @@
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Your audience. <span class="grad-text">Your line to them.</span></h3>
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up a free Sayzio, switch on followers, and start growing an audience no algorithm can take from you.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Get started free</a>
+                    @guest
+                        <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Get started free</a>
+                    @else
+                        <a href="{{ route('user.dashboard') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Go to your dashboard</a>
+                    @endguest
                     <a href="{{ route('site.discovery') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Browse the creators directory</a>
                 </div>
             </div>

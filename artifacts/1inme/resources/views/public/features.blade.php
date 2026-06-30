@@ -59,7 +59,11 @@
                     {{ $page->meta_description ?? 'A complete tour of every capability inside Sayzio — from your Link in Bio and short links to inboxes, teams, billing, and beyond. No hidden lists, nothing collapsed.' }}
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Start free</a>
+                    @guest
+                        <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Start free</a>
+                    @else
+                        <a href="{{ route('user.dashboard') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Go to your dashboard</a>
+                    @endguest
                     <a href="#categories" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Browse all features</a>
                 </div>
                 <div class="mt-10 grid grid-cols-3 gap-6 max-w-md" data-anim="fade-up" data-stagger>

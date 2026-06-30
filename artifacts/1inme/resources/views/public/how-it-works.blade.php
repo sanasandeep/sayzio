@@ -56,9 +56,15 @@
                     {{ $page->meta_description ?? 'You do not need a designer, a developer or a weekend. Sign up, build your one link, share it everywhere, then watch the data come in.' }}
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
-                        <i class="fas fa-rocket text-xs"></i> Start free
-                    </a>
+                    @guest
+                        <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                            <i class="fas fa-rocket text-xs"></i> Start free
+                        </a>
+                    @else
+                        <a href="{{ route('user.dashboard') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                            <i class="fas fa-rocket text-xs"></i> Go to your dashboard
+                        </a>
+                    @endguest
                     <a href="#step-01" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
                         Walk me through it
                     </a>
@@ -194,7 +200,11 @@
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Your link in <span class="grad-text">two minutes</span>.</h3>
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">No card, no commitment. Spin up your Sayzio, drop in a few links, and start tracking what works.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Create my Sayzio</a>
+                    @guest
+                        <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Create my Sayzio</a>
+                    @else
+                        <a href="{{ route('user.dashboard') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Go to your dashboard</a>
+                    @endguest
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>
                 </div>
             </div>

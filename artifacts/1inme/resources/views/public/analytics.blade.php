@@ -57,9 +57,15 @@
                     Live visitor pins, a geo heatmap, snapshot sharing, the AI Performance Coach, follower retention cohorts, and CSV exports of your top followers — every number you need to grow, in one dashboard.
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
-                        <i class="fas fa-rocket text-xs"></i> Start tracking free
-                    </a>
+                    @guest
+                        <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                            <i class="fas fa-rocket text-xs"></i> Start tracking free
+                        </a>
+                    @else
+                        <a href="{{ route('user.dashboard') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
+                            <i class="fas fa-rocket text-xs"></i> Go to your dashboard
+                        </a>
+                    @endguest
                     <a href="{{ route('site.features') }}#cat-analytics" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">
                         See every analytics feature
                     </a>
@@ -159,7 +165,11 @@
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Stop guessing. <span class="grad-text">Start measuring.</span></h3>
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up your free Sayzio, drop in your first link, and watch the live numbers roll in inside a minute.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Get started free</a>
+                    @guest
+                        <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Get started free</a>
+                    @else
+                        <a href="{{ route('user.dashboard') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Go to your dashboard</a>
+                    @endguest
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>
                 </div>
             </div>

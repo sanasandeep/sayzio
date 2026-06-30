@@ -18,7 +18,11 @@
             One dashboard, ten distinct kinds of link. Open any live example below to see exactly how it looks and works — then build your own in minutes.
         </p>
         <div class="mt-7 flex flex-wrap items-center justify-center gap-3" data-anim="fade-up">
-            <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Start free</a>
+            @guest
+                <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Start free</a>
+            @else
+                <a href="{{ route('user.dashboard') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Go to your dashboard</a>
+            @endguest
             <a href="{{ route('site.features') }}" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Browse all features</a>
         </div>
     </div>
@@ -34,7 +38,7 @@
                 <p class="mt-2 text-sm text-gray-400">
                     Our live examples are being prepared. In the meantime,
                     <a href="{{ route('site.features') }}" class="text-blue-300 hover:text-blue-200 underline underline-offset-2">explore every feature</a>
-                    or <a href="{{ route('register.page') }}" class="text-blue-300 hover:text-blue-200 underline underline-offset-2">start building free</a>.
+                    or @guest<a href="{{ route('register.page') }}" class="text-blue-300 hover:text-blue-200 underline underline-offset-2">start building free</a>@else<a href="{{ route('user.dashboard') }}" class="text-blue-300 hover:text-blue-200 underline underline-offset-2">go to your dashboard</a>@endguest.
                 </p>
             </div>
         @else
@@ -76,9 +80,15 @@
                         iframe; short links, files, events and contacts render as a compact card with the right
                         action button — and every view &amp; click still counts in your analytics.
                     </p>
-                    <a href="{{ route('register.page') }}" class="mt-6 inline-flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">
-                        Get your embed code <i class="fas fa-arrow-right text-xs"></i>
-                    </a>
+                    @guest
+                        <a href="{{ route('register.page') }}" class="mt-6 inline-flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">
+                            Get your embed code <i class="fas fa-arrow-right text-xs"></i>
+                        </a>
+                    @else
+                        <a href="{{ route('user.dashboard') }}" class="mt-6 inline-flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">
+                            Go to your dashboard <i class="fas fa-arrow-right text-xs"></i>
+                        </a>
+                    @endguest
                 </div>
                 <div class="rounded-2xl border border-white/10 bg-black/30 p-4 overflow-x-auto">
                     <pre class="text-[12px] leading-relaxed text-blue-200/90 whitespace-pre-wrap break-all"><code>&lt;script src="{{ rtrim(config('app.url'), '/') }}/embed/link/your-alias/embed.js" async&gt;&lt;/script&gt;
@@ -96,7 +106,11 @@
             <h2 class="text-2xl sm:text-3xl font-bold text-white">Ready to make your own?</h2>
             <p class="mt-3 text-gray-300 max-w-xl mx-auto">Pick a link type, customise it, and share it from a single URL — every visit and click tracked.</p>
             <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-                <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Create your first link</a>
+                @guest
+                    <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Create your first link</a>
+                @else
+                    <a href="{{ route('user.dashboard') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Go to your dashboard</a>
+                @endguest
                 <a href="{{ $pricingHref ?? route('site.pricing') }}" class="px-5 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See pricing</a>
             </div>
         </div>
