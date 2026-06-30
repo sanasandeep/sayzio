@@ -3707,6 +3707,7 @@
 </section>
 
 @include('home.partials.ai-suite')
+@include('home.partials.ai-marketing-strategist')
 @include('home.partials.whatsapp-agent')
 @include('home.partials.resume')
 @include('home.partials.forms')
