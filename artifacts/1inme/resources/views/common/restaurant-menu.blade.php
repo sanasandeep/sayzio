@@ -17,6 +17,12 @@
     $itemsByCat = $menu->items->where('is_active', true)->sortBy('sort_order')->groupBy('category_id');
 
     $fmt = fn ($n) => $currency . ' ' . number_format((float) $n, 2);
+
+    // Only the seeded demo restaurant carries a sample WhatsApp number, so we
+    // flag the confirmation's "Send order via WhatsApp" button as a demo so
+    // real visitors aren't confused by a dead chat. Scoped strictly to the
+    // demo (marked by settings.demo on the link), never live restaurants.
+    $isDemoRestaurant = (bool) data_get($link->settings, 'demo');
 @endphp
 <!doctype html>
 <html lang="en">
@@ -168,6 +174,9 @@
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.739-.981 1.249.74zm5.392-15.327c-.235-.025-.47-.025-.706-.025-.235 0-.616.088-.939.441-.323.353-1.235 1.206-1.235 2.941 0 1.735 1.264 3.41 1.44 3.646.176.235 2.479 3.785 6.005 5.31.84.363 1.495.58 2.006.742.843.268 1.61.23 2.216.14.676-.101 2.082-.851 2.376-1.673.294-.823.294-1.528.206-1.674-.088-.147-.323-.235-.676-.412-.353-.176-2.082-1.028-2.405-1.146-.323-.117-.558-.176-.793.177-.235.353-.91 1.146-1.116 1.381-.206.235-.411.265-.764.088-.353-.177-1.49-.549-2.838-1.751-1.049-.935-1.757-2.09-1.963-2.443-.206-.353-.022-.544.155-.72.158-.157.353-.412.529-.618.176-.206.235-.353.353-.588.117-.235.059-.441-.029-.617-.088-.177-.793-1.912-1.087-2.617z"/></svg>
             <span>Send order via WhatsApp</span>
         </a>
+@if($isDemoRestaurant)
+        <p class="note" id="waDemoNote" style="display:none">Demo only — this is a sample WhatsApp number, so the chat won't open a real conversation. On a live menu this opens a chat with the restaurant.</p>
+@endif
         <button class="ghost" type="button" onclick="RM.reset()">Back to menu</button>
     </div>
 </div>
@@ -324,8 +333,15 @@
             document.getElementById('doneTotal').textContent = fmt(order.total != null ? order.total : order.subtotal);
             document.getElementById('ordStatus').textContent = order.status;
             const waBtn = document.getElementById('waBtn');
-            if (order.whatsapp && order.whatsapp.url) { waBtn.href = order.whatsapp.url; waBtn.style.display = 'flex'; }
-            else { waBtn.style.display = 'none'; }
+            const waDemoNote = document.getElementById('waDemoNote');
+            if (order.whatsapp && order.whatsapp.url) {
+                waBtn.href = order.whatsapp.url; waBtn.style.display = 'flex';
+                if (waDemoNote) waDemoNote.style.display = 'block';
+            }
+            else {
+                waBtn.style.display = 'none';
+                if (waDemoNote) waDemoNote.style.display = 'none';
+            }
             document.getElementById('doneModal').classList.add('show');
             const url = STATUS_BASE + '/' + order.public_token + '/status';
             pollTimer = setInterval(async () => {
