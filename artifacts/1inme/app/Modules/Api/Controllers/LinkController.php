@@ -105,7 +105,7 @@ class LinkController extends Controller
             // skip it), mirroring the web chooseType() rule and the live
             // check-alias indicator so a reserved handle can't slip in via the
             // REST create path.
-            'alias'      => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:80', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\Admin\Rules\NotBannedName(), new \App\Modules\User\Rules\UniqueAliasCi()],
+            'alias'      => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'], new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\Admin\Rules\NotBannedName(), new \App\Modules\User\Rules\UniqueAliasCi()],
             'title'      => ['nullable', 'string', 'max:200'],
             'long_url'   => ['nullable', 'url', 'max:2048'],
             'visibility' => ['nullable', Rule::in(['public', 'registered', 'followers', 'subscribers'])],
@@ -252,7 +252,7 @@ class LinkController extends Controller
             // edit submit too (privileged `user.banned_names.bypass` holders
             // skip it), mirroring the create path so a reserved handle can't
             // slip in by renaming an existing link via the REST update path.
-            'alias'      => ['sometimes', 'string', 'min:' . $aliasLimits['min'], 'max:80', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\Admin\Rules\NotBannedName(), new \App\Modules\User\Rules\UniqueAliasCi($link->id)],
+            'alias'      => ['sometimes', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'], new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\Admin\Rules\NotBannedName(), new \App\Modules\User\Rules\UniqueAliasCi($link->id)],
             'visibility' => ['sometimes', Rule::in(['public', 'registered', 'followers', 'subscribers'])],
             'is_active'  => ['sometimes', 'boolean'],
             'seo_title'  => ['sometimes', 'nullable', 'string', 'max:200'],
@@ -796,7 +796,7 @@ class LinkController extends Controller
         $data = $request->validate([
             'long_url'     => ['required', 'url', 'max:2048'],
             'title'        => ['nullable', 'string', 'max:200'],
-            'alias'        => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:80', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi()],
+            'alias'        => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'], new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi()],
             'workspace_id' => ['nullable', 'integer'],
             'rules'        => ['required', 'array', 'min:1'],
         ]);
@@ -927,7 +927,7 @@ class LinkController extends Controller
         $aliasLimits = $request->user()->getAliasLengthLimits();
         $data = $request->validate([
             'title'        => ['nullable', 'string', 'max:200'],
-            'alias'        => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:80', new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi()],
+            'alias'        => ['nullable', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'], new \App\Modules\User\Rules\AliasFormat(), new \App\Modules\User\Rules\UniqueAliasCi()],
             'workspace_id' => ['nullable', 'integer'],
             'variants'     => ['required', 'array', 'min:2'],
             'variants.*.label' => ['nullable', 'string', 'max:120'],
