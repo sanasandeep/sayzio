@@ -507,6 +507,7 @@ class SitePageController extends Controller
             'email'   => 'required|email|max:190',
             'subject' => 'required|string|max:200',
             'message' => 'required|string|max:5000',
+            'topic'   => 'nullable|string|max:50',
             'website' => 'nullable|max:0', // honeypot
         ], $customRuleMessages);
 
@@ -524,6 +525,17 @@ class SitePageController extends Controller
             return back()->withErrors(['message' => $rateLimited])->withInput();
         }
         RateLimiter::hit($key, 600);
+
+        // "Badge request" topic from a signed-in visitor opens a real badge
+        // request (Task #2910) so it lands in the admin review queue rather
+        // than the plain contact inbox. Anonymous visitors fall through to a
+        // normal contact message (we can't attach a badge to no account).
+        if (($data['topic'] ?? '') === 'badge_request' && auth()->check()) {
+            $result = app(\App\Modules\User\Services\BadgeRequestService::class)
+                ->submit(auth()->user(), null, $data['subject'], $data['message']);
+
+            return back()->with($result['ok'] ? 'success' : 'error', $result['message']);
+        }
 
         $msg = ContactMessage::create([
             'name'    => $data['name'],

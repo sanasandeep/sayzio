@@ -56,6 +56,27 @@ class UserAccountNotifier
             'Your account has been reactivated and you can sign in again.');
     }
 
+    public function badgeApproved(User $user, string $badgeName): void
+    {
+        $this->dispatch($user, 'account.badge_approved', [
+            'badge'   => $badgeName,
+            'message' => "Your badge request was approved — the \"{$badgeName}\" badge is now on your account.",
+            'url'     => route('user.badge-requests.index'),
+        ], 'Your badge request was approved',
+            "Good news! Your request for the \"{$badgeName}\" badge has been approved and it now appears on your account.");
+    }
+
+    public function badgeRejected(User $user, string $badgeName, string $reason): void
+    {
+        $this->dispatch($user, 'account.badge_rejected', [
+            'badge'   => $badgeName,
+            'reason'  => $reason,
+            'message' => "Your request for the \"{$badgeName}\" badge was declined.",
+            'url'     => route('user.badge-requests.index'),
+        ], 'Update on your badge request',
+            "Your request for the \"{$badgeName}\" badge was not approved. Reason: {$reason}");
+    }
+
     protected function dispatch(User $user, string $type, array $data, string $subject, string $body): void
     {
         try {

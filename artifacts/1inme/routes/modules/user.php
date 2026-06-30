@@ -1613,6 +1613,14 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('blocks/{block}/toggle', [VerificationController::class, 'toggleBlock'])->middleware('workspace.can:settings.edit')->name('block.toggle');
         });
 
+        // Self-serve account badge requests (Task #2910) — users ask for an
+        // existing or custom account badge; admins review from their own
+        // queue. Mirrors the account-verification gate.
+        Route::prefix('badge-requests')->name('badge-requests.')->middleware('workspace.can:settings.view')->group(function () {
+            Route::get('/',  [\App\Modules\User\Controllers\BadgeRequestController::class, 'index'])->name('index');
+            Route::post('/', [\App\Modules\User\Controllers\BadgeRequestController::class, 'store'])->middleware('workspace.can:settings.edit')->name('store');
+        });
+
         // Carbon-Neutral Biolinks: per-workspace sustainability dashboard
         // (footprint snapshots + offset receipts) and per-link toggle.
         // Workspace-level defaults are owner-only; per-link overrides

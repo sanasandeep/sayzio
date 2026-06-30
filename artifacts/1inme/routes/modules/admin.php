@@ -713,5 +713,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('{badge}',      [AccountBadgeController::class, 'update'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('badge')->name('update');
             Route::delete('{badge}',   [AccountBadgeController::class, 'destroy'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('badge')->name('destroy');
         });
+
+        // Self-serve account badge requests review queue (Task #2910).
+        // Gated by a dedicated permission so it can be granted independently
+        // of the badge-definition CRUD above.
+        Route::prefix('badge-requests')->name('badge-requests.')->middleware(CheckPermission::class . ':badge_requests.review')->group(function () {
+            Route::get('/',                       [\App\Modules\Admin\Controllers\BadgeRequestController::class, 'index'])->name('index');
+            Route::get('{badgeRequest}',          [\App\Modules\Admin\Controllers\BadgeRequestController::class, 'review'])->whereNumber('badgeRequest')->name('review');
+            Route::post('{badgeRequest}/approve', [\App\Modules\Admin\Controllers\BadgeRequestController::class, 'approve'])->whereNumber('badgeRequest')->name('approve');
+            Route::post('{badgeRequest}/reject',  [\App\Modules\Admin\Controllers\BadgeRequestController::class, 'reject'])->whereNumber('badgeRequest')->name('reject');
+        });
     });
 });

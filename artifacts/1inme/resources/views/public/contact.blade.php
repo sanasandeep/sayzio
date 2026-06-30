@@ -299,6 +299,16 @@
                     <input type="email" name="email" required value="{{ old('email') }}" @if($formEmailPlaceholder !== '') placeholder="{{ $formEmailPlaceholder }}" @endif class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                 </div>
             </div>
+            @auth
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Topic</label>
+                <select name="topic" class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    <option value="" class="bg-slate-900" {{ old('topic') === 'badge_request' ? '' : 'selected' }}>General enquiry</option>
+                    <option value="badge_request" class="bg-slate-900" {{ old('topic') === 'badge_request' ? 'selected' : '' }}>Badge request</option>
+                </select>
+                <p class="text-[11px] mt-1 text-gray-500">Pick “Badge request” to ask our team for an account badge — it goes straight to the review queue.</p>
+            </div>
+            @endauth
             <div>
                 @if($formSubjectLabel !== '')<label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">{{ $formSubjectLabel }}</label>@endif
                 <input type="text" name="subject" required value="{{ old('subject') }}" @if($formSubjectPlaceholder !== '') placeholder="{{ $formSubjectPlaceholder }}" @endif class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">

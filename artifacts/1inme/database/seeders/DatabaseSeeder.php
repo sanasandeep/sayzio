@@ -62,6 +62,7 @@ class DatabaseSeeder extends Seeder
                 ['name' => 'Provision New Accounts', 'slug' => 'users.create'],
                 ['name' => 'Suspend / Reactivate Accounts', 'slug' => 'users.suspend'],
                 ['name' => 'Assign User Roles', 'slug' => 'users.assign_roles'],
+                ['name' => 'Review Badge Requests', 'slug' => 'badge_requests.review'],
             ],
             'billing' => [
                 ['name' => 'Grant / Deduct Credits', 'slug' => 'users.credits'],

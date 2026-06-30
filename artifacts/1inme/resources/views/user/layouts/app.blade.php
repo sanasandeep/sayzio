@@ -1066,6 +1066,13 @@
                             <span class="nav-label">Verification</span>
                             <span class="sidebar-tooltip">Verification</span>
                         </a>
+                        <a href="{{ route('user.badge-requests.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.badge-requests.*') ? 'active' : '' }}"
+                           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-award"></i></div>
+                            <span class="nav-label">Request a badge</span>
+                            <span class="sidebar-tooltip">Request a badge</span>
+                        </a>
                         <a href="{{ route('user.settings.sessions.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.settings.sessions.*') ? 'active' : '' }}"
                            style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">

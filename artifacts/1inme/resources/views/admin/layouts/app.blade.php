@@ -141,6 +141,9 @@
                     <a href="{{ route('admin.roles.index') }}" class="sidebar-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-key"></i></div><span>Roles &amp; Permissions</span></a>
                     <a href="{{ route('admin.protected-accounts.index') }}" class="sidebar-link {{ request()->routeIs('admin.protected-accounts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-shield-alt"></i></div><span>Protected accounts</span></a>
                     <a href="{{ route('admin.badges.index') }}" class="sidebar-link {{ request()->routeIs('admin.badges.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-certificate"></i></div><span>Account badges</span></a>
+                    @if(auth('admin')->user()?->hasPermission('badge_requests.review'))
+                    <a href="{{ route('admin.badge-requests.index') }}" class="sidebar-link {{ request()->routeIs('admin.badge-requests.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-award"></i></div><span>Badge requests</span></a>
+                    @endif
                     <a href="{{ route('admin.users.activity-log.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.activity-log.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div><span>Activity log</span></a>
                     <a href="{{ route('admin.privacy-requests.index') }}" class="sidebar-link {{ request()->routeIs('admin.privacy-requests.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div><span>Privacy Requests</span></a>
                     @if(auth('admin')->user()?->isSuperAdmin())
