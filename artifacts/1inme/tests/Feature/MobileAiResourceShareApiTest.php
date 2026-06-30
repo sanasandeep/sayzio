@@ -252,4 +252,158 @@ class MobileAiResourceShareApiTest extends TestCase
 
         $this->asUser($user)->getJson('/api/v1/ai/shared')->assertStatus(404);
     }
+
+    // ===================================================================
+    // Owner-only share/unshare guards over the API (Task #2934).
+    //
+    // Mirrors the web AiResourceShareOwnershipTest (Task #2931) for the
+    // /api/v1 controller: a non-owner — including an EDIT-access shared
+    // editor — must never grant or remove shares for someone else's
+    // Mind/Persona, and the owner can only share into audiences they
+    // actually belong to (clean 422, never a 500).
+    // ===================================================================
+
+    public function test_edit_shared_editor_cannot_reshare_a_mind_they_dont_own(): void
+    {
+        // An EDIT-access teammate can edit the mind, but must NOT be able to
+        // re-share it — sharing is owner-only.
+        $owner  = $this->makeUser();
+        $editor = $this->makeUser();
+        $team   = $this->team($owner, $editor);
+        $mind   = $this->mind($owner);
+
+        // Grant the editor real EDIT access via a share.
+        $this->asUser($owner)->postJson("/api/v1/ai/minds/{$mind->id}/shares", [
+            'audience' => "workspace:{$team->id}",
+            'access'   => 'edit',
+        ])->assertCreated();
+
+        // A team the editor owns — a perfectly valid audience for THEM, so the
+        // 403 can only come from the ownership guard, not the audience guard.
+        $editorTeam = $this->team($editor);
+
+        $this->asUser($editor)->postJson("/api/v1/ai/minds/{$mind->id}/shares", [
+            'audience' => "workspace:{$editorTeam->id}",
+            'access'   => 'use',
+        ])->assertStatus(403);
+
+        // No new audience row leaked in: only the owner's original EDIT share exists.
+        $this->assertDatabaseMissing('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $mind->id,
+            'audience_id'   => $editorTeam->id,
+        ]);
+        $this->assertSame(1, AiResourceShare::where('resource_type', AiResourceShare::RESOURCE_MIND)
+            ->where('resource_id', $mind->id)->count());
+    }
+
+    public function test_non_owner_cannot_create_a_mind_share_and_writes_no_row(): void
+    {
+        $owner    = $this->makeUser();
+        $stranger = $this->makeUser();
+        $mind     = $this->mind($owner);
+        // The stranger owns their own team, so the audience itself is valid —
+        // the only thing stopping the share is that they don't own the mind.
+        $strangerTeam = $this->team($stranger);
+
+        $this->asUser($stranger)->postJson("/api/v1/ai/minds/{$mind->id}/shares", [
+            'audience' => "workspace:{$strangerTeam->id}",
+            'access'   => 'use',
+        ])->assertStatus(403);
+
+        $this->assertDatabaseMissing('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $mind->id,
+        ]);
+    }
+
+    public function test_non_owner_cannot_create_a_persona_share_and_writes_no_row(): void
+    {
+        $owner    = $this->makeUser();
+        $stranger = $this->makeUser();
+        $persona  = $this->persona($owner);
+        $strangerTeam = $this->team($stranger);
+
+        $this->asUser($stranger)->getJson("/api/v1/ai/personas/{$persona->id}/shares")->assertStatus(403);
+        $this->asUser($stranger)->postJson("/api/v1/ai/personas/{$persona->id}/shares", [
+            'audience' => "workspace:{$strangerTeam->id}",
+            'access'   => 'use',
+        ])->assertStatus(403);
+
+        $this->assertDatabaseMissing('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_PERSONA,
+            'resource_id'   => $persona->id,
+        ]);
+    }
+
+    public function test_owner_sharing_into_a_badge_they_dont_hold_errors_without_500(): void
+    {
+        $owner   = $this->makeUser();
+        $persona = $this->persona($owner);
+        // A badge the owner does NOT hold.
+        $badge = AccountBadge::create(['name' => 'Stray ' . Str::random(3), 'color' => '#3b82f6']);
+
+        $resp = $this->asUser($owner)->postJson("/api/v1/ai/personas/{$persona->id}/shares", [
+            'audience' => "badge:{$badge->id}",
+            'access'   => 'use',
+        ]);
+
+        $resp->assertStatus(422);
+        $this->assertDatabaseMissing('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_PERSONA,
+            'resource_id'   => $persona->id,
+            'audience_id'   => $badge->id,
+        ]);
+    }
+
+    public function test_non_owner_cannot_delete_a_mind_share_and_row_survives(): void
+    {
+        $owner  = $this->makeUser();
+        $member = $this->makeUser();
+        $team   = $this->team($owner, $member);
+        $mind   = $this->mind($owner);
+
+        $this->asUser($owner)->postJson("/api/v1/ai/minds/{$mind->id}/shares", [
+            'audience' => "workspace:{$team->id}",
+            'access'   => 'use',
+        ])->assertCreated();
+        $share = AiResourceShare::where('resource_id', $mind->id)->firstOrFail();
+
+        // A recipient member cannot remove the owner's share.
+        $this->asUser($member)
+            ->deleteJson("/api/v1/ai/minds/{$mind->id}/shares/{$share->id}")
+            ->assertStatus(403);
+        $this->assertDatabaseHas('ai_resource_shares', ['id' => $share->id]);
+
+        // The owner still can.
+        $this->asUser($owner)
+            ->deleteJson("/api/v1/ai/minds/{$mind->id}/shares/{$share->id}")
+            ->assertNoContent();
+        $this->assertDatabaseMissing('ai_resource_shares', ['id' => $share->id]);
+    }
+
+    public function test_non_owner_cannot_delete_a_persona_share_and_row_survives(): void
+    {
+        $owner   = $this->makeUser();
+        $member  = $this->makeUser();
+        $team    = $this->team($owner, $member);
+        $persona = $this->persona($owner);
+
+        $this->asUser($owner)->postJson("/api/v1/ai/personas/{$persona->id}/shares", [
+            'audience' => "workspace:{$team->id}",
+            'access'   => 'use',
+        ])->assertCreated();
+        $share = AiResourceShare::where('resource_type', AiResourceShare::RESOURCE_PERSONA)
+            ->where('resource_id', $persona->id)->firstOrFail();
+
+        $this->asUser($member)
+            ->deleteJson("/api/v1/ai/personas/{$persona->id}/shares/{$share->id}")
+            ->assertStatus(403);
+        $this->assertDatabaseHas('ai_resource_shares', ['id' => $share->id]);
+
+        $this->asUser($owner)
+            ->deleteJson("/api/v1/ai/personas/{$persona->id}/shares/{$share->id}")
+            ->assertNoContent();
+        $this->assertDatabaseMissing('ai_resource_shares', ['id' => $share->id]);
+    }
 }
