@@ -265,6 +265,120 @@ class PaidGatewayDowngradeBillingFlowTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // 2b. Re-running the cron NEVER double-charges a paid normal renewal
+    // ------------------------------------------------------------------
+
+    /**
+     * Idempotency regression guard for the PAYING path. With a gateway that
+     * marks the renewal invoice paid AND advances current_period_end in the
+     * same run, a second tick within the same window must be a complete
+     * no-op: one paid invoice, period advanced by exactly one cycle, the
+     * customer charged once. (The offline/unpaid case is covered elsewhere;
+     * this proves the guards also hold when the invoice settles immediately.)
+     */
+    public function test_paying_gateway_normal_renewal_is_idempotent_across_reruns(): void
+    {
+        $user = $this->makeBuyer();
+        $plan = $this->makePlan('Pro', 40000);
+
+        $end = now()->addHours(6);
+        $sub = $this->makeActiveSub($user, $plan, now()->subMonth()->addHours(6), $end);
+
+        // Two ticks back-to-back (overlapping schedulers / an accidental
+        // manual re-run within the same renewal window).
+        $this->artisan('subscriptions:renew-due')->assertExitCode(0);
+        $this->artisan('subscriptions:renew-due')->assertExitCode(0);
+
+        $sub->refresh();
+        $this->assertSame('active', $sub->status, 'sub stays active after two runs');
+        $this->assertNull($sub->grace_until, 'never knocked into grace');
+
+        // Period advanced by ONLY ~1 cycle — not two. A second charge would
+        // have pushed current_period_end out another month.
+        $this->assertEqualsWithDelta(
+            $end->copy()->addMonth()->timestamp,
+            Carbon::parse($sub->current_period_end)->timestamp,
+            120,
+            'period advanced exactly one cycle despite two cron runs',
+        );
+
+        // Exactly one renewal invoice for the sub, and it is paid.
+        $invoices = Invoice::where('subscription_id', $sub->id)->get();
+        $this->assertCount(1, $invoices, 'no second renewal invoice on the re-run');
+        $invoice = $invoices->first();
+        $this->assertSame('paid', $invoice->status);
+        $this->assertSame(40000, (int) $this->renewalLine($invoice)['amount_minor']);
+
+        // Belt-and-braces: exactly one PAID plan_renewal charge for this sub
+        // across all of the user's invoices — the customer paid once.
+        $this->assertSame(1, $this->paidRenewalCount($user, $sub),
+            'customer charged exactly once across both runs');
+    }
+
+    // ------------------------------------------------------------------
+    // 2c. Re-running the cron NEVER double-charges a paid scheduled downgrade
+    // ------------------------------------------------------------------
+
+    /**
+     * Same idempotency guarantee for the scheduled-downgrade path, which
+     * runs through a separate branch (applyScheduledDowngrades) and clears
+     * scheduled_downgrade_plan_id on the first run. A second tick must not
+     * re-apply the downgrade nor issue a second renewal charge.
+     */
+    public function test_paying_gateway_scheduled_downgrade_is_idempotent_across_reruns(): void
+    {
+        $user   = $this->makeBuyer();
+        $higher = $this->makePlan('Pro', 40000);
+        $lower  = $this->makePlan('Starter', 20000);
+
+        $endedAt = now()->subMinute();
+        $sub = $this->makeActiveSub(
+            $user, $higher, now()->subMonth(), $endedAt,
+            ['scheduled_downgrade_plan_id' => $lower->id],
+        );
+
+        $this->artisan('subscriptions:renew-due')->assertExitCode(0);
+        $this->artisan('subscriptions:renew-due')->assertExitCode(0);
+
+        $sub->refresh();
+        $this->assertSame($lower->id, $sub->plan_id, 'still on the lower plan, not re-applied');
+        $this->assertNull($sub->scheduled_downgrade_plan_id, 'schedule stays cleared');
+        $this->assertSame('active', $sub->status, 'paying gateway keeps it active across both runs');
+        $this->assertNull($sub->grace_until);
+
+        // Period advanced by ONLY ~1 cycle from the old period end.
+        $this->assertEqualsWithDelta(
+            $endedAt->copy()->addMonth()->timestamp,
+            Carbon::parse($sub->current_period_end)->timestamp,
+            120,
+            'period advanced exactly one cycle despite two cron runs',
+        );
+
+        // Exactly one renewal invoice, paid, at the LOWER price.
+        $invoices = Invoice::where('subscription_id', $sub->id)->get();
+        $this->assertCount(1, $invoices, 'no second renewal invoice on the re-run');
+        $invoice = $invoices->first();
+        $this->assertSame('paid', $invoice->status);
+        $this->assertSame(20000, (int) $this->renewalLine($invoice)['amount_minor'],
+            'still billed once at the lower plan price');
+
+        $this->assertSame(1, $this->paidRenewalCount($user, $sub),
+            'customer charged exactly once across both runs');
+    }
+
+    /** Count this sub's PAID plan_renewal charges across the user's invoices. */
+    protected function paidRenewalCount(User $user, Subscription $sub): int
+    {
+        return Invoice::where('user_id', $user->id)
+            ->where('status', 'paid')
+            ->get()
+            ->filter(fn (Invoice $inv) => collect((array) $inv->line_items)
+                ->contains(fn ($li) => ($li['meta']['kind'] ?? null) === 'plan_renewal'
+                    && (int) ($li['meta']['renew_subscription_id'] ?? 0) === $sub->id))
+            ->count();
+    }
+
+    // ------------------------------------------------------------------
     // 3. Paying gateway: upgrade activates immediately and resets the cycle
     // ------------------------------------------------------------------
 
