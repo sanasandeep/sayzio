@@ -86,17 +86,66 @@ class AiChatPageManager
      */
     public function mergeConfig(AiCompanion $companion, array $config, array $starters): array
     {
+        $caps = $companion->brandingCapabilities();
+
         $cfg = $companion->effectiveConfig();
         $cfg['greeting']          = $config['greeting'] ?? null;
         $cfg['placeholder']       = $config['placeholder'] ?? $cfg['placeholder'];
         $cfg['accent']            = $config['accent'] ?? $cfg['accent'];
         $cfg['theme']             = $config['theme'] ?? $cfg['theme'];
-        $cfg['show_branding']     = (bool) ($config['show_branding'] ?? false);
         $cfg['ground_in_profile'] = (bool) ($config['ground_in_profile'] ?? false);
         $cfg['starters']          = collect($starters)
             ->map(fn ($s) => trim((string) $s))
             ->filter()->values()->all();
 
+        // Branding visibility — hiding "Powered by Sayzio" requires the
+        // remove_branding feature. Ungated owners always show it.
+        $wantShow = (bool) ($config['show_branding'] ?? false);
+        $cfg['show_branding'] = $caps['can_hide_branding'] ? $wantShow : true;
+
+        // Custom branding text + URL — gated by custom_branding; stripped
+        // (nulled) for anyone without it so a downgrade can't keep them.
+        if ($caps['can_custom_branding']) {
+            $cfg['custom_branding_text'] = $this->cleanText($config['custom_branding_text'] ?? null, 60);
+            $cfg['custom_branding_url']  = $this->cleanUrl($config['custom_branding_url'] ?? null);
+        } else {
+            $cfg['custom_branding_text'] = null;
+            $cfg['custom_branding_url']  = null;
+        }
+
+        // Custom agent avatar — gated by either branding feature. The
+        // controller resolves an uploaded file (or vault pick) into a URL
+        // string in $config['avatar_url'] before calling this. We only
+        // overwrite when the key is explicitly present so a normal save that
+        // doesn't touch the avatar (web posts only avatar_upload/avatar_remove)
+        // preserves the existing one instead of wiping it. Ungated owners are
+        // always stripped regardless of what was stored.
+        if (!$caps['can_avatar']) {
+            $cfg['avatar_url'] = null;
+        } elseif (array_key_exists('avatar_url', $config)) {
+            $cfg['avatar_url'] = $this->cleanUrl($config['avatar_url'] ?? null);
+        }
+        // else: keep $cfg['avatar_url'] from effectiveConfig() unchanged.
+
         return $cfg;
+    }
+
+    /** Trim + length-cap a free-text branding value, or null when empty. */
+    private function cleanText($value, int $max): ?string
+    {
+        $value = trim((string) ($value ?? ''));
+        if ($value === '') return null;
+        return Str::limit($value, $max, '');
+    }
+
+    /** Accept only absolute http(s) (or root-relative) URLs, else null. */
+    private function cleanUrl($value): ?string
+    {
+        $value = trim((string) ($value ?? ''));
+        if ($value === '') return null;
+        if (str_starts_with($value, '/')) return $value;
+        $scheme = strtolower((string) parse_url($value, PHP_URL_SCHEME));
+        if (in_array($scheme, ['http', 'https'], true)) return $value;
+        return null;
     }
 }

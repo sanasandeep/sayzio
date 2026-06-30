@@ -7,11 +7,13 @@ use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiPersonaAgent;
 use App\Modules\User\Models\AiPersonaAgentVersion;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\UserFile;
 use App\Services\AI\AiChatPageManager;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\CompanionRuntime;
 use App\Services\AI\PersonaSettings;
+use App\Services\UploadPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -70,6 +72,8 @@ class AiChatController extends Controller
             'defaultMind'     => $defaultMind,
             'attachedMindIds' => $persona->minds->pluck('id')->all(),
             'caps'            => PersonaSettings::caps(),
+            'branding'        => $companion->brandingCapabilities(),
+            'avatarPolicy'    => UploadPolicy::for('link.ai_avatar', $user),
         ]);
     }
 
@@ -89,6 +93,11 @@ class AiChatController extends Controller
             'config.theme'      => 'nullable|in:auto,light,dark',
             'config.show_branding'    => 'nullable|boolean',
             'config.ground_in_profile'=> 'nullable|boolean',
+            'config.custom_branding_text' => 'nullable|string|max:60',
+            'config.custom_branding_url'  => 'nullable|string|max:300|url',
+            'config.avatar_url'           => 'nullable|string|max:1000',
+            'avatar_remove'               => 'nullable|boolean',
+            'avatar_upload'               => UploadPolicy::rule('link.ai_avatar', $user),
             'starters'          => 'nullable|array|max:6',
             'starters.*'        => 'nullable|string|max:200',
             // Inline persona ("the brain") editing. Only required when the
@@ -111,7 +120,22 @@ class AiChatController extends Controller
             return back()->withInput()->withErrors(['persona_id' => 'Pick one of your personas.']);
         }
 
-        $cfg = $this->pages->mergeConfig($companion, $data['config'] ?? [], $data['starters'] ?? []);
+        // Resolve the agent avatar before merging. An uploaded file goes
+        // to the user's file vault; otherwise we keep whatever URL the
+        // editor posted (My-Files pick or pasted URL). "Remove" wins.
+        // mergeConfig still strips it for owners without a branding plan.
+        $cfgInput = $data['config'] ?? [];
+        if (!empty($data['avatar_remove'])) {
+            $cfgInput['avatar_url'] = null;
+        } elseif ($request->hasFile('avatar_upload')) {
+            $cfgInput['avatar_url'] = UserFile::createFromUpload(
+                $request->file('avatar_upload'),
+                $user,
+                ['compress_image' => true, 'max_width' => 512, 'max_height' => 512, 'quality' => 88]
+            )->url;
+        }
+
+        $cfg = $this->pages->mergeConfig($companion, $cfgInput, $data['starters'] ?? []);
 
         // Apply inline persona edits only when the user kept the originally
         // bound persona selected — guards against overwriting another

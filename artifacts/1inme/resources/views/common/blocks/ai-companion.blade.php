@@ -17,6 +17,7 @@
         @php
             $cfg = $cmp->effectiveConfig();
             $inline = !empty($cfg['inline']);
+            $brand = $cmp->brandingConfig();
         @endphp
         @if($inline)
             <div class="rounded-2xl overflow-hidden border border-white/10">
@@ -33,6 +34,10 @@
                     data-greeting="{{ $cfg['greeting_bubble'] ?? '' }}"
                     data-placeholder="{{ $cfg['placeholder'] ?? 'Ask me anything…' }}"
                     data-theme="{{ $cfg['theme'] ?? 'auto' }}"
+                    data-avatar="{{ $brand['avatar_url'] ?? '' }}"
+                    data-show-branding="{{ !empty($brand['show_branding']) ? '1' : '0' }}"
+                    data-brand-text="{{ $brand['brand_text'] ?? '' }}"
+                    data-brand-url="{{ $brand['brand_url'] ?? '' }}"
                     defer></script>
         @endif
     @else

@@ -64,6 +64,9 @@ class UploadPolicy
 
         // ── Biolink Wizard ────────────────────────────────────────────────
         'biolink.avatar'         => ['label' => 'Wizard Avatar / Cover',      'group' => 'Bio Wizard',         'max_mb' => 5,  'extensions' => ['jpg','jpeg','png','webp'],                'multiple' => false],
+
+        // ── AI Agent (AI Companion / AI Chat) ─────────────────────────────
+        'link.ai_avatar'         => ['label' => 'AI Agent Avatar',            'group' => 'AI Agent',           'max_mb' => 2,  'extensions' => ['jpg','jpeg','png','webp','gif'],          'multiple' => false],
     ];
 
     /**

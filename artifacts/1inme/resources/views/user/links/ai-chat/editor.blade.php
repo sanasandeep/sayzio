@@ -25,6 +25,7 @@
     .aic-textarea { resize: vertical; min-height: 84px; }
     .aic-row { margin-bottom: 16px; }
     .aic-hint { font-size: 11px; color: var(--text-faint); margin-top: 6px; }
+    .aic-pro { font-size: 9px; font-weight: 800; letter-spacing: .03em; padding: 1px 6px; border-radius: 999px; margin-left: 6px; vertical-align: middle; background: linear-gradient(135deg, rgba(251,146,60,0.18), rgba(245,158,11,0.12)); color: #fb923c; }
     .aic-toggle { display:flex; align-items:center; gap: 12px; padding: 12px 14px; border:1px solid var(--border-glass); border-radius: .85rem; background: var(--bg-glass-input); }
     .aic-toggle input { width: 18px; height: 18px; }
     .aic-banner { display:flex; gap:12px; align-items:center; padding: 14px 16px; border-radius: .85rem; margin-bottom: 16px; font-size: 13px; }
@@ -50,7 +51,7 @@
     @endif
     @error('persona_id')<div class="aic-banner warn"><i class="fas fa-circle-exclamation"></i> {{ $message }}</div>@enderror
 
-    <form method="POST" action="{{ route('user.links.ai-chat.save', $link) }}">
+    <form method="POST" action="{{ route('user.links.ai-chat.save', $link) }}" enctype="multipart/form-data">
         @csrf
         <div class="aic-grid">
             <div>
@@ -71,7 +72,7 @@
                         </select>
                         <div class="aic-hint">
                             The persona supplies the system prompt, model, tone and knowledge (Minds).
-                            <a href="{{ route('user.ai-personas.index') }}" class="text-indigo-400 no-underline">Manage personas &amp; knowledge →</a>
+                            <a href="{{ route('user.ai-personas.index') }}" class="text-blue-400 no-underline">Manage personas &amp; knowledge →</a>
                         </div>
                     </div>
                 </div>
@@ -136,14 +137,14 @@
                             @empty
                                 <div class="aic-hint">
                                     You don't have any custom knowledge bases yet.
-                                    <a href="{{ route('user.minds.index') }}" class="text-indigo-400 no-underline">Create one →</a>
+                                    <a href="{{ route('user.minds.index') }}" class="text-blue-400 no-underline">Create one →</a>
                                 </div>
                             @endforelse
                             <div class="aic-hint" style="margin-top:6px">Attach knowledge so the assistant can answer from your own content. Up to {{ $caps['max_minds_per_persona'] }} per persona.</div>
                         </div>
                         <div class="aic-hint">
                             Need model, temperature or version history?
-                            <a href="{{ route('user.ai-personas.edit', $persona) }}" class="text-indigo-400 no-underline">Open the full persona manager →</a>
+                            <a href="{{ route('user.ai-personas.edit', $persona) }}" class="text-blue-400 no-underline">Open the full persona manager →</a>
                         </div>
                     </div>
                 </div>
@@ -201,12 +202,78 @@
                                    value="{{ old('config.accent', $config['accent'] ?? '#3d6bff') }}" style="height:42px;padding:4px">
                         </div>
                     </div>
+                </div>
+
+                <div class="aic-card">
+                    @php $upgradeUrl = route('user.dashboard'); @endphp
+                    <h5><i class="fas fa-id-badge text-[13px]" style="color:#90acff"></i> Branding &amp; avatar</h5>
+
+                    {{-- Agent avatar — gated by either branding feature. Falls back to the default robot avatar. --}}
                     <div class="aic-row">
-                        <label class="aic-toggle">
-                            <input type="checkbox" name="config[show_branding]" value="1"
-                                   @checked(old('config.show_branding', $config['show_branding'] ?? true))>
-                            <span><strong style="color:var(--text-primary)">Show "Powered by Sayzio"</strong></span>
+                        <label class="aic-label">Agent avatar
+                            @unless($branding['can_avatar'])<span class="aic-pro">PRO</span>@endunless
                         </label>
+                        @if($branding['can_avatar'])
+                            @include('user.partials.dropzone-input', [
+                                'name'        => 'avatar_upload',
+                                'policy'      => $avatarPolicy,
+                                'currentUrl'  => $config['avatar_url'] ?? null,
+                                'label'       => null,
+                                'previewKind' => 'image',
+                                'compact'     => true,
+                            ])
+                            @if(!empty($config['avatar_url']))
+                                <label class="aic-toggle" style="margin-top:8px">
+                                    <input type="checkbox" name="avatar_remove" value="1">
+                                    <span><strong style="color:var(--text-primary)">Remove current avatar</strong>
+                                        <span class="aic-hint" style="display:block;margin-top:2px">Revert to the default robot avatar.</span>
+                                    </span>
+                                </label>
+                            @endif
+                            <div class="aic-hint">Upload, paste a URL, or pick from My Files. Falls back to a default robot avatar.</div>
+                        @else
+                            <div class="aic-hint">Give your AI agent its own face instead of the default robot avatar.
+                                <a href="{{ $upgradeUrl }}" class="text-blue-400 no-underline">Upgrade to unlock →</a>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Hide branding — gated by remove_branding. --}}
+                    <div class="aic-row">
+                        @if($branding['can_hide_branding'])
+                            <label class="aic-toggle">
+                                <input type="checkbox" name="config[show_branding]" value="1"
+                                       @checked(old('config.show_branding', $config['show_branding'] ?? true))>
+                                <span><strong style="color:var(--text-primary)">Show "Powered by Sayzio"</strong>
+                                    <span class="aic-hint" style="display:block;margin-top:2px">Uncheck to hide the footer entirely.</span>
+                                </span>
+                            </label>
+                        @else
+                            <label class="aic-label">Branding footer <span class="aic-pro">PRO</span></label>
+                            <div class="aic-hint">Your page shows a "Powered by Sayzio" footer.
+                                <a href="{{ $upgradeUrl }}" class="text-blue-400 no-underline">Upgrade to hide or replace it →</a>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Custom branding text + URL — gated by custom_branding. --}}
+                    <div class="aic-row">
+                        <label class="aic-label">Custom branding
+                            @unless($branding['can_custom_branding'])<span class="aic-pro">PRO</span>@endunless
+                        </label>
+                        @if($branding['can_custom_branding'])
+                            <input class="aic-input" type="text" name="config[custom_branding_text]" maxlength="60"
+                                   value="{{ old('config.custom_branding_text', $config['custom_branding_text'] ?? '') }}"
+                                   placeholder="Powered by Your Brand" style="margin-bottom:8px">
+                            <input class="aic-input" type="url" name="config[custom_branding_url]" maxlength="300"
+                                   value="{{ old('config.custom_branding_url', $config['custom_branding_url'] ?? '') }}"
+                                   placeholder="https://yourbrand.com">
+                            <div class="aic-hint">Replaces "Powered by Sayzio" with your own text (and link). Leave blank to keep the default.</div>
+                        @else
+                            <div class="aic-hint">Replace "Powered by Sayzio" with your own text and link.
+                                <a href="{{ $upgradeUrl }}" class="text-blue-400 no-underline">Upgrade to unlock →</a>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -217,7 +284,7 @@
                 <div class="aic-card">
                     <h5><i class="fas fa-link text-[13px]" style="color:#90acff"></i> Public page</h5>
                     <p class="aic-hint" style="margin-top:0">Visitors chat at:</p>
-                    <a href="{{ $publicUrl }}" target="_blank" class="text-indigo-400 no-underline" style="font-size:13px;word-break:break-all">{{ $publicUrl }}</a>
+                    <a href="{{ $publicUrl }}" target="_blank" class="text-blue-400 no-underline" style="font-size:13px;word-break:break-all">{{ $publicUrl }}</a>
                     <div style="margin-top:14px">
                         <a href="{{ $publicUrl }}" target="_blank" class="aic-btn" style="background:var(--bg-glass-input);color:var(--text-primary);border:1px solid var(--border-glass)">
                             <i class="fas fa-external-link-alt"></i> Open chat

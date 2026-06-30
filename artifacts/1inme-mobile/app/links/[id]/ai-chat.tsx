@@ -47,6 +47,9 @@ export default function AiChatEditorScreen() {
   const [theme, setTheme] = useState<AiChatTheme>("auto");
   const [showBranding, setShowBranding] = useState(true);
   const [groundInProfile, setGroundInProfile] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [customBrandingText, setCustomBrandingText] = useState("");
+  const [customBrandingUrl, setCustomBrandingUrl] = useState("");
   const [starters, setStarters] = useState<string[]>(
     Array(STARTER_SLOTS).fill(""),
   );
@@ -63,6 +66,9 @@ export default function AiChatEditorScreen() {
     setTheme(d.config.theme ?? "auto");
     setShowBranding(d.config.show_branding ?? true);
     setGroundInProfile(d.config.ground_in_profile ?? true);
+    setAvatarUrl(d.config.avatar_url ?? "");
+    setCustomBrandingText(d.config.custom_branding_text ?? "");
+    setCustomBrandingUrl(d.config.custom_branding_url ?? "");
     const filled = [...d.starters].slice(0, STARTER_SLOTS);
     while (filled.length < STARTER_SLOTS) filled.push("");
     setStarters(filled);
@@ -82,6 +88,9 @@ export default function AiChatEditorScreen() {
           theme,
           show_branding: showBranding,
           ground_in_profile: groundInProfile,
+          avatar_url: avatarUrl.trim() || null,
+          custom_branding_text: customBrandingText.trim() || null,
+          custom_branding_url: customBrandingUrl.trim() || null,
         },
         starters: starters.map((s) => s.trim()).filter(Boolean),
       });
@@ -359,11 +368,82 @@ export default function AiChatEditorScreen() {
               />
             </View>
           </View>
-          <RowSwitch
-            label='Show "Powered by Sayzio"'
-            value={showBranding}
-            onValueChange={setShowBranding}
-          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            Branding & avatar
+          </Text>
+
+          {d.branding.can_avatar ? (
+            <>
+              <TextField
+                label="Agent avatar URL"
+                value={avatarUrl}
+                onChangeText={setAvatarUrl}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={2048}
+                placeholder="https://…/avatar.png"
+              />
+              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                Paste an image URL. Leave blank to use the default robot avatar.
+                Upload from a file is available on the web app.
+              </Text>
+            </>
+          ) : (
+            <LockedRow
+              label="Agent avatar"
+              hint="Give your AI agent its own face instead of the default robot. Upgrade your plan to unlock."
+              colors={colors}
+            />
+          )}
+
+          {d.branding.can_hide_branding ? (
+            <RowSwitch
+              label='Show "Powered by Sayzio"'
+              hint="Turn off to hide the footer entirely."
+              value={showBranding}
+              onValueChange={setShowBranding}
+            />
+          ) : (
+            <LockedRow
+              label="Branding footer"
+              hint='Your page shows a "Powered by Sayzio" footer. Upgrade your plan to hide or replace it.'
+              colors={colors}
+            />
+          )}
+
+          {d.branding.can_custom_branding ? (
+            <>
+              <TextField
+                label="Custom branding text"
+                value={customBrandingText}
+                onChangeText={setCustomBrandingText}
+                maxLength={60}
+                placeholder="Powered by Your Brand"
+              />
+              <TextField
+                label="Custom branding link"
+                value={customBrandingUrl}
+                onChangeText={setCustomBrandingUrl}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={300}
+                placeholder="https://yourbrand.com"
+              />
+              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                Replaces "Powered by Sayzio" with your own text and link. Leave
+                blank to keep the default.
+              </Text>
+            </>
+          ) : (
+            <LockedRow
+              label="Custom branding"
+              hint='Replace "Powered by Sayzio" with your own text and link. Upgrade your plan to unlock.'
+              colors={colors}
+            />
+          )}
         </View>
 
         <View style={styles.section}>
@@ -444,6 +524,60 @@ function Stat({
       <Text style={[styles.statValue, { color: colors.foreground }]}>
         {value}
       </Text>
+    </View>
+  );
+}
+
+function LockedRow({
+  label,
+  hint,
+  colors,
+}: {
+  label: string;
+  hint: string;
+  colors: ReturnType<typeof useColors>;
+}) {
+  return (
+    <View
+      style={[
+        styles.switchRow,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderRadius: colors.radius,
+        },
+      ]}
+    >
+      <View style={{ flex: 1, paddingRight: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text style={[styles.switchLabel, { color: colors.foreground }]}>
+            {label}
+          </Text>
+          <View
+            style={{
+              backgroundColor: colors.primary + "22",
+              borderRadius: 999,
+              paddingHorizontal: 6,
+              paddingVertical: 1,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.primary,
+                fontFamily: "SpaceGrotesk_700Bold",
+                fontSize: 9,
+                letterSpacing: 0.4,
+              }}
+            >
+              PRO
+            </Text>
+          </View>
+        </View>
+        <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+          {hint}
+        </Text>
+      </View>
+      <Feather name="lock" size={16} color={colors.mutedForeground} />
     </View>
   );
 }

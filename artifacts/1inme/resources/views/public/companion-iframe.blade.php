@@ -34,8 +34,14 @@
     </style>
 </head>
 <body>
+@php $brand = $companion->brandingConfig(); @endphp
 <div class="wrap">
-    <div class="header"><span>{{ $companion->name }}</span></div>
+    <div class="header">
+        @if(!empty($brand['avatar_url']))
+            <img src="{{ $brand['avatar_url'] }}" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle">
+        @endif
+        <span>{{ $companion->name }}</span>
+    </div>
     <div class="body" id="body" role="log" aria-live="polite">
         @if(!empty($companion->persona->greeting))
             <div class="msg a">{{ $companion->persona->greeting }}</div>
@@ -45,8 +51,12 @@
         <textarea id="t" rows="1" placeholder="{{ $config['placeholder'] ?? 'Ask me anything…' }}" aria-label="Message"></textarea>
         <button id="s" type="submit">Send</button>
     </form>
-    @if(!empty($config['show_branding']))
-        <div class="foot">Powered by Sayzio AI Companion</div>
+    @if(!empty($brand['show_branding']))
+        @if(!empty($brand['brand_text']))
+            <div class="foot">@if(!empty($brand['brand_url']))<a href="{{ $brand['brand_url'] }}" target="_blank" rel="noopener" style="color:inherit">{{ $brand['brand_text'] }}</a>@else{{ $brand['brand_text'] }}@endif</div>
+        @else
+            <div class="foot">Powered by Sayzio AI Companion</div>
+        @endif
     @endif
 </div>
 <script>

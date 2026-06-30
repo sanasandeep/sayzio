@@ -9,6 +9,15 @@ export type AiChatConfig = {
   theme: AiChatTheme;
   show_branding: boolean;
   ground_in_profile: boolean;
+  avatar_url: string | null;
+  custom_branding_text: string | null;
+  custom_branding_url: string | null;
+};
+
+export type AiChatBranding = {
+  can_hide_branding: boolean;
+  can_custom_branding: boolean;
+  can_avatar: boolean;
 };
 
 export type AiChatPersona = { id: number; name: string };
@@ -20,6 +29,7 @@ export type AiChatPage = {
   name: string;
   persona_id: number | null;
   config: AiChatConfig;
+  branding: AiChatBranding;
   starters: string[];
   usage: {
     turns: number;

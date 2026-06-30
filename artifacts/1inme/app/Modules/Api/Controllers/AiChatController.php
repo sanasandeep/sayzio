@@ -5,9 +5,11 @@ namespace App\Modules\Api\Controllers;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\User\Models\AiPersonaAgent;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\UserFile;
 use App\Services\AI\AiChatPageManager;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\CompanionRuntime;
+use App\Services\UploadPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -53,6 +55,7 @@ class AiChatController extends Controller
             ->values()->all();
 
         $usage = CompanionRuntime::monthlyUsage($companion);
+        $caps  = $companion->brandingCapabilities();
 
         return $this->ok([
             'ai_chat' => [
@@ -62,12 +65,20 @@ class AiChatController extends Controller
                 'name'       => $companion->name,
                 'persona_id' => $companion->persona_id ? (int) $companion->persona_id : null,
                 'config'     => [
-                    'greeting'          => $config['greeting'] ?? null,
-                    'placeholder'       => $config['placeholder'] ?? 'Ask me anything…',
-                    'accent'            => $config['accent'] ?? '#7c3aed',
-                    'theme'             => $config['theme'] ?? 'auto',
-                    'show_branding'     => (bool) ($config['show_branding'] ?? true),
-                    'ground_in_profile' => (bool) ($config['ground_in_profile'] ?? true),
+                    'greeting'             => $config['greeting'] ?? null,
+                    'placeholder'          => $config['placeholder'] ?? 'Ask me anything…',
+                    'accent'               => $config['accent'] ?? '#7c3aed',
+                    'theme'                => $config['theme'] ?? 'auto',
+                    'show_branding'        => (bool) ($config['show_branding'] ?? true),
+                    'ground_in_profile'    => (bool) ($config['ground_in_profile'] ?? true),
+                    'avatar_url'           => $config['avatar_url'] ?? null,
+                    'custom_branding_text' => $config['custom_branding_text'] ?? null,
+                    'custom_branding_url'  => $config['custom_branding_url'] ?? null,
+                ],
+                'branding'   => [
+                    'can_hide_branding'   => (bool) ($caps['can_hide_branding'] ?? false),
+                    'can_custom_branding' => (bool) ($caps['can_custom_branding'] ?? false),
+                    'can_avatar'          => (bool) ($caps['can_avatar'] ?? false),
                 ],
                 'starters'   => array_values((array) ($config['starters'] ?? [])),
                 'usage'      => [
@@ -93,16 +104,21 @@ class AiChatController extends Controller
         $companion = $this->pages->ensureCompanion($link);
 
         $data = $request->validate([
-            'name'                     => ['required', 'string', 'max:120'],
-            'persona_id'               => ['required', 'integer'],
-            'config.greeting'          => ['nullable', 'string', 'max:1000'],
-            'config.placeholder'       => ['nullable', 'string', 'max:120'],
-            'config.accent'            => ['nullable', 'string', 'max:32'],
-            'config.theme'             => ['nullable', Rule::in(['auto', 'light', 'dark'])],
-            'config.show_branding'     => ['nullable', 'boolean'],
-            'config.ground_in_profile' => ['nullable', 'boolean'],
-            'starters'                 => ['nullable', 'array', 'max:6'],
-            'starters.*'               => ['nullable', 'string', 'max:200'],
+            'name'                        => ['required', 'string', 'max:120'],
+            'persona_id'                  => ['required', 'integer'],
+            'config.greeting'             => ['nullable', 'string', 'max:1000'],
+            'config.placeholder'          => ['nullable', 'string', 'max:120'],
+            'config.accent'               => ['nullable', 'string', 'max:32'],
+            'config.theme'                => ['nullable', Rule::in(['auto', 'light', 'dark'])],
+            'config.show_branding'        => ['nullable', 'boolean'],
+            'config.ground_in_profile'    => ['nullable', 'boolean'],
+            'config.avatar_url'           => ['nullable', 'string', 'max:2048'],
+            'config.custom_branding_text' => ['nullable', 'string', 'max:60'],
+            'config.custom_branding_url'  => ['nullable', 'string', 'max:300'],
+            'avatar_remove'               => ['nullable', 'boolean'],
+            'avatar_upload'               => ['nullable', UploadPolicy::rule('link.ai_avatar', $request->user())],
+            'starters'                    => ['nullable', 'array', 'max:6'],
+            'starters.*'                  => ['nullable', 'string', 'max:200'],
         ]);
 
         $persona = AiPersonaAgent::where('id', $data['persona_id'])
@@ -114,7 +130,21 @@ class AiChatController extends Controller
             ]);
         }
 
-        $cfg = $this->pages->mergeConfig($companion, $data['config'] ?? [], $data['starters'] ?? []);
+        // Resolve the agent avatar before merging — an uploaded file lands
+        // in the vault, otherwise we keep the posted URL. "Remove" wins.
+        // mergeConfig still strips it for owners without a branding plan.
+        $cfgInput = $data['config'] ?? [];
+        if (!empty($data['avatar_remove'])) {
+            $cfgInput['avatar_url'] = null;
+        } elseif ($request->hasFile('avatar_upload')) {
+            $cfgInput['avatar_url'] = UserFile::createFromUpload(
+                $request->file('avatar_upload'),
+                $request->user(),
+                ['compress_image' => true, 'max_width' => 512, 'max_height' => 512, 'quality' => 88]
+            )->url;
+        }
+
+        $cfg = $this->pages->mergeConfig($companion, $cfgInput, $data['starters'] ?? []);
 
         DB::transaction(function () use ($companion, $data, $persona, $cfg, $link) {
             $companion->forceFill([

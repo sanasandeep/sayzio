@@ -69,6 +69,10 @@
     var greeting    = script.getAttribute('data-greeting')    || '';
     var placeholder = script.getAttribute('data-placeholder') || 'Ask me anything…';
     var theme       = script.getAttribute('data-theme')       || 'auto';
+    var avatarUrl   = script.getAttribute('data-avatar')      || '';
+    var showBranding = script.getAttribute('data-show-branding') !== '0';
+    var brandText   = script.getAttribute('data-brand-text')  || '';
+    var brandUrl    = script.getAttribute('data-brand-url')   || '';
 
     function visitorToken() {
         try {
@@ -137,7 +141,10 @@
     var launcher = document.createElement('button');
     launcher.className = 'imc-launcher';
     launcher.style.background = accent;
-    launcher.innerHTML = '<span aria-hidden="true">💬</span><span>' + escapeHtml(launcherTxt) + '</span>';
+    var launcherIcon = avatarUrl
+        ? '<img src="' + escapeAttr(avatarUrl) + '" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;">'
+        : '<span aria-hidden="true">💬</span>';
+    launcher.innerHTML = launcherIcon + '<span>' + escapeHtml(launcherTxt) + '</span>';
     root.appendChild(launcher);
 
     var bubble = null;
@@ -166,7 +173,7 @@
         +   '<textarea placeholder="' + escapeAttr(placeholder) + '" rows="1" aria-label="Message"></textarea>'
         +   '<button type="submit" style="background:' + accent + '">Send</button>'
         + '</form>'
-        + '<div class="imc-foot">Powered by Sayzio AI Companion</div>';
+        + footerHtml();
     root.appendChild(panel);
 
     var body  = panel.querySelector('.imc-body');
@@ -259,4 +266,18 @@
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
     function escapeAttr(s) { return escapeHtml(s); }
+
+    // Footer mirrors the server-side brandingConfig() resolution: hidden
+    // when branding is off, custom text/link when set, else the default.
+    function footerHtml() {
+        if (!showBranding) return '';
+        if (brandText) {
+            var label = escapeHtml(brandText);
+            var inner = brandUrl
+                ? '<a href="' + escapeAttr(brandUrl) + '" target="_blank" rel="noopener">' + label + '</a>'
+                : label;
+            return '<div class="imc-foot">' + inner + '</div>';
+        }
+        return '<div class="imc-foot">Powered by Sayzio AI Companion</div>';
+    }
 })();

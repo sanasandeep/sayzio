@@ -61,9 +61,14 @@
     </style>
 </head>
 <body>
+@php $brand = $companion->brandingConfig(); @endphp
 <div class="page">
     <div class="header">
-        <div class="avatar"><i class="fa fa-robot" aria-hidden="true">🤖</i></div>
+        @if(!empty($brand['avatar_url']))
+            <div class="avatar" style="overflow:hidden"><img src="{{ $brand['avatar_url'] }}" alt="" style="width:100%;height:100%;object-fit:cover"></div>
+        @else
+            <div class="avatar"><i class="fa fa-robot" aria-hidden="true">🤖</i></div>
+        @endif
         <div>
             <div class="htitle">{{ $title }}</div>
             <div class="hsub">AI assistant</div>
@@ -89,8 +94,12 @@
         <button id="s" class="send" type="submit">Send</button>
     </form>
 
-    @if(!empty($config['show_branding']))
-        <div class="foot">Powered by <a href="{{ url('/') }}" target="_blank" rel="noopener">Sayzio</a></div>
+    @if(!empty($brand['show_branding']))
+        @if(!empty($brand['brand_text']))
+            <div class="foot">@if(!empty($brand['brand_url']))<a href="{{ $brand['brand_url'] }}" target="_blank" rel="noopener">{{ $brand['brand_text'] }}</a>@else{{ $brand['brand_text'] }}@endif</div>
+        @else
+            <div class="foot">Powered by <a href="{{ url('/') }}" target="_blank" rel="noopener">Sayzio</a></div>
+        @endif
     @endif
 </div>
 
