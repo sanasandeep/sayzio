@@ -121,6 +121,11 @@ protected $fillable = [
         return $this->hasOne(RestaurantMenu::class);
     }
 
+    public function storeMenu()
+    {
+        return $this->hasOne(StoreMenu::class);
+    }
+
     public function rsvps()
     {
         return $this->hasMany(Rsvp::class);
@@ -620,6 +625,15 @@ protected $fillable = [
     public const TYPE_RESTAURANT_MENU = 'restaurant_menu';
 
     /**
+     * Store Menu — a shop/store catalog (categories → products) published as a
+     * shareable page with an optional cart-based order *request* flow (no
+     * online payment, no physical tables / per-table QR). Like restaurant_menu
+     * it IS part of BIOLINK_FAMILY: it shares the biolink visibility/gating
+     * plumbing but renders its own dedicated public page.
+     */
+    public const TYPE_STORE_MENU      = 'store_menu';
+
+    /**
      * Standalone "Reviews" page. Deliberately NOT part of BIOLINK_FAMILY: it
      * is rendered by its own dedicated public view (a full review wall +
      * submission form), not the biolink block engine.
@@ -662,6 +676,7 @@ protected $fillable = [
         self::TYPE_SLIDES,
         self::TYPE_AI_CHAT,
         self::TYPE_RESTAURANT_MENU,
+        self::TYPE_STORE_MENU,
     ];
 
     /** Is this link rendered by the biolink page engine? */

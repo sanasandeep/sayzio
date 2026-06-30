@@ -45,6 +45,7 @@ use App\Modules\Api\Controllers\BillingController;
 use App\Modules\Api\Controllers\RevenueCatBillingController;
 use App\Modules\Api\Controllers\DialerController;
 use App\Modules\Api\Controllers\RestaurantController;
+use App\Modules\Api\Controllers\StoreController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -93,6 +94,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/restaurant/{alias}/quote',       [RestaurantController::class, 'quote'])->middleware('throttle:120,1');
         Route::post('/restaurant/{alias}/order',       [RestaurantController::class, 'placeOrder'])->middleware('throttle:30,1');
         Route::get('/restaurant/orders/{token}/status',[RestaurantController::class, 'orderStatus']);
+
+        // Store menu (Task #3072) — public: fetch store, place order request,
+        // poll guest order status. No auth, no online payment, no quote
+        // endpoint (no tax/coupon means the total is just the line sum).
+        Route::get('/store/{alias}',               [StoreController::class, 'show']);
+        Route::post('/store/{alias}/order',        [StoreController::class, 'placeOrder'])->middleware('throttle:30,1');
+        Route::get('/store/orders/{token}/status', [StoreController::class, 'orderStatus']);
 
         // Public reviews feed + summary for a standalone Reviews page.
         Route::get('/reviews/{alias}',             [\App\Modules\Api\Controllers\ReviewApiController::class, 'index']);
@@ -914,6 +922,23 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/restaurant/links/{link}/menu/coupons',                  [RestaurantController::class, 'storeCoupon'])->whereNumber('link');
         Route::put   ('/restaurant/links/{link}/menu/coupons/{coupon}',         [RestaurantController::class, 'updateCoupon'])->whereNumber('link')->whereNumber('coupon');
         Route::delete('/restaurant/links/{link}/menu/coupons/{coupon}',         [RestaurantController::class, 'destroyCoupon'])->whereNumber('link')->whereNumber('coupon');
+
+        // Store menu (Task #3072) — owner orders dashboard parity.
+        Route::get ('/store/links/{link}/orders',                [StoreController::class, 'ownerOrders'])->whereNumber('link');
+        Route::get ('/store/links/{link}/orders/poll',           [StoreController::class, 'ownerPoll'])->whereNumber('link');
+        Route::post('/store/links/{link}/orders/{order}/status', [StoreController::class, 'updateOrderStatus'])->whereNumber('link')->whereNumber('order');
+
+        // Store menu builder (Task #3072) — native mobile editor parity with
+        // the web StoreMenuController editor. No tables, no tax/coupon.
+        Route::get   ('/store/links/{link}/menu',                       [StoreController::class, 'ownerMenu'])->whereNumber('link');
+        Route::post  ('/store/links/{link}/menu/settings',             [StoreController::class, 'saveMenuSettings'])->whereNumber('link');
+        Route::post  ('/store/links/{link}/menu/photo',                [StoreController::class, 'uploadProductPhoto'])->whereNumber('link');
+        Route::post  ('/store/links/{link}/menu/categories',           [StoreController::class, 'storeCategory'])->whereNumber('link');
+        Route::put   ('/store/links/{link}/menu/categories/{category}',[StoreController::class, 'updateCategory'])->whereNumber('link')->whereNumber('category');
+        Route::delete('/store/links/{link}/menu/categories/{category}',[StoreController::class, 'destroyCategory'])->whereNumber('link')->whereNumber('category');
+        Route::post  ('/store/links/{link}/menu/products',             [StoreController::class, 'storeProduct'])->whereNumber('link');
+        Route::put   ('/store/links/{link}/menu/products/{product}',   [StoreController::class, 'updateProduct'])->whereNumber('link')->whereNumber('product');
+        Route::delete('/store/links/{link}/menu/products/{product}',   [StoreController::class, 'destroyProduct'])->whereNumber('link')->whereNumber('product');
 
         // Social accounts + social proof
         Route::get   ('/social/connections',                 [SocialAccountController::class, 'connections']);

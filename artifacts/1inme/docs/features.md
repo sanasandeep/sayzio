@@ -125,6 +125,7 @@ exportable guest list; optional preview page. *Web · REST · Mobile.*
 | **Link in Bio** | `biolink` | A mini-site of links, blocks & media on one page. |
 | **Slides** | `slides` | A swipeable, story-style deck served from one link. |
 | **Restaurant Menu** | `restaurant_menu` | A digital menu with sections, items & prices (see [§5.10](#510-restaurant-menu--orders)). |
+| **Store** | `store_menu` | A product catalog with categories & order requests, no payment (see [§5.10b](#510b-store-menu--order-requests)). |
 | **Resume / Portfolio** | `resume` | A shareable resume/portfolio page with PDF download (see [§5.11](#511-resume--portfolio)). |
 
 These (plus the AI types below) form the **biolink family** (`Link::BIOLINK_FAMILY`,
@@ -140,6 +141,10 @@ visibility tiers, and the public renderer.
 - **Restaurant Menu (`restaurant_menu`)** — uses its own dedicated builder (not
   the block editor); see [§5.10](#510-restaurant-menu--orders). Toggle
   `module_restaurant_menu`, cap `max_restaurant_menu`.
+- **Store (`store_menu`)** — uses its own dedicated builder (not the block
+  editor); a product catalog with order requests (no payment, no tax/coupon, no
+  tables); see [§5.10b](#510b-store-menu--order-requests). Toggle
+  `module_store_menu`, cap `max_store_menu`.
 - **Resume / Portfolio (`resume`)** — bridges the link to the user's standalone
   resume builder record (`ensureResume()`); see
   [§5.11](#511-resume--portfolio). Toggle `module_resume`, cap `max_resume`.
@@ -549,6 +554,31 @@ editor).
 `POST /restaurant/{alias}/order`, `GET /restaurant/order/{token}`; owner orders +
 `/poll` + status PATCH) · Mobile (full native builder + ordering with live bill
 + orders polling).*
+
+### 5.10b Store menu & order requests
+
+A dedicated builder for the `store_menu` type (does not use the block editor).
+Mirrors the restaurant menu adapted to store vocabulary — **products** instead of
+dishes — **without** physical tables/per-table QR, **without** online payment
+(order-request only), and **without** tax or coupons.
+
+- **Structure** — `StoreMenu` → categories → products (name, description, price,
+  photo, out-of-stock flag); display options, order mode, currency, accent color.
+- **Single store QR** — one QR for the whole store (no per-table codes).
+- **Visitor ordering** — browse + Request Order (customer name, contact, note,
+  quantities). The total is the simple sum of line items; **no payment is
+  collected** — the order is a request the owner fulfils offline.
+- **Order Requests Dashboard** — near-real-time owner workflow with incremental
+  polling; statuses New → Accepted → Packing → Ready → Completed (or Cancelled).
+- **Pause intake** — an `accepting_orders` toggle lets the owner stop taking new
+  requests without unpublishing the store.
+- **Optional WhatsApp** — when the owner sets a WhatsApp number and enables order
+  mode, a `wa.me` deep link is built server-side. Instant owner alerts via the
+  `store.new_order` notification + email.
+
+*Web · REST (public `GET /store/{alias}`, `POST /store/{alias}/order`,
+`GET /store/orders/{token}/status`; owner menu CRUD + orders + `/poll` + status
+POST) · Mobile (full native builder + ordering + requests polling).*
 
 ### 5.11 Resume / Portfolio
 

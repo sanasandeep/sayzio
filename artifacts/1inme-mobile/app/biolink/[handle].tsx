@@ -3068,10 +3068,15 @@ export default function BiolinkViewer() {
   // hand off to the dedicated screen so the in-app experience matches web.
   const redirectedRef = useRef(false);
   useEffect(() => {
-    if (q.data?.biolink.type === "restaurant_menu" && alias && !redirectedRef.current) {
+    if (!alias || redirectedRef.current) return;
+    const type = q.data?.biolink.type;
+    if (type === "restaurant_menu") {
       redirectedRef.current = true;
       const suffix = tableCode ? `?t=${encodeURIComponent(tableCode)}` : "";
       router.replace(`/restaurant/${alias}${suffix}` as any);
+    } else if (type === "store_menu") {
+      redirectedRef.current = true;
+      router.replace(`/store/${alias}` as any);
     }
   }, [q.data, alias, tableCode, router]);
 

@@ -83,7 +83,7 @@ class LinkController extends Controller
         // so power users who repeatedly create the same kind of link can fly
         // through Step 1 with a single click + name.
         $lastType = $request->session()->get('links.last_type');
-        if (!in_array($lastType, ['url', 'biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'file', 'ics', 'vcf'], true)) {
+        if (!in_array($lastType, ['url', 'biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'store_menu', 'file', 'ics', 'vcf'], true)) {
             $lastType = null;
         }
 
@@ -123,7 +123,7 @@ class LinkController extends Controller
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
-            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit',
+            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit',
             'alias' => [
                 'nullable', 'string', new \App\Modules\User\Rules\AliasFormat(),
                 'min:' . $limits['min'],
@@ -151,7 +151,8 @@ class LinkController extends Controller
             'conversational',
             'slides',
             'ai_chat',
-            'restaurant_menu' => redirect()->route('user.links.biolink.create', $params),
+            'restaurant_menu',
+            'store_menu'      => redirect()->route('user.links.biolink.create', $params),
             'file'           => redirect()->route('user.links.file.create', $params),
             'ics'            => redirect()->route('user.links.ics.create', $params),
             'vcf'            => redirect()->route('user.links.vcf.create', $params),
@@ -298,7 +299,7 @@ class LinkController extends Controller
         // carried through from the picker so store() persists it; default
         // to the classic biolink when missing or out of family.
         $type = (string) $request->query('type', 'biolink');
-        if (!in_array($type, ['biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu'], true)) {
+        if (!in_array($type, ['biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'store_menu'], true)) {
             $type = 'biolink';
         }
 
@@ -332,6 +333,7 @@ class LinkController extends Controller
             'slides'          => ['module' => 'module_slides',          'cap' => 'max_slides',          'label' => 'Slides'],
             'ai_chat'         => ['module' => 'module_ai_chat',         'cap' => 'max_ai_chat',         'label' => 'AI Chatbot'],
             'restaurant_menu' => ['module' => 'module_restaurant_menu', 'cap' => 'max_restaurant_menu', 'label' => 'Restaurant Menu'],
+            'store_menu' => ['module' => 'module_store_menu', 'cap' => 'max_store_menu', 'label' => 'Store Menu'],
             'reviews'         => ['module' => 'module_reviews',         'cap' => 'max_reviews',         'label' => 'Reviews'],
             'resume'          => ['module' => 'module_resume',          'cap' => 'max_resume',          'label' => 'Resume / Portfolio'],
             'paid_page'       => ['module' => 'module_paid_page',       'cap' => 'max_paid_page',       'label' => 'Bizs Profile'],
@@ -363,7 +365,7 @@ class LinkController extends Controller
         $userId = workspace_owner_id();
 
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit',
+            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit',
             'paid_page_template' => 'nullable|string|in:' . implode(',', \App\Modules\User\Support\PaidPageTemplates::ids()),
             'brand_kit_id' => "nullable|integer|exists:brand_kits,id,user_id,{$userId}",
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
@@ -627,6 +629,11 @@ class LinkController extends Controller
             return redirect()->route('user.links.ai-chat.editor', $link)
                 ->with('success', 'AI Chatbot created — configure its persona and knowledge.');
         }
+        if ($link->type === 'store_menu') {
+            return redirect()->route('user.links.store.editor', $link)
+                ->with('status', 'Store created. Build your catalog below.');
+        }
+
         if ($link->type === 'restaurant_menu') {
             return redirect()->route('user.links.restaurant.editor', $link)
                 ->with('success', 'Restaurant Menu created — build your menu.');

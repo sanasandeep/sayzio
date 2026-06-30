@@ -556,6 +556,12 @@ class RedirectController extends Controller
             return $link->restaurantMenu()->exists() ? 'common.restaurant-menu' : 'common.biolink';
         }
 
+        if ($type === 'store_menu') {
+            // Store menu renders its own catalog page; fall back to the block
+            // page when the owner hasn't created a store config row yet.
+            return $link->storeMenu()->exists() ? 'common.store-menu' : 'common.biolink';
+        }
+
         if ($type !== 'conversational' && $type !== 'slides' && $type !== 'ai_chat') {
             return 'common.biolink';
         }

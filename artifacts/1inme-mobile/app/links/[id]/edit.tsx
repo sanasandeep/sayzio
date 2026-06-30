@@ -412,6 +412,20 @@ export default function EditLinkScreen() {
               onPress={() => router.push(`/links/${id}/restaurant-menu` as any)}
             />
           ) : null}
+          {meta.kind === "store_menu" ? (
+            <ActionTile
+              icon="shopping-bag"
+              label="Requests"
+              onPress={() => router.push(`/links/${id}/store-orders` as any)}
+            />
+          ) : null}
+          {meta.kind === "store_menu" ? (
+            <ActionTile
+              icon="edit-3"
+              label="Edit store"
+              onPress={() => router.push(`/links/${id}/store-menu` as any)}
+            />
+          ) : null}
           {meta.kind === "slides" ? (
             <ActionTile
               icon="edit-3"
@@ -590,6 +604,7 @@ export default function EditLinkScreen() {
           meta.kind !== "slides" &&
           meta.kind !== "conversational" &&
           meta.kind !== "restaurant_menu" &&
+          meta.kind !== "store_menu" &&
           meta.kind !== "reviews" ? (
             <TextField
               label="Destination URL"

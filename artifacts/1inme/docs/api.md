@@ -29,7 +29,7 @@ see [API usage metering](#api-usage-metering)).
 - [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Paid pages](#paid-pages-public) · [Creator monetization](#creator-monetization) · [Product storefront](#product-storefront) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
 - [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Google Contacts sync](#google-contacts-sync) · [Bulk import](#bulk-import-preview-workflow) · [Resume](#resume--portfolio) · [Projects](#projects)
 - [Wallet & coins](#wallet--coins) · [AI](#ai-credits-knowledge-bases-voice-account-assistant-chat-widgets) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
-- [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
+- [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Store menu](#store-menu) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
 - [Admin (mobile back-office)](#admin-mobile-back-office) · [Banned names / reserved handles](#banned-names--reserved-handles) · [Plan editor](#plan-editor) · [Admin mail / SMTP](#admin-mail--smtp-settings)
 - [Extension surface](#browser-extension-surface) (properties, backlinks, pixels, thank-yous) · [Pixel tracking](#pixel-tracking) · [Health](#health)
@@ -893,6 +893,42 @@ quantity}], coupon_code?}` and returns a `bill` object: `subtotal`,
 `coupon_code`, `discount_amount`, `tax_rate`, `tax_inclusive`, `tax_amount`,
 `total`, and `is_estimate`. A single coupon and one menu-level tax rate apply;
 the figures are an **estimate, not the actual bill** — no payment is collected.
+
+## Store menu
+
+Public order-request surface plus the owner-facing builder and requests
+dashboard for the `store_menu` link type. Mirrors the restaurant menu adapted to
+store vocabulary (**products** instead of dishes) **without** physical
+tables/per-table QR, **without** online payment (order-request only), and
+**without** tax or coupons — the order total is simply the sum of line items.
+The `{link}` segment is the numeric link id.
+
+| Method | Path                                                  | Auth     | Description                                            |
+| ------ | ---------------------------------------------------- | -------- | ----------------------------------------------------- |
+| GET    | `/store/{alias}`                                     | optional | Public store by alias (settings, categories+products). |
+| POST   | `/store/{alias}/order`                               | optional | Place a guest order request (order mode). Throttle: 30/min. |
+| GET    | `/store/orders/{token}/status`                       | no       | Poll a guest order request by its public token.       |
+| GET    | `/store/links/{link}/menu`                           | yes      | Owner: full store (settings, categories+products).    |
+| POST   | `/store/links/{link}/menu/settings`                 | yes      | Owner: update mode/currency/accent color/WhatsApp/accepting-orders. |
+| POST   | `/store/links/{link}/menu/photo`                    | yes      | Owner: upload a product photo (multipart `photo`).    |
+| POST   | `/store/links/{link}/menu/categories`               | yes      | Owner: create a category.                             |
+| PUT    | `/store/links/{link}/menu/categories/{category}`    | yes      | Owner: update a category.                             |
+| DELETE | `/store/links/{link}/menu/categories/{category}`    | yes      | Owner: delete a category (and its products).          |
+| POST   | `/store/links/{link}/menu/products`                 | yes      | Owner: create a product.                              |
+| PUT    | `/store/links/{link}/menu/products/{product}`       | yes      | Owner: update a product.                              |
+| DELETE | `/store/links/{link}/menu/products/{product}`       | yes      | Owner: delete a product.                              |
+| GET    | `/store/links/{link}/orders`                        | yes      | Owner: recent order requests + open count.            |
+| GET    | `/store/links/{link}/orders/poll`                   | yes      | Owner: incremental poll (`?since=` cursor).           |
+| POST   | `/store/links/{link}/orders/{order}/status`         | yes      | Owner: advance a request's status.                    |
+
+**Order requests (no payment).** A guest order captures `customer_name`,
+`customer_contact`, `customer_note`, and line items; the total is the sum of
+`unit_price_cents × quantity`. No payment is collected — the order is a
+**request** the owner fulfils offline. Statuses flow `new → accepted → packing →
+ready → completed` (or `cancelled`); open statuses are `new`, `accepted`,
+`packing`, `ready`. When the owner sets a WhatsApp number and enables order mode,
+a `wa.me` deep link is built server-side. Owners can pause intake via the
+`accepting_orders` toggle.
 
 ## Workspaces
 

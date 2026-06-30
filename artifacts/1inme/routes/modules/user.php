@@ -898,6 +898,27 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('links/{link}/restaurant/orders/poll',              [\App\Modules\User\Controllers\RestaurantMenuController::class, 'pollOrders'])->middleware('workspace.can:links.view')->name('links.restaurant.orders.poll');
         Route::post('links/{link}/restaurant/orders/{order}/status',    [\App\Modules\User\Controllers\RestaurantMenuController::class, 'updateOrderStatus'])->middleware('workspace.can:links.edit')->name('links.restaurant.orders.status');
 
+        // ── Store Menu (links.type = store_menu) ───────────────────────
+        // Mirrors restaurant, minus coupons/tables/tax. Single store QR.
+        Route::get ('links/{link}/store',          [\App\Modules\User\Controllers\StoreMenuController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.store.editor');
+        Route::post('links/{link}/store/settings', [\App\Modules\User\Controllers\StoreMenuController::class, 'saveSettings'])->middleware('workspace.can:links.edit')->name('links.store.settings');
+
+        Route::post  ('links/{link}/store/categories',                 [\App\Modules\User\Controllers\StoreMenuController::class, 'storeCategory'])->middleware('workspace.can:links.edit')->name('links.store.categories.store');
+        Route::put   ('links/{link}/store/categories/{category}',      [\App\Modules\User\Controllers\StoreMenuController::class, 'updateCategory'])->middleware('workspace.can:links.edit')->name('links.store.categories.update');
+        Route::delete('links/{link}/store/categories/{category}',      [\App\Modules\User\Controllers\StoreMenuController::class, 'destroyCategory'])->middleware('workspace.can:links.edit')->name('links.store.categories.destroy');
+        Route::post  ('links/{link}/store/categories/reorder',         [\App\Modules\User\Controllers\StoreMenuController::class, 'reorderCategories'])->middleware('workspace.can:links.edit')->name('links.store.categories.reorder');
+
+        Route::post  ('links/{link}/store/products',            [\App\Modules\User\Controllers\StoreMenuController::class, 'storeProduct'])->middleware('workspace.can:links.edit')->name('links.store.products.store');
+        Route::put   ('links/{link}/store/products/{product}',  [\App\Modules\User\Controllers\StoreMenuController::class, 'updateProduct'])->middleware('workspace.can:links.edit')->name('links.store.products.update');
+        Route::delete('links/{link}/store/products/{product}',  [\App\Modules\User\Controllers\StoreMenuController::class, 'destroyProduct'])->middleware('workspace.can:links.edit')->name('links.store.products.destroy');
+        Route::post  ('links/{link}/store/products/reorder',    [\App\Modules\User\Controllers\StoreMenuController::class, 'reorderProducts'])->middleware('workspace.can:links.edit')->name('links.store.products.reorder');
+
+        Route::get   ('links/{link}/store/qr',  [\App\Modules\User\Controllers\StoreMenuController::class, 'storeQr'])->middleware('workspace.can:links.view')->name('links.store.qr');
+
+        Route::get ('links/{link}/store/orders',                [\App\Modules\User\Controllers\StoreMenuController::class, 'orders'])->middleware('workspace.can:links.view')->name('links.store.orders');
+        Route::get ('links/{link}/store/orders/poll',           [\App\Modules\User\Controllers\StoreMenuController::class, 'pollOrders'])->middleware('workspace.can:links.view')->name('links.store.orders.poll');
+        Route::post('links/{link}/store/orders/{order}/status', [\App\Modules\User\Controllers\StoreMenuController::class, 'updateOrderStatus'])->middleware('workspace.can:links.edit')->name('links.store.orders.status');
+
         // Plan upgrade, checkout & billing — these touch the workspace
         // owner's subscription/wallet/invoices, so they remain owner-only
         // regardless of any member's role inside the workspace.

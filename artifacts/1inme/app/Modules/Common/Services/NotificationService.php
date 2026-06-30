@@ -235,6 +235,14 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            // Store menu order requests (Task #3072).
+            'store.new_order' => [
+                'label'          => 'New store order requests',
+                'description'    => 'When a customer submits an order request from your store menu page.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
             // Fan→creator subscription auto-renewal reminders (Task #3011).
             'billing.creator_sub_renewal_reminder' => [
                 'label'          => 'Subscription renewal reminders',

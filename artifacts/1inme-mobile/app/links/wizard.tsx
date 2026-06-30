@@ -74,6 +74,7 @@ const BIOLINK_FAMILY = new Set<string>([
   "slides",
   "ai_chat",
   "restaurant_menu",
+  "store_menu",
 ]);
 
 // Leading icon (FontAwesome name, resolved to a native glyph by AppIcon) per

@@ -606,6 +606,14 @@ Route::post('/rm/{alias}/order', [\App\Modules\Common\Controllers\PublicRestaura
 Route::get('/rm/order/{token}/status', [\App\Modules\Common\Controllers\PublicRestaurantController::class, 'orderStatus'])
     ->where('token', '[A-Za-z0-9\-]+')->middleware('throttle:120,1')->name('rm.public.order.status');
 
+// ── Store Menu visitor endpoints (Task #3072) ────────────────────
+// Use the /sm/ prefix so they don't collide with the catch-all /{alias}.
+// No quote endpoint — the store has no coupons/tax, total is the line sum.
+Route::post('/sm/{alias}/order', [\App\Modules\Common\Controllers\PublicStoreController::class, 'placeOrder'])
+    ->where('alias', '[^/]+')->middleware('throttle:20,1')->name('sm.public.order');
+Route::get('/sm/order/{token}/status', [\App\Modules\Common\Controllers\PublicStoreController::class, 'orderStatus'])
+    ->where('token', '[A-Za-z0-9\-]+')->middleware('throttle:120,1')->name('sm.public.order.status');
+
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');
 Route::post('/{alias}/track/heartbeat', [\App\Modules\Common\Controllers\EngagementController::class, 'heartbeat'])->name('track.heartbeat')->where('alias', '[^/]+')->middleware('throttle:120,1');
 Route::post('/{alias}/subscribe', [RedirectController::class, 'subscribe'])->name('redirect.subscribe')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')->middleware('throttle:10,1');

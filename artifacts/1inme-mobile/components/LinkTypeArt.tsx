@@ -170,6 +170,16 @@ function Art({ kind }: { kind: LinkKind }) {
           <Rect x={112} y={68} width={28} height={7} rx={3.5} fill="#fb923c" fillOpacity={0.6} />
         </>
       );
+    case "store_menu":
+      return (
+        <>
+          <Rect x={4} y={4} width={152} height={88} rx={14} fill="#22c55e" fillOpacity={0.1} stroke="#22c55e" strokeOpacity={0.3} />
+          <Path d="M40 30 h80 l-6 40 a6 6 0 0 1 -6 5 h-50 a6 6 0 0 1 -6 -5 Z" fill="#22c55e" fillOpacity={0.15} stroke="#22c55e" strokeOpacity={0.5} />
+          <Path d="M58 34 a22 22 0 0 1 44 0" fill="none" stroke="#22c55e" strokeOpacity={0.7} strokeWidth={4} />
+          <Circle cx={62} cy={84} r={3.5} fill="#22c55e" />
+          <Circle cx={98} cy={84} r={3.5} fill="#22c55e" />
+        </>
+      );
     case "reviews":
       return (
         <>
