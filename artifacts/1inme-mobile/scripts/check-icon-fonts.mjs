@@ -104,7 +104,7 @@ export async function reachLoginScreen(page) {
     .waitFor({ timeout: STEP_TIMEOUT_MS });
 }
 
-async function assertFontsLoaded(page, family) {
+export async function assertFontsLoaded(page, family) {
   const result = await page.evaluate((fam) => {
     return {
       check: document.fonts.check(`1em ${fam}`),
@@ -128,7 +128,7 @@ async function assertFontsLoaded(page, family) {
   }
 }
 
-async function assertSocialIconsRendered(page) {
+export async function assertSocialIconsRendered(page) {
   // Each social-provider icon glyph must be a non-empty rendered character.
   // We assert two things per button:
   //   1. textContent is a single private-use codepoint (the icon glyph).
@@ -185,6 +185,45 @@ async function assertSocialIconsRendered(page) {
   }
 }
 
+// The full icon-font regression check against an already-open Playwright page.
+// Navigates the page to `appUrl`, waits for the app to mount, walks to the
+// login screen, then asserts both icon fonts are loaded and every social-
+// provider glyph paints as a real character (not a "tofu" fallback box).
+//
+// Exported so the self-booting harness (test-icon-fonts-e2e.mjs) can boot/warm
+// an Expo web server and then run this exact check against it — the harness
+// owns the server lifecycle; this owns the assertions.
+export async function runIconFontCheck(page, appUrl = APP_URL) {
+  await page.goto(appUrl, {
+    waitUntil: "domcontentloaded",
+    timeout: NAV_TIMEOUT_MS,
+  });
+  // Wait for ANY in-app text to appear so we know React has mounted.
+  await page.waitForFunction(
+    () => document.body && document.body.innerText.trim().length > 0,
+    null,
+    { timeout: NAV_TIMEOUT_MS },
+  );
+
+  log("app mounted; navigating to login screen");
+  await reachLoginScreen(page);
+
+  // The root layout (_layout.tsx) preloads BOTH Ionicons and Feather via
+  // a single useFonts() call before any screen renders, so once the login
+  // screen is visible we can assert both font families directly without
+  // navigating to a screen that visually uses Feather.
+  log('verifying ionicons font is loaded');
+  await assertFontsLoaded(page, "ionicons");
+
+  log('verifying Feather font is loaded');
+  await assertFontsLoaded(page, "Feather");
+
+  log("verifying each social-provider icon is a real glyph (not tofu)");
+  await assertSocialIconsRendered(page);
+
+  log("PASS: ionicons & Feather fonts are loaded; social glyphs render.");
+}
+
 async function main() {
   log("launching chromium against", APP_URL);
   const browser = await chromium.launch({ headless: true });
@@ -197,34 +236,7 @@ async function main() {
   page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
 
   try {
-    await page.goto(APP_URL, {
-      waitUntil: "domcontentloaded",
-      timeout: NAV_TIMEOUT_MS,
-    });
-    // Wait for ANY in-app text to appear so we know React has mounted.
-    await page.waitForFunction(
-      () => document.body && document.body.innerText.trim().length > 0,
-      null,
-      { timeout: NAV_TIMEOUT_MS },
-    );
-
-    log("app mounted; navigating to login screen");
-    await reachLoginScreen(page);
-
-    // The root layout (_layout.tsx) preloads BOTH Ionicons and Feather via
-    // a single useFonts() call before any screen renders, so once the login
-    // screen is visible we can assert both font families directly without
-    // navigating to a screen that visually uses Feather.
-    log('verifying ionicons font is loaded');
-    await assertFontsLoaded(page, "ionicons");
-
-    log('verifying Feather font is loaded');
-    await assertFontsLoaded(page, "Feather");
-
-    log("verifying each social-provider icon is a real glyph (not tofu)");
-    await assertSocialIconsRendered(page);
-
-    log("PASS: ionicons & Feather fonts are loaded; social glyphs render.");
+    await runIconFontCheck(page, APP_URL);
   } finally {
     await browser.close();
   }

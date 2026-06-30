@@ -9,11 +9,15 @@ workflow to already be running. The workflow name is `artifacts/1inme-mobile: ex
 (NOT "1INME Mobile"); start it with `restart_workflow`, then `/status` should
 return `packager-status:running` before these run.
 
-- **Needs the live server up:** `test:icon-fonts` (check-icon-fonts.mjs reads
-  APP_URL = live dev domain). Any ad-hoc signed-in smoke driven against APP_URL
-  is the same.
-- **Boots its own throwaway server:** `test:auth-flow-e2e` (core + google) —
-  safe to run anytime; these are the appropriate persistent CI gates.
+- **Needs the live server up:** `test:icon-fonts` (check-icon-fonts.mjs's
+  direct `main()` reads APP_URL = live dev domain). Any ad-hoc signed-in smoke
+  driven against APP_URL is the same. This is the manual/live entry point only.
+- **Boots its own throwaway server:** `test:auth-flow-e2e` (core + google) AND
+  `test:icon-fonts-e2e` (test-icon-fonts-e2e.mjs wraps the same
+  `runIconFontCheck` from check-icon-fonts.mjs) — safe to run anytime; these are
+  the appropriate persistent CI gates (`e2e-mobile-icons`). The Expo
+  boot/warm/teardown dance is shared in `scripts/expo-web-server.mjs`
+  (`createExpoServerManager(log)`), used by BOTH harnesses so they can't drift.
 
 **Why:** A validation command that depends on the live dev server will fail on
 *every* future `mark_task_complete` (across unrelated tasks) whenever that server
