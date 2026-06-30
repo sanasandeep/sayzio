@@ -3,7 +3,7 @@
 @section('content')
 <div class="container py-4">
   <h1 class="h3 mb-3">Upgrade your plan</h1>
-  <p class="text-muted">You'll be charged a prorated amount for the remaining days in your current cycle.</p>
+  <p class="text-muted">Upgrading charges the full plan price and starts a fresh billing cycle today. Time left on your current plan isn't deducted — if any is left over, our team can review it for an optional credit.</p>
   @if (session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 
   <div class="row">

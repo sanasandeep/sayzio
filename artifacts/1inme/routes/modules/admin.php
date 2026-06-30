@@ -276,6 +276,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{subscription}', [\App\Modules\Admin\Controllers\SubscriptionController::class, 'show'])->middleware(CheckPermission::class . ':settings.manage')->name('show');
         });
 
+        Route::prefix('credit-reviews')->name('credit-reviews.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\CreditReviewController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('{review}/approve', [\App\Modules\Admin\Controllers\CreditReviewController::class, 'approve'])->middleware(CheckPermission::class . ':settings.manage')->name('approve');
+            Route::post('{review}/dismiss', [\App\Modules\Admin\Controllers\CreditReviewController::class, 'dismiss'])->middleware(CheckPermission::class . ':settings.manage')->name('dismiss');
+        });
+
         Route::prefix('referrals')->name('referrals.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\ReferralController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::post('toggle', [\App\Modules\Admin\Controllers\ReferralController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');

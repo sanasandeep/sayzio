@@ -51,11 +51,54 @@ class RenewDueSubscriptions extends Command
     public function handle(GatewayManager $gateways, SubscriptionLifecycle $lifecycle): int
     {
         $this->processScheduledCancellations($lifecycle);
+        $this->applyScheduledDowngrades($gateways, $lifecycle);
         $this->transitionUnpaidPastPeriod($lifecycle);
         $this->renewUpcoming($gateways, $lifecycle);
         $this->expireGraceEnded($lifecycle);
         $this->notifyGraceEnding($lifecycle);
         return self::SUCCESS;
+    }
+
+    /**
+     * At cycle end, move subscriptions with a pending scheduled downgrade
+     * onto their chosen lower paid plan, then bill that lower plan via the
+     * normal recurring-charge path. These subs are deliberately excluded
+     * from renewUpcoming/transitionUnpaidPastPeriod so they are never
+     * charged at the OLD (higher) plan price during the 24h pre-renewal
+     * window. The plan switch only happens once the period has actually
+     * ended (current_period_end <= now).
+     */
+    protected function applyScheduledDowngrades(GatewayManager $gateways, SubscriptionLifecycle $lifecycle): void
+    {
+        $subs = Subscription::where('status', 'active')
+            ->where('cancel_at_period_end', false)
+            ->whereNotNull('scheduled_downgrade_plan_id')
+            ->where('current_period_end', '<=', now())
+            ->get();
+
+        foreach ($subs as $sub) {
+            if ($this->hasRenewalInvoice($sub)) continue;
+
+            // Returns the target plan after switching, or null when the
+            // schedule was invalid/stale and was simply cleared. Either way
+            // the sub's period has ended and it has no renewal invoice, so
+            // we charge a recurring renewal NOW (at the new lower plan, or
+            // at the existing plan if the schedule was cleared). We cannot
+            // leave it to renewUpcoming(): the immediately-following
+            // transitionUnpaidPastPeriod() would otherwise flip this
+            // period-ended, invoice-less sub straight to past_due.
+            $lifecycle->applyScheduledDowngrade($sub);
+
+            try {
+                $adapter = $gateways->for($sub->gateway ?? 'offline');
+                $adapter->chargeRecurring($sub);
+            } catch (NotImplementedException $e) {
+                $lifecycle->markRenewalFailed($sub);
+            } catch (\Throwable $e) {
+                Log::warning('downgrade chargeRecurring failed', ['sub' => $sub->id, 'err' => $e->getMessage()]);
+                $lifecycle->markRenewalFailed($sub);
+            }
+        }
     }
 
     /**
@@ -70,6 +113,7 @@ class RenewDueSubscriptions extends Command
     {
         $subs = Subscription::where('status', 'active')
             ->where('cancel_at_period_end', false)
+            ->whereNull('scheduled_downgrade_plan_id')
             ->where('current_period_end', '<=', now())
             ->get();
         foreach ($subs as $sub) {
@@ -115,6 +159,7 @@ class RenewDueSubscriptions extends Command
         $deadline = now()->addDay();
         $subs = Subscription::where('status', 'active')
             ->where('cancel_at_period_end', false)
+            ->whereNull('scheduled_downgrade_plan_id')
             ->where('current_period_end', '<=', $deadline)
             ->where('current_period_end', '>', now()->subDays(7)) // don't revive truly ancient rows
             ->get();

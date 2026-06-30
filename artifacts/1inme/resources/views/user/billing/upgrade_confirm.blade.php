@@ -6,13 +6,15 @@
   <div class="card mb-3"><div class="card-body">
     <div class="mb-2"><strong>Current plan:</strong> {{ $current->plan->name }}</div>
     <div class="mb-2"><strong>New plan:</strong> {{ $target->name }}</div>
-    <div class="mb-2"><strong>Days remaining in cycle:</strong> {{ $calc['days_left'] }} / {{ $calc['days_in_cycle'] }}</div>
-    <div class="mb-2"><strong>Prorated charge:</strong>
-      {{ number_format($calc['amount_minor']/100, 2) }} {{ $current->currency }}
+    <div class="mb-2"><strong>Full {{ $cycle === 'annual' ? 'annual' : 'monthly' }} charge:</strong>
+      {{ number_format($amount_minor/100, 2) }} {{ $currency }}
       <small class="text-muted">(tax shown at checkout)</small>
     </div>
-    <div class="text-muted small">Your renewal date remains
-      {{ \Carbon\Carbon::parse($current->current_period_end)->toFormattedDateString() }}.</div>
+    <div class="text-muted small">A fresh {{ $cycle === 'annual' ? 'annual' : 'monthly' }} cycle starts today, so your
+      next renewal moves to
+      {{ \Carbon\Carbon::parse(now())->addMonths($cycle === 'annual' ? 12 : 1)->toFormattedDateString() }}.</div>
+    <div class="text-muted small mt-1">Any unused time on your current plan isn't deducted from this charge. If you
+      have time left over, our team can review it for an optional credit afterwards.</div>
   </div></div>
 
   <form method="POST" action="{{ route('user.billing.upgrade.handoff') }}">

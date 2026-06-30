@@ -265,6 +265,14 @@
             <span class="sidebar-tooltip">Addons</span>
         </a>
 
+        <a href="{{ route('admin.credit-reviews.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.credit-reviews.*') ? 'active' : '' }}"
+           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-hand-holding-usd"></i></div>
+            <span class="nav-label">Credit Reviews</span>
+            <span class="sidebar-tooltip">Credit Reviews</span>
+        </a>
+
         <a href="{{ route('admin.referrals.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.referrals.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">

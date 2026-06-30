@@ -26,12 +26,21 @@ use Illuminate\Http\Request;
  *   /user/billing           — overview (current plan, next renewal,
  *                             grace banner, invoices + credit notes).
  *   /user/billing/upgrade   — pick a higher plan.
- *   /user/billing/upgrade/confirm   — preview prorated amount.
+ *   /user/billing/upgrade/confirm   — preview full-price upgrade amount.
  *   /user/billing/upgrade/handoff   — create upgrade invoice + gateway.
+ *   /user/billing/downgrade — pick a lower paid plan to schedule.
+ *   /user/billing/downgrade/schedule — schedule the downgrade at cycle end.
+ *   /user/billing/downgrade/cancel   — cancel a pending scheduled downgrade.
  *   /user/billing/cancel    — cancel at period end.
  *   /user/billing/resume    — undo cancel.
  *   /user/billing/invoices/{id}/refund  — self-serve refund within window.
  *   /user/billing/credit-notes/{id}.pdf — credit-note PDF.
+ *
+ * Plan changes do NOT use proration. An UPGRADE charges full price for a
+ * fresh full cycle starting now; the leftover days/add-on time on the old
+ * plan are flagged for optional admin credit (subscription_credit_reviews),
+ * never auto-credited. A DOWNGRADE is scheduled to a chosen lower PAID plan
+ * and applied at cycle end (it never silently reverts to Free).
  */
 class BillingController extends Controller
 {
@@ -68,9 +77,14 @@ class BillingController extends Controller
             ? $subscription->addons()->with('addon')->get()
             : collect();
 
+        $scheduledDowngradePlan = $subscription && $subscription->scheduled_downgrade_plan_id
+            ? Plan::find($subscription->scheduled_downgrade_plan_id)
+            : null;
+
         return view('user.billing.show', compact(
             'subscription', 'invoices', 'creditNotes',
-            'graceDaysRemaining', 'refundableInvoices', 'addons'
+            'graceDaysRemaining', 'refundableInvoices', 'addons',
+            'scheduledDowngradePlan'
         ));
     }
 
@@ -85,10 +99,10 @@ class BillingController extends Controller
         // by comparing prices in the SUBSCRIPTION's currency, never the
         // user's current country/session.
         $subCurrency = (string) $current->currency;
-        $plans = Plan::active()->ordered()->get()->filter(function (Plan $p) use ($current, $subCurrency) {
+        $currentMinor = ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, null, $subCurrency);
+        $plans = Plan::active()->public()->ordered()->get()->filter(function (Plan $p) use ($current, $subCurrency, $currentMinor) {
             return $p->id !== $current->plan_id
-                && ProrationCalculator::resolveMinor($p, $current->billing_cycle, null, $subCurrency)
-                    > ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, null, $subCurrency);
+                && ProrationCalculator::resolveMinor($p, $current->billing_cycle, null, $subCurrency) > $currentMinor;
         });
         return view('user.billing.upgrade', compact('current', 'plans'));
     }
@@ -101,18 +115,22 @@ class BillingController extends Controller
         $user = $request->user();
         $current = $this->activeSubscription($user);
         abort_unless($current, 404);
-        $target = Plan::active()->findOrFail($data['plan_id']);
-        $calc = ProrationCalculator::prorate(
-            $current->plan, $target,
-            $current->billing_cycle, now(),
-            Carbon::parse($current->current_period_end),
-            $user,
-            (string) $current->currency,
-        );
-        abort_unless($calc['is_upgrade'], 422, 'Downgrades apply at the end of the current cycle only.');
+        $target = Plan::active()->public()->findOrFail($data['plan_id']);
+
+        // No proration: an upgrade is full price for a fresh full cycle.
+        // We still require the target to actually be a higher-priced plan.
+        $currency     = (string) $current->currency;
+        $currentMinor = ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, null, $currency);
+        $amountMinor  = ProrationCalculator::resolveMinor($target, $current->billing_cycle, null, $currency);
+        abort_unless($amountMinor > $currentMinor, 422, 'Choose a higher plan to upgrade. To move to a lower plan, use the downgrade option.');
+
         return view('user.billing.upgrade_confirm', [
-            'current' => $current, 'target' => $target, 'calc' => $calc,
-            'gateways' => app(GatewayManager::class)->enabledAdapters(),
+            'current'      => $current,
+            'target'       => $target,
+            'amount_minor' => $amountMinor,
+            'currency'     => $currency,
+            'cycle'        => $current->billing_cycle,
+            'gateways'     => app(GatewayManager::class)->enabledAdapters(),
         ]);
     }
 
@@ -125,27 +143,27 @@ class BillingController extends Controller
         $user = $request->user();
         $current = $this->activeSubscription($user);
         abort_unless($current, 404);
-        $target = Plan::active()->findOrFail($data['plan_id']);
+        $target = Plan::active()->public()->findOrFail($data['plan_id']);
 
         $enabledSlugs = array_map(fn($a) => $a->slug(), $gm->enabledAdapters());
         if (!in_array($data['gateway'], $enabledSlugs, true)) {
             return back()->with('error', 'That payment method is not available right now.');
         }
 
-        $calc = ProrationCalculator::prorate(
-            $current->plan, $target,
-            $current->billing_cycle, now(),
-            Carbon::parse($current->current_period_end),
-            $user,
-            (string) $current->currency,
-        );
-        if (!$calc['is_upgrade'] || $calc['amount_minor'] <= 0) {
-            return back()->with('error', 'Nothing to charge for this change.');
+        // No proration: charge the FULL price of the target plan for a
+        // fresh full cycle. Leftover time on the old plan is flagged for
+        // optional admin credit by ActivateSubscription, not netted off.
+        $currency     = (string) $current->currency;
+        $currentMinor = ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, null, $currency);
+        $amountMinor  = ProrationCalculator::resolveMinor($target, $current->billing_cycle, null, $currency);
+        if ($amountMinor <= $currentMinor || $amountMinor <= 0) {
+            return back()->with('error', 'Choose a higher plan to upgrade. To move to a lower plan, use the downgrade option.');
         }
 
+        $cycleLabel = $current->billing_cycle === 'annual' ? 'annual' : 'monthly';
         $items = [[
-            'label'        => 'Upgrade to ' . $target->name . ' (' . $calc['days_left'] . ' of ' . $calc['days_in_cycle'] . ' days)',
-            'amount_minor' => (int) $calc['amount_minor'],
+            'label'        => 'Upgrade to ' . $target->name . ' (full ' . $cycleLabel . ' term)',
+            'amount_minor' => (int) $amountMinor,
             'quantity'     => 1,
             'meta'         => [
                 'kind'    => 'plan_upgrade',
@@ -195,6 +213,98 @@ class BillingController extends Controller
         $lc->undoCancel($sub);
         WorkspaceActivityRecorder::record(null, 'billing.resume', 'billing', $sub->id, 'Resume subscription #' . $sub->id, route('user.billing.show'));
         return back()->with('status', 'Your plan will continue renewing.');
+    }
+
+    /**
+     * Pick a LOWER PAID plan to switch to at the end of the current cycle.
+     * Free is never an option here — moving to Free is "Cancel at period
+     * end". For each candidate we surface which of the user's current
+     * add-ons that plan can't carry, so the choice is informed.
+     */
+    public function downgrade(Request $request)
+    {
+        $user = $request->user();
+        $current = $this->activeSubscription($user);
+        if (!$current) {
+            return redirect()->route('user.billing.show');
+        }
+        $subCurrency  = (string) $current->currency;
+        $currentMinor = ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, null, $subCurrency);
+
+        $currentAddonIds = $current->addons()->pluck('addon_id')->map(fn ($id) => (int) $id)->all();
+        $currentAddonNames = $current->addons()->with('addon')->get()
+            ->mapWithKeys(fn ($sa) => [(int) $sa->addon_id => ($sa->addon->name ?? 'Add-on #' . $sa->addon_id)])
+            ->all();
+
+        $plans = Plan::active()->public()->ordered()->get()
+            ->filter(function (Plan $p) use ($current, $subCurrency, $currentMinor) {
+                if ($p->id === $current->plan_id) return false;
+                if ($p->is_default) return false; // Free is "cancel", not "downgrade"
+                $minor = ProrationCalculator::resolveMinor($p, $current->billing_cycle, null, $subCurrency);
+                return $minor > 0 && $minor < $currentMinor;
+            })
+            ->map(function (Plan $p) use ($currentAddonIds, $currentAddonNames, $current, $subCurrency) {
+                $eligible = $p->addons()->pluck('addons.id')->map(fn ($id) => (int) $id)->all();
+                $lost = [];
+                foreach ($currentAddonIds as $aid) {
+                    if (!in_array($aid, $eligible, true)) {
+                        $lost[] = $currentAddonNames[$aid] ?? ('Add-on #' . $aid);
+                    }
+                }
+                $p->setAttribute('downgrade_price_minor', ProrationCalculator::resolveMinor($p, $current->billing_cycle, null, $subCurrency));
+                $p->setAttribute('downgrade_lost_addons', $lost);
+                return $p;
+            })
+            ->values();
+
+        $scheduledDowngradePlan = $current->scheduled_downgrade_plan_id
+            ? Plan::find($current->scheduled_downgrade_plan_id)
+            : null;
+
+        return view('user.billing.downgrade', compact('current', 'plans', 'scheduledDowngradePlan'));
+    }
+
+    public function scheduleDowngrade(Request $request, SubscriptionLifecycle $lc)
+    {
+        $data = $request->validate([
+            'plan_id' => 'required|integer|exists:plans,id',
+        ]);
+        $user = $request->user();
+        $current = $this->activeSubscription($user);
+        abort_unless($current, 404);
+
+        $target = Plan::active()->public()->find($data['plan_id']);
+        if (!$target || $target->is_default || $target->id === $current->plan_id) {
+            return back()->with('error', 'That plan is not a valid downgrade option.');
+        }
+
+        $subCurrency  = (string) $current->currency;
+        $currentMinor = ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, null, $subCurrency);
+        $targetMinor  = ProrationCalculator::resolveMinor($target, $current->billing_cycle, null, $subCurrency);
+        if ($targetMinor <= 0 || $targetMinor >= $currentMinor) {
+            return back()->with('error', 'Pick a lower-priced paid plan to downgrade. To upgrade, use the upgrade option.');
+        }
+
+        $lc->scheduleDowngrade($current, $target);
+        WorkspaceActivityRecorder::record(null, 'billing.downgrade_scheduled', 'billing', $current->id, 'Schedule downgrade to ' . $target->name, route('user.billing.show'), [
+            'target_plan_id' => $target->id,
+        ]);
+
+        $when = Carbon::parse($current->current_period_end)->toFormattedDateString();
+        return redirect()->route('user.billing.show')
+            ->with('status', 'Your plan will change to ' . $target->name . ' on ' . $when . '. You can cancel this anytime before then.');
+    }
+
+    public function cancelDowngrade(Request $request, SubscriptionLifecycle $lc)
+    {
+        $sub = $this->activeSubscription($request->user());
+        abort_unless($sub, 404);
+        if (!$sub->scheduled_downgrade_plan_id) {
+            return back()->with('status', 'There is no scheduled downgrade to cancel.');
+        }
+        $lc->cancelScheduledDowngrade($sub);
+        WorkspaceActivityRecorder::record(null, 'billing.downgrade_cancelled', 'billing', $sub->id, 'Cancel scheduled downgrade #' . $sub->id, route('user.billing.show'));
+        return back()->with('status', 'Your scheduled downgrade has been cancelled. You will stay on your current plan.');
     }
 
     public function refundInvoice(Request $request, Invoice $invoice, RefundService $refunds)

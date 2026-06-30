@@ -34,6 +34,8 @@ class AdminActionLogger
     public const SUSPEND_BLOCKED     = 'account.suspend_blocked';
     public const BADGE_ASSIGNED      = 'badge.assigned';
     public const BADGE_REMOVED       = 'badge.removed';
+    public const CREDIT_REVIEW_APPROVED  = 'credit_review.approved';
+    public const CREDIT_REVIEW_DISMISSED = 'credit_review.dismissed';
 
     /**
      * Record one action.

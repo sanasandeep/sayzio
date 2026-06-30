@@ -4,6 +4,8 @@ namespace App\Services\Billing;
 
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\Subscription;
+use App\Modules\User\Models\SubscriptionAddon;
+use App\Services\Billing\ProrationCalculator;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -63,10 +65,110 @@ class SubscriptionLifecycle
 
     public function cancelAtPeriodEnd(Subscription $subscription): void
     {
+        // Cancelling to Free supersedes any scheduled paid downgrade.
         $subscription->forceFill([
-            'cancel_at_period_end' => true,
-            'cancel_at'            => $subscription->current_period_end,
+            'cancel_at_period_end'        => true,
+            'cancel_at'                   => $subscription->current_period_end,
+            'scheduled_downgrade_plan_id' => null,
         ])->save();
+    }
+
+    /**
+     * Schedule a change to a chosen LOWER PAID plan, applied at the end of
+     * the current cycle (NOT a revert to Free). Mutually exclusive with a
+     * cancel-at-period-end. The user keeps their current (higher) plan
+     * until the cycle ends.
+     */
+    public function scheduleDowngrade(Subscription $subscription, Plan $target): void
+    {
+        $subscription->forceFill([
+            'scheduled_downgrade_plan_id' => $target->id,
+            'cancel_at_period_end'        => false,
+            'cancel_at'                   => null,
+        ])->save();
+
+        $this->notify($subscription, 'downgrade_scheduled', [
+            'target_plan' => $target->name,
+            'effective'   => Carbon::parse($subscription->current_period_end)->toDateString(),
+        ]);
+    }
+
+    /** Cancel a pending scheduled downgrade before it applies. */
+    public function cancelScheduledDowngrade(Subscription $subscription): void
+    {
+        $subscription->forceFill(['scheduled_downgrade_plan_id' => null])->save();
+    }
+
+    /**
+     * Apply a scheduled downgrade at cycle end: move the subscription to
+     * the chosen lower plan, drop add-ons that plan can't carry, and clear
+     * the schedule. Returns the target Plan so the caller can re-bill it at
+     * the lower plan's price (consistent with how renewals charge), or null
+     * when the schedule is invalid/stale and was simply cleared.
+     */
+    public function applyScheduledDowngrade(Subscription $subscription): ?Plan
+    {
+        $targetId = $subscription->scheduled_downgrade_plan_id;
+        if (!$targetId) return null;
+
+        $target = Plan::find($targetId);
+        $currency = (string) $subscription->currency;
+
+        // Guard: the target must still be a valid, public, lower PAID plan.
+        // If it's gone / archived / no longer cheaper, clear the schedule
+        // and let the normal renewal path handle this subscription.
+        $valid = $target
+            && $target->status === 'active'
+            && !$target->is_archived
+            && !$target->is_default
+            && $target->id !== $subscription->plan_id
+            && ProrationCalculator::resolveMinor($target, $subscription->billing_cycle, null, $currency) > 0
+            && ProrationCalculator::resolveMinor($target, $subscription->billing_cycle, null, $currency)
+                < ProrationCalculator::resolveMinor($subscription->plan, $subscription->billing_cycle, null, $currency);
+
+        if (!$valid) {
+            Log::info('Scheduled downgrade target invalid; clearing schedule', [
+                'subscription_id' => $subscription->id,
+                'target_plan_id'  => $targetId,
+            ]);
+            $subscription->forceFill(['scheduled_downgrade_plan_id' => null])->save();
+            return null;
+        }
+
+        $dropped = [];
+        DB::transaction(function () use ($subscription, $target, &$dropped) {
+            // Drop add-ons the lower plan is not eligible to carry.
+            $eligible = $target->addons()->pluck('addons.id')->map(fn ($id) => (int) $id)->all();
+            foreach ($subscription->addons()->with('addon')->get() as $sa) {
+                if (!in_array((int) $sa->addon_id, $eligible, true)) {
+                    $dropped[] = $sa->addon->name ?? ('Add-on #' . $sa->addon_id);
+                    $sa->delete();
+                }
+            }
+
+            $subscription->forceFill([
+                'plan_id'                     => $target->id,
+                'scheduled_downgrade_plan_id' => null,
+            ])->save();
+            $subscription->setRelation('plan', $target);
+
+            // Entitlements move to the lower plan now (cycle end). The new
+            // period is extended by the renewal payment that follows.
+            $user = $subscription->user;
+            if ($user) {
+                $user->forceFill([
+                    'plan_id'       => $target->id,
+                    'billing_cycle' => $subscription->billing_cycle,
+                ])->save();
+            }
+        });
+
+        $this->notify($subscription, 'downgrade_applied', [
+            'target_plan'    => $target->name,
+            'dropped_addons' => $dropped,
+        ]);
+
+        return $target;
     }
 
     public function undoCancel(Subscription $subscription): void
@@ -114,14 +216,18 @@ class SubscriptionLifecycle
             $email = optional($subscription->user)->email;
             if (!$email) return;
             $key = match ($kind) {
-                'renewal_failed' => 'billing.subscription_renewal_failed',
-                'grace_ending'   => 'billing.subscription_grace_ending',
-                'downgraded'     => 'billing.subscription_downgraded',
-                default          => 'billing.subscription_update',
+                'renewal_failed'      => 'billing.subscription_renewal_failed',
+                'grace_ending'        => 'billing.subscription_grace_ending',
+                'downgraded'          => 'billing.subscription_downgraded',
+                'downgrade_scheduled' => 'billing.subscription_update',
+                'downgrade_applied'   => 'billing.subscription_update',
+                default               => 'billing.subscription_update',
             };
             \App\Modules\Common\Services\Emailer::send($key, $email, [
                 'plan_name'   => $subscription->plan?->name,
                 'grace_until' => $extra['grace_until'] ?? 'the grace period ends',
+                'target_plan' => $extra['target_plan'] ?? null,
+                'effective'   => $extra['effective'] ?? null,
             ], [
                 'user'    => optional($subscription->user)->id,
                 'related' => $subscription,

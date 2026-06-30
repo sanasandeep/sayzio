@@ -54,10 +54,23 @@
             </div>
             @if ($subscription->cancel_at_period_end)
               <div class="text-danger mt-1">Will cancel at end of current period.</div>
+            @elseif (!empty($scheduledDowngradePlan))
+              <div class="text-warning mt-1">
+                Scheduled to change to <strong>{{ $scheduledDowngradePlan->name }}</strong> on
+                {{ \Carbon\Carbon::parse($subscription->current_period_end)->toFormattedDateString() }}.
+              </div>
             @endif
           </div>
           <div class="text-end">
             <a href="{{ route('user.billing.upgrade') }}" class="btn btn-primary btn-sm">Upgrade plan</a>
+            @if (!$subscription->cancel_at_period_end && empty($scheduledDowngradePlan))
+              <a href="{{ route('user.billing.downgrade') }}" class="btn btn-outline-primary btn-sm">Downgrade plan</a>
+            @endif
+            @if (!empty($scheduledDowngradePlan))
+              <form method="POST" action="{{ route('user.billing.downgrade.cancel') }}" class="d-inline">@csrf
+                <button class="btn btn-outline-secondary btn-sm">Cancel downgrade</button>
+              </form>
+            @endif
             @if ($subscription->cancel_at_period_end)
               <form method="POST" action="{{ route('user.billing.resume') }}" class="d-inline">@csrf
                 <button class="btn btn-outline-secondary btn-sm">Resume</button>

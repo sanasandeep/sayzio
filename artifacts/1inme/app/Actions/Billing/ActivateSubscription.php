@@ -7,6 +7,7 @@ use App\Modules\User\Models\BillingAddress;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\Subscription;
 use App\Modules\User\Models\SubscriptionAddon;
+use App\Modules\User\Models\SubscriptionCreditReview;
 use App\Services\Billing\WalletService;
 use App\Services\InvoiceService;
 use App\Services\TaxCalculator;
@@ -140,9 +141,11 @@ class ActivateSubscription
                 ])->save();
                 $subscription = $existing;
             }
-            // Upgrade: create a new subscription row with the SAME
-            // current_period_end as the one being replaced. Mark the old
-            // row cancelled + replaced_by so the timeline walks cleanly.
+            // Upgrade: full price for a FRESH full cycle from now (no
+            // proration). The leftover days + add-on time on the old plan
+            // are NOT auto-credited — instead we flag a credit review for
+            // an admin (see captureCreditReview below). Mark the old row
+            // cancelled + replaced_by so the timeline walks cleanly.
             elseif ($intent === 'plan_upgrade' && $upgradeFromSubId && ($old = Subscription::find($upgradeFromSubId))) {
                 $subscription = Subscription::create([
                     'user_id'              => $user->id,
@@ -150,7 +153,7 @@ class ActivateSubscription
                     'status'               => 'active',
                     'billing_cycle'        => $cycle,
                     'current_period_start' => $now,
-                    'current_period_end'   => $old->current_period_end,
+                    'current_period_end'   => $now->copy()->addMonths($months),
                     'gateway'              => $gateway,
                     'currency'             => $fresh->currency,
                 ]);
@@ -179,6 +182,10 @@ class ActivateSubscription
                     'replaced_by_id' => $subscription->id,
                     'cancel_at'      => $now,
                 ])->save();
+
+                // Flag the forfeited leftover (old-plan days + carried
+                // add-on time) for optional admin credit. NOT auto-applied.
+                $this->captureCreditReview($old, $subscription, $now);
             } else {
                 $end = $now->copy()->addMonths($months);
                 $subscription = Subscription::create([
@@ -262,6 +269,79 @@ class ActivateSubscription
         $invoice = InvoiceService::issue($user, $calc, $address);
         $invoice->forceFill(['status' => 'pending', 'paid_at' => null])->save();
         return $invoice;
+    }
+
+    /**
+     * Record the leftover value forfeited by a mid-cycle full-price
+     * upgrade so an admin can optionally grant credit later. Best-effort:
+     * a failure here must never roll back the activation. Skips creating a
+     * row when there is nothing to review (no leftover days and no carried
+     * add-ons).
+     */
+    protected function captureCreditReview(Subscription $old, Subscription $new, \Carbon\Carbon $now): void
+    {
+        try {
+            $oldEnd = \Carbon\Carbon::parse($old->current_period_end);
+            $leftoverDays = $oldEnd->isFuture()
+                ? (int) ceil($now->floatDiffInDays($oldEnd, false))
+                : 0;
+            $leftoverDays = max(0, $leftoverDays);
+
+            $addonsSnapshot = [];
+            foreach ($old->addons()->with('addon')->get() as $sa) {
+                $addonsSnapshot[] = [
+                    'addon_id' => (int) $sa->addon_id,
+                    'name'     => $sa->addon->name ?? ('Add-on #' . $sa->addon_id),
+                    'qty'      => (int) ($sa->qty ?? 1),
+                ];
+            }
+
+            // Nothing to review — don't create noise.
+            if ($leftoverDays <= 0 && count($addonsSnapshot) === 0) {
+                return;
+            }
+
+            // Add-ons share the subscription period, so their leftover time
+            // equals the leftover plan days when any add-on is carried.
+            $leftoverAddonDays = count($addonsSnapshot) > 0 ? $leftoverDays : 0;
+
+            $review = SubscriptionCreditReview::create([
+                'user_id'             => $new->user_id,
+                'subscription_id'     => $new->id,
+                'old_subscription_id' => $old->id,
+                'old_plan_id'         => $old->plan_id,
+                'new_plan_id'         => $new->plan_id,
+                'leftover_days'       => $leftoverDays,
+                'leftover_addon_days' => $leftoverAddonDays,
+                'addons_snapshot'     => $addonsSnapshot,
+                'currency'            => $new->currency,
+                'status'              => 'pending',
+            ]);
+
+            // Best-effort team ping so the review queue isn't only pull-based.
+            try {
+                app(\App\Modules\Common\Services\NotificationService::class)->systemAlert(
+                    'Upgrade leftover credit review',
+                    'A full-price upgrade left ' . $leftoverDays . ' unused day(s)'
+                        . (count($addonsSnapshot) ? ' plus ' . count($addonsSnapshot) . ' carried add-on(s)' : '')
+                        . ' on the old plan. Review whether to grant credit.',
+                    'info',
+                    [
+                        'user_id'     => $new->user_id,
+                        'review_id'   => $review->id,
+                        'leftover'    => $leftoverDays . 'd',
+                    ],
+                    \App\Services\Integrations\IntegrationKeySettings::ALERT_CATEGORY_PAYMENT,
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Credit-review alert failed: ' . $e->getMessage());
+            }
+        } catch (\Throwable $e) {
+            Log::warning('captureCreditReview failed: ' . $e->getMessage(), [
+                'old_subscription_id' => $old->id ?? null,
+                'new_subscription_id' => $new->id ?? null,
+            ]);
+        }
     }
 
     protected function sendReceipt(Invoice $invoice): void

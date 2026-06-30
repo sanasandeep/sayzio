@@ -1,4 +1,5 @@
 - [Internal (admin-only) plans](internal-admin-only-plans.md) — `Plan::scopePublic()` (is_internal=false) is the canonical filter; every self-serve list/upgrade surface adds `->public()`, admin list & assign-picker do not.
+- [Plan upgrade/downgrade billing](plan-upgrade-downgrade-billing.md) — no proration: upgrade=full-price fresh cycle + admin credit review; downgrade=scheduled lower-paid plan applied at cycle end by renewal job; resolveMinor only compares prices.
 - [Protected accounts guard](protected-accounts-guard.md) — email-keyed never-delete/suspend list; call `ProtectedAccount::isProtected()` server-side on every destructive path, not just hide UI.
 - [Sharded PHPUnit runner](sharded-test-runner.md) — `composer test:sharded` bounds test memory by running shards; migrate once on shard 1, skip on the rest via SHARDED_TEST_SKIP_MIGRATION.
 - [Sanctum API feature tests](sanctum-api-tests.md) — `Sanctum::actingAs` breaks the TouchSessionToken middleware; auth API tests must use a real Bearer token.

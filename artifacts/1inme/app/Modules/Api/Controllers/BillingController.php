@@ -22,9 +22,20 @@ class BillingController extends Controller
     public function subscription(Request $request)
     {
         $sub = Subscription::where('user_id', $request->user()->id)
+            ->with('scheduledDowngradePlan')
             ->orderByDesc('id')
             ->first();
         if (!$sub) return $this->ok(['subscription' => null]);
+
+        $downgrade = null;
+        if ($sub->scheduled_downgrade_plan_id && $sub->scheduledDowngradePlan) {
+            $downgrade = [
+                'plan_id'    => $sub->scheduledDowngradePlan->id,
+                'plan_name'  => $sub->scheduledDowngradePlan->name,
+                'applies_at' => optional($sub->current_period_end)->toIso8601String(),
+            ];
+        }
+
         return $this->ok(['subscription' => [
             'id'                    => $sub->id,
             'plan_id'               => $sub->plan_id,
@@ -34,6 +45,7 @@ class BillingController extends Controller
             'current_period_end'    => optional($sub->current_period_end)->toIso8601String(),
             'cancel_at'             => optional($sub->cancel_at)->toIso8601String(),
             'cancel_at_period_end'  => (bool) $sub->cancel_at_period_end,
+            'scheduled_downgrade'   => $downgrade,
             'gateway'               => $sub->gateway,
             'currency'              => $sub->currency,
         ]]);

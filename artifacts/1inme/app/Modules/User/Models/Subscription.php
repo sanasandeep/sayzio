@@ -11,7 +11,7 @@ class Subscription extends Model
         'user_id', 'plan_id', 'status', 'billing_cycle',
         'current_period_start', 'current_period_end', 'cancel_at',
         'cancel_at_period_end', 'replaced_by_id', 'grace_until',
-        'grace_ending_notified_at',
+        'grace_ending_notified_at', 'scheduled_downgrade_plan_id',
         'gateway', 'gateway_subscription_id', 'currency',
     ];
 
@@ -31,4 +31,5 @@ class Subscription extends Model
     public function plan()   { return $this->belongsTo(Plan::class); }
     public function addons() { return $this->hasMany(SubscriptionAddon::class); }
     public function invoices() { return $this->hasMany(Invoice::class); }
+    public function scheduledDowngradePlan() { return $this->belongsTo(Plan::class, 'scheduled_downgrade_plan_id'); }
 }

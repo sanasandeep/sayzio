@@ -913,6 +913,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('billing/upgrade', [\App\Modules\User\Controllers\BillingController::class, 'upgrade'])->middleware('workspace.owner')->name('billing.upgrade');
         Route::post('billing/upgrade/confirm', [\App\Modules\User\Controllers\BillingController::class, 'upgradeConfirm'])->middleware('workspace.owner')->name('billing.upgrade.confirm');
         Route::post('billing/upgrade/handoff', [\App\Modules\User\Controllers\BillingController::class, 'upgradeHandoff'])->middleware('workspace.owner')->name('billing.upgrade.handoff');
+        Route::get('billing/downgrade', [\App\Modules\User\Controllers\BillingController::class, 'downgrade'])->middleware('workspace.owner')->name('billing.downgrade');
+        Route::post('billing/downgrade/schedule', [\App\Modules\User\Controllers\BillingController::class, 'scheduleDowngrade'])->middleware('workspace.owner')->name('billing.downgrade.schedule');
+        Route::post('billing/downgrade/cancel', [\App\Modules\User\Controllers\BillingController::class, 'cancelDowngrade'])->middleware('workspace.owner')->name('billing.downgrade.cancel');
         Route::post('billing/cancel', [\App\Modules\User\Controllers\BillingController::class, 'cancel'])->middleware('workspace.owner')->name('billing.cancel');
         Route::post('billing/resume', [\App\Modules\User\Controllers\BillingController::class, 'resume'])->middleware('workspace.owner')->name('billing.resume');
         Route::post('billing/invoices/{invoice}/refund', [\App\Modules\User\Controllers\BillingController::class, 'refundInvoice'])->middleware('workspace.owner')->name('billing.refund');
