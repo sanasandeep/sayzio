@@ -263,21 +263,36 @@
                     <span class="rb-status-done"><i class="fas fa-circle-check"></i> AI polished</span>
                 </div>
 
+                @php
+                    // First persona is the resting / no-JS / reduced-motion state
+                    // rendered as static markup below; the full list drives the JS
+                    // build cycle further down (see Common\Support\ResumePersonas).
+                    $rbP = ($resumePersonas ?? [])[0] ?? [
+                        'initials' => 'MA', 'name' => 'Maya Anders', 'role' => 'Senior Product Designer',
+                        'location' => 'Berlin', 'tags' => ['Figma', 'Design Systems', 'Prototyping', 'UX Research'],
+                        'company' => 'Linear · 2023 — Now',
+                        'experience' => 'Shipped onboarding redesign, +28% activation. Led design system across 4 squads.',
+                        'skills' => [
+                            ['label' => 'Product design', 'value' => 95],
+                            ['label' => 'Design systems', 'value' => 88],
+                            ['label' => 'Front-end (React)', 'value' => 72],
+                        ],
+                    ];
+                @endphp
                 <div class="rb-paper" role="img" aria-label="Résumé preview">
                     <div class="rb-paper-head rb-build rb-b-head" style="--ty:-26px;--rot:-3deg;">
                         <div class="relative flex items-center gap-3">
-                            <div class="rb-avatar">MA</div>
+                            <div class="rb-avatar">{{ $rbP['initials'] }}</div>
                             <div>
-                                <div class="text-base font-bold leading-tight">Maya Anders</div>
-                                <div class="text-[11px] opacity-90">Senior Product Designer · Berlin</div>
+                                <div class="rb-name text-base font-bold leading-tight">{{ $rbP['name'] }}</div>
+                                <div class="rb-subtitle text-[11px] opacity-90">{{ $rbP['role'] }} · {{ $rbP['location'] }}</div>
                             </div>
                             <span class="ml-auto text-[10px] font-bold uppercase tracking-wider bg-white/20 backdrop-blur px-2 py-1 rounded-full">CV</span>
                         </div>
-                        <div class="relative mt-3 flex flex-wrap gap-1.5">
-                            <span class="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded-full">Figma</span>
-                            <span class="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded-full">Design Systems</span>
-                            <span class="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded-full">Prototyping</span>
-                            <span class="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded-full">UX Research</span>
+                        <div class="rb-tags relative mt-3 flex flex-wrap gap-1.5">
+                            @foreach($rbP['tags'] as $tag)
+                                <span class="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded-full">{{ $tag }}</span>
+                            @endforeach
                         </div>
                     </div>
                     <div class="px-5 py-4 space-y-4">
@@ -286,25 +301,19 @@
                                 <div class="text-[11px] font-bold uppercase tracking-wider text-blue-700">Experience</div>
                                 <span class="rb-chip"><i class="fas fa-sparkles text-[8px]"></i> AI polished</span>
                             </div>
-                            <div class="text-[12px] font-bold text-slate-900 leading-tight">Senior Product Designer</div>
-                            <div class="text-[10px] text-slate-500">Linear · 2023 — Now</div>
-                            <div class="text-[10px] text-slate-600 mt-1 leading-snug"><span class="rb-type">Shipped onboarding redesign, +28% activation. Led design system across 4 squads.</span><span class="rb-type-caret" aria-hidden="true">▍</span></div>
+                            <div class="rb-exp-title text-[12px] font-bold text-slate-900 leading-tight">{{ $rbP['role'] }}</div>
+                            <div class="rb-exp-company text-[10px] text-slate-500">{{ $rbP['company'] }}</div>
+                            <div class="text-[10px] text-slate-600 mt-1 leading-snug"><span class="rb-type">{{ $rbP['experience'] }}</span><span class="rb-type-caret" aria-hidden="true">▍</span></div>
                         </div>
                         <div class="rb-build rb-b-skills" style="--tx:40px;--rot:2deg;">
                             <div class="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-2">Skills</div>
-                            <div class="space-y-2">
-                                <div>
-                                    <div class="flex items-center justify-between text-[10px] mb-1"><span class="font-semibold text-slate-700">Product design</span><span class="text-slate-500">95%</span></div>
-                                    <div class="rb-bar"><span style="--rb-w:95%"></span></div>
-                                </div>
-                                <div>
-                                    <div class="flex items-center justify-between text-[10px] mb-1"><span class="font-semibold text-slate-700">Design systems</span><span class="text-slate-500">88%</span></div>
-                                    <div class="rb-bar"><span style="--rb-w:88%; animation-delay:.2s;"></span></div>
-                                </div>
-                                <div>
-                                    <div class="flex items-center justify-between text-[10px] mb-1"><span class="font-semibold text-slate-700">Front-end (React)</span><span class="text-slate-500">72%</span></div>
-                                    <div class="rb-bar"><span style="--rb-w:72%; animation-delay:.4s;"></span></div>
-                                </div>
+                            <div class="rb-skills space-y-2">
+                                @foreach(array_slice($rbP['skills'], 0, 3) as $si => $skill)
+                                    <div class="rb-skill">
+                                        <div class="flex items-center justify-between text-[10px] mb-1"><span class="rb-skill-label font-semibold text-slate-700">{{ $skill['label'] }}</span><span class="rb-skill-pct text-slate-500">{{ $skill['value'] }}%</span></div>
+                                        <div class="rb-bar"><span style="--rb-w:{{ $skill['value'] }}%;@if($si > 0) animation-delay:.{{ $si * 2 }}s;@endif"></span></div>
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
                         <div class="rb-build rb-b-port" style="--ty:32px;--rot:3deg;">
@@ -373,6 +382,53 @@
     var typeEl = wrap.querySelector('.rb-type');
     var fullText = typeEl ? typeEl.textContent : '';
 
+    // Personas the demo cycles through (designer, developer, marketer, student)
+    // to show the builder works for any career — sourced from the same
+    // server-passed list (Common\Support\ResumePersonas) that rendered the
+    // resting/no-JS markup above, so adding/removing a persona is a one-line
+    // data change. The first entry is already on screen at rest.
+    var PERSONAS = @json($resumePersonas ?? []);
+    var pIdx = 0;
+
+    // Cached references to the per-persona surfaces.
+    var avatarEl   = wrap.querySelector('.rb-avatar');
+    var nameEl     = wrap.querySelector('.rb-name');
+    var subtitleEl = wrap.querySelector('.rb-subtitle');
+    var tagsEl     = wrap.querySelector('.rb-tags');
+    var expTitleEl = wrap.querySelector('.rb-exp-title');
+    var companyEl  = wrap.querySelector('.rb-exp-company');
+    var skillRows  = Array.prototype.slice.call(wrap.querySelectorAll('.rb-skills .rb-skill'));
+
+    // Paint one persona's content into the (hidden) résumé surface. Also updates
+    // `fullText` so the typed experience line types out the right copy.
+    function applyPersona(p) {
+        if (!p) return;
+        if (avatarEl) avatarEl.textContent = p.initials || '';
+        if (nameEl) nameEl.textContent = p.name || '';
+        if (subtitleEl) subtitleEl.textContent = (p.role || '') + ' · ' + (p.location || '');
+        if (expTitleEl) expTitleEl.textContent = p.role || '';
+        if (companyEl) companyEl.textContent = p.company || '';
+        if (tagsEl && p.tags) {
+            tagsEl.innerHTML = p.tags.map(function (t) {
+                return '<span class="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded-full"></span>';
+            }).join('');
+            var chips = tagsEl.children;
+            for (var t = 0; t < chips.length; t++) chips[t].textContent = p.tags[t];
+        }
+        var skills = p.skills || [];
+        for (var s = 0; s < skillRows.length; s++) {
+            var sk = skills[s];
+            var lbl = skillRows[s].querySelector('.rb-skill-label');
+            var pct = skillRows[s].querySelector('.rb-skill-pct');
+            var bar = skillRows[s].querySelector('.rb-bar > span');
+            if (!sk) continue;
+            if (lbl) lbl.textContent = sk.label;
+            if (pct) pct.textContent = sk.value + '%';
+            if (bar) bar.style.setProperty('--rb-w', sk.value + '%');
+        }
+        fullText = (p.experience != null) ? String(p.experience) : fullText;
+    }
+
     var reduceMq = window.matchMedia('(prefers-reduced-motion: reduce)');
     var runId = 0;
     var running = false;
@@ -411,10 +467,12 @@
         });
     }
 
-    // One full build cycle: header → experience (types in) → skills (bars fill)
-    // → portfolio tiles → "AI polished", hold, fade out, replay.
+    // One full build cycle: swap in the current persona → header → experience
+    // (types in) → skills (bars fill) → portfolio tiles → "AI polished", hold,
+    // fade out, advance to the next persona and replay.
     function play(id) {
         reset();
+        if (PERSONAS.length) applyPersona(PERSONAS[pIdx]);
         return sleep(420, id)
             .then(function () { reveal('rb-b-head'); return sleep(560, id); })
             .then(function () { reveal('rb-b-exp'); return sleep(300, id); })
@@ -425,7 +483,10 @@
             .then(function () { wrap.classList.add('rb-built'); return sleep(3200, id); })
             .then(function () { wrap.classList.add('rb-fading'); return sleep(620, id); })
             .then(function () { reset(); return sleep(420, id); })
-            .then(function () { if (id === runId) play(id); })
+            .then(function () {
+                if (PERSONAS.length) pIdx = (pIdx + 1) % PERSONAS.length;
+                if (id === runId) play(id);
+            })
             .catch(function () {});
     }
 
