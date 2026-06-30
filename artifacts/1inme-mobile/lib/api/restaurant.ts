@@ -17,16 +17,52 @@ export type RestaurantMenuCategory = {
   items: RestaurantMenuItem[];
 };
 
+export type RestaurantMenuTax = {
+  enabled: boolean;
+  rate: number;
+  inclusive: boolean;
+  label: string;
+};
+
 export type RestaurantMenu = {
   menu: {
     mode: "display" | "order";
     currency: string;
     accent_color: string | null;
     order_enabled: boolean;
+    tax: RestaurantMenuTax;
   };
   link: { alias: string; title: string | null };
   table: { code: string; label: string } | null;
   categories: RestaurantMenuCategory[];
+};
+
+/** Itemised estimated-bill breakdown shared by quote + order snapshots. */
+export type RestaurantBill = {
+  subtotal: number;
+  coupon_code: string | null;
+  coupon_applied: boolean;
+  coupon_error: string | null;
+  discount_amount: number;
+  tax_enabled: boolean;
+  tax_inclusive: boolean;
+  tax_rate: number;
+  tax_label: string;
+  tax_amount: number;
+  total: number;
+  currency: string;
+  is_estimate: boolean;
+};
+
+/** Snapshot breakdown attached to a placed order. */
+export type OrderBreakdown = {
+  coupon_code: string | null;
+  discount_amount: string | null;
+  tax_rate: string | null;
+  tax_inclusive: boolean;
+  tax_amount: string | null;
+  total: string | null;
+  is_estimate: boolean;
 };
 
 export type GuestOrderItem = {
@@ -51,7 +87,7 @@ export type GuestOrder = {
   items: GuestOrderItem[];
   whatsapp: WhatsappOrderLink | null;
   created_at: string | null;
-};
+} & OrderBreakdown;
 
 export type OwnerOrderItem = {
   id: number;
@@ -74,7 +110,7 @@ export type OwnerOrder = {
   created_at: string | null;
   updated_at: string | null;
   items: OwnerOrderItem[];
-};
+} & OrderBreakdown;
 
 export type OwnerOrdersResponse = {
   orders: OwnerOrder[];
@@ -86,7 +122,13 @@ export type PlaceOrderInput = {
   table_code?: string | null;
   customer_name?: string | null;
   customer_note?: string | null;
+  coupon_code?: string | null;
   items: { item_id: number; quantity: number; note?: string | null }[];
+};
+
+export type QuoteInput = {
+  coupon_code?: string | null;
+  items: { item_id: number; quantity: number }[];
 };
 
 export async function getRestaurantMenu(
@@ -109,6 +151,17 @@ export async function placeRestaurantOrder(
     { method: "POST", body: JSON.stringify(input) },
   );
   return res.data.order;
+}
+
+export async function quoteRestaurantOrder(
+  alias: string,
+  input: QuoteInput,
+): Promise<RestaurantBill> {
+  const res = await apiFetch<{ data: { bill: RestaurantBill } }>(
+    `/restaurant/${encodeURIComponent(alias)}/quote`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data.bill;
 }
 
 export async function getRestaurantOrderStatus(

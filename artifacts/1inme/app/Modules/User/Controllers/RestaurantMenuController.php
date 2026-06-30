@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\RestaurantMenu;
 use App\Modules\User\Models\RestaurantMenuCategory;
+use App\Modules\User\Models\RestaurantMenuCoupon;
 use App\Modules\User\Models\RestaurantMenuItem;
 use App\Modules\User\Models\RestaurantOrder;
 use App\Modules\User\Models\RestaurantTable;
@@ -58,9 +59,13 @@ class RestaurantMenuController extends Controller
             'accent_color'    => 'nullable|string|max:16',
             'whatsapp_number' => 'nullable|string|max:32',
             'settings'        => 'nullable|array',
+            'tax_enabled'     => 'sometimes|boolean',
+            'tax_rate'        => 'nullable|numeric|min:0|max:100',
+            'tax_inclusive'   => 'sometimes|boolean',
+            'tax_label'       => 'nullable|string|max:24',
         ]);
 
-        $settings = $data['settings'] ?? $menu->settings ?? [];
+        $settings = $data['settings'] ?? ($menu->settings ?? []);
 
         // Optional WhatsApp click-to-chat number for order confirmations. Stored
         // in the menu's settings JSON, normalized to the digits-only form
@@ -74,6 +79,18 @@ class RestaurantMenuController extends Controller
             }
         }
 
+        // Tax/GST settings live in the menu `settings` JSON. Accept them either
+        // as flat fields (web editor, mobile API) or pre-nested in `settings`.
+        if ($request->has('tax_enabled') || $request->has('tax_rate')
+            || $request->has('tax_inclusive') || $request->has('tax_label')) {
+            $settings['tax'] = [
+                'enabled'   => (bool) ($data['tax_enabled'] ?? false),
+                'rate'      => round((float) ($data['tax_rate'] ?? 0), 3),
+                'inclusive' => (bool) ($data['tax_inclusive'] ?? false),
+                'label'     => trim((string) ($data['tax_label'] ?? 'GST')) ?: 'GST',
+            ];
+        }
+
         $menu->update([
             'mode'         => $data['mode'],
             'currency'     => strtoupper($data['currency']),
@@ -82,6 +99,78 @@ class RestaurantMenuController extends Controller
         ]);
 
         return response()->json(['data' => ['menu' => $menu->fresh()]]);
+    }
+
+    // ── Coupons (Task #3067) ─────────────────────────────────────
+    public function storeCoupon(Request $request, Link $link)
+    {
+        $menu = $this->menuFor($link);
+
+        $data = $this->validateCoupon($request);
+        $code = RestaurantMenuCoupon::normalizeCode($data['code']);
+
+        if ($menu->coupons()->where('code', $code)->exists()) {
+            return response()->json(['error' => [
+                'message' => 'A coupon with that code already exists on this menu.',
+                'code'    => 'duplicate_code',
+            ]], 422);
+        }
+
+        $coupon = $menu->coupons()->create([
+            'code'           => $code,
+            'discount_type'  => $data['discount_type'],
+            'discount_value' => $data['discount_value'],
+            'min_subtotal'   => $data['min_subtotal'] ?? 0,
+            'is_active'      => (bool) ($data['is_active'] ?? true),
+        ]);
+
+        return response()->json(['data' => ['coupon' => $coupon]], 201);
+    }
+
+    public function updateCoupon(Request $request, Link $link, RestaurantMenuCoupon $coupon)
+    {
+        $menu = $this->menuFor($link);
+        $this->assertOwns($menu, $coupon);
+
+        $data = $this->validateCoupon($request);
+        $code = RestaurantMenuCoupon::normalizeCode($data['code']);
+
+        if ($menu->coupons()->where('code', $code)->where('id', '!=', $coupon->id)->exists()) {
+            return response()->json(['error' => [
+                'message' => 'A coupon with that code already exists on this menu.',
+                'code'    => 'duplicate_code',
+            ]], 422);
+        }
+
+        $coupon->update([
+            'code'           => $code,
+            'discount_type'  => $data['discount_type'],
+            'discount_value' => $data['discount_value'],
+            'min_subtotal'   => $data['min_subtotal'] ?? 0,
+            'is_active'      => (bool) ($data['is_active'] ?? true),
+        ]);
+
+        return response()->json(['data' => ['coupon' => $coupon->fresh()]]);
+    }
+
+    public function destroyCoupon(Request $request, Link $link, RestaurantMenuCoupon $coupon)
+    {
+        $menu = $this->menuFor($link);
+        $this->assertOwns($menu, $coupon);
+        $coupon->delete();
+
+        return response()->json(['data' => ['deleted' => true]]);
+    }
+
+    protected function validateCoupon(Request $request): array
+    {
+        return $request->validate([
+            'code'           => 'required|string|max:64',
+            'discount_type'  => 'required|in:percent,fixed',
+            'discount_value' => 'required|numeric|min:0|max:9999999',
+            'min_subtotal'   => 'nullable|numeric|min:0|max:9999999',
+            'is_active'      => 'sometimes|boolean',
+        ]);
     }
 
     // ── Categories ───────────────────────────────────────────────

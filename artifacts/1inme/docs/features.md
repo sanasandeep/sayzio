@@ -533,13 +533,22 @@ editor).
 - **Tables** — physical tables each with a unique code and per-table QR
   (`order_url?t={code}`) so an order is tied to its table.
 - **Visitor ordering** — browse + Place Order (customer name, notes, quantities).
+- **Coupons & estimated bill** — the owner sets per-menu **coupon codes**
+  (percentage or fixed amount, single coupon per order) and one menu-level
+  **GST/tax** rate (added-on or tax-inclusive, custom label). Visitors see a live
+  itemized estimate — subtotal, coupon discount, GST line (or "incl." note), and
+  estimated total — computed by `RestaurantBillCalculator` (single source of
+  truth). Every surface carries an **"estimated bill, not the actual bill"**
+  disclaimer; no payment is collected.
 - **Orders Dashboard** — near-real-time staff workflow with incremental polling;
   statuses Pending → Preparing → Served → Paid/Cancelled (plus
-  confirmed/delivered/completed states).
+  confirmed/delivered/completed states). Each order shows the snapshotted
+  coupon/discount/GST breakdown.
 
-*Web · REST (public `GET /restaurant/{alias}`, `POST /restaurant/{alias}/order`,
-`GET /restaurant/order/{token}`; owner orders + `/poll` + status PATCH) · Mobile
-(full native builder + orders polling).*
+*Web · REST (public `GET /restaurant/{alias}`, `POST /restaurant/{alias}/quote`,
+`POST /restaurant/{alias}/order`, `GET /restaurant/order/{token}`; owner orders +
+`/poll` + status PATCH) · Mobile (full native builder + ordering with live bill
++ orders polling).*
 
 ### 5.11 Resume / Portfolio
 

@@ -904,16 +904,27 @@ editor).
 1. Create a **Restaurant Menu** link.
 2. Build **Categories**, then add **Items** (name, description, price, photo).
 3. Set display options, order mode, currency, and accent color.
-4. If you want table ordering, define **Tables** — each gets its own unique QR/URL
+4. Optionally set a **GST/tax rate** for the menu (added on top of prices, or
+   marked as already included) and create **coupon codes** (a percentage off or a
+   fixed amount off). One coupon applies per order.
+5. If you want table ordering, define **Tables** — each gets its own unique QR/URL
    so a diner's order is tied to their table.
-5. When orders come in, manage them in the near-real-time **Orders Dashboard**,
-   moving each from **Pending → Preparing → Served → Paid/Cancelled**.
+6. When orders come in, manage them in the near-real-time **Orders Dashboard**,
+   moving each from **Pending → Preparing → Served → Paid/Cancelled**. Each order
+   shows the coupon, discount, and GST breakdown that the diner saw.
 
 **Visitor experience.** Diners scan the table QR (or open the menu link), browse,
-and tap **Place Order**.
+add items, and (if enabled) enter a coupon code. They see a live **estimated
+bill** — subtotal, any discount, the GST line, and an estimated total — before
+tapping **Place Order**.
+
+> **Note.** The figures shown are an **estimate, not the actual bill**. Sayzio
+> does not collect payment — diners settle directly with the restaurant, which
+> confirms the final amount.
 
 **Mobile.** The restaurant menu has a full native builder in the Sayzio mobile app
-too — no need to switch to the web.
+too — including coupon entry and the live estimated bill — so there's no need to
+switch to the web.
 
 ---
 

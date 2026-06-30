@@ -197,11 +197,54 @@ export default function RestaurantOrdersScreen() {
             <View
               style={[styles.total, { borderTopColor: colors.border }]}
             >
-              <Text style={{ color: colors.foreground, fontWeight: "700" }}>
-                Total
-              </Text>
-              <Text style={{ color: colors.foreground, fontWeight: "700" }}>
-                {o.currency} {Number(o.subtotal).toFixed(2)}
+              <View style={styles.breakdownRow}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12.5 }}>
+                  Subtotal
+                </Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12.5 }}>
+                  {o.currency} {Number(o.subtotal).toFixed(2)}
+                </Text>
+              </View>
+              {Number(o.discount_amount ?? 0) > 0 ? (
+                <View style={styles.breakdownRow}>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12.5 }}>
+                    Discount{o.coupon_code ? ` (${o.coupon_code})` : ""}
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12.5 }}>
+                    −{o.currency} {Number(o.discount_amount).toFixed(2)}
+                  </Text>
+                </View>
+              ) : null}
+              {Number(o.tax_rate ?? 0) > 0 ? (
+                <View style={styles.breakdownRow}>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12.5 }}>
+                    Tax ({Number(o.tax_rate).toFixed(2)}%)
+                    {o.tax_inclusive ? " incl." : ""}
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12.5 }}>
+                    {o.tax_inclusive
+                      ? "incl."
+                      : `${o.currency} ${Number(o.tax_amount ?? 0).toFixed(2)}`}
+                  </Text>
+                </View>
+              ) : null}
+              <View style={[styles.breakdownRow, { marginTop: 4 }]}>
+                <Text style={{ color: colors.foreground, fontWeight: "700" }}>
+                  Estimated total
+                </Text>
+                <Text style={{ color: colors.foreground, fontWeight: "700" }}>
+                  {o.currency}{" "}
+                  {Number(o.total ?? o.subtotal).toFixed(2)}
+                </Text>
+              </View>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 11,
+                  marginTop: 6,
+                }}
+              >
+                Estimated bill, not the actual bill.
               </Text>
             </View>
 
@@ -259,11 +302,14 @@ const styles = StyleSheet.create({
   statusText: { color: "#fff", fontWeight: "700", fontSize: 12 },
   line: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 },
   total: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
+  },
+  breakdownRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 2,
   },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
   actionBtn: {

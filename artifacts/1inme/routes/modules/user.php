@@ -884,6 +884,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::put   ('links/{link}/restaurant/items/{item}',  [\App\Modules\User\Controllers\RestaurantMenuController::class, 'updateItem'])->middleware('workspace.can:links.edit')->name('links.restaurant.items.update');
         Route::delete('links/{link}/restaurant/items/{item}',  [\App\Modules\User\Controllers\RestaurantMenuController::class, 'destroyItem'])->middleware('workspace.can:links.edit')->name('links.restaurant.items.destroy');
         Route::post  ('links/{link}/restaurant/items/reorder', [\App\Modules\User\Controllers\RestaurantMenuController::class, 'reorderItems'])->middleware('workspace.can:links.edit')->name('links.restaurant.items.reorder');
+        // Coupons (owner-configurable discount codes)
+        Route::post  ('links/{link}/restaurant/coupons',           [\App\Modules\User\Controllers\RestaurantMenuController::class, 'storeCoupon'])->middleware('workspace.can:links.edit')->name('links.restaurant.coupons.store');
+        Route::put   ('links/{link}/restaurant/coupons/{coupon}',  [\App\Modules\User\Controllers\RestaurantMenuController::class, 'updateCoupon'])->middleware('workspace.can:links.edit')->name('links.restaurant.coupons.update');
+        Route::delete('links/{link}/restaurant/coupons/{coupon}',  [\App\Modules\User\Controllers\RestaurantMenuController::class, 'destroyCoupon'])->middleware('workspace.can:links.edit')->name('links.restaurant.coupons.destroy');
         // Tables + per-table printable QR
         Route::post  ('links/{link}/restaurant/tables',             [\App\Modules\User\Controllers\RestaurantMenuController::class, 'storeTable'])->middleware('workspace.can:links.edit')->name('links.restaurant.tables.store');
         Route::delete('links/{link}/restaurant/tables/{table}',     [\App\Modules\User\Controllers\RestaurantMenuController::class, 'destroyTable'])->middleware('workspace.can:links.edit')->name('links.restaurant.tables.destroy');

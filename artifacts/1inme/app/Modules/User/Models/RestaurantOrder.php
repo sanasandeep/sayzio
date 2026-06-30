@@ -68,14 +68,20 @@ class RestaurantOrder extends Model
     protected $fillable = [
         'menu_id', 'link_id', 'table_id', 'public_token', 'status',
         'table_label', 'customer_name', 'customer_note', 'subtotal',
-        'currency', 'meta',
+        'coupon_code', 'discount_amount', 'tax_rate', 'tax_inclusive',
+        'tax_amount', 'total', 'currency', 'meta',
     ];
 
     protected function casts(): array
     {
         return [
-            'subtotal' => 'decimal:2',
-            'meta'     => 'array',
+            'subtotal'        => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'tax_rate'        => 'decimal:3',
+            'tax_inclusive'   => 'boolean',
+            'tax_amount'      => 'decimal:2',
+            'total'           => 'decimal:2',
+            'meta'            => 'array',
         ];
     }
 

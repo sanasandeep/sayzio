@@ -90,6 +90,7 @@ Route::prefix('v1')->group(function () {
         // Restaurant menu (Task #1536) — public: fetch menu, place order,
         // poll guest order status. No auth, no online payment.
         Route::get('/restaurant/{alias}',              [RestaurantController::class, 'show']);
+        Route::post('/restaurant/{alias}/quote',       [RestaurantController::class, 'quote'])->middleware('throttle:120,1');
         Route::post('/restaurant/{alias}/order',       [RestaurantController::class, 'placeOrder'])->middleware('throttle:30,1');
         Route::get('/restaurant/orders/{token}/status',[RestaurantController::class, 'orderStatus']);
 

@@ -9,7 +9,11 @@
     .ro-table { font-weight:700; font-size:16px; color:var(--text-primary); }
     .ro-meta { font-size:12.5px; color:var(--text-muted); margin-top:2px; }
     .ro-line { display:flex; justify-content:space-between; font-size:13.5px; padding:4px 0; color:var(--text-primary); }
-    .ro-total { display:flex; justify-content:space-between; font-weight:700; margin-top:8px; padding-top:8px; border-top:1px dashed var(--border-glass); color:var(--text-primary); }
+    .ro-breakdown { margin-top:8px; padding-top:8px; border-top:1px dashed var(--border-glass); }
+    .ro-bline { display:flex; justify-content:space-between; font-size:12.5px; padding:2px 0; color:var(--text-muted); }
+    .ro-bline.ro-discount span:last-child { color:#10b981; }
+    .ro-total { display:flex; justify-content:space-between; font-weight:700; margin-top:6px; padding-top:6px; border-top:1px dashed var(--border-glass); color:var(--text-primary); }
+    .ro-estimate-note { font-size:11.5px; color:var(--text-muted); font-style:italic; margin-top:4px; }
     .ro-status { padding:4px 11px; border-radius:999px; font-size:12px; font-weight:700; color:#fff; }
     .st-new{background:#ef4444}.st-accepted{background:#f59e0b}.st-preparing{background:#3b82f6}.st-ready{background:#10b981}.st-completed{background:#6b7280}.st-cancelled{background:#9ca3af}
     .ro-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
@@ -58,7 +62,19 @@
                 </template>
             </div>
             <div class="ro-note" x-show="o.customer_note" x-text="'“' + o.customer_note + '”'"></div>
-            <div class="ro-total"><span>Total</span><span x-text="money(o.subtotal, o.currency)"></span></div>
+            <div class="ro-breakdown">
+                <div class="ro-bline"><span>Subtotal</span><span x-text="money(o.subtotal, o.currency)"></span></div>
+                <div class="ro-bline ro-discount" x-show="o.coupon_code && +o.discount_amount > 0">
+                    <span x-text="'Discount (' + o.coupon_code + ')'"></span>
+                    <span x-text="'−' + money(o.discount_amount, o.currency)"></span>
+                </div>
+                <div class="ro-bline" x-show="+o.tax_amount > 0">
+                    <span x-text="'Tax (' + (+o.tax_rate) + '%)' + (o.tax_inclusive ? ' incl.' : '')"></span>
+                    <span x-text="money(o.tax_amount, o.currency)"></span>
+                </div>
+            </div>
+            <div class="ro-total"><span>Estimated total</span><span x-text="money(o.total != null ? o.total : o.subtotal, o.currency)"></span></div>
+            <p class="ro-estimate-note">Estimated bill, not the actual bill.</p>
             <div class="ro-actions">
                 <template x-for="s in nextStatuses(o.status)" :key="s">
                     <button class="ro-btn" @click="setStatus(o, s)" x-text="actionLabel(s)"></button>
@@ -70,7 +86,7 @@
 
 <script>
 @php
-    $ordersData = $orders->map(fn($o)=>['id'=>$o->id,'status'=>$o->status,'table_label'=>$o->table_label,'customer_name'=>$o->customer_name,'customer_note'=>$o->customer_note,'subtotal'=>$o->subtotal,'currency'=>$o->currency,'created_at'=>$o->created_at?->toIso8601String(),'updated_at'=>$o->updated_at?->toIso8601String(),'items'=>$o->items->map(fn($i)=>['id'=>$i->id,'name'=>$i->name,'quantity'=>$i->quantity,'line_total'=>$i->line_total])])->values();
+    $ordersData = $orders->map(fn($o)=>['id'=>$o->id,'status'=>$o->status,'table_label'=>$o->table_label,'customer_name'=>$o->customer_name,'customer_note'=>$o->customer_note,'subtotal'=>$o->subtotal,'coupon_code'=>$o->coupon_code,'discount_amount'=>$o->discount_amount,'tax_rate'=>$o->tax_rate,'tax_inclusive'=>(bool)$o->tax_inclusive,'tax_amount'=>$o->tax_amount,'total'=>$o->total,'currency'=>$o->currency,'created_at'=>$o->created_at?->toIso8601String(),'updated_at'=>$o->updated_at?->toIso8601String(),'items'=>$o->items->map(fn($i)=>['id'=>$i->id,'name'=>$i->name,'quantity'=>$i->quantity,'line_total'=>$i->line_total])])->values();
 @endphp
 function ordersBoard() {
     return {
@@ -113,7 +129,7 @@ function ordersBoard() {
         },
         merge(o){
             const i = this.orders.findIndex(x => x.id === o.id);
-            const norm = { id:o.id, status:o.status, table_label:o.table_label, customer_name:o.customer_name, customer_note:o.customer_note, subtotal:o.subtotal, currency:o.currency, created_at:o.created_at, updated_at:o.updated_at, items:(o.items||[]).map(it=>({id:it.id,name:it.name,quantity:it.quantity,line_total:it.line_total})) };
+            const norm = { id:o.id, status:o.status, table_label:o.table_label, customer_name:o.customer_name, customer_note:o.customer_note, subtotal:o.subtotal, coupon_code:o.coupon_code, discount_amount:o.discount_amount, tax_rate:o.tax_rate, tax_inclusive:o.tax_inclusive, tax_amount:o.tax_amount, total:o.total, currency:o.currency, created_at:o.created_at, updated_at:o.updated_at, items:(o.items||[]).map(it=>({id:it.id,name:it.name,quantity:it.quantity,line_total:it.line_total})) };
             if (i >= 0) this.orders[i] = norm; else this.orders.unshift(norm);
         },
     };

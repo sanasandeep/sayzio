@@ -599,6 +599,8 @@ Route::post('/cv/{publicId}/upload',       [\App\Modules\Common\Controllers\Conv
 
 // ── Restaurant Menu visitor endpoints (Task #1536) ───────────────
 // Use the /rm/ prefix so they don't collide with the catch-all /{alias}.
+Route::post('/rm/{alias}/quote', [\App\Modules\Common\Controllers\PublicRestaurantController::class, 'quote'])
+    ->where('alias', '[^/]+')->middleware('throttle:120,1')->name('rm.public.quote');
 Route::post('/rm/{alias}/order', [\App\Modules\Common\Controllers\PublicRestaurantController::class, 'placeOrder'])
     ->where('alias', '[^/]+')->middleware('throttle:20,1')->name('rm.public.order');
 Route::get('/rm/order/{token}/status', [\App\Modules\Common\Controllers\PublicRestaurantController::class, 'orderStatus'])

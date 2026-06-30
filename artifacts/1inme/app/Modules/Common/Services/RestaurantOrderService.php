@@ -20,12 +20,14 @@ use Illuminate\Support\Facades\Mail;
  */
 class RestaurantOrderService
 {
-    public function __construct(protected NotificationService $notifications)
-    {
+    public function __construct(
+        protected NotificationService $notifications,
+        protected RestaurantBillCalculator $calculator,
+    ) {
     }
 
     /**
-     * @param array{table_code?:?string, customer_name?:?string, customer_note?:?string, items:array<int,array{item_id:int,quantity:int,note?:?string}>} $data
+     * @param array{table_code?:?string, customer_name?:?string, customer_note?:?string, coupon_code?:?string, items:array<int,array{item_id:int,quantity:int,note?:?string}>} $data
      */
     public function place(Link $link, RestaurantMenu $menu, array $data): RestaurantOrder
     {
@@ -67,17 +69,28 @@ class RestaurantOrderService
             ];
         }
 
-        $order = DB::transaction(function () use ($menu, $link, $table, $data, $lines, $subtotal) {
+        // Re-compute the estimated bill server-side from the live subtotal so a
+        // tampered or stale coupon/total can never be trusted. The same figures
+        // feed the staff dashboard and the guest's order-status view.
+        $bill = $this->calculator->compute($menu, $subtotal, $data['coupon_code'] ?? null);
+
+        $order = DB::transaction(function () use ($menu, $link, $table, $data, $lines, $subtotal, $bill) {
             $order = RestaurantOrder::create([
-                'menu_id'       => $menu->id,
-                'link_id'       => $link->id,
-                'table_id'      => $table?->id,
-                'status'        => RestaurantOrder::STATUS_NEW,
-                'table_label'   => $table?->label,
-                'customer_name' => $data['customer_name'] ?? null,
-                'customer_note' => $data['customer_note'] ?? null,
-                'subtotal'      => round($subtotal, 2),
-                'currency'      => $menu->currency,
+                'menu_id'         => $menu->id,
+                'link_id'         => $link->id,
+                'table_id'        => $table?->id,
+                'status'          => RestaurantOrder::STATUS_NEW,
+                'table_label'     => $table?->label,
+                'customer_name'   => $data['customer_name'] ?? null,
+                'customer_note'   => $data['customer_note'] ?? null,
+                'subtotal'        => round($subtotal, 2),
+                'coupon_code'     => $bill['coupon_code'],
+                'discount_amount' => $bill['discount_amount'],
+                'tax_rate'        => $bill['tax_rate'],
+                'tax_inclusive'   => $bill['tax_inclusive'],
+                'tax_amount'      => $bill['tax_amount'],
+                'total'           => $bill['total'],
+                'currency'        => $menu->currency,
             ]);
 
             foreach ($lines as $line) {
@@ -102,9 +115,10 @@ class RestaurantOrderService
 
         $where = $order->table_label ? ('Table ' . $order->table_label) : 'Walk-in';
         $count = $order->items->sum('quantity');
+        $estimated = (float) ($order->total ?: $order->subtotal);
         $subject = "New order · {$where}";
-        $body = "{$where} · {$count} item(s) · {$order->currency} "
-            . number_format((float) $order->subtotal, 2)
+        $body = "{$where} · {$count} item(s) · est. {$order->currency} "
+            . number_format($estimated, 2)
             . " on \"{$link->title}\".";
 
         $ordersUrl = route('user.links.restaurant.orders', $link);

@@ -19,7 +19,9 @@ import { useColors } from "@/hooks/useColors";
 import {
   getRestaurantMenu,
   placeRestaurantOrder,
+  quoteRestaurantOrder,
   type GuestOrder,
+  type RestaurantBill,
   type RestaurantMenuItem,
 } from "@/lib/api/restaurant";
 
@@ -33,6 +35,8 @@ export default function RestaurantMenuScreen() {
   const [cart, setCart] = useState<Record<number, number>>({});
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [placed, setPlaced] = useState<GuestOrder | null>(null);
 
   const q = useQuery({
@@ -41,12 +45,31 @@ export default function RestaurantMenuScreen() {
     enabled: alias.length > 0,
   });
 
+  const quoteItems = useMemo(
+    () =>
+      Object.entries(cart)
+        .filter(([, qty]) => qty > 0)
+        .map(([id, qty]) => ({ item_id: Number(id), quantity: qty })),
+    [cart],
+  );
+
+  const billQ = useQuery({
+    queryKey: ["restaurant-quote", alias, quoteItems, appliedCoupon],
+    queryFn: () =>
+      quoteRestaurantOrder(alias, {
+        coupon_code: appliedCoupon,
+        items: quoteItems,
+      }),
+    enabled: alias.length > 0 && quoteItems.length > 0,
+  });
+
   const place = useMutation({
     mutationFn: () =>
       placeRestaurantOrder(alias, {
         table_code: tableCode,
         customer_name: name || null,
         customer_note: note || null,
+        coupon_code: appliedCoupon,
         items: Object.entries(cart)
           .filter(([, qty]) => qty > 0)
           .map(([id, qty]) => ({ item_id: Number(id), quantity: qty })),
@@ -55,6 +78,8 @@ export default function RestaurantMenuScreen() {
       setPlaced(order);
       setCart({});
       setNote("");
+      setCouponInput("");
+      setAppliedCoupon(null);
     },
   });
 
@@ -75,9 +100,15 @@ export default function RestaurantMenuScreen() {
     0,
   );
   const cartCount = cartLines.reduce((n, [, qty]) => n + qty, 0);
+  const bill: RestaurantBill | undefined = billQ.data;
+  const fmt = (n: number) => `${currency} ${n.toFixed(2)}`;
 
   function setQty(id: number, qty: number) {
     setCart((c) => ({ ...c, [id]: Math.max(0, qty) }));
+  }
+
+  function applyCoupon() {
+    setAppliedCoupon(couponInput.trim() ? couponInput.trim() : null);
   }
 
   if (q.isLoading) {
@@ -221,6 +252,90 @@ export default function RestaurantMenuScreen() {
                 },
               ]}
             />
+
+            <View style={styles.couponRow}>
+              <TextInput
+                placeholder="Coupon code"
+                placeholderTextColor={colors.mutedForeground}
+                value={couponInput}
+                onChangeText={setCouponInput}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                style={[
+                  styles.input,
+                  {
+                    flex: 1,
+                    marginTop: 0,
+                    borderColor: colors.border,
+                    color: colors.foreground,
+                  },
+                ]}
+              />
+              <Pressable
+                onPress={applyCoupon}
+                style={[styles.couponBtn, { borderColor: accent }]}
+              >
+                <Text style={{ color: accent, fontWeight: "700" }}>Apply</Text>
+              </Pressable>
+            </View>
+            {bill?.coupon_error ? (
+              <Text style={[styles.couponMsg, { color: colors.destructive }]}>
+                {bill.coupon_error}
+              </Text>
+            ) : bill?.coupon_applied ? (
+              <Text style={[styles.couponMsg, { color: accent }]}>
+                Coupon {bill.coupon_code} applied
+              </Text>
+            ) : null}
+
+            {bill ? (
+              <View
+                style={[
+                  styles.billCard,
+                  { borderColor: colors.border, backgroundColor: colors.card },
+                ]}
+              >
+                <View style={styles.billRow}>
+                  <Text style={{ color: colors.mutedForeground }}>Subtotal</Text>
+                  <Text style={{ color: colors.foreground }}>
+                    {fmt(bill.subtotal)}
+                  </Text>
+                </View>
+                {bill.discount_amount > 0 ? (
+                  <View style={styles.billRow}>
+                    <Text style={{ color: colors.mutedForeground }}>
+                      Discount{bill.coupon_code ? ` (${bill.coupon_code})` : ""}
+                    </Text>
+                    <Text style={{ color: accent }}>
+                      −{fmt(bill.discount_amount)}
+                    </Text>
+                  </View>
+                ) : null}
+                {bill.tax_enabled ? (
+                  <View style={styles.billRow}>
+                    <Text style={{ color: colors.mutedForeground }}>
+                      {bill.tax_label}
+                      {bill.tax_inclusive ? " (incl.)" : ""}
+                    </Text>
+                    <Text style={{ color: colors.foreground }}>
+                      {bill.tax_inclusive ? "incl." : fmt(bill.tax_amount)}
+                    </Text>
+                  </View>
+                ) : null}
+                <View style={[styles.billRow, styles.billTotalRow]}>
+                  <Text style={[styles.billTotal, { color: colors.foreground }]}>
+                    Estimated total
+                  </Text>
+                  <Text style={[styles.billTotal, { color: colors.foreground }]}>
+                    {fmt(bill.total)}
+                  </Text>
+                </View>
+                <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
+                  This is an estimated bill, not the actual bill. Final amount is
+                  confirmed by the restaurant.
+                </Text>
+              </View>
+            ) : null}
           </View>
         ) : null}
       </ScrollView>
@@ -238,10 +353,10 @@ export default function RestaurantMenuScreen() {
         >
           <View>
             <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
-              {cartCount} item(s)
+              {cartCount} item(s) · est.
             </Text>
             <Text style={[styles.barTotal, { color: colors.foreground }]}>
-              {currency} {cartTotal.toFixed(2)}
+              {fmt(bill ? bill.total : cartTotal)}
             </Text>
           </View>
           <Pressable
@@ -272,10 +387,9 @@ export default function RestaurantMenuScreen() {
                 marginTop: 6,
               }}
             >
-              {placed.table_label
-                ? `Table ${placed.table_label} · `
-                : ""}
-              {placed.currency} {Number(placed.subtotal).toFixed(2)}. Pay your
+              {placed.table_label ? `Table ${placed.table_label} · ` : ""}
+              Estimated total {placed.currency}{" "}
+              {Number(placed.total ?? placed.subtotal).toFixed(2)}. Pay your
               server directly.
             </Text>
             {placed.whatsapp?.url ? (
@@ -287,6 +401,14 @@ export default function RestaurantMenuScreen() {
                 <Text style={styles.placeBtnText}>Send order via WhatsApp</Text>
               </Pressable>
             ) : null}
+            <Text
+              style={[
+                styles.disclaimer,
+                { color: colors.mutedForeground, textAlign: "center" },
+              ]}
+            >
+              This is an estimated bill, not the actual bill.
+            </Text>
             <Pressable
               onPress={() => setPlaced(null)}
               style={[styles.placeBtn, { backgroundColor: accent, marginTop: 12 }]}
@@ -358,6 +480,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 10,
   },
+  couponRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 10,
+  },
+  couponBtn: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  couponMsg: { fontSize: 12, fontWeight: "600", marginTop: 6 },
+  billCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 14,
+  },
+  billRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  billTotalRow: {
+    marginTop: 4,
+    marginBottom: 0,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(127,127,127,0.4)",
+  },
+  billTotal: { fontSize: 16, fontWeight: "800" },
+  disclaimer: { fontSize: 11, marginTop: 10, lineHeight: 15 },
   bar: {
     position: "absolute",
     left: 0,

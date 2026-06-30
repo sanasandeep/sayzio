@@ -126,6 +126,59 @@
                 <p class="text-xs" style="color:var(--text-faint)" x-text="savedMsg"></p>
             </div>
 
+            <!-- GST / tax estimate -->
+            <div class="rm-card" x-show="menu.mode === 'order'">
+                <h5>Estimated tax (GST)</h5>
+                <p class="text-xs mb-3" style="color:var(--text-muted)">Show an estimated GST/tax line on the guest's bill. This is an estimate only — no money is collected here.</p>
+                <div class="rm-row">
+                    <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)">
+                        <input type="checkbox" x-model="tax.enabled" @change="saveSettings()"> Add a tax line to the bill
+                    </label>
+                </div>
+                <template x-if="tax.enabled">
+                    <div>
+                        <div class="rm-row">
+                            <label class="rm-label">Tax label</label>
+                            <input class="rm-input" x-model="tax.label" maxlength="24" placeholder="GST" @change="saveSettings()">
+                        </div>
+                        <div class="rm-row">
+                            <label class="rm-label">Rate (%)</label>
+                            <input class="rm-input" type="number" step="0.001" min="0" max="100" x-model="tax.rate" @change="saveSettings()">
+                        </div>
+                        <div class="rm-row">
+                            <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)">
+                                <input type="checkbox" x-model="tax.inclusive" @change="saveSettings()"> Prices already include tax
+                            </label>
+                            <p class="text-xs mt-1" style="color:var(--text-muted)" x-text="tax.inclusive ? 'Tax is shown as “incl.” and not added on top.' : 'Tax is added on top of the subtotal.'"></p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Coupons -->
+            <div class="rm-card" x-show="menu.mode === 'order'">
+                <h5 style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                    <span>Coupons <button class="rm-btn sm" @click="openCoupon()"><i class="fas fa-plus"></i></button></span>
+                </h5>
+                <p class="text-xs mb-3" style="color:var(--text-muted)">Discount codes guests can enter at checkout. One coupon per order.</p>
+                <template x-for="c in coupons" :key="c.id">
+                    <div class="rm-table-row">
+                        <span style="color:var(--text-primary)">
+                            <strong x-text="c.code"></strong>
+                            <span style="color:var(--text-muted)" x-text="c.discount_type === 'percent' ? (' · ' + (+c.discount_value) + '% off') : (' · ' + menu.currency + ' ' + (+c.discount_value).toFixed(2) + ' off')"></span>
+                            <span x-show="!c.is_active" style="color:var(--accent-danger,#f87171)"> · inactive</span>
+                        </span>
+                        <span class="flex gap-2">
+                            <button class="rm-btn sm ghost" @click="openCoupon(c)"><i class="fas fa-pen"></i></button>
+                            <button class="rm-btn sm danger" @click="deleteCoupon(c)"><i class="fas fa-trash"></i></button>
+                        </span>
+                    </div>
+                </template>
+                <template x-if="coupons.length === 0">
+                    <p class="text-sm" style="color:var(--text-muted)">No coupons yet.</p>
+                </template>
+            </div>
+
             <div class="rm-card" x-show="menu.mode === 'order'">
                 <h5 style="display:flex;align-items:center;justify-content:space-between;gap:8px">
                     <span>Tables <button class="rm-btn sm" @click="addTable()"><i class="fas fa-plus"></i></button></span>
@@ -157,6 +210,34 @@
             <div class="flex justify-end gap-2">
                 <button class="rm-btn ghost" @click="catModal.open=false">Cancel</button>
                 <button class="rm-btn" @click="saveCategory()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coupon modal -->
+    <div class="rm-modal-bg" x-show="couponModal.open" x-cloak @click.self="couponModal.open=false">
+        <div class="rm-modal">
+            <h5 style="color:var(--text-primary);font-weight:700;margin-bottom:14px" x-text="couponModal.id ? 'Edit coupon' : 'New coupon'"></h5>
+            <div class="rm-row"><label class="rm-label">Code</label><input class="rm-input" x-model="couponModal.code" maxlength="64" style="text-transform:uppercase" placeholder="WELCOME10"></div>
+            <div class="rm-row">
+                <label class="rm-label">Discount type</label>
+                <select class="rm-input" x-model="couponModal.discount_type">
+                    <option value="percent">Percentage off</option>
+                    <option value="fixed">Fixed amount off</option>
+                </select>
+            </div>
+            <div class="rm-row">
+                <label class="rm-label" x-text="couponModal.discount_type === 'percent' ? 'Percent (%)' : ('Amount (' + menu.currency + ')')"></label>
+                <input class="rm-input" type="number" step="0.01" min="0" x-model="couponModal.discount_value">
+            </div>
+            <div class="rm-row">
+                <label class="rm-label">Minimum order to qualify (optional)</label>
+                <input class="rm-input" type="number" step="0.01" min="0" x-model="couponModal.min_subtotal">
+            </div>
+            <div class="rm-row"><label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)"><input type="checkbox" x-model="couponModal.is_active"> Active</label></div>
+            <div class="flex justify-end gap-2">
+                <button class="rm-btn ghost" @click="couponModal.open=false">Cancel</button>
+                <button class="rm-btn" @click="saveCoupon()">Save</button>
             </div>
         </div>
     </div>
@@ -198,15 +279,24 @@
     $menuCategories = $menu->categories->map(fn($c)=>['id'=>$c->id,'name'=>$c->name,'description'=>$c->description])->values();
     $menuItems = $menu->items->map(fn($i)=>['id'=>$i->id,'category_id'=>$i->category_id,'name'=>$i->name,'description'=>$i->description,'price'=>$i->price,'photo_url'=>$i->photo_url,'is_sold_out'=>$i->is_sold_out])->values();
     $menuTables = $menu->tables->map(fn($t)=>['id'=>$t->id,'label'=>$t->label,'code'=>$t->code])->values();
+    $menuCoupons = $menu->coupons->map(fn($c)=>['id'=>$c->id,'code'=>$c->code,'discount_type'=>$c->discount_type,'discount_value'=>$c->discount_value,'min_subtotal'=>$c->min_subtotal,'is_active'=>$c->is_active])->values();
 @endphp
 function restaurantEditor() {
     return {
         menu: @json(['mode' => $menu->mode, 'currency' => $menu->currency, 'accent_color' => $menu->accent_color, 'whatsapp_number' => $menu->settings['whatsapp_number'] ?? '']),
+        tax: @json([
+            'enabled'   => $menu->taxEnabled(),
+            'rate'      => $menu->taxRate(),
+            'inclusive' => $menu->taxInclusive(),
+            'label'     => $menu->taxLabel(),
+        ]),
         categories: @json($menuCategories),
         items: @json($menuItems),
         tables: @json($menuTables),
+        coupons: @json($menuCoupons),
         savedMsg: '',
         catModal: { open:false, id:null, name:'', description:'' },
+        couponModal: { open:false, id:null, code:'', discount_type:'percent', discount_value:'', min_subtotal:'', is_active:true },
         itemModal: { open:false, id:null, category_id:null, name:'', description:'', price:'', photo_url:'', is_sold_out:false },
         base: @json(rtrim(url('/user/links/'.$link->id.'/restaurant'), '/')),
         uploadUrl: @json(route('user.files.upload')),
@@ -249,9 +339,30 @@ function restaurantEditor() {
             return j.data;
         },
         async saveSettings(){
-            await this.api('POST','/settings',{ mode:this.menu.mode, currency:(this.menu.currency||'USD').toUpperCase(), accent_color:this.menu.accent_color, whatsapp_number:this.menu.whatsapp_number||'' });
+            await this.api('POST','/settings',{
+                mode:this.menu.mode,
+                currency:(this.menu.currency||'USD').toUpperCase(),
+                accent_color:this.menu.accent_color,
+                whatsapp_number:this.menu.whatsapp_number||'',
+                tax_enabled:!!this.tax.enabled,
+                tax_rate:parseFloat(this.tax.rate||0),
+                tax_inclusive:!!this.tax.inclusive,
+                tax_label:this.tax.label||'GST',
+            });
             this.savedMsg = 'Saved ✓'; setTimeout(()=>this.savedMsg='', 1500);
         },
+        openCoupon(c){ this.couponModal = c
+            ? {open:true,id:c.id,code:c.code,discount_type:c.discount_type,discount_value:c.discount_value,min_subtotal:c.min_subtotal,is_active:!!c.is_active}
+            : {open:true,id:null,code:'',discount_type:'percent',discount_value:'',min_subtotal:'',is_active:true}; },
+        async saveCoupon(){
+            const code = (this.couponModal.code||'').trim().toUpperCase();
+            if (!code) return;
+            const payload = { code, discount_type:this.couponModal.discount_type, discount_value:parseFloat(this.couponModal.discount_value||0), min_subtotal:parseFloat(this.couponModal.min_subtotal||0), is_active:this.couponModal.is_active };
+            if (this.couponModal.id) { const d = await this.api('PUT','/coupons/'+this.couponModal.id, payload); const i=this.coupons.findIndex(c=>c.id===this.couponModal.id); this.coupons[i]=d.coupon; }
+            else { const d = await this.api('POST','/coupons', payload); this.coupons.push(d.coupon); }
+            this.couponModal.open = false;
+        },
+        async deleteCoupon(c){ if(!confirm('Delete coupon "'+c.code+'"?')) return; await this.api('DELETE','/coupons/'+c.id); this.coupons=this.coupons.filter(x=>x.id!==c.id); },
         openCategory(cat){ this.catModal = cat ? {open:true,id:cat.id,name:cat.name,description:cat.description||''} : {open:true,id:null,name:'',description:''}; },
         async saveCategory(){
             if (!this.catModal.name.trim()) return;

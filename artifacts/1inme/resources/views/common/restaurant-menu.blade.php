@@ -67,6 +67,13 @@
         .line { display:flex; justify-content:space-between; gap:10px; padding:7px 0; font-size:14px; }
         .field { width:100%; padding:11px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.18); background:transparent; color:inherit; font-size:14px; margin-top:8px; font-family:inherit; }
         @media (prefers-color-scheme: dark) { .field { border-color:rgba(255,255,255,.2); } }
+        .coupon-row { display:flex; gap:8px; align-items:center; margin-top:12px; }
+        .coupon-row .field { flex:1 1 auto; }
+        .coupon-msg { font-size:12.5px; margin:6px 0 0; min-height:0; }
+        .coupon-msg.ok { color:#16a34a; }
+        .coupon-msg.err { color:#dc2626; }
+        .bill-row { display:flex; justify-content:space-between; font-size:13.5px; margin-top:8px; opacity:.85; }
+        .bill-row.discount span:last-child { color:#16a34a; }
         .total { display:flex; justify-content:space-between; font-weight:800; font-size:16px; margin-top:12px; padding-top:12px; border-top:1px solid rgba(0,0,0,.1); }
         .primary { width:100%; border:none; background:var(--accent); color:#fff; border-radius:12px; padding:14px; font-size:15px; font-weight:700; cursor:pointer; margin-top:14px; }
         .ghost { width:100%; border:1px solid rgba(0,0,0,.15); background:transparent; color:inherit; border-radius:12px; padding:11px; font-size:14px; cursor:pointer; margin-top:8px; }
@@ -132,7 +139,13 @@
     <div class="sheet">
         <h3>Your order</h3>
         <div id="cartLines"></div>
-        <div class="total"><span>Total</span><span id="modalTotal">{{ $fmt(0) }}</span></div>
+        <div class="coupon-row">
+            <input class="field" id="fCoupon" placeholder="Discount code (optional)" style="text-transform:uppercase;margin-top:0">
+            <button class="ghost" type="button" id="couponBtn" onclick="RM.applyCoupon()" style="margin-top:0;width:auto;padding:11px 16px;white-space:nowrap">Apply</button>
+        </div>
+        <p class="coupon-msg" id="couponMsg"></p>
+        <div id="billBreakdown"></div>
+        <div class="total"><span>Estimated total</span><span id="modalTotal">{{ $fmt(0) }}</span></div>
         @unless($activeTable)
             <input class="field" id="fTable" placeholder="Table number (optional)">
         @endunless
@@ -140,7 +153,7 @@
         <textarea class="field" id="fNote" rows="2" placeholder="Notes for the kitchen (optional)"></textarea>
         <button class="primary" id="placeBtn" type="button" onclick="RM.place()">Place order</button>
         <button class="ghost" type="button" onclick="RM.closeCart()">Keep browsing</button>
-        <p class="note">No online payment — you'll pay staff directly at your table.</p>
+        <p class="note">This is an estimated bill, not the actual bill. No online payment — you'll pay staff directly at your table.</p>
     </div>
 </div>
 
@@ -148,9 +161,9 @@
     <div class="sheet">
         <h3>Order placed 🎉</h3>
         <p>Status: <span class="status-pill" id="ordStatus">New</span></p>
-        <div id="doneLines"></div>
-        <div class="total"><span>Total</span><span id="doneTotal"></span></div>
-        <p class="note">A staff member has been notified. This updates automatically.</p>
+        <div id="doneBreakdown"></div>
+        <div class="total"><span>Estimated total</span><span id="doneTotal"></span></div>
+        <p class="note">This is an estimated bill, not the actual bill. A staff member has been notified. This updates automatically.</p>
         <a id="waBtn" class="wa-btn" href="#" target="_blank" rel="noopener" style="display:none">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.739-.981 1.249.74zm5.392-15.327c-.235-.025-.47-.025-.706-.025-.235 0-.616.088-.939.441-.323.353-1.235 1.206-1.235 2.941 0 1.735 1.264 3.41 1.44 3.646.176.235 2.479 3.785 6.005 5.31.84.363 1.495.58 2.006.742.843.268 1.61.23 2.216.14.676-.101 2.082-.851 2.376-1.673.294-.823.294-1.528.206-1.674-.088-.147-.323-.235-.676-.412-.353-.176-2.082-1.028-2.405-1.146-.323-.117-.558-.176-.793.177-.235.353-.91 1.146-1.116 1.381-.206.235-.411.265-.764.088-.353-.177-1.49-.549-2.838-1.751-1.049-.935-1.757-2.09-1.963-2.443-.206-.353-.022-.544.155-.72.158-.157.353-.412.529-.618.176-.206.235-.353.353-.588.117-.235.059-.441-.029-.617-.088-.177-.793-1.912-1.087-2.617z"/></svg>
             <span>Send order via WhatsApp</span>
@@ -163,9 +176,13 @@
 (function () {
     const CSRF = document.querySelector('meta[name="csrf-token"]').content;
     const ORDER_URL = @json(route('rm.public.order', ['alias' => $link->alias]));
+    const QUOTE_URL = @json(route('rm.public.quote', ['alias' => $link->alias]));
     const STATUS_BASE = @json(url('/rm/order'));
     const CURRENCY = @json($currency);
     const TABLE_CODE = @json($activeTable->code ?? null);
+    let appliedCoupon = '';
+    let lastBill = null;
+    let quoteSeq = 0;
     const ITEMS = {};
     document.querySelectorAll('[data-add]').forEach(el => {
         const id = el.getAttribute('data-add');
@@ -201,17 +218,74 @@
             box.appendChild(row);
         });
     }
+    function cartItems() {
+        return Object.values(ITEMS).filter(i => i.qty > 0).map(i => ({ item_id: i.id, quantity: i.qty }));
+    }
+    // Render the itemised estimate from a calculator breakdown into a target box,
+    // and set the matching "estimated total" element.
+    function renderBill(boxId, totalId, bill) {
+        const box = document.getElementById(boxId);
+        if (!box) return;
+        box.innerHTML = '';
+        if (!bill) { return; }
+        const add = (label, value, cls) => {
+            const r = document.createElement('div');
+            r.className = 'bill-row' + (cls ? (' ' + cls) : '');
+            r.innerHTML = '<span>' + label + '</span><span>' + value + '</span>';
+            box.appendChild(r);
+        };
+        add('Subtotal', fmt(bill.subtotal));
+        if (bill.coupon_applied && bill.discount_amount > 0) {
+            add('Discount (' + bill.coupon_code + ')', '−' + fmt(bill.discount_amount), 'discount');
+        }
+        if (bill.tax_enabled && bill.tax_amount > 0) {
+            const label = (bill.tax_label || 'Tax') + ' (' + (+bill.tax_rate) + '%)' + (bill.tax_inclusive ? ' incl.' : '');
+            add(label, fmt(bill.tax_amount));
+        }
+        const totalEl = document.getElementById(totalId);
+        if (totalEl) totalEl.textContent = fmt(bill.total);
+    }
+    // Ask the server for a fresh estimate whenever the cart or coupon changes.
+    async function refreshQuote() {
+        const items = cartItems();
+        const fallbackTotal = Object.values(ITEMS).reduce((s, it) => s + it.qty * it.price, 0);
+        if (!items.length) { lastBill = null; renderBill('billBreakdown', 'modalTotal', null); document.getElementById('modalTotal').textContent = fmt(0); return; }
+        const seq = ++quoteSeq;
+        try {
+            const r = await fetch(QUOTE_URL, {
+                method:'POST',
+                headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'X-Requested-With':'XMLHttpRequest'},
+                body: JSON.stringify({ items, coupon_code: appliedCoupon || null })
+            });
+            const j = await r.json();
+            if (seq !== quoteSeq) return;
+            if (!r.ok) { lastBill = null; document.getElementById('modalTotal').textContent = fmt(fallbackTotal); return; }
+            lastBill = j.data.bill;
+            renderBill('billBreakdown', 'modalTotal', lastBill);
+            const msg = document.getElementById('couponMsg');
+            if (appliedCoupon && lastBill.coupon_applied) { msg.textContent = 'Code applied ✓'; msg.className = 'coupon-msg ok'; }
+            else if (appliedCoupon && lastBill.coupon_error) { msg.textContent = lastBill.coupon_error; msg.className = 'coupon-msg err'; }
+            else { msg.textContent = ''; msg.className = 'coupon-msg'; }
+        } catch(e) {
+            if (seq !== quoteSeq) return;
+            document.getElementById('modalTotal').textContent = fmt(fallbackTotal);
+        }
+    }
 
     window.RM = {
         add(id){ ITEMS[id].qty = 1; render(); },
         inc(id){ ITEMS[id].qty++; render(); },
         dec(id){ ITEMS[id].qty = Math.max(0, ITEMS[id].qty - 1); render(); },
-        openCart(){ lines('cartLines'); document.getElementById('cartModal').classList.add('show'); },
+        openCart(){ lines('cartLines'); refreshQuote(); document.getElementById('cartModal').classList.add('show'); },
         closeCart(){ document.getElementById('cartModal').classList.remove('show'); },
+        applyCoupon(){
+            appliedCoupon = (document.getElementById('fCoupon').value || '').trim().toUpperCase();
+            document.getElementById('fCoupon').value = appliedCoupon;
+            refreshQuote();
+        },
         reset(){ if(pollTimer) clearInterval(pollTimer); location.href = location.pathname + (TABLE_CODE ? ('?t='+TABLE_CODE) : ''); },
         async place(){
-            const items = Object.values(ITEMS).filter(i => i.qty > 0)
-                .map(i => ({ item_id: i.id, quantity: i.qty }));
+            const items = cartItems();
             if (!items.length) return;
             const btn = document.getElementById('placeBtn');
             btn.disabled = true; btn.textContent = 'Placing…';
@@ -223,6 +297,7 @@
                         table_code: TABLE_CODE,
                         customer_name: document.getElementById('fName').value || null,
                         customer_note: document.getElementById('fNote').value || null,
+                        coupon_code: appliedCoupon || null,
                         items
                     })
                 });
@@ -234,7 +309,19 @@
         showDone(order){
             this.closeCart();
             lines('doneLines');
-            document.getElementById('doneTotal').textContent = fmt(order.subtotal);
+            renderBill('doneBreakdown', 'doneTotal', {
+                subtotal: order.subtotal,
+                coupon_applied: !!order.coupon_code,
+                coupon_code: order.coupon_code,
+                discount_amount: order.discount_amount,
+                tax_enabled: order.tax_amount > 0,
+                tax_inclusive: order.tax_inclusive,
+                tax_rate: order.tax_rate,
+                tax_label: 'Tax',
+                tax_amount: order.tax_amount,
+                total: order.total
+            });
+            document.getElementById('doneTotal').textContent = fmt(order.total != null ? order.total : order.subtotal);
             document.getElementById('ordStatus').textContent = order.status;
             const waBtn = document.getElementById('waBtn');
             if (order.whatsapp && order.whatsapp.url) { waBtn.href = order.whatsapp.url; waBtn.style.display = 'flex'; }

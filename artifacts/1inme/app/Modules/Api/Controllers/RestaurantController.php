@@ -73,6 +73,7 @@ class RestaurantController extends Controller
                 'currency'     => $menu->currency,
                 'accent_color' => $menu->accent_color,
                 'order_enabled'=> $menu->isOrderMode(),
+                'tax'          => $this->taxPayload($menu),
             ],
             'link' => [
                 'alias' => $link->alias,
@@ -120,6 +121,7 @@ class RestaurantController extends Controller
             'table_code'       => 'nullable|string|max:32',
             'customer_name'    => 'nullable|string|max:120',
             'customer_note'    => 'nullable|string|max:1000',
+            'coupon_code'      => 'nullable|string|max:64',
             'items'            => 'required|array|min:1',
             'items.*.item_id'  => 'required|integer',
             'items.*.quantity' => 'required|integer|min:1|max:99',
@@ -133,6 +135,71 @@ class RestaurantController extends Controller
         }
 
         return $this->created(['order' => $this->guestOrder($order->fresh('items'), $menu, $link)]);
+    }
+
+    /**
+     * Live estimated-bill quote for a cart (mobile parity with the web quote
+     * endpoint). Validates the coupon server-side and returns the itemised
+     * breakdown without creating an order.
+     */
+    public function quote(Request $request, string $alias)
+    {
+        $link = Link::resolveByAlias($alias, $request->getHost());
+
+        if (!$link || $link->type !== Link::TYPE_RESTAURANT_MENU || !$link->is_active || !$link->isAccessible()) {
+            return $this->notFound('Menu not found');
+        }
+
+        if ($gate = $this->checkVisibility($link, $request->user())) {
+            return $this->fail($gate['message'], $gate['status'], $gate['code']);
+        }
+
+        $menu = $link->restaurantMenu()->first();
+        if (!$menu || !$menu->isOrderMode()) {
+            return $this->fail('Ordering is not enabled for this menu', 422, 'ordering_disabled');
+        }
+
+        $data = $request->validate([
+            'coupon_code'      => 'nullable|string|max:64',
+            'items'            => 'required|array|min:1',
+            'items.*.item_id'  => 'required|integer',
+            'items.*.quantity' => 'required|integer|min:1|max:99',
+        ]);
+
+        $ids = collect($data['items'])->pluck('item_id')->map(fn ($i) => (int) $i)->all();
+        $rows = RestaurantMenuItem::where('menu_id', $menu->id)
+            ->whereIn('id', $ids)
+            ->where('is_active', true)
+            ->get()
+            ->keyBy('id');
+
+        $subtotal = 0.0;
+        foreach ($data['items'] as $row) {
+            $item = $rows->get((int) $row['item_id']);
+            if (!$item || $item->is_sold_out) {
+                continue;
+            }
+            $subtotal += round(((float) $item->price) * max(1, (int) $row['quantity']), 2);
+        }
+
+        $bill = app(\App\Modules\Common\Services\RestaurantBillCalculator::class)
+            ->compute($menu, round($subtotal, 2), $data['coupon_code'] ?? null);
+
+        return $this->ok(['bill' => [
+            'subtotal'        => round($bill['subtotal'], 2),
+            'coupon_code'     => $bill['coupon_code'],
+            'coupon_applied'  => $bill['coupon_applied'],
+            'coupon_error'    => $bill['coupon_error'],
+            'discount_amount' => round($bill['discount_amount'], 2),
+            'tax_enabled'     => $bill['tax_enabled'],
+            'tax_inclusive'   => $bill['tax_inclusive'],
+            'tax_rate'        => $bill['tax_rate'],
+            'tax_label'       => $bill['tax_label'],
+            'tax_amount'      => round($bill['tax_amount'], 2),
+            'total'           => round($bill['total'], 2),
+            'currency'        => $bill['currency'],
+            'is_estimate'     => true,
+        ]]);
     }
 
     /** Guest polls their own order status with the public token. */
@@ -597,11 +664,11 @@ class RestaurantController extends Controller
 
     protected function guestOrder(RestaurantOrder $order, ?RestaurantMenu $menu = null, ?Link $link = null): array
     {
-        $whatsapp = $menu
-            ? \App\Modules\Common\Services\WhatsappOrderLink::build($menu, $order, $link?->title)
+        $whatsapp = ($menu && $link)
+            ? \App\Modules\Common\Services\WhatsappOrderLink::build($menu, $order, $link->title)
             : null;
 
-        return [
+        return array_merge([
             'public_token' => $order->public_token,
             'status'       => $order->status,
             'status_label' => $order->status_label,
@@ -615,12 +682,23 @@ class RestaurantController extends Controller
             ])->values(),
             'whatsapp'     => $whatsapp,
             'created_at'   => $order->created_at?->toIso8601String(),
+        ], $this->orderBreakdown($order));
+    }
+
+    /** Menu-level estimated-tax config for the public + owner payloads. */
+    protected function taxPayload(RestaurantMenu $menu): array
+    {
+        return [
+            'enabled'   => $menu->taxEnabled(),
+            'rate'      => $menu->taxRate(),
+            'inclusive' => $menu->taxInclusive(),
+            'label'     => $menu->taxLabel(),
         ];
     }
 
     protected function ownerOrder(RestaurantOrder $order): array
     {
-        return [
+        return array_merge([
             'id'            => $order->id,
             'status'        => $order->status,
             'status_label'  => $order->status_label,
@@ -639,6 +717,6 @@ class RestaurantController extends Controller
                 'line_total' => $i->line_total,
                 'note'       => $i->note,
             ])->values(),
-        ];
+        ], $this->orderBreakdown($order));
     }
 }

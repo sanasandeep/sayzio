@@ -865,8 +865,9 @@ restaurant-menu link can be created and fully populated from mobile. The
 
 | Method | Path                                                      | Auth     | Description                                            |
 | ------ | -------------------------------------------------------- | -------- | ----------------------------------------------------- |
-| GET    | `/restaurant/{alias}`                                    | optional | Public menu by alias (`?t={code}` for a table).       |
-| POST   | `/restaurant/{alias}/order`                              | optional | Place a guest order (order mode). Throttle: 30/min.   |
+| GET    | `/restaurant/{alias}`                                    | optional | Public menu by alias (`?t={code}` for a table). Includes `menu.tax`. |
+| POST   | `/restaurant/{alias}/quote`                             | optional | Estimated-bill quote for a cart (coupon + GST). Throttle: 120/min. |
+| POST   | `/restaurant/{alias}/order`                              | optional | Place a guest order (order mode), optional `coupon_code`. Throttle: 30/min. |
 | GET    | `/restaurant/orders/{token}/status`                      | no       | Poll a guest order by its public token.               |
 | GET    | `/restaurant/links/{link}/menu`                          | yes      | Owner: full menu (settings, categories+items, tables).|
 | POST   | `/restaurant/links/{link}/menu/settings`                | yes      | Owner: update mode/currency/accent color.             |
@@ -882,6 +883,16 @@ restaurant-menu link can be created and fully populated from mobile. The
 | GET    | `/restaurant/links/{link}/orders`                       | yes      | Owner: recent orders + open count.                    |
 | GET    | `/restaurant/links/{link}/orders/poll`                  | yes      | Owner: incremental poll (`?since=` cursor).           |
 | POST   | `/restaurant/links/{link}/orders/{order}/status`        | yes      | Owner: advance an order's status.                     |
+
+**Estimated bill (coupons + GST/tax).** `menu.tax` exposes `{enabled, rate,
+inclusive, label}`. `POST /restaurant/{alias}/quote` accepts `{items:[{item_id,
+quantity}], coupon_code?}` and returns a `bill` object: `subtotal`,
+`coupon_code`, `coupon_applied`, `coupon_error`, `discount_amount`,
+`tax_enabled`, `tax_inclusive`, `tax_rate`, `tax_label`, `tax_amount`, `total`,
+`currency`, `is_estimate`. Guest and owner order payloads carry the snapshotted
+`coupon_code`, `discount_amount`, `tax_rate`, `tax_inclusive`, `tax_amount`,
+`total`, and `is_estimate`. A single coupon and one menu-level tax rate apply;
+the figures are an **estimate, not the actual bill** — no payment is collected.
 
 ## Workspaces
 
