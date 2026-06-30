@@ -14,6 +14,7 @@
     "test:login-auth-config": "node scripts/test-login-auth-config.mjs",
     "test:auth-flow": "node scripts/test-auth-flow.mjs",
     "test:strategy-stream": "node scripts/test-strategy-stream.mjs",
+    "test:strategy-screens": "node scripts/test-strategy-screens.mjs",
     "test:whatsapp-disconnect": "node scripts/test-whatsapp-disconnect.mjs",
     "test:wizard-flow": "node scripts/test-wizard-flow.mjs",
     "test:voice-bridge": "node scripts/test-voice-bridge.mjs",
