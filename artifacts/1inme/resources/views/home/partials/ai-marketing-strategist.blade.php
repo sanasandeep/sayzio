@@ -65,29 +65,29 @@
                     <div class="ms-card-body">
                         <div class="ms-goal-row">
                             <span class="ms-goal-label">Goal</span>
-                            <span class="ms-goal-text">Grow my email &amp; WhatsApp subscribers from my Link in Bio</span>
+                            <span class="ms-goal-text">Grow my email &amp; WhatsApp subscribers from my Link in Bio</span><span class="ms-goal-caret" aria-hidden="true">▍</span>
                         </div>
 
-                        <div class="ms-head"><span class="ms-head-mark" aria-hidden="true"></span> Turn bio traffic into owned subscribers</div>
+                        <div class="ms-head ms-reveal"><span class="ms-head-mark" aria-hidden="true"></span> Turn bio traffic into owned subscribers</div>
 
                         <div class="ms-plan">
-                            <div class="ms-plan-tag ms-plan-tag-org">Organic</div>
+                            <div class="ms-plan-tag ms-plan-tag-org ms-reveal">Organic</div>
                             <ul class="ms-plan-list">
-                                <li><i class="fas fa-link"></i> Add a "Free guide" subscribe block above the fold</li>
-                                <li><i class="fas fa-stream"></i> Schedule 3 Creator Feed posts a week</li>
-                                <li><i class="fas fa-qrcode"></i> A print-ready QR code on every touchpoint</li>
+                                <li class="ms-reveal"><i class="fas fa-link"></i> Add a "Free guide" subscribe block above the fold</li>
+                                <li class="ms-reveal"><i class="fas fa-stream"></i> Schedule 3 Creator Feed posts a week</li>
+                                <li class="ms-reveal"><i class="fas fa-qrcode"></i> A print-ready QR code on every touchpoint</li>
                             </ul>
                         </div>
 
                         <div class="ms-plan">
-                            <div class="ms-plan-tag ms-plan-tag-paid">Paid · $5–10/day</div>
+                            <div class="ms-plan-tag ms-plan-tag-paid ms-reveal">Paid · $5–10/day</div>
                             <ul class="ms-plan-list">
-                                <li><i class="fab fa-facebook"></i> Retarget visitors via your connected Meta pixel</li>
-                                <li><i class="fas fa-bullseye"></i> Send every click to the same lead-magnet page</li>
+                                <li class="ms-reveal"><i class="fab fa-facebook"></i> Retarget visitors via your connected Meta pixel</li>
+                                <li class="ms-reveal"><i class="fas fa-bullseye"></i> Send every click to the same lead-magnet page</li>
                             </ul>
                         </div>
 
-                        <div class="ms-kpi"><i class="fas fa-chart-line"></i> KPIs → subscriber growth · click-through · cost per lead</div>
+                        <div class="ms-kpi ms-reveal"><i class="fas fa-chart-line"></i> KPIs → subscriber growth · click-through · cost per lead</div>
                     </div>
                 </div>
                 <div class="ms-badge float-y" style="bottom: -18px; left: -14px;">
@@ -205,6 +205,7 @@
         padding: 3px 8px; border-radius: 7px; flex: 0 0 auto;
     }
     .ms-promo .ms-goal-text { color: #cbd5e1; font-weight: 500; font-size: 13.5px; line-height: 1.5; }
+    .ms-promo .ms-goal-caret { opacity: 0; color: var(--ms); font-weight: 400; font-size: 13.5px; }
     .ms-promo .ms-head { color: #fff; font-weight: 700; font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
     .ms-promo .ms-head-mark { width: 9px; height: 9px; border-radius: 2px; background: #3d6bff; display: inline-block; }
     .ms-promo .ms-plan { margin-bottom: 14px; }
@@ -221,6 +222,31 @@
         margin-top: 16px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,.10);
         font-size: 12.5px; font-weight: 600; color: #9ff0c4; display: flex; align-items: center; gap: 8px;
     }
+
+    /* Live "writing" reveal — resting / no-JS / reduced-motion = fully visible.
+       The stagger-in only kicks in once JS adds `.ms-armed` (never under
+       reduced motion), mirroring the AI builder section's fly-in feel. */
+    .ms-promo .ms-reveal {
+        opacity: 1; transform: none;
+        will-change: transform, opacity;
+        transition: opacity .5s ease, transform .55s cubic-bezier(.34, 1.56, .64, 1);
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        .ms-promo .ms-card.ms-armed .ms-reveal {
+            opacity: 0; transform: translateY(14px) scale(.96);
+        }
+        .ms-promo .ms-card.ms-armed .ms-reveal.is-in {
+            opacity: 1; transform: none;
+        }
+        /* Blinking caret while the goal types; hidden once typing completes. */
+        .ms-promo .ms-card.ms-armed .ms-goal-caret {
+            opacity: 1; animation: msCaret 1.05s step-end infinite;
+        }
+        .ms-promo .ms-card.ms-armed.ms-goal-done .ms-goal-caret {
+            opacity: 0; animation: none;
+        }
+    }
+    @keyframes msCaret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
 
     /* Floating accent badge on the card */
     .ms-promo .ms-badge {
@@ -249,3 +275,110 @@
         }
     }
 </style>
+
+<script>
+(function () {
+    if (window.__msStrategistInit) return;
+    window.__msStrategistInit = true;
+
+    function init() {
+        var section = document.getElementById('ai-marketing-strategist');
+        if (!section) return;
+        var card = section.querySelector('.ms-card');
+        if (!card) return;
+
+        // Reduced motion / no-JS: leave the card fully assembled (resting state).
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduce) return;
+
+        var goalEl = card.querySelector('.ms-goal-text');
+        var reveals = card.querySelectorAll('.ms-reveal');
+        var goalText = goalEl ? goalEl.textContent : '';
+
+        // Arm: hide the staggered rows + clear the goal, ready to write live.
+        // Done up front so there's no flash of the finished card before play().
+        card.classList.add('ms-armed');
+        if (goalEl) goalEl.textContent = '';
+
+        var visible = false; // section in view
+        var running = false; // a write cycle is mid-flight
+        var started = false; // first play() has fired
+        function after(ms, fn) { return setTimeout(fn, ms); }
+
+        // Run one full "write the plan" cycle, then schedule a replay.
+        function cycle(isFirst) {
+            if (running) return;
+            running = true;
+
+            function build() {
+                card.classList.remove('ms-goal-done');
+
+                // 1. Type the goal character by character with a blinking caret.
+                var i = 0;
+                function type() {
+                    if (goalEl && i <= goalText.length) {
+                        goalEl.textContent = goalText.slice(0, i);
+                        i++;
+                        after(22 + Math.random() * 34, type);
+                    } else {
+                        card.classList.add('ms-goal-done'); // stop the caret
+                        after(320, reveal);
+                    }
+                }
+                // 2..5. Stagger-reveal heading → Organic tag+items → Paid
+                //       tag+items → KPIs, each springing into place.
+                function reveal() {
+                    var last = 0;
+                    reveals.forEach(function (el, ri) {
+                        last = 120 + ri * 150;
+                        after(last, function () { el.classList.add('is-in'); });
+                    });
+                    // Hold the finished plan, then replay (loops while in view).
+                    after(last + 600 + 3200, next);
+                }
+                type();
+            }
+
+            if (isFirst) {
+                build();
+            } else {
+                // Reset to the armed start state, then write it out again.
+                reveals.forEach(function (el) { el.classList.remove('is-in'); });
+                card.classList.remove('ms-goal-done');
+                if (goalEl) goalEl.textContent = '';
+                after(450, build);
+            }
+        }
+
+        function next() {
+            running = false;
+            if (visible) cycle(false);
+        }
+
+        function play() {
+            if (started) {
+                if (!running) cycle(false); // resume after pausing out of view
+                return;
+            }
+            started = true;
+            cycle(true);
+        }
+
+        if ('IntersectionObserver' in window) {
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) {
+                    visible = e.isIntersecting;
+                    if (visible) play();
+                });
+            }, { threshold: 0.35 });
+            io.observe(section);
+        } else {
+            visible = true;
+            play();
+        }
+    }
+
+    if (document.readyState !== 'loading') init();
+    else document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
