@@ -439,6 +439,18 @@ Route::prefix('v1')->group(function () {
         Route::put   ('/ai/{feature}/defaults',     [\App\Modules\Api\Controllers\AiMindPickerController::class, 'saveDefaults'])->whereIn('feature', ['persona', 'coach']);
         Route::delete('/ai/{feature}/defaults',     [\App\Modules\Api\Controllers\AiMindPickerController::class, 'clearDefaults'])->whereIn('feature', ['persona', 'coach']);
 
+        // AI resource sharing (mobile parity for Task #2909 → Task #2923).
+        // Read minds / personas shared WITH the acting user, and let owners
+        // grant / revoke team + badge-group shares. Access is resolved live;
+        // AI / coin costs are always charged to the acting user, not the owner.
+        Route::get   ('/ai/shared',                       [\App\Modules\Api\Controllers\AiResourceShareController::class, 'shared']);
+        Route::get   ('/ai/minds/{mind}/shares',          [\App\Modules\Api\Controllers\AiResourceShareController::class, 'indexMind'])->whereNumber('mind');
+        Route::post  ('/ai/minds/{mind}/shares',          [\App\Modules\Api\Controllers\AiResourceShareController::class, 'storeMind'])->whereNumber('mind');
+        Route::delete('/ai/minds/{mind}/shares/{share}',  [\App\Modules\Api\Controllers\AiResourceShareController::class, 'destroyMind'])->whereNumber('mind')->whereNumber('share');
+        Route::get   ('/ai/personas/{persona}/shares',         [\App\Modules\Api\Controllers\AiResourceShareController::class, 'indexPersona'])->whereNumber('persona');
+        Route::post  ('/ai/personas/{persona}/shares',         [\App\Modules\Api\Controllers\AiResourceShareController::class, 'storePersona'])->whereNumber('persona');
+        Route::delete('/ai/personas/{persona}/shares/{share}', [\App\Modules\Api\Controllers\AiResourceShareController::class, 'destroyPersona'])->whereNumber('persona')->whereNumber('share');
+
         // Voice Assistant (mobile parity for the floating mic). Same
         // orchestrator as the web — STT/LLM/TTS each charge their own
         // ledger row (voice_stt / voice_llm / voice_tts). Throttled to
