@@ -613,6 +613,18 @@ Route::post('/sm/{alias}/order', [\App\Modules\Common\Controllers\PublicStoreCon
     ->where('alias', '[^/]+')->middleware('throttle:20,1')->name('sm.public.order');
 Route::get('/sm/order/{token}/status', [\App\Modules\Common\Controllers\PublicStoreController::class, 'orderStatus'])
     ->where('token', '[A-Za-z0-9\-]+')->middleware('throttle:120,1')->name('sm.public.order.status');
+// ── Service Booking visitor endpoints (Task #3085) ───────────────
+// Use the /sb/ prefix so they don't collide with the catch-all /{alias}.
+Route::post('/sb/{alias}/slots', [\App\Modules\Common\Controllers\PublicServiceBookingController::class, 'slotsFor'])
+    ->where('alias', '[^/]+')->middleware('throttle:120,1')->name('sb.public.slots');
+Route::post('/sb/{alias}/quote', [\App\Modules\Common\Controllers\PublicServiceBookingController::class, 'quote'])
+    ->where('alias', '[^/]+')->middleware('throttle:120,1')->name('sb.public.quote');
+Route::post('/sb/{alias}/book', [\App\Modules\Common\Controllers\PublicServiceBookingController::class, 'book'])
+    ->where('alias', '[^/]+')->middleware('throttle:20,1')->name('sb.public.book');
+Route::get('/sb/booking/{token}/status', [\App\Modules\Common\Controllers\PublicServiceBookingController::class, 'bookingStatus'])
+    ->where('token', '[A-Za-z0-9\-]+')->middleware('throttle:120,1')->name('sb.public.booking.status');
+Route::get('/sb/booking/{token}', [\App\Modules\Common\Controllers\PublicServiceBookingController::class, 'bookingPage'])
+    ->where('token', '[A-Za-z0-9\-]+')->middleware('throttle:120,1')->name('sb.public.booking.page');
 
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');
 Route::post('/{alias}/track/heartbeat', [\App\Modules\Common\Controllers\EngagementController::class, 'heartbeat'])->name('track.heartbeat')->where('alias', '[^/]+')->middleware('throttle:120,1');

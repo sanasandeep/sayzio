@@ -562,6 +562,12 @@ class RedirectController extends Controller
             return $link->storeMenu()->exists() ? 'common.store-menu' : 'common.biolink';
         }
 
+        if ($type === 'service_booking') {
+            // Service booking renders its own page; fall back to the block
+            // page until the owner sets up a booking config row.
+            return $link->serviceBooking()->exists() ? 'common.service-booking' : 'common.biolink';
+        }
+
         if ($type !== 'conversational' && $type !== 'slides' && $type !== 'ai_chat') {
             return 'common.biolink';
         }

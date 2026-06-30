@@ -180,6 +180,23 @@ function Art({ kind }: { kind: LinkKind }) {
           <Circle cx={98} cy={84} r={3.5} fill="#22c55e" />
         </>
       );
+    case "service_booking":
+      return (
+        <>
+          <Rect x={4} y={4} width={152} height={88} rx={14} fill="#34d399" fillOpacity={0.1} stroke="#34d399" strokeOpacity={0.3} />
+          <Rect x={22} y={20} width={70} height={56} rx={8} fill="#34d399" fillOpacity={0.16} stroke="#34d399" strokeOpacity={0.4} />
+          <Rect x={22} y={20} width={70} height={14} rx={8} fill="#34d399" fillOpacity={0.5} />
+          <Rect x={30} y={42} width={12} height={10} rx={2} fill="#34d399" fillOpacity={0.4} />
+          <Rect x={48} y={42} width={12} height={10} rx={2} fill="#34d399" fillOpacity={0.7} />
+          <Rect x={66} y={42} width={12} height={10} rx={2} fill="#34d399" fillOpacity={0.4} />
+          <Rect x={30} y={58} width={12} height={10} rx={2} fill="#34d399" fillOpacity={0.4} />
+          <Rect x={48} y={58} width={12} height={10} rx={2} fill="#34d399" fillOpacity={0.4} />
+          <Rect x={106} y={30} width={32} height={6} rx={3} fill="#94a3b8" fillOpacity={0.5} />
+          <Rect x={106} y={44} width={32} height={6} rx={3} fill="#94a3b8" fillOpacity={0.4} />
+          <Circle cx={120} cy={66} r={10} fill="#34d399" fillOpacity={0.25} stroke="#34d399" strokeOpacity={0.6} />
+          <Path d="M116 66 l3 3 l5 -6" stroke="#34d399" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      );
     case "reviews":
       return (
         <>

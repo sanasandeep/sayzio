@@ -243,6 +243,14 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            // Service booking requests (Task #3085).
+            'service_booking.new_request' => [
+                'label'          => 'New booking requests',
+                'description'    => 'When a visitor requests a booking from your service booking page.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
             // Fan→creator subscription auto-renewal reminders (Task #3011).
             'billing.creator_sub_renewal_reminder' => [
                 'label'          => 'Subscription renewal reminders',

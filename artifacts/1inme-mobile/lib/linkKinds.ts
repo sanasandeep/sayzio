@@ -14,6 +14,7 @@ export type LinkKind =
   | "slides"
   | "restaurant_menu"
   | "store_menu"
+  | "service_booking"
   | "reviews";
 
 type IconName = keyof typeof Feather.glyphMap;
@@ -34,6 +35,7 @@ export type LinkKindMeta = {
     | "slides"
     | "restaurant_menu"
     | "store_menu"
+    | "service_booking"
     | "reviews";
   label: string;
   blurb: string;
@@ -128,6 +130,13 @@ export const LINK_KINDS: LinkKindMeta[] = [
     icon: "shopping-bag",
   },
   {
+    kind: "service_booking",
+    apiType: "service_booking",
+    label: "Service Booking",
+    blurb: "Let visitors request appointments for your services.",
+    icon: "calendar",
+  },
+  {
     kind: "reviews",
     apiType: "reviews",
     label: "Reviews",
@@ -164,7 +173,7 @@ export const LINK_KIND_CATEGORIES: LinkKindCategory[] = [
   {
     label: "Pages & mini-sites",
     desc: "Full, customizable pages that live at a single link — no website needed.",
-    kinds: ["biolink", "slides", "restaurant_menu", "store_menu", "resume"],
+    kinds: ["biolink", "slides", "restaurant_menu", "store_menu", "service_booking", "resume"],
   },
   {
     label: "Business & monetization",

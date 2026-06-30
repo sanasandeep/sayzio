@@ -3077,6 +3077,9 @@ export default function BiolinkViewer() {
     } else if (type === "store_menu") {
       redirectedRef.current = true;
       router.replace(`/store/${alias}` as any);
+    } else if (type === "service_booking") {
+      redirectedRef.current = true;
+      router.replace(`/service-booking/${alias}` as any);
     }
   }, [q.data, alias, tableCode, router]);
 

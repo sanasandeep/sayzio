@@ -1196,6 +1196,7 @@
                     ['max_slides',           'Slides pages',          'number'],
                     ['max_ai_chat',          'AI Chatbot pages',      'number'],
                     ['max_restaurant_menu',  'Restaurant Menu pages', 'number'],
+                    ['max_service_booking',  'Service Booking pages', 'number'],
                     ['max_reviews',          'Reviews pages',         'number'],
                     ['max_resume',           'Resume / portfolio pages','number'],
                 ],

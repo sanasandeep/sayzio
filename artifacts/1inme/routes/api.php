@@ -46,6 +46,7 @@ use App\Modules\Api\Controllers\RevenueCatBillingController;
 use App\Modules\Api\Controllers\DialerController;
 use App\Modules\Api\Controllers\RestaurantController;
 use App\Modules\Api\Controllers\StoreController;
+use App\Modules\Api\Controllers\ServiceBookingController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -101,6 +102,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/store/{alias}',               [StoreController::class, 'show']);
         Route::post('/store/{alias}/order',        [StoreController::class, 'placeOrder'])->middleware('throttle:30,1');
         Route::get('/store/orders/{token}/status', [StoreController::class, 'orderStatus']);
+        // Service booking (Task #3085) — public: fetch page, see free slots,
+        // get an estimated quote, submit a booking request, poll status.
+        // No online payment — every total is an estimate.
+        Route::get ('/service-booking/{alias}',                [ServiceBookingController::class, 'show']);
+        Route::post('/service-booking/{alias}/slots',          [ServiceBookingController::class, 'slots'])->middleware('throttle:120,1');
+        Route::post('/service-booking/{alias}/quote',          [ServiceBookingController::class, 'quote'])->middleware('throttle:120,1');
+        Route::post('/service-booking/{alias}/book',           [ServiceBookingController::class, 'book'])->middleware('throttle:20,1');
+        Route::get ('/service-booking/bookings/{token}/status',[ServiceBookingController::class, 'bookingStatus']);
 
         // Public reviews feed + summary for a standalone Reviews page.
         Route::get('/reviews/{alias}',             [\App\Modules\Api\Controllers\ReviewApiController::class, 'index']);
@@ -939,6 +948,28 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/store/links/{link}/menu/products',             [StoreController::class, 'storeProduct'])->whereNumber('link');
         Route::put   ('/store/links/{link}/menu/products/{product}',   [StoreController::class, 'updateProduct'])->whereNumber('link')->whereNumber('product');
         Route::delete('/store/links/{link}/menu/products/{product}',   [StoreController::class, 'destroyProduct'])->whereNumber('link')->whereNumber('product');
+        // Service booking (Task #3085) — owner bookings dashboard parity with
+        // the web ServiceBookingController.
+        Route::get ('/service-booking/links/{link}/bookings',                  [ServiceBookingController::class, 'ownerBookings'])->whereNumber('link');
+        Route::get ('/service-booking/links/{link}/bookings/poll',             [ServiceBookingController::class, 'ownerPoll'])->whereNumber('link');
+        Route::post('/service-booking/links/{link}/bookings/{booking}/status', [ServiceBookingController::class, 'updateBookingStatus'])->whereNumber('link')->whereNumber('booking');
+
+        // Service booking builder — native mobile editor parity with the web
+        // ServiceBookingController editor (settings, catalog, availability).
+        Route::get   ('/service-booking/links/{link}/config',                        [ServiceBookingController::class, 'ownerConfig'])->whereNumber('link');
+        Route::post  ('/service-booking/links/{link}/config/settings',               [ServiceBookingController::class, 'saveSettings'])->whereNumber('link');
+        Route::post  ('/service-booking/links/{link}/config/photo',                  [ServiceBookingController::class, 'uploadServicePhoto'])->whereNumber('link');
+        Route::post  ('/service-booking/links/{link}/config/categories',             [ServiceBookingController::class, 'storeCategory'])->whereNumber('link');
+        Route::put   ('/service-booking/links/{link}/config/categories/{category}',  [ServiceBookingController::class, 'updateCategory'])->whereNumber('link')->whereNumber('category');
+        Route::delete('/service-booking/links/{link}/config/categories/{category}',  [ServiceBookingController::class, 'destroyCategory'])->whereNumber('link')->whereNumber('category');
+        Route::post  ('/service-booking/links/{link}/config/services',               [ServiceBookingController::class, 'storeService'])->whereNumber('link');
+        Route::put   ('/service-booking/links/{link}/config/services/{service}',     [ServiceBookingController::class, 'updateService'])->whereNumber('link')->whereNumber('service');
+        Route::delete('/service-booking/links/{link}/config/services/{service}',     [ServiceBookingController::class, 'destroyService'])->whereNumber('link')->whereNumber('service');
+        Route::post  ('/service-booking/links/{link}/config/availability',           [ServiceBookingController::class, 'storeAvailability'])->whereNumber('link');
+        Route::put   ('/service-booking/links/{link}/config/availability/{rule}',    [ServiceBookingController::class, 'updateAvailability'])->whereNumber('link')->whereNumber('rule');
+        Route::delete('/service-booking/links/{link}/config/availability/{rule}',    [ServiceBookingController::class, 'destroyAvailability'])->whereNumber('link')->whereNumber('rule');
+        Route::post  ('/service-booking/links/{link}/config/blocked-dates',          [ServiceBookingController::class, 'storeBlockedDate'])->whereNumber('link');
+        Route::delete('/service-booking/links/{link}/config/blocked-dates/{blockedDate}', [ServiceBookingController::class, 'destroyBlockedDate'])->whereNumber('link')->whereNumber('blockedDate');
 
         // Social accounts + social proof
         Route::get   ('/social/connections',                 [SocialAccountController::class, 'connections']);

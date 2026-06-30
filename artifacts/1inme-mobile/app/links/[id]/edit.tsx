@@ -426,6 +426,24 @@ export default function EditLinkScreen() {
               onPress={() => router.push(`/links/${id}/store-menu` as any)}
             />
           ) : null}
+          {meta.kind === "service_booking" ? (
+            <ActionTile
+              icon="calendar"
+              label="Bookings"
+              onPress={() =>
+                router.push(`/links/${id}/service-booking-dashboard` as any)
+              }
+            />
+          ) : null}
+          {meta.kind === "service_booking" ? (
+            <ActionTile
+              icon="edit-3"
+              label="Edit services"
+              onPress={() =>
+                router.push(`/links/${id}/service-booking-builder` as any)
+              }
+            />
+          ) : null}
           {meta.kind === "slides" ? (
             <ActionTile
               icon="edit-3"
@@ -605,6 +623,7 @@ export default function EditLinkScreen() {
           meta.kind !== "conversational" &&
           meta.kind !== "restaurant_menu" &&
           meta.kind !== "store_menu" &&
+          meta.kind !== "service_booking" &&
           meta.kind !== "reviews" ? (
             <TextField
               label="Destination URL"

@@ -918,6 +918,30 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('links/{link}/store/orders',                [\App\Modules\User\Controllers\StoreMenuController::class, 'orders'])->middleware('workspace.can:links.view')->name('links.store.orders');
         Route::get ('links/{link}/store/orders/poll',           [\App\Modules\User\Controllers\StoreMenuController::class, 'pollOrders'])->middleware('workspace.can:links.view')->name('links.store.orders.poll');
         Route::post('links/{link}/store/orders/{order}/status', [\App\Modules\User\Controllers\StoreMenuController::class, 'updateOrderStatus'])->middleware('workspace.can:links.edit')->name('links.store.orders.status');
+        // ── Service Booking (links.type = service_booking) ─────────────
+        Route::get ('links/{link}/service-booking',          [\App\Modules\User\Controllers\ServiceBookingController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.service-booking.editor');
+        Route::post('links/{link}/service-booking/settings', [\App\Modules\User\Controllers\ServiceBookingController::class, 'saveSettings'])->middleware('workspace.can:links.edit')->name('links.service-booking.settings');
+        // Categories
+        Route::post  ('links/{link}/service-booking/categories',            [\App\Modules\User\Controllers\ServiceBookingController::class, 'storeCategory'])->middleware('workspace.can:links.edit')->name('links.service-booking.categories.store');
+        Route::put   ('links/{link}/service-booking/categories/{category}', [\App\Modules\User\Controllers\ServiceBookingController::class, 'updateCategory'])->middleware('workspace.can:links.edit')->name('links.service-booking.categories.update');
+        Route::delete('links/{link}/service-booking/categories/{category}', [\App\Modules\User\Controllers\ServiceBookingController::class, 'destroyCategory'])->middleware('workspace.can:links.edit')->name('links.service-booking.categories.destroy');
+        Route::post  ('links/{link}/service-booking/categories/reorder',    [\App\Modules\User\Controllers\ServiceBookingController::class, 'reorderCategories'])->middleware('workspace.can:links.edit')->name('links.service-booking.categories.reorder');
+        // Services
+        Route::post  ('links/{link}/service-booking/services',            [\App\Modules\User\Controllers\ServiceBookingController::class, 'storeService'])->middleware('workspace.can:links.edit')->name('links.service-booking.services.store');
+        Route::put   ('links/{link}/service-booking/services/{service}',  [\App\Modules\User\Controllers\ServiceBookingController::class, 'updateService'])->middleware('workspace.can:links.edit')->name('links.service-booking.services.update');
+        Route::delete('links/{link}/service-booking/services/{service}',  [\App\Modules\User\Controllers\ServiceBookingController::class, 'destroyService'])->middleware('workspace.can:links.edit')->name('links.service-booking.services.destroy');
+        Route::post  ('links/{link}/service-booking/services/reorder',    [\App\Modules\User\Controllers\ServiceBookingController::class, 'reorderServices'])->middleware('workspace.can:links.edit')->name('links.service-booking.services.reorder');
+        // Weekly availability rules
+        Route::post  ('links/{link}/service-booking/availability',         [\App\Modules\User\Controllers\ServiceBookingController::class, 'storeAvailability'])->middleware('workspace.can:links.edit')->name('links.service-booking.availability.store');
+        Route::put   ('links/{link}/service-booking/availability/{rule}',  [\App\Modules\User\Controllers\ServiceBookingController::class, 'updateAvailability'])->middleware('workspace.can:links.edit')->name('links.service-booking.availability.update');
+        Route::delete('links/{link}/service-booking/availability/{rule}',  [\App\Modules\User\Controllers\ServiceBookingController::class, 'destroyAvailability'])->middleware('workspace.can:links.edit')->name('links.service-booking.availability.destroy');
+        // Blocked dates
+        Route::post  ('links/{link}/service-booking/blocked-dates',                 [\App\Modules\User\Controllers\ServiceBookingController::class, 'storeBlockedDate'])->middleware('workspace.can:links.edit')->name('links.service-booking.blocked-dates.store');
+        Route::delete('links/{link}/service-booking/blocked-dates/{blockedDate}',   [\App\Modules\User\Controllers\ServiceBookingController::class, 'destroyBlockedDate'])->middleware('workspace.can:links.edit')->name('links.service-booking.blocked-dates.destroy');
+        // Bookings dashboard + near-real-time polling + status workflow
+        Route::get ('links/{link}/service-booking/bookings',                 [\App\Modules\User\Controllers\ServiceBookingController::class, 'bookings'])->middleware('workspace.can:links.view')->name('links.service-booking.bookings');
+        Route::get ('links/{link}/service-booking/bookings/poll',            [\App\Modules\User\Controllers\ServiceBookingController::class, 'pollBookings'])->middleware('workspace.can:links.view')->name('links.service-booking.bookings.poll');
+        Route::post('links/{link}/service-booking/bookings/{booking}/status',[\App\Modules\User\Controllers\ServiceBookingController::class, 'updateBookingStatus'])->middleware('workspace.can:links.edit')->name('links.service-booking.bookings.status');
 
         // Plan upgrade, checkout & billing — these touch the workspace
         // owner's subscription/wallet/invoices, so they remain owner-only

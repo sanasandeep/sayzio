@@ -126,6 +126,11 @@ protected $fillable = [
         return $this->hasOne(StoreMenu::class);
     }
 
+    public function serviceBooking()
+    {
+        return $this->hasOne(ServiceBooking::class);
+    }
+
     public function rsvps()
     {
         return $this->hasMany(Rsvp::class);
@@ -634,6 +639,15 @@ protected $fillable = [
     public const TYPE_STORE_MENU      = 'store_menu';
 
     /**
+     * "Service Booking" page (Task #3085) — a request-only appointment booker
+     * modeled on the Restaurant Menu type: bookable services with durations and
+     * estimated prices, a weekly availability schedule, and a no-payment
+     * booking-request workflow. Part of BIOLINK_FAMILY so it inherits the same
+     * visibility tiers / analytics / feed treatment as the menu type.
+     */
+    public const TYPE_SERVICE_BOOKING = 'service_booking';
+
+    /**
      * Standalone "Reviews" page. Deliberately NOT part of BIOLINK_FAMILY: it
      * is rendered by its own dedicated public view (a full review wall +
      * submission form), not the biolink block engine.
@@ -677,6 +691,7 @@ protected $fillable = [
         self::TYPE_AI_CHAT,
         self::TYPE_RESTAURANT_MENU,
         self::TYPE_STORE_MENU,
+        self::TYPE_SERVICE_BOOKING,
     ];
 
     /** Is this link rendered by the biolink page engine? */

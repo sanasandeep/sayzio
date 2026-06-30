@@ -24,6 +24,7 @@ import { billing, type Plan, type PremiumFeature } from "@/lib/api/billing";
 // Absent toggle = enabled; explicit `false` = locked. Cap of 0 = locked.
 const GATED_LINK_TYPES = new Set<string>([
   "restaurant_menu",
+  "service_booking",
   "reviews",
   "resume",
   "paid_page",
