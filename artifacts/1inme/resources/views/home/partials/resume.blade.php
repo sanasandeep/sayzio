@@ -57,12 +57,11 @@
     .rb-bar > span {
         position:absolute; left:0; top:0; bottom:0; border-radius: inherit;
         background: linear-gradient(90deg, #3d6bff, #6e61ff);
-        animation: rbFill 2.6s ease-out forwards;
         transform-origin: left center;
         width: var(--rb-w, 70%);
-        transform: scaleX(0);
+        transform: scaleX(1);
     }
-    @keyframes rbFill { to { transform: scaleX(1); } }
+    @keyframes rbFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
     .rb-chip {
         display:inline-flex; align-items:center; gap:4px;
         font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 999px;
@@ -79,6 +78,78 @@
         15%           { transform: scale(1);  opacity: 1; }
         25%           { transform: scale(1);  opacity: 1; box-shadow: 0 0 0 14px rgba(61,107,255,0); }
     }
+
+    /* ===== Live "watch it build" sequence =====
+       RESTING / FINAL STATE (also no-JS + reduced motion): the résumé is already
+       fully assembled and the status reads "AI polished". The scatter + sequenced
+       reveal + looping only kick in once JS adds `.rb-armed`, which it never does
+       under reduced motion. */
+    .rb-build { will-change: transform, opacity; }
+
+    /* Typed experience line — caret sits at rest (no JS) hidden; full text shown. */
+    .rb-type-caret { display:inline; opacity:0; color:#3d6bff; font-weight:400; }
+
+    /* Floating status beat above the paper. Two stacked spans crossfade:
+       "AI writing…" while building → "AI polished" once assembled. Dark glass pill
+       reads correctly in both light and dark modes (like the stat bubbles). */
+    .rb-status {
+        position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+        z-index: 6; display: inline-grid; pointer-events: none;
+    }
+    .rb-status-writing, .rb-status-done {
+        grid-area: 1 / 1;
+        display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+        padding: 7px 14px; border-radius: 999px;
+        font-size: 11px; font-weight: 700; color: #fff;
+        background: rgba(15,18,28,.85); backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,.10);
+        box-shadow: 0 18px 40px -16px rgba(0,0,0,.7);
+        transition: opacity .4s ease;
+    }
+    .rb-status-done i { color: #1ed760; font-size: 12px; }
+    .rb-dots { display: inline-flex; align-items: center; gap: 4px; }
+    .rb-dots i {
+        width: 6px; height: 6px; border-radius: 50%; background: #1bd4d9; opacity: .6;
+        animation: rbDot 1.25s ease-in-out infinite;
+    }
+    .rb-dots i:nth-child(2) { animation-delay: .18s; }
+    .rb-dots i:nth-child(3) { animation-delay: .36s; }
+    @keyframes rbDot { 0%,60%,100% { transform: translateY(0); opacity: .4; } 30% { transform: translateY(-3px); opacity: 1; } }
+
+    /* Crossfade: resting (no `.rb-armed`) shows the "AI polished" done chip. */
+    .rb-status-writing { opacity: 0; }
+    .rb-status-done    { opacity: 1; }
+    .rb-armed:not(.rb-built) .rb-status-writing { opacity: 1; }
+    .rb-armed:not(.rb-built) .rb-status-done    { opacity: 0; }
+    .rb-armed.rb-built .rb-status-writing { opacity: 0; }
+    .rb-armed.rb-built .rb-status-done    { opacity: 1; }
+
+    @media (prefers-reduced-motion: no-preference) {
+        /* ARMED START STATE — content blocks hidden + scattered, status "writing".
+           Driven entirely by JS once it adds `.rb-armed`. */
+        .rb-armed .rb-build {
+            opacity: 0;
+            transform: translate(var(--tx, 0), var(--ty, 18px)) rotate(var(--rot, 0deg)) scale(.97);
+            transition: opacity .55s ease, transform .6s cubic-bezier(.34, 1.56, .64, 1);
+        }
+        .rb-armed .rb-build.is-in { opacity: 1; transform: none; }
+
+        /* Skill bars stay empty while armed, then fill once their block lands. */
+        .rb-armed .rb-bar > span { transform: scaleX(0); }
+        .rb-armed .rb-build.is-in .rb-bar > span { animation: rbFill 1.1s ease-out forwards; }
+
+        /* Typing caret blinks while writing, vanishes once polished. */
+        .rb-armed .rb-type-caret { opacity: 1; animation: rbCaret 1.05s step-end infinite; }
+        .rb-armed.rb-built .rb-type-caret { opacity: 0; animation: none; }
+
+        /* Loop reset: gently fade out the assembled page before replaying. */
+        .rb-armed.rb-fading .rb-build {
+            opacity: 0 !important;
+            transform: translateY(-8px) !important;
+            transition: opacity .5s ease, transform .5s ease !important;
+        }
+    }
+    @keyframes rbCaret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
 
     /* Floating template thumbs that spin around the paper */
     .rb-thumb {
@@ -141,6 +212,20 @@
         0%,100% { transform: translateY(0); }
         50%     { transform: translateY(-8px); }
     }
+
+    /* Reduced motion / no-JS: freeze every ambient + build animation and show the
+       fully assembled résumé in its resting state — no motion. */
+    @media (prefers-reduced-motion: reduce) {
+        .rb-mesh::before,
+        .rb-paper,
+        .rb-paper::after,
+        .rb-tap,
+        .rb-thumb,
+        .rb-stat-bubble,
+        .rb-feat-icon::after,
+        .rb-dots i { animation: none !important; }
+        .rb-bar > span { transform: scaleX(1) !important; animation: none !important; }
+    }
 </style>
 <section id="resume-portfolio" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="rb-h">
     <div class="rb-mesh absolute inset-0 pointer-events-none" aria-hidden="true"></div>
@@ -171,8 +256,15 @@
                     <i class="fas fa-graduation-cap"></i>
                 </div>
 
+                {{-- Status beat: "AI writing…" during the build → "AI polished" once done.
+                     Sits at the resting (done) state with no JS / reduced motion. --}}
+                <div class="rb-status" aria-hidden="true">
+                    <span class="rb-status-writing"><span class="rb-dots"><i></i><i></i><i></i></span> AI writing…</span>
+                    <span class="rb-status-done"><i class="fas fa-circle-check"></i> AI polished</span>
+                </div>
+
                 <div class="rb-paper" role="img" aria-label="Résumé preview">
-                    <div class="rb-paper-head">
+                    <div class="rb-paper-head rb-build rb-b-head" style="--ty:-26px;--rot:-3deg;">
                         <div class="relative flex items-center gap-3">
                             <div class="rb-avatar">MA</div>
                             <div>
@@ -189,16 +281,16 @@
                         </div>
                     </div>
                     <div class="px-5 py-4 space-y-4">
-                        <div>
+                        <div class="rb-build rb-b-exp" style="--tx:-40px;--rot:-2deg;">
                             <div class="flex items-center justify-between mb-1.5">
                                 <div class="text-[11px] font-bold uppercase tracking-wider text-blue-700">Experience</div>
                                 <span class="rb-chip"><i class="fas fa-sparkles text-[8px]"></i> AI polished</span>
                             </div>
                             <div class="text-[12px] font-bold text-slate-900 leading-tight">Senior Product Designer</div>
                             <div class="text-[10px] text-slate-500">Linear · 2023 — Now</div>
-                            <div class="text-[10px] text-slate-600 mt-1 leading-snug">Shipped onboarding redesign, +28% activation. Led design system across 4 squads.</div>
+                            <div class="text-[10px] text-slate-600 mt-1 leading-snug"><span class="rb-type">Shipped onboarding redesign, +28% activation. Led design system across 4 squads.</span><span class="rb-type-caret" aria-hidden="true">▍</span></div>
                         </div>
-                        <div>
+                        <div class="rb-build rb-b-skills" style="--tx:40px;--rot:2deg;">
                             <div class="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-2">Skills</div>
                             <div class="space-y-2">
                                 <div>
@@ -207,15 +299,15 @@
                                 </div>
                                 <div>
                                     <div class="flex items-center justify-between text-[10px] mb-1"><span class="font-semibold text-slate-700">Design systems</span><span class="text-slate-500">88%</span></div>
-                                    <div class="rb-bar"><span style="--rb-w:88%; animation-delay:.25s;"></span></div>
+                                    <div class="rb-bar"><span style="--rb-w:88%; animation-delay:.2s;"></span></div>
                                 </div>
                                 <div>
                                     <div class="flex items-center justify-between text-[10px] mb-1"><span class="font-semibold text-slate-700">Front-end (React)</span><span class="text-slate-500">72%</span></div>
-                                    <div class="rb-bar"><span style="--rb-w:72%; animation-delay:.5s;"></span></div>
+                                    <div class="rb-bar"><span style="--rb-w:72%; animation-delay:.4s;"></span></div>
                                 </div>
                             </div>
                         </div>
-                        <div>
+                        <div class="rb-build rb-b-port" style="--ty:32px;--rot:3deg;">
                             <div class="text-[11px] font-bold uppercase tracking-wider text-blue-700 mb-1.5">Portfolio</div>
                             <div class="grid grid-cols-3 gap-1.5">
                                 <div class="aspect-square rounded-md" style="background:linear-gradient(135deg,#3d6bff,#1bd4d9);"></div>
@@ -269,3 +361,112 @@
     </div>
 </section>
 
+<script>
+(function () {
+    var section = document.getElementById('resume-portfolio');
+    if (!section) return;
+    var wrap = section.querySelector('.rb-wrap');
+    if (!wrap) return;
+
+    var blocks = Array.prototype.slice.call(wrap.querySelectorAll('.rb-build'));
+    if (!blocks.length) return;
+    var typeEl = wrap.querySelector('.rb-type');
+    var fullText = typeEl ? typeEl.textContent : '';
+
+    var reduceMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var runId = 0;
+    var running = false;
+
+    function reveal(cls) {
+        var el = wrap.querySelector('.' + cls);
+        if (el) el.classList.add('is-in');
+    }
+
+    function reset() {
+        wrap.classList.remove('rb-built', 'rb-fading');
+        for (var i = 0; i < blocks.length; i++) blocks[i].classList.remove('is-in');
+        if (typeEl) typeEl.textContent = '';
+    }
+
+    function sleep(ms, id) {
+        return new Promise(function (resolve, reject) {
+            setTimeout(function () { id === runId ? resolve() : reject(); }, ms);
+        });
+    }
+
+    // Type the AI-written experience line character by character.
+    function typeText(id) {
+        return new Promise(function (resolve, reject) {
+            var i = 0;
+            (function step() {
+                if (id !== runId) return reject();
+                if (typeEl && i <= fullText.length) {
+                    typeEl.textContent = fullText.slice(0, i);
+                    i++;
+                    setTimeout(step, 18 + Math.random() * 30);
+                } else {
+                    resolve();
+                }
+            })();
+        });
+    }
+
+    // One full build cycle: header → experience (types in) → skills (bars fill)
+    // → portfolio tiles → "AI polished", hold, fade out, replay.
+    function play(id) {
+        reset();
+        return sleep(420, id)
+            .then(function () { reveal('rb-b-head'); return sleep(560, id); })
+            .then(function () { reveal('rb-b-exp'); return sleep(300, id); })
+            .then(function () { return typeText(id); })
+            .then(function () { return sleep(340, id); })
+            .then(function () { reveal('rb-b-skills'); return sleep(1150, id); })
+            .then(function () { reveal('rb-b-port'); return sleep(680, id); })
+            .then(function () { wrap.classList.add('rb-built'); return sleep(3200, id); })
+            .then(function () { wrap.classList.add('rb-fading'); return sleep(620, id); })
+            .then(function () { reset(); return sleep(420, id); })
+            .then(function () { if (id === runId) play(id); })
+            .catch(function () {});
+    }
+
+    function start() {
+        if (reduceMq.matches || running) return;
+        running = true;
+        runId++;
+        wrap.classList.add('rb-armed');
+        reset();
+        play(runId);
+    }
+
+    function stop() {
+        running = false;
+        runId++;
+        reset();
+    }
+
+    if (reduceMq.matches) return; // leave fully built, no sequencing
+
+    if (typeof window.IntersectionObserver !== 'function') return; // no IO: leave fully built, never arm/hide
+
+    wrap.classList.add('rb-armed'); // hide blocks until the section is in view
+
+    var io = new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+            entries[i].isIntersecting ? start() : stop();
+        }
+    }, { threshold: 0.25, rootMargin: '0px 0px -10% 0px' });
+    io.observe(section);
+
+    var onReduceChange = function (e) {
+        if (e.matches) {
+            running = false;
+            runId++;
+            wrap.classList.remove('rb-armed', 'rb-built', 'rb-fading');
+            for (var i = 0; i < blocks.length; i++) blocks[i].classList.remove('is-in');
+            if (typeEl) typeEl.textContent = fullText;
+        }
+    };
+    if (reduceMq.addEventListener) reduceMq.addEventListener('change', onReduceChange);
+    else if (reduceMq.addListener) reduceMq.addListener(onReduceChange);
+})();
+</script>
