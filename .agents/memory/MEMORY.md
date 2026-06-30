@@ -136,3 +136,4 @@
 - [e2e demo user bypasses banned names](e2e-demo-user-banned-bypass.md) — demo@1inme.com holds user.banned_names.bypass, so alias checker reports banned names as available; e2e can't assert "banned" state, use taken+invalid instead.
 - [Banned-name @handle surfaces](handle-banned-name-surfaces.md) — NotBannedName must run on all 4 handle-setting surfaces (API register, API profile update, web profile update, claimHandle), not just link aliases.
 - [Alias length enforcement surfaces](alias-length-surfaces.md) — per-plan min via User::getAliasLengthLimits() (free biggest); Api LinkController create paths + updateAlias/LinkAliasController used to bypass it; overlay seeder needs a data-migration backfill.
+- [Marketing hero claim-handle handoff](marketing-hero-claim-handle.md) — homepage "claim your link" carries a handle via the open-auth event → auth-modal hidden field → AuthController::applyClaimedHandle (graceful, mirrors claimHandle rules); 5 lockstep surfaces.

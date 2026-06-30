@@ -34,6 +34,29 @@
                     <strong class="text-white">Zio</strong> is the AI at the heart of Sayzio. It builds your pages, coaches your growth, replies to visitors — even answers your calls. One smart link that markets you 24/7, <strong class="text-white">free forever</strong>, no card required.
                 </p>
 
+                @php
+                    // Canonical brand host for the "claim your link" prefix — read
+                    // from the platform's primary domain rather than hardcoded so a
+                    // rebrand carries through automatically.
+                    $claimHost = \App\Modules\Common\Support\PlatformHosts::PLATFORM_DOMAINS[0] ?? 'sayzio.app';
+                @endphp
+                {{-- Claim-your-link control: a higher-intent entry point than the
+                     generic CTA. The handle the visitor types is carried into the
+                     register modal (via the open-auth event) and reserved as their
+                     @handle right after sign-up. Empty submit just opens register. --}}
+                <form class="zio-claim-form reveal rd-3" onsubmit="return window.zioClaimSubmit(event)" aria-label="Claim your link">
+                    <label for="zio-claim-input" class="zio-claim-label">Claim your link — pick your handle</label>
+                    <div class="zio-claim">
+                        <span class="zio-claim-prefix" aria-hidden="true">{{ $claimHost }}/@</span>
+                        <input id="zio-claim-input" name="desired_handle" type="text"
+                               autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"
+                               maxlength="30" placeholder="yourname" class="zio-claim-input">
+                        <button type="submit" class="zio-claim-btn btn-bounce grad-bar">
+                            Claim your link <i class="fas fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                </form>
+
                 <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 justify-center lg:justify-start">
                     <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','hero'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap shrink-0">
                         Start free with AI <i class="fas fa-arrow-right text-sm"></i>
@@ -182,6 +205,67 @@
             border-color: rgba(255,255,255,.32);
             transform: translateY(-2px);
         }
+
+        /* ============ Claim-your-link control ============
+           Glass pill matching the hero design system. Scoped CSS only (no new
+           Tailwind utilities) so it renders even when the build/watch isn't
+           running in an isolated env. */
+        .zio-claim-form { margin-bottom: 1rem; }
+        .zio-claim-label {
+            display: block;
+            font-size: .7rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+            color: #94a3b8; margin-bottom: .5rem;
+        }
+        .zio-claim {
+            display: flex; align-items: stretch; gap: .25rem;
+            max-width: 30rem; margin-inline: auto;
+            padding: .3rem;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 9999px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: border-color .2s ease, background .2s ease;
+        }
+        .zio-claim:focus-within {
+            border-color: rgba(96,165,250,.55);
+            background: rgba(255,255,255,.06);
+        }
+        .zio-claim-prefix {
+            display: flex; align-items: center;
+            padding-inline: .6rem 0; padding-left: .9rem;
+            font-size: .9rem; color: #94a3b8; white-space: nowrap; user-select: none;
+        }
+        .zio-claim-input {
+            flex: 1 1 auto; min-width: 0;
+            background: transparent; border: 0; outline: none;
+            color: #fff; font-size: .95rem; padding: .55rem .25rem;
+        }
+        .zio-claim-input::placeholder { color: #64748b; }
+        .zio-claim-btn {
+            flex: 0 0 auto;
+            display: inline-flex; align-items: center; gap: .4rem;
+            padding: .55rem 1.15rem;
+            border: 0; border-radius: 9999px;
+            color: #fff; font-size: .9rem; font-weight: 700; white-space: nowrap; cursor: pointer;
+        }
+        @media (max-width: 380px) {
+            .zio-claim { flex-wrap: wrap; border-radius: 1.1rem; }
+            .zio-claim-input { flex-basis: 100%; }
+            .zio-claim-btn { flex: 1 1 100%; justify-content: center; }
+        }
+        @media (min-width: 1024px) {
+            .zio-claim { margin-inline: 0; }
+            .zio-claim-label { text-align: left; }
+        }
+        html.light-mode .zio-claim {
+            background: #ffffff; border-color: #e2e8f0;
+        }
+        html.light-mode .zio-claim:focus-within { border-color: #60a5fa; }
+        html.light-mode .zio-claim-prefix { color: #64748b; }
+        html.light-mode .zio-claim-input { color: #0f172a; }
+        html.light-mode .zio-claim-input::placeholder { color: #94a3b8; }
+        html.light-mode .zio-claim-label { color: #64748b; }
 
         /* ============ Hero column order ============
            At ≥lg the Zio universe visual sits on the LEFT and the copy on the
@@ -575,4 +659,22 @@
             .zio-pulse { opacity: 0 !important; }
         }
     </style>
+
+    <script>
+        // Hero "claim your link" handler. Carries the typed handle into the
+        // existing register flow via the same open-auth event the other hero
+        // CTAs use. An empty handle still opens registration normally.
+        window.zioClaimSubmit = function (e) {
+            e.preventDefault();
+            var input = document.getElementById('zio-claim-input');
+            var handle = input ? input.value.trim().toLowerCase().replace(/^@+/, '') : '';
+            if (window.trackMarketingEvent) {
+                window.trackMarketingEvent('landing_home_cta', 'hero_claim');
+            }
+            window.dispatchEvent(new CustomEvent('open-auth', {
+                detail: { tab: 'register', handle: handle }
+            }));
+            return false;
+        };
+    </script>
 </section>

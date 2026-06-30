@@ -60,6 +60,9 @@
                         <label for="website">Leave this field empty</label>
                         <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" value="">
                     </div>
+                    {{-- Carries a handle from a "claim your link" entry point (e.g.
+                         ?handle=) so it's reserved as the new account's @handle. --}}
+                    <input type="hidden" name="desired_handle" value="{{ old('desired_handle', $prefilledHandle ?? '') }}">
                     <div class="space-y-4">
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Full Name</label>

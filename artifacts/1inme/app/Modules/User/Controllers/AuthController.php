@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Rules\NotBannedName;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Plan;
@@ -15,7 +16,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -33,6 +36,9 @@ class AuthController extends Controller
         $prefilledRef = $request->query('ref') ?: $request->cookie(ReferralService::COOKIE_NAME);
         return view('user.auth.register', [
             'prefilledRef'         => $prefilledRef,
+            // Carried from a "claim your link" entry point (e.g. the homepage
+            // hero) so the chosen @handle is reserved on the new account.
+            'prefilledHandle'      => (string) $request->query('handle', ''),
             'emailPasswordEnabled' => AuthMethods::emailPasswordEnabled(),
         ]);
     }
@@ -104,6 +110,13 @@ class AuthController extends Controller
         $cookieCode = $request->cookie(ReferralService::COOKIE_NAME);
         $referrals->attributeSignup($user, $submittedCode, $cookieCode, $request->ip(), $request->userAgent());
 
+        // If the visitor typed a handle into a "claim your link" entry point
+        // (e.g. the homepage hero), reserve it as their @handle now so it's
+        // waiting for them after sign-up. Validation mirrors the in-app
+        // handle-claim flow; an invalid/taken/banned value is silently
+        // skipped so they can pick one later (no dead-end at sign-up).
+        $this->applyClaimedHandle($user, $request->input('desired_handle'));
+
         // Every new user starts with a personal workspace. Team workspaces
         // (if their plan allows) can be created later from the switcher.
         $user->ensureDefaultWorkspace();
@@ -163,6 +176,37 @@ class AuthController extends Controller
         return redirect()->route('user.otp.verify.form')
             ->with('status', 'Account created. We sent a 6-digit code to ' . $user->email . '.')
             ->with('otp_demo_reveal', AuthMethods::demoRevealMessage($code));
+    }
+
+    /**
+     * Reserve a handle the visitor typed into a "claim your link" entry point
+     * (homepage hero) as the new user's @handle. Mirrors the validation used by
+     * CreatorProfileController::claimHandle (format + case-insensitive
+     * uniqueness + admin banned-names list). Anything invalid, taken or banned
+     * is silently skipped so sign-up never dead-ends — the user can pick a
+     * handle later from their profile.
+     */
+    private function applyClaimedHandle(User $user, ?string $raw): void
+    {
+        $handle = strtolower(trim((string) $raw));
+        if ($handle === '') {
+            return;
+        }
+
+        $validator = Validator::make(['handle' => $handle], [
+            'handle' => [
+                'string', 'min:3', 'max:30',
+                'regex:/^[a-z0-9_]+$/i',
+                Rule::unique('users', 'handle'),
+                new NotBannedName(),
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            return;
+        }
+
+        $user->forceFill(['handle' => $handle])->save();
     }
 
     public function showLogin()

@@ -44,11 +44,11 @@
     ];
     $navUseCases = \App\Modules\Common\Support\SitePagesContent::useCaseMeta();
 @endphp
-<div x-data="{ mobileOpen:false, mobileGroup:null, openMenu:null, scrolled:false {{ $useModal ? ', authOpen:false, authTab:\'login\'' : '' }} }"
+<div x-data="{ mobileOpen:false, mobileGroup:null, openMenu:null, scrolled:false {{ $useModal ? ', authOpen:false, authTab:\'login\', authHandle:\'\'' : '' }} }"
      x-init="scrolled = window.scrollY > 8"
      @scroll.window.passive="scrolled = window.scrollY > 8"
      x-effect="document.body.style.overflow = (mobileOpen{{ $useModal ? ' || authOpen' : '' }}) ? 'hidden' : ''"
-     @keydown.escape.window="openMenu=null; mobileOpen=false; mobileGroup=null"{!! $useModal ? ' @open-auth.window="authTab = ($event.detail && $event.detail.tab) || \'register\'; authOpen = true; mobileOpen = false"' : '' !!}>
+     @keydown.escape.window="openMenu=null; mobileOpen=false; mobileGroup=null"{!! $useModal ? ' @open-auth.window="authTab = ($event.detail && $event.detail.tab) || \'register\'; authHandle = ($event.detail && $event.detail.handle) || \'\'; authOpen = true; mobileOpen = false"' : '' !!}>
 <nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }}" style="top: var(--inme-anno-h, 0px);">
     <div class="mkt-navbar-bar" :class="scrolled ? 'is-stuck' : ''">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

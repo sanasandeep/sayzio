@@ -77,6 +77,16 @@
                 <form x-show="authTab==='register'" x-cloak method="POST" action="{{ route('user.register.submit') }}"
                       class="space-y-3">
                     @csrf
+                    {{-- Carries the handle typed into the homepage hero "claim your
+                         link" control so it's applied as the new account's @handle
+                         right after sign-up. Bound to the Alpine authHandle set by
+                         the open-auth event; empty when the modal is opened any
+                         other way (registration still works normally). --}}
+                    <input type="hidden" name="desired_handle" :value="authHandle">
+                    <div x-show="authHandle" x-cloak class="rounded-lg px-3 py-2 text-xs bg-blue-500/10 border border-blue-500/30 text-blue-200 flex items-center gap-2">
+                        <i class="fas fa-link text-[11px]"></i>
+                        <span>Claiming <strong x-text="'@' + authHandle"></strong> for your page.</span>
+                    </div>
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Full name</label>
                         <input type="text" name="name" required value="{{ old('name') }}" placeholder="Jane Doe"
