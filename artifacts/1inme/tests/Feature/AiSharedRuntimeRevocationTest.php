@@ -138,6 +138,44 @@ class AiSharedRuntimeRevocationTest extends TestCase
         ]);
     }
 
+    private function askMindWithAlso(User $user, AiMind $mind, array $alsoIds)
+    {
+        return $this->actingAs($user)->postJson("/user/minds/{$mind->id}/ask", [
+            'question' => 'What can you tell me?',
+            'also'     => $alsoIds,
+        ]);
+    }
+
+    /**
+     * Re-bind the Mind query service with a double that records the exact
+     * set of Mind models handed to ::ask, so a test can assert which Minds
+     * a chat call actually queried (and prove the dropped 'also' Mind was
+     * not silently folded back in).
+     */
+    private function captureAskMinds(): object
+    {
+        $bucket = new class {
+            /** @var array<int, array<int, AiMind>> */
+            public array $calls = [];
+
+            /** Mind ids passed to the most recent ::ask call. */
+            public function lastIds(): array
+            {
+                $last = empty($this->calls) ? [] : end($this->calls);
+                return array_map(static fn ($m) => (int) $m->id, $last);
+            }
+        };
+
+        $mock = Mockery::mock(AiMindQueryService::class);
+        $mock->shouldReceive('ask')->andReturnUsing(function ($user, $minds, $question) use ($bucket) {
+            $bucket->calls[] = array_values($minds);
+            return ['answer' => 'A grounded answer.', 'sources' => [], 'credits_spent' => 0];
+        });
+        $this->app->instance(AiMindQueryService::class, $mock);
+
+        return $bucket;
+    }
+
     private function runPersona(User $user, AiPersonaAgent $persona)
     {
         return $this->actingAs($user)->postJson("/user/ai-personas/{$persona->id}/test", [
@@ -259,5 +297,112 @@ class AiSharedRuntimeRevocationTest extends TestCase
         ]);
 
         $this->runPersona($holder->fresh(), $persona)->assertForbidden();
+    }
+
+    // ===================================================================
+    // 'also' piggy-back: a revoked teammate must be dropped from the
+    // optional extra-Minds list, not just from the focused Mind.
+    // ===================================================================
+
+    public function test_suspended_member_extra_also_mind_is_excluded_from_the_query(): void
+    {
+        $owner  = $this->user();
+        $member = $this->user();
+        $team   = $this->team($owner);
+        $ms     = $this->memberOf($team, $member);
+
+        // Two Minds shared with the member via the team seat (USE access).
+        $sharedA = $this->mind($owner);
+        $sharedB = $this->mind($owner);
+        foreach ([$sharedA, $sharedB] as $m) {
+            app(AiResourceShareService::class)->share(
+                $owner, AiResourceShare::RESOURCE_MIND, $m->id,
+                AiResourceShare::AUDIENCE_WORKSPACE, $team->id, AiResourceShare::ACCESS_USE
+            );
+        }
+
+        // The member's own Mind anchors the focused call so the query still
+        // runs after revocation — letting us inspect which Minds survived.
+        $ownMind = $this->mind($member);
+
+        $captured = $this->captureAskMinds();
+
+        // While the seat is active: both shared 'also' Minds are folded in.
+        $this->askMindWithAlso($member->fresh(), $ownMind, [$sharedA->id, $sharedB->id])
+            ->assertOk();
+        $this->assertEqualsCanonicalizing(
+            [$ownMind->id, $sharedA->id, $sharedB->id],
+            $captured->lastIds(),
+            'While active, both shared Minds should be queryable via "also".'
+        );
+
+        // Suspend the seat — only LIVE resolution changes, share rows stay.
+        $ms->forceFill(['suspended_at' => now()])->save();
+        $this->assertDatabaseHas('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $sharedA->id,
+        ]);
+
+        // The very next chat call must silently drop BOTH shared Minds from
+        // the 'also' set — the query runs against the own Mind alone.
+        $this->askMindWithAlso($member->fresh(), $ownMind, [$sharedA->id, $sharedB->id])
+            ->assertOk();
+        $this->assertEquals(
+            [$ownMind->id],
+            $captured->lastIds(),
+            'After suspension, the shared "also" Minds must be excluded — no piggy-backing.'
+        );
+
+        // And a direct focused call against a shared Mind is denied outright.
+        $this->askMind($member->fresh(), $sharedA)->assertForbidden();
+    }
+
+    public function test_detached_badge_holder_extra_also_mind_is_excluded_from_the_query(): void
+    {
+        $owner  = $this->user();
+        $holder = $this->user();
+        $badge  = $this->badge();
+        $owner->accountBadges()->attach($badge->id);
+        $holder->accountBadges()->attach($badge->id);
+
+        $sharedA = $this->mind($owner);
+        $sharedB = $this->mind($owner);
+        foreach ([$sharedA, $sharedB] as $m) {
+            app(AiResourceShareService::class)->share(
+                $owner, AiResourceShare::RESOURCE_MIND, $m->id,
+                AiResourceShare::AUDIENCE_BADGE, $badge->id, AiResourceShare::ACCESS_USE
+            );
+        }
+
+        $ownMind = $this->mind($holder);
+
+        $captured = $this->captureAskMinds();
+
+        $this->askMindWithAlso($holder->fresh(), $ownMind, [$sharedA->id, $sharedB->id])
+            ->assertOk();
+        $this->assertEqualsCanonicalizing(
+            [$ownMind->id, $sharedA->id, $sharedB->id],
+            $captured->lastIds(),
+            'While holding the badge, both shared Minds should be queryable via "also".'
+        );
+
+        // Detach the badge — share rows untouched, live access lost.
+        $holder->accountBadges()->detach($badge->id);
+        $this->assertDatabaseHas('ai_resource_shares', [
+            'resource_type' => AiResourceShare::RESOURCE_MIND,
+            'resource_id'   => $sharedA->id,
+            'audience_type' => AiResourceShare::AUDIENCE_BADGE,
+            'audience_id'   => $badge->id,
+        ]);
+
+        $this->askMindWithAlso($holder->fresh(), $ownMind, [$sharedA->id, $sharedB->id])
+            ->assertOk();
+        $this->assertEquals(
+            [$ownMind->id],
+            $captured->lastIds(),
+            'After badge detach, the shared "also" Minds must be excluded — no piggy-backing.'
+        );
+
+        $this->askMind($holder->fresh(), $sharedA)->assertForbidden();
     }
 }
