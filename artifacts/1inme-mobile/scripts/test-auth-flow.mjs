@@ -142,6 +142,25 @@ console.log("[test-auth-flow] AuthContext auth methods");
 ok("sendOtp POSTs /auth/otp/send with { identifier, type } for email & WhatsApp");
 
 {
+  // --- sendOtp tolerates a null/empty apiFetch result --------------------
+  // apiFetch returns `null` for a 2xx with an empty body (204, proxy hiccup,
+  // etc.). sendOtp must optional-chain the envelope so the user advances to
+  // the verify step instead of crashing with "Cannot read properties of null".
+  const apiFetch = async () => null;
+  const { sendOtp } = loadAuthFns(apiFetch, async () => {});
+  let result;
+  await assert.doesNotReject(async () => {
+    result = await sendOtp({ channel: "email", identifier: "a@b.com" });
+  }, "an empty (null) OTP-send response must not crash sendOtp");
+  assert.deepEqual(
+    result,
+    { demoReveal: null },
+    "an empty OTP-send response yields { demoReveal: null }",
+  );
+}
+ok("sendOtp survives a null/empty apiFetch response without throwing");
+
+{
   // --- verifyOtp: POST /auth/otp/verify → applySession(token, user) ----
   const calls = [];
   const session = { token: null, user: null };

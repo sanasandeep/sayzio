@@ -453,14 +453,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await apiFetch<{
         data?: { demo_reveal?: string | null };
         demo_reveal?: string | null;
-      }>("/auth/otp/send", {
+      } | null>("/auth/otp/send", {
         method: "POST",
         body: JSON.stringify({
           identifier: input.identifier,
           type: input.channel,
         }),
       });
-      return { demoReveal: res.data?.demo_reveal ?? res.demo_reveal ?? null };
+      // A 2xx with an empty body (204, proxy hiccup, etc.) makes apiFetch
+      // return null. Optional-chain every hop so an empty OTP-send response
+      // advances the user to the verify step instead of crashing with
+      // "Cannot read properties of null".
+      return { demoReveal: res?.data?.demo_reveal ?? res?.demo_reveal ?? null };
     },
     [],
   );
@@ -476,7 +480,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data?: { token: string; user: AuthUser };
         token?: string;
         user?: AuthUser;
-      }>("/auth/otp/verify", {
+      } | null>("/auth/otp/verify", {
         method: "POST",
         body: JSON.stringify({
           identifier: input.identifier,
@@ -484,8 +488,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           code: input.code,
         }),
       });
-      const token = res.data?.token ?? res.token;
-      const user = res.data?.user ?? res.user;
+      // Optional-chain so an empty (null) response fails with the clean
+      // "missing a token or user" error rather than a raw TypeError.
+      const token = res?.data?.token ?? res?.token;
+      const user = res?.data?.user ?? res?.user;
       if (!token || !user) {
         throw new Error("Sign-in response was missing a token or user.");
       }
@@ -500,12 +506,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data?: { token: string; user: AuthUser };
         token?: string;
         user?: AuthUser;
-      }>("/auth/demo", {
+      } | null>("/auth/demo", {
         method: "POST",
         body: JSON.stringify({ role }),
       });
-      const token = res.data?.token ?? res.token;
-      const user = res.data?.user ?? res.user;
+      const token = res?.data?.token ?? res?.token;
+      const user = res?.data?.user ?? res?.user;
       if (!token || !user) throw new Error("Demo sign-in response was empty.");
       await applySession(token, user);
     },
@@ -522,9 +528,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data?: { token: string; user: AuthUser };
         token?: string;
         user?: AuthUser;
-      }>("/auth/social", { method: "POST", body: JSON.stringify(input) });
-      const token = res.data?.token ?? res.token;
-      const user = res.data?.user ?? res.user;
+      } | null>("/auth/social", { method: "POST", body: JSON.stringify(input) });
+      const token = res?.data?.token ?? res?.token;
+      const user = res?.data?.user ?? res?.user;
       if (!token || !user) {
         throw new Error("Social sign-in response was missing a token or user.");
       }
