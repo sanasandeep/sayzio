@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -18,168 +18,109 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiDisabledNotice } from "@/components/AiDisabledNotice";
 import { useColors } from "@/hooks/useColors";
+import { errorStatus } from "@/lib/api";
 import {
+  exportStrategy,
   marketingStrategist,
-  type MsMessage,
-  type MsPlay,
-  type MsSuggestion,
+  type StrategyChatMessage,
+  type StrategyPlay,
+  type StrategyShow,
+  type StrategySuggestion,
 } from "@/lib/api/marketingStrategist";
-import { handlePlanLockedError } from "@/lib/upgradePrompt";
+import { isPlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
 
-/**
- * Marketing Strategist detail (mobile). Renders the generated plan exactly
- * like the web `show` view: a blue-tinted summary card, one-click action
- * suggestions (Apply / Dismiss), the Organic and Paid plans as play cards,
- * the KPI chips, and a streamed chat-refine composer at the bottom.
- *
- * Applying a suggestion performs a real, state-changing action, so the
- * client confirms first (the API also enforces a `confirm:true` flag — a
- * 409 otherwise). Chat-refine streams token-by-token over SSE.
- */
-export default function MarketingStrategyDetailScreen() {
+const FEATURE_LABEL = "Performer Specialist";
+
+export default function MarketingStrategyDetail() {
   const colors = useColors();
-  const router = useRouter();
-  const qc = useQueryClient();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const strategyId = Number(id);
+  const params = useLocalSearchParams<{ id: string }>();
+  const id = Number(params.id);
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
   const q = useQuery({
-    queryKey: ["marketing-strategist", "detail", strategyId],
-    queryFn: () => marketingStrategist.show(strategyId),
-    enabled: Number.isFinite(strategyId) && strategyId > 0,
+    queryKey: ["marketing-strategist", "show", id],
+    queryFn: () => marketingStrategist.show(id),
+    enabled: Number.isFinite(id),
   });
 
-  const status = (q.error as { status?: number } | null)?.status;
-  const disabled: "engine" | "plan" | null =
-    status === 404 && !q.data ? null : status === 403 ? "plan" : null;
-
-  // Local copies so streamed/optimistic updates don't fight react-query.
-  const [suggestions, setSuggestions] = useState<MsSuggestion[]>([]);
-  const [messages, setMessages] = useState<MsMessage[]>([]);
-  const [busySuggestion, setBusySuggestion] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (q.data) {
-      setSuggestions(q.data.suggestions);
-      setMessages(q.data.messages);
-    }
-  }, [q.data]);
-
-  // ── chat-refine (streamed) ───────────────────────────────────────
-  const [draft, setDraft] = useState("");
+  // Live chat transcript + streaming buffer layered over the persisted
+  // messages so the bubble updates token-by-token without a refetch.
+  const [chatInput, setChatInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [streamText, setStreamText] = useState("");
-  const scrollRef = useRef<ScrollView>(null);
+  const [streamBuffer, setStreamBuffer] = useState("");
+  const [localMessages, setLocalMessages] = useState<StrategyChatMessage[] | null>(
+    null,
+  );
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const tempIdRef = useRef(-1);
 
-  const scrollToEnd = useCallback(() => {
-    requestAnimationFrame(() =>
-      scrollRef.current?.scrollToEnd({ animated: true }),
+  const messages = localMessages ?? q.data?.messages ?? [];
+
+  const refreshShow = useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: ["marketing-strategist", "show", id],
+    });
+  }, [queryClient, id]);
+
+  if (errorStatus(q.error) === 403) {
+    return <AiDisabledNotice feature={FEATURE_LABEL} variant="plan" />;
+  }
+
+  if (q.isLoading) {
+    return (
+      <View
+        style={[
+          styles.center,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <ActivityIndicator color={colors.primary} />
+      </View>
     );
-  }, []);
+  }
 
-  const send = async () => {
-    const text = draft.trim();
-    if (!text || streaming) return;
-    setDraft("");
-    setStreaming(true);
-    setStreamText("");
-    setMessages((cur) => [
-      ...cur,
-      {
-        id: -Date.now(),
-        role: "user",
-        content: text,
-        created_at: new Date().toISOString(),
-      },
+  if (q.error || !q.data) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.destructive }}>
+          Couldn&apos;t load this strategy.
+        </Text>
+      </View>
+    );
+  }
+
+  const data: StrategyShow = q.data;
+  const strategy = data.strategy;
+  const plan = strategy.strategy ?? {};
+
+  const onExport = (format: "md" | "pdf") => {
+    setExporting(true);
+    exportStrategy(id, format, strategy.title)
+      .catch((e) =>
+        Alert.alert(
+          "Export failed",
+          e instanceof Error ? e.message : "Could not export the strategy.",
+        ),
+      )
+      .finally(() => setExporting(false));
+  };
+
+  const promptExport = () => {
+    Alert.alert("Export strategy", "Choose a format to share or save.", [
+      { text: "Markdown (.md)", onPress: () => onExport("md") },
+      { text: "PDF", onPress: () => onExport("pdf") },
+      { text: "Cancel", style: "cancel" },
     ]);
-    scrollToEnd();
-
-    try {
-      await marketingStrategist.chatStream(strategyId, text, {
-        onToken: (delta) => {
-          setStreamText((t) => t + delta);
-          scrollToEnd();
-        },
-        onDone: ({ message }) => {
-          setMessages((cur) => [...cur, message]);
-          setStreamText("");
-          setStreaming(false);
-          scrollToEnd();
-        },
-        onError: ({ code, message }) => {
-          setStreaming(false);
-          setStreamText("");
-          if (code === "insufficient_credits") {
-            handlePlanLockedError({ status: 402, message, code });
-          } else {
-            Alert.alert("Couldn't refine", message);
-          }
-        },
-      });
-    } catch (e: any) {
-      setStreaming(false);
-      setStreamText("");
-      Alert.alert("Couldn't refine", e?.message || "Please try again.");
-    }
   };
 
-  const apply = (sug: MsSuggestion) => {
-    const run = async () => {
-      setBusySuggestion(sug.id);
-      try {
-        const res = await marketingStrategist.applySuggestion(sug.id);
-        setSuggestions((cur) =>
-          cur.map((s) =>
-            s.id === sug.id ? { ...s, status: res.status, error: null } : s,
-          ),
-        );
-        qc.invalidateQueries({ queryKey: ["marketing-strategist", "list"] });
-        Alert.alert("Applied", res.message || "The suggestion was applied.");
-      } catch (e: any) {
-        if (handlePlanLockedError(e)) return;
-        const errMsg = e?.message || "Could not apply this suggestion.";
-        setSuggestions((cur) =>
-          cur.map((s) =>
-            s.id === sug.id
-              ? { ...s, status: "error", error: errMsg }
-              : s,
-          ),
-        );
-        Alert.alert("Couldn't apply", errMsg);
-      } finally {
-        setBusySuggestion(null);
-      }
-    };
-
+  const onDelete = () => {
     Alert.alert(
-      "Apply this suggestion?",
-      `This makes a real change to your account (${sug.type_label.toLowerCase()}).`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Apply", style: "default", onPress: run },
-      ],
-    );
-  };
-
-  const dismiss = async (sug: MsSuggestion) => {
-    setBusySuggestion(sug.id);
-    try {
-      const res = await marketingStrategist.dismissSuggestion(sug.id);
-      setSuggestions((cur) =>
-        cur.map((s) => (s.id === sug.id ? { ...s, status: res.status } : s)),
-      );
-    } catch (e: any) {
-      Alert.alert("Couldn't dismiss", e?.message || "Please try again.");
-    } finally {
-      setBusySuggestion(null);
-    }
-  };
-
-  const remove = () => {
-    Alert.alert(
-      "Delete strategy?",
-      "This permanently removes the generated plan and its chat history.",
+      "Delete strategy",
+      `Delete "${strategy.title}"? This can't be undone.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -187,13 +128,19 @@ export default function MarketingStrategyDetailScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await marketingStrategist.destroy(strategyId);
-              qc.invalidateQueries({
+              await marketingStrategist.destroy(id);
+              queryClient.invalidateQueries({
                 queryKey: ["marketing-strategist", "list"],
               });
+              queryClient.removeQueries({
+                queryKey: ["marketing-strategist", "show", id],
+              });
               router.back();
-            } catch (e: any) {
-              Alert.alert("Couldn't delete", e?.message || "Please try again.");
+            } catch (e) {
+              Alert.alert(
+                "Couldn't delete",
+                e instanceof Error ? e.message : "Please try again.",
+              );
             }
           },
         },
@@ -201,348 +148,329 @@ export default function MarketingStrategyDetailScreen() {
     );
   };
 
-  const strategy = q.data?.strategy;
-  const plan = strategy?.strategy;
-
-  return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen
-        options={{
-          title: strategy?.title ?? "Strategy",
-          headerStyle: { backgroundColor: colors.card },
-          headerTitleStyle: {
-            fontFamily: "SpaceGrotesk_600SemiBold",
-            color: colors.foreground,
-          },
-          headerTintColor: colors.primary,
-          headerRight: () =>
-            q.data ? (
-              <Pressable onPress={remove} hitSlop={8} style={{ paddingRight: 12 }}>
-                <Feather name="trash-2" size={19} color={colors.destructive} />
-              </Pressable>
-            ) : null,
-        }}
-      />
-
-      {q.isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      ) : disabled ? (
-        <AiDisabledNotice feature="Marketing Strategist" variant={disabled} />
-      ) : !strategy || !plan ? (
-        <View style={styles.center}>
-          <Text style={{ color: colors.mutedForeground }}>
-            {(q.error as any)?.message ?? "Strategy not found."}
-          </Text>
-        </View>
-      ) : (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={insets.top + 44}
-        >
-          <ScrollView
-            ref={scrollRef}
-            contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
-          >
-            {/* Summary */}
-            {plan.summary ? (
-              <View
-                style={[
-                  styles.summaryCard,
-                  {
-                    backgroundColor: colors.primary + "12",
-                    borderColor: colors.primary + "33",
-                    borderRadius: colors.radius,
-                  },
-                ]}
-              >
-                <Text style={[styles.summaryText, { color: colors.foreground }]}>
-                  {plan.summary}
-                </Text>
-              </View>
-            ) : null}
-
-            {/* Suggestions */}
-            {suggestions.length > 0 ? (
-              <View style={{ marginBottom: 20 }}>
-                <View style={styles.sectionHead}>
-                  <Feather name="zap" size={16} color={colors.warning} />
-                  <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                    One-click actions
-                  </Text>
-                </View>
-                <View style={{ gap: 8 }}>
-                  {suggestions.map((sug) => (
-                    <SuggestionCard
-                      key={sug.id}
-                      sug={sug}
-                      colors={colors}
-                      busy={busySuggestion === sug.id}
-                      onApply={() => apply(sug)}
-                      onDismiss={() => dismiss(sug)}
-                    />
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {/* Organic plan */}
-            <View style={styles.sectionHead}>
-              <Feather name="feather" size={16} color={colors.success} />
-              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                Organic plan
-              </Text>
-            </View>
-            {(plan.organic ?? []).length > 0 ? (
-              (plan.organic ?? []).map((play, i) => (
-                <PlayCard key={`o-${i}`} play={play} colors={colors} />
-              ))
-            ) : (
-              <Text style={[styles.empty, { color: colors.mutedForeground }]}>
-                No organic plays generated.
-              </Text>
-            )}
-
-            {/* Paid plan */}
-            <View style={[styles.sectionHead, { marginTop: 16 }]}>
-              <Feather name="trending-up" size={16} color={colors.primary} />
-              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                Paid plan
-              </Text>
-            </View>
-            {(plan.paid ?? []).length > 0 ? (
-              (plan.paid ?? []).map((play, i) => (
-                <PlayCard key={`p-${i}`} play={play} colors={colors} />
-              ))
-            ) : (
-              <Text style={[styles.empty, { color: colors.mutedForeground }]}>
-                No paid plays generated.
-              </Text>
-            )}
-
-            {/* KPIs */}
-            {(plan.kpis ?? []).length > 0 ? (
-              <View style={{ marginTop: 20 }}>
-                <View style={styles.sectionHead}>
-                  <Feather name="target" size={16} color={colors.primary} />
-                  <Text
-                    style={[styles.sectionTitle, { color: colors.foreground }]}
-                  >
-                    KPIs to track
-                  </Text>
-                </View>
-                <View style={styles.kpiRow}>
-                  {(plan.kpis ?? []).map((kpi, i) => (
-                    <View
-                      key={i}
-                      style={[styles.kpiChip, { backgroundColor: colors.muted }]}
-                    >
-                      <Text
-                        style={[styles.kpiText, { color: colors.mutedForeground }]}
-                      >
-                        {kpi}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ) : null}
-
-            {/* Chat-refine */}
-            <View style={{ marginTop: 24 }}>
-              <View style={styles.sectionHead}>
-                <Feather name="message-circle" size={16} color={colors.primary} />
-                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                  Refine with chat
-                </Text>
-              </View>
-              {messages.length === 0 && !streaming ? (
-                <Text style={[styles.empty, { color: colors.mutedForeground }]}>
-                  Ask the strategist to tweak the plan — e.g. “Make the paid plan
-                  cheaper, or focus organic on TikTok.”
-                </Text>
-              ) : (
-                <View style={{ gap: 8 }}>
-                  {messages.map((m) => (
-                    <ChatBubble key={m.id} message={m} colors={colors} />
-                  ))}
-                  {streaming ? (
-                    <ChatBubble
-                      message={{
-                        id: -1,
-                        role: "assistant",
-                        content: streamText || "…",
-                      }}
-                      colors={colors}
-                    />
-                  ) : null}
-                </View>
-              )}
-            </View>
-          </ScrollView>
-
-          {/* Composer */}
-          <View
-            style={[
-              styles.composer,
-              {
-                backgroundColor: colors.card,
-                borderTopColor: colors.border,
-                paddingBottom: insets.bottom + 10,
-              },
-            ]}
-          >
-            <TextInput
-              value={draft}
-              onChangeText={setDraft}
-              placeholder="Refine the plan…"
-              placeholderTextColor={colors.mutedForeground}
-              editable={!streaming}
-              multiline
-              maxLength={4000}
-              style={[
-                styles.composerInput,
-                {
-                  color: colors.foreground,
-                  backgroundColor: colors.background,
-                  borderColor: colors.border,
-                  borderRadius: colors.radius,
-                },
-              ]}
-            />
-            <Pressable
-              onPress={send}
-              disabled={streaming || !draft.trim()}
-              style={[
-                styles.sendBtn,
-                {
-                  backgroundColor:
-                    streaming || !draft.trim()
-                      ? colors.mutedForeground
-                      : colors.primary,
-                },
-              ]}
-            >
-              {streaming ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Feather name="send" size={18} color="#fff" />
-              )}
-            </Pressable>
-          </View>
-        </KeyboardAvoidingView>
-      )}
-    </View>
-  );
-}
-
-function SuggestionCard({
-  sug,
-  colors,
-  busy,
-  onApply,
-  onDismiss,
-}: {
-  sug: MsSuggestion;
-  colors: ReturnType<typeof useColors>;
-  busy: boolean;
-  onApply: () => void;
-  onDismiss: () => void;
-}) {
-  return (
-    <View
-      style={[
-        styles.sugCard,
+  const onApply = (s: StrategySuggestion) => {
+    Alert.alert(
+      "Apply suggestion?",
+      `“${s.title}” will make a change to your account.`,
+      [
+        { text: "Cancel", style: "cancel" },
         {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
-          borderRadius: colors.radius - 2,
+          text: "Apply",
+          onPress: async () => {
+            try {
+              await marketingStrategist.applySuggestion(s.id);
+              refreshShow();
+            } catch (e) {
+              if (isPlanLockedError(e)) showUpgradePrompt(e);
+              else
+                Alert.alert(
+                  "Couldn't apply",
+                  e instanceof Error ? e.message : "Please try again.",
+                );
+            }
+          },
         },
-      ]}
-    >
-      <View style={styles.sugHead}>
-        <View
-          style={[styles.sugType, { backgroundColor: colors.primary + "22" }]}
-        >
-          <Text style={[styles.sugTypeText, { color: colors.primary }]}>
-            {sug.type_label}
-          </Text>
-        </View>
-        <Text
-          style={[styles.sugTitle, { color: colors.foreground }]}
-          numberOfLines={2}
-        >
-          {sug.title}
-        </Text>
-      </View>
-      {sug.description ? (
-        <Text style={[styles.sugDesc, { color: colors.mutedForeground }]}>
-          {sug.description}
-        </Text>
-      ) : null}
-      {sug.status === "error" && sug.error ? (
-        <Text style={[styles.sugError, { color: colors.destructive }]}>
-          {sug.error}
-        </Text>
-      ) : null}
+      ],
+    );
+  };
 
-      <View style={styles.sugActions}>
-        {sug.status === "applied" ? (
-          <View style={styles.sugStatus}>
-            <Feather name="check" size={14} color={colors.success} />
-            <Text style={[styles.sugStatusText, { color: colors.success }]}>
-              Applied
-            </Text>
-          </View>
-        ) : sug.status === "dismissed" ? (
-          <Text style={[styles.sugStatusText, { color: colors.mutedForeground }]}>
-            Dismissed
+  const onDismiss = async (s: StrategySuggestion) => {
+    try {
+      await marketingStrategist.dismissSuggestion(s.id);
+      refreshShow();
+    } catch (e) {
+      Alert.alert(
+        "Couldn't dismiss",
+        e instanceof Error ? e.message : "Please try again.",
+      );
+    }
+  };
+
+  const onSend = async () => {
+    const text = chatInput.trim();
+    if (!text || streaming) return;
+    setChatError(null);
+    setChatInput("");
+
+    const base = localMessages ?? data.messages ?? [];
+    const userMsg: StrategyChatMessage = {
+      id: tempIdRef.current--,
+      role: "user",
+      content: text,
+    };
+    setLocalMessages([...base, userMsg]);
+    setStreaming(true);
+    setStreamBuffer("");
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      await marketingStrategist.chatStream(id, text, {
+        signal: controller.signal,
+        onToken: (delta) => setStreamBuffer((b) => b + delta),
+        onDone: ({ message }) => {
+          setLocalMessages((prev) => [...(prev ?? base), message]);
+          setStreamBuffer("");
+          setStreaming(false);
+          abortRef.current = null;
+          refreshShow();
+        },
+        onError: (err) => {
+          setStreaming(false);
+          setStreamBuffer("");
+          abortRef.current = null;
+          setChatError(err.message);
+        },
+      });
+    } catch (e) {
+      setStreaming(false);
+      setStreamBuffer("");
+      abortRef.current = null;
+      setChatError(
+        e instanceof Error ? e.message : "The strategist could not reply.",
+      );
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: insets.top + 8,
+          paddingBottom: 24,
+          paddingHorizontal: 20,
+          gap: 20,
+        }}
+      >
+        {/* Header */}
+        <View style={{ gap: 6 }}>
+          <Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>
+            {strategy.goal}
           </Text>
-        ) : (
-          <>
+          <Text style={[styles.title, { color: colors.foreground }]}>
+            {strategy.title}
+          </Text>
+          <View style={styles.metaRow}>
+            {strategy.credits_spent > 0 ? (
+              <Pill
+                icon="zap"
+                text={`${strategy.credits_spent} coins`}
+                colors={colors}
+              />
+            ) : null}
+            {strategy.model ? (
+              <Pill icon="cpu" text={strategy.model} colors={colors} />
+            ) : null}
             <Pressable
-              onPress={onApply}
-              disabled={busy}
+              onPress={promptExport}
+              disabled={exporting}
               style={[
-                styles.applyBtn,
-                { backgroundColor: colors.primary, opacity: busy ? 0.6 : 1 },
+                styles.exportBtn,
+                { borderColor: colors.border, opacity: exporting ? 0.6 : 1 },
               ]}
             >
-              {busy ? (
-                <ActivityIndicator color="#fff" size="small" />
+              {exporting ? (
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <Text style={styles.applyText}>Apply</Text>
+                <Feather name="download" size={13} color={colors.primary} />
               )}
-            </Pressable>
-            <Pressable
-              onPress={onDismiss}
-              disabled={busy}
-              style={[styles.dismissBtn, { backgroundColor: colors.muted }]}
-            >
-              <Text style={[styles.dismissText, { color: colors.mutedForeground }]}>
-                Dismiss
+              <Text style={[styles.exportText, { color: colors.primary }]}>
+                Export
               </Text>
             </Pressable>
-          </>
-        )}
+            <Pressable
+              onPress={onDelete}
+              accessibilityLabel="Delete strategy"
+              style={[styles.exportBtn, { borderColor: colors.border }]}
+            >
+              <Feather name="trash-2" size={13} color={colors.destructive} />
+              <Text style={[styles.exportText, { color: colors.destructive }]}>
+                Delete
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Summary */}
+        {plan.summary ? (
+          <Section title="Overview" colors={colors}>
+            <Text style={[styles.body, { color: colors.cardForeground }]}>
+              {plan.summary}
+            </Text>
+          </Section>
+        ) : null}
+
+        {/* KPIs */}
+        {plan.kpis && plan.kpis.length ? (
+          <Section title="Key metrics to watch" colors={colors}>
+            <View style={{ gap: 8 }}>
+              {plan.kpis.map((k, i) => (
+                <View key={i} style={styles.bulletRow}>
+                  <Feather name="bar-chart-2" size={14} color={colors.primary} />
+                  <Text
+                    style={[styles.bulletText, { color: colors.cardForeground }]}
+                  >
+                    {k}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </Section>
+        ) : null}
+
+        {/* Organic plays */}
+        {plan.organic && plan.organic.length ? (
+          <View style={{ gap: 12 }}>
+            <Text style={[styles.groupTitle, { color: colors.foreground }]}>
+              Organic plays
+            </Text>
+            {plan.organic.map((p, i) => (
+              <PlayCard key={`o-${i}`} play={p} colors={colors} accent="success" />
+            ))}
+          </View>
+        ) : null}
+
+        {/* Paid plays */}
+        {plan.paid && plan.paid.length ? (
+          <View style={{ gap: 12 }}>
+            <Text style={[styles.groupTitle, { color: colors.foreground }]}>
+              Paid plays
+            </Text>
+            {plan.paid.map((p, i) => (
+              <PlayCard key={`p-${i}`} play={p} colors={colors} accent="primary" />
+            ))}
+          </View>
+        ) : null}
+
+        {/* Suggestions */}
+        {data.suggestions && data.suggestions.length ? (
+          <View style={{ gap: 12 }}>
+            <Text style={[styles.groupTitle, { color: colors.foreground }]}>
+              One-tap actions
+            </Text>
+            {data.suggestions.map((s) => (
+              <SuggestionCard
+                key={s.id}
+                suggestion={s}
+                colors={colors}
+                onApply={() => onApply(s)}
+                onDismiss={() => onDismiss(s)}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        {/* Chat refine */}
+        <View style={{ gap: 12 }}>
+          <Text style={[styles.groupTitle, { color: colors.foreground }]}>
+            Refine with chat
+          </Text>
+          <Text style={[styles.sectionHint, { color: colors.mutedForeground }]}>
+            Ask follow-ups to tweak the plan — each reply uses your coins.
+          </Text>
+
+          {messages.map((m) => (
+            <ChatBubble key={m.id} message={m} colors={colors} />
+          ))}
+
+          {streaming ? (
+            <ChatBubble
+              message={{
+                id: -999,
+                role: "assistant",
+                content: streamBuffer || "…",
+              }}
+              colors={colors}
+              pending
+            />
+          ) : null}
+
+          {chatError ? (
+            <Text style={{ color: colors.destructive }}>{chatError}</Text>
+          ) : null}
+        </View>
+      </ScrollView>
+
+      {/* Composer */}
+      <View
+        style={[
+          styles.composer,
+          {
+            backgroundColor: colors.card,
+            borderTopColor: colors.border,
+            paddingBottom: insets.bottom + 8,
+          },
+        ]}
+      >
+        <TextInput
+          value={chatInput}
+          onChangeText={setChatInput}
+          placeholder="Ask the strategist…"
+          placeholderTextColor={colors.mutedForeground}
+          editable={!streaming}
+          multiline
+          style={[
+            styles.composerInput,
+            {
+              color: colors.foreground,
+              backgroundColor: colors.background,
+              borderColor: colors.border,
+              borderRadius: colors.radius,
+            },
+          ]}
+        />
+        <Pressable
+          onPress={onSend}
+          disabled={streaming || !chatInput.trim()}
+          style={[
+            styles.sendBtn,
+            {
+              backgroundColor:
+                streaming || !chatInput.trim()
+                  ? colors.muted
+                  : colors.primary,
+            },
+          ]}
+        >
+          {streaming ? (
+            <ActivityIndicator size="small" color={colors.primaryForeground} />
+          ) : (
+            <Feather
+              name="send"
+              size={18}
+              color={
+                chatInput.trim()
+                  ? colors.primaryForeground
+                  : colors.mutedForeground
+              }
+            />
+          )}
+        </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
-function PlayCard({
-  play,
+type Colors = ReturnType<typeof useColors>;
+
+function Section({
+  title,
   colors,
+  children,
 }: {
-  play: MsPlay;
-  colors: ReturnType<typeof useColors>;
+  title: string;
+  colors: Colors;
+  children: React.ReactNode;
 }) {
   return (
     <View
       style={[
-        styles.playCard,
+        styles.card,
         {
           backgroundColor: colors.card,
           borderColor: colors.border,
@@ -550,43 +478,84 @@ function PlayCard({
         },
       ]}
     >
-      <View style={styles.playHead}>
-        <Text
-          style={[styles.playTitle, { color: colors.foreground }]}
-          numberOfLines={2}
-        >
-          {play.title ?? "Play"}
-        </Text>
+      <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+        {title}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+function Pill({
+  icon,
+  text,
+  colors,
+}: {
+  icon: keyof typeof Feather.glyphMap;
+  text: string;
+  colors: Colors;
+}) {
+  return (
+    <View style={[styles.pill, { backgroundColor: colors.muted }]}>
+      <Feather name={icon} size={11} color={colors.mutedForeground} />
+      <Text style={[styles.pillText, { color: colors.mutedForeground }]}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+function PlayCard({
+  play,
+  colors,
+  accent,
+}: {
+  play: StrategyPlay;
+  colors: Colors;
+  accent: "primary" | "success";
+}) {
+  const accentColor = accent === "success" ? colors.success : colors.primary;
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderRadius: colors.radius,
+          gap: 10,
+        },
+      ]}
+    >
+      <View style={{ gap: 4 }}>
         {play.channel ? (
-          <View style={[styles.channelPill, { backgroundColor: colors.muted }]}>
-            <Text style={[styles.channelText, { color: colors.mutedForeground }]}>
-              {play.channel}
-            </Text>
-          </View>
+          <Text style={[styles.playChannel, { color: accentColor }]}>
+            {play.channel.toUpperCase()}
+          </Text>
+        ) : null}
+        {play.title ? (
+          <Text style={[styles.playTitle, { color: colors.foreground }]}>
+            {play.title}
+          </Text>
         ) : null}
       </View>
 
-      {play.budget_hint ? (
-        <View style={styles.budgetRow}>
-          <Feather name="dollar-sign" size={12} color={colors.warning} />
-          <Text style={[styles.budgetText, { color: colors.warning }]}>
-            {play.budget_hint}
-          </Text>
-        </View>
-      ) : null}
-
       {play.rationale ? (
-        <Text style={[styles.rationale, { color: colors.mutedForeground }]}>
+        <Text style={[styles.body, { color: colors.mutedForeground }]}>
           {play.rationale}
         </Text>
       ) : null}
 
-      {(play.steps ?? []).length > 0 ? (
-        <View style={{ gap: 6, marginTop: 10 }}>
-          {(play.steps ?? []).map((step, i) => (
-            <View key={i} style={styles.stepRow}>
-              <Feather name="check" size={13} color={colors.success} />
-              <Text style={[styles.stepText, { color: colors.foreground }]}>
+      {play.steps && play.steps.length ? (
+        <View style={{ gap: 6 }}>
+          {play.steps.map((step, i) => (
+            <View key={i} style={styles.bulletRow}>
+              <Text style={[styles.stepNum, { color: accentColor }]}>
+                {i + 1}.
+              </Text>
+              <Text
+                style={[styles.bulletText, { color: colors.cardForeground }]}
+              >
                 {step}
               </Text>
             </View>
@@ -594,18 +563,115 @@ function PlayCard({
         </View>
       ) : null}
 
-      {(play.sayzio_features ?? []).length > 0 ? (
-        <View style={styles.featureRow}>
-          {(play.sayzio_features ?? []).map((f, i) => (
+      {play.budget_hint ? (
+        <View style={styles.bulletRow}>
+          <Feather name="dollar-sign" size={13} color={colors.mutedForeground} />
+          <Text style={[styles.metaSmall, { color: colors.mutedForeground }]}>
+            {play.budget_hint}
+          </Text>
+        </View>
+      ) : null}
+
+      {play.sayzio_features && play.sayzio_features.length ? (
+        <View style={styles.tagWrap}>
+          {play.sayzio_features.map((f, i) => (
             <View
               key={i}
-              style={[styles.featurePill, { backgroundColor: colors.primary + "1a" }]}
+              style={[styles.tag, { backgroundColor: accentColor + "1c" }]}
             >
-              <Text style={[styles.featureText, { color: colors.primary }]}>
-                {f}
-              </Text>
+              <Text style={[styles.tagText, { color: accentColor }]}>{f}</Text>
             </View>
           ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function SuggestionCard({
+  suggestion,
+  colors,
+  onApply,
+  onDismiss,
+}: {
+  suggestion: StrategySuggestion;
+  colors: Colors;
+  onApply: () => void;
+  onDismiss: () => void;
+}) {
+  const s = suggestion;
+  const isPending = s.status === "pending";
+  const statusColor =
+    s.status === "applied"
+      ? colors.success
+      : s.status === "error"
+        ? colors.destructive
+        : colors.mutedForeground;
+  return (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderRadius: colors.radius,
+          gap: 10,
+        },
+      ]}
+    >
+      <View style={{ gap: 4 }}>
+        <View style={styles.suggestionHead}>
+          <View style={[styles.typeTag, { backgroundColor: colors.muted }]}>
+            <Text style={[styles.typeTagText, { color: colors.mutedForeground }]}>
+              {s.type_label}
+            </Text>
+          </View>
+          {!isPending ? (
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {s.status === "applied"
+                ? "Applied"
+                : s.status === "dismissed"
+                  ? "Dismissed"
+                  : "Error"}
+            </Text>
+          ) : null}
+        </View>
+        <Text style={[styles.suggestionTitle, { color: colors.foreground }]}>
+          {s.title}
+        </Text>
+        {s.description ? (
+          <Text style={[styles.body, { color: colors.mutedForeground }]}>
+            {s.description}
+          </Text>
+        ) : null}
+        {s.status === "error" && s.error ? (
+          <Text style={[styles.body, { color: colors.destructive }]}>
+            {s.error}
+          </Text>
+        ) : null}
+      </View>
+
+      {isPending ? (
+        <View style={styles.suggestionActions}>
+          <Pressable
+            onPress={onApply}
+            style={[styles.applyBtn, { backgroundColor: colors.primary }]}
+          >
+            <Feather name="check" size={14} color={colors.primaryForeground} />
+            <Text
+              style={[styles.applyText, { color: colors.primaryForeground }]}
+            >
+              Apply
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={onDismiss}
+            style={[styles.dismissBtn, { borderColor: colors.border }]}
+          >
+            <Text style={[styles.dismissText, { color: colors.mutedForeground }]}>
+              Dismiss
+            </Text>
+          </Pressable>
         </View>
       ) : null}
     </View>
@@ -615,9 +681,11 @@ function PlayCard({
 function ChatBubble({
   message,
   colors,
+  pending,
 }: {
-  message: Pick<MsMessage, "id" | "role" | "content">;
-  colors: ReturnType<typeof useColors>;
+  message: StrategyChatMessage;
+  colors: Colors;
+  pending?: boolean;
 }) {
   const isUser = message.role === "user";
   return (
@@ -635,7 +703,10 @@ function ChatBubble({
       <Text
         style={[
           styles.bubbleText,
-          { color: isUser ? "#fff" : colors.foreground },
+          {
+            color: isUser ? colors.primaryForeground : colors.cardForeground,
+            opacity: pending ? 0.85 : 1,
+          },
         ]}
       >
         {message.content}
@@ -645,146 +716,113 @@ function ChatBubble({
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  summaryCard: {
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 20,
-  },
-  summaryText: {
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  sectionHead: {
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  eyebrow: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
+  title: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 24 },
+  metaRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 4 },
+  pill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontFamily: "SpaceGrotesk_600SemiBold",
-    fontSize: 16,
-  },
-  empty: {
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  // suggestions
-  sugCard: { borderWidth: 1, padding: 14, gap: 6 },
-  sugHead: { flexDirection: "row", alignItems: "center", gap: 8 },
-  sugType: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
-  sugTypeText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 10.5 },
-  sugTitle: { flex: 1, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
-  sugDesc: {
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 12.5,
-    lineHeight: 18,
-  },
-  sugError: {
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  sugActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 4,
-  },
-  sugStatus: { flexDirection: "row", alignItems: "center", gap: 5 },
-  sugStatusText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12.5 },
-  applyBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-    minWidth: 72,
-    alignItems: "center",
-  },
-  applyText: { color: "#fff", fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
-  dismissBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  dismissText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 },
-  // plays
-  playCard: { borderWidth: 1, padding: 14, marginBottom: 10 },
-  playHead: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  playTitle: { flex: 1, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
-  channelPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 9,
     borderRadius: 999,
   },
-  channelText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 10.5 },
-  budgetRow: {
+  pillText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11 },
+  exportBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    marginTop: 6,
-  },
-  budgetText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
-  rationale: {
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 12.5,
-    lineHeight: 18,
-    marginTop: 8,
-  },
-  stepRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  stepText: {
-    flex: 1,
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 12.5,
-    lineHeight: 18,
-  },
-  featureRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 12,
-  },
-  featurePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-  featureText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 10.5 },
-  // kpis
-  kpiRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  kpiChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
-  kpiText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
-  // chat
-  bubble: {
-    maxWidth: "88%",
+    paddingVertical: 5,
+    paddingHorizontal: 11,
+    borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
   },
-  bubbleText: {
+  exportText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
+  card: { padding: 14, borderWidth: 1 },
+  cardTitle: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 15,
+    marginBottom: 8,
+  },
+  groupTitle: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 18 },
+  sectionHint: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12 },
+  body: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13, lineHeight: 19 },
+  bulletRow: { flexDirection: "row", gap: 8, alignItems: "flex-start" },
+  bulletText: {
     fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 13.5,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 19,
+    flex: 1,
   },
+  stepNum: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 13, lineHeight: 19 },
+  playChannel: {
+    fontFamily: "SpaceGrotesk_700Bold",
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
+  playTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 16 },
+  metaSmall: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
+  tagWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  tag: { paddingVertical: 4, paddingHorizontal: 9, borderRadius: 999 },
+  tagText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11 },
+  suggestionHead: { flexDirection: "row", alignItems: "center", gap: 8 },
+  typeTag: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6 },
+  typeTagText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 10,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+  statusText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
+  suggestionTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
+  suggestionActions: { flexDirection: "row", gap: 10 },
+  applyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+  },
+  applyText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
+  dismissBtn: {
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  dismissText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 },
+  bubble: {
+    maxWidth: "85%",
+    paddingVertical: 10,
+    paddingHorizontal: 13,
+    borderWidth: 1,
+  },
+  bubbleText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 14, lineHeight: 20 },
   composer: {
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 8,
-    borderTopWidth: 1,
-    paddingHorizontal: 12,
-    paddingTop: 10,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   composerInput: {
     flex: 1,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
     maxHeight: 120,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderWidth: 1,
     fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 14,
+    fontSize: 15,
   },
   sendBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
   },

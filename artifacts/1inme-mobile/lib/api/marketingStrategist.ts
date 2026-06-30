@@ -1,27 +1,43 @@
 import { fetch as expoFetch } from "expo/fetch";
+import { Platform } from "react-native";
 
 import { MOBILE_USER_AGENT, apiFetch, getBaseUrl } from "@/lib/api";
 import { getToken } from "@/lib/secure";
 
-/**
- * AI Marketing Strategist (mobile) — REST parity for the web digital
- * performer. The creator toggles which of their OWN Sayzio data to feed
- * in, sets a goal + parameters, and the strategist generates an organic +
- * paid plan built around real Sayzio features. They can then chat-refine
- * (streamed, metered) and one-click apply suggestions.
- *
- * Mirrors `/api/v1/ai/marketing-strategist*`. The unified `{data}`/`{error}`
- * envelope is unwrapped by {@see apiFetch}; the streamed chat keeps the SSE
- * frame format and is read with `expo/fetch` (parity with Ask Coach).
- */
+// Mobile parity for the web "AI Marketing Strategist" — the internally
+// branded "AI Digital Performer Specialist" (Task #3061). Consumes the
+// REST endpoints exposed by
+// App\Modules\Api\Controllers\MarketingStrategistController, all under
+// auth:sanctum and behind the AI engine + plan gate. Responses use the
+// unified {data}/{error} envelope.
+//
+//   GET    /ai/marketing-strategist                              list + sources + balance
+//   POST   /ai/marketing-strategist/estimate                     worst-case credit cost
+//   POST   /ai/marketing-strategist                              generate (201)
+//   GET    /ai/marketing-strategist/{id}                         strategy + suggestions + chat
+//   DELETE /ai/marketing-strategist/{id}                         delete
+//   GET    /ai/marketing-strategist/{id}/export?format=pdf|md    download
+//   POST   /ai/marketing-strategist/{id}/chat                    refine (SSE or JSON)
+//   POST   /ai/marketing-strategist/suggestions/{id}/apply       apply (needs confirm)
+//   POST   /ai/marketing-strategist/suggestions/{id}/dismiss     dismiss
 
-export type MsSource = {
+// ── types ───────────────────────────────────────────────────────
+
+export type StrategySource = {
   key: string;
   label: string;
   description: string;
 };
 
-export type MsPlay = {
+export type StrategyParameters = {
+  budget?: string;
+  audience?: string;
+  timeframe?: string;
+  tone?: string;
+  channels?: string;
+};
+
+export type StrategyPlay = {
   title?: string;
   channel?: string;
   budget_hint?: string;
@@ -30,14 +46,14 @@ export type MsPlay = {
   sayzio_features?: string[];
 };
 
-export type MsPlan = {
+export type StrategyPlan = {
   summary?: string;
-  organic?: MsPlay[];
-  paid?: MsPlay[];
+  organic?: StrategyPlay[];
+  paid?: StrategyPlay[];
   kpis?: string[];
 };
 
-export type MsSummary = {
+export type StrategySummary = {
   id: number;
   title: string;
   goal: string;
@@ -46,37 +62,37 @@ export type MsSummary = {
   created_at: string | null;
 };
 
-export type MsDetail = {
+export type StrategyDetail = {
   id: number;
   title: string;
   goal: string;
-  parameters: Record<string, string>;
+  parameters: StrategyParameters;
   sources: string[];
-  strategy: MsPlan;
+  strategy: StrategyPlan;
   credits_spent: number;
   model: string | null;
   created_at: string | null;
 };
 
-export type MsSuggestionStatus =
+export type SuggestionStatus =
   | "pending"
   | "applied"
   | "dismissed"
   | "error";
 
-export type MsSuggestion = {
+export type StrategySuggestion = {
   id: number;
   type: string;
   type_label: string;
   title: string;
   description: string | null;
-  status: MsSuggestionStatus;
+  status: SuggestionStatus;
   applied_ref_type: string | null;
   applied_ref_id: number | null;
   error: string | null;
 };
 
-export type MsMessage = {
+export type StrategyChatMessage = {
   id: number;
   role: "user" | "assistant";
   content: string;
@@ -88,124 +104,121 @@ export type MsMessage = {
   created_at?: string | null;
 };
 
-export type MsBuilderInput = {
-  goal: string;
-  sources: string[];
-  parameters: Record<string, string>;
-};
-
-export type MsIndexResponse = {
-  strategies: MsSummary[];
+export type StrategistIndex = {
+  strategies: StrategySummary[];
   ai_enabled: boolean;
-  sources?: MsSource[];
+  sources?: StrategySource[];
   balance?: number;
 };
 
-export type MsEstimateResponse = {
+export type StrategyShow = {
+  strategy: StrategyDetail;
+  suggestions: StrategySuggestion[];
+  messages: StrategyChatMessage[];
+  balance: number;
+};
+
+export type StrategyEstimate = {
   estimate: number;
   balance: number;
 };
 
-export type MsStoreResponse = {
-  strategy: MsDetail;
+export type StrategyCreateInput = {
+  goal: string;
+  sources: string[];
+  parameters: StrategyParameters;
+};
+
+export type StrategyCreateResult = {
+  strategy: StrategyDetail;
   credits_spent: number;
   balance: number;
 };
 
-export type MsShowResponse = {
-  strategy: MsDetail;
-  suggestions: MsSuggestion[];
-  messages: MsMessage[];
-  balance: number;
+export type SuggestionApplyResult = {
+  status: SuggestionStatus;
+  message: string;
+  url?: string | null;
 };
 
+// ── helpers ─────────────────────────────────────────────────────
+
+function buildPayload(input: StrategyCreateInput): Record<string, unknown> {
+  const parameters: Record<string, string> = {};
+  for (const [k, v] of Object.entries(input.parameters)) {
+    if (typeof v === "string" && v.trim()) parameters[k] = v.trim();
+  }
+  return {
+    goal: input.goal,
+    sources: input.sources,
+    parameters,
+  };
+}
+
+// ── calls ───────────────────────────────────────────────────────
+
 export const marketingStrategist = {
-  index: async (): Promise<MsIndexResponse> => {
-    const res = await apiFetch<{ data: MsIndexResponse }>(
-      "/ai/marketing-strategist",
-    );
-    return res.data;
-  },
+  index: () =>
+    apiFetch<{ data: StrategistIndex }>("/ai/marketing-strategist").then(
+      (r) => r.data,
+    ),
 
-  estimate: async (input: MsBuilderInput): Promise<MsEstimateResponse> => {
-    const res = await apiFetch<{ data: MsEstimateResponse }>(
-      "/ai/marketing-strategist/estimate",
-      { method: "POST", body: JSON.stringify(input) },
-    );
-    return res.data;
-  },
+  estimate: (input: StrategyCreateInput) =>
+    apiFetch<{ data: StrategyEstimate }>("/ai/marketing-strategist/estimate", {
+      method: "POST",
+      body: JSON.stringify(buildPayload(input)),
+    }).then((r) => r.data),
 
-  create: async (input: MsBuilderInput): Promise<MsStoreResponse> => {
-    const res = await apiFetch<{ data: MsStoreResponse }>(
-      "/ai/marketing-strategist",
-      { method: "POST", body: JSON.stringify(input) },
-    );
-    return res.data;
-  },
+  create: (input: StrategyCreateInput) =>
+    apiFetch<{ data: StrategyCreateResult }>("/ai/marketing-strategist", {
+      method: "POST",
+      body: JSON.stringify(buildPayload(input)),
+    }).then((r) => r.data),
 
-  show: async (id: number): Promise<MsShowResponse> => {
-    const res = await apiFetch<{ data: MsShowResponse }>(
-      `/ai/marketing-strategist/${id}`,
-    );
-    return res.data;
-  },
+  show: (id: number) =>
+    apiFetch<{ data: StrategyShow }>(`/ai/marketing-strategist/${id}`).then(
+      (r) => r.data,
+    ),
 
-  destroy: async (id: number): Promise<{ deleted: boolean }> => {
-    const res = await apiFetch<{ data: { deleted: boolean } }>(
+  destroy: (id: number) =>
+    apiFetch<{ data: { deleted: boolean } }>(
       `/ai/marketing-strategist/${id}`,
       { method: "DELETE" },
-    );
-    return res.data;
-  },
+    ).then((r) => r.data),
 
-  applySuggestion: async (
-    suggestionId: number,
-  ): Promise<{
-    status: MsSuggestionStatus;
-    message: string;
-    url: string | null;
-  }> => {
-    const res = await apiFetch<{
-      data: {
-        status: MsSuggestionStatus;
-        message: string;
-        url: string | null;
-      };
-    }>(`/ai/marketing-strategist/suggestions/${suggestionId}/apply`, {
-      method: "POST",
-      body: JSON.stringify({ confirm: true }),
-    });
-    return res.data;
-  },
+  applySuggestion: (id: number) =>
+    apiFetch<{ data: SuggestionApplyResult }>(
+      `/ai/marketing-strategist/suggestions/${id}/apply`,
+      { method: "POST", body: JSON.stringify({ confirm: true }) },
+    ).then((r) => r.data),
 
-  dismissSuggestion: async (
-    suggestionId: number,
-  ): Promise<{ status: MsSuggestionStatus }> => {
-    const res = await apiFetch<{ data: { status: MsSuggestionStatus } }>(
-      `/ai/marketing-strategist/suggestions/${suggestionId}/dismiss`,
+  dismissSuggestion: (id: number) =>
+    apiFetch<{ data: { status: SuggestionStatus } }>(
+      `/ai/marketing-strategist/suggestions/${id}/dismiss`,
       { method: "POST" },
-    );
-    return res.data;
-  },
+    ).then((r) => r.data),
 
   /**
    * Chat-refine the strategy, streamed token-by-token. The same /chat
-   * endpoint branches into SSE when called with `Accept: text/event-stream`.
-   * `onToken` fires for each delta; `onDone` fires once with the persisted
-   * assistant message so the bubble matches a fresh load.
+   * endpoint branches into SSE when called with `Accept: text/event-stream`
+   * (mirrors Ask Coach). `onToken` fires for each delta; `onDone` fires once
+   * with the persisted assistant message so the bubble matches a reload.
    */
   chatStream: async (
-    strategyId: number,
+    id: number,
     message: string,
     handlers: {
       onToken: (delta: string) => void;
-      onDone: (data: { message: MsMessage; balance: number }) => void;
+      onDone: (data: {
+        message: StrategyChatMessage;
+        balance: number;
+      }) => void;
       onError: (err: { code?: string; message: string }) => void;
       signal?: AbortSignal;
     },
   ): Promise<void> => {
     const token = await getToken();
-    const url = `${getBaseUrl()}/api/v1/ai/marketing-strategist/${strategyId}/chat`;
+    const url = `${getBaseUrl()}/api/v1/ai/marketing-strategist/${id}/chat`;
     const headers: Record<string, string> = {
       Accept: "text/event-stream",
       "Content-Type": "application/json",
@@ -225,7 +238,9 @@ export const marketingStrategist = {
       let bodyText = "";
       try {
         bodyText = await res.text();
-      } catch {}
+      } catch {
+        // ignore
+      }
       handlers.onError({
         code: String(res.status),
         message: bodyText || `Stream failed (${res.status}).`,
@@ -260,11 +275,11 @@ export const marketingStrategist = {
         const delta = parsed.delta;
         if (typeof delta === "string") handlers.onToken(delta);
       } else if (event === "done") {
-        const msg = parsed.message;
+        const m = parsed.message;
         const balance = parsed.balance;
-        if (isRecord(msg) && typeof balance === "number") {
+        if (isRecord(m) && typeof balance === "number") {
           handlers.onDone({
-            message: msg as unknown as MsMessage,
+            message: m as unknown as StrategyChatMessage,
             balance,
           });
         }
@@ -273,7 +288,7 @@ export const marketingStrategist = {
         const msg =
           typeof parsed.message === "string"
             ? parsed.message
-            : "The strategist could not reply.";
+            : "The strategist could not reply right now.";
         handlers.onError({ code, message: msg });
       }
     };
@@ -292,3 +307,56 @@ export const marketingStrategist = {
     }
   },
 };
+
+/**
+ * Download a strategy as Markdown (default) or PDF and hand it to the OS
+ * share sheet. The export endpoint sits behind auth:sanctum so the request
+ * MUST carry the bearer token — a plain browser open would 404. On web we
+ * fetch a blob and trigger an anchor download; on native we download to the
+ * cache with the auth header and share the local file.
+ */
+export async function exportStrategy(
+  id: number,
+  format: "md" | "pdf",
+  title: string,
+): Promise<void> {
+  const token = await getToken();
+  const url = `${getBaseUrl()}/api/v1/ai/marketing-strategist/${id}/export?format=${format}`;
+  const slug =
+    (title || "marketing-strategy")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "marketing-strategy";
+  const ext = format === "pdf" ? "pdf" : "md";
+  const mimeType = format === "pdf" ? "application/pdf" : "text/markdown";
+  const filename = `${slug}.${ext}`;
+  const headers: Record<string, string> = {
+    "User-Agent": MOBILE_USER_AGENT,
+    "X-1INME-Client": MOBILE_USER_AGENT,
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  if (Platform.OS === "web") {
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error(`Export failed (${res.status}).`);
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+    return;
+  }
+
+  const FileSystem = await import("expo-file-system/legacy");
+  const Sharing = await import("expo-sharing");
+  const target = `${FileSystem.cacheDirectory ?? ""}${filename}`;
+  const dl = await FileSystem.downloadAsync(url, target, { headers });
+  if (dl.status !== 200) throw new Error(`Export failed (${dl.status}).`);
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(dl.uri, { mimeType, dialogTitle: title });
+  }
+}

@@ -76,6 +76,18 @@ export type ApiError = {
   details?: Record<string, unknown>;
 };
 
+/**
+ * Read the HTTP `status` off a thrown `ApiError` (which is a plain object, not
+ * a class, so `instanceof` does not apply). Returns `null` for non-API errors.
+ */
+export function errorStatus(error: unknown): number | null {
+  if (error && typeof error === "object" && "status" in error) {
+    const s = (error as { status?: unknown }).status;
+    if (typeof s === "number") return s;
+  }
+  return null;
+}
+
 export async function apiFetch<T = unknown>(
   path: string,
   init: RequestInit = {},

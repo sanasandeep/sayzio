@@ -49,6 +49,13 @@ export type AuthUser = {
   // policy — mirrors the web banner's visibility rule so the nudge never
   // shows for accounts that can never meaningfully verify.
   email_verification_meaningful?: boolean;
+  // Plan/role capability flags from the API's UserResource (e.g.
+  // `marketing_strategist` gates the AI Digital Performer Specialist surface).
+  // Absent flags are treated as false so gated tools stay hidden by default.
+  capabilities?: {
+    marketing_strategist?: boolean;
+    [key: string]: boolean | undefined;
+  };
 };
 
 type AuthState = {

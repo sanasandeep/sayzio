@@ -30,6 +30,8 @@ const FEATURE_BLURBS: Record<string, string> = {
     "Marketing Strategist is your AI digital performer — it grounds an organic + paid plan in your own Sayzio data and lets you act on it with one tap.",
   Voice:
     "Voice lets you talk to Sayzio hands-free to look things up and get around the app.",
+  "Performer Specialist":
+    "Performer Specialist studies your links, audience and brand to draft a full marketing strategy — organic and paid plays with one-tap actions.",
 };
 
 export function aiFeatureBlurb(feature?: string): string | null {

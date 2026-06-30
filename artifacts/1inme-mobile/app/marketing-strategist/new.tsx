@@ -1,536 +1,452 @@
 import { Feather } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
-import { Stack, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiDisabledNotice } from "@/components/AiDisabledNotice";
+import { Button } from "@/components/Button";
+import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
+import { errorStatus } from "@/lib/api";
 import {
   marketingStrategist,
-  type MsSource,
+  type StrategyParameters,
+  type StrategySource,
 } from "@/lib/api/marketingStrategist";
-import { handlePlanLockedError } from "@/lib/upgradePrompt";
+import { isPlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
 
-/** Default-on data sources, mirroring the web create form. */
-const DEFAULT_SOURCES = ["links", "analytics", "audience"];
+const FEATURE_LABEL = "Performer Specialist";
 
-/** Fallback source catalogue when the index response hasn't loaded one. */
-const FALLBACK_SOURCES: MsSource[] = [
-  { key: "links", label: "Links & types", description: "Your links, their types and lifetime clicks." },
-  { key: "analytics", label: "Analytics", description: "Recent click trends and device split." },
-  { key: "audience", label: "Followers & subscribers", description: "Audience size and growth." },
-  { key: "pixels", label: "Tracking pixels", description: "Ad pixels you already have connected." },
-  { key: "minds", label: "AI Minds", description: "Your knowledge bases (names only)." },
-  { key: "brand_kits", label: "Brand Kits", description: "Your brand palette, voice and taglines." },
-  { key: "personas", label: "AI Personas", description: "Your saved AI persona agents." },
-  { key: "companions", label: "AI Companions", description: "Your published AI chat companions." },
+// Preset goal chips → a descriptive goal sentence the freeform field is
+// seeded with. "Custom" clears the field for a fully hand-written goal.
+const GOAL_PRESETS: { key: string; label: string; goal: string }[] = [
+  {
+    key: "revenue",
+    label: "Grow revenue",
+    goal: "Increase revenue and sales conversions from my links and pages.",
+  },
+  {
+    key: "reach",
+    label: "Expand reach",
+    goal: "Grow my reach and get my content in front of a larger audience.",
+  },
+  {
+    key: "followers",
+    label: "Gain followers",
+    goal: "Grow my follower and subscriber base across my channels.",
+  },
+  {
+    key: "branding",
+    label: "Build brand",
+    goal: "Strengthen my brand awareness and build a consistent identity.",
+  },
+  {
+    key: "engagement",
+    label: "Boost engagement",
+    goal: "Increase engagement and repeat visits across my audience.",
+  },
+  { key: "custom", label: "Custom", goal: "" },
 ];
 
-type ParamKey = "budget" | "timeframe" | "audience" | "tone" | "channels";
+const FALLBACK_SOURCES: StrategySource[] = [
+  { key: "links", label: "Links", description: "Your links and pages" },
+  { key: "analytics", label: "Analytics", description: "Click & view stats" },
+  { key: "audience", label: "Audience", description: "Followers & subscribers" },
+  { key: "pixels", label: "Pixels", description: "Tracking pixels" },
+  { key: "minds", label: "AI Minds", description: "Your knowledge bases" },
+  { key: "brand_kits", label: "Brand Kits", description: "Brand identity" },
+  { key: "personas", label: "Personas", description: "AI personas" },
+  { key: "companions", label: "Companions", description: "AI companions" },
+];
 
 const PARAM_FIELDS: {
-  key: ParamKey;
+  key: keyof StrategyParameters;
   label: string;
   placeholder: string;
-  maxLength: number;
 }[] = [
-  { key: "budget", label: "Budget", placeholder: "e.g. $200 / month", maxLength: 120 },
-  { key: "timeframe", label: "Timeframe", placeholder: "e.g. 4 weeks", maxLength: 120 },
-  { key: "audience", label: "Target audience", placeholder: "e.g. fitness creators in the US", maxLength: 300 },
-  { key: "tone", label: "Tone", placeholder: "e.g. friendly and bold", maxLength: 120 },
-  { key: "channels", label: "Preferred channels", placeholder: "e.g. Instagram, TikTok, email", maxLength: 300 },
+  { key: "budget", label: "Budget", placeholder: "e.g. $500 / month" },
+  {
+    key: "audience",
+    label: "Target audience",
+    placeholder: "e.g. creators aged 18–34",
+  },
+  { key: "timeframe", label: "Timeframe", placeholder: "e.g. next 90 days" },
+  { key: "tone", label: "Tone", placeholder: "e.g. bold and playful" },
+  {
+    key: "channels",
+    label: "Preferred channels",
+    placeholder: "e.g. Instagram, TikTok, email",
+  },
 ];
 
-/**
- * Marketing Strategist builder (mobile). Three numbered sections mirror the
- * web create form: 1) toggle which of your data to share, 2) your goal,
- * 3) optional parameters. An "Estimate cost" affordance shows the worst-case
- * coin spend before Generate, which calls the metered store endpoint and
- * navigates to the generated strategy on success.
- */
-export default function NewMarketingStrategyScreen() {
+export default function NewMarketingStrategy() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
 
-  // Pull the live source catalogue + balance from the index loader (cached).
-  const idxQ = useQuery({
+  const indexQuery = useQuery({
     queryKey: ["marketing-strategist", "list"],
-    queryFn: marketingStrategist.index,
+    queryFn: () => marketingStrategist.index(),
   });
 
-  const sources = idxQ.data?.sources ?? FALLBACK_SOURCES;
-  const balance = idxQ.data?.balance;
-
-  const [picked, setPicked] = useState<string[]>(DEFAULT_SOURCES);
-  const [goal, setGoal] = useState("");
-  const [params, setParams] = useState<Record<ParamKey, string>>({
-    budget: "",
-    timeframe: "",
-    audience: "",
-    tone: "",
-    channels: "",
-  });
-
-  const [estimating, setEstimating] = useState(false);
-  const [estimate, setEstimate] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
-
-  const input = useMemo(
-    () => ({
-      goal: goal.trim(),
-      sources: picked,
-      parameters: Object.fromEntries(
-        (Object.entries(params) as [ParamKey, string][])
-          .filter(([, v]) => v.trim() !== "")
-          .map(([k, v]) => [k, v.trim()]),
-      ),
-    }),
-    [goal, picked, params],
+  const sources = useMemo<StrategySource[]>(
+    () =>
+      indexQuery.data?.sources && indexQuery.data.sources.length
+        ? indexQuery.data.sources
+        : FALLBACK_SOURCES,
+    [indexQuery.data?.sources],
   );
 
-  const idxStatus = (idxQ.error as { status?: number } | null)?.status;
-  const disabled: "engine" | "plan" | null =
-    idxQ.data?.ai_enabled === false
-      ? "engine"
-      : idxStatus === 404
-        ? "engine"
-        : idxStatus === 403
-          ? "plan"
-          : null;
+  const [selectedSources, setSelectedSources] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [preset, setPreset] = useState<string>("revenue");
+  const [goal, setGoal] = useState<string>(GOAL_PRESETS[0].goal);
+  const [params, setParams] = useState<StrategyParameters>({});
+  const [estimate, setEstimate] = useState<number | null>(null);
+  const [estimating, setEstimating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const toggleSource = (key: string) => {
+  // Default every available source on the first load.
+  const initialisedRef = useRef(false);
+  useEffect(() => {
+    if (initialisedRef.current || !sources.length) return;
+    initialisedRef.current = true;
+    const init: Record<string, boolean> = {};
+    for (const s of sources) init[s.key] = true;
+    setSelectedSources(init);
+  }, [sources]);
+
+  if (indexQuery.data && indexQuery.data.ai_enabled === false) {
+    return <AiDisabledNotice feature={FEATURE_LABEL} variant="engine" />;
+  }
+  if (errorStatus(indexQuery.error) === 403) {
+    return <AiDisabledNotice feature={FEATURE_LABEL} variant="plan" />;
+  }
+
+  const activeSources = Object.entries(selectedSources)
+    .filter(([, on]) => on)
+    .map(([k]) => k);
+
+  const canSubmit = goal.trim().length > 0 && activeSources.length > 0;
+
+  const buildInput = () => ({
+    goal: goal.trim(),
+    sources: activeSources,
+    parameters: params,
+  });
+
+  const setParam = (key: keyof StrategyParameters, value: string) => {
+    setParams((p) => ({ ...p, [key]: value }));
     setEstimate(null);
-    setPicked((cur) =>
-      cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key],
-    );
   };
 
-  const runEstimate = async () => {
-    if (!goal.trim()) {
-      Alert.alert("Add a goal first", "Tell the strategist what you want to achieve.");
-      return;
-    }
-    setEstimating(true);
+  const pickPreset = (p: (typeof GOAL_PRESETS)[number]) => {
+    setPreset(p.key);
+    if (p.key !== "custom") setGoal(p.goal);
+    else setGoal("");
     setEstimate(null);
+  };
+
+  const onEstimate = async () => {
+    if (!canSubmit) return;
+    setEstimating(true);
+    setError(null);
     try {
-      const res = await marketingStrategist.estimate(input);
-      setEstimate(
-        `About ${res.estimate.toLocaleString()} coins · balance ${res.balance.toLocaleString()}`,
-      );
-    } catch (e: any) {
-      if (handlePlanLockedError(e)) return;
-      setEstimate(e?.message || "Estimate failed.");
+      const res = await marketingStrategist.estimate(buildInput());
+      setEstimate(res.estimate);
+    } catch (e) {
+      if (isPlanLockedError(e)) {
+        showUpgradePrompt(e);
+      } else {
+        setError(
+          e instanceof Error ? e.message : "Couldn't estimate the cost.",
+        );
+      }
     } finally {
       setEstimating(false);
     }
   };
 
-  const generate = async () => {
-    if (!goal.trim()) {
-      Alert.alert("Add a goal first", "Tell the strategist what you want to achieve.");
-      return;
-    }
-    if (generating) return;
-    setGenerating(true);
+  const onGenerate = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setError(null);
     try {
-      const res = await marketingStrategist.create(input);
-      idxQ.refetch();
+      const res = await marketingStrategist.create(buildInput());
+      queryClient.invalidateQueries({
+        queryKey: ["marketing-strategist", "list"],
+      });
       router.replace(`/marketing-strategist/${res.strategy.id}` as never);
-    } catch (e: any) {
-      if (handlePlanLockedError(e)) return;
-      Alert.alert(
-        "Couldn't generate",
-        e?.message || "The strategy could not be generated right now. Please try again.",
-      );
+    } catch (e) {
+      if (isPlanLockedError(e)) {
+        showUpgradePrompt(e);
+      } else {
+        setError(
+          e instanceof Error
+            ? e.message
+            : "Couldn't generate the strategy. Try again.",
+        );
+      }
     } finally {
-      setGenerating(false);
+      setSubmitting(false);
     }
   };
 
+  if (indexQuery.isLoading) {
+    return (
+      <View
+        style={[
+          styles.center,
+          { backgroundColor: colors.background, paddingTop: insets.top },
+        ]}
+      >
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen
-        options={{
-          title: "New strategy",
-          headerStyle: { backgroundColor: colors.card },
-          headerTitleStyle: {
-            fontFamily: "SpaceGrotesk_600SemiBold",
-            color: colors.foreground,
-          },
-          headerTintColor: colors.primary,
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: insets.top + 8,
+          paddingBottom: insets.bottom + 40,
+          paddingHorizontal: 20,
+          gap: 22,
         }}
-      />
-
-      {idxQ.isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={{ gap: 6 }}>
+          <Text style={[styles.title, { color: colors.foreground }]}>
+            New strategy
+          </Text>
+          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+            Pick a goal, choose what the strategist can learn from, and add any
+            constraints. You&apos;ll get a tailored organic + paid growth plan.
+          </Text>
         </View>
-      ) : disabled ? (
-        <AiDisabledNotice feature="Marketing Strategist" variant={disabled} />
-      ) : (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={insets.top + 44}
-        >
-          <ScrollView
-            contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 120 }}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* 1. Data sources */}
-            <Section colors={colors} index="1" title="Your data">
-              <Text style={[styles.help, { color: colors.mutedForeground }]}>
-                Toggle the data you want the strategist to ground its plan in.
-                Only names and aggregate stats are shared — never private
-                contact details.
-              </Text>
-              <View style={{ gap: 8, marginTop: 12 }}>
-                {sources.map((src) => {
-                  const on = picked.includes(src.key);
-                  return (
-                    <Pressable
-                      key={src.key}
-                      onPress={() => toggleSource(src.key)}
-                      style={[
-                        styles.sourceRow,
-                        {
-                          borderColor: on ? colors.primary : colors.border,
-                          backgroundColor: on
-                            ? colors.primary + "12"
-                            : colors.background,
-                          borderRadius: colors.radius - 2,
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.checkbox,
-                          {
-                            borderColor: on ? colors.primary : colors.border,
-                            backgroundColor: on ? colors.primary : "transparent",
-                          },
-                        ]}
-                      >
-                        {on ? (
-                          <Feather name="check" size={13} color="#fff" />
-                        ) : null}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={[styles.sourceLabel, { color: colors.foreground }]}
-                        >
-                          {src.label}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.sourceDesc,
-                            { color: colors.mutedForeground },
-                          ]}
-                        >
-                          {src.description}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </Section>
 
-            {/* 2. Goal */}
-            <Section colors={colors} index="2" title="Your goal">
-              <TextInput
-                value={goal}
-                onChangeText={(t) => {
-                  setGoal(t);
-                  setEstimate(null);
-                }}
-                placeholder="e.g. Grow my newsletter subscribers and drive more clicks to my link-in-bio over the next month."
-                placeholderTextColor={colors.mutedForeground}
-                multiline
-                maxLength={4000}
-                style={[
-                  styles.textarea,
-                  {
-                    color: colors.foreground,
-                    backgroundColor: colors.background,
-                    borderColor: colors.border,
-                    borderRadius: colors.radius - 2,
-                  },
-                ]}
-              />
-            </Section>
+        {/* Goal */}
+        <View style={{ gap: 10 }}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            What&apos;s your goal?
+          </Text>
+          <View style={styles.chipWrap}>
+            {GOAL_PRESETS.map((p) => {
+              const active = preset === p.key;
+              return (
+                <Pressable
+                  key={p.key}
+                  onPress={() => pickPreset(p)}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: active ? colors.primary : colors.card,
+                      borderColor: active ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      {
+                        color: active
+                          ? colors.primaryForeground
+                          : colors.foreground,
+                      },
+                    ]}
+                  >
+                    {p.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <TextField
+            label="Describe your goal"
+            value={goal}
+            onChangeText={(t) => {
+              setGoal(t);
+              setEstimate(null);
+            }}
+            placeholder="Describe what you want to achieve…"
+            multiline
+            numberOfLines={4}
+            maxLength={4000}
+            style={{ minHeight: 96, textAlignVertical: "top" }}
+            hint={`${goal.length}/4000`}
+          />
+        </View>
 
-            {/* 3. Parameters */}
-            <Section colors={colors} index="3" title="Parameters" optional>
-              <View style={{ gap: 12, marginTop: 4 }}>
-                {PARAM_FIELDS.map((f) => (
-                  <View key={f.key} style={{ gap: 5 }}>
-                    <Text style={[styles.paramLabel, { color: colors.mutedForeground }]}>
-                      {f.label}
-                    </Text>
-                    <TextInput
-                      value={params[f.key]}
-                      onChangeText={(t) => {
-                        setParams((p) => ({ ...p, [f.key]: t }));
-                        setEstimate(null);
-                      }}
-                      placeholder={f.placeholder}
-                      placeholderTextColor={colors.mutedForeground}
-                      maxLength={f.maxLength}
-                      style={[
-                        styles.input,
-                        {
-                          color: colors.foreground,
-                          backgroundColor: colors.background,
-                          borderColor: colors.border,
-                          borderRadius: colors.radius - 2,
-                        },
-                      ]}
-                    />
-                  </View>
-                ))}
-              </View>
-            </Section>
-
-            {typeof balance === "number" ? (
-              <Text style={[styles.balanceLine, { color: colors.mutedForeground }]}>
-                Your balance: {balance.toLocaleString()} coins
-              </Text>
-            ) : null}
-          </ScrollView>
-
-          {/* Action bar */}
+        {/* Data sources */}
+        <View style={{ gap: 8 }}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            What can it learn from?
+          </Text>
+          <Text style={[styles.sectionHint, { color: colors.mutedForeground }]}>
+            The strategist only uses the sources you turn on.
+          </Text>
           <View
             style={[
-              styles.actionBar,
+              styles.sourcesCard,
               {
                 backgroundColor: colors.card,
-                borderTopColor: colors.border,
-                paddingBottom: insets.bottom + 10,
+                borderColor: colors.border,
+                borderRadius: colors.radius,
               },
             ]}
           >
-            {estimate ? (
-              <Text
-                style={[styles.estimateOut, { color: colors.mutedForeground }]}
-                numberOfLines={2}
-              >
-                {estimate}
-              </Text>
-            ) : null}
-            <View style={styles.actionRow}>
-              <Pressable
-                onPress={runEstimate}
-                disabled={estimating || generating}
+            {sources.map((s, i) => (
+              <View
+                key={s.key}
                 style={[
-                  styles.estimateBtn,
-                  {
-                    borderColor: colors.border,
-                    opacity: estimating || generating ? 0.6 : 1,
+                  styles.sourceRow,
+                  i < sources.length - 1 && {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: colors.border,
                   },
                 ]}
               >
-                {estimating ? (
-                  <ActivityIndicator color={colors.foreground} size="small" />
-                ) : (
-                  <Text style={[styles.estimateBtnText, { color: colors.foreground }]}>
-                    Estimate cost
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text
+                    style={[styles.sourceLabel, { color: colors.foreground }]}
+                  >
+                    {s.label}
                   </Text>
-                )}
-              </Pressable>
-              <Pressable
-                onPress={generate}
-                disabled={generating || !goal.trim()}
-                style={[
-                  styles.generateBtn,
-                  {
-                    backgroundColor:
-                      generating || !goal.trim()
-                        ? colors.mutedForeground
-                        : colors.primary,
-                  },
-                ]}
-              >
-                {generating ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <>
-                    <Feather name="zap" size={15} color="#fff" />
-                    <Text style={styles.generateBtnText}>Generate strategy</Text>
-                  </>
-                )}
-              </Pressable>
-            </View>
+                  {s.description ? (
+                    <Text
+                      style={[
+                        styles.sourceDesc,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      {s.description}
+                    </Text>
+                  ) : null}
+                </View>
+                <Switch
+                  value={!!selectedSources[s.key]}
+                  onValueChange={(v) => {
+                    setSelectedSources((prev) => ({ ...prev, [s.key]: v }));
+                    setEstimate(null);
+                  }}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={colors.background}
+                />
+              </View>
+            ))}
           </View>
-        </KeyboardAvoidingView>
-      )}
-    </View>
-  );
-}
+        </View>
 
-function Section({
-  colors,
-  index,
-  title,
-  optional,
-  children,
-}: {
-  colors: ReturnType<typeof useColors>;
-  index: string;
-  title: string;
-  optional?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <View
-      style={[
-        styles.section,
-        {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
-          borderRadius: colors.radius,
-        },
-      ]}
-    >
-      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-        <Text style={{ color: colors.primary }}>{index}. </Text>
-        {title}
-        {optional ? (
-          <Text style={[styles.optional, { color: colors.mutedForeground }]}>
-            {"  (optional)"}
+        {/* Parameters */}
+        <View style={{ gap: 12 }}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            Constraints{" "}
+            <Text style={{ color: colors.mutedForeground }}>(optional)</Text>
           </Text>
+          {PARAM_FIELDS.map((f) => (
+            <TextField
+              key={f.key}
+              label={f.label}
+              value={params[f.key] ?? ""}
+              onChangeText={(t) => setParam(f.key, t)}
+              placeholder={f.placeholder}
+            />
+          ))}
+        </View>
+
+        {error ? (
+          <Text style={{ color: colors.destructive }}>{error}</Text>
         ) : null}
-      </Text>
-      {children}
+
+        {estimate !== null ? (
+          <View
+            style={[
+              styles.estimateBox,
+              {
+                backgroundColor: colors.primary + "14",
+                borderColor: colors.primary + "44",
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <Feather name="zap" size={14} color={colors.primary} />
+            <Text style={[styles.estimateText, { color: colors.foreground }]}>
+              This will cost up to{" "}
+              <Text style={{ fontFamily: "SpaceGrotesk_700Bold" }}>
+                {estimate.toLocaleString()} coins
+              </Text>
+              .
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={{ gap: 10 }}>
+          <Button
+            label={estimating ? "Estimating…" : "Estimate cost"}
+            variant="outline"
+            onPress={onEstimate}
+            disabled={!canSubmit || estimating || submitting}
+            loading={estimating}
+          />
+          <Button
+            label="Generate strategy"
+            onPress={onGenerate}
+            disabled={!canSubmit || submitting}
+            loading={submitting}
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  section: {
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontFamily: "SpaceGrotesk_600SemiBold",
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  optional: {
+  title: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 24 },
+  subtitle: {
     fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 12,
-  },
-  help: {
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 12.5,
+    fontSize: 13,
     lineHeight: 18,
   },
+  sectionTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 16 },
+  sectionHint: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12 },
+  chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  chipText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 },
+  sourcesCard: { borderWidth: 1, paddingHorizontal: 14 },
   sourceRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 12,
-    borderWidth: 1,
-    padding: 12,
+    paddingVertical: 12,
   },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 1,
-  },
-  sourceLabel: {
-    fontFamily: "SpaceGrotesk_600SemiBold",
-    fontSize: 14,
-  },
-  sourceDesc: {
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 11.5,
-    lineHeight: 16,
-    marginTop: 2,
-  },
-  textarea: {
-    minHeight: 90,
-    borderWidth: 1,
-    padding: 12,
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 14,
-    textAlignVertical: "top",
-    marginTop: 4,
-  },
-  paramLabel: {
-    fontFamily: "SpaceGrotesk_500Medium",
-    fontSize: 12,
-  },
-  input: {
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 14,
-  },
-  balanceLine: {
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 12,
-    textAlign: "center",
-    marginTop: 4,
-  },
-  actionBar: {
-    borderTopWidth: 1,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    gap: 8,
-  },
-  estimateOut: {
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 12,
-  },
-  actionRow: {
+  sourceLabel: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 14 },
+  sourceDesc: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 11 },
+  estimateBox: {
     flexDirection: "row",
-    gap: 10,
-  },
-  estimateBtn: {
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    height: 48,
-    borderRadius: 12,
     alignItems: "center",
-    justifyContent: "center",
-  },
-  estimateBtnText: {
-    fontFamily: "SpaceGrotesk_500Medium",
-    fontSize: 13,
-  },
-  generateBtn: {
-    flex: 1,
-    flexDirection: "row",
     gap: 8,
-    height: 48,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    padding: 12,
+    borderWidth: 1,
   },
-  generateBtnText: {
-    color: "#fff",
-    fontFamily: "SpaceGrotesk_600SemiBold",
-    fontSize: 14,
-  },
+  estimateText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13, flex: 1 },
 });

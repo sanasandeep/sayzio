@@ -92,6 +92,7 @@ const TOOL_PAGES: {
     | "/qr"
     | "/qr-studio"
     | "/brand-kits"
+    | "/marketing-strategist"
     | "/splash"
     | "/calendar"
     | "/calendars"
@@ -106,13 +107,11 @@ const TOOL_PAGES: {
     | "/leaderboard"
     | "/vault-audit"
     | "/orders"
-    | "/marketing-strategist"
     | "/links/conversational";
   label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
   { href: "/orders", label: "Orders", icon: "shopping-bag" },
-  { href: "/marketing-strategist", label: "Marketing Strategist", icon: "target" },
   { href: "/posts", label: "Posts", icon: "message-square" },
   { href: "/contacts", label: "Contacts", icon: "users" },
   { href: "/dialer", label: "Dialer", icon: "phone" },
@@ -125,6 +124,7 @@ const TOOL_PAGES: {
   { href: "/qr", label: "QR codes", icon: "grid" },
   { href: "/qr-studio", label: "QR studio", icon: "grid" },
   { href: "/brand-kits", label: "Brand kit", icon: "feather" },
+  { href: "/marketing-strategist", label: "Performer Specialist", icon: "target" },
   { href: "/splash", label: "Splash pages", icon: "layout" },
   { href: "/calendars", label: "My Calendar", icon: "calendar" },
   { href: "/calendar", label: "Calendar sync", icon: "refresh-cw" },
@@ -523,7 +523,11 @@ export default function Profile() {
               },
             ]}
           >
-            {TOOL_PAGES.map((p, i) => (
+            {TOOL_PAGES.filter(
+              (p) =>
+                p.href !== "/marketing-strategist" ||
+                !!user?.capabilities?.marketing_strategist,
+            ).map((p, i) => (
               <Pressable
                 key={p.href}
                 onPress={() => router.push(p.href as never)}
