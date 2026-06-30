@@ -25,7 +25,7 @@ class LinkPixelFireController extends Controller
 
     public function store(Request $request, string $alias)
     {
-        $link = Link::query()->withoutGlobalScope('workspace')->where('alias', $alias)->first();
+        $link = Link::resolveByAlias($alias, $request->getHost(), withoutWorkspaceScope: true);
         if (!$link) return $this->notFound('Link not found');
 
         // Trust only the providers the workspace actually has configured —

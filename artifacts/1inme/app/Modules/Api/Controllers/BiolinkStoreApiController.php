@@ -44,7 +44,7 @@ class BiolinkStoreApiController extends Controller
         if (!$user) {
             return $this->unauthorized('Sign in to buy.', 'login_required');
         }
-        [$link, $creator] = $this->resolveLink($alias);
+        [$link, $creator] = $this->resolveLink($alias, $request->getHost());
 
         $line = $this->store->productLineFromBlock($creator, (int) $request->input('block_id'));
         if (!$line) {
@@ -68,7 +68,7 @@ class BiolinkStoreApiController extends Controller
         if (!$user) {
             return $this->unauthorized('Sign in to check out.', 'login_required');
         }
-        [$link, $creator] = $this->resolveLink($alias);
+        [$link, $creator] = $this->resolveLink($alias, $request->getHost());
 
         $data = $request->validate([
             'items'              => 'required|array|min:1',
@@ -177,12 +177,9 @@ class BiolinkStoreApiController extends Controller
     // ─── helpers ───────────────────────────────────────────────────
 
     /** @return array{0: Link, 1: User} */
-    protected function resolveLink(string $alias): array
+    protected function resolveLink(string $alias, ?string $host = null): array
     {
-        $link = Link::resolveByAlias($alias, $alias);
-        if (!$link) {
-            $link = Link::where('alias', $alias)->first();
-        }
+        $link = Link::resolveByAlias($alias, $host);
         abort_if(!$link, 404);
         $creator = $link->user;
         abort_if(!$creator, 404);

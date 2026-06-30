@@ -208,7 +208,7 @@ protected $fillable = [
      * case), then falls back to the link_aliases table for additional aliases.
      * Returns null if no link matches.
      */
-    public static function resolveByAlias(string $alias, ?string $host = null): ?self
+    public static function resolveByAlias(string $alias, ?string $host = null, bool $withoutWorkspaceScope = false): ?self
     {
         // Host-aware resolution. Three cases:
         //   1. Platform host (any canonical brand domain — sayzio.app / 1in.me
@@ -270,13 +270,21 @@ protected $fillable = [
         // visitor typed a different case, or the stored alias is mixed-case).
         $lower = mb_strtolower($alias);
 
-        $query = static::where('alias', $alias);
+        // Some public, anonymous callers (e.g. the retargeting-pixel fire
+        // endpoint) deliberately resolve outside any workspace scope. The
+        // workspace scope is already a no-op when no current_workspace is
+        // bound, but threading the opt-out keeps their intent explicit.
+        $base = fn () => $withoutWorkspaceScope
+            ? static::query()->withoutGlobalScope('workspace')
+            : static::query();
+
+        $query = $base()->where('alias', $alias);
         if ($host !== null) {
             $query->where($scope);
         }
         $link = $query->first();
         if (! $link && $alias !== $lower) {
-            $ciQuery = static::whereRaw('LOWER(alias) = ?', [$lower]);
+            $ciQuery = $base()->whereRaw('LOWER(alias) = ?', [$lower]);
             if ($host !== null) {
                 $ciQuery->where($scope);
             }
@@ -296,7 +304,7 @@ protected $fillable = [
             }
             $extra = $extraQ->first();
         }
-        return $extra ? static::find($extra->link_id) : null;
+        return $extra ? $base()->find($extra->link_id) : null;
     }
 
     public function activeBiolinkBlocks()

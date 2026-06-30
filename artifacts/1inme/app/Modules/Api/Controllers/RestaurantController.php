@@ -40,11 +40,9 @@ class RestaurantController extends Controller
     /** Public menu fetch by alias (display + order mode). */
     public function show(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)
-            ->where('type', Link::TYPE_RESTAURANT_MENU)
-            ->first();
+        $link = Link::resolveByAlias($alias, $request->getHost());
 
-        if (!$link || !$link->is_active || !$link->isAccessible()) {
+        if (!$link || $link->type !== Link::TYPE_RESTAURANT_MENU || !$link->is_active || !$link->isAccessible()) {
             return $this->notFound('Menu not found');
         }
 
@@ -100,11 +98,9 @@ class RestaurantController extends Controller
     /** Place an order (order mode only). */
     public function placeOrder(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)
-            ->where('type', Link::TYPE_RESTAURANT_MENU)
-            ->first();
+        $link = Link::resolveByAlias($alias, $request->getHost());
 
-        if (!$link || !$link->is_active || !$link->isAccessible()) {
+        if (!$link || $link->type !== Link::TYPE_RESTAURANT_MENU || !$link->is_active || !$link->isAccessible()) {
             return $this->notFound('Menu not found');
         }
 

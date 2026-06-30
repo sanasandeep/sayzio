@@ -139,7 +139,10 @@ class BiolinkBlockController extends Controller
      */
     public function publicLimits(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->first();
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if ($link && !in_array($link->type, Link::BIOLINK_FAMILY, true)) {
+            $link = null;
+        }
         // Mirror BiolinkController@show: missing or disabled links are
         // 404 (don't leak existence), and accessibility (paywall, expiry,
         // password-protected, etc.) is enforced before we touch blocks.
