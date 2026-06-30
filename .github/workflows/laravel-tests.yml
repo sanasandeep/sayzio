@@ -123,6 +123,60 @@ jobs:
         # suite grows past 60+ test files.
         run: php artisan test --parallel
 
+  database-guard:
+    name: Dev-database safety net guard
+    runs-on: ubuntu-latest
+
+    # Tests\TestCase::guardAgainstNonTestDatabase() aborts the whole PHPUnit run
+    # before any migration when the resolved database is not a recognized test
+    # database. It is the only thing stopping a stray DB_DATABASE=postgres from
+    # wiping the shared dev/live RDS (this actually happened once). Nothing else
+    # verifies that guard still works, so this job runs the real guard (via
+    # reflection on the production class, never a copy of its logic) across the
+    # key scenarios and fails if any of them regresses.
+    #
+    # The guard only reads/merges config and opens NO database connection, so
+    # this job needs no Postgres service — just PHP, a Composer install, and a
+    # minimal .env so the app can boot.
+
+    defaults:
+      run:
+        working-directory: artifacts/1inme
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo, pdo_pgsql, pgsql, bcmath, gd, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: artifacts/1inme/vendor
+          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('artifacts/1inme/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-php8.3-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare .env for CI
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Verify the destructive-database guard is intact
+        # The script itself unsets CI / GITHUB_ACTIONS per scenario, so the
+        # "aborts locally" cases are exercised correctly even though this job
+        # runs inside GitHub Actions.
+        run: composer test:db-guard
+
   php84-deprecations:
     name: PHP 8.4 deprecation guard
     runs-on: ubuntu-latest

@@ -68,6 +68,9 @@
         "lint:deprecations": [
             "@php scripts/check-php-deprecations.php app tests"
         ],
+        "test:db-guard": [
+            "@php scripts/check-database-guard.php"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
