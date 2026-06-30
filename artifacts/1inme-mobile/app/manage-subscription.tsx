@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -35,6 +36,7 @@ import {
 export default function ManageSubscriptionScreen() {
   const colors = useColors();
   const qc = useQueryClient();
+  const router = useRouter();
   const { handle = "" } = useLocalSearchParams<{ handle?: string }>();
   const focusHandle = String(handle).replace(/^@/, "").toLowerCase();
 
@@ -42,6 +44,23 @@ export default function ManageSubscriptionScreen() {
     queryKey: ["my-subscriptions"],
     queryFn: listMySubscriptions,
   });
+
+  // A tier switch happens in the creator's subscribe flow (often via the
+  // provider's hosted checkout). Refetch when this screen regains focus so a
+  // completed tier change is reflected, skipping the initial mount fetch.
+  // Depend on the stable `refetch` reference, not the whole query result (`q`),
+  // whose identity changes every render and would loop the focus effect.
+  const { refetch } = q;
+  const didMount = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (didMount.current) {
+        refetch();
+      } else {
+        didMount.current = true;
+      }
+    }, [refetch]),
+  );
 
   const cancel = useMutation({
     mutationFn: (h: string) => cancelMySubscription(h),
@@ -108,6 +127,13 @@ export default function ManageSubscriptionScreen() {
               onResume={() =>
                 item.creator?.handle && resume.mutate(item.creator.handle)
               }
+              onSwitchTier={() =>
+                item.creator?.handle &&
+                router.push({
+                  pathname: "/monetization/subscribe",
+                  params: { handle: item.creator.handle },
+                })
+              }
             />
           )}
           ListEmptyComponent={
@@ -137,6 +163,7 @@ function SubscriptionCard({
   busy,
   onCancel,
   onResume,
+  onSwitchTier,
 }: {
   sub: SubscriptionState;
   colors: ReturnType<typeof useColors>;
@@ -144,6 +171,7 @@ function SubscriptionCard({
   busy: boolean;
   onCancel: () => void;
   onResume: () => void;
+  onSwitchTier: () => void;
 }) {
   const creatorName = sub.creator?.name || sub.creator?.handle || "Creator";
   const renewLabel = sub.cancel_at_period_end ? "Ends" : "Renews";
@@ -217,6 +245,12 @@ function SubscriptionCard({
           />
         </View>
       )}
+
+      {sub.creator?.handle ? (
+        <View style={{ marginTop: 8 }}>
+          <Button label="Switch tier" variant="ghost" onPress={onSwitchTier} />
+        </View>
+      ) : null}
     </View>
   );
 }
