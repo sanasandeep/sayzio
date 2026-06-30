@@ -1201,7 +1201,18 @@
                 $__showAccount = $__acctWalletEnabled || $__acctBadges->isNotEmpty();
             @endphp
             @if($__showAccount)
-            <div class="px-3 pb-2" x-show="sidebarMode !== 'icons'" x-cloak x-data="{ open: true }">
+            <div class="px-3 pb-2" x-show="sidebarMode !== 'icons'" x-cloak x-data="{
+                    open: true,
+                    init() {
+                        try {
+                            const saved = localStorage.getItem('1inme_sidebar_account_open');
+                            if (saved !== null) this.open = saved === '1';
+                        } catch (e) {}
+                        this.$watch('open', (val) => {
+                            try { localStorage.setItem('1inme_sidebar_account_open', val ? '1' : '0'); } catch (e) {}
+                        });
+                    }
+                }">
                 <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                         class="sidebar-group-toggle pt-2 pb-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.15em]">
                     <span>Account</span>
@@ -1646,7 +1657,18 @@
                         $__mShowAccount = $__mAcctWalletEnabled || $__mAcctBadges->isNotEmpty();
                     @endphp
                     @if($__mShowAccount)
-                    <div class="px-3 pt-2" x-data="{ open: true }">
+                    <div class="px-3 pt-2" x-data="{
+                            open: true,
+                            init() {
+                                try {
+                                    const saved = localStorage.getItem('1inme_sidebar_account_open');
+                                    if (saved !== null) this.open = saved === '1';
+                                } catch (e) {}
+                                this.$watch('open', (val) => {
+                                    try { localStorage.setItem('1inme_sidebar_account_open', val ? '1' : '0'); } catch (e) {}
+                                });
+                            }
+                        }">
                         <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                 class="sidebar-group-toggle pt-2 pb-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.15em]">
                             <span>Account</span>
