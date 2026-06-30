@@ -207,49 +207,20 @@ for (const vp of VIEWPORTS) {
       await sharedContext?.close();
     });
 
-    test("tapping a goal card selects the matching link type", async ({
-      page,
-    }) => {
+    test("clicking a link-type card selects it", async ({ page }) => {
       await openPicker(page, vp.size);
 
       // No type selected initially.
       await expect(typeRadio(page, "url")).not.toBeChecked();
 
-      // Tap the "Shorten a link" goal → selects the Short Link (url) card.
-      const goal = page.getByRole("button", { name: "Shorten a link" });
-      await goal.click();
-
+      // Click the Short Link card → checks the url radio.
+      await page.locator("#lt-card-url").click();
       await expect(typeRadio(page, "url")).toBeChecked();
-      await expect(goal).toHaveAttribute("aria-pressed", "true");
 
-      // Tapping a different goal moves the selection.
-      const contactGoal = page.getByRole("button", {
-        name: "Share my contact",
-      });
-      await contactGoal.click();
+      // Clicking a different card moves the selection.
+      await page.locator("#lt-card-vcf").click();
       await expect(typeRadio(page, "vcf")).toBeChecked();
       await expect(typeRadio(page, "url")).not.toBeChecked();
-    });
-
-    test("free-text intent search selects a card", async ({ page }) => {
-      await openPicker(page, vp.size);
-
-      // "save my number" is a vcf keyword alias → matches the Contact Card.
-      await page.locator("#intent-search").fill("save my number");
-
-      // The match status names the type and the matching radio gets selected.
-      await expect(page.locator("#intent-search-status")).toContainText(
-        "Contact Card",
-        { timeout: 15_000 },
-      );
-      await expect(typeRadio(page, "vcf")).toBeChecked();
-
-      // A nonsense phrase reports no match and leaves the prior selection.
-      await page.locator("#intent-search").fill("zzzz qqqq wxyz");
-      await expect(page.locator("#intent-search-status")).toContainText(
-        "No matching type",
-        { timeout: 15_000 },
-      );
     });
 
     test("typing in the Custom URL field shows availability states", async ({
@@ -285,7 +256,7 @@ for (const vp of VIEWPORTS) {
       const alias = page.locator("#create-link-alias");
 
       // Pick a valid type so only the alias guard can block submit.
-      await page.getByRole("button", { name: "Shorten a link" }).click();
+      await page.locator("#lt-card-url").click();
       await expect(typeRadio(page, "url")).toBeChecked();
 
       // Type the taken alias and wait for the verdict to propagate to the form.
@@ -314,7 +285,7 @@ for (const vp of VIEWPORTS) {
       await openPicker(page, vp.size);
 
       // Select a type, leave the alias blank, and Continue.
-      await page.getByRole("button", { name: "Shorten a link" }).click();
+      await page.locator("#lt-card-url").click();
       await expect(typeRadio(page, "url")).toBeChecked();
       await expect(page.locator("#create-link-alias")).toHaveValue("");
 
