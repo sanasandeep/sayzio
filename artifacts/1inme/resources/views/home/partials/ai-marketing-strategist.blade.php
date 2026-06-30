@@ -12,6 +12,8 @@
     $msEx = $msExamples[0] ?? [];
     $msOrg = $msEx['organic']['items'] ?? [];
     $msPaid = $msEx['paid']['items'] ?? [];
+    $msCadence = $msEx['cadence']['items'] ?? [];
+    $msTargets = $msEx['targets']['items'] ?? [];
 @endphp
 <section id="ai-marketing-strategist" class="ms-promo py-24 lg:py-32 relative overflow-hidden">
     <div class="ms-glow ms-glow-a" aria-hidden="true"></div>
@@ -77,6 +79,8 @@
                             <span class="ms-goal-text">{{ $msEx['goal'] ?? '' }}</span><span class="ms-goal-caret" aria-hidden="true">▍</span>
                         </div>
 
+                        <div class="ms-summary ms-reveal"><i class="fas fa-circle-info" aria-hidden="true"></i> <span class="ms-summary-text">{{ $msEx['summary'] ?? '' }}</span></div>
+
                         <div class="ms-head ms-reveal"><span class="ms-head-mark" aria-hidden="true"></span> <span class="ms-head-text">{{ $msEx['head'] ?? '' }}</span></div>
 
                         <div class="ms-plan">
@@ -97,8 +101,27 @@
                             </ul>
                         </div>
 
+                        <div class="ms-plan">
+                            <div class="ms-plan-tag ms-plan-tag-cadence ms-reveal">{{ $msEx['cadence']['tag'] ?? 'Weekly cadence' }}</div>
+                            <ul class="ms-plan-list ms-cadence-list">
+                                @foreach ($msCadence as $msItem)
+                                    <li class="ms-reveal"><i class="{{ $msItem['icon'] ?? 'fas fa-calendar-day' }}"></i> <span class="ms-item-text">{{ $msItem['text'] ?? '' }}</span></li>
+                                @endforeach
+                            </ul>
+                        </div>
+
+                        <div class="ms-plan">
+                            <div class="ms-plan-tag ms-plan-tag-target ms-reveal">{{ $msEx['targets']['tag'] ?? '30-day targets' }}</div>
+                            <ul class="ms-plan-list ms-target-list">
+                                @foreach ($msTargets as $msItem)
+                                    <li class="ms-reveal"><i class="{{ $msItem['icon'] ?? 'fas fa-arrow-trend-up' }}"></i> <span class="ms-item-text">{{ $msItem['text'] ?? '' }}</span></li>
+                                @endforeach
+                            </ul>
+                        </div>
+
                         <div class="ms-kpi ms-reveal"><i class="fas fa-chart-line"></i> KPIs → <span class="ms-kpi-text">{{ $msEx['kpi'] ?? '' }}</span></div>
                     </div>
+                    <div class="ms-fade" aria-hidden="true"></div>
                 </div>
                 <div class="ms-badge float-y" style="bottom: -18px; left: -14px;">
                     <span class="ms-badge-ico"><i class="fas fa-bolt text-sm"></i></span>
@@ -200,10 +223,43 @@
         100% { box-shadow: 0 0 0 0 rgba(40,200,64,0); }
     }
     .ms-promo .ms-card-body {
-        padding: 18px 20px 22px;
+        position: relative;
+        height: 372px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scroll-behavior: smooth;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, #3d6bff 55%, transparent) transparent;
+        padding: 18px 20px 34px;
         font-family: 'Space Grotesk', ui-monospace, SFMono-Regular, Menlo, monospace;
         color: #e5e7eb;
     }
+    .ms-promo .ms-card-body::-webkit-scrollbar { width: 8px; }
+    .ms-promo .ms-card-body::-webkit-scrollbar-track { background: transparent; }
+    .ms-promo .ms-card-body::-webkit-scrollbar-thumb {
+        background: color-mix(in srgb, #3d6bff 50%, transparent);
+        border-radius: 9999px; border: 2px solid transparent; background-clip: padding-box;
+    }
+    .ms-promo .ms-card-body::-webkit-scrollbar-thumb:hover {
+        background: color-mix(in srgb, #3d6bff 70%, transparent); background-clip: padding-box;
+    }
+    /* Bottom fade affordance signalling more report below the fold. */
+    .ms-promo .ms-card { position: relative; }
+    .ms-promo .ms-fade {
+        position: absolute; left: 0; right: 0; bottom: 0; height: 54px;
+        pointer-events: none; border-radius: 0 0 20px 20px;
+        background: linear-gradient(180deg, rgba(10,10,20,0), rgba(10,10,20,.98));
+    }
+    html.light-mode .ms-promo .ms-fade {
+        background: linear-gradient(180deg, rgba(12,16,32,0), #0c1020);
+    }
+    .ms-promo .ms-summary {
+        display: flex; align-items: flex-start; gap: 8px;
+        font-size: 12.5px; line-height: 1.5; color: #9fb0cc;
+        margin-bottom: 14px;
+    }
+    .ms-promo .ms-summary i { color: var(--ms-bright); margin-top: 2px; flex: 0 0 auto; }
     .ms-promo .ms-goal-row {
         display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
         padding-bottom: 14px; margin-bottom: 14px;
@@ -225,6 +281,8 @@
     }
     .ms-promo .ms-plan-tag-org { color: #d6e0ff; background: color-mix(in srgb, #3d6bff 22%, transparent); }
     .ms-promo .ms-plan-tag-paid { color: #ffe2c7; background: rgba(255,138,60,.18); }
+    .ms-promo .ms-plan-tag-cadence { color: #cdeefe; background: color-mix(in srgb, #38bdf8 22%, transparent); }
+    .ms-promo .ms-plan-tag-target { color: #d7ffe9; background: color-mix(in srgb, #22c55e 20%, transparent); }
     .ms-promo .ms-plan-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
     .ms-promo .ms-plan-list li { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; line-height: 1.45; color: #cbd5e1; }
     .ms-promo .ms-plan-list i { color: #90acff; margin-top: 3px; width: 15px; text-align: center; flex: 0 0 auto; }
@@ -309,13 +367,19 @@
         var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (reduce) return;
 
+        var scrollEl = card.querySelector('.ms-card-body');
         var goalEl = card.querySelector('.ms-goal-text');
+        var summaryEl = card.querySelector('.ms-summary-text');
         var headEl = card.querySelector('.ms-head-text');
         var orgTagEl = card.querySelector('.ms-plan-tag-org');
         var paidTagEl = card.querySelector('.ms-plan-tag-paid');
+        var cadenceTagEl = card.querySelector('.ms-plan-tag-cadence');
+        var targetTagEl = card.querySelector('.ms-plan-tag-target');
         var kpiEl = card.querySelector('.ms-kpi-text');
         var orgItems = card.querySelectorAll('.ms-org-list li');
         var paidItems = card.querySelectorAll('.ms-paid-list li');
+        var cadenceItems = card.querySelectorAll('.ms-cadence-list li');
+        var targetItems = card.querySelectorAll('.ms-target-list li');
         // Captured once; only the inner text/icons of these rows change per
         // example (the row elements themselves are never recreated), so the
         // NodeList stays valid across cycles.
@@ -324,9 +388,12 @@
         // Paint one example's static content into the (hidden) rows. The goal
         // line is typed separately (see build), so it is cleared here.
         function applyExample(ex) {
+            if (summaryEl) summaryEl.textContent = ex.summary || '';
             if (headEl) headEl.textContent = ex.head || '';
             if (orgTagEl) orgTagEl.textContent = (ex.organic && ex.organic.tag) || 'Organic';
             if (paidTagEl) paidTagEl.textContent = (ex.paid && ex.paid.tag) || 'Paid';
+            if (cadenceTagEl) cadenceTagEl.textContent = (ex.cadence && ex.cadence.tag) || 'Weekly cadence';
+            if (targetTagEl) targetTagEl.textContent = (ex.targets && ex.targets.tag) || '30-day targets';
             if (kpiEl) kpiEl.textContent = ex.kpi || '';
 
             function fill(rows, items) {
@@ -341,6 +408,8 @@
             }
             fill(orgItems, ex.organic && ex.organic.items);
             fill(paidItems, ex.paid && ex.paid.items);
+            fill(cadenceItems, ex.cadence && ex.cadence.items);
+            fill(targetItems, ex.targets && ex.targets.items);
         }
 
         // Arm: hide the staggered rows + clear the goal, ready to write live.
@@ -363,9 +432,20 @@
             var ex = EXAMPLES[idx];
             var goalText = ex.goal || '';
 
+            // Auto-scroll the report panel so the just-revealed line stays in
+            // view, giving the impression of a long report streaming in.
+            function followScroll(el) {
+                if (!scrollEl || !el) return;
+                var contRect = scrollEl.getBoundingClientRect();
+                var elRect = el.getBoundingClientRect();
+                var delta = elRect.bottom - contRect.bottom + 30; // keep ~30px gap below
+                if (delta > 0) scrollEl.scrollTop += delta; // scroll-behavior:smooth animates it
+            }
+
             function build() {
                 applyExample(ex);
                 card.classList.remove('ms-goal-done');
+                if (scrollEl) scrollEl.scrollTop = 0; // start every report at the top
 
                 // 1. Type the goal character by character with a blinking caret.
                 var i = 0;
@@ -379,16 +459,20 @@
                         after(320, reveal);
                     }
                 }
-                // 2..5. Stagger-reveal heading → Organic tag+items → Paid
-                //       tag+items → KPIs, each springing into place.
+                // 2..n. Stagger-reveal summary → heading → Organic → Paid →
+                //        cadence → targets → KPIs, each springing into place,
+                //        auto-scrolling the panel to follow the newest line.
                 function reveal() {
                     var last = 0;
                     reveals.forEach(function (el, ri) {
-                        last = 120 + ri * 150;
-                        after(last, function () { el.classList.add('is-in'); });
+                        last = 120 + ri * 115;
+                        after(last, function () {
+                            el.classList.add('is-in');
+                            followScroll(el);
+                        });
                     });
-                    // Hold the finished plan, then hand off to the next example.
-                    after(last + 600 + 3200, next);
+                    // Hold the finished report, then hand off to the next example.
+                    after(last + 600 + 3400, next);
                 }
                 type();
             }
@@ -397,10 +481,11 @@
                 build();
             } else {
                 // Reset to the armed start state, swap content (while hidden),
-                // then write the next example out.
+                // scroll back to the top, then write the next example out.
                 reveals.forEach(function (el) { el.classList.remove('is-in'); });
                 card.classList.remove('ms-goal-done');
                 if (goalEl) goalEl.textContent = '';
+                if (scrollEl) scrollEl.scrollTop = 0;
                 after(450, build);
             }
         }
