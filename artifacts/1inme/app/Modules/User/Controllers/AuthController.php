@@ -311,15 +311,31 @@ class AuthController extends Controller
         return redirect()->intended(route('user.dashboard'));
     }
 
-    public function sendOtp(Request $request)
+    public function sendOtp(Request $request, ReferralService $referrals)
     {
         $request->validate([
             'identifier' => 'required|string',
             'type' => 'required|in:email,mobile',
+            // The OTP/WhatsApp path is sign-in by default. When the visitor
+            // picks the explicit "sign up" affordance the modal sends
+            // intent=signup so an unknown identifier creates an account
+            // instead of dead-ending. A bare sign-in stays enumeration-safe.
+            'intent' => 'nullable|in:login,signup',
+            // A handle the visitor claimed on the homepage hero, carried
+            // through the WhatsApp/OTP sign-up path. Loosely bounded here;
+            // the canonical rules run in ClaimedHandle::apply (which silently
+            // skips anything invalid so sign-up never dead-ends).
+            'desired_handle' => 'nullable|string|max:60',
         ]);
 
         $identifier = $request->identifier;
         $type = $request->type;
+        $intent = $request->input('intent') === 'signup' ? 'signup' : 'login';
+
+        // Tracks whether this request just minted a brand-new account so the
+        // confirmation copy can say "Account created" rather than a bare
+        // "code sent".
+        $justSignedUp = false;
 
         // Honor the email-OTP toggle: when an admin has switched it off
         // (password-only mode), reject email one-time-code requests even if
@@ -343,14 +359,27 @@ class AuthController extends Controller
         $user = $this->resolveUserByIdentifier($identifier, $type);
 
         if (!$user) {
-            // The OTP path doubles as sign-up for unknown identifiers. When
-            // registrations are paused we must not issue a code or create an
-            // account — show the branded upgrade page instead.
-            if (AuthMethods::registrationPaused()) {
-                return response()->view('user.auth.registration-paused');
+            // Sign-up intent (the modal's explicit "Sign up with WhatsApp"
+            // affordance): mint the account now — gated by the same
+            // registration-paused switch as every other account-creation
+            // surface — then fall through to issue and send the code.
+            if ($intent === 'signup') {
+                if (AuthMethods::registrationPaused()) {
+                    return response()->view('user.auth.registration-paused');
+                }
+                $user = $this->createOtpSignupUser($request, $referrals, $identifier, $type);
+                $justSignedUp = true;
+            } else {
+                // Sign-in intent for an unknown identifier stays
+                // enumeration-safe: create nothing and issue no code, but
+                // still show the branded upgrade page when registrations are
+                // paused (matching the prior behavior).
+                if (AuthMethods::registrationPaused()) {
+                    return response()->view('user.auth.registration-paused');
+                }
+                session(['otp_identifier' => $identifier, 'otp_type' => $type]);
+                return redirect()->route('user.otp.verify.form')->with('status', 'If an account exists, an OTP has been sent to your ' . $type . '.');
             }
-            session(['otp_identifier' => $identifier, 'otp_type' => $type]);
-            return redirect()->route('user.otp.verify.form')->with('status', 'If an account exists, an OTP has been sent to your ' . $type . '.');
         }
 
         $otpService = new OtpService();
@@ -372,8 +401,71 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('user.otp.verify.form')
-            ->with('status', 'OTP sent to your ' . $type . '.')
+            ->with('status', ($justSignedUp ? 'Account created. ' : '') . 'OTP sent to your ' . $type . '.')
             ->with('otp_demo_reveal', AuthMethods::demoRevealMessage($code));
+    }
+
+    /**
+     * Create a brand-new account from the passwordless OTP/WhatsApp sign-up
+     * path (the modal's "Sign up with WhatsApp" affordance). Mirrors the
+     * email/password register form and the mobile Api\OtpController::register:
+     * default (free) plan, random unused password, referral attribution, a
+     * personal workspace, and the claimed homepage handle reserved via the
+     * shared ClaimedHandle helper. The form collects only an identifier, so a
+     * friendly display name is derived (the user can change it later).
+     */
+    private function createOtpSignupUser(Request $request, ReferralService $referrals, string $identifier, string $type): User
+    {
+        $desiredHandle = trim((string) $request->input('desired_handle'));
+
+        // No name field on the passwordless sign-up form ("just a phone
+        // number"), so derive a friendly placeholder: prefer the handle they
+        // claimed, then the email local-part, then a generic fallback.
+        $name = $desiredHandle !== ''
+            ? $desiredHandle
+            : ($type === 'email' ? Str::before($identifier, '@') : 'Creator');
+        $name = $name !== '' ? $name : 'Creator';
+
+        $country = $request->input('country');
+        $country = (is_string($country) && preg_match('/^[A-Za-z]{2}$/', $country))
+            ? strtoupper($country)
+            : null;
+
+        $freePlan = Plan::defaultPlan();
+        $user = User::create([
+            'name'          => $name,
+            'email'         => $type === 'email'  ? strtolower($identifier) : null,
+            'mobile'        => $type === 'mobile' ? $identifier : null,
+            // OTP is the only way in; fill the NOT NULL password column with
+            // an unguessable random hash.
+            'password'      => Hash::make(Str::random(48)),
+            'plan_id'       => $freePlan?->id,
+            'status'        => 'active',
+            'referral_code' => $referrals->generateUniqueCode(),
+            'country'       => $country,
+        ]);
+
+        // Attribute the signup to any referral cookie/code (parity with the
+        // email/password register form).
+        $cookieCode = $request->cookie(ReferralService::COOKIE_NAME);
+        $referrals->attributeSignup($user, $request->input('referral_code'), $cookieCode, $request->ip(), $request->userAgent());
+
+        // Reserve the handle the visitor claimed on the homepage hero. An
+        // invalid/taken/banned value is skipped so sign-up never dead-ends;
+        // we stash a friendly, non-blocking notice so they learn what they got
+        // instead (mirrors the email/password register flow).
+        if ($missedHandle = $this->applyClaimedHandle($user, $request->input('desired_handle'))) {
+            session(['claimed_handle_notice' => [
+                'requested' => $missedHandle,
+                'actual'    => $user->publicHandle(),
+                'url'       => route('user.creator-profile.edit'),
+            ]]);
+        }
+
+        // Every new user starts with a personal workspace.
+        $user->ensureDefaultWorkspace();
+
+        return $user;
     }
 
     public function resendOtp(Request $request)

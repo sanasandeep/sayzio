@@ -2,41 +2,34 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Services\OtpService;
+use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Companion to ClaimedHandleSurvivesRegistrationTest. That test pins the web
- * POST user.register.submit flow, which is the ONLY signup surface a "claim
- * your link" handle is ever carried into (homepage hero → open-auth modal →
- * hidden desired_handle field → AuthController::applyClaimedHandle).
+ * Companion to ClaimedHandleSurvivesRegistrationTest (which pins the web
+ * email/password user.register.submit flow).
  *
- * This test pins the *decision* for the other account-creation surfaces named
- * in the task — the OTP-as-signup paths — so the claimed-handle behavior is
- * consistent and can't silently drift:
+ * This test pins the passwordless OTP / WhatsApp sign-up path from the
+ * homepage auth modal. That path is sign-IN by default — a bare code request
+ * for an unknown identifier creates nothing and stays enumeration-safe — but
+ * the modal's explicit "Sign up with WhatsApp" affordance sends intent=signup,
+ * which CREATES the account and carries through the @handle the visitor claimed
+ * on the homepage hero (via the hidden desired_handle field).
  *
- *   DECISION: a claimed handle is intentionally OUT OF SCOPE for the OTP-based
- *   signup paths. The claim-handle entry points never route a handle into
- *   them, so there is nothing to carry through:
+ *   1. Bare / login-intent web OTP for an unknown identifier creates no
+ *      account (and issues no code), and verify returns "User not found".
+ *   2. intent=signup web OTP for an unknown identifier DOES create the
+ *      account, reserves the claimed handle, and the subsequent verify logs in.
+ *   3. intent=signup is still gated by the registration-paused switch.
  *
- *   1. Web bare OTP path (POST user.otp.send → user.otp.verify) never CREATES
- *      an account at all. An unknown identifier gets a generic "if an account
- *      exists" response with no code issued, and verify returns "User not
- *      found" — so there is no new account for a handle to attach to.
- *   2. Mobile/API OTP signup (POST /api/v1/auth/otp/register) DOES create an
- *      account, but its request contract has no handle field. A handle sent
- *      anyway is ignored, not applied — the new account has no @handle.
- *
- * This mirrors the documented design that the OTP / social account-creation
- * paths don't accept a handle (handles are chosen later in-app). If that ever
- * changes deliberately, these assertions are the place to update.
- *
- * See memory "Marketing hero claim-handle handoff" and "Banned-name @handle
- * surfaces".
+ * See memory "Marketing hero claim-handle handoff", "Registration pause
+ * switch", and "Banned-name @handle surfaces".
  */
 class ClaimedHandleOtpSignupTest extends TestCase
 {
@@ -60,8 +53,8 @@ class ClaimedHandleOtpSignupTest extends TestCase
 
     /**
      * The web "log in with a code" path is login-only: sending a code for an
-     * unknown identifier creates nothing (and issues no code), so there is no
-     * new account for a claimed handle to land on.
+     * unknown identifier with no signup intent creates nothing (and issues no
+     * code), so there is no new account for a claimed handle to land on.
      */
     public function test_web_otp_send_for_unknown_identifier_creates_no_account(): void
     {
@@ -77,9 +70,8 @@ class ClaimedHandleOtpSignupTest extends TestCase
 
     /**
      * Even a *valid* code for an unknown identifier cannot mint an account via
-     * the web verify step — it returns "User not found". This is what makes a
-     * claimed handle moot on this path: verify never creates a user, so a
-     * (hypothetical) carried handle would have nothing to attach to.
+     * the web verify step when no account was created at send time — it returns
+     * "User not found".
      */
     public function test_web_otp_verify_for_unknown_identifier_creates_no_account(): void
     {
@@ -98,29 +90,77 @@ class ClaimedHandleOtpSignupTest extends TestCase
     }
 
     /**
-     * The mobile/API OTP signup DOES create an account, but it has no handle
-     * field — a handle sent alongside the request is ignored, not applied.
-     * The account is created with no @handle (to be chosen later in-app).
+     * The explicit sign-up affordance (intent=signup) for an unknown identifier
+     * CREATES the account on the web OTP path and reserves the @handle the
+     * visitor claimed on the homepage hero. The subsequent verify then logs the
+     * brand-new user in.
      */
-    public function test_api_otp_register_ignores_a_supplied_handle(): void
+    public function test_web_otp_signup_intent_creates_account_with_claimed_handle(): void
     {
-        // The controller stores the email lowercased, so keep the local part
-        // lowercase to match it back on the lookup below.
-        $email = 'mobilesignup' . Str::lower(Str::random(6)) . '@example.com';
+        $email  = 'creator' . Str::lower(Str::random(6)) . '@example.com';
+        $handle = 'taken' . Str::lower(Str::random(6));
 
-        $this->postJson('/api/v1/auth/otp/register', [
-            'name'           => 'Mobile Signup',
+        $this->post('/user/send-otp', [
             'identifier'     => $email,
             'type'           => 'email',
-            // Neither field is part of the contract — both must be ignored.
-            'handle'         => 'claimedhandle',
-            'desired_handle' => 'claimedhandle',
-        ])->assertStatus(201)
-          ->assertJsonPath('data.sent', true);
+            'intent'         => 'signup',
+            'desired_handle' => $handle,
+        ])->assertRedirect(route('user.otp.verify.form'));
 
         $user = User::where('email', $email)->first();
-        $this->assertNotNull($user, 'the OTP signup must create the account');
-        $this->assertNull($user->handle, 'the OTP signup path must not apply a handle');
-        $this->assertDatabaseMissing('users', ['handle' => 'claimedhandle']);
+        $this->assertNotNull($user, 'signup intent must create the account');
+        $this->assertSame($handle, $user->handle, 'the claimed handle must be reserved on the new account');
+        $this->assertNotNull($user->plan_id, 'the new account must get the default plan');
+
+        // The minted code logs the new user straight in.
+        $code = (new OtpService())->generate($email, 'email', 'login', 'web');
+        $this->withSession(['otp_identifier' => $email, 'otp_type' => 'email'])
+            ->post('/user/verify-otp', ['code' => $code]);
+
+        $this->assertAuthenticatedAs($user->fresh());
+    }
+
+    /**
+     * Signup intent is honored on the WhatsApp (mobile) identifier path too —
+     * the same affordance, just delivered over WhatsApp. Requires an admin to
+     * have switched mobile login on.
+     */
+    public function test_web_otp_signup_intent_via_whatsapp_creates_account_with_handle(): void
+    {
+        AppSetting::put(AuthMethods::SETTING_MOBILE_ENABLED, true);
+
+        $mobile = '+1' . random_int(2000000000, 2999999999);
+        $handle = 'wacreator' . Str::lower(Str::random(6));
+
+        $this->post('/user/send-otp', [
+            'identifier'     => $mobile,
+            'type'           => 'mobile',
+            'intent'         => 'signup',
+            'desired_handle' => $handle,
+        ])->assertRedirect(route('user.otp.verify.form'));
+
+        $user = User::where('mobile', $mobile)->first();
+        $this->assertNotNull($user, 'WhatsApp signup intent must create the account');
+        $this->assertSame($handle, $user->handle, 'the claimed handle must be reserved on the new account');
+    }
+
+    /**
+     * Signup intent stays gated by the registration-paused switch: no account
+     * is created and the visitor sees the branded "upgrading" page.
+     */
+    public function test_web_otp_signup_intent_is_blocked_when_registration_paused(): void
+    {
+        AppSetting::put(AuthMethods::SETTING_REGISTRATION_PAUSED, true);
+
+        $email = 'paused' . Str::lower(Str::random(6)) . '@example.com';
+
+        $this->post('/user/send-otp', [
+            'identifier'     => $email,
+            'type'           => 'email',
+            'intent'         => 'signup',
+            'desired_handle' => 'somehandle',
+        ])->assertOk();
+
+        $this->assertDatabaseMissing('users', ['email' => $email]);
     }
 }

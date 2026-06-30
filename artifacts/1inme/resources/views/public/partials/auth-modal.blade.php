@@ -35,6 +35,10 @@
                 <form x-show="authTab==='login'" method="POST" action="{{ route('user.otp.send') }}"
                       x-data="{ otpType:'email' }" class="space-y-3">
                     @csrf
+                    {{-- Login tab = sign IN. An unknown identifier stays
+                         enumeration-safe (no account, no code). Sign-up lives
+                         on the "Sign up" tab. --}}
+                    <input type="hidden" name="intent" value="login">
                     <input type="hidden" name="type" :value="otpType">
                     <div class="flex gap-2">
                         <button type="button" @click="otpType='email'" :class="otpType==='email' ? 'border-blue-500 text-blue-300 bg-blue-500/10' : 'border-white/10 text-gray-400'" class="flex-1 py-2 text-xs font-medium rounded-lg border">
@@ -110,6 +114,44 @@
                         <a href="{{ route('site.privacy') }}" class="text-blue-400 hover:underline">Privacy Policy</a>.
                     </p>
                 </form>
+
+                {{-- Passwordless WhatsApp sign-up. Distinct from the Login tab's
+                     one-time-code form (which is sign IN only): this CREATES an
+                     account for an unknown number (intent=signup) and carries the
+                     handle claimed on the homepage hero through to it. Only shown
+                     when an admin has enabled WhatsApp (mobile) login. --}}
+                @if($mobileLoginEnabled)
+                <div x-show="authTab==='register'" x-cloak class="mt-4">
+                    <div class="flex items-center gap-3 my-4">
+                        <div class="flex-1 h-px bg-white/10"></div>
+                        <span class="text-[10px] uppercase tracking-wider font-bold text-gray-500">or</span>
+                        <div class="flex-1 h-px bg-white/10"></div>
+                    </div>
+                    <form method="POST" action="{{ route('user.otp.send') }}" class="space-y-3">
+                        @csrf
+                        <input type="hidden" name="type" value="mobile">
+                        <input type="hidden" name="intent" value="signup">
+                        {{-- Carries the homepage-hero claimed handle so it's
+                             reserved on the new account, same as the form above. --}}
+                        <input type="hidden" name="desired_handle" :value="authHandle">
+                        <div x-show="authHandle" x-cloak class="rounded-lg px-3 py-2 text-xs bg-blue-500/10 border border-blue-500/30 text-blue-200 flex items-center gap-2">
+                            <i class="fas fa-link text-[11px]"></i>
+                            <span>Claiming <strong x-text="'@' + authHandle"></strong> for your page.</span>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">WhatsApp Number</label>
+                            <input type="text" name="identifier" required placeholder="+1234567890"
+                                   class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-green-500 focus:outline-none">
+                            <p class="mt-1.5 text-[10px] text-gray-500">
+                                <i class="fab fa-whatsapp mr-0.5"></i> We'll create your account and send a 6-digit code over WhatsApp. Supported country codes: {{ implode(', ', $allowedCountryCodes ?? []) }}.
+                            </p>
+                        </div>
+                        <button type="submit" class="w-full py-2.5 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-bold text-white">
+                            <i class="fab fa-whatsapp mr-1"></i> Sign up with WhatsApp
+                        </button>
+                    </form>
+                </div>
+                @endif
 
                 @if($errors->any())
                     <div class="mt-3 rounded-lg px-3 py-2 text-xs bg-red-500/10 border border-red-500/30 text-red-300">
