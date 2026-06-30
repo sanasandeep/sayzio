@@ -8,7 +8,9 @@ use App\Modules\User\Models\AiPersonaAgent;
 use App\Modules\User\Models\AiResourceShare;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
+use App\Modules\User\Models\WorkspaceMember;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Resolves and manages AI resource sharing (Task #2909).
@@ -33,20 +35,65 @@ class AiResourceShareService
      */
     public function audiencesForUser(User $user): array
     {
-        $ownedIds = $user->ownedWorkspaces()->pluck('id')
-            ->map(fn ($i) => (int) $i)->all();
+        $id = (int) $user->id;
 
-        $memberIds = $user->workspaceMemberships()
+        return $this->audiencesForUsers([$id])[$id];
+    }
+
+    /**
+     * Batched form of {@see audiencesForUser()}: resolves the audiences
+     * for many users in a fixed number of queries (one per source —
+     * owned workspaces, active memberships, badges) regardless of how
+     * many users are passed. Used to keep owner-audience validation from
+     * degrading into an N+1 as sharing scales. Suspended workspace seats
+     * are excluded, matching the per-user method.
+     *
+     * Every requested id is always present in the result (empty arrays
+     * when the user has no audiences or no longer exists), so callers can
+     * index without isset() guards.
+     *
+     * @param  int[]  $userIds
+     * @return array<int, array{workspace:int[], badge:int[]}>
+     */
+    public function audiencesForUsers(array $userIds): array
+    {
+        $userIds = array_values(array_unique(array_map('intval', $userIds)));
+
+        $result = [];
+        foreach ($userIds as $id) {
+            $result[$id] = ['workspace' => [], 'badge' => []];
+        }
+
+        if (empty($userIds)) {
+            return $result;
+        }
+
+        Workspace::whereIn('owner_user_id', $userIds)
+            ->get(['id', 'owner_user_id'])
+            ->each(function ($w) use (&$result) {
+                $result[(int) $w->owner_user_id]['workspace'][] = (int) $w->id;
+            });
+
+        WorkspaceMember::whereIn('user_id', $userIds)
             ->whereNull('suspended_at')
-            ->pluck('workspace_id')
-            ->map(fn ($i) => (int) $i)->all();
+            ->get(['user_id', 'workspace_id'])
+            ->each(function ($m) use (&$result) {
+                $result[(int) $m->user_id]['workspace'][] = (int) $m->workspace_id;
+            });
 
-        $workspaceIds = array_values(array_unique(array_merge($ownedIds, $memberIds)));
+        DB::table('account_badge_user')
+            ->whereIn('user_id', $userIds)
+            ->get(['user_id', 'account_badge_id'])
+            ->each(function ($row) use (&$result) {
+                $result[(int) $row->user_id]['badge'][] = (int) $row->account_badge_id;
+            });
 
-        $badgeIds = $user->accountBadges()->get()->modelKeys();
-        $badgeIds = array_values(array_unique(array_map('intval', $badgeIds)));
+        foreach ($result as $id => $aud) {
+            $result[$id]['workspace'] = array_values(array_unique($aud['workspace']));
+            $result[$id]['badge'] = array_values(array_unique($aud['badge']));
+        }
 
-        return ['workspace' => $workspaceIds, 'badge' => $badgeIds];
+        return $result;
     }
 
     /**
@@ -415,18 +462,25 @@ class AiResourceShareService
 
         $ownerIds = $shares->pluck('owner_user_id')
             ->map(fn ($i) => (int) $i)->unique()->all();
-        $owners = User::whereIn('id', $ownerIds)->get()->keyBy('id');
 
-        $audByOwner = [];
-        foreach ($owners as $id => $owner) {
-            $audByOwner[(int) $id] = $this->audiencesForUser($owner);
-        }
+        // Owners that still exist; a deleted owner's shares are no longer
+        // authoritative and must be dropped even if orphan audience rows
+        // somehow remain.
+        $existingOwnerIds = array_flip(
+            User::whereIn('id', $ownerIds)->pluck('id')
+                ->map(fn ($i) => (int) $i)->all()
+        );
 
-        return $shares->filter(function ($s) use ($audByOwner) {
-            $aud = $audByOwner[(int) $s->owner_user_id] ?? null;
-            if ($aud === null) {
+        // One batched pass instead of re-running audiencesForUser() per
+        // owner: a fixed number of queries regardless of owner count.
+        $audByOwner = $this->audiencesForUsers($ownerIds);
+
+        return $shares->filter(function ($s) use ($audByOwner, $existingOwnerIds) {
+            $ownerId = (int) $s->owner_user_id;
+            if (!isset($existingOwnerIds[$ownerId])) {
                 return false; // owner no longer exists
             }
+            $aud = $audByOwner[$ownerId];
             if ($s->audience_type === AiResourceShare::AUDIENCE_WORKSPACE) {
                 return in_array((int) $s->audience_id, $aud['workspace'], true);
             }
