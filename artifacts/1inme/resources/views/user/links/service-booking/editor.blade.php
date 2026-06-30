@@ -175,6 +175,11 @@
                         @foreach(timezone_identifiers_list() as $tz)<option value="{{ $tz }}">@endforeach
                     </datalist>
                 </div>
+                <div class="sb-row" x-show="config.mode === 'booking'">
+                    <label class="sb-label">WhatsApp number (optional)</label>
+                    <input class="sb-input" type="text" x-model="config.whatsapp_number" @change="saveSettings()" maxlength="40" placeholder="e.g. +1 555 123 4567">
+                    <p class="text-xs mt-1" style="color:var(--text-muted)">If set, visitors get a "Send my booking via WhatsApp" button on their booking status page with the details pre-filled.</p>
+                </div>
             </div>
 
             <!-- GST / tax estimate -->
@@ -335,7 +340,7 @@
     $sbServices = $config->services->map(fn($s)=>['id'=>$s->id,'category_id'=>$s->category_id,'name'=>$s->name,'description'=>$s->description,'price'=>$s->price,'duration_minutes'=>$s->duration_minutes,'photo_url'=>$s->photo_url,'is_unavailable'=>$s->is_unavailable])->values();
     $sbRules = $config->availabilityRules->map(fn($r)=>['id'=>$r->id,'day_of_week'=>$r->day_of_week,'start_time'=>substr((string)$r->start_time,0,5),'end_time'=>substr((string)$r->end_time,0,5)])->values();
     $sbBlocked = $config->blockedDates->map(fn($b)=>['id'=>$b->id,'date'=>$b->date?->format('Y-m-d'),'reason'=>$b->reason])->values();
-    $sbConfigData = ['mode' => $config->mode, 'currency' => $config->currency, 'accent_color' => $config->accent_color, 'slot_length_minutes' => $config->slot_length_minutes, 'lead_time_minutes' => $config->lead_time_minutes, 'max_days_ahead' => $config->max_days_ahead, 'timezone' => $config->timezone];
+    $sbConfigData = ['mode' => $config->mode, 'currency' => $config->currency, 'accent_color' => $config->accent_color, 'slot_length_minutes' => $config->slot_length_minutes, 'lead_time_minutes' => $config->lead_time_minutes, 'max_days_ahead' => $config->max_days_ahead, 'timezone' => $config->timezone, 'whatsapp_number' => $config->settings['whatsapp_number'] ?? ''];
     $sbTaxData = ['enabled' => $config->taxEnabled(), 'rate' => $config->taxRate(), 'inclusive' => $config->taxInclusive(), 'label' => $config->taxLabel()];
 @endphp
 function serviceBookingEditor() {
@@ -402,6 +407,7 @@ function serviceBookingEditor() {
                 lead_time_minutes:parseInt(this.config.lead_time_minutes||0),
                 max_days_ahead:parseInt(this.config.max_days_ahead||30),
                 timezone:this.config.timezone||'',
+                whatsapp_number:(this.config.whatsapp_number||'').trim(),
                 tax_enabled:!!this.tax.enabled,
                 tax_rate:parseFloat(this.tax.rate||0),
                 tax_inclusive:!!this.tax.inclusive,

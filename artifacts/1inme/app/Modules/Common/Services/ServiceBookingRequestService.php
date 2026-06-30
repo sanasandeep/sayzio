@@ -118,7 +118,9 @@ class ServiceBookingRequestService
             return $request;
         });
 
-        $this->notifyOwner($link, $config, $request->fresh('items'));
+        $fresh = $request->fresh('items');
+        $this->notifyOwner($link, $config, $fresh);
+        $this->notifyVisitorReceived($link, $config, $fresh);
 
         return $request;
     }
@@ -192,5 +194,94 @@ class ServiceBookingRequestService
                 $notification ? ['notification_id' => $notification->id] : [],
             ),
         );
+    }
+
+    /**
+     * Email the visitor a "request received" confirmation with the tokenized
+     * status link. The visitor has no account, so this is the only proactive
+     * channel (WhatsApp is a click-to-chat link they open themselves). No-op
+     * when no email was supplied.
+     */
+    protected function notifyVisitorReceived(Link $link, ServiceBooking $config, ServiceBookingRequest $request): void
+    {
+        $email = trim((string) ($request->customer_email ?? ''));
+        if ($email === '') {
+            return;
+        }
+
+        [$serviceNames, $when, $estimated] = $this->visitorTokens($config, $request);
+
+        try {
+            Emailer::send('service_booking.request_received', $email, [
+                'customer'   => $request->customer_name,
+                'services'   => $serviceNames,
+                'when'       => $when,
+                'currency'   => $request->currency,
+                'total'      => number_format($estimated, 2),
+                'link_title' => $link->title,
+                'status_url' => route('sb.public.booking.page', ['token' => $request->public_token]),
+            ], ['related' => $request, 'to_name' => $request->customer_name]);
+        } catch (\Throwable $e) {
+            Log::warning('service_booking request_received visitor email failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Email the visitor when the owner advances their booking to a new status
+     * (confirmed / declined / completed / cancelled). Resolves the link/config
+     * from the request so both the web + API status controllers can call it.
+     * No-op when no email was supplied.
+     */
+    public function notifyStatusChange(ServiceBookingRequest $request): void
+    {
+        $request->loadMissing(['items', 'serviceBooking', 'link']);
+        $config = $request->serviceBooking;
+        $link = $request->link;
+        if (!$config || !$link) {
+            return;
+        }
+
+        $email = trim((string) ($request->customer_email ?? ''));
+        if ($email === '') {
+            return;
+        }
+
+        [$serviceNames, $when] = $this->visitorTokens($config, $request);
+
+        try {
+            Emailer::send('service_booking.status_changed', $email, [
+                'customer'   => $request->customer_name,
+                'services'   => $serviceNames,
+                'when'       => $when,
+                'status'     => $request->status_label,
+                'link_title' => $link->title,
+                'status_url' => route('sb.public.booking.page', ['token' => $request->public_token]),
+            ], ['related' => $request, 'to_name' => $request->customer_name]);
+        } catch (\Throwable $e) {
+            Log::warning('service_booking status_changed visitor email failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Shared visitor-email tokens: a human service list, the formatted slot in
+     * the provider's timezone, and the estimated total.
+     *
+     * @return array{0:string,1:string,2:float}
+     */
+    protected function visitorTokens(ServiceBooking $config, ServiceBookingRequest $request): array
+    {
+        $tz = $config->effectiveTimezone();
+        $when = $request->slot_start
+            ? Carbon::parse($request->slot_start)->setTimezone($tz)->format('D, M j · g:i A')
+            : 'your requested time';
+
+        $serviceNames = $request->items->pluck('name')->implode(', ');
+        if ($serviceNames === '') {
+            $serviceNames = 'a service';
+        }
+
+        $estimated = (float) ($request->total ?: $request->subtotal);
+
+        return [$serviceNames, $when, $estimated];
     }
 }

@@ -221,9 +221,21 @@ class ServiceBookingController extends Controller
             'tax_rate'            => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'       => 'sometimes|boolean',
             'tax_label'           => 'nullable|string|max:24',
+            'whatsapp_number'     => 'sometimes|nullable|string|max:40',
         ]);
 
         $settings = $config->settings ?? [];
+
+        // Optional WhatsApp click-to-chat number (Task #3102).
+        if ($request->has('whatsapp_number')) {
+            $wa = trim((string) ($data['whatsapp_number'] ?? ''));
+            if ($wa === '') {
+                unset($settings['whatsapp_number']);
+            } else {
+                $settings['whatsapp_number'] = $wa;
+            }
+        }
+
         if ($request->has('tax_enabled') || $request->has('tax_rate')
             || $request->has('tax_inclusive') || $request->has('tax_label')) {
             $settings['tax'] = [
@@ -599,7 +611,12 @@ class ServiceBookingController extends Controller
             );
         }
 
+        $changed = $data['status'] !== $booking->status;
         $booking->update(['status' => $data['status']]);
+
+        if ($changed) {
+            $this->requests->notifyStatusChange($booking->fresh(['items', 'serviceBooking', 'link']));
+        }
 
         return $this->ok(['booking' => $this->ownerBooking($booking->fresh('items'))]);
     }
@@ -757,6 +774,7 @@ class ServiceBookingController extends Controller
             'max_days_ahead'      => (int) $config->max_days_ahead,
             'timezone'            => $config->effectiveTimezone(),
             'public_url'          => url('/' . $link->alias),
+            'whatsapp_number'     => $config->settings['whatsapp_number'] ?? '',
             'tax'                 => $this->taxPayload($config),
             'categories' => $config->categories->sortBy('sort_order')->map(fn ($c) => $this->ownerCategory(
                 $c,

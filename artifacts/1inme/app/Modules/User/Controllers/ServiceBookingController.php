@@ -80,9 +80,21 @@ class ServiceBookingController extends Controller
             'tax_rate'            => 'nullable|numeric|min:0|max:100',
             'tax_inclusive'       => 'sometimes|boolean',
             'tax_label'           => 'nullable|string|max:24',
+            'whatsapp_number'     => 'sometimes|nullable|string|max:40',
         ]);
 
         $settings = $data['settings'] ?? ($config->settings ?? []);
+
+        // Optional WhatsApp click-to-chat number (Task #3102) — stored raw in
+        // the `settings` JSON; normalized to wa.me form at send time.
+        if ($request->has('whatsapp_number')) {
+            $wa = trim((string) ($data['whatsapp_number'] ?? ''));
+            if ($wa === '') {
+                unset($settings['whatsapp_number']);
+            } else {
+                $settings['whatsapp_number'] = $wa;
+            }
+        }
 
         // Tax / GST line — accepted either flat (web editor, mobile API) or
         // pre-nested under `settings`. Stored in the config `settings` JSON.
@@ -417,7 +429,13 @@ class ServiceBookingController extends Controller
             ]], 422);
         }
 
+        $changed = $data['status'] !== $booking->status;
         $booking->update(['status' => $data['status']]);
+
+        if ($changed) {
+            app(\App\Modules\Common\Services\ServiceBookingRequestService::class)
+                ->notifyStatusChange($booking->fresh(['items', 'serviceBooking', 'link']));
+        }
 
         return response()->json(['data' => ['booking' => $booking->fresh('items')]]);
     }

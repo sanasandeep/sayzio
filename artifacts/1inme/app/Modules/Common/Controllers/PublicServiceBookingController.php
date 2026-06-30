@@ -5,6 +5,7 @@ namespace App\Modules\Common\Controllers;
 use App\Modules\Common\Services\ServiceBookingEstimateCalculator;
 use App\Modules\Common\Services\ServiceBookingRequestService;
 use App\Modules\Common\Services\SlotAvailabilityService;
+use App\Modules\Common\Services\WhatsappOrderLink;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\ServiceBooking;
 use App\Modules\User\Models\ServiceBookingRequest;
@@ -148,7 +149,11 @@ class PublicServiceBookingController extends Controller
         $link = $booking->link;
         $config = $booking->serviceBooking;
 
-        return response()->view('common.service-booking-status', compact('booking', 'link', 'config'));
+        $whatsapp = ($config && $link)
+            ? WhatsappOrderLink::build($config, $booking, $link->title)
+            : null;
+
+        return response()->view('common.service-booking-status', compact('booking', 'link', 'config', 'whatsapp'));
     }
 
     /**
@@ -194,10 +199,21 @@ class PublicServiceBookingController extends Controller
     /** Public guest-booking shape, including the estimated breakdown. */
     public static function serializeGuestBooking(ServiceBookingRequest $booking): array
     {
+        $config = $booking->relationLoaded('serviceBooking')
+            ? $booking->serviceBooking
+            : $booking->serviceBooking()->first();
+        $link = $booking->relationLoaded('link')
+            ? $booking->link
+            : $booking->link()->first();
+        $whatsapp = ($config && $link)
+            ? WhatsappOrderLink::build($config, $booking, $link->title)
+            : null;
+
         return [
             'public_token'     => $booking->public_token,
             'status'           => $booking->status,
             'status_label'     => $booking->status_label,
+            'whatsapp'         => $whatsapp,
             'customer_name'    => $booking->customer_name,
             'slot_start'       => optional($booking->slot_start)->toIso8601String(),
             'slot_end'         => optional($booking->slot_end)->toIso8601String(),
