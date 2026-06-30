@@ -1,7 +1,7 @@
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import { OrbitalUniverse } from "@/components/marketing/orbital-universe";
-import { PRICING_URL, SIGNUP_URL } from "@/config";
+import { FEATURES_URL, PRICING_URL, SIGNUP_URL } from "@/config";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
 
@@ -174,6 +174,22 @@ export default function Pricing() {
                 </Button>
               </motion.div>
             ))}
+          </div>
+
+          <div className="text-center mb-16">
+            <p className="text-muted-foreground mb-4">
+              These are just the highlights. See every feature, plan by plan.
+            </p>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="rounded-full h-12 px-7 bg-transparent border-primary/20 hover:bg-primary/5"
+            >
+              <a href={FEATURES_URL}>
+                Compare all features <ArrowRight className="ml-2 w-4 h-4" />
+              </a>
+            </Button>
           </div>
 
           <div className="max-w-3xl mx-auto glass-card p-8 rounded-3xl text-center">

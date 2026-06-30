@@ -5,7 +5,7 @@ import {
   SectionHeading,
   CTABand,
 } from "@/components/marketing/marketing";
-import { SIGNUP_URL, PRICING_URL } from "@/config";
+import { SIGNUP_URL, PRICING_URL, FEATURES_URL } from "@/config";
 import { competitors, compareGroups, featureSupport, totalFeatures } from "@/content/compare";
 import { motion } from "framer-motion";
 import { Check, X, ArrowRight } from "lucide-react";
@@ -150,6 +150,15 @@ export default function Compare() {
               </tbody>
             </table>
           </div>
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Want the full breakdown by plan?{" "}
+            <a
+              href={FEATURES_URL}
+              className="font-semibold text-primary inline-flex items-center gap-1 hover:underline"
+            >
+              See every feature, plan by plan <ArrowRight className="w-4 h-4" />
+            </a>
+          </p>
         </div>
       </section>
 

@@ -144,22 +144,21 @@ class PricingPagesController extends Controller
     public function features(Request $request)
     {
         $plans = Plan::active()->public()->ordered()->get();
-        $unlocks = PremiumFeatures::unlocksByFeature($plans);
         $catalogue = PremiumFeatures::catalogue();
 
+        // Group the catalogue for the side-by-side comparison grid. Cell
+        // values are resolved per-plan in the view via
+        // PremiumFeatures::resolveCell() so the grid, the /pricing matrix and
+        // the mobile API all read the same source of truth.
         $grouped = [];
         foreach ($catalogue as $entry) {
-            $grouped[$entry['group']][] = $entry + ['unlocked_by' => $unlocks[$entry['key']] ?? []];
+            $grouped[$entry['group']][] = $entry;
         }
-
-        $planMeta = $plans->map(fn ($p) => [
-            'slug' => $p->slug, 'name' => $p->name,
-        ])->keyBy('slug');
 
         return view('public.pricing.features', [
             'seoKey'   => 'premium-features',
             'grouped'  => $grouped,
-            'planMeta' => $planMeta,
+            'plans'    => $plans,
         ]);
     }
 }

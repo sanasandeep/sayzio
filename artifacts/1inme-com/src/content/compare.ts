@@ -133,28 +133,58 @@ export interface CompareGroup {
 
 export const compareGroups: CompareGroup[] = [
   {
-    category: "Link in Bio page",
+    category: "Link in Bio & pages",
     features: [
       "Drag-and-drop Link in Bio builder",
       "Multiple bio pages per account",
       "Embed video, music & forms",
       "Custom themes & fonts",
+      "Premium template library",
       "Custom domains",
     ],
   },
   {
-    category: "Links & QR",
-    features: ["Branded short links", "Dynamic QR codes", "QR styling, logos & colors", "Bulk link import"],
+    category: "Links, QR & control",
+    features: [
+      "Branded short links",
+      "Dynamic QR codes",
+      "QR styling, logos & colors",
+      "Bulk link import",
+      "Password-protected links",
+      "Link expiry & scheduling",
+      "Geo & device targeting",
+    ],
   },
   {
-    category: "Analytics",
-    features: ["Built-in click analytics", "Live visitor map", "Click heatmap", "UTM builder"],
+    category: "Analytics & tracking",
+    features: [
+      "Built-in click analytics",
+      "Live visitor map",
+      "Click heatmap",
+      "UTM builder",
+      "Marketing pixels (Meta, TikTok, Google)",
+      "SEO & social previews",
+      "Stats CSV export",
+    ],
+  },
+  {
+    category: "More page types",
+    features: [
+      "Lead-capture forms",
+      "Paid forms",
+      "Reviews pages",
+      "Restaurant menu & table QR ordering",
+      "Resume / portfolio pages",
+      "Events & RSVPs",
+      "Followable calendars (Google sync)",
+    ],
   },
   {
     category: "Growth & AI",
     features: [
       "AI Performance coach",
       "Knowledge Bases, AI Agents & Chat Widgets",
+      "AI Agent (multi-step automation)",
       "Site Assistant widget",
       "AI Voice Assistant",
       "Card & brochure scanner",
@@ -166,6 +196,15 @@ export const compareGroups: CompareGroup[] = [
   {
     category: "Monetization",
     features: ["Tip jar / donations", "Sell digital products", "Coin / wallet rewards"],
+  },
+  {
+    category: "Branding & developer",
+    features: [
+      "White-label branding",
+      'Remove "powered by" badge',
+      "Custom HTML / JS",
+      "Public API access",
+    ],
   },
   {
     category: "Team & workflow",
@@ -211,6 +250,25 @@ export const featureSupport: Record<string, Record<string, boolean>> = {
   "Roles & permissions": { ours: true, linktree: false, bitly: true, beacons: false, carrd: false, taplink: false, stan: false },
   "Free forever (no credit card)": { ours: true, linktree: true, bitly: true, beacons: true, carrd: true, taplink: true, stan: false },
   "Native mobile app": { ours: true, linktree: true, bitly: true, beacons: true, carrd: false, taplink: false, stan: true },
+  "Premium template library": { ours: true, linktree: true, bitly: false, beacons: true, carrd: true, taplink: true, stan: true },
+  "Password-protected links": { ours: true, linktree: false, bitly: true, beacons: false, carrd: false, taplink: false, stan: false },
+  "Link expiry & scheduling": { ours: true, linktree: true, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
+  "Geo & device targeting": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
+  "Marketing pixels (Meta, TikTok, Google)": { ours: true, linktree: true, bitly: false, beacons: true, carrd: false, taplink: true, stan: true },
+  "SEO & social previews": { ours: true, linktree: true, bitly: false, beacons: true, carrd: true, taplink: true, stan: true },
+  "Stats CSV export": { ours: true, linktree: true, bitly: true, beacons: true, carrd: false, taplink: true, stan: false },
+  "Lead-capture forms": { ours: true, linktree: true, bitly: false, beacons: true, carrd: true, taplink: true, stan: true },
+  "Paid forms": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
+  "Reviews pages": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
+  "Restaurant menu & table QR ordering": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
+  "Resume / portfolio pages": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
+  "Events & RSVPs": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
+  "Followable calendars (Google sync)": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
+  "AI Agent (multi-step automation)": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
+  "White-label branding": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
+  'Remove "powered by" badge': { ours: true, linktree: true, bitly: true, beacons: true, carrd: true, taplink: true, stan: true },
+  "Custom HTML / JS": { ours: true, linktree: false, bitly: false, beacons: false, carrd: true, taplink: false, stan: false },
+  "Public API access": { ours: true, linktree: false, bitly: true, beacons: false, carrd: false, taplink: false, stan: false },
 };
 
 export const totalFeatures = compareGroups.reduce((n, g) => n + g.features.length, 0);

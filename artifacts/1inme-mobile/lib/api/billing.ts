@@ -22,6 +22,7 @@ export type Plan = {
   description: string | null;
   features: string[];
   features_map?: Record<string, string | number | boolean>;
+  feature_highlights?: string[];
   currency: string;
   is_default: boolean;
   is_popular?: boolean;
