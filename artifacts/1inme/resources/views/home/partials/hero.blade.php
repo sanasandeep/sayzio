@@ -191,7 +191,21 @@
 
                     <div class="zio-core" aria-hidden="true">
                         <span class="zio-mascot-halo"></span>
-                        <img src="{{ asset('branding/sayzio-mascot.png') }}" alt="Zio, the Sayzio AI mascot" class="zio-mascot" width="220" height="220" loading="eager" decoding="async">
+                        {{-- Animated mascot: a transparent (VP9-alpha) looping clip keyed
+                             out of its original off-white box. Autoplays muted + inline,
+                             no controls/audio. The transparent still PNG is the poster
+                             (shown while loading or if the video can't play). Under
+                             prefers-reduced-motion the video is hidden and the static
+                             .zio-mascot-fallback image is shown instead (see <style>). --}}
+                        <video class="zio-mascot zio-mascot-video"
+                               aria-label="Zio, the Sayzio AI mascot"
+                               width="220" height="220"
+                               autoplay loop muted playsinline disablepictureinpicture
+                               preload="metadata"
+                               poster="{{ asset('branding/sayzio-mascot-still.png') }}">
+                            <source src="{{ asset('branding/sayzio-mascot.webm') }}" type="video/webm">
+                        </video>
+                        <img src="{{ asset('branding/sayzio-mascot-still.png') }}" alt="Zio, the Sayzio AI mascot" class="zio-mascot zio-mascot-fallback" width="220" height="220" loading="eager" decoding="async">
                         <span class="zio-core-label"><i class="fas fa-wand-magic-sparkles"></i> Zio runs it all</span>
                     </div>
                 </div>
@@ -604,6 +618,11 @@
             animation: zioFloat 6.5s ease-in-out infinite;
             transform-origin: 50% 80%;
         }
+        /* The animated clip is square (640x640); keep it block-level so it sits
+           flush like the old <img> and let its aspect ratio drive the height. */
+        .zio-mascot-video { display: block; aspect-ratio: 1 / 1; }
+        /* Default (motion ok): show the video, hide the static fallback image. */
+        .zio-mascot-fallback { display: none; }
         @keyframes zioFloat {
             0%,100% { transform: translateY(0) rotate(-1.5deg) scale(1); }
             50%     { transform: translateY(-12px) rotate(1.5deg) scale(1.02); }
@@ -752,6 +771,10 @@
             .zio-node, .zio-node-thumb { opacity: 1 !important; }
             .zio-node-thumb { transform: scale(1) !important; }
             .zio-pulse { opacity: 0 !important; }
+            /* No autoplaying clip when motion is reduced: hide the video and
+               show the static transparent mascot still in its place. */
+            .zio-mascot-video { display: none !important; }
+            .zio-mascot-fallback { display: block !important; }
         }
     </style>
 
