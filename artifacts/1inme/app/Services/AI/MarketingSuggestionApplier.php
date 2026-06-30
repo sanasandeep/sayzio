@@ -62,6 +62,78 @@ class MarketingSuggestionApplier
     }
 
     /**
+     * Task #3095 — atomically claim and apply a pending suggestion.
+     *
+     * Without this, two near-simultaneous apply requests (double-tap, retry,
+     * web+mobile) can both pass an `if (isPending())` read-then-write guard and
+     * both run {@see self::apply()}, creating duplicate links/blocks/posts.
+     *
+     * We serialize with an atomic compare-and-set: a single
+     * `UPDATE ... WHERE status = 'pending'` flips the row to `applied`. Under
+     * Postgres READ COMMITTED exactly one concurrent request affects 1 row (the
+     * winner); the losers see 0 affected and get a {@see SuggestionNotPendingException}.
+     * Only the winner builds the owned object, so a suggestion can only ever
+     * produce one object even under concurrent requests.
+     *
+     * On winning we keep the in-memory model reading `pending` (the raw UPDATE
+     * doesn't touch it) so the apply() guard passes; we then flip the model to
+     * `applied` (with the ref) on success or `error` on failure, mirroring the
+     * state the callers previously wrote themselves.
+     *
+     * @return array{ref_type:string,ref_id:int,message:string,url:?string}
+     *
+     * @throws SuggestionNotPendingException when the row was already claimed.
+     */
+    public function claimAndApply(User $user, MarketingStrategySuggestion $suggestion): array
+    {
+        $claimed = MarketingStrategySuggestion::query()
+            ->withoutGlobalScopes()
+            ->whereKey($suggestion->getKey())
+            ->where('status', MarketingStrategySuggestion::STATUS_PENDING)
+            ->update([
+                'status'     => MarketingStrategySuggestion::STATUS_APPLIED,
+                'applied_at' => now(),
+            ]);
+
+        if ($claimed === 0) {
+            $current = MarketingStrategySuggestion::query()
+                ->withoutGlobalScopes()
+                ->whereKey($suggestion->getKey())
+                ->value('status');
+            // Reflect the committed status on the caller's instance so it can
+            // be reported back accurately.
+            $suggestion->setAttribute('status', $current ?? $suggestion->status);
+            $suggestion->syncOriginalAttribute('status');
+
+            throw new SuggestionNotPendingException($current !== null ? (string) $current : null);
+        }
+
+        try {
+            $result = $this->apply($user, $suggestion);
+        } catch (\Throwable $e) {
+            // We claimed the row; release it into the `error` state (not back to
+            // `pending`) so the failure surfaces and is never silently retried.
+            $suggestion->forceFill([
+                'status'     => MarketingStrategySuggestion::STATUS_ERROR,
+                'error'      => mb_substr($e->getMessage(), 0, 500),
+                'applied_at' => null,
+            ])->save();
+
+            throw $e;
+        }
+
+        $suggestion->forceFill([
+            'status'           => MarketingStrategySuggestion::STATUS_APPLIED,
+            'applied_ref_type' => $result['ref_type'],
+            'applied_ref_id'   => $result['ref_id'],
+            'error'            => null,
+            'applied_at'       => now(),
+        ])->save();
+
+        return $result;
+    }
+
+    /**
      * Scope a query to a specific workspace deterministically, independent of
      * any request-bound `current_workspace`. We drop the global workspace
      * scope and apply the strategy's workspace ourselves (NULL = personal).

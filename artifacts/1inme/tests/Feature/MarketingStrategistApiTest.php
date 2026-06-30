@@ -14,7 +14,9 @@ use App\Modules\User\Services\WorkspaceContext;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\InsufficientCoinsForAiException;
+use App\Services\AI\MarketingSuggestionApplier;
 use App\Services\AI\OpenAiService;
+use App\Services\AI\SuggestionNotPendingException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -461,6 +463,45 @@ class MarketingStrategistApiTest extends TestCase
         $resp->assertJsonPath('error.details.status', MarketingStrategySuggestion::STATUS_APPLIED);
         $this->assertSame(MarketingStrategySuggestion::STATUS_APPLIED, $s->fresh()->status);
         $this->assertSame(1, Link::where('user_id', $user->id)->count());
+    }
+
+    // ── concurrent apply → exactly one object, loser rejected cleanly ─────
+
+    public function test_api_concurrent_apply_creates_one_object_and_loser_is_rejected(): void
+    {
+        $user = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        $s = $this->suggestion($strategy, MarketingStrategySuggestion::TYPE_CREATE_LINK, [
+            'long_url' => 'https://race-api.test',
+            'title'    => 'Race',
+            'alias'    => 'raceapi-' . Str::random(5),
+        ]);
+
+        // Simulate two near-simultaneous requests: both fetched the suggestion
+        // while it was still pending (so both would pass the controller's
+        // isPending() check), then both reach the applier's atomic claim.
+        $first  = MarketingStrategySuggestion::findOrFail($s->id);
+        $second = MarketingStrategySuggestion::findOrFail($s->id);
+        $this->assertTrue($first->isPending());
+        $this->assertTrue($second->isPending());
+
+        $applier = app(MarketingSuggestionApplier::class);
+
+        // The winner applies and builds exactly one link.
+        $result = $applier->claimAndApply($user, $first);
+        $this->assertSame('link', $result['ref_type']);
+
+        // The loser is rejected cleanly and creates nothing.
+        try {
+            $applier->claimAndApply($user, $second);
+            $this->fail('Expected the second concurrent apply to be rejected.');
+        } catch (SuggestionNotPendingException $e) {
+            $this->assertSame(MarketingStrategySuggestion::STATUS_APPLIED, $e->currentStatus());
+        }
+
+        // Exactly one link exists, and the suggestion produced a single object.
+        $this->assertSame(1, Link::where('user_id', $user->id)->count());
+        $this->assertSame(MarketingStrategySuggestion::STATUS_APPLIED, $s->fresh()->status);
     }
 
     // ── an applier failure → 422 apply_failed, suggestion flipped to error ─

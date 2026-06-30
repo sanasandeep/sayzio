@@ -14,6 +14,7 @@ use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\MarketingStrategistService;
 use App\Services\AI\MarketingSuggestionApplier;
 use App\Services\AI\OpenAiService;
+use App\Services\AI\SuggestionNotPendingException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -225,24 +226,18 @@ class MarketingStrategistController extends Controller
             );
         }
 
+        // Atomically claim + apply so two near-simultaneous requests (double-tap,
+        // retry, web+mobile) can't both pass the pending check above and both
+        // build the owned object. The loser of the race gets a clean 422.
         try {
-            $result = $this->applier->apply($request->user(), $model);
+            $result = $this->applier->claimAndApply($request->user(), $model);
+        } catch (SuggestionNotPendingException $e) {
+            return $this->fail('This suggestion is no longer pending.', 422, 'not_pending', ['status' => $model->status]);
         } catch (\Throwable $e) {
-            $model->forceFill([
-                'status' => MarketingStrategySuggestion::STATUS_ERROR,
-                'error'  => mb_substr($e->getMessage(), 0, 500),
-            ])->save();
-
+            // claimAndApply already flipped the row to `error`; $model->status
+            // reflects that committed state.
             return $this->fail($e->getMessage(), 422, 'apply_failed', ['status' => $model->status]);
         }
-
-        $model->forceFill([
-            'status'           => MarketingStrategySuggestion::STATUS_APPLIED,
-            'applied_ref_type' => $result['ref_type'],
-            'applied_ref_id'   => $result['ref_id'],
-            'error'            => null,
-            'applied_at'       => now(),
-        ])->save();
 
         return $this->ok([
             'status'  => $model->status,
