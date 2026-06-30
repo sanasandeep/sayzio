@@ -109,6 +109,22 @@ export default function PlansScreen() {
       Alert.alert("Couldn't resume", e?.message ?? "Please try again."),
   });
 
+  // Start a cancel-at-period-end. Mirrors web BillingController::cancel() so a
+  // mobile user can stop renewing without contacting support or using the web.
+  const cancel = useMutation({
+    mutationFn: () => billing.cancel(),
+    onSuccess: async (res) => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["billing", "subscription"] }),
+        qc.invalidateQueries({ queryKey: ["billing", "plans"] }),
+        qc.invalidateQueries({ queryKey: ["billing", "downgrade"] }),
+      ]);
+      Alert.alert("Cancellation scheduled", res.data.message);
+    },
+    onError: (e: { message?: string }) =>
+      Alert.alert("Couldn't cancel", e?.message ?? "Please try again."),
+  });
+
   // Seed the currency from the backend-resolved default (geo / profile /
   // saved preference) once, then let the user flip it manually.
   const resolvedCurrency = plansQuery.data?.data?.currency;
@@ -255,6 +271,21 @@ export default function PlansScreen() {
       [
         { text: "Keep cancellation", style: "cancel" },
         { text: "Resume", onPress: () => resume.mutate() },
+      ],
+    );
+  };
+
+  const confirmCancel = () => {
+    Alert.alert(
+      "Stop renewing at period end?",
+      "You will keep paid features until the current period ends.",
+      [
+        { text: "Keep my plan", style: "cancel" },
+        {
+          text: "Cancel renewal",
+          style: "destructive",
+          onPress: () => cancel.mutate(),
+        },
       ],
     );
   };
@@ -586,6 +617,45 @@ export default function PlansScreen() {
                 }}
               >
                 Move to a lower paid plan at the end of your cycle.
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+          </Pressable>
+        ) : null}
+
+        {onPaidPlan && !cancelAtPeriodEnd ? (
+          <Pressable
+            onPress={confirmCancel}
+            disabled={cancel.isPending}
+            style={[
+              styles.downgrade,
+              {
+                borderColor: colors.border,
+                borderRadius: colors.radius,
+                opacity: cancel.isPending ? 0.6 : 1,
+              },
+            ]}
+          >
+            <Feather name="x-circle" size={18} color={colors.destructive} />
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  color: colors.foreground,
+                  fontFamily: "SpaceGrotesk_600SemiBold",
+                  fontSize: 14,
+                }}
+              >
+                {cancel.isPending ? "Cancelling…" : "Cancel at period end"}
+              </Text>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontFamily: "SpaceGrotesk_400Regular",
+                  fontSize: 12,
+                  marginTop: 2,
+                }}
+              >
+                Stop renewing. Keep paid features until the period ends.
               </Text>
             </View>
             <Feather name="chevron-right" size={18} color={colors.mutedForeground} />

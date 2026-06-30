@@ -199,6 +199,10 @@ export const billing = {
     apiFetch<{ data: { subscription: Subscription | null } }>(
       "/billing/subscription",
     ),
+  cancel: () =>
+    apiFetch<CancelResumeResponse>("/billing/cancel", {
+      method: "POST",
+    }),
   resume: () =>
     apiFetch<CancelResumeResponse>("/billing/resume", {
       method: "POST",
