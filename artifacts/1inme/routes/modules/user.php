@@ -1002,6 +1002,9 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::delete('{mind}/sources/{source}', [\App\Modules\User\Controllers\MindSourceController::class, 'destroy'])->whereNumber('mind')->whereNumber('source')->name('sources.destroy');
             // Test chat — AJAX in-page panel.
             Route::post('{mind}/ask',          [\App\Modules\User\Controllers\MindChatController::class, 'ask'])->whereNumber('mind')->middleware('throttle:20,1')->name('ask');
+            // Sharing into teams / badge groups (owner only).
+            Route::post  ('{mind}/shares',          [\App\Modules\User\Controllers\AiResourceShareController::class, 'storeMind'])->whereNumber('mind')->name('shares.store');
+            Route::delete('{mind}/shares/{share}',  [\App\Modules\User\Controllers\AiResourceShareController::class, 'destroyMind'])->whereNumber('mind')->whereNumber('share')->name('shares.destroy');
         });
 
         // AI Personas — configurable conversational agents that the
@@ -1017,6 +1020,9 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post  ('{persona}/duplicate',[\App\Modules\User\Controllers\AI\PersonasController::class, 'duplicate'])->whereNumber('persona')->middleware(CheckPlanLimit::class . ':ai_personas')->name('duplicate');
             Route::post  ('{persona}/versions/{version}/rollback', [\App\Modules\User\Controllers\AI\PersonasController::class, 'rollback'])->whereNumber('persona')->whereNumber('version')->name('rollback');
             Route::post  ('{persona}/test',    [\App\Modules\User\Controllers\AI\PersonasController::class, 'test'])->whereNumber('persona')->middleware('throttle:20,1')->name('test');
+            // Sharing into teams / badge groups (owner only).
+            Route::post  ('{persona}/shares',         [\App\Modules\User\Controllers\AiResourceShareController::class, 'storePersona'])->whereNumber('persona')->name('shares.store');
+            Route::delete('{persona}/shares/{share}', [\App\Modules\User\Controllers\AiResourceShareController::class, 'destroyPersona'])->whereNumber('persona')->whereNumber('share')->name('shares.destroy');
         });
 
         // AI Companions — placement-bound chatbots that bind a Persona

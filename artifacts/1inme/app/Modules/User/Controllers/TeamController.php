@@ -13,6 +13,7 @@ use App\Modules\User\Services\TwoFactorPolicy;
 use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Services\WorkspaceContentReassigner;
 use App\Modules\User\Services\WorkspacePermissions;
+use App\Services\AI\AiResourceShareService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
@@ -24,7 +25,10 @@ use Illuminate\Support\Facades\Mail;
  */
 class TeamController extends Controller
 {
-    public function __construct(protected WorkspaceContentReassigner $reassigner) {}
+    public function __construct(
+        protected WorkspaceContentReassigner $reassigner,
+        protected AiResourceShareService $shares,
+    ) {}
 
     /** Resolve the active workspace and ensure the caller is owner or admin. */
     protected function workspace(Request $request): Workspace
@@ -100,7 +104,14 @@ class TeamController extends Controller
         $policy = app(TwoFactorPolicy::class);
         $compliance = $this->buildComplianceList($ws, $members, $policy);
 
+        $sharedAi = $this->shares->resourcesSharedWithWorkspace((int) $ws->id);
+        $badgeSharedAi = $this->shares->resourcesSharedWithUserBadges($request->user());
+
         return view('user.team.index', [
+            'sharedAiMinds'       => $sharedAi['minds'],
+            'sharedAiPersonas'    => $sharedAi['personas'],
+            'badgeSharedAiMinds'    => $badgeSharedAi['minds'],
+            'badgeSharedAiPersonas' => $badgeSharedAi['personas'],
             'workspace'           => $ws,
             'rows'                => $rows,
             'pendingInvites'      => $pendingInvites,

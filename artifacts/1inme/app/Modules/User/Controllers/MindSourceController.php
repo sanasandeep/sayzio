@@ -10,6 +10,7 @@ use App\Modules\User\Models\AiMindSource;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiMindFeatureAdapter;
 use App\Services\AI\AiMindSettings;
+use App\Services\AI\AiResourceShareService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,16 +23,19 @@ use Illuminate\Support\Facades\Storage;
  */
 class MindSourceController extends Controller
 {
+    public function __construct(protected AiResourceShareService $shares) {}
+
     /**
      * Read-only view of a single source's body so creators can verify
      * what an AI citation actually pulled from. Accessible to the mind
-     * owner (or anyone for the platform-managed mind), even when the
+     * owner, anyone for the platform-managed mind, or a user the mind
+     * is shared with (USE is enough — this is read-only), even when the
      * mind is disabled — read-only by design.
      */
     public function show(Request $request, AiMind $mind, AiMindSource $source)
     {
         if (!AiEngineSettings::isEnabled()) abort(404);
-        if (!$mind->isPlatform() && (int) $mind->user_id !== (int) $request->user()->id) {
+        if (!$this->shares->canUseMind($request->user(), $mind)) {
             abort(403);
         }
         if ((int) $source->mind_id !== (int) $mind->id) abort(404);
@@ -332,7 +336,10 @@ class MindSourceController extends Controller
     {
         if (!AiEngineSettings::isEnabled()) abort(404);
         if ($mind->isPlatform()) abort(403, 'The default Mind is platform-managed.');
-        if ((int) $mind->user_id !== (int) $user->id) abort(403);
+        // Owner OR a shared editor (USE+EDIT) may change sources.
+        if ((int) $mind->user_id !== (int) $user->id && !$this->shares->canEditMind($user, $mind)) {
+            abort(403);
+        }
         if ($mind->is_disabled) abort(403, 'This Mind is disabled.');
     }
 }

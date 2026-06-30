@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\AiMind;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiMindQueryService;
+use App\Services\AI\AiResourceShareService;
 use App\Services\AI\InsufficientCoinsForAiException;
 use Illuminate\Http\Request;
 
@@ -16,7 +17,10 @@ use Illuminate\Http\Request;
  */
 class MindChatController extends Controller
 {
-    public function __construct(protected AiMindQueryService $svc) {}
+    public function __construct(
+        protected AiMindQueryService $svc,
+        protected AiResourceShareService $shares,
+    ) {}
 
     public function ask(Request $request, AiMind $mind)
     {
@@ -25,8 +29,10 @@ class MindChatController extends Controller
         if ($mind->is_disabled) {
             return $this->respond($request, ['error' => 'This Mind is disabled.'], 403);
         }
-        // Allow asking against your own Mind OR the platform default.
-        if (!$mind->isPlatform() && (int) $mind->user_id !== (int) $user->id) {
+        // Allow asking against your own Mind, the platform default, OR a
+        // Mind shared with you via a team / badge group. AI cost is
+        // charged to the acting user (below), never the owner.
+        if (!$this->shares->canUseMind($user, $mind)) {
             abort(403);
         }
 
@@ -41,7 +47,7 @@ class MindChatController extends Controller
         if (!empty($data['also'])) {
             $extras = AiMind::whereIn('id', $data['also'])->get();
             foreach ($extras as $m) {
-                if ($m->isPlatform() || (int) $m->user_id === (int) $user->id) {
+                if ($this->shares->canUseMind($user, $m)) {
                     $minds[] = $m;
                 }
             }

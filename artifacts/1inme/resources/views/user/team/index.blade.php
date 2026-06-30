@@ -199,6 +199,110 @@
         </div>
     </div>
 
+    {{-- AI shared into this workspace. --}}
+    @if($sharedAiMinds->isNotEmpty() || $sharedAiPersonas->isNotEmpty())
+        <div class="mt-6 rounded-lg border" style="border-color: var(--border-strong); background: var(--bg-card);">
+            <div class="px-4 py-3 border-b font-semibold flex items-center gap-2" style="border-color: var(--border-strong);">
+                <i class="fas fa-share-nodes"></i> Shared AI
+            </div>
+            <div class="p-4 space-y-4">
+                <p class="text-xs opacity-70">
+                    Knowledge bases and AI agents that members have shared into this workspace. Anyone with a seat can use them; AI and coin costs are charged to whoever runs them, not the owner.
+                </p>
+
+                @if($sharedAiMinds->isNotEmpty())
+                    <div>
+                        <div class="text-xs uppercase tracking-wider opacity-60 mb-2">Knowledge bases</div>
+                        <div class="space-y-2">
+                            @foreach($sharedAiMinds as $s)
+                                <div class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2" style="border-color: var(--border-strong);">
+                                    <div class="min-w-0">
+                                        <a href="{{ route('user.minds.edit', $s->resource_model) }}" class="font-medium hover:underline" style="color: var(--text-primary);">{{ $s->resource_label }}</a>
+                                        <div class="text-xs opacity-60">Shared by {{ $s->owner_name }}</div>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded text-xs whitespace-nowrap {{ $s->access === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700' }}">
+                                        {{ $s->access === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'Can edit' : 'View only' }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                @if($sharedAiPersonas->isNotEmpty())
+                    <div>
+                        <div class="text-xs uppercase tracking-wider opacity-60 mb-2">AI agents</div>
+                        <div class="space-y-2">
+                            @foreach($sharedAiPersonas as $s)
+                                <div class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2" style="border-color: var(--border-strong);">
+                                    <div class="min-w-0">
+                                        <a href="{{ route('user.ai-personas.edit', $s->resource_model) }}" class="font-medium hover:underline" style="color: var(--text-primary);">{{ $s->resource_label }}</a>
+                                        <div class="text-xs opacity-60">Shared by {{ $s->owner_name }}</div>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded text-xs whitespace-nowrap {{ $s->access === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700' }}">
+                                        {{ $s->access === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'Can edit' : 'View only' }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
+    {{-- AI shared into badge groups you hold. --}}
+    @if($badgeSharedAiMinds->isNotEmpty() || $badgeSharedAiPersonas->isNotEmpty())
+        <div class="mt-6 rounded-lg border" style="border-color: var(--border-strong); background: var(--bg-card);">
+            <div class="px-4 py-3 border-b font-semibold flex items-center gap-2" style="border-color: var(--border-strong);">
+                <i class="fas fa-id-badge"></i> Shared via your badge groups
+            </div>
+            <div class="p-4 space-y-4">
+                <p class="text-xs opacity-70">
+                    Knowledge bases and AI agents shared with badge groups you currently hold. AI and coin costs are charged to whoever runs them, not the owner. Access ends automatically if you lose the badge.
+                </p>
+
+                @if($badgeSharedAiMinds->isNotEmpty())
+                    <div>
+                        <div class="text-xs uppercase tracking-wider opacity-60 mb-2">Knowledge bases</div>
+                        <div class="space-y-2">
+                            @foreach($badgeSharedAiMinds as $s)
+                                <div class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2" style="border-color: var(--border-strong);">
+                                    <div class="min-w-0">
+                                        <a href="{{ route('user.minds.edit', $s->resource_model) }}" class="font-medium hover:underline" style="color: var(--text-primary);">{{ $s->resource_label }}</a>
+                                        <div class="text-xs opacity-60">Shared by {{ $s->owner_name }} &middot; {{ $s->audience_label }}</div>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded text-xs whitespace-nowrap {{ $s->access === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700' }}">
+                                        {{ $s->access === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'Can edit' : 'View only' }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                @if($badgeSharedAiPersonas->isNotEmpty())
+                    <div>
+                        <div class="text-xs uppercase tracking-wider opacity-60 mb-2">AI agents</div>
+                        <div class="space-y-2">
+                            @foreach($badgeSharedAiPersonas as $s)
+                                <div class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2" style="border-color: var(--border-strong);">
+                                    <div class="min-w-0">
+                                        <a href="{{ route('user.ai-personas.edit', $s->resource_model) }}" class="font-medium hover:underline" style="color: var(--text-primary);">{{ $s->resource_label }}</a>
+                                        <div class="text-xs opacity-60">Shared by {{ $s->owner_name }} &middot; {{ $s->audience_label }}</div>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded text-xs whitespace-nowrap {{ $s->access === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700' }}">
+                                        {{ $s->access === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'Can edit' : 'View only' }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
     {{-- Pending invites. --}}
     @if($pendingInvites->isNotEmpty())
         <div class="mt-6 rounded-lg border" style="border-color: var(--border-strong); background: var(--bg-card);">

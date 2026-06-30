@@ -13,7 +13,9 @@
     <div class="flex items-end justify-between gap-3">
         <div>
             <a href="{{ route('user.ai-personas.index') }}" class="text-xs text-white/50 hover:text-white"><i class="fas fa-arrow-left"></i> Back to AI Agents</a>
-            <h1 class="text-2xl font-bold text-white mt-2">{{ $persona->name }}</h1>
+            <h1 class="text-2xl font-bold text-white mt-2">{{ $persona->name }}
+                @if(!$isOwner)<span class="ml-2 text-[10px] uppercase tracking-wider text-sky-300/80 align-middle">Shared · {{ $shareAccess === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'Can edit' : 'View only' }}</span>@endif
+            </h1>
             <p class="text-[11px] text-white/40">v{{ optional($persona->activeVersion)->revision ?? '—' }} &middot; AI credit balance: <span class="text-blue-300">{{ number_format($balance) }}</span></p>
             @if($persona->is_disabled)
                 <p class="mt-2 text-xs text-red-300">This AI agent is disabled by an administrator: {{ $persona->disabled_reason }}</p>
@@ -21,8 +23,15 @@
         </div>
     </div>
 
+    @unless($canEdit)
+        <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
+            <i class="fas fa-eye mr-1 text-sky-300"></i> This agent was shared with you for use only. You can test it below, but only the owner (or an editor) can change its configuration.
+        </div>
+    @endunless
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {{-- ================= EDITOR ================= --}}
+        @if($canEdit)
         <form method="POST" action="{{ route('user.ai-personas.update', $persona) }}" class="lg:col-span-2 space-y-5">
             @csrf @method('PUT')
 
@@ -227,6 +236,7 @@
                 </div>
             </div>
         </form>
+        @endif
 
         {{-- ================= TEST + VERSIONS ================= --}}
         <div class="space-y-5">
@@ -304,7 +314,7 @@
                                 <p class="text-[11px] text-white/40 truncate">{{ $v->summary ?: '—' }}</p>
                                 <p class="text-[10px] text-white/30">{{ $v->created_at?->diffForHumans() }}</p>
                             </div>
-                            @if($v->id !== $persona->active_version_id)
+                            @if($canEdit && $v->id !== $persona->active_version_id)
                                 <form method="POST" action="{{ route('user.ai-personas.rollback', [$persona, $v]) }}"
                                       onsubmit="return window.themedConfirmSubmit(this, {title: 'Roll back to v{{ $v->revision }}?', message: 'A new version will be written so you can roll forward again later.', confirmText: 'Roll back', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})">
                                     @csrf
@@ -319,6 +329,18 @@
             </div>
         </div>
     </div>
+
+    @if($isOwner)
+    @include('user.partials.ai-share-panel', [
+        'shareAction'     => route('user.ai-personas.shares.store', $persona),
+        'shareWorkspaces' => $shareWorkspaces,
+        'shareBadges'     => $shareBadges,
+        'currentShares'   => $currentShares,
+        'destroyRoute'    => 'user.ai-personas.shares.destroy',
+        'destroyParams'   => [$persona],
+        'resourceLabel'   => 'persona',
+    ])
+    @endif
 </div>
 
 <script>

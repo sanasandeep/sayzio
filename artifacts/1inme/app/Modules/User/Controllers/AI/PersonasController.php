@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiPersonaAgent;
 use App\Modules\User\Models\AiPersonaAgentVersion;
+use App\Modules\User\Models\AiResourceShare;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
+use App\Services\AI\AiResourceShareService;
 use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\PersonaRuntime;
 use App\Services\AI\PersonaSettings;
@@ -33,6 +35,7 @@ class PersonasController extends Controller
     public function __construct(
         protected PersonaRuntime $runtime,
         protected AiUsageCharger $credits,
+        protected AiResourceShareService $shares,
     ) {}
 
     public function index(Request $request)
@@ -55,6 +58,7 @@ class PersonasController extends Controller
             'personas' => $personas,
             'caps'     => $caps,
             'used'     => $personas->count(),
+            'shared'   => $this->shares->sharedPersonasForUser($user)->loadCount('minds'),
         ]);
     }
 
@@ -100,10 +104,17 @@ class PersonasController extends Controller
     public function edit(Request $request, AiPersonaAgent $persona)
     {
         $this->ensureEnabled();
-        $this->authorize_($persona, $request->user());
+        $user = $request->user();
+        $this->authorize_($persona, $user);
+
+        $isOwner = (int) $persona->user_id === (int) $user->id;
+        $shareAccess = $this->shares->accessForPersona($user, $persona);
+        $canEdit = $isOwner || $shareAccess === AiResourceShare::ACCESS_EDIT;
 
         $persona->load(['minds:id,name,is_disabled,user_id,is_default', 'versions']);
-        $myMinds = AiMind::where('user_id', $request->user()->id)
+        // Show the owner's knowledge bases in the attach picker — the
+        // persona's minds belong to the owner, not the acting editor.
+        $myMinds = AiMind::where('user_id', $persona->user_id)
             ->where('is_disabled', false)
             ->orderBy('name')->get(['id','name']);
         $defaultMind = AiMind::whereNull('user_id')
@@ -112,10 +123,16 @@ class PersonasController extends Controller
             ->first();
 
         return view('user.ai-personas.edit', [
-            'persona'     => $persona,
-            'myMinds'     => $myMinds,
-            'defaultMind' => $defaultMind,
-            'attachedIds' => $persona->minds->pluck('id')->all(),
+            'persona'         => $persona,
+            'myMinds'         => $myMinds,
+            'defaultMind'     => $defaultMind,
+            'attachedIds'     => $persona->minds->pluck('id')->all(),
+            'isOwner'         => $isOwner,
+            'canEdit'         => $canEdit,
+            'shareAccess'     => $shareAccess,
+            'shareWorkspaces' => $isOwner ? $this->shares->shareableWorkspacesFor($user) : collect(),
+            'shareBadges'     => $isOwner ? $this->shares->shareableBadgesFor($user) : collect(),
+            'currentShares'   => $isOwner ? $this->shares->sharesForResource(AiResourceShare::RESOURCE_PERSONA, (int) $persona->id) : collect(),
             'caps'        => PersonaSettings::caps(),
             'engineModels'=> array_values(array_filter(
                 AiEngineSettings::models(),
@@ -124,14 +141,14 @@ class PersonasController extends Controller
             'tones'       => AiPersonaAgent::TONES,
             'fallbacks'   => AiPersonaAgent::FALLBACKS,
             'actionDefs'  => AiPersonaAgent::ACTIONS,
-            'balance'     => $this->credits->getBalance($request->user()),
+            'balance'     => $this->credits->getBalance($user),
         ]);
     }
 
     public function update(Request $request, AiPersonaAgent $persona)
     {
         $this->ensureEnabled();
-        $this->authorize_($persona, $request->user());
+        $this->authorize_($persona, $request->user(), needEdit: true);
         $caps = PersonaSettings::caps();
 
         $data = $request->validate([
@@ -172,12 +189,13 @@ class PersonasController extends Controller
             $data['tone_preset'] = null;
         }
 
-        // Resolve attached minds — must be owned by the same user (or
-        // the platform default, but that's controlled separately via
-        // use_default_mind, not the pivot, so we filter it out here).
+        // Resolve attached minds against the persona OWNER's minds (the
+        // platform default is controlled separately via use_default_mind,
+        // not the pivot). Using the owner — not the acting user — means a
+        // shared editor can't strip the owner's attached knowledge bases.
         $mindIds = collect($data['mind_ids'] ?? [])->filter()->values()->all();
         $valid   = AiMind::whereIn('id', $mindIds)
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $persona->user_id)
             ->pluck('id')->all();
 
         $allowed = collect(AiPersonaAgent::ACTIONS)->keys()
@@ -221,7 +239,9 @@ class PersonasController extends Controller
     public function destroy(Request $request, AiPersonaAgent $persona)
     {
         $this->ensureEnabled();
-        $this->authorize_($persona, $request->user());
+        // Deleting is owner-only — shared editors can change config but
+        // not remove the resource out from under the owner.
+        if ((int) $persona->user_id !== (int) $request->user()->id) abort(403);
         $persona->delete();
         return redirect()->route('user.ai-personas.index')->with('status', 'Persona deleted.');
     }
@@ -229,7 +249,8 @@ class PersonasController extends Controller
     public function duplicate(Request $request, AiPersonaAgent $persona)
     {
         $this->ensureEnabled();
-        $this->authorize_($persona, $request->user());
+        // Duplicating mints a new owned resource — keep it owner-only.
+        if ((int) $persona->user_id !== (int) $request->user()->id) abort(403);
         $user = $request->user();
         $current = AiPersonaAgent::where('user_id', $user->id)->count();
         if (!\App\Services\AI\AiPlanAccess::underQuantityCap($user, 'personas', $current)) {
@@ -247,7 +268,7 @@ class PersonasController extends Controller
     public function rollback(Request $request, AiPersonaAgent $persona, AiPersonaAgentVersion $version)
     {
         $this->ensureEnabled();
-        $this->authorize_($persona, $request->user());
+        $this->authorize_($persona, $request->user(), needEdit: true);
         if ((int) $version->persona_id !== (int) $persona->id) abort(404);
 
         $cfg = (array) $version->config;
@@ -400,9 +421,17 @@ class PersonasController extends Controller
         return 'gpt-4o-mini';
     }
 
-    protected function authorize_(AiPersonaAgent $persona, $user): void
+    /**
+     * Throws 403 unless the user may reach the persona. The owner
+     * always passes; otherwise access comes from a workspace/badge
+     * share (Task #2909). Pass $needEdit=true to require USE+EDIT.
+     */
+    protected function authorize_(AiPersonaAgent $persona, $user, bool $needEdit = false): void
     {
-        if ((int) $persona->user_id !== (int) $user->id) abort(403);
+        if ((int) $persona->user_id === (int) $user->id) return; // owner: full access
+        $access = $this->shares->accessForPersona($user, $persona);
+        if ($access === null) abort(403);
+        if ($needEdit && $access !== AiResourceShare::ACCESS_EDIT) abort(403);
     }
 
     protected function ensureEnabled(): void

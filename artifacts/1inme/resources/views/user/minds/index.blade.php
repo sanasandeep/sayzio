@@ -84,5 +84,33 @@
             </div>
         @endif
     </div>
+
+    @if(isset($shared) && $shared->isNotEmpty())
+    <div>
+        <h2 class="text-xs uppercase tracking-wider text-white/40 mb-2">Shared with you</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            @foreach($shared as $m)
+                <a href="{{ route('user.minds.edit', $m) }}" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex flex-col gap-3 hover:border-white/20 transition">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <p class="text-white font-semibold">{{ $m->name }}
+                                <span class="ml-1 text-[10px] uppercase tracking-wider {{ $m->share_access === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'text-emerald-300/80' : 'text-sky-300/80' }}">
+                                    {{ $m->share_access === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'Can edit' : 'View only' }}
+                                </span>
+                            </p>
+                            <p class="text-xs text-white/50 mt-1">{{ $m->description ?: 'No description.' }}</p>
+                        </div>
+                        <i class="fas fa-user-group text-sky-300/60"></i>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs text-white/40">
+                        <span><i class="fas fa-layer-group mr-1"></i>{{ $m->sources_count }} sources</span>
+                        <span><i class="fas fa-database mr-1"></i>{{ $m->chunks_count }} chunks</span>
+                        @if($m->is_disabled)<span class="text-red-300">Disabled</span>@endif
+                    </div>
+                </a>
+            @endforeach
+        </div>
+    </div>
+    @endif
 </div>
 @endsection

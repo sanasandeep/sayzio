@@ -20,6 +20,18 @@ class AccountBadge extends Model
     /** Default badge color when none is supplied. */
     public const DEFAULT_COLOR = '#3b82f6';
 
+    protected static function booted(): void
+    {
+        // When a badge is deleted, drop AI shares targeting that badge
+        // group (Task #2909). Removing the badge from a user already
+        // revokes access live; this clears the now-dangling share rows.
+        static::deleted(function (AccountBadge $badge) {
+            \App\Services\AI\AiResourceShareService::purgeForAudience(
+                \App\Modules\User\Models\AiResourceShare::AUDIENCE_BADGE, (int) $badge->id
+            );
+        });
+    }
+
     /** Users this badge is currently attached to. */
     public function users()
     {

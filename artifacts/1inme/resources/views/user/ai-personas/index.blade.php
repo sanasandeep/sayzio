@@ -74,5 +74,38 @@
             @endforeach
         </div>
     @endif
+
+    @if(isset($shared) && $shared->isNotEmpty())
+    <div class="space-y-2">
+        <h2 class="text-xs uppercase tracking-wider text-white/40">Shared with you</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            @foreach($shared as $p)
+                <a href="{{ route('user.ai-personas.edit', $p) }}" class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex items-start gap-3 hover:border-white/20 transition {{ $p->is_disabled ? 'opacity-60' : '' }}">
+                    @if($p->avatar_url)
+                        <img src="{{ $p->avatar_url }}" alt="" class="w-12 h-12 rounded-xl object-cover border border-white/10">
+                    @else
+                        <div class="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-300">
+                            <i class="fas fa-user-astronaut"></i>
+                        </div>
+                    @endif
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-white font-semibold truncate">{{ $p->name }}</span>
+                            <span class="text-[10px] uppercase tracking-wider {{ $p->share_access === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'text-emerald-300/80' : 'text-sky-300/80' }}">
+                                {{ $p->share_access === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'Can edit' : 'View only' }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-white/50 truncate">{{ $p->description ?: 'No description' }}</p>
+                        <p class="text-[10px] text-white/40 mt-1">
+                            {{ $p->model }} &middot; {{ $p->minds_count }} Knowledge Base{{ $p->minds_count === 1 ? '' : 's' }}
+                            @if($p->use_default_mind) + default @endif
+                        </p>
+                    </div>
+                    <i class="fas fa-user-group text-sky-300/60"></i>
+                </a>
+            @endforeach
+        </div>
+    </div>
+    @endif
 </div>
 @endsection

@@ -24,6 +24,18 @@ class AiMind extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Drop any share rows pointing at this mind when it's deleted
+        // (Task #2909). Best-effort cleanup — access resolution already
+        // ignores orphans, this just keeps the table tidy.
+        static::deleted(function (AiMind $mind) {
+            \App\Services\AI\AiResourceShareService::purgeForResource(
+                AiResourceShare::RESOURCE_MIND, (int) $mind->id
+            );
+        });
+    }
+
     public function user()    { return $this->belongsTo(User::class); }
     public function sources() { return $this->hasMany(AiMindSource::class, 'mind_id')->orderByDesc('id'); }
     public function chunks()  { return $this->hasMany(AiMindChunk::class, 'mind_id'); }

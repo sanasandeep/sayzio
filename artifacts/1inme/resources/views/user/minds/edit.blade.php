@@ -22,6 +22,7 @@
             <a href="{{ route('user.minds.index') }}" class="text-xs text-white/40 hover:text-white/60"><i class="fas fa-arrow-left"></i> All knowledge bases</a>
             <h1 class="text-2xl font-bold text-white mt-1">{{ $mind->name }}
                 @if($isPlatform)<span class="ml-2 text-[10px] uppercase tracking-wider text-cyan-300/80 align-middle">Platform default</span>@endif
+                @if(!$isPlatform && !$isOwner)<span class="ml-2 text-[10px] uppercase tracking-wider text-sky-300/80 align-middle">Shared · {{ $shareAccess === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'Can edit' : 'View only' }}</span>@endif
                 @if($mind->is_disabled)<span class="ml-2 text-[10px] uppercase tracking-wider text-red-300 align-middle">Disabled</span>@endif
             </h1>
             <p class="text-sm text-white/50 mt-1">{{ $mind->description }}</p>
@@ -63,7 +64,7 @@
         @endif
     </div>
 
-    @unless($isPlatform)
+    @if($canEdit)
     <form method="POST" action="{{ route('user.minds.update', $mind) }}" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-3">
         @csrf @method('PUT')
         <div class="grid md:grid-cols-2 gap-3">
@@ -80,10 +81,22 @@
         </div>
         <div class="flex justify-end"><button class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm">Save</button></div>
     </form>
-    @endunless
+    @endif
+
+    @if($isOwner)
+    @include('user.partials.ai-share-panel', [
+        'shareAction'     => route('user.minds.shares.store', $mind),
+        'shareWorkspaces' => $shareWorkspaces,
+        'shareBadges'     => $shareBadges,
+        'currentShares'   => $currentShares,
+        'destroyRoute'    => 'user.minds.shares.destroy',
+        'destroyParams'   => [$mind],
+        'resourceLabel'   => 'knowledge base',
+    ])
+    @endif
 
     {{-- Add source --}}
-    @if(!$isPlatform || auth()->user()->hasPermission('user.ai_minds.manage_platform'))
+    @if($canEdit || auth()->user()->hasPermission('user.ai_minds.manage_platform'))
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
         <div class="flex items-center justify-between">
             <h3 class="text-white font-semibold">Add a source</h3>
@@ -231,7 +244,7 @@
                             </p>
                         </div>
                         <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded {{ $statusColor[$s->status] ?? 'bg-white/10 text-white/60' }}">{{ $s->status }}</span>
-                        @if(!$isPlatform || auth()->user()->hasPermission('user.ai_minds.manage_platform'))
+                        @if($canEdit || auth()->user()->hasPermission('user.ai_minds.manage_platform'))
                         <form method="POST" action="{{ route('user.minds.sources.refresh', [$mind, $s]) }}">@csrf
                             <button class="text-xs text-white/60 hover:text-white px-2 py-1" title="Re-ingest"><i class="fas fa-rotate"></i></button>
                         </form>
@@ -242,7 +255,7 @@
                         @endif
                       </div>
 
-                      @if($s->type==='webhook' && (!$isPlatform || auth()->user()->hasPermission('user.ai_minds.manage_platform')))
+                      @if($s->type==='webhook' && ($canEdit || auth()->user()->hasPermission('user.ai_minds.manage_platform')))
                         @php($whUrl = route('mind.webhook.ingest', $s))
                         @php($revealed = session('revealed_webhook'))
                         @php($whToken = ($revealed && (int)($revealed['id'] ?? 0) === (int)$s->id) ? $revealed['token'] : null)

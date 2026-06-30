@@ -33,6 +33,18 @@ class AiPersonaAgent extends Model
         'cite_sources'      => 'Must cite the Mind sources used in each answer',
     ];
 
+    protected static function booted(): void
+    {
+        // Drop any share rows pointing at this persona when it's deleted
+        // (Task #2909). Access resolution already ignores orphans; this
+        // keeps the table tidy.
+        static::deleted(function (AiPersonaAgent $persona) {
+            \App\Services\AI\AiResourceShareService::purgeForResource(
+                AiResourceShare::RESOURCE_PERSONA, (int) $persona->id
+            );
+        });
+    }
+
     protected $fillable = [
         'user_id', 'slug', 'name', 'description', 'avatar_url',
         'system_prompt', 'tone_preset', 'style_guide', 'use_brand_kit',

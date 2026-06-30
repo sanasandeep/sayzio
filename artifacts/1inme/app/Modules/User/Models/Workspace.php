@@ -13,6 +13,18 @@ class Workspace extends Model
         'settings'    => 'array',
     ];
 
+    protected static function booted(): void
+    {
+        // When a workspace is deleted, drop AI shares targeting it
+        // (Task #2909). Membership changes already revoke access live;
+        // this clears the now-dangling share rows.
+        static::deleted(function (Workspace $workspace) {
+            \App\Services\AI\AiResourceShareService::purgeForAudience(
+                AiResourceShare::AUDIENCE_WORKSPACE, (int) $workspace->id
+            );
+        });
+    }
+
     /** Display label: "Personal" for the user's auto-created workspace, "Team" otherwise. */
     public function kindLabel(): string
     {
