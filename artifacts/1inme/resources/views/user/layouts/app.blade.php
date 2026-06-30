@@ -1629,6 +1629,24 @@
                         <i class="fas fa-info-circle"></i> {{ session('info') }}
                     </div>
                 @endif
+                {{-- "Claim your link" handle that couldn't be honored at sign-up.
+                     Persisted (not flash) so it survives the OTP-verify hop and
+                     shows once on the first authenticated page; pull() clears it. --}}
+                @php($handleNotice = session()->pull('claimed_handle_notice'))
+                @if(is_array($handleNotice) && !empty($handleNotice['requested']))
+                    <div class="mb-4 p-3.5 rounded-xl text-amber-300 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(245,158,11,0.18); background: rgba(245,158,11,0.06);">
+                        <i class="fas fa-circle-info"></i>
+                        <span class="flex-1">
+                            &#64;{{ $handleNotice['requested'] }} was already taken, so you're set up as
+                            <span class="font-semibold">&#64;{{ $handleNotice['actual'] }}</span> for now.
+                        </span>
+                        <a href="{{ $handleNotice['url'] }}"
+                           class="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
+                           style="border: 1px solid rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); color: #fcd34d;">
+                            <i class="fas fa-pen text-[9px]"></i> Change handle
+                        </a>
+                    </div>
+                @endif
 
                 @yield('content')
 

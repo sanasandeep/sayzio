@@ -113,9 +113,18 @@ class AuthController extends Controller
         // If the visitor typed a handle into a "claim your link" entry point
         // (e.g. the homepage hero), reserve it as their @handle now so it's
         // waiting for them after sign-up. Validation mirrors the in-app
-        // handle-claim flow; an invalid/taken/banned value is silently
-        // skipped so they can pick one later (no dead-end at sign-up).
-        $this->applyClaimedHandle($user, $request->input('desired_handle'));
+        // handle-claim flow; an invalid/taken/banned value is skipped so they
+        // can pick one later (no dead-end at sign-up). When it can't be
+        // applied we stash a friendly, non-blocking notice so the visitor
+        // learns the handle they typed wasn't honored — and what they got
+        // instead — rather than it vanishing silently.
+        if ($missedHandle = $this->applyClaimedHandle($user, $request->input('desired_handle'))) {
+            session(['claimed_handle_notice' => [
+                'requested' => $missedHandle,
+                'actual'    => $user->publicHandle(),
+                'url'       => route('user.creator-profile.edit'),
+            ]]);
+        }
 
         // Every new user starts with a personal workspace. Team workspaces
         // (if their plan allows) can be created later from the switcher.
@@ -183,14 +192,19 @@ class AuthController extends Controller
      * (homepage hero) as the new user's @handle. Mirrors the validation used by
      * CreatorProfileController::claimHandle (format + case-insensitive
      * uniqueness + admin banned-names list). Anything invalid, taken or banned
-     * is silently skipped so sign-up never dead-ends — the user can pick a
-     * handle later from their profile.
+     * is skipped so sign-up never dead-ends — the user can pick a handle later
+     * from their profile.
+     *
+     * Returns null when there was nothing to do (empty input) or the handle
+     * was applied successfully. When a non-empty handle could NOT be applied,
+     * returns the sanitized handle the visitor asked for so the caller can
+     * surface a friendly "that one was taken" notice.
      */
-    private function applyClaimedHandle(User $user, ?string $raw): void
+    private function applyClaimedHandle(User $user, ?string $raw): ?string
     {
         $handle = strtolower(trim((string) $raw));
         if ($handle === '') {
-            return;
+            return null;
         }
 
         $validator = Validator::make(['handle' => $handle], [
@@ -203,10 +217,12 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return;
+            return $handle;
         }
 
         $user->forceFill(['handle' => $handle])->save();
+
+        return null;
     }
 
     public function showLogin()
