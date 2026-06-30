@@ -36,20 +36,31 @@
     .aic-stat:last-child { border-bottom: 0; }
     .aic-starter-rows { display:flex; flex-direction:column; gap: 8px; }
 
-    /* Live branding preview */
+    /* Live branding preview — mirrors the public ai-chat page, theme-aware */
     .aicp-frame {
+        --aicp-bg:#f6f6f9; --aicp-text:#111; --aicp-muted:rgba(0,0,0,.55);
+        --aicp-border:rgba(0,0,0,.08); --aicp-amsg:rgba(0,0,0,.05); --aicp-chip-border:rgba(0,0,0,.12);
         border: 1px solid var(--border-glass); border-radius: .9rem; overflow: hidden;
-        background: var(--bg-glass-input); display: flex; flex-direction: column;
+        background: var(--aicp-bg); color: var(--aicp-text); display: flex; flex-direction: column;
     }
-    .aicp-header { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--border-glass); }
+    @media (prefers-color-scheme: dark) {
+        .aicp-frame[data-aicp-theme="auto"] { --aicp-bg:#0b0b10; --aicp-text:#f5f5f7; --aicp-muted:rgba(255,255,255,.6); --aicp-border:rgba(255,255,255,.08); --aicp-amsg:rgba(255,255,255,.07); --aicp-chip-border:rgba(255,255,255,.16); }
+    }
+    .aicp-frame[data-aicp-theme="dark"] { --aicp-bg:#0b0b10; --aicp-text:#f5f5f7; --aicp-muted:rgba(255,255,255,.6); --aicp-border:rgba(255,255,255,.08); --aicp-amsg:rgba(255,255,255,.07); --aicp-chip-border:rgba(255,255,255,.16); }
+    .aicp-frame[data-aicp-theme="light"] { --aicp-bg:#f6f6f9; --aicp-text:#111; --aicp-muted:rgba(0,0,0,.55); --aicp-border:rgba(0,0,0,.08); --aicp-amsg:rgba(0,0,0,.05); --aicp-chip-border:rgba(0,0,0,.12); }
+    .aicp-header { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--aicp-border); }
     .aicp-avatar { width:34px; height:34px; border-radius:50%; flex:0 0 auto; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; }
     .aicp-avatar img { width:100%; height:100%; object-fit:cover; }
-    .aicp-title { font-weight:700; font-size:14px; line-height:1.2; color:var(--text-primary); }
-    .aicp-sub { font-size:11px; color:var(--text-faint); }
+    .aicp-title { font-weight:700; font-size:14px; line-height:1.2; color:var(--aicp-text); }
+    .aicp-sub { font-size:11px; color:var(--aicp-muted); }
     .aicp-body { padding:14px; min-height:70px; }
-    .aicp-msg { display:inline-block; max-width:90%; padding:9px 12px; border-radius:14px; border-bottom-left-radius:5px; font-size:13.5px; line-height:1.45; white-space:pre-wrap; word-break:break-word; background:rgba(127,127,127,.14); color:var(--text-primary); }
-    .aicp-empty { font-size:12px; color:var(--text-faint); font-style:italic; }
-    .aicp-foot { font-size:10.5px; text-align:center; padding:9px; color:var(--text-faint); border-top:1px solid var(--border-glass); }
+    .aicp-msg { display:inline-block; max-width:90%; padding:9px 12px; border-radius:14px; border-bottom-left-radius:5px; font-size:13.5px; line-height:1.45; white-space:pre-wrap; word-break:break-word; background:var(--aicp-amsg); color:var(--aicp-text); }
+    .aicp-empty { font-size:12px; color:var(--aicp-muted); font-style:italic; }
+    .aicp-starters { display:flex; flex-wrap:wrap; gap:7px; padding:0 14px 12px; }
+    .aicp-chip { border:1px solid var(--aicp-chip-border); background:transparent; color:inherit; border-radius:999px; padding:6px 11px; font-size:12px; line-height:1.3; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .aicp-chip:hover { border-color:var(--aicp-accent); color:var(--aicp-accent); }
+    .aicp-input { margin:0 14px 14px; border:1px solid var(--aicp-chip-border); border-radius:12px; padding:9px 12px; font-size:12.5px; color:var(--aicp-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .aicp-foot { font-size:10.5px; text-align:center; padding:9px; color:var(--aicp-muted); border-top:1px solid var(--aicp-border); }
     .aicp-foot a { color:inherit; text-decoration:underline; }
 </style>
 
@@ -180,7 +191,8 @@
                             @php $starters = old('starters', $config['starters'] ?? []); @endphp
                             @for($i = 0; $i < 6; $i++)
                                 <input class="aic-input" type="text" name="starters[]" maxlength="200"
-                                       value="{{ $starters[$i] ?? '' }}" placeholder="Suggested question {{ $i + 1 }}">
+                                       value="{{ $starters[$i] ?? '' }}" placeholder="Suggested question {{ $i + 1 }}"
+                                       x-model="starters[{{ $i }}]">
                             @endfor
                         </div>
                         <div class="aic-hint">Shown as tap-to-ask chips above the input.</div>
@@ -188,7 +200,8 @@
                     <div class="aic-row">
                         <label class="aic-label" for="aic-placeholder">Input placeholder</label>
                         <input id="aic-placeholder" class="aic-input" type="text" name="config[placeholder]" maxlength="120"
-                               value="{{ old('config.placeholder', $config['placeholder'] ?? 'Ask me anything…') }}">
+                               value="{{ old('config.placeholder', $config['placeholder'] ?? 'Ask me anything…') }}"
+                               x-model="placeholder">
                     </div>
                     <div class="aic-row">
                         <label class="aic-toggle">
@@ -207,7 +220,7 @@
                     <div class="aic-row" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
                         <div>
                             <label class="aic-label" for="aic-theme">Theme</label>
-                            <select id="aic-theme" class="aic-select" name="config[theme]">
+                            <select id="aic-theme" class="aic-select" name="config[theme]" x-model="theme">
                                 @foreach(['auto' => 'Auto', 'light' => 'Light', 'dark' => 'Dark'] as $k => $v)
                                     <option value="{{ $k }}" @selected(old('config.theme', $config['theme'] ?? 'auto') === $k)>{{ $v }}</option>
                                 @endforeach
@@ -303,7 +316,7 @@
             <div>
                 <div class="aic-card">
                     <h5><i class="fas fa-eye text-[13px]" style="color:#90acff"></i> Live preview</h5>
-                    <div class="aicp-frame" :style="`--aicp-accent:${accent}`">
+                    <div class="aicp-frame" :data-aicp-theme="theme" :style="`--aicp-accent:${accent}`">
                         <div class="aicp-header">
                             <template x-if="effAvatar">
                                 <div class="aicp-avatar"><img :src="effAvatar" alt=""></div>
@@ -324,6 +337,14 @@
                                 <div class="aicp-empty">No opening message — the chat starts empty.</div>
                             </template>
                         </div>
+                        <template x-if="starterList.length">
+                            <div class="aicp-starters">
+                                <template x-for="(q, i) in starterList" :key="i">
+                                    <span class="aicp-chip" x-text="q"></span>
+                                </template>
+                            </div>
+                        </template>
+                        <div class="aicp-input" x-text="effPlaceholder"></div>
                         <div class="aicp-foot" x-show="effShowBranding" x-cloak>
                             <template x-if="effBrandText && effBrandUrl">
                                 <a :href="effBrandUrl" target="_blank" rel="noopener" x-text="effBrandText"></a>
@@ -375,6 +396,13 @@
             name:        @js(old('name', $companion->name)),
             greeting:    @js(old('config.greeting', $config['greeting'] ?? '')),
             accent:      @js(old('config.accent', $config['accent'] ?? '#3d6bff')),
+            theme:       @js(old('config.theme', $config['theme'] ?? 'auto')),
+            placeholder: @js(old('config.placeholder', $config['placeholder'] ?? 'Ask me anything…')),
+            @php
+                $starterInit = old('starters', $config['starters'] ?? []);
+                $starterInit = array_map(fn($i) => (string) ($starterInit[$i] ?? ''), range(0, 5));
+            @endphp
+            starters:    @js($starterInit),
             showBranding: {{ old('config.show_branding', $config['show_branding'] ?? true) ? 'true' : 'false' }},
             brandText:   @js(old('config.custom_branding_text', $config['custom_branding_text'] ?? '')),
             brandUrl:    @js(old('config.custom_branding_url', $config['custom_branding_url'] ?? '')),
@@ -388,6 +416,8 @@
                 if (linkTitle) return linkTitle;
                 return (this.name || '').trim() || @js($link->alias);
             },
+            get starterList() { return (this.starters || []).map(s => (s || '').trim()).filter(Boolean); },
+            get effPlaceholder() { return (this.placeholder || '').trim() || 'Ask me anything…'; },
             get effShowBranding() { return this.canHide ? !!this.showBranding : true; },
             get effBrandText() { return this.canCustom ? (this.brandText || '').trim() : ''; },
             get effBrandUrl() { return this.canCustom ? (this.brandUrl || '').trim() : ''; },
