@@ -25,16 +25,21 @@
                    class="md:col-span-3 px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary);">
             <input type="text" name="cname_target" placeholder="CNAME target (defaults to your app host)"
                    class="md:col-span-3 px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary);">
-            <select name="plan_ids[]" multiple class="md:col-span-4 px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary); min-height: 80px;">
+            <select name="plan_ids[]" multiple class="md:col-span-2 px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary); min-height: 80px;">
                 @foreach($plans as $plan)
                     <option value="{{ $plan->id }}">{{ $plan->name }}</option>
+                @endforeach
+            </select>
+            <select name="badge_ids[]" multiple class="md:col-span-2 px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary); min-height: 80px;">
+                @foreach($badges as $badge)
+                    <option value="{{ $badge->id }}">{{ $badge->name }}</option>
                 @endforeach
             </select>
             <label class="md:col-span-1 flex items-center gap-2 text-xs" style="color: var(--text-muted);">
                 <input type="checkbox" name="is_active" value="1" checked> Active
             </label>
             <button type="submit" class="md:col-span-1 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white">Add</button>
-            <p class="md:col-span-12 text-[11px]" style="color: var(--text-faint);">Hold Ctrl/Cmd to tag multiple plans. Leave blank to allow every plan to use this domain.</p>
+            <p class="md:col-span-12 text-[11px]" style="color: var(--text-faint);">Hold Ctrl/Cmd to tag multiple plans or badges. A domain with no plan <em>and</em> no badge tags is open to everyone; otherwise it's offered to accounts matching any tagged plan <strong>or</strong> any tagged badge.</p>
             <div class="md:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 mt-1" style="border-top:1px solid var(--border-subtle);">
                 <label class="text-[11px] flex flex-col gap-1" style="color: var(--text-muted);">Light logo
                     <input type="file" name="logo_light" accept="image/*" class="text-[11px]" style="color: var(--text-primary);"></label>
@@ -66,10 +71,15 @@
                         <span class="inline-flex items-center text-blue-300 text-[10px] ml-1 px-1.5 py-0.5 rounded" style="background: rgba(61,107,255,0.12); border:1px solid rgba(61,107,255,0.3);"><i class="fas fa-star mr-1 text-[8px]"></i>primary</span>
                     @endif
                 </div>
-                <input type="text" name="cname_target" value="{{ $d->cname_target }}" class="col-span-3 px-2 py-1.5 rounded-md text-xs" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary);">
-                <select name="plan_ids[]" multiple class="col-span-3 px-2 py-1.5 rounded-md text-xs" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary); min-height: 60px;">
+                <input type="text" name="cname_target" value="{{ $d->cname_target }}" class="col-span-2 px-2 py-1.5 rounded-md text-xs" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary);">
+                <select name="plan_ids[]" multiple title="Plans" class="col-span-3 px-2 py-1.5 rounded-md text-xs" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary); min-height: 60px;">
                     @foreach($plans as $plan)
                         <option value="{{ $plan->id }}" @selected($d->plans->contains($plan->id))>{{ $plan->name }}</option>
+                    @endforeach
+                </select>
+                <select name="badge_ids[]" multiple title="Badges" class="col-span-2 px-2 py-1.5 rounded-md text-xs" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary); min-height: 60px;">
+                    @foreach($badges as $badge)
+                        <option value="{{ $badge->id }}" @selected($d->badges->contains($badge->id))>{{ $badge->name }}</option>
                     @endforeach
                 </select>
                 <label class="col-span-1 flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">

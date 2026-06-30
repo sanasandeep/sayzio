@@ -149,6 +149,21 @@ protected $fillable = [
         return $this->belongsToMany(Plan::class, 'domain_plan');
     }
 
+    /**
+     * Account badges tagged for an admin-global domain. Mirrors plans(): a
+     * global domain tagged with badges is offered to accounts holding any of
+     * those badges. Ignored for user-owned domains.
+     */
+    public function badges()
+    {
+        return $this->belongsToMany(
+            \App\Modules\Admin\Models\AccountBadge::class,
+            'account_badge_domain',
+            'domain_id',
+            'account_badge_id'
+        );
+    }
+
     /** True when this is an admin-managed domain (no owning user). */
     public function isGlobal(): bool
     {
@@ -190,39 +205,117 @@ protected $fillable = [
     }
 
     /**
-     * Domains the given user can attach links to: their own
-     * verified+active domains plus admin-global active domains tagged for
-     * their plan (or untagged ones, which are open to every plan).
+     * Resolve the entitlement context for domain availability.
+     *
+     * Domains are entitled against the *workspace owner*, not the acting
+     * member: when a team member is working inside their owner's workspace
+     * (bound by SetActiveWorkspace as `workspace_owner`), they get the
+     * global domains the OWNER's plan + badges unlock, plus that
+     * WORKSPACE's custom domains. For a solo/personal workspace the owner
+     * is the user themselves, so behaviour is unchanged.
+     *
+     * Falls back to the passed user when no workspace is bound (e.g. the
+     * stateless Sanctum API, CLI), preserving the original solo semantics.
+     *
+     * @return array{workspace: ?\App\Modules\User\Models\Workspace, owner: User, planId: ?int, hasCustomDomains: bool, badgeIds: array<int,int>}
+     */
+    protected static function entitlementContext(User $user): array
+    {
+        $workspace = app()->bound('current_workspace') ? app('current_workspace') : null;
+        $owner     = app()->bound('workspace_owner') ? app('workspace_owner') : $user;
+
+        return [
+            'workspace'        => $workspace,
+            'owner'            => $owner,
+            'planId'           => $owner->plan_id,
+            'hasCustomDomains' => !empty($owner->plan?->features['custom_domains']),
+            'badgeIds'         => $owner->accountBadges()->pluck('account_badges.id')->all(),
+        ];
+    }
+
+    /**
+     * Constrain a query to admin-global (no owning user) domains the holder
+     * of $planId / $badgeIds is entitled to. Gating combines across tag
+     * types with OR: an untagged domain (no plan AND no badge tags) is open
+     * to everyone; a tagged one matches when ANY plan tag OR ANY badge tag
+     * matches. Always limited to verified rows.
+     *
+     * @param  array<int,int>  $badgeIds
+     */
+    protected static function scopeGlobalEntitled($query, ?int $planId, array $badgeIds): void
+    {
+        $query->whereNull('user_id')
+            ->where('is_verified', true)
+            ->where(function ($g) use ($planId, $badgeIds) {
+                // Untagged → open to everyone.
+                $g->where(function ($open) {
+                    $open->whereDoesntHave('plans')->whereDoesntHave('badges');
+                });
+                // OR matches any tagged plan.
+                if ($planId) {
+                    $g->orWhereHas('plans', fn ($pp) => $pp->where('plans.id', $planId));
+                }
+                // OR matches any tagged badge.
+                if (!empty($badgeIds)) {
+                    $g->orWhereHas('badges', fn ($bb) => $bb->whereIn('account_badges.id', $badgeIds));
+                }
+            });
+    }
+
+    /**
+     * Admin-global active domains the given user (resolved through their
+     * active workspace owner) is entitled to use. Excludes any user-owned
+     * domains. Team-aware + badge-aware.
+     */
+    public static function globalAvailableTo(User $user)
+    {
+        $ctx = static::entitlementContext($user);
+
+        return static::query()
+            ->withoutGlobalScope('workspace')
+            ->where('is_active', true)
+            ->where(function ($g) use ($ctx) {
+                static::scopeGlobalEntitled($g, $ctx['planId'], $ctx['badgeIds']);
+            })
+            ->orderBy('domain');
+    }
+
+    /**
+     * Domains the given user can attach links to: the active workspace's
+     * verified custom domains plus admin-global active domains the workspace
+     * owner's plan + badges unlock (or untagged ones, open to everyone).
+     *
+     * Team-aware: when a team workspace is active, a member sees the
+     * WORKSPACE's custom domains and the OWNER's entitled global domains.
+     * A downgrade hides custom domains (the rows are kept, so an upgrade
+     * restores them) but never deletes them.
      */
     public static function availableTo(User $user)
     {
-        $planId       = $user->plan_id;
-        $planFeatures = $user->plan?->features ?? [];
-        $hasCustomDomainsFeature = !empty($planFeatures['custom_domains']);
+        $ctx = static::entitlementContext($user);
 
         return static::query()
+            // Global domains live with a NULL workspace_id, so the workspace
+            // global scope would hide them; custom domains are scoped
+            // explicitly below instead.
+            ->withoutGlobalScope('workspace')
             ->where('is_active', true)
-            ->where(function ($q) use ($user, $planId, $hasCustomDomainsFeature) {
-                // User-owned verified domains — only when the user's current
-                // plan still includes the `custom_domains` feature. A
-                // downgraded user keeps the rows (so an upgrade restores
-                // them) but cannot attach them to new/edited links.
-                if ($hasCustomDomainsFeature) {
-                    $q->orWhere(function ($own) use ($user) {
-                        $own->where('user_id', $user->id)->where('is_verified', true);
+            ->where(function ($q) use ($ctx) {
+                // Workspace-owned verified custom domains — only while the
+                // owner's plan still includes the `custom_domains` feature.
+                if ($ctx['hasCustomDomains']) {
+                    $q->orWhere(function ($own) use ($ctx) {
+                        $own->whereNotNull('user_id')->where('is_verified', true);
+                        if ($ctx['workspace']) {
+                            $own->where('workspace_id', $ctx['workspace']->id);
+                        } else {
+                            $own->where('user_id', $ctx['owner']->id);
+                        }
                     });
                 }
-                // Admin-global active+verified domains: untagged ones are open
-                // to every plan; tagged ones must include the user's plan.
-                $q->orWhere(function ($global) use ($planId) {
-                    $global->whereNull('user_id')
-                        ->where('is_verified', true)
-                        ->where(function ($p) use ($planId) {
-                            $p->whereDoesntHave('plans');
-                            if ($planId) {
-                                $p->orWhereHas('plans', fn ($pp) => $pp->where('plans.id', $planId));
-                            }
-                        });
+                // Admin-global entitled domains (plan OR badge, untagged open).
+                $q->orWhere(function ($global) use ($ctx) {
+                    static::scopeGlobalEntitled($global, $ctx['planId'], $ctx['badgeIds']);
                 });
             })
             ->orderBy('domain');

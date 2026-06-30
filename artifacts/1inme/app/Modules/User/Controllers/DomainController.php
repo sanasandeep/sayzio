@@ -16,16 +16,9 @@ class DomainController extends Controller
         $user = $request->user();
 
         $myDomains     = $user->domains()->orderBy('domain')->get();
-        $globalDomains = Domain::whereNull('user_id')
-            ->where('is_active', true)
-            ->where(function ($q) use ($user) {
-                $q->whereDoesntHave('plans');
-                if ($user->plan_id) {
-                    $q->orWhereHas('plans', fn ($p) => $p->where('plans.id', $user->plan_id));
-                }
-            })
-            ->orderBy('domain')
-            ->get();
+        // Team-aware + badge-aware: the global domains the active workspace
+        // owner's plan and account badges unlock (untagged ones open to all).
+        $globalDomains = Domain::globalAvailableTo($user)->get();
 
         return view('user.domains.index', compact('myDomains', 'globalDomains'));
     }

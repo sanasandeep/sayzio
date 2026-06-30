@@ -3,6 +3,7 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Models\AccountBadge;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\Domain;
 use Illuminate\Http\Request;
@@ -24,16 +25,17 @@ class DomainController extends Controller
     public function index()
     {
         $domains = Domain::whereNull('user_id')
-            ->with('plans')
+            ->with(['plans', 'badges'])
             ->orderBy('domain')
             ->get();
         $userDomains = Domain::whereNotNull('user_id')
             ->with(['user', 'plans'])
             ->orderBy('domain')
             ->get();
-        $plans = Plan::ordered()->get();
+        $plans  = Plan::ordered()->get();
+        $badges = AccountBadge::orderBy('name')->get();
 
-        return view('admin.domains.index', compact('domains', 'userDomains', 'plans'));
+        return view('admin.domains.index', compact('domains', 'userDomains', 'plans', 'badges'));
     }
 
     public function store(Request $request)
@@ -43,6 +45,8 @@ class DomainController extends Controller
             'cname_target' => 'nullable|string|max:191',
             'plan_ids'    => 'nullable|array',
             'plan_ids.*'  => 'exists:plans,id',
+            'badge_ids'   => 'nullable|array',
+            'badge_ids.*' => 'exists:account_badges,id',
             'is_active'   => 'nullable|boolean',
             'relationship_blurb' => 'nullable|string|max:500',
         ] + $this->logoUploadRules());
@@ -64,6 +68,7 @@ class DomainController extends Controller
         ]);
 
         $domain->plans()->sync($data['plan_ids'] ?? []);
+        $domain->badges()->sync($data['badge_ids'] ?? []);
         $this->storeLogoUploads($request, $domain);
 
         return redirect()->route('admin.domains.index')
@@ -78,6 +83,8 @@ class DomainController extends Controller
             'cname_target' => 'nullable|string|max:191',
             'plan_ids'     => 'nullable|array',
             'plan_ids.*'   => 'exists:plans,id',
+            'badge_ids'    => 'nullable|array',
+            'badge_ids.*'  => 'exists:account_badges,id',
             'is_active'    => 'nullable|boolean',
             'relationship_blurb' => 'nullable|string|max:500',
         ] + $this->logoUploadRules());
@@ -88,6 +95,7 @@ class DomainController extends Controller
             'relationship_blurb' => $data['relationship_blurb'] ?? null,
         ]);
         $domain->plans()->sync($data['plan_ids'] ?? []);
+        $domain->badges()->sync($data['badge_ids'] ?? []);
         $this->storeLogoUploads($request, $domain);
 
         return back()->with('success', 'Domain updated.');
