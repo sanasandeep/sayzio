@@ -532,7 +532,7 @@ ok("generation wiring: onGenerate posts persona/template payload and opens the b
   );
   assert.match(
     wizardSrc,
-    /if \(inGroup\) \{[\s\S]*?setPersona\(pers\);[\s\S]*?setStep\("design"\);[\s\S]*?\} else \{[\s\S]*?setStep\("persona"\);/,
+    /if \(personaValid\) \{[\s\S]*?setPersona\(pers\);[\s\S]*?setStep\("design"\);[\s\S]*?\} else \{[\s\S]*?setStep\("persona"\);/,
     "a valid prefillPersona must jump to design; a foreign one falls back to persona",
   );
 }
@@ -546,7 +546,12 @@ assert.match(
 );
 assert.match(
   createSrc,
-  /prefillPersona=\$\{encodeURIComponent\(persona\)\}/,
+  /new URLSearchParams\(\{ prefillGroup: group \}\)/,
+  "openGuided must seed prefillGroup on the deep link query string",
+);
+assert.match(
+  createSrc,
+  /if \(persona\) qs\.set\("prefillPersona", persona\)/,
   "openGuided must add prefillPersona to the deep link for single-persona goals",
 );
 assert.match(

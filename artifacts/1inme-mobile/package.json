@@ -28,7 +28,8 @@
     "test:upgrade-hint": "node scripts/test-upgrade-hint.mjs",
     "test:quick-contact": "node scripts/test-quick-contact.mjs",
     "test:premium-cells": "node scripts/test-premium-cells.mjs",
-    "test:tier-switch-toast": "node scripts/test-tier-switch-toast.mjs"
+    "test:tier-switch-toast": "node scripts/test-tier-switch-toast.mjs",
+    "test:unit": "pnpm run test:citation-href && pnpm run test:block-cache && pnpm run test:login-auth-config && pnpm run test:whatsapp-disconnect && pnpm run test:wizard-flow && pnpm run test:voice-bridge && pnpm run test:push-action && pnpm run test:native-route && pnpm run test:stats-range && pnpm run test:stats-export && pnpm run test:upgrade-hint && pnpm run test:quick-contact && pnpm run test:premium-cells && pnpm run test:tier-switch-toast && pnpm run test:auth-flow"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

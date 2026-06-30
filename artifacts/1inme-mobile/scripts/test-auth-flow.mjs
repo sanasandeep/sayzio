@@ -112,9 +112,12 @@ console.log("[test-auth-flow] AuthContext auth methods");
 {
   // --- sendOtp: POST /auth/otp/send { identifier, type } ---------------
   const calls = [];
+  // sendOtp reads `res.data?.demo_reveal` off the response envelope, so the
+  // mock must return a realistic (non-null) JSON envelope the way apiFetch
+  // does for a 200 with a body — not a bare null.
   const apiFetch = async (path, init) => {
     calls.push({ path, init });
-    return null;
+    return { data: { demo_reveal: null } };
   };
   const { sendOtp } = loadAuthFns(apiFetch, async () => {});
 

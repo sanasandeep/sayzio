@@ -67,18 +67,19 @@ assert.equal(
   "an absolute /@handle URL should resolve to the profile screen",
 );
 
-// 2. Manage-subscription deep-link must fall back to the browser (null) —
-// and must be checked BEFORE the generic /@handle rule or it would wrongly
-// open the public profile screen. This is the core ordering bug guard.
+// 2. Manage-subscription deep-link must route to the native
+// manage-subscription screen (carrying the creator handle) — and must be
+// checked BEFORE the generic /@handle rule or it would wrongly open the
+// public profile screen instead. This is the core ordering bug guard.
 assert.equal(
   nativeRouteFor("/@dave/manage-subscription"),
-  null,
-  "manage-subscription should fall back to the browser, not the profile screen",
+  "/manage-subscription?handle=dave",
+  "manage-subscription should route to the native screen carrying the handle, not the profile screen",
 );
 assert.equal(
   nativeRouteFor("https://1in.me/@dave/manage-subscription?plan=pro"),
-  null,
-  "absolute manage-subscription URL should also fall back to the browser",
+  "/manage-subscription?handle=dave",
+  "absolute manage-subscription URL should also route to the native manage-subscription screen",
 );
 
 // 3. In-app dashboard areas that have a native screen.
