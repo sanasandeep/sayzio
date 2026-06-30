@@ -194,6 +194,96 @@
 <style>
     [x-cloak] { display: none !important; }
     .search-row[data-hidden="true"] { display: none; }
+
+    /* ===== Global search / command palette modal (theme-aware) =====
+       Self-contained copy of the modal's surface styles so the panel + backdrop
+       render wherever this partial is included — including public/marketing
+       surfaces that do NOT load common.partials.theme-styles. Every CSS variable
+       carries a fallback (dark default / light override) so the modal looks right
+       even when the theme tokens aren't defined on the page. On the authed
+       user/admin layouts the tokens resolve and these rules match theme-styles. */
+    .gsm-backdrop {
+        background: rgba(7,7,15,0.78);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    html.light-mode .gsm-backdrop { background: var(--overlay-bg, rgba(7,20,55,0.28)); }
+
+    .gsm-panel {
+        background: linear-gradient(180deg, rgba(20,20,32,0.96), rgba(13,13,20,0.98));
+        border: 1px solid var(--border-glass, rgba(255,255,255,0.10));
+    }
+    html.light-mode .gsm-panel {
+        background: var(--bg-card, #ffffff);
+        box-shadow: var(--card-shadow-hover, 0 6px 14px rgba(7,20,55,0.06));
+    }
+
+    .gsm-divider { border-color: var(--border-glass, rgba(255,255,255,0.10)); }
+    html.light-mode .gsm-divider { border-color: var(--border-glass, #dbdfe9); }
+
+    .gsm-search-input { color: var(--text-primary, #ffffff); }
+    .gsm-search-input::placeholder { color: var(--text-dimmed, #64748b); opacity: 1; }
+    html.light-mode .gsm-search-input { color: var(--text-primary, #071437); }
+    html.light-mode .gsm-search-input::placeholder { color: var(--text-dimmed, #5e6884); }
+
+    .gsm-icon-muted { color: var(--text-dimmed, #64748b); }
+    .gsm-icon-faint { color: var(--text-faint, #475569); }
+    html.light-mode .gsm-icon-muted { color: var(--text-dimmed, #5e6884); }
+    html.light-mode .gsm-icon-faint { color: var(--text-faint, #6b7491); }
+
+    .gsm-group-header { color: var(--text-dimmed, #64748b); }
+    html.light-mode .gsm-group-header { color: var(--text-dimmed, #5e6884); }
+
+    .gsm-row { color: var(--text-secondary, #e2e8f0); border-color: transparent; }
+    .gsm-row:hover { background: var(--bg-glass-hover, rgba(255,255,255,0.06)); }
+    .gsm-row.is-selected {
+        background: var(--bg-glass-input-focus, rgba(255,255,255,0.07));
+        border-color: var(--border-glass-light, rgba(255,255,255,0.16));
+    }
+    html.light-mode .gsm-row { color: var(--text-secondary, #252f4a); }
+    html.light-mode .gsm-row:hover { background: var(--bg-glass-hover, #f4f5f9); }
+    html.light-mode .gsm-row.is-selected {
+        background: var(--c-primary-soft, #eaf0ff);
+        border-color: var(--border-glass-light, #c4c8d3);
+    }
+
+    .gsm-row-icon {
+        background: var(--bg-glass-input, rgba(255,255,255,0.04));
+        border: 1px solid var(--border-glass, rgba(255,255,255,0.10));
+        color: #7d9bff;
+    }
+    html.light-mode .gsm-row-icon {
+        background: var(--bg-glass-input, #ffffff);
+        border-color: var(--border-glass, #dbdfe9);
+        color: var(--accent, #3d6bff);
+    }
+
+    .gsm-kbd {
+        background: var(--bg-glass-input, rgba(255,255,255,0.04));
+        border: 1px solid var(--border-glass, rgba(255,255,255,0.10));
+        color: var(--text-muted, #94a3b8);
+    }
+    html.light-mode .gsm-kbd {
+        background: var(--bg-glass-input, #ffffff);
+        border-color: var(--border-glass, #dbdfe9);
+        color: var(--text-muted, #4b5675);
+    }
+
+    .gsm-footer {
+        color: var(--text-dimmed, #64748b);
+        border-color: var(--border-glass, rgba(255,255,255,0.10));
+        background: rgba(0,0,0,0.30);
+    }
+    html.light-mode .gsm-footer {
+        color: var(--text-dimmed, #5e6884);
+        border-color: var(--border-glass, #dbdfe9);
+        background: var(--bg-glass-hover, #f4f5f9);
+    }
+
+    .gsm-empty { color: var(--text-dimmed, #64748b); }
+    .gsm-empty-query { color: var(--text-secondary, #e2e8f0); }
+    html.light-mode .gsm-empty { color: var(--text-dimmed, #5e6884); }
+    html.light-mode .gsm-empty-query { color: var(--text-secondary, #252f4a); }
 </style>
 
 <script>
