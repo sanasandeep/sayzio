@@ -252,6 +252,15 @@ export type OwnerMenuTable = {
   order_url: string;
 };
 
+export type OwnerMenuCoupon = {
+  id: number;
+  code: string;
+  discount_type: "percent" | "fixed";
+  discount_value: string;
+  min_subtotal: string;
+  is_active: boolean;
+};
+
 export type OwnerMenu = {
   mode: "display" | "order";
   currency: string;
@@ -259,8 +268,10 @@ export type OwnerMenu = {
   whatsapp_number: string | null;
   order_enabled: boolean;
   public_url: string;
+  tax: RestaurantMenuTax;
   categories: OwnerMenuCategory[];
   tables: OwnerMenuTable[];
+  coupons: OwnerMenuCoupon[];
 };
 
 export async function getOwnerMenu(
@@ -279,6 +290,10 @@ export async function saveOwnerMenuSettings(
     currency: string;
     accent_color?: string | null;
     whatsapp_number?: string | null;
+    tax_enabled?: boolean;
+    tax_rate?: number | null;
+    tax_inclusive?: boolean;
+    tax_label?: string | null;
   },
 ): Promise<OwnerMenu> {
   const res = await apiFetch<{ data: { menu: OwnerMenu } }>(
@@ -286,6 +301,46 @@ export async function saveOwnerMenuSettings(
     { method: "POST", body: JSON.stringify(input) },
   );
   return res.data.menu;
+}
+
+export type CouponInput = {
+  code: string;
+  discount_type: "percent" | "fixed";
+  discount_value: number;
+  min_subtotal?: number | null;
+  is_active?: boolean;
+};
+
+export async function createMenuCoupon(
+  linkId: number | string,
+  input: CouponInput,
+): Promise<OwnerMenuCoupon> {
+  const res = await apiFetch<{ data: { coupon: OwnerMenuCoupon } }>(
+    `/restaurant/links/${linkId}/menu/coupons`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data.coupon;
+}
+
+export async function updateMenuCoupon(
+  linkId: number | string,
+  couponId: number,
+  input: CouponInput,
+): Promise<OwnerMenuCoupon> {
+  const res = await apiFetch<{ data: { coupon: OwnerMenuCoupon } }>(
+    `/restaurant/links/${linkId}/menu/coupons/${couponId}`,
+    { method: "PUT", body: JSON.stringify(input) },
+  );
+  return res.data.coupon;
+}
+
+export async function deleteMenuCoupon(
+  linkId: number | string,
+  couponId: number,
+): Promise<void> {
+  await apiFetch(`/restaurant/links/${linkId}/menu/coupons/${couponId}`, {
+    method: "DELETE",
+  });
 }
 
 export async function createMenuCategory(

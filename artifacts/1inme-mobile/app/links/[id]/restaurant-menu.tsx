@@ -27,18 +27,22 @@ import { useColors } from "@/hooks/useColors";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
 import {
   createMenuCategory,
+  createMenuCoupon,
   createMenuItem,
   createMenuTable,
   deleteMenuCategory,
+  deleteMenuCoupon,
   deleteMenuItem,
   deleteMenuTable,
   getOwnerMenu,
   saveOwnerMenuSettings,
   updateMenuCategory,
+  updateMenuCoupon,
   updateMenuItem,
   uploadMenuItemPhoto,
   type OwnerMenu,
   type OwnerMenuCategory,
+  type OwnerMenuCoupon,
   type OwnerMenuItem,
 } from "@/lib/api/restaurant";
 
@@ -71,6 +75,15 @@ type ItemDraft = {
   is_sold_out: boolean;
 };
 
+type CouponDraft = {
+  id: number | null;
+  code: string;
+  discount_type: "percent" | "fixed";
+  discount_value: string;
+  min_subtotal: string;
+  is_active: boolean;
+};
+
 export default function RestaurantMenuBuilderScreen() {
   const colors = useColors();
   const params = useLocalSearchParams<{ id: string }>();
@@ -88,6 +101,10 @@ export default function RestaurantMenuBuilderScreen() {
   const [currency, setCurrency] = useState("USD");
   const [accent, setAccent] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [taxEnabled, setTaxEnabled] = useState(false);
+  const [taxRate, setTaxRate] = useState("");
+  const [taxInclusive, setTaxInclusive] = useState(false);
+  const [taxLabel, setTaxLabel] = useState("GST");
 
   useEffect(() => {
     const m = q.data;
@@ -96,6 +113,10 @@ export default function RestaurantMenuBuilderScreen() {
     setCurrency(m.currency);
     setAccent(m.accent_color ?? "");
     setWhatsapp(m.whatsapp_number ?? "");
+    setTaxEnabled(m.tax?.enabled ?? false);
+    setTaxRate(m.tax?.rate ? String(m.tax.rate) : "");
+    setTaxInclusive(m.tax?.inclusive ?? false);
+    setTaxLabel(m.tax?.label || "GST");
   }, [q.data]);
 
   const invalidate = () =>
@@ -108,6 +129,10 @@ export default function RestaurantMenuBuilderScreen() {
         currency: currency.trim().toUpperCase() || "USD",
         accent_color: accent.trim() || null,
         whatsapp_number: whatsapp.trim() || null,
+        tax_enabled: taxEnabled,
+        tax_rate: taxRate ? Number(taxRate) : 0,
+        tax_inclusive: taxInclusive,
+        tax_label: taxLabel.trim() || "GST",
       }),
     onSuccess: (menu) => qc.setQueryData(["restaurant-owner-menu", linkId], menu),
     onError: (e: any) => {
@@ -189,6 +214,35 @@ export default function RestaurantMenuBuilderScreen() {
   });
   const delTableMut = useMutation({
     mutationFn: (id: number) => deleteMenuTable(linkId, id),
+    onSuccess: invalidate,
+  });
+
+  // ── Coupons ──
+  const [couponModal, setCouponModal] = useState<CouponDraft | null>(null);
+  const couponMut = useMutation({
+    mutationFn: (d: CouponDraft) => {
+      const payload = {
+        code: d.code.trim(),
+        discount_type: d.discount_type,
+        discount_value: d.discount_value ? Number(d.discount_value) : 0,
+        min_subtotal: d.min_subtotal ? Number(d.min_subtotal) : 0,
+        is_active: d.is_active,
+      };
+      return d.id
+        ? updateMenuCoupon(linkId, d.id, payload)
+        : createMenuCoupon(linkId, payload);
+    },
+    onSuccess: () => {
+      setCouponModal(null);
+      invalidate();
+    },
+    onError: (e: any) => {
+      if (handlePlanLockedError(e)) return;
+      Alert.alert("Couldn't save coupon", e?.message ?? "Try again.");
+    },
+  });
+  const delCouponMut = useMutation({
+    mutationFn: (id: number) => deleteMenuCoupon(linkId, id),
     onSuccess: invalidate,
   });
 
@@ -351,6 +405,63 @@ export default function RestaurantMenuBuilderScreen() {
               </Text>
             </>
           ) : null}
+
+          {/* GST / tax */}
+          <View style={[styles.divider, { borderTopColor: colors.border }]} />
+          <View style={styles.soldRow}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                Add GST / tax
+              </Text>
+              <Text style={[styles.helper, { color: colors.mutedForeground, marginTop: 2 }]}>
+                Shows an estimated tax line on the bill. No payment is collected.
+              </Text>
+            </View>
+            <Switch
+              value={taxEnabled}
+              onValueChange={setTaxEnabled}
+              trackColor={{ true: colors.primary, false: colors.border }}
+            />
+          </View>
+          {taxEnabled ? (
+            <>
+              <View style={{ height: 12 }} />
+              <TextField
+                label="Tax rate (%)"
+                value={taxRate}
+                onChangeText={(v) => setTaxRate(v.replace(/[^0-9.]/g, ""))}
+                keyboardType="decimal-pad"
+                placeholder="e.g. 18"
+              />
+              <TextField
+                label="Tax label"
+                value={taxLabel}
+                onChangeText={setTaxLabel}
+                autoCapitalize="characters"
+                placeholder="GST"
+                maxLength={24}
+              />
+              <View style={styles.soldRow}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                    Prices include tax
+                  </Text>
+                  <Text style={[styles.helper, { color: colors.mutedForeground, marginTop: 2 }]}>
+                    {taxInclusive
+                      ? "Tax is broken out of the listed prices (inclusive)."
+                      : "Tax is added on top of the subtotal."}
+                  </Text>
+                </View>
+                <Switch
+                  value={taxInclusive}
+                  onValueChange={setTaxInclusive}
+                  trackColor={{ true: colors.primary, false: colors.border }}
+                />
+              </View>
+            </>
+          ) : null}
+
+          <View style={{ height: 12 }} />
           <Button
             label="Save settings"
             onPress={() => settingsMut.mutate()}
@@ -650,6 +761,119 @@ export default function RestaurantMenuBuilderScreen() {
                 </Pressable>
               </View>
             </View>
+
+            {/* Coupons */}
+            <View style={styles.headerRow}>
+              <Text
+                style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+              >
+                Coupon codes
+              </Text>
+              <Pressable
+                onPress={() =>
+                  setCouponModal({
+                    id: null,
+                    code: "",
+                    discount_type: "percent",
+                    discount_value: "",
+                    min_subtotal: "",
+                    is_active: true,
+                  })
+                }
+                style={styles.addLink}
+                hitSlop={8}
+              >
+                <Feather name="plus" size={16} color={colors.primary} />
+                <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                  Coupon
+                </Text>
+              </Pressable>
+            </View>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              {menu.coupons.length === 0 ? (
+                <Text
+                  style={{ color: colors.mutedForeground, fontSize: 13 }}
+                >
+                  Add a discount code diners can apply to their order. One coupon
+                  per order.
+                </Text>
+              ) : null}
+
+              {menu.coupons.map((c: OwnerMenuCoupon, idx) => (
+                <View
+                  key={c.id}
+                  style={[
+                    styles.tableRow,
+                    { borderTopColor: colors.border },
+                    idx === 0 && { borderTopWidth: 0, paddingTop: 0 },
+                  ]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{ color: colors.foreground, fontWeight: "700" }}
+                    >
+                      {c.code}
+                      {c.is_active ? "" : "  · Off"}
+                    </Text>
+                    <Text
+                      style={{ color: colors.mutedForeground, fontSize: 12 }}
+                    >
+                      {c.discount_type === "percent"
+                        ? `${Number(c.discount_value)}% off`
+                        : `${cur} ${Number(c.discount_value).toFixed(2)} off`}
+                      {Number(c.min_subtotal) > 0
+                        ? ` · min ${cur} ${Number(c.min_subtotal).toFixed(2)}`
+                        : ""}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() =>
+                      setCouponModal({
+                        id: c.id,
+                        code: c.code,
+                        discount_type: c.discount_type,
+                        discount_value: String(Number(c.discount_value)),
+                        min_subtotal:
+                          Number(c.min_subtotal) > 0
+                            ? String(Number(c.min_subtotal))
+                            : "",
+                        is_active: c.is_active,
+                      })
+                    }
+                    hitSlop={8}
+                    style={styles.iconBtn}
+                  >
+                    <Feather
+                      name="edit-2"
+                      size={16}
+                      color={colors.mutedForeground}
+                    />
+                  </Pressable>
+                  <Pressable
+                    onPress={() =>
+                      confirm(
+                        "Delete coupon?",
+                        `Remove "${c.code}". Diners won't be able to use it.`,
+                        () => delCouponMut.mutate(c.id),
+                      )
+                    }
+                    hitSlop={8}
+                    style={styles.iconBtn}
+                  >
+                    <Feather
+                      name="trash-2"
+                      size={16}
+                      color={colors.destructive}
+                    />
+                  </Pressable>
+                </View>
+              ))}
+            </View>
           </>
         ) : null}
       </ScrollView>
@@ -874,6 +1098,147 @@ export default function RestaurantMenuBuilderScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Coupon modal */}
+      <Modal
+        visible={couponModal !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCouponModal(null)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalWrap}
+        >
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <ScrollView keyboardShouldPersistTaps="handled">
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                {couponModal?.id ? "Edit coupon" : "New coupon"}
+              </Text>
+              <TextField
+                label="Code"
+                value={couponModal?.code ?? ""}
+                onChangeText={(v) =>
+                  setCouponModal((p) =>
+                    p ? { ...p, code: v.toUpperCase() } : p,
+                  )
+                }
+                autoCapitalize="characters"
+                autoCorrect={false}
+                placeholder="SAVE10"
+                maxLength={64}
+              />
+
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+                Discount type
+              </Text>
+              <View
+                style={[
+                  styles.segment,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                {(["percent", "fixed"] as const).map((t) => {
+                  const on = couponModal?.discount_type === t;
+                  return (
+                    <Pressable
+                      key={t}
+                      onPress={() =>
+                        setCouponModal((p) =>
+                          p ? { ...p, discount_type: t } : p,
+                        )
+                      }
+                      style={[
+                        styles.segmentItem,
+                        on && { backgroundColor: colors.primary },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: on ? "#fff" : colors.mutedForeground,
+                          fontWeight: "600",
+                          fontSize: 13,
+                        }}
+                      >
+                        {t === "percent" ? "Percentage" : "Fixed amount"}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <View style={{ height: 12 }} />
+              <TextField
+                label={
+                  couponModal?.discount_type === "percent"
+                    ? "Discount (%)"
+                    : `Discount (${cur})`
+                }
+                value={couponModal?.discount_value ?? ""}
+                onChangeText={(v) =>
+                  setCouponModal((p) =>
+                    p
+                      ? { ...p, discount_value: v.replace(/[^0-9.]/g, "") }
+                      : p,
+                  )
+                }
+                keyboardType="decimal-pad"
+                placeholder={couponModal?.discount_type === "percent" ? "10" : "5.00"}
+              />
+              <TextField
+                label={`Minimum bill to qualify (${cur}, optional)`}
+                value={couponModal?.min_subtotal ?? ""}
+                onChangeText={(v) =>
+                  setCouponModal((p) =>
+                    p ? { ...p, min_subtotal: v.replace(/[^0-9.]/g, "") } : p,
+                  )
+                }
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+              />
+
+              <View style={styles.soldRow}>
+                <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                  Active
+                </Text>
+                <Switch
+                  value={couponModal?.is_active ?? true}
+                  onValueChange={(v) =>
+                    setCouponModal((p) => (p ? { ...p, is_active: v } : p))
+                  }
+                  trackColor={{ true: colors.primary, false: colors.border }}
+                />
+              </View>
+
+              <View style={styles.modalActions}>
+                <Button
+                  label="Cancel"
+                  variant="ghost"
+                  onPress={() => setCouponModal(null)}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  label="Save"
+                  onPress={() => couponModal && couponMut.mutate(couponModal)}
+                  loading={couponMut.isPending}
+                  disabled={
+                    !couponModal?.code.trim() || !couponModal?.discount_value
+                  }
+                  style={{ flex: 1 }}
+                />
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -894,6 +1259,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   card: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 4 },
+  divider: { borderTopWidth: 1, marginTop: 16, marginBottom: 16 },
   fieldLabel: { fontSize: 12, fontWeight: "600", marginBottom: 6 },
   helper: { fontSize: 12, marginTop: 8 },
   segment: {

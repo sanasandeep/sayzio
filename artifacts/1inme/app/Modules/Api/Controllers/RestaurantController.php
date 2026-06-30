@@ -8,6 +8,7 @@ use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\RestaurantMenu;
 use App\Modules\User\Models\RestaurantMenuCategory;
+use App\Modules\User\Models\RestaurantMenuCoupon;
 use App\Modules\User\Models\RestaurantMenuItem;
 use App\Modules\User\Models\RestaurantOrder;
 use App\Modules\User\Models\RestaurantTable;
@@ -371,6 +372,10 @@ class RestaurantController extends Controller
             'currency'        => 'required|string|size:3',
             'accent_color'    => 'nullable|string|max:16',
             'whatsapp_number' => 'nullable|string|max:32',
+            'tax_enabled'     => 'sometimes|boolean',
+            'tax_rate'        => 'nullable|numeric|min:0|max:100',
+            'tax_inclusive'   => 'sometimes|boolean',
+            'tax_label'       => 'nullable|string|max:24',
         ]);
 
         $settings = $menu->settings ?? [];
@@ -386,6 +391,18 @@ class RestaurantController extends Controller
             }
         }
 
+        // Menu-level GST/tax config lives in the `settings` JSON; mirror the
+        // web editor's saveSettings so mobile owners can set it too.
+        if ($request->has('tax_enabled') || $request->has('tax_rate')
+            || $request->has('tax_inclusive') || $request->has('tax_label')) {
+            $settings['tax'] = [
+                'enabled'   => (bool) ($data['tax_enabled'] ?? false),
+                'rate'      => round((float) ($data['tax_rate'] ?? 0), 3),
+                'inclusive' => (bool) ($data['tax_inclusive'] ?? false),
+                'label'     => trim((string) ($data['tax_label'] ?? 'GST')) ?: 'GST',
+            ];
+        }
+
         $menu->update([
             'mode'         => $data['mode'],
             'currency'     => strtoupper($data['currency']),
@@ -394,6 +411,84 @@ class RestaurantController extends Controller
         ]);
 
         return $this->ok(['menu' => $this->ownerMenuPayload($menu->fresh(), $link)]);
+    }
+
+    // ── Coupons (Task #3070) ─────────────────────────────────────
+    // Owner CRUD for menu coupon codes, mirroring the web
+    // RestaurantMenuController. Single coupon per order, percentage or
+    // fixed amount, optional minimum bill and an active toggle.
+
+    public function storeCoupon(Request $request, Link $link)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu) {
+            return $this->notFound('Menu not found');
+        }
+
+        $data = $this->validateCoupon($request);
+        $code = RestaurantMenuCoupon::normalizeCode($data['code']);
+
+        if ($menu->coupons()->where('code', $code)->exists()) {
+            return $this->fail('A coupon with that code already exists on this menu.', 422, 'duplicate_code');
+        }
+
+        $coupon = $menu->coupons()->create([
+            'code'           => $code,
+            'discount_type'  => $data['discount_type'],
+            'discount_value' => $data['discount_value'],
+            'min_subtotal'   => $data['min_subtotal'] ?? 0,
+            'is_active'      => (bool) ($data['is_active'] ?? true),
+        ]);
+
+        return $this->created(['coupon' => $this->ownerCoupon($coupon)]);
+    }
+
+    public function updateCoupon(Request $request, Link $link, RestaurantMenuCoupon $coupon)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu || (int) $coupon->menu_id !== (int) $menu->id) {
+            return $this->notFound('Coupon not found');
+        }
+
+        $data = $this->validateCoupon($request);
+        $code = RestaurantMenuCoupon::normalizeCode($data['code']);
+
+        if ($menu->coupons()->where('code', $code)->where('id', '!=', $coupon->id)->exists()) {
+            return $this->fail('A coupon with that code already exists on this menu.', 422, 'duplicate_code');
+        }
+
+        $coupon->update([
+            'code'           => $code,
+            'discount_type'  => $data['discount_type'],
+            'discount_value' => $data['discount_value'],
+            'min_subtotal'   => $data['min_subtotal'] ?? 0,
+            'is_active'      => (bool) ($data['is_active'] ?? true),
+        ]);
+
+        return $this->ok(['coupon' => $this->ownerCoupon($coupon->fresh())]);
+    }
+
+    public function destroyCoupon(Request $request, Link $link, RestaurantMenuCoupon $coupon)
+    {
+        $menu = $this->ownedMenu($request, $link);
+        if (!$menu || (int) $coupon->menu_id !== (int) $menu->id) {
+            return $this->notFound('Coupon not found');
+        }
+
+        $coupon->delete();
+
+        return $this->ok(['deleted' => true]);
+    }
+
+    protected function validateCoupon(Request $request): array
+    {
+        return $request->validate([
+            'code'           => 'required|string|max:64',
+            'discount_type'  => 'required|in:percent,fixed',
+            'discount_value' => 'required|numeric|min:0|max:9999999',
+            'min_subtotal'   => 'nullable|numeric|min:0|max:9999999',
+            'is_active'      => 'sometimes|boolean',
+        ]);
     }
 
     // ── Categories ───────────────────────────────────────────────
@@ -602,7 +697,7 @@ class RestaurantController extends Controller
     /** Full owner-facing menu (includes inactive rows the builder edits). */
     protected function ownerMenuPayload(RestaurantMenu $menu, Link $link): array
     {
-        $menu->load(['categories', 'items', 'tables']);
+        $menu->load(['categories', 'items', 'tables', 'coupons']);
         $itemsByCat = $menu->items->groupBy('category_id');
 
         return [
@@ -612,11 +707,25 @@ class RestaurantController extends Controller
             'whatsapp_number' => $menu->settings['whatsapp_number'] ?? null,
             'order_enabled'   => $menu->isOrderMode(),
             'public_url'      => url('/' . $link->alias),
+            'tax'             => $this->taxPayload($menu),
             'categories'   => $menu->categories->map(fn ($c) => $this->ownerCategory(
                 $c,
                 $itemsByCat->get($c->id) ?? collect(),
             ))->values(),
             'tables'       => $menu->tables->map(fn ($t) => $this->ownerTable($t, $link))->values(),
+            'coupons'      => $menu->coupons->map(fn ($c) => $this->ownerCoupon($c))->values(),
+        ];
+    }
+
+    protected function ownerCoupon(RestaurantMenuCoupon $coupon): array
+    {
+        return [
+            'id'             => $coupon->id,
+            'code'           => $coupon->code,
+            'discount_type'  => $coupon->discount_type,
+            'discount_value' => $coupon->discount_value,
+            'min_subtotal'   => $coupon->min_subtotal,
+            'is_active'      => (bool) $coupon->is_active,
         ];
     }
 

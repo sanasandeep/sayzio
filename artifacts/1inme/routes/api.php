@@ -895,6 +895,12 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/restaurant/links/{link}/menu/tables',                   [RestaurantController::class, 'storeTable'])->whereNumber('link');
         Route::delete('/restaurant/links/{link}/menu/tables/{table}',           [RestaurantController::class, 'destroyTable'])->whereNumber('link')->whereNumber('table');
 
+        // Restaurant menu coupons (Task #3070) — owner CRUD parity with the
+        // web editor so phone owners can set up discount codes too.
+        Route::post  ('/restaurant/links/{link}/menu/coupons',                  [RestaurantController::class, 'storeCoupon'])->whereNumber('link');
+        Route::put   ('/restaurant/links/{link}/menu/coupons/{coupon}',         [RestaurantController::class, 'updateCoupon'])->whereNumber('link')->whereNumber('coupon');
+        Route::delete('/restaurant/links/{link}/menu/coupons/{coupon}',         [RestaurantController::class, 'destroyCoupon'])->whereNumber('link')->whereNumber('coupon');
+
         // Social accounts + social proof
         Route::get   ('/social/connections',                 [SocialAccountController::class, 'connections']);
         Route::post  ('/social/connections',                 [SocialAccountController::class, 'connect']);
