@@ -26,6 +26,7 @@ class CreatorSubscription extends Model
         'price_cents', 'currency',
         'started_at', 'current_period_start', 'current_period_end',
         'canceled_at', 'cancel_at_period_end', 'last_payment_at',
+        'renewal_reminder_sent_at',
         'gateway', 'gateway_subscription_id', 'promo_code_id',
         'metadata',
     ];
@@ -39,6 +40,7 @@ class CreatorSubscription extends Model
             'canceled_at'          => 'datetime',
             'cancel_at_period_end' => 'boolean',
             'last_payment_at'      => 'datetime',
+            'renewal_reminder_sent_at' => 'datetime',
             'price_cents'          => 'integer',
             'metadata'             => 'array',
         ];

@@ -125,6 +125,19 @@ Schedule::command('starter:send-free-window-reminders')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Daily: remind fans a few days before a creator subscription they pay for
+// auto-renews (email + in-app), naming the creator, amount, billing cycle,
+// exact renewal date and a manage/cancel link. Heads-up only — it does not
+// change how/when renewals are actually charged. Self-rate-limited (once per
+// billing period via renewal_reminder_sent_at, only within the lead window),
+// skips canceled / cancel-at-period-end / non-active / free subs, and honours
+// the `billing.creator_sub_renewal_reminder` preference. 10:45 UTC keeps it
+// clear of the digest fan-out.
+Schedule::command('creator-subscriptions:send-renewal-reminders')
+    ->dailyAt('10:45')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Weekly (Tue 10:45 UTC): nudge users who still haven't shared a verified
 // WhatsApp number to add one and follow our channel (in-app only). Self
 // rate-limited — stops once a number exists, honours the dashboard nudge's

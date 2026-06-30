@@ -235,6 +235,14 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            // Fan→creator subscription auto-renewal reminders (Task #3011).
+            'billing.creator_sub_renewal_reminder' => [
+                'label'          => 'Subscription renewal reminders',
+                'description'    => 'A heads-up a few days before a creator subscription you pay for automatically renews, with the amount, date and a manage/cancel link.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => false,
+            ],
             // Dialer callback reminders.
             'dialer.callback_due' => [
                 'label'          => 'Call-back reminders',
