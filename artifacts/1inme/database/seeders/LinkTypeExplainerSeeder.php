@@ -3,8 +3,13 @@
 namespace Database\Seeders;
 
 use App\Modules\Admin\Models\Admin;
+use App\Modules\Common\Services\WhatsappOrderLink;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\RestaurantMenu;
+use App\Modules\User\Models\RestaurantMenuCategory;
+use App\Modules\User\Models\RestaurantMenuItem;
+use App\Modules\User\Models\RestaurantTable;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Support\BlockDefaults;
@@ -30,7 +35,15 @@ class LinkTypeExplainerSeeder extends Seeder
      * untouched pages get refreshed on the next seed. Edited pages are
      * still left alone (see refresh guard in seedPage()).
      */
-    private const SEED_VERSION = 3;
+    private const SEED_VERSION = 4;
+
+    /**
+     * Bump when the live demo restaurant menu (`/demo-restaurant`) content
+     * below changes. The menu config (order mode + a sample WhatsApp number)
+     * is always re-converged; categories/items are only (re)built when the
+     * demo menu is still empty so admin edits are never clobbered.
+     */
+    private const DEMO_MENU_VERSION = 1;
 
     public function run(): void
     {
@@ -47,6 +60,11 @@ class LinkTypeExplainerSeeder extends Seeder
         foreach ($this->pages() as $page) {
             $tally[$this->seedPage($user, $ws, $page)]++;
         }
+
+        // A real, working demo restaurant menu (order mode + a sample
+        // WhatsApp number) so the demo gallery's restaurant page can hand
+        // diners straight into the live ordering + WhatsApp confirmation flow.
+        $this->seedRestaurantMenuDemo($user, $ws);
 
         $this->command?->info(sprintf(
             'Link-type explainer biolinks: %d created, %d refreshed, %d skipped.',
@@ -243,6 +261,133 @@ class LinkTypeExplainerSeeder extends Seeder
     }
 
     /**
+     * Seed (or converge) the live, working demo restaurant menu reachable at
+     * `/demo-restaurant`. The restaurant explainer page in the demo gallery
+     * links straight here so visitors experience the real ordering flow —
+     * including the "Send order via WhatsApp" confirmation when a number is
+     * configured (mirrors the live public page, additive, orders still
+     * record). Idempotent: the menu config is re-converged each run; the
+     * categories/items are only built when the menu is still empty.
+     */
+    private function seedRestaurantMenuDemo(User $owner, Workspace $ws): void
+    {
+        $alias = 'demo-restaurant';
+
+        $link = Link::where('user_id', $owner->id)->where('alias', $alias)->first();
+        $created = false;
+
+        if (! $link) {
+            $link = new Link();
+            $link->forceFill([
+                'user_id'            => $owner->id,
+                'workspace_id'       => $ws->id,
+                'created_by_user_id' => $owner->id,
+                'type'               => 'restaurant_menu',
+                'alias'              => $alias,
+                'title'              => 'Olive & Ember',
+                'is_active'          => true,
+                'visibility'         => 'public',
+            ]);
+            $link->settings = [
+                'biolink' => [
+                    'biolink_title'       => 'Olive & Ember',
+                    'biolink_description' => 'Wood-fired kitchen — order right from your table.',
+                ],
+                'demo' => ['seed_version' => self::DEMO_MENU_VERSION],
+            ];
+            $link->save();
+            $created = true;
+        }
+
+        // Ensure the menu config row exists in order mode with a sample
+        // WhatsApp number so the demo always showcases the click-to-chat
+        // order confirmation. We only fill the number when it's missing so an
+        // admin who later set a real one is never overwritten.
+        $menu = RestaurantMenu::firstOrNew(['link_id' => $link->id]);
+        $settings = is_array($menu->settings) ? $menu->settings : [];
+        if (empty($settings['whatsapp_number'])) {
+            $settings['whatsapp_number'] = WhatsappOrderLink::normalizeNumber('+1 555 555 0123');
+        }
+        if (empty($settings['order_instructions'] ?? null)) {
+            $settings['order_instructions'] = 'Add a few dishes, then tap “Place order”. You can also send your order to our team on WhatsApp to confirm.';
+        }
+
+        $menu->forceFill([
+            'user_id'      => $owner->id,
+            'mode'         => RestaurantMenu::MODE_ORDER,
+            'currency'     => $menu->currency ?: 'USD',
+            'accent_color' => $menu->accent_color ?: '#c2410c',
+            'settings'     => $settings,
+        ])->save();
+
+        // Build the menu contents only once (when empty) so admin edits to the
+        // demo are never clobbered on a re-seed.
+        if ($menu->categories()->count() === 0) {
+            $this->buildDemoMenuContents($menu);
+        }
+
+        // At least one table so the per-table QR ordering flow is reachable.
+        if ($menu->tables()->count() === 0) {
+            RestaurantTable::create(['menu_id' => $menu->id, 'label' => '1', 'sort_order' => 0]);
+        }
+
+        $this->command?->info($created
+            ? "Live demo restaurant menu created (/{$alias})."
+            : "Live demo restaurant menu ensured (/{$alias}).");
+    }
+
+    /** The dishes for the live demo restaurant menu. */
+    private function buildDemoMenuContents(RestaurantMenu $menu): void
+    {
+        $catalog = [
+            ['name' => 'Starters', 'items' => [
+                ['Wood-fired Focaccia', 'Rosemary, sea salt, olive oil', 7.50, false],
+                ['Charred Padrón Peppers', 'Smoked salt, lemon', 8.00, false],
+                ['Burrata & Heirloom Tomato', 'Basil, aged balsamic', 12.00, false],
+            ]],
+            ['name' => 'Wood-fired Mains', 'items' => [
+                ['Margherita Pizza', 'San Marzano, fior di latte, basil', 14.00, false],
+                ['Diavola Pizza', 'Spicy salami, chilli honey', 16.50, false],
+                ['Roasted Half Chicken', 'Charred lemon, herb jus', 21.00, false],
+                ['Ember Ribeye', "300g, smoked butter — today's special", 29.00, true],
+            ]],
+            ['name' => 'Desserts', 'items' => [
+                ['Olive Oil Cake', 'Citrus, mascarpone', 9.00, false],
+                ['Affogato', 'Vanilla gelato, espresso', 7.00, false],
+            ]],
+            ['name' => 'Drinks', 'items' => [
+                ['House Red (Glass)', 'Tuscan blend', 9.00, false],
+                ['Sparkling Water', 'Chilled, 500ml', 4.00, false],
+                ['Espresso', 'Single origin', 3.50, false],
+            ]],
+        ];
+
+        $csort = 0;
+        foreach ($catalog as $cat) {
+            $category = RestaurantMenuCategory::create([
+                'menu_id'    => $menu->id,
+                'name'       => $cat['name'],
+                'sort_order' => $csort++,
+                'is_active'  => true,
+            ]);
+
+            $isort = 0;
+            foreach ($cat['items'] as [$name, $desc, $price, $soldOut]) {
+                RestaurantMenuItem::create([
+                    'menu_id'     => $menu->id,
+                    'category_id' => $category->id,
+                    'name'        => $name,
+                    'description' => $desc,
+                    'price'       => $price,
+                    'is_sold_out' => $soldOut,
+                    'sort_order'  => $isort++,
+                    'is_active'   => true,
+                ]);
+            }
+        }
+    }
+
+    /**
      * The 10 marketing headline link types, each with consistent explainer
      * copy: a title, a heading, an intro, 4–5 feature bullets, and a CTA.
      */
@@ -345,12 +490,12 @@ class LinkTypeExplainerSeeder extends Seeder
                 'features' => [
                     'Build categories and items with photos and prices',
                     'Each table gets its own QR code and ordering link',
-                    'Take orders straight from the page',
+                    'Take orders from the page — or confirm them over WhatsApp in one tap',
                     'Live staff dashboard tracks every order',
                     'Update the menu any time — no reprinting',
                 ],
-                'cta_label' => 'Build your menu',
-                'cta_url' => $create('restaurant_menu'),
+                'cta_label' => 'Order from the live demo menu',
+                'cta_url' => url('/demo-restaurant'),
                 'cta_icon' => 'fa-utensils',
             ],
             [
