@@ -779,6 +779,73 @@
     </style>
 
     <script>
+        // Transparent-mascot guard. The animated mascot is a VP9-alpha WebM,
+        // but Safari / iOS WebKit decode VP9 yet IGNORE its alpha channel, so
+        // the keyed-out off-white background renders as an opaque box. There is
+        // no reliable feature flag for "VP9 alpha honored", so we detect it
+        // directly: once a frame is available, draw a corner of the video (the
+        // keyed-out background region) to a small canvas and read its alpha.
+        // The clip is same-origin, so the canvas is not tainted. If the corner
+        // is opaque, the browser is not honoring alpha — hide the video and
+        // show the transparent still PNG instead (mascot still visible, no box).
+        // Covers both home mascot clips: the hero (.zio-mascot-video) and the
+        // "1IN.ME is Sayzio" section (.bs-mascot-video), each paired with its
+        // own transparent still (*-fallback) sibling. Runs after DOMContentLoaded
+        // because brand-sayzio is included further down the page than this hero,
+        // so its <video> doesn't exist yet at parse time.
+        (function () {
+            function initMascotAlphaGuard() {
+            var videos = document.querySelectorAll('.zio-mascot-video, .bs-mascot-video');
+            if (!videos.length) { return; }
+            Array.prototype.forEach.call(videos, function (video) {
+                // The still PNG is the matching sibling: same class prefix,
+                // -video -> -fallback (e.g. zio-mascot-video -> zio-mascot-fallback).
+                var stillSelector = '.' + (video.className.split(/\s+/).filter(function (c) {
+                    return /-mascot-video$/.test(c);
+                })[0] || '').replace(/-video$/, '-fallback');
+                var still = stillSelector !== '.' ? video.parentNode.querySelector(stillSelector) : null;
+                if (!still) { return; }
+                var done = false;
+                function showStill() {
+                    done = true;
+                    video.style.display = 'none';
+                    still.style.display = 'block';
+                    try { video.pause(); } catch (e) { /* noop */ }
+                }
+                function checkAlpha() {
+                    if (done) { return; }
+                    if (video.readyState < 2 || !video.videoWidth) { return; }
+                    try {
+                        var c = document.createElement('canvas');
+                        c.width = 4; c.height = 4;
+                        var ctx = c.getContext('2d', { willReadFrequently: true });
+                        if (!ctx) { return; }
+                        ctx.clearRect(0, 0, 4, 4);
+                        // Sample the top-left corner of the frame (background region).
+                        ctx.drawImage(video, 0, 0, video.videoWidth * 0.05, video.videoHeight * 0.05, 0, 0, 4, 4);
+                        var a = ctx.getImageData(0, 0, 1, 1).data[3];
+                        done = true; // decided; if the corner is opaque, alpha isn't honored.
+                        if (a > 24) { showStill(); }
+                    } catch (e) {
+                        // Tainted/unsupported canvas: be safe, keep the still image.
+                        showStill();
+                    }
+                }
+                video.addEventListener('loadeddata', checkAlpha);
+                video.addEventListener('playing', checkAlpha);
+                // Belt-and-suspenders: re-check shortly after load in case the
+                // first probed frame was decoded before alpha was applied.
+                setTimeout(function () { done = false; checkAlpha(); }, 600);
+                if (video.readyState >= 2) { checkAlpha(); }
+            });
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initMascotAlphaGuard);
+            } else {
+                initMascotAlphaGuard();
+            }
+        })();
+
         // Hero "claim your link" handler. Carries the typed handle into the
         // existing register flow via the same open-auth event the other hero
         // CTAs use. An empty handle still opens registration normally.
