@@ -474,7 +474,7 @@
         $host = parse_url($link->long_url, PHP_URL_HOST);
         if ($host) $favSrc = 'https://www.google.com/s2/favicons?sz=64&domain=' . urlencode($host);
     } elseif ($link->type === 'biolink') {
-        $favSrc = url('favicon.ico');
+        $favSrc = url('favicon.ico') . '?v=20260630';
     }
     $canExportStats = (bool) (workspace_owner()?->getPlanFeature('analytics_export', true));
     $heroActions = [];

@@ -23,12 +23,7 @@
     @include('public.partials.marketing-share-meta')
     @include('public.partials.marketing-tracking')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="icon" type="image/png" sizes="96x96" href="{{ asset('favicon-96x96.png') }}">
-    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
-    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
-    <meta name="apple-mobile-web-app-title" content="SAYZIO">
-    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
+    @include('common.partials.default-icons')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>

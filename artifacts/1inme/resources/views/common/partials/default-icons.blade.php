@@ -1,4 +1,4 @@
-@php $__iconV = 'v=20260627'; @endphp
+@php $__iconV = 'v=20260630'; @endphp
 <link rel="icon" type="image/png" sizes="96x96" href="{{ url('/favicon-96x96.png') }}?{{ $__iconV }}">
 <link rel="icon" type="image/svg+xml" href="{{ url('/favicon.svg') }}?{{ $__iconV }}">
 <link rel="shortcut icon" href="{{ url('/favicon.ico') }}?{{ $__iconV }}">

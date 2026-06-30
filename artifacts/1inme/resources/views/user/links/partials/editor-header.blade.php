@@ -11,7 +11,7 @@
         if ($host) $favSrc = 'https://www.google.com/s2/favicons?sz=64&domain=' . urlencode($host);
     }
     if (!$favSrc && $link->isBiolinkFamily()) {
-        $favSrc = url('favicon.ico');
+        $favSrc = url('favicon.ico') . '?v=20260630';
     }
 @endphp
 @include('user.partials.page-hero', [
