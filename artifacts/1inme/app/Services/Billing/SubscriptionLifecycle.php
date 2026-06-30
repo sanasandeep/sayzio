@@ -96,23 +96,54 @@ class SubscriptionLifecycle
         ]);
     }
 
-    /** Cancel a pending scheduled downgrade before it applies. */
-    public function cancelScheduledDowngrade(Subscription $subscription): void
+    /**
+     * Cancel a pending scheduled downgrade before it applies.
+     *
+     * Returns true when a pending downgrade was actually cancelled, false
+     * when there was nothing left to cancel — either because none was
+     * scheduled, or because the renewal cron's applyScheduledDowngrade()
+     * raced ahead and already applied it. Callers MUST honour the return
+     * value so they never tell the user "cancelled" when the downgrade has
+     * in fact already taken effect.
+     */
+    public function cancelScheduledDowngrade(Subscription $subscription): bool
     {
         // Nothing scheduled → nothing to cancel. Bail before clearing or
         // notifying so callers can't trigger a misleading "your downgrade
         // was cancelled" email/bell when there was never a pending change.
-        if (!$subscription->scheduled_downgrade_plan_id) return;
+        // (Fast path only — the authoritative check is under the row lock.)
+        if (!$subscription->scheduled_downgrade_plan_id) return false;
 
-        // Capture the target before clearing so the confirmation (bell +
-        // email) can name the plan change that was called off.
-        $target = Plan::find($subscription->scheduled_downgrade_plan_id);
+        $target = null;
+        $cancelled = false;
 
-        $subscription->forceFill(['scheduled_downgrade_plan_id' => null])->save();
+        DB::transaction(function () use ($subscription, &$target, &$cancelled) {
+            // Re-read the schedule under a row lock to close the race against
+            // applyScheduledDowngrade() running in the renewal cron at the same
+            // moment. If the apply already committed it will have cleared the
+            // column, so we must NOT clear/notify again — the downgrade has
+            // taken effect and there is nothing to cancel.
+            $scheduleId = Subscription::whereKey($subscription->getKey())
+                ->lockForUpdate()
+                ->value('scheduled_downgrade_plan_id');
+
+            if (!$scheduleId) return;
+
+            // Capture the target before clearing so the confirmation (bell +
+            // email) can name the plan change that was called off.
+            $target = Plan::find($scheduleId);
+
+            $subscription->forceFill(['scheduled_downgrade_plan_id' => null])->save();
+            $cancelled = true;
+        });
+
+        if (!$cancelled) return false;
 
         $this->notify($subscription, 'downgrade_cancelled', [
             'target_plan' => $target?->name,
         ]);
+
+        return true;
     }
 
     /**
@@ -152,7 +183,21 @@ class SubscriptionLifecycle
         }
 
         $dropped = [];
-        DB::transaction(function () use ($subscription, $target, &$dropped) {
+        $applied = false;
+        DB::transaction(function () use ($subscription, $target, &$dropped, &$applied) {
+            // Re-read the schedule under a row lock and confirm it still points
+            // at THIS target before mutating anything. This closes the race
+            // against a user's "Cancel downgrade" click (cancelScheduledDowngrade)
+            // landing at the same moment: if the cancel committed first the
+            // column is now null (or points elsewhere), so we must NOT apply —
+            // the user's cancel wins and they stay on their current plan.
+            $scheduleId = Subscription::whereKey($subscription->getKey())
+                ->lockForUpdate()
+                ->value('scheduled_downgrade_plan_id');
+            if ((int) $scheduleId !== (int) $target->id) {
+                return;
+            }
+
             // Drop add-ons the lower plan is not eligible to carry.
             $eligible = $target->addons()->pluck('addons.id')->map(fn ($id) => (int) $id)->all();
             foreach ($subscription->addons()->with('addon')->get() as $sa) {
@@ -177,7 +222,14 @@ class SubscriptionLifecycle
                     'billing_cycle' => $subscription->billing_cycle,
                 ])->save();
             }
+
+            $applied = true;
         });
+
+        // The schedule was cancelled out from under us between the validation
+        // above and the lock — treat it like a cleared schedule so the caller
+        // simply renews the (unchanged) current plan.
+        if (!$applied) return null;
 
         $this->notify($subscription, 'downgrade_applied', [
             'target_plan'    => $target->name,

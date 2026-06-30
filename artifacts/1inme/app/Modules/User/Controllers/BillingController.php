@@ -302,7 +302,12 @@ class BillingController extends Controller
         if (!$sub->scheduled_downgrade_plan_id) {
             return back()->with('status', 'There is no scheduled downgrade to cancel.');
         }
-        $lc->cancelScheduledDowngrade($sub);
+        // cancelScheduledDowngrade re-checks under a row lock: if the renewal
+        // cron applied the downgrade in the same moment, it returns false and
+        // we must NOT claim it was cancelled.
+        if (!$lc->cancelScheduledDowngrade($sub)) {
+            return back()->with('status', 'Your scheduled plan change has already taken effect, so there was nothing left to cancel.');
+        }
         WorkspaceActivityRecorder::record(null, 'billing.downgrade_cancelled', 'billing', $sub->id, 'Cancel scheduled downgrade #' . $sub->id, route('user.billing.show'));
         return back()->with('status', 'Your scheduled downgrade has been cancelled. You will stay on your current plan.');
     }

@@ -191,6 +191,77 @@ class SubscriptionDowngradeEmailTest extends TestCase
         $this->assertStringContainsString($addon->name, (string) $log->body, 'body lists the dropped add-on');
     }
 
+    /**
+     * Cancel-vs-apply race, apply wins: the renewal cron applies the
+     * downgrade a beat before the user's "Cancel downgrade" click lands on a
+     * stale model that still believes a downgrade is pending. The cancel must
+     * detect (under the row lock) that the schedule is already gone, report
+     * that it could NOT cancel, leave the applied downgrade in place, and send
+     * no misleading "your downgrade was cancelled" email.
+     */
+    public function test_cancel_after_downgrade_already_applied_is_not_misleading(): void
+    {
+        $user = $this->makeUser();
+        $high = $this->makePlan('pro', 20.00);
+        $low  = $this->makePlan('starter', 9.00);
+        $sub  = $this->payPlanInvoice($user, $high);
+        $sub->forceFill(['scheduled_downgrade_plan_id' => $low->id])->save();
+
+        // The user opened the billing page while the downgrade was still
+        // pending: this stale snapshot still carries the schedule.
+        $stale = Subscription::find($sub->id);
+
+        // The renewal cron applies the downgrade first.
+        $applied = app(SubscriptionLifecycle::class)->applyScheduledDowngrade($sub->fresh());
+        $this->assertNotNull($applied, 'cron applied the downgrade');
+        $this->assertSame($low->id, $sub->fresh()->plan_id);
+
+        // Now the "Cancel downgrade" click lands on the stale model.
+        $cancelled = app(SubscriptionLifecycle::class)->cancelScheduledDowngrade($stale);
+
+        $this->assertFalse($cancelled, 'cancel reports it could not cancel (already applied)');
+        $this->assertSame($low->id, $sub->fresh()->plan_id, 'the downgrade stays applied');
+        $this->assertSame(
+            0,
+            $this->sentCount('billing.subscription_downgrade_cancelled', $user->email),
+            'no cancellation email after the downgrade already took effect',
+        );
+    }
+
+    /**
+     * Cancel-vs-apply race, cancel wins: the user cancels first, then the
+     * renewal cron's apply lands on a stale snapshot that still points at the
+     * (now-cancelled) schedule. The apply must no-op under the row lock —
+     * leaving the user on their current plan with no applied email.
+     */
+    public function test_apply_after_cancel_committed_is_a_noop(): void
+    {
+        $user = $this->makeUser();
+        $high = $this->makePlan('pro', 20.00);
+        $low  = $this->makePlan('starter', 9.00);
+        $sub  = $this->payPlanInvoice($user, $high);
+        $sub->forceFill(['scheduled_downgrade_plan_id' => $low->id])->save();
+
+        // The cron loaded the sub with the schedule still pending.
+        $stale = Subscription::find($sub->id);
+
+        // The user cancels first, and it actually cancels.
+        $cancelled = app(SubscriptionLifecycle::class)->cancelScheduledDowngrade($sub->fresh());
+        $this->assertTrue($cancelled, 'the cancel succeeds');
+        $this->assertNull($sub->fresh()->scheduled_downgrade_plan_id);
+
+        // The cron's apply now lands on its stale snapshot.
+        $target = app(SubscriptionLifecycle::class)->applyScheduledDowngrade($stale);
+
+        $this->assertNull($target, 'apply is a no-op once the schedule was cancelled');
+        $this->assertSame($high->id, $sub->fresh()->plan_id, 'the user stays on the current plan');
+        $this->assertSame(
+            0,
+            $this->sentCount('billing.subscription_downgrade_applied', $user->email),
+            'no applied email after the downgrade was cancelled',
+        );
+    }
+
     public function test_renewal_cron_run_twice_sends_only_one_applied_email(): void
     {
         GatewaySetting::where('gateway_slug', 'offline')->update(['is_enabled' => true]);

@@ -198,7 +198,15 @@ class BillingController extends Controller
             ]);
         }
 
-        $lc->cancelScheduledDowngrade($sub);
+        // cancelScheduledDowngrade re-checks under a row lock: if the renewal
+        // cron applied the downgrade in the same moment, it returns false and
+        // we must report that it already took effect, not a false "cancelled".
+        if (!$lc->cancelScheduledDowngrade($sub)) {
+            return $this->ok([
+                'scheduled_downgrade' => null,
+                'message'             => 'Your scheduled plan change has already taken effect, so there was nothing left to cancel.',
+            ]);
+        }
 
         return $this->ok([
             'scheduled_downgrade' => null,
