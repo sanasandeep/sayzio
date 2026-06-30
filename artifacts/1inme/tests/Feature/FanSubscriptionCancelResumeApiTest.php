@@ -122,6 +122,68 @@ class FanSubscriptionCancelResumeApiTest extends TestCase
         $this->assertNull($sub->canceled_at);
     }
 
+    public function test_cancel_returns_404_when_fan_has_no_subscription_to_creator(): void
+    {
+        // A fan who never subscribed to this creator tries to cancel by
+        // guessing the handle. Another fan *does* hold a live subscription
+        // to the same creator — it must be left completely untouched.
+        $creator   = $this->makeUser(['handle' => 'creator' . Str::random(5)]);
+        $tier      = $this->makeTier($creator);
+        $stranger  = $this->makeUser();
+        $otherFan  = $this->makeUser();
+        $theirs    = $this->makeSubscription($otherFan, $creator, $tier);
+
+        $this->withHeaders(['Authorization' => 'Bearer ' . $this->token($stranger)])
+            ->postJson('/api/v1/creators/' . $creator->handle . '/my-subscription/cancel')
+            ->assertStatus(404);
+
+        // The victim's subscription is byte-for-byte unchanged.
+        $theirs->refresh();
+        $this->assertSame(CreatorSubscription::STATUS_ACTIVE, $theirs->status);
+        $this->assertFalse($theirs->cancel_at_period_end);
+        $this->assertNull($theirs->canceled_at);
+    }
+
+    public function test_resume_returns_404_when_fan_has_no_subscription_to_creator(): void
+    {
+        // Same guard for resume: a stranger must not be able to mutate a
+        // subscription scheduled for cancellation that belongs to someone else.
+        $creator   = $this->makeUser(['handle' => 'creator' . Str::random(5)]);
+        $tier      = $this->makeTier($creator);
+        $stranger  = $this->makeUser();
+        $otherFan  = $this->makeUser();
+        $theirs    = $this->makeSubscription($otherFan, $creator, $tier);
+        $theirs->forceFill([
+            'cancel_at_period_end' => true,
+            'canceled_at'          => now(),
+        ])->save();
+
+        $this->withHeaders(['Authorization' => 'Bearer ' . $this->token($stranger)])
+            ->postJson('/api/v1/creators/' . $creator->handle . '/my-subscription/resume')
+            ->assertStatus(404);
+
+        // The victim's scheduled cancellation is still in place.
+        $theirs->refresh();
+        $this->assertTrue($theirs->cancel_at_period_end);
+        $this->assertNotNull($theirs->canceled_at);
+    }
+
+    public function test_cancel_requires_authentication(): void
+    {
+        $creator = $this->makeUser(['handle' => 'creator' . Str::random(5)]);
+
+        $this->postJson('/api/v1/creators/' . $creator->handle . '/my-subscription/cancel')
+            ->assertStatus(401);
+    }
+
+    public function test_resume_requires_authentication(): void
+    {
+        $creator = $this->makeUser(['handle' => 'creator' . Str::random(5)]);
+
+        $this->postJson('/api/v1/creators/' . $creator->handle . '/my-subscription/resume')
+            ->assertStatus(401);
+    }
+
     public function test_me_subscriptions_does_not_leak_another_fans_subscriptions(): void
     {
         $creator   = $this->makeUser(['handle' => 'creator' . Str::random(5)]);
