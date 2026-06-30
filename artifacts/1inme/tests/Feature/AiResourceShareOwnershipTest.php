@@ -11,31 +11,30 @@ use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceMember;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiResourceShareService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Tests\Feature\Concerns\AiResourceShareScenarioMatrix;
 use Tests\TestCase;
 
 /**
- * Owner-only management guard for AI resource sharing (Task #2931).
+ * Owner/audience guard for AI resource sharing on the WEB surface
+ * (web AiResourceShareController).
  *
- * Task #2924 pinned that revoking a teammate/badge instantly cuts shared
- * access. This sibling pins the *granting/removing* side handled by the
- * web AiResourceShareController:
- *
- *  - A non-owner (any user, including a USE/EDIT shared editor) cannot
- *    create a share for a resource they don't own — the route 403s and
- *    no ai_resource_shares row is written.
- *  - The owner can only share into a team they belong to / a badge they
- *    hold; the AiResourceShareService::share() guards surface as a
- *    user-facing flash error (redirect back), never a 500, and write no
- *    row.
- *  - Only the owner can delete a share via the unshare endpoints; another
- *    user cannot remove someone else's share row.
+ * The shared owner/audience scenario matrix (non-owner create, EDIT-editor
+ * reshare, foreign team, badge-not-held, non-owner delete, suspended member
+ * loses access, platform mind not manageable) lives in
+ * {@see AiResourceShareScenarioMatrix} and is asserted IDENTICALLY here and
+ * on the API surface ({@see MobileAiResourceShareApiTest}) so the two can't
+ * drift apart (Task #2935). This class only supplies the web transport: a
+ * form POST/DELETE that 403s on an ownership failure and redirects back with
+ * a flash `error` on an audience failure (never a 500).
  */
 class AiResourceShareOwnershipTest extends TestCase
 {
     use RefreshDatabase;
+    use AiResourceShareScenarioMatrix;
 
     private AiResourceShareService $svc;
 
@@ -47,7 +46,16 @@ class AiResourceShareOwnershipTest extends TestCase
         AiEngineSettings::setEnabled(true);
     }
 
-    private function user(): User
+    // ===================================================================
+    // Shared-matrix transport hooks (web surface)
+    // ===================================================================
+
+    protected function shareService(): AiResourceShareService
+    {
+        return $this->svc;
+    }
+
+    protected function newUser(): User
     {
         $u = User::create([
             'name'     => 'u' . Str::random(4),
@@ -59,37 +67,12 @@ class AiResourceShareOwnershipTest extends TestCase
         return $u->fresh();
     }
 
-    private function team(User $owner): Workspace
-    {
-        return Workspace::create([
-            'owner_user_id' => $owner->id,
-            'name'          => 'Team ' . Str::random(4),
-            'slug'          => 'team-' . Str::random(6),
-            'is_personal'   => false,
-        ]);
-    }
-
-    private function memberOf(Workspace $ws, User $user, ?string $suspendedAt = null): WorkspaceMember
-    {
-        return WorkspaceMember::create([
-            'workspace_id' => $ws->id,
-            'user_id'      => $user->id,
-            'role'         => 'editor',
-            'suspended_at' => $suspendedAt,
-        ]);
-    }
-
-    private function badge(): AccountBadge
-    {
-        return AccountBadge::create(['name' => 'b' . Str::random(5), 'color' => '#3b82f6']);
-    }
-
-    private function mind(User $owner): AiMind
+    protected function newMind(User $owner): AiMind
     {
         return AiMind::create(['user_id' => $owner->id, 'name' => 'Mind ' . Str::random(4)]);
     }
 
-    private function persona(User $owner): AiPersonaAgent
+    protected function newPersona(User $owner): AiPersonaAgent
     {
         return AiPersonaAgent::create([
             'user_id'       => $owner->id,
@@ -99,193 +82,72 @@ class AiResourceShareOwnershipTest extends TestCase
         ]);
     }
 
-    // ===================================================================
-    // A non-owner cannot create a share
-    // ===================================================================
-
-    public function test_non_owner_cannot_create_a_mind_share(): void
+    protected function newTeam(User $owner, ?User $member = null, ?string $suspendedAt = null): Workspace
     {
-        $owner = $this->user();
-        $stranger = $this->user();
-        $mind = $this->mind($owner);
-
-        // The stranger owns their own team, so the audience itself is valid —
-        // the only thing stopping the share is that they don't own the mind.
-        $strangerTeam = $this->team($stranger);
-
-        $this->actingAs($stranger)
-            ->from("/user/minds/{$mind->id}")
-            ->post("/user/minds/{$mind->id}/shares", [
-                'audience' => 'workspace:' . $strangerTeam->id,
-                'access'   => 'use',
-            ])
-            ->assertForbidden();
-
-        $this->assertDatabaseMissing('ai_resource_shares', [
-            'resource_type' => AiResourceShare::RESOURCE_MIND,
-            'resource_id'   => $mind->id,
+        $team = Workspace::create([
+            'owner_user_id' => $owner->id,
+            'name'          => 'Team ' . Str::random(4),
+            'slug'          => 'team-' . Str::random(6),
+            'is_personal'   => false,
         ]);
+        if ($member) {
+            WorkspaceMember::create([
+                'workspace_id' => $team->id,
+                'user_id'      => $member->id,
+                'role'         => 'editor',
+                'suspended_at' => $suspendedAt,
+            ]);
+        }
+        return $team;
     }
 
-    public function test_edit_shared_editor_cannot_reshare_a_mind_they_dont_own(): void
+    protected function newBadge(): AccountBadge
     {
-        // An EDIT-access teammate can edit the mind, but must NOT be able to
-        // re-share it into a team/badge of their own — sharing is owner-only.
-        $owner = $this->user();
-        $editor = $this->user();
-        $ownerTeam = $this->team($owner);
-        $this->memberOf($ownerTeam, $editor);
-
-        $mind = $this->mind($owner);
-        $this->svc->share($owner, AiResourceShare::RESOURCE_MIND, $mind->id, AiResourceShare::AUDIENCE_WORKSPACE, $ownerTeam->id, AiResourceShare::ACCESS_EDIT);
-
-        // Sanity: the editor really does have EDIT access via the share.
-        $this->assertTrue($this->svc->canEditMind($editor->fresh(), $mind));
-
-        // A team the editor owns — a perfectly valid audience for THEM, so the
-        // 403 can only come from the ownership guard, not the audience guard.
-        $editorTeam = $this->team($editor);
-
-        $this->actingAs($editor)
-            ->from("/user/minds/{$mind->id}")
-            ->post("/user/minds/{$mind->id}/shares", [
-                'audience' => 'workspace:' . $editorTeam->id,
-                'access'   => 'use',
-            ])
-            ->assertForbidden();
-
-        // No new audience row leaked in: only the owner's original EDIT share exists.
-        $this->assertDatabaseMissing('ai_resource_shares', [
-            'resource_type' => AiResourceShare::RESOURCE_MIND,
-            'resource_id'   => $mind->id,
-            'audience_id'   => $editorTeam->id,
-        ]);
-        $this->assertSame(1, AiResourceShare::where('resource_type', AiResourceShare::RESOURCE_MIND)
-            ->where('resource_id', $mind->id)->count());
+        return AccountBadge::create(['name' => 'b' . Str::random(5), 'color' => '#3b82f6']);
     }
 
-    public function test_non_owner_cannot_create_a_persona_share(): void
+    /** Map a scenario kind to its web share route base. */
+    private function routeBase(string $kind, Model $resource): string
     {
-        $owner = $this->user();
-        $stranger = $this->user();
-        $persona = $this->persona($owner);
-        $strangerTeam = $this->team($stranger);
-
-        $this->actingAs($stranger)
-            ->from("/user/ai-personas/{$persona->id}")
-            ->post("/user/ai-personas/{$persona->id}/shares", [
-                'audience' => 'workspace:' . $strangerTeam->id,
-                'access'   => 'use',
-            ])
-            ->assertForbidden();
-
-        $this->assertDatabaseMissing('ai_resource_shares', [
-            'resource_type' => AiResourceShare::RESOURCE_PERSONA,
-            'resource_id'   => $persona->id,
-        ]);
+        return $kind === 'mind'
+            ? "/user/minds/{$resource->id}"
+            : "/user/ai-personas/{$resource->id}";
     }
 
-    // ===================================================================
-    // Owner can only share into audiences they belong to
-    // (service guards surface as a flash error, never a 500)
-    // ===================================================================
-
-    public function test_owner_sharing_into_a_team_they_dont_belong_to_errors_without_500(): void
+    protected function shareForbidden(User $actor, string $kind, Model $resource, string $audience): void
     {
-        $owner = $this->user();
-        $stranger = $this->user();
-        $mind = $this->mind($owner);
-        // A team owned by someone else that the owner is NOT a member of.
-        $foreignTeam = $this->team($stranger);
+        $base = $this->routeBase($kind, $resource);
+        $this->actingAs($actor)
+            ->from($base)
+            ->post("{$base}/shares", ['audience' => $audience, 'access' => 'use'])
+            ->assertForbidden();
+    }
 
-        $this->actingAs($owner)
-            ->from("/user/minds/{$mind->id}")
-            ->post("/user/minds/{$mind->id}/shares", [
-                'audience' => 'workspace:' . $foreignTeam->id,
-                'access'   => 'use',
-            ])
-            ->assertRedirect("/user/minds/{$mind->id}")
+    protected function shareAudienceRejected(User $actor, string $kind, Model $resource, string $audience): void
+    {
+        $base = $this->routeBase($kind, $resource);
+        $this->actingAs($actor)
+            ->from($base)
+            ->post("{$base}/shares", ['audience' => $audience, 'access' => 'use'])
+            ->assertRedirect($base)
             ->assertSessionHas('error');
-
-        $this->assertDatabaseMissing('ai_resource_shares', [
-            'resource_type' => AiResourceShare::RESOURCE_MIND,
-            'resource_id'   => $mind->id,
-            'audience_id'   => $foreignTeam->id,
-        ]);
     }
 
-    public function test_owner_sharing_into_a_badge_they_dont_hold_errors_without_500(): void
+    protected function deleteForbidden(User $actor, string $kind, Model $resource, AiResourceShare $share): void
     {
-        $owner = $this->user();
-        $persona = $this->persona($owner);
-        // A badge the owner does NOT hold.
-        $badge = $this->badge();
-
-        $this->actingAs($owner)
-            ->from("/user/ai-personas/{$persona->id}")
-            ->post("/user/ai-personas/{$persona->id}/shares", [
-                'audience' => 'badge:' . $badge->id,
-                'access'   => 'use',
-            ])
-            ->assertRedirect("/user/ai-personas/{$persona->id}")
-            ->assertSessionHas('error');
-
-        $this->assertDatabaseMissing('ai_resource_shares', [
-            'resource_type' => AiResourceShare::RESOURCE_PERSONA,
-            'resource_id'   => $persona->id,
-            'audience_id'   => $badge->id,
-        ]);
-    }
-
-    // ===================================================================
-    // Only the owner can delete (unshare) a share row
-    // ===================================================================
-
-    public function test_only_the_owner_can_delete_a_mind_share(): void
-    {
-        $owner = $this->user();
-        $member = $this->user();
-        $team = $this->team($owner);
-        $this->memberOf($team, $member);
-
-        $mind = $this->mind($owner);
-        $share = $this->svc->share($owner, AiResourceShare::RESOURCE_MIND, $mind->id, AiResourceShare::AUDIENCE_WORKSPACE, $team->id, AiResourceShare::ACCESS_USE);
-
-        // A recipient member cannot remove the owner's share.
-        $this->actingAs($member)
-            ->from("/user/minds/{$mind->id}")
-            ->delete("/user/minds/{$mind->id}/shares/{$share->id}")
+        $base = $this->routeBase($kind, $resource);
+        $this->actingAs($actor)
+            ->from($base)
+            ->delete("{$base}/shares/{$share->id}")
             ->assertForbidden();
-        $this->assertDatabaseHas('ai_resource_shares', ['id' => $share->id]);
-
-        // The owner can.
-        $this->actingAs($owner)
-            ->from("/user/minds/{$mind->id}")
-            ->delete("/user/minds/{$mind->id}/shares/{$share->id}")
-            ->assertRedirect();
-        $this->assertDatabaseMissing('ai_resource_shares', ['id' => $share->id]);
     }
 
-    public function test_only_the_owner_can_delete_a_persona_share(): void
+    protected function deleteSucceeds(User $actor, string $kind, Model $resource, AiResourceShare $share): void
     {
-        $owner = $this->user();
-        $member = $this->user();
-        $team = $this->team($owner);
-        $this->memberOf($team, $member);
-
-        $persona = $this->persona($owner);
-        $share = $this->svc->share($owner, AiResourceShare::RESOURCE_PERSONA, $persona->id, AiResourceShare::AUDIENCE_WORKSPACE, $team->id, AiResourceShare::ACCESS_USE);
-
-        $this->actingAs($member)
-            ->from("/user/ai-personas/{$persona->id}")
-            ->delete("/user/ai-personas/{$persona->id}/shares/{$share->id}")
-            ->assertForbidden();
-        $this->assertDatabaseHas('ai_resource_shares', ['id' => $share->id]);
-
-        $this->actingAs($owner)
-            ->from("/user/ai-personas/{$persona->id}")
-            ->delete("/user/ai-personas/{$persona->id}/shares/{$share->id}")
+        $base = $this->routeBase($kind, $resource);
+        $this->actingAs($actor)
+            ->from($base)
+            ->delete("{$base}/shares/{$share->id}")
             ->assertRedirect();
-        $this->assertDatabaseMissing('ai_resource_shares', ['id' => $share->id]);
     }
 }
