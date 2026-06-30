@@ -59,7 +59,10 @@ class ClaimedHandleSurvivesRegistrationTest extends TestCase
     {
         return array_merge([
             'name'  => 'Claimer ' . Str::random(4),
-            'email' => 'claimer' . Str::random(8) . '@example.com',
+            // register() lowercases the stored email, so keep the generated
+            // local part lowercase (Str::random can emit uppercase) or the
+            // case-sensitive User::where('email', ...) lookups below miss it.
+            'email' => 'claimer' . Str::lower(Str::random(8)) . '@example.com',
         ], $overrides);
     }
 
