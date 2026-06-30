@@ -20,7 +20,6 @@ export type Plan = {
   slug: string;
   name: string;
   description: string | null;
-  features: string[];
   features_map?: Record<string, string | number | boolean>;
   feature_highlights?: string[];
   currency: string;

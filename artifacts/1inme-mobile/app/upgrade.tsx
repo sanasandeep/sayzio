@@ -235,7 +235,7 @@ export default function UpgradeScreen() {
                     {plan.description}
                   </Text>
                 ) : null}
-                {(plan.feature_highlights?.length ? plan.feature_highlights : plan.features).slice(0, 5).map((f, i) => (
+                {(plan.feature_highlights ?? []).slice(0, 5).map((f, i) => (
                   <View key={i} style={styles.featureRow}>
                     <Feather name="check" size={14} color={colors.primary} />
                     <Text style={{ color: colors.foreground, flex: 1, fontFamily: "SpaceGrotesk_400Regular" }}>

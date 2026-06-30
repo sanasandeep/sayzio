@@ -92,11 +92,10 @@ class RevenueCatBillingController extends Controller
                     'slug'         => $p->slug,
                     'name'         => $p->name,
                     'description'  => $p->description,
-                    'features'     => is_array($p->features) ? array_values($p->features) : [],
                     // Plain-English highlight bullets derived from the shared
                     // PremiumFeatures catalogue (same copy as the web cards),
                     // so the mobile upgrade/plan cards never render raw gating
-                    // values. `features` (raw) kept for backward-compat.
+                    // values.
                     'feature_highlights' => \App\Modules\Common\Support\PremiumFeatures::planHighlights($p),
                     'currency'     => $currency,
                     'is_default'   => (bool) $p->is_default,
