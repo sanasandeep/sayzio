@@ -469,4 +469,57 @@ class MarketingStrategistTest extends TestCase
         $this->assertSame(MarketingStrategySuggestion::STATUS_PENDING, $s->status);
         $this->assertSame(0, Link::where('user_id', $other->id)->count());
     }
+
+    // ── 9. web apply: re-applying an already-applied suggestion is rejected ─
+
+    public function test_web_apply_twice_is_rejected_and_creates_no_duplicate(): void
+    {
+        $user = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        $s = $this->suggestion($strategy, MarketingStrategySuggestion::TYPE_CREATE_LINK, [
+            'long_url' => 'https://once.test',
+            'title'    => 'Once',
+            'alias'    => 'once-' . Str::random(5),
+        ]);
+
+        // First apply succeeds and creates exactly one link.
+        $this->actingAs($user, 'web')
+            ->post(route('user.ai.marketing-strategist.suggestions.apply', $s->id))
+            ->assertOk();
+        $this->assertSame(MarketingStrategySuggestion::STATUS_APPLIED, $s->fresh()->status);
+        $this->assertSame(1, Link::where('user_id', $user->id)->count());
+
+        // Re-applying the same (now non-pending) suggestion is rejected and
+        // must NOT create a second link.
+        $resp = $this->actingAs($user, 'web')
+            ->post(route('user.ai.marketing-strategist.suggestions.apply', $s->id));
+
+        $resp->assertStatus(422);
+        $this->assertSame(MarketingStrategySuggestion::STATUS_APPLIED, $s->fresh()->status);
+        $this->assertSame(1, Link::where('user_id', $user->id)->count());
+    }
+
+    // ── 10. web apply: an applier failure flips the suggestion to `error` ──
+
+    public function test_web_apply_failure_flips_to_error_and_creates_nothing(): void
+    {
+        $user = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        // A create_link payload with NO destination URL → the applier throws.
+        $s = $this->suggestion($strategy, MarketingStrategySuggestion::TYPE_CREATE_LINK, [
+            'title' => 'No destination',
+        ]);
+
+        $resp = $this->actingAs($user, 'web')
+            ->post(route('user.ai.marketing-strategist.suggestions.apply', $s->id));
+
+        $resp->assertStatus(422);
+        $resp->assertJsonPath('status', MarketingStrategySuggestion::STATUS_ERROR);
+        $resp->assertJsonPath('error.message', 'The suggested link needs a valid destination URL.');
+
+        $s->refresh();
+        $this->assertSame(MarketingStrategySuggestion::STATUS_ERROR, $s->status);
+        $this->assertSame('The suggested link needs a valid destination URL.', $s->error);
+        $this->assertSame(0, Link::where('user_id', $user->id)->count());
+    }
 }

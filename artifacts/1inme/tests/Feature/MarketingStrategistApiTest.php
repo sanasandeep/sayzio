@@ -422,4 +422,61 @@ class MarketingStrategistApiTest extends TestCase
         $this->assertSame(MarketingStrategySuggestion::STATUS_PENDING, $s->fresh()->status);
         $this->assertSame(0, Link::where('user_id', $other->id)->count());
     }
+
+    // ── re-applying an already-applied suggestion → 422 not_pending ───────
+
+    public function test_api_apply_twice_is_rejected_and_creates_no_duplicate(): void
+    {
+        $user = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        $s = $this->suggestion($strategy, MarketingStrategySuggestion::TYPE_CREATE_LINK, [
+            'long_url' => 'https://once-api.test',
+            'title'    => 'Once',
+            'alias'    => 'onceapi-' . Str::random(5),
+        ]);
+        $token = $this->token($user);
+
+        // First apply succeeds and creates exactly one link.
+        $this->withToken($token)
+            ->postJson("/api/v1/ai/marketing-strategist/suggestions/{$s->id}/apply", ['confirm' => true])
+            ->assertOk();
+        $this->assertSame(MarketingStrategySuggestion::STATUS_APPLIED, $s->fresh()->status);
+        $this->assertSame(1, Link::where('user_id', $user->id)->count());
+
+        // Re-applying the same (now non-pending) suggestion is rejected with
+        // `not_pending` and must NOT create a second link.
+        $resp = $this->withToken($token)
+            ->postJson("/api/v1/ai/marketing-strategist/suggestions/{$s->id}/apply", ['confirm' => true]);
+
+        $resp->assertStatus(422);
+        $resp->assertJsonPath('error.code', 'not_pending');
+        $resp->assertJsonPath('error.details.status', MarketingStrategySuggestion::STATUS_APPLIED);
+        $this->assertSame(MarketingStrategySuggestion::STATUS_APPLIED, $s->fresh()->status);
+        $this->assertSame(1, Link::where('user_id', $user->id)->count());
+    }
+
+    // ── an applier failure → 422 apply_failed, suggestion flipped to error ─
+
+    public function test_api_apply_failure_flips_to_error_and_creates_nothing(): void
+    {
+        $user = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        // A create_link payload with NO destination URL → the applier throws.
+        $s = $this->suggestion($strategy, MarketingStrategySuggestion::TYPE_CREATE_LINK, [
+            'title' => 'No destination',
+        ]);
+
+        $resp = $this->withToken($this->token($user))
+            ->postJson("/api/v1/ai/marketing-strategist/suggestions/{$s->id}/apply", ['confirm' => true]);
+
+        $resp->assertStatus(422);
+        $resp->assertJsonPath('error.code', 'apply_failed');
+        $resp->assertJsonPath('error.message', 'The suggested link needs a valid destination URL.');
+        $resp->assertJsonPath('error.details.status', MarketingStrategySuggestion::STATUS_ERROR);
+
+        $s->refresh();
+        $this->assertSame(MarketingStrategySuggestion::STATUS_ERROR, $s->status);
+        $this->assertSame('The suggested link needs a valid destination URL.', $s->error);
+        $this->assertSame(0, Link::where('user_id', $user->id)->count());
+    }
 }
