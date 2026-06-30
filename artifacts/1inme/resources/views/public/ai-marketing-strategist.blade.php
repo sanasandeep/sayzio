@@ -115,6 +115,75 @@
         ['q' => 'Which plans include the AI Marketing Strategist?', 'a' => 'It is included on every paid Sayzio plan. Generation is metered against your plan allowance, and any overage is covered by your coin wallet so you are never cut off mid-plan.'],
         ['q' => 'Will it post or spend money on its own?', 'a' => 'No. It only proposes a plan and one-click actions. Nothing is created, posted or spent until you choose to apply it.'],
     ];
+
+    // The exact parts of a generated report (mirrors MarketingStrategy.strategy:
+    // summary, organic[], paid[], kpis[] + the persisted suggestions). For each
+    // part: what it is, and the concrete thing the creator does with it.
+    $reportParts = [
+        ['icon' => 'fa-flag-checkered', 'label' => 'Goal & summary',
+         'what' => 'A short plan title and a 2–3 sentence overview that restates the goal you set and how the strategy gets you there.',
+         'use'  => 'Your north star — skim it to remember what this plan is for, and paste it to a teammate so everyone is aligned in one line.'],
+        ['icon' => 'fa-seedling', 'label' => 'Organic plan',
+         'what' => 'A set of free-to-run plays. Each names a channel, why it works, concrete steps, and the exact Sayzio features it uses.',
+         'use'  => 'Work it top to bottom — every play tells you which feature to open and what to do, so you can grow without spending a cent.'],
+        ['icon' => 'fa-rectangle-ad', 'label' => 'Paid plan',
+         'what' => 'Low-budget ad plays, each with a suggested daily budget hint, the rationale, steps, and the Sayzio features (like pixels) they lean on.',
+         'use'  => 'Start small at the suggested budget, point ads at the right link, and lean on the pixels you already have connected.'],
+        ['icon' => 'fa-chart-line', 'label' => 'KPIs to watch',
+         'what' => 'A short, focused list of the metrics that tell you whether the plan is actually working.',
+         'use'  => 'Check them weekly — they keep you honest about progress and tell you when to double down or change course.'],
+        ['icon' => 'fa-bolt', 'label' => 'One-click suggestions',
+         'what' => 'Up to five applyable actions — create a link, add a biolink block, attach a pixel, or draft a scheduled post — built from your real account.',
+         'use'  => 'Apply the ones you like right inside Sayzio; each builds the real object for you, so the plan starts running the moment you click.'],
+    ];
+
+    // How the report keeps paying off after generation (saved history, export,
+    // chat-refine, and generating fresh plans as the account changes).
+    $ongoing = [
+        ['icon' => 'fa-clock-rotate-left', 'title' => 'Saved strategy history',
+         'body' => 'Every strategy you generate is saved to your account. Reopen past plans, compare directions, and pick one back up whenever you are ready to run it.'],
+        ['icon' => 'fa-file-arrow-down', 'title' => 'Export to Markdown or PDF',
+         'body' => 'Download any plan as a clean Markdown file or a formatted PDF — drop it into a doc, hand it to a teammate, or keep it on file.'],
+        ['icon' => 'fa-comments', 'title' => 'Refine by chat',
+         'body' => 'Chat with the strategist about a saved plan to swap channels, tighten the budget or go deeper on a play — it stays grounded in the same data.'],
+        ['icon' => 'fa-rotate', 'title' => 'Re-run as you grow',
+         'body' => 'As your links, audience and pixels change, generate a fresh plan that reflects where your account is now — not where it was last month.'],
+    ];
+
+    // A complete worked example, shaped exactly like a real generated report
+    // (summary, organic + paid plays, KPIs, applyable suggestions). Static copy,
+    // grounded in real Sayzio features — no invented metrics or numbers.
+    $sample = [
+        'title'   => 'Turn bio traffic into booked calls',
+        'goal'    => 'Get more discovery-call bookings for my coaching service',
+        'summary' => 'You already get steady visits to your Link in Bio, but few of them book. This plan makes booking the most obvious action on your page, backs it with proof, then uses a small retargeting budget to bring warm visitors back to finish.',
+        'organic' => [
+            ['channel' => 'Link in Bio', 'title' => 'Make “Book a call” the first thing visitors see',
+             'rationale' => 'Most visitors leave before scrolling, so the booking action has to sit above the fold.',
+             'steps' => ['Pin a Calendar booking block to the top of your page', 'Add a one-line value promise just above it', 'Move secondary links below the fold'],
+             'sayzio_features' => ['Link in Bio', 'Calendar block']],
+            ['channel' => 'Reviews', 'title' => 'Put proof right next to the booking button',
+             'rationale' => 'Social proof beside the call-to-action lifts the chance a visitor commits.',
+             'steps' => ['Add a Reviews Wall block under the booking block', 'Feature your three strongest reviews'],
+             'sayzio_features' => ['Reviews Wall block']],
+            ['channel' => 'Creator Feed', 'title' => 'Stay top-of-mind with a weekly post',
+             'rationale' => 'Regular posts keep followers warm so your link still lands between launches.',
+             'steps' => ['Schedule one helpful post a week', 'End each post with a link to book'],
+             'sayzio_features' => ['Creator Feed', 'Scheduled posts']],
+        ],
+        'paid' => [
+            ['channel' => 'Meta Ads', 'budget_hint' => '$8–12/day', 'title' => 'Retarget the visitors who didn’t book',
+             'rationale' => 'Warm visitors are far cheaper to convert than cold traffic.',
+             'steps' => ['Build a retargeting audience from your connected Facebook pixel', 'Send every click straight to the booking page'],
+             'sayzio_features' => ['Tracking pixels (Facebook)']],
+        ],
+        'kpis' => ['Discovery-call bookings', 'Booking-page click-through', 'Cost per booking', 'Returning visitors'],
+        'suggestions' => [
+            ['icon' => 'fa-plus',      'kind' => 'Add block',     'text' => 'Add a Calendar booking block to your bio page'],
+            ['icon' => 'fa-bullseye',  'kind' => 'Attach pixel',  'text' => 'Attach your Facebook pixel to the booking link'],
+            ['icon' => 'fa-feather',   'kind' => 'Draft post',    'text' => 'Draft a scheduled post inviting followers to book'],
+        ],
+    ];
 @endphp
 
 <style>
@@ -318,6 +387,185 @@
                     @endforeach
                 </div>
             </div>
+        </div>
+    </div>
+</section>
+
+{{-- ─────────────  WHAT'S IN YOUR REPORT (ANATOMY)  ───────────── --}}
+<section class="relative pb-24">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12" data-anim="fade-up">
+            <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">What's in your report</div>
+            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">The anatomy of <span class="grad-text">your strategy</span>.</h2>
+            <p class="mt-4 text-sm text-gray-400 max-w-2xl mx-auto leading-relaxed">Every plan comes back in the same clear structure. Here's each part — and exactly what you do with it to grow.</p>
+        </div>
+        <div class="grid md:grid-cols-2 gap-5" data-anim="fade-up" data-stagger>
+            @foreach($reportParts as $i => $part)
+                <article class="glass rounded-3xl p-7 lift flex gap-5">
+                    <span class="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center text-white" style="background: {{ $accent }}; box-shadow: 0 12px 30px -12px {{ $accent }};">
+                        <i class="fas {{ $part['icon'] }}"></i>
+                    </span>
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-xs font-bold tabular-nums" style="color: {{ $accent }};">0{{ $i + 1 }}</span>
+                            <h3 class="text-lg font-bold leading-snug">{{ $part['label'] }}</h3>
+                        </div>
+                        <p class="text-sm text-gray-300 leading-relaxed">{{ $part['what'] }}</p>
+                        <p class="mt-3 text-sm text-gray-400 leading-relaxed flex gap-2">
+                            <i class="fas fa-arrow-right text-[10px] mt-1.5 shrink-0" style="color: {{ $accent }};"></i>
+                            <span><span class="font-semibold text-white">What you do:</span> {{ $part['use'] }}</span>
+                        </p>
+                    </div>
+                </article>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+{{-- ─────────────  WORKED EXAMPLE (A FULL REPORT)  ───────────── --}}
+<section class="relative pb-24">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12" data-anim="fade-up">
+            <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">A full plan, end to end</div>
+            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">See a <span class="grad-text">complete report</span>.</h2>
+            <p class="mt-4 text-sm text-gray-400 max-w-2xl mx-auto leading-relaxed">A real sample of what lands in your account — goal, summary, organic and paid plays, KPIs and one-click actions.</p>
+        </div>
+
+        <article class="glass rounded-3xl overflow-hidden" data-anim="fade-up">
+            {{-- header --}}
+            <div class="p-7 sm:p-9 border-b border-white/10">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="ms-goal-label">Goal</span>
+                    <span class="text-sm text-gray-300 font-medium">{{ $sample['goal'] }}</span>
+                </div>
+                <h3 class="mt-5 text-2xl sm:text-3xl font-bold tracking-tight">{{ $sample['title'] }}</h3>
+                <p class="mt-3 text-sm text-gray-300 leading-relaxed max-w-3xl">{{ $sample['summary'] }}</p>
+            </div>
+
+            {{-- organic + paid plays --}}
+            <div class="grid lg:grid-cols-2 gap-px bg-white/10">
+                {{-- organic column --}}
+                <div class="bg-[#0d0c18] p-7 sm:p-9">
+                    <div class="flex items-center gap-2 mb-5">
+                        <i class="fas fa-seedling text-sm" style="color: {{ $accent }};"></i>
+                        <span class="text-xs font-bold uppercase tracking-[.14em]" style="color: {{ $accent }};">Organic plan</span>
+                    </div>
+                    <div class="space-y-5">
+                        @foreach($sample['organic'] as $p)
+                            <div class="rounded-2xl p-5 bg-white/[0.03] border border-white/10">
+                                <span class="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-md mb-2" style="background: {{ $accent }}1a; color: {{ $accent }};">{{ $p['channel'] }}</span>
+                                <h4 class="text-sm font-bold text-white leading-snug">{{ $p['title'] }}</h4>
+                                <p class="mt-1.5 text-xs text-gray-400 leading-relaxed">{{ $p['rationale'] }}</p>
+                                <ul class="mt-3 space-y-1.5">
+                                    @foreach($p['steps'] as $step)
+                                        <li class="flex gap-2 text-xs text-gray-300 leading-relaxed">
+                                            <i class="fas fa-check text-[9px] mt-1 shrink-0" style="color: {{ $accent }};"></i>
+                                            <span>{{ $step }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                                <div class="mt-3 flex flex-wrap gap-1.5">
+                                    @foreach($p['sayzio_features'] as $feat)
+                                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-md bg-white/5 text-gray-300 border border-white/10">{{ $feat }}</span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- paid column --}}
+                <div class="bg-[#0d0c18] p-7 sm:p-9">
+                    <div class="flex items-center gap-2 mb-5">
+                        <i class="fas fa-rectangle-ad text-sm" style="color: #ffb270;"></i>
+                        <span class="text-xs font-bold uppercase tracking-[.14em]" style="color: #ffb270;">Paid plan</span>
+                    </div>
+                    <div class="space-y-5">
+                        @foreach($sample['paid'] as $p)
+                            <div class="rounded-2xl p-5 bg-white/[0.03] border border-white/10">
+                                <div class="flex flex-wrap items-center gap-2 mb-2">
+                                    <span class="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-md" style="background: rgba(255,178,112,.14); color: #ffb270;">{{ $p['channel'] }}</span>
+                                    @if(!empty($p['budget_hint']))
+                                        <span class="text-[11px] font-medium text-gray-400"><i class="fas fa-coins text-[9px] mr-1"></i>{{ $p['budget_hint'] }}</span>
+                                    @endif
+                                </div>
+                                <h4 class="text-sm font-bold text-white leading-snug">{{ $p['title'] }}</h4>
+                                <p class="mt-1.5 text-xs text-gray-400 leading-relaxed">{{ $p['rationale'] }}</p>
+                                <ul class="mt-3 space-y-1.5">
+                                    @foreach($p['steps'] as $step)
+                                        <li class="flex gap-2 text-xs text-gray-300 leading-relaxed">
+                                            <i class="fas fa-check text-[9px] mt-1 shrink-0" style="color: #ffb270;"></i>
+                                            <span>{{ $step }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                                <div class="mt-3 flex flex-wrap gap-1.5">
+                                    @foreach($p['sayzio_features'] as $feat)
+                                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-md bg-white/5 text-gray-300 border border-white/10">{{ $feat }}</span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+
+                        {{-- KPIs --}}
+                        <div class="rounded-2xl p-5 bg-white/[0.03] border border-white/10">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="fas fa-chart-line text-sm" style="color: #6ee7b7;"></i>
+                                <span class="text-xs font-bold uppercase tracking-[.14em]" style="color: #6ee7b7;">KPIs to watch</span>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5">
+                                @foreach($sample['kpis'] as $kpi)
+                                    <span class="text-[11px] font-medium px-2.5 py-1 rounded-md" style="background: rgba(110,231,183,.12); color: #6ee7b7;">{{ $kpi }}</span>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- suggestions footer --}}
+            <div class="p-7 sm:p-9 border-t border-white/10">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fas fa-bolt text-sm" style="color: {{ $accent }};"></i>
+                    <span class="text-xs font-bold uppercase tracking-[.14em]" style="color: {{ $accent }};">One-click suggestions</span>
+                </div>
+                <div class="grid sm:grid-cols-3 gap-3">
+                    @foreach($sample['suggestions'] as $sg)
+                        <div class="flex items-center gap-3 rounded-xl p-3.5 bg-white/[0.03] border border-white/10">
+                            <span class="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center" style="background: {{ $accent }}1f; color: {{ $accent }};">
+                                <i class="fas {{ $sg['icon'] }} text-xs"></i>
+                            </span>
+                            <span class="min-w-0">
+                                <span class="block text-[10px] font-bold uppercase tracking-wider" style="color: {{ $accent }};">{{ $sg['kind'] }}</span>
+                                <span class="block text-xs text-gray-300 leading-snug">{{ $sg['text'] }}</span>
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
+                <p class="mt-4 text-xs text-gray-500"><i class="fas fa-circle-info text-[10px] mr-1" style="color: {{ $accent }};"></i> Example only — your real report is built from your own links, audience and pixels.</p>
+            </div>
+        </article>
+    </div>
+</section>
+
+{{-- ─────────────  ONGOING USEFULNESS  ───────────── --}}
+<section class="relative pb-24">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12" data-anim="fade-up">
+            <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">Keeps paying off</div>
+            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Not a one-off output — <span class="grad-text">an asset you reuse</span>.</h2>
+            <p class="mt-4 text-sm text-gray-400 max-w-2xl mx-auto leading-relaxed">Your strategy doesn't expire the moment you read it. Save it, export it, refine it, and re-run it as your account grows.</p>
+        </div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4" data-anim="fade-up" data-stagger>
+            @foreach($ongoing as $o)
+                <article class="rounded-2xl p-6 bg-white/[0.03] border border-white/10 lift">
+                    <span class="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 text-white" style="background: {{ $accent }}; box-shadow: 0 12px 30px -12px {{ $accent }};">
+                        <i class="fas {{ $o['icon'] }}"></i>
+                    </span>
+                    <h3 class="text-base font-bold mb-1.5">{{ $o['title'] }}</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">{{ $o['body'] }}</p>
+                </article>
+            @endforeach
         </div>
     </div>
 </section>
