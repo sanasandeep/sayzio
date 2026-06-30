@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Common\Models\EmailLog;
 use App\Modules\User\Models\CreatorSubscription;
+use App\Modules\User\Models\NotificationPreference;
 use App\Modules\User\Models\SubscriptionTier;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
@@ -99,6 +101,30 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
         return UserNotification::where('user_id', $fanId)
             ->where('type', self::TYPE)
             ->count();
+    }
+
+    /**
+     * Email attempts can't be observed via Mail::fake() for this reminder: the
+     * template format is `text`, so Emailer::dispatch sends via Mail::raw(),
+     * which MailFake does not record. The reliable signal that the email
+     * channel was exercised is the email_logs row Emailer writes on every send.
+     */
+    private function emailLogCount(string $recipient): int
+    {
+        return EmailLog::where('email_key', self::TYPE)
+            ->where('recipient', $recipient)
+            ->count();
+    }
+
+    private function setPrefs(int $userId, bool $inApp, bool $email): void
+    {
+        NotificationPreference::create([
+            'user_id' => $userId,
+            'type'    => self::TYPE,
+            'in_app'  => $inApp,
+            'email'   => $email,
+            'push'    => false,
+        ]);
     }
 
     public function test_eligible_active_subscription_gets_exactly_one_reminder_and_is_stamped(): void
@@ -288,5 +314,52 @@ class CreatorSubscriptionRenewalReminderTest extends TestCase
 
         $this->assertSame(0, $this->reminderCount($other->fan_user_id));
         $this->assertNull($other->fresh()->renewal_reminder_sent_at);
+    }
+
+    /**
+     * A fan who muted BOTH channels (in_app + email) for this type must be left
+     * completely alone: no in-app row, no email attempt. Because remind()
+     * returns false when nothing was delivered, the stamp stays null — so this
+     * sub is NOT marked as "reminded" and remains re-checkable. That is the
+     * intended trade-off: a daily re-check of a fully-muted fan is cheap, and
+     * we never want a delivered=false outcome to masquerade as a sent reminder.
+     */
+    public function test_fully_muted_fan_gets_nothing_and_is_not_stamped(): void
+    {
+        $creator = $this->makeUser();
+        $tier    = $this->makeTier($creator);
+        $fan     = $this->makeUser();
+        $this->setPrefs($fan->id, inApp: false, email: false);
+
+        $sub = $this->makeSub($creator, $tier, ['fan' => $fan]);
+
+        $this->run();
+
+        $this->assertSame(0, $this->reminderCount($fan->id), 'fully-muted fan must get no in-app row');
+        $this->assertSame(0, $this->emailLogCount($fan->email), 'fully-muted fan must get no email attempt');
+        $this->assertNull($sub->fresh()->renewal_reminder_sent_at, 'nothing delivered ⇒ stamp stays null (not suppressed)');
+    }
+
+    /**
+     * A fan who muted only the in-app channel but kept email on must still get
+     * the email heads-up. No in-app row is written, but the email channel is
+     * attempted (an email_logs row appears) and — because at least one channel
+     * was delivered — the once-per-period stamp IS set so the next daily run
+     * won't email them again for this billing period.
+     */
+    public function test_in_app_muted_email_on_emails_and_stamps(): void
+    {
+        $creator = $this->makeUser();
+        $tier    = $this->makeTier($creator);
+        $fan     = $this->makeUser();
+        $this->setPrefs($fan->id, inApp: false, email: true);
+
+        $sub = $this->makeSub($creator, $tier, ['fan' => $fan]);
+
+        $this->run();
+
+        $this->assertSame(0, $this->reminderCount($fan->id), 'in-app muted ⇒ no in-app row');
+        $this->assertSame(1, $this->emailLogCount($fan->email), 'email on ⇒ exactly one email attempt');
+        $this->assertNotNull($sub->fresh()->renewal_reminder_sent_at, 'email delivered ⇒ stamp is set');
     }
 }
