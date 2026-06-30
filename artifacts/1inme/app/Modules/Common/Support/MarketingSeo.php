@@ -122,6 +122,14 @@ class MarketingSeo
                 'description' => 'Build a polished online résumé and portfolio with Sayzio and share it from a single link or QR code. Export to PDF and keep it always up to date.',
                 'keywords' => 'resume builder, online cv, portfolio builder, shareable resume, pdf resume, personal page',
             ],
+            'ai-marketing-strategist' => [
+                'label' => 'AI Marketing Strategist',
+                'group' => 'AI suite',
+                'url' => '/ai-marketing-strategist',
+                'title' => 'AI Marketing Strategist — A Growth Plan Built From Your Data',
+                'description' => 'Sayzio\'s AI Marketing Strategist turns your goal and your own account data into a practical organic + paid marketing plan built around real Sayzio features — with one-click actions you can apply instantly.',
+                'keywords' => 'ai marketing strategist, marketing strategy generator, ai growth plan, organic and paid marketing, link in bio marketing, ai marketing plan, sayzio ai',
+            ],
             'forms' => [
                 'label' => 'Form builder',
                 'group' => 'Capabilities',

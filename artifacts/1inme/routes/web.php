@@ -269,6 +269,8 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     Route::view('/docs/api', 'public.api-docs', ['seoKey' => 'api-docs'])->name('site.api-docs');
     // Standalone marketing page for the Résumé / Portfolio Builder module.
     Route::view('/resume-builder', 'public.resume-builder', ['seoKey' => 'resume-builder'])->name('site.resume-builder');
+    // Standalone marketing page for the AI Marketing Strategist feature.
+    Route::view('/ai-marketing-strategist', 'public.ai-marketing-strategist', ['seoKey' => 'ai-marketing-strategist'])->name('site.ai-marketing-strategist');
     Route::get('/services', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('services'))->name('site.services');
     // Competitor comparison "vs" landing pages. Data driven by ComparisonContent.
     Route::get('/compare', [\App\Modules\Common\Controllers\SitePageController::class, 'compareIndex'])->name('site.compare.index');
@@ -431,7 +433,7 @@ Route::get('/{handle}/resume/v/{slug}.pdf',
 // allow-list of suffixes that does not include "resume").
 Route::get ('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeController::class, 'show'])
     ->name('resume.public.show')
-    ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|whatsapp-agent|docs|newsletter|pricing|coins|premium-features|blogs|creators|feed|viewer|companion|embed|assistant|sp|r|analytics|audience|integrations|compare|for)[a-zA-Z0-9_\-\.]+$');
+    ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|whatsapp-agent|ai-marketing-strategist|docs|newsletter|pricing|coins|premium-features|blogs|creators|feed|viewer|companion|embed|assistant|sp|r|analytics|audience|integrations|compare|for)[a-zA-Z0-9_\-\.]+$');
 Route::post('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeController::class, 'unlock'])
     ->name('resume.public.unlock')
     ->middleware('throttle:10,1')

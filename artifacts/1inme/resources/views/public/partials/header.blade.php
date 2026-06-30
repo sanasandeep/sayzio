@@ -23,6 +23,7 @@
         [route('site.api-docs'),       'fa-code',         'API',                'Build with Sayzio'],
     ];
     $navProductAi = [
+        [route('site.ai-marketing-strategist'), 'fa-wand-magic-sparkles', 'AI Marketing Strategist', 'A growth plan from your own data'],
         [route('site.ai-chatbot'),         'fa-comments',        'AI Chatbot',         '24/7 chat on your biolink'],
         [route('site.ai-agent'),           'fa-robot',           'AI Agent',           'Runs multi-step tasks for you'],
         [route('site.ai-widget'),          'fa-window-restore',  'AI Widget',          'Embed on any website'],
