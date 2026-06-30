@@ -64,6 +64,10 @@ args = "mobile-unit"
 task = "workflow.run"
 args = "e2e-mobile-icons"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-icons-native"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -192,6 +196,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:icon-fonts-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-icons-native"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:native-icon-fonts-e2e"
 
 [workflows.workflow.metadata]
 isValidation = true
