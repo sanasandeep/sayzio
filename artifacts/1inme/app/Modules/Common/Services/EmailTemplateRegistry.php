@@ -253,6 +253,19 @@ class EmailTemplateRegistry
                     'dropped_addons' => ['label' => 'Dropped add-ons summary', 'sample' => 'These add-ons are no longer included: Extra Storage, Priority Support.'],
                 ],
             ],
+            'billing.subscription_downgrade_cancelled' => [
+                'category' => 'billing',
+                'label' => 'Subscription downgrade cancelled',
+                'description' => 'Confirms a pending scheduled downgrade was cancelled and the user stays on their current plan.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => 'Your scheduled plan change to {{target_plan}} was cancelled',
+                'body' => "Your scheduled change to {{target_plan}} has been cancelled.\nYou'll stay on your {{plan_name}} plan, and it will renew as usual.",
+                'variables' => [
+                    'plan_name' => ['label' => 'Current plan name', 'sample' => 'Pro'],
+                    'target_plan' => ['label' => 'Cancelled (lower) plan name', 'sample' => 'Starter'],
+                ],
+            ],
             'billing.subscription_update' => [
                 'category' => 'billing',
                 'label' => 'Subscription status update',

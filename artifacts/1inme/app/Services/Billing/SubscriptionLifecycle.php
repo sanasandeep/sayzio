@@ -99,7 +99,20 @@ class SubscriptionLifecycle
     /** Cancel a pending scheduled downgrade before it applies. */
     public function cancelScheduledDowngrade(Subscription $subscription): void
     {
+        // Nothing scheduled → nothing to cancel. Bail before clearing or
+        // notifying so callers can't trigger a misleading "your downgrade
+        // was cancelled" email/bell when there was never a pending change.
+        if (!$subscription->scheduled_downgrade_plan_id) return;
+
+        // Capture the target before clearing so the confirmation (bell +
+        // email) can name the plan change that was called off.
+        $target = Plan::find($subscription->scheduled_downgrade_plan_id);
+
         $subscription->forceFill(['scheduled_downgrade_plan_id' => null])->save();
+
+        $this->notify($subscription, 'downgrade_cancelled', [
+            'target_plan' => $target?->name,
+        ]);
     }
 
     /**
@@ -234,6 +247,7 @@ class SubscriptionLifecycle
                 'downgraded'          => 'billing.subscription_downgraded',
                 'downgrade_scheduled' => 'billing.subscription_downgrade_scheduled',
                 'downgrade_applied'   => 'billing.subscription_downgrade_applied',
+                'downgrade_cancelled' => 'billing.subscription_downgrade_cancelled',
                 default               => 'billing.subscription_update',
             };
 
@@ -257,10 +271,12 @@ class SubscriptionLifecycle
     /**
      * Mirror the downgrade lifecycle emails as an in-app (bell) notification
      * so both channels surface the same detail: the scheduled notification
-     * names the target plan and effective date, and the applied one lists any
-     * dropped add-ons (matching billing.subscription_downgrade_scheduled /
-     * _applied). Only these two events get a bell entry today; other kinds
-     * stay email-only. Best-effort — never blocks the transition or the email.
+     * names the target plan and effective date, the applied one lists any
+     * dropped add-ons, and the cancelled one confirms the user stays put
+     * (matching billing.subscription_downgrade_scheduled / _applied /
+     * _cancelled). Only these three events get a bell entry today; other
+     * kinds stay email-only. Best-effort — never blocks the transition or
+     * the email.
      */
     protected function notifyInApp(Subscription $subscription, string $kind, array $extra, string $droppedSummary): void
     {
@@ -281,6 +297,11 @@ class SubscriptionLifecycle
                 "Your scheduled plan change has taken effect — you're now on %s. %s",
                 $targetPlan ?? 'your new plan',
                 $droppedSummary,
+            ),
+            'downgrade_cancelled' => sprintf(
+                "Your scheduled change to %s has been cancelled. You'll stay on your %s plan, and it will renew as usual.",
+                $targetPlan ?? 'a lower plan',
+                $subscription->plan?->name ?? 'current',
             ),
             default => null,
         };

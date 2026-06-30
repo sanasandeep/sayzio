@@ -110,6 +110,48 @@ class SubscriptionDowngradeEmailTest extends TestCase
         $this->assertStringContainsString($effective, (string) $log->body, 'body states the effective date');
     }
 
+    public function test_cancel_scheduled_downgrade_clears_target_and_sends_cancelled_email(): void
+    {
+        $user = $this->makeUser();
+        $high = $this->makePlan('pro', 20.00);
+        $low  = $this->makePlan('starter', 9.00);
+        $sub  = $this->payPlanInvoice($user, $high);
+
+        // A downgrade is pending, then the user cancels it.
+        $sub->forceFill(['scheduled_downgrade_plan_id' => $low->id])->save();
+        app(SubscriptionLifecycle::class)->cancelScheduledDowngrade($sub->fresh());
+
+        $this->assertNull($sub->fresh()->scheduled_downgrade_plan_id, 'scheduled target cleared');
+        $this->assertSame($high->id, $sub->fresh()->plan_id, 'user stays on the current plan');
+
+        $log = EmailLog::where('email_key', 'billing.subscription_downgrade_cancelled')
+            ->where('recipient', $user->email)
+            ->latest('id')->first();
+
+        $this->assertNotNull($log, 'a downgrade-cancelled email was logged');
+        $this->assertSame('sent', $log->status);
+        $this->assertStringContainsString($low->name, (string) $log->subject, 'subject names the cancelled target plan');
+        $this->assertStringContainsString($low->name, (string) $log->body, 'body names the cancelled target plan');
+        $this->assertStringContainsString($high->name, (string) $log->body, 'body confirms the current plan stays');
+    }
+
+    public function test_cancel_with_no_pending_downgrade_sends_no_email(): void
+    {
+        $user = $this->makeUser();
+        $high = $this->makePlan('pro', 20.00);
+        $sub  = $this->payPlanInvoice($user, $high);
+
+        // No downgrade is scheduled — cancelling must be a no-op and must
+        // NOT send a misleading "your downgrade was cancelled" email.
+        app(SubscriptionLifecycle::class)->cancelScheduledDowngrade($sub->fresh());
+
+        $this->assertSame(
+            0,
+            $this->sentCount('billing.subscription_downgrade_cancelled', $user->email),
+            'no cancellation email when there was nothing scheduled',
+        );
+    }
+
     public function test_apply_scheduled_downgrade_sends_applied_email_listing_dropped_addons(): void
     {
         $user = $this->makeUser();
