@@ -1182,6 +1182,58 @@
             </div>
             @endif
 
+            {{-- ========== ACCOUNT (collapsible) — coins + assigned badges ==========
+                 Lives next to the user profile so the wallet balance and admin-
+                 assigned account badges are reachable from anywhere in the app.
+                 Hidden in the icons-collapsed mode (like the upgrade card /
+                 profile block) since the content is text, not icon links. --}}
+            @php
+                $__acctWalletEnabled = \App\Services\Billing\WalletService::isEnabled();
+                $__acctCoins   = (int) (auth()->user()->wallet?->balance ?? 0);
+                $__acctBadges  = auth()->user()->accountBadges;
+                $__showAccount = $__acctWalletEnabled || $__acctBadges->isNotEmpty();
+            @endphp
+            @if($__showAccount)
+            <div class="px-3 pb-2" x-show="sidebarMode !== 'icons'" x-cloak x-data="{ open: true }">
+                <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
+                        class="sidebar-group-toggle pt-2 pb-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.15em]">
+                    <span>Account</span>
+                    <i class="fas fa-chevron-down grp-chevron"></i>
+                </button>
+                <div x-show="open" x-cloak class="space-y-2 pt-1">
+                    @if($__acctWalletEnabled)
+                    <a href="{{ route('user.wallet.show') }}"
+                       class="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all hover:opacity-90"
+                       style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);"
+                       title="Coin balance &amp; transactions">
+                        <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(245,158,11,0.15);">
+                            <i class="fas fa-coins text-amber-400 text-[11px]"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Available coins</p>
+                            <p class="text-xs font-bold" style="color: var(--text-primary);">
+                                <span data-wallet-amount>{{ number_format($__acctCoins) }}</span> coins
+                            </p>
+                        </div>
+                    </a>
+                    @endif
+                    @if($__acctBadges->isNotEmpty())
+                    <div class="px-1">
+                        <p class="text-[9px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Your badges</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach($__acctBadges as $badge)
+                            <span class="badge inline-flex items-center gap-1.5 text-[10px]"
+                                  style="background: {{ $badge->color }}26; color: {{ $badge->color }}; border: 1px solid {{ $badge->color }}40;">
+                                <i class="fas fa-certificate text-[9px]"></i>{{ $badge->name }}
+                            </span>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
             <div class="px-3 py-3" style="border-top: 1px solid var(--border-strong);">
                 <div class="flex items-center" :class="sidebarMode === 'icons' ? 'justify-center' : 'gap-3'">
                     <div class="user-avatar-ring flex-shrink-0">
@@ -1577,6 +1629,55 @@
                         </div>
                         @endif
                     </nav>
+                    {{-- ========== ACCOUNT (collapsible) — coins + assigned badges ==========
+                         Mirror of the desktop section so the mobile drawer shows the
+                         same wallet balance + account badges. Kept in lockstep. --}}
+                    @php
+                        $__mAcctWalletEnabled = \App\Services\Billing\WalletService::isEnabled();
+                        $__mAcctCoins   = (int) (auth()->user()->wallet?->balance ?? 0);
+                        $__mAcctBadges  = auth()->user()->accountBadges;
+                        $__mShowAccount = $__mAcctWalletEnabled || $__mAcctBadges->isNotEmpty();
+                    @endphp
+                    @if($__mShowAccount)
+                    <div class="px-3 pt-2" x-data="{ open: true }">
+                        <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
+                                class="sidebar-group-toggle pt-2 pb-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.15em]">
+                            <span>Account</span>
+                            <i class="fas fa-chevron-down grp-chevron"></i>
+                        </button>
+                        <div x-show="open" x-cloak class="space-y-2 pt-1">
+                            @if($__mAcctWalletEnabled)
+                            <a href="{{ route('user.wallet.show') }}"
+                               class="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all hover:opacity-90"
+                               style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);"
+                               title="Coin balance &amp; transactions">
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(245,158,11,0.15);">
+                                    <i class="fas fa-coins text-amber-400 text-[11px]"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Available coins</p>
+                                    <p class="text-xs font-bold" style="color: var(--text-primary);">
+                                        <span data-wallet-amount>{{ number_format($__mAcctCoins) }}</span> coins
+                                    </p>
+                                </div>
+                            </a>
+                            @endif
+                            @if($__mAcctBadges->isNotEmpty())
+                            <div class="px-1">
+                                <p class="text-[9px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Your badges</p>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @foreach($__mAcctBadges as $badge)
+                                    <span class="badge inline-flex items-center gap-1.5 text-[10px]"
+                                          style="background: {{ $badge->color }}26; color: {{ $badge->color }}; border: 1px solid {{ $badge->color }}40;">
+                                        <i class="fas fa-certificate text-[9px]"></i>{{ $badge->name }}
+                                    </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
                     <div class="p-3" style="border-top: 1px solid var(--border-subtle);">
                         @if(!session('impersonate_user_id') && auth()->user()->hasActiveAdminAccount())
                         <form action="{{ route('user.switch-to-admin') }}" method="POST" class="mb-2">
@@ -1701,6 +1802,10 @@
             document.querySelectorAll('[data-wallet-badge]').forEach(function(el){
                 el.textContent = fmt(c);
                 el.setAttribute('title', c.toLocaleString('en-US') + ' coins');
+            });
+            // Full, comma-formatted balance shown in the sidebar Account section.
+            document.querySelectorAll('[data-wallet-amount]').forEach(function(el){
+                el.textContent = c.toLocaleString('en-US');
             });
         }
         var inFlight = false;
