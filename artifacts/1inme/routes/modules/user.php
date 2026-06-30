@@ -978,6 +978,22 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post  ('ask-coach/defaults',                     [\App\Modules\User\Controllers\AI\AskCoachController::class, 'saveDefaults'])->name('ask-coach.defaults.save');
             Route::delete('ask-coach/defaults',                     [\App\Modules\User\Controllers\AI\AskCoachController::class, 'clearDefaults'])->name('ask-coach.defaults.clear');
 
+            // Marketing Strategist (Task #3060) — AI Digital Performer.
+            // Creator toggles their OWN data → goal + parameters → an
+            // organic + paid strategy built around Sayzio features, then
+            // chat-refine (streamed, metered) + one-click apply suggestions.
+            // Spend tagged `marketing_strategist` with auto-refund.
+            Route::get   ('marketing-strategist',                            [\App\Modules\User\Controllers\AI\MarketingStrategistController::class, 'index'])->name('marketing-strategist.index');
+            Route::get   ('marketing-strategist/create',                     [\App\Modules\User\Controllers\AI\MarketingStrategistController::class, 'create'])->name('marketing-strategist.create');
+            Route::post  ('marketing-strategist/estimate',                   [\App\Modules\User\Controllers\AI\MarketingStrategistController::class, 'estimate'])->middleware('throttle:30,1')->name('marketing-strategist.estimate');
+            Route::post  ('marketing-strategist',                            [\App\Modules\User\Controllers\AI\MarketingStrategistController::class, 'store'])->middleware('throttle:12,1')->name('marketing-strategist.store');
+            Route::get   ('marketing-strategist/{strategy}',                 [\App\Modules\User\Controllers\AI\MarketingStrategistController::class, 'show'])->whereNumber('strategy')->name('marketing-strategist.show');
+            Route::delete('marketing-strategist/{strategy}',                 [\App\Modules\User\Controllers\AI\MarketingStrategistController::class, 'destroy'])->whereNumber('strategy')->name('marketing-strategist.destroy');
+            Route::get   ('marketing-strategist/{strategy}/export',          [\App\Modules\User\Controllers\AI\MarketingStrategistController::class, 'export'])->whereNumber('strategy')->name('marketing-strategist.export');
+            Route::post  ('marketing-strategist/{strategy}/chat',            [\App\Modules\User\Controllers\AI\MarketingStrategistController::class, 'chat'])->whereNumber('strategy')->middleware('throttle:30,1')->name('marketing-strategist.chat');
+            Route::post  ('marketing-strategist/suggestions/{suggestion}/apply',   [\App\Modules\User\Controllers\AI\MarketingStrategistController::class, 'applySuggestion'])->whereNumber('suggestion')->middleware('throttle:30,1')->name('marketing-strategist.suggestions.apply');
+            Route::post  ('marketing-strategist/suggestions/{suggestion}/dismiss', [\App\Modules\User\Controllers\AI\MarketingStrategistController::class, 'dismissSuggestion'])->whereNumber('suggestion')->name('marketing-strategist.suggestions.dismiss');
+
             // Voice Assistant — floating mic on every page. STT/LLM/TTS
             // are billed separately (`voice_stt`, `voice_llm`, `voice_tts`).
             // `voice` is the gate surface: engine-off / plan-gated users

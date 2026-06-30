@@ -75,6 +75,14 @@ class UserResource
                     'max_calendars'           => (int) $u->getPlanFeature('max_calendars', -1),
                     'max_calendar_events'     => (int) $u->getPlanFeature('max_calendar_events', -1),
                     'calendar_sync'           => (bool) $u->getPlanFeature('calendar_sync', false),
+                    // AI Marketing Strategist (Task #3060): whether the engine
+                    // is on AND the plan allows the feature, plus the per-plan
+                    // saved-strategy cap (-1 = unlimited). Lets clients gate
+                    // the surface + show the right upgrade prompt without a
+                    // second round-trip, mirroring the web gate.
+                    'marketing_strategist'     => \App\Services\AI\AiEngineSettings::isEnabled()
+                        && \App\Services\AI\AiPlanAccess::featureAllowed($u, 'marketing_strategist'),
+                    'max_marketing_strategies' => \App\Services\AI\AiPlanAccess::quantityCap($u, 'marketing_strategies'),
                 ],
             ]);
         }

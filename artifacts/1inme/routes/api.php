@@ -479,6 +479,20 @@ Route::prefix('v1')->group(function () {
         Route::delete('/ai/ask-coach/threads/{thread}',              [\App\Modules\Api\Controllers\AskCoachController::class, 'destroy'])->whereNumber('thread');
         Route::post  ('/ai/ask-coach/messages/{message}/feedback',   [\App\Modules\Api\Controllers\AskCoachController::class, 'feedback'])->whereNumber('message')->middleware('throttle:30,1');
 
+        // AI Marketing Strategist (Task #3060): REST parity for the web
+        // digital-performer feature — generate an organic + paid plan from
+        // the creator's own data, chat-refine (streamed, metered), and
+        // one-click apply suggestions.
+        Route::get   ('/ai/marketing-strategist',                          [\App\Modules\Api\Controllers\MarketingStrategistController::class, 'index']);
+        Route::post  ('/ai/marketing-strategist/estimate',                 [\App\Modules\Api\Controllers\MarketingStrategistController::class, 'estimate']);
+        Route::post  ('/ai/marketing-strategist',                          [\App\Modules\Api\Controllers\MarketingStrategistController::class, 'store'])->middleware('throttle:20,1');
+        Route::get   ('/ai/marketing-strategist/{strategy}',               [\App\Modules\Api\Controllers\MarketingStrategistController::class, 'show'])->whereNumber('strategy');
+        Route::get   ('/ai/marketing-strategist/{strategy}/export',        [\App\Modules\Api\Controllers\MarketingStrategistController::class, 'export'])->whereNumber('strategy');
+        Route::delete('/ai/marketing-strategist/{strategy}',               [\App\Modules\Api\Controllers\MarketingStrategistController::class, 'destroy'])->whereNumber('strategy');
+        Route::post  ('/ai/marketing-strategist/{strategy}/chat',          [\App\Modules\Api\Controllers\MarketingStrategistController::class, 'chat'])->whereNumber('strategy')->middleware('throttle:30,1');
+        Route::post  ('/ai/marketing-strategist/suggestions/{suggestion}/apply',   [\App\Modules\Api\Controllers\MarketingStrategistController::class, 'applySuggestion'])->whereNumber('suggestion');
+        Route::post  ('/ai/marketing-strategist/suggestions/{suggestion}/dismiss', [\App\Modules\Api\Controllers\MarketingStrategistController::class, 'dismissSuggestion'])->whereNumber('suggestion');
+
         // Onboarding
         Route::get('/onboarding',          [OnboardingController::class, 'status']);
         Route::post('/onboarding/complete',[OnboardingController::class, 'complete']);

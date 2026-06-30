@@ -31,7 +31,18 @@ class AiPlanAccess
         'personas'   => 'max_personas',
         'companions' => 'max_companions',
         'brand_kits' => 'max_brand_kits',
+        // Saved AI Marketing Strategist plans (Task #3060).
+        'marketing_strategies' => 'max_marketing_strategies',
     ];
+
+    /**
+     * Default saved-strategy cap for plans that predate the
+     * `max_marketing_strategies` key. Generous so paid users who already
+     * had the feature unlocked never hit a surprise wall mid-rollout; the
+     * per-plan key overrides this once seeded. Free users are blocked
+     * upstream by the availability gate, not this cap.
+     */
+    public const MARKETING_STRATEGIES_FALLBACK = 25;
 
     /**
      * AI coin-cost multipliers per provider => plan feature key. Each
@@ -122,6 +133,7 @@ class AiPlanAccess
             'minds'      => (int) AiMindSettings::cap('max_minds_per_user'),
             'personas'   => (int) PersonaSettings::cap('max_personas_per_user'),
             'companions' => (int) CompanionSettings::cap('max_companions_per_user'),
+            'marketing_strategies' => self::MARKETING_STRATEGIES_FALLBACK,
             default      => 0,
         };
     }
@@ -179,6 +191,10 @@ class AiPlanAccess
             // carry the explicit key, gate it to any non-free plan so free
             // accounts can't drive paid AI spend through the inbound webhook.
             'whatsapp_agent'     => !$user->isOnFreePlan(),
+            // AI Marketing Strategist (Task #3060) — a paid-plan perk that
+            // drives metered AI spend. Until plans carry the explicit key,
+            // gate it to any non-free plan so free accounts can't run it.
+            'marketing_strategist' => !$user->isOnFreePlan(),
             default              => true,
         };
     }

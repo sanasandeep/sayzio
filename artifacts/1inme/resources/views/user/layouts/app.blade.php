@@ -928,6 +928,15 @@
                             <span class="sidebar-tooltip">Account Assistant</span>
                         </a>
                         @endif
+                        @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'marketing_strategist'))
+                        <a href="{{ route('user.ai.marketing-strategist.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.ai.marketing-strategist.*') ? 'active' : '' }}"
+                           style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div>
+                            <span class="nav-label">Marketing Strategist</span>
+                            <span class="sidebar-tooltip">Marketing Strategist</span>
+                        </a>
+                        @endif
                     </div>
                 </div>
 
@@ -1547,6 +1556,9 @@
                                 <a href="{{ route('user.ai.coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div> <span>Growth Coach</span></a>
                                 @if(auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
                                 <a href="{{ route('user.ai.ask-coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.ask-coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div> <span>Account Assistant</span></a>
+                                @endif
+                                @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'marketing_strategist'))
+                                <a href="{{ route('user.ai.marketing-strategist.index') }}" class="sidebar-link {{ request()->routeIs('user.ai.marketing-strategist.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Marketing Strategist</span></a>
                                 @endif
                             </div>
                         </div>
