@@ -137,3 +137,4 @@
 - [Banned-name @handle surfaces](handle-banned-name-surfaces.md) — NotBannedName must run on all 4 handle-setting surfaces (API register, API profile update, web profile update, claimHandle), not just link aliases.
 - [Alias length enforcement surfaces](alias-length-surfaces.md) — per-plan min via User::getAliasLengthLimits() (free biggest); Api LinkController create paths + updateAlias/LinkAliasController used to bypass it; overlay seeder needs a data-migration backfill.
 - [Marketing hero claim-handle handoff](marketing-hero-claim-handle.md) — homepage "claim your link" carries a handle via the open-auth event → auth-modal hidden field → AuthController::applyClaimedHandle (graceful, mirrors claimHandle rules); 5 lockstep surfaces.
+- [Test-DB wipe guard](test-db-wipe-guard.md) — phpunit DB_DATABASE not force="true" (would break CI); a fail-closed TestCase::setUp guard aborts unless DB is `*_testing` or CI, before any migrate:fresh.

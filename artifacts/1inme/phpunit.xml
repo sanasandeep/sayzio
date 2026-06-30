@@ -66,16 +66,31 @@
 
             DB_HOST / DB_PORT / DB_USERNAME / DB_PASSWORD are intentionally
             not pinned here — they fall through to whatever the developer's
-            .env (or CI process env) provides. Only DB_CONNECTION and
-            DB_DATABASE are forced, so the test suite always targets a
-            dedicated `1inme_testing` database and never trample the
-            developer's dev DB when RefreshDatabase wipes the schema.
+            .env (or CI process env) provides. DB_CONNECTION and DB_DATABASE
+            default the suite to a dedicated `1inme_testing` database.
+
+            IMPORTANT: these <env> entries are NOT force="true", and that is
+            deliberate. A PHPUnit `<env>` does not override a value already
+            present in the process environment unless force="true". The CI
+            workflow (.github/workflows/laravel-tests.yml) relies on this: it
+            exports its own DB_DATABASE (onein_me_ci / paratest's
+            onein_me_ci_test_N) and expects those to win over the value here.
+            Adding force="true" would clobber CI's database.
+
+            The downside of NOT forcing is that a stray exported
+            DB_DATABASE=postgres (the shared dev/live RDS) in a local shell
+            also wins here — and RefreshDatabase would then `migrate:fresh`
+            and DROP EVERY TABLE on the dev database. That actually happened
+            once and wiped the shared dev DB.
+
+            The real protection is therefore a fail-closed runtime guard in
+            tests/TestCase::setUp(): it aborts the entire run before any
+            migration if the resolved database is not a recognized test
+            database (a `*_testing` name locally, or any DB in CI). Do not
+            "fix" this by adding force="true" — that re-breaks CI; the guard
+            is what keeps both local and CI runs safe.
 
             See artifacts/1inme/CONTRIBUTING.md for setup instructions.
-
-            Note: PHPUnit `<env>` does not override values already present in
-            the process environment unless force="true". CI sets DB_DATABASE
-            etc. as real env vars, so those still win in CI as before.
         -->
         <env name="DB_CONNECTION" value="pgsql"/>
         <env name="DB_DATABASE" value="1inme_testing"/>

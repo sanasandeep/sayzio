@@ -140,9 +140,31 @@ the memory ceiling.
 
 The suite uses `RefreshDatabase`, which **drops and re-creates every table** in
 the configured database on each run. To keep that destruction safely isolated
-from your dev data, [`phpunit.xml`](phpunit.xml) pins the test database name
+from your dev data, [`phpunit.xml`](phpunit.xml) defaults the test database name
 to `1inme_testing` (separate from the `1inme` dev database in
 [`.env.example`](.env.example)).
+
+> **⚠️ Hazard: an exported `DB_DATABASE` can override `phpunit.xml`.** A PHPUnit
+> `<env>` entry does **not** override a value already present in the process
+> environment unless it is marked `force="true"` — and `DB_DATABASE` in
+> `phpunit.xml` is intentionally **not** forced (see below). So if your shell
+> has `DB_DATABASE` exported (e.g. `DB_DATABASE=postgres` pointing at the shared
+> dev/live RDS), `php artisan test` connects **there** and the first
+> `RefreshDatabase` test **drops every table on that database**. This actually
+> happened once and wiped the shared dev DB.
+>
+> **Why not just add `force="true"`?** Because CI
+> (`.github/workflows/laravel-tests.yml`) deliberately exports its own
+> `DB_DATABASE` (`onein_me_ci` / paratest's `onein_me_ci_test_N`) and relies on
+> it winning over `phpunit.xml`; forcing the value would clobber CI's database.
+>
+> **The real protection** is a fail-closed guard in
+> [`tests/TestCase.php`](tests/TestCase.php): `setUp()` resolves the database the
+> framework will actually use and **aborts the entire run before any migration**
+> if it is not a recognized test database (a `*_testing` name locally, or any
+> database when running in CI). If you see `ABORTING TEST RUN: refusing to run
+> against a non-test database`, unset the stray `DB_DATABASE` in your shell (or
+> point it at `1inme_testing`) and re-run.
 
 > **In Replit task environments this is automated.** The post-merge setup
 > script (`scripts/post-merge.sh`) creates the `1inme_testing` database after
@@ -153,7 +175,7 @@ to `1inme_testing` (separate from the `1inme` dev database in
 
 1. Make sure your `.env` points at a reachable local PostgreSQL instance —
    `DB_CONNECTION=pgsql`, plus working `DB_HOST` / `DB_PORT` / `DB_USERNAME` /
-   `DB_PASSWORD` values. (`phpunit.xml` only forces `DB_CONNECTION` and
+   `DB_PASSWORD` values. (`phpunit.xml` only defaults `DB_CONNECTION` and
    `DB_DATABASE`; the host/port/credentials fall through from your `.env`.)
 2. Create the dedicated test database once:
 
