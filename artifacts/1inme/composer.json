@@ -71,6 +71,9 @@
         "test:db-guard": [
             "@php scripts/check-database-guard.php"
         ],
+        "check:migration-ordering": [
+            "@php artisan db:check-migration-ordering"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

@@ -48,6 +48,10 @@ args = "test:1inme-com"
 task = "workflow.run"
 args = "e2e-voice-panel"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "migration-ordering"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -132,6 +136,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh voice-assistant-panel.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "migration-ordering"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:migration-ordering"
 
 [workflows.workflow.metadata]
 isValidation = true

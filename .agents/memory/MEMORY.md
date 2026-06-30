@@ -141,3 +141,4 @@
 - [Marketing hero claim-handle handoff](marketing-hero-claim-handle.md) — homepage "claim your link" carries a handle via the open-auth event → auth-modal hidden field → AuthController::applyClaimedHandle (graceful, mirrors claimHandle rules); 5 lockstep surfaces.
 - [Test-DB wipe guard](test-db-wipe-guard.md) — phpunit DB_DATABASE not force="true" (would break CI); a fail-closed TestCase::setUp guard aborts unless DB is `*_testing` or CI, before any migrate:fresh.
 - [Premium-features catalogue is single source](premium-features-catalogue-source.md) — PremiumFeatures::catalogue+resolveCell+planHighlights feed web grid, API feature_highlights & mobile; drift test enforces every PlanFormCatalogue key is documented.
+- [Migration ordering guard](migration-ordering-guard.md) — two checks for FK/modify to a later-created table: real-DB migrate:fresh (GH only) + DB-free static replay (MigrationOrderInspector / db:check-migration-ordering) as the Replit validation gate.

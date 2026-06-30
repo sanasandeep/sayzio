@@ -207,3 +207,56 @@ jobs:
 
       - name: Scan app/ and tests/ for PHP 8.4 deprecations
         run: composer lint:deprecations
+
+  migration-ordering:
+    name: Migration ordering guard (no database)
+    runs-on: ubuntu-latest
+
+    # Catch a migration that modifies or foreign-keys a table only created by a
+    # LATER-dated migration. That bug builds fine on any database that already
+    # has the table (the shared dev/live RDS, where migrations were applied
+    # incrementally) but breaks `migrate:fresh` from an empty database — the
+    # exact class Task #2989 fixed.
+    #
+    # The sibling laravel-migrations.yml runs the real `migrate:fresh` against a
+    # throwaway Postgres, which is the gold-standard catch. This job is the
+    # static counterpart that ALSO runs as the Replit pre-merge validation step,
+    # where the only reachable database is the shared RDS (which must never be
+    # wiped). It replays every migration under Connection::pretend() with the
+    # Schema facade swapped for an in-memory recorder, so it needs no database
+    # service — just PHP, a Composer install, and a minimal .env to boot.
+
+    defaults:
+      run:
+        working-directory: artifacts/1inme
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo, pdo_pgsql, pgsql, bcmath, gd, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: artifacts/1inme/vendor
+          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('artifacts/1inme/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-php8.3-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare .env for CI
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Replay migrations from an empty schema and check ordering
+        run: composer check:migration-ordering
