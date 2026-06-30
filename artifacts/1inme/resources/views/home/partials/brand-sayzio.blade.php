@@ -146,6 +146,10 @@
     /* Animated clip shows by default; the static still is the reduced-motion fallback. */
     .bs-mascot-video { display: block; object-fit: contain; aspect-ratio: 1 / 1; }
     .bs-mascot-fallback { display: none; }
+    /* Animated transparent WebP fallback — revealed by the hero's alpha guard for
+       browsers that decode the WebM but ignore its alpha (Safari/iOS). Static PNG
+       fallback stays reserved for the reduced-motion path below. */
+    .bs-mascot-anim { display: none; }
 
     @media (prefers-reduced-motion: reduce) {
         .bs-wordmark, .bs-energy::after, .bs-is-pill::before, .bs-mascot,
@@ -233,6 +237,11 @@
                         </video>
                         <img src="{{ asset('branding/sayzio-mascot-still.png') }}" alt="Zio, the Sayzio mascot" width="64" height="64"
                              class="bs-mascot bs-mascot-fallback w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_10px_26px_rgba(110,97,255,.55)]" loading="lazy" decoding="async">
+                        {{-- Animated transparent WebP, revealed by the hero alpha guard
+                             for browsers that decode the WebM but ignore its alpha
+                             (Safari/iOS). data-src keeps it from downloading otherwise. --}}
+                        <img data-src="{{ asset('branding/sayzio-mascot.webp') }}" alt="Zio, the Sayzio mascot" width="64" height="64"
+                             class="bs-mascot bs-mascot-anim w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_10px_26px_rgba(110,97,255,.55)]" decoding="async">
                     </span>
                     <div class="min-w-0">
                         <div class="text-3xl sm:text-4xl font-black tracking-tight"><span class="bs-wordmark bs-wordmark--zio">Sayzio</span></div>

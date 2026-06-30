@@ -206,6 +206,11 @@
                             <source src="{{ asset('branding/sayzio-mascot.webm') }}" type="video/webm">
                         </video>
                         <img src="{{ asset('branding/sayzio-mascot-still.png') }}" alt="Zio, the Sayzio AI mascot" class="zio-mascot zio-mascot-fallback" width="220" height="220" loading="eager" decoding="async">
+                        {{-- Animated transparent WebP, revealed by the alpha guard for
+                             browsers that decode the WebM but ignore its alpha (Safari/iOS).
+                             data-src keeps it from downloading on browsers that honor video
+                             alpha or under reduced motion — the guard sets src only on demand. --}}
+                        <img data-src="{{ asset('branding/sayzio-mascot.webp') }}" alt="Zio, the Sayzio AI mascot" class="zio-mascot zio-mascot-anim" width="220" height="220" decoding="async">
                         <span class="zio-core-label"><i class="fas fa-wand-magic-sparkles"></i> Zio runs it all</span>
                     </div>
                 </div>
@@ -621,8 +626,12 @@
         /* The animated clip is square (640x640); keep it block-level so it sits
            flush like the old <img> and let its aspect ratio drive the height. */
         .zio-mascot-video { display: block; aspect-ratio: 1 / 1; }
-        /* Default (motion ok): show the video, hide the static fallback image. */
+        /* Default (motion ok): show the video, hide both fallback images. The
+           animated WebP fallback is only revealed by the alpha guard for
+           browsers that don't honor video alpha (Safari/iOS); the static PNG
+           fallback is reserved for the reduced-motion path. */
         .zio-mascot-fallback { display: none; }
+        .zio-mascot-anim { display: none; }
         @keyframes zioFloat {
             0%,100% { transform: translateY(0) rotate(-1.5deg) scale(1); }
             50%     { transform: translateY(-12px) rotate(1.5deg) scale(1.02); }
@@ -797,19 +806,34 @@
             function initMascotAlphaGuard() {
             var videos = document.querySelectorAll('.zio-mascot-video, .bs-mascot-video');
             if (!videos.length) { return; }
+            var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
             Array.prototype.forEach.call(videos, function (video) {
-                // The still PNG is the matching sibling: same class prefix,
-                // -video -> -fallback (e.g. zio-mascot-video -> zio-mascot-fallback).
-                var stillSelector = '.' + (video.className.split(/\s+/).filter(function (c) {
+                // Both fallbacks are matching siblings sharing the video's class
+                // prefix: -video -> -fallback (static still PNG, reduced-motion
+                // path) and -video -> -anim (animated transparent WebP, shown to
+                // browsers that decode VP9 but ignore its alpha, e.g. Safari/iOS).
+                var prefix = (video.className.split(/\s+/).filter(function (c) {
                     return /-mascot-video$/.test(c);
-                })[0] || '').replace(/-video$/, '-fallback');
-                var still = stillSelector !== '.' ? video.parentNode.querySelector(stillSelector) : null;
+                })[0] || '');
+                var still = prefix ? video.parentNode.querySelector('.' + prefix.replace(/-video$/, '-fallback')) : null;
+                var anim = prefix ? video.parentNode.querySelector('.' + prefix.replace(/-video$/, '-anim')) : null;
                 if (!still) { return; }
                 var done = false;
                 function showStill() {
                     done = true;
                     video.style.display = 'none';
-                    still.style.display = 'block';
+                    // Motion allowed: show the animated transparent WebP (mascot
+                    // still moves, no opaque box). Reduced motion: keep the static
+                    // still. Set src only now so the WebP never downloads for
+                    // browsers that honor video alpha or under reduced motion.
+                    if (!reduceMotion && anim) {
+                        if (!anim.getAttribute('src') && anim.getAttribute('data-src')) {
+                            anim.setAttribute('src', anim.getAttribute('data-src'));
+                        }
+                        anim.style.display = 'block';
+                    } else {
+                        still.style.display = 'block';
+                    }
                     try { video.pause(); } catch (e) { /* noop */ }
                 }
                 function checkAlpha() {
