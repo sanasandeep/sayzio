@@ -321,6 +321,14 @@ Route::get('/robots.txt',  [\App\Modules\Common\Controllers\SitemapController::c
 Route::get('/{key}.txt', [\App\Modules\Common\Controllers\SitemapController::class, 'indexNowKey'])
     ->where('key', '[a-f0-9]{32}')->name('site.indexnow-key');
 
+// ---- Public @handle availability check (anonymous, rate-limited) ----
+// Backs the homepage "claim your link" hero so visitors see whether their
+// chosen handle is free as they type. Two-segment path, so it never shadows
+// the single-segment catch-all /{alias} routes. Must precede them regardless.
+Route::get('/handle/available', [\App\Modules\Common\Controllers\HandleAvailabilityController::class, 'check'])
+    ->middleware('throttle:30,1')
+    ->name('site.handle.available');
+
 // ---- Marketing CTA click tracking (anonymous, allow-listed) ----
 Route::post('/marketing-events/track', [\App\Modules\Common\Controllers\MarketingEventController::class, 'track'])
     ->middleware('throttle:60,1')

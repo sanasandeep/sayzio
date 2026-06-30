@@ -44,16 +44,28 @@
                      generic CTA. The handle the visitor types is carried into the
                      register modal (via the open-auth event) and reserved as their
                      @handle right after sign-up. Empty submit just opens register. --}}
-                <form class="zio-claim-form reveal rd-3" onsubmit="return window.zioClaimSubmit(event)" aria-label="Claim your link">
+                <form class="zio-claim-form reveal rd-3" onsubmit="return window.zioClaimSubmit(event)" aria-label="Claim your link"
+                      data-handle-check-url="{{ route('site.handle.available') }}">
                     <label for="zio-claim-input" class="zio-claim-label">Claim your link — pick your handle</label>
-                    <div class="zio-claim">
+                    <div class="zio-claim" id="zio-claim-box">
                         <span class="zio-claim-prefix" aria-hidden="true">{{ $claimHost }}/@</span>
                         <input id="zio-claim-input" name="desired_handle" type="text"
                                autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"
-                               maxlength="30" placeholder="yourname" class="zio-claim-input">
+                               maxlength="30" placeholder="yourname" class="zio-claim-input"
+                               aria-describedby="zio-claim-status">
+                        <span class="zio-claim-mark" id="zio-claim-mark" aria-hidden="true"></span>
                         <button type="submit" class="zio-claim-btn btn-bounce grad-bar">
                             Claim your link <i class="fas fa-arrow-right text-xs"></i>
                         </button>
+                    </div>
+                    {{-- Live verdict + suggestions. role=status keeps it announced
+                         to screen readers; the message text is driven by the
+                         public site.handle.available endpoint (mirrors submit-time
+                         handle rules). --}}
+                    <p id="zio-claim-status" class="zio-claim-status" role="status" aria-live="polite" data-state=""></p>
+                    <div id="zio-claim-suggest" class="zio-claim-suggest" hidden>
+                        <span class="zio-claim-suggest-label">Try one of these:</span>
+                        <span id="zio-claim-suggest-list" class="zio-claim-suggest-list"></span>
                     </div>
                 </form>
 
@@ -249,6 +261,74 @@
             border: 0; border-radius: 9999px;
             color: #fff; font-size: .9rem; font-weight: 700; white-space: nowrap; cursor: pointer;
         }
+        /* Inline status mark (spinner / check / cross) sitting before the button. */
+        .zio-claim-mark {
+            flex: 0 0 auto;
+            display: none; align-items: center; justify-content: center;
+            width: 1.1rem; height: 1.1rem; margin-inline: .15rem .35rem;
+            align-self: center;
+            font-size: .85rem; line-height: 1;
+        }
+        .zio-claim[data-state="checking"] .zio-claim-mark,
+        .zio-claim[data-state="available"] .zio-claim-mark,
+        .zio-claim[data-state="error"] .zio-claim-mark { display: inline-flex; }
+        .zio-claim[data-state="available"] .zio-claim-mark::before { content: '\2713'; color: #1ed760; font-weight: 800; }
+        .zio-claim[data-state="error"] .zio-claim-mark::before { content: '\2715'; color: #fb7185; font-weight: 800; }
+        .zio-claim[data-state="checking"] .zio-claim-mark::before {
+            content: ''; width: .9rem; height: .9rem; border-radius: 50%;
+            border: 2px solid rgba(148,163,184,.35); border-top-color: #60a5fa;
+            animation: zioClaimSpin .6s linear infinite;
+        }
+        @keyframes zioClaimSpin { to { transform: rotate(360deg); } }
+        .zio-claim[data-state="available"] { border-color: rgba(30,215,96,.5); }
+        .zio-claim[data-state="error"] { border-color: rgba(251,113,133,.5); }
+
+        /* Verdict line + suggestion chips. */
+        .zio-claim-status {
+            min-height: 1.1rem;
+            margin: .55rem .25rem 0;
+            font-size: .82rem; font-weight: 600; line-height: 1.3;
+            color: #94a3b8;
+        }
+        .zio-claim-status[data-state="available"] { color: #34d399; }
+        .zio-claim-status[data-state="error"] { color: #fb7185; }
+        .zio-claim-status[data-state="checking"] { color: #94a3b8; }
+        .zio-claim-suggest {
+            display: flex; flex-wrap: wrap; align-items: center; gap: .4rem;
+            margin: .5rem .25rem 0;
+        }
+        .zio-claim-suggest-label { font-size: .78rem; color: #94a3b8; }
+        .zio-claim-suggest-list { display: inline-flex; flex-wrap: wrap; gap: .35rem; }
+        .zio-claim-suggest-btn {
+            display: inline-flex; align-items: center;
+            padding: .25rem .6rem;
+            font-size: .8rem; font-weight: 600; color: #c7d2fe;
+            background: rgba(96,165,250,.1);
+            border: 1px solid rgba(96,165,250,.3);
+            border-radius: 9999px; cursor: pointer;
+            transition: background .18s ease, border-color .18s ease, transform .18s cubic-bezier(.34,1.56,.64,1);
+        }
+        .zio-claim-suggest-btn:hover {
+            background: rgba(96,165,250,.18);
+            border-color: rgba(96,165,250,.5);
+            transform: translateY(-1px);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .zio-claim[data-state="checking"] .zio-claim-mark::before { animation: none; }
+            .zio-claim-suggest-btn { transition: none; }
+            .zio-claim-suggest-btn:hover { transform: none; }
+        }
+        @media (max-width: 1023.98px) {
+            .zio-claim-status, .zio-claim-suggest { text-align: center; justify-content: center; }
+        }
+        html.light-mode .zio-claim-status { color: #64748b; }
+        html.light-mode .zio-claim-status[data-state="available"] { color: #059669; }
+        html.light-mode .zio-claim-status[data-state="error"] { color: #e11d48; }
+        html.light-mode .zio-claim-suggest-label { color: #64748b; }
+        html.light-mode .zio-claim-suggest-btn {
+            color: #4338ca; background: rgba(99,102,241,.08); border-color: rgba(99,102,241,.28);
+        }
+        html.light-mode .zio-claim-suggest-btn:hover { background: rgba(99,102,241,.15); border-color: rgba(99,102,241,.45); }
         @media (max-width: 380px) {
             .zio-claim { flex-wrap: wrap; border-radius: 1.1rem; }
             .zio-claim-input { flex-basis: 100%; }
@@ -676,5 +756,100 @@
             }));
             return false;
         };
+
+        // Live "is this handle free?" feedback. Debounces input and hits the
+        // public, rate-limited site.handle.available endpoint, which mirrors the
+        // exact handle rules enforced at sign-up. Pure vanilla JS so it works
+        // even if Alpine fails to load; fails quietly on network errors (the
+        // submit-time validation still guards).
+        (function () {
+            var form = document.querySelector('.zio-claim-form[data-handle-check-url]');
+            if (!form) { return; }
+            var url     = form.getAttribute('data-handle-check-url');
+            var input   = document.getElementById('zio-claim-input');
+            var box     = document.getElementById('zio-claim-box');
+            var status  = document.getElementById('zio-claim-status');
+            var suggest = document.getElementById('zio-claim-suggest');
+            var sugList = document.getElementById('zio-claim-suggest-list');
+            if (!input || !box || !status) { return; }
+
+            var timer = null, controller = null, reqToken = 0;
+            // 'available' → green, '' / 'empty' / 'checking' → neutral, anything
+            // else (taken/banned/invalid/too_*) → error styling.
+            function visualState(s) {
+                if (s === 'available') { return 'available'; }
+                if (s === 'checking' || s === 'empty' || s === '') { return s === 'checking' ? 'checking' : ''; }
+                return 'error';
+            }
+            function paint(s, message, suggestions) {
+                var vs = visualState(s);
+                box.setAttribute('data-state', vs);
+                status.setAttribute('data-state', vs);
+                status.textContent = message || '';
+                if (suggestions && suggestions.length) {
+                    sugList.textContent = '';
+                    suggestions.forEach(function (h) {
+                        var b = document.createElement('button');
+                        b.type = 'button';
+                        b.className = 'zio-claim-suggest-btn';
+                        b.textContent = '@' + h;
+                        b.addEventListener('click', function () {
+                            input.value = h;
+                            input.focus();
+                            run(h);
+                        });
+                        sugList.appendChild(b);
+                    });
+                    suggest.hidden = false;
+                } else {
+                    suggest.hidden = true;
+                    sugList.textContent = '';
+                }
+            }
+            function clear() {
+                box.setAttribute('data-state', '');
+                status.setAttribute('data-state', '');
+                status.textContent = '';
+                suggest.hidden = true;
+                sugList.textContent = '';
+            }
+
+            function run(raw) {
+                var value = (raw || '').trim().toLowerCase().replace(/^@+/, '');
+                reqToken++;
+                var token = reqToken;
+                if (controller) { try { controller.abort(); } catch (e) {} }
+
+                if (value === '') { clear(); return; }
+
+                paint('checking', 'Checking availability…');
+
+                controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+                fetch(url + '?handle=' + encodeURIComponent(value), {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                    signal: controller ? controller.signal : undefined
+                })
+                .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+                .then(function (data) {
+                    if (token !== reqToken) { return; }
+                    paint(data.status || '', data.message || '', data.suggestions || []);
+                })
+                .catch(function (err) {
+                    if (err && err.name === 'AbortError') { return; }
+                    if (token !== reqToken) { return; }
+                    clear();
+                });
+            }
+
+            input.addEventListener('input', function () {
+                if (timer) { clearTimeout(timer); }
+                var v = input.value;
+                if (v.trim() === '') { reqToken++; clear(); return; }
+                timer = setTimeout(function () { run(v); }, 400);
+            });
+            // Check a pre-filled value (e.g. browser autofill) on load.
+            if (input.value.trim() !== '') { run(input.value); }
+        })();
     </script>
 </section>
