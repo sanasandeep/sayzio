@@ -154,6 +154,34 @@ export type DowngradeMutationResponse = {
   };
 };
 
+/**
+ * The user's latest subscription as returned by GET /billing/subscription.
+ * `cancel_at_period_end` / `cancel_at` drive the mobile "Resume" affordance,
+ * mirroring the web billing page's cancel-at-period-end → Resume flow.
+ */
+export type Subscription = {
+  id: number;
+  plan_id: number;
+  plan_name: string | null;
+  status: string;
+  billing_cycle: string;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at: string | null;
+  cancel_at_period_end: boolean;
+  scheduled_downgrade: ScheduledDowngrade | null;
+  gateway: string | null;
+  currency: string | null;
+};
+
+export type CancelResumeResponse = {
+  data: {
+    cancel_at_period_end: boolean;
+    cancel_at: string | null;
+    message: string;
+  };
+};
+
 export const billing = {
   plans: () => apiFetch<PlansResponse>("/billing/plans"),
   downgradeOptions: () =>
@@ -165,6 +193,14 @@ export const billing = {
     }),
   cancelDowngrade: () =>
     apiFetch<DowngradeMutationResponse>("/billing/downgrade/cancel", {
+      method: "POST",
+    }),
+  subscription: () =>
+    apiFetch<{ data: { subscription: Subscription | null } }>(
+      "/billing/subscription",
+    ),
+  resume: () =>
+    apiFetch<CancelResumeResponse>("/billing/resume", {
       method: "POST",
     }),
   setCurrency: (currency: Currency) =>

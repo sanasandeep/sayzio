@@ -88,6 +88,27 @@ export default function PlansScreen() {
       Alert.alert("Couldn't cancel", e?.message ?? "Please try again."),
   });
 
+  // Surfaces the cancel-at-period-end state so a mobile user who scheduled a
+  // cancellation can undo it here (web parity — no longer web-only).
+  const subscriptionQuery = useQuery({
+    queryKey: ["billing", "subscription"],
+    queryFn: () => billing.subscription(),
+  });
+
+  const resume = useMutation({
+    mutationFn: () => billing.resume(),
+    onSuccess: async (res) => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["billing", "subscription"] }),
+        qc.invalidateQueries({ queryKey: ["billing", "plans"] }),
+        qc.invalidateQueries({ queryKey: ["billing", "downgrade"] }),
+      ]);
+      Alert.alert("Plan resumed", res.data.message);
+    },
+    onError: (e: { message?: string }) =>
+      Alert.alert("Couldn't resume", e?.message ?? "Please try again."),
+  });
+
   // Seed the currency from the backend-resolved default (geo / profile /
   // saved preference) once, then let the user flip it manually.
   const resolvedCurrency = plansQuery.data?.data?.currency;
@@ -224,6 +245,20 @@ export default function PlansScreen() {
 
   const scheduledDowngrade = downgradeQuery.data?.data?.scheduled_downgrade ?? null;
 
+  const subscription = subscriptionQuery.data?.data?.subscription ?? null;
+  const cancelAtPeriodEnd = subscription?.cancel_at_period_end === true;
+
+  const confirmResume = () => {
+    Alert.alert(
+      "Resume subscription?",
+      "Your plan will continue renewing and won't cancel at the end of your cycle.",
+      [
+        { text: "Keep cancellation", style: "cancel" },
+        { text: "Resume", onPress: () => resume.mutate() },
+      ],
+    );
+  };
+
   const confirmCancelDowngrade = () => {
     Alert.alert(
       "Cancel scheduled downgrade?",
@@ -293,6 +328,48 @@ export default function PlansScreen() {
                 variant="outline"
                 onPress={confirmCancelDowngrade}
                 disabled={cancelDowngrade.isPending}
+              />
+            </View>
+          </View>
+        ) : null}
+
+        {cancelAtPeriodEnd ? (
+          <View
+            style={[
+              styles.scheduledCard,
+              {
+                backgroundColor: colors.destructive + "14",
+                borderColor: colors.destructive,
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <View style={styles.scheduledHeader}>
+              <Feather name="x-circle" size={18} color={colors.destructive} />
+              <Text style={[styles.scheduledTitle, { color: colors.foreground }]}>
+                Cancellation scheduled
+              </Text>
+            </View>
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontFamily: "SpaceGrotesk_400Regular",
+                marginTop: 4,
+              }}
+            >
+              Your plan will cancel on{" "}
+              {formatApplies(
+                subscription?.cancel_at ??
+                  subscription?.current_period_end ??
+                  null,
+              )}
+              . Resume to keep your plan and continue renewing.
+            </Text>
+            <View style={{ marginTop: 12 }}>
+              <Button
+                label={resume.isPending ? "Resuming…" : "Resume"}
+                onPress={confirmResume}
+                disabled={resume.isPending}
               />
             </View>
           </View>
