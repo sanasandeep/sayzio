@@ -50,6 +50,7 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   slides-mode.spec.ts \
   cookie-consent-footer-reserve.spec.ts \
   home-hero-orbit-popover.spec.ts \
+  home-hero-claim-handle.spec.ts \
   brand-consistency-apply-fix.spec.ts \
   create-link-picker.spec.ts
 ```
@@ -103,7 +104,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these twelve specs are gated (and not the whole suite)
+### Why these fourteen specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -183,6 +184,17 @@ The gate covers the specs that run reliably as an unattended check here:
   the right title + description), clicking another node switches (the first
   closes), re-clicking the open node closes it, and Escape / an outside click
   both close it — with exactly one popover open at any time.
+- `home-hero-claim-handle.spec.ts` — pins the home hero's "claim your link" →
+  in-modal signup handoff. No login/seeding: it visits `/` with a consent
+  cookie, types a handle into the hero pill, submits it, and asserts the
+  register modal opens on the register tab with that handle in its hidden
+  `desired_handle` field + the "Claiming @handle" banner. It also covers handle
+  normalization (lowercase / leading-`@` strip / trim), the empty-claim path
+  (modal opens, empty field, no banner), and that the handle is actually placed
+  on the wire by intercepting the register POST and reading back
+  `desired_handle` from the body. This is the browser-side chain (hero JS →
+  `open-auth` event → header Alpine → modal binding) the controller-level
+  feature test cannot reach.
 - `brand-consistency-apply-fix.spec.ts` — self-bootstrapping: it seeds a default
   Brand Kit and a deliberately off-brand biolink (bringing every other biolink in
   the workspace on-brand first) via `php artisan tinker`, logs in as the demo
@@ -210,7 +222,7 @@ Run the full suite manually (when you can tolerate the slow renders) with
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the twelve gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the fourteen gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
@@ -245,6 +257,14 @@ bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
   the home-page sign-in popup, asserts the correct tab is active, the
   close button clears the tabs, background scroll is locked, and the X /
   Escape keys close the popup and restore scrolling. No login/seeding.
+- `home-hero-claim-handle.spec.ts` — gated. Drives the hero "claim your
+  link" pill: types a handle, submits it, and asserts the register modal
+  opens with that handle in its hidden `desired_handle` field + the
+  "Claiming @handle" banner. Also covers normalization (lowercase /
+  leading-`@` strip / trim), the empty-claim path (no handle, no banner),
+  and that the handle is actually sent in the register POST body (via a
+  route-intercept). No login/seeding — pins the browser-side hero →
+  open-auth event → header Alpine → modal-binding chain.
 - `biolink-editor-card-gallery-preview.spec.ts` — gated. Seeds one
   no-thumbnail card template per shape family (avatar/pill/media/form/
   list_rows/heading/text_lines/dot_row) at alias `e2e-card-gallery-preview`,
