@@ -225,6 +225,33 @@ class EmailTemplateRegistry
                     'plan_name' => ['label' => 'Plan name', 'sample' => 'Pro'],
                 ],
             ],
+            'billing.subscription_downgrade_scheduled' => [
+                'category' => 'billing',
+                'label' => 'Subscription downgrade scheduled',
+                'description' => 'Confirms a downgrade to a lower plan has been scheduled for the end of the current cycle.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => 'Your plan change to {{target_plan}} is scheduled',
+                'body' => "You scheduled a change from {{plan_name}} to {{target_plan}}.\nYour current plan stays active until {{effective}}, when {{target_plan}} takes over.\nYou can cancel this change any time before then from your billing settings.",
+                'variables' => [
+                    'plan_name' => ['label' => 'Current plan name', 'sample' => 'Pro'],
+                    'target_plan' => ['label' => 'New (lower) plan name', 'sample' => 'Starter'],
+                    'effective' => ['label' => 'Effective date', 'sample' => 'July 30, 2026'],
+                ],
+            ],
+            'billing.subscription_downgrade_applied' => [
+                'category' => 'billing',
+                'label' => 'Subscription downgrade applied',
+                'description' => 'Confirms a scheduled downgrade has taken effect at cycle end, including any add-ons that were dropped.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => 'Your plan is now {{target_plan}}',
+                'body' => "Your scheduled plan change has taken effect — you're now on {{target_plan}}.\n{{dropped_addons}}\nYour next invoice will reflect the {{target_plan}} price.",
+                'variables' => [
+                    'target_plan' => ['label' => 'New (lower) plan name', 'sample' => 'Starter'],
+                    'dropped_addons' => ['label' => 'Dropped add-ons summary', 'sample' => 'These add-ons are no longer included: Extra Storage, Priority Support.'],
+                ],
+            ],
             'billing.subscription_update' => [
                 'category' => 'billing',
                 'label' => 'Subscription status update',

@@ -219,15 +219,22 @@ class SubscriptionLifecycle
                 'renewal_failed'      => 'billing.subscription_renewal_failed',
                 'grace_ending'        => 'billing.subscription_grace_ending',
                 'downgraded'          => 'billing.subscription_downgraded',
-                'downgrade_scheduled' => 'billing.subscription_update',
-                'downgrade_applied'   => 'billing.subscription_update',
+                'downgrade_scheduled' => 'billing.subscription_downgrade_scheduled',
+                'downgrade_applied'   => 'billing.subscription_downgrade_applied',
                 default               => 'billing.subscription_update',
             };
+
+            $dropped = $extra['dropped_addons'] ?? [];
+            $droppedSummary = !empty($dropped)
+                ? 'These add-ons are no longer included: ' . implode(', ', $dropped) . '.'
+                : 'No add-ons were affected by this change.';
+
             \App\Modules\Common\Services\Emailer::send($key, $email, [
-                'plan_name'   => $subscription->plan?->name,
-                'grace_until' => $extra['grace_until'] ?? 'the grace period ends',
-                'target_plan' => $extra['target_plan'] ?? null,
-                'effective'   => $extra['effective'] ?? null,
+                'plan_name'      => $subscription->plan?->name,
+                'grace_until'    => $extra['grace_until'] ?? 'the grace period ends',
+                'target_plan'    => $extra['target_plan'] ?? null,
+                'effective'      => $extra['effective'] ?? null,
+                'dropped_addons' => $droppedSummary,
             ], [
                 'user'    => optional($subscription->user)->id,
                 'related' => $subscription,
