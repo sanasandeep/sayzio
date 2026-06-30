@@ -357,6 +357,50 @@ class LifecycleTest extends TestCase
         $response->assertDontSeeText('Refund of ' . number_format($invB->grand_total_minor / 100, 2));
     }
 
+    public function test_scheduled_downgrade_creates_in_app_notification_with_plan_and_date(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        $this->makeFreePlan();
+        $user = $this->makeUser();
+        $high = $this->makePlan('pro', 30.00);
+        $low  = $this->makePlan('starter', 10.00);
+        GatewaySetting::where('gateway_slug', 'offline')->update(['is_enabled' => true]);
+        $sub = $this->payPlanInvoice($user, $high);
+
+        app(SubscriptionLifecycle::class)->scheduleDowngrade($sub->fresh(), $low);
+
+        $effective = \Carbon\Carbon::parse($sub->fresh()->current_period_end)->toDateString();
+        $n = \App\Modules\User\Models\UserNotification::where('user_id', $user->id)
+            ->where('type', 'billing.subscription_update')->latest('id')->first();
+        $this->assertNotNull($n, 'a bell notification is created for the scheduled downgrade');
+        $this->assertSame($low->name, $n->data['target_plan'] ?? null);
+        $this->assertStringContainsString($low->name, $n->data['message'] ?? '');
+        $this->assertStringContainsString($effective, $n->data['message'] ?? '');
+        $this->assertSame(route('user.billing.show'), $n->data['url'] ?? null);
+    }
+
+    public function test_applied_downgrade_in_app_notification_lists_dropped_addons(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        $this->makeFreePlan();
+        $user = $this->makeUser();
+        $plan = $this->makePlan('starter', 10.00);
+        GatewaySetting::where('gateway_slug', 'offline')->update(['is_enabled' => true]);
+        $sub = $this->payPlanInvoice($user, $plan);
+
+        app(SubscriptionLifecycle::class)->notify($sub, 'downgrade_applied', [
+            'target_plan'    => $plan->name,
+            'dropped_addons' => ['Extra Storage', 'Priority Support'],
+        ]);
+
+        $n = \App\Modules\User\Models\UserNotification::where('user_id', $user->id)
+            ->where('type', 'billing.subscription_update')->latest('id')->first();
+        $this->assertNotNull($n, 'a bell notification is created when a downgrade applies');
+        $this->assertStringContainsString($plan->name, $n->data['message'] ?? '');
+        $this->assertStringContainsString('Extra Storage', $n->data['message'] ?? '');
+        $this->assertStringContainsString('Priority Support', $n->data['message'] ?? '');
+    }
+
     public function test_upgrade_creates_new_subscription_preserving_period_end(): void
     {
         $this->makeFreePlan();

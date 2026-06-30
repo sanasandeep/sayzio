@@ -74,6 +74,11 @@
                              style="background: rgba(239,68,68,0.12); color:#dc2626;">
                             <i class="fas fa-fire"></i>
                         </div>
+                    @elseif($n->type === 'billing.subscription_update')
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                             style="background: rgba(59,130,246,0.12); color:#2563eb;">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
                     @elseif(!empty($d['follower_avatar']) || !empty($d['creator_avatar']))
                         <img src="{{ $d['follower_avatar'] ?? $d['creator_avatar'] }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
                     @else
@@ -157,6 +162,16 @@
                             @if(!empty($d['url']))
                                 <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-red-600 hover:underline">
                                     <i class="fas fa-arrow-right"></i> Resolve now
+                                </a>
+                            @endif
+                        @elseif($n->type === 'billing.subscription_update')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <i class="fas fa-credit-card mr-1" style="color:#2563eb;"></i>
+                                {{ $d['message'] ?? 'Your subscription has changed.' }}
+                            </p>
+                            @if(!empty($d['url']))
+                                <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
+                                    <i class="fas fa-arrow-right"></i> View billing
                                 </a>
                             @endif
                         @else

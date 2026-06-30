@@ -212,6 +212,16 @@ class SubscriptionLifecycle
 
     public function notify(Subscription $subscription, string $kind, array $extra = []): void
     {
+        $dropped = $extra['dropped_addons'] ?? [];
+        $droppedSummary = !empty($dropped)
+            ? 'These add-ons are no longer included: ' . implode(', ', $dropped) . '.'
+            : 'No add-ons were affected by this change.';
+
+        // Mirror the downgrade lifecycle into an in-app (bell) notification so
+        // the bell and the inbox say the same thing. Best-effort and isolated
+        // from the email send below.
+        $this->notifyInApp($subscription, $kind, $extra, $droppedSummary);
+
         try {
             $email = optional($subscription->user)->email;
             if (!$email) return;
@@ -223,11 +233,6 @@ class SubscriptionLifecycle
                 'downgrade_applied'   => 'billing.subscription_downgrade_applied',
                 default               => 'billing.subscription_update',
             };
-
-            $dropped = $extra['dropped_addons'] ?? [];
-            $droppedSummary = !empty($dropped)
-                ? 'These add-ons are no longer included: ' . implode(', ', $dropped) . '.'
-                : 'No add-ons were affected by this change.';
 
             \App\Modules\Common\Services\Emailer::send($key, $email, [
                 'plan_name'      => $subscription->plan?->name,
@@ -241,6 +246,55 @@ class SubscriptionLifecycle
             ]);
         } catch (\Throwable $e) {
             Log::warning('Lifecycle notify failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Mirror the downgrade lifecycle emails as an in-app (bell) notification
+     * so both channels surface the same detail: the scheduled notification
+     * names the target plan and effective date, and the applied one lists any
+     * dropped add-ons (matching billing.subscription_downgrade_scheduled /
+     * _applied). Only these two events get a bell entry today; other kinds
+     * stay email-only. Best-effort — never blocks the transition or the email.
+     */
+    protected function notifyInApp(Subscription $subscription, string $kind, array $extra, string $droppedSummary): void
+    {
+        $user = $subscription->user;
+        if (!$user) return;
+
+        $targetPlan = $extra['target_plan'] ?? null;
+
+        $message = match ($kind) {
+            'downgrade_scheduled' => sprintf(
+                'Your plan change to %s is scheduled. Your current %s plan stays active until %s, then %s takes over.',
+                $targetPlan ?? 'your new plan',
+                $subscription->plan?->name ?? 'current',
+                $extra['effective'] ?? 'the end of your billing cycle',
+                $targetPlan ?? 'the new plan',
+            ),
+            'downgrade_applied' => sprintf(
+                "Your scheduled plan change has taken effect — you're now on %s. %s",
+                $targetPlan ?? 'your new plan',
+                $droppedSummary,
+            ),
+            default => null,
+        };
+
+        if ($message === null) return;
+
+        try {
+            app(\App\Modules\Common\Services\NotificationService::class)->notify(
+                $user,
+                'billing.subscription_update',
+                [
+                    'message'     => $message,
+                    'target_plan' => $targetPlan,
+                    'effective'   => $extra['effective'] ?? null,
+                    'url'         => route('user.billing.show'),
+                ],
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Lifecycle in-app notify failed: ' . $e->getMessage());
         }
     }
 }
