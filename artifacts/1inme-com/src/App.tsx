@@ -30,7 +30,6 @@ import ApiDocs from "@/pages/api-docs";
 import ResumeBuilder from "@/pages/resume-builder";
 import Discovery from "@/pages/discovery";
 import CreatorsFeed from "@/pages/creators-feed";
-import PremiumFeatures from "@/pages/premium-features";
 import Buzz from "@/pages/buzz";
 import Services from "@/pages/services";
 import UseCase from "@/pages/use-case";
@@ -47,7 +46,6 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/features" component={Features} />
       <Route path="/pricing" component={Pricing} />
-      <Route path="/premium-features" component={PremiumFeatures} />
       <Route path="/how-it-works" component={HowItWorks} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/integrations" component={Integrations} />

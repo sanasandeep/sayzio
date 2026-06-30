@@ -11,15 +11,14 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Mobile-side counterpart to {@see PremiumFeaturesPageRenderTest} (the web
- * /premium-features render test). The mobile Premium Features screen is fed by
- * the SAME catalogue ({@see \App\Modules\Common\Support\PremiumFeatures::catalogue()}
+ * Asserts the mobile billing API serves the premium-feature catalogue
+ * ({@see \App\Modules\Common\Support\PremiumFeatures::catalogue()}
  * + {@see \App\Modules\Common\Support\PremiumFeatures::resolveCell()}) via the
  * Sanctum billing endpoint GET /api/v1/billing/plans
  * ({@see \App\Modules\Api\Controllers\RevenueCatBillingController::plans}):
  *   - `data.premium_features` carries every catalogue entry (group, name,
- *     description, unit + `unlocked_by` plan slugs); the screen groups + lists
- *     these.
+ *     description, unit + `unlocked_by` plan slugs); mobile billing clients
+ *     group + list these.
  *   - `data.plans[].feature_highlights` carries the per-plan plain-English
  *     bullets where `resolveCell()` surfaces the numeric / "Unlimited" cell
  *     values ("Short links — 500 links", "Link in Bio pages — Unlimited pages").

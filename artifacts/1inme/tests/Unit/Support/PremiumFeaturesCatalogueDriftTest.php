@@ -60,7 +60,7 @@ class PremiumFeaturesCatalogueDriftTest extends TestCase
             $missing,
             'These plan-gated keys are exposed by PlanFormCatalogue but have no '
             . 'PremiumFeatures::catalogue() entry, so they never surface on the '
-            . 'pricing / premium-features surfaces: ' . implode(', ', $missing),
+            . 'pricing surfaces: ' . implode(', ', $missing),
         );
     }
 

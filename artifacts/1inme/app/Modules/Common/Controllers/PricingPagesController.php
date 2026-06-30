@@ -5,7 +5,6 @@ namespace App\Modules\Common\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\CoinPackage;
 use App\Modules\Admin\Models\Plan;
-use App\Modules\Common\Support\PremiumFeatures;
 use App\Modules\User\Models\BillingAddress;
 use App\Services\Billing\WalletService;
 use App\Services\BillingCyclePreference;
@@ -16,10 +15,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 
 /**
- * Public marketing pages for plans, coin packages, and premium feature
- * descriptions. Each lives at its own URL so the landing page stays
- * focused on Free + Most-Popular and visitors looking for the full
- * catalogue can drill into a dedicated destination.
+ * Public marketing pages for plans and coin packages. Each lives at its
+ * own URL so the landing page stays focused on Free + Most-Popular and
+ * visitors looking for the full catalogue can drill into a dedicated
+ * destination.
  */
 class PricingPagesController extends Controller
 {
@@ -139,26 +138,5 @@ class PricingPagesController extends Controller
         Cookie::queue(BillingCyclePreference::remember($data['cycle']));
 
         return response()->noContent();
-    }
-
-    public function features(Request $request)
-    {
-        $plans = Plan::active()->public()->ordered()->get();
-        $catalogue = PremiumFeatures::catalogue();
-
-        // Group the catalogue for the side-by-side comparison grid. Cell
-        // values are resolved per-plan in the view via
-        // PremiumFeatures::resolveCell() so the grid, the /pricing matrix and
-        // the mobile API all read the same source of truth.
-        $grouped = [];
-        foreach ($catalogue as $entry) {
-            $grouped[$entry['group']][] = $entry;
-        }
-
-        return view('public.pricing.features', [
-            'seoKey'   => 'premium-features',
-            'grouped'  => $grouped,
-            'plans'    => $plans,
-        ]);
     }
 }

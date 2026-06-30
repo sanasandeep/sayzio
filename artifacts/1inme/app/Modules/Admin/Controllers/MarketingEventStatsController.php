@@ -26,7 +26,6 @@ class MarketingEventStatsController extends Controller
         'landing_pricing_teaser' => [
             'pricing'          => 'See all plans (/pricing)',
             'coins'            => 'Coin packages tab (/pricing?view=coins)',
-            'premium_features' => 'Premium features (/premium-features)',
             'plan_free'        => 'Plan CTA — Free tier',
             'plan_paid'        => 'Plan CTA — Paid tier',
         ],

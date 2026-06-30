@@ -308,7 +308,6 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     Route::get('/coins', function () {
         return redirect()->route('site.pricing', ['view' => 'coins'], 301);
     })->name('site.coins');
-    Route::get('/premium-features', [\App\Modules\Common\Controllers\PricingPagesController::class, 'features'])->name('site.premium-features');
     // Public gallery linking every live "explainer" biolink demo page.
     Route::get('/demos', [\App\Modules\Common\Controllers\SitePageController::class, 'demos'])->name('site.demos');
     Route::get('/{slug}/history', [\App\Modules\Common\Controllers\SitePageController::class, 'history'])
@@ -439,7 +438,7 @@ Route::get('/{handle}/resume/v/{slug}.pdf',
 // allow-list of suffixes that does not include "resume").
 Route::get ('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeController::class, 'show'])
     ->name('resume.public.show')
-    ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|whatsapp-agent|ai-marketing-strategist|docs|newsletter|pricing|coins|premium-features|blogs|creators|feed|viewer|companion|embed|assistant|sp|r|analytics|audience|integrations|compare|for)[a-zA-Z0-9_\-\.]+$');
+    ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|whatsapp-agent|ai-marketing-strategist|docs|newsletter|pricing|coins|blogs|creators|feed|viewer|companion|embed|assistant|sp|r|analytics|audience|integrations|compare|for)[a-zA-Z0-9_\-\.]+$');
 Route::post('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeController::class, 'unlock'])
     ->name('resume.public.unlock')
     ->middleware('throttle:10,1')

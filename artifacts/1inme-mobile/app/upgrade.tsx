@@ -292,17 +292,6 @@ export default function UpgradeScreen() {
           </View>
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </Pressable>
-        <Pressable
-          onPress={() => router.push("/premium-features" as never)}
-          style={[styles.linkCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}
-        >
-          <Feather name="star" size={18} color={colors.primary} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.linkTitle, { color: colors.foreground }]}>Premium features</Text>
-            <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>What unlocks on a paid plan.</Text>
-          </View>
-          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-        </Pressable>
       </ScrollView>
     </View>
   );

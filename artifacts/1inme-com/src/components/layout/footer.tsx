@@ -98,7 +98,6 @@ const columns: FooterColumn[] = [
     links: [
       { href: "/about", label: "About us" },
       { href: "/contact", label: "Contact" },
-      { href: "/premium-features", label: "Premium" },
       { href: "/buzz", label: "Social proof" },
     ],
   },

@@ -91,7 +91,6 @@
 
                 <a href="{{ route('site.features') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">Features</a>
                 <a href="{{ $pricingHref }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">Pricing</a>
-                <a href="{{ route('site.premium-features') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">Premium</a>
                 <a href="{{ route('site.about') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">About</a>
                 <a href="{{ route('site.contact') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">Contact</a>
 
@@ -356,7 +355,6 @@
                 </button>
                 <div x-show="mobileGroup === 'm-company'" x-collapse x-cloak class="px-2 pb-2 space-y-0.5">
                     <a href="{{ $pricingHref }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-tag w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">Pricing</span></a>
-                    <a href="{{ route('site.premium-features') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-crown w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">Premium features</span></a>
                     <a href="{{ route('site.about') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-circle-info w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">About</span></a>
                     <a href="{{ route('site.contact') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-envelope w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">Contact</span></a>
                     <a href="{{ route('site.faqs') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-circle-question w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">FAQs</span></a>

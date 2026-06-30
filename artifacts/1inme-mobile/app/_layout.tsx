@@ -166,7 +166,6 @@ function RootLayoutNav() {
       <Stack.Screen name="plans" options={{ title: "Plans & billing" }} />
       <Stack.Screen name="billing/downgrade" options={{ title: "Downgrade plan" }} />
       <Stack.Screen name="coin-packages" options={{ title: "Coin packages" }} />
-      <Stack.Screen name="premium-features" options={{ title: "Premium features" }} />
       <Stack.Screen name="api-usage" options={{ title: "API usage" }} />
       <Stack.Screen name="calendars/index" options={{ title: "My Calendar" }} />
       <Stack.Screen name="calendars/[id]" options={{ title: "Calendar" }} />

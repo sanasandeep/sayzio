@@ -27,7 +27,6 @@ class MarketingEventController extends Controller
         'landing_pricing_teaser' => [
             'pricing',
             'coins',
-            'premium_features',
             'plan_free',
             'plan_paid',
         ],

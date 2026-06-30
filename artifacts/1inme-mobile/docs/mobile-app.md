@@ -160,7 +160,7 @@ Generated from `app/` (expo-router). `(auth)` and `(tabs)` are route groups; `[p
 | `app/monetization/{manage,subscribe,tip,unlock}.tsx` | Creator monetization. |
 | `app/paid-page/[alias].tsx` | Standalone paid-page viewer. |
 | `app/orders.tsx`, `app/store/order/[id].tsx` | Product storefront orders + order detail. |
-| `app/plans.tsx`, `app/upgrade.tsx`, `app/premium-features.tsx` | Plans & upsell (RevenueCat). |
+| `app/plans.tsx`, `app/upgrade.tsx` | Plans & upsell (RevenueCat). |
 | `app/invoices.tsx`, `app/invoices/[id].tsx` | Invoicing. |
 
 ### AI

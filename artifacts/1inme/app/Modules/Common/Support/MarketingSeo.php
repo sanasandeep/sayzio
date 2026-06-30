@@ -11,7 +11,7 @@ use App\Modules\Common\Models\SitePage;
  *
  * Two kinds of marketing pages exist:
  *
- *  - "Code-driven" pages (home, pricing, premium-features, the comparison
+ *  - "Code-driven" pages (home, pricing, the comparison
  *    pages, the capability pages, the creators directory, etc.) are NOT
  *    backed by a `site_pages` row. Their seeded defaults live in
  *    {@see self::codeDrivenDefaults()} and admins override them through the
@@ -57,14 +57,6 @@ class MarketingSeo
                 'title' => 'Pricing Plans — Free, Pro & Business Link-in-Bio',
                 'description' => 'Compare Sayzio plans and pick the right one for you. Start free, then upgrade for custom branding, advanced analytics, more links and team workspaces.',
                 'keywords' => 'pricing, link in bio pricing, biolink plans, free plan, pro plan, subscription, sayzio pricing',
-            ],
-            'premium-features' => [
-                'label' => 'Premium features',
-                'group' => 'Core',
-                'url' => '/premium-features',
-                'title' => 'Premium Features — Unlock the Full Sayzio Toolkit',
-                'description' => 'See every premium Sayzio feature and which plan unlocks it — custom branding, advanced analytics, AI tools, custom CSS/JS, team roles and more.',
-                'keywords' => 'premium features, plan comparison, custom branding, advanced analytics, feature matrix, sayzio features',
             ],
             'creators' => [
                 'label' => 'Creators directory',

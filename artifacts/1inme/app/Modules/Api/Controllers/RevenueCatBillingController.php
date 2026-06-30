@@ -135,17 +135,16 @@ class RevenueCatBillingController extends Controller
             })->all();
 
         // Premium feature catalogue with plain-English copy is owned
-        // by the API so the mobile Premium Features screen can render
-        // exactly the same descriptions the web /premium-features page
-        // shows — without the mobile bundle duplicating strings.
+        // by the API so mobile billing clients can render the canonical
+        // feature descriptions without the bundle duplicating strings.
         $planModels = Plan::query()
             ->public()
             ->where('status', 'active')->where('is_archived', false)->get();
         $unlocks = \App\Modules\Common\Support\PremiumFeatures::unlocksByFeature($planModels);
-        // Per-plan resolved cell for every feature, keyed by plan slug, so the
-        // mobile Premium Features screen renders the SAME number / "Unlimited" /
-        // "Advanced"/"Basic" / "Custom" / on-off values the web grid shows
-        // without re-implementing PremiumFeatures::resolveCell() on the client.
+        // Per-plan resolved cell for every feature, keyed by plan slug, so
+        // mobile billing clients get the SAME number / "Unlimited" /
+        // "Advanced"/"Basic" / "Custom" / on-off values without
+        // re-implementing PremiumFeatures::resolveCell() on the client.
         $premiumFeatures = collect(\App\Modules\Common\Support\PremiumFeatures::catalogue())
             ->map(function ($e) use ($unlocks, $planModels) {
                 $cells = [];

@@ -1,7 +1,7 @@
 import { PageLayout } from "@/components/layout/page-layout";
 import { Button } from "@/components/ui/button";
 import { OrbitalUniverse } from "@/components/marketing/orbital-universe";
-import { FEATURES_URL, PRICING_URL, SIGNUP_URL } from "@/config";
+import { PRICING_URL, SIGNUP_URL } from "@/config";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
 
@@ -186,7 +186,7 @@ export default function Pricing() {
               size="lg"
               className="rounded-full h-12 px-7 bg-transparent border-primary/20 hover:bg-primary/5"
             >
-              <a href={FEATURES_URL}>
+              <a href={PRICING_URL}>
                 Compare all features <ArrowRight className="ml-2 w-4 h-4" />
               </a>
             </Button>

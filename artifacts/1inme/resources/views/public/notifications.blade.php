@@ -129,7 +129,6 @@
             </div>
             <div class="relative flex flex-wrap gap-3">
                 <a href="{{ route('site.pricing') }}" class="px-5 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold whitespace-nowrap">See plans</a>
-                <a href="{{ route('site.premium-features') }}" class="px-5 py-3 rounded-full border border-white/15 text-gray-200 hover:bg-white/5 text-sm font-semibold whitespace-nowrap">Premium features</a>
             </div>
         </div>
     </div>

@@ -1487,9 +1487,6 @@
         <div class="mt-14 text-center" data-anim="fade-up">
             <p class="text-gray-400">Want the full feature breakdown?</p>
             <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
-                <a href="{{ route('site.premium-features') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] text-sm font-medium transition">
-                    <i class="fas fa-star text-blue-400"></i> See premium features
-                </a>
                 <a href="#coins" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] text-sm font-medium transition">
                     <i class="fas fa-coins text-amber-400"></i> Browse coin packages
                 </a>

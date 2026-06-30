@@ -12,7 +12,6 @@
 
 const DEFAULT_LOGIN_URL = "https://1in.me/login";
 const DEFAULT_PRICING_URL = "https://1in.me/pricing";
-const DEFAULT_FEATURES_URL = "https://1in.me/premium-features";
 
 export const LOGIN_URL: string =
   import.meta.env.VITE_LOGIN_URL ?? DEFAULT_LOGIN_URL;
@@ -26,15 +25,6 @@ export const SIGNUP_URL: string =
  */
 export const PRICING_URL: string =
   import.meta.env.VITE_PRICING_URL ?? DEFAULT_PRICING_URL;
-
-/**
- * Canonical "Premium features" page on the real product app — the single
- * source of truth for the full, plan-by-plan feature catalogue. The marketing
- * pricing page only previews a few headline bullets per tier, so it links here
- * for the exhaustive comparison instead of duplicating the catalogue.
- */
-export const FEATURES_URL: string =
-  import.meta.env.VITE_FEATURES_URL ?? DEFAULT_FEATURES_URL;
 
 /**
  * Origin of the product app that serves the site-wide "Zio Bot" assistant
