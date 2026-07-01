@@ -431,4 +431,57 @@ console.log("[test-onboarding-setup] completeOnboarding endpoint");
 }
 ok("completeOnboarding POSTs /onboarding/complete");
 
+// ===========================================================================
+// 7. The template stage survives an EMPTY catalog: when no starting designs
+//    come back (a real deployment with zero active templates for the
+//    persona/plan) the stage must still render an escape — an empty-state
+//    message AND a "Skip for now" control that isn't hidden behind the
+//    (empty) designs list. Otherwise a first-run user is stranded on a blank
+//    template stage with nothing to tap. Mirrors the web empty-state card.
+// ===========================================================================
+console.log("[test-onboarding-setup] empty template catalog");
+
+{
+  // Isolate the template stage block so the assertions can't accidentally
+  // match an unrelated stage.
+  const stageMatch = setupSrc.match(
+    /\{stage === "template" \? \([\s\S]*?\n {8}\) : null\}/,
+  );
+  assert.ok(stageMatch, "could not find the template stage block in setup.tsx");
+  const stage = stageMatch[0];
+
+  // The designs list is rendered only when it's non-empty; the else branch
+  // (empty catalog OR nothing loaded) shows an explicit empty-state message.
+  assert.match(
+    stage,
+    /designs\.data && designs\.data\.length > 0 \?/,
+    "the template stage must gate the design list on a non-empty catalog",
+  );
+  assert.match(
+    stage,
+    /No templates to show right now/,
+    "an empty catalog must render an explicit empty-state message, not a blank stage",
+  );
+
+  // The "Skip for now" escape must live OUTSIDE the designs conditional so it
+  // renders whether or not any template came back — the always-available exit.
+  assert.match(
+    stage,
+    /label="Skip for now"[\s\S]*?onPress=\{skipTemplate\}/,
+    "the template stage must always render a 'Skip for now' control wired to skipTemplate",
+  );
+
+  // Guard: the "Skip for now" button must not be nested inside the
+  // designs.data.length > 0 branch (which would hide it on an empty catalog).
+  const designsTrueBranch = stage.match(
+    /designs\.data && designs\.data\.length > 0 \? \(([\s\S]*?)\n {12}\) : \(/,
+  );
+  assert.ok(designsTrueBranch, "could not isolate the populated-designs branch");
+  assert.ok(
+    !/label="Skip for now"/.test(designsTrueBranch[1]),
+    "'Skip for now' must NOT be inside the populated-designs branch (it has to survive an empty catalog)",
+  );
+}
+ok("the template stage renders an empty-state message and an always-available Skip for now");
+
 console.log(`\n[test-onboarding-setup] all ${passed} checks passed`);

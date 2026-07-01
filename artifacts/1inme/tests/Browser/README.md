@@ -266,7 +266,13 @@ The gate covers the specs that run reliably as an unattended check here:
   the template stage (the grid shows, the persona picker hides); that "Use this
   template" reaches its outcome — the biolink block editor
   (`/user/links/{id}/blocks`); and that the persistent "Skip setup" escape hatch
-  reaches its outcome — the dashboard (never bounced back into onboarding). Its
+  reaches its outcome — the dashboard (never bounced back into onboarding). A
+  further test deactivates EVERY active template (restoring them in a `finally`)
+  to prove the template stage survives an empty catalog — a real deployment with
+  zero active templates for a persona/plan — by still rendering the "No templates
+  available yet" empty-state card with an actionable "Continue to dashboard"
+  escape (plus the persistent "Skip setup" header control), then reaching the
+  dashboard. Its
   `afterAll` restores the demo user to an onboarded state so sibling specs
   (which assume the demo user is already onboarded) aren't disturbed. All tests
   share one logged-in context (the `demo-login` route is rate-limited).

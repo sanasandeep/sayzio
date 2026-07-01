@@ -175,6 +175,44 @@ echo 'RESET_OK';
 }
 
 /**
+ * Deactivate every currently-active PageTemplate so the onboarding template
+ * stage renders with a genuinely empty catalog — the exact condition a real
+ * deployment hits when no template matches a persona/plan (or none are
+ * seeded at all). Returns a restore fn that re-activates ONLY the templates
+ * this call turned off, so the shared seeded starter (and any admin-disabled
+ * templates) are left exactly as they were for the sibling specs.
+ */
+function deactivateAllTemplates(): () => void {
+  const php = `
+use App\\Modules\\Admin\\Models\\PageTemplate;
+
+$ids = PageTemplate::where('is_active', true)->pluck('id')->all();
+PageTemplate::where('is_active', true)->update(['is_active' => false]);
+echo 'DEACT_IDS:' . json_encode(array_values($ids));
+`.trim();
+
+  const out = runTinkerSeed(php);
+  const m = out.match(/DEACT_IDS:(\[[^\]]*\])/);
+  if (!m) {
+    throw new Error("Deactivating templates failed, output:\n" + out);
+  }
+  const ids = JSON.parse(m[1]) as number[];
+
+  return () => {
+    if (ids.length === 0) return;
+    const restorePhp = `
+use App\\Modules\\Admin\\Models\\PageTemplate;
+PageTemplate::whereIn('id', [${ids.join(",")}])->update(['is_active' => true]);
+echo 'REACT_OK';
+`.trim();
+    const restoreOut = runTinkerSeed(restorePhp);
+    if (!restoreOut.includes("REACT_OK")) {
+      throw new Error("Re-activating templates failed, output:\n" + restoreOut);
+    }
+  };
+}
+
+/**
  * Restore the demo user to an onboarded state on the way out so any sibling
  * spec that assumes the demo user is already onboarded (the common case) isn't
  * bounced through the onboarding gate by leftover state from this spec.
@@ -343,5 +381,57 @@ test.describe("first-run onboarding wizard", () => {
     ]);
     expect(page.url()).toContain("/user/dashboard");
     expect(page.url()).not.toContain("/user/onboarding");
+  });
+
+  test("template stage with NO active templates still offers an escape to the dashboard", async ({
+    page,
+  }) => {
+    // Real deployments can have zero active templates for a persona/plan (or
+    // none seeded at all). The template stage must NEVER become a dead end with
+    // no actionable control — it has to keep an escape hatch so a first-run user
+    // can still finish. Turn off every active template for the duration of this
+    // test, then restore them so the sibling specs still see the seeded starter.
+    resetOnboarding();
+    const restoreTemplates = deactivateAllTemplates();
+    try {
+      await openOnboarding(page);
+
+      // Welcome -> skip persona -> template (skip so the persona filter can't
+      // be blamed; the whole catalog is empty here).
+      await page.getByRole("button", { name: /Let's go/ }).click();
+      await page
+        .getByRole("button", { name: /Skip — show all templates/ })
+        .click();
+
+      const grid = page.locator("#onboarding-template-grid");
+      await expect(grid).toBeVisible({ timeout: 30_000 });
+
+      // The template stage renders the empty-state card (not a blank grid) and
+      // surfaces an actionable escape to the dashboard.
+      await expect(
+        grid.getByText("No templates available yet"),
+      ).toBeVisible({ timeout: 30_000 });
+      const continueBtn = grid.getByRole("button", {
+        name: /Continue to dashboard/,
+      });
+      await expect(continueBtn).toBeVisible();
+
+      // The persistent "Skip setup" header escape is ALSO still present at this
+      // stage — belt and braces so an empty catalog can never strand the user.
+      await expect(
+        page.getByRole("button", { name: /Skip setup/ }),
+      ).toBeVisible();
+
+      // Taking the in-stage escape lands the user on the dashboard — never
+      // bounced back into onboarding.
+      await Promise.all([
+        page.waitForURL("**/user/dashboard", { timeout: 120_000 }),
+        continueBtn.click(),
+      ]);
+      expect(page.url()).toContain("/user/dashboard");
+      expect(page.url()).not.toContain("/user/onboarding");
+    } finally {
+      restoreTemplates();
+    }
   });
 });
