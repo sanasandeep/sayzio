@@ -22,8 +22,8 @@ const commonAiFaqs = [
  * ------------------------------------------------------------------
  * The app exposes 8 user-facing AI tools (canonical label map in
  * artifacts/1inme/resources/views/user/ai/disabled.blade.php:
- * Note Summarizer, Knowledge Bases, Persona Generator, AI Agents, AI Chat,
- * Chat Widgets, Growth Coach, Account Assistant). The marketing site groups
+ * AI Note Summarizer, Knowledge Bases, Persona Generator, AI Agents, AI Chat,
+ * Chat Widgets, AI Growth Coach, Account Assistant). The marketing site groups
  * them into a smaller, sales-oriented suite. The product names below are kept
  * in sync with the app and help docs so visitors who cross-reference them
  * aren't confused. The mapping:
@@ -39,8 +39,8 @@ const commonAiFaqs = [
  *                            ElevenLabs TTS); a distinct voice feature with no
  *                            entry in the 8-tool label map, kept by name
  *
- * The remaining in-app tools (Note Summarizer, Knowledge Bases, Persona
- * Generator, AI Chat, Growth Coach, Account Assistant) are surfaced elsewhere
+ * The remaining in-app tools (AI Note Summarizer, Knowledge Bases, Persona
+ * Generator, AI Chat, AI Growth Coach, Account Assistant) are surfaced elsewhere
  * on the site (features catalog, flip tiles, compare/pricing) rather than as
  * standalone AI-suite product pages.
  */

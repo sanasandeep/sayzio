@@ -33,6 +33,8 @@
  *   Inbox Agent          -> AI Inbox Agent
  *   Brand Kit            -> AI Brand Kit
  *   Persona Generator    -> AI Personas / AI Persona Generator
+ *   Note Summarizer      -> AI Note Summarizer
+ *   Growth Coach         -> AI Growth Coach
  *
  * Why only these multi-word phrases (and not bare "Personas" / "Companions" /
  * "Coach" / "Resume"): those single words are ordinary entity nouns that appear
@@ -136,6 +138,8 @@ const TOOL_NAMES: ToolName[] = [
   { bare: "Inbox Agent", canonical: "AI Inbox Agent" },
   { bare: "Brand Kit", canonical: "AI Brand Kit" },
   { bare: "Persona Generator", canonical: "AI Persona Generator" },
+  { bare: "Note Summarizer", canonical: "AI Note Summarizer" },
+  { bare: "Growth Coach", canonical: "AI Growth Coach" },
 ];
 
 /**

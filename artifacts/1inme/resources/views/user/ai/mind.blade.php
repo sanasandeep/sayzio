@@ -1,11 +1,11 @@
 @extends('user.layouts.app')
-@section('title', 'Note Summarizer')
+@section('title', 'AI Note Summarizer')
 
 @section('content')
 <div class="max-w-3xl mx-auto px-4 py-8">
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
-        'title'    => 'Note Summarizer',
+        'title'    => 'AI Note Summarizer',
         'subtitle' => 'Paste raw notes — get a tight summary and clear next steps.',
         'balance'  => $balance,
     ])

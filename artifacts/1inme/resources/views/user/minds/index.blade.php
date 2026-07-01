@@ -9,7 +9,7 @@
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold text-white">AI Knowledge Bases</h1>
-            <p class="text-sm text-white/50 mt-1">Labelled knowledge bases your AI agents and Growth Coach can draw on. Add text, FAQs, documents, links, or live Sayzio data.</p>
+            <p class="text-sm text-white/50 mt-1">Labelled knowledge bases your AI agents and AI Growth Coach can draw on. Add text, FAQs, documents, links, or live Sayzio data.</p>
         </div>
         <div class="flex items-center gap-2">
             <span class="text-xs text-white/40">{{ $usedMinds }} / {{ $caps['max_minds_per_user'] == -1 ? '∞' : $caps['max_minds_per_user'] }} knowledge bases</span>

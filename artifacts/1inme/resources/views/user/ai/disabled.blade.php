@@ -1,13 +1,13 @@
 @extends('user.layouts.app')
 @php
     $__aiLabelMap = [
-        'Mind'       => 'Note Summarizer',
+        'Mind'       => 'AI Note Summarizer',
         'Minds'      => 'AI Knowledge Bases',
         'Persona'    => 'AI Persona Generator',
         'Personas'   => 'AI Agents',
         'Companion'  => 'AI Chat',
         'Companions' => 'Chat Widgets',
-        'Coach'      => 'Growth Coach',
+        'Coach'      => 'AI Growth Coach',
         'Ask Coach'  => 'AI Coach',
     ];
     $__aiDisplayTitle = $__aiLabelMap[$title ?? ''] ?? ($title ?? 'AI');
@@ -51,13 +51,13 @@
     // Per-feature one-liner so a user who clicks in knows exactly what this
     // particular surface does — keyed off the `title` each controller passes.
     $__featureBlurbs = [
-        'Mind'       => 'Note Summarizer turns raw notes into a tight summary with clear next steps.',
+        'Mind'       => 'AI Note Summarizer turns raw notes into a tight summary with clear next steps.',
         'Minds'      => 'AI Knowledge Bases let you build and manage several AI knowledge bases, each trained on its own set of sources.',
         'Persona'    => 'AI Persona Generator creates a brand persona that shapes the tone and personality your AI uses when it writes or replies on your behalf.',
         'Personas'   => 'AI Agents let you create and switch between configurable agents — each with its own prompt, tone, and knowledge — for different audiences.',
         'Companion'  => 'AI Chat is a chat assistant that helps you draft content and answer questions about your account.',
         'Companions' => 'Chat Widgets are embeddable AI chatbots you can drop into your pages, widgets and inbox.',
-        'Coach'      => 'Growth Coach gives you AI-powered suggestions to grow and fine-tune your links and pages.',
+        'Coach'      => 'AI Growth Coach gives you AI-powered suggestions to grow and fine-tune your links and pages.',
         'Ask Coach'  => 'AI Coach lets you chat with an AI advisor for tips on improving your account.',
     ];
     $__featureBlurb = $__featureBlurbs[$title ?? ''] ?? null;
@@ -151,7 +151,7 @@
             <div class="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left text-sm text-white/60">
                 <p class="font-medium text-white/80">What you’re missing</p>
                 <p class="mt-1">
-                    AI features on {{ $__appName }} — like AI Knowledge Bases, AI Agents, AI Chat and Growth Coach — help you
+                    AI features on {{ $__appName }} — like AI Knowledge Bases, AI Agents, AI Chat and AI Growth Coach — help you
                     draft content, answer questions about your account and build pages faster. They run on
                     your coin balance once an administrator enables the engine.
                 </p>

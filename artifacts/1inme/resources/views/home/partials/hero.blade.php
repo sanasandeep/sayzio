@@ -130,7 +130,7 @@
                             // Inner ring (4) — Zio's core AI brain.
                             ['cls' => 'r1', 'nodes' => [
                                 ['a' => 0,   'img' => 'ai.png',        'c' => 'var(--c2)', 't' => 'AI Page Builder', 'd' => 'Describe your idea in a sentence and Zio assembles a complete, on-brand page for you.', 'tag' => 'Live in ~30s'],
-                                ['a' => 90,  'img' => 'growth.png',    'c' => 'var(--c1)', 't' => 'Growth Coach',     'd' => "Zio reads your stats, flags what's working and hands you the next move to grow.", 'tag' => 'Weekly tips'],
+                                ['a' => 90,  'img' => 'growth.png',    'c' => 'var(--c1)', 't' => 'AI Growth Coach',     'd' => "Zio reads your stats, flags what's working and hands you the next move to grow.", 'tag' => 'Weekly tips'],
                                 ['a' => 180, 'img' => 'calls.png',     'c' => 'var(--c4)', 't' => 'AI Phone',         'd' => 'Zio answers your calls and turns every caller into a captured lead while you focus.', 'tag' => '24/7 answer'],
                                 ['a' => 270, 'img' => 'analytics.png', 'c' => 'var(--c2)', 't' => 'Live Analytics',   'd' => 'Watch every click, scan and visit land in real time on a live world map.', 'tag' => 'Real-time'],
                             ]],

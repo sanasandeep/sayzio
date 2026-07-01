@@ -832,9 +832,9 @@ AI surfaces gated through the engine settings include the `biolink_builder`,
   images/links) into a full page, constrained to a safe block subset and the
   user's plan-allowed types; charged to `biolink_builder` with auto-refund on
   parse failure.
-- **Knowledge Bases / Note Summarizer** — private RAG knowledge base: `AiMindSource`
+- **Knowledge Bases / AI Note Summarizer** — private RAG knowledge base: `AiMindSource`
   chunked and embedded (`AiMindChunk`) to ground answers; the single-base view is
-  surfaced to users as **Note Summarizer**. Sources can be **uploaded / crawled**
+  surfaced to users as **AI Note Summarizer**. Sources can be **uploaded / crawled**
   (PDF, web link, plain text) or kept live from **external systems**: a **webhook**
   source exposes a per-source URL + signing token so a third-party system can
   *push* content in (`POST /mind-webhook/{source}`; token via the
@@ -848,7 +848,7 @@ AI surfaces gated through the engine settings include the `biolink_builder`,
   prompts and chat history (`CompanionThread`); a Chat Widget can be embedded as a
   biolink **block** or run as a full-page **AI Chatbot** (`ai_chat`) link, and the
   direct owner chat is surfaced as **AI Chat**. The **owner** pays for visitor chats.
-- **Account Assistant / Growth Coach** — self-support AI grounded in an account
+- **Account Assistant / AI Growth Coach** — self-support AI grounded in an account
   snapshot (analytics, biolinks) with actionable suggestions.
 - **Voice assistant** — Whisper **STT** (transcription / dictation), an LLM turn,
   and ElevenLabs **TTS** (spoken mp3). Voice tools return a `client_action`
@@ -921,7 +921,7 @@ metered monthly (`api_usage_counters`) against the plan allowance by
 period 80% / 100% / overage-unavailable warnings (email + in-app
 `api.usage_warning`).
 
-*Web · REST (`/ai/*`, Voice, Growth Coach, Chat Widgets, `/ai/marketing-strategist/*`,
+*Web · REST (`/ai/*`, Voice, AI Growth Coach, Chat Widgets, `/ai/marketing-strategist/*`,
 `/brand-kits/*`, `/inbox/*`) · Mobile (Account Assistant, AI Agent chat,
 floating-mic voice assistant, Inbox, Brand Kits).*
 
@@ -1121,7 +1121,7 @@ High-level groups:
 - **Creator stack** — creator profile, posts, feed, paid DMs, tiers.
 - **Business tools** — store/products, restaurant menu & orders, reviews (public
   feed + moderation), contacts/dialer.
-- **Platform & AI** — wallet/coins, AI (Knowledge Bases, voice, Growth Coach), onboarding slides.
+- **Platform & AI** — wallet/coins, AI (Knowledge Bases, voice, AI Growth Coach), onboarding slides.
 - **Back-office** — users, roles, protected accounts, mail settings, schema
   health.
 

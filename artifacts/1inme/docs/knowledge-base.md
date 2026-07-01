@@ -33,7 +33,7 @@ of *what it is*, *why you'd use it*, and *how to use it* step by step. A large
 17. [Referrals](#17-referrals)
 18. [Creator monetization](#18-creator-monetization)
 19. [18+ adult content](#19-adult-content)
-20. [AI tools: Note Summarizer, Knowledge Bases, Persona Generator, AI Agents, AI Chat, Chat Widgets, Growth Coach, Account Assistant](#20-ai-tools)
+20. [AI tools: AI Note Summarizer, Knowledge Bases, Persona Generator, AI Agents, AI Chat, Chat Widgets, AI Growth Coach, Account Assistant](#20-ai-tools)
 21. [Tools: Forms, Contact cards, Contacts & Dialer, Scan a card or brochure, Files, Resume, Calendar](#21-tools)
 22. [Restaurant menu & orders](#22-restaurant-menu--orders)
 23. [Inbox & messages](#23-inbox--messages)
@@ -692,7 +692,7 @@ Sayzio includes several AI helpers (all metered with **AI credits**):
 
 - **Account Assistant** — an AI assistant that reviews your account
   and answers "how do I improve?" questions, including actionable suggestions.
-- **Growth Coach** — AI-powered suggestions to grow and fine-tune your links and pages.
+- **AI Growth Coach** — AI-powered suggestions to grow and fine-tune your links and pages.
 - **Persona Generator** — creates a brand persona that shapes the tone and
   personality your AI uses when it writes or replies on your behalf.
 - **AI Agents** — configurable agents you can create and switch between, each with
@@ -702,9 +702,9 @@ Sayzio includes several AI helpers (all metered with **AI credits**):
   get dynamic answers. The **owner** pays for visitor chats, not the visitor.
 - **AI Chat** — a chat assistant that helps you draft content and answer questions
   about your account.
-- **Knowledge Bases / Note Summarizer** — build and manage private knowledge bases:
+- **Knowledge Bases / AI Note Summarizer** — build and manage private knowledge bases:
   upload documents and links to "train" your AI so its answers reflect your real
-  information, and summarize raw notes into clear next steps with **Note Summarizer**.
+  information, and summarize raw notes into clear next steps with **AI Note Summarizer**.
   Knowledge Bases can also stay in sync with outside systems through two
   connection sources — an inbound **Webhook** and an outbound **API connector**
   (see [Keeping a Knowledge Base in sync](#keeping-a-knowledge-base-in-sync)).

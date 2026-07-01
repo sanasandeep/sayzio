@@ -18,10 +18,10 @@ class AiFeatureCatalog
 
     /** Friendly labels for ledger / reporting surfaces. */
     public const FEATURE_LABELS = [
-        'mind'          => 'Note Summarizer',
+        'mind'          => 'AI Note Summarizer',
         'persona'       => 'Persona Generator',
         'companion'     => 'AI Chat',
-        'coach'         => 'Growth Coach',
+        'coach'         => 'AI Growth Coach',
         'ask_coach'     => 'Account Assistant',
         'voice_stt'     => 'Voice — Transcription',
         'voice_llm'     => 'Voice — Reasoning',

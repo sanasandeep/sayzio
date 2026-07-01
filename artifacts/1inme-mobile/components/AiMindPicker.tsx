@@ -25,7 +25,7 @@ type Props = {
   feature: AiMindFeature;
   title: string;
   subtitle: string;
-  /** Feature label used for the "AI is off" explainer (e.g. "Growth Coach"). */
+  /** Feature label used for the "AI is off" explainer (e.g. "AI Growth Coach"). */
   disabledFeature?: string;
 };
 

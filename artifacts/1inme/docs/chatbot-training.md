@@ -532,7 +532,7 @@ Sayzio includes several AI helpers, all metered with **AI credits**:
 - **Account Assistant** — an AI assistant that reviews your account
   (analytics, biolinks) and answers "how do I improve?" questions with actionable
   suggestions.
-- **Growth Coach** — AI-powered suggestions to grow and fine-tune your links and pages.
+- **AI Growth Coach** — AI-powered suggestions to grow and fine-tune your links and pages.
 - **Persona Generator** — creates a brand persona that shapes the tone and
   personality your AI uses when it writes or replies on your behalf.
 - **AI Agents** — configurable agents you can create and switch between, each with
@@ -542,9 +542,9 @@ Sayzio includes several AI helpers, all metered with **AI credits**:
   get dynamic answers. The **owner** pays for visitor chats, not the visitor.
 - **AI Chat** — a chat assistant that helps you draft content and answer questions
   about your account.
-- **Knowledge Bases / Note Summarizer** — build and manage private knowledge bases:
+- **Knowledge Bases / AI Note Summarizer** — build and manage private knowledge bases:
   upload documents and links to "train" your AI so its answers reflect your real
-  information, and summarize raw notes into clear next steps with **Note Summarizer**.
+  information, and summarize raw notes into clear next steps with **AI Note Summarizer**.
 - **Voice assistant** — a hands-free assistant that listens (speech-to-text), takes
   an AI turn, and can speak its reply (text-to-speech); also offers dictation.
 - **AI Marketing Strategist** — generates a full organic + paid marketing plan

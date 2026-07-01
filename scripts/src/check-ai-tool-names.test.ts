@@ -45,6 +45,8 @@ describe("scanSource — bare phrases are flagged", () => {
       "Inbox Agent",
       "Brand Kit",
       "Persona Generator",
+      "Note Summarizer",
+      "Growth Coach",
     ].join("\n");
     expect(canonicals(src)).toEqual([
       "AI Knowledge Base(s)",
@@ -54,7 +56,17 @@ describe("scanSource — bare phrases are flagged", () => {
       "AI Inbox Agent",
       "AI Brand Kit",
       "AI Persona Generator",
+      "AI Note Summarizer",
+      "AI Growth Coach",
     ]);
+  });
+
+  it("flags a bare 'Note Summarizer'", () => {
+    expect(canonicals("<h1>Note Summarizer</h1>")).toEqual(["AI Note Summarizer"]);
+  });
+
+  it("flags a bare 'Growth Coach'", () => {
+    expect(canonicals("<span>Growth Coach</span>")).toEqual(["AI Growth Coach"]);
   });
 });
 
@@ -67,6 +79,8 @@ describe("scanSource — 'AI '-prefixed spellings are not flagged", () => {
       "AI Inbox Agent",
       "AI Brand Kit",
       "AI Persona Generator",
+      "AI Note Summarizer",
+      "AI Growth Coach",
     ].join("\n");
     expect(canonicals(src)).toEqual([]);
   });

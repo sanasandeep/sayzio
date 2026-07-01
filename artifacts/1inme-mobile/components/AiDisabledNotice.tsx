@@ -10,8 +10,8 @@ import { useColors } from "@/hooks/useColors";
  * particular feature does, even while the engine is switched off.
  */
 const FEATURE_BLURBS: Record<string, string> = {
-  "Note Summarizer":
-    "Note Summarizer is your personal AI knowledge base — it learns from your sources so the assistant can answer in your voice.",
+  "AI Note Summarizer":
+    "AI Note Summarizer is your personal AI knowledge base — it learns from your sources so the assistant can answer in your voice.",
   "AI Knowledge Bases":
     "AI Knowledge Bases let you build and manage several AI knowledge bases, each trained on its own set of sources.",
   "AI Persona Generator":
@@ -22,8 +22,8 @@ const FEATURE_BLURBS: Record<string, string> = {
     "AI Chat is a chat assistant that helps you draft content and answer questions about your account.",
   "Chat Widgets":
     "Chat Widgets are embeddable AI chatbots you can drop into your pages, widgets and inbox.",
-  "Growth Coach":
-    "Growth Coach gives you AI-powered suggestions to grow and fine-tune your links and pages.",
+  "AI Growth Coach":
+    "AI Growth Coach gives you AI-powered suggestions to grow and fine-tune your links and pages.",
   "AI Coach":
     "AI Coach lets you chat with an AI advisor for tips on improving your account.",
   "Marketing Strategist":
@@ -128,7 +128,7 @@ export function AiDisabledNotice({
             </Text>
             <Text style={[styles.infoBody, { color: colors.mutedForeground }]}>
               AI features on Sayzio — like AI Knowledge Bases, AI Agents, AI Chat
-              and Growth Coach — help you draft content, answer questions about your account
+              and AI Growth Coach — help you draft content, answer questions about your account
               and build pages faster. They run on your coin balance once an
               administrator enables the engine.
             </Text>
