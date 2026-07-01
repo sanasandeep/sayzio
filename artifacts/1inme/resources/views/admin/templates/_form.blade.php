@@ -122,10 +122,25 @@
                 @php
                     $selectedPersonas = old('recommended_personas', $isEdit ? ($tpl->recommended_personas ?? []) : []);
                     if (!is_array($selectedPersonas)) $selectedPersonas = [];
+                    // Personas carried from the dashboard coverage warning are
+                    // pre-checked on top of the existing tags (additive) so an
+                    // admin can cover the gap in one save. Only prefill when the
+                    // form wasn't just bounced back with validation errors.
+                    $prefillPersonas = ($prefillPersonas ?? []);
+                    if (!old('recommended_personas') && !empty($prefillPersonas)) {
+                        $selectedPersonas = array_values(array_unique(array_merge($selectedPersonas, $prefillPersonas)));
+                    }
                 @endphp
                 <div class="md:col-span-2">
                     <label class="block text-xs font-medium text-white/60 mb-1.5">Recommended for personas</label>
                     <p class="text-[11px] text-white/30 mb-2">Tag the personas this template fits best. Picked personas will see it first in the onboarding wizard and template picker. Leave all unchecked if it suits everyone equally.</p>
+                    @if(!empty($prefillPersonas))
+                        <p class="text-[11px] text-amber-300 mb-2">
+                            <i class="fas fa-wand-magic-sparkles mr-1"></i>Pre-checked to cover
+                            {{ count($prefillPersonas) === 1 ? 'a persona gap' : count($prefillPersonas) . ' persona gaps' }}
+                            flagged on the dashboard — save to fix the coverage warning.
+                        </p>
+                    @endif
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1 rounded-xl">
                         @foreach(\App\Modules\User\Services\PersonaCatalog::all() as $p)
                             <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5 cursor-pointer hover:border-white/30">

@@ -3,7 +3,12 @@
 @section('page-title', 'Page & Card Templates')
 
 @section('content')
-<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all', outdated: 'all', active: 'all', selected: [], preview: { open: false, url: '', name: '' }, previewDevice: 'phone', previewWidths: { phone: 420, tablet: 768, desktop: 1100 }, openPreview(url, name) { this.previewDevice = 'phone'; this.preview = { open: true, url: url, name: name }; }, closePreview() { this.preview = { open: false, url: '', name: '' }; }, toggleAllVisible(ids) { var allSel = ids.every(i => this.selected.includes(i)); this.selected = allSel ? this.selected.filter(i => !ids.includes(i)) : Array.from(new Set(this.selected.concat(ids))); } }"
+@php
+    $coverPersonas = $coverPersonas ?? [];
+    $coverSlugs = collect($coverPersonas)->pluck('slug')->all();
+    $coverParam = !empty($coverSlugs) ? implode(',', $coverSlugs) : null;
+@endphp
+<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all', outdated: 'all', active: 'all', coverPersonas: @json($coverSlugs), selected: [], preview: { open: false, url: '', name: '' }, previewDevice: 'phone', previewWidths: { phone: 420, tablet: 768, desktop: 1100 }, openPreview(url, name) { this.previewDevice = 'phone'; this.preview = { open: true, url: url, name: name }; }, closePreview() { this.preview = { open: false, url: '', name: '' }; }, toggleAllVisible(ids) { var allSel = ids.every(i => this.selected.includes(i)); this.selected = allSel ? this.selected.filter(i => !ids.includes(i)) : Array.from(new Set(this.selected.concat(ids))); } }"
      @keydown.escape.window="closePreview()">
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Curate full-page presets and reusable card-block presets.</p>
@@ -24,6 +29,32 @@
         Card Templates ({{ $cardTemplates->count() }})
     </a>
 </div>
+
+@if($tab === 'page' && !empty($coverPersonas))
+    @php $coverNames = collect($coverPersonas)->pluck('label')->filter()->values(); @endphp
+    <div class="mb-4 rounded-2xl p-4 border flex items-start gap-3" style="border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08);">
+        <div class="w-9 h-9 shrink-0 bg-amber-500/15 rounded-xl flex items-center justify-center">
+            <i class="fas fa-wand-magic-sparkles text-amber-400"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <h2 class="text-sm font-semibold text-amber-300">
+                Covering {{ $coverNames->count() === 1 ? 'an uncovered persona' : 'uncovered personas' }}:
+                <span class="text-amber-200">{{ $coverNames->join(', ', ' and ') }}</span>
+            </h2>
+            <p class="text-xs text-white/70 mt-1">
+                Showing only page templates <span class="text-amber-200">not yet recommended</span> for
+                {{ $coverNames->count() === 1 ? 'this persona' : 'these personas' }}. Edit any one and its
+                persona box will be pre-checked — save to clear the dashboard warning. Or
+                <a href="{{ route('admin.templates.create', ['kind' => 'page', 'persona' => $coverParam]) }}" class="underline text-amber-200 hover:text-amber-100">add a new template</a>
+                pre-tagged for {{ $coverNames->count() === 1 ? 'it' : 'them' }}.
+            </p>
+        </div>
+        <a href="{{ route('admin.templates.index', ['tab' => 'page']) }}"
+           class="shrink-0 text-xs text-white/50 hover:text-white px-2 py-1" title="Clear coverage filter">
+            <i class="fas fa-xmark mr-1"></i>Clear
+        </a>
+    </div>
+@endif
 
 @php
     $rows = $tab === 'card' ? $cardTemplates : $pageTemplates;
@@ -175,6 +206,7 @@
         @endphp
         <div x-show="(category === 'all' || category === '{{ $tpl->category }}')
                   && (persona === 'all' || @json($tplPersonas).includes(persona))
+                  && (coverPersonas.length === 0 || coverPersonas.some(cp => !@json($tplPersonas).includes(cp)))
                   && (customized === 'all' || (customized === 'yes') === {{ $tplCustomized ? 'true' : 'false' }})
                   && (outdated === 'all' || (outdated === 'yes') === {{ $tplOutdated ? 'true' : 'false' }})
                   && (active === 'all' || (active === 'yes') === {{ $tpl->is_active ? 'true' : 'false' }})
@@ -284,7 +316,7 @@
                             <i class="fas {{ $tpl->is_active ? 'fa-eye-slash' : 'fa-eye' }} text-xs"></i>
                         </button>
                     </form>
-                    <a href="{{ route('admin.templates.edit', ['kind' => $tab, 'id' => $tpl->id]) }}" class="text-white/30 hover:text-blue-400 p-1.5"><i class="fas fa-edit text-xs"></i></a>
+                    <a href="{{ route('admin.templates.edit', array_filter(['kind' => $tab, 'id' => $tpl->id, 'persona' => $tab === 'page' ? $coverParam : null])) }}" class="text-white/30 hover:text-blue-400 p-1.5"><i class="fas fa-edit text-xs"></i></a>
                     <form action="{{ route('admin.templates.destroy', ['kind' => $tab, 'id' => $tpl->id]) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this template?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf @method('DELETE')
                         <button type="submit" class="text-white/30 hover:text-red-400 p-1.5"><i class="fas fa-trash text-xs"></i></button>

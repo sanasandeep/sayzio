@@ -25,7 +25,13 @@ class TemplateController extends Controller
         $tab = $request->get('tab', 'page') === 'card' ? 'card' : 'page';
         $pageTemplates = PageTemplate::orderBy('sort_order')->orderBy('name')->get();
         $cardTemplates = CardTemplate::orderBy('sort_order')->orderBy('name')->get();
-        return view('admin.templates.index', compact('tab', 'pageTemplates', 'cardTemplates'));
+
+        // When arriving from the dashboard coverage warning, `cover` carries the
+        // uncovered persona slug(s). We surface a "fix coverage" callout and
+        // filter the page-template grid to rows still missing that persona tag.
+        $coverPersonas = $this->resolvePersonaParam($request->get('cover'));
+
+        return view('admin.templates.index', compact('tab', 'pageTemplates', 'cardTemplates', 'coverPersonas'));
     }
 
     public function create(Request $request)
@@ -33,7 +39,9 @@ class TemplateController extends Controller
         $kind = $request->get('kind', 'page') === 'card' ? 'card' : 'page';
         $categories = $kind === 'card' ? CardTemplate::categories() : PageTemplate::categories();
         $plans = Plan::orderBy('sort_order')->get();
-        return view('admin.templates.create', compact('kind', 'categories', 'plans'));
+        // `persona` lets the coverage warning pre-check the uncovered persona(s).
+        $prefillPersonas = collect($this->resolvePersonaParam($request->get('persona')))->pluck('slug')->all();
+        return view('admin.templates.create', compact('kind', 'categories', 'plans', 'prefillPersonas'));
     }
 
     public function store(Request $request)
@@ -96,7 +104,10 @@ class TemplateController extends Controller
         $tpl = $this->resolve($kind, $id);
         $categories = $kind === 'card' ? CardTemplate::categories() : PageTemplate::categories();
         $plans = Plan::orderBy('sort_order')->get();
-        return view('admin.templates.edit', compact('tpl', 'kind', 'categories', 'plans'));
+        // `persona` (carried from the coverage warning via the index) pre-checks
+        // the uncovered persona(s) on top of the template's existing tags.
+        $prefillPersonas = collect($this->resolvePersonaParam(request('persona')))->pluck('slug')->all();
+        return view('admin.templates.edit', compact('tpl', 'kind', 'categories', 'plans', 'prefillPersonas'));
     }
 
     public function update(Request $request, string $kind, int $id)
@@ -402,6 +413,35 @@ class TemplateController extends Controller
 
         return redirect()->route('admin.templates.index', ['tab' => $kind])
             ->with('success', 'Re-captured the design for "' . $tpl->slug . '" from the chosen source.');
+    }
+
+    /**
+     * Parse a `persona`/`cover` query param (comma-separated slugs, or an
+     * array) into a validated, de-duplicated, order-preserving list of
+     * ['slug' => ..., 'label' => ...] pairs. Unknown slugs are dropped so a
+     * hand-edited URL can never inject bogus persona tags.
+     *
+     * @return array<int, array{slug:string,label:string}>
+     */
+    private function resolvePersonaParam($raw): array
+    {
+        if (is_array($raw)) {
+            $slugs = $raw;
+        } else {
+            $slugs = $raw === null ? [] : explode(',', (string) $raw);
+        }
+
+        $out = [];
+        $seen = [];
+        foreach ($slugs as $slug) {
+            $slug = trim((string) $slug);
+            if ($slug === '' || isset($seen[$slug])) continue;
+            if (!\App\Modules\User\Services\PersonaCatalog::isValid($slug)) continue;
+            $seen[$slug] = true;
+            $out[] = ['slug' => $slug, 'label' => \App\Modules\User\Services\PersonaCatalog::labelFor($slug)];
+        }
+
+        return $out;
     }
 
     public function searchLinks(Request $request)

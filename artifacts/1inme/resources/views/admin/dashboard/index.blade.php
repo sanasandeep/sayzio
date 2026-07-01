@@ -194,12 +194,18 @@
                     users see an all-locked recommended row.
                 </p>
             @endif
+            @php
+                // Carry the uncovered persona slug(s) so the templates admin can
+                // pre-filter (Manage) or pre-check them (Add) — one-click coverage.
+                $tghCoverSlugs = collect($tghUncovered)->pluck('slug')->filter()->values()->all();
+                $tghCoverParam = !$tghEmpty && !empty($tghCoverSlugs) ? implode(',', $tghCoverSlugs) : null;
+            @endphp
             <div class="mt-3 flex flex-wrap gap-2">
-                <a href="{{ route('admin.templates.index') }}"
+                <a href="{{ route('admin.templates.index', array_filter(['tab' => 'page', 'cover' => $tghCoverParam])) }}"
                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 transition">
                     <i class="fas fa-layer-group"></i> Manage templates
                 </a>
-                <a href="{{ route('admin.templates.create') }}"
+                <a href="{{ route('admin.templates.create', array_filter(['kind' => 'page', 'persona' => $tghCoverParam])) }}"
                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 transition">
                     <i class="fas fa-plus"></i> Add a template
                 </a>
