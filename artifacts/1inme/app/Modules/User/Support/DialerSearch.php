@@ -333,7 +333,15 @@ class DialerSearch
         }
         $links = $query->orderByDesc('total_clicks')->limit(self::GROUP_LIMIT * 4)->get();
 
-        $visible = $links->filter(fn (Link $l) => self::canViewLink($user, $l))->take(self::GROUP_LIMIT);
+        // Batch-resolve visibility instead of an N+1 follow/subscriber check per
+        // link. Every creator here is already followed by the viewer, so
+        // `followers` visibility always passes; only `subscribers` needs a real
+        // membership check, which we pre-fetch once for the whole result set.
+        $subscribedCreatorIds = self::subscribedCreatorIds($user, $links);
+
+        $visible = $links
+            ->filter(fn (Link $l) => self::canViewLink($user, $l, $subscribedCreatorIds))
+            ->take(self::GROUP_LIMIT);
 
         return $visible->map(fn (Link $l) => self::linkItem($l, 'followed', false))->values()->all();
     }
@@ -447,12 +455,46 @@ class DialerSearch
     }
 
     /**
+     * Pre-fetch, in a single query, which of the given links' creators the
+     * viewer actively subscribes to. Lets followedLinkItems() gate
+     * `subscribers`-visibility links without an N+1 lookup per link. Returns an
+     * empty set when no link in the batch actually needs a subscriber check.
+     *
+     * @param Collection<int,Link> $links
+     * @return Collection<int,int>
+     */
+    private static function subscribedCreatorIds(User $viewer, Collection $links): Collection
+    {
+        $needsCheck = $links->contains(fn (Link $l) =>
+            ($l->visibility ?? 'public') === 'subscribers'
+            && (int) $l->user_id !== (int) $viewer->id
+        );
+        if (!$needsCheck) {
+            return collect();
+        }
+
+        return Subscriber::whereIn('user_id', $links->pluck('user_id')->unique()->all())
+            ->where('status', 'active')
+            ->where('email', $viewer->email)
+            ->pluck('user_id')
+            ->unique()
+            ->values();
+    }
+
+    /**
      * Mirror of RedirectController::enforceVisibility for read-side gating.
      * The Dialer user is always authenticated, so "registered" always passes
      * and "followers" passes for the accounts they follow; only "subscribers"
      * needs a live subscription check.
+     *
+     * When $subscribedCreatorIds is supplied (the batch path used by
+     * followedLinkItems, where every creator is already followed by the
+     * viewer), the per-link follow/subscriber queries are skipped in favor of
+     * the pre-resolved sets.
+     *
+     * @param ?Collection<int,int> $subscribedCreatorIds
      */
-    private static function canViewLink(User $viewer, Link $link): bool
+    private static function canViewLink(User $viewer, Link $link, ?Collection $subscribedCreatorIds = null): bool
     {
         $vis = $link->visibility ?? 'public';
         if ($vis === 'public') {
@@ -470,10 +512,18 @@ class DialerSearch
             return true; // viewer is authenticated
         }
         if ($vis === 'followers') {
+            // Batch path: this method is only called for links whose creators
+            // the viewer already follows, so `followers` visibility passes.
+            if ($subscribedCreatorIds !== null) {
+                return true;
+            }
             return Follow::where('follower_id', $viewer->id)
                 ->where('creator_id', $link->user_id)->exists();
         }
         if ($vis === 'subscribers') {
+            if ($subscribedCreatorIds !== null) {
+                return $subscribedCreatorIds->contains((int) $link->user_id);
+            }
             return Subscriber::where('user_id', $link->user_id)
                 ->where('status', 'active')
                 ->where('email', $viewer->email)
