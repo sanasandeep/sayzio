@@ -484,4 +484,73 @@ console.log("[test-onboarding-setup] empty template catalog");
 }
 ok("the template stage renders an empty-state message and an always-available Skip for now");
 
+// ===========================================================================
+// 8. applyDesign RECOVERS when creating the page fails mid-apply: it must
+//    surface an error (the retry affordance) WITHOUT completing onboarding or
+//    trapping the user — and the always-available "Skip for now" must still
+//    finish onboarding afterwards so a failed template can never strand a
+//    first-run user. Mirrors the web controller's catch → back-to-wizard-with
+//    -error + persistent "Skip setup" escape.
+// ===========================================================================
+console.log("[test-onboarding-setup] applyDesign failure recovery");
+
+{
+  const state = { completeCalls: 0, error: null, busy: [], createdLinkId: "unset" };
+  const persona = { slug: "creator", category: "personal", page_type: "biolink" };
+  const fns = loadSetupFns({
+    completeOnboarding: async () => {
+      state.completeCalls += 1;
+    },
+    refresh: () => {},
+    goStage: () => {},
+    whatsappNeeded: false,
+    // The page build fails — the exact "creating the starter page fails" edge.
+    generateWizardPage: async () => {
+      throw new Error("page create failed");
+    },
+    persona,
+    busy: false,
+    setBusy: (v) => state.busy.push(v),
+    setError: (m) => {
+      state.error = m;
+    },
+    setCreatedLinkId: (id) => {
+      state.createdLinkId = id;
+    },
+  });
+
+  await fns.applyDesign({ id: "tpl-x", locked: false });
+
+  assert.ok(
+    typeof state.error === "string" && state.error.length > 0,
+    "a failed apply must surface an error message (the retry affordance), not fail silently",
+  );
+  assert.equal(
+    state.completeCalls,
+    0,
+    "a failed page create must NOT mark onboarding complete (mobile parity with the web catch path)",
+  );
+  assert.equal(
+    state.createdLinkId,
+    "unset",
+    "a failed apply must not remember a created link id",
+  );
+  assert.equal(
+    state.busy[state.busy.length - 1],
+    false,
+    "busy must be reset after the failure so the user can retry or skip",
+  );
+
+  // The always-available "Skip for now" still escapes the user AFTER a failed
+  // apply — reaching completeOnboarding via the real finishCoreSetup, so a
+  // template that can't be applied never leaves a first-run user stranded.
+  await fns.skipTemplate();
+  assert.equal(
+    state.completeCalls,
+    1,
+    "Skip for now still completes onboarding after a failed apply (user is never trapped)",
+  );
+}
+ok("applyDesign surfaces an error on failure and stays escapable via Skip for now");
+
 console.log(`\n[test-onboarding-setup] all ${passed} checks passed`);

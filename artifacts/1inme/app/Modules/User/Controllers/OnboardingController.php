@@ -242,42 +242,56 @@ class OnboardingController extends Controller
             return back()->with('error', 'That template needs a higher plan — pick another one or skip.');
         }
 
-        // Prefer an existing biolink — never silently create another one for
-        // users who already have biolinks (this could bypass plan caps when
-        // existing users hit the wizard via the dashboard banner). If they
-        // already have one, apply the template to their most recent biolink
-        // that has no blocks yet; otherwise nudge them to the picker.
-        $existing = $user->links()->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->latest('id')->get();
+        // Creating the biolink and applying the snapshot can fail mid-flight
+        // (a malformed/stale snapshot, a transient DB error, etc.). If it does,
+        // a brand-new user must NOT be stranded on a dead template stage or
+        // hit a raw 500 — send them back to the wizard with a clear error so
+        // they can retry, pick another template, or take the persistent "Skip
+        // setup" escape to the dashboard. `onboarded_at` is already stamped
+        // above, so the escape can never bounce them back into onboarding.
+        try {
+            // Prefer an existing biolink — never silently create another one for
+            // users who already have biolinks (this could bypass plan caps when
+            // existing users hit the wizard via the dashboard banner). If they
+            // already have one, apply the template to their most recent biolink
+            // that has no blocks yet; otherwise nudge them to the picker.
+            $existing = $user->links()->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->latest('id')->get();
 
-        if ($existing->isEmpty()) {
-            // First-time creation — enforce the same plan caps used elsewhere.
-            $features = $user->plan?->features ?? [];
-            $maxBiolinks = $features['max_biolinks'] ?? 1;
-            if ($maxBiolinks !== -1 && 0 >= $maxBiolinks) {
-                return redirect()->route('user.dashboard')
-                    ->with('error', "Your plan doesn't include a Link in Bio yet — upgrade to enable it.");
+            if ($existing->isEmpty()) {
+                // First-time creation — enforce the same plan caps used elsewhere.
+                $features = $user->plan?->features ?? [];
+                $maxBiolinks = $features['max_biolinks'] ?? 1;
+                if ($maxBiolinks !== -1 && 0 >= $maxBiolinks) {
+                    return redirect()->route('user.dashboard')
+                        ->with('error', "Your plan doesn't include a Link in Bio yet — upgrade to enable it.");
+                }
+                $link = Link::create([
+                    'user_id'  => $user->id,
+                    'type'     => 'biolink',
+                    'alias'    => Link::generateAlias(),
+                    'title'    => $user->name ? $user->name . "'s page" : 'My Link in Bio',
+                    'is_active'=> true,
+                ]);
+            } else {
+                // Pick the first biolink that has no blocks; if all have content,
+                // send them to the in-app template picker for that link so the
+                // server-side "confirm overwrite" guard kicks in instead of
+                // silently destroying their work.
+                $link = $existing->first(fn($l) => !$l->biolinkBlocks()->exists());
+                if (!$link) {
+                    return redirect()->route('user.links.templates.picker', [
+                        'link' => $existing->first()->id,
+                    ])->with('info', 'Pick a template to apply to your existing page — your current blocks will be replaced only if you confirm.');
+                }
             }
-            $link = Link::create([
-                'user_id'  => $user->id,
-                'type'     => 'biolink',
-                'alias'    => Link::generateAlias(),
-                'title'    => $user->name ? $user->name . "'s page" : 'My Link in Bio',
-                'is_active'=> true,
-            ]);
-        } else {
-            // Pick the first biolink that has no blocks; if all have content,
-            // send them to the in-app template picker for that link so the
-            // server-side "confirm overwrite" guard kicks in instead of
-            // silently destroying their work.
-            $link = $existing->first(fn($l) => !$l->biolinkBlocks()->exists());
-            if (!$link) {
-                return redirect()->route('user.links.templates.picker', [
-                    'link' => $existing->first()->id,
-                ])->with('info', 'Pick a template to apply to your existing page — your current blocks will be replaced only if you confirm.');
-            }
+
+            $this->templates->applyPageToLink($link, $tpl->snapshot, /*replace*/ true);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route('user.onboarding.index')
+                ->with('error', 'We couldn\'t set up your "' . $tpl->name . '" page just now. Please try again, choose another template, or use "Skip setup" to go to your dashboard.');
         }
-
-        $this->templates->applyPageToLink($link, $tpl->snapshot, /*replace*/ true);
 
         return redirect()->route('user.links.blocks.editor', $link)
             ->with('success', 'Welcome aboard — your "' . $tpl->name . '" page is ready to edit.');

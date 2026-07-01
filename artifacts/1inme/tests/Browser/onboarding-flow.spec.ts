@@ -57,6 +57,11 @@ const ARTIFACT_ROOT = path.resolve(
 // A known, plan-unlocked template this spec seeds so the "Use this template"
 // path always has a usable card to click regardless of what else is in the DB.
 const TEMPLATE_NAME = "E2E Onboarding Starter";
+// A plan-unlocked template whose snapshot carries a deliberately-invalid block
+// type, so applying it ALWAYS throws inside TemplateService::applyPageToLink
+// (unknown block type). Used to exercise the "creating the starter page fails
+// mid-apply" recovery path — the user must not be stranded or 500'd.
+const BROKEN_TEMPLATE_NAME = "E2E Onboarding Broken";
 // Marker biolink the reset step (re-)creates empty so applyTemplate reuses it
 // instead of creating another one (keeps the demo user's real links untouched).
 const MARKER_BIOLINK_TITLE = "E2E Onboarding Blank Page";
@@ -124,6 +129,24 @@ PageTemplate::updateOrCreate(
     'is_active' => true,
     'sort_order' => 0,
     'snapshot' => ['meta' => ['seed_version' => 1], 'blocks' => [], 'settings' => []],
+  ]
+);
+
+// Plan-unlocked template whose snapshot has a bogus block type so applying it
+// ALWAYS throws inside TemplateService (unknown block type) — the mid-apply
+// failure the recovery test needs. sort_order is high so it never displaces the
+// real starter card the other tests target.
+PageTemplate::updateOrCreate(
+  ['slug' => 'e2e-onboarding-broken'],
+  [
+    'name' => '${BROKEN_TEMPLATE_NAME}',
+    'category' => 'personal',
+    'description' => 'Seeded by the onboarding e2e spec (always fails to apply).',
+    'plan_tier' => null,
+    'recommended_personas' => [],
+    'is_active' => true,
+    'sort_order' => 999,
+    'snapshot' => ['meta' => ['seed_version' => 1], 'blocks' => [['type' => 'e2e_not_a_real_block_type', 'settings' => []]], 'settings' => []],
   ]
 );
 
@@ -399,6 +422,71 @@ test.describe("first-run onboarding wizard", () => {
       useBtn.click(),
     ]);
     expect(page.url()).toMatch(/\/user\/links\/\d+\/blocks(\?|$)/);
+  });
+
+  test("a template that fails to apply recovers: error shown, never stranded, Skip setup still escapes", async ({
+    page,
+  }) => {
+    // The riskiest untested edge: the user commits to a template but creating
+    // the starter page throws mid-apply (malformed snapshot, transient DB
+    // error). They must NOT hit a raw 500 or land on a dead stage — the
+    // controller has to catch the failure, drop them back into the wizard with
+    // a clear error, and keep the persistent "Skip setup" escape working so
+    // they can still reach the dashboard.
+    resetOnboarding();
+    await openOnboarding(page);
+
+    // Welcome -> skip persona (so ALL templates show, including the broken one).
+    await page.getByRole("button", { name: /Let's go/ }).click();
+    await page
+      .getByRole("button", { name: /Skip — show all templates/ })
+      .click();
+
+    const grid = page.locator("#onboarding-template-grid");
+    await expect(grid).toBeVisible({ timeout: 30_000 });
+
+    // Open the preview for the template whose snapshot always fails to apply.
+    await grid.getByText(BROKEN_TEMPLATE_NAME).first().click();
+
+    const useBtn = page.getByRole("button", { name: /Use this template/ });
+    await expect(useBtn).toBeVisible({ timeout: 30_000 });
+
+    // Applying it fails server-side; the controller must redirect BACK to the
+    // onboarding wizard (not the block editor, not a 500), carrying an error.
+    // The failure round-trip (throw -> report() -> 302 -> cold onboarding
+    // re-render) is slower than the happy path over the distant RDS, so let
+    // waitForURL own the wait (commit, not full load) instead of click()'s
+    // 30s navigation auto-wait, which would otherwise time out mid-redirect.
+    await Promise.all([
+      page.waitForURL(/\/user\/onboarding(\?|$|\/)/, {
+        timeout: 120_000,
+        waitUntil: "commit",
+      }),
+      useBtn.click({ noWaitAfter: true }),
+    ]);
+    expect(page.url()).toContain("/user/onboarding");
+    expect(page.url()).not.toMatch(/\/user\/links\/\d+\/blocks/);
+
+    // The user sees a clear, actionable error (the retry/escape affordance) —
+    // not a blank stage and not a stack trace. Generous timeout: the wizard is
+    // a cold, un-warmed render after the redirect.
+    await expect(
+      page.getByText(/couldn't set up your .* page/i).first(),
+    ).toBeVisible({ timeout: 60_000 });
+
+    // And the persistent "Skip setup" escape still lands them on the dashboard,
+    // never bouncing them back into onboarding.
+    await Promise.all([
+      page.waitForURL("**/user/dashboard", {
+        timeout: 120_000,
+        waitUntil: "commit",
+      }),
+      page
+        .locator('form[action$="/onboarding/go-to-dashboard"] button[type="submit"]')
+        .click({ noWaitAfter: true }),
+    ]);
+    expect(page.url()).toContain("/user/dashboard");
+    expect(page.url()).not.toContain("/user/onboarding");
   });
 
   test('"Skip setup" reaches its outcome: the dashboard', async ({ page }) => {

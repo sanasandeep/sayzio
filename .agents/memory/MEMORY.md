@@ -157,3 +157,4 @@
 - [Coming-soon launch notify](feature-launch-notify.md) — "Notify me" payoff needs BOTH an inline hook (admin clears override) AND an hourly sweep (config-connect path has no code hook); idempotency = `notified_at` stamp, never delete.
 - [Forcing 1inme user-layout theme in Playwright](user-layout-theme-in-playwright.md) — theme = server `light-mode` html class only; toggle that class after nav for dark/light shots, cookie round-trip is unreliable.
 - [Consolidated Settings hub](settings-hub-consolidation.md) — /user/settings/{tab} hub: repoint routes in-place keeping names, register in SettingsTabs, any-verb redirects LAST; sidebar dual-nav lockstep; mobile parity = list order in profile.tsx.
+- [e2e slow-redirect click auto-wait](e2e-slow-redirect-click-autowait.md) — form-submit clicks on SLOW error/redirect round-trips time out on click()'s 30s nav auto-wait even inside Promise.all([waitForURL,click]); use click({noWaitAfter:true})+waitUntil:'commit'.
