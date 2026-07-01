@@ -13,7 +13,7 @@ import {
 } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
-import { googleContacts, type GoogleSyncStats } from "@/lib/api/contacts";
+import { googleContacts } from "@/lib/api/contacts";
 
 // Google Contacts two-way sync management (parity with the web Contacts
 // settings panel). OAuth *connect* still happens on the web (session-based);
@@ -35,7 +35,29 @@ export default function GoogleSyncScreen() {
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["google-contacts-status"] });
       qc.invalidateQueries({ queryKey: ["contacts"] });
-      const s: GoogleSyncStats = r.stats;
+
+      if (r.status === "in_progress") {
+        Alert.alert(
+          "Sync already running",
+          "A sync is already in progress. Give it a moment and check back.",
+        );
+        return;
+      }
+
+      if (r.status === "throttled") {
+        const secs = Math.max(1, Math.round(r.retry_after ?? 0));
+        Alert.alert(
+          "Already up to date",
+          `You synced very recently. Try again in ${secs}s.`,
+        );
+        return;
+      }
+
+      const s = r.stats;
+      if (!s) {
+        Alert.alert("Sync complete", "Your contacts are up to date.");
+        return;
+      }
       Alert.alert(
         "Sync complete",
         `Created ${s.created}, updated ${s.updated}, deleted ${s.deleted}, pushed ${s.pushed}` +
