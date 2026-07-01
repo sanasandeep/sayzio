@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
+import { wallet as walletApi } from "@/lib/api";
 import {
   BillingCompany,
   createCompany,
@@ -99,6 +100,20 @@ export default function BillingCompaniesScreen() {
   const [draft, setDraft] = useState<Draft>(empty);
 
   const q = useQuery({ queryKey: ["billing-companies"], queryFn: listCompanies });
+
+  // Read-only wallet balance + invoice-history summary — mirrors the web
+  // Billing & Identity tab (Task #3234). Wallet may be disabled per-account,
+  // so a null/failed balance simply hides the coin card.
+  const walletQ = useQuery({
+    queryKey: ["wallet-balance"],
+    queryFn: () => walletApi.balance().catch(() => null),
+  });
+  const walletBalance = walletQ.data ?? null;
+  const showWallet = !!walletBalance?.enabled;
+  const lowBalance =
+    !!walletBalance &&
+    walletBalance.low_balance_threshold > 0 &&
+    walletBalance.balance < walletBalance.low_balance_threshold;
 
   const save = useMutation({
     mutationFn: () => {
@@ -186,6 +201,95 @@ export default function BillingCompaniesScreen() {
           data={q.data ?? []}
           keyExtractor={(c) => String(c.id)}
           contentContainerStyle={{ padding: 20, gap: 10 }}
+          ListHeaderComponent={
+            <View style={{ gap: 10, marginBottom: 4 }}>
+              {showWallet ? (
+                <View
+                  style={[
+                    styles.summaryCard,
+                    { borderColor: colors.border, borderRadius: colors.radius },
+                  ]}
+                >
+                  <View style={styles.summaryTop}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
+                        Coin wallet
+                      </Text>
+                      <Text style={[styles.summaryBalance, { color: colors.foreground }]}>
+                        {(walletBalance?.balance ?? 0).toLocaleString()} 🪙
+                      </Text>
+                      {lowBalance ? (
+                        <Text style={[styles.summaryWarn, { color: colors.warning }]}>
+                          <Feather name="alert-triangle" size={11} /> Balance below{" "}
+                          {walletBalance!.low_balance_threshold.toLocaleString()} coins — top up to
+                          keep using coin add-ons.
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.summaryActions}>
+                      <Pressable
+                        onPress={() => router.push("/wallet" as never)}
+                        style={({ pressed }) => [
+                          styles.summaryBtn,
+                          { borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+                        ]}
+                      >
+                        <Feather name="credit-card" size={12} color={colors.foreground} />
+                        <Text style={[styles.summaryBtnText, { color: colors.foreground }]}>
+                          View wallet
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => router.push("/coin-packages" as never)}
+                        style={({ pressed }) => [
+                          styles.summaryBtn,
+                          styles.summaryBtnPrimary,
+                          { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
+                        ]}
+                      >
+                        <Feather name="dollar-sign" size={12} color="#fff" />
+                        <Text style={[styles.summaryBtnText, { color: "#fff" }]}>Buy coins</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              ) : null}
+
+              <Pressable
+                onPress={() => router.push("/invoices" as never)}
+                style={({ pressed }) => [
+                  styles.summaryCard,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    borderRadius: colors.radius,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <View style={styles.summaryTop}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
+                      Invoices &amp; receipts
+                    </Text>
+                    <Text style={[styles.name, { color: colors.foreground }]}>
+                      Your invoice &amp; receipt history
+                    </Text>
+                    <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+                      Review, download and manage the invoices &amp; receipts you issue.
+                    </Text>
+                  </View>
+                  <Feather name="file-text" size={18} color={colors.primary} />
+                </View>
+              </Pressable>
+
+              {(q.data?.length ?? 0) > 0 ? (
+                <Text style={[styles.summaryLabel, { color: colors.mutedForeground, marginTop: 6 }]}>
+                  Companies
+                </Text>
+              ) : null}
+            </View>
+          }
           renderItem={({ item }) => (
             <Pressable
               onPress={() => openEdit(item)}
@@ -343,4 +447,27 @@ const styles = StyleSheet.create({
   modalHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1 },
   modalTitle: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 16 },
   switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  summaryCard: { padding: 14, borderWidth: 1 },
+  summaryTop: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  summaryLabel: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  summaryBalance: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 24, marginTop: 4 },
+  summaryWarn: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11, marginTop: 6 },
+  summaryActions: { gap: 8 },
+  summaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  summaryBtnPrimary: { borderWidth: 0 },
+  summaryBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
 });

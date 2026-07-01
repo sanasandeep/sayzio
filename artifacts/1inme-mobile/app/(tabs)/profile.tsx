@@ -1131,6 +1131,27 @@ export default function Profile() {
               />
             </Pressable>
             <Pressable
+              onPress={() => router.push("/billing/companies" as never)}
+              style={({ pressed }) => [
+                styles.listItem,
+                {
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: colors.border,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Feather name="file-text" size={18} color={colors.primary} />
+              <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                Billing & invoices
+              </Text>
+              <Feather
+                name="chevron-right"
+                size={18}
+                color={colors.mutedForeground}
+              />
+            </Pressable>
+            <Pressable
               onPress={() => router.push("/upgrade" as never)}
               style={({ pressed }) => [
                 styles.listItem,
