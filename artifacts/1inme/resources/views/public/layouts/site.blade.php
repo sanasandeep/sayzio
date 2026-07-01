@@ -35,7 +35,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
-    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=8">
+    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=9">
     <script>
         // Theme preference: apply ASAP and expose toggle helper.
         // Kept in its own <script> tag so a Tailwind CDN error can't kill it.
@@ -125,7 +125,7 @@
 
 @include('public.partials.header', ['useModal' => $useModal ?? false])
 
-<main class="flex-1">
+<main class="flex-1 mkt-site-main">
     @yield('content')
 </main>
 

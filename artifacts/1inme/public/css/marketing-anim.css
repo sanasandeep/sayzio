@@ -232,6 +232,27 @@ html.light-mode .mkt-navbar-bar.is-stuck {
     .mkt-navbar-bar { transition: none; }
 }
 
+/* ---- Seamless top for the in-flow (sticky) marketing header ----
+   On non-home marketing pages the header sticks in normal flow, so the floating
+   bar's top margin used to expose a bare band of page background above it (the
+   home page hides this because its FIXED header overlays the hero, which fills
+   to the very top). To match the home page we pull the first content section up
+   behind the sticky bar so its background reaches the top edge, then add back an
+   equal amount of top padding so the hero content still clears the bar. Scoped
+   to `.mkt-site-main` (only present on the sticky site layout) so the fixed
+   home-page header is untouched. --mkt-nav-h ≈ the floating bar's occupied
+   height: 0.85rem top margin + 4rem (h-16) bar + 2px borders. */
+:root { --mkt-nav-h: calc(0.85rem + 4rem + 2px); }
+.mkt-site-main { margin-top: calc(-1 * var(--mkt-nav-h)); }
+.mkt-site-main > :first-child {
+    padding-top: calc(var(--mkt-nav-h) + 3rem);
+}
+@media (min-width: 1024px) {
+    .mkt-site-main > :first-child {
+        padding-top: calc(var(--mkt-nav-h) + 5.5rem);
+    }
+}
+
 /* ---- Translucent white surfaces become subtle dark tints ---- */
 html.light-mode .bg-white\/5,
 html.light-mode .bg-white\/10,
