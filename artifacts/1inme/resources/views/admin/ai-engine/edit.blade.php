@@ -226,7 +226,7 @@
     <div class="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-5">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <h3 class="text-white text-base font-semibold">Voice Assistant</h3>
+                <h3 class="text-white text-base font-semibold">AI Voice Assistant</h3>
                 <p class="text-white/50 text-xs mt-1">Whisper transcribes, GPT reasons &amp; calls tools, ElevenLabs speaks. Each stage is metered separately and charged from the coin wallet.</p>
             </div>
             <label class="inline-flex items-center gap-2 cursor-pointer">

@@ -312,8 +312,8 @@
            class="sidebar-link {{ request()->routeIs('admin.ai-minds.*') ? 'active' : '' }}"
            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div>
-            <span class="nav-label">Knowledge Bases</span>
-            <span class="sidebar-tooltip">Knowledge Bases</span>
+            <span class="nav-label">AI Knowledge Bases</span>
+            <span class="sidebar-tooltip">AI Knowledge Bases</span>
         </a>
 
         <a href="{{ route('admin.ai-personas.index') }}"
@@ -336,8 +336,8 @@
            class="sidebar-link {{ request()->routeIs('admin.ask-coach.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div>
-            <span class="nav-label">Ask Coach</span>
-            <span class="sidebar-tooltip">Ask Coach</span>
+            <span class="nav-label">AI Coach</span>
+            <span class="sidebar-tooltip">AI Coach</span>
         </a>
 
         <a href="{{ route('admin.ai-companions.index') }}"

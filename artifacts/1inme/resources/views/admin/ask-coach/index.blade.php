@@ -1,11 +1,11 @@
 @extends('admin.layouts.app')
-@section('title', 'Ask Coach')
+@section('title', 'AI Coach')
 
 @section('content')
 <div class="max-w-6xl mx-auto px-6 py-8 space-y-8">
     <div class="flex items-center justify-between">
         <div>
-            <p class="text-xs uppercase tracking-wider text-white/40">AI · Ask Coach</p>
+            <p class="text-xs uppercase tracking-wider text-white/40">AI · Coach</p>
             <h1 class="text-2xl font-bold text-white mt-1">Coach usage &amp; quality</h1>
             <p class="text-sm text-white/50 mt-1">Last <strong>{{ $days }}</strong> days. Spend is the sum of every AI credit charged with feature tag <code>ask_coach.*</code>.</p>
         </div>
@@ -63,14 +63,14 @@
             <textarea name="system_prompt" rows="10"
                       class="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white text-sm font-mono">{{ $systemPrompt }}</textarea>
             <p class="text-xs text-white/40 mt-1">
-                Sent at the top of every Ask Coach turn before the data snapshots are appended. Leave blank to restore the platform default.
+                Sent at the top of every AI Coach turn before the data snapshots are appended. Leave blank to restore the platform default.
             </p>
         </div>
 
         <div>
             <label class="block text-sm text-white/70 mb-2">Enabled plans</label>
             <p class="text-xs text-white/40 mb-2">
-                Tick which plans can use Ask Coach. Leave all unticked to enable Ask Coach for every plan (the default).
+                Tick which plans can use AI Coach. Leave all unticked to enable AI Coach for every plan (the default).
             </p>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                 @foreach($allPlans as $p)

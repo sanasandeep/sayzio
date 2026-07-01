@@ -983,7 +983,7 @@
                     </select>
                 </div>
                 <div class="md:col-span-3">
-                    <label class="block text-xs text-white/60 mb-1">Knowledge Bases (platform Minds)</label>
+                    <label class="block text-xs text-white/60 mb-1">AI Knowledge Bases (platform Minds)</label>
                     @if($platformMinds->isEmpty())
                         <p class="text-xs text-white/40">No platform Minds yet. <a class="text-indigo-300 underline" href="{{ route('admin.site-assistant.knowledge') }}">Manage knowledge bases →</a></p>
                     @else

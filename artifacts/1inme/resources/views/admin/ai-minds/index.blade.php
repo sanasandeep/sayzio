@@ -1,5 +1,5 @@
 @extends('admin.layouts.app')
-@section('title', 'Knowledge Bases')
+@section('title', 'AI Knowledge Bases')
 
 @section('content')
 <div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
@@ -8,7 +8,7 @@
 
     <div class="flex items-end justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-bold text-white">Knowledge Bases</h1>
+            <h1 class="text-2xl font-bold text-white">AI Knowledge Bases</h1>
             <p class="text-sm text-white/50 mt-1">Per-user knowledge bases and the platform default mind.</p>
         </div>
         <form method="POST" action="{{ route('admin.ai-minds.reseed') }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Re-queue every source?', message: 'Ingestion will be re-queued for every source on the platform default Mind.', confirmText: 'Re-queue', confirmIcon: 'fa-rotate', iconClass: 'fa-rotate'})">
