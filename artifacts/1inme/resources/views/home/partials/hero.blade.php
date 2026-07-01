@@ -50,7 +50,7 @@
                           data-handle-check-url="{{ route('site.handle.available') }}">
                         <label for="zio-claim-input" class="zio-claim-label">Claim your link — pick your handle</label>
                         <div class="zio-claim" id="zio-claim-box">
-                            <span class="zio-claim-prefix" aria-hidden="true">{{ $claimHost }}/@</span>
+                            <span class="zio-claim-prefix" aria-hidden="true">{{ $claimHost }}/</span>
                             <input id="zio-claim-input" name="desired_handle" type="text"
                                    autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"
                                    maxlength="30" placeholder="yourname" class="zio-claim-input"
