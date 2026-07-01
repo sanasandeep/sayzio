@@ -88,26 +88,6 @@ const KEYS: { v: string; sub?: string }[] = [
 // satisfy this are eligible for the server lookup/history POST.
 const E164 = /^\+[1-9]\d{6,14}$/;
 
-// T9 keypad letter map for client-side smart-dial name matching.
-const T9_MAP: Record<string, string> = {
-  a: "2", b: "2", c: "2",
-  d: "3", e: "3", f: "3",
-  g: "4", h: "4", i: "4",
-  j: "5", k: "5", l: "5",
-  m: "6", n: "6", o: "6",
-  p: "7", q: "7", r: "7", s: "7",
-  t: "8", u: "8", v: "8",
-  w: "9", x: "9", y: "9", z: "9",
-};
-
-function t9Encode(name: string): string {
-  return name
-    .toLowerCase()
-    .split("")
-    .map((ch) => T9_MAP[ch] ?? "")
-    .join("");
-}
-
 // ── Direct channel actions ───────────────────────────────────────────
 // Config-independent device handoffs (no Google Contacts / integration).
 // The channel catalog + the user's preferred (enabled) channels are the single
@@ -274,7 +254,6 @@ export default function DialerScreen() {
 
   const [contactsQuery, setContactsQuery] = useState("");
   const [appContacts, setAppContacts] = useState<Contact[]>([]);
-  const [keypadMatches, setKeypadMatches] = useState<Contact[]>([]);
   // Universal finder (keypad): grouped results across Contacts, People, My
   // links, Followed and Workspaces via the shared server contract. `keypadMode`
   // toggles the T9 digit grid ↔ an alphanumeric keyboard; both feed this.
@@ -386,32 +365,6 @@ export default function DialerScreen() {
       setAppContacts([]);
     } finally {
       setContactsLoading(false);
-    }
-  }, []);
-
-  // T9 smart-dial: a pure digit sequence matches phone numbers (server)
-  // OR keypad-spelled names (client-side over the same result set + a
-  // broader fetch). Text queries match names/numbers server-side.
-  const runT9Search = useCallback(async (q: string) => {
-    try {
-      const isDigits = /^[+\d*#]+$/.test(q);
-      const res = await listContacts(q || undefined);
-      let items = res.items.filter((c) => (c.phones?.length ?? 0) > 0);
-
-      if (isDigits) {
-        const seq = q.replace(/\D+/g, "");
-        if (seq.length >= 2) {
-          const broad = await listContacts();
-          const have = new Set(items.map((c) => c.id));
-          const t9Hits = broad.items
-            .filter((c) => (c.phones?.length ?? 0) > 0 && !have.has(c.id))
-            .filter((c) => t9Encode(contactName(c)).includes(seq));
-          items = [...items, ...t9Hits];
-        }
-      }
-      setKeypadMatches(items.slice(0, 8));
-    } catch {
-      setKeypadMatches([]);
     }
   }, []);
 
