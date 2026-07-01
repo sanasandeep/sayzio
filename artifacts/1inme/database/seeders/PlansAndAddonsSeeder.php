@@ -1252,7 +1252,7 @@ class PlansAndAddonsSeeder extends Seeder
             [
                 'name' => 'Connected Apps (CRM Sync)', 'slug' => 'connected-apps',
                 'description' => 'Two-way CRM sync with Salesforce, HubSpot & Zoho plus Google Analytics 4 event forwarding.',
-                'type' => 'recurring', 'monthly_price' => 8.00, 'annual_price' => 80.00,
+                'type' => 'recurring', 'monthly_price' => 15.00, 'annual_price' => 150.00,
                 'features' => ['connected_apps' => true],
                 'status' => 'active', 'sort_order' => 17, 'applies_to' => $proPlus,
             ],
