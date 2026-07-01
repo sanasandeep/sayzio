@@ -71,21 +71,15 @@
                 </button>
             </div>
             {{-- Direct channel actions on the typed number — one tap to reach
-                 anyone by text, WhatsApp, Telegram or email, no Google needed. --}}
-            <div class="grid grid-cols-4 gap-2 mt-2">
-                <button type="button" onclick="chanSms(inp.value)" title="Send SMS" class="py-2.5 rounded-xl text-xs font-medium flex flex-col items-center gap-0.5" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-primary);">
-                    <i class="fas fa-comment-sms" style="color:#38bdf8;"></i> Text
-                </button>
-                <button type="button" onclick="chanWa(inp.value)" title="Message on WhatsApp" class="py-2.5 rounded-xl text-xs font-medium flex flex-col items-center gap-0.5" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-primary);">
-                    <i class="fab fa-whatsapp" style="color:#25d366;"></i> WhatsApp
-                </button>
-                <button type="button" onclick="chanWaCall(inp.value)" title="WhatsApp call" class="py-2.5 rounded-xl text-xs font-medium flex flex-col items-center gap-0.5" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-primary);">
-                    <i class="fas fa-phone-volume" style="color:#25d366;"></i> WA&nbsp;call
-                </button>
-                <button type="button" onclick="chanTelegram(inp.value)" title="Open in Telegram" class="py-2.5 rounded-xl text-xs font-medium flex flex-col items-center gap-0.5" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-primary);">
-                    <i class="fab fa-telegram" style="color:#38bdf8;"></i> Telegram
+                 anyone by their preferred app, no Google needed. Only the
+                 channels the user picked are shown (customisable below). --}}
+            <div class="flex items-center justify-between mt-3 mb-1">
+                <span class="text-[10px] font-semibold uppercase tracking-wide" style="color:var(--text-faint);">Quick channels</span>
+                <button type="button" onclick="openChannelPicker()" class="text-[11px] font-medium inline-flex items-center gap-1" style="color:var(--text-muted);">
+                    <i class="fas fa-sliders-h text-[10px]"></i> Customize
                 </button>
             </div>
+            <div id="keypad-channels" class="grid grid-cols-4 gap-2"></div>
         </div>
 
         {{-- Search + recent --}}
@@ -157,14 +151,47 @@ function dialerProfile() {
 
 // ── Direct channel actions ───────────────────────────────────────────
 // Config-independent: these are plain device/deep-link handoffs (tel/sms/
-// wa.me/t.me/mailto) that need no Google Contacts or any integration.
+// wa.me/t.me/signal.me/viber) that need no Google Contacts or any integration.
+// The catalog + the user's preferred (enabled) channels are the single source
+// of truth shared with PHP (App\Modules\User\Support\DialerChannels), so the
+// keypad, favourites, frequent and recents rows never drift.
+const DIALER_CH_CATALOG = @json($channelCatalog);
+let   DIALER_CH_ENABLED = @json(array_values($channelEnabled));
+const DIALER_CH_URL = '{{ route('user.dialer.channels') }}';
+
 function digitsOf(v) { return (v || '').replace(/[^0-9]/g, ''); }
-function chanCall(v)   { v = (v || '').trim(); if (!v) return; window.location.href = 'tel:' + v; }
-function chanSms(v)    { v = (v || '').trim(); if (!v) return; window.location.href = 'sms:' + v; }
-function chanWa(v)     { const d = digitsOf(v); if (!d) return; window.open('https://wa.me/' + d, '_blank'); }
-function chanWaCall(v) { const d = digitsOf(v); if (!d) return; window.open('https://wa.me/' + d, '_blank'); }
-function chanTelegram(v){ const d = digitsOf(v); if (!d) return; window.open('https://t.me/+' + d, '_blank'); }
-function chanEmail(v)  { v = (v || '').trim(); if (!v) return; window.location.href = 'mailto:' + v; }
+// Build the deep-link for a channel `js` mode + typed value.
+function chanUrl(mode, v) {
+    v = (v || '').trim();
+    const d = digitsOf(v);
+    switch (mode) {
+        case 'tel':    return v ? 'tel:' + v : '';
+        case 'sms':    return v ? 'sms:' + v : '';
+        case 'wa':     return d ? 'https://wa.me/' + d : '';
+        case 'tg':     return d ? 'https://t.me/+' + d : '';
+        case 'signal': return d ? 'https://signal.me/#p/+' + d : '';
+        case 'viber':  return d ? 'viber://chat?number=%2B' + d : '';
+        default:       return '';
+    }
+}
+function chanOpen(mode, v) {
+    const url = chanUrl(mode, v);
+    if (!url) return;
+    if (mode === 'tel' || mode === 'sms' || mode === 'viber') window.location.href = url;
+    else window.open(url, '_blank');
+}
+function chanMeta(key) { return DIALER_CH_CATALOG.find(c => c.key === key); }
+
+// Buttons for the currently-typed number under the keypad.
+function renderKeypadChannels() {
+    const box = document.getElementById('keypad-channels');
+    if (!box) return;
+    box.innerHTML = DIALER_CH_ENABLED.map(key => {
+        const c = chanMeta(key);
+        if (!c) return '';
+        return `<button type="button" onclick="chanOpen('${c.js}', inp.value)" title="${c.label}" class="py-2.5 rounded-xl text-xs font-medium flex flex-col items-center gap-0.5" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-primary);"><i class="${c.fa}" style="color:${c.color};"></i> ${c.short}</button>`;
+    }).join('');
+}
 
 // Shared direct-action cluster (mirrors user/dialer/_channel_actions.blade.php)
 // so favourites/frequent/recents rendered live match the server-rendered rows.
@@ -175,13 +202,64 @@ function channelActions(num, size) {
     const btn = sm ? 'w-7 h-7' : 'w-8 h-8';
     const ico = sm ? 'text-[10px]' : 'text-xs';
     const n = num.replace(/'/g, "\\'");
-    return `<div class="flex items-center justify-center flex-wrap gap-1">
-        <button type="button" onclick="chanCall('${n}')" title="Call" class="${btn} rounded-full flex items-center justify-center" style="background:rgba(34,197,94,.14);color:#22c55e;"><i class="fas fa-phone ${ico}"></i></button>
-        <button type="button" onclick="chanSms('${n}')" title="Text message" class="${btn} rounded-full flex items-center justify-center" style="background:rgba(56,189,248,.14);color:#38bdf8;"><i class="fas fa-comment-sms ${ico}"></i></button>
-        <button type="button" onclick="chanWa('${n}')" title="Message on WhatsApp" class="${btn} rounded-full flex items-center justify-center" style="background:rgba(37,211,102,.14);color:#25d366;"><i class="fab fa-whatsapp ${ico}"></i></button>
-        <button type="button" onclick="chanWaCall('${n}')" title="WhatsApp call" class="${btn} rounded-full flex items-center justify-center" style="background:rgba(37,211,102,.14);color:#25d366;"><i class="fas fa-phone-volume ${ico}"></i></button>
-        <button type="button" onclick="chanTelegram('${n}')" title="Open in Telegram" class="${btn} rounded-full flex items-center justify-center" style="background:rgba(56,139,225,.16);color:#3390ec;"><i class="fab fa-telegram ${ico}"></i></button>
-    </div>`;
+    const buttons = DIALER_CH_ENABLED.map(key => {
+        const c = chanMeta(key);
+        if (!c) return '';
+        return `<button type="button" onclick="chanOpen('${c.js}','${n}')" title="${c.label}" class="${btn} rounded-full flex items-center justify-center" style="background:${c.color}24;color:${c.color};"><i class="${c.fa} ${ico}"></i></button>`;
+    }).join('');
+    return `<div class="flex items-center justify-center flex-wrap gap-1">${buttons}</div>`;
+}
+
+// ── Channel picker (per-user preferred channels) ─────────────────────
+function openChannelPicker() {
+    document.getElementById('channel-picker')?.remove();
+    const rows = DIALER_CH_CATALOG.map(c => {
+        const on = DIALER_CH_ENABLED.includes(c.key);
+        return `<label class="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);">
+            <input type="checkbox" value="${c.key}" ${on ? 'checked' : ''} class="channel-pick-cb" style="accent-color:${c.color};width:16px;height:16px;">
+            <span class="w-7 h-7 rounded-full flex items-center justify-center" style="background:${c.color}24;color:${c.color};"><i class="${c.fa} text-xs"></i></span>
+            <span class="text-sm font-medium" style="color:var(--text-primary);">${c.short}</span>
+        </label>`;
+    }).join('');
+    const el = document.createElement('div');
+    el.id = 'channel-picker';
+    el.className = 'fixed inset-0 z-[60] flex items-center justify-center p-4';
+    el.innerHTML = `
+        <div class="absolute inset-0" style="background:rgba(0,0,0,.55);" onclick="document.getElementById('channel-picker').remove()"></div>
+        <div class="relative w-full max-w-sm rounded-2xl p-5" style="background:var(--surface,#141019);border:1px solid rgba(255,255,255,.12);">
+            <h3 class="text-base font-bold mb-1" style="color:var(--text-primary);">Preferred channels</h3>
+            <p class="text-xs mb-4" style="color:var(--text-muted);">Pick the messaging apps you actually use. Only these appear as one-tap actions on the keypad, favourites and recents.</p>
+            <div class="space-y-2 max-h-[50vh] overflow-y-auto">${rows}</div>
+            <div class="flex items-center justify-end gap-2 mt-5">
+                <button type="button" onclick="document.getElementById('channel-picker').remove()" class="px-4 py-2 rounded-xl text-sm font-medium" style="background:rgba(255,255,255,.06);color:var(--text-primary);">Cancel</button>
+                <button type="button" onclick="saveChannelPicker(this)" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">Save</button>
+            </div>
+        </div>`;
+    document.body.appendChild(el);
+}
+
+async function saveChannelPicker(btn) {
+    const picked = Array.from(document.querySelectorAll('.channel-pick-cb'))
+        .filter(cb => cb.checked).map(cb => cb.value);
+    btn.disabled = true;
+    try {
+        const res = await fetch(DIALER_CH_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            body: JSON.stringify({ channels: picked }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error('save failed');
+        DIALER_CH_ENABLED = (json.data && json.data.enabled) || DIALER_CH_ENABLED;
+        document.getElementById('channel-picker')?.remove();
+        renderKeypadChannels();
+        // Re-pull the live lists so favourites/frequent/recents re-render their
+        // channel rows with the new selection (full state when cursor is reset).
+        liveCursor = null; pollLive();
+    } catch (e) {
+        btn.disabled = false;
+        alert('Could not save channels. Please try again.');
+    }
 }
 
 function profileHref(number, contactId) {
@@ -224,6 +302,7 @@ async function fetchMatches(q) {
 }
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 
+renderKeypadChannels();
 inp.addEventListener('input', liveFilter);
 if (searchInp) {
     searchInp.addEventListener('input', () => {

@@ -10,6 +10,7 @@ use App\Modules\User\Models\DialerLookup;
 use App\Modules\User\Models\DialerNumberFlag;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Support\DialerChannels;
 use App\Modules\User\Support\DialerData;
 use App\Modules\User\Support\DialerIdentity;
 use Illuminate\Http\Request;
@@ -138,6 +139,36 @@ class DialerController extends Controller
             'recents'  => DialerData::groupedRecents($userId),
             'frequent' => DialerData::frequent($userId),
         ]);
+    }
+
+    /**
+     * The user's preferred dialer channels (which of call / SMS / WhatsApp /
+     * Telegram / Signal / Viber the one-tap channel row shows) plus the full
+     * catalog so mobile can render the picker. Shared source with the web
+     * dialer via DialerChannels so the surfaces never drift.
+     */
+    public function channels(Request $request)
+    {
+        return $this->ok(DialerChannels::payloadFor($request->user()));
+    }
+
+    public function updateChannels(Request $request)
+    {
+        $data = $request->validate([
+            'channels'   => ['present', 'array'],
+            'channels.*' => ['string'],
+        ]);
+
+        $user = $request->user();
+        $enabled = DialerChannels::sanitize($data['channels']);
+
+        $settings = $user->settings ?? [];
+        $settings['dialer_channels'] = $enabled;
+        $user->settings = $settings;
+        $user->save();
+        DialerChannels::forget($user->id);
+
+        return $this->ok(DialerChannels::payloadFor($user));
     }
 
     /**

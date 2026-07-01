@@ -9,6 +9,7 @@ use App\Modules\User\Models\DialerFavorite;
 use App\Modules\User\Models\DialerLookup;
 use App\Modules\User\Models\DialerNumberFlag;
 use App\Modules\User\Models\LinkedIdentifier;
+use App\Modules\User\Support\DialerChannels;
 use App\Modules\User\Support\DialerData;
 use App\Modules\User\Support\DialerIdentity;
 use App\Modules\User\Support\DialerT9;
@@ -61,7 +62,41 @@ class DialerController extends Controller
         $recent     = DialerData::groupedRecents($user->id);
         $liveCursor = DialerData::liveSignature($user->id);
 
-        return view('user.dialer.index', compact('q', 'contacts', 'favorites', 'frequent', 'recent', 'liveCursor'));
+        // Pass the LIST-shaped catalog (each row carries its own `key`) so the
+        // view JS can `.map`/`.find` over it; catalog() returns an associative
+        // key=>meta map, which would break those array calls.
+        $channelPayload = DialerChannels::payloadFor($user);
+        $channelCatalog = $channelPayload['catalog'];
+        $channelEnabled = $channelPayload['enabled'];
+
+        return view('user.dialer.index', compact(
+            'q', 'contacts', 'favorites', 'frequent', 'recent', 'liveCursor',
+            'channelCatalog', 'channelEnabled'
+        ));
+    }
+
+    /**
+     * Save the user's preferred messaging channels for the dialer (which of
+     * call / SMS / WhatsApp / Telegram / Signal / Viber the one-tap channel
+     * rows show, and in what order). Stored on the `settings` JSON.
+     */
+    public function channelsUpdate(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'channels'   => ['present', 'array'],
+            'channels.*' => ['string'],
+        ]);
+
+        $enabled = DialerChannels::sanitize($data['channels']);
+
+        $settings = $user->settings ?? [];
+        $settings['dialer_channels'] = $enabled;
+        $user->settings = $settings;
+        $user->save();
+        DialerChannels::forget($user->id);
+
+        return response()->json(['data' => ['enabled' => $enabled]]);
     }
 
     public function profile(Request $request)

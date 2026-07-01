@@ -1130,6 +1130,8 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/dialer/lookup',             [DialerController::class, 'lookup'])->middleware('throttle:60,1');
         Route::get   ('/dialer/profile',            [DialerController::class, 'profile']);
         Route::get   ('/dialer/history',            [DialerController::class, 'history']);
+        Route::get   ('/dialer/channels',           [DialerController::class, 'channels']);
+        Route::put   ('/dialer/channels',           [DialerController::class, 'updateChannels']);
         // Pollable live-sync cursor (favorites/flags/call-log across devices).
         Route::get   ('/dialer/live',               [DialerController::class, 'live']);
         // Speed-dial favorites.

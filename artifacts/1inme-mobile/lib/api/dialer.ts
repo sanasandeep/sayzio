@@ -212,6 +212,44 @@ export async function setCallback(input: {
 export async function clearCallback(id: number): Promise<void> {
   await apiFetch(`/dialer/callback/${id}`, { method: "DELETE" });
 }
+
+// ── Preferred messaging channels ─────────────────────────────────────
+// Which of call / SMS / WhatsApp / Telegram / Signal / Viber the one-tap
+// channel rows show. Single source of truth shared with the web dialer via
+// the server (App\Modules\User\Support\DialerChannels), so surfaces never
+// drift. `js` is the deep-link builder mode; `feather` is the icon name.
+
+export type DialerChannelDef = {
+  key: string;
+  label: string;
+  short: string;
+  color: string;
+  fa: string;
+  feather: string;
+  js: string;
+};
+
+export type DialerChannelPrefs = {
+  catalog: DialerChannelDef[];
+  enabled: string[];
+};
+
+/** The full channel catalog + the user's currently enabled channel keys. */
+export async function getDialerChannels(): Promise<DialerChannelPrefs> {
+  const res = await apiFetch<{ data: DialerChannelPrefs }>(`/dialer/channels`);
+  return res.data;
+}
+
+/** Save the user's preferred channels (ordered keys). Returns the resolved set. */
+export async function updateDialerChannels(
+  channels: string[],
+): Promise<DialerChannelPrefs> {
+  const res = await apiFetch<{ data: DialerChannelPrefs }>(`/dialer/channels`, {
+    method: "PUT",
+    body: JSON.stringify({ channels }),
+  });
+  return res.data;
+}
 export type DialerChannel = {
   type: string;
   label: string;

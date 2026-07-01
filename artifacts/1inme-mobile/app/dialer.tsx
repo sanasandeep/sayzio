@@ -5,7 +5,9 @@ import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
   type ComponentProps,
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -16,6 +18,7 @@ import {
   Alert,
   FlatList,
   Linking,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -27,13 +30,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
 import {
+  type DialerChannelDef,
   type DialerFavorite,
   type DialerFrequent,
   type DialerRecent,
   dialerHistory,
   dialerLive,
+  getDialerChannels,
   listFavorites,
   lookupNumber,
+  updateDialerChannels,
 } from "@/lib/api/dialer";
 import { type Contact, listContacts } from "@/lib/api/contacts";
 
@@ -101,6 +107,12 @@ function t9Encode(name: string): string {
 
 // ── Direct channel actions ───────────────────────────────────────────
 // Config-independent device handoffs (no Google Contacts / integration).
+// The channel catalog + the user's preferred (enabled) channels are the single
+// source of truth shared with the web dialer via the server
+// (App\Modules\User\Support\DialerChannels), so the keypad / favourites /
+// frequent / recents rows never drift. The former "WhatsApp call" action was
+// removed — there is no public deep link for a WhatsApp call, so it only ever
+// opened the same wa.me chat, a misleading duplicate.
 function digitsOf(v: string): string {
   return (v || "").replace(/[^0-9]/g, "");
 }
@@ -111,66 +123,89 @@ async function openUrl(url: string): Promise<void> {
     Alert.alert("Can't open", "No app is available to handle this action.");
   }
 }
-function chanCall(v: string): void {
+// Build + open the deep-link for a channel `js` mode and typed value.
+function chanOpen(mode: string, v: string): void {
   const t = (v || "").trim();
-  if (t) void openUrl(`tel:${t}`);
-}
-function chanSms(v: string): void {
-  const t = (v || "").trim();
-  if (t) void openUrl(`sms:${t}`);
-}
-function chanWhatsApp(v: string): void {
   const d = digitsOf(v);
-  if (d) void openUrl(`https://wa.me/${d}`);
+  let url = "";
+  switch (mode) {
+    case "tel":    url = t ? `tel:${t}` : ""; break;
+    case "sms":    url = t ? `sms:${t}` : ""; break;
+    case "wa":     url = d ? `https://wa.me/${d}` : ""; break;
+    case "tg":     url = d ? `https://t.me/+${d}` : ""; break;
+    case "signal": url = d ? `https://signal.me/#p/+${d}` : ""; break;
+    case "viber":  url = d ? `viber://chat?number=%2B${d}` : ""; break;
+  }
+  if (url) void openUrl(url);
 }
-function chanTelegram(v: string): void {
-  const d = digitsOf(v);
-  if (d) void openUrl(`https://t.me/+${d}`);
+
+// Fallback catalog so the dialer works before the prefs fetch resolves (or
+// offline). Mirrors the server DialerChannels catalog; the live payload
+// overrides this once loaded.
+const FALLBACK_CHANNELS: DialerChannelDef[] = [
+  { key: "call", label: "Call", short: "Call", color: "#22c55e", fa: "fas fa-phone", feather: "phone", js: "tel" },
+  { key: "sms", label: "Text message", short: "Text", color: "#38bdf8", fa: "fas fa-comment-sms", feather: "message-square", js: "sms" },
+  { key: "whatsapp", label: "Chat on WhatsApp", short: "WhatsApp", color: "#25d366", fa: "fab fa-whatsapp", feather: "message-circle", js: "wa" },
+  { key: "telegram", label: "Open in Telegram", short: "Telegram", color: "#3390ec", fa: "fab fa-telegram", feather: "send", js: "tg" },
+  { key: "signal", label: "Message on Signal", short: "Signal", color: "#3a76f0", fa: "fab fa-signal-messenger", feather: "shield", js: "signal" },
+  { key: "viber", label: "Message on Viber", short: "Viber", color: "#7360f2", fa: "fab fa-viber", feather: "phone-forwarded", js: "viber" },
+];
+const FALLBACK_ENABLED = ["call", "sms", "whatsapp", "telegram"];
+
+type ChannelPrefs = {
+  catalog: DialerChannelDef[];
+  enabled: string[];
+};
+
+const ChannelPrefsContext = createContext<ChannelPrefs>({
+  catalog: FALLBACK_CHANNELS,
+  enabled: FALLBACK_ENABLED,
+});
+
+/** Resolve enabled channel keys to full catalog rows, in preference order. */
+function resolveChannels(prefs: ChannelPrefs): DialerChannelDef[] {
+  const byKey = new Map(prefs.catalog.map((c) => [c.key, c]));
+  return prefs.enabled
+    .map((k) => byKey.get(k))
+    .filter((c): c is DialerChannelDef => !!c);
 }
-function chanWhatsAppCall(v: string): void {
-  const d = digitsOf(v);
-  if (d) void openUrl(`https://wa.me/${d}`);
+
+// A Feather name for a channel — the catalog carries a `feather` field, but it
+// arrives as a plain string, so we cast to the icon-name union here.
+function featherName(c: DialerChannelDef): ComponentProps<typeof Feather>["name"] {
+  return c.feather as ComponentProps<typeof Feather>["name"];
 }
 
 // Shared direct-action cluster (mirrors web user/dialer/_channel_actions.blade.php):
-// call, SMS, WhatsApp message, WhatsApp call, Telegram — the full set on every
-// keypad/recents/favourites/frequent surface so the Dialer works with no Google
-// Contacts connected. Email is omitted because these payloads carry no address.
+// only the channels the user picked, on every keypad/recents/favourites/frequent
+// surface, so the Dialer works with no Google Contacts connected.
 function ChannelActions({ number, size = "md" }: { number: string; size?: "sm" | "md" }) {
+  const prefs = useContext(ChannelPrefsContext);
+  const channels = resolveChannels(prefs);
   const n = (number || "").trim();
-  if (!n) return null;
+  if (!n || channels.length === 0) return null;
   const d = size === "sm" ? 26 : 32;
   const ico = size === "sm" ? 13 : 16;
-  const mk = (
-    onPress: () => void,
-    name: React.ComponentProps<typeof Feather>["name"],
-    color: string,
-    bg: string,
-    label: string,
-  ) => (
-    <Pressable
-      onPress={onPress}
-      hitSlop={6}
-      accessibilityLabel={label}
-      style={{
-        width: d,
-        height: d,
-        borderRadius: d / 2,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: bg,
-      }}
-    >
-      <Feather name={name} size={ico} color={color} />
-    </Pressable>
-  );
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
-      {mk(() => chanCall(n), "phone", "#22c55e", "#22c55e22", "Call")}
-      {mk(() => chanSms(n), "message-square", "#38bdf8", "#38bdf822", "Text message")}
-      {mk(() => chanWhatsApp(n), "message-circle", "#25d366", "#25d36622", "Message on WhatsApp")}
-      {mk(() => chanWhatsAppCall(n), "phone-call", "#25d366", "#25d36622", "WhatsApp call")}
-      {mk(() => chanTelegram(n), "send", "#3390ec", "#3390ec22", "Open in Telegram")}
+      {channels.map((c) => (
+        <Pressable
+          key={c.key}
+          onPress={() => chanOpen(c.js, n)}
+          hitSlop={6}
+          accessibilityLabel={c.label}
+          style={{
+            width: d,
+            height: d,
+            borderRadius: d / 2,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: `${c.color}22`,
+          }}
+        >
+          <Feather name={featherName(c)} size={ico} color={c.color} />
+        </Pressable>
+      ))}
     </View>
   );
 }
@@ -227,6 +262,13 @@ export default function DialerScreen() {
   const [favorites, setFavorites] = useState<DialerFavorite[]>([]);
   const [recentLoading, setRecentLoading] = useState(false);
 
+  // Preferred messaging channels (shared with the web dialer via the server).
+  const [channelPrefs, setChannelPrefs] = useState<ChannelPrefs>({
+    catalog: FALLBACK_CHANNELS,
+    enabled: FALLBACK_ENABLED,
+  });
+  const [channelPickerOpen, setChannelPickerOpen] = useState(false);
+
   const [contactsQuery, setContactsQuery] = useState("");
   const [appContacts, setAppContacts] = useState<Contact[]>([]);
   const [keypadMatches, setKeypadMatches] = useState<Contact[]>([]);
@@ -240,6 +282,14 @@ export default function DialerScreen() {
   useEffect(() => {
     void refreshRecent();
     void refreshFavorites();
+    void (async () => {
+      try {
+        const prefs = await getDialerChannels();
+        if (prefs?.catalog?.length) setChannelPrefs(prefs);
+      } catch {
+        /* keep the fallback catalog/defaults on failure */
+      }
+    })();
   }, []);
 
   // Near-real-time cross-device sync: poll the lastId-style cursor. The
@@ -541,6 +591,7 @@ export default function DialerScreen() {
   );
 
   return (
+    <ChannelPrefsContext.Provider value={channelPrefs}>
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: "Dialer" }} />
 
@@ -792,14 +843,26 @@ export default function DialerScreen() {
               <View style={styles.secondaryBtn} />
             </View>
 
-            {/* Direct channel actions on the typed number — reach anyone by
-                text, WhatsApp, Telegram or email without saving a contact. */}
+            {/* Direct channel actions on the typed number — reach anyone on
+                your preferred channels without saving a contact. Customize
+                which channels appear via the picker. */}
             {!!number && (
               <View style={styles.channelRow}>
-                <ChannelBtn icon="message-square" label="Text" color="#38bdf8" onPress={() => chanSms(number)} />
-                <ChannelBtn icon="message-circle" label="WhatsApp" color="#25d366" onPress={() => chanWhatsApp(number)} />
-                <ChannelBtn icon="send" label="Telegram" color="#38bdf8" onPress={() => chanTelegram(number)} />
-                <ChannelBtn icon="phone-call" label="Call" color="#16a34a" onPress={() => chanCall(number)} />
+                {resolveChannels(channelPrefs).map((c) => (
+                  <ChannelBtn
+                    key={c.key}
+                    icon={featherName(c)}
+                    label={c.short}
+                    color={c.color}
+                    onPress={() => chanOpen(c.js, number)}
+                  />
+                ))}
+                <ChannelBtn
+                  icon="sliders"
+                  label="Customize"
+                  color={colors.mutedForeground}
+                  onPress={() => setChannelPickerOpen(true)}
+                />
               </View>
             )}
           </View>
@@ -1125,7 +1188,18 @@ export default function DialerScreen() {
           />
         </View>
       )}
+
+      <ChannelPickerModal
+        open={channelPickerOpen}
+        prefs={channelPrefs}
+        onClose={() => setChannelPickerOpen(false)}
+        onSaved={(prefs) => {
+          setChannelPrefs(prefs);
+          setChannelPickerOpen(false);
+        }}
+      />
     </View>
+    </ChannelPrefsContext.Provider>
   );
 }
 
@@ -1134,6 +1208,179 @@ function MiniTag({ text, color }: { text: string; color: string }) {
     <View style={[styles.miniTag, { backgroundColor: `${color}22` }]}>
       <Text style={[styles.miniTagText, { color }]}>{text}</Text>
     </View>
+  );
+}
+
+// Pick which messaging channels appear on the dialer's one-tap rows. Saves to
+// the account (shared with the web dialer), so the choice follows the user
+// across devices.
+function ChannelPickerModal({
+  open,
+  prefs,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  prefs: ChannelPrefs;
+  onClose: () => void;
+  onSaved: (prefs: ChannelPrefs) => void;
+}) {
+  const colors = useColors();
+  const [selected, setSelected] = useState<string[]>(prefs.enabled);
+  const [saving, setSaving] = useState(false);
+
+  // Reset the draft each time the sheet opens so it reflects the live prefs.
+  useEffect(() => {
+    if (open) setSelected(prefs.enabled);
+  }, [open, prefs.enabled]);
+
+  const toggle = (key: string) => {
+    setSelected((cur) =>
+      cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key],
+    );
+  };
+
+  const save = async () => {
+    if (selected.length === 0) {
+      Alert.alert("Pick at least one", "Choose at least one channel to show.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const next = await updateDialerChannels(selected);
+      onSaved(next);
+    } catch {
+      Alert.alert("Couldn't save", "Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal
+      visible={open}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <Pressable
+        onPress={onClose}
+        style={{ flex: 1, backgroundColor: "#0008", justifyContent: "flex-end" }}
+      >
+        <Pressable
+          onPress={(e) => e.stopPropagation()}
+          style={{
+            backgroundColor: colors.background,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            paddingHorizontal: 20,
+            paddingTop: 16,
+            paddingBottom: 32,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 4,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.foreground,
+                fontFamily: "SpaceGrotesk_600SemiBold",
+                fontSize: 18,
+              }}
+            >
+              Channels
+            </Text>
+            <Pressable onPress={onClose} hitSlop={10}>
+              <Feather name="x" size={22} color={colors.mutedForeground} />
+            </Pressable>
+          </View>
+          <Text
+            style={{
+              color: colors.mutedForeground,
+              fontSize: 13,
+              marginBottom: 12,
+            }}
+          >
+            Choose which messaging channels show on the keypad, recents and
+            favourites.
+          </Text>
+
+          {prefs.catalog.map((c) => {
+            const on = selected.includes(c.key);
+            return (
+              <Pressable
+                key={c.key}
+                onPress={() => toggle(c.key)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 12,
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderBottomColor: colors.border,
+                }}
+              >
+                <View
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 17,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: `${c.color}22`,
+                    marginRight: 12,
+                  }}
+                >
+                  <Feather name={featherName(c)} size={16} color={c.color} />
+                </View>
+                <Text
+                  style={{
+                    flex: 1,
+                    color: colors.foreground,
+                    fontFamily: "SpaceGrotesk_500Medium",
+                    fontSize: 15,
+                  }}
+                >
+                  {c.label}
+                </Text>
+                <Feather
+                  name={on ? "check-circle" : "circle"}
+                  size={22}
+                  color={on ? colors.primary : colors.mutedForeground}
+                />
+              </Pressable>
+            );
+          })}
+
+          <Pressable
+            onPress={() => void save()}
+            disabled={saving}
+            style={({ pressed }) => ({
+              marginTop: 18,
+              borderRadius: 12,
+              paddingVertical: 14,
+              alignItems: "center",
+              backgroundColor: colors.primary,
+              opacity: pressed || saving ? 0.7 : 1,
+            })}
+          >
+            <Text
+              style={{
+                color: "#fff",
+                fontFamily: "SpaceGrotesk_600SemiBold",
+                fontSize: 15,
+              }}
+            >
+              {saving ? "Saving…" : "Save"}
+            </Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
