@@ -46,5 +46,15 @@ Defaults"/"AI Usage" from flagging. Add new single-word labels to `LABEL_TOOL_NA
 **How to apply:** if a bare occurrence is genuinely intentional, add the file to
 the script's `ALLOWLIST` with a reason — never weaken the regex.
 
+**Regression test:** `scripts/src/check-ai-tool-names.test.ts` (node:test via
+`tsx --test`, `pnpm --filter @workspace/scripts run test`, gate `scripts-test`)
+pins both scan passes: drift cases (bare label in section-title/nav-label/
+sidebar-tooltip/AI-view heading, bare multi-word phrase) AND the must-not-flag
+false-positive cases (All Personas, Coach usage & quality, Coach Defaults, AI
+Usage, comments, concatenated/dynamic section titles, headings outside AI dirs).
+The test imports `scanSource`/`scanLabelContexts`/`blankComments` with a `.js`
+specifier (bundler moduleResolution → `.ts` source) so `tsc --noEmit` stays
+happy. Run it before touching either regex.
+
 Registered as a validation gate via the validation skill (not editable in
 `.replit` directly — those are tool-owned).

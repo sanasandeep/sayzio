@@ -72,6 +72,10 @@ args = "e2e-mobile-icons-native"
 task = "workflow.run"
 args = "ai-tool-names"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "scripts-test"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -222,6 +226,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:ai-tool-names"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "scripts-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run test"
 
 [workflows.workflow.metadata]
 isValidation = true
