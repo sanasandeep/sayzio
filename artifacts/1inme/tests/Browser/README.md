@@ -55,7 +55,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   create-link-picker.spec.ts \
   marketing-background-seam.spec.ts \
   home-section-structure.spec.ts \
-  home-ai-zone.spec.ts
+  home-ai-zone.spec.ts \
+  dashboard-layout.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -107,7 +108,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these seventeen specs are gated (and not the whole suite)
+### Why these eighteen specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -253,13 +254,25 @@ The gate covers the specs that run reliably as an unattended check here:
   `.aisx-row` at opacity 1 — the reduced-motion fallback), and the page has no
   horizontal overflow at desktop and mobile widths. Pins the AI zone behaviour
   that was previously only verifiable by hand on a live instance.
+- `dashboard-layout.spec.ts` — self-bootstrapping: it seeds the demo user
+  (active + verified + `onboarded_at`) via `php artisan tinker`, logs in as the
+  demo user, and lands on `/user/dashboard` to lock in the redesigned "bento"
+  command center. Asserts the live-pulse hero tile renders, the three headline
+  metric/action tiles (Total Clicks, Recent Links, Quick Actions) render, and
+  the Overview / Traffic / Growth tabs actually swap the visible panel
+  (`aria-selected` + panel show/hide). Also guards the blue-accent rebrand: it
+  scans every bento element's rendered (computed) colors — including the
+  `::before`/`::after` accent bars and glow orbs, across all three tabs — for
+  anything in the purple hue band, and scans the dashboard markup for a retired
+  purple token (hex / `purple-`/`violet-` utility class / rgb). All tests share
+  one logged-in context (the `demo-login` route is rate-limited).
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the seventeen gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the eighteen gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
@@ -371,3 +384,16 @@ bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
   switch re-themes the open banner live via its MutationObserver, and that
   explicit admin `light`/`dark` themes stay fixed regardless of the page
   mode. No login/seeding.
+- `dashboard-layout.spec.ts` — gated. Seeds the demo user (active +
+  verified + `onboarded_at`) and logs in once, then lands on
+  `/user/dashboard` to lock in the redesigned "bento" command center.
+  Asserts the live-pulse hero tile renders, the three headline
+  metric/action tiles (Total Clicks, Recent Links, Quick Actions)
+  render, and the Overview / Traffic / Growth tabs actually swap the
+  visible panel (`aria-selected` + panel show/hide). Also guards the
+  blue-accent rebrand: it scans every bento element's rendered (computed)
+  colors — including the `::before`/`::after` accent bars and glow orbs,
+  across all three tabs — for anything in the purple hue band, and scans
+  the dashboard markup for a retired purple token (hex / `purple-` /
+  `violet-` utility class / rgb). All tests share one logged-in context
+  because the `demo-login` route is rate-limited.
