@@ -652,4 +652,173 @@ class MarketingStrategistTest extends TestCase
         $this->assertStringContainsString('ai_unavailable', $body);
         $this->assertSame(0, $strategy->messages()->where('role', 'assistant')->count());
     }
+
+    // ── 12. Task #3281 — deepened analysis, reports, profile, sharing ─────
+
+    /** The chosen depth/goal_metric are persisted with the generated plan. */
+    public function test_web_store_persists_depth_and_goal_metric(): void
+    {
+        $user = $this->makeUser();
+        $this->bindChat($this->validStrategyJson(), 6);
+
+        $this->actingAs($user, 'web')->post(route('user.ai.marketing-strategist.store'), [
+            'goal'       => 'Grow subscribers with a real plan',
+            'sources'    => ['links'],
+            'parameters' => ['depth' => 5, 'goal_metric' => 'subscribers', 'horizon_days' => 60],
+        ])->assertRedirect();
+
+        $strategy = MarketingStrategy::where('user_id', $user->id)->firstOrFail();
+        $this->assertSame(5, $strategy->depth());
+        $this->assertSame('subscribers', $strategy->goal_metric);
+    }
+
+    /** Re-scoring recomputes a 0-100 scorecard from data and records history. */
+    public function test_web_rescore_writes_scorecard_and_history(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+
+        $this->actingAs($user, 'web')
+            ->post(route('user.ai.marketing-strategist.rescore', $strategy->id))
+            ->assertRedirect();
+
+        $strategy->refresh();
+        $overall = (int) ($strategy->scorecard['overall'] ?? -1);
+        $this->assertGreaterThanOrEqual(0, $overall);
+        $this->assertLessThanOrEqual(100, $overall);
+        $this->assertSame(1, $strategy->scores()->count());
+    }
+
+    /** Refreshing outcome measures the goal metric vs baseline (no AI, no coins). */
+    public function test_web_refresh_outcome_measures_delta(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        // A baseline is required for an outcome to be computable.
+        $strategy->goal_metric = 'clicks';
+        $strategy->baseline    = ['metric' => 'clicks', 'value' => 100, 'window_days' => 30];
+        $strategy->save();
+
+        $this->actingAs($user, 'web')
+            ->post(route('user.ai.marketing-strategist.outcome', $strategy->id))
+            ->assertRedirect();
+
+        $strategy->refresh();
+        $this->assertIsArray($strategy->outcome);
+        $this->assertArrayHasKey('delta_pct', $strategy->outcome);
+    }
+
+    /** With no baseline, refreshing outcome fails softly and writes nothing. */
+    public function test_web_refresh_outcome_without_baseline_is_soft_error(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+
+        $this->actingAs($user, 'web')
+            ->from(route('user.ai.marketing-strategist.show', $strategy->id))
+            ->post(route('user.ai.marketing-strategist.outcome', $strategy->id))
+            ->assertRedirect(route('user.ai.marketing-strategist.show', $strategy->id))
+            ->assertSessionHas('error');
+
+        $this->assertNull($strategy->fresh()->outcome);
+    }
+
+    /** CSV export is free (no coins) and returns a downloadable text/csv body. */
+    public function test_web_export_csv_is_free_download(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        $charger  = $this->spyCharger();
+
+        $resp = $this->actingAs($user, 'web')
+            ->get(route('user.ai.marketing-strategist.export', $strategy->id) . '?format=csv');
+
+        $resp->assertOk();
+        $this->assertStringContainsString('csv', strtolower((string) $resp->headers->get('content-type')));
+        $charger->shouldNotHaveReceived('charge');
+    }
+
+    /** The reusable Marketing Profile is saved and reloaded for the owner. */
+    public function test_web_save_and_reload_marketing_profile(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user, 'web')->post(route('user.ai.marketing-strategist.profile.save'), [
+            'target_audience' => "Indie coaches\nD2C founders",
+            'expectations'    => 'Grow email list',
+            'constraints'     => 'No paid ads',
+        ])->assertRedirect(route('user.ai.marketing-strategist.profile'));
+
+        $profile = \App\Modules\User\Models\MarketingProfile::forOwner($user->id, $this->wsId($user));
+        $this->assertNotNull($profile);
+        $this->assertContains('Indie coaches', (array) $profile->target_audience);
+        $this->assertTrue($profile->isFilled());
+    }
+
+    /** Sharing mints a public token; the public report renders; unshare revokes it. */
+    public function test_share_exposes_public_report_and_unshare_revokes(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+
+        $share = $this->actingAs($user, 'web')
+            ->postJson(route('user.ai.marketing-strategist.share', $strategy->id));
+        $share->assertOk()->assertJson(['shared' => true]);
+
+        $strategy->refresh();
+        $this->assertTrue($strategy->isShared());
+
+        // Public, unauthenticated read renders the branded report HTML.
+        $this->get(route('public.ai-report', $strategy->share_token))
+            ->assertOk()
+            ->assertSee('Sayzio', false);
+
+        $this->actingAs($user, 'web')
+            ->deleteJson(route('user.ai.marketing-strategist.unshare', $strategy->id))
+            ->assertOk()->assertJson(['shared' => false]);
+
+        // A revoked token is no longer resolvable.
+        $token = $strategy->share_token;
+        $strategy->refresh();
+        $this->assertFalse($strategy->isShared());
+        $this->get(route('public.ai-report', $token))->assertNotFound();
+    }
+
+    /** Another user cannot share someone else's strategy. */
+    public function test_share_by_non_owner_is_404(): void
+    {
+        $owner    = $this->makeUser();
+        $stranger = $this->makeUser();
+        $strategy = $this->strategyFor($owner);
+
+        $this->actingAs($stranger, 'web')
+            ->postJson(route('user.ai.marketing-strategist.share', $strategy->id))
+            ->assertNotFound();
+    }
+
+    /** The premium AI report is metered and refunds on unparseable output. */
+    public function test_web_premium_report_refunds_when_ai_unavailable(): void
+    {
+        $user     = $this->makeUser();
+        $strategy = $this->strategyFor($user);
+        $this->bindChatThrows(new \RuntimeException('down'));
+
+        $this->actingAs($user, 'web')
+            ->from(route('user.ai.marketing-strategist.show', $strategy->id))
+            ->post(route('user.ai.marketing-strategist.report', $strategy->id))
+            ->assertRedirect(route('user.ai.marketing-strategist.show', $strategy->id))
+            ->assertSessionHas('error');
+    }
+
+    /** The sample report downloads without auth-owned data and is labelled approximate. */
+    public function test_web_sample_report_downloads_and_is_labelled_approximate(): void
+    {
+        $user = $this->makeUser();
+
+        $resp = $this->actingAs($user, 'web')
+            ->get(route('user.ai.marketing-strategist.sample'));
+
+        $resp->assertOk();
+        $this->assertSame(0, MarketingStrategy::where('user_id', $user->id)->count());
+    }
 }

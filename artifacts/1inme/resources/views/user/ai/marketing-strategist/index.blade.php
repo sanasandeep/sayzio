@@ -10,12 +10,22 @@
         'balance'  => $balance,
     ])
 
-    <div class="flex justify-end mb-5">
+    <div class="flex flex-wrap justify-end items-center gap-2 mb-5">
+        <a href="{{ route('user.ai.marketing-strategist.sample') }}"
+           class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/5 text-white/70 text-sm hover:bg-white/10 transition">
+            <i class="fas fa-file-arrow-down"></i> Sample report
+        </a>
+        <a href="{{ route('user.ai.marketing-strategist.profile') }}"
+           class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/5 text-white/70 text-sm hover:bg-white/10 transition">
+            <i class="fas fa-address-card"></i> Marketing profile
+        </a>
         <a href="{{ route('user.ai.marketing-strategist.create') }}"
-           class="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
-            <i class="fas fa-wand-magic-sparkles mr-1"></i> New strategy
+           class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+            <i class="fas fa-wand-magic-sparkles"></i> New strategy
         </a>
     </div>
+
+    <p class="text-[11px] text-white/35 -mt-3 mb-5 text-right">Sample is an approximate, illustrative report — your real reports use your own data.</p>
 
     @if($strategies->isEmpty())
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">

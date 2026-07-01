@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers\AI;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Models\MarketingProfile;
 use App\Modules\User\Models\MarketingStrategy;
 use App\Modules\User\Models\MarketingStrategyMessage;
 use App\Modules\User\Models\MarketingStrategySuggestion;
@@ -64,11 +65,33 @@ class MarketingStrategistController extends Controller
         if ($gate = $this->gateView($request)) return $gate;
 
         return view('user.ai.marketing-strategist.create', [
-            'sources' => MarketingStrategistService::SOURCES,
-            'items'   => $this->strategist->selectableItems($request->user()),
-            'old'     => session('ai.marketing_strategist.input', []),
-            'balance' => $this->credits->getBalance($request->user()),
+            'sources'         => MarketingStrategistService::SOURCES,
+            'items'           => $this->strategist->selectableItems($request->user()),
+            'old'             => session('ai.marketing_strategist.input', []),
+            'balance'         => $this->credits->getBalance($request->user()),
+            'profileDefaults' => $this->profileDefaults($request),
         ]);
+    }
+
+    /**
+     * Pre-fill values sourced from the reusable Marketing Profile intake. These
+     * are fallbacks only — anything the user typed (session `old`) wins.
+     */
+    protected function profileDefaults(Request $request): array
+    {
+        $profile = MarketingProfile::forOwner($request->user()->id, $this->workspaceId());
+        if (!$profile) {
+            return ['has_profile' => false, 'goal' => '', 'audience' => '', 'avoid' => ''];
+        }
+
+        $join = fn ($bag) => implode(', ', array_slice(array_filter((array) $bag), 0, 12));
+
+        return [
+            'has_profile' => $profile->isFilled(),
+            'goal'        => implode("\n", array_slice(array_filter((array) $profile->expectations), 0, 8)),
+            'audience'    => $join($profile->target_audience),
+            'avoid'       => $join($profile->constraints),
+        ];
     }
 
     /** Worst-case credit estimate shown before Generate (AJAX). */
@@ -155,32 +178,228 @@ class MarketingStrategistController extends Controller
             ->with('status', 'Strategy deleted.');
     }
 
-    /** Download the strategy as Markdown (default) or PDF (`?format=pdf`). */
+    /**
+     * Free download tiers: Markdown (default), Rich PDF (`?format=pdf`) or
+     * CSV (`?format=csv`). The Premium AI PDF tier — which spends coins — is a
+     * separate POST at {@see report()}.
+     */
     public function export(Request $request, int $strategy)
     {
         $this->ensureEnabled($request);
         $model = $this->findOwned($request, $strategy);
 
-        $base = (Str::slug($model->title) ?: 'marketing-strategy') . '-' . now()->format('Ymd-His');
+        $base   = $this->reportBase($model);
+        $format = strtolower((string) $request->query('format'));
 
-        if (strtolower((string) $request->query('format')) === 'pdf') {
-            $options = new \Dompdf\Options();
-            $options->set('isRemoteEnabled', false);
-            $options->set('defaultFont', 'DejaVu Sans');
-            $dompdf = new \Dompdf\Dompdf($options);
-            $dompdf->loadHtml($this->strategist->toHtml($model), 'UTF-8');
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
+        if ($format === 'pdf') {
+            return $this->pdfResponse($this->strategist->toHtml($model), $base);
+        }
 
-            return response((string) $dompdf->output(), 200, [
-                'Content-Type'        => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $base . '.pdf"',
-            ]);
+        if ($format === 'csv') {
+            return response()->streamDownload(function () use ($model) {
+                echo $this->strategist->toCsv($model);
+            }, $base . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
         }
 
         return response()->streamDownload(function () use ($model) {
             echo $this->strategist->toMarkdown($model);
         }, $base . '.md', ['Content-Type' => 'text/markdown; charset=UTF-8']);
+    }
+
+    /**
+     * Premium AI PDF tier — generates a fresh AI executive summary (metered,
+     * auto-refunded on failure) then streams a branded PDF that embeds it.
+     */
+    public function report(Request $request, int $strategy)
+    {
+        $this->ensureEnabled($request);
+        $model = $this->findOwned($request, $strategy);
+
+        try {
+            $report = $this->strategist->generatePremiumReport($request->user(), $model);
+        } catch (InsufficientCoinsForAiException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::warning('Marketing Strategist premium report failed: ' . $e->getMessage());
+            return back()->with('error', 'The premium report could not be generated right now. Please try again.');
+        }
+
+        $html = $this->strategist->toHtml($model, (string) ($report['summary'] ?? ''));
+        return $this->pdfResponse($html, $this->reportBase($model) . '-premium');
+    }
+
+    /** Free, PHP-only re-score of the strategy from CURRENT tracking data. */
+    public function rescore(Request $request, int $strategy)
+    {
+        $this->ensureEnabled($request);
+        $model = $this->findOwned($request, $strategy);
+
+        $scorecard = $this->strategist->recomputeScore($model, $request->user());
+        if ($scorecard === null) {
+            return back()->with('error', 'Could not re-score right now — there is not enough tracking data yet.');
+        }
+
+        return back()->with('status', 'Marketing health re-scored from your latest data.');
+    }
+
+    /** Free, PHP-only outcome refresh (did the plan move the goal metric?). */
+    public function refreshOutcome(Request $request, int $strategy)
+    {
+        $this->ensureEnabled($request);
+        $model = $this->findOwned($request, $strategy);
+
+        $outcome = $this->strategist->refreshOutcome($model, $request->user());
+        if ($outcome === null) {
+            return back()->with('error', 'No baseline to measure against yet. Apply a suggestion or two, then check back after some activity.');
+        }
+
+        return back()->with('status', 'Outcome updated from your latest metrics.');
+    }
+
+    /** Edit the reusable Marketing Profile intake (pre-fills every new plan). */
+    public function profile(Request $request)
+    {
+        if ($gate = $this->gateView($request)) return $gate;
+
+        return view('user.ai.marketing-strategist.profile', [
+            'profile' => MarketingProfile::forOwner($request->user()->id, $this->workspaceId()),
+            'balance' => $this->credits->getBalance($request->user()),
+        ]);
+    }
+
+    /** Save the reusable Marketing Profile intake. */
+    public function saveProfile(Request $request)
+    {
+        $this->ensureEnabled($request);
+
+        $validated = $request->validate([
+            'target_audience' => 'nullable|string|max:4000',
+            'expectations'    => 'nullable|string|max:4000',
+            'constraints'     => 'nullable|string|max:4000',
+        ]);
+
+        $toLines = function ($value): array {
+            $lines = preg_split('/\r\n|\r|\n/', (string) $value) ?: [];
+            $lines = array_values(array_filter(array_map('trim', $lines), fn ($v) => $v !== ''));
+            return array_slice($lines, 0, 40);
+        };
+
+        MarketingProfile::query()->updateOrCreate(
+            ['user_id' => $request->user()->id, 'workspace_id' => $this->workspaceId()],
+            [
+                'target_audience' => $toLines($validated['target_audience'] ?? ''),
+                'expectations'    => $toLines($validated['expectations'] ?? ''),
+                'constraints'     => $toLines($validated['constraints'] ?? ''),
+            ],
+        );
+
+        return redirect()
+            ->route('user.ai.marketing-strategist.profile')
+            ->with('status', 'Marketing profile saved. New strategies will use it.');
+    }
+
+    /** Mint (or reuse) a public share link for the strategy report. */
+    public function share(Request $request, int $strategy)
+    {
+        $this->ensureEnabled($request);
+        $model = $this->findOwned($request, $strategy);
+
+        if (!$model->isShared()) {
+            $model->forceFill(['share_token' => Str::random(40)])->save();
+        }
+
+        return response()->json([
+            'shared' => true,
+            'url'    => route('public.ai-report', $model->share_token),
+        ]);
+    }
+
+    /** Revoke a public share link. */
+    public function unshare(Request $request, int $strategy)
+    {
+        $this->ensureEnabled($request);
+        $model = $this->findOwned($request, $strategy);
+
+        if ($model->isShared()) {
+            $model->forceFill(['share_token' => null])->save();
+        }
+
+        return response()->json(['shared' => false]);
+    }
+
+    /** Download an APPROXIMATE sample report so creators can preview the format. */
+    public function sample(Request $request)
+    {
+        if (!AiEngineSettings::isEnabled()) abort(404);
+
+        $summary = 'This is an APPROXIMATE sample report. It shows the format and depth '
+            . "of a real AI Marketing Strategist plan — the numbers here are illustrative, "
+            . 'not based on your account. Generate your own strategy to get grounded, '
+            . 'personalised analysis, forecasts and one-click actions.';
+
+        $html = $this->strategist->toHtml($this->sampleStrategy(), $summary);
+        return $this->pdfResponse($html, 'sayzio-sample-marketing-report');
+    }
+
+    // ── report helpers ─────────────────────────────────────────────
+
+    /** A stable, dated base filename for a strategy's downloads. */
+    protected function reportBase(MarketingStrategy $model): string
+    {
+        return (Str::slug($model->title) ?: 'marketing-strategy') . '-' . now()->format('Ymd-His');
+    }
+
+    /** Render branded HTML to a downloadable PDF response. */
+    protected function pdfResponse(string $html, string $base): \Illuminate\Http\Response
+    {
+        $options = new \Dompdf\Options();
+        $options->set('isRemoteEnabled', false);
+        $options->set('defaultFont', 'DejaVu Sans');
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        return response((string) $dompdf->output(), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $base . '.pdf"',
+        ]);
+    }
+
+    /** An unsaved, canned strategy used only to render the sample PDF. */
+    protected function sampleStrategy(): MarketingStrategy
+    {
+        $model = new MarketingStrategy([
+            'title'      => 'Sample — Grow newsletter & link clicks',
+            'goal'       => 'Grow newsletter subscribers and drive more clicks to my link-in-bio over the next month.',
+            'goal_metric' => 'subscribers',
+            'parameters' => ['depth' => 4],
+        ]);
+
+        $model->strategy = [
+            'summary' => 'A balanced organic + paid plan focused on capturing bio-link visitors into your newsletter, then nurturing them toward your paid offer.',
+            'organic' => [
+                ['title' => 'Weekly value thread', 'channel' => 'Instagram', 'rationale' => 'Turn your best-performing link topics into a recurring content series.', 'steps' => ['Repurpose your top link into a 5-slide carousel', 'Add a clear CTA to your bio link', 'Pin the post for the week'], 'sayzio_features' => ['Biolink', 'Analytics']],
+                ['title' => 'Lead-magnet capture', 'channel' => 'Biolink', 'rationale' => 'Add an email capture block above the fold to convert existing traffic.', 'steps' => ['Add a Subscribe block', 'Offer a one-page checklist', 'Route confirmations via email']],
+            ],
+            'paid' => [
+                ['title' => 'Retarget bio-link visitors', 'channel' => 'Instagram Ads', 'budget_hint' => '≈ $5/day', 'rationale' => 'Warm audiences convert cheapest — retarget people who already clicked.', 'steps' => ['Install your pixel', 'Build a 30-day visitor audience', 'Run a single-image subscribe ad']],
+            ],
+            'kpis' => ['New subscribers / week', 'Bio-link click-through rate', 'Cost per subscriber'],
+        ];
+        $model->diagnosis = ['narrative' => [
+            'Your traffic is healthy but only a small share converts to subscribers.',
+            'Engagement peaks midweek — concentrate posting there.',
+            'Paid retargeting is currently unused, leaving warm traffic on the table.',
+        ]];
+        $model->scorecard = ['overall' => 62, 'reach' => 70, 'engagement' => 66, 'conversion' => 48, 'consistency' => 64, 'reasons' => ['Strong reach relative to peers', 'Conversion lags — add a capture block', 'Posting cadence is slightly irregular']];
+        $model->forecast = ['metric' => 'subscribers', 'narrative' => 'The realistic band assumes you ship the capture block and post 3×/week.', 'bands' => [
+            'pessimistic' => ['value' => 120, 'delta_pct' => 10, 'label' => 'Pessimistic'],
+            'realistic'   => ['value' => 180, 'delta_pct' => 65, 'label' => 'Realistic'],
+            'optimistic'  => ['value' => 240, 'delta_pct' => 120, 'label' => 'Optimistic'],
+        ]];
+
+        return $model;
     }
 
     /** Chat-refine the strategy (streamed SSE, metered). */
@@ -361,6 +580,9 @@ class MarketingStrategistController extends Controller
             'parameters.avoid'        => 'nullable|string|max:400',
             'parameters.channels'     => 'nullable|string|max:300',
             'parameters.plan_type'    => 'nullable|string|in:both,organic,paid',
+            'parameters.depth'        => 'nullable|integer|min:1|max:5',
+            'parameters.goal_metric'  => 'nullable|string|in:clicks,views,subscribers,followers,orders,revenue',
+            'parameters.horizon_days' => 'nullable|integer|min:7|max:365',
             'parameters.content_types'   => 'nullable|array',
             'parameters.content_types.*' => 'string|max:80',
             'parameters.paid_media'      => 'nullable|array',

@@ -12,19 +12,71 @@
         'balance'  => $balance,
     ])
 
+    @if(session('status'))
+        <div class="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.08] text-emerald-200 text-sm px-4 py-3 mb-4"><i class="fas fa-check-circle mr-1.5"></i>{{ session('status') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="rounded-xl border border-red-500/25 bg-red-500/[0.08] text-red-200 text-sm px-4 py-3 mb-4"><i class="fas fa-triangle-exclamation mr-1.5"></i>{{ session('error') }}</div>
+    @endif
+
     <div class="flex flex-wrap items-center gap-2 mb-6">
         <a href="{{ route('user.ai.marketing-strategist.index') }}"
            class="px-3 py-1.5 rounded-lg bg-white/5 text-white/70 hover:bg-white/10 text-xs">
             <i class="fas fa-arrow-left mr-1"></i> All strategies
         </a>
-        <a href="{{ route('user.ai.marketing-strategist.export', $strategy->id) }}"
-           class="px-3 py-1.5 rounded-lg bg-white/5 text-white/70 hover:bg-white/10 text-xs">
-            <i class="fas fa-file-alt mr-1"></i> Export Markdown
-        </a>
-        <a href="{{ route('user.ai.marketing-strategist.export', $strategy->id) }}?format=pdf"
-           class="px-3 py-1.5 rounded-lg bg-white/5 text-white/70 hover:bg-white/10 text-xs">
-            <i class="fas fa-file-pdf mr-1"></i> Export PDF
-        </a>
+
+        {{-- Download split-button: free tiers + premium AI PDF (costs coins) --}}
+        <div class="relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
+            <button type="button" @click="open = !open"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-white/70 hover:bg-white/10 text-xs">
+                <i class="fas fa-download"></i> Download <i class="fas fa-chevron-down text-[9px] opacity-70"></i>
+            </button>
+            <div x-show="open" x-cloak x-transition.opacity
+                 class="absolute left-0 mt-1.5 w-72 z-30 rounded-xl border border-white/10 bg-slate-900/95 backdrop-blur-xl shadow-xl shadow-black/40 p-1.5">
+                <a href="{{ route('user.ai.marketing-strategist.export', $strategy->id) }}"
+                   class="flex items-start gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.06] transition">
+                    <i class="fas fa-file-lines text-white/50 mt-0.5 w-4 text-center"></i>
+                    <span class="min-w-0"><span class="block text-xs text-white font-medium">Markdown <span class="text-emerald-300/80 font-normal">· free</span></span><span class="block text-[11px] text-white/45">Plain text, great for editing.</span></span>
+                </a>
+                <a href="{{ route('user.ai.marketing-strategist.export', $strategy->id) }}?format=pdf"
+                   class="flex items-start gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.06] transition">
+                    <i class="fas fa-file-pdf text-white/50 mt-0.5 w-4 text-center"></i>
+                    <span class="min-w-0"><span class="block text-xs text-white font-medium">Rich PDF <span class="text-emerald-300/80 font-normal">· free</span></span><span class="block text-[11px] text-white/45">Branded, print-ready report.</span></span>
+                </a>
+                <a href="{{ route('user.ai.marketing-strategist.export', $strategy->id) }}?format=csv"
+                   class="flex items-start gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.06] transition">
+                    <i class="fas fa-file-csv text-white/50 mt-0.5 w-4 text-center"></i>
+                    <span class="min-w-0"><span class="block text-xs text-white font-medium">CSV <span class="text-emerald-300/80 font-normal">· free</span></span><span class="block text-[11px] text-white/45">Scores, forecast &amp; actions as data.</span></span>
+                </a>
+                <div class="border-t border-white/10 my-1"></div>
+                <form method="POST" action="{{ route('user.ai.marketing-strategist.report', $strategy->id) }}"
+                      onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').innerHTML='&lt;i class=\'fas fa-circle-notch fa-spin\'&gt;&lt;/i&gt; Generating…';">
+                    @csrf
+                    <button type="submit" class="w-full flex items-start gap-2.5 px-2.5 py-2 rounded-lg hover:bg-blue-500/[0.12] transition text-left">
+                        <i class="fas fa-wand-magic-sparkles text-blue-300 mt-0.5 w-4 text-center"></i>
+                        <span class="min-w-0"><span class="block text-xs text-white font-medium">Premium AI PDF <span class="text-amber-300/90 font-normal">· costs coins</span></span><span class="block text-[11px] text-white/45">Fresh AI executive summary on top of the report.</span></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {{-- Share link --}}
+        <div x-data="msShare({ shareUrl: @js($strategy->isShared() ? route('public.ai-report', $strategy->share_token) : ''), shareEndpoint: @js(route('user.ai.marketing-strategist.share', $strategy->id)), unshareEndpoint: @js(route('user.ai.marketing-strategist.unshare', $strategy->id)) })"
+             class="flex items-center gap-2">
+            <button type="button" @click="toggle()" :disabled="busy"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition disabled:opacity-60"
+                    :class="url ? 'bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25' : 'bg-white/5 text-white/70 hover:bg-white/10'">
+                <i class="fas" :class="busy ? 'fa-circle-notch fa-spin' : (url ? 'fa-link' : 'fa-share-nodes')"></i>
+                <span x-text="url ? 'Sharing on' : 'Share link'"></span>
+            </button>
+            <template x-if="url">
+                <button type="button" @click="copy()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-white/70 hover:bg-white/10 text-xs">
+                    <i class="fas" :class="copied ? 'fa-check text-emerald-300' : 'fa-copy'"></i>
+                    <span x-text="copied ? 'Copied' : 'Copy'"></span>
+                </button>
+            </template>
+        </div>
+
         <form method="POST" action="{{ route('user.ai.marketing-strategist.destroy', $strategy->id) }}"
               onsubmit="return confirm('Delete this strategy? This cannot be undone.');" class="ml-auto">
             @csrf @method('DELETE')
@@ -39,6 +91,138 @@
         <div class="rounded-2xl border border-blue-500/20 bg-blue-500/[0.06] p-5 mb-6">
             <p class="text-sm text-blue-100/90 leading-relaxed">{{ $plan['summary'] }}</p>
         </div>
+    @endif
+
+    @php
+        $scorecard  = (array) ($strategy->scorecard ?? []);
+        $diagnosis  = (array) ($strategy->diagnosis['narrative'] ?? []);
+        $forecast   = (array) ($strategy->forecast ?? []);
+        $bands      = (array) ($forecast['scenarios'] ?? $forecast['bands'] ?? []);
+        $competitor = (array) ($strategy->competitor_analysis ?? []);
+        $outcome    = (array) ($strategy->outcome ?? []);
+        $scoreHistory = $strategy->exists ? $strategy->scores()->get() : collect();
+        $axisMeta = [
+            'reach'       => ['label' => 'Reach',       'icon' => 'fa-signal',       'color' => 'sky'],
+            'engagement'  => ['label' => 'Engagement',  'icon' => 'fa-heart',        'color' => 'rose'],
+            'conversion'  => ['label' => 'Conversion',  'icon' => 'fa-bullseye',     'color' => 'emerald'],
+            'consistency' => ['label' => 'Consistency', 'icon' => 'fa-calendar-check','color' => 'amber'],
+        ];
+        $ring = function (int $v) {
+            $v = max(0, min(100, $v));
+            $tone = $v >= 70 ? '#34d399' : ($v >= 40 ? '#fbbf24' : '#f87171');
+            return 'background:conic-gradient(' . $tone . ' ' . ($v * 3.6) . 'deg, rgba(255,255,255,0.08) 0deg);';
+        };
+    @endphp
+
+    {{-- Marketing scorecard (free, PHP-only, re-scorable) --}}
+    @if($scorecard)
+        <section class="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div class="flex items-start justify-between gap-3 mb-4 flex-wrap">
+                <div>
+                    <h2 class="text-white font-semibold"><i class="fas fa-heart-pulse text-emerald-300 mr-1"></i> Marketing health</h2>
+                    <p class="text-xs text-white/45 mt-0.5">Scored 0–100 from your own data. Re-score any time — it's free.</p>
+                </div>
+                <form method="POST" action="{{ route('user.ai.marketing-strategist.rescore', $strategy->id) }}">
+                    @csrf
+                    <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-white/70 hover:bg-white/10 text-xs">
+                        <i class="fas fa-rotate"></i> Re-score
+                    </button>
+                </form>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center gap-5">
+                <div class="shrink-0 grid place-items-center h-28 w-28 rounded-full" style="{{ $ring((int) ($scorecard['overall'] ?? 0)) }}">
+                    <div class="grid place-items-center h-[92px] w-[92px] rounded-full bg-slate-900">
+                        <span class="text-3xl font-bold text-white leading-none">{{ (int) ($scorecard['overall'] ?? 0) }}</span>
+                        <span class="text-[10px] text-white/40 mt-0.5">/ 100</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 w-full">
+                    @foreach($axisMeta as $k => $meta)
+                        @php $val = (int) ($scorecard[$k] ?? 0); @endphp
+                        <div class="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                            <div class="flex items-center gap-1.5 text-[11px] text-white/50 mb-1.5"><i class="fas {{ $meta['icon'] }} text-{{ $meta['color'] }}-300"></i> {{ $meta['label'] }}</div>
+                            <div class="text-xl font-bold text-white leading-none">{{ $val }}</div>
+                            <div class="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                                <div class="h-full rounded-full bg-{{ $meta['color'] }}-400" style="width: {{ max(0, min(100, $val)) }}%"></div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            @if(!empty($scorecard['reasons']))
+                <ul class="mt-4 space-y-1.5">
+                    @foreach((array) $scorecard['reasons'] as $reason)
+                        <li class="flex items-start gap-2 text-xs text-white/60"><i class="fas fa-circle-info text-blue-300/70 mt-0.5 text-[10px]"></i> {{ $reason }}</li>
+                    @endforeach
+                </ul>
+            @endif
+
+            @if($scoreHistory->count() > 1)
+                @php
+                    $vals = $scoreHistory->map(fn ($s) => (int) $s->overall)->all();
+                    $n = count($vals); $mn = min($vals); $mx = max($vals); $rng = max(1, $mx - $mn);
+                    $pts = [];
+                    foreach ($vals as $i => $v) {
+                        $x = $n > 1 ? round($i / ($n - 1) * 100, 2) : 0;
+                        $y = round(30 - (($v - $mn) / $rng) * 26 - 2, 2);
+                        $pts[] = $x . ',' . $y;
+                    }
+                @endphp
+                <div class="mt-4 pt-4 border-t border-white/[0.07]">
+                    <div class="flex items-center justify-between text-[11px] text-white/45 mb-2"><span><i class="fas fa-chart-line mr-1"></i> Overall score over time</span><span>{{ $mn }}–{{ $mx }}</span></div>
+                    <svg viewBox="0 0 100 30" preserveAspectRatio="none" class="w-full h-16">
+                        <polyline points="{{ implode(' ', $pts) }}" fill="none" stroke="#60a5fa" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+                    </svg>
+                </div>
+            @endif
+        </section>
+    @endif
+
+    {{-- Diagnosis (grounded narrative) --}}
+    @if($diagnosis)
+        <section class="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <h2 class="text-white font-semibold mb-3"><i class="fas fa-stethoscope text-purple-300 mr-1"></i> Diagnosis</h2>
+            <ul class="space-y-2">
+                @foreach($diagnosis as $line)
+                    <li class="flex items-start gap-2 text-sm text-white/70"><i class="fas fa-angle-right text-white/30 mt-1 text-xs"></i> {{ $line }}</li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
+
+    {{-- Forecast (three scenarios) --}}
+    @if($bands)
+        @php $fMetric = (string) ($forecast['metric'] ?? $strategy->goal_metric ?? 'clicks'); @endphp
+        <section class="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <h2 class="text-white font-semibold mb-1"><i class="fas fa-chart-simple text-sky-300 mr-1"></i> Forecast <span class="text-white/40 font-normal text-sm">— {{ $fMetric }}</span></h2>
+            <p class="text-xs text-white/45 mb-4">Projected outcomes across three scenarios if you follow the plan.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                @php
+                    $bandTone = ['pessimistic' => 'rose', 'realistic' => 'sky', 'optimistic' => 'emerald'];
+                @endphp
+                @foreach($bands as $name => $band)
+                    @php
+                        $band = (array) $band;
+                        $label = is_string($name) ? ucfirst($name) : ucfirst((string) ($band['label'] ?? 'Scenario'));
+                        $val = (int) ($band['value'] ?? $band['projected'] ?? 0);
+                        $delta = (int) ($band['delta_pct'] ?? 0);
+                        $tone = $bandTone[strtolower((string) $name)] ?? 'sky';
+                    @endphp
+                    <div class="rounded-xl border border-{{ $tone }}-400/25 bg-{{ $tone }}-500/[0.06] p-4 text-center">
+                        <div class="text-[11px] uppercase tracking-wide text-{{ $tone }}-200/80 font-semibold">{{ $label }}</div>
+                        <div class="text-2xl font-bold text-white mt-1.5 leading-none">{{ number_format($val) }}</div>
+                        @if($delta)
+                            <div class="text-[11px] mt-1.5 {{ $delta >= 0 ? 'text-emerald-300' : 'text-rose-300' }}">{{ $delta > 0 ? '+' : '' }}{{ $delta }}% vs now</div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+            @if(!empty($forecast['narrative']))
+                <p class="text-xs text-white/55 mt-3 leading-relaxed">{{ $forecast['narrative'] }}</p>
+            @endif
+        </section>
     @endif
 
     {{-- Suggestions --}}
@@ -120,6 +304,69 @@
         </section>
     @endif
 
+    {{-- Competitor landscape (depth 5) --}}
+    @if($competitor)
+        <section class="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <h2 class="text-white font-semibold mb-3"><i class="fas fa-chess text-indigo-300 mr-1"></i> Competitor landscape</h2>
+            @if(!empty($competitor['summary']))
+                <p class="text-sm text-white/70 mb-4 leading-relaxed">{{ $competitor['summary'] }}</p>
+            @endif
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                @foreach(['positioning' => ['Positioning', 'fa-map-pin', 'sky'], 'gaps' => ['Gaps to exploit', 'fa-door-open', 'emerald'], 'moves' => ['Recommended moves', 'fa-arrow-trend-up', 'amber']] as $k => $meta)
+                    @php $items = (array) ($competitor[$k] ?? []); @endphp
+                    @if($items)
+                        <div class="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                            <div class="flex items-center gap-1.5 text-xs text-{{ $meta[2] }}-200 font-semibold mb-2.5"><i class="fas {{ $meta[1] }}"></i> {{ $meta[0] }}</div>
+                            <ul class="space-y-1.5">
+                                @foreach($items as $it)
+                                    <li class="flex items-start gap-2 text-xs text-white/60"><i class="fas fa-angle-right text-white/25 mt-0.5 text-[10px]"></i> {{ $it }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        </section>
+    @endif
+
+    {{-- Outcome tracking (free, PHP-only) --}}
+    <section class="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <div class="flex items-start justify-between gap-3 mb-3 flex-wrap">
+            <div>
+                <h2 class="text-white font-semibold"><i class="fas fa-flag-checkered text-emerald-300 mr-1"></i> Did it work?</h2>
+                <p class="text-xs text-white/45 mt-0.5">Track how your goal metric moved since this plan. Free to refresh.</p>
+            </div>
+            <form method="POST" action="{{ route('user.ai.marketing-strategist.outcome', $strategy->id) }}">
+                @csrf
+                <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-white/70 hover:bg-white/10 text-xs">
+                    <i class="fas fa-rotate"></i> Refresh outcome
+                </button>
+            </form>
+        </div>
+        @if($outcome)
+            @php
+                $oDelta = (int) ($outcome['delta_pct'] ?? 0);
+                $oMetric = (string) ($outcome['goal_metric'] ?? $strategy->goal_metric ?? 'clicks');
+                $oVerdict = (string) ($outcome['verdict'] ?? 'measured');
+                $vTone = $oDelta > 0 ? 'emerald' : ($oDelta < 0 ? 'rose' : 'white');
+            @endphp
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="text-center">
+                    <div class="text-3xl font-bold {{ $oDelta > 0 ? 'text-emerald-300' : ($oDelta < 0 ? 'text-rose-300' : 'text-white') }} leading-none">{{ $oDelta > 0 ? '+' : '' }}{{ $oDelta }}%</div>
+                    <div class="text-[11px] text-white/45 mt-1 capitalize">{{ $oVerdict }}</div>
+                </div>
+                <div class="text-sm text-white/60">
+                    <span class="capitalize text-white/80">{{ $oMetric }}</span> moved from
+                    <span class="text-white font-medium">{{ number_format((int) ($outcome['baseline_value'] ?? 0)) }}</span> to
+                    <span class="text-white font-medium">{{ number_format((int) ($outcome['current_value'] ?? 0)) }}</span>
+                    over {{ (int) ($outcome['window_days'] ?? 0) }} days.
+                </div>
+            </div>
+        @else
+            <p class="text-sm text-white/40">No outcome measured yet. Apply a suggestion or two, let some activity accrue, then refresh.</p>
+        @endif
+    </section>
+
     {{-- Chat refine --}}
     <section class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <h2 class="text-white font-semibold mb-1"><i class="fas fa-comments text-blue-300 mr-1"></i> Refine with the strategist</h2>
@@ -149,6 +396,47 @@
 </div>
 
 <script>
+// Share-link toggle for the report (mint / revoke / copy). Registered globally
+// so Alpine's x-data can resolve it on init.
+window.msShare = function (opts) {
+    return {
+        url: opts.shareUrl || '',
+        busy: false,
+        copied: false,
+        async toggle() {
+            if (this.busy) return;
+            this.busy = true;
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            try {
+                if (this.url) {
+                    const res = await fetch(opts.unshareEndpoint, {
+                        method: 'DELETE',
+                        headers: { 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                    });
+                    if (res.ok) { this.url = ''; this.copied = false; }
+                } else {
+                    const res = await fetch(opts.shareEndpoint, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.url) this.url = data.url;
+                }
+            } catch (e) { /* leave state unchanged on failure */ }
+            finally { this.busy = false; }
+        },
+        async copy() {
+            try {
+                await navigator.clipboard.writeText(this.url);
+                this.copied = true;
+                setTimeout(() => { this.copied = false; }, 1800);
+            } catch (e) {
+                window.prompt('Copy this link:', this.url);
+            }
+        },
+    };
+};
+
 (function () {
     const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 

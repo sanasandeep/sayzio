@@ -14,7 +14,7 @@ namespace App\Services\AI;
 class AiFeatureCatalog
 {
     /** Known AI features for filtering / reporting. */
-    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach', 'voice_stt', 'voice_llm', 'voice_tts', 'card_scan', 'resume_import', 'resume_tailor', 'inbox_agent', 'brand_kit', 'qr_art', 'marketing_strategist', 'marketing_strategist.chat'];
+    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach', 'voice_stt', 'voice_llm', 'voice_tts', 'card_scan', 'resume_import', 'resume_tailor', 'inbox_agent', 'brand_kit', 'qr_art', 'marketing_strategist', 'marketing_strategist.chat', 'marketing_strategist.report'];
 
     /** Friendly labels for ledger / reporting surfaces. */
     public const FEATURE_LABELS = [
@@ -34,6 +34,7 @@ class AiFeatureCatalog
         'qr_art'        => 'QR — AI Art',
         'marketing_strategist' => 'Marketing Strategist',
         'marketing_strategist.chat' => 'Marketing Strategist — Chat',
+        'marketing_strategist.report' => 'Marketing Strategist — Report',
     ];
 
     public static function featureLabel(?string $feature): string

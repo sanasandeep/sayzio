@@ -57,7 +57,104 @@ class MarketingSuggestionApplier
             MarketingStrategySuggestion::TYPE_ADD_BLOCK    => $this->applyAddBlock($user, $payload, $workspaceId),
             MarketingStrategySuggestion::TYPE_ATTACH_PIXEL => $this->applyAttachPixel($user, $payload, $workspaceId),
             MarketingStrategySuggestion::TYPE_DRAFT_POST   => $this->applyDraftPost($user, $payload, $workspaceId),
+            MarketingStrategySuggestion::TYPE_FUNNEL       => $this->applyFunnel($user, $suggestion, $workspaceId),
             default => throw new RuntimeException('Unknown suggestion type.'),
+        };
+    }
+
+    /**
+     * Task #3281 — apply an ordered multi-step funnel in one click.
+     *
+     * Each step is a single-action play ({create_link|add_block|attach_pixel|
+     * draft_post}) run through the SAME per-action method above, so ownership,
+     * plan caps and alias uniqueness are re-validated per step — the AI's step
+     * list is never trusted. Steps run in order; a failing step is recorded and
+     * the funnel continues (so a plan-cap on step 3 doesn't discard steps 1-2).
+     *
+     * Result semantics for {@see claimAndApply}:
+     *   - all steps succeed  → status `applied`
+     *   - some succeed       → status `partial`
+     *   - none succeed       → throw (claim released to `error`)
+     *
+     * @return array{ref_type:string,ref_id:int,message:string,url:?string,status:string,step_results:array,error:?string}
+     */
+    protected function applyFunnel(User $user, MarketingStrategySuggestion $suggestion, ?int $workspaceId): array
+    {
+        $steps = is_array($suggestion->steps) ? array_values($suggestion->steps) : [];
+        if (empty($steps)) {
+            throw new RuntimeException('This funnel has no steps to apply.');
+        }
+        $steps = array_slice($steps, 0, 6); // bound the work per click
+
+        $results   = [];
+        $succeeded = 0;
+        $firstRef  = null;
+        $firstUrl  = null;
+
+        foreach ($steps as $i => $step) {
+            $type    = (string) ($step['type'] ?? '');
+            $title   = mb_substr(trim((string) ($step['title'] ?? $this->stepLabel($type))), 0, 180);
+            $payload = is_array($step['payload'] ?? null) ? $step['payload'] : [];
+
+            $row = ['index' => $i + 1, 'type' => $type, 'title' => $title, 'status' => 'error', 'message' => '', 'url' => null];
+            try {
+                $res = match ($type) {
+                    MarketingStrategySuggestion::TYPE_CREATE_LINK  => $this->applyCreateLink($user, $payload, $workspaceId),
+                    MarketingStrategySuggestion::TYPE_ADD_BLOCK    => $this->applyAddBlock($user, $payload, $workspaceId),
+                    MarketingStrategySuggestion::TYPE_ATTACH_PIXEL => $this->applyAttachPixel($user, $payload, $workspaceId),
+                    MarketingStrategySuggestion::TYPE_DRAFT_POST   => $this->applyDraftPost($user, $payload, $workspaceId),
+                    default => throw new RuntimeException('Unsupported funnel step type.'),
+                };
+                $row['status']  = 'applied';
+                $row['message'] = (string) ($res['message'] ?? 'Done.');
+                $row['url']     = $res['url'] ?? null;
+                $row['ref_type'] = $res['ref_type'] ?? null;
+                $row['ref_id']   = isset($res['ref_id']) ? (int) $res['ref_id'] : null;
+                $succeeded++;
+                if ($firstRef === null && isset($res['ref_id'])) {
+                    $firstRef = (int) $res['ref_id'];
+                    $firstUrl = $res['url'] ?? null;
+                }
+            } catch (\Throwable $e) {
+                $row['status'] = 'error';
+                $row['error']  = mb_substr($e->getMessage(), 0, 300);
+            }
+            $results[] = $row;
+        }
+
+        if ($succeeded === 0) {
+            // Surface the first step's error so the funnel goes to `error`.
+            $firstErr = $results[0]['error'] ?? 'None of the funnel steps could be applied.';
+            throw new RuntimeException($firstErr);
+        }
+
+        $total  = count($results);
+        $status = $succeeded === $total
+            ? MarketingStrategySuggestion::STATUS_APPLIED
+            : MarketingStrategySuggestion::STATUS_PARTIAL;
+        $message = $succeeded === $total
+            ? "Applied all {$total} funnel steps."
+            : "Applied {$succeeded} of {$total} funnel steps — review the rest.";
+
+        return [
+            'ref_type'     => 'funnel',
+            'ref_id'       => $firstRef ?? (int) $suggestion->id,
+            'message'      => $message,
+            'url'          => $firstUrl ?? route('user.dashboard'),
+            'status'       => $status,
+            'step_results' => $results,
+            'error'        => null,
+        ];
+    }
+
+    protected function stepLabel(string $type): string
+    {
+        return match ($type) {
+            MarketingStrategySuggestion::TYPE_CREATE_LINK  => 'Create link',
+            MarketingStrategySuggestion::TYPE_ADD_BLOCK    => 'Add block',
+            MarketingStrategySuggestion::TYPE_ATTACH_PIXEL => 'Attach pixel',
+            MarketingStrategySuggestion::TYPE_DRAFT_POST   => 'Draft post',
+            default                                        => 'Step',
         };
     }
 
@@ -123,10 +220,11 @@ class MarketingSuggestionApplier
         }
 
         $suggestion->forceFill([
-            'status'           => MarketingStrategySuggestion::STATUS_APPLIED,
+            'status'           => $result['status'] ?? MarketingStrategySuggestion::STATUS_APPLIED,
             'applied_ref_type' => $result['ref_type'],
             'applied_ref_id'   => $result['ref_id'],
-            'error'            => null,
+            'step_results'     => $result['step_results'] ?? $suggestion->step_results,
+            'error'            => $result['error'] ?? null,
             'applied_at'       => now(),
         ])->save();
 

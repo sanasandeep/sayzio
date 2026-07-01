@@ -20,17 +20,25 @@ class MarketingStrategy extends Model
 
     protected $fillable = [
         'user_id', 'workspace_id', 'title', 'goal', 'status',
-        'sources', 'source_items', 'parameters', 'context_snapshot', 'strategy',
-        'model', 'credits_spent',
+        'sources', 'source_items', 'parameters', 'profile_snapshot', 'context_snapshot', 'strategy',
+        'diagnosis', 'scorecard', 'forecast', 'competitor_analysis', 'baseline', 'outcome',
+        'goal_metric', 'share_token', 'model', 'credits_spent',
     ];
 
     protected $casts = [
-        'sources'          => 'array',
-        'source_items'     => 'array',
-        'parameters'       => 'array',
-        'context_snapshot' => 'array',
-        'strategy'         => 'array',
-        'credits_spent'    => 'integer',
+        'sources'             => 'array',
+        'source_items'        => 'array',
+        'parameters'          => 'array',
+        'profile_snapshot'    => 'array',
+        'context_snapshot'    => 'array',
+        'strategy'            => 'array',
+        'diagnosis'           => 'array',
+        'scorecard'           => 'array',
+        'forecast'            => 'array',
+        'competitor_analysis' => 'array',
+        'baseline'            => 'array',
+        'outcome'             => 'array',
+        'credits_spent'       => 'integer',
     ];
 
     protected static function booted(): void
@@ -38,6 +46,7 @@ class MarketingStrategy extends Model
         static::deleting(function (MarketingStrategy $strategy): void {
             $strategy->messages()->delete();
             $strategy->suggestions()->delete();
+            $strategy->scores()->delete();
         });
     }
 
@@ -56,10 +65,29 @@ class MarketingStrategy extends Model
         return $this->hasMany(MarketingStrategySuggestion::class, 'strategy_id')->orderBy('id');
     }
 
+    /** Task #3281 — scorecard history (most recent last). */
+    public function scores(): HasMany
+    {
+        return $this->hasMany(MarketingStrategyScore::class, 'strategy_id')->orderBy('id');
+    }
+
     /** Short human label for the plan's headline goal. */
     public function goalSummary(int $len = 120): string
     {
         $goal = trim((string) $this->goal);
         return $goal === '' ? '—' : \Illuminate\Support\Str::limit($goal, $len);
+    }
+
+    /** The analysis depth (1-5) this plan was generated at. */
+    public function depth(): int
+    {
+        $d = (int) (($this->parameters['depth'] ?? 3));
+        return max(1, min(5, $d));
+    }
+
+    /** True once a public share link has been minted. */
+    public function isShared(): bool
+    {
+        return trim((string) $this->share_token) !== '';
     }
 }

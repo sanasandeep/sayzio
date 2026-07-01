@@ -7,11 +7,18 @@ use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiPersonaAgent;
 use App\Modules\User\Models\BrandKit;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\MarketingProfile;
 use App\Modules\User\Models\MarketingStrategy;
+use App\Modules\User\Models\MarketingStrategyScore;
 use App\Modules\User\Models\MarketingStrategySuggestion;
 use App\Modules\User\Models\Pixel;
 use App\Modules\User\Models\User;
 use App\Services\AI\AskCoach\AskCoachToolRegistry;
+use App\Services\AI\Marketing\MarketingDiagnosisService;
+use App\Services\AI\Marketing\MarketingForecastService;
+use App\Services\AI\Marketing\MarketingOutcomeService;
+use App\Services\AI\Marketing\MarketingScorecardService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -36,8 +43,35 @@ class MarketingStrategistService
     /** Sub-feature tag for chat-refine spend (admin reporting), like `ask_coach.chat`. */
     public const CHAT_FEATURE = 'marketing_strategist.chat';
 
+    /** Task #3281 — sub-feature tag for the premium AI PDF exec-summary spend. */
+    public const REPORT_FEATURE = 'marketing_strategist.report';
+
     /** Output ceiling for a full strategy. */
     public const MAX_OUTPUT_TOKENS = 2200;
+
+    /** Task #3281 — output ceiling for the premium report exec-summary. */
+    public const REPORT_MAX_OUTPUT_TOKENS = 1100;
+
+    /**
+     * Task #3281 — creative 5-step analysis depth. Each level adds a layer of
+     * deterministic analysis (computed in PHP) plus more room for the AI to
+     * explain it. Higher depth ⇒ a bigger (more expensive) generation.
+     *
+     *   1 Quick Scan   · plan only
+     *   2 +Diagnosis    · grounded strengths / gaps
+     *   3 +Scorecard    · 0-100 Reach/Engagement/Conversion/Consistency
+     *   4 +Forecast     · three-scenario projection
+     *   5 +Deep/Compete · multi-step funnels + optional competitor grounding
+     *
+     * @var array<int,array{key:string,label:string,tokens:int,blurb:string}>
+     */
+    public const DEPTH_LEVELS = [
+        1 => ['key' => 'quick',     'label' => 'Quick Scan',    'tokens' => 900,  'blurb' => 'A fast organic + paid plan with one-click actions.'],
+        2 => ['key' => 'diagnosis', 'label' => 'Diagnosis',     'tokens' => 1300, 'blurb' => 'Adds a grounded read of what is working and what is leaking.'],
+        3 => ['key' => 'scorecard', 'label' => 'Scorecard',     'tokens' => 1700, 'blurb' => 'Adds a 0-100 marketing scorecard across four axes.'],
+        4 => ['key' => 'forecast',  'label' => 'Forecast',      'tokens' => 2100, 'blurb' => 'Adds a three-scenario forecast for your goal metric.'],
+        5 => ['key' => 'deep',      'label' => 'Deep Dive',     'tokens' => 2600, 'blurb' => 'Adds multi-step funnels and optional competitor grounding.'],
+    ];
 
     /**
      * Selectable data sources the creator can toggle on. Each maps to a
@@ -71,7 +105,24 @@ class MarketingStrategistService
         protected OpenAiService $openai,
         protected AiUsageCharger $credits,
         protected AskCoachToolRegistry $tools,
+        protected MarketingDiagnosisService $diagnosisSvc,
+        protected MarketingScorecardService $scorecardSvc,
+        protected MarketingForecastService $forecastSvc,
+        protected MarketingOutcomeService $outcomeSvc,
     ) {}
+
+    /** Clamp an arbitrary depth input to the supported 1-5 range. */
+    public function normalizeDepth($depth): int
+    {
+        $d = is_numeric($depth) ? (int) $depth : 3;
+        return max(1, min(5, $d));
+    }
+
+    /** Output-token budget for a generation at the given depth. */
+    public function depthTokens(int $depth): int
+    {
+        return self::DEPTH_LEVELS[$this->normalizeDepth($depth)]['tokens'] ?? self::MAX_OUTPUT_TOKENS;
+    }
 
     /** Normalise an arbitrary list of source keys to the known set. */
     public function normalizeSources(array $sources): array
@@ -193,12 +244,24 @@ class MarketingStrategistService
         return ['context' => $context, 'snapshot' => $snapshot];
     }
 
-    /** Worst-case credit cost shown before the user clicks Generate. */
+    /** Worst-case credit cost shown before the user clicks Generate (depth-scaled). */
     public function estimateCredits(User $user, string $goal, array $parameters, string $context): int
     {
+        $depth    = $this->normalizeDepth($parameters['depth'] ?? null);
         $model    = AiEngineSettings::featureModel(self::FEATURE);
-        $messages = $this->buildMessages($goal, $parameters, $context);
-        return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
+        $messages = $this->buildMessages($goal, $parameters, $context, [], $depth);
+        return $this->openai->estimateChatCoins($model, $messages, $this->depthTokens($depth), $user);
+    }
+
+    /**
+     * Task #3281 — worst-case credit cost for the premium AI report exec-summary.
+     * Free tiers (Markdown / Rich PDF / CSV) never call this.
+     */
+    public function estimateReportCredits(User $user, MarketingStrategy $strategy): int
+    {
+        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $messages = $this->buildReportMessages($strategy);
+        return $this->openai->estimateChatCoins($model, $messages, self::REPORT_MAX_OUTPUT_TOKENS, $user);
     }
 
     /**
@@ -213,18 +276,34 @@ class MarketingStrategistService
         $sources    = $this->normalizeSources($sources);
         $selections = $this->normalizeSelections($selections, $sources);
         $assembled  = $this->buildContext($user, $sources, $selections);
-        $messages = $this->buildMessages($goal, $parameters, $assembled['context']);
+
+        // Task #3281 — depth governs how much deterministic analysis we compute
+        // and how much room the model has to explain it. Persist it so re-opens
+        // and re-scores know the plan's depth.
+        $depth = $this->normalizeDepth($parameters['depth'] ?? null);
+        $parameters['depth'] = $depth;
+
+        $goalMetric = $this->diagnosisSvc->normalizeMetric($parameters['goal_metric'] ?? 'clicks');
+        $parameters['goal_metric'] = $goalMetric;
+
+        // Deterministic analysis: PHP computes every number from real tracking
+        // data; the AI only explains it. Fully guarded — a missing table or a
+        // cold-start account must never break generation.
+        $analysis = $this->computeAnalysis($user, $depth, $goalMetric, $parameters, $workspaceId);
+
+        $messages = $this->buildMessages($goal, $parameters, $assembled['context'], $analysis, $depth);
         $model    = AiEngineSettings::featureModel(self::FEATURE);
 
         $result = $this->openai->chat($user, $model, $messages, [
             'temperature'     => 0.6,
-            'max_tokens'      => self::MAX_OUTPUT_TOKENS,
+            'max_tokens'      => $this->depthTokens($depth),
             'response_format' => ['type' => 'json_object'],
             'feature'         => self::FEATURE,
             'reason'          => 'AI Marketing Strategist generation',
             'meta'            => [
                 'goal_excerpt' => mb_substr(trim($goal), 0, 160),
                 'sources'      => implode(',', $sources),
+                'depth'        => $depth,
             ],
         ]);
 
@@ -244,6 +323,18 @@ class MarketingStrategistService
             }
             $title = mb_substr($title, 0, 180);
 
+            // Fold the AI's narrative into the deterministic analysis payloads
+            // (the AI explains; PHP owns the numbers).
+            $diagnosis = $analysis['diagnosis'];
+            if (is_array($diagnosis) && $diagnosis !== []) {
+                $diagnosis['narrative'] = $this->narrativeList($parsed['diagnosis_narrative'] ?? ($parsed['diagnosis'] ?? []), 6, 400);
+            }
+            $forecast = $analysis['forecast'];
+            if (is_array($forecast) && $forecast !== []) {
+                $forecast['narrative'] = mb_substr(trim((string) ($parsed['forecast_narrative'] ?? '')), 0, 1200);
+            }
+            $competitor = $depth >= 5 ? $this->normalizeCompetitor($parsed['competitor_analysis'] ?? []) : null;
+
             $strategy = new MarketingStrategy();
             $strategy->user_id          = $user->id;
             $strategy->workspace_id      = $workspaceId;
@@ -253,13 +344,25 @@ class MarketingStrategistService
             $strategy->sources           = $sources;
             $strategy->source_items      = $selections;
             $strategy->parameters        = $parameters;
+            $strategy->profile_snapshot  = $this->profileSnapshot($user, $workspaceId) ?: null;
             $strategy->context_snapshot  = $assembled['snapshot'];
             $strategy->strategy          = $plan;
+            $strategy->goal_metric       = $goalMetric;
+            $strategy->diagnosis         = ($diagnosis ?: null);
+            $strategy->scorecard         = ($analysis['scorecard'] ?: null);
+            $strategy->forecast          = ($forecast ?: null);
+            $strategy->competitor_analysis = ($competitor ?: null);
+            $strategy->baseline          = ($analysis['baseline'] ?: null);
             $strategy->model             = (string) ($result['model'] ?? $model);
             $strategy->credits_spent     = $creditsSpent;
             $strategy->save();
 
             $this->persistSuggestions($strategy, $parsed['suggestions'] ?? []);
+
+            // Snapshot the first scorecard so the dashboard can chart it over time.
+            if (is_array($analysis['scorecard']) && $analysis['scorecard'] !== []) {
+                $this->snapshotScore($strategy, $analysis['scorecard']);
+            }
         } catch (\Throwable $e) {
             if ($creditsSpent > 0) {
                 $this->credits->refund($user, $creditsSpent, [
@@ -278,11 +381,73 @@ class MarketingStrategistService
     }
 
     /**
+     * Task #3281 — compute the deterministic analysis for a generation.
+     * Every number here comes from real tracking data via the analysis
+     * services; the AI never sets them. Depth gates which layers are built.
+     * A baseline is ALWAYS captured (even at depth 1) so outcome tracking has
+     * something to compare against later.
+     *
+     * @return array{diagnosis:?array,scorecard:?array,forecast:?array,baseline:?array}
+     */
+    protected function computeAnalysis(User $user, int $depth, string $goalMetric, array $parameters, ?int $workspaceId): array
+    {
+        $out = ['diagnosis' => null, 'scorecard' => null, 'forecast' => null, 'baseline' => null];
+
+        try {
+            $diagnosis = $this->diagnosisSvc->diagnose($user, $workspaceId);
+        } catch (\Throwable $e) {
+            $diagnosis = [];
+        }
+
+        try {
+            $baseValue = $this->diagnosisSvc->metricValue($user, $goalMetric, MarketingDiagnosisService::WINDOW_DAYS);
+        } catch (\Throwable $e) {
+            $baseValue = 0;
+        }
+        $out['baseline'] = [
+            'metric'      => $goalMetric,
+            'value'       => (int) $baseValue,
+            'window_days' => MarketingDiagnosisService::WINDOW_DAYS,
+            'captured_at' => Carbon::now()->toIso8601String(),
+        ];
+
+        if ($depth >= 2 && is_array($diagnosis) && $diagnosis !== []) {
+            $out['diagnosis'] = $diagnosis;
+        }
+
+        if ($depth >= 3) {
+            try {
+                $out['scorecard'] = $this->scorecardSvc->score(is_array($diagnosis) ? $diagnosis : []);
+            } catch (\Throwable $e) {
+                $out['scorecard'] = null;
+            }
+        }
+
+        if ($depth >= 4) {
+            $horizon = (int) ($parameters['horizon_days'] ?? 30);
+            try {
+                $out['forecast'] = $this->forecastSvc->forecast(
+                    (int) $baseValue,
+                    $goalMetric,
+                    $horizon,
+                    is_array($diagnosis) ? $diagnosis : [],
+                    is_array($out['scorecard']) ? $out['scorecard'] : []
+                );
+            } catch (\Throwable $e) {
+                $out['forecast'] = null;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * System + user messages for a fresh generation. The model is told to
      * answer ONLY with the strict JSON envelope so parsing is reliable.
      */
-    public function buildMessages(string $goal, array $parameters, string $context): array
+    public function buildMessages(string $goal, array $parameters, string $context, array $analysis = [], int $depth = 1): array
     {
+        $depth = $this->normalizeDepth($depth);
         $system = <<<'PROMPT'
 You are Sayzio Marketing Strategist, an expert growth marketer for creators,
 businesses and individuals who use the Sayzio link-management platform.
@@ -338,6 +503,11 @@ add_block and attach_pixel you MUST reference aliases / pixel names that appear
 in the provided data — never invent new ones. Omit suggestions you cannot ground.
 PROMPT;
 
+        // Task #3281 — depth-specific addendum. The COMPUTED ANALYSIS below is
+        // authoritative: the model must explain it, never restate different
+        // numbers. Higher depths unlock extra JSON fields.
+        $system .= "\n\n" . $this->depthPromptAddendum($depth);
+
         $userParts = [];
         $goal = trim($goal);
         $userParts[] = 'GOAL:' . "\n" . ($goal !== '' ? $goal : 'Grow my audience and engagement on Sayzio.');
@@ -345,6 +515,7 @@ PROMPT;
         $paramLines = [];
         foreach ($parameters as $k => $v) {
             if ($v === null || $v === '' || (is_array($v) && !$v)) continue;
+            if ($k === 'depth') continue; // internal
             $label = ucwords(str_replace('_', ' ', (string) $k));
             $val   = is_array($v) ? implode(', ', array_map('strval', $v)) : (string) $v;
             $paramLines[] = "- {$label}: {$val}";
@@ -353,12 +524,75 @@ PROMPT;
             $userParts[] = "PARAMETERS:\n" . implode("\n", $paramLines);
         }
 
+        $analysisBlock = $this->analysisPromptBlock($analysis, $depth);
+        if ($analysisBlock !== '') {
+            $userParts[] = $analysisBlock;
+        }
+
         $userParts[] = "CREATOR DATA (read-only, do not invent beyond this):\n" . $context;
 
         return [
             ['role' => 'system', 'content' => $system],
             ['role' => 'user',   'content' => implode("\n\n", $userParts)],
         ];
+    }
+
+    /** Depth-specific extra instructions + JSON fields appended to the system prompt. */
+    protected function depthPromptAddendum(int $depth): string
+    {
+        $lines = [];
+        $lines[] = 'ANALYSIS DEPTH: ' . $depth . ' (' . (self::DEPTH_LEVELS[$depth]['label'] ?? 'Quick Scan') . ').';
+        $lines[] = 'A COMPUTED ANALYSIS block may be provided. Those numbers are';
+        $lines[] = 'authoritative and already correct — your job is to EXPLAIN them in';
+        $lines[] = 'plain language, never to invent or contradict them.';
+
+        if ($depth >= 2) {
+            $lines[] = 'Also return "diagnosis_narrative": a JSON array of up to 6 short,';
+            $lines[] = 'grounded sentences interpreting the diagnosis (wins + what is leaking).';
+        }
+        if ($depth >= 4) {
+            $lines[] = 'Also return "forecast_narrative": a short paragraph explaining the';
+            $lines[] = 'assumptions behind the pessimistic / realistic / optimistic bands and';
+            $lines[] = 'which plays move the realistic case.';
+        }
+        if ($depth >= 5) {
+            $lines[] = 'Also propose multi-step FUNNELS as suggestions of type "funnel" with an';
+            $lines[] = 'ordered "steps" array; each step is {"type":"create_link|add_block|attach_pixel|draft_post","title":"...","payload":{...}}';
+            $lines[] = 'using the SAME payload shapes as the single-action suggestions above';
+            $lines[] = '(3-5 steps that chain into one journey, e.g. capture → nurture → convert).';
+            $lines[] = 'Also return "competitor_analysis": {"summary":"...","positioning":["..."],"gaps":["..."],"moves":["..."]}';
+            $lines[] = 'grounded ONLY in any competitor context the creator provided; if none was';
+            $lines[] = 'provided, give general category positioning and clearly say it is generic.';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /** Render the computed deterministic analysis as a compact prompt block. */
+    protected function analysisPromptBlock(array $analysis, int $depth): string
+    {
+        $parts = [];
+
+        $diag = $analysis['diagnosis'] ?? null;
+        if ($depth >= 2 && is_array($diag) && $diag !== []) {
+            $parts[] = 'Diagnosis (computed): ' . $this->compactJson($diag);
+        }
+        $score = $analysis['scorecard'] ?? null;
+        if ($depth >= 3 && is_array($score) && $score !== []) {
+            $parts[] = 'Scorecard 0-100 (computed): ' . $this->compactJson($score);
+        }
+        $fc = $analysis['forecast'] ?? null;
+        if ($depth >= 4 && is_array($fc) && $fc !== []) {
+            $parts[] = 'Forecast (computed): ' . $this->compactJson($fc);
+        }
+
+        return $parts ? "COMPUTED ANALYSIS (authoritative — explain, do not restate differently):\n" . implode("\n", $parts) : '';
+    }
+
+    protected function compactJson($value): string
+    {
+        $json = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        return $json === false ? '' : mb_substr($json, 0, 2500);
     }
 
     /**
@@ -455,17 +689,169 @@ PROMPT;
             $title = mb_substr(trim((string) ($s['title'] ?? $s['description'] ?? 'Suggestion')), 0, 200);
             if ($title === '') $title = 'Suggestion';
 
+            // Task #3281 — a funnel carries an ordered step list instead of a
+            // single payload. Steps are validated down to the known single-action
+            // types; a funnel with no valid steps is dropped.
+            $steps = null;
+            if ($type === MarketingStrategySuggestion::TYPE_FUNNEL) {
+                $steps = $this->normalizeFunnelSteps($s['steps'] ?? []);
+                if ($steps === []) continue;
+            }
+
             MarketingStrategySuggestion::create([
                 'strategy_id' => $strategy->id,
                 'type'        => $type,
                 'title'       => $title,
                 'description' => mb_substr(trim((string) ($s['description'] ?? '')), 0, 1000) ?: null,
                 'payload'     => is_array($s['payload'] ?? null) ? $s['payload'] : [],
+                'steps'       => $steps,
                 'status'      => MarketingStrategySuggestion::STATUS_PENDING,
             ]);
 
-            if (++$count >= 6) break;
+            if (++$count >= 8) break;
         }
+    }
+
+    /**
+     * Task #3281 — coerce a funnel's step list into a clean, bounded array of
+     * single-action steps. Only the known applyable types survive.
+     *
+     * @return list<array{type:string,title:string,payload:array}>
+     */
+    protected function normalizeFunnelSteps($steps): array
+    {
+        if (!is_array($steps)) return [];
+        $allowed = [
+            MarketingStrategySuggestion::TYPE_CREATE_LINK,
+            MarketingStrategySuggestion::TYPE_ADD_BLOCK,
+            MarketingStrategySuggestion::TYPE_ATTACH_PIXEL,
+            MarketingStrategySuggestion::TYPE_DRAFT_POST,
+        ];
+        $out = [];
+        foreach ($steps as $step) {
+            if (!is_array($step)) continue;
+            $type = (string) ($step['type'] ?? '');
+            if (!in_array($type, $allowed, true)) continue;
+            $out[] = [
+                'type'    => $type,
+                'title'   => mb_substr(trim((string) ($step['title'] ?? '')), 0, 180),
+                'payload' => is_array($step['payload'] ?? null) ? $step['payload'] : [],
+            ];
+            if (count($out) >= 6) break;
+        }
+        return $out;
+    }
+
+    /** @return list<string> narrative sentences bounded for safe storage. */
+    protected function narrativeList($value, int $max, int $len): array
+    {
+        if (is_string($value)) {
+            $value = array_filter(array_map('trim', preg_split('/(?<=[.!?])\s+/', $value) ?: []));
+        }
+        return $this->stringList($value, $max, $len);
+    }
+
+    /**
+     * Task #3281 — coerce the AI's competitor analysis into a bounded shape.
+     * @return array{summary:string,positioning:list<string>,gaps:list<string>,moves:list<string>}
+     */
+    protected function normalizeCompetitor($value): array
+    {
+        $v = is_array($value) ? $value : [];
+        return [
+            'summary'     => mb_substr(trim((string) ($v['summary'] ?? '')), 0, 1200),
+            'positioning' => $this->stringList($v['positioning'] ?? [], 6, 300),
+            'gaps'        => $this->stringList($v['gaps'] ?? [], 6, 300),
+            'moves'       => $this->stringList($v['moves'] ?? [], 6, 300),
+        ];
+    }
+
+    /**
+     * Task #3281 — a compact, reusable snapshot of the creator's Marketing
+     * Profile (intake), so a plan records the profile it was built against.
+     * Returns [] when no profile exists yet.
+     */
+    public function profileSnapshot(User $user, ?int $workspaceId = null): array
+    {
+        try {
+            $profile = MarketingProfile::forOwner($user->id, $workspaceId);
+        } catch (\Throwable $e) {
+            $profile = null;
+        }
+        return $profile ? $profile->toSnapshot() : [];
+    }
+
+    /**
+     * Task #3281 — persist a scorecard snapshot row so the dashboard can chart
+     * the four axes + overall over time. Idempotent-ish: safe to call after any
+     * (re)score; a missing table is swallowed so scoring never breaks a flow.
+     */
+    public function snapshotScore(MarketingStrategy $strategy, array $scorecard): ?MarketingStrategyScore
+    {
+        try {
+            return MarketingStrategyScore::create([
+                'strategy_id' => $strategy->id,
+                'overall'     => (int) ($scorecard['overall'] ?? 0),
+                'reach'       => (int) ($scorecard['reach'] ?? 0),
+                'engagement'  => (int) ($scorecard['engagement'] ?? 0),
+                'conversion'  => (int) ($scorecard['conversion'] ?? 0),
+                'consistency' => (int) ($scorecard['consistency'] ?? 0),
+                'reasons'     => is_array($scorecard['reasons'] ?? null) ? $scorecard['reasons'] : [],
+                'created_at'  => Carbon::now(),
+            ]);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Task #3281 — free, PHP-only re-score of a saved strategy. Recomputes the
+     * scorecard from CURRENT tracking data and appends a new history row so the
+     * creator can watch their marketing health move without spending coins.
+     *
+     * @return array|null the fresh scorecard, or null when it can't be computed.
+     */
+    public function recomputeScore(MarketingStrategy $strategy, User $user): ?array
+    {
+        try {
+            $diagnosis = $this->diagnosisSvc->diagnose($user, $strategy->workspace_id);
+            $scorecard = $this->scorecardSvc->score(is_array($diagnosis) ? $diagnosis : []);
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (!is_array($scorecard) || $scorecard === []) {
+            return null;
+        }
+
+        // Preserve the AI narrative from the last diagnosis, if any.
+        $prev = is_array($strategy->diagnosis ?? null) ? $strategy->diagnosis : [];
+        if (!empty($prev['narrative'])) {
+            $diagnosis['narrative'] = $prev['narrative'];
+        }
+
+        $strategy->diagnosis = $diagnosis ?: null;
+        $strategy->scorecard = $scorecard;
+        $strategy->save();
+
+        $this->snapshotScore($strategy, $scorecard);
+
+        return $scorecard;
+    }
+
+    /**
+     * Task #3281 — evaluate + persist outcome for a saved strategy (did the
+     * plan move the goal metric?). Free/PHP-only. Returns the outcome payload
+     * or null when there is no baseline to compare against.
+     */
+    public function refreshOutcome(MarketingStrategy $strategy, User $user): ?array
+    {
+        $outcome = $this->outcomeSvc->evaluate($strategy, $user);
+        if ($outcome === null) {
+            return null;
+        }
+        $strategy->outcome = $outcome;
+        $strategy->save();
+        return $outcome;
     }
 
     // ── data-source snapshots ──────────────────────────────────────
@@ -719,17 +1105,83 @@ PROMPT;
         return $out;
     }
 
-    /** Render a saved strategy as a self-contained HTML document for PDF export. */
-    public function toHtml(MarketingStrategy $strategy): string
+    /**
+     * Render a saved strategy as a self-contained, branded HTML document for
+     * PDF export. `$execSummary` is the optional premium AI exec-summary
+     * (empty for the free Rich PDF tier). Every section is grounded in the
+     * deterministic analysis stored on the strategy.
+     */
+    public function toHtml(MarketingStrategy $strategy, string $execSummary = ''): string
     {
         $plan = (array) ($strategy->strategy ?? []);
         $e = fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 
-        $body  = '<h1>' . $e($strategy->title) . '</h1>';
+        $premium = trim($execSummary) !== '';
+        $badge = $premium ? '<span class="tag tag-premium">Premium AI report</span>' : '<span class="tag">Strategy report</span>';
+
+        $body  = '<div class="brandbar"><span class="brand">Sayzio</span> ' . $badge . '</div>';
+        $body .= '<h1>' . $e($strategy->title) . '</h1>';
         $body .= '<p class="goal"><strong>Goal:</strong> ' . $e(trim((string) $strategy->goal)) . '</p>';
+        $body .= '<p class="muted">Generated ' . $e(optional($strategy->created_at)->format('M j, Y')) . ' &middot; depth ' . $e((string) $strategy->depth())
+            . ' (' . $e(self::DEPTH_LEVELS[$this->normalizeDepth($strategy->depth())]['label'] ?? 'Quick Scan') . ')</p>';
+
+        if ($premium) {
+            $body .= '<div class="exec"><h2>Executive summary</h2>';
+            foreach (preg_split('/\n{2,}/', trim($execSummary)) ?: [] as $para) {
+                $para = trim($para);
+                if ($para !== '') $body .= '<p>' . nl2br($e($para)) . '</p>';
+            }
+            $body .= '</div>';
+        }
 
         if (!empty($plan['summary'])) {
             $body .= '<h2>Summary</h2><p>' . $e($plan['summary']) . '</p>';
+        }
+
+        // Scorecard.
+        $scorecard = (array) ($strategy->scorecard ?? []);
+        if ($scorecard) {
+            $body .= '<h2>Marketing scorecard</h2>';
+            $body .= '<p class="score-overall">Overall <strong>' . (int) ($scorecard['overall'] ?? 0) . '</strong> / 100</p>';
+            $body .= '<table class="grid"><tr>';
+            foreach (['reach' => 'Reach', 'engagement' => 'Engagement', 'conversion' => 'Conversion', 'consistency' => 'Consistency'] as $k => $label) {
+                $body .= '<td><div class="axis">' . $e($label) . '</div><div class="axisval">' . (int) ($scorecard[$k] ?? 0) . '</div></td>';
+            }
+            $body .= '</tr></table>';
+            $reasons = (array) ($scorecard['reasons'] ?? []);
+            if ($reasons) {
+                $body .= '<ul class="reasons">';
+                foreach ($reasons as $r) $body .= '<li>' . $e($r) . '</li>';
+                $body .= '</ul>';
+            }
+        }
+
+        // Diagnosis narrative.
+        $diagnosis = (array) ($strategy->diagnosis ?? []);
+        $narrative = (array) ($diagnosis['narrative'] ?? []);
+        if ($narrative) {
+            $body .= '<h2>Diagnosis</h2><ul>';
+            foreach ($narrative as $n) $body .= '<li>' . $e($n) . '</li>';
+            $body .= '</ul>';
+        }
+
+        // Forecast.
+        $forecast = (array) ($strategy->forecast ?? []);
+        $bands    = (array) ($forecast['scenarios'] ?? $forecast['bands'] ?? []);
+        if ($bands) {
+            $metric = $e((string) ($forecast['metric'] ?? $strategy->goal_metric ?? 'clicks'));
+            $body .= '<h2>Forecast &mdash; ' . $metric . '</h2>';
+            $body .= '<table class="grid"><tr>';
+            foreach ($bands as $name => $band) {
+                $band = (array) $band;
+                $label = is_string($name) ? ucfirst($name) : ucfirst((string) ($band['label'] ?? 'Scenario'));
+                $val   = (int) ($band['value'] ?? $band['projected'] ?? 0);
+                $body .= '<td><div class="axis">' . $e($label) . '</div><div class="axisval">' . $val . '</div></td>';
+            }
+            $body .= '</tr></table>';
+            if (!empty($forecast['narrative'])) {
+                $body .= '<p>' . $e($forecast['narrative']) . '</p>';
+            }
         }
 
         $section = function (string $heading, array $plays) use ($e): string {
@@ -759,17 +1211,202 @@ PROMPT;
         $body .= $section('Organic plan', (array) ($plan['organic'] ?? []));
         $body .= $section('Paid plan', (array) ($plan['paid'] ?? []));
 
+        // Competitor analysis (depth 5).
+        $competitor = (array) ($strategy->competitor_analysis ?? []);
+        if ($competitor) {
+            $body .= '<h2>Competitor landscape</h2>';
+            if (!empty($competitor['summary'])) $body .= '<p>' . $e($competitor['summary']) . '</p>';
+            foreach (['positioning' => 'Positioning', 'gaps' => 'Gaps to exploit', 'moves' => 'Recommended moves'] as $k => $label) {
+                $items = (array) ($competitor[$k] ?? []);
+                if ($items) {
+                    $body .= '<h3>' . $e($label) . '</h3><ul>';
+                    foreach ($items as $it) $body .= '<li>' . $e($it) . '</li>';
+                    $body .= '</ul>';
+                }
+            }
+        }
+
+        // Outcome.
+        $outcome = (array) ($strategy->outcome ?? []);
+        if ($outcome) {
+            $delta   = (int) ($outcome['delta_pct'] ?? 0);
+            $verdict = (string) ($outcome['verdict'] ?? '');
+            $metric  = (string) ($outcome['goal_metric'] ?? $strategy->goal_metric ?? 'clicks');
+            $sign    = $delta > 0 ? '+' : '';
+            $body .= '<h2>Outcome</h2>';
+            $body .= '<p>' . $e(ucfirst($verdict !== '' ? $verdict : 'measured'))
+                . ': ' . $e($metric) . ' moved <strong>' . $sign . $delta . '%</strong> from baseline '
+                . (int) ($outcome['baseline_value'] ?? 0) . ' to ' . (int) ($outcome['current_value'] ?? 0)
+                . ' over ' . (int) ($outcome['window_days'] ?? 0) . ' days.</p>';
+        }
+
         if (!empty($plan['kpis'])) {
             $body .= '<h2>KPIs to watch</h2><ul>';
             foreach ((array) $plan['kpis'] as $kpi) $body .= '<li>' . $e($kpi) . '</li>';
             $body .= '</ul>';
         }
 
+        if (!$premium) {
+            $body .= '<p class="approx">This is an approximate, automatically generated plan. Figures are estimates based on your recent activity.</p>';
+        }
+
         $css = 'body{font-family:DejaVu Sans,sans-serif;color:#1f2937;font-size:12px;line-height:1.5;}'
-            . 'h1{font-size:22px;margin:0 0 4px;}h2{font-size:16px;margin:18px 0 6px;border-bottom:1px solid #e5e7eb;padding-bottom:3px;}'
-            . 'h3{font-size:13px;margin:10px 0 3px;}.goal{margin:0 0 12px;}.play{margin:0 0 8px;}'
-            . '.muted{color:#6b7280;font-size:11px;margin:2px 0;}ul{margin:4px 0 4px 18px;padding:0;}li{margin:2px 0;}';
+            . 'h1{font-size:22px;margin:6px 0 4px;}h2{font-size:16px;margin:18px 0 6px;border-bottom:1px solid #e5e7eb;padding-bottom:3px;color:#4338ca;}'
+            . 'h3{font-size:13px;margin:10px 0 3px;}.goal{margin:0 0 6px;}.play{margin:0 0 8px;}'
+            . '.muted{color:#6b7280;font-size:11px;margin:2px 0;}ul{margin:4px 0 4px 18px;padding:0;}li{margin:2px 0;}'
+            . '.brandbar{border-bottom:2px solid #4338ca;padding-bottom:6px;margin-bottom:8px;}'
+            . '.brand{font-size:18px;font-weight:bold;color:#4338ca;}'
+            . '.tag{float:right;font-size:10px;background:#eef2ff;color:#4338ca;border-radius:8px;padding:2px 8px;}'
+            . '.tag-premium{background:#4338ca;color:#fff;}'
+            . '.exec{background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:8px 12px;margin:10px 0;}'
+            . '.score-overall{font-size:14px;margin:4px 0;}'
+            . 'table.grid{width:100%;border-collapse:collapse;margin:6px 0;}table.grid td{border:1px solid #e5e7eb;text-align:center;padding:6px;width:25%;}'
+            . '.axis{font-size:10px;color:#6b7280;text-transform:uppercase;}.axisval{font-size:18px;font-weight:bold;color:#4338ca;}'
+            . '.reasons{color:#4b5563;}.approx{margin-top:16px;font-size:10px;color:#9ca3af;font-style:italic;}';
 
         return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' . $css . '</style></head><body>' . $body . '</body></html>';
+    }
+
+    /**
+     * Task #3281 — free CSV export of a saved strategy: scorecard + score
+     * history + forecast + suggestions, flattened into rows. No AI, no coins.
+     */
+    public function toCsv(MarketingStrategy $strategy): string
+    {
+        $rows = [];
+        $rows[] = ['section', 'key', 'value'];
+
+        $rows[] = ['meta', 'title', (string) $strategy->title];
+        $rows[] = ['meta', 'goal', trim((string) $strategy->goal)];
+        $rows[] = ['meta', 'goal_metric', (string) ($strategy->goal_metric ?? '')];
+        $rows[] = ['meta', 'depth', (string) $strategy->depth()];
+        $rows[] = ['meta', 'generated_at', (string) optional($strategy->created_at)->toDateTimeString()];
+
+        $scorecard = (array) ($strategy->scorecard ?? []);
+        foreach (['overall', 'reach', 'engagement', 'conversion', 'consistency'] as $k) {
+            if (array_key_exists($k, $scorecard)) {
+                $rows[] = ['scorecard', $k, (string) (int) $scorecard[$k]];
+            }
+        }
+
+        $baseline = (array) ($strategy->baseline ?? []);
+        if ($baseline) {
+            $rows[] = ['baseline', (string) ($baseline['metric'] ?? 'value'), (string) (int) ($baseline['value'] ?? 0)];
+        }
+
+        $forecast = (array) ($strategy->forecast ?? []);
+        $bands    = (array) ($forecast['scenarios'] ?? $forecast['bands'] ?? []);
+        foreach ($bands as $name => $band) {
+            $band  = (array) $band;
+            $label = is_string($name) ? $name : (string) ($band['label'] ?? 'scenario');
+            $rows[] = ['forecast', $label, (string) (int) ($band['value'] ?? $band['projected'] ?? 0)];
+        }
+
+        try {
+            foreach ($strategy->scores()->orderBy('created_at')->get() as $snap) {
+                $rows[] = ['score_history', (string) optional($snap->created_at)->toDateString(), (string) (int) $snap->overall];
+            }
+        } catch (\Throwable $e) {
+            // score table missing — skip history.
+        }
+
+        try {
+            foreach ($strategy->suggestions()->get() as $sug) {
+                $rows[] = ['suggestion', $sug->typeLabel() . ' — ' . $sug->status, (string) $sug->title];
+            }
+        } catch (\Throwable $e) {
+            // suggestions relation issue — skip.
+        }
+
+        $out = '';
+        foreach ($rows as $row) {
+            $out .= implode(',', array_map([$this, 'csvCell'], $row)) . "\r\n";
+        }
+        return $out;
+    }
+
+    protected function csvCell($value): string
+    {
+        $v = (string) $value;
+        if (preg_match('/[",\r\n]/', $v)) {
+            $v = '"' . str_replace('"', '""', $v) . '"';
+        }
+        return $v;
+    }
+
+    /**
+     * Task #3281 — build the messages for the premium report exec-summary. The
+     * model is given the deterministic analysis and asked to write a concise,
+     * board-ready narrative; it owns no numbers.
+     *
+     * @return list<array{role:string,content:string}>
+     */
+    protected function buildReportMessages(MarketingStrategy $strategy): array
+    {
+        $system = 'You are Sayzio Marketing Strategist writing the executive summary for a '
+            . 'branded PDF report. Write 3-5 short paragraphs a busy founder can read in a '
+            . 'minute: where they stand today, the biggest opportunity, the recommended focus, '
+            . 'and the realistic outcome if they execute. Ground every claim in the ANALYSIS '
+            . 'provided — never invent numbers. Plain prose only, no markdown, no headings.';
+
+        $payload = [
+            'title'       => (string) $strategy->title,
+            'goal'        => trim((string) $strategy->goal),
+            'goal_metric' => (string) ($strategy->goal_metric ?? ''),
+            'scorecard'   => (array) ($strategy->scorecard ?? []),
+            'diagnosis'   => (array) ($strategy->diagnosis ?? []),
+            'forecast'    => (array) ($strategy->forecast ?? []),
+            'competitor'  => (array) ($strategy->competitor_analysis ?? []),
+            'plan'        => (array) ($strategy->strategy ?? []),
+        ];
+
+        return [
+            ['role' => 'system', 'content' => $system],
+            ['role' => 'user',   'content' => "ANALYSIS (authoritative):\n" . $this->compactJson($payload)],
+        ];
+    }
+
+    /**
+     * Task #3281 — generate the premium report exec-summary. This is the ONE
+     * metered + auto-refunded AI call behind the "Premium AI PDF" download
+     * tier. Returns the summary text plus credits spent.
+     *
+     * @return array{summary:string,credits_spent:int,model:string}
+     */
+    public function generatePremiumReport(User $user, MarketingStrategy $strategy): array
+    {
+        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        $messages = $this->buildReportMessages($strategy);
+
+        $result = $this->openai->chat($user, $model, $messages, [
+            'temperature'  => 0.5,
+            'max_tokens'   => self::REPORT_MAX_OUTPUT_TOKENS,
+            'feature'      => self::FEATURE,
+            'reason'       => 'AI Marketing Strategist premium report',
+            'meta'         => ['sub_feature' => self::REPORT_FEATURE, 'strategy_id' => $strategy->id],
+        ]);
+
+        $creditsSpent = (int) ($result['credits_spent'] ?? 0);
+
+        try {
+            $summary = trim((string) ($result['content'] ?? ''));
+            if ($summary === '') {
+                throw new RuntimeException('The report summary came back empty. Please try again.');
+            }
+        } catch (\Throwable $e) {
+            if ($creditsSpent > 0) {
+                $this->credits->refund($user, $creditsSpent, [
+                    'feature' => self::FEATURE,
+                    'reason'  => 'AI Marketing Strategist premium report failed — auto refund',
+                ]);
+            }
+            throw $e;
+        }
+
+        return [
+            'summary'       => mb_substr($summary, 0, 6000),
+            'credits_spent' => $creditsSpent,
+            'model'         => (string) ($result['model'] ?? $model),
+        ];
     }
 }

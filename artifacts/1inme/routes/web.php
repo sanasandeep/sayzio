@@ -242,6 +242,12 @@ Route::get    ('/embed/link/{alias}/iframe',   [\App\Modules\Common\Controllers\
 Route::get    ('/embed/link/{alias}/embed.js', [\App\Modules\Common\Controllers\PublicEmbedController::class, 'js'])->name('public.embed.js')->where('alias', '[A-Za-z0-9._-]+');
 Route::options('/embed/link/{alias}/{any}',    [\App\Modules\Common\Controllers\PublicEmbedController::class, 'preflight'])->where('alias', '[A-Za-z0-9._-]+')->where('any', '.*');
 
+// Public shared AI Marketing Strategist report (Task #3281). Two-segment
+// `ai-report` prefix so it never collides with the single-segment /{alias}
+// catch-all. Read-only, token-gated, no auth.
+Route::get('/ai-report/{token}', [\App\Modules\Common\Controllers\PublicMarketingReportController::class, 'show'])
+    ->where('token', '[A-Za-z0-9]+')->name('public.ai-report');
+
 // ---- Public marketing & legal pages (must precede the catch-all /{alias} routes) ----
 Route::get('/login',    fn () => redirect()->route('user.login'))->name('login.page');
 Route::get('/register', fn () => redirect()->route('user.register'))->name('register.page');

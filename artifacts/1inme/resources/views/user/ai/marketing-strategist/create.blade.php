@@ -11,6 +11,25 @@
     $pickedContent = (array) ($params['content_types'] ?? []);
     $pickedPaid    = (array) ($params['paid_media'] ?? []);
 
+    // Reusable Marketing Profile fallbacks (session "old" always wins).
+    $pd          = (array) ($profileDefaults ?? []);
+    $goalValue   = old('goal', $old['goal'] ?? ($pd['goal'] ?? ''));
+    $audienceVal = $params['audience'] ?? ($pd['audience'] ?? '');
+    $avoidVal    = $params['avoid'] ?? ($pd['avoid'] ?? '');
+    $depthValue  = (int) ($params['depth'] ?? 3);
+    if ($depthValue < 1 || $depthValue > 5) { $depthValue = 3; }
+    $goalMetric  = $params['goal_metric'] ?? '';
+    $horizonVal  = $params['horizon_days'] ?? '';
+
+    // Depth ladder — each level adds analysis and costs a little more.
+    $depthLevels = [
+        1 => ['name' => 'Quick plan',    'adds' => 'Core organic + paid plan and KPIs.',                              'coins' => '~ low'],
+        2 => ['name' => 'Grounded',      'adds' => 'Adds a data-grounded diagnosis of your current marketing.',        'coins' => '~ low+'],
+        3 => ['name' => 'Standard',      'adds' => 'Adds a 0–100 health scorecard (reach, engagement, conversion…).',  'coins' => '~ medium'],
+        4 => ['name' => 'Deep',          'adds' => 'Adds a three-scenario forecast and multi-step funnel actions.',     'coins' => '~ medium+'],
+        5 => ['name' => 'Full strategy', 'adds' => 'Adds competitor grounding and the richest, longest report.',        'coins' => '~ high'],
+    ];
+
     // Icon per data source so the list reads as a scannable palette, not a wall of rows.
     $sourceIcons = [
         'links'      => 'fa-link',
@@ -125,10 +144,30 @@
                     <p class="text-xs text-white/50 mt-1 leading-relaxed">Describe the outcome you’re chasing. The clearer the target, the sharper the plan.</p>
                 </div>
             </div>
+            @if(!empty($pd['has_profile']))
+                <p class="text-[11px] text-blue-200/80 mt-3 flex items-center gap-1.5"><i class="fas fa-user-check text-[10px]"></i> Pre-filled from your <a href="{{ route('user.ai.marketing-strategist.profile') }}" class="underline hover:text-blue-100">marketing profile</a> — edit anything below.</p>
+            @endif
             <textarea name="goal" rows="3" maxlength="4000" required
                       placeholder="e.g. Grow my newsletter subscribers and drive more clicks to my link-in-bio over the next month."
-                      class="w-full mt-4 bg-white/5 border border-white/10 rounded-xl px-3.5 py-3 text-white text-sm placeholder-white/30 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400/60 focus:outline-none transition resize-y">{{ old('goal', $old['goal'] ?? '') }}</textarea>
+                      class="w-full mt-4 bg-white/5 border border-white/10 rounded-xl px-3.5 py-3 text-white text-sm placeholder-white/30 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400/60 focus:outline-none transition resize-y">{{ $goalValue }}</textarea>
             @error('goal')<p class="text-xs text-red-300 mt-1.5">{{ $message }}</p>@enderror
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                <div>
+                    <label class="block text-xs text-white/50 mb-1.5">Primary metric to track <span class="text-white/30">(for scoring &amp; forecast)</span></label>
+                    <select name="parameters[goal_metric]" class="{{ $inputCls }}">
+                        <option value="" class="bg-slate-800">Auto — let the strategist choose</option>
+                        @foreach(['clicks' => 'Link clicks', 'views' => 'Page views', 'subscribers' => 'Subscribers', 'followers' => 'Followers', 'orders' => 'Orders', 'revenue' => 'Revenue'] as $val => $label)
+                            <option value="{{ $val }}" @selected($goalMetric === $val) class="bg-slate-800">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/50 mb-1.5">Time horizon (days) <span class="text-white/30">(optional)</span></label>
+                    <input type="number" name="parameters[horizon_days]" min="7" max="365" value="{{ $horizonVal }}"
+                           placeholder="e.g. 30" class="{{ $inputCls }}">
+                </div>
+            </div>
         </section>
 
         {{-- Step 3 · Parameters --}}
@@ -162,7 +201,7 @@
                     </div>
                     <div>
                         <label class="block text-xs text-white/50 mb-1.5">Target audience</label>
-                        <input type="text" name="parameters[audience]" maxlength="300" value="{{ $params['audience'] ?? '' }}"
+                        <input type="text" name="parameters[audience]" maxlength="300" value="{{ $audienceVal }}"
                                placeholder="e.g. fitness creators in the US" class="{{ $inputCls }}">
                     </div>
                 </div>
@@ -215,7 +254,7 @@
                     </div>
                     <div class="sm:col-span-2">
                         <label class="block text-xs text-white/50 mb-1.5">Things to avoid</label>
-                        <input type="text" name="parameters[avoid]" maxlength="400" value="{{ $params['avoid'] ?? '' }}"
+                        <input type="text" name="parameters[avoid]" maxlength="400" value="{{ $avoidVal }}"
                                placeholder="e.g. no paid ads, avoid X/Twitter" class="{{ $inputCls }}">
                     </div>
                 </div>
@@ -270,6 +309,49 @@
                             @endforeach
                         </div>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        {{-- Step 4 · Depth --}}
+        <section class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6"
+                 x-data="{ depth: {{ $depthValue }}, levels: {{ Illuminate\Support\Js::from($depthLevels) }} }">
+            <div class="flex items-start gap-3.5">
+                <span class="{{ $stepBadgeCls }}">4</span>
+                <div class="min-w-0">
+                    <h2 class="text-white font-semibold text-base leading-tight">Analysis depth</h2>
+                    <p class="text-xs text-white/50 mt-1 leading-relaxed">Slide right for a richer plan. Each step layers on more analysis and costs a little more.</p>
+                </div>
+            </div>
+
+            <div class="mt-5">
+                <div class="flex items-center justify-between gap-3 mb-2">
+                    <span class="text-sm font-semibold text-white" x-text="'Level ' + depth + ' · ' + levels[depth].name"></span>
+                    <span class="text-[11px] px-2.5 py-1 rounded-lg bg-blue-500/15 border border-blue-400/25 text-blue-200 font-medium" x-text="levels[depth].coins + ' coins'"></span>
+                </div>
+
+                <input type="range" name="parameters[depth]" min="1" max="5" step="1" x-model="depth"
+                       class="w-full accent-blue-500 cursor-pointer">
+
+                <div class="flex justify-between mt-1.5 px-0.5">
+                    @foreach($depthLevels as $lvl => $meta)
+                        <button type="button" @click="depth = {{ $lvl }}"
+                                class="text-[10px] transition"
+                                :class="depth >= {{ $lvl }} ? 'text-blue-300 font-semibold' : 'text-white/35'">{{ $lvl }}</button>
+                    @endforeach
+                </div>
+
+                <div class="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3.5">
+                    <p class="text-xs text-white/70 leading-relaxed"><i class="fas fa-layer-group text-blue-300 mr-1.5 text-[11px]"></i><span x-text="levels[depth].adds"></span></p>
+                    <ul class="mt-2.5 space-y-1">
+                        <template x-for="lvl in [1,2,3,4,5]" :key="lvl">
+                            <li class="flex items-start gap-2 text-[11px] transition"
+                                :class="depth >= lvl ? 'text-white/70' : 'text-white/30'">
+                                <i class="fas mt-0.5 text-[9px]" :class="depth >= lvl ? 'fa-check text-blue-300' : 'fa-minus text-white/25'"></i>
+                                <span x-text="levels[lvl].adds"></span>
+                            </li>
+                        </template>
+                    </ul>
                 </div>
             </div>
         </section>
