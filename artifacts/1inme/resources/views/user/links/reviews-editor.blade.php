@@ -1,29 +1,81 @@
 @extends('user.layouts.app')
 @section('title', 'Reviews — ' . ($link->title ?: $link->alias))
 
+@push('styles')
+    {{-- Reuse the exact bento command-center look from the Dashboard. --}}
+    @include('user.partials.bento-styles')
+@endpush
+
 @php
     $publicUrl = url('/' . $link->alias);
     $renderStars = function ($rating) {
         $r = (int) round($rating); $out = '';
-        for ($i = 1; $i <= 5; $i++) { $out .= '<span style="color:' . ($i <= $r ? '#fbbf24' : 'rgba(255,255,255,.2)') . '">&#9733;</span>'; }
+        for ($i = 1; $i <= 5; $i++) { $out .= '<span style="color:' . ($i <= $r ? '#fbbf24' : 'rgba(148,163,184,.35)') . '">&#9733;</span>'; }
         return $out;
     };
+    $__avg = (float) ($summary['average'] ?? 0);
+    $__tiles = [
+        ['label' => 'Reviews',  'value' => number_format($summary['total'] ?? 0),    'icon' => 'fa-comment-dots',  'accent' => 'linear-gradient(90deg, #5c83ff, #90acff)', 'glow' => 'rgba(61,107,255,0.16)', 'iconBg' => 'rgba(61,107,255,0.12)', 'iconBd' => 'rgba(61,107,255,0.2)', 'iconColor' => '#90acff'],
+        ['label' => 'Average',  'value' => number_format($__avg, 1),                 'icon' => 'fa-star',          'accent' => 'linear-gradient(90deg, #f59e0b, #fbbf24)', 'glow' => 'rgba(245,158,11,0.18)', 'iconBg' => 'rgba(245,158,11,0.12)', 'iconBd' => 'rgba(245,158,11,0.2)', 'iconColor' => '#fbbf24'],
+        ['label' => 'Native',   'value' => number_format($summary['native'] ?? 0),   'icon' => 'fa-pen-nib',       'accent' => 'linear-gradient(90deg, #10b981, #34d399)', 'glow' => 'rgba(16,185,129,0.18)', 'iconBg' => 'rgba(16,185,129,0.12)', 'iconBd' => 'rgba(16,185,129,0.2)', 'iconColor' => '#34d399'],
+        ['label' => 'Imported', 'value' => number_format($summary['external'] ?? 0), 'icon' => 'fa-cloud-arrow-down', 'accent' => 'linear-gradient(90deg, #0ea5e9, #38bdf8)', 'glow' => 'rgba(14,165,233,0.18)', 'iconBg' => 'rgba(14,165,233,0.12)', 'iconBd' => 'rgba(14,165,233,0.2)', 'iconColor' => '#38bdf8'],
+    ];
 @endphp
 
 @section('content')
-<div class="max-w-5xl mx-auto" x-data="{ tab: 'reviews' }">
-    <div class="flex items-center justify-between gap-4 mb-6 flex-wrap">
-        <div class="flex items-center gap-4">
-            <a href="{{ route('user.links.index') }}" class="text-white/30 hover:text-white/50"><i class="fas fa-arrow-left"></i></a>
-            <div>
-                <h1 class="text-2xl font-bold text-white">{{ $link->title ?: 'Reviews Page' }}</h1>
-                <a href="{{ $publicUrl }}" target="_blank" class="text-xs text-blue-400 hover:underline">{{ $publicUrl }} <i class="fas fa-external-link-alt ml-1"></i></a>
+<div class="max-w-5xl mx-auto bento-stage" x-data="{ tab: 'reviews' }">
+
+    {{-- ===================== LIVE-PULSE HERO ===================== --}}
+    <div class="bento-hero">
+        <div class="hero-grid">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap mb-2">
+                    <span class="hero-chip"><i class="fas fa-star text-amber-400"></i> {{ number_format($__avg, 1) }} avg</span>
+                    <span class="hero-chip"><i class="fas fa-comment-dots"></i> {{ number_format($summary['total'] ?? 0) }} reviews</span>
+                </div>
+                <h1 class="hero-title gradient-text truncate" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">{{ $link->title ?: 'Reviews Page' }}</h1>
+                <p class="hero-subtitle">Moderate, reply to and import reviews for this page.</p>
+                <div class="flex items-center gap-2 flex-wrap mt-4">
+                    <a href="{{ route('user.links.index') }}" class="btn-ghost text-xs py-2">
+                        <i class="fas fa-arrow-left text-[10px]"></i> Back to Links
+                    </a>
+                    <a href="{{ $publicUrl }}" target="_blank" rel="noopener" class="btn-primary text-xs py-2">
+                        <i class="fas fa-up-right-from-square text-[10px]"></i> View live
+                    </a>
+                </div>
+            </div>
+
+            {{-- Live pulse: average rating --}}
+            <div class="flex items-center gap-4">
+                <div class="pulse-orb">
+                    <span class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($__avg, 1) }}</span>
+                    <span class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">rating</span>
+                </div>
+                <div>
+                    <span class="live-dot"><span class="dot"></span> Live</span>
+                    <p class="text-sm mt-1.5">{!! $renderStars($__avg) !!}</p>
+                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+                        from <strong style="color: var(--text-secondary);">{{ number_format($summary['total'] ?? 0) }}</strong> reviews
+                    </p>
+                </div>
             </div>
         </div>
-        <div class="glass rounded-xl px-4 py-2 text-center">
-            <div class="text-xl font-bold text-white">{{ number_format($summary['average'] ?? 0, 1) }} <span class="text-sm">{!! $renderStars($summary['average'] ?? 0) !!}</span></div>
-            <div class="text-[11px] text-white/40">{{ $summary['total'] ?? 0 }} reviews · {{ $summary['native'] ?? 0 }} native · {{ $summary['external'] ?? 0 }} imported</div>
-        </div>
+    </div>
+
+    {{-- ===================== METRIC BENTO ===================== --}}
+    <div class="bento mb-6">
+        @foreach($__tiles as $t)
+            <div class="bento-tile accent b-3 justify-between p-5" style="--tile-accent: {{ $t['accent'] }}; --tile-glow: {{ $t['glow'] }};">
+                <span class="tile-orb"></span>
+                <div class="flex items-center justify-between">
+                    <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">{{ $t['label'] }}</p>
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: {{ $t['iconBg'] }}; border: 1px solid {{ $t['iconBd'] }};">
+                        <i class="fas {{ $t['icon'] }} text-xs" style="color: {{ $t['iconColor'] }};"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-extrabold mt-2" style="color: var(--text-primary);">{{ $t['value'] }}</p>
+            </div>
+        @endforeach
     </div>
 
     @if(session('success'))<div class="mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-4 py-3 text-sm">{{ session('success') }}</div>@endif

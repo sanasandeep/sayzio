@@ -1,6 +1,11 @@
 @extends('user.layouts.app')
 @section('title', 'Leads')
 
+@push('styles')
+    {{-- Reuse the exact bento command-center look from the Dashboard. --}}
+    @include('user.partials.bento-styles')
+@endpush
+
 @section('content')
 @php
     $__user = auth()->user();
@@ -9,59 +14,84 @@
     $__canCreate = $__can('inbox.create');
     $__canEdit = $__can('inbox.edit');
     $__canDelete = $__can('inbox.delete');
+    $__wa = (int) $stats['whatsapp_channel'] + (int) $stats['whatsapp_number'];
+    $__tiles = [
+        ['label' => 'Total',      'value' => number_format($stats['total']),            'icon' => 'fa-users',        'accent' => 'linear-gradient(90deg, #5c83ff, #90acff)', 'glow' => 'rgba(61,107,255,0.16)', 'iconBg' => 'rgba(61,107,255,0.12)', 'iconBd' => 'rgba(61,107,255,0.2)', 'iconColor' => '#90acff'],
+        ['label' => 'Active',     'value' => number_format($stats['active']),           'icon' => 'fa-circle-check',  'accent' => 'linear-gradient(90deg, #10b981, #34d399)', 'glow' => 'rgba(16,185,129,0.18)', 'iconBg' => 'rgba(16,185,129,0.12)', 'iconBd' => 'rgba(16,185,129,0.2)', 'iconColor' => '#34d399'],
+        ['label' => 'Email',      'value' => number_format($stats['email']),            'icon' => 'fa-envelope',      'accent' => 'linear-gradient(90deg, #0ea5e9, #38bdf8)', 'glow' => 'rgba(14,165,233,0.18)', 'iconBg' => 'rgba(14,165,233,0.12)', 'iconBd' => 'rgba(14,165,233,0.2)', 'iconColor' => '#38bdf8'],
+        ['label' => 'WA Channel', 'value' => number_format($stats['whatsapp_channel']), 'icon' => 'fa-whatsapp fab', 'accent' => 'linear-gradient(90deg, #16a34a, #25D366)',  'glow' => 'rgba(37,211,102,0.18)', 'iconBg' => 'rgba(37,211,102,0.12)', 'iconBd' => 'rgba(37,211,102,0.2)', 'iconColor' => '#25D366'],
+        ['label' => 'WA Number',  'value' => number_format($stats['whatsapp_number']),  'icon' => 'fa-whatsapp fab', 'accent' => 'linear-gradient(90deg, #0d9488, #2dd4bf)', 'glow' => 'rgba(45,212,191,0.18)', 'iconBg' => 'rgba(45,212,191,0.12)', 'iconBd' => 'rgba(45,212,191,0.2)', 'iconColor' => '#2dd4bf'],
+    ];
 @endphp
-<div class="max-w-7xl mx-auto" x-data="{ deleteId: null }">
-    <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
-            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Leads</h1>
-            <p class="text-sm mt-1" style="color: var(--text-muted);">Manage your email & WhatsApp leads</p>
-        </div>
-        <div class="flex items-center gap-2">
-            @if($__canCreate)
-            <a href="{{ route('user.subscribers.compose') }}" class="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #3d6bff, #5c83ff);">
-                <i class="fas fa-paper-plane mr-1.5"></i>Compose
-            </a>
-            @else
-            <span class="px-4 py-2 rounded-xl text-sm font-medium text-white cursor-not-allowed opacity-60" style="background: linear-gradient(135deg, rgba(61,107,255,0.4), rgba(92,131,255,0.4));" title="Your role doesn't allow composing campaigns — ask a workspace admin">
-                <i class="fas fa-lock mr-1.5"></i>Compose
-            </span>
-            @endif
-            @if($__canEdit)
-            <a href="{{ route('user.subscribers.settings') }}" class="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5 glass" style="color: var(--text-secondary);">
-                <i class="fas fa-cog mr-1.5"></i>Settings
-            </a>
-            @else
-            <span class="px-4 py-2 rounded-xl text-sm font-medium glass cursor-not-allowed opacity-60" style="color: var(--text-faint);" title="Your role doesn't allow editing leads settings — ask a workspace admin">
-                <i class="fas fa-lock mr-1.5"></i>Settings
-            </span>
-            @endif
-            <a href="{{ route('user.subscribers.export') }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}" class="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5 glass" style="color: var(--text-secondary);">
-                <i class="fas fa-download mr-1.5"></i>Export
-            </a>
+<div class="max-w-7xl mx-auto bento-stage" x-data="{ deleteId: null }">
+
+    {{-- ===================== LIVE-PULSE HERO ===================== --}}
+    <div class="bento-hero">
+        <div class="hero-grid">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap mb-2">
+                    <span class="hero-chip"><i class="fas fa-users"></i> {{ number_format($stats['total']) }} leads</span>
+                    <span class="hero-chip"><i class="fas fa-circle text-emerald-400" style="font-size:6px;"></i> {{ number_format($stats['active']) }} active</span>
+                    @if($__wa)<span class="hero-chip"><i class="fab fa-whatsapp"></i> {{ number_format($__wa) }} WhatsApp</span>@endif
+                </div>
+                <h1 class="hero-title gradient-text truncate" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">Leads</h1>
+                <p class="hero-subtitle">Manage your email &amp; WhatsApp leads.</p>
+                <div class="flex items-center gap-2 flex-wrap mt-4">
+                    @if($__canCreate)
+                    <a href="{{ route('user.subscribers.compose') }}" class="btn-primary text-xs py-2">
+                        <i class="fas fa-paper-plane text-[10px]"></i> Compose
+                    </a>
+                    @else
+                    <span class="btn-primary text-xs py-2 cursor-not-allowed opacity-60" title="Your role doesn't allow composing campaigns — ask a workspace admin">
+                        <i class="fas fa-lock text-[10px]"></i> Compose
+                    </span>
+                    @endif
+                    @if($__canEdit)
+                    <a href="{{ route('user.subscribers.settings') }}" class="btn-ghost text-xs py-2">
+                        <i class="fas fa-cog text-[10px]"></i> Settings
+                    </a>
+                    @else
+                    <span class="btn-ghost text-xs py-2 cursor-not-allowed opacity-60" title="Your role doesn't allow editing leads settings — ask a workspace admin">
+                        <i class="fas fa-lock text-[10px]"></i> Settings
+                    </span>
+                    @endif
+                    <a href="{{ route('user.subscribers.export') }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}" class="btn-ghost text-xs py-2">
+                        <i class="fas fa-download text-[10px]"></i> Export
+                    </a>
+                </div>
+            </div>
+
+            {{-- Live pulse: active leads --}}
+            <div class="flex items-center gap-4">
+                <div class="pulse-orb">
+                    <span class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($stats['active']) }}</span>
+                    <span class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">active</span>
+                </div>
+                <div>
+                    <span class="live-dot"><span class="dot"></span> Live</span>
+                    <p class="text-sm font-semibold mt-1.5" style="color: var(--text-primary);">Active leads</p>
+                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+                        out of <strong style="color: var(--text-secondary);">{{ number_format($stats['total']) }}</strong> total
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-        <div class="glass rounded-2xl p-4 text-center">
-            <div class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($stats['total']) }}</div>
-            <div class="text-xs mt-1" style="color: var(--text-muted);">Total</div>
-        </div>
-        <div class="glass rounded-2xl p-4 text-center">
-            <div class="text-2xl font-bold text-green-400">{{ number_format($stats['active']) }}</div>
-            <div class="text-xs mt-1" style="color: var(--text-muted);">Active</div>
-        </div>
-        <div class="glass rounded-2xl p-4 text-center">
-            <div class="text-2xl font-bold text-blue-400">{{ number_format($stats['email']) }}</div>
-            <div class="text-xs mt-1" style="color: var(--text-muted);">Email</div>
-        </div>
-        <div class="glass rounded-2xl p-4 text-center">
-            <div class="text-2xl font-bold" style="color: #25D366;">{{ number_format($stats['whatsapp_channel']) }}</div>
-            <div class="text-xs mt-1" style="color: var(--text-muted);">WA Channel</div>
-        </div>
-        <div class="glass rounded-2xl p-4 text-center">
-            <div class="text-2xl font-bold" style="color: #25D366;">{{ number_format($stats['whatsapp_number']) }}</div>
-            <div class="text-xs mt-1" style="color: var(--text-muted);">WA Number</div>
-        </div>
+    {{-- ===================== METRIC BENTO ===================== --}}
+    <div class="bento mb-6">
+        @foreach($__tiles as $t)
+            <div class="bento-tile accent b-2 justify-between p-5" style="--tile-accent: {{ $t['accent'] }}; --tile-glow: {{ $t['glow'] }};">
+                <span class="tile-orb"></span>
+                <div class="flex items-center justify-between">
+                    <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">{{ $t['label'] }}</p>
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: {{ $t['iconBg'] }}; border: 1px solid {{ $t['iconBd'] }};">
+                        <i class="{{ str_contains($t['icon'], 'fab') ? 'fab' : 'fas' }} {{ str_replace(' fab', '', $t['icon']) }} text-xs" style="color: {{ $t['iconColor'] }};"></i>
+                    </div>
+                </div>
+                <p class="text-2xl font-extrabold mt-2" style="color: var(--text-primary);">{{ $t['value'] }}</p>
+            </div>
+        @endforeach
     </div>
 
     <div class="glass rounded-2xl p-4 mb-6">
