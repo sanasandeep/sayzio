@@ -59,6 +59,11 @@ export default function Setup() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Id of the biolink created by applying a template. When set, finishing
+  // drops the user straight into that page's editor (mirrors web onboarding);
+  // when null (template skipped) they land on the dashboard instead.
+  const [createdLinkId, setCreatedLinkId] = useState<number | null>(null);
+
   // WhatsApp inline connect state.
   const [waPhase, setWaPhase] = useState<"number" | "code">("number");
   const [mobile, setMobile] = useState("");
@@ -129,13 +134,14 @@ export default function Setup() {
     setBusy(true);
     setError(null);
     try {
-      await generateWizardPage({
+      const link = await generateWizardPage({
         persona: persona.slug,
         category: persona.category,
         page_type: persona.page_type,
         template_id: design.id,
         answers: {},
       });
+      setCreatedLinkId(link.id);
       await finishCoreSetup();
     } catch (e) {
       setError(
@@ -192,7 +198,13 @@ export default function Setup() {
   };
 
   const finishToApp = () => {
-    router.replace("/(tabs)");
+    // If the user created a page from a template, drop them straight into its
+    // editor (mirrors the web onboarding hand-off); otherwise the dashboard.
+    if (createdLinkId != null) {
+      router.replace(`/links/${createdLinkId}/edit` as any);
+    } else {
+      router.replace("/(tabs)");
+    }
   };
 
   const webBottom = Platform.OS === "web" ? 34 : 0;
@@ -488,11 +500,16 @@ export default function Setup() {
             </View>
             <Text style={[styles.h1, { color: colors.foreground, textAlign: "center" }]}>You're all set</Text>
             <Text style={[styles.sub, { color: colors.mutedForeground, textAlign: "center" }]}>
-              Your dashboard is ready — tweak your page, add links, and share it anywhere.
+              {createdLinkId != null
+                ? "Your page is ready — let's customize it, add your links, and make it yours."
+                : "Your dashboard is ready — tweak your page, add links, and share it anywhere."}
             </Text>
             <View style={{ height: 24 }} />
             <View style={{ alignSelf: "stretch" }}>
-              <Button label="Go to my dashboard" onPress={finishToApp} />
+              <Button
+                label={createdLinkId != null ? "Start editing my page" : "Go to my dashboard"}
+                onPress={finishToApp}
+              />
             </View>
           </View>
         ) : null}
