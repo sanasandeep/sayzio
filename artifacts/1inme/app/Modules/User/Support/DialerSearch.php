@@ -293,7 +293,14 @@ class DialerSearch
             return [];
         }
 
-        $query = Link::whereIn('user_id', $creatorIds)->where('is_active', true);
+        // Followed creators' links live in THEIR workspaces, not the searcher's.
+        // On the web surface the `workspace.scope` middleware binds the searcher's
+        // active workspace and the BelongsToWorkspace global scope would filter
+        // this entire cross-account query to empty. Opt out of the workspace
+        // filter here; visibility is still enforced by canViewLink() below.
+        $query = Link::withoutGlobalScope('workspace')
+            ->whereIn('user_id', $creatorIds)
+            ->where('is_active', true);
         self::applyLinkTextMatch($query, $q, null);
         if ($onlyVerified) {
             $query->where('is_verified', true);

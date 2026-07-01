@@ -339,6 +339,30 @@ class DialerSearchVisibilityTest extends TestCase
         $this->assertContains($own->id, $mine, 'owner must see their own record on the web surface');
     }
 
+    public function test_web_search_returns_a_followed_creators_public_link(): void
+    {
+        // Regression: the web dialer runs under `workspace.scope`, which binds
+        // the searcher's active workspace. A followed creator's link lives in
+        // the CREATOR's workspace, so without opting the followed-links query
+        // out of the BelongsToWorkspace global scope the entire "Followed" group
+        // was silently filtered to empty (the API surface, which binds no
+        // workspace, returned it correctly). This locks web/API parity.
+        $viewer  = $this->makeUser('viewer');
+        $creator = $this->makeUser('creator');
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $creator->id]);
+        $publicLink = $this->makeLink($creator, 'public');
+
+        $resp = $this->actingAsWeb($viewer)->getJson(route('user.dialer.search', ['q' => self::TOKEN]));
+        $resp->assertOk();
+
+        $followed = $this->groupLinkIds($resp->json('data'), 'followed');
+        $this->assertContains(
+            $publicLink->id,
+            $followed,
+            'a followed creator\'s public link must surface on the web dialer surface'
+        );
+    }
+
     public function test_web_search_never_leaks_a_followed_creators_subscribers_only_link(): void
     {
         $viewer  = $this->makeUser('viewer');
