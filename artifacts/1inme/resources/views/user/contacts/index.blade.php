@@ -145,126 +145,111 @@
                     @endif
                 @endif
             </div>
-            <div class="card-premium p-5">
+            <div class="card-premium p-5"
+                 x-data="contactsSearch({ index: '{{ route('user.contacts.index') }}', tab: '{{ $tab }}', q: @js($search) })">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
                     <div class="inline-flex rounded-xl p-1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
-                        <a href="{{ route('user.contacts.index', ['tab' => 'all', 'q' => $search]) }}"
-                           class="px-3 py-1.5 rounded-lg text-xs font-semibold {{ $tab === 'all' ? 'text-white' : '' }}"
-                           style="{{ $tab === 'all' ? 'background:linear-gradient(135deg,#3d6bff,#ec4899);' : 'color:var(--text-muted);' }}">
+                        <button type="button" @click="setTab('all')"
+                           class="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                           :class="tab === 'all' ? 'text-white' : ''"
+                           :style="tab === 'all' ? 'background:linear-gradient(135deg,#3d6bff,#ec4899);' : 'color:var(--text-muted);'">
                             All <span class="ml-1 opacity-70">({{ $stats['total'] }})</span>
-                        </a>
-                        <a href="{{ route('user.contacts.index', ['tab' => 'biolink', 'q' => $search]) }}"
-                           class="px-3 py-1.5 rounded-lg text-xs font-semibold {{ $tab === 'biolink' ? 'text-white' : '' }}"
-                           style="{{ $tab === 'biolink' ? 'background:linear-gradient(135deg,#3d6bff,#ec4899);' : 'color:var(--text-muted);' }}">
+                        </button>
+                        <button type="button" @click="setTab('biolink')"
+                           class="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                           :class="tab === 'biolink' ? 'text-white' : ''"
+                           :style="tab === 'biolink' ? 'background:linear-gradient(135deg,#3d6bff,#ec4899);' : 'color:var(--text-muted);'">
                             With Link in Bio <span class="ml-1 opacity-70">({{ $stats['biolink'] }})</span>
-                        </a>
+                        </button>
                     </div>
 
-                    <form method="GET" action="{{ route('user.contacts.index') }}" class="flex-1 min-w-[200px]">
-                        <input type="hidden" name="tab" value="{{ $tab }}">
+                    <div class="flex-1 min-w-[200px]">
                         <div class="relative">
                             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);"></i>
-                            <input type="text" name="q" value="{{ $search }}" placeholder="Search by name, phone, or email"
-                                   class="w-full pl-9 pr-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                            <input type="text" x-model="q" @input="onInput()" placeholder="Search by name, phone, or email"
+                                   autocomplete="off" spellcheck="false"
+                                   class="w-full pl-9 pr-9 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                            <i x-show="loading" x-cloak class="fas fa-spinner fa-spin absolute right-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);"></i>
                         </div>
-                    </form>
+                    </div>
                 </div>
 
-                @if($contacts->isEmpty())
-                    <div class="text-center py-16">
-                        <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(61,107,255,0.18));">
-                            <i class="fas fa-address-book text-2xl text-cyan-400"></i>
-                        </div>
-                        <p class="text-sm font-semibold mb-1" style="color: var(--text-primary);">No contacts yet</p>
-                        <p class="text-xs mb-4" style="color: var(--text-muted);">Add one manually or connect your Google account.</p>
-                        <a href="{{ route('user.contacts.create') }}" class="inline-block px-4 py-2 rounded-lg text-xs font-semibold" style="background:linear-gradient(135deg,#3d6bff,#ec4899);color:white">
-                            <i class="fas fa-user-plus mr-1"></i> New contact
-                        </a>
-                    </div>
-                @else
-                    @if($tab === 'biolink')
-                        {{-- Richer card view: includes the matched user's biolink URL inline. --}}
-                        <div class="space-y-3">
-                            @foreach($contacts as $c)
-                                @php
-                                    $bioLink = null;
-                                    if ($c->biolinkUser) {
-                                        $bioLink = \App\Modules\User\Models\Link::where('user_id', $c->biolink_user_id)
-                                            ->where('type', 'biolink')->where('is_active', true)
-                                            ->orderByDesc('id')->first();
-                                    }
-                                @endphp
-                                <div class="px-4 py-4 rounded-xl" style="background:linear-gradient(135deg,rgba(236,72,153,.06),rgba(61,107,255,.06));border:1px solid rgba(236,72,153,.20);">
-                                    <div class="flex items-start gap-3">
-                                        <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
-                                            @if($c->photoUrl())
-                                                <img src="{{ $c->photoUrl() }}" class="w-full h-full rounded-full object-cover">
-                                            @else
-                                                {{ $c->initials() }}
-                                            @endif
-                                        </div>
-                                        <div class="flex-1 min-w-0">
-                                            <a href="{{ route('user.contacts.show', $c) }}" class="text-sm font-semibold truncate block" style="color:var(--text-primary);">
-                                                {{ $c->nameForDisplay() }}
-                                                <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(236,72,153,.15);color:#f472b6">Sayzio</span>
-                                            </a>
-                                            <div class="text-xs truncate" style="color:var(--text-muted);">
-                                                {{ $c->phones->first()?->value ?? $c->emails->first()?->value ?? '—' }}
-                                            </div>
-                                            <div class="mt-2 text-[11px] flex items-center gap-2 flex-wrap">
-                                                <span class="px-2 py-0.5 rounded" style="background:rgba(255,255,255,.05);color:var(--text-muted);">{{ '@' . $c->biolinkUser?->publicHandle() }}</span>
-                                                @if($bioLink)
-                                                    <a href="{{ url('/' . $bioLink->alias) }}" target="_blank" class="font-medium" style="color:#90acff;">
-                                                        {{ url('/' . $bioLink->alias) }} <i class="fas fa-external-link-alt ml-1 text-[9px]"></i>
-                                                    </a>
-                                                @else
-                                                    <span style="color:var(--text-faint);">no published Link in Bio</span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                        <div class="flex flex-col gap-1.5">
-                                            @if($c->phones->first())
-                                                <a href="tel:{{ $c->phones->first()->value_e164 ?: $c->phones->first()->value }}" class="px-2.5 py-1 rounded-lg text-[10px] font-medium text-center" style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.20)"><i class="fas fa-phone"></i></a>
-                                            @endif
-                                            @if($bioLink)
-                                                <a href="{{ url('/' . $bioLink->alias) }}" target="_blank" class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-white text-center" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">Open</a>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            @foreach($contacts as $c)
-                                <a href="{{ route('user.contacts.show', $c) }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);" onmouseover="this.style.background='rgba(61,107,255,.08)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">
-                                    <div class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white" style="background: linear-gradient(135deg,#3d6bff,#ec4899);">
-                                        @if($c->photoUrl())
-                                            <img src="{{ $c->photoUrl() }}" class="w-full h-full rounded-full object-cover">
-                                        @else
-                                            {{ $c->initials() }}
-                                        @endif
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="text-sm font-semibold truncate" style="color:var(--text-primary);">
-                                            {{ $c->nameForDisplay() }}
-                                            @if($c->biolink_user_id)
-                                                <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(236,72,153,.15);color:#f472b6">Sayzio</span>
-                                            @endif
-                                        </div>
-                                        <div class="text-xs truncate" style="color:var(--text-muted);">
-                                            {{ $c->phones->first()?->value ?? $c->emails->first()?->value ?? '—' }}
-                                        </div>
-                                    </div>
-                                    <i class="fas fa-chevron-right text-[10px] opacity-40"></i>
-                                </a>
-                            @endforeach
-                        </div>
-                    @endif
-                    <div class="mt-4">{{ $contacts->links() }}</div>
-                @endif
+                <div id="contacts-list" x-ref="list" :class="loading ? 'opacity-60 transition-opacity' : 'transition-opacity'">
+                    @include('user.contacts._list')
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+function contactsSearch(cfg) {
+    return {
+        indexUrl: cfg.index,
+        tab: cfg.tab || 'all',
+        q: cfg.q || '',
+        loading: false,
+        _t: null,
+        _seq: 0,
+
+        init() {
+            // Intercept pagination links inside the swapped list so paging never
+            // triggers a full page reload (and keeps the current query + tab).
+            this.$refs.list.addEventListener('click', (e) => {
+                const a = e.target.closest('.pagination a, nav[role="navigation"] a, .mt-4 a');
+                if (!a || !this.$refs.list.contains(a)) return;
+                const href = a.getAttribute('href');
+                if (!href || href === '#') return;
+                e.preventDefault();
+                try {
+                    const u = new URL(href, window.location.origin);
+                    this.reload(u.searchParams.get('page') || '1');
+                } catch (_) { this.reload('1'); }
+            });
+        },
+
+        onInput() {
+            clearTimeout(this._t);
+            this._t = setTimeout(() => this.reload('1'), 220);
+        },
+
+        setTab(tab) {
+            if (this.tab === tab) return;
+            this.tab = tab;
+            this.reload('1');
+        },
+
+        buildUrl(page) {
+            const params = new URLSearchParams();
+            params.set('tab', this.tab);
+            if ((this.q || '').trim() !== '') params.set('q', this.q.trim());
+            if (page && page !== '1') params.set('page', page);
+            const qs = params.toString();
+            return this.indexUrl + (qs ? ('?' + qs) : '');
+        },
+
+        async reload(page) {
+            const url = this.buildUrl(page);
+            const seq = ++this._seq;
+            this.loading = true;
+            try {
+                const r = await fetch(url, {
+                    headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                if (seq !== this._seq) return; // a newer request superseded this one
+                const html = await r.text();
+                this.$refs.list.innerHTML = html;
+                // Keep the address bar in sync so refresh / share / back works.
+                try { window.history.replaceState(null, '', url); } catch (_) {}
+            } catch (e) {
+                // Leave the current list in place on a transient failure.
+            } finally {
+                if (seq === this._seq) this.loading = false;
+            }
+        },
+    };
+}
+</script>
+@endpush
 @endsection

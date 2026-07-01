@@ -80,6 +80,12 @@ class ContactController extends Controller
             ->orderByDesc('id')
             ->first();
 
+        // Live as-you-type search / tab switch / pagination fetch just the list
+        // body so the page never reloads. The full page is returned otherwise.
+        if ($request->ajax()) {
+            return view('user.contacts._list', compact('contacts', 'tab', 'search'));
+        }
+
         return view('user.contacts.index', compact('contacts', 'tab', 'search', 'googleAccount', 'stats', 'usage', 'activeImport'));
     }
 

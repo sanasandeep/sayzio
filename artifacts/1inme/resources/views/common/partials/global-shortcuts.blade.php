@@ -81,10 +81,15 @@
             $__shortcutGroups[] = [$__g[0], $__items];
         }
     }
+
+    // Live universal finder endpoint (Contacts / People / My links / Followed /
+    // Workspaces). Only wired for logged-in users; the same server contract
+    // (App\Modules\User\Support\DialerSearch) powers the dialer, REST + mobile.
+    $__searchUrl = $__isLoggedIn ? $__r('user.dialer.search') : null;
 @endphp
 
 <div
-    x-data="globalShortcuts()"
+    x-data="globalShortcuts({ searchUrl: @js($__searchUrl) })"
     x-init="init()"
     @keydown.window.prevent.stop.cmd.k="open()"
     @keydown.window.prevent.stop.ctrl.k="open()"
@@ -132,32 +137,45 @@
 
             {{-- Results --}}
             <div class="max-h-[55vh] overflow-y-auto p-2" x-ref="resultsBox">
-                @php $__flatIndex = 0; @endphp
-                @foreach($__shortcutGroups as $__group)
-                    <div class="gsm-group-header px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider group-block" data-group="{{ $__group[0] }}">
-                        {{ $__group[0] }}
-                    </div>
-                    @foreach($__group[1] as $__item)
-                        <a
-                            href="{{ $__item[1] }}"
-                            data-search-name="{{ Str::lower($__item[0] . ' ' . $__group[0]) }}"
-                            data-index="{{ $__flatIndex }}"
-                            :class="selected === {{ $__flatIndex }} ? 'is-selected' : ''"
-                            class="gsm-row search-row flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm transition cursor-pointer"
-                            @mouseenter="selected = {{ $__flatIndex }}"
-                        >
-                            <span class="gsm-row-icon w-7 h-7 rounded-lg flex items-center justify-center text-[12px]">
-                                <i class="{{ $__item[2] }}"></i>
-                            </span>
-                            <span class="flex-1 truncate">{{ $__item[0] }}</span>
-                            <i class="gsm-icon-faint fa-solid fa-arrow-turn-down-left text-[10px] rotate-90 hidden sm:inline"></i>
-                        </a>
-                        @php $__flatIndex++; @endphp
+                {{-- Live universal finder results (Contacts / People / My links /
+                     Followed / Workspaces). Populated client-side from
+                     user.dialer.search; empty (and hidden) for logged-out users
+                     or an empty query. --}}
+                <div x-ref="dynBox"></div>
+
+                {{-- Static nav shortcuts (always available, filtered client-side). --}}
+                <div x-ref="staticBox">
+                    @foreach($__shortcutGroups as $__group)
+                        <div class="gsm-group-header px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider group-block" data-group="{{ $__group[0] }}">
+                            {{ $__group[0] }}
+                        </div>
+                        @foreach($__group[1] as $__item)
+                            <a
+                                href="{{ $__item[1] }}"
+                                data-search-name="{{ Str::lower($__item[0] . ' ' . $__group[0]) }}"
+                                class="gsm-nav-row gsm-row search-row flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm transition cursor-pointer"
+                            >
+                                <span class="gsm-row-icon w-7 h-7 rounded-lg flex items-center justify-center text-[12px]">
+                                    <i class="{{ $__item[2] }}"></i>
+                                </span>
+                                <span class="flex-1 truncate">{{ $__item[0] }}</span>
+                                <i class="gsm-icon-faint fa-solid fa-arrow-turn-down-left text-[10px] rotate-90 hidden sm:inline"></i>
+                            </a>
+                        @endforeach
                     @endforeach
-                @endforeach
+                </div>
 
                 <div
-                    x-show="visibleCount === 0"
+                    x-show="loading"
+                    x-cloak
+                    class="gsm-empty px-3 py-6 text-center text-sm"
+                >
+                    <i class="fa-solid fa-spinner fa-spin text-lg mb-2 block opacity-60"></i>
+                    Searching…
+                </div>
+
+                <div
+                    x-show="!loading && visibleCount === 0"
                     class="gsm-empty px-3 py-10 text-center text-sm"
                 >
                     <i class="fa-regular fa-face-frown text-2xl mb-2 block opacity-60"></i>
@@ -287,18 +305,24 @@
 </style>
 
 <script>
-function globalShortcuts() {
+function globalShortcuts(cfg) {
+    cfg = cfg || {};
     return {
         isOpen: false,
         query: '',
         selected: 0,
         visibleCount: 0,
+        loading: false,
         toastShown: false,
         isDarkNow: !document.documentElement.classList.contains('light-mode'),
         _toastTimer: null,
+        // Live universal finder (logged-in only).
+        searchUrl: cfg.searchUrl || null,
+        _searchTimer: null,
+        _searchSeq: 0,
 
         init() {
-            this.$watch('query', () => this.filter());
+            this.$watch('query', () => this.onQueryChange());
             this.$watch('isOpen', (v) => {
                 if (v) {
                     document.body.style.overflow = 'hidden';
@@ -310,34 +334,50 @@ function globalShortcuts() {
                     document.body.style.overflow = '';
                 }
             });
+
+            // Hovering any row (static or dynamic) selects it.
+            this.$refs.resultsBox.addEventListener('mousemove', (e) => {
+                const row = e.target.closest('.gsm-nav-row');
+                if (!row) return;
+                const rows = this.visibleRows();
+                const idx = rows.indexOf(row);
+                if (idx !== -1 && idx !== this.selected) {
+                    this.selected = idx;
+                    this.highlight();
+                }
+            });
+
+            // A visible trigger (e.g. the header search button) can open us.
+            window.addEventListener('open-global-search', () => this.open());
         },
 
         open() {
             this.isOpen = true;
             this.query = '';
             this.selected = 0;
+            this.loading = false;
+            this.clearDynamic();
         },
 
         close() { this.isOpen = false; },
 
+        // ── Query pipeline ───────────────────────────────────────────────
+        onQueryChange() {
+            this.filter();          // static shortcuts (instant, client-side)
+            this.scheduleSearch();  // dynamic universal results (debounced)
+        },
+
+        // Filter the static nav shortcuts by substring, hide empty groups, and
+        // recompute the unified selection over ALL currently-visible rows.
         filter() {
             const q = (this.query || '').trim().toLowerCase();
-            const rows = this.$refs.resultsBox.querySelectorAll('.search-row');
-            const groups = this.$refs.resultsBox.querySelectorAll('.group-block');
-            let visible = 0;
-            const newIndexMap = [];
+            const rows = this.$refs.staticBox.querySelectorAll('.search-row');
+            const groups = this.$refs.staticBox.querySelectorAll('.group-block');
             rows.forEach((row) => {
                 const name = row.dataset.searchName || '';
                 const match = !q || name.indexOf(q) !== -1;
                 row.dataset.hidden = match ? 'false' : 'true';
-                if (match) {
-                    newIndexMap.push(parseInt(row.dataset.index, 10));
-                    visible++;
-                }
             });
-            this.visibleCount = visible;
-
-            // hide group headers whose items are all filtered out
             groups.forEach((g) => {
                 let any = false;
                 let n = g.nextElementSibling;
@@ -347,33 +387,131 @@ function globalShortcuts() {
                 }
                 g.style.display = any ? '' : 'none';
             });
+            this.refreshSelection(true);
+        },
 
-            // reset selection to first visible
-            if (newIndexMap.length) {
-                this.selected = newIndexMap[0];
-            } else {
-                this.selected = -1;
+        scheduleSearch() {
+            clearTimeout(this._searchTimer);
+            const q = (this.query || '').trim();
+            if (!this.searchUrl || !q) {
+                this._searchSeq++;   // invalidate any in-flight request
+                this.loading = false;
+                this.clearDynamic();
+                this.refreshSelection(true);
+                return;
+            }
+            this.loading = true;
+            this._searchTimer = setTimeout(() => this.runSearch(q), 200);
+        },
+
+        async runSearch(q) {
+            const seq = ++this._searchSeq;
+            try {
+                const params = new URLSearchParams({ q });
+                const r = await fetch(this.searchUrl + '?' + params.toString(), {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                if (seq !== this._searchSeq) return; // superseded
+                let groups = [];
+                if (r.ok) {
+                    const body = await r.json();
+                    groups = (body && body.data && Array.isArray(body.data.groups)) ? body.data.groups : [];
+                }
+                if (seq !== this._searchSeq) return;
+                this.renderDynamic(groups);
+            } catch (e) {
+                if (seq === this._searchSeq) this.clearDynamic();
+            } finally {
+                if (seq === this._searchSeq) {
+                    this.loading = false;
+                    this.refreshSelection(true);
+                }
             }
         },
 
-        moveSelection(dir) {
-            const visibleRows = Array.from(this.$refs.resultsBox.querySelectorAll('.search-row'))
-                .filter(r => r.dataset.hidden !== 'true');
-            if (!visibleRows.length) return;
-            const indexes = visibleRows.map(r => parseInt(r.dataset.index, 10));
-            let cur = indexes.indexOf(this.selected);
-            if (cur === -1) cur = 0;
-            else cur = (cur + dir + indexes.length) % indexes.length;
-            this.selected = indexes[cur];
-            const row = visibleRows[cur];
+        clearDynamic() { if (this.$refs.dynBox) this.$refs.dynBox.innerHTML = ''; },
+
+        _esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; },
+
+        renderDynamic(groups) {
+            if (!groups || !groups.length) { this.clearDynamic(); return; }
+            this.$refs.dynBox.innerHTML = groups.map((g) => {
+                const items = (g.items || []).map((it) => this.dynItemHtml(it)).join('');
+                return `<div class="group-block gsm-group-header px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider">${this._esc(g.label)} <span style="opacity:.6">${(g.items || []).length}</span></div>${items}`;
+            }).join('');
+        },
+
+        dynItemHtml(item) {
+            const a = item.action || {};
+            const badges = [];
+            if (item.badge) badges.push(`<span class="px-1 rounded text-[9px] font-bold" style="background:rgba(236,72,153,.15);color:#f472b6">${this._esc(item.badge)}</span>`);
+            if (item.verified) badges.push(`<span title="${this._esc(item.verified_label || 'Verified')}" style="color:#3d6bff"><i class="fas fa-check-circle text-[10px]"></i></span>`);
+            const typeLabel = item.type_label
+                ? `<span class="gsm-kbd px-1.5 py-0.5 rounded text-[9px] font-bold flex-shrink-0">${this._esc(item.type_label)}</span>` : '';
+            const inner = `
+                <span class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">${this._esc(item.initials)}</span>
+                <span class="flex-1 min-w-0">
+                    <span class="block text-sm font-medium truncate flex items-center gap-1">${this._esc(item.title)} ${badges.join(' ')}</span>
+                    <span class="block text-[11px] truncate gsm-icon-muted">${this._esc(item.subtitle || '')}</span>
+                </span>
+                ${typeLabel}`;
+            const cls = 'gsm-nav-row gsm-row flex items-center gap-3 px-3 py-2 rounded-xl border text-sm transition cursor-pointer';
+            if (a.kind === 'workspace' && a.switch_url) {
+                return `<button type="button" data-switch-url="${this._esc(a.switch_url)}" class="${cls} w-full text-left">${inner}</button>`;
+            }
+            if (a.url) {
+                return `<a href="${this._esc(a.url)}" class="${cls}">${inner}</a>`;
+            }
+            return `<div class="${cls}" style="cursor:default;">${inner}</div>`;
+        },
+
+        // ── Unified selection over static + dynamic rows ─────────────────
+        visibleRows() {
+            return Array.from(this.$refs.resultsBox.querySelectorAll('.gsm-nav-row'))
+                .filter(r => r.dataset.hidden !== 'true' && r.offsetParent !== null);
+        },
+
+        refreshSelection(resetToFirst) {
+            const rows = this.visibleRows();
+            this.visibleCount = rows.length;
+            if (!rows.length) { this.selected = -1; return; }
+            if (resetToFirst || this.selected < 0 || this.selected >= rows.length) {
+                this.selected = 0;
+            }
+            this.highlight();
+        },
+
+        highlight() {
+            const rows = this.visibleRows();
+            rows.forEach((r, i) => r.classList.toggle('is-selected', i === this.selected));
+            const row = rows[this.selected];
             row && row.scrollIntoView({ block: 'nearest' });
         },
 
+        moveSelection(dir) {
+            const rows = this.visibleRows();
+            if (!rows.length) return;
+            this.selected = (this.selected + dir + rows.length) % rows.length;
+            this.highlight();
+        },
+
         goToSelection() {
-            const row = this.$refs.resultsBox.querySelector('.search-row[data-index="' + this.selected + '"]');
-            if (row && row.dataset.hidden !== 'true') {
-                window.location.href = row.getAttribute('href');
-            }
+            const rows = this.visibleRows();
+            const row = rows[this.selected];
+            if (!row) return;
+            const switchUrl = row.dataset.switchUrl;
+            if (switchUrl) { this.switchWorkspace(switchUrl); return; }
+            const href = row.getAttribute('href');
+            if (href) { window.location.href = href; return; }
+            row.click();
+        },
+
+        async switchWorkspace(url) {
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+            try {
+                await fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+            } catch (e) { /* ignore */ }
+            window.location.reload();
         },
 
         toggleTheme() {

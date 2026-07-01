@@ -197,36 +197,34 @@
         }
         .header-glow { display: none; }
 
-        .header-search-box {
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        .header-search-box input {
+        .header-search-trigger {
             background: var(--bg-glass-input);
             border: 1px solid var(--border-glass);
             border-radius: 11px;
-            padding: 8px 12px 8px 34px;
+            padding: 8px 10px 8px 12px;
             font-size: 12px;
-            color: var(--text-primary);
+            color: var(--text-faint);
             outline: none;
-            width: 200px;
+            width: 240px;
             transition: all 0.3s ease;
+            cursor: pointer;
         }
-        .header-search-box input::placeholder { color: var(--text-faint); }
-        .header-search-box input:focus {
-            width: 280px;
+        .header-search-trigger:hover {
             border-color: rgba(61,107,255,0.3);
             box-shadow: 0 0 0 3px rgba(61,107,255,0.08);
             background: var(--bg-glass-input-focus);
+            color: var(--text-primary);
         }
-        .header-search-box i {
-            position: absolute;
-            left: 11px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 11px;
-            color: var(--text-faint);
-            pointer-events: none;
+        .header-search-trigger i { font-size: 11px; }
+        .header-search-trigger span { flex: 1; text-align: left; }
+        .header-search-trigger kbd {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 6px;
+            background: var(--bg-glass-input-focus);
+            border: 1px solid var(--border-glass);
+            color: var(--text-muted);
         }
 
         .header-icon-btn {
@@ -1276,17 +1274,18 @@
                     </div>
                     @endif
 
-                    <div class="header-search-box hidden md:block"
-                         x-data="voiceDictation({ onText(t){ if (this.$refs.searchBox) { this.$refs.searchBox.value = t; this.$refs.searchBox.focus(); } } })"
-                         x-init="$nextTick(() => { window.__voiceSurface = { name: 'app' }; })">
+                    {{-- Search now lives entirely in the ⌘K command palette
+                         (common.partials.global-shortcuts), which folds in the
+                         universal finder (contacts, people, links, followed,
+                         workspaces) alongside nav shortcuts. This trigger just
+                         opens it. --}}
+                    <button type="button" class="header-search-trigger hidden md:flex items-center gap-2"
+                            onclick="window.dispatchEvent(new CustomEvent('open-global-search'))"
+                            title="Search (⌘K)" aria-label="Search">
                         <i class="fas fa-search"></i>
-                        <input type="text" x-ref="searchBox" placeholder="Search links, projects..." x-on:keydown.enter="if($el.value.trim()) window.location.href='{{ route('user.links.index') }}?search='+encodeURIComponent($el.value.trim())"
-                               x-on:voice-action.window="if ($event.detail && $event.detail.type === 'search') { $refs.searchBox.value = $event.detail.query || ''; if ($refs.searchBox.value.trim()) window.location.href='{{ route('user.links.index') }}?search='+encodeURIComponent($refs.searchBox.value.trim()); }">
-                        <button type="button" @click="vdToggle()" :class="vdRecording ? 'text-red-400' : 'text-white/40 hover:text-white/80'"
-                                :title="vdRecording ? 'Stop dictation' : (vdStatus || 'Search by voice')" class="ml-1 text-xs">
-                            <i class="fas" :class="vdBusy ? 'fa-spinner fa-spin' : 'fa-microphone'"></i>
-                        </button>
-                    </div>
+                        <span>Search…</span>
+                        <kbd>⌘K</kbd>
+                    </button>
 
                     <div class="hidden lg:flex items-center">
                         @include('common.partials.theme-toggle')
@@ -1824,7 +1823,7 @@
          (common.partials.site-assistant) so there is ONE launcher on the
          dashboard. We still include this in non-floating mode so the reusable
          voiceDictation() helper + window.__voice config stay defined for the
-         header search and companion composer. --}}
+         companion composer. --}}
     @include('partials.voice-assistant', ['voiceFloating' => false])
     @include('user.links.partials.themed-confirm')
     @stack('scripts')
