@@ -23,40 +23,12 @@
         'companions' => 'fa-robot',
     ];
 
-    // Shared input styling for a cohesive, premium field treatment.
-    $inputCls = 'w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm placeholder-white/30 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/70 focus:outline-none transition';
+    // One shared, calm field treatment across every text input / select.
+    $inputCls = 'w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm placeholder-white/30 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400/60 focus:outline-none transition';
+    // Section label used to introduce each numbered step.
+    $stepBadgeCls = 'grid place-items-center h-8 w-8 shrink-0 rounded-lg bg-blue-500/15 border border-blue-400/25 text-blue-200 text-sm font-semibold';
+    $subheadCls   = 'text-[11px] uppercase tracking-wider text-white/45 font-semibold mb-3';
 @endphp
-
-<style>
-    .ms-badge {
-        background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
-        box-shadow: 0 8px 22px -8px rgba(59,130,246,0.65), inset 0 1px 0 rgba(255,255,255,0.25);
-    }
-    .ms-step {
-        position: relative;
-        backdrop-filter: blur(12px);
-        transition: border-color .25s ease, box-shadow .25s ease;
-    }
-    .ms-step::before {
-        content: "";
-        position: absolute;
-        inset: 0 0 auto 0;
-        height: 2px;
-        border-radius: 1rem 1rem 0 0;
-        background: linear-gradient(90deg, rgba(59,130,246,0.7), rgba(99,102,241,0.5), transparent 70%);
-        opacity: .7;
-    }
-    .ms-generate {
-        background: linear-gradient(120deg, #2563eb 0%, #4f46e5 100%);
-        box-shadow: 0 14px 30px -10px rgba(59,130,246,0.6), inset 0 1px 0 rgba(255,255,255,0.2);
-    }
-    .ms-generate:hover { background: linear-gradient(120deg, #3b82f6 0%, #6366f1 100%); }
-    .ms-generate:disabled { opacity: .6; }
-    .ms-subhead-icon {
-        background: rgba(59,130,246,0.12);
-        border: 1px solid rgba(59,130,246,0.25);
-    }
-</style>
 
 <div class="max-w-3xl mx-auto px-4 py-8">
     @include('user.ai._partials.header', [
@@ -66,28 +38,16 @@
         'balance'  => $balance,
     ])
 
-    {{-- Step overview strip --}}
-    <div class="grid grid-cols-3 gap-2 mb-6">
-        @foreach([['1','Your data','fa-database'], ['2','Your goal','fa-bullseye-pointer'], ['3','Parameters','fa-sliders']] as [$n,$lbl,$ic])
-            <div class="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
-                <span class="ms-badge grid place-items-center h-6 w-6 shrink-0 rounded-full text-[11px] font-bold text-white">{{ $n }}</span>
-                <span class="min-w-0">
-                    <span class="block text-xs font-medium text-white truncate">{{ $lbl }}</span>
-                </span>
-            </div>
-        @endforeach
-    </div>
-
-    <form method="POST" action="{{ route('user.ai.marketing-strategist.store') }}" id="ms-form" class="space-y-6">
+    <form method="POST" action="{{ route('user.ai.marketing-strategist.store') }}" id="ms-form" class="space-y-5">
         @csrf
 
-        {{-- Data sources --}}
-        <section class="ms-step rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+        {{-- Step 1 · Data sources --}}
+        <section class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
             <div class="flex items-start gap-3.5">
-                <span class="ms-badge grid place-items-center h-9 w-9 shrink-0 rounded-xl text-sm font-bold text-white">1</span>
+                <span class="{{ $stepBadgeCls }}">1</span>
                 <div class="min-w-0">
-                    <h2 class="text-white font-semibold text-base">Your data</h2>
-                    <p class="text-xs text-white/50 mt-1 leading-relaxed">Toggle the data you want the strategist to ground its plan in. Only names and aggregate stats are shared — never private contact details. For data with individual items you can narrow to a few — <span class="text-white/70">leaving all unselected means "use everything"</span>.</p>
+                    <h2 class="text-white font-semibold text-base leading-tight">Your data</h2>
+                    <p class="text-xs text-white/50 mt-1 leading-relaxed">Choose the data the strategist grounds its plan in. Only names and aggregate stats are shared — never private contact details. For a source with individual items you can narrow to a few; leaving them unselected means <span class="text-white/70">“use everything”</span>.</p>
                 </div>
             </div>
 
@@ -101,13 +61,13 @@
                         $sourceIcon  = $sourceIcons[$key] ?? 'fa-database';
                     @endphp
                     <div x-data="{ on: {{ $on ? 'true' : 'false' }}, open: {{ (!empty($chosenIds)) ? 'true' : 'false' }} }"
-                         :class="on ? 'border-blue-400/45 bg-blue-500/[0.08] ring-1 ring-blue-400/30' : 'border-white/10 bg-white/[0.02]'"
-                         class="rounded-xl border overflow-hidden transition {{ $isSelect ? '' : 'sm:col-span-1' }}">
+                         :class="on ? 'border-blue-400/40 bg-blue-500/[0.06]' : 'border-white/10 bg-white/[0.02] hover:border-white/20'"
+                         class="rounded-xl border overflow-hidden transition">
                         <label class="flex items-center gap-3 p-3.5 cursor-pointer">
                             <input type="checkbox" name="sources[]" value="{{ $key }}" x-model="on" class="sr-only peer">
 
-                            <span class="grid place-items-center h-10 w-10 shrink-0 rounded-xl border transition"
-                                  :class="on ? 'bg-blue-500/20 border-blue-400/40 text-blue-200' : 'bg-white/5 border-white/10 text-white/55'">
+                            <span class="grid place-items-center h-9 w-9 shrink-0 rounded-lg transition"
+                                  :class="on ? 'bg-blue-500/15 text-blue-200' : 'bg-white/5 text-white/40'">
                                 <i class="fas {{ $sourceIcon }} text-sm"></i>
                             </span>
 
@@ -116,11 +76,10 @@
                                 <span class="block text-[11px] text-white/45 mt-0.5 leading-snug">{{ $meta['description'] }}</span>
                             </span>
 
-                            {{-- Switch --}}
-                            <span class="relative h-6 w-11 shrink-0 rounded-full transition"
-                                  :class="on ? 'bg-blue-500' : 'bg-white/15'">
-                                <span class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
-                                      :class="on ? 'translate-x-5' : 'translate-x-0'"></span>
+                            {{-- Selection check --}}
+                            <span class="grid place-items-center h-5 w-5 shrink-0 rounded-md border transition"
+                                  :class="on ? 'bg-blue-500 border-blue-500 text-white' : 'border-white/25 text-transparent'">
+                                <i class="fas fa-check text-[9px]"></i>
                             </span>
                         </label>
 
@@ -157,37 +116,34 @@
             </div>
         </section>
 
-        {{-- Goal --}}
-        <section class="ms-step rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+        {{-- Step 2 · Goal --}}
+        <section class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
             <div class="flex items-start gap-3.5">
-                <span class="ms-badge grid place-items-center h-9 w-9 shrink-0 rounded-xl text-sm font-bold text-white">2</span>
+                <span class="{{ $stepBadgeCls }}">2</span>
                 <div class="min-w-0">
-                    <h2 class="text-white font-semibold text-base">Your goal</h2>
-                    <p class="text-xs text-white/50 mt-1 leading-relaxed">Describe the outcome you're chasing. The clearer the target, the sharper the plan.</p>
+                    <h2 class="text-white font-semibold text-base leading-tight">Your goal</h2>
+                    <p class="text-xs text-white/50 mt-1 leading-relaxed">Describe the outcome you’re chasing. The clearer the target, the sharper the plan.</p>
                 </div>
             </div>
             <textarea name="goal" rows="3" maxlength="4000" required
                       placeholder="e.g. Grow my newsletter subscribers and drive more clicks to my link-in-bio over the next month."
-                      class="w-full mt-4 bg-white/5 border border-white/10 rounded-xl px-3.5 py-3 text-white text-sm placeholder-white/30 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/70 focus:outline-none transition resize-y">{{ old('goal', $old['goal'] ?? '') }}</textarea>
+                      class="w-full mt-4 bg-white/5 border border-white/10 rounded-xl px-3.5 py-3 text-white text-sm placeholder-white/30 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400/60 focus:outline-none transition resize-y">{{ old('goal', $old['goal'] ?? '') }}</textarea>
             @error('goal')<p class="text-xs text-red-300 mt-1.5">{{ $message }}</p>@enderror
         </section>
 
-        {{-- Parameters --}}
-        <section class="ms-step rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6 space-y-7">
+        {{-- Step 3 · Parameters --}}
+        <section class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6 space-y-6">
             <div class="flex items-start gap-3.5">
-                <span class="ms-badge grid place-items-center h-9 w-9 shrink-0 rounded-xl text-sm font-bold text-white">3</span>
+                <span class="{{ $stepBadgeCls }}">3</span>
                 <div class="min-w-0">
-                    <h2 class="text-white font-semibold text-base">Parameters <span class="text-xs font-normal text-white/40">(optional)</span></h2>
-                    <p class="text-xs text-white/50 mt-1 leading-relaxed">The more you give, the sharper the plan. A region biases the plan toward locally-relevant channels.</p>
+                    <h2 class="text-white font-semibold text-base leading-tight">Parameters <span class="text-xs font-normal text-white/40">(optional)</span></h2>
+                    <p class="text-xs text-white/50 mt-1 leading-relaxed">The more you give, the sharper the plan. A region biases it toward locally-relevant channels.</p>
                 </div>
             </div>
 
             {{-- Budget & market --}}
             <div>
-                <h3 class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold mb-3">
-                    <span class="ms-subhead-icon grid place-items-center h-6 w-6 rounded-lg text-blue-300"><i class="fas fa-coins text-[11px]"></i></span>
-                    Budget &amp; market
-                </h3>
+                <h3 class="{{ $subheadCls }}">Budget &amp; market</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs text-white/50 mb-1.5">Budget</label>
@@ -216,10 +172,7 @@
 
             {{-- Timing & voice --}}
             <div>
-                <h3 class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold mb-3">
-                    <span class="ms-subhead-icon grid place-items-center h-6 w-6 rounded-lg text-blue-300"><i class="fas fa-clock text-[11px]"></i></span>
-                    Timing &amp; voice
-                </h3>
+                <h3 class="{{ $subheadCls }}">Timing &amp; voice</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs text-white/50 mb-1.5">Timeframe</label>
@@ -248,10 +201,7 @@
 
             {{-- Positioning --}}
             <div>
-                <h3 class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold mb-3">
-                    <span class="ms-subhead-icon grid place-items-center h-6 w-6 rounded-lg text-blue-300"><i class="fas fa-crosshairs text-[11px]"></i></span>
-                    Positioning
-                </h3>
+                <h3 class="{{ $subheadCls }}">Positioning</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs text-white/50 mb-1.5">Main offer / product</label>
@@ -275,10 +225,7 @@
 
             {{-- Channels & formats --}}
             <div>
-                <h3 class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold mb-3">
-                    <span class="ms-subhead-icon grid place-items-center h-6 w-6 rounded-lg text-blue-300"><i class="fas fa-share-nodes text-[11px]"></i></span>
-                    Channels &amp; formats
-                </h3>
+                <h3 class="{{ $subheadCls }}">Channels &amp; formats</h3>
                 <div class="space-y-5">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
@@ -329,7 +276,7 @@
 
         {{-- Footer action bar --}}
         <div class="sticky bottom-4 z-10">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.05] backdrop-blur-xl p-4 shadow-xl shadow-black/30">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-4 shadow-lg shadow-black/30">
                 <div class="text-xs text-white/50 flex items-center gap-2 flex-wrap" id="ms-estimate">
                     <button type="button" id="ms-estimate-btn"
                             class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/75 hover:bg-white/10 hover:text-white text-xs font-medium transition">
@@ -338,7 +285,7 @@
                     <span id="ms-estimate-out" class="text-white/60"></span>
                 </div>
                 <button type="submit" id="ms-submit"
-                        class="ms-generate inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-white text-sm font-semibold transition">
+                        class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition disabled:opacity-60">
                     <i class="fas fa-wand-magic-sparkles"></i> Generate strategy
                 </button>
             </div>
