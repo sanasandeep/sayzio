@@ -14,7 +14,7 @@
         </form>
     </div>
 
-    <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft);">
+    <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">
         <div class="flex items-center justify-between mb-3">
             <div>
                 <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Times written to NFC</p>
@@ -38,15 +38,15 @@
     </div>
 
     <div class="grid grid-cols-3 gap-3 mb-6">
-        <div class="rounded-xl p-4 border" style="background: var(--bg-card); border-color: var(--border-soft);">
+        <div class="rounded-xl p-4 border" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">
             <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Unique visitors</p>
             <p class="text-2xl font-extrabold mt-1" style="color: var(--text-primary);">{{ number_format($totalVisitors) }}</p>
         </div>
-        <div class="rounded-xl p-4 border" style="background: var(--bg-card); border-color: var(--border-soft);">
+        <div class="rounded-xl p-4 border" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">
             <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">New</p>
             <p class="text-2xl font-extrabold mt-1 text-emerald-600">{{ number_format($newCount) }}</p>
         </div>
-        <div class="rounded-xl p-4 border" style="background: var(--bg-card); border-color: var(--border-soft);">
+        <div class="rounded-xl p-4 border" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">
             <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Returning</p>
             <p class="text-2xl font-extrabold mt-1 text-blue-600">{{ number_format($returningCount) }}</p>
         </div>
@@ -57,7 +57,7 @@
          AR (link_clicks.source = 'ar'), plus the wider source breakdown
          so creators can compare AR vs web/social pulls at a glance. --}}
     @if($link->ar_enabled || ($arSessions ?? 0) > 0 || ($arClicks ?? 0) > 0)
-    <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft);">
+    <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">
         <div class="flex items-center justify-between mb-3">
             <div>
                 <h2 class="font-bold" style="color: var(--text-primary);">
@@ -114,7 +114,7 @@
     @endif
 
     @if($dailySeries->isNotEmpty())
-        <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft);">
+        <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">
             <div class="flex items-center justify-between mb-3">
                 <h2 class="font-bold" style="color: var(--text-primary);">Returning visitor rate</h2>
                 <span class="text-xs" style="color: var(--text-faint);">% of daily uniques who had visited before</span>
@@ -148,7 +148,7 @@
         </div>
     @endif
 
-    <div class="rounded-2xl border p-5" style="background: var(--bg-card); border-color: var(--border-soft);">
+    <div class="rounded-2xl border p-5" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">
         <h2 class="font-bold mb-4" style="color: var(--text-primary);">Identified visitors ({{ $identified->count() }})</h2>
         @if($identified->isEmpty())
             <p class="text-sm" style="color: var(--text-muted);">No visitors have signed in on this Link in Bio yet. When viewers opt in via the sign-in card on your Link in Bio, they'll appear here.</p>

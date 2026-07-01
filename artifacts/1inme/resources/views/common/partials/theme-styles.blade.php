@@ -27,6 +27,15 @@
         --border-glass-light: rgba(255,255,255,0.16);
         --border-subtle: rgba(255,255,255,0.06);
         --border-strong: rgba(255,255,255,0.18);
+        /* Legacy "soft" aliases still referenced by older inner pages
+           (analytics, visitors, billing, security, …). Defined once here as
+           aliases of the shared glass tokens so those surfaces inherit the
+           theme and flip per mode, instead of falling back to currentColor /
+           transparent when the variable is undefined. */
+        --bg-soft: var(--bg-glass);
+        --surface-soft: var(--bg-glass);
+        --border-soft: var(--border-glass);
+        --accent-soft: var(--c-primary-soft);
         --text-primary: #ffffff;
         --text-secondary: #e2e8f0;
         --text-muted: #94a3b8;

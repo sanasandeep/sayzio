@@ -10,6 +10,7 @@
         background: var(--bg-card);
         border: 1px solid var(--border-glass);
         border-radius: 14px;
+        box-shadow: var(--card-shadow);
         backdrop-filter: blur(20px);
     }
     .stats-select {
