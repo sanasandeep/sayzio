@@ -72,9 +72,6 @@
                     </form>
 
                     <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 justify-center lg:justify-start">
-                        <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','hero'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap shrink-0">
-                            Start free with AI <i class="fas fa-arrow-right text-sm"></i>
-                        </button>
                         <a href="#ai-suite" class="zio-cta-ghost inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full text-base font-bold whitespace-nowrap">
                             Meet the AI suite
                         </a>
