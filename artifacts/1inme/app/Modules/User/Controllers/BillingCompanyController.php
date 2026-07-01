@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\BillingCompany;
 use App\Modules\User\Models\TaxRule;
 use App\Services\Billing\CompanyMailSettings;
+use App\Services\Billing\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +18,22 @@ class BillingCompanyController extends Controller
     {
         $companies = BillingCompany::where('user_id', auth()->id())
             ->orderByDesc('is_default')->orderBy('name')->get();
-        return view('user.billing.companies.index', compact('companies'));
+
+        // Read-only wallet summary for the Billing & Identity hub tab (Task
+        // #3234). When the admin has disabled the Wallet & Coins feature we
+        // simply omit the card rather than render a locked state here.
+        $wallet = null;
+        $walletLowThreshold = 0;
+        if (WalletService::isEnabled()) {
+            $wallet = app(WalletService::class)->walletFor(auth()->user());
+            $walletLowThreshold = (int) ($wallet->low_balance_threshold ?? 0);
+        }
+
+        return view('user.billing.companies.index', compact(
+            'companies',
+            'wallet',
+            'walletLowThreshold'
+        ));
     }
 
     public function create()

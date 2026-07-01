@@ -13,6 +13,43 @@
     @if(session('success'))<div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>@endif
     @if(session('error'))<div class="mb-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm">{{ session('error') }}</div>@endif
 
+    {{-- Wallet balance + invoice history summary (Task #3234). Read-only cards
+         that reuse the existing wallet + client-invoice surfaces. --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        @if($wallet)
+            @php $__low = (int) ($walletLowThreshold ?? 0); @endphp
+            <div class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(245,158,11,0.12));">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <div class="text-[11px] uppercase tracking-wide font-semibold" style="color: var(--text-muted);">Coin wallet</div>
+                        <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);">{{ number_format($wallet->balance) }} <span class="text-lg">🪙</span></div>
+                        @if($__low > 0 && $wallet->balance < $__low)
+                            <div class="text-xs mt-1 text-amber-600"><i class="fas fa-triangle-exclamation mr-1"></i>Balance below {{ number_format($__low) }} coins — top up to keep using coin add-ons.</div>
+                        @endif
+                    </div>
+                    <div class="flex flex-col gap-2 shrink-0">
+                        <a href="{{ route('user.wallet.show') }}" class="text-xs px-3 py-1.5 rounded-lg border text-center" style="border-color: var(--border-soft); color: var(--text-primary);"><i class="fas fa-wallet mr-1"></i>View wallet</a>
+                        <a href="{{ route('user.wallet.buy') }}" class="text-xs px-3 py-1.5 rounded-lg text-center text-white" style="background: var(--color-primary-600, #2563eb);"><i class="fas fa-coins mr-1"></i>Buy coins</a>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <div class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <div class="text-[11px] uppercase tracking-wide font-semibold" style="color: var(--text-muted);">Invoices &amp; receipts</div>
+                    <div class="text-sm font-semibold mt-1" style="color: var(--text-primary);">Your invoice &amp; receipt history</div>
+                    <p class="text-xs mt-1" style="color: var(--text-muted);">Review, download and manage the invoices &amp; receipts you issue.</p>
+                </div>
+                <span class="nav-icon-wrap shrink-0" style="width:2.25rem;height:2.25rem;"><i class="fas fa-file-invoice-dollar"></i></span>
+            </div>
+            <div class="mt-4">
+                <a href="{{ route('user.client-invoices.dashboard') }}" class="text-xs px-3 py-1.5 rounded-lg border inline-flex items-center" style="border-color: var(--border-soft); color: var(--text-primary);">Open invoice history <i class="fas fa-arrow-right ml-1.5"></i></a>
+            </div>
+        </div>
+    </div>
+
     @if($companies->isEmpty())
         <div class="p-8 rounded-xl border text-center" style="border-color: var(--border-soft); background: var(--bg-card); color: var(--text-muted);">
             <i class="fas fa-building text-3xl mb-3 opacity-50"></i>
