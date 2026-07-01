@@ -51,6 +51,22 @@ class BrandKit extends Model
         return (string) ($this->config['block_theme'] ?? '');
     }
 
+    /**
+     * The brand's logo/mark image reference (URL or storage path) for use in
+     * branded exports. Falls back to the source image the kit was generated
+     * from. Empty string when the kit carries neither. Task #3302.
+     */
+    public function logo(): string
+    {
+        foreach (['logo', 'logo_url', 'source', 'source_url'] as $key) {
+            $val = trim((string) ($this->config[$key] ?? ''));
+            if ($val !== '') {
+                return $val;
+            }
+        }
+        return '';
+    }
+
     /** @return array{tone?:string,descriptors?:list<string>} */
     public function voice(): array
     {

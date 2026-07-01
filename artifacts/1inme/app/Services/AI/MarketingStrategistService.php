@@ -271,11 +271,17 @@ class MarketingStrategistService
      *
      * @return array{strategy:MarketingStrategy,credits_spent:int,model:string}
      */
-    public function generate(User $user, string $goal, array $parameters, array $sources, ?int $workspaceId = null, array $selections = []): array
+    public function generate(User $user, string $goal, array $parameters, array $sources, ?int $workspaceId = null, array $selections = [], ?int $profileId = null): array
     {
         $sources    = $this->normalizeSources($sources);
         $selections = $this->normalizeSelections($selections, $sources);
         $assembled  = $this->buildContext($user, $sources, $selections);
+
+        // Task #3302 — resolve the named project this plan is built for. Its
+        // snapshot both grounds the AI (project block) and is recorded on the
+        // strategy so the plan can be traced back to (and re-run against) it.
+        $profile         = $this->resolveProfile($profileId, $user, $workspaceId);
+        $projectSnapshot = $profile ? $profile->toSnapshot() : [];
 
         // Task #3281 — depth governs how much deterministic analysis we compute
         // and how much room the model has to explain it. Persist it so re-opens
@@ -291,7 +297,7 @@ class MarketingStrategistService
         // cold-start account must never break generation.
         $analysis = $this->computeAnalysis($user, $depth, $goalMetric, $parameters, $workspaceId);
 
-        $messages = $this->buildMessages($goal, $parameters, $assembled['context'], $analysis, $depth);
+        $messages = $this->buildMessages($goal, $parameters, $assembled['context'], $analysis, $depth, $projectSnapshot);
         $model    = AiEngineSettings::featureModel(self::FEATURE);
 
         $result = $this->openai->chat($user, $model, $messages, [
@@ -338,13 +344,14 @@ class MarketingStrategistService
             $strategy = new MarketingStrategy();
             $strategy->user_id          = $user->id;
             $strategy->workspace_id      = $workspaceId;
+            $strategy->profile_id        = $profile?->id;
             $strategy->title             = $title;
             $strategy->goal              = mb_substr(trim($goal), 0, 4000);
             $strategy->status            = 'ready';
             $strategy->sources           = $sources;
             $strategy->source_items      = $selections;
             $strategy->parameters        = $parameters;
-            $strategy->profile_snapshot  = $this->profileSnapshot($user, $workspaceId) ?: null;
+            $strategy->profile_snapshot  = ($projectSnapshot ?: null);
             $strategy->context_snapshot  = $assembled['snapshot'];
             $strategy->strategy          = $plan;
             $strategy->goal_metric       = $goalMetric;
@@ -445,9 +452,10 @@ class MarketingStrategistService
      * System + user messages for a fresh generation. The model is told to
      * answer ONLY with the strict JSON envelope so parsing is reliable.
      */
-    public function buildMessages(string $goal, array $parameters, string $context, array $analysis = [], int $depth = 1): array
+    public function buildMessages(string $goal, array $parameters, string $context, array $analysis = [], int $depth = 1, array $projectSnapshot = []): array
     {
-        $depth = $this->normalizeDepth($depth);
+        $depth      = $this->normalizeDepth($depth);
+        $planMonths = $this->normalizePlanMonths($parameters['plan_months'] ?? null);
         $system = <<<'PROMPT'
 You are Sayzio Marketing Strategist, an expert growth marketer for creators,
 businesses and individuals who use the Sayzio link-management platform.
@@ -508,14 +516,25 @@ PROMPT;
         // numbers. Higher depths unlock extra JSON fields.
         $system .= "\n\n" . $this->depthPromptAddendum($depth);
 
+        // Task #3302 — an agency-style, month-by-month execution plan spanning
+        // exactly the number of months the creator asked for.
+        $system .= "\n\n" . $this->executionPlanAddendum($planMonths);
+
         $userParts = [];
         $goal = trim($goal);
         $userParts[] = 'GOAL:' . "\n" . ($goal !== '' ? $goal : 'Grow my audience and engagement on Sayzio.');
+
+        // Task #3302 — ground the plan in the named project it is built for.
+        $projectBlock = $this->projectPromptBlock($projectSnapshot);
+        if ($projectBlock !== '') {
+            $userParts[] = $projectBlock;
+        }
 
         $paramLines = [];
         foreach ($parameters as $k => $v) {
             if ($v === null || $v === '' || (is_array($v) && !$v)) continue;
             if ($k === 'depth') continue; // internal
+            if ($k === 'plan_months') continue; // rendered via the execution-plan addendum
             $label = ucwords(str_replace('_', ' ', (string) $k));
             $val   = is_array($v) ? implode(', ', array_map('strval', $v)) : (string) $v;
             $paramLines[] = "- {$label}: {$val}";
@@ -566,6 +585,76 @@ PROMPT;
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Task #3302 — clamp a requested plan length to a sane 1-12 month window,
+     * defaulting to a 3-month plan when nothing (or something invalid) is set.
+     */
+    protected function normalizePlanMonths($value): int
+    {
+        $n = (int) $value;
+        if ($n < 1) {
+            return 3;
+        }
+        return min($n, 12);
+    }
+
+    /**
+     * Task #3302 — instruct the model to also return an agency-style,
+     * month-by-month "execution_plan" spanning exactly $planMonths months.
+     */
+    protected function executionPlanAddendum(int $planMonths): string
+    {
+        $planMonths = max(1, min(12, $planMonths));
+        $lines = [];
+        $lines[] = 'EXECUTION PLAN: also return an "execution_plan" object — an';
+        $lines[] = "agency-style, month-by-month roadmap spanning EXACTLY {$planMonths} month(s):";
+        $lines[] = '{';
+        $lines[] = '  "overview": "1-2 sentence overview of the whole execution plan",';
+        $lines[] = '  "period_months": ' . $planMonths . ',';
+        $lines[] = '  "phases": ["short phase name — focus", "..."],';
+        $lines[] = '  "months": [';
+        $lines[] = '    {"month":1,"theme":"the month\'s focus","budget":"spend for the month in the creator\'s currency",';
+        $lines[] = '     "goals":["measurable goal"],"deliverables":["concrete deliverable / checklist item"],';
+        $lines[] = '     "automation_flows":["Sayzio automation or flow to set up (e.g. subscriber welcome sequence)"],';
+        $lines[] = '     "timeline":["Week 1: ...","Week 2: ..."]}';
+        $lines[] = '  ]';
+        $lines[] = '}';
+        $lines[] = "Produce EXACTLY {$planMonths} month entr" . ($planMonths === 1 ? 'y' : 'ies') . ', numbered 1..' . $planMonths . '.';
+        $lines[] = 'Ground every budget in the stated budget / currency and keep deliverables';
+        $lines[] = 'built around real Sayzio features. Each month must build on the previous one.';
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Task #3302 — a compact PROJECT block describing the named project profile
+     * this plan is built for, so the model grounds the plan in the business.
+     */
+    protected function projectPromptBlock(array $snapshot): string
+    {
+        if (!$snapshot) {
+            return '';
+        }
+        $lines = [];
+        foreach ([
+            'name'          => 'Project',
+            'business_name' => 'Business',
+            'industry'      => 'Industry',
+            'main_offer'    => 'Main offer',
+            'budget'        => 'Budget',
+            'currency'      => 'Currency',
+        ] as $key => $label) {
+            $val = trim((string) ($snapshot[$key] ?? ''));
+            if ($val !== '') {
+                $lines[] = "- {$label}: " . mb_substr($val, 0, 400);
+            }
+        }
+        if (!$lines) {
+            return '';
+        }
+        return "PROJECT (build the plan for this business):\n" . implode("\n", $lines);
     }
 
     /** Render the computed deterministic analysis as a compact prompt block. */
@@ -654,10 +743,62 @@ PROMPT;
         $paid    = array_slice(array_map(fn($r) => $play($r, true),  array_filter((array) ($parsed['paid'] ?? []), 'is_array')), 0, 8);
 
         return [
-            'summary' => mb_substr(trim((string) ($parsed['summary'] ?? '')), 0, 1200),
-            'organic' => array_values($organic),
-            'paid'    => array_values($paid),
-            'kpis'    => $this->stringList($parsed['kpis'] ?? [], 10, 160),
+            'summary'        => mb_substr(trim((string) ($parsed['summary'] ?? '')), 0, 1200),
+            'organic'        => array_values($organic),
+            'paid'           => array_values($paid),
+            'kpis'           => $this->stringList($parsed['kpis'] ?? [], 10, 160),
+            'execution_plan' => $this->normalizeExecutionPlan($parsed['execution_plan'] ?? null),
+        ];
+    }
+
+    /**
+     * Task #3302 — coerce the model's month-by-month execution plan into a
+     * clean, bounded shape. Returns null (graceful fallback) when the model
+     * omitted it or returned nothing usable, so every downstream renderer can
+     * cheaply skip the section.
+     *
+     * @return array{overview:string,period_months:int,phases:list<string>,months:list<array{month:int,theme:string,budget:string,goals:list<string>,deliverables:list<string>,automation_flows:list<string>,timeline:list<string>}>}|null
+     */
+    protected function normalizeExecutionPlan($value): ?array
+    {
+        if (!is_array($value)) {
+            return null;
+        }
+
+        $months = [];
+        foreach ((array) ($value['months'] ?? []) as $m) {
+            if (!is_array($m)) continue;
+            $num = (int) ($m['month'] ?? (count($months) + 1));
+            if ($num < 1) $num = count($months) + 1;
+            $months[] = [
+                'month'            => min($num, 12),
+                'theme'            => mb_substr(trim((string) ($m['theme'] ?? '')), 0, 200),
+                'budget'           => mb_substr(trim((string) ($m['budget'] ?? '')), 0, 160),
+                'goals'            => $this->stringList($m['goals'] ?? [], 10, 300),
+                'deliverables'     => $this->stringList($m['deliverables'] ?? [], 15, 300),
+                'automation_flows' => $this->stringList($m['automation_flows'] ?? [], 10, 300),
+                'timeline'         => $this->stringList($m['timeline'] ?? [], 12, 300),
+            ];
+            if (count($months) >= 12) break;
+        }
+
+        $overview = mb_substr(trim((string) ($value['overview'] ?? '')), 0, 1200);
+        $phases   = $this->stringList($value['phases'] ?? [], 12, 300);
+
+        if ($overview === '' && !$phases && !$months) {
+            return null;
+        }
+
+        $period = (int) ($value['period_months'] ?? 0);
+        if ($months) {
+            $period = count($months);
+        }
+
+        return [
+            'overview'      => $overview,
+            'period_months' => max(0, min($period, 12)),
+            'phases'        => $phases,
+            'months'        => array_values($months),
         ];
     }
 
@@ -779,6 +920,31 @@ PROMPT;
             $profile = null;
         }
         return $profile ? $profile->toSnapshot() : [];
+    }
+
+    /**
+     * Task #3302 — resolve the named project profile a generation is built for.
+     * Prefers the explicitly chosen (owner-scoped) profile id, else falls back
+     * to the owner's default profile so legacy callers keep working. Fully
+     * guarded — a missing table must never break generation.
+     */
+    protected function resolveProfile(?int $profileId, User $user, ?int $workspaceId): ?MarketingProfile
+    {
+        try {
+            if ($profileId) {
+                $chosen = MarketingProfile::query()
+                    ->where('id', $profileId)
+                    ->where('user_id', $user->id)
+                    ->where('workspace_id', $workspaceId)
+                    ->first();
+                if ($chosen) {
+                    return $chosen;
+                }
+            }
+            return MarketingProfile::forOwner($user->id, $workspaceId);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**
@@ -1096,6 +1262,37 @@ PROMPT;
         $out .= $section('Organic plan', (array) ($plan['organic'] ?? []));
         $out .= $section('Paid plan', (array) ($plan['paid'] ?? []));
 
+        // Task #3302 — month-by-month execution plan.
+        $exec = (array) ($plan['execution_plan'] ?? []);
+        $execMonths = (array) ($exec['months'] ?? []);
+        if ($exec && (!empty($execMonths) || !empty($exec['overview']) || !empty($exec['phases']))) {
+            $period = (int) ($exec['period_months'] ?? count($execMonths));
+            $out .= '## Execution plan' . ($period > 0 ? ' — ' . $period . ' month' . ($period === 1 ? '' : 's') : '') . "\n\n";
+            if (!empty($exec['overview'])) $out .= $exec['overview'] . "\n\n";
+            foreach ((array) ($exec['phases'] ?? []) as $ph) $out .= "- {$ph}\n";
+            if (!empty($exec['phases'])) $out .= "\n";
+            foreach ($execMonths as $m) {
+                $m = (array) $m;
+                $out .= '### Month ' . (int) ($m['month'] ?? 0);
+                if (!empty($m['theme'])) $out .= ' — ' . $m['theme'];
+                $out .= "\n\n";
+                if (!empty($m['budget'])) $out .= '_Budget: ' . $m['budget'] . "_\n\n";
+                foreach ([
+                    'goals'            => 'Goals',
+                    'deliverables'     => 'Deliverables',
+                    'automation_flows' => 'Automation flows',
+                    'timeline'         => 'Timeline',
+                ] as $k => $label) {
+                    $items = (array) ($m[$k] ?? []);
+                    if ($items) {
+                        $out .= "**{$label}**\n\n";
+                        foreach ($items as $it) $out .= "- {$it}\n";
+                        $out .= "\n";
+                    }
+                }
+            }
+        }
+
         if (!empty($plan['kpis'])) {
             $out .= "## KPIs to watch\n\n";
             foreach ((array) $plan['kpis'] as $kpi) $out .= "- {$kpi}\n";
@@ -1119,7 +1316,16 @@ PROMPT;
         $premium = trim($execSummary) !== '';
         $badge = $premium ? '<span class="tag tag-premium">Premium AI report</span>' : '<span class="tag">Strategy report</span>';
 
-        $body  = '<div class="brandbar"><span class="brand">Sayzio</span> ' . $badge . '</div>';
+        // Task #3302 — brand the report with the creator's active Brand Kit
+        // (logo + colours), falling back to the platform identity.
+        $brand   = $this->resolveBrandContext($strategy);
+        $primary = $brand['primary'];
+        $accent  = $brand['accent'];
+
+        $logoHtml = $brand['logo'] !== ''
+            ? '<img src="' . $brand['logo'] . '" alt="" class="brandlogo">'
+            : '';
+        $body  = '<div class="brandbar">' . $logoHtml . '<span class="brand">' . $e($brand['name']) . '</span> ' . $badge . '</div>';
         $body .= '<h1>' . $e($strategy->title) . '</h1>';
         $body .= '<p class="goal"><strong>Goal:</strong> ' . $e(trim((string) $strategy->goal)) . '</p>';
         $body .= '<p class="muted">Generated ' . $e(optional($strategy->created_at)->format('M j, Y')) . ' &middot; depth ' . $e((string) $strategy->depth())
@@ -1211,6 +1417,48 @@ PROMPT;
         $body .= $section('Organic plan', (array) ($plan['organic'] ?? []));
         $body .= $section('Paid plan', (array) ($plan['paid'] ?? []));
 
+        // Task #3302 — agency-style, month-by-month execution plan.
+        $exec = (array) ($plan['execution_plan'] ?? []);
+        $execMonths = (array) ($exec['months'] ?? []);
+        if ($exec && (!empty($execMonths) || !empty($exec['overview']) || !empty($exec['phases']))) {
+            $period = (int) ($exec['period_months'] ?? count($execMonths));
+            $body .= '<h2>Execution plan';
+            if ($period > 0) {
+                $body .= ' &mdash; ' . $period . ' month' . ($period === 1 ? '' : 's');
+            }
+            $body .= '</h2>';
+            if (!empty($exec['overview'])) {
+                $body .= '<p>' . $e($exec['overview']) . '</p>';
+            }
+            $phases = (array) ($exec['phases'] ?? []);
+            if ($phases) {
+                $body .= '<p class="muted">Phases</p><ul>';
+                foreach ($phases as $ph) $body .= '<li>' . $e($ph) . '</li>';
+                $body .= '</ul>';
+            }
+            foreach ($execMonths as $m) {
+                $m = (array) $m;
+                $body .= '<div class="play"><h3>Month ' . (int) ($m['month'] ?? 0);
+                if (!empty($m['theme'])) $body .= ' &mdash; ' . $e($m['theme']);
+                $body .= '</h3>';
+                if (!empty($m['budget'])) $body .= '<p class="muted">Budget: ' . $e($m['budget']) . '</p>';
+                foreach ([
+                    'goals'            => 'Goals',
+                    'deliverables'     => 'Deliverables',
+                    'automation_flows' => 'Automation flows',
+                    'timeline'         => 'Timeline',
+                ] as $k => $label) {
+                    $items = (array) ($m[$k] ?? []);
+                    if ($items) {
+                        $body .= '<p class="muted">' . $e($label) . '</p><ul>';
+                        foreach ($items as $it) $body .= '<li>' . $e($it) . '</li>';
+                        $body .= '</ul>';
+                    }
+                }
+                $body .= '</div>';
+            }
+        }
+
         // Competitor analysis (depth 5).
         $competitor = (array) ($strategy->competitor_analysis ?? []);
         if ($competitor) {
@@ -1251,20 +1499,208 @@ PROMPT;
         }
 
         $css = 'body{font-family:DejaVu Sans,sans-serif;color:#1f2937;font-size:12px;line-height:1.5;}'
-            . 'h1{font-size:22px;margin:6px 0 4px;}h2{font-size:16px;margin:18px 0 6px;border-bottom:1px solid #e5e7eb;padding-bottom:3px;color:#4338ca;}'
+            . 'h1{font-size:22px;margin:6px 0 4px;}h2{font-size:16px;margin:18px 0 6px;border-bottom:1px solid #e5e7eb;padding-bottom:3px;color:' . $primary . ';}'
             . 'h3{font-size:13px;margin:10px 0 3px;}.goal{margin:0 0 6px;}.play{margin:0 0 8px;}'
             . '.muted{color:#6b7280;font-size:11px;margin:2px 0;}ul{margin:4px 0 4px 18px;padding:0;}li{margin:2px 0;}'
-            . '.brandbar{border-bottom:2px solid #4338ca;padding-bottom:6px;margin-bottom:8px;}'
-            . '.brand{font-size:18px;font-weight:bold;color:#4338ca;}'
-            . '.tag{float:right;font-size:10px;background:#eef2ff;color:#4338ca;border-radius:8px;padding:2px 8px;}'
-            . '.tag-premium{background:#4338ca;color:#fff;}'
-            . '.exec{background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:8px 12px;margin:10px 0;}'
+            . '.brandbar{border-bottom:2px solid ' . $accent . ';padding-bottom:6px;margin-bottom:8px;}'
+            . '.brandlogo{max-height:28px;max-width:140px;vertical-align:middle;margin-right:8px;}'
+            . '.brand{font-size:18px;font-weight:bold;color:' . $primary . ';vertical-align:middle;}'
+            . '.tag{float:right;font-size:10px;background:#f1f5f9;color:' . $primary . ';border-radius:8px;padding:2px 8px;}'
+            . '.tag-premium{background:' . $primary . ';color:#fff;}'
+            . '.exec{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;margin:10px 0;}'
             . '.score-overall{font-size:14px;margin:4px 0;}'
             . 'table.grid{width:100%;border-collapse:collapse;margin:6px 0;}table.grid td{border:1px solid #e5e7eb;text-align:center;padding:6px;width:25%;}'
-            . '.axis{font-size:10px;color:#6b7280;text-transform:uppercase;}.axisval{font-size:18px;font-weight:bold;color:#4338ca;}'
+            . '.axis{font-size:10px;color:#6b7280;text-transform:uppercase;}.axisval{font-size:18px;font-weight:bold;color:' . $primary . ';}'
             . '.reasons{color:#4b5563;}.approx{margin-top:16px;font-size:10px;color:#9ca3af;font-style:italic;}';
 
         return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' . $css . '</style></head><body>' . $body . '</body></html>';
+    }
+
+    /**
+     * Task #3302 — resolve the brand identity a report should wear: the Brand
+     * Kit tied to the plan's project, else the plan's snapshot brand kit, else
+     * the creator's active Brand Kit, else the platform ("Sayzio"). Fully
+     * guarded — any failure falls back to the platform identity so exports
+     * never break.
+     *
+     * @return array{name:string,primary:string,accent:string,logo:string}
+     */
+    protected function resolveBrandContext(MarketingStrategy $strategy): array
+    {
+        $platform = ['name' => 'Sayzio', 'primary' => '#4338ca', 'accent' => '#4338ca', 'logo' => ''];
+
+        try {
+            $kit = null;
+
+            if ($strategy->profile_id) {
+                $profile = $strategy->relationLoaded('profile')
+                    ? $strategy->profile
+                    : MarketingProfile::find($strategy->profile_id);
+                if ($profile && $profile->brand_kit_id) {
+                    $kit = BrandKit::find($profile->brand_kit_id);
+                }
+            }
+
+            if (!$kit) {
+                $snap = (array) ($strategy->profile_snapshot ?? []);
+                if (!empty($snap['brand_kit_id'])) {
+                    $kit = BrandKit::find((int) $snap['brand_kit_id']);
+                }
+            }
+
+            if (!$kit && $strategy->user_id) {
+                $kit = BrandKit::defaultFor((int) $strategy->user_id);
+            }
+
+            // Ownership guard: only brand with a kit that belongs to the plan's
+            // owner so a stale/foreign brand_kit_id can never leak.
+            if ($kit && (int) $kit->user_id !== (int) $strategy->user_id) {
+                $kit = null;
+            }
+
+            if ($kit) {
+                $palette = $kit->palette();
+                $primary = $this->safeColor($palette['primary'] ?? '') ?: $platform['primary'];
+                $accent  = $this->safeColor($palette['accent'] ?? '')
+                    ?: $this->safeColor($palette['secondary'] ?? '')
+                    ?: $primary;
+                $name = trim((string) $kit->name);
+
+                return [
+                    'name'    => $name !== '' ? $name : $platform['name'],
+                    'primary' => $primary,
+                    'accent'  => $accent,
+                    'logo'    => $this->embedImage($kit->logo()),
+                ];
+            }
+        } catch (\Throwable $e) {
+            // fall through to the platform identity
+        }
+
+        return $platform;
+    }
+
+    /** Return a value only when it is a safe CSS hex colour, else ''. */
+    protected function safeColor($value): string
+    {
+        $v = trim((string) $value);
+        return preg_match('/^#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?$/', $v) ? $v : '';
+    }
+
+    /**
+     * Task #3302 — turn a logo reference (data URI, http(s) URL or local
+     * storage path) into an embeddable base64 data URI so it renders in the
+     * PDF without remote fetching (dompdf remote images stay disabled).
+     * Fully guarded and size-capped — any failure returns '' (no logo).
+     */
+    protected function embedImage(?string $src): string
+    {
+        $src = trim((string) $src);
+        if ($src === '') {
+            return '';
+        }
+
+        $cap = 2_000_000; // ~2MB safety cap
+
+        try {
+            if (str_starts_with($src, 'data:image/')) {
+                return strlen($src) <= $cap ? $src : '';
+            }
+
+            $bytes = null;
+
+            if (preg_match('#^https?://#i', $src)) {
+                if (!$this->remoteImageFetchAllowed($src)) {
+                    return '';
+                }
+                $ctx = stream_context_create([
+                    // Enforce TLS verification; disable redirects so a public
+                    // URL can't bounce the fetch to an internal host (SSRF).
+                    'http' => ['timeout' => 4, 'follow_location' => 0, 'max_redirects' => 0],
+                    'ssl'  => ['verify_peer' => true, 'verify_peer_name' => true],
+                ]);
+                $bytes = @file_get_contents($src, false, $ctx, 0, $cap + 1);
+            } else {
+                $path = $src;
+                if (!is_file($path)) {
+                    $rel = ltrim($src, '/');
+                    foreach ([
+                        public_path($rel),
+                        storage_path('app/public/' . preg_replace('#^storage/#', '', $rel)),
+                    ] as $cand) {
+                        if (is_file($cand)) {
+                            $path = $cand;
+                            break;
+                        }
+                    }
+                }
+                if (is_file($path) && filesize($path) <= $cap) {
+                    $bytes = @file_get_contents($path);
+                }
+            }
+
+            if (!is_string($bytes) || $bytes === '' || strlen($bytes) > $cap) {
+                return '';
+            }
+
+            $info = @getimagesizefromstring($bytes);
+            $mime = is_array($info) && !empty($info['mime']) ? $info['mime'] : '';
+            if (!in_array($mime, ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], true)) {
+                return '';
+            }
+
+            return 'data:' . $mime . ';base64,' . base64_encode($bytes);
+        } catch (\Throwable $e) {
+            return '';
+        }
+    }
+
+    /**
+     * SSRF guard for the remote logo fetch in embedImage(): only allow http(s)
+     * hosts that resolve exclusively to public IP addresses. Any private,
+     * reserved, or link-local address (or an unresolvable host) is rejected.
+     */
+    protected function remoteImageFetchAllowed(string $url): bool
+    {
+        $parts = @parse_url($url);
+        if (!is_array($parts) || empty($parts['host'])) {
+            return false;
+        }
+        if (!in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true)) {
+            return false;
+        }
+
+        $host = $parts['host'];
+        $ips  = [];
+
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            $ips[] = $host;
+        } else {
+            $v4 = @gethostbynamel($host);
+            if (is_array($v4)) {
+                $ips = array_merge($ips, $v4);
+            }
+            $aaaa = @dns_get_record($host, DNS_AAAA);
+            if (is_array($aaaa)) {
+                foreach ($aaaa as $rec) {
+                    if (!empty($rec['ipv6'])) {
+                        $ips[] = $rec['ipv6'];
+                    }
+                }
+            }
+        }
+
+        if ($ips === []) {
+            return false;
+        }
+
+        foreach ($ips as $ip) {
+            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -1300,6 +1736,18 @@ PROMPT;
             $band  = (array) $band;
             $label = is_string($name) ? $name : (string) ($band['label'] ?? 'scenario');
             $rows[] = ['forecast', $label, (string) (int) ($band['value'] ?? $band['projected'] ?? 0)];
+        }
+
+        // Task #3302 — month-by-month execution plan, one row per month.
+        $exec = (array) (((array) ($strategy->strategy ?? []))['execution_plan'] ?? []);
+        foreach ((array) ($exec['months'] ?? []) as $m) {
+            $m = (array) $m;
+            $summary = trim(implode(' | ', array_filter([
+                trim((string) ($m['theme'] ?? '')),
+                ($b = trim((string) ($m['budget'] ?? ''))) !== '' ? 'Budget: ' . $b : '',
+                count((array) ($m['deliverables'] ?? [])) . ' deliverables',
+            ])));
+            $rows[] = ['execution_plan', 'month ' . (int) ($m['month'] ?? 0), $summary];
         }
 
         try {

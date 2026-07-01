@@ -60,6 +60,51 @@
     <form method="POST" action="{{ route('user.ai.marketing-strategist.store') }}" id="ms-form" class="space-y-5">
         @csrf
 
+        {{-- Project · pre-fill from a saved project profile --}}
+        <section x-data="{ profiles: @js($profilesData), sel: '', pick() {
+                    if (this.sel === 'new' || this.sel === '') return;
+                    const p = this.profiles[this.sel];
+                    if (!p) return;
+                    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+                    set('ms-goal', p.goal); set('ms-audience', p.audience); set('ms-avoid', p.avoid);
+                    set('ms-budget', p.budget); set('ms-currency', p.currency); set('ms-main-offer', p.main_offer);
+                 } }"
+                 class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
+            <div class="flex items-start gap-3.5">
+                <span class="grid place-items-center h-8 w-8 shrink-0 rounded-lg bg-indigo-500/15 border border-indigo-400/25 text-indigo-200">
+                    <i class="fas fa-folder-open text-sm"></i>
+                </span>
+                <div class="min-w-0 flex-1">
+                    <h2 class="text-white font-semibold text-base leading-tight">Project <span class="text-xs font-normal text-white/40">(optional)</span></h2>
+                    <p class="text-xs text-white/50 mt-1 leading-relaxed">Pick a saved project to pre-fill the goal, audience, budget and offer — or start a new one you can reuse next time.</p>
+                </div>
+                <a href="{{ route('user.ai.marketing-strategist.projects.index') }}"
+                   class="text-[11px] text-white/60 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 shrink-0">
+                    <i class="fas fa-sliders text-[10px] mr-1"></i>Manage
+                </a>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
+                <div>
+                    <label class="block text-xs text-white/50 mb-1.5">Use a project</label>
+                    <select name="profile_id" x-model="sel" @change="pick()" class="{{ $inputCls }}">
+                        <option value="" class="bg-slate-800">Start blank</option>
+                        @foreach($profiles as $p)
+                            <option value="{{ $p->id }}" class="bg-slate-800">{{ $p->displayName() }}</option>
+                        @endforeach
+                        <option value="new" class="bg-slate-800">＋ New project…</option>
+                    </select>
+                </div>
+                <div x-show="sel === 'new'" x-cloak>
+                    <label class="block text-xs text-white/50 mb-1.5">New project name</label>
+                    <input type="text" name="new_profile_name" maxlength="120" value="{{ old('new_profile_name') }}"
+                           placeholder="e.g. Summer launch" class="{{ $inputCls }}">
+                    <p class="text-[11px] text-white/35 mt-1.5">Saved from this strategy's goal, audience, budget and offer.</p>
+                </div>
+            </div>
+            <input type="hidden" name="profile_choice" :value="sel === 'new' ? 'new' : 'existing'">
+        </section>
+
         {{-- Step 1 · Data sources --}}
         <section class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
             <div class="flex items-start gap-3.5">
@@ -145,9 +190,9 @@
                 </div>
             </div>
             @if(!empty($pd['has_profile']))
-                <p class="text-[11px] text-blue-200/80 mt-3 flex items-center gap-1.5"><i class="fas fa-user-check text-[10px]"></i> Pre-filled from your <a href="{{ route('user.ai.marketing-strategist.profile') }}" class="underline hover:text-blue-100">marketing profile</a> — edit anything below.</p>
+                <p class="text-[11px] text-blue-200/80 mt-3 flex items-center gap-1.5"><i class="fas fa-user-check text-[10px]"></i> Pre-filled from your <a href="{{ route('user.ai.marketing-strategist.projects.index') }}" class="underline hover:text-blue-100">default project</a> — edit anything below.</p>
             @endif
-            <textarea name="goal" rows="3" maxlength="4000" required
+            <textarea name="goal" id="ms-goal" rows="3" maxlength="4000" required
                       placeholder="e.g. Grow my newsletter subscribers and drive more clicks to my link-in-bio over the next month."
                       class="w-full mt-4 bg-white/5 border border-white/10 rounded-xl px-3.5 py-3 text-white text-sm placeholder-white/30 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400/60 focus:outline-none transition resize-y">{{ $goalValue }}</textarea>
             @error('goal')<p class="text-xs text-red-300 mt-1.5">{{ $message }}</p>@enderror
@@ -166,6 +211,12 @@
                     <label class="block text-xs text-white/50 mb-1.5">Time horizon (days) <span class="text-white/30">(optional)</span></label>
                     <input type="number" name="parameters[horizon_days]" min="7" max="365" value="{{ $horizonVal }}"
                            placeholder="e.g. 30" class="{{ $inputCls }}">
+                </div>
+                <div>
+                    <label class="block text-xs text-white/50 mb-1.5">Execution plan length <span class="text-white/30">(months, 1–12)</span></label>
+                    <input type="number" name="parameters[plan_months]" min="1" max="12" value="{{ $params['plan_months'] ?? '' }}"
+                           placeholder="e.g. 3" class="{{ $inputCls }}">
+                    <p class="text-[11px] text-white/35 mt-1.5">Builds a month-by-month execution plan with goals, deliverables and automation flows.</p>
                 </div>
             </div>
         </section>
@@ -186,12 +237,12 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs text-white/50 mb-1.5">Budget</label>
-                        <input type="text" name="parameters[budget]" maxlength="120" value="{{ $params['budget'] ?? '' }}"
+                        <input type="text" name="parameters[budget]" id="ms-budget" maxlength="120" value="{{ $params['budget'] ?? '' }}"
                                placeholder="e.g. 200 / month" class="{{ $inputCls }}">
                     </div>
                     <div>
                         <label class="block text-xs text-white/50 mb-1.5">Currency</label>
-                        <input type="text" name="parameters[currency]" maxlength="40" value="{{ $params['currency'] ?? '' }}"
+                        <input type="text" name="parameters[currency]" id="ms-currency" maxlength="40" value="{{ $params['currency'] ?? '' }}"
                                placeholder="e.g. USD, EUR, INR" class="{{ $inputCls }}">
                     </div>
                     <div>
@@ -201,7 +252,7 @@
                     </div>
                     <div>
                         <label class="block text-xs text-white/50 mb-1.5">Target audience</label>
-                        <input type="text" name="parameters[audience]" maxlength="300" value="{{ $audienceVal }}"
+                        <input type="text" name="parameters[audience]" id="ms-audience" maxlength="300" value="{{ $audienceVal }}"
                                placeholder="e.g. fitness creators in the US" class="{{ $inputCls }}">
                     </div>
                 </div>
@@ -244,7 +295,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs text-white/50 mb-1.5">Main offer / product</label>
-                        <input type="text" name="parameters[main_offer]" maxlength="300" value="{{ $params['main_offer'] ?? '' }}"
+                        <input type="text" name="parameters[main_offer]" id="ms-main-offer" maxlength="300" value="{{ $params['main_offer'] ?? '' }}"
                                placeholder="e.g. paid newsletter, $9/mo coaching" class="{{ $inputCls }}">
                     </div>
                     <div>
@@ -254,7 +305,7 @@
                     </div>
                     <div class="sm:col-span-2">
                         <label class="block text-xs text-white/50 mb-1.5">Things to avoid</label>
-                        <input type="text" name="parameters[avoid]" maxlength="400" value="{{ $avoidVal }}"
+                        <input type="text" name="parameters[avoid]" id="ms-avoid" maxlength="400" value="{{ $avoidVal }}"
                                placeholder="e.g. no paid ads, avoid X/Twitter" class="{{ $inputCls }}">
                     </div>
                 </div>

@@ -19,7 +19,7 @@ class MarketingStrategy extends Model
     protected $table = 'marketing_strategies';
 
     protected $fillable = [
-        'user_id', 'workspace_id', 'title', 'goal', 'status',
+        'user_id', 'workspace_id', 'profile_id', 'title', 'goal', 'status',
         'sources', 'source_items', 'parameters', 'profile_snapshot', 'context_snapshot', 'strategy',
         'diagnosis', 'scorecard', 'forecast', 'competitor_analysis', 'baseline', 'outcome',
         'goal_metric', 'share_token', 'model', 'credits_spent',
@@ -53,6 +53,12 @@ class MarketingStrategy extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Task #3302 — the named project profile this plan was generated for. */
+    public function profile()
+    {
+        return $this->belongsTo(MarketingProfile::class, 'profile_id');
     }
 
     public function messages(): HasMany

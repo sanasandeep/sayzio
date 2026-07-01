@@ -15,9 +15,9 @@
            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/5 text-white/70 text-sm hover:bg-white/10 transition">
             <i class="fas fa-file-arrow-down"></i> Sample report
         </a>
-        <a href="{{ route('user.ai.marketing-strategist.profile') }}"
+        <a href="{{ route('user.ai.marketing-strategist.projects.index') }}"
            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/5 text-white/70 text-sm hover:bg-white/10 transition">
-            <i class="fas fa-address-card"></i> Marketing profile
+            <i class="fas fa-folder-open"></i> Projects
         </a>
         <a href="{{ route('user.ai.marketing-strategist.create') }}"
            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">

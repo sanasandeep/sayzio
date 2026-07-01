@@ -17,10 +17,33 @@ The deepened analysis blocks live on `MarketingStrategy` JSON columns
    dashboard (interactive, inline SVG charts only, no CDN).
 
 **Rule:** a new analysis section must be added to BOTH `toHtml` and the show
-blade or it silently won't appear in downloads/shares (or vice-versa).
+blade or it silently won't appear in downloads/shares (or vice-versa). The
+multi-month `execution_plan` block is even wider lockstep — FIVE surfaces:
+`toHtml`, `toMarkdown`, `toCsv` (all in the service) + `show.blade.php` +
+its `_month.blade.php` partial. All read the same normalized shape
+(`{overview, period_months, phases[], months[{month,theme,budget,goals[],deliverables[],automation_flows[],timeline[]}]}`)
+from `normalizeExecutionPlan()`; missing/invalid JSON normalizes to null and
+every surface guards on empty.
 
 **Why:** the PDF/public report is NOT generated from the blade — it's a separate
-string builder. They drifted easily during #3281.
+string builder. The two representations drift easily and must be kept in sync.
+
+## Branded PDF logo fetch (SSRF)
+`MarketingStrategistService::embedImage()` inlines a Brand Kit logo as a base64
+data URI (dompdf remote images stay off). Remote http(s) fetches MUST keep TLS
+verification ON, follow NO redirects, and pass `remoteImageFetchAllowed()` —
+which resolves the host and rejects any private/reserved/link-local IP (SSRF).
+**Why:** logo URLs are user-controlled; disabling TLS or allowing internal
+hosts is a security regression a code review will block.
+
+## Project profiles (multi-project)
+`MarketingProfile` is now MULTIPLE named projects per (user, workspace), not one.
+The New Strategy form picker (`profile_id` select + `profile_choice`/`new_profile_name`)
+resolves to a profile id in `resolveStoreProfileId()` and passes it as
+`generate()`'s 7th arg. Inline-create (`profile_choice='new'`) seeds a profile
+from the form's goal/audience/budget/currency/main_offer. Legacy `.profile`
+route now redirects to `.projects.index`; CRUD lives under
+`.projects.{index,create,store,edit,update,destroy}`.
 
 ## Non-obvious shape facts
 - `forecast` accepts EITHER `scenarios` or `bands` (fallback) keyed

@@ -64,13 +64,39 @@ class MarketingStrategistController extends Controller
     {
         if ($gate = $this->gateView($request)) return $gate;
 
+        $profiles = MarketingProfile::listForOwner($request->user()->id, $this->workspaceId());
+
         return view('user.ai.marketing-strategist.create', [
             'sources'         => MarketingStrategistService::SOURCES,
             'items'           => $this->strategist->selectableItems($request->user()),
             'old'             => session('ai.marketing_strategist.input', []),
             'balance'         => $this->credits->getBalance($request->user()),
             'profileDefaults' => $this->profileDefaults($request),
+            'profiles'        => $profiles,
+            'profilesData'    => $this->profilesForPicker($profiles),
         ]);
+    }
+
+    /**
+     * Task #3302 — a JS-friendly map of the owner's project profiles so the New
+     * Strategy picker can pre-fill the form when one is chosen. PII-free.
+     *
+     * @param  \Illuminate\Support\Collection<int,MarketingProfile> $profiles
+     * @return array<int,array<string,mixed>>
+     */
+    protected function profilesForPicker($profiles): array
+    {
+        $join = fn ($bag) => implode(', ', array_slice(array_filter((array) $bag), 0, 12));
+
+        return $profiles->mapWithKeys(fn (MarketingProfile $p) => [$p->id => [
+            'name'       => $p->displayName(),
+            'goal'       => implode("\n", array_slice(array_filter((array) $p->expectations), 0, 8)),
+            'audience'   => $join($p->target_audience),
+            'avoid'      => $join($p->constraints),
+            'budget'     => (string) ($p->budget ?? ''),
+            'currency'   => (string) ($p->currency ?? ''),
+            'main_offer' => (string) ($p->main_offer ?? ''),
+        ]])->all();
     }
 
     /**
@@ -127,7 +153,9 @@ class MarketingStrategistController extends Controller
             return back()->withInput()->with('error', $msg);
         }
 
-        session(['ai.marketing_strategist.input' => $request->only(['goal', 'sources', 'source_items', 'parameters'])]);
+        session(['ai.marketing_strategist.input' => $request->only(['goal', 'sources', 'source_items', 'parameters', 'profile_id', 'profile_choice', 'new_profile_name'])]);
+
+        $profileId = $this->resolveStoreProfileId($request, $user, $data);
 
         try {
             $result = $this->strategist->generate(
@@ -137,6 +165,7 @@ class MarketingStrategistController extends Controller
                 $data['sources'],
                 $this->workspaceId(),
                 $data['selections'],
+                $profileId,
             );
         } catch (InsufficientCoinsForAiException $e) {
             return back()->withInput()->with('error', $e->getMessage());
@@ -256,23 +285,106 @@ class MarketingStrategistController extends Controller
         return back()->with('status', 'Outcome updated from your latest metrics.');
     }
 
-    /** Edit the reusable Marketing Profile intake (pre-fills every new plan). */
+    /** Backward-compatible entry point → the project list. */
     public function profile(Request $request)
+    {
+        return redirect()->route('user.ai.marketing-strategist.projects.index');
+    }
+
+    /** List the creator's named project profiles. */
+    public function projectsIndex(Request $request)
     {
         if ($gate = $this->gateView($request)) return $gate;
 
-        return view('user.ai.marketing-strategist.profile', [
-            'profile' => MarketingProfile::forOwner($request->user()->id, $this->workspaceId()),
-            'balance' => $this->credits->getBalance($request->user()),
+        return view('user.ai.marketing-strategist.projects.index', [
+            'profiles' => MarketingProfile::listForOwner($request->user()->id, $this->workspaceId()),
+            'balance'  => $this->credits->getBalance($request->user()),
         ]);
     }
 
-    /** Save the reusable Marketing Profile intake. */
-    public function saveProfile(Request $request)
+    /** New-project form. */
+    public function projectCreate(Request $request)
+    {
+        if ($gate = $this->gateView($request)) return $gate;
+
+        return view('user.ai.marketing-strategist.projects.form', [
+            'profile'   => new MarketingProfile(),
+            'brandKits' => $this->brandKitOptions($request),
+            'balance'   => $this->credits->getBalance($request->user()),
+        ]);
+    }
+
+    /** Persist a new project profile. */
+    public function projectStore(Request $request)
     {
         $this->ensureEnabled($request);
 
+        $profile = new MarketingProfile();
+        $profile->user_id = $request->user()->id;
+        $profile->workspace_id = $this->workspaceId();
+        $profile->fill($this->validateProject($request));
+        $profile->save();
+
+        return redirect()
+            ->route('user.ai.marketing-strategist.projects.index')
+            ->with('status', 'Project “' . $profile->displayName() . '” saved. New strategies can use it.');
+    }
+
+    /** Edit-project form. */
+    public function projectEdit(Request $request, int $project)
+    {
+        if ($gate = $this->gateView($request)) return $gate;
+
+        return view('user.ai.marketing-strategist.projects.form', [
+            'profile'   => $this->findOwnedProfile($request, $project),
+            'brandKits' => $this->brandKitOptions($request),
+            'balance'   => $this->credits->getBalance($request->user()),
+        ]);
+    }
+
+    /** Update an existing project profile. */
+    public function projectUpdate(Request $request, int $project)
+    {
+        $this->ensureEnabled($request);
+
+        $profile = $this->findOwnedProfile($request, $project);
+        $profile->fill($this->validateProject($request));
+        $profile->save();
+
+        return redirect()
+            ->route('user.ai.marketing-strategist.projects.index')
+            ->with('status', 'Project “' . $profile->displayName() . '” updated.');
+    }
+
+    /** Delete a project profile. Strategies keep their stored snapshot. */
+    public function projectDestroy(Request $request, int $project)
+    {
+        $this->ensureEnabled($request);
+
+        $profile = $this->findOwnedProfile($request, $project);
+        $name = $profile->displayName();
+        $profile->delete();
+
+        return redirect()
+            ->route('user.ai.marketing-strategist.projects.index')
+            ->with('status', 'Project “' . $name . '” deleted.');
+    }
+
+    /**
+     * Validate + normalise a project profile form into fillable attributes.
+     *
+     * @return array<string,mixed>
+     */
+    protected function validateProject(Request $request): array
+    {
         $validated = $request->validate([
+            'name'            => 'required|string|max:120',
+            'business_name'   => 'nullable|string|max:160',
+            'industry'        => 'nullable|string|max:160',
+            'brand_kit_id'    => 'nullable|integer',
+            'main_offer'      => 'nullable|string|max:300',
+            'budget'          => 'nullable|string|max:120',
+            'currency'        => 'nullable|string|max:40',
             'target_audience' => 'nullable|string|max:4000',
             'expectations'    => 'nullable|string|max:4000',
             'constraints'     => 'nullable|string|max:4000',
@@ -284,18 +396,114 @@ class MarketingStrategistController extends Controller
             return array_slice($lines, 0, 40);
         };
 
-        MarketingProfile::query()->updateOrCreate(
-            ['user_id' => $request->user()->id, 'workspace_id' => $this->workspaceId()],
-            [
-                'target_audience' => $toLines($validated['target_audience'] ?? ''),
-                'expectations'    => $toLines($validated['expectations'] ?? ''),
-                'constraints'     => $toLines($validated['constraints'] ?? ''),
-            ],
-        );
+        // Only accept a brand kit that belongs to the owner.
+        $brandKitId = null;
+        if (!empty($validated['brand_kit_id']) && $this->ownsBrandKit($request, (int) $validated['brand_kit_id'])) {
+            $brandKitId = (int) $validated['brand_kit_id'];
+        }
 
-        return redirect()
-            ->route('user.ai.marketing-strategist.profile')
-            ->with('status', 'Marketing profile saved. New strategies will use it.');
+        return [
+            'name'            => trim((string) $validated['name']),
+            'business_name'   => trim((string) ($validated['business_name'] ?? '')) ?: null,
+            'industry'        => trim((string) ($validated['industry'] ?? '')) ?: null,
+            'brand_kit_id'    => $brandKitId,
+            'main_offer'      => trim((string) ($validated['main_offer'] ?? '')) ?: null,
+            'budget'          => trim((string) ($validated['budget'] ?? '')) ?: null,
+            'currency'        => trim((string) ($validated['currency'] ?? '')) ?: null,
+            'target_audience' => $toLines($validated['target_audience'] ?? ''),
+            'expectations'    => $toLines($validated['expectations'] ?? ''),
+            'constraints'     => $toLines($validated['constraints'] ?? ''),
+        ];
+    }
+
+    /**
+     * Task #3302 — resolve which project profile a generation runs against:
+     * an inline-created one (profile_choice='new' + new_profile_name, seeded
+     * from the form fields), an explicitly chosen existing one, else none.
+     */
+    protected function resolveStoreProfileId(Request $request, $user, array $data): ?int
+    {
+        $choice = (string) $request->input('profile_choice', '');
+
+        if ($choice === 'new') {
+            $name = trim((string) $request->input('new_profile_name', ''));
+            if ($name === '') {
+                return null;
+            }
+            $params = $data['parameters'];
+            $profile = new MarketingProfile();
+            $profile->user_id = $user->id;
+            $profile->workspace_id = $this->workspaceId();
+            $profile->fill([
+                'name'            => mb_substr($name, 0, 120),
+                'main_offer'      => (string) ($params['main_offer'] ?? '') ?: null,
+                'budget'          => (string) ($params['budget'] ?? '') ?: null,
+                'currency'        => (string) ($params['currency'] ?? '') ?: null,
+                'target_audience' => array_values(array_filter([trim((string) ($params['audience'] ?? ''))])),
+                'expectations'    => array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $data['goal']) ?: []))),
+                'constraints'     => array_values(array_filter([trim((string) ($params['avoid'] ?? ''))])),
+            ]);
+            $profile->save();
+            return $profile->id;
+        }
+
+        $chosen = (int) $request->input('profile_id', 0);
+        if ($chosen > 0) {
+            $exists = MarketingProfile::query()
+                ->where('id', $chosen)
+                ->where('user_id', $user->id)
+                ->where('workspace_id', $this->workspaceId())
+                ->exists();
+            if ($exists) {
+                return $chosen;
+            }
+        }
+
+        return null;
+    }
+
+    /** Owner-scoped project profile lookup or 404. */
+    protected function findOwnedProfile(Request $request, int $project): MarketingProfile
+    {
+        $model = MarketingProfile::query()
+            ->whereKey($project)
+            ->where('user_id', $request->user()->id)
+            ->where('workspace_id', $this->workspaceId())
+            ->first();
+
+        if (!$model) abort(404);
+        return $model;
+    }
+
+    /**
+     * The owner's Brand Kits for the project form's brand picker.
+     *
+     * @return array<int,string>
+     */
+    protected function brandKitOptions(Request $request): array
+    {
+        try {
+            return \App\Modules\User\Models\BrandKit::query()
+                ->where('user_id', $request->user()->id)
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /** True when the given brand kit belongs to the current owner. */
+    protected function ownsBrandKit(Request $request, int $brandKitId): bool
+    {
+        try {
+            return \App\Modules\User\Models\BrandKit::query()
+                ->whereKey($brandKitId)
+                ->where('user_id', $request->user()->id)
+                ->exists();
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /** Mint (or reuse) a public share link for the strategy report. */
@@ -583,6 +791,7 @@ class MarketingStrategistController extends Controller
             'parameters.depth'        => 'nullable|integer|min:1|max:5',
             'parameters.goal_metric'  => 'nullable|string|in:clicks,views,subscribers,followers,orders,revenue',
             'parameters.horizon_days' => 'nullable|integer|min:7|max:365',
+            'parameters.plan_months'  => 'nullable|integer|min:1|max:12',
             'parameters.content_types'   => 'nullable|array',
             'parameters.content_types.*' => 'string|max:80',
             'parameters.paid_media'      => 'nullable|array',

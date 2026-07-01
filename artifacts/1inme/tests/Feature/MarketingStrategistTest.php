@@ -738,21 +738,61 @@ class MarketingStrategistTest extends TestCase
         $charger->shouldNotHaveReceived('charge');
     }
 
-    /** The reusable Marketing Profile is saved and reloaded for the owner. */
-    public function test_web_save_and_reload_marketing_profile(): void
+    /** A named project profile is created, listed, edited and deleted for the owner. */
+    public function test_web_project_profile_crud(): void
     {
         $user = $this->makeUser();
 
-        $this->actingAs($user, 'web')->post(route('user.ai.marketing-strategist.profile.save'), [
+        // Create.
+        $this->actingAs($user, 'web')->post(route('user.ai.marketing-strategist.projects.store'), [
+            'name'            => 'Summer launch',
+            'business_name'   => 'Acme Studio',
+            'main_offer'      => 'Paid newsletter',
+            'budget'          => '200 / month',
+            'currency'        => 'USD',
             'target_audience' => "Indie coaches\nD2C founders",
             'expectations'    => 'Grow email list',
             'constraints'     => 'No paid ads',
-        ])->assertRedirect(route('user.ai.marketing-strategist.profile'));
+        ])->assertRedirect(route('user.ai.marketing-strategist.projects.index'));
 
-        $profile = \App\Modules\User\Models\MarketingProfile::forOwner($user->id, $this->wsId($user));
+        $profile = \App\Modules\User\Models\MarketingProfile::query()
+            ->where('user_id', $user->id)
+            ->where('workspace_id', $this->wsId($user))
+            ->where('name', 'Summer launch')
+            ->first();
         $this->assertNotNull($profile);
+        $this->assertSame('Acme Studio', $profile->business_name);
         $this->assertContains('Indie coaches', (array) $profile->target_audience);
         $this->assertTrue($profile->isFilled());
+
+        // The list renders the project.
+        $this->actingAs($user, 'web')
+            ->get(route('user.ai.marketing-strategist.projects.index'))
+            ->assertOk()
+            ->assertSee('Summer launch');
+
+        // Update.
+        $this->actingAs($user, 'web')->put(route('user.ai.marketing-strategist.projects.update', $profile->id), [
+            'name'       => 'Summer launch',
+            'main_offer' => 'Coaching cohort',
+        ])->assertRedirect(route('user.ai.marketing-strategist.projects.index'));
+        $this->assertSame('Coaching cohort', $profile->fresh()->main_offer);
+
+        // Delete.
+        $this->actingAs($user, 'web')
+            ->delete(route('user.ai.marketing-strategist.projects.destroy', $profile->id))
+            ->assertRedirect(route('user.ai.marketing-strategist.projects.index'));
+        $this->assertNull(\App\Modules\User\Models\MarketingProfile::find($profile->id));
+    }
+
+    /** The legacy profile route redirects into the project list. */
+    public function test_web_profile_route_redirects_to_projects(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user, 'web')
+            ->get(route('user.ai.marketing-strategist.profile'))
+            ->assertRedirect(route('user.ai.marketing-strategist.projects.index'));
     }
 
     /** Sharing mints a public token; the public report renders; unshare revokes it. */
