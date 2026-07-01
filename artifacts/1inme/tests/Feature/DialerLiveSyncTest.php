@@ -6,6 +6,7 @@ use App\Modules\User\Models\DialerFavorite;
 use App\Modules\User\Models\DialerLookup;
 use App\Modules\User\Models\DialerNumberFlag;
 use App\Modules\User\Models\User;
+use App\Modules\User\Services\WorkspaceContext;
 use App\Modules\User\Support\DialerData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -27,6 +28,11 @@ use Tests\TestCase;
  *     Bearer token (see .agents/memory/sanctum-api-tests.md — Sanctum::actingAs
  *     breaks the TouchSessionToken middleware), asserting the {data} envelope
  *     and the cursor round-trip.
+ * (3) The WEB endpoint GET /user/dialer/live?since=<cursor> that powers the
+ *     browser dialer's polling. Unlike the Sanctum path, this route carries
+ *     `workspace.can:settings.view`, so the test binds an active workspace in
+ *     the session (see .agents/memory/api-workspace-scope.md) before asserting
+ *     the same {data} envelope and cursor-driven change detection.
  */
 class DialerLiveSyncTest extends TestCase
 {
@@ -211,5 +217,116 @@ class DialerLiveSyncTest extends TestCase
     public function test_api_live_endpoint_requires_authentication(): void
     {
         $this->getJson('/api/v1/dialer/live')->assertUnauthorized();
+    }
+
+    // ===== (3) WEB endpoint envelope + workspace binding =====
+
+    /**
+     * Bind an active workspace in the session, mirroring what the
+     * `workspace.scope` (SetActiveWorkspace) middleware resolves at request
+     * time. The web dialer route is gated by `workspace.can:settings.view`,
+     * so without a bound workspace the permission middleware denies the
+     * request (see .agents/memory/api-workspace-scope.md). The user owns the
+     * resolved workspace, so `settings.view` is granted.
+     */
+    private function actingAsWeb(User $user): self
+    {
+        $ws = app(WorkspaceContext::class)->resolve($user);
+        $this->actingAs($user)->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+        return $this;
+    }
+
+    public function test_web_live_endpoint_returns_envelope_and_round_trips_cursor(): void
+    {
+        $user = $this->makeUser('w');
+
+        DialerLookup::create([
+            'user_id'      => $user->id,
+            'number_e164'  => '+15550005555',
+            'looked_up_at' => now(),
+        ]);
+
+        // First poll (no cursor): the browser gets changed:true, the current
+        // cursor and fresh lists inside the {data} envelope.
+        $first = $this->actingAsWeb($user)->getJson(route('user.dialer.live'));
+        $first->assertOk();
+        $first->assertJsonPath('data.changed', true);
+        $first->assertJsonStructure([
+            'data' => ['cursor', 'changed', 'favorites', 'frequent', 'recents'],
+        ]);
+
+        $cursor = $first->json('data.cursor');
+        $this->assertIsString($cursor);
+        $this->assertNotSame('', $cursor);
+
+        // Second poll echoing the cursor: nothing changed, so no payload comes
+        // back — the same cursor and changed:false.
+        $second = $this->actingAsWeb($user)->getJson(route('user.dialer.live', ['since' => $cursor]));
+        $second->assertOk();
+        $second->assertJsonPath('data.changed', false);
+        $second->assertJsonPath('data.cursor', $cursor);
+        $second->assertJsonMissingPath('data.favorites');
+        $second->assertJsonMissingPath('data.frequent');
+        $second->assertJsonMissingPath('data.recents');
+    }
+
+    public function test_web_live_endpoint_signals_new_call_from_another_device(): void
+    {
+        $user = $this->makeUser('x');
+
+        $cursor = $this->actingAsWeb($user)->getJson(route('user.dialer.live'))->json('data.cursor');
+
+        // A call logged on the other browser device advances the cursor.
+        DialerLookup::create([
+            'user_id'      => $user->id,
+            'number_e164'  => '+15551112222',
+            'looked_up_at' => now(),
+        ]);
+
+        $resp = $this->actingAsWeb($user)->getJson(route('user.dialer.live', ['since' => $cursor]));
+        $resp->assertOk();
+        $resp->assertJsonPath('data.changed', true);
+        $this->assertNotSame($cursor, $resp->json('data.cursor'));
+        $numbers = array_column($resp->json('data.recents'), 'number_e164');
+        $this->assertContains('+15551112222', $numbers);
+    }
+
+    public function test_web_live_endpoint_reflects_new_favorite_and_flag(): void
+    {
+        $user = $this->makeUser('y');
+
+        $cursor = $this->actingAsWeb($user)->getJson(route('user.dialer.live'))->json('data.cursor');
+
+        // Favoriting a number on device B must sync to device A.
+        DialerFavorite::create([
+            'user_id'     => $user->id,
+            'number_e164' => '+15553334444',
+            'label'       => 'Web Fav',
+            'sort_order'  => 1,
+        ]);
+
+        $afterFav = $this->actingAsWeb($user)->getJson(route('user.dialer.live', ['since' => $cursor]));
+        $afterFav->assertOk();
+        $afterFav->assertJsonPath('data.changed', true);
+        $labels = array_column($afterFav->json('data.favorites'), 'label');
+        $this->assertContains('Web Fav', $labels);
+
+        // Blocking a number (a flag change) must advance the cursor too.
+        $favCursor = $afterFav->json('data.cursor');
+        DialerNumberFlag::create([
+            'user_id'     => $user->id,
+            'number_e164' => '+15555556666',
+            'is_blocked'  => true,
+        ]);
+
+        $afterFlag = $this->actingAsWeb($user)->getJson(route('user.dialer.live', ['since' => $favCursor]));
+        $afterFlag->assertOk();
+        $afterFlag->assertJsonPath('data.changed', true);
+        $this->assertNotSame($favCursor, $afterFlag->json('data.cursor'));
+    }
+
+    public function test_web_live_endpoint_requires_authentication(): void
+    {
+        $this->get(route('user.dialer.live'))->assertRedirect('/user/login');
     }
 }
