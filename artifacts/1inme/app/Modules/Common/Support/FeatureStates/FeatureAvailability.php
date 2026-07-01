@@ -210,6 +210,7 @@ final class FeatureAvailability
                 'key'          => $key,
                 'label'        => $def['label'],
                 'icon'         => $def['icon'],
+                'tint'         => $def['tint'] ?? '#6366f1',
                 'blurb'        => $def['blurb'],
                 'capabilities' => $def['capabilities'] ?? [],
                 'status'       => $state['status'],

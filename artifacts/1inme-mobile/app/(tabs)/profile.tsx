@@ -20,9 +20,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
+import { SoonBadge } from "@/components/SoonBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
+import { useFeatureStates } from "@/hooks/useFeatureStates";
 import { wallet as walletApi } from "@/lib/api";
 import { getAdminContext } from "@/lib/api/admin";
 import { getProfile } from "@/lib/api/profile";
@@ -197,6 +199,7 @@ export default function Profile() {
     setLockWarningLeadMs,
   } = useAuth();
   const { pref, setPref } = useThemeControls();
+  const featureStatesGate = useFeatureStates();
   const webTop = Platform.OS === "web" ? 67 : 0;
 
   // Whether this account is linked to an active back-office admin record.
@@ -529,30 +532,42 @@ export default function Profile() {
               (p) =>
                 p.href !== "/marketing-strategist" ||
                 !!user?.capabilities?.marketing_strategist,
-            ).map((p, i) => (
-              <Pressable
-                key={p.href}
-                onPress={() => router.push(p.href as never)}
-                style={({ pressed }) => [
-                  styles.listItem,
-                  {
-                    borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
-                    borderTopColor: colors.border,
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-              >
-                <Feather name={p.icon} size={18} color={colors.primary} />
-                <Text style={[styles.listLabel, { color: colors.foreground }]}>
-                  {p.label}
-                </Text>
-                <Feather
-                  name="chevron-right"
-                  size={18}
-                  color={colors.mutedForeground}
-                />
-              </Pressable>
-            ))}
+            ).map((p, i) => {
+              const soon = featureStatesGate.stateForHref(p.href);
+              const isSoon = soon?.status === "coming_soon";
+              return (
+                <Pressable
+                  key={p.href}
+                  onPress={() =>
+                    isSoon
+                      ? router.push({
+                          pathname: "/coming-soon",
+                          params: { key: soon.key },
+                        })
+                      : router.push(p.href as never)
+                  }
+                  style={({ pressed }) => [
+                    styles.listItem,
+                    {
+                      borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                      borderTopColor: colors.border,
+                      opacity: pressed ? 0.7 : 1,
+                    },
+                  ]}
+                >
+                  <Feather name={p.icon} size={18} color={colors.primary} />
+                  <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                    {p.label}
+                  </Text>
+                  {isSoon ? <SoonBadge /> : null}
+                  <Feather
+                    name="chevron-right"
+                    size={18}
+                    color={colors.mutedForeground}
+                  />
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
@@ -570,30 +585,42 @@ export default function Profile() {
               },
             ]}
           >
-            {SETTINGS_PAGES.map((p, i) => (
-              <Pressable
-                key={p.href}
-                onPress={() => router.push(p.href as never)}
-                style={({ pressed }) => [
-                  styles.listItem,
-                  {
-                    borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
-                    borderTopColor: colors.border,
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-              >
-                <Feather name={p.icon} size={18} color={colors.primary} />
-                <Text style={[styles.listLabel, { color: colors.foreground }]}>
-                  {p.label}
-                </Text>
-                <Feather
-                  name="chevron-right"
-                  size={18}
-                  color={colors.mutedForeground}
-                />
-              </Pressable>
-            ))}
+            {SETTINGS_PAGES.map((p, i) => {
+              const soon = featureStatesGate.stateForHref(p.href);
+              const isSoon = soon?.status === "coming_soon";
+              return (
+                <Pressable
+                  key={p.href}
+                  onPress={() =>
+                    isSoon
+                      ? router.push({
+                          pathname: "/coming-soon",
+                          params: { key: soon.key },
+                        })
+                      : router.push(p.href as never)
+                  }
+                  style={({ pressed }) => [
+                    styles.listItem,
+                    {
+                      borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                      borderTopColor: colors.border,
+                      opacity: pressed ? 0.7 : 1,
+                    },
+                  ]}
+                >
+                  <Feather name={p.icon} size={18} color={colors.primary} />
+                  <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                    {p.label}
+                  </Text>
+                  {isSoon ? <SoonBadge /> : null}
+                  <Feather
+                    name="chevron-right"
+                    size={18}
+                    color={colors.mutedForeground}
+                  />
+                </Pressable>
+              );
+            })}
             {showBiometricRow ? (
               <Pressable
                 onPress={biometricSupported ? onToggleBiometric : undefined}

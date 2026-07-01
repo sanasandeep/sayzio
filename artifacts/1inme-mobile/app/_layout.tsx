@@ -177,6 +177,7 @@ function RootLayoutNav() {
       <Stack.Screen name="dialer-profile" options={{ title: "Profile" }} />
       <Stack.Screen name="call/active" options={{ headerShown: false }} />
       <Stack.Screen name="call/incoming" options={{ headerShown: false }} />
+      <Stack.Screen name="coming-soon" options={{ title: "Coming soon" }} />
     </Stack>
   );
 }
