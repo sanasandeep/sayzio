@@ -54,7 +54,7 @@
         ['icon' => 'fa-chart-line',  'label' => 'Analytics',           'desc' => 'Recent click trends and device split.'],
         ['icon' => 'fa-users',       'label' => 'Followers & subs',    'desc' => 'Audience size and how it is growing.'],
         ['icon' => 'fa-bullseye',    'label' => 'Tracking pixels',     'desc' => 'The ad pixels you already have connected.'],
-        ['icon' => 'fa-brain',       'label' => 'AI Minds',            'desc' => 'Your knowledge bases, by name.'],
+        ['icon' => 'fa-brain',       'label' => 'Knowledge Bases',     'desc' => 'Your knowledge bases, by name.'],
         ['icon' => 'fa-palette',     'label' => 'Brand Kits',          'desc' => 'Your palette, voice and taglines.'],
         ['icon' => 'fa-user-astronaut','label' => 'AI Personas',       'desc' => 'Your saved AI persona agents.'],
         ['icon' => 'fa-comments',    'label' => 'AI Companions',       'desc' => 'Your published AI chat companions.'],

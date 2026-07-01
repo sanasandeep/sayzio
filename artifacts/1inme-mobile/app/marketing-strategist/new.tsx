@@ -21,6 +21,7 @@ import { errorStatus } from "@/lib/api";
 import {
   marketingStrategist,
   type StrategyParameters,
+  type StrategySelections,
   type StrategySource,
 } from "@/lib/api/marketingStrategist";
 import { isPlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
@@ -59,34 +60,115 @@ const GOAL_PRESETS: { key: string; label: string; goal: string }[] = [
 ];
 
 const FALLBACK_SOURCES: StrategySource[] = [
-  { key: "links", label: "Links", description: "Your links and pages" },
+  { key: "links", label: "Links", description: "Your links and pages", selectable: true },
   { key: "analytics", label: "Analytics", description: "Click & view stats" },
   { key: "audience", label: "Audience", description: "Followers & subscribers" },
-  { key: "pixels", label: "Pixels", description: "Tracking pixels" },
-  { key: "minds", label: "AI Minds", description: "Your knowledge bases" },
-  { key: "brand_kits", label: "Brand Kits", description: "Brand identity" },
-  { key: "personas", label: "Personas", description: "AI personas" },
-  { key: "companions", label: "Companions", description: "AI companions" },
+  { key: "pixels", label: "Pixels", description: "Tracking pixels", selectable: true },
+  { key: "minds", label: "Knowledge Bases", description: "Your knowledge bases", selectable: true },
+  { key: "brand_kits", label: "Brand Kits", description: "Brand identity", selectable: true },
+  { key: "personas", label: "Personas", description: "AI personas", selectable: true },
+  { key: "companions", label: "Companions", description: "AI companions", selectable: true },
 ];
 
-const PARAM_FIELDS: {
-  key: keyof StrategyParameters;
-  label: string;
-  placeholder: string;
+// Single-line text parameters, grouped into sections for a tidier form.
+const PARAM_SECTIONS: {
+  title: string;
+  fields: { key: keyof StrategyParameters; label: string; placeholder: string }[];
 }[] = [
-  { key: "budget", label: "Budget", placeholder: "e.g. $500 / month" },
   {
-    key: "audience",
-    label: "Target audience",
-    placeholder: "e.g. creators aged 18–34",
+    title: "Budget & market",
+    fields: [
+      { key: "budget", label: "Budget", placeholder: "e.g. 500 / month" },
+      { key: "currency", label: "Currency", placeholder: "e.g. USD, EUR, INR" },
+      {
+        key: "region",
+        label: "Region / market",
+        placeholder: "e.g. Austin, Texas · India",
+      },
+      {
+        key: "audience",
+        label: "Target audience",
+        placeholder: "e.g. creators aged 18–34",
+      },
+    ],
   },
-  { key: "timeframe", label: "Timeframe", placeholder: "e.g. next 90 days" },
-  { key: "tone", label: "Tone", placeholder: "e.g. bold and playful" },
   {
-    key: "channels",
-    label: "Preferred channels",
-    placeholder: "e.g. Instagram, TikTok, email",
+    title: "Timing & voice",
+    fields: [
+      { key: "timeframe", label: "Timeframe", placeholder: "e.g. next 90 days" },
+      { key: "cadence", label: "Posting cadence", placeholder: "e.g. 3 posts / week" },
+      { key: "tone", label: "Tone", placeholder: "e.g. bold and playful" },
+      {
+        key: "brand_voice",
+        label: "Brand voice",
+        placeholder: "e.g. expert but approachable",
+      },
+    ],
   },
+  {
+    title: "Positioning",
+    fields: [
+      {
+        key: "main_offer",
+        label: "Main offer / product",
+        placeholder: "e.g. paid newsletter",
+      },
+      {
+        key: "competitors",
+        label: "Competitors",
+        placeholder: "e.g. @rival1, @rival2",
+      },
+      {
+        key: "avoid",
+        label: "Things to avoid",
+        placeholder: "e.g. no paid ads",
+      },
+      {
+        key: "channels",
+        label: "Preferred channels",
+        placeholder: "e.g. Instagram, TikTok, email",
+      },
+    ],
+  },
+];
+
+const PLAN_TYPES: { key: NonNullable<StrategyParameters["plan_type"]>; label: string }[] = [
+  { key: "both", label: "Organic & paid" },
+  { key: "organic", label: "Organic only" },
+  { key: "paid", label: "Paid only" },
+];
+
+const CONTENT_TYPES = [
+  "Short-form video",
+  "Reels / Shorts",
+  "Stories",
+  "Long-form video",
+  "Live streams",
+  "Carousels",
+  "Blog posts",
+  "Newsletters / Email",
+  "Podcasts",
+  "Infographics",
+  "User-generated content",
+  "Webinars",
+  "Case studies",
+];
+
+const PAID_MEDIA = [
+  "Instagram Ads",
+  "Facebook Ads",
+  "TikTok Ads",
+  "YouTube Ads",
+  "Google Search Ads",
+  "Google Display",
+  "LinkedIn Ads",
+  "X / Twitter Ads",
+  "Pinterest Ads",
+  "Snapchat Ads",
+  "Local newspaper",
+  "Digital newspaper",
+  "Influencer partnerships",
+  "Podcast sponsorships",
 ];
 
 export default function NewMarketingStrategy() {
@@ -111,9 +193,12 @@ export default function NewMarketingStrategy() {
   const [selectedSources, setSelectedSources] = useState<Record<string, boolean>>(
     {},
   );
+  // Per-source chosen item IDs. An empty list = "use all".
+  const [selectedItems, setSelectedItems] = useState<StrategySelections>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [preset, setPreset] = useState<string>("revenue");
   const [goal, setGoal] = useState<string>(GOAL_PRESETS[0].goal);
-  const [params, setParams] = useState<StrategyParameters>({});
+  const [params, setParams] = useState<StrategyParameters>({ plan_type: "both" });
   const [estimate, setEstimate] = useState<number | null>(null);
   const [estimating, setEstimating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -145,11 +230,37 @@ export default function NewMarketingStrategy() {
   const buildInput = () => ({
     goal: goal.trim(),
     sources: activeSources,
+    selections: selectedItems,
     parameters: params,
   });
 
   const setParam = (key: keyof StrategyParameters, value: string) => {
     setParams((p) => ({ ...p, [key]: value }));
+    setEstimate(null);
+  };
+
+  const toggleMulti = (key: "content_types" | "paid_media", value: string) => {
+    setParams((p) => {
+      const current = (p[key] ?? []) as string[];
+      const next = current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value];
+      return { ...p, [key]: next };
+    });
+    setEstimate(null);
+  };
+
+  const toggleItem = (sourceKey: string, id: number) => {
+    setSelectedItems((prev) => {
+      const current = prev[sourceKey] ?? [];
+      const next = current.includes(id)
+        ? current.filter((n) => n !== id)
+        : [...current, id];
+      const out = { ...prev };
+      if (next.length) out[sourceKey] = next;
+      else delete out[sourceKey];
+      return out;
+    });
     setEstimate(null);
   };
 
@@ -297,7 +408,8 @@ export default function NewMarketingStrategy() {
             What can it learn from?
           </Text>
           <Text style={[styles.sectionHint, { color: colors.mutedForeground }]}>
-            The strategist only uses the sources you turn on.
+            The strategist only uses the sources you turn on. For sources with
+            items, pick a few or leave all unselected to use everything.
           </Text>
           <View
             style={[
@@ -309,63 +421,297 @@ export default function NewMarketingStrategy() {
               },
             ]}
           >
-            {sources.map((s, i) => (
-              <View
-                key={s.key}
-                style={[
-                  styles.sourceRow,
-                  i < sources.length - 1 && {
-                    borderBottomWidth: StyleSheet.hairlineWidth,
-                    borderBottomColor: colors.border,
-                  },
-                ]}
-              >
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text
-                    style={[styles.sourceLabel, { color: colors.foreground }]}
-                  >
-                    {s.label}
-                  </Text>
-                  {s.description ? (
-                    <Text
-                      style={[
-                        styles.sourceDesc,
-                        { color: colors.mutedForeground },
-                      ]}
-                    >
-                      {s.description}
-                    </Text>
+            {sources.map((s, i) => {
+              const on = !!selectedSources[s.key];
+              const hasItems =
+                !!s.selectable && !!s.items && s.items.length > 0;
+              const isOpen = !!expanded[s.key];
+              const chosen = selectedItems[s.key] ?? [];
+              return (
+                <View
+                  key={s.key}
+                  style={
+                    i < sources.length - 1 && {
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderBottomColor: colors.border,
+                    }
+                  }
+                >
+                  <View style={styles.sourceRow}>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text
+                        style={[
+                          styles.sourceLabel,
+                          { color: colors.foreground },
+                        ]}
+                      >
+                        {s.label}
+                      </Text>
+                      {s.description ? (
+                        <Text
+                          style={[
+                            styles.sourceDesc,
+                            { color: colors.mutedForeground },
+                          ]}
+                        >
+                          {s.description}
+                          {hasItems && chosen.length > 0
+                            ? ` · ${chosen.length} selected`
+                            : hasItems
+                              ? " · all"
+                              : ""}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {on && hasItems ? (
+                      <Pressable
+                        onPress={() =>
+                          setExpanded((prev) => ({
+                            ...prev,
+                            [s.key]: !prev[s.key],
+                          }))
+                        }
+                        hitSlop={8}
+                        style={styles.chooseBtn}
+                      >
+                        <Text
+                          style={[styles.chooseText, { color: colors.primary }]}
+                        >
+                          {isOpen ? "Hide" : "Choose"}
+                        </Text>
+                        <Feather
+                          name={isOpen ? "chevron-up" : "chevron-down"}
+                          size={14}
+                          color={colors.primary}
+                        />
+                      </Pressable>
+                    ) : null}
+                    <Switch
+                      value={on}
+                      onValueChange={(v) => {
+                        setSelectedSources((prev) => ({ ...prev, [s.key]: v }));
+                        setEstimate(null);
+                      }}
+                      trackColor={{ false: colors.border, true: colors.primary }}
+                      thumbColor={colors.background}
+                    />
+                  </View>
+
+                  {on && hasItems && isOpen ? (
+                    <View style={styles.itemList}>
+                      {s.items!.map((item) => {
+                        const picked = chosen.includes(item.id);
+                        return (
+                          <Pressable
+                            key={item.id}
+                            onPress={() => toggleItem(s.key, item.id)}
+                            style={[
+                              styles.itemRow,
+                              {
+                                backgroundColor: picked
+                                  ? colors.primary + "14"
+                                  : colors.background,
+                                borderColor: picked
+                                  ? colors.primary
+                                  : colors.border,
+                                borderRadius: colors.radius,
+                              },
+                            ]}
+                          >
+                            <View
+                              style={[
+                                styles.checkbox,
+                                {
+                                  borderColor: picked
+                                    ? colors.primary
+                                    : colors.border,
+                                  backgroundColor: picked
+                                    ? colors.primary
+                                    : "transparent",
+                                },
+                              ]}
+                            >
+                              {picked ? (
+                                <Feather
+                                  name="check"
+                                  size={12}
+                                  color={colors.primaryForeground}
+                                />
+                              ) : null}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text
+                                numberOfLines={1}
+                                style={[
+                                  styles.itemLabel,
+                                  { color: colors.foreground },
+                                ]}
+                              >
+                                {item.label}
+                              </Text>
+                              {item.sub ? (
+                                <Text
+                                  numberOfLines={1}
+                                  style={[
+                                    styles.itemSub,
+                                    { color: colors.mutedForeground },
+                                  ]}
+                                >
+                                  {item.sub}
+                                </Text>
+                              ) : null}
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
                   ) : null}
                 </View>
-                <Switch
-                  value={!!selectedSources[s.key]}
-                  onValueChange={(v) => {
-                    setSelectedSources((prev) => ({ ...prev, [s.key]: v }));
-                    setEstimate(null);
-                  }}
-                  trackColor={{ false: colors.border, true: colors.primary }}
-                  thumbColor={colors.background}
-                />
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
 
         {/* Parameters */}
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: 18 }}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
             Constraints{" "}
             <Text style={{ color: colors.mutedForeground }}>(optional)</Text>
           </Text>
-          {PARAM_FIELDS.map((f) => (
-            <TextField
-              key={f.key}
-              label={f.label}
-              value={params[f.key] ?? ""}
-              onChangeText={(t) => setParam(f.key, t)}
-              placeholder={f.placeholder}
-            />
+
+          {PARAM_SECTIONS.map((section) => (
+            <View key={section.title} style={{ gap: 12 }}>
+              <Text style={[styles.groupTitle, { color: colors.mutedForeground }]}>
+                {section.title.toUpperCase()}
+              </Text>
+              {section.fields.map((f) => (
+                <TextField
+                  key={f.key}
+                  label={f.label}
+                  value={(params[f.key] as string) ?? ""}
+                  onChangeText={(t) => setParam(f.key, t)}
+                  placeholder={f.placeholder}
+                />
+              ))}
+            </View>
           ))}
+
+          {/* Plan focus */}
+          <View style={{ gap: 8 }}>
+            <Text style={[styles.groupTitle, { color: colors.mutedForeground }]}>
+              PLAN FOCUS
+            </Text>
+            <View style={styles.chipWrap}>
+              {PLAN_TYPES.map((pt) => {
+                const active = (params.plan_type ?? "both") === pt.key;
+                return (
+                  <Pressable
+                    key={pt.key}
+                    onPress={() => {
+                      setParams((p) => ({ ...p, plan_type: pt.key }));
+                      setEstimate(null);
+                    }}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: active ? colors.primary : colors.card,
+                        borderColor: active ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color: active
+                            ? colors.primaryForeground
+                            : colors.foreground,
+                        },
+                      ]}
+                    >
+                      {pt.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Content types */}
+          <View style={{ gap: 8 }}>
+            <Text style={[styles.groupTitle, { color: colors.mutedForeground }]}>
+              CONTENT TYPES
+            </Text>
+            <View style={styles.chipWrap}>
+              {CONTENT_TYPES.map((ct) => {
+                const active = (params.content_types ?? []).includes(ct);
+                return (
+                  <Pressable
+                    key={ct}
+                    onPress={() => toggleMulti("content_types", ct)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: active ? colors.primary : colors.card,
+                        borderColor: active ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color: active
+                            ? colors.primaryForeground
+                            : colors.foreground,
+                        },
+                      ]}
+                    >
+                      {ct}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Paid media */}
+          <View style={{ gap: 8 }}>
+            <Text style={[styles.groupTitle, { color: colors.mutedForeground }]}>
+              PAID MEDIA (INCL. LOCAL & DIGITAL NEWSPAPERS)
+            </Text>
+            <View style={styles.chipWrap}>
+              {PAID_MEDIA.map((pm) => {
+                const active = (params.paid_media ?? []).includes(pm);
+                return (
+                  <Pressable
+                    key={pm}
+                    onPress={() => toggleMulti("paid_media", pm)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: active ? colors.primary : colors.card,
+                        borderColor: active ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color: active
+                            ? colors.primaryForeground
+                            : colors.foreground,
+                        },
+                      ]}
+                    >
+                      {pm}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
         </View>
 
         {error ? (
@@ -424,6 +770,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 16 },
   sectionHint: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12 },
+  groupTitle: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     paddingVertical: 8,
@@ -441,6 +792,26 @@ const styles = StyleSheet.create({
   },
   sourceLabel: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 14 },
   sourceDesc: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 11 },
+  chooseBtn: { flexDirection: "row", alignItems: "center", gap: 2 },
+  chooseText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
+  itemList: { gap: 6, paddingBottom: 12 },
+  itemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 10,
+    borderWidth: 1,
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  itemLabel: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 },
+  itemSub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 11 },
   estimateBox: {
     flexDirection: "row",
     alignItems: "center",

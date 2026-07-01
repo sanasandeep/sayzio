@@ -20,12 +20,13 @@ class MarketingStrategy extends Model
 
     protected $fillable = [
         'user_id', 'workspace_id', 'title', 'goal', 'status',
-        'sources', 'parameters', 'context_snapshot', 'strategy',
+        'sources', 'source_items', 'parameters', 'context_snapshot', 'strategy',
         'model', 'credits_spent',
     ];
 
     protected $casts = [
         'sources'          => 'array',
+        'source_items'     => 'array',
         'parameters'       => 'array',
         'context_snapshot' => 'array',
         'strategy'         => 'array',

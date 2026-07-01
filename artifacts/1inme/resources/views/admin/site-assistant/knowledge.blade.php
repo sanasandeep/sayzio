@@ -9,7 +9,7 @@
 
     <div class="glass rounded-2xl border border-white/10 p-6 space-y-2">
         <h3 class="font-semibold text-white">Knowledge Bases</h3>
-        <p class="text-sm text-white/60">These are the platform-wide AI Minds the assistant retrieves from. Pick which ones to use on the <a href="{{ route('admin.site-assistant.edit') }}" class="text-indigo-300 underline">settings page</a>. Use the AI Mind admin to add or edit content; this page lists status and lets you queue a re-index.</p>
+        <p class="text-sm text-white/60">These are the platform-wide Knowledge Bases the assistant retrieves from. Pick which ones to use on the <a href="{{ route('admin.site-assistant.edit') }}" class="text-indigo-300 underline">settings page</a>. Use the Knowledge Bases admin to add or edit content; this page lists status and lets you queue a re-index.</p>
     </div>
 
     <div class="glass rounded-2xl border border-white/10 overflow-hidden">
@@ -50,7 +50,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="p-6 text-center text-white/50">No platform-level knowledge bases yet. Create one in the AI Mind admin and mark it as a platform Mind.</td></tr>
+                    <tr><td colspan="5" class="p-6 text-center text-white/50">No platform-level knowledge bases yet. Create one in the Knowledge Bases admin and mark it as a platform Knowledge Base.</td></tr>
                 @endforelse
             </tbody>
         </table>

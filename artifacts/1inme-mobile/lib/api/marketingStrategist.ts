@@ -23,19 +23,44 @@ import { getToken } from "@/lib/secure";
 
 // ── types ───────────────────────────────────────────────────────
 
+export type StrategyItem = {
+  id: number;
+  label: string;
+  sub: string;
+};
+
 export type StrategySource = {
   key: string;
   label: string;
   description: string;
+  // Item-bearing sources (links, pixels, knowledge bases, brand kits,
+  // personas, companions) expose `items` so the builder can narrow to a
+  // subset; picking none = "use all". Aggregate sources omit both.
+  selectable?: boolean;
+  items?: StrategyItem[];
 };
 
 export type StrategyParameters = {
   budget?: string;
+  currency?: string;
+  region?: string;
   audience?: string;
   timeframe?: string;
+  cadence?: string;
   tone?: string;
+  brand_voice?: string;
+  competitors?: string;
+  main_offer?: string;
+  avoid?: string;
   channels?: string;
+  plan_type?: "both" | "organic" | "paid";
+  content_types?: string[];
+  paid_media?: string[];
 };
+
+// Per-source selected item IDs. An empty / missing list for a source means
+// "use all of them" (the original whole-category behaviour).
+export type StrategySelections = Record<string, number[]>;
 
 export type StrategyPlay = {
   title?: string;
@@ -68,6 +93,7 @@ export type StrategyDetail = {
   goal: string;
   parameters: StrategyParameters;
   sources: string[];
+  source_items?: StrategySelections;
   strategy: StrategyPlan;
   credits_spent: number;
   model: string | null;
@@ -126,6 +152,7 @@ export type StrategyEstimate = {
 export type StrategyCreateInput = {
   goal: string;
   sources: string[];
+  selections?: StrategySelections;
   parameters: StrategyParameters;
 };
 
@@ -144,13 +171,33 @@ export type SuggestionApplyResult = {
 // ── helpers ─────────────────────────────────────────────────────
 
 function buildPayload(input: StrategyCreateInput): Record<string, unknown> {
-  const parameters: Record<string, string> = {};
+  const parameters: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(input.parameters)) {
-    if (typeof v === "string" && v.trim()) parameters[k] = v.trim();
+    if (typeof v === "string") {
+      if (v.trim()) parameters[k] = v.trim();
+    } else if (Array.isArray(v)) {
+      const cleaned = v.map((x) => String(x).trim()).filter(Boolean);
+      if (cleaned.length) parameters[k] = cleaned;
+    }
   }
+
+  // Keep only selections for sources that are actually toggled on, and
+  // drop empty lists (an empty list means "use all", so sending it is moot).
+  const source_items: StrategySelections = {};
+  if (input.selections) {
+    for (const [k, ids] of Object.entries(input.selections)) {
+      if (!input.sources.includes(k)) continue;
+      const clean = (ids ?? [])
+        .map((n) => Number(n))
+        .filter((n) => Number.isFinite(n) && n > 0);
+      if (clean.length) source_items[k] = Array.from(new Set(clean));
+    }
+  }
+
   return {
     goal: input.goal,
     sources: input.sources,
+    ...(Object.keys(source_items).length ? { source_items } : {}),
     parameters,
   };
 }

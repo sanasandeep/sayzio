@@ -44,18 +44,28 @@ class MarketingStrategistService
      * builder that returns a compact, PII-free text snapshot fed to the
      * model. Keys double as the persisted `sources` flags.
      *
-     * @var array<string,array{label:string,description:string}>
+     * `selectable` marks sources that contain individual items the creator
+     * can narrow down to (picking none of them = "use all"). Aggregate
+     * sources (analytics, audience) stay simple on/off — they have no items.
+     *
+     * Note: the `minds` key is INTERNAL/unchanged; its user-facing label is
+     * "Knowledge Bases" (the AiMind model/table/routes stay as-is).
+     *
+     * @var array<string,array{label:string,description:string,selectable:bool}>
      */
     public const SOURCES = [
-        'links'       => ['label' => 'Links & types',       'description' => 'Your links, their types and lifetime clicks.'],
-        'analytics'   => ['label' => 'Analytics',           'description' => 'Recent click trends and device split.'],
-        'audience'    => ['label' => 'Followers & subscribers', 'description' => 'Audience size and growth.'],
-        'pixels'      => ['label' => 'Tracking pixels',      'description' => 'Ad pixels you already have connected.'],
-        'minds'       => ['label' => 'AI Minds',             'description' => 'Your knowledge bases (names only).'],
-        'brand_kits'  => ['label' => 'Brand Kits',           'description' => 'Your brand palette, voice and taglines.'],
-        'personas'    => ['label' => 'AI Personas',          'description' => 'Your saved AI persona agents.'],
-        'companions'  => ['label' => 'AI Companions',        'description' => 'Your published AI chat companions.'],
+        'links'       => ['label' => 'Links & types',       'description' => 'Your links, their types and lifetime clicks.', 'selectable' => true],
+        'analytics'   => ['label' => 'Analytics',           'description' => 'Recent click trends and device split.',        'selectable' => false],
+        'audience'    => ['label' => 'Followers & subscribers', 'description' => 'Audience size and growth.',                 'selectable' => false],
+        'pixels'      => ['label' => 'Tracking pixels',      'description' => 'Ad pixels you already have connected.',        'selectable' => true],
+        'minds'       => ['label' => 'Knowledge Bases',      'description' => 'Your knowledge bases (names only).',           'selectable' => true],
+        'brand_kits'  => ['label' => 'Brand Kits',           'description' => 'Your brand palette, voice and taglines.',      'selectable' => true],
+        'personas'    => ['label' => 'AI Personas',          'description' => 'Your saved AI persona agents.',                'selectable' => true],
+        'companions'  => ['label' => 'AI Companions',        'description' => 'Your published AI chat companions.',           'selectable' => true],
     ];
+
+    /** Source keys that expose individually selectable items. */
+    public const SELECTABLE_SOURCES = ['links', 'pixels', 'minds', 'brand_kits', 'personas', 'companions'];
 
     public function __construct(
         protected OpenAiService $openai,
@@ -72,27 +82,95 @@ class MarketingStrategistService
     }
 
     /**
-     * Assemble the data context for the toggled sources.
+     * Normalise the per-source item selection. Returns a map keyed by the
+     * selectable source key → a de-duplicated list of integer item IDs.
+     * Empty / unknown sources are dropped; an empty list means "use all".
      *
+     * @param  array<string,mixed>  $selections
+     * @return array<string,list<int>>
+     */
+    public function normalizeSelections(array $selections, ?array $sources = null): array
+    {
+        $out = [];
+        foreach ($selections as $key => $ids) {
+            $key = (string) $key;
+            if (!in_array($key, self::SELECTABLE_SOURCES, true)) continue;
+            if ($sources !== null && !in_array($key, $sources, true)) continue;
+            if (!is_array($ids)) continue;
+            $clean = [];
+            foreach ($ids as $id) {
+                if (is_numeric($id)) {
+                    $n = (int) $id;
+                    if ($n > 0) $clean[$n] = $n;
+                }
+            }
+            if ($clean) {
+                $out[$key] = array_values($clean);
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * The creator's own pickable items for each selectable source, so the
+     * builder can offer per-item selection. Keyed by source key; each item
+     * is `{id, label, sub}` (PII-free). Sources with no items are omitted.
+     *
+     * @param  array<int,string>|null  $sources  limit to these source keys
+     * @return array<string,list<array{id:int,label:string,sub:string}>>
+     */
+    public function selectableItems(User $user, ?array $sources = null): array
+    {
+        $wanted = $sources === null
+            ? self::SELECTABLE_SOURCES
+            : array_values(array_intersect(self::SELECTABLE_SOURCES, $sources));
+
+        $out = [];
+        foreach ($wanted as $key) {
+            try {
+                $items = match ($key) {
+                    'links'      => $this->itemsLinks($user),
+                    'pixels'     => $this->itemsPixels($user),
+                    'minds'      => $this->itemsMinds($user),
+                    'brand_kits' => $this->itemsBrandKits($user),
+                    'personas'   => $this->itemsPersonas($user),
+                    'companions' => $this->itemsCompanions($user),
+                    default      => [],
+                };
+            } catch (\Throwable $e) {
+                $items = [];
+            }
+            $out[$key] = $items;
+        }
+        return $out;
+    }
+
+    /**
+     * Assemble the data context for the toggled sources, optionally narrowed
+     * to a specific set of item IDs per source (empty per-source = use all).
+     *
+     * @param  array<string,list<int>>  $selections
      * @return array{context:string,snapshot:array<string,string>}
      */
-    public function buildContext(User $user, array $sources): array
+    public function buildContext(User $user, array $sources, array $selections = []): array
     {
-        $sources  = $this->normalizeSources($sources);
-        $snapshot = [];
+        $sources    = $this->normalizeSources($sources);
+        $selections = $this->normalizeSelections($selections, $sources);
+        $snapshot   = [];
 
         foreach ($sources as $src) {
+            $ids  = $selections[$src] ?? null;
             $text = '';
             try {
                 $text = match ($src) {
-                    'links'      => $this->snapshotLinks($user),
+                    'links'      => $this->snapshotLinks($user, $ids),
                     'analytics'  => $this->snapshotTool($user, 'analytics'),
                     'audience'   => $this->snapshotTool($user, 'audience'),
-                    'pixels'     => $this->snapshotPixels($user),
-                    'minds'      => $this->snapshotMinds($user),
-                    'brand_kits' => $this->snapshotBrandKits($user),
-                    'personas'   => $this->snapshotPersonas($user),
-                    'companions' => $this->snapshotCompanions($user),
+                    'pixels'     => $this->snapshotPixels($user, $ids),
+                    'minds'      => $this->snapshotMinds($user, $ids),
+                    'brand_kits' => $this->snapshotBrandKits($user, $ids),
+                    'personas'   => $this->snapshotPersonas($user, $ids),
+                    'companions' => $this->snapshotCompanions($user, $ids),
                     default      => '',
                 };
             } catch (\Throwable $e) {
@@ -130,10 +208,11 @@ class MarketingStrategistService
      *
      * @return array{strategy:MarketingStrategy,credits_spent:int,model:string}
      */
-    public function generate(User $user, string $goal, array $parameters, array $sources, ?int $workspaceId = null): array
+    public function generate(User $user, string $goal, array $parameters, array $sources, ?int $workspaceId = null, array $selections = []): array
     {
-        $sources  = $this->normalizeSources($sources);
-        $assembled = $this->buildContext($user, $sources);
+        $sources    = $this->normalizeSources($sources);
+        $selections = $this->normalizeSelections($selections, $sources);
+        $assembled  = $this->buildContext($user, $sources, $selections);
         $messages = $this->buildMessages($goal, $parameters, $assembled['context']);
         $model    = AiEngineSettings::featureModel(self::FEATURE);
 
@@ -172,6 +251,7 @@ class MarketingStrategistService
             $strategy->goal              = mb_substr(trim($goal), 0, 4000);
             $strategy->status            = 'ready';
             $strategy->sources           = $sources;
+            $strategy->source_items      = $selections;
             $strategy->parameters        = $parameters;
             $strategy->context_snapshot  = $assembled['snapshot'];
             $strategy->strategy          = $plan;
@@ -221,6 +301,16 @@ Rules:
 - Give BOTH an organic plan and a paid plan. Each play must name the concrete
   Sayzio feature(s) it uses.
 - Keep it specific and actionable, not generic marketing fluff.
+- Honour the PARAMETERS. If a "Region" or "Geographic market" is given, weight
+  the plan toward channels, partnerships and audiences that are locally relevant
+  to that region (e.g. local/regional digital newspapers, regional creators,
+  local events, area hashtags) and call out the local angle explicitly.
+- If "Content types" are given, build the plays around those formats; if
+  "Paid media" channels are given (which may include local or digital
+  newspapers), prefer those for the paid plan. If a "Plan type" of "organic
+  only" or "paid only" is given, focus on that side (still acknowledge the
+  other briefly). Respect any "Avoid" / hard constraints — never recommend
+  something the creator asked to avoid.
 - Then propose a SHORT list (max 5) of one-click, applyable suggestions the
   creator can act on inside Sayzio right now.
 
@@ -386,10 +476,11 @@ PROMPT;
         return (string) ($r['summary'] ?? '');
     }
 
-    protected function snapshotLinks(User $user): string
+    protected function snapshotLinks(User $user, ?array $ids = null): string
     {
         $rows = Link::query()
             ->where('user_id', $user->id)
+            ->when($ids, fn ($q) => $q->whereIn('id', $ids))
             ->orderByDesc('total_clicks')
             ->limit(25)
             ->get(['type', 'title', 'alias', 'total_clicks', 'is_active']);
@@ -415,9 +506,11 @@ PROMPT;
         return implode("\n", $lines);
     }
 
-    protected function snapshotPixels(User $user): string
+    protected function snapshotPixels(User $user, ?array $ids = null): string
     {
-        $rows = Pixel::query()->where('user_id', $user->id)->orderBy('name')->get(['name', 'type']);
+        $rows = Pixel::query()->where('user_id', $user->id)
+            ->when($ids, fn ($q) => $q->whereIn('id', $ids))
+            ->orderBy('name')->get(['name', 'type']);
         if ($rows->isEmpty()) {
             return 'No tracking pixels connected yet.';
         }
@@ -428,23 +521,26 @@ PROMPT;
         return implode("\n", $lines);
     }
 
-    protected function snapshotMinds(User $user): string
+    protected function snapshotMinds(User $user, ?array $ids = null): string
     {
         $rows = AiMind::query()
             ->where('user_id', $user->id)
             ->where('is_disabled', false)
+            ->when($ids, fn ($q) => $q->whereIn('id', $ids))
             ->orderBy('name')
             ->limit(25)
             ->get(['name']);
         if ($rows->isEmpty()) {
-            return 'No AI Minds (knowledge bases) yet.';
+            return 'No knowledge bases yet.';
         }
-        return 'AI Minds (knowledge bases): ' . $rows->pluck('name')->implode(', ') . '.';
+        return 'Knowledge bases: ' . $rows->pluck('name')->implode(', ') . '.';
     }
 
-    protected function snapshotBrandKits(User $user): string
+    protected function snapshotBrandKits(User $user, ?array $ids = null): string
     {
-        $kits = BrandKit::query()->where('user_id', $user->id)->orderByDesc('is_default')->limit(5)->get();
+        $kits = BrandKit::query()->where('user_id', $user->id)
+            ->when($ids, fn ($q) => $q->whereIn('id', $ids))
+            ->orderByDesc('is_default')->limit(5)->get();
         if ($kits->isEmpty()) {
             return 'No Brand Kits yet.';
         }
@@ -466,9 +562,11 @@ PROMPT;
         return "Brand Kits:\n" . implode("\n", $lines);
     }
 
-    protected function snapshotPersonas(User $user): string
+    protected function snapshotPersonas(User $user, ?array $ids = null): string
     {
-        $rows = AiPersonaAgent::query()->where('user_id', $user->id)->orderBy('name')->limit(15)->get(['name', 'description', 'tone_preset']);
+        $rows = AiPersonaAgent::query()->where('user_id', $user->id)
+            ->when($ids, fn ($q) => $q->whereIn('id', $ids))
+            ->orderBy('name')->limit(15)->get(['name', 'description', 'tone_preset']);
         if ($rows->isEmpty()) {
             return 'No AI Personas yet.';
         }
@@ -480,9 +578,11 @@ PROMPT;
         return implode("\n", $lines);
     }
 
-    protected function snapshotCompanions(User $user): string
+    protected function snapshotCompanions(User $user, ?array $ids = null): string
     {
-        $rows = AiCompanion::query()->where('user_id', $user->id)->orderBy('name')->limit(15)->get(['name', 'placement']);
+        $rows = AiCompanion::query()->where('user_id', $user->id)
+            ->when($ids, fn ($q) => $q->whereIn('id', $ids))
+            ->orderBy('name')->limit(15)->get(['name', 'placement']);
         if ($rows->isEmpty()) {
             return 'No AI Companions published yet.';
         }
@@ -491,6 +591,90 @@ PROMPT;
             $lines[] = '- ' . $r->name . ($r->placement ? " (placement: {$r->placement})" : '');
         }
         return implode("\n", $lines);
+    }
+
+    // ── selectable item lists (for the per-item builder picker) ────────
+
+    /** @return list<array{id:int,label:string,sub:string}> */
+    protected function itemsLinks(User $user): array
+    {
+        return Link::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('total_clicks')
+            ->limit(100)
+            ->get(['id', 'type', 'title', 'alias', 'total_clicks'])
+            ->map(fn ($r) => [
+                'id'    => (int) $r->id,
+                'label' => trim((string) ($r->title ?: $r->alias)) ?: 'Untitled',
+                'sub'   => trim(sprintf('%s · %d clicks', (string) $r->type, (int) $r->total_clicks)),
+            ])
+            ->all();
+    }
+
+    /** @return list<array{id:int,label:string,sub:string}> */
+    protected function itemsPixels(User $user): array
+    {
+        return Pixel::query()->where('user_id', $user->id)->orderBy('name')->limit(100)
+            ->get(['id', 'name', 'type'])
+            ->map(fn ($r) => [
+                'id'    => (int) $r->id,
+                'label' => trim((string) $r->name) ?: 'Pixel',
+                'sub'   => (string) $r->type,
+            ])
+            ->all();
+    }
+
+    /** @return list<array{id:int,label:string,sub:string}> */
+    protected function itemsMinds(User $user): array
+    {
+        return AiMind::query()->where('user_id', $user->id)->where('is_disabled', false)
+            ->orderBy('name')->limit(100)
+            ->get(['id', 'name'])
+            ->map(fn ($r) => [
+                'id'    => (int) $r->id,
+                'label' => trim((string) $r->name) ?: 'Knowledge base',
+                'sub'   => '',
+            ])
+            ->all();
+    }
+
+    /** @return list<array{id:int,label:string,sub:string}> */
+    protected function itemsBrandKits(User $user): array
+    {
+        return BrandKit::query()->where('user_id', $user->id)->orderByDesc('is_default')->orderBy('name')->limit(100)
+            ->get(['id', 'name', 'is_default'])
+            ->map(fn ($r) => [
+                'id'    => (int) $r->id,
+                'label' => trim((string) $r->name) ?: 'Brand Kit',
+                'sub'   => $r->is_default ? 'Default' : '',
+            ])
+            ->all();
+    }
+
+    /** @return list<array{id:int,label:string,sub:string}> */
+    protected function itemsPersonas(User $user): array
+    {
+        return AiPersonaAgent::query()->where('user_id', $user->id)->orderBy('name')->limit(100)
+            ->get(['id', 'name', 'tone_preset'])
+            ->map(fn ($r) => [
+                'id'    => (int) $r->id,
+                'label' => trim((string) $r->name) ?: 'Persona',
+                'sub'   => (string) ($r->tone_preset ?? ''),
+            ])
+            ->all();
+    }
+
+    /** @return list<array{id:int,label:string,sub:string}> */
+    protected function itemsCompanions(User $user): array
+    {
+        return AiCompanion::query()->where('user_id', $user->id)->orderBy('name')->limit(100)
+            ->get(['id', 'name', 'placement'])
+            ->map(fn ($r) => [
+                'id'    => (int) $r->id,
+                'label' => trim((string) $r->name) ?: 'Companion',
+                'sub'   => (string) ($r->placement ?? ''),
+            ])
+            ->all();
     }
 
     // ── export rendering (shared by web + API) ─────────────────────

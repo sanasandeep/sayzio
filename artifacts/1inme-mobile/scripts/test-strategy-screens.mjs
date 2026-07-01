@@ -75,12 +75,12 @@ function loadBuildPayload() {
     }
   }
   let js = apiSrc.slice(start, i);
+  // Strip the TS type annotations the bare `new Function` parser can't read.
+  // Regex-based so the loader survives future annotation tweaks.
   js = js
-    .replace(
-      "function buildPayload(input: StrategyCreateInput): Record<string, unknown> {",
-      "function buildPayload(input) {",
-    )
-    .replace("const parameters: Record<string, string> = {};", "const parameters = {};");
+    .replace(/function buildPayload\([^)]*\)\s*:[^{]*\{/, "function buildPayload(input) {")
+    .replace(/const parameters\s*:[^=]*=/, "const parameters =")
+    .replace(/const source_items\s*:[^=]*=/, "const source_items =");
   // eslint-disable-next-line no-new-func
   return new Function(`${js}\n return buildPayload;`)();
 }
@@ -112,8 +112,39 @@ function loadBuildPayload() {
     { goal: "g", sources: [], parameters: {} },
     "buildPayload must produce an empty parameters object when none are set",
   );
+
+  // Per-item selections + array params: only selections for ACTIVE sources
+  // survive, empty lists are dropped (empty = "use all"), ids are deduped,
+  // and array params (content_types/paid_media) are trimmed + kept.
+  const withSel = buildPayload({
+    goal: "g",
+    sources: ["links", "pixels"],
+    selections: {
+      links: [3, 3, 1, 0, -2],
+      pixels: [],
+      personas: [9], // not an active source → dropped
+    },
+    parameters: {
+      content_types: ["Reels / Shorts", "  ", "Stories"],
+      paid_media: [],
+      plan_type: "paid",
+    },
+  });
+  assert.deepEqual(
+    withSel,
+    {
+      goal: "g",
+      sources: ["links", "pixels"],
+      source_items: { links: [3, 1] },
+      parameters: {
+        content_types: ["Reels / Shorts", "Stories"],
+        plan_type: "paid",
+      },
+    },
+    "buildPayload must keep only active-source selections (deduped, positive), drop empty lists, and clean array params",
+  );
 }
-ok("buildPayload trims, omits empty params, and forwards sources");
+ok("buildPayload trims, omits empty params, forwards sources, and narrows source_items");
 
 // ===========================================================================
 // 2. The REAL aiFeatureBlurb — each screen passes FEATURE_LABEL into the

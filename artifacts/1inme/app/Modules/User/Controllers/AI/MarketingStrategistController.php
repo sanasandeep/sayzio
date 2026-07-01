@@ -65,6 +65,7 @@ class MarketingStrategistController extends Controller
 
         return view('user.ai.marketing-strategist.create', [
             'sources' => MarketingStrategistService::SOURCES,
+            'items'   => $this->strategist->selectableItems($request->user()),
             'old'     => session('ai.marketing_strategist.input', []),
             'balance' => $this->credits->getBalance($request->user()),
         ]);
@@ -76,7 +77,7 @@ class MarketingStrategistController extends Controller
         $this->ensureEnabled($request);
         $data = $this->validateBuilder($request);
 
-        $assembled = $this->strategist->buildContext($request->user(), $data['sources']);
+        $assembled = $this->strategist->buildContext($request->user(), $data['sources'], $data['selections']);
         $cost = $this->strategist->estimateCredits(
             $request->user(),
             $data['goal'],
@@ -103,7 +104,7 @@ class MarketingStrategistController extends Controller
             return back()->withInput()->with('error', $msg);
         }
 
-        session(['ai.marketing_strategist.input' => $request->only(['goal', 'sources', 'parameters'])]);
+        session(['ai.marketing_strategist.input' => $request->only(['goal', 'sources', 'source_items', 'parameters'])]);
 
         try {
             $result = $this->strategist->generate(
@@ -112,6 +113,7 @@ class MarketingStrategistController extends Controller
                 $data['parameters'],
                 $data['sources'],
                 $this->workspaceId(),
+                $data['selections'],
             );
         } catch (InsufficientCoinsForAiException $e) {
             return back()->withInput()->with('error', $e->getMessage());
@@ -335,26 +337,61 @@ class MarketingStrategistController extends Controller
 
     // ── helpers ────────────────────────────────────────────────────
 
-    /** @return array{goal:string,sources:array<int,string>,parameters:array<string,mixed>} */
+    /** @return array{goal:string,sources:array<int,string>,selections:array<string,list<int>>,parameters:array<string,mixed>} */
     protected function validateBuilder(Request $request): array
     {
         $validated = $request->validate([
             'goal'              => 'required|string|max:4000',
             'sources'           => 'nullable|array',
             'sources.*'         => 'string',
+            'source_items'      => 'nullable|array',
+            'source_items.*'    => 'array',
+            'source_items.*.*'  => 'integer',
             'parameters'        => 'nullable|array',
-            'parameters.budget' => 'nullable|string|max:120',
-            'parameters.audience' => 'nullable|string|max:300',
-            'parameters.timeframe' => 'nullable|string|max:120',
-            'parameters.tone'   => 'nullable|string|max:120',
-            'parameters.channels' => 'nullable|string|max:300',
+            'parameters.budget'       => 'nullable|string|max:120',
+            'parameters.currency'     => 'nullable|string|max:40',
+            'parameters.region'       => 'nullable|string|max:160',
+            'parameters.audience'     => 'nullable|string|max:300',
+            'parameters.timeframe'    => 'nullable|string|max:120',
+            'parameters.cadence'      => 'nullable|string|max:120',
+            'parameters.tone'         => 'nullable|string|max:120',
+            'parameters.brand_voice'  => 'nullable|string|max:300',
+            'parameters.competitors'  => 'nullable|string|max:400',
+            'parameters.main_offer'   => 'nullable|string|max:300',
+            'parameters.avoid'        => 'nullable|string|max:400',
+            'parameters.channels'     => 'nullable|string|max:300',
+            'parameters.plan_type'    => 'nullable|string|in:both,organic,paid',
+            'parameters.content_types'   => 'nullable|array',
+            'parameters.content_types.*' => 'string|max:80',
+            'parameters.paid_media'      => 'nullable|array',
+            'parameters.paid_media.*'    => 'string|max:80',
         ]);
+
+        $sources = $this->strategist->normalizeSources((array) ($validated['sources'] ?? []));
 
         return [
             'goal'       => trim((string) $validated['goal']),
-            'sources'    => $this->strategist->normalizeSources((array) ($validated['sources'] ?? [])),
-            'parameters' => array_filter((array) ($validated['parameters'] ?? []), fn ($v) => $v !== null && $v !== ''),
+            'sources'    => $sources,
+            'selections' => $this->strategist->normalizeSelections((array) ($validated['source_items'] ?? []), $sources),
+            'parameters' => $this->cleanParameters((array) ($validated['parameters'] ?? [])),
         ];
+    }
+
+    /** Drop empty scalars and empty arrays from the parameter bag. */
+    protected function cleanParameters(array $parameters): array
+    {
+        $out = [];
+        foreach ($parameters as $key => $value) {
+            if (is_array($value)) {
+                $value = array_values(array_filter(array_map('strval', $value), fn ($v) => trim($v) !== ''));
+                if ($value) $out[$key] = $value;
+                continue;
+            }
+            if ($value !== null && trim((string) $value) !== '') {
+                $out[$key] = $value;
+            }
+        }
+        return $out;
     }
 
     /** Scope a query to the current owner + workspace. */

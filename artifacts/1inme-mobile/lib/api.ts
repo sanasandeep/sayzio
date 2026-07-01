@@ -209,7 +209,7 @@ export const wallet = {
     }),
 };
 
-// ── AI Mind picker (Persona / Coach defaults) ─────────────────────
+// ── Knowledge Base picker (Persona / Coach defaults) ──────────────
 export type AiMindSummary = { id: number; name: string };
 export type AiMindList = {
   mine: AiMindSummary[];

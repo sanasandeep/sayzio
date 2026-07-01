@@ -259,7 +259,7 @@
                         'max_events' => 'events',
                         'max_workspaces' => 'team workspaces',
                         'max_seats_per_workspace' => 'seats per workspace',
-                        'max_minds' => 'AI Minds',
+                        'max_minds' => 'Knowledge Bases',
                         'max_personas' => 'AI Personas',
                         'max_companions' => 'AI Companions',
                     ] as $key => $label)
