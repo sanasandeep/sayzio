@@ -1924,10 +1924,11 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Block added', 'success');
             window.__editorInsertBlockCard(data, { referenceNode: cloneEl });
             removeClone();
-            // Persist the resulting order for this level.
+            // Persist the resulting order for this level. The preview reload is
+            // already triggered by __editorInsertBlockCard() above (and the
+            // debounce coalesces any burst), so no extra refresh here.
             var sel = parentId ? '.child-block-card' : ':scope > .block-card-wrapper';
             reorderList(listEl, sel).catch(function() {});
-            _refreshPreviewSafe();
         }).catch(function() { showToast('Failed to add block', 'error'); removeClone(); });
     }
 
