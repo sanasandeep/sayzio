@@ -6,10 +6,11 @@ description: The mobile-unit validation gate chains the source-driven offline mo
 # Mobile offline unit gate
 
 `mobile-unit` validation gate runs `pnpm --filter @workspace/1inme-mobile run test:unit`,
-which chains the 15 fast/offline mobile regression scripts in `artifacts/1inme-mobile/scripts/`
+which chains the fast/offline mobile regression scripts in `artifacts/1inme-mobile/scripts/`
 (citation-href, block-cache, login-auth-config, whatsapp-disconnect, wizard-flow, voice-bridge,
 push-action, native-route, stats-range, stats-export, upgrade-hint, quick-contact, premium-cells,
-tier-switch-toast, auth-flow).
+tier-switch-toast, dialer-people-scope, auth-flow, and more — read the `test:unit` script for the
+current list).
 
 **Why:** These are *source-driven* tests — they `readFileSync` the real screen/client source and
 assert on it (regex wiring guards, or extracting a pure expression via `new Function` and evaluating
