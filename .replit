@@ -74,7 +74,7 @@ args = "ai-tool-names"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "scripts-test"
+args = "scripts-tests"
 
 [[workflows.workflow]]
 name = "e2e"
@@ -231,7 +231,7 @@ args = "pnpm --filter @workspace/scripts run check:ai-tool-names"
 isValidation = true
 
 [[workflows.workflow]]
-name = "scripts-test"
+name = "scripts-tests"
 author = "agent"
 
 [[workflows.workflow.tasks]]
