@@ -152,20 +152,48 @@
 </div>
 @endif
 
-@if(!empty($templateGalleryHealth['available']) && !empty($templateGalleryHealth['empty']))
+@if(!empty($templateGalleryHealth['available']) && !empty($templateGalleryHealth['has_gaps']))
+@php
+    $tghEmpty     = !empty($templateGalleryHealth['empty']);
+    $tghUncovered = $templateGalleryHealth['uncovered'] ?? [];
+    $tghGated     = $templateGalleryHealth['gated'] ?? [];
+    $tghNames     = collect($tghUncovered)->pluck('label')->filter()->values();
+    $tghGatedNames= collect($tghGated)->pluck('label')->filter()->values();
+@endphp
 <div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08);">
     <div class="flex items-start gap-4">
         <div class="w-11 h-11 shrink-0 bg-amber-500/15 rounded-xl flex items-center justify-center">
             <i class="fas fa-layer-group text-amber-400 text-lg"></i>
         </div>
         <div class="min-w-0">
-            <h2 class="text-base font-semibold text-amber-300">The onboarding template gallery is empty</h2>
-            <p class="text-sm text-white/70 mt-1">
-                There are <span class="text-amber-200 font-semibold">no active page templates</span>, so the
-                new-user onboarding wizard silently degrades to its "No templates available yet" escape and new
-                users land on a bare setup screen. Add or re-activate at least one template so onboarding can
-                offer a starting point again.
-            </p>
+            @if($tghEmpty)
+                <h2 class="text-base font-semibold text-amber-300">The onboarding template gallery is empty</h2>
+                <p class="text-sm text-white/70 mt-1">
+                    There are <span class="text-amber-200 font-semibold">no active page templates</span>, so the
+                    new-user onboarding wizard silently degrades to its "No templates available yet" escape and new
+                    users land on a bare setup screen. Add or re-activate at least one template so onboarding can
+                    offer a starting point again.
+                </p>
+            @else
+                <h2 class="text-base font-semibold text-amber-300">
+                    {{ $tghNames->count() === 1 ? 'A persona has' : 'Some personas have' }} no recommended templates
+                </h2>
+                <p class="text-sm text-white/70 mt-1">
+                    These {{ $tghNames->count() === 1 ? 'persona has' : 'personas have' }}
+                    <span class="text-amber-200 font-semibold">no active recommended page templates</span>:
+                    <span class="text-amber-200 font-semibold">{{ $tghNames->join(', ', ' and ') }}</span>.
+                    New users who pick {{ $tghNames->count() === 1 ? 'that persona' : 'those personas' }} in
+                    onboarding get no tailored "Recommended for you" row — only the generic browse-all list. Add a
+                    template (or tag an existing one) for each so onboarding can recommend a starting point.
+                </p>
+            @endif
+            @if($tghGatedNames->isNotEmpty())
+                <p class="text-xs text-white/50 mt-2">
+                    Also worth noting — every recommended template is locked behind a paid tier for:
+                    <span class="text-white/70">{{ $tghGatedNames->join(', ', ' and ') }}</span>, so entry-level
+                    users see an all-locked recommended row.
+                </p>
+            @endif
             <div class="mt-3 flex flex-wrap gap-2">
                 <a href="{{ route('admin.templates.index') }}"
                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 transition">
