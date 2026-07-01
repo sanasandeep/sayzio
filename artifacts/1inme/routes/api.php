@@ -10,6 +10,7 @@ use App\Modules\Api\Controllers\CardScanController;
 use App\Modules\Api\Controllers\ConnectedAppController;
 use App\Modules\Api\Controllers\ContactController;
 use App\Modules\Api\Controllers\CreatorPostController;
+use App\Modules\Api\Controllers\FeatureStateController;
 use App\Modules\Api\Controllers\DiscoveryController;
 use App\Modules\Api\Controllers\FeedController;
 use App\Modules\Api\Controllers\FollowController;
@@ -792,6 +793,12 @@ Route::prefix('v1')->group(function () {
         Route::patch ('/connected-apps/{id}',               [ConnectedAppController::class, 'update'])->whereNumber('id');
         Route::post  ('/connected-apps/{id}/sync',          [ConnectedAppController::class, 'syncNow'])->whereNumber('id')->middleware('throttle:12,1');
         Route::delete('/connected-apps/{id}',               [ConnectedAppController::class, 'destroy'])->whereNumber('id');
+
+        // App-wide "Coming soon" feature states (mobile parity): list every
+        // catalogue feature with its resolved state, and record "notify me"
+        // interest (deduped per user).
+        Route::get ('/feature-states',              [FeatureStateController::class, 'index']);
+        Route::post('/feature-states/{key}/notify', [FeatureStateController::class, 'notify']);
 
         // Forms (mobile can list + create-on-the-spot from the block
         // editor; richer editing lives on web).

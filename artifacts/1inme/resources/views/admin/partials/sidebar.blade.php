@@ -466,6 +466,14 @@
             <span class="sidebar-tooltip">Integrations</span>
         </a>
 
+        <a href="{{ route('admin.feature-states.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.feature-states.*') ? 'active' : '' }}"
+           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-clock"></i></div>
+            <span class="nav-label">Feature States</span>
+            <span class="sidebar-tooltip">Feature States</span>
+        </a>
+
         <a href="{{ route('admin.auth-settings.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.auth-settings.*') ? 'active' : '' }}"
            style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">

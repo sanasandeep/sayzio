@@ -492,6 +492,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('google-analytics', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateGoogleAnalytics'])->middleware(CheckPermission::class . ':settings.manage')->name('google-analytics.update');
         });
 
+        // Feature States: app-wide "Coming soon" control. Lists every
+        // catalogue feature with its auto-detected readiness and lets an
+        // admin force any feature to "coming soon" (or clear that override).
+        Route::prefix('feature-states')->name('feature-states.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\FeatureStateController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::put('{key}', [\App\Modules\Admin\Controllers\FeatureStateController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+
         // AI Engine: OpenAI key, models/rates, wallet→credits conversion,
         // credit packs, plus per-user usage report and adjustments.
         Route::prefix('ai-engine')->name('ai-engine.')->group(function () {

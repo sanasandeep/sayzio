@@ -744,6 +744,7 @@
                            style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-phone"></i></div>
                             <span class="nav-label">Dialer</span>
+                            @include('common.partials.soon-badge', ['feature' => 'dialer'])
                             <span class="sidebar-tooltip">Dialer</span>
                         </a>
                         <a href="{{ route('user.connected-apps.index') }}"
@@ -751,6 +752,7 @@
                            style="--nav-tint:#818cf8; --nav-tint-soft:rgba(129,140,248,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-plug-circle-bolt"></i></div>
                             <span class="nav-label">Connected Apps</span>
+                            @include('common.partials.soon-badge', ['feature' => 'connected_apps'])
                             <span class="sidebar-tooltip">Connected Apps</span>
                         </a>
                         @endif
@@ -773,6 +775,7 @@
                            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-sack-dollar"></i></div>
                             <span class="nav-label">Earnings & Payouts</span>
+                            @include('common.partials.soon-badge', ['feature' => 'payouts'])
                             <span class="sidebar-tooltip">Earnings & Payouts</span>
                         </a>
                         <a href="{{ route('user.monetization.earnings') }}"
@@ -780,6 +783,7 @@
                            style="--nav-tint:#5c83ff; --nav-tint-soft:rgba(92,131,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-gem"></i></div>
                             <span class="nav-label">Monetization</span>
+                            @include('common.partials.soon-badge', ['feature' => 'monetization'])
                             <span class="sidebar-tooltip">Monetization</span>
                         </a>
                     </div>
@@ -802,6 +806,7 @@
                            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-bell"></i></div>
                             <span class="nav-label">Buzz</span>
+                            @include('common.partials.soon-badge', ['feature' => 'social_proofs'])
                             <span class="sidebar-tooltip">Buzz</span>
                         </a>
                         @endif
@@ -811,6 +816,7 @@
                            style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div>
                             <span class="nav-label">Pixel</span>
+                            @include('common.partials.soon-badge', ['feature' => 'pixels'])
                             <span class="sidebar-tooltip">Pixel</span>
                         </a>
                         @endif
@@ -836,6 +842,7 @@
                            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-plug"></i></div>
                             <span class="nav-label">Integrations</span>
+                            @include('common.partials.soon-badge', ['feature' => 'integrations'])
                             <span class="sidebar-tooltip">Integrations</span>
                         </a>
                         <a href="{{ route('user.domains.index') }}"
@@ -843,6 +850,7 @@
                            style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-globe"></i></div>
                             <span class="nav-label">Domains</span>
+                            @include('common.partials.soon-badge', ['feature' => 'domains'])
                             <span class="sidebar-tooltip">Custom Domains</span>
                         </a>
                         @endif
@@ -1483,8 +1491,8 @@
                                 @endif
                                 @if($__can['settings_view'])
                                 <a href="{{ route('user.contacts.index') }}" class="sidebar-link {{ request()->routeIs('user.contacts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div> <span>Contacts</span></a>
-                                <a href="{{ route('user.dialer.index') }}" class="sidebar-link {{ request()->routeIs('user.dialer.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-phone"></i></div> <span>Dialer</span></a>
-                                <a href="{{ route('user.connected-apps.index') }}" class="sidebar-link {{ request()->routeIs('user.connected-apps.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plug-circle-bolt"></i></div> <span>Connected Apps</span></a>
+                                <a href="{{ route('user.dialer.index') }}" class="sidebar-link {{ request()->routeIs('user.dialer.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-phone"></i></div> <span>Dialer</span>@include('common.partials.soon-badge', ['feature' => 'dialer'])</a>
+                                <a href="{{ route('user.connected-apps.index') }}" class="sidebar-link {{ request()->routeIs('user.connected-apps.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plug-circle-bolt"></i></div> <span>Connected Apps</span>@include('common.partials.soon-badge', ['feature' => 'connected_apps'])</a>
                                 @endif
                             </div>
                         </div>
@@ -1500,8 +1508,8 @@
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
-                                <a href="{{ route('user.payouts.show') }}" class="sidebar-link {{ request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-sack-dollar"></i></div> <span>Earnings &amp; Payouts</span></a>
-                                <a href="{{ route('user.monetization.earnings') }}" class="sidebar-link {{ request()->routeIs('user.monetization.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gem"></i></div> <span>Monetization</span></a>
+                                <a href="{{ route('user.payouts.show') }}" class="sidebar-link {{ request()->routeIs('user.payouts.*') || request()->routeIs('user.adult-content.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-sack-dollar"></i></div> <span>Earnings &amp; Payouts</span>@include('common.partials.soon-badge', ['feature' => 'payouts'])</a>
+                                <a href="{{ route('user.monetization.earnings') }}" class="sidebar-link {{ request()->routeIs('user.monetization.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gem"></i></div> <span>Monetization</span>@include('common.partials.soon-badge', ['feature' => 'monetization'])</a>
                             </div>
                         </div>
                         @endif
@@ -1517,18 +1525,18 @@
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
                                 @if($__can['links_view'])
-                                <a href="{{ route('user.social-proofs.index') }}" class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bell"></i></div> <span>Buzz</span></a>
+                                <a href="{{ route('user.social-proofs.index') }}" class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bell"></i></div> <span>Buzz</span>@include('common.partials.soon-badge', ['feature' => 'social_proofs'])</a>
                                 @endif
                                 @if($__can['stats_view'])
-                                <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Pixel</span></a>
+                                <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Pixel</span>@include('common.partials.soon-badge', ['feature' => 'pixels'])</a>
                                 @endif
                                 @if($__can['referrals_view'])
                                 <a href="{{ route('user.referrals.index') }}" class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gift"></i></div> <span>Referrals</span></a>
                                 @endif
                                 @if($__can['settings_view'])
                                 <a href="{{ route('user.social-accounts.index') }}" class="sidebar-link {{ request()->routeIs('user.social-accounts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div> <span>Connected Accounts</span></a>
-                                <a href="{{ route('user.integrations.index') }}" class="sidebar-link {{ request()->routeIs('user.integrations.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plug"></i></div> <span>Integrations</span></a>
-                                <a href="{{ route('user.domains.index') }}" class="sidebar-link {{ request()->routeIs('user.domains.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-globe"></i></div> <span>Domains</span></a>
+                                <a href="{{ route('user.integrations.index') }}" class="sidebar-link {{ request()->routeIs('user.integrations.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plug"></i></div> <span>Integrations</span>@include('common.partials.soon-badge', ['feature' => 'integrations'])</a>
+                                <a href="{{ route('user.domains.index') }}" class="sidebar-link {{ request()->routeIs('user.domains.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-globe"></i></div> <span>Domains</span>@include('common.partials.soon-badge', ['feature' => 'domains'])</a>
                                 @endif
                             </div>
                         </div>

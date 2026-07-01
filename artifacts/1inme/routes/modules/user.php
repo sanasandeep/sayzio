@@ -203,8 +203,14 @@ Route::prefix('user')->name('user.')->group(function () {
         ->middleware('throttle:10,1')
         ->name('account.two-factor.challenge.verify');
 
-    Route::middleware(['auth', 'workspace.scope', 'workspace.2fa'])->group(function () {
+    Route::middleware(['auth', 'workspace.scope', 'workspace.2fa', \App\Modules\User\Middleware\EnsureFeatureAvailable::class])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+
+        // App-wide "Coming soon" feature preview + notify-me. The
+        // EnsureFeatureAvailable middleware redirects any coming-soon feature
+        // route here; these two routes are exempt inside that middleware.
+        Route::get ('coming-soon/{feature}',        [\App\Modules\User\Controllers\ComingSoonController::class, 'show'])->name('coming-soon.show');
+        Route::post('coming-soon/{feature}/notify', [\App\Modules\User\Controllers\ComingSoonController::class, 'notify'])->middleware('throttle:20,1')->name('coming-soon.notify');
 
         // Seamless switch from the user dashboard to the matching admin dashboard.
         Route::post('switch-to-admin', [\App\Modules\Common\Controllers\DashboardSwitchController::class, 'toAdmin'])->name('switch-to-admin');
