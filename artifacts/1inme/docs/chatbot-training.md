@@ -202,12 +202,18 @@ or as biolink blocks.
 | **Reviews Page** | A standalone wall for collecting and showcasing star reviews. |
 | **Paid Page** | A monetized landing page that automatically shows your posts, tiers, and tips, gated by visibility/payment. |
 | **Product / Storefront** | Sell digital or physical products with native checkout (also available as a biolink block). |
+| **Store** | An order-request storefront: list products in categories and take orders (name, contact, note) with **no online payment** — you fulfil them offline from an owner dashboard. |
+| **Service Booking** | An appointment-request page: list services with duration and price, publish your availability, and let visitors request a slot. You confirm bookings from a dashboard — no payment is collected, any total shown is an estimate. |
+| **Calendar** | A followable calendar of your events with an ICS feed; on supported plans it stays in two-way sync with your connected Google calendar. |
+| **Brand / Press Kit** | A shareable page with your logos, colours, fonts, brand voice, and boilerplate — handy for press and partners. |
 | **Social** | Link and manage your connected social accounts. |
 
-**The biolink family.** Link in Bio, Slides, Restaurant Menu, Resume, the AI
-types, and Paid Page belong to the "biolink family" — they share the page-editor
-flow, settings, visibility tiers, and the public renderer (Restaurant Menu uses
-its own dedicated builder).
+**The biolink family.** Link in Bio, Conversational, Slides, AI Chatbot,
+Restaurant Menu, Store, and Service Booking belong to the "biolink family" — they
+share the page-editor flow, settings, visibility tiers, and the public renderer
+(Restaurant Menu, Store, and Service Booking use their own dedicated builders).
+Resume, Reviews, Paid Page, Calendar, and Brand/Press Kit are standalone types
+rendered by their own pages.
 
 **Visibility tiers.** Biolink-family pages can be set to **Public**, **Registered
 users only**, **Followers only**, or **Subscribers only**, and some pages can be
@@ -494,6 +500,9 @@ fans pay, minus only the payment processor's own fee.
   plan.)
 - **Tips** — let fans send one-off tips.
 - **Paid DMs** — charge for direct messages.
+- **Client invoicing** — bill your own clients under a **billing company** brand:
+  issue branded invoices and receipts (downloadable PDFs), and optionally send
+  client emails from your own domain via per-company SMTP.
 
 ---
 
@@ -538,6 +547,18 @@ Sayzio includes several AI helpers, all metered with **AI credits**:
   information, and summarize raw notes into clear next steps with **Note Summarizer**.
 - **Voice assistant** — a hands-free assistant that listens (speech-to-text), takes
   an AI turn, and can speak its reply (text-to-speech); also offers dictation.
+- **AI Marketing Strategist** — generates a full organic + paid marketing plan
+  tailored to your account, with one-click actions you can apply and a chat to
+  refine it.
+- **AI Brand Kits & On-Brand AI** — generate a cohesive brand identity (palette,
+  fonts, voice, taglines, bio) and apply it to your biolinks and QR codes. A
+  **Brand Consistency Score** audits how on-brand your pages are, and On-Brand AI
+  keeps AI-written content in your brand voice.
+- **AI QR Art** — turn a plain QR code into on-brand artwork that still scans (a
+  built-in check verifies scannability before you use it).
+- **Inbox Agent** — categorizes and prioritizes incoming messages, drafts replies,
+  and can auto-send confident, safe replies on autopilot (see
+  [Inbox & messages](#27-inbox--messages)).
 
 Other AI helpers appear inside specific tools — **resume tailoring** and
 **cover-letter generation** in the Resume builder, the **AI biolink builder**, and
@@ -724,6 +745,13 @@ DMs, if enabled).
 
 **How to use it.** Open **Inbox** to read and triage incoming messages in one
 place.
+
+**AI assistance (Inbox Agent).** On supported plans, Sayzio categorizes and
+prioritizes incoming messages, drafts suggested replies you can edit and send,
+and — if you switch on **autopilot** — sends confident, safe replies for you
+(clearly marked "Sent by AI"). Autopilot never auto-sends on spam, sensitive
+topics, or low-confidence messages; those always wait for you in a review queue.
+All inbox AI is billed to the workspace owner.
 
 ---
 

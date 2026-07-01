@@ -126,11 +126,17 @@ exportable guest list; optional preview page. *Web · REST · Mobile.*
 | **Slides** | `slides` | A swipeable, story-style deck served from one link. |
 | **Restaurant Menu** | `restaurant_menu` | A digital menu with sections, items & prices (see [§5.10](#510-restaurant-menu--orders)). |
 | **Store** | `store_menu` | A product catalog with categories & order requests, no payment (see [§5.10b](#510b-store-menu--order-requests)). |
+| **Service Booking** | `service_booking` | Bookable services with availability — visitors request a slot (see [§5.11b](#511b-service-booking--appointment-requests)). |
 | **Resume / Portfolio** | `resume` | A shareable resume/portfolio page with PDF download (see [§5.11](#511-resume--portfolio)). |
+| **Calendar** | `calendar` | A followable calendar of events visitors can subscribe to (see [§5.15](#515-calendar-sync--followable-calendars)). |
 
-These (plus the AI types below) form the **biolink family** (`Link::BIOLINK_FAMILY`,
-checked via `isBiolinkFamily()`), which share the block editor, settings,
-visibility tiers, and the public renderer.
+`biolink`, `slides`, `restaurant_menu`, `store_menu` and `service_booking` — plus
+the AI types `conversational` / `ai_chat` below — make up the **biolink family**
+(`Link::BIOLINK_FAMILY`, checked via `isBiolinkFamily()`), which share the biolink
+visibility tiers and gating. `biolink` and `slides` also share the block editor,
+while `restaurant_menu` / `store_menu` / `service_booking` use their own dedicated
+builders. `resume` and `calendar` are **not** in the family — each has its own
+standalone builder and public renderer.
 
 - **Link in Bio (`biolink`)** — the flagship page builder; full block catalog,
   per-block styling, global themes, SEO/OG/PWA/branding/custom CSS-JS, AI builder
@@ -145,9 +151,19 @@ visibility tiers, and the public renderer.
   editor); a product catalog with order requests (no payment, no tax/coupon, no
   tables); see [§5.10b](#510b-store-menu--order-requests). Toggle
   `module_store_menu`, cap `max_store_menu`.
+- **Service Booking (`service_booking`)** — uses its own dedicated builder (not
+  the block editor); publish a service catalog with weekly availability and a
+  bookings dashboard where visitors request a time slot; see
+  [§5.11b](#511b-service-booking--appointment-requests). Toggle
+  `module_service_booking`, cap `max_service_booking`.
 - **Resume / Portfolio (`resume`)** — bridges the link to the user's standalone
   resume builder record (`ensureResume()`); see
   [§5.11](#511-resume--portfolio). Toggle `module_resume`, cap `max_resume`.
+- **Calendar (`calendar`)** — a followable calendar of events with an ICS feed
+  and optional Google two-way sync; see
+  [§5.15](#515-calendar-sync--followable-calendars). Toggle `module_calendar`,
+  caps `max_calendars` / `max_calendar_events`; two-way sync additionally requires
+  the `calendar_sync` feature.
 
 **Visibility tiers** (biolink-family): **public**, **registered** users only,
 **followers** only, **subscribers** only — plus optional password protection.
@@ -161,6 +177,7 @@ Visitors who don't meet the tier are blocked or prompted to follow/subscribe.
 | --- | --- | --- |
 | **Bizs Profile / Paid Page** | `paid_page` | A themeable home that auto-shows your posts, tiers & tips. |
 | **Reviews Page** | `reviews` | Collect and showcase reviews from your audience (see [§5.9](#59-reviews)). |
+| **Brand / Press Kit** | `brand_kit` | A shareable press kit — logo downloads, colours, fonts & brand voice. |
 
 **Paid Page (`paid_page`)** — a standalone type that repackages the creator
 monetization stack (posts / tiers / PPV / tipping) into a single page. On
@@ -175,6 +192,15 @@ handle-keyed creator endpoints. *Web · REST (`/paid-page/{alias}`, `/paid-page/
 
 **Reviews Page (`reviews`)** — standalone review-collection surface; details in
 [§5.9](#59-reviews). Toggle `module_reviews`, cap `max_reviews`.
+
+**Brand / Press Kit (`brand_kit`)** — a standalone, shareable brand/press kit page
+presenting logo downloads, the colour palette, font pairings, brand voice, and
+boilerplate copy. It is rendered publicly by `RedirectController` from a template
+(`BrandKitPageTemplates`) stored in `settings['brand_kit']`, which can be **seeded
+from the owner's saved AI Brand Kit** (see [§8](#8-ai-engine--ai-features)). It is
+not part of the biolink family — it has its own public renderer. Toggle
+`module_brand_kit`, cap `max_brand_kit_pages` (distinct from the AI brand-kit save
+limit `max_brand_kits`). *Web.*
 
 ### 2.4 AI-powered
 
@@ -596,6 +622,40 @@ Standalone resume builder bridged to a shareable `resume` link.
 *Web · REST (`/resume`, `/resume/versions`, header/summary/template/color,
 items CRUD + reorder, publishing) · Mobile (shares the `ResumePresenter`).*
 
+### 5.11b Service booking & appointment requests
+
+A dedicated builder for the `service_booking` type (does **not** use the block
+editor) that turns a link into an appointment-request page.
+
+- **Structure** — a `ServiceBooking` root (mode, slot length, lead time, how many
+  days ahead the calendar opens, timezone, currency, accent colour, optional
+  GST/tax in `settings`) → **categories** → **services** (name, description,
+  price, duration, photo, unavailable flag).
+- **Availability** — weekly recurring windows
+  (`service_booking_availability_rules`) plus specific **blocked dates**; the
+  provider is treated as a single resource (one booking at a time).
+- **Visitor flow** — browse services, pick one or more, see a live duration +
+  estimated bill, then choose an open slot and submit contact details. Slots are
+  computed by `SlotAvailabilityService`, which excludes anything outside the
+  availability windows, before the lead time, beyond the booking window, or
+  overlapping an existing pending / confirmed / completed request. A submitted
+  request lands as **pending** with a `public_token` the visitor uses to track
+  status.
+- **Bookings Dashboard** — near-real-time owner workflow with incremental polling;
+  statuses **Pending → Confirmed → Completed** (or **Declined** / **Cancelled**).
+  Terminal cancel/decline transitions release the slot back to the public calendar.
+- **Notifications** — owner alert on each new request
+  (`service_booking.new_request`; in-app + push + email); the visitor gets an
+  immediate confirmation email, status-change emails, and an optional WhatsApp
+  click-to-chat link.
+- **Estimated bill** — like the restaurant/store builders, any total shown is an
+  estimate; no payment is collected in-app.
+
+*Web · REST (public `GET /service-booking/{alias}`, `POST /service-booking/{alias}/slots`,
+`/quote`, `/book`, `GET /service-booking/bookings/{token}/status`; owner
+`/service-booking/links/{link}/bookings` + `/poll` + status + full `/config/*`
+CRUD) · Mobile (native builder, ordering & bookings polling).*
+
 ### 5.12 Audience, feed & engagement
 
 - **Follow / subscribe** — users follow you; updates appear in their feed.
@@ -695,6 +755,16 @@ earnings, subscribers, payments, and orders.
   **paid DMs**.
 - **Earnings by source** — generic groupBy so new revenue sources auto-surface.
 
+- **Client billing & accounting** — creators can define **billing companies**
+  (`BillingCompany`) to invoice their own clients under their brand: issue client
+  invoices/receipts (public signed-URL PDFs, with branding falling back
+  company → snapshot → platform config), and override the platform mailer with
+  **per-company SMTP** so client emails send from the creator's own domain
+  (encrypted password, connection verify + test send, safe-recipient guard). The
+  client-facing email templates can be customized per company (subject / body /
+  HTML-or-text), layered **below** any admin-level template override.
+  *Web · REST (`/billing/companies/*`, `.../smtp`, `.../emails`).*
+
 *Web · REST (`GET /payouts`, `POST /payouts/{provider}/connect`,
 `POST /payouts/{conn}/sync`; store/tiers/dm/feed endpoints) · Mobile (system-
 browser onboarding bounce + API sync; native unlock/tip screens).*
@@ -731,15 +801,27 @@ show "AI scanning/feature is currently disabled by your administrator."
 
 **AI-credit feature catalog** (`AiFeatureCatalog` FEATURES) — `mind`, `persona`,
 `companion`, `coach` / `ask_coach`, `voice_stt`, `voice_llm`, `voice_tts`,
-`card_scan`, `resume_import`, `resume_tailor`, plus the `biolink_builder`.
+`card_scan`, `resume_import`, `resume_tailor`, `inbox_agent`, `brand_kit`,
+`qr_art`, and `marketing_strategist` (+ `marketing_strategist.chat`). Additional
+AI surfaces gated through the engine settings include the `biolink_builder`,
+`resume_cover_letter`, and the `whatsapp_agent`.
 
 - **AI biolink builder** (`AiBiolinkBuilderService`) — turns a prompt (+ optional
   images/links) into a full page, constrained to a safe block subset and the
   user's plan-allowed types; charged to `biolink_builder` with auto-refund on
   parse failure.
 - **Knowledge Bases / Note Summarizer** — private RAG knowledge base: `AiMindSource`
-  (PDF / web / text) chunked and embedded (`AiMindChunk`) to ground answers; the
-  single-base view is surfaced to users as **Note Summarizer**.
+  chunked and embedded (`AiMindChunk`) to ground answers; the single-base view is
+  surfaced to users as **Note Summarizer**. Sources can be **uploaded / crawled**
+  (PDF, web link, plain text) or kept live from **external systems**: a **webhook**
+  source exposes a per-source URL + signing token so a third-party system can
+  *push* content in (`POST /mind-webhook/{source}`; token via the
+  `X-Mind-Webhook-Token` header, a `?token=` query, or the JSON body), and an
+  **API-connector** source *pulls* on a schedule (`minds:refresh-links`) from a
+  JSON / HTML / text endpoint with `none` / `bearer` / custom-header auth.
+  Connector credentials and webhook tokens are encrypted at rest, revealed once and
+  rotatable, and every outbound fetch is SSRF-guarded against private / loopback
+  hosts. (User-facing label: **Knowledge Bases**.)
 - **AI Agents / Persona Generator / Chat Widgets** — customizable agents with system
   prompts and chat history (`CompanionThread`); a Chat Widget can be embedded as a
   biolink **block** or run as a full-page **AI Chatbot** (`ai_chat`) link, and the
@@ -757,14 +839,55 @@ show "AI scanning/feature is currently disabled by your administrator."
   save to a contact and/or a seeded biolink draft, with confidence indicators and
   a soft duplicate warning. Web + REST both delegate to
   `CardBrochureExtractionService`.
+- **Inbox Agent (AI inbox triage & autopilot)** — an AI layer over the unified
+  inbox (see [§5.13](#513-inbox-notifications--digests)). It **triages** each
+  incoming message into a category (lead / sponsorship / support / fan / spam)
+  with a priority and a one-line summary (`InboxAiTriage`), and **drafts**
+  context-aware replies in the workspace tone/persona (`InboxAiReplyDrafter`).
+  Optional **Autopilot** (`InboxAutopilot`) can send replies autonomously, but only
+  above a user-set confidence threshold (default `0.8`); anything below is staged
+  as a draft for review, `spam` is never auto-replied, and messages hitting a
+  hard-coded **sensitive-keyword** list (refund, chargeback, legal, fraud,
+  harassment, etc.) are always routed to the manual review queue regardless of
+  confidence. Charged to `inbox_agent` (triage + draft metered separately) against
+  the **workspace owner**, with auto-refund on parse failure.
+- **AI Marketing Strategist** — generates a structured "organic + paid" marketing
+  plan from the user's own account data. It grounds on selectable, PII-free
+  snapshots (links, analytics, audience, tracking pixels, Knowledge Bases, Brand
+  Kits) plus goal / parameter inputs (region, content types, budget, "avoid"
+  constraints), proposes **one-click suggestions** that map to real Sayzio actions
+  (e.g. create a link, add a block), and supports a **refinement chat**
+  (`MarketingStrategistService`). Charged to `marketing_strategist` (chat to
+  `marketing_strategist.chat`) with a pre-generation estimate and auto-refund on
+  parse/validation failure.
+- **Brand Kits & On-Brand AI** — a saved **Brand Kit** (`BrandKit`: palette, font
+  pairings, brand voice, taglines, block theme) becomes the account's brand
+  identity. **On-Brand AI** injects `BrandKit::promptDirectives()` into the biolink
+  builder and persona prompts so generated copy and layout stay on brand. A
+  deterministic **Brand Consistency Score** (0–100, `BrandConsistencyService`)
+  audits a biolink's button colour, font family, font colour, and block theme
+  against the kit (only kit-defined dimensions are checked) and emits mismatch
+  findings with one-click "apply fix" links. Kit generation is charged to
+  `brand_kit`; the number of saved AI kits is capped by `max_brand_kits`. (The
+  separate `brand_kit` **link type** publishes a shareable press-kit page — see
+  [§2.3](#23-business--monetization).)
+- **QR AI Art** — generates eye-catching, on-brand artistic QR codes that still
+  scan reliably; gated/charged as `qr_art` and integrated with QR Studio (see
+  [§5.6](#56-qr-studio-pro)).
+- **WhatsApp AI Agent** — an AI responder for inbound WhatsApp messages that
+  answers questions and captures leads in the owner's voice around the clock;
+  charged as `whatsapp_agent` per model call with auto-refund on failure.
 
 **Per-plan AI gating** (`AiPlanAccess`) — a single source of truth gates the
 first-class AI features per plan in two shapes: **quantity** caps for Knowledge
-Bases / AI Agents / Chat Widgets (`max_minds` / `max_personas` / `max_companions`;
-`-1` = unlimited) and **availability** booleans for the Account Assistant
-(`ask_coach`), the voice assistant (`ai_voice_assistant`), the Chat Widget
-(`ai_widget`), card/brochure scan (`card_scan`), and AI resume tools
-(`ai_resume_tools`). When a plan row predates a key it falls back to the legacy
+Bases / AI Agents / Chat Widgets / saved AI Brand Kits (`max_minds` /
+`max_personas` / `max_companions` / `max_brand_kits`; `-1` = unlimited) and
+**availability** booleans for the Account Assistant (`ask_coach`), the voice
+assistant (`ai_voice_assistant`), the Chat Widget (`ai_widget`), card/brochure
+scan (`card_scan`), AI resume tools (`ai_resume_tools`), the Inbox Agent
+(`inbox_agent`), the Marketing Strategist (`marketing_strategist`), the Brand
+Consistency Score (`brand_consistency`), AI Artistic QR (`qr_art`), and the
+WhatsApp AI Agent (`whatsapp_agent`). When a plan row predates a key it falls back to the legacy
 global admin cap / allow-list so nothing regresses; the plan-limit bypass
 permission lifts every cap. Plans can also carry per-provider AI **coin-cost
 multipliers** that scale the base per-call coin cost. (Voice gating here is
@@ -776,8 +899,9 @@ metered monthly (`api_usage_counters`) against the plan allowance by
 period 80% / 100% / overage-unavailable warnings (email + in-app
 `api.usage_warning`).
 
-*Web · REST (`/ai/*`, Voice, Growth Coach, Chat Widgets) · Mobile (Account Assistant,
-AI Agent chat, floating-mic voice assistant).*
+*Web · REST (`/ai/*`, Voice, Growth Coach, Chat Widgets, `/ai/marketing-strategist/*`,
+`/brand-kits/*`, `/inbox/*`) · Mobile (Account Assistant, AI Agent chat,
+floating-mic voice assistant, Inbox, Brand Kits).*
 
 ---
 
@@ -825,6 +949,13 @@ AI Agent chat, floating-mic voice assistant).*
   add-ons as `addons[ID]=QTY` (per-unit amount in minor units, quantity carried in
   metadata); eligibility is constrained by the `addon_plan` pivot.
 - **Plan changes** apply immediately on successful payment.
+- **Invoices & credit notes** — every paid platform charge produces an invoice with
+  a strictly serial, per-financial-year number; a refund (self-serve within the
+  policy window via `BillingController`, or admin / gateway-initiated) mints an
+  immutable **credit note** with its own per-FY serial (`CreditNoteService`) that
+  snapshots the original invoice, the reason, and the billing details. Invoice and
+  credit-note PDFs are downloadable (`GET /user/billing/credit-notes/{id}.pdf`).
+  See [`billing-ai-credit-audit.md`](./billing-ai-credit-audit.md).
 
 *Web · REST (`/wallet/*`) · Mobile.*
 

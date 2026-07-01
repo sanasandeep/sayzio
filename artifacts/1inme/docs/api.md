@@ -29,7 +29,7 @@ see [API usage metering](#api-usage-metering)).
 - [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Paid pages](#paid-pages-public) · [Creator monetization](#creator-monetization) · [Product storefront](#product-storefront) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
 - [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Google Contacts sync](#google-contacts-sync) · [Bulk import](#bulk-import-preview-workflow) · [Resume](#resume--portfolio) · [Projects](#projects)
 - [Wallet & coins](#wallet--coins) · [AI](#ai-credits-knowledge-bases-voice-account-assistant-chat-widgets) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
-- [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Store menu](#store-menu) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
+- [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Store menu](#store-menu) · [Service booking](#service-booking) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
 - [Admin (mobile back-office)](#admin-mobile-back-office) · [Banned names / reserved handles](#banned-names--reserved-handles) · [Plan editor](#plan-editor) · [Admin mail / SMTP](#admin-mail--smtp-settings)
 - [Extension surface](#browser-extension-surface) (properties, backlinks, pixels, thank-yous) · [Pixel tracking](#pixel-tracking) · [Health](#health)
@@ -690,6 +690,7 @@ Mobile parity for the web `/user/brand-kits` flow. AI crafts a cohesive brand id
 | Method | Path                                          | Auth | Description                                                                 |
 | ------ | --------------------------------------------- | ---- | -------------------------------------------------------------------------- |
 | GET    | `/brand-kits`                                 | yes  | List kits + apply targets (biolinks, QR codes), plan cap/gating, credit balance and allowed block themes. |
+| GET    | `/brand-kits/consistency`                     | yes  | Brand Consistency Score (0–100) auditing the user's biolinks against a kit; returns per-biolink findings + one-click apply targets. |
 | POST   | `/brand-kits/estimate`                        | yes  | Upfront, worst-case credit cost. Body: `prompt?`, `website_url?`, `logo_url?`. Throttle 30/min. |
 | POST   | `/brand-kits/generate`                        | yes  | Run generation and save a kit. Same body as estimate. Throttle 10/min. `402 insufficient_credits` when the wallet can't cover the charge. |
 | DELETE | `/brand-kits/{brandKit}`                      | yes  | Delete a kit.                                                               |
@@ -778,6 +779,24 @@ Biolink Chat Widgets — list/AI Agent lookup + create-on-the-spot for the block
 | POST   | `/ai-companions/personas`     | yes  | Create an AI Agent.                 |
 | POST   | `/ai-companions`              | yes  | Create a Chat Widget.               |
 
+### AI Marketing Strategist
+
+Generates a structured organic + paid marketing plan grounded on the user's own
+(PII-free) account snapshots, with one-click suggestions and a refinement chat.
+Charged in AI credits (chat metered separately) with auto-refund on failure.
+
+| Method | Path                                                         | Auth | Description                                                            |
+| ------ | ---------------------------------------------------------- | ---- | -------------------------------------------------------------------- |
+| GET    | `/ai/marketing-strategist`                                 | yes  | List saved strategies + available grounding snapshots and inputs.    |
+| POST   | `/ai/marketing-strategist/estimate`                        | yes  | Upfront, worst-case credit cost for a generation.                    |
+| POST   | `/ai/marketing-strategist`                                 | yes  | Generate & save a strategy. Throttle: 20/min. `402` when unaffordable. |
+| GET    | `/ai/marketing-strategist/{strategy}`                      | yes  | Show a saved strategy.                                                |
+| GET    | `/ai/marketing-strategist/{strategy}/export`               | yes  | Export a strategy.                                                    |
+| DELETE | `/ai/marketing-strategist/{strategy}`                      | yes  | Delete a strategy.                                                    |
+| POST   | `/ai/marketing-strategist/{strategy}/chat`                 | yes  | Refinement chat turn. Throttle: 30/min.                              |
+| POST   | `/ai/marketing-strategist/suggestions/{suggestion}/apply`   | yes  | Apply a suggestion to a real Sayzio object (confirmation-gated).    |
+| POST   | `/ai/marketing-strategist/suggestions/{suggestion}/dismiss` | yes  | Dismiss a suggestion.                                               |
+
 ---
 
 ## Creator payouts
@@ -824,6 +843,28 @@ curl -X POST $BASE/adult-content \
 | PATCH  | `/billing/invoices/{id}`          | yes  | Update an invoice.                  |
 | DELETE | `/billing/invoices/{id}`          | yes  | Delete an invoice.                  |
 | POST   | `/billing/invoices/{id}/send`     | yes  | Email an invoice. Throttle: 30/min. |
+
+### Client billing companies & per-company email
+
+Creators can invoice their own clients under a **billing company** brand. Each
+company can override the platform mailer with its own SMTP and customize the
+client-facing email templates. The SMTP password is never returned (masked only).
+
+| Method | Path                                           | Auth | Description                                       |
+| ------ | ---------------------------------------------- | ---- | ------------------------------------------------ |
+| GET    | `/billing/companies`                           | yes  | List billing companies.                          |
+| POST   | `/billing/companies`                           | yes  | Create a billing company.                        |
+| PATCH  | `/billing/companies/{id}`                      | yes  | Update a billing company.                        |
+| DELETE | `/billing/companies/{id}`                      | yes  | Delete a billing company.                        |
+| GET    | `/billing/companies/{id}/smtp`                 | yes  | Show per-company SMTP config (password masked).  |
+| PUT    | `/billing/companies/{id}/smtp`                 | yes  | Save per-company SMTP config.                    |
+| POST   | `/billing/companies/{id}/smtp/verify`          | yes  | Verify the SMTP connection. Throttle: 10/min.    |
+| POST   | `/billing/companies/{id}/smtp/test`            | yes  | Send a test email. Throttle: 10/min.             |
+| GET    | `/billing/companies/{id}/emails`               | yes  | List customizable client-email templates.        |
+| GET    | `/billing/companies/{id}/emails/{key}`         | yes  | Show one template.                               |
+| PUT    | `/billing/companies/{id}/emails/{key}`         | yes  | Save a template override.                        |
+| DELETE | `/billing/companies/{id}/emails/{key}`         | yes  | Reset a template to the default.                 |
+| POST   | `/billing/companies/{id}/emails/{key}/preview` | yes  | Render a preview of a template.                  |
 
 ## Plans & RevenueCat
 
@@ -929,6 +970,43 @@ ready → completed` (or `cancelled`); open statuses are `new`, `accepted`,
 `packing`, `ready`. When the owner sets a WhatsApp number and enables order mode,
 a `wa.me` deep link is built server-side. Owners can pause intake via the
 `accepting_orders` toggle.
+
+## Service booking
+
+Public appointment-request surface plus the owner builder + bookings dashboard
+for the `service_booking` link type. Open slots are computed by
+`SlotAvailabilityService`; a submitted booking lands **pending** with a
+`public_token`. The `{link}` segment is the numeric link id.
+
+| Method | Path                                                               | Auth     | Description                                                        |
+| ------ | ----------------------------------------------------------------- | -------- | ---------------------------------------------------------------- |
+| GET    | `/service-booking/{alias}`                                        | optional | Public page: services, categories, availability config.          |
+| POST   | `/service-booking/{alias}/slots`                                  | optional | Open slots for chosen service(s) on a date. Throttle: 120/min.   |
+| POST   | `/service-booking/{alias}/quote`                                  | optional | Estimated bill (duration + price) for chosen service(s). Throttle: 120/min. |
+| POST   | `/service-booking/{alias}/book`                                   | optional | Submit a booking request. Throttle: 20/min.                      |
+| GET    | `/service-booking/bookings/{token}/status`                       | no       | Poll a booking by its public token.                              |
+| GET    | `/service-booking/links/{link}/bookings`                         | yes      | Owner: recent bookings + open count.                             |
+| GET    | `/service-booking/links/{link}/bookings/poll`                    | yes      | Owner: incremental poll (`?since=` cursor).                      |
+| POST   | `/service-booking/links/{link}/bookings/{booking}/status`        | yes      | Owner: advance a booking's status (confirm/complete/decline/cancel). |
+| GET    | `/service-booking/links/{link}/config`                           | yes      | Owner: full builder config.                                      |
+| POST   | `/service-booking/links/{link}/config/settings`                  | yes      | Owner: update mode/slot length/lead time/window/timezone/currency/accent/tax. |
+| POST   | `/service-booking/links/{link}/config/photo`                     | yes      | Owner: upload a service photo (multipart `photo`).              |
+| POST   | `/service-booking/links/{link}/config/categories`                | yes      | Owner: create a category.                                        |
+| PUT    | `/service-booking/links/{link}/config/categories/{category}`     | yes      | Owner: update a category.                                        |
+| DELETE | `/service-booking/links/{link}/config/categories/{category}`     | yes      | Owner: delete a category.                                        |
+| POST   | `/service-booking/links/{link}/config/services`                  | yes      | Owner: create a service.                                         |
+| PUT    | `/service-booking/links/{link}/config/services/{service}`        | yes      | Owner: update a service.                                         |
+| DELETE | `/service-booking/links/{link}/config/services/{service}`        | yes      | Owner: delete a service.                                         |
+| POST   | `/service-booking/links/{link}/config/availability`              | yes      | Owner: add a weekly availability rule.                          |
+| PUT    | `/service-booking/links/{link}/config/availability/{rule}`       | yes      | Owner: update an availability rule.                             |
+| DELETE | `/service-booking/links/{link}/config/availability/{rule}`       | yes      | Owner: delete an availability rule.                            |
+| POST   | `/service-booking/links/{link}/config/blocked-dates`             | yes      | Owner: block a specific date.                                   |
+| DELETE | `/service-booking/links/{link}/config/blocked-dates/{blockedDate}` | yes    | Owner: unblock a date.                                          |
+
+**Estimated bill (no payment).** Any total shown is an estimate; no payment is
+collected in-app. Statuses flow `pending → confirmed → completed` (or `declined`
+/ `cancelled`); terminal cancel/decline transitions release the slot back to the
+public calendar.
 
 ## Workspaces
 

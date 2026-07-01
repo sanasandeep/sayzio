@@ -246,6 +246,10 @@ what each one is for:
 | **Reviews Page** | A standalone wall for collecting and showcasing star reviews. |
 | **Paid Page** | A monetized landing page that shows your posts, tiers, and tips, gated by visibility/payment. |
 | **Product / Storefront** | Sell digital or physical products with native checkout (also available as a biolink block). |
+| **Store** | An order-request storefront: list products in categories and take orders (name, contact, note) with **no online payment** — you fulfil them offline from an owner dashboard. |
+| **Service Booking** | An appointment-request page: list services with duration and price, publish your availability, and let visitors request a slot. You confirm bookings from a dashboard — no payment is collected, any total shown is an estimate. |
+| **Calendar** | A followable calendar of your events with an ICS feed; on supported plans it stays in two-way sync with your connected Google calendar. |
+| **Brand / Press Kit** | A shareable page with your logos, colours, fonts, brand voice, and boilerplate — handy for press and partners. |
 | **Social** | Link and manage your connected social accounts. |
 
 **Visibility tiers.** Biolink-family pages can be set to **Public**, **Registered
@@ -644,6 +648,9 @@ fans pay, minus only the payment processor's own fee.
   manage **Orders** and fulfillment.
 - **Tips** — let fans send one-off tips.
 - **Paid DMs** — charge for direct messages.
+- **Client invoicing** — bill your own clients under a **billing company** brand:
+  issue branded invoices and receipts (downloadable PDFs), and optionally send
+  client emails from your own domain via per-company SMTP.
 
 The **Monetization** dashboard rolls up your earnings, subscribers, payments, and
 orders in one place.
@@ -692,6 +699,15 @@ Sayzio includes several AI helpers (all metered with **AI credits**):
   Knowledge Bases can also stay in sync with outside systems through two
   connection sources — an inbound **Webhook** and an outbound **API connector**
   (see [Keeping a Knowledge Base in sync](#keeping-a-knowledge-base-in-sync)).
+- **AI Marketing Strategist** — generates a full organic + paid marketing plan
+  tailored to your account, with one-click actions you can apply and a chat to
+  refine it.
+- **AI Brand Kits & On-Brand AI** — generate a cohesive brand identity (palette,
+  fonts, voice, taglines, bio) and apply it to your biolinks and QR codes. A
+  **Brand Consistency Score** audits how on-brand your pages are, and On-Brand AI
+  keeps AI-written content in your brand voice.
+- **AI QR Art** — turn a plain QR code into on-brand artwork that still scans (a
+  built-in check verifies scannability before you use it).
 
 Other AI helpers appear inside specific tools — e.g. **resume tailoring** and
 **cover-letter generation** in the Resume builder, and the
@@ -935,6 +951,13 @@ direct messages, form submissions, and similar inbound communication.
 
 **How to use it.** Open **Inbox** to read and triage incoming messages in one
 place. (Paid DMs, if enabled, also flow through your messaging.)
+
+**AI assistance (Inbox Agent).** On supported plans, Sayzio can help you keep up:
+it categorizes and prioritizes incoming messages, drafts suggested replies you
+can edit and send, and — if you switch on **autopilot** — sends confident, safe
+replies for you (clearly marked "Sent by AI"). Autopilot never auto-sends on
+spam, sensitive topics, or low-confidence messages; those always wait for you in
+a review queue. All inbox AI is billed to the workspace owner.
 
 **Spam filtering.** Sayzio screens every incoming message and moves likely spam
 to a separate **Spam** view, showing **why** it was flagged (for example, the
