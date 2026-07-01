@@ -184,6 +184,15 @@ final class FeatureAvailability
             ->first();
 
         if ($existing) {
+            // If a previous interest was already fulfilled (feature launched,
+            // then went "coming soon" again), re-arm it so the user is
+            // notified about the new launch. A still-pending interest is a
+            // no-op / confirmed state.
+            if ($existing->notified_at !== null) {
+                $existing->forceFill(['notified_at' => null])->save();
+                return true;
+            }
+
             return false;
         }
 

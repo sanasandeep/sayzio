@@ -725,6 +725,29 @@ class EmailTemplateRegistry
             // ----------------------------------------------------------------
             // Messaging / engagement
             // ----------------------------------------------------------------
+            'feature.launched' => [
+                'category' => 'messaging',
+                'label' => 'Coming-soon feature launched',
+                'description' => 'Sent once to a user who clicked "Notify me" on a coming-soon feature, when that feature becomes available.',
+                'format' => 'html',
+                'body_type' => 'view',
+                'view' => 'emails.feature-launched',
+                'subject' => '{{feature}} is now available on Sayzio',
+                'variables' => [
+                    'name' => ['label' => 'Recipient name', 'sample' => 'Alex Rivera'],
+                    'feature' => ['label' => 'Feature name', 'sample' => 'Dialer'],
+                    'blurb' => ['label' => 'Short feature description', 'sample' => 'A built-in number pad and call history that resolves phone numbers to the right biolink.'],
+                    'feature_url' => ['label' => 'Link to open the feature', 'sample' => 'https://sayzio.app/user/dialer'],
+                ],
+                'sample_view' => [
+                    'subject' => 'Dialer is now available on Sayzio',
+                    'userName' => 'Alex Rivera',
+                    'featureLabel' => 'Dialer',
+                    'blurb' => 'A built-in number pad and call history that resolves phone numbers to the right biolink.',
+                    'capabilities' => ['Number-pad dialer with recents and favourites', 'Phone → biolink resolution with caller ID'],
+                    'featureUrl' => 'https://sayzio.app/user/dialer',
+                ],
+            ],
             'messaging.dm_new' => [
                 'category' => 'messaging',
                 'label' => 'New direct message',

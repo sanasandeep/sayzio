@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Support\FeatureStates\FeatureAvailability;
+use App\Modules\Common\Support\FeatureStates\FeatureLaunchNotifier;
 use Illuminate\Http\Request;
 
 /**
@@ -33,6 +34,17 @@ class FeatureStateController extends Controller
         $msg = $forced
             ? $label.' is now marked "Coming soon" for everyone.'
             : $label.' override cleared — it now follows its integration status.';
+
+        // Clearing the override may transition the feature coming_soon → ready.
+        // If so, email everyone who asked to be notified (once each). No-op
+        // when the feature is still coming soon (e.g. its integration/config
+        // isn't connected yet) or when nobody is waiting.
+        if (!$forced) {
+            $notified = FeatureLaunchNotifier::notifyLaunched($key);
+            if ($notified > 0) {
+                $msg .= ' '.$notified.' waiting '.($notified === 1 ? 'user was' : 'users were').' emailed that it\'s now live.';
+            }
+        }
 
         return redirect()
             ->route('admin.feature-states.index')

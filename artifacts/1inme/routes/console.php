@@ -488,3 +488,15 @@ Schedule::command('invoices:run-recurring')
     ->dailyAt('06:00')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Hourly: close the loop on "Notify me" signups from the app-wide "Coming
+// soon" system. When a feature transitions coming_soon → ready because its
+// underlying integration/config finally connected (the path with no
+// synchronous code hook — the admin override screen already fires this
+// inline when an admin clears an override), everyone who asked to be notified
+// is emailed once. Idempotent: only un-notified interests are considered and
+// each is stamped as it's processed, so a per-hour cadence never double-sends.
+Schedule::command('features:notify-launched')
+    ->hourlyAt(50)
+    ->withoutOverlapping()
+    ->onOneServer();
