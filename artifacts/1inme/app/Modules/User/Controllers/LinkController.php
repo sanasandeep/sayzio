@@ -71,7 +71,17 @@ class LinkController extends Controller
         $links = $query->latest()->paginate(15)->withQueryString();
         $projects = workspace_owner()->projects()->orderBy('name')->get();
 
-        return view('user.links.index', compact('links', 'projects'));
+        // Lightweight, unfiltered roll-up for the bento command-center hero /
+        // metric tiles so the header reflects the whole account, not the
+        // currently filtered page.
+        $owner = workspace_owner();
+        $summary = [
+            'total'   => (int) $owner->links()->count(),
+            'active'  => (int) $owner->links()->where('is_active', true)->count(),
+            'clicks'  => (int) $owner->links()->sum('total_clicks'),
+        ];
+
+        return view('user.links.index', compact('links', 'projects', 'summary'));
     }
 
     public function create(Request $request)

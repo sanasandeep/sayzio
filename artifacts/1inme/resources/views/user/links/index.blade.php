@@ -1,6 +1,11 @@
 @extends('user.layouts.app')
 @section('title', 'My Links')
 
+@push('styles')
+    {{-- Reuse the exact bento command-center look from the Dashboard. --}}
+    @include('user.partials.bento-styles')
+@endpush
+
 @section('content')
 @php
     $__heroActions = [];
@@ -22,16 +27,92 @@
             ->get();
     }
     $__canMove = $__moveTargets->isNotEmpty();
+    $__summary = $summary ?? ['total' => 0, 'active' => 0, 'clicks' => 0];
 @endphp
-@include('user.partials.page-hero', [
-    'title'    => 'My Links',
-    'subtitle' => 'Manage and track all your shortened links.',
-    'icon'     => 'fa-link',
-    'chips'    => [
-        ['icon' => 'fa-layer-group', 'text' => ($links->total() ?? $links->count()) . ' total'],
-    ],
-    'actions'  => $__heroActions,
-])
+
+<div class="bento-stage">
+
+    {{-- ===================== LIVE-PULSE HERO ===================== --}}
+    <div class="bento-hero">
+        <div class="hero-grid">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap mb-2">
+                    <span class="hero-chip"><i class="fas fa-layer-group"></i> {{ number_format($__summary['total']) }} links</span>
+                    @if($__summary['active'] !== $__summary['total'])
+                        <span class="hero-chip"><i class="fas fa-circle text-emerald-400" style="font-size:6px;"></i> {{ number_format($__summary['active']) }} active</span>
+                    @endif
+                    <span class="hero-chip"><i class="fas fa-folder"></i> {{ number_format($projects->count()) }} projects</span>
+                </div>
+                <h1 class="hero-title gradient-text truncate" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">My Links</h1>
+                <p class="hero-subtitle">Manage, track and organise every link you've created.</p>
+                @if(!empty($__heroActions))
+                <div class="flex items-center gap-2 flex-wrap mt-4">
+                    @foreach($__heroActions as $a)
+                        <a href="{{ $a['url'] ?? '#' }}" class="{{ $a['class'] ?? 'btn-primary' }} text-xs py-2">
+                            @if(!empty($a['icon']))<i class="fas {{ $a['icon'] }} text-[10px]"></i>@endif
+                            {{ $a['label'] ?? '' }}
+                        </a>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+
+            {{-- Live pulse: total clicks across all links --}}
+            <div class="flex items-center gap-4">
+                <div class="pulse-orb">
+                    <span class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($__summary['clicks']) }}</span>
+                    <span class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">clicks</span>
+                </div>
+                <div>
+                    <span class="live-dot"><span class="dot"></span> Live</span>
+                    <p class="text-sm font-semibold mt-1.5" style="color: var(--text-primary);">Total clicks</p>
+                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+                        across <strong style="color: var(--text-secondary);">{{ number_format($__summary['total']) }}</strong> links
+                    </p>
+                    <a href="{{ route('user.stats.index') }}" class="text-[11px] text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1 mt-2">
+                        View stats <i class="fas fa-arrow-right text-[9px]"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ===================== METRIC BENTO ===================== --}}
+    <div class="bento mb-5">
+        <div class="bento-tile accent b-2 justify-between p-5" style="--tile-accent: linear-gradient(90deg, #5c83ff, #90acff); --tile-glow: rgba(61,107,255,0.16);">
+            <span class="tile-orb"></span>
+            <div class="flex items-center justify-between">
+                <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Total Links</p>
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.2);">
+                    <i class="fas fa-link text-blue-400 text-xs"></i>
+                </div>
+            </div>
+            <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ number_format($__summary['total']) }}</p>
+        </div>
+
+        <div class="bento-tile accent b-2 justify-between p-5" style="--tile-accent: linear-gradient(90deg, #10b981, #34d399); --tile-glow: rgba(16,185,129,0.18);">
+            <span class="tile-orb"></span>
+            <div class="flex items-center justify-between">
+                <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Active</p>
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.2);">
+                    <i class="fas fa-circle-check text-emerald-400 text-xs"></i>
+                </div>
+            </div>
+            <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ number_format($__summary['active']) }}</p>
+        </div>
+
+        <div class="bento-tile accent b-2 justify-between p-5" style="--tile-accent: linear-gradient(90deg, #f59e0b, #fbbf24); --tile-glow: rgba(245,158,11,0.18);">
+            <span class="tile-orb"></span>
+            <div class="flex items-center justify-between">
+                <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Total Clicks</p>
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.2);">
+                    <i class="fas fa-mouse-pointer text-amber-400 text-xs"></i>
+                </div>
+            </div>
+            <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ number_format($__summary['clicks']) }}</p>
+        </div>
+    </div>
+
 @unless($__canCreateLink)
 <div class="mb-4 px-3 py-2 rounded-lg text-xs flex items-center gap-2" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: #b45309;">
     <i class="fas fa-lock"></i>
@@ -345,4 +426,6 @@
 <div class="mt-5">{{ $links->links() }}</div>
 </div>{{-- /x-data wrapper --}}
 @endif
+
+</div>{{-- /bento-stage --}}
 @endsection

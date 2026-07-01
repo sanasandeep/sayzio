@@ -33,58 +33,82 @@
     .stats-table tbody td { padding: 11px 0; color: var(--text-muted); border-top: 1px solid var(--border-glass); vertical-align: middle; }
     .stats-table tbody tr:first-child td { border-top: 0; }
 </style>
+{{-- Reuse the exact bento command-center look from the Dashboard. --}}
+@include('user.partials.bento-styles')
 @endpush
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 bento-stage">
 
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-6">
-        <div>
-            <h1 class="text-2xl font-extrabold" style="color: var(--text-primary);">Stats home</h1>
-            <p class="text-sm" style="color: var(--text-faint);">{{ $start->format('M j, Y') }} – {{ $end->format('M j, Y') }} · {{ $rangeLabel }}</p>
+    {{-- ===================== LIVE-PULSE HERO ===================== --}}
+    <div class="bento-hero">
+        <div class="hero-grid">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap mb-2">
+                    <span class="hero-chip"><i class="fas fa-calendar-day"></i> {{ $rangeLabel }}</span>
+                    <span class="hero-chip"><i class="fas fa-clock"></i> {{ $start->format('M j') }} – {{ $end->format('M j, Y') }}</span>
+                </div>
+                <h1 class="hero-title gradient-text truncate" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">Stats home</h1>
+                <p class="hero-subtitle">A live look at your audience, content and engagement.</p>
+                <form method="GET" class="flex items-center gap-2 flex-wrap mt-4">
+                    <select name="range" onchange="this.form.submit()" class="stats-select px-3 py-2 text-sm">
+                        @foreach($ranges as $key => $r)
+                            <option value="{{ $key }}" {{ $range === $key ? 'selected' : '' }}>{{ $r['label'] }}</option>
+                        @endforeach
+                    </select>
+                    @if(workspace_owner()?->getPlanFeature('analytics_export', true))
+                        <a href="{{ route('user.stats.export', ['range' => $range]) }}" class="btn-primary text-xs py-2">
+                            <i class="fas fa-download text-[10px]"></i> CSV
+                        </a>
+                    @else
+                        <a href="{{ route('user.upgrade') }}" class="btn-ghost text-xs py-2" title="Exporting stats is a paid feature. Upgrade your plan to download CSV exports.">
+                            <i class="fas fa-lock text-[10px]"></i> CSV
+                        </a>
+                    @endif
+                </form>
+            </div>
+
+            {{-- Live pulse: engagement this range --}}
+            <div class="flex items-center gap-4">
+                <div class="pulse-orb">
+                    <span class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($kpis['reactions'] + $kpis['comments']) }}</span>
+                    <span class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">engaged</span>
+                </div>
+                <div>
+                    <span class="live-dot"><span class="dot"></span> Live</span>
+                    <p class="text-sm font-semibold mt-1.5" style="color: var(--text-primary);">Engagement</p>
+                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+                        <strong style="color: var(--text-secondary);">{{ number_format($kpis['reactions']) }}</strong> reactions ·
+                        <strong style="color: var(--text-secondary);">{{ number_format($kpis['comments']) }}</strong> comments
+                    </p>
+                </div>
+            </div>
         </div>
-        <form method="GET" class="flex gap-2">
-            <select name="range" onchange="this.form.submit()" class="stats-select px-3 py-2 text-sm">
-                @foreach($ranges as $key => $r)
-                    <option value="{{ $key }}" {{ $range === $key ? 'selected' : '' }}>{{ $r['label'] }}</option>
-                @endforeach
-            </select>
-            @if(workspace_owner()?->getPlanFeature('analytics_export', true))
-                <a href="{{ route('user.stats.export', ['range' => $range]) }}" class="px-3 py-2 rounded-lg bg-gradient-to-br from-blue-600 to-fuchsia-600 text-white text-sm font-semibold hover:opacity-90 transition">
-                    <i class="fas fa-download mr-1"></i> CSV
-                </a>
-            @else
-                <a href="{{ route('user.upgrade') }}" class="px-3 py-2 rounded-lg bg-white/10 text-sm font-semibold hover:bg-white/20 transition" style="color: var(--text-faint);" title="Exporting stats is a paid feature. Upgrade your plan to download CSV exports.">
-                    <i class="fas fa-lock mr-1"></i> CSV
-                </a>
-            @endif
-        </form>
     </div>
 
-    {{-- KPI tiles --}}
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        @php
-            $tiles = [
-                ['label' => 'Followers',         'value' => number_format($kpis['followers_total']),    'delta' => '+' . number_format($kpis['followers_new']),     'icon' => 'fa-user-plus',    'tint' => 'violet'],
-                ['label' => 'Posts published',   'value' => number_format($kpis['posts_published']),    'delta' => $rangeLabel,                                     'icon' => 'fa-file-lines',   'tint' => 'sky'],
-                ['label' => 'Engagement',        'value' => number_format($kpis['reactions'] + $kpis['comments']), 'delta' => $kpis['reactions'] . ' reactions · ' . $kpis['comments'] . ' comments', 'icon' => 'fa-heart', 'tint' => 'rose'],
-                ['label' => 'Subscribers',       'value' => number_format($kpis['subscribers_active']), 'delta' => '+' . $kpis['subscribers_new'] . ' new',         'icon' => 'fa-crown',        'tint' => 'amber'],
-            ];
-            $tints = [
-                'violet' => 'background: rgba(61,107,255,0.14); color: #90acff;',
-                'sky'    => 'background: rgba(14,165,233,0.14); color: #38bdf8;',
-                'rose'   => 'background: rgba(244,63,94,0.14); color: #fb7185;',
-                'amber'  => 'background: rgba(245,158,11,0.16); color: #fbbf24;',
-            ];
-        @endphp
+    {{-- ===================== KPI BENTO ===================== --}}
+    @php
+        $tiles = [
+            ['label' => 'Followers',       'value' => number_format($kpis['followers_total']),               'delta' => '+' . number_format($kpis['followers_new']),                                  'icon' => 'fa-user-plus',  'accent' => 'linear-gradient(90deg, #5c83ff, #90acff)', 'glow' => 'rgba(61,107,255,0.16)',  'iconBg' => 'rgba(61,107,255,0.12)',  'iconBd' => 'rgba(61,107,255,0.2)',  'iconColor' => '#90acff'],
+            ['label' => 'Posts published', 'value' => number_format($kpis['posts_published']),               'delta' => $rangeLabel,                                                                  'icon' => 'fa-file-lines', 'accent' => 'linear-gradient(90deg, #0ea5e9, #38bdf8)', 'glow' => 'rgba(14,165,233,0.18)',  'iconBg' => 'rgba(14,165,233,0.12)',  'iconBd' => 'rgba(14,165,233,0.2)',  'iconColor' => '#38bdf8'],
+            ['label' => 'Engagement',      'value' => number_format($kpis['reactions'] + $kpis['comments']), 'delta' => $kpis['reactions'] . ' reactions · ' . $kpis['comments'] . ' comments',       'icon' => 'fa-heart',      'accent' => 'linear-gradient(90deg, #f43f5e, #fb7185)', 'glow' => 'rgba(244,63,94,0.18)',   'iconBg' => 'rgba(244,63,94,0.12)',   'iconBd' => 'rgba(244,63,94,0.2)',   'iconColor' => '#fb7185'],
+            ['label' => 'Subscribers',     'value' => number_format($kpis['subscribers_active']),            'delta' => '+' . $kpis['subscribers_new'] . ' new',                                      'icon' => 'fa-crown',      'accent' => 'linear-gradient(90deg, #f59e0b, #fbbf24)', 'glow' => 'rgba(245,158,11,0.18)',  'iconBg' => 'rgba(245,158,11,0.12)',  'iconBd' => 'rgba(245,158,11,0.2)',  'iconColor' => '#fbbf24'],
+        ];
+    @endphp
+    <div class="bento mb-6">
         @foreach($tiles as $t)
-            <div class="stats-card p-4">
-                <div class="flex items-center gap-2">
-                    <span class="stats-kpi-icon" style="{{ $tints[$t['tint']] }}"><i class="fas {{ $t['icon'] }}"></i></span>
-                    <span class="text-[11px] uppercase tracking-wider" style="color: var(--text-faint);">{{ $t['label'] }}</span>
+            <div class="bento-tile accent b-3 justify-between p-5" style="--tile-accent: {{ $t['accent'] }}; --tile-glow: {{ $t['glow'] }};">
+                <span class="tile-orb"></span>
+                <div class="flex items-center justify-between">
+                    <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">{{ $t['label'] }}</p>
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: {{ $t['iconBg'] }}; border: 1px solid {{ $t['iconBd'] }};">
+                        <i class="fas {{ $t['icon'] }} text-xs" style="color: {{ $t['iconColor'] }};"></i>
+                    </div>
                 </div>
-                <div class="mt-3 text-2xl font-extrabold" style="color: var(--text-primary);">{{ $t['value'] }}</div>
-                <div class="text-xs" style="color: var(--text-faint);">{{ $t['delta'] }}</div>
+                <div class="mt-2">
+                    <p class="text-2xl font-extrabold" style="color: var(--text-primary);">{{ $t['value'] }}</p>
+                    <p class="text-xs mt-0.5" style="color: var(--text-faint);">{{ $t['delta'] }}</p>
+                </div>
             </div>
         @endforeach
     </div>
