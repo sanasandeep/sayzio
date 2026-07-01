@@ -1,7 +1,7 @@
-@extends('user.layouts.app')
+@extends('user.layouts.settings')
 @section('title', 'Connected Apps')
 
-@section('content')
+@section('settings-content')
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
         'title'    => 'Connected Apps',

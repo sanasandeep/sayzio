@@ -997,6 +997,17 @@ floating-mic voice assistant, Inbox, Brand Kits).*
 
 ## 11. Security & sessions
 
+- **Settings hub** — all account-management surfaces are consolidated into one
+  tabbed, deep-linkable hub at `/user/settings/{tab}`: Profile, Creator,
+  Security (settings + logins/devices/merge), Connected Accounts & Apps,
+  Integrations, Domains, Notifications, Billing & Identity, Developer/API, and
+  Verification & Badges. Tabs/sub-tabs are derived from the current route by
+  `App\Modules\User\Support\SettingsTabs`; the sidebar shows a single **Settings**
+  entry instead of the old ~10 scattered links, and legacy paths (e.g.
+  `/user/profile`, `/user/verification`, `/user/domains`) redirect into the
+  matching tab. Controllers, route names, middleware, and save/mutation paths are
+  unchanged — only the URLs and navigation were reorganised. Mobile mirrors this
+  via the grouped **Settings** section on the Profile tab.
 - **Sessions/devices** — list every signed-in device; revoke one or all others.
 - **Recent logins** — time/device/location/IP; "This wasn't me" revokes; email
   alerts on new device/browser/country.

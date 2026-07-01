@@ -1,6 +1,6 @@
-@extends('user.layouts.app')
+@extends('user.layouts.settings')
 @section('title', 'Creator Profile')
-@section('content')
+@section('settings-content')
 <div class="max-w-3xl mx-auto px-4 py-8">
     <div class="flex items-start justify-between gap-3 mb-6 flex-wrap">
         <div>

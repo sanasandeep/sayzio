@@ -1,7 +1,7 @@
-@extends('user.layouts.app')
+@extends('user.layouts.settings')
 @section('title', 'Custom Domains')
 
-@section('content')
+@section('settings-content')
 @php
     $__user = auth()->user();
     $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;

@@ -88,7 +88,6 @@ const TOOL_PAGES: {
     | "/cloud-files"
     | "/followers"
     | "/social"
-    | "/notifications"
     | "/subscribers"
     | "/projects"
     | "/qr"
@@ -130,7 +129,6 @@ const TOOL_PAGES: {
   { href: "/splash", label: "Splash pages", icon: "layout" },
   { href: "/calendars", label: "My Calendar", icon: "calendar" },
   { href: "/calendar", label: "Calendar sync", icon: "refresh-cw" },
-  { href: "/notifications", label: "Notifications", icon: "bell" },
   { href: "/resume", label: "AI Resume builder", icon: "file-text" },
   { href: "/backlinks", label: "Backlinks", icon: "link" },
   { href: "/visitors", label: "Visitors", icon: "users" },
@@ -144,31 +142,37 @@ const TOOL_PAGES: {
   { href: "/links/conversational", label: "Conversational links", icon: "message-circle" },
 ];
 
+// Ordered to mirror the consolidated web Settings hub tabs (Task #3220):
+// Profile → Security (+ devices, identifiers) → Connections & apps →
+// Integrations → Domains → Notifications → Verification & badges, with the
+// mobile-only Workspaces/Vault surfaces kept at the end.
 const SETTINGS_PAGES: {
   href:
     | "/profile-edit"
-    | "/identifiers"
+    | "/security"
     | "/account-sessions"
-    | "/workspaces"
-    | "/domains"
-    | "/integrations"
+    | "/identifiers"
     | "/connected-apps"
-    | "/vault"
+    | "/integrations"
+    | "/domains"
+    | "/notifications"
     | "/verification"
-    | "/security";
+    | "/workspaces"
+    | "/vault";
   label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
   { href: "/profile-edit", label: "Edit profile", icon: "edit-3" },
-  { href: "/identifiers", label: "Linked emails & phones", icon: "at-sign" },
-  { href: "/account-sessions", label: "Devices & sessions", icon: "shield" },
-  { href: "/workspaces", label: "Workspaces", icon: "briefcase" },
-  { href: "/domains", label: "Custom domains", icon: "globe" },
-  { href: "/integrations", label: "Integrations", icon: "link" },
-  { href: "/connected-apps", label: "Connected apps", icon: "zap" },
-  { href: "/vault", label: "Vault", icon: "lock" },
-  { href: "/verification", label: "Verification", icon: "award" },
   { href: "/security", label: "Security & recovery", icon: "shield" },
+  { href: "/account-sessions", label: "Devices & sessions", icon: "shield" },
+  { href: "/identifiers", label: "Linked emails & phones", icon: "at-sign" },
+  { href: "/connected-apps", label: "Connected apps", icon: "zap" },
+  { href: "/integrations", label: "Integrations", icon: "link" },
+  { href: "/domains", label: "Custom domains", icon: "globe" },
+  { href: "/notifications", label: "Notifications", icon: "bell" },
+  { href: "/verification", label: "Verification & badges", icon: "award" },
+  { href: "/workspaces", label: "Workspaces", icon: "briefcase" },
+  { href: "/vault", label: "Vault", icon: "lock" },
 ];
 
 const THEME_OPTIONS: {

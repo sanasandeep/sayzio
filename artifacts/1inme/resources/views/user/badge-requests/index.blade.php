@@ -1,6 +1,6 @@
-@extends('user.layouts.app')
+@extends('user.layouts.settings')
 @section('title', 'Request a badge')
-@section('content')
+@section('settings-content')
 <div class="max-w-3xl mx-auto px-4 py-8">
     <div class="mb-6">
         <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Account badges</h1>

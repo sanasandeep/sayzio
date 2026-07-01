@@ -752,14 +752,6 @@
                             @include('common.partials.soon-badge', ['feature' => 'dialer'])
                             <span class="sidebar-tooltip">Dialer</span>
                         </a>
-                        <a href="{{ route('user.connected-apps.index') }}"
-                           class="sidebar-link {{ request()->routeIs('user.connected-apps.*') ? 'active' : '' }}"
-                           style="--nav-tint:#818cf8; --nav-tint-soft:rgba(129,140,248,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-plug-circle-bolt"></i></div>
-                            <span class="nav-label">Connected Apps</span>
-                            @include('common.partials.soon-badge', ['feature' => 'connected_apps'])
-                            <span class="sidebar-tooltip">Connected Apps</span>
-                        </a>
                         @endif
                     </div>
                 </div>
@@ -796,8 +788,8 @@
                 @endif
 
                 {{-- ========== GROWTH & MARKETING (collapsible) ========== --}}
-                @if($__can['links_view'] || $__can['stats_view'] || $__can['settings_view'] || $__can['referrals_view'])
-                @php $grpMarketingActive = request()->routeIs('user.social-proofs.*') || request()->routeIs('user.pixels.*') || request()->routeIs('user.referrals.*') || request()->routeIs('user.social-accounts.*') || request()->routeIs('user.integrations.*') || request()->routeIs('user.domains.*'); @endphp
+                @if($__can['links_view'] || $__can['stats_view'] || $__can['referrals_view'])
+                @php $grpMarketingActive = request()->routeIs('user.social-proofs.*') || request()->routeIs('user.pixels.*') || request()->routeIs('user.referrals.*'); @endphp
                 <div x-data="{ open: {{ $grpMarketingActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -832,31 +824,6 @@
                             <div class="nav-icon-wrap"><i class="fas fa-gift"></i></div>
                             <span class="nav-label">Referrals</span>
                             <span class="sidebar-tooltip">Referrals</span>
-                        </a>
-                        @endif
-                        @if($__can['settings_view'])
-                        <a href="{{ route('user.social-accounts.index') }}"
-                           class="sidebar-link {{ request()->routeIs('user.social-accounts.*') ? 'active' : '' }}"
-                           style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div>
-                            <span class="nav-label">Connected Accounts</span>
-                            <span class="sidebar-tooltip">Connected Accounts</span>
-                        </a>
-                        <a href="{{ route('user.integrations.index') }}"
-                           class="sidebar-link {{ request()->routeIs('user.integrations.*') ? 'active' : '' }}"
-                           style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-plug"></i></div>
-                            <span class="nav-label">Integrations</span>
-                            @include('common.partials.soon-badge', ['feature' => 'integrations'])
-                            <span class="sidebar-tooltip">Integrations</span>
-                        </a>
-                        <a href="{{ route('user.domains.index') }}"
-                           class="sidebar-link {{ request()->routeIs('user.domains.*') ? 'active' : '' }}"
-                           style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-globe"></i></div>
-                            <span class="nav-label">Domains</span>
-                            @include('common.partials.soon-badge', ['feature' => 'domains'])
-                            <span class="sidebar-tooltip">Custom Domains</span>
                         </a>
                         @endif
                     </div>
@@ -1046,13 +1013,6 @@
                             <span class="nav-label">Catalog</span>
                             <span class="sidebar-tooltip">Item Catalog</span>
                         </a>
-                        <a href="{{ route('user.billing.companies.index') }}"
-                           class="sidebar-link {{ request()->routeIs('user.billing.companies.*') ? 'active' : '' }}"
-                           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-building"></i></div>
-                            <span class="nav-label">Companies</span>
-                            <span class="sidebar-tooltip">Billing Companies</span>
-                        </a>
                         <a href="{{ route('user.billing.tax-rules.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.billing.tax-rules.*') ? 'active' : '' }}"
                            style="--nav-tint:#64748b; --nav-tint-soft:rgba(100,116,139,0.12);">
@@ -1073,7 +1033,7 @@
 
                 {{-- ========== ACCOUNT (collapsible) ========== --}}
                 @if($__can['settings_view'])
-                @php $grpAccountActive = request()->routeIs('user.profile.*') || (request()->routeIs('user.verification.*') && !request()->routeIs('user.verification.admin*')) || request()->routeIs('user.settings.sessions.*') || request()->routeIs('user.api-keys.*'); @endphp
+                @php $grpAccountActive = \App\Modules\User\Support\SettingsTabs::activeKey() !== null; @endphp
                 <div x-data="{ open: {{ $grpAccountActive ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                             class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1081,43 +1041,16 @@
                         <i class="fas fa-chevron-down grp-chevron"></i>
                     </button>
                     <div x-show="open || sidebarMode === 'icons'" x-cloak>
+                        {{-- Consolidated Settings hub (Task #3220) — one entry
+                             replaces the old Profile / Verification / Badge /
+                             Devices & sessions / API keys links, all now tabs. --}}
                         <a href="{{ route('user.profile.edit') }}"
-                           class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"
+                           class="sidebar-link {{ $grpAccountActive ? 'active' : '' }}"
                            style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div>
-                            <span class="nav-label">Profile</span>
-                            <span class="sidebar-tooltip">Profile</span>
+                            <div class="nav-icon-wrap"><i class="fas fa-sliders"></i></div>
+                            <span class="nav-label">Settings</span>
+                            <span class="sidebar-tooltip">Settings</span>
                         </a>
-                        <a href="{{ route('user.verification.index') }}"
-                           class="sidebar-link {{ request()->routeIs('user.verification.*') && !request()->routeIs('user.verification.admin*') ? 'active' : '' }}"
-                           style="--nav-tint:#3b82f6; --nav-tint-soft:rgba(59,130,246,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-check-circle"></i></div>
-                            <span class="nav-label">Verification</span>
-                            <span class="sidebar-tooltip">Verification</span>
-                        </a>
-                        <a href="{{ route('user.badge-requests.index') }}"
-                           class="sidebar-link {{ request()->routeIs('user.badge-requests.*') ? 'active' : '' }}"
-                           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-award"></i></div>
-                            <span class="nav-label">Request a badge</span>
-                            <span class="sidebar-tooltip">Request a badge</span>
-                        </a>
-                        <a href="{{ route('user.settings.sessions.index') }}"
-                           class="sidebar-link {{ request()->routeIs('user.settings.sessions.*') ? 'active' : '' }}"
-                           style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-shield-halved"></i></div>
-                            <span class="nav-label">Devices &amp; sessions</span>
-                            <span class="sidebar-tooltip">Devices &amp; sessions</span>
-                        </a>
-                        @if(auth()->check() && auth()->user()->planFeatureEnabled('api_access'))
-                        <a href="{{ route('user.api-keys.index') }}"
-                           class="sidebar-link {{ request()->routeIs('user.api-keys.*') ? 'active' : '' }}"
-                           style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-key"></i></div>
-                            <span class="nav-label">API keys</span>
-                            <span class="sidebar-tooltip">API keys</span>
-                        </a>
-                        @endif
                         <a href="{{ route('user.emails.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.emails.*') ? 'active' : '' }}"
                            style="--nav-tint:#90acff; --nav-tint-soft:rgba(144,172,255,0.12);">
@@ -1380,7 +1313,7 @@
                                 @include('common.partials.theme-toggle')
                             </div>
                             <a href="{{ route('user.profile.edit') }}" class="flex items-center gap-2.5 px-3 py-2 text-xs hover:opacity-80 transition-opacity" style="color: var(--text-muted);">
-                                <i class="fas fa-user-circle" style="width: 14px; text-align: center;"></i> Profile
+                                <i class="fas fa-sliders" style="width: 14px; text-align: center;"></i> Settings
                             </a>
                             <form action="{{ route('user.logout') }}" method="POST">
                                 @csrf
@@ -1500,7 +1433,6 @@
                                 @if($__can['settings_view'])
                                 <a href="{{ route('user.contacts.index') }}" class="sidebar-link {{ request()->routeIs('user.contacts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div> <span>Contacts</span></a>
                                 <a href="{{ route('user.dialer.index') }}" class="sidebar-link {{ request()->routeIs('user.dialer.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-phone"></i></div> <span>Dialer</span>@include('common.partials.soon-badge', ['feature' => 'dialer'])</a>
-                                <a href="{{ route('user.connected-apps.index') }}" class="sidebar-link {{ request()->routeIs('user.connected-apps.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plug-circle-bolt"></i></div> <span>Connected Apps</span>@include('common.partials.soon-badge', ['feature' => 'connected_apps'])</a>
                                 @endif
                             </div>
                         </div>
@@ -1523,8 +1455,8 @@
                         @endif
 
                         {{-- ========== GROWTH & MARKETING (collapsible) ========== --}}
-                        @if($__can['links_view'] || $__can['stats_view'] || $__can['settings_view'] || $__can['referrals_view'])
-                        @php $mGrpMarketingActive = request()->routeIs('user.social-proofs.*') || request()->routeIs('user.pixels.*') || request()->routeIs('user.referrals.*') || request()->routeIs('user.social-accounts.*') || request()->routeIs('user.integrations.*') || request()->routeIs('user.domains.*'); @endphp
+                        @if($__can['links_view'] || $__can['stats_view'] || $__can['referrals_view'])
+                        @php $mGrpMarketingActive = request()->routeIs('user.social-proofs.*') || request()->routeIs('user.pixels.*') || request()->routeIs('user.referrals.*'); @endphp
                         <div x-data="{ open: {{ $mGrpMarketingActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1540,11 +1472,6 @@
                                 @endif
                                 @if($__can['referrals_view'])
                                 <a href="{{ route('user.referrals.index') }}" class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gift"></i></div> <span>Referrals</span></a>
-                                @endif
-                                @if($__can['settings_view'])
-                                <a href="{{ route('user.social-accounts.index') }}" class="sidebar-link {{ request()->routeIs('user.social-accounts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div> <span>Connected Accounts</span></a>
-                                <a href="{{ route('user.integrations.index') }}" class="sidebar-link {{ request()->routeIs('user.integrations.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plug"></i></div> <span>Integrations</span>@include('common.partials.soon-badge', ['feature' => 'integrations'])</a>
-                                <a href="{{ route('user.domains.index') }}" class="sidebar-link {{ request()->routeIs('user.domains.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-globe"></i></div> <span>Domains</span>@include('common.partials.soon-badge', ['feature' => 'domains'])</a>
                                 @endif
                             </div>
                         </div>
@@ -1624,7 +1551,6 @@
                                 <a href="{{ route('user.billing.recurring.index') }}" class="sidebar-link {{ request()->routeIs('user.billing.recurring.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-repeat"></i></div> <span>Recurring</span></a>
                                 <a href="{{ route('user.billing.expenses.index') }}" class="sidebar-link {{ request()->routeIs('user.billing.expenses.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-receipt"></i></div> <span>Expenses</span></a>
                                 <a href="{{ route('user.billing.catalog.index') }}" class="sidebar-link {{ request()->routeIs('user.billing.catalog.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-boxes-stacked"></i></div> <span>Catalog</span></a>
-                                <a href="{{ route('user.billing.companies.index') }}" class="sidebar-link {{ request()->routeIs('user.billing.companies.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-building"></i></div> <span>Companies</span></a>
                                 <a href="{{ route('user.billing.tax-rules.index') }}" class="sidebar-link {{ request()->routeIs('user.billing.tax-rules.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-percent"></i></div> <span>Tax Rules</span></a>
                                 <a href="{{ route('user.billing.ledger.index') }}" class="sidebar-link {{ request()->routeIs('user.billing.ledger.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div> <span>Ledger</span></a>
                             </div>
@@ -1633,7 +1559,7 @@
 
                         {{-- ========== ACCOUNT (collapsible) ========== --}}
                         @if($__can['settings_view'])
-                        @php $mGrpAccountActive = request()->routeIs('user.profile.*') || (request()->routeIs('user.verification.*') && !request()->routeIs('user.verification.admin*')) || request()->routeIs('user.settings.sessions.*') || request()->routeIs('user.api-keys.*') || request()->routeIs('user.identifiers.*') || request()->routeIs('user.merge.*'); @endphp
+                        @php $mGrpAccountActive = \App\Modules\User\Support\SettingsTabs::activeKey() !== null || request()->routeIs('user.identifiers.*'); @endphp
                         <div x-data="{ open: {{ $mGrpAccountActive ? 'true' : 'false' }} }">
                             <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
                                     class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
@@ -1641,13 +1567,11 @@
                                 <i class="fas fa-chevron-down grp-chevron"></i>
                             </button>
                             <div x-show="open" x-cloak class="space-y-0.5">
-                                <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div> <span>Profile</span></a>
-                                <a href="{{ route('user.verification.index') }}" class="sidebar-link {{ request()->routeIs('user.verification.*') && !request()->routeIs('user.verification.admin*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-check-circle"></i></div> <span>Verification</span></a>
-                                <a href="{{ route('user.settings.sessions.index') }}" class="sidebar-link {{ request()->routeIs('user.settings.sessions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-shield-halved"></i></div> <span>Devices &amp; sessions</span></a>
-                                @if(auth()->check() && auth()->user()->planFeatureEnabled('api_access'))
-                                <a href="{{ route('user.api-keys.index') }}" class="sidebar-link {{ request()->routeIs('user.api-keys.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-key"></i></div> <span>API keys</span></a>
-                                @endif
-                                <a href="{{ route('user.identifiers.index') }}" class="sidebar-link {{ request()->routeIs('user.identifiers.*') || request()->routeIs('user.merge.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div> <span>Linked identifiers</span></a>
+                                {{-- Consolidated Settings hub (Task #3220) — one entry
+                                     replaces Profile / Verification / Devices & sessions
+                                     / API keys, all now tabs inside the hub. --}}
+                                <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ \App\Modules\User\Support\SettingsTabs::activeKey() !== null ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-sliders"></i></div> <span>Settings</span></a>
+                                <a href="{{ route('user.identifiers.index') }}" class="sidebar-link {{ request()->routeIs('user.identifiers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div> <span>Linked identifiers</span></a>
                                 <a href="{{ route('user.emails.index') }}" class="sidebar-link {{ request()->routeIs('user.emails.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-envelope-open-text"></i></div> <span>Email history</span></a>
                             </div>
                         </div>

@@ -1,7 +1,7 @@
-@extends('user.layouts.app')
+@extends('user.layouts.settings')
 @section('title', 'Profile')
 
-@section('content')
+@section('settings-content')
 <div class="max-w-2xl">
     <h1 class="text-2xl font-bold text-white mb-6">Profile Settings</h1>
 

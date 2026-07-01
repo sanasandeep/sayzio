@@ -1057,6 +1057,14 @@ and code check come first.
 
 ## 27. Settings & integrations
 
+- **Settings hub** — everything account-related lives in one place under
+  **Settings** (`/user/settings`), organised into tabs: Profile, Creator,
+  Security, Connected Accounts & Apps, Integrations, Domains, Notifications,
+  Billing & Identity, Developer/API, and Verification & Badges. Each tab is
+  deep-linkable (e.g. `/user/settings/security`), and old bookmarks such as
+  `/user/profile` or `/user/verification` redirect into the matching tab. On the
+  mobile app the same surfaces are grouped under the **Settings** section of the
+  Profile tab.
 - **Integrations** — connect third-party services (e.g. Google Contacts, social
   accounts, and the various embeds/pixels). Available integrations depend on your
   platform's configuration.

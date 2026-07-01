@@ -1,6 +1,6 @@
-@extends('user.layouts.app')
+@extends('user.layouts.settings')
 @section('title', 'Notification preferences')
-@section('content')
+@section('settings-content')
 <div class="max-w-3xl mx-auto px-4 py-8">
     <div class="flex items-center justify-between mb-6">
         <div>

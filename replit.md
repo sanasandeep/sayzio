@@ -34,6 +34,8 @@ API usage metering: developer API-key calls (`client_kind='api_key'`) metered mo
 ### UI/UX
 Glassmorphism design, dark/light modes, purple palette, Space Grotesk type. 3-mode collapsible sidebar; glassmorphic header with breadcrumbs, live search, notifications. Tailwind is compiled via Vite (`@vite`), not the CDN.
 
+**Settings hub**: all account-management surfaces are consolidated into one tabbed, deep-linkable hub at `/user/settings/{tab}` (Profile, Creator, Security, Connected Accounts & Apps, Integrations, Domains, Notifications, Billing & Identity, Developer/API, Verification & Badges). Tabs derived from the route via `SettingsTabs`; the sidebar (desktop + mobile drawer) shows a single **Settings** entry; legacy GET paths redirect into the matching tab. Route names/controllers/middleware and all save/mutation paths are unchanged. Mobile parity via the grouped **Settings** section on the Profile tab.
+
 ### Biolink Customization
 - **Block styling**: per-block styling (11 properties, 10 templates) + global themes with overrides; image styling (10 mask shapes, borders, 6 shadows); trackable image-block destination links; per-block display rules (schedule/location/device/OS/browser/language); card container block to group children.
 - **First-paint defaults**: new blocks get placeholder text/media + a seeded `_style`; a `_placeholder` flag drives a banner and clears on first save. Defaults in `app/Modules/User/Support/BlockDefaults.php`, applied only at creation by `BiolinkBlockController::store()`.

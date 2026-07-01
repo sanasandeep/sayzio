@@ -1,7 +1,7 @@
-@extends('user.layouts.app')
+@extends('user.layouts.settings')
 @section('title', 'Verification')
 
-@section('content')
+@section('settings-content')
 @include('user.partials._plan_lock', ['feature' => 'verification_eligible', 'kind' => 'flag', 'label' => 'Verified-creator badge'])
 <div class="max-w-5xl mx-auto">
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">

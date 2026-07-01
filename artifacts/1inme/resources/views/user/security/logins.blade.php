@@ -1,8 +1,8 @@
-@extends('user.layouts.app')
+@extends('user.layouts.settings')
 
 @section('title', 'Recent logins')
 
-@section('content')
+@section('settings-content')
 <div class="max-w-4xl mx-auto px-4 py-8">
     <div class="mb-6">
         <h1 class="text-2xl font-semibold" style="color: var(--text-strong);">Recent logins</h1>

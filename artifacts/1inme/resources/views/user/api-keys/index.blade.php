@@ -1,8 +1,8 @@
-@extends('user.layouts.app')
+@extends('user.layouts.settings')
 
 @section('title', 'API keys')
 
-@section('content')
+@section('settings-content')
 <div class="max-w-4xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'API keys',

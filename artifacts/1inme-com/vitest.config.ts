@@ -8,6 +8,16 @@ import path from "path";
 // aliases so the Zio Bot widget and its bundled mascot PNGs resolve in jsdom.
 export default defineConfig({
   plugins: [react()],
+  // vitest pulls in vite 8 (rolldown/oxc) even though the app builds on vite 7.
+  // Under vite 8 `config.oxc` is populated by default, so @vitejs/plugin-react's
+  // esbuild JSX handoff is ignored and `.tsx` JSX reaches import-analysis
+  // untransformed. Configure oxc's JSX transform directly so test files compile.
+  oxc: {
+    jsx: {
+      runtime: "automatic",
+      importSource: "react",
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),

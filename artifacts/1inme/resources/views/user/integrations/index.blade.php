@@ -1,7 +1,7 @@
-@extends('user.layouts.app')
+@extends('user.layouts.settings')
 @section('title', 'Integrations')
 
-@section('content')
+@section('settings-content')
 <div class="max-w-7xl mx-auto" x-data="{ tab: '{{ $activeTab }}' }">
     @include('user.partials.page-hero', [
         'title'    => 'Integrations',

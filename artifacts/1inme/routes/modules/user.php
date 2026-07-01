@@ -222,14 +222,14 @@ Route::prefix('user')->name('user.')->group(function () {
 
         // Recent-logins history + the in-app revoke action mirroring
         // the email's "This wasn't me" button.
-        Route::get('security/logins', [\App\Modules\User\Controllers\SecurityController::class, 'logins'])
+        Route::get('settings/security/logins', [\App\Modules\User\Controllers\SecurityController::class, 'logins'])
             ->name('security.logins');
         Route::post('security/logins/{loginEvent}/revoke', [\App\Modules\User\Controllers\SecurityController::class, 'revokeFromList'])
             ->name('security.logins.revoke-from-list');
         Route::get('dashboard', [DashboardController::class, 'index'])->middleware('onboarding.gate')->name('dashboard');
 
         // ---- Personal 2FA enrollment ----
-        Route::get   ('account/two-factor',           [\App\Modules\User\Controllers\TwoFactorController::class, 'show'])
+        Route::get   ('settings/security',            [\App\Modules\User\Controllers\TwoFactorController::class, 'show'])
             ->name('account.two-factor.show');
         Route::post  ('account/two-factor',           [\App\Modules\User\Controllers\TwoFactorController::class, 'confirm'])
             ->name('account.two-factor.confirm');
@@ -365,7 +365,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('notifications/{id}/open', [\App\Modules\User\Controllers\NotificationController::class, 'open'])->name('notifications.open')->whereNumber('id');
         Route::delete('notifications/{id}', [\App\Modules\User\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy')->whereNumber('id');
         Route::post('notifications/{id}/restore', [\App\Modules\User\Controllers\NotificationController::class, 'restore'])->name('notifications.restore')->whereNumber('id');
-        Route::get('notifications/preferences', [\App\Modules\User\Controllers\NotificationController::class, 'preferences'])->name('notifications.preferences');
+        Route::get('settings/notifications', [\App\Modules\User\Controllers\NotificationController::class, 'preferences'])->name('notifications.preferences');
         Route::put('notifications/preferences', [\App\Modules\User\Controllers\NotificationController::class, 'updatePreferences'])->name('notifications.preferences.update');
         // On-demand "Send sample now" preview for the weekly backlink
         // digest. Always emails the signed-in user, never an arbitrary
@@ -397,7 +397,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // alongside the other settings views and inherits the same
         // workspace permission gate.
         Route::middleware('workspace.can:settings.view')->group(function () {
-            Route::get   ('settings/sessions',                 [\App\Modules\User\Controllers\SessionManagerController::class, 'index'])->name('settings.sessions.index');
+            Route::get   ('settings/security/devices',         [\App\Modules\User\Controllers\SessionManagerController::class, 'index'])->name('settings.sessions.index');
             Route::delete('settings/sessions/others',          [\App\Modules\User\Controllers\SessionManagerController::class, 'destroyOthers'])->name('settings.sessions.destroy-others');
             Route::delete('settings/sessions/{id}',            [\App\Modules\User\Controllers\SessionManagerController::class, 'destroy'])
                 ->where('id', '[A-Za-z0-9:_\-]+')
@@ -405,7 +405,7 @@ Route::prefix('user')->name('user.')->group(function () {
 
             // Developer API keys (task #1393). Gated behind the `api_access`
             // plan feature inside the controller.
-            Route::get   ('api-keys',            [\App\Modules\User\Controllers\ApiKeyController::class, 'index'])->name('api-keys.index');
+            Route::get   ('settings/developer',  [\App\Modules\User\Controllers\ApiKeyController::class, 'index'])->name('api-keys.index');
             Route::post  ('api-keys',            [\App\Modules\User\Controllers\ApiKeyController::class, 'store'])->middleware('throttle:20,1')->name('api-keys.store');
             Route::delete('api-keys/{key}',      [\App\Modules\User\Controllers\ApiKeyController::class, 'destroy'])->whereNumber('key')->name('api-keys.destroy');
 
@@ -418,7 +418,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // Creator Profile editor (Task #1207). Lives next to the regular
         // Profile editor so the existing settings.view permission applies
         // — the public surface is at /@handle, this is just the editor.
-        Route::prefix('creator-profile')->name('creator-profile.')->middleware('workspace.can:settings.view')->group(function () {
+        Route::prefix('settings/creator')->name('creator-profile.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/',         [\App\Modules\User\Controllers\CreatorProfileController::class, 'edit'])->name('edit');
             Route::post('/',        [\App\Modules\User\Controllers\CreatorProfileController::class, 'update'])->name('update');
             Route::post('/handle',  [\App\Modules\User\Controllers\CreatorProfileController::class, 'claimHandle'])->name('handle.claim');
@@ -462,7 +462,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('/',  [\App\Modules\User\Controllers\AdultContentController::class, 'update'])->name('update');
         });
 
-        Route::prefix('profile')->name('profile.')->middleware('workspace.can:settings.view')->group(function () {
+        Route::prefix('settings/profile')->name('profile.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [ProfileController::class, 'edit'])->name('edit');
             Route::put('/', [ProfileController::class, 'update'])->name('update');
             // Follower-digest preview & sample are gated under the dedicated
@@ -1141,7 +1141,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // Reusable third-party integration configurations (payment / sms / email)
         // and connected social accounts — workspace-level settings, gated under
         // the `settings` feature.
-        Route::get('social-accounts',                          [\App\Modules\User\Controllers\SocialAccountController::class, 'index'])->middleware('workspace.can:settings.view')->name('social-accounts.index');
+        Route::get('settings/connections',                     [\App\Modules\User\Controllers\SocialAccountController::class, 'index'])->middleware('workspace.can:settings.view')->name('social-accounts.index');
         Route::post('social-accounts',                         [\App\Modules\User\Controllers\SocialAccountController::class, 'store'])->middleware('workspace.can:settings.edit')->name('social-accounts.store');
         Route::post('social-accounts/{connection}/refresh',    [\App\Modules\User\Controllers\SocialAccountController::class, 'refresh'])->middleware('workspace.can:settings.edit')->name('social-accounts.refresh');
         Route::delete('social-accounts/{connection}',          [\App\Modules\User\Controllers\SocialAccountController::class, 'destroy'])->middleware('workspace.can:settings.edit')->name('social-accounts.destroy');
@@ -1170,7 +1170,7 @@ Route::prefix('user')->name('user.')->group(function () {
         });
 
         // Account merge flow.
-        Route::prefix('merge')->name('merge.')->middleware('workspace.can:settings.edit')->group(function () {
+        Route::prefix('settings/security/merge')->name('merge.')->middleware('workspace.can:settings.edit')->group(function () {
             Route::get('/',           [\App\Modules\User\Controllers\AccountMergeController::class, 'start'])->name('start');
             Route::post('challenge',  [\App\Modules\User\Controllers\AccountMergeController::class, 'challenge'])->middleware('throttle:5,1')->name('challenge');
             Route::get('preview',     [\App\Modules\User\Controllers\AccountMergeController::class, 'preview'])->name('preview');
@@ -1178,7 +1178,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('cancel',     [\App\Modules\User\Controllers\AccountMergeController::class, 'cancel'])->name('cancel');
         });
 
-        Route::get('integrations',                       [\App\Modules\User\Controllers\IntegrationConfigController::class, 'index'])->middleware('workspace.can:settings.view')->name('integrations.index');
+        Route::get('settings/integrations',              [\App\Modules\User\Controllers\IntegrationConfigController::class, 'index'])->middleware('workspace.can:settings.view')->name('integrations.index');
         Route::get('integrations/{kind}/create',         [\App\Modules\User\Controllers\IntegrationConfigController::class, 'create'])->middleware('workspace.can:settings.edit')->name('integrations.create')->where('kind', 'payment|sms|email');
         Route::post('integrations/{kind}',               [\App\Modules\User\Controllers\IntegrationConfigController::class, 'store'])->middleware('workspace.can:settings.edit')->name('integrations.store')->where('kind', 'payment|sms|email');
         Route::get('integrations/{integrationConfig}/edit',         [\App\Modules\User\Controllers\IntegrationConfigController::class, 'edit'])->middleware('workspace.can:settings.edit')->name('integrations.edit');
@@ -1252,7 +1252,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // Connected Apps (CRM two-way sync + Google Analytics forwarding).
         // Plan-gated on the `connected_apps` feature key; the public OAuth
         // callback lives in routes/web.php (stateless, shared with mobile).
-        Route::get   ('connected-apps',                     [\App\Modules\User\Controllers\ConnectedAppController::class, 'index'])->middleware('workspace.can:settings.view')->name('connected-apps.index');
+        Route::get   ('settings/connections/apps',          [\App\Modules\User\Controllers\ConnectedAppController::class, 'index'])->middleware('workspace.can:settings.view')->name('connected-apps.index');
         Route::get   ('connected-apps/connect/{provider}',  [\App\Modules\User\Controllers\ConnectedAppController::class, 'connect'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':connected_apps'])->name('connected-apps.connect');
         Route::post  ('connected-apps/google-analytics',    [\App\Modules\User\Controllers\ConnectedAppController::class, 'saveGa'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':connected_apps'])->name('connected-apps.google-analytics');
         Route::put   ('connected-apps/{connectedApp}',      [\App\Modules\User\Controllers\ConnectedAppController::class, 'update'])->whereNumber('connectedApp')->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':connected_apps'])->name('connected-apps.update');
@@ -1343,7 +1343,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('pixels', [PixelController::class, 'store'])->middleware(['workspace.can:stats.edit', CheckPlanLimit::class . ':pixels'])->name('pixels.store');
 
         // Custom domains — workspace settings.
-        Route::prefix('domains')->name('domains.')->middleware([CheckPlanLimit::class . ':custom_domains'])->group(function () {
+        Route::prefix('settings/domains')->name('domains.')->middleware([CheckPlanLimit::class . ':custom_domains'])->group(function () {
             Route::get('/', [\App\Modules\User\Controllers\DomainController::class, 'index'])->middleware('workspace.can:settings.view')->name('index');
             Route::post('/', [\App\Modules\User\Controllers\DomainController::class, 'store'])->middleware('workspace.can:settings.edit')->name('store');
             Route::post('{domain}/verify', [\App\Modules\User\Controllers\DomainController::class, 'verify'])->middleware('workspace.can:settings.edit')->name('verify');
@@ -1571,8 +1571,10 @@ Route::prefix('user')->name('user.')->group(function () {
 
         // ---- Invoicing & Accounting Suite ----
         Route::prefix('billing')->name('billing.')->middleware('workspace.can:tasks.view')->group(function () {
-            // Billing companies (issuing legal entities).
-            Route::get('companies',                  [\App\Modules\User\Controllers\BillingCompanyController::class, 'index'])->name('companies.index');
+            // Billing companies (issuing legal entities). The index moved to
+            // the consolidated Settings hub (Task #3220) at /user/settings/billing
+            // — see the "Settings hub" block near the end of this file. The
+            // create/edit/etc. actions stay here under the billing prefix.
             Route::get('companies/create',           [\App\Modules\User\Controllers\BillingCompanyController::class, 'create'])->middleware('workspace.can:tasks.edit')->name('companies.create');
             Route::post('companies',                 [\App\Modules\User\Controllers\BillingCompanyController::class, 'store'])->middleware('workspace.can:tasks.edit')->name('companies.store');
             Route::get('companies/{company}/edit',   [\App\Modules\User\Controllers\BillingCompanyController::class, 'edit'])->middleware('workspace.can:tasks.edit')->name('companies.edit');
@@ -1701,7 +1703,7 @@ Route::prefix('user')->name('user.')->group(function () {
         });
 
         // Account verification (blue-tick request) — workspace-account-level.
-        Route::prefix('verification')->name('verification.')->middleware('workspace.can:settings.view')->group(function () {
+        Route::prefix('settings/verification')->name('verification.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [VerificationController::class, 'index'])->name('index');
             Route::get('request', [VerificationController::class, 'create'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':verification_eligible'])->name('request');
             Route::post('request', [VerificationController::class, 'store'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':verification_eligible'])->name('store');
@@ -1711,7 +1713,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // Self-serve account badge requests (Task #2910) — users ask for an
         // existing or custom account badge; admins review from their own
         // queue. Mirrors the account-verification gate.
-        Route::prefix('badge-requests')->name('badge-requests.')->middleware('workspace.can:settings.view')->group(function () {
+        Route::prefix('settings/verification/badges')->name('badge-requests.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/',  [\App\Modules\User\Controllers\BadgeRequestController::class, 'index'])->name('index');
             Route::post('/', [\App\Modules\User\Controllers\BadgeRequestController::class, 'store'])->middleware('workspace.can:settings.edit')->name('store');
             // Creator → creator badge gifting (Task #3045): live handle lookup
@@ -1743,6 +1745,47 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('verification-admin/{verificationRequest}/approve', [VerificationController::class, 'adminApprove'])->name('verification.admin.approve');
             Route::post('verification-admin/{verificationRequest}/reject', [VerificationController::class, 'adminReject'])->name('verification.admin.reject');
         });
+
+        // ===================================================================
+        // Settings hub (Task #3220)
+        // -------------------------------------------------------------------
+        // Every scattered account/settings surface now lives under the single
+        // /user/settings/{tab} hub (see SettingsTabs + user.layouts.settings).
+        // The real GET landing routes were repointed in-place above (keeping
+        // their names + controllers + middleware). What lives here is:
+        //   1. the Billing & Identity tab landing route (moved out of the
+        //      billing prefix group so it can sit at /settings/billing while
+        //      keeping the `user.billing.companies.index` name), and
+        //   2. legacy-URL redirects so old bookmarks/links still resolve.
+        //
+        // These redirects are registered LAST on purpose: Route::redirect
+        // responds to any verb, so placing them after every real POST/PUT/
+        // DELETE route guarantees the real routes win for their own methods
+        // and the redirects only catch stale GET landings.
+        // ===================================================================
+        Route::get('settings/billing', [\App\Modules\User\Controllers\BillingCompanyController::class, 'index'])
+            ->middleware('workspace.can:tasks.view')
+            ->name('billing.companies.index');
+
+        // Hub root → default (Profile) tab.
+        Route::redirect('settings', 'user/settings/profile');
+
+        // Legacy landing-URL redirects into the corresponding hub tab.
+        Route::redirect('profile',                  'user/settings/profile');
+        Route::redirect('creator-profile',          'user/settings/creator');
+        Route::redirect('account/two-factor',       'user/settings/security');
+        Route::redirect('security/logins',          'user/settings/security/logins');
+        Route::redirect('settings/sessions',        'user/settings/security/devices');
+        Route::redirect('merge',                    'user/settings/security/merge');
+        Route::redirect('social-accounts',          'user/settings/connections');
+        Route::redirect('connected-apps',           'user/settings/connections/apps');
+        Route::redirect('integrations',             'user/settings/integrations');
+        Route::redirect('domains',                  'user/settings/domains');
+        Route::redirect('notifications/preferences', 'user/settings/notifications');
+        Route::redirect('billing/companies',        'user/settings/billing');
+        Route::redirect('api-keys',                 'user/settings/developer');
+        Route::redirect('verification',             'user/settings/verification');
+        Route::redirect('badge-requests',           'user/settings/verification/badges');
 
         // Self-service "who has admin powers on the user side" page. Gated
         // by the `user.roles.manage` permission so only operators that
