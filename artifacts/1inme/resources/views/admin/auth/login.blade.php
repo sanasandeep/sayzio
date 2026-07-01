@@ -15,85 +15,127 @@
 <body class="min-h-screen relative overflow-hidden" style="background: var(--bg-body);">
     <div class="bg-mesh"></div>
 
+    <div class="particles" id="login-particles"></div>
+
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(61,107,255,0.12) 0%, transparent 70%);"></div>
-        <div class="absolute -bottom-24 -left-24 w-[400px] h-[400px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);"></div>
+        <div class="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(61,107,255,0.15) 0%, transparent 70%);"></div>
+        <div class="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(92,131,255,0.1) 0%, transparent 70%);"></div>
+        <div class="absolute top-1/4 right-1/3 w-[350px] h-[350px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%); animation-delay: -8s;"></div>
+        <div class="absolute bottom-1/3 left-1/4 w-[250px] h-[250px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(236,72,153,0.06) 0%, transparent 70%); animation-delay: -5s;"></div>
     </div>
 
     <div class="absolute top-5 right-5 z-20">
         @include('common.partials.theme-toggle')
     </div>
 
-    <div class="min-h-screen flex items-center justify-center p-6 relative z-10">
-        <div class="w-full max-w-sm">
-            <div class="text-center mb-7">
-                <a href="{{ route('home') }}" class="inline-flex items-center justify-center">@include('common.partials.brand-logo', ['height' => 'h-12'])</a>
-                <div class="mt-2 inline-flex items-center gap-1.5">
-                    <div class="w-5 h-5 rounded-md flex items-center justify-center" style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.15);">
-                        <i class="fas fa-shield-alt text-blue-400 text-[8px]"></i>
-                    </div>
-                    <span class="text-xs font-semibold uppercase tracking-wider" style="color: var(--text-dimmed);">Admin Panel</span>
+    <div class="min-h-screen flex relative z-10">
+        <div class="hidden lg:block flex-1 relative">
+            <a href="{{ route('home') }}" class="force-dark-logo absolute top-7 left-7 xl:top-9 xl:left-9 z-30 inline-flex items-center group">
+                @include('common.partials.brand-logo', ['height' => 'h-10'])
+            </a>
+            @include('common.partials.auth-slider', ['variant' => 'page'])
+        </div>
+
+        <div class="flex-1 lg:flex-none lg:w-[480px] flex items-center justify-center p-6 lg:p-12 relative">
+            <div class="hidden lg:block absolute inset-y-0 left-0 w-px" style="background: linear-gradient(180deg, transparent, var(--border-glass), transparent);"></div>
+
+            <div class="w-full max-w-sm">
+                <div class="text-center mb-7 lg:hidden">
+                    <a href="{{ route('home') }}" class="inline-flex items-center justify-center">
+                        @include('common.partials.brand-logo', ['height' => 'h-10'])
+                    </a>
                 </div>
-            </div>
 
-            <div class="mb-6">
-                <h2 class="text-lg font-bold" style="color: var(--text-primary);">Admin Sign In</h2>
-                <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">Access the management dashboard</p>
-            </div>
-
-            @if(session('error'))
-                <div class="mb-4 p-3 rounded-xl text-red-400 text-xs font-medium flex items-center gap-2" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">
-                    <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+                <div class="flex justify-center lg:justify-start mb-4">
+                    <div class="inline-flex items-center gap-1.5">
+                        <div class="w-5 h-5 rounded-md flex items-center justify-center" style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.15);">
+                            <i class="fas fa-shield-alt text-blue-400 text-[8px]"></i>
+                        </div>
+                        <span class="text-xs font-semibold uppercase tracking-wider" style="color: var(--text-dimmed);">Admin Panel</span>
+                    </div>
                 </div>
-            @endif
 
-            <form method="POST" action="{{ route('admin.login.submit') }}">
-                @csrf
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email</label>
-                        <input type="email" name="email" value="{{ old('email') }}" required autofocus placeholder="admin@example.com" class="theme-input w-full">
-                        @error('email')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Password</label>
-                        <input type="password" name="password" required placeholder="Enter your password" class="theme-input w-full">
-                        @error('password')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
-                    </div>
-
-                    <div class="flex items-center justify-between">
-                        <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-dimmed);">
-                            <input type="checkbox" name="remember" class="rounded text-blue-500 focus:ring-blue-500/40 w-3.5 h-3.5" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
-                            Remember me
-                        </label>
-                        <a href="{{ route('admin.password.request') }}" class="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">Forgot?</a>
-                    </div>
-
-                    <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
-                        Sign In <i class="fas fa-arrow-right text-[10px] ml-1"></i>
-                    </button>
+                <div class="hidden lg:block mb-7">
+                    <h2 class="text-2xl font-bold" style="color: var(--text-primary);">Admin Sign In</h2>
+                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">Access the management dashboard.</p>
                 </div>
-            </form>
 
-            <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-glass);">
-                <p class="text-center text-[10px] uppercase tracking-wider font-semibold mb-3" style="color: var(--text-faint);">Quick access</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <form method="POST" action="{{ route('user.demo.login') }}">
-                        @csrf
-                        <button type="submit" class="btn-ghost w-full justify-center text-xs py-2">
-                            <i class="fas fa-user text-[10px]"></i> Demo User
+                <div class="lg:hidden text-center mb-6">
+                    <h2 class="text-xl font-bold" style="color: var(--text-primary);">Admin Sign In</h2>
+                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">Access the management dashboard</p>
+                </div>
+
+                @if(session('error'))
+                    <div class="mb-4 p-3 rounded-xl text-red-400 text-xs font-medium flex items-center gap-2" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">
+                        <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('admin.login.submit') }}">
+                    @csrf
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email</label>
+                            <input type="email" name="email" value="{{ old('email') }}" required autofocus placeholder="admin@example.com" class="theme-input w-full">
+                            @error('email')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Password</label>
+                            <input type="password" name="password" required placeholder="Enter your password" class="theme-input w-full">
+                            @error('password')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-dimmed);">
+                                <input type="checkbox" name="remember" class="rounded text-blue-500 focus:ring-blue-500/40 w-3.5 h-3.5" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                                Remember me
+                            </label>
+                            <a href="{{ route('admin.password.request') }}" class="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">Forgot?</a>
+                        </div>
+
+                        <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
+                            Sign In <i class="fas fa-arrow-right text-[10px] ml-1"></i>
                         </button>
-                    </form>
-                    <form method="POST" action="{{ route('admin.demo.login') }}">
-                        @csrf
-                        <button type="submit" class="btn-ghost w-full justify-center text-xs py-2">
-                            <i class="fas fa-shield-alt text-[10px]"></i> Demo Admin
-                        </button>
-                    </form>
+                    </div>
+                </form>
+
+                <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-glass);">
+                    <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3" style="color: var(--text-faint);">Quick access</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <form method="POST" action="{{ route('user.demo.login') }}">
+                            @csrf
+                            <button type="submit" class="btn-ghost w-full justify-center text-xs py-2">
+                                <i class="fas fa-user text-[10px]"></i> Demo User
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('admin.demo.login') }}">
+                            @csrf
+                            <button type="submit" class="btn-ghost w-full justify-center text-xs py-2">
+                                <i class="fas fa-shield-alt text-[10px]"></i> Demo Admin
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+    (function(){
+        var c = document.getElementById('login-particles');
+        if(!c) return;
+        for(var i = 0; i < 20; i++){
+            var p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random()*100+'%';
+            p.style.animationDuration = (12+Math.random()*20)+'s';
+            p.style.animationDelay = Math.random()*15+'s';
+            p.style.width = p.style.height = (1+Math.random()*3)+'px';
+            p.style.opacity = 0.15+Math.random()*0.35;
+            c.appendChild(p);
+        }
+    })();
+    </script>
 </body>
 </html>
