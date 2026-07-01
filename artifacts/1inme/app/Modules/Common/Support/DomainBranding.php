@@ -109,9 +109,10 @@ class DomainBranding
      *
      * A non-primary global domain's own icon takes priority; otherwise the
      * platform admin-uploaded "Square icon" (Admin → Branding) is used. The
-     * bundled default path (`/branding/icon.jpg`) is treated as "not custom"
-     * so callers fall back to the crafted static favicon file set (.ico/.svg/
-     * multiple PNG sizes) instead of a single uploaded raster.
+     * bundled default paths (`/branding/icon.png`, and the legacy
+     * `/branding/icon.jpg`) are treated as "not custom" so callers fall back to
+     * the crafted static favicon file set (.ico/.svg/multiple PNG sizes)
+     * instead of a single uploaded raster.
      */
     public static function faviconUrl(): ?string
     {
@@ -121,7 +122,8 @@ class DomainBranding
         }
 
         $icon = AppSetting::get('brand_icon_url', null);
-        if (is_string($icon) && $icon !== '' && ltrim($icon, '/') !== 'branding/icon.jpg') {
+        $bundledDefaults = ['branding/icon.jpg', 'branding/icon.png'];
+        if (is_string($icon) && $icon !== '' && !in_array(ltrim($icon, '/'), $bundledDefaults, true)) {
             return $icon;
         }
 
@@ -172,7 +174,7 @@ class DomainBranding
         return [
             'logo_light' => AppSetting::get('brand_logo_light_url', '/branding/logo-light.png'),
             'logo_dark'  => AppSetting::get('brand_logo_dark_url', '/branding/logo-dark.png'),
-            'icon'       => AppSetting::get('brand_icon_url', '/branding/icon.jpg'),
+            'icon'       => AppSetting::get('brand_icon_url', '/branding/icon.png'),
         ];
     }
 

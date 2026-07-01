@@ -21,7 +21,7 @@ class BrandingController extends Controller
     private const SLOTS = [
         'brand_logo_light_url' => ['logo_light', 'branding/logo-light.png', ['png', 'jpg', 'jpeg', 'webp'], 4096],
         'brand_logo_dark_url'  => ['logo_dark',  'branding/logo-dark.png',  ['png', 'jpg', 'jpeg', 'webp'], 4096],
-        'brand_icon_url'       => ['icon',       'branding/icon.jpg',       ['png', 'jpg', 'jpeg', 'webp', 'ico'], 1024],
+        'brand_icon_url'       => ['icon',       'branding/icon.png',       ['png', 'jpg', 'jpeg', 'webp', 'ico'], 1024],
     ];
 
     public function edit()
