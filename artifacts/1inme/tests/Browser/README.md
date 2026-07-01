@@ -59,7 +59,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   onboarding-flow.spec.ts \
   dashboard-layout.spec.ts \
   header-account-menu.spec.ts \
-  header-mobile-account-menu.spec.ts
+  header-mobile-account-menu.spec.ts \
+  header-mobile-logged-out-cta.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -111,7 +112,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these twenty-one specs are gated (and not the whole suite)
+### Why these twenty-two specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -316,13 +317,24 @@ The gate covers the specs that run reliably as an unattended check here:
   account controls (memory user-sidebar-dual-nav). All tests share one
   logged-in context (the `demo-login` route is rate-limited); the destructive
   logout test runs last and re-establishes the session on retry.
+- `header-mobile-logged-out-cta.spec.ts` — no login/seeding. Lands on a MOBILE
+  viewport (400px, below `lg`) where the hamburger drawer is the only nav, with a
+  pre-seeded consent cookie so the banner can't intercept taps. Guards the
+  LOGGED-OUT `@else` branch of the same header `@auth` block (distinct from the
+  logged-in guard above): on a non-modal page (`/contact`) it asserts the drawer
+  shows Login/Register **links** pointing at the login (`/login`) and register
+  (`/register`) pages (and that the auth modal is absent); on the modal home page
+  (`/`, `useModal=true`) it asserts the drawer's Login/Register **buttons** open
+  the two-panel auth modal on the correct tab (login → identifier field, register
+  → name field). Guards the visitor sign-in entry points against silently
+  drifting out of the mobile drawer (memory user-sidebar-dual-nav).
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the twenty-one gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the twenty-two gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
