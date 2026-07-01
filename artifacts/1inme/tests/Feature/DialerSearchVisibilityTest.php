@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
@@ -120,6 +121,45 @@ class DialerSearchVisibilityTest extends TestCase
             }
         }
         return [];
+    }
+
+    /** Flatten every user_id the 'people' group returned. */
+    private function peopleUserIds(array $result): array
+    {
+        foreach ($result['groups'] as $g) {
+            if ($g['key'] === 'people') {
+                return array_values(array_filter(array_map(
+                    fn ($i) => ($i['type'] ?? null) === 'person' ? ($i['action']['user_id'] ?? $i['id']) : null,
+                    $g['items']
+                )));
+            }
+        }
+        return [];
+    }
+
+    /**
+     * Seed a Sayzio account whose display NAME carries the search token so the
+     * People group's name/handle match picks it up. The token lives only in the
+     * account name (never in link titles or workspace names) so these People
+     * assertions read cleanly.
+     */
+    private function makePerson(string $prefix = 'p'): User
+    {
+        $u = $this->makeUser($prefix);
+        $u->name   = self::TOKEN . ' ' . $prefix . Str::random(3);
+        $u->handle = strtolower($prefix) . substr(Str::random(8), 0, 8);
+        $u->save();
+        return $u;
+    }
+
+    /** Link a Sayzio account into the given user's own address book. */
+    private function addContactFor(User $owner, User $linked): Contact
+    {
+        return Contact::create([
+            'user_id'         => $owner->id,
+            'display_name'    => 'Book ' . Str::random(4),
+            'biolink_user_id' => $linked->id,
+        ]);
     }
 
     // ===== (1) canViewLink() gate — every branch =====
@@ -383,5 +423,102 @@ class DialerSearchVisibilityTest extends TestCase
     public function test_web_search_requires_authentication(): void
     {
         $this->get(route('user.dialer.search', ['q' => self::TOKEN]))->assertRedirect('/user/login');
+    }
+
+    // ===== (4) People group scope — no global user directory =====
+    //
+    // The "People" group (DialerSearch::peopleItems) is deliberately restricted
+    // to a reachable set: the searcher themselves, accounts they follow, and
+    // accounts linked from their OWN contacts — never a global user directory.
+    // A regression that widened the candidate set (e.g. querying all Users)
+    // would turn the dialer search box into a people-directory that surfaces
+    // strangers' names / handles / public biolinks. These tests lock that scope
+    // on the shared contract and on BOTH surfaces.
+
+    public function test_people_search_does_not_surface_a_stranger_by_name(): void
+    {
+        $viewer   = $this->makePerson('viewer');
+        // A stranger the viewer neither follows nor has a contact for. They share
+        // the search token in their name, so a global directory WOULD return them.
+        $stranger = $this->makePerson('stranger');
+
+        $result = DialerSearch::universal($viewer, self::TOKEN);
+        $people = $this->peopleUserIds($result);
+
+        $this->assertNotContains($stranger->id, $people, 'a stranger must never appear in People');
+    }
+
+    public function test_people_search_does_not_surface_a_stranger_by_handle(): void
+    {
+        $viewer   = $this->makePerson('viewer');
+        $stranger = $this->makeUser('stranger');
+        // Give the stranger a handle that carries the token but a name that does
+        // not, so only a handle match could surface them.
+        $stranger->handle = 'zzz' . self::TOKEN;
+        $stranger->save();
+
+        $result = DialerSearch::universal($viewer, self::TOKEN);
+        $people = $this->peopleUserIds($result);
+
+        $this->assertNotContains($stranger->id, $people, 'a stranger must never resolve by handle');
+    }
+
+    public function test_people_search_resolves_self_followed_and_contact_linked(): void
+    {
+        $viewer     = $this->makePerson('viewer');
+        $followed   = $this->makePerson('followed');
+        $contactBio = $this->makePerson('contact');
+        $stranger   = $this->makePerson('stranger');
+
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $followed->id]);
+        $this->addContactFor($viewer, $contactBio);
+
+        $result = DialerSearch::universal($viewer, self::TOKEN);
+        $people = $this->peopleUserIds($result);
+
+        $this->assertContains($viewer->id, $people, 'self must resolve');
+        $this->assertContains($followed->id, $people, 'a followed account must resolve');
+        $this->assertContains($contactBio->id, $people, 'a contact-linked account must resolve');
+        $this->assertNotContains($stranger->id, $people, 'a stranger must stay excluded');
+    }
+
+    public function test_api_people_search_excludes_strangers_but_keeps_reachable(): void
+    {
+        $viewer     = $this->makePerson('viewer');
+        $followed   = $this->makePerson('followed');
+        $contactBio = $this->makePerson('contact');
+        $stranger   = $this->makePerson('stranger');
+
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $followed->id]);
+        $this->addContactFor($viewer, $contactBio);
+
+        $resp = $this->asUser($viewer)->getJson('/api/v1/dialer/search?q=' . self::TOKEN);
+        $resp->assertOk();
+
+        $people = $this->peopleUserIds($resp->json('data'));
+        $this->assertContains($viewer->id, $people);
+        $this->assertContains($followed->id, $people);
+        $this->assertContains($contactBio->id, $people);
+        $this->assertNotContains($stranger->id, $people, 'API People must not leak strangers');
+    }
+
+    public function test_web_people_search_excludes_strangers_but_keeps_reachable(): void
+    {
+        $viewer     = $this->makePerson('viewer');
+        $followed   = $this->makePerson('followed');
+        $contactBio = $this->makePerson('contact');
+        $stranger   = $this->makePerson('stranger');
+
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $followed->id]);
+        $this->addContactFor($viewer, $contactBio);
+
+        $resp = $this->actingAsWeb($viewer)->getJson(route('user.dialer.search', ['q' => self::TOKEN]));
+        $resp->assertOk();
+
+        $people = $this->peopleUserIds($resp->json('data'));
+        $this->assertContains($viewer->id, $people);
+        $this->assertContains($followed->id, $people);
+        $this->assertContains($contactBio->id, $people);
+        $this->assertNotContains($stranger->id, $people, 'web People must not leak strangers');
     }
 }
