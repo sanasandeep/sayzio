@@ -100,7 +100,7 @@ export function rgbPatternFor([r, g, b]: [number, number, number]): string {
 }
 
 /** Banned-token regexes passed to ripgrep (case-insensitive). */
-const BANNED_PATTERNS: string[] = [
+export const BANNED_PATTERNS: string[] = [
   BANNED_HEX_PATTERN,
   ...BANNED_RGB_PATTERNS,
   // Tailwind utility classes for the violet / purple ramps (source-only — these
@@ -184,9 +184,22 @@ function consentBannedRegexes(): RegExp[] {
 }
 
 /**
- * Scan the cookie-consent config defaults file for retired purple. Reuses the
- * shared `matchLines` matcher with the consent-specific regex set (which adds
- * the 8-digit-alpha hex form) so both scans stay in lockstep.
+ * Pure scan of arbitrary text for the cookie-consent retired purple. Unlike the
+ * source-level `scanSource`, this uses the ALPHA-AWARE hex pattern (via
+ * `consentBannedRegexes`) because the consent defaults render the brand accent
+ * directly, so a translucent `#7c3aedNN` here IS a real brand regression. Reuses
+ * the shared `matchLines` matcher (comments blanked) so it stays in lockstep with
+ * the source scan, and is exercised by both the file scan below and the
+ * regression suite. Returns 1-based line/col offenders.
+ */
+export function scanConsentText(relFile: string, text: string): Offender[] {
+  return matchLines(relFile, text, consentBannedRegexes());
+}
+
+/**
+ * Scan the cookie-consent config defaults file for retired purple. Delegates to
+ * `scanConsentText` (alpha-aware + comment-blanked) so the exported helper stays
+ * on the real guard path, not just under test.
  */
 function scanCookieConsentConfig(): Offender[] {
   const abs = path.join(REPO_ROOT, COOKIE_CONSENT_CONFIG);
@@ -197,7 +210,7 @@ function scanCookieConsentConfig(): Offender[] {
     // Missing file is not this guard's concern (e.g. relocated/renamed).
     return [];
   }
-  return matchLines(COOKIE_CONSENT_CONFIG, src, consentBannedRegexes());
+  return scanConsentText(COOKIE_CONSENT_CONFIG, src);
 }
 
 /** Primary UI surfaces to scan (relative to repo root). */
@@ -283,7 +296,7 @@ const ALLOWLIST: AllowEntry[] = [
   },
 ];
 
-function isAllowed(file: string): boolean {
+export function isAllowed(file: string): boolean {
   const norm = file.split(path.sep).join("/");
   return ALLOWLIST.some((e) =>
     e.kind === "file" ? norm === e.path : norm === e.path || norm.startsWith(e.path + "/"),
