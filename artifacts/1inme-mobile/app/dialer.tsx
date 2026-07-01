@@ -3,11 +3,19 @@ import { Feather } from "@expo/vector-icons";
 import * as Contacts from "expo-contacts";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ComponentProps,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,6 +31,7 @@ import {
   type DialerFrequent,
   type DialerRecent,
   dialerHistory,
+  dialerLive,
   listFavorites,
   lookupNumber,
 } from "@/lib/api/dialer";
@@ -90,6 +99,82 @@ function t9Encode(name: string): string {
     .join("");
 }
 
+// ── Direct channel actions ───────────────────────────────────────────
+// Config-independent device handoffs (no Google Contacts / integration).
+function digitsOf(v: string): string {
+  return (v || "").replace(/[^0-9]/g, "");
+}
+async function openUrl(url: string): Promise<void> {
+  try {
+    await Linking.openURL(url);
+  } catch {
+    Alert.alert("Can't open", "No app is available to handle this action.");
+  }
+}
+function chanCall(v: string): void {
+  const t = (v || "").trim();
+  if (t) void openUrl(`tel:${t}`);
+}
+function chanSms(v: string): void {
+  const t = (v || "").trim();
+  if (t) void openUrl(`sms:${t}`);
+}
+function chanWhatsApp(v: string): void {
+  const d = digitsOf(v);
+  if (d) void openUrl(`https://wa.me/${d}`);
+}
+function chanTelegram(v: string): void {
+  const d = digitsOf(v);
+  if (d) void openUrl(`https://t.me/+${d}`);
+}
+function chanWhatsAppCall(v: string): void {
+  const d = digitsOf(v);
+  if (d) void openUrl(`https://wa.me/${d}`);
+}
+
+// Shared direct-action cluster (mirrors web user/dialer/_channel_actions.blade.php):
+// call, SMS, WhatsApp message, WhatsApp call, Telegram — the full set on every
+// keypad/recents/favourites/frequent surface so the Dialer works with no Google
+// Contacts connected. Email is omitted because these payloads carry no address.
+function ChannelActions({ number, size = "md" }: { number: string; size?: "sm" | "md" }) {
+  const n = (number || "").trim();
+  if (!n) return null;
+  const d = size === "sm" ? 26 : 32;
+  const ico = size === "sm" ? 13 : 16;
+  const mk = (
+    onPress: () => void,
+    name: React.ComponentProps<typeof Feather>["name"],
+    color: string,
+    bg: string,
+    label: string,
+  ) => (
+    <Pressable
+      onPress={onPress}
+      hitSlop={6}
+      accessibilityLabel={label}
+      style={{
+        width: d,
+        height: d,
+        borderRadius: d / 2,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: bg,
+      }}
+    >
+      <Feather name={name} size={ico} color={color} />
+    </Pressable>
+  );
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
+      {mk(() => chanCall(n), "phone", "#22c55e", "#22c55e22", "Call")}
+      {mk(() => chanSms(n), "message-square", "#38bdf8", "#38bdf822", "Text message")}
+      {mk(() => chanWhatsApp(n), "message-circle", "#25d366", "#25d36622", "Message on WhatsApp")}
+      {mk(() => chanWhatsAppCall(n), "phone-call", "#25d366", "#25d36622", "WhatsApp call")}
+      {mk(() => chanTelegram(n), "send", "#3390ec", "#3390ec22", "Open in Telegram")}
+    </View>
+  );
+}
+
 function contactName(c: Contact): string {
   return (
     c.display_name?.trim() ||
@@ -155,6 +240,37 @@ export default function DialerScreen() {
   useEffect(() => {
     void refreshRecent();
     void refreshFavorites();
+  }, []);
+
+  // Near-real-time cross-device sync: poll the lastId-style cursor. The
+  // server only ships fresh lists when they actually changed, so this stays
+  // cheap. Favorites edited (or a call logged) on another device land here
+  // within ~12s without any sockets. We start with no cursor and always apply
+  // any changed payload the server returns — so even if the initial screen
+  // fetch failed, the first poll backfills the lists rather than leaving them
+  // stale.
+  const liveCursor = useRef<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const state = await dialerLive(liveCursor.current ?? undefined);
+        if (cancelled) return;
+        liveCursor.current = state.cursor ?? liveCursor.current;
+        if (!state.changed) return;
+        if (state.favorites) setFavorites(state.favorites);
+        if (state.frequent) setFrequent(state.frequent);
+        if (state.recents) setRecents(state.recents);
+      } catch {
+        /* offline / transient — keep what we have */
+      }
+    };
+    void poll();
+    const id = setInterval(() => void poll(), 12000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, []);
 
   // Debounced contacts search (Contacts tab).
@@ -494,6 +610,11 @@ export default function DialerScreen() {
                     >
                       {f.label || f.number}
                     </Text>
+                    {f.number ? (
+                      <View style={{ marginTop: 6 }}>
+                        <ChannelActions number={f.number} size="sm" />
+                      </View>
+                    ) : null}
                   </Pressable>
                 ))}
               </ScrollView>
@@ -537,6 +658,11 @@ export default function DialerScreen() {
                     <Text style={[styles.bubbleSub, { color: colors.mutedForeground }]}>
                       {fr.calls} calls
                     </Text>
+                    {fr.number ? (
+                      <View style={{ marginTop: 6 }}>
+                        <ChannelActions number={fr.number} size="sm" />
+                      </View>
+                    ) : null}
                   </Pressable>
                 ))}
               </ScrollView>
@@ -665,6 +791,17 @@ export default function DialerScreen() {
               </Pressable>
               <View style={styles.secondaryBtn} />
             </View>
+
+            {/* Direct channel actions on the typed number — reach anyone by
+                text, WhatsApp, Telegram or email without saving a contact. */}
+            {!!number && (
+              <View style={styles.channelRow}>
+                <ChannelBtn icon="message-square" label="Text" color="#38bdf8" onPress={() => chanSms(number)} />
+                <ChannelBtn icon="message-circle" label="WhatsApp" color="#25d366" onPress={() => chanWhatsApp(number)} />
+                <ChannelBtn icon="send" label="Telegram" color="#38bdf8" onPress={() => chanTelegram(number)} />
+                <ChannelBtn icon="phone-call" label="Call" color="#16a34a" onPress={() => chanCall(number)} />
+              </View>
+            )}
           </View>
         </ScrollView>
       )}
@@ -757,13 +894,9 @@ export default function DialerScreen() {
                   {item.sub}
                 </Text>
               </View>
-              <Pressable
-                onPress={() => dial(item.number, item.label)}
-                hitSlop={10}
-                style={[styles.callPill, { backgroundColor: "#16a34a" }]}
-              >
-                <Feather name="phone" size={16} color="#fff" />
-              </Pressable>
+              <View style={styles.rowActions}>
+                <ChannelActions number={item.number} size="md" />
+              </View>
             </Pressable>
           )}
         />
@@ -1004,6 +1137,30 @@ function MiniTag({ text, color }: { text: string; color: string }) {
   );
 }
 
+function ChannelBtn({
+  icon,
+  label,
+  color,
+  onPress,
+}: {
+  icon: ComponentProps<typeof Feather>["name"];
+  label: string;
+  color: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.channelBtn, { opacity: pressed ? 0.6 : 1 }]}
+    >
+      <View style={[styles.channelIcon, { backgroundColor: `${color}22` }]}>
+        <Feather name={icon} size={18} color={color} />
+      </View>
+      <Text style={[styles.channelLabel, { color }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function relativeMs(at: number): string {
   const diff = Date.now() - at;
   if (diff < 60_000) return "just now";
@@ -1136,6 +1293,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  channelRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 12,
+  },
+  channelBtn: { alignItems: "center", flex: 1 },
+  channelIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  channelLabel: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11 },
+  rowActions: { flexDirection: "row", alignItems: "center", flexShrink: 0, maxWidth: 118 },
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",

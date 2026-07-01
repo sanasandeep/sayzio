@@ -1275,6 +1275,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // Dialer.
         Route::get('dialer',                                [DialerController::class, 'index'])->middleware('workspace.can:settings.view')->name('dialer.index');
         Route::get('dialer/profile',                        [DialerController::class, 'profile'])->middleware('workspace.can:settings.view')->name('dialer.profile');
+        Route::get('dialer/live',                           [DialerController::class, 'live'])->middleware('workspace.can:settings.view')->name('dialer.live');
         // Everyday-tool mutations (favorites, flags, call log, callbacks).
         Route::post  ('dialer/favorites',                   [DialerController::class, 'favoriteStore'])->middleware('workspace.can:settings.edit')->name('dialer.favorites.store');
         Route::post  ('dialer/favorites/reorder',           [DialerController::class, 'favoritesReorder'])->middleware('workspace.can:settings.edit')->name('dialer.favorites.reorder');

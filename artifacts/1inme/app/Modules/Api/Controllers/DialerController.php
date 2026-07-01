@@ -140,6 +140,21 @@ class DialerController extends Controller
         ]);
     }
 
+    /**
+     * Pollable live-sync endpoint (no sockets). The mobile dialer polls this
+     * with its last cursor; the cursor advances whenever favorites, spam/block
+     * flags or the call log change on any device, and the fresh favorites +
+     * frequent + recents come back only when something actually changed.
+     * Mirrors the heatmap "live" cursor pattern.
+     */
+    public function live(Request $request)
+    {
+        $since = $request->query('since');
+        $since = is_string($since) && $since !== '' ? $since : null;
+
+        return $this->ok(DialerData::liveState($request->user()->id, $since));
+    }
+
     // ── Favorites (speed dial) ────────────────────────────────────────
 
     public function favorites(Request $request)

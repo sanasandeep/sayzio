@@ -183,7 +183,7 @@
     {{-- Diagnosis (grounded narrative) --}}
     @if($diagnosis)
         <section class="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 class="text-white font-semibold mb-3"><i class="fas fa-stethoscope text-indigo-300 mr-1"></i> Diagnosis</h2>
+            <h2 class="text-white font-semibold mb-3"><i class="fas fa-stethoscope text-primary-300 mr-1"></i> Diagnosis</h2>
             <ul class="space-y-2">
                 @foreach($diagnosis as $line)
                     <li class="flex items-start gap-2 text-sm text-white/70"><i class="fas fa-angle-right text-white/30 mt-1 text-xs"></i> {{ $line }}</li>
@@ -302,7 +302,7 @@
     @if($exec && (!empty($execMonths) || !empty($exec['overview']) || !empty($execPhases)))
         <section class="mb-8">
             <div class="flex flex-wrap items-center gap-2 mb-3">
-                <h2 class="text-white font-semibold"><i class="fas fa-calendar-days text-indigo-300 mr-1"></i> Execution plan</h2>
+                <h2 class="text-white font-semibold"><i class="fas fa-calendar-days text-primary-300 mr-1"></i> Execution plan</h2>
                 @if($execPeriod > 0)
                     <span class="text-[11px] px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-200 border border-indigo-400/25">{{ $execPeriod }} {{ \Illuminate\Support\Str::plural('month', $execPeriod) }}</span>
                 @endif
@@ -343,7 +343,7 @@
     {{-- Competitor landscape (depth 5) --}}
     @if($competitor)
         <section class="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 class="text-white font-semibold mb-3"><i class="fas fa-chess text-indigo-300 mr-1"></i> Competitor landscape</h2>
+            <h2 class="text-white font-semibold mb-3"><i class="fas fa-chess text-primary-300 mr-1"></i> Competitor landscape</h2>
             @if(!empty($competitor['summary']))
                 <p class="text-sm text-white/70 mb-4 leading-relaxed">{{ $competitor['summary'] }}</p>
             @endif

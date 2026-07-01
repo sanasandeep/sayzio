@@ -83,6 +83,19 @@ export type DialerHistory = {
 };
 
 /**
+ * Near-real-time cross-device sync payload. `cursor` is an opaque lastId-style
+ * signature; pass it back as `since` on the next poll. When nothing changed the
+ * server omits the lists and returns `changed:false`, so we keep what we have.
+ */
+export type DialerLiveState = {
+  cursor: string;
+  changed: boolean;
+  favorites?: DialerFavorite[];
+  frequent?: DialerFrequent[];
+  recents?: DialerRecent[];
+};
+
+/**
  * Caller-ID lookup. Records the call against the server (cross-device
  * history) and returns the resolved contact, any Sayzio biolink owner
  * (even for unsaved numbers), per-user spam/block flags, favorite state
@@ -103,6 +116,17 @@ export async function lookupNumber(
 /** Smart grouped recents + frequently-contacted strip. */
 export async function dialerHistory(): Promise<DialerHistory> {
   const res = await apiFetch<{ data: DialerHistory }>(`/dialer/history`);
+  return res.data;
+}
+
+/**
+ * Poll the pollable "live" cursor for cross-device sync. Pass the last
+ * `cursor` back as `since`; the server only returns the lists when they
+ * actually changed, keeping polling cheap.
+ */
+export async function dialerLive(since?: string): Promise<DialerLiveState> {
+  const qs = since ? `?since=${encodeURIComponent(since)}` : "";
+  const res = await apiFetch<{ data: DialerLiveState }>(`/dialer/live${qs}`);
   return res.data;
 }
 

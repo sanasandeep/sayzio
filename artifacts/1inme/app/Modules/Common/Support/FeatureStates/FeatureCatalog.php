@@ -4,7 +4,6 @@ namespace App\Modules\Common\Support\FeatureStates;
 
 use App\Modules\User\Support\ConnectedApps\ConnectedAppRegistry;
 use App\Services\CreatorPayouts\PayoutProviderRegistry;
-use App\Services\Integrations\PlatformServiceSettings;
 
 /**
  * The catalogue of user-facing features/modules that participate in the
@@ -93,17 +92,19 @@ final class FeatureCatalog
                 'label'        => 'Dialer',
                 'icon'         => 'fa-phone',
                 'tint'         => '#0ea5e9',
-                'blurb'        => 'A built-in number pad and call history that resolves phone numbers to the right biolink.',
+                'blurb'        => 'A built-in number pad, call history and caller ID that reaches anyone by call, SMS, WhatsApp, Telegram or email.',
                 'capabilities' => [
                     'Number-pad dialer with recents and favourites',
+                    'One-tap call, SMS, WhatsApp, Telegram and email',
                     'Phone → biolink resolution with caller ID',
-                    'Silent biolink auto-attach',
                 ],
                 'landing'    => 'user.dialer.index',
                 'routes'     => ['user.dialer.*'],
-                'admin_hint' => ['label' => 'Connect Google Contacts', 'route' => 'admin.integrations.index'],
-                // Caller-ID / contacts sync needs Google Contacts OAuth wired up.
-                'configured' => [self::class, 'dialerConfigured'],
+                // Config-independent: the Dialer is a first-class everyday tool
+                // that works standalone with the user's own contacts and any
+                // saved numbers. Google Contacts sync is an optional enhancement,
+                // not a prerequisite, so there is no `configured` gate — the
+                // Dialer is only ever "coming soon" when an admin forces it.
             ],
 
             'social_proofs' => [
@@ -189,16 +190,6 @@ final class FeatureCatalog
         }
 
         return false;
-    }
-
-    /**
-     * Auto-detect readiness for the Dialer by reusing the existing Google
-     * Contacts platform-configuration signal — caller ID and contacts sync,
-     * the dialer's headline capabilities, need Google Contacts OAuth wired up.
-     */
-    public static function dialerConfigured(): bool
-    {
-        return PlatformServiceSettings::googleContactsConfigured();
     }
 
     /**

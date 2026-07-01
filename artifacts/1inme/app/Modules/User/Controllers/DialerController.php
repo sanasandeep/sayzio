@@ -56,11 +56,12 @@ class DialerController extends Controller
             ]);
         }
 
-        $favorites = DialerData::favorites($user->id);
-        $frequent  = DialerData::frequent($user->id);
-        $recent    = DialerData::groupedRecents($user->id);
+        $favorites  = DialerData::favorites($user->id);
+        $frequent   = DialerData::frequent($user->id);
+        $recent     = DialerData::groupedRecents($user->id);
+        $liveCursor = DialerData::liveSignature($user->id);
 
-        return view('user.dialer.index', compact('q', 'contacts', 'favorites', 'frequent', 'recent'));
+        return view('user.dialer.index', compact('q', 'contacts', 'favorites', 'frequent', 'recent', 'liveCursor'));
     }
 
     public function profile(Request $request)
@@ -110,6 +111,20 @@ class DialerController extends Controller
         return view('user.dialer.profile', compact(
             'payload', 'contact', 'matchedUser', 'bio', 'number', 'recent', 'callback', 'isFavorite'
         ));
+    }
+
+    /**
+     * Pollable live-sync endpoint (no sockets). The dialer page polls this
+     * with its last cursor; when another device changes favorites / flags /
+     * call-log, the cursor advances and the fresh lists come back so the page
+     * re-renders in near-real time. Mirrors the API `/dialer/live` endpoint.
+     */
+    public function live(Request $request)
+    {
+        $since = $request->query('since');
+        $since = is_string($since) && $since !== '' ? $since : null;
+
+        return response()->json(['data' => DialerData::liveState($request->user()->id, $since)]);
     }
 
     // ── Favorites (speed dial) ────────────────────────────────────────

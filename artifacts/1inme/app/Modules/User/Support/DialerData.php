@@ -251,4 +251,52 @@ class DialerData
         $digits = preg_replace('/\D+/', '', $number);
         return $digits !== '' ? substr($digits, -2) : '#';
     }
+
+    /**
+     * A cheap, monotonic signature of everything the dialer syncs across
+     * devices (favorites, recents/call-log, spam/block flags). Any add,
+     * remove, reorder, flag toggle or new call changes the signature, so a
+     * poller can detect "something changed" without diffing the payload.
+     *
+     * Favorites/flags carry timestamps (reorder & toggle bump updated_at);
+     * the call log is append-only so max(id) advances on every new call. We
+     * fold in counts too so deletes are caught even if timestamps regress.
+     */
+    public static function liveSignature(int $userId): string
+    {
+        $lookupMaxId = (int) DialerLookup::where('user_id', $userId)->max('id');
+
+        $favCount   = (int) DialerFavorite::where('user_id', $userId)->count();
+        $favUpdated = DialerFavorite::where('user_id', $userId)->max('updated_at');
+        $favTs      = $favUpdated ? strtotime((string) $favUpdated) : 0;
+
+        $flagCount   = (int) DialerNumberFlag::where('user_id', $userId)->count();
+        $flagUpdated = DialerNumberFlag::where('user_id', $userId)->max('updated_at');
+        $flagTs      = $flagUpdated ? strtotime((string) $flagUpdated) : 0;
+
+        return implode('.', [$lookupMaxId, $favCount, $favTs, $flagCount, $flagTs]);
+    }
+
+    /**
+     * Pollable live-sync state. Returns the current cursor and — only when it
+     * differs from the caller's `$since` cursor — the fresh favorites,
+     * frequent strip and grouped recents. Mirrors the heatmap "live" endpoint
+     * pattern (poll with a cursor; no sockets).
+     *
+     * @return array{cursor:string,changed:bool,favorites?:array,frequent?:array,recents?:array}
+     */
+    public static function liveState(int $userId, ?string $since = null): array
+    {
+        $cursor  = self::liveSignature($userId);
+        $changed = ($since === null) || ($since !== $cursor);
+
+        $out = ['cursor' => $cursor, 'changed' => $changed];
+        if ($changed) {
+            $out['favorites'] = self::favorites($userId);
+            $out['frequent']  = self::frequent($userId);
+            $out['recents']   = self::groupedRecents($userId);
+        }
+
+        return $out;
+    }
 }

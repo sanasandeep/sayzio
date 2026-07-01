@@ -9,6 +9,9 @@
         <div class="text-[11px] font-semibold truncate w-full" style="color:var(--text-primary);">{{ $f['label'] }}</div>
         @if($f['biolink'])<span class="text-[8px] font-bold" style="color:#f472b6;">Sayzio</span>@endif
     </a>
+    @if(!empty($f['number']))
+        <div class="mt-1 w-full">@include('user.dialer._channel_actions', ['number' => $f['number'], 'size' => 'sm'])</div>
+    @endif
     <button type="button" onclick="removeFavorite(event, {{ $f['id'] }})" title="Remove favorite"
             class="absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition"
             style="background:rgba(239,68,68,.9);color:#fff;">

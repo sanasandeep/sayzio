@@ -631,15 +631,20 @@ The preview is what makes mobile parity with the web import wizard.
 
 ### Dialer
 
-The dialer is an everyday tool with full web parity: caller-ID lookup, speed-dial
-favorites, smart grouped recents + a frequently-contacted strip, per-user spam/block
-flags, a call-log mini-CRM (outcome/note/tag), and call-back reminders. All responses
-use the unified `{data}` / `{error}` envelope.
+The dialer is an everyday, always-available tool with full web parity: caller-ID
+lookup, speed-dial favorites, smart grouped recents + a frequently-contacted strip,
+per-user spam/block flags, a call-log mini-CRM (outcome/note/tag), and call-back
+reminders. It needs no integration to work — Google Contacts sync is an **optional**
+enhancement, not a prerequisite. Direct channel actions (call, SMS, WhatsApp
+message/call, Telegram, email) are plain device deep-links (`tel:`, `sms:`,
+`https://wa.me/…`, `https://t.me/+…`, `mailto:`) driven client-side, so they carry no
+API surface of their own. All responses use the unified `{data}` / `{error}` envelope.
 
 | Method | Path                       | Auth | Description                                                                    |
 | ------ | -------------------------- | ---- | ----------------------------------------------------------------------------- |
 | POST   | `/dialer/lookup`           | yes  | Resolve an E.164 number → caller-ID. Returns `is_spam`/`is_blocked`/`is_favorite`, matched `contact`, `biolink`, and recent `activity`. Throttle: 60/min. |
 | GET    | `/dialer/history`          | yes  | `{ recents, frequent }` — grouped recents (by number, with call counts, last-call time, outcome/note/tag, spam/block) plus the frequently-contacted strip. |
+| GET    | `/dialer/live`             | yes  | Near-real-time cross-device sync (poll, no sockets). Returns `{ cursor, changed }`, plus fresh `favorites`, `frequent` and `recents` **only when** the caller's `?since=<cursor>` differs from the current cursor. Poll every ~12s, passing the last `cursor` back as `since`. |
 | GET    | `/dialer/favorites`        | yes  | Ordered speed-dial favorites (`{ items }`).                                    |
 | POST   | `/dialer/favorites`        | yes  | Add a favorite by `contact_id` or `number` (+ optional `label`). Returns `{ favorite, already? }`. |
 | POST   | `/dialer/favorites/reorder`| yes  | Persist favorite order from an `order` array of favorite ids.                  |
