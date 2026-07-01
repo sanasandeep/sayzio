@@ -9,6 +9,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkAlias;
 use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserBlock;
 use App\Modules\User\Models\Workspace;
 use Illuminate\Support\Collection;
 
@@ -201,6 +202,31 @@ class DialerSearch
             Contact::where('user_id', $user->id)->whereNotNull('biolink_user_id')->pluck('biolink_user_id')
         );
         $ids = $ids->filter()->unique()->values();
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        // Even within the reachable set, never surface an account the searcher
+        // can't reach right now: one that has since been suspended/deactivated
+        // (status != active — self is always exempt), or one that has blocked
+        // the searcher. Resolve the visible id set up front so BOTH the primary
+        // query and the T9 fallback query below share the same gate.
+        $blockedByIds = UserBlock::where('blocked_user_id', $user->id)
+            ->whereIn('blocker_user_id', $ids)
+            ->pluck('blocker_user_id')->map(fn ($id) => (int) $id)->all();
+
+        $ids = User::whereIn('id', $ids)
+            ->where(function ($w) use ($user) {
+                // Treat a null status as active (mirrors the login guard
+                // `($user->status ?? 'active') !== 'active'`); self is exempt so
+                // the searcher can always find their own account.
+                $w->where('status', 'active')
+                  ->orWhereNull('status')
+                  ->orWhere('id', $user->id);
+            })
+            ->when(!empty($blockedByIds), fn ($qq) => $qq->whereNotIn('id', $blockedByIds))
+            ->pluck('id')->map(fn ($id) => (int) $id)->values();
 
         if ($ids->isEmpty()) {
             return [];

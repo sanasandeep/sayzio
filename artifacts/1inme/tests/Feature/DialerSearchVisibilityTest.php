@@ -7,6 +7,7 @@ use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserBlock;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Modules\User\Support\DialerSearch;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -520,5 +521,111 @@ class DialerSearchVisibilityTest extends TestCase
         $this->assertContains($followed->id, $people);
         $this->assertContains($contactBio->id, $people);
         $this->assertNotContains($stranger->id, $people, 'web People must not leak strangers');
+    }
+
+    // ===== (5) People group reachability — status + blocks =====
+    //
+    // Even within the reachable set (self / followed / contact-linked), the
+    // finder must never surface an account the searcher can't reach right now:
+    // one that has since been suspended/deactivated (status != active), or one
+    // that has blocked the searcher (UserBlock). A followed/contact-linked
+    // account whose status flips, or who blocks the searcher, must silently
+    // drop out of People. These tests lock both cases on the shared contract
+    // and on BOTH surfaces.
+
+    public function test_people_search_excludes_a_suspended_or_deactivated_account(): void
+    {
+        $viewer   = $this->makePerson('viewer');
+        $followed = $this->makePerson('followed');
+        $contact  = $this->makePerson('contact');
+
+        // Both are reachable (one followed, one contact-linked) but no longer
+        // active, so neither may appear in People.
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $followed->id]);
+        $this->addContactFor($viewer, $contact);
+        $followed->forceFill(['status' => 'suspended'])->save();
+        $contact->forceFill(['status' => 'deactivated'])->save();
+
+        $people = $this->peopleUserIds(DialerSearch::universal($viewer, self::TOKEN));
+
+        $this->assertContains($viewer->id, $people, 'the searcher (self) must still resolve');
+        $this->assertNotContains($followed->id, $people, 'a suspended account must not surface');
+        $this->assertNotContains($contact->id, $people, 'a deactivated account must not surface');
+    }
+
+    public function test_people_search_excludes_an_account_that_blocked_the_searcher(): void
+    {
+        $viewer   = $this->makePerson('viewer');
+        $followed  = $this->makePerson('followed');
+
+        // The searcher follows this creator, but the creator has since blocked
+        // the searcher — the creator must vanish from the searcher's People.
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $followed->id]);
+        UserBlock::create(['blocker_user_id' => $followed->id, 'blocked_user_id' => $viewer->id]);
+
+        $people = $this->peopleUserIds(DialerSearch::universal($viewer, self::TOKEN));
+
+        $this->assertContains($viewer->id, $people, 'the searcher (self) must still resolve');
+        $this->assertNotContains($followed->id, $people, 'an account that blocked the searcher must not surface');
+    }
+
+    public function test_people_search_still_shows_an_account_the_searcher_blocked(): void
+    {
+        // The block gate is directional: the searcher blocking someone hides
+        // that account elsewhere, but does not change what the FINDER returns
+        // for the reachable set (only "they blocked me" removes an account).
+        $viewer   = $this->makePerson('viewer');
+        $followed  = $this->makePerson('followed');
+
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $followed->id]);
+        UserBlock::create(['blocker_user_id' => $viewer->id, 'blocked_user_id' => $followed->id]);
+
+        $people = $this->peopleUserIds(DialerSearch::universal($viewer, self::TOKEN));
+
+        $this->assertContains($followed->id, $people, 'a viewer-side block must not remove the account from the finder');
+    }
+
+    public function test_api_people_search_excludes_suspended_and_blocking_accounts(): void
+    {
+        $viewer    = $this->makePerson('viewer');
+        $suspended = $this->makePerson('suspended');
+        $blocker   = $this->makePerson('blocker');
+        $reachable = $this->makePerson('reachable');
+
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $suspended->id]);
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $blocker->id]);
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $reachable->id]);
+        $suspended->forceFill(['status' => 'suspended'])->save();
+        UserBlock::create(['blocker_user_id' => $blocker->id, 'blocked_user_id' => $viewer->id]);
+
+        $resp = $this->asUser($viewer)->getJson('/api/v1/dialer/search?q=' . self::TOKEN);
+        $resp->assertOk();
+
+        $people = $this->peopleUserIds($resp->json('data'));
+        $this->assertContains($reachable->id, $people, 'an active, non-blocking account must still surface');
+        $this->assertNotContains($suspended->id, $people, 'API People must not leak a suspended account');
+        $this->assertNotContains($blocker->id, $people, 'API People must not leak an account that blocked the searcher');
+    }
+
+    public function test_web_people_search_excludes_suspended_and_blocking_accounts(): void
+    {
+        $viewer    = $this->makePerson('viewer');
+        $suspended = $this->makePerson('suspended');
+        $blocker   = $this->makePerson('blocker');
+        $reachable = $this->makePerson('reachable');
+
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $suspended->id]);
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $blocker->id]);
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $reachable->id]);
+        $suspended->forceFill(['status' => 'suspended'])->save();
+        UserBlock::create(['blocker_user_id' => $blocker->id, 'blocked_user_id' => $viewer->id]);
+
+        $resp = $this->actingAsWeb($viewer)->getJson(route('user.dialer.search', ['q' => self::TOKEN]));
+        $resp->assertOk();
+
+        $people = $this->peopleUserIds($resp->json('data'));
+        $this->assertContains($reachable->id, $people, 'an active, non-blocking account must still surface');
+        $this->assertNotContains($suspended->id, $people, 'web People must not leak a suspended account');
+        $this->assertNotContains($blocker->id, $people, 'web People must not leak an account that blocked the searcher');
     }
 }
