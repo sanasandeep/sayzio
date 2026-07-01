@@ -7,10 +7,11 @@
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        padding: 4px;
+        padding: 5px;
         border-radius: 14px;
         background: var(--bg-glass-input);
-        border: 1px solid var(--border-subtle);
+        border: 1px solid var(--border-glass);
+        box-shadow: var(--card-shadow);
         max-width: 100%;
         overflow-x: auto;
     }
@@ -33,12 +34,14 @@
     .dash-tab:focus-visible { outline: 2px solid rgba(61,107,255,0.5); outline-offset: 2px; }
     .dash-tab-active {
         color: #fff;
-        background: linear-gradient(135deg, #3d6bff, #90acff);
-        box-shadow: 0 4px 14px rgba(61,107,255,0.28);
+        background: linear-gradient(135deg, #3d6bff, #5c83ff);
+        box-shadow: 0 6px 16px -4px rgba(61,107,255,0.45);
     }
     .dash-tab-active:hover { color: #fff; }
+    .dash-row { transition: background-color .18s ease; }
+    .dash-row:hover { background: var(--bg-glass-hover); }
     @media (prefers-reduced-motion: reduce) {
-        .dash-tab { transition: none; }
+        .dash-tab, .dash-row { transition: none; }
     }
 </style>
 @endpush
@@ -187,7 +190,7 @@
         <div class="flex items-center justify-between relative z-10">
             <div>
                 <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Links</p>
-                <p class="text-xl font-bold" style="color: var(--text-primary);">{{ $totalLinks }}</p>
+                <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ $totalLinks }}</p>
             </div>
             <div class="w-10 h-10 rounded-xl flex items-center justify-center glow-icon group-hover:scale-110 transition-all duration-500" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);">
                 <i class="fas fa-link text-emerald-400 text-sm"></i>
@@ -199,7 +202,7 @@
         <div class="flex items-center justify-between relative z-10">
             <div>
                 <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Total Clicks</p>
-                <p class="text-xl font-bold" style="color: var(--text-primary);">{{ number_format($totalClicks) }}</p>
+                <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($totalClicks) }}</p>
             </div>
             <div class="w-10 h-10 rounded-xl flex items-center justify-center glow-icon group-hover:scale-110 transition-all duration-500" style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.15);">
                 <i class="fas fa-mouse-pointer text-blue-400 text-sm"></i>
@@ -211,7 +214,7 @@
         <div class="flex items-center justify-between relative z-10">
             <div>
                 <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Today</p>
-                <p class="text-xl font-bold" style="color: var(--text-primary);">{{ number_format($clicksToday) }}</p>
+                <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($clicksToday) }}</p>
             </div>
             <div class="w-10 h-10 rounded-xl flex items-center justify-center glow-icon group-hover:scale-110 transition-all duration-500" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);">
                 <i class="fas fa-chart-line text-amber-400 text-sm"></i>
@@ -223,7 +226,7 @@
         <div class="flex items-center justify-between relative z-10">
             <div>
                 <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Projects</p>
-                <p class="text-xl font-bold" style="color: var(--text-primary);">{{ $totalProjects }}</p>
+                <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ $totalProjects }}</p>
             </div>
             <div class="w-10 h-10 rounded-xl flex items-center justify-center glow-icon group-hover:scale-110 transition-all duration-500" style="background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.15);">
                 <i class="fas fa-folder text-indigo-400 text-sm"></i>
@@ -387,13 +390,13 @@
                 $showPersonaBanner = $user->onboarded_at && empty($user->persona) && !$personaBannerDismissed;
             @endphp
             @if($user->onboarded_at)
-            <div class="mx-4 mt-4 flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/5">
-                <span class="text-[11px] text-white/40 truncate"><i class="fas fa-compass text-[10px] mr-1.5 text-blue-400/70"></i>Re-run onboarding</span>
+            <div class="mx-4 mt-4 flex items-center justify-between gap-3 px-3 py-2 rounded-xl border" style="background: var(--bg-glass-input); border-color: var(--border-subtle);">
+                <span class="text-[11px] truncate" style="color: var(--text-faint);"><i class="fas fa-compass text-[10px] mr-1.5 text-blue-400/70"></i>Re-run onboarding</span>
                 <div class="flex items-center gap-1.5 flex-shrink-0">
-                    <a href="{{ route('user.onboarding.persona') }}" class="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 hover:text-white font-semibold transition">
+                    <a href="{{ route('user.onboarding.persona') }}" class="text-[11px] px-2.5 py-1 rounded-lg border font-semibold transition" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-secondary);">
                         <i class="fas fa-user-tag text-[9px] mr-1"></i>Choose persona
                     </a>
-                    <a href="{{ route('user.onboarding.template') }}" class="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 hover:text-white font-semibold transition">
+                    <a href="{{ route('user.onboarding.template') }}" class="text-[11px] px-2.5 py-1 rounded-lg border font-semibold transition" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-secondary);">
                         <i class="fas fa-layer-group text-[9px] mr-1"></i>Switch Template
                     </a>
                 </div>
@@ -408,8 +411,8 @@
                         <i class="fab fa-whatsapp text-emerald-300 text-lg"></i>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-white">Add your WhatsApp number</p>
-                        <p class="text-xs text-white/50 mt-0.5">Verify a WhatsApp number to sign in faster with a one-time code — no password needed — and follow our channel for updates.</p>
+                        <p class="text-sm font-semibold" style="color: var(--text-primary);">Add your WhatsApp number</p>
+                        <p class="text-xs mt-0.5" style="color: var(--text-muted);">Verify a WhatsApp number to sign in faster with a one-time code — no password needed — and follow our channel for updates.</p>
                     </div>
                     <button type="button" @click="open = !open"
                             class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition flex-shrink-0">
@@ -441,7 +444,7 @@
                     <form method="POST" action="{{ route('user.onboarding.whatsapp.send') }}" x-show="phase === 'number'" class="flex flex-col sm:flex-row gap-2">
                         @csrf
                         <input type="tel" name="mobile" value="{{ old('mobile', $waPending) }}" required placeholder="+1 555 123 4567" autocomplete="tel"
-                               class="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:border-emerald-400/50 focus:outline-none">
+                               class="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:border-emerald-400/50 focus:outline-none" style="color: var(--text-primary);">
                         <button type="submit" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition whitespace-nowrap">Send code</button>
                     </form>
 
@@ -449,7 +452,7 @@
                     <form method="POST" action="{{ route('user.onboarding.whatsapp.verify') }}" x-show="phase === 'code'" x-cloak class="flex flex-col sm:flex-row gap-2">
                         @csrf
                         <input type="text" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="123456" autocomplete="one-time-code"
-                               class="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white tracking-[0.3em] text-center font-mono focus:border-emerald-400/50 focus:outline-none">
+                               class="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm tracking-[0.3em] text-center font-mono focus:border-emerald-400/50 focus:outline-none" style="color: var(--text-primary);">
                         <button type="submit" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition whitespace-nowrap">Verify &amp; connect</button>
                     </form>
 
@@ -468,8 +471,8 @@
                     <i class="fas fa-sparkles text-blue-300"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-white">Want personalised template suggestions?</p>
-                    <p class="text-xs text-white/50 mt-0.5">Tell us what you do in 10 seconds and we'll recommend the templates that fit.</p>
+                    <p class="text-sm font-semibold" style="color: var(--text-primary);">Want personalised template suggestions?</p>
+                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">Tell us what you do in 10 seconds and we'll recommend the templates that fit.</p>
                 </div>
                 <a href="{{ route('user.onboarding.persona') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition flex-shrink-0">Personalise</a>
                 <form method="POST" action="{{ route('user.onboarding.dismiss-banner') }}">
@@ -497,7 +500,7 @@
             @else
             <div>
                 @foreach($recentLinks as $link)
-                <a href="{{ route('user.links.show', $link) }}" class="block px-5 py-3.5 transition-all hover:bg-white/[0.025] group" style="border-bottom: 1px solid var(--border-subtle);">
+                <a href="{{ route('user.links.show', $link) }}" class="block px-5 py-3.5 dash-row group" style="border-bottom: 1px solid var(--border-subtle);">
                     <div class="flex items-center justify-between">
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-2 mb-0.5">

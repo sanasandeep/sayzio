@@ -21,8 +21,8 @@
         --bg-glass-hover: rgba(255,255,255,0.06);
         --bg-glass-input: rgba(255,255,255,0.04);
         --bg-glass-input-focus: rgba(255,255,255,0.07);
-        --bg-card: rgba(255,255,255,0.03);
-        --bg-card-hover: rgba(255,255,255,0.05);
+        --bg-card: rgba(255,255,255,0.04);
+        --bg-card-hover: rgba(255,255,255,0.06);
         --border-glass: rgba(255,255,255,0.10);
         --border-glass-light: rgba(255,255,255,0.16);
         --border-subtle: rgba(255,255,255,0.06);
@@ -48,8 +48,8 @@
         --scrollbar-thumb: rgba(255,255,255,0.10);
         --scrollbar-thumb-hover: rgba(255,255,255,0.20);
         --overlay-bg: rgba(0,0,0,0.7);
-        --card-shadow: 0 1px 2px rgba(0,0,0,0.30), 0 0 0 1px rgba(255,255,255,0.02);
-        --card-shadow-hover: 0 12px 32px -8px rgba(0,0,0,0.6), 0 0 0 1px var(--border-glass-light);
+        --card-shadow: 0 1px 2px rgba(0,0,0,0.35), 0 4px 12px -4px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.04);
+        --card-shadow-hover: 0 18px 44px -12px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px var(--border-glass-light);
         --noise-opacity: 0.03;
         --radius-card: 1rem;
         --radius-pill: 999px;
@@ -71,7 +71,7 @@
         /* Metronic demo1 inspired — flat, clean, ultra-light surfaces.
            Body is a soft neutral gray so pure-white cards visibly lift off the
            page; borders are darker than before so card edges are obvious. */
-        --bg-body: #ffffff;
+        --bg-body: #f4f6fa;
         --bg-sidebar: #ffffff;
         --bg-sidebar-mobile: #ffffff;
         --bg-header: #ffffff;
@@ -106,8 +106,8 @@
         --scrollbar-thumb: #e4e6ef;
         --scrollbar-thumb-hover: #b5b5c3;
         --overlay-bg: rgba(7,20,55,0.28);
-        --card-shadow: 0 3px 4px rgba(7,20,55,0.03);
-        --card-shadow-hover: 0 6px 14px rgba(7,20,55,0.06);
+        --card-shadow: 0 1px 2px rgba(7,20,55,0.04), 0 4px 12px -2px rgba(7,20,55,0.05);
+        --card-shadow-hover: 0 10px 28px -6px rgba(7,20,55,0.12), 0 3px 8px rgba(7,20,55,0.06);
         --noise-opacity: 0;
 
         --c-primary:   #3d6bff;  --c-primary-soft:   #eaf0ff;
@@ -241,7 +241,7 @@
         border-radius: var(--radius-card);
         padding: 1.875rem 1.875rem 2rem;
         box-shadow: var(--card-shadow);
-        transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
     }
     /* Animated SVG decorative wave — drifting in the background of every stat card */
     .stat-card::before {
@@ -275,6 +275,28 @@
     .stat-card:hover {
         border-color: var(--border-glass-light);
         box-shadow: var(--card-shadow-hover);
+        transform: translateY(-2px);
+    }
+    /* Subtle colored top accent — reuses the per-tile --stat-accent gradient set
+       inline in markup; adds quiet brand-colored depth without heavy chrome.
+       Placed after the ::before display:none reset above so it wins. */
+    .stat-card::before {
+        content: '' !important;
+        display: block !important;
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: auto;
+        height: 3px;
+        width: auto;
+        background: var(--stat-accent, linear-gradient(90deg, var(--accent), var(--accent-light))) !important;
+        background-size: auto !important;
+        opacity: 0.85;
+        animation: none !important;
+        z-index: 2;
+        pointer-events: none;
+    }
+    html.light-mode .stat-card::before { opacity: 1; }
+    @media (prefers-reduced-motion: reduce) {
+        .stat-card:hover { transform: none; }
     }
     html.light-mode .stat-card.tint-primary,
     html.light-mode .stat-card.tint-success,
@@ -319,7 +341,7 @@
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        padding: 0.5rem 0.75rem 0.5rem 0.875rem;
+        padding: 0.5625rem 0.75rem 0.5625rem 0.9375rem;
         font-size: 0.8125rem;
         font-weight: 500;
         border-radius: 8px;
@@ -369,7 +391,7 @@
 
     /* Active row */
     .sidebar-link.active {
-        background: var(--nav-tint-soft, var(--sidebar-active-bg));
+        background: var(--nav-tint-soft, rgba(61,107,255,0.14));
         color: var(--nav-tint, var(--sidebar-active-text));
         font-weight: 600;
     }
@@ -383,9 +405,9 @@
         top: 50%;
         transform: translateY(-50%);
         width: 3px;
-        height: 18px;
+        height: 22px;
         border-radius: 0 3px 3px 0;
-        background: var(--nav-tint, var(--sidebar-active-text));
+        background: var(--nav-tint, var(--accent));
     }
     .sidebar-link.active::after { display: none; }
 
@@ -412,11 +434,11 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 16px 12px 6px;
+        padding: 18px 14px 7px;
         font-size: 10px;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.14em;
         color: var(--text-faint);
     }
     .section-header::after {

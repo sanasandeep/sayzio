@@ -190,6 +190,10 @@
 
         .header-v2 {
             transition: margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        html.light-mode .header-v2 {
+            box-shadow: 0 1px 3px rgba(7,20,55,0.04);
         }
         .header-glow { display: none; }
 
@@ -200,8 +204,8 @@
         .header-search-box input {
             background: var(--bg-glass-input);
             border: 1px solid var(--border-glass);
-            border-radius: 12px;
-            padding: 7px 12px 7px 34px;
+            border-radius: 11px;
+            padding: 8px 12px 8px 34px;
             font-size: 12px;
             color: var(--text-primary);
             outline: none;
@@ -228,7 +232,7 @@
         .header-icon-btn {
             width: 36px;
             height: 36px;
-            border-radius: 10px;
+            border-radius: 11px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -243,7 +247,8 @@
             background: var(--bg-glass-hover);
             color: var(--text-primary);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 6px 16px -4px rgba(0,0,0,0.18);
+            border-color: var(--border-glass-light);
         }
         .header-icon-btn .badge-dot {
             position: absolute;
@@ -333,15 +338,15 @@
         .page-hero {
             background: var(--bg-card);
             border: 1px solid var(--border-glass);
-            border-radius: 12px;
-            padding: 20px 24px;
+            border-radius: 16px;
+            padding: 22px 28px;
             box-shadow: var(--card-shadow);
             position: relative;
             overflow: hidden;
         }
         html.light-mode .page-hero {
             background: #ffffff;
-            box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+            box-shadow: var(--card-shadow);
         }
         .page-hero::after { display: none; }
         .page-hero::before { display: none; }
@@ -364,7 +369,7 @@
         /* ----- Emblem (favicon / letter avatar) ----- */
         .hero-emblem {
             width: 56px; height: 56px;
-            border-radius: 12px;
+            border-radius: 14px;
             display: flex; align-items: center; justify-content: center;
             background: var(--c-primary-soft);
             color: var(--accent); font-size: 20px;

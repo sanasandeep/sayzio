@@ -9,11 +9,11 @@
 @if($currentWs)
 <div x-data="{ open:false, creating:false, name:'' }" class="px-3 py-2 border-b" style="border-color: var(--border-strong);">
     <button type="button" @click="open = !open"
-            class="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:bg-black/5"
+            class="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-xl transition-colors hover:bg-black/5"
             style="color: var(--text-primary);"
             :class="sidebarMode === 'icons' ? 'justify-center' : ''">
         <div class="flex items-center gap-2 min-w-0">
-            <div class="w-7 h-7 rounded-md flex items-center justify-center text-xs font-semibold"
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-semibold"
                  style="background:{{ $currentWs->is_personal ? '#3d6bff' : '#10b981' }}; color:#fff;"
                  title="{{ $currentWs->is_personal ? 'Personal workspace' : 'Team workspace' }}">
                 <i class="fas {{ $currentWs->is_personal ? 'fa-user' : 'fa-users' }} text-[10px]"></i>
@@ -39,8 +39,8 @@
     </button>
 
     <div x-show="open" @click.outside="open=false" x-cloak
-         class="mt-2 rounded-lg border shadow-sm overflow-hidden"
-         style="background: var(--bg-card); border-color: var(--border-strong);">
+         class="mt-2 rounded-xl border overflow-hidden"
+         style="background: var(--bg-card); border-color: var(--border-strong); box-shadow: var(--card-shadow-hover);">
         @foreach($accessibleWs as $ws)
             <form method="POST" action="{{ route('user.workspaces.switch', $ws) }}">
                 @csrf
