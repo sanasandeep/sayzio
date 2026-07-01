@@ -56,6 +56,7 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   marketing-background-seam.spec.ts \
   home-section-structure.spec.ts \
   home-ai-zone.spec.ts \
+  onboarding-flow.spec.ts \
   dashboard-layout.spec.ts
 ```
 
@@ -108,7 +109,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these eighteen specs are gated (and not the whole suite)
+### Why these nineteen specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -254,6 +255,21 @@ The gate covers the specs that run reliably as an unattended check here:
   `.aisx-row` at opacity 1 — the reduced-motion fallback), and the page has no
   horizontal overflow at desktop and mobile widths. Pins the AI zone behaviour
   that was previously only verifiable by hand on a live instance.
+- `onboarding-flow.spec.ts` — self-bootstrapping: it seeds a plan-unlocked
+  starter template and resets the demo user to a FRESH, never-onboarded state
+  (`onboarded_at`/`persona` cleared, an empty marker biolink recreated) via `php
+  artisan tinker`, logs in as the demo user, and drives the step-by-step
+  first-run wizard on `/user/onboarding` to prove it can't leave a new user
+  stuck. Asserts the visible progress stepper renders the three core stage
+  labels (Welcome / Pick your persona / Choose a template) and the wizard opens
+  on Welcome; that advancing off Welcome and picking a persona auto-advances to
+  the template stage (the grid shows, the persona picker hides); that "Use this
+  template" reaches its outcome — the biolink block editor
+  (`/user/links/{id}/blocks`); and that the persistent "Skip setup" escape hatch
+  reaches its outcome — the dashboard (never bounced back into onboarding). Its
+  `afterAll` restores the demo user to an onboarded state so sibling specs
+  (which assume the demo user is already onboarded) aren't disturbed. All tests
+  share one logged-in context (the `demo-login` route is rate-limited).
 - `dashboard-layout.spec.ts` — self-bootstrapping: it seeds the demo user
   (active + verified + `onboarded_at`) via `php artisan tinker`, logs in as the
   demo user, and lands on `/user/dashboard` to lock in the redesigned "bento"
@@ -272,7 +288,7 @@ Run the full suite manually (when you can tolerate the slow renders) with
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the eighteen gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the nineteen gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```

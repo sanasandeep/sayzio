@@ -16,6 +16,7 @@
     "test:block-cache": "node scripts/test-block-cache.mjs",
     "test:login-auth-config": "node scripts/test-login-auth-config.mjs",
     "test:auth-flow": "node scripts/test-auth-flow.mjs",
+    "test:onboarding-setup": "node scripts/test-onboarding-setup.mjs",
     "test:strategy-stream": "node scripts/test-strategy-stream.mjs",
     "test:strategy-screens": "node scripts/test-strategy-screens.mjs",
     "test:whatsapp-disconnect": "node scripts/test-whatsapp-disconnect.mjs",
@@ -32,7 +33,7 @@
     "test:upgrade-hint": "node scripts/test-upgrade-hint.mjs",
     "test:quick-contact": "node scripts/test-quick-contact.mjs",
     "test:tier-switch-toast": "node scripts/test-tier-switch-toast.mjs",
-    "test:unit": "pnpm run test:citation-href && pnpm run test:block-cache && pnpm run test:login-auth-config && pnpm run test:whatsapp-disconnect && pnpm run test:wizard-flow && pnpm run test:setup-flow && pnpm run test:voice-bridge && pnpm run test:push-action && pnpm run test:native-route && pnpm run test:stats-range && pnpm run test:stats-export && pnpm run test:upgrade-hint && pnpm run test:quick-contact && pnpm run test:tier-switch-toast && pnpm run test:auth-flow"
+    "test:unit": "pnpm run test:citation-href && pnpm run test:block-cache && pnpm run test:login-auth-config && pnpm run test:whatsapp-disconnect && pnpm run test:wizard-flow && pnpm run test:setup-flow && pnpm run test:voice-bridge && pnpm run test:push-action && pnpm run test:native-route && pnpm run test:stats-range && pnpm run test:stats-export && pnpm run test:upgrade-hint && pnpm run test:quick-contact && pnpm run test:tier-switch-toast && pnpm run test:auth-flow && pnpm run test:onboarding-setup"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
