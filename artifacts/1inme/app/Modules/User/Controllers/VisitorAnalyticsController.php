@@ -17,8 +17,11 @@ class VisitorAnalyticsController extends Controller
     {
         abort_unless($link->user_id === auth()->id() || auth()->user()->hasPermission('user.analytics.view_any'), 403);
 
-        $period = (int) $request->query('days', 30);
-        $since = now()->subDays($period);
+        // Mirror the same period pills the Overview / Followers tabs use so all
+        // three views share one date-window control instead of a bespoke
+        // 7/30/90 "days" dropdown.
+        [$startDate, $endDate, $period] = $this->resolveRange($request);
+        $since = $startDate;
 
         // Compute per-IP first-seen across the full history of THIS link.
         // A visitor in the selected period is "returning" iff their first-ever
@@ -146,6 +149,8 @@ class VisitorAnalyticsController extends Controller
         return view('user.visitors.index', [
             'link'             => $link,
             'period'           => $period,
+            'startDate'        => $startDate,
+            'endDate'          => $endDate,
             'totalVisitors'    => $totalVisitors,
             'returningCount'   => $returningCount,
             'newCount'         => $newCount,
@@ -158,6 +163,38 @@ class VisitorAnalyticsController extends Controller
             'arClicks'         => $arClicks,
             'sourceBreakdown'  => $sourceBreakdown,
         ]);
+    }
+
+    /**
+     * Resolve the selected period pill into a [start, end, period] window,
+     * matching the pills the Overview / Followers tabs use
+     * (today/7d/30d/90d/year/all) and honouring the plan's stats retention.
+     */
+    private function resolveRange(Request $request): array
+    {
+        $period = $request->query('period', '30d');
+
+        $end = now()->endOfDay();
+        $start = match ($period) {
+            'today' => now()->startOfDay(),
+            '7d'    => now()->subDays(7)->startOfDay(),
+            '90d'   => now()->subDays(90)->startOfDay(),
+            'year'  => now()->subYear()->startOfDay(),
+            'all'   => now()->subYears(10)->startOfDay(),
+            default => now()->subDays(30)->startOfDay(),
+        };
+
+        // Clamp the start of the range to the plan's stats-history retention so
+        // users can't query analytics older than their plan allows.
+        $retentionDays = workspace_owner()->statsRetentionDays();
+        if ($retentionDays !== -1) {
+            $earliest = now()->subDays($retentionDays)->startOfDay();
+            if ($start->lt($earliest)) {
+                $start = $earliest;
+            }
+        }
+
+        return [$start, $end, $period];
     }
 
     public function nfcHistory(Request $request, Link $link)

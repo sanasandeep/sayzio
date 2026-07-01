@@ -1,18 +1,74 @@
 @extends('user.layouts.app')
-@section('title', 'Visitors')
+@section('title', 'Visitor Insights · ' . ($link->title ?: $link->alias))
+
 @section('content')
-<div class="max-w-5xl mx-auto px-4 py-8">
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Visitor Insights</h1>
-            <p class="text-sm" style="color: var(--text-muted);">{{ $link->title ?? $link->alias }} · last {{ $period }} days</p>
-        </div>
-        <form method="GET" class="flex gap-2 items-center">
-            <select name="days" onchange="this.form.submit()" class="px-3 py-1.5 rounded-lg border text-xs" style="background: var(--bg-soft); border-color: var(--border-soft); color: var(--text-primary);">
-                @foreach([7,30,90] as $d)<option value="{{ $d }}" {{ $period === $d ? 'selected' : '' }}>{{ $d }} days</option>@endforeach
-            </select>
-        </form>
+@php
+    $qs = request()->query();
+    $buildUrl = fn($overrides = []) => route('user.links.visitors', $link) . '?' . http_build_query(array_merge($qs, $overrides));
+@endphp
+
+@push('styles')
+<style>
+    /* Re-use the same visual language as show.blade.php / followers.blade.php
+       so the Visitor Insights tab feels like part of the same dashboard. */
+    .period-bar {
+        background: var(--bg-glass);
+        border: 1px solid var(--border-glass);
+        border-radius: 18px;
+        padding: 10px 14px;
+        backdrop-filter: blur(20px);
+    }
+    .pill {
+        padding: 7px 13px;
+        border-radius: 11px;
+        font-size: 11px;
+        font-weight: 600;
+        transition: all .2s ease;
+        color: var(--text-muted);
+    }
+    .pill:hover { background: var(--bg-glass-hover); color: var(--text-primary); transform: translateY(-1px); }
+    .pill-active {
+        background: linear-gradient(135deg, #3d6bff, #5c83ff);
+        color: #fff !important;
+        box-shadow: 0 6px 18px rgba(61,107,255,0.4);
+    }
+</style>
+@endpush
+
+@php
+    $heroActions = [
+        ['label' => 'Back to Overview', 'url' => route('user.links.show', $link), 'icon' => 'fa-arrow-left', 'class' => 'btn-ghost'],
+    ];
+    if ($link->type === 'biolink') {
+        $heroActions[] = ['label' => 'Edit Blocks', 'url' => route('user.links.blocks.editor', $link), 'icon' => 'fa-th-large', 'class' => 'btn-primary'];
+    }
+    $heroActions[] = ['label' => 'QR', 'url' => route('user.links.qrcode', $link), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost'];
+    $heroActions[] = ['label' => 'Edit', 'url' => route('user.links.edit', $link), 'icon' => 'fa-edit', 'class' => 'btn-ghost'];
+@endphp
+@include('user.partials.page-hero', [
+    'title'    => ($link->title ?: $link->alias) . ' · Visitor Insights',
+    'icon'     => 'fa-fingerprint',
+    'url'      => $link->getShortUrl(),
+    'chips'    => [
+        ['icon' => 'fa-circle text-emerald-400', 'text' => ($link->is_active ?? true) ? 'Active' : 'Inactive'],
+        ['icon' => $link->type === 'biolink' ? 'fa-th-large' : 'fa-link', 'text' => \App\Modules\User\Models\Link::typeLabel($link->type)],
+        ['icon' => 'fa-calendar', 'text' => $startDate->format('M d') . ' – ' . $endDate->format('M d, Y')],
+    ],
+    'back'     => route('user.links.show', $link),
+    'actions'  => $heroActions,
+])
+
+@include('user.links.partials.analytics-tabs', ['link' => $link, 'active' => 'visitors'])
+
+{{-- ===================== PERIOD CONTROLS ===================== --}}
+<div class="period-bar mb-6">
+    <div class="flex flex-wrap items-center gap-2">
+        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-clock text-blue-400"></i> Period</span>
+        @foreach(['today'=>'Today','7d'=>'7d','30d'=>'30d','90d'=>'90d','year'=>'Year','all'=>'All'] as $k=>$lbl)
+            <a href="{{ $buildUrl(['period'=>$k]) }}" class="pill {{ ($period ?? '30d')===$k ? 'pill-active' : '' }}">{{ $lbl }}</a>
+        @endforeach
     </div>
+</div>
 
     <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">
         <div class="flex items-center justify-between mb-3">
@@ -64,7 +120,7 @@
                     <i class="fas fa-vr-cardboard mr-1.5" style="color:#90acff;"></i> AR Business Card
                 </h2>
                 <p class="text-xs mt-0.5" style="color: var(--text-faint);">
-                    Scans, block taps and source share over the last {{ $period }} days.
+                    Scans, block taps and source share for {{ $startDate->format('M d') }} – {{ $endDate->format('M d, Y') }}.
                 </p>
             </div>
             @if($link->ar_enabled)
@@ -189,5 +245,4 @@
             </div>
         @endif
     </div>
-</div>
 @endsection
