@@ -109,6 +109,57 @@ const BANNED_PATTERNS: string[] = [
 ];
 
 /**
+ * Case-insensitive compiled forms of the source-level banned tokens. This is the
+ * exact set of matchers the CLI runs against every scanned line (via `scanSource`
+ * below), exposed so the delicate hex/rgb/violet-/purple- detection can be
+ * unit-tested directly rather than only through ripgrep.
+ */
+export const BANNED_REGEXES: RegExp[] = BANNED_PATTERNS.map((p) => new RegExp(p, "i"));
+
+/** A retired-purple offender: 1-based line/col of the first match on that line. */
+export type Offender = { file: string; line: number; col: number; text: string };
+
+/**
+ * Blank out comment spans so their contents are never flagged, while preserving
+ * newlines (and column offsets) so reported line/column numbers still point at
+ * the real source. A retired-purple hex/class inside a comment does not render,
+ * so it is not a brand regression (mirrors the AI tool-name guard). Handles:
+ *   - C-style block comments `/* *\/` (CSS, JS/TS/JSX, PHP)
+ *   - blade `{{-- --}}` and HTML `<!-- -->`
+ *   - `//` line comments (not the `//` in `https://`, so URLs survive)
+ */
+export function blankComments(src: string): string {
+  const blank = (m: string) => m.replace(/[^\n]/g, " ");
+  let out = src.replace(/\/\*[\s\S]*?\*\//g, blank);
+  out = out.replace(/\{\{--[\s\S]*?--\}\}|<!--[\s\S]*?-->/g, blank);
+  out = out.replace(/(^|[^:])(\/\/[^\n]*)/gm, (_m, pre: string, cmt: string) => pre + " ".repeat(cmt.length));
+  return out;
+}
+
+/**
+ * Core line matcher: return an offender for the FIRST banned token on each line
+ * of `src` (comments blanked first). Shared by the source-level scan and the
+ * cookie-consent config scan, which pass different regex sets.
+ */
+export function matchLines(relFile: string, src: string, regexes: RegExp[]): Offender[] {
+  const cleaned = blankComments(src);
+  const lines = cleaned.split("\n");
+  const rawLines = src.split("\n");
+  const offenders: Offender[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const text = lines[i] ?? "";
+    for (const re of regexes) {
+      const m = re.exec(text);
+      if (m) {
+        offenders.push({ file: relFile, line: i + 1, col: m.index + 1, text: rawLines[i] ?? "" });
+        break;
+      }
+    }
+  }
+  return offenders;
+}
+
+/**
  * Cookie-consent config defaults guard (PHP backend exception).
  * --------------------------------------------------------------
  * The PHP backend (`artifacts/1inme/app/**`) is deliberately OUT of the
@@ -133,11 +184,11 @@ function consentBannedRegexes(): RegExp[] {
 }
 
 /**
- * Scan the cookie-consent config defaults file for retired purple, returning
- * offender lines in vimgrep format (`path:line:col:text`) to match the
- * ripgrep-based scan's output handling.
+ * Scan the cookie-consent config defaults file for retired purple. Reuses the
+ * shared `matchLines` matcher with the consent-specific regex set (which adds
+ * the 8-digit-alpha hex form) so both scans stay in lockstep.
  */
-function scanCookieConsentConfig(): string[] {
+function scanCookieConsentConfig(): Offender[] {
   const abs = path.join(REPO_ROOT, COOKIE_CONSENT_CONFIG);
   let src: string;
   try {
@@ -146,20 +197,7 @@ function scanCookieConsentConfig(): string[] {
     // Missing file is not this guard's concern (e.g. relocated/renamed).
     return [];
   }
-  const regexes = consentBannedRegexes();
-  const offenders: string[] = [];
-  const lines = src.split("\n");
-  for (let i = 0; i < lines.length; i++) {
-    const text = lines[i] ?? "";
-    for (const re of regexes) {
-      const m = re.exec(text);
-      if (m) {
-        offenders.push(`${COOKIE_CONSENT_CONFIG}:${i + 1}:${m.index + 1}:${text}`);
-        break;
-      }
-    }
-  }
-  return offenders;
+  return matchLines(COOKIE_CONSENT_CONFIG, src, consentBannedRegexes());
 }
 
 /** Primary UI surfaces to scan (relative to repo root). */
@@ -252,6 +290,19 @@ function isAllowed(file: string): boolean {
   );
 }
 
+/**
+ * Pure source-level matcher: return retired-purple offenders in `src`, honoring
+ * the ALLOWLIST (an allow-listed file — an intentional categorical palette —
+ * yields no offenders). This is exactly what the CLI runs against every scanned
+ * file, exposed for direct unit testing so a well-meaning tweak to the delicate
+ * hex/rgb/violet-/purple- matching or the allow-list can't silently weaken the
+ * guard without a test noticing.
+ */
+export function scanSource(relFile: string, src: string): Offender[] {
+  if (isAllowed(relFile)) return [];
+  return matchLines(relFile, src, BANNED_REGEXES);
+}
+
 function printExclusions(): void {
   console.log("Brand-color guard — intentional exclusions:");
   console.log("  (build output, node_modules, vendor/, PHP backend & database/ are out of scope)\n");
@@ -261,54 +312,57 @@ function printExclusions(): void {
   }
 }
 
-function main(): void {
-  if (process.argv.includes("--explain")) {
-    printExclusions();
-    process.exit(0);
-  }
-
-  const rgArgs = ["-i", "--vimgrep", "--no-heading"];
-  for (const p of BANNED_PATTERNS) rgArgs.push("-e", p);
+/**
+ * List every file under SCAN_ROOTS (build output / vendor / deck decorative
+ * slides excluded up-front) so each can be read and passed to `scanSource`.
+ */
+function listFiles(): string[] {
+  const args = ["--files"];
   for (const g of [
     "!**/node_modules/**",
     "!**/build/**",
     "!**/dist/**",
     "!**/.expo/**",
     "!**/vendor/**",
-    // Cut the bulk up-front: the deck's decorative slides are allow-listed below
-    // and would otherwise flood ripgrep's output. The remaining ALLOWLIST entries
-    // are filtered in JS so their rationale stays documented in one place.
+    // Cut the bulk up-front: the deck's decorative slides are allow-listed
+    // (isAllowed covers them too), and would otherwise flood the file list.
     "!artifacts/1inme-deck/src/pages/**",
   ]) {
-    rgArgs.push("-g", g);
+    args.push("-g", g);
   }
-  rgArgs.push(...SCAN_ROOTS);
+  args.push(...SCAN_ROOTS);
 
-  const res = spawnSync("rg", rgArgs, {
+  const res = spawnSync("rg", args, {
     cwd: REPO_ROOT,
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
   });
-
   if (res.error) {
-    console.error("brand-color guard: failed to run ripgrep:", res.error.message);
+    console.error("brand-color guard: failed to list files:", res.error.message);
     process.exit(2);
   }
   if (res.status === 2) {
     console.error("brand-color guard: ripgrep error:\n" + res.stderr);
     process.exit(2);
   }
+  return res.stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+}
 
-  const offenders: string[] = [];
-  // rg exit codes: 0 = matches found, 1 = no matches, 2 = error. Either status
-  // is fine here — the cookie-consent config scan runs regardless.
-  if (res.status === 0) {
-    for (const line of res.stdout.split("\n")) {
-      if (!line.trim()) continue;
-      // vimgrep format: path:line:col:text
-      const file = line.slice(0, line.indexOf(":"));
-      if (!isAllowed(file)) offenders.push(line);
+function main(): void {
+  if (process.argv.includes("--explain")) {
+    printExclusions();
+    process.exit(0);
+  }
+
+  const offenders: Offender[] = [];
+  for (const rel of listFiles()) {
+    let src: string;
+    try {
+      src = fs.readFileSync(path.join(REPO_ROOT, rel), "utf8");
+    } catch {
+      continue;
     }
+    offenders.push(...scanSource(rel, src));
   }
 
   // The PHP backend is otherwise out of scope, but the cookie-consent config
@@ -321,7 +375,7 @@ function main(): void {
   }
 
   console.error("✗ brand-color guard FAILED — retired purple palette found in primary UI surfaces:\n");
-  for (const o of offenders) console.error("  " + o);
+  for (const o of offenders) console.error(`  ${o.file}:${o.line}:${o.col}:${o.text}`);
   console.error(
     `\n${offenders.length} match(es). The brand accent is blue (use --color-primary-* / *-primary-<shade>).`,
   );

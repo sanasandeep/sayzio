@@ -43,6 +43,15 @@ CSS is allowed iff that color is also used in `src/pages/**` source
 retired purple there fails. Gap: if chrome reuses a color the slides also use,
 the build guard allows it — but the source guard catches chrome regressions.
 
+**Pure matcher + tests:** the source guard's `main()` now lists files (rg
+`--files`) and runs the exported pure `scanSource(relFile, src)` on each (mirrors
+`check-ai-tool-names.ts`), instead of parsing a ripgrep `--vimgrep` dump.
+`scanSource` = ALLOWLIST short-circuit → `matchLines` over `BANNED_REGEXES`.
+Comments are now BLANKED before matching (`blankComments`: block / blade / HTML /
+`//`) — retired purple inside a comment does not render, so it is intentionally
+NOT flagged. Regression tests live in `check-brand-color.test.ts` (picked up by
+the `scripts-test` gate's `*.test.ts` glob; no `.replit` change needed).
+
 **How to apply:**
 - If a NEW intentional categorical surface trips the guard, add it to the
   script's ALLOWLIST with a reason — don't widen the banned regex or recolor a
