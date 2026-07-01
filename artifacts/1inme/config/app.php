@@ -135,6 +135,6 @@ return [
     |
     */
 
-    'icon_version' => '20260630',
+    'icon_version' => '20260701',
 
 ];
