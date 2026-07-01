@@ -815,6 +815,14 @@ compliant `.vcf`.
 4. Calls and emails open your device's native dialer/mail (`tel:` / `mailto:`) —
    there's no in-app VOIP.
 
+**Connected apps (CRM sync).** On paid plans you can connect **Salesforce,
+HubSpot or Zoho** so new leads, subscribers and form submissions flow straight
+into your CRM — and their contacts flow back into Sayzio. You can also forward
+your click and conversion events to **Google Analytics 4**. Set these up under
+**Settings → Connected accounts & apps**; an admin adds each provider's keys
+first. It's included on Business and higher, or available as the **Connected
+Apps (CRM Sync)** add-on on Professional and up.
+
 **Bulk import (with preview).** To add many contacts at once, upload a **CSV or
 vCard** file. Sayzio first shows a **preview** of what it found so you can fix or
 **skip** individual rows before anything is saved. When you **confirm**, the

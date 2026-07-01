@@ -514,6 +514,15 @@ A personal CRM plus an in-app dialer with identity resolution.
   user connects/disconnects via a hosted OAuth flow and can trigger a manual sync;
   status (connected account, last-sync time, in-progress flag) surfaces on web and
   the mobile API.
+- **Connected apps (CRM sync)** — plan-gated on `connected_apps`. Two-way sync
+  with **Salesforce, HubSpot and Zoho**: push new leads, subscribers and form
+  submissions to the CRM and pull CRM contacts back into Sayzio (`CrmSyncService`,
+  `PushLeadToCrmJob`), with field mapping and a scheduled background sync. Also
+  **forwards click & conversion events to Google Analytics 4**
+  (`ForwardAnalyticsEventJob`). Managed at `/user/settings/connections/apps` on
+  web and `/api/v1/connected-apps` on mobile; the admin supplies each provider's
+  OAuth credentials in the Integrations Hub. Included on Business and higher, or
+  sold as the **Connected Apps (CRM Sync)** add-on on Professional+.
 - **Dialer** — number pad with **T9 smart-search** (keypad-spelled names), speed
   dial, recents/frequent; call logging with outcomes/notes. `DialerData` is the
   single read/transform source for web + API.

@@ -105,6 +105,7 @@ class PremiumFeatures
 
             // ---- Contacts & CRM ----
             ['key' => 'contacts_google_sync', 'group' => 'Contacts & CRM', 'name' => 'Google Contacts sync', 'description' => 'Two-way sync your Sayzio contacts with your Google Contacts account so you can call and message them from your phone.'],
+            ['key' => 'connected_apps', 'group' => 'Contacts & CRM', 'name' => 'Connected apps (CRM sync)', 'description' => 'Two-way sync your leads, subscribers and form submissions with Salesforce, HubSpot or Zoho, pull their contacts back into Sayzio, and forward click & conversion events to Google Analytics 4 — all on a scheduled background sync.'],
 
             // ---- Team & collaboration ----
             ['key' => 'teams', 'group' => 'Team & collaboration', 'name' => 'Team workspaces', 'description' => 'Invite teammates to collaborate on the same links, Link in Bio pages and inbox with role-based permissions.'],

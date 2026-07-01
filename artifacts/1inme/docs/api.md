@@ -27,7 +27,7 @@ see [API usage metering](#api-usage-metering)).
 - [Biolinks (public)](#biolinks-public-visibility-aware) · [Blocks](#biolink-blocks-authoring) · [Block live limits & interactions](#block-live-limits--interactions) · [Biolink themes](#biolink-themes)
 - [Reviews (public)](#reviews-public) · [Reviews moderation (owner)](#reviews-moderation-owner)
 - [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Paid pages](#paid-pages-public) · [Creator monetization](#creator-monetization) · [Product storefront](#product-storefront) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
-- [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Google Contacts sync](#google-contacts-sync) · [Bulk import](#bulk-import-preview-workflow) · [Resume](#resume--portfolio) · [Projects](#projects)
+- [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Google Contacts sync](#google-contacts-sync) · [Connected apps](#connected-apps-crm-sync) · [Bulk import](#bulk-import-preview-workflow) · [Resume](#resume--portfolio) · [Projects](#projects)
 - [Wallet & coins](#wallet--coins) · [AI](#ai-credits-knowledge-bases-voice-account-assistant-chat-widgets) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
 - [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Store menu](#store-menu) · [Service booking](#service-booking) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
@@ -596,6 +596,22 @@ status plus a manual sync trigger.
 | POST   | `/contacts/google/sync`       | yes  | Trigger an incremental sync now. Throttle: 12/min.                        |
 | PATCH  | `/contacts/google`            | yes  | Update sync preferences (e.g. direction).                                 |
 | DELETE | `/contacts/google`            | yes  | Disconnect the linked Google account.                                     |
+
+### Connected apps (CRM sync)
+
+Two-way CRM sync (Salesforce, HubSpot, Zoho) plus Google Analytics 4 event
+forwarding. Requires the `connected_apps` plan feature; OAuth is delegated to the
+shared web flow, and an admin supplies each provider's credentials in the
+Integrations Hub.
+
+| Method | Path                                     | Auth | Description                                                              |
+| ------ | ---------------------------------------- | ---- | ---------------------------------------------------------------------- |
+| GET    | `/connected-apps`                        | yes  | List connected CRM apps + GA config, plus whether the plan allows it.  |
+| POST   | `/connected-apps/{provider}/connect-url` | yes  | Hosted OAuth URL to connect `salesforce`/`hubspot`/`zoho`. Throttle: 30/min. |
+| POST   | `/connected-apps/google-analytics`       | yes  | Save Google Analytics 4 event-forwarding settings.                    |
+| PATCH  | `/connected-apps/{id}`                   | yes  | Update a connection (field mapping, sync direction, active flag).      |
+| POST   | `/connected-apps/{id}/sync`              | yes  | Trigger a sync now. Throttle: 12/min.                                  |
+| DELETE | `/connected-apps/{id}`                   | yes  | Disconnect a CRM app.                                                  |
 
 ### Bulk import (preview workflow)
 

@@ -1558,6 +1558,7 @@ class SitePagesContent
                     ['name' => 'Export contacts', 'description' => 'Download your full contact list as CSV for backups or other tools.'],
                     ['name' => 'Built-in dialer', 'description' => 'Tap a contact to call them directly from inside Sayzio without copy-pasting numbers.'],
                     ['name' => 'Google Contacts sync', 'description' => 'Two-way sync with your Google Contacts so changes flow between both sides automatically.'],
+                    ['name' => 'Connected apps (CRM sync)', 'description' => 'Push new leads, subscribers and form submissions straight to Salesforce, HubSpot or Zoho, pull their contacts back into Sayzio, and forward click events to Google Analytics — synced automatically in the background.'],
                 ],
             ],
             [
