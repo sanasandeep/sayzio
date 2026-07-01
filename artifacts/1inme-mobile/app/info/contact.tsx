@@ -1,9 +1,10 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -23,6 +24,24 @@ import {
   sendQuickContact,
   type QuickContactChannel,
 } from "@/lib/api/assistant";
+import {
+  fetchContactContent,
+  type ContactContent,
+} from "@/lib/api/siteContent";
+
+// Social channels shown in the "Follow us" row, in the same order as the web
+// /contact card. Each maps to a FontAwesome brand glyph.
+const SOCIAL_LINKS: {
+  key: keyof ContactContent["social"];
+  icon: keyof typeof FontAwesome.glyphMap;
+  label: string;
+}[] = [
+  { key: "twitter", icon: "twitter", label: "X (Twitter)" },
+  { key: "instagram", icon: "instagram", label: "Instagram" },
+  { key: "linkedin", icon: "linkedin", label: "LinkedIn" },
+  { key: "youtube", icon: "youtube-play", label: "YouTube" },
+  { key: "facebook", icon: "facebook", label: "Facebook" },
+];
 
 function asApiError(err: unknown): ApiError | null {
   if (err && typeof err === "object" && "status" in err && "message" in err) {
@@ -80,6 +99,22 @@ export default function QuickContactScreen() {
   // submission posted implausibly fast (a bot signal). A same-clock delta,
   // immune to clock skew.
   const openedAtRef = useRef<number>(Date.now());
+
+  // Brand contact details (address, support email, phone, hours, social, map),
+  // fetched at runtime from the same admin-editable source as the web /contact
+  // card. Stays null (nothing extra rendered) when offline / unavailable.
+  const [details, setDetails] = useState<ContactContent | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetchContactContent()
+      .then((c) => {
+        if (alive) setDetails(c);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const active = CHANNELS.find((c) => c.value === channel)!;
 
@@ -160,6 +195,10 @@ export default function QuickContactScreen() {
             </View>
           ) : (
             <>
+              {details ? (
+                <ContactDetailsCard details={details} colors={colors} />
+              ) : null}
+
               <Text style={[styles.title, { color: colors.foreground }]}>
                 Request a callback
               </Text>
@@ -315,6 +354,165 @@ export default function QuickContactScreen() {
   );
 }
 
+type Palette = ReturnType<typeof useColors>;
+
+// The brand's real contact details — address, support email, phone, hours,
+// social links and a map — mirroring the web /contact "Contact details" card.
+// Every row is guarded so a blank field (e.g. phone) renders no empty row.
+function ContactDetailsCard({
+  details,
+  colors,
+}: {
+  details: ContactContent;
+  colors: Palette;
+}) {
+  const { address, email, phone, hours, social, map } = details;
+  const socials = SOCIAL_LINKS.filter((s) => social[s.key] !== "");
+  const mapUrl = `https://www.openstreetmap.org/?mlat=${map.lat}&mlon=${map.lng}#map=${map.zoom}/${map.lat}/${map.lng}`;
+  const mapCaption = map.label || "Find us on OpenStreetMap";
+
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border, gap: 18 },
+      ]}
+    >
+      <Text style={[styles.detailsHeading, { color: colors.foreground }]}>
+        Contact details
+      </Text>
+
+      {address !== "" ? (
+        <View style={styles.detailRow}>
+          <Feather
+            name="map-pin"
+            size={16}
+            color={colors.primary}
+            style={styles.detailIcon}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>
+              Address
+            </Text>
+            <Text style={[styles.detailValue, { color: colors.foreground }]}>
+              {address}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
+      {email !== "" ? (
+        <View style={styles.detailRow}>
+          <Feather
+            name="mail"
+            size={16}
+            color={colors.primary}
+            style={styles.detailIcon}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>
+              Email
+            </Text>
+            <Pressable onPress={() => Linking.openURL(`mailto:${email}`)}>
+              <Text style={[styles.detailLink, { color: colors.primary }]}>
+                {email}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      {phone !== "" ? (
+        <View style={styles.detailRow}>
+          <Feather
+            name="phone"
+            size={16}
+            color={colors.primary}
+            style={styles.detailIcon}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>
+              Phone
+            </Text>
+            <Pressable
+              onPress={() =>
+                Linking.openURL(`tel:${phone.replace(/[^0-9+]/g, "")}`)
+              }
+            >
+              <Text style={[styles.detailLink, { color: colors.primary }]}>
+                {phone}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      {hours !== "" ? (
+        <View style={styles.detailRow}>
+          <Feather
+            name="clock"
+            size={16}
+            color={colors.primary}
+            style={styles.detailIcon}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>
+              Hours
+            </Text>
+            <Text style={[styles.detailValue, { color: colors.foreground }]}>
+              {hours}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
+      {socials.length > 0 ? (
+        <View>
+          <Text style={[styles.detailLabel, { color: colors.mutedForeground }]}>
+            Follow us
+          </Text>
+          <View style={styles.socialRow}>
+            {socials.map((s) => (
+              <Pressable
+                key={s.key}
+                accessibilityLabel={s.label}
+                onPress={() => Linking.openURL(social[s.key])}
+                style={[
+                  styles.socialPill,
+                  { backgroundColor: colors.muted, borderColor: colors.border },
+                ]}
+              >
+                <FontAwesome name={s.icon} size={18} color={colors.foreground} />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      <Pressable
+        onPress={() => Linking.openURL(mapUrl)}
+        style={[
+          styles.mapCard,
+          { backgroundColor: colors.muted, borderColor: colors.border },
+        ]}
+      >
+        <View style={styles.mapPin}>
+          <Feather name="map" size={22} color={colors.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.detailValue, { color: colors.foreground }]}>
+            {mapCaption}
+          </Text>
+          <Text style={[styles.detailLink, { color: colors.primary }]}>
+            View on the map
+          </Text>
+        </View>
+        <Feather name="external-link" size={16} color={colors.mutedForeground} />
+      </Pressable>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   content: { padding: 24, gap: 16 },
   title: {
@@ -349,5 +547,49 @@ const styles = StyleSheet.create({
     width: 1,
     height: 1,
     opacity: 0,
+  },
+  detailsHeading: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 18 },
+  detailRow: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
+  detailIcon: { marginTop: 2 },
+  detailLabel: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    marginBottom: 3,
+  },
+  detailValue: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  detailLink: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  socialRow: { flexDirection: "row", gap: 10, marginTop: 8 },
+  socialPill: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mapCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  mapPin: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

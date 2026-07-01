@@ -74,4 +74,49 @@ class SiteContentController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Resolved /contact card content. Returns the brand's public contact
+     * details — address, support email, phone, business hours, social links
+     * and map coordinates — exactly the resolution the web
+     * {@see \App\Modules\Common\Controllers\SitePageController} performs for
+     * the /contact page's "Contact details" card. When no DB row exists yet,
+     * code defaults are returned so the payload is always renderable. This
+     * keeps the mobile Contact screen in sync with the admin-editable web
+     * copy without an app rebuild.
+     */
+    public function contact(): JsonResponse
+    {
+        $page = SitePage::where('slug', 'contact')->first();
+
+        $extra = $page && is_array($page->extra) && !empty($page->extra)
+            ? SitePagesContent::normalizeContactExtra($page->extra)
+            : SitePagesContent::contactExtraDefault();
+
+        $social = is_array($extra['social'] ?? null) ? $extra['social'] : [];
+        $map = is_array($extra['map'] ?? null) ? $extra['map'] : [];
+
+        return $this->ok([
+            'title'   => $page ? (string) $page->title : 'Contact us',
+            'address' => trim((string) ($extra['address'] ?? '')),
+            'email'   => trim((string) ($extra['email'] ?? '')),
+            // Blank phone stays blank so the client can omit the row entirely,
+            // mirroring the web view's `@if($phone !== '')` guard.
+            'phone'   => trim((string) ($extra['phone'] ?? '')),
+            'hours'   => trim((string) ($extra['hours'] ?? '')),
+            'social'  => [
+                'twitter'   => trim((string) ($social['twitter'] ?? '')),
+                'instagram' => trim((string) ($social['instagram'] ?? '')),
+                'linkedin'  => trim((string) ($social['linkedin'] ?? '')),
+                'youtube'   => trim((string) ($social['youtube'] ?? '')),
+                'facebook'  => trim((string) ($social['facebook'] ?? '')),
+            ],
+            'map' => [
+                'lat'   => (float) ($map['lat'] ?? 17.3850),
+                'lng'   => (float) ($map['lng'] ?? 78.4867),
+                'zoom'  => (int) ($map['zoom'] ?? 12),
+                'label' => trim((string) ($map['label'] ?? '')),
+            ],
+        ]);
+    }
 }

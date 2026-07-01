@@ -237,6 +237,12 @@ Route::prefix('v1')->group(function () {
     Route::middleware('throttle:60,1')
         ->get('/site/about', [\App\Modules\Api\Controllers\SiteContentController::class, 'about']);
 
+    // Public brand contact details (address, support email, phone, hours,
+    // social links, map) mirroring the admin-editable web /contact card so the
+    // mobile Contact screen stays in sync without an app rebuild.
+    Route::middleware('throttle:60,1')
+        ->get('/site/contact', [\App\Modules\Api\Controllers\SiteContentController::class, 'contact']);
+
     // Auto-pixel interstitial fire beacon — public, anonymous visitors.
     // The interstitial loads the configured pixel scripts then POSTs here
     // to record one row in `link_pixel_fires` so the dashboard can show

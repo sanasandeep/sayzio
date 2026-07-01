@@ -61,6 +61,114 @@ function formatStatValue(value: string, suffix: string): string {
   return `${base}${(suffix ?? "").trim()}`;
 }
 
+/**
+ * Admin-editable /contact card details, read at runtime from the product
+ * app's public `/api/v1/site/contact` endpoint. Mirrors the web /contact
+ * page's "Contact details" card (address, support email, phone, business
+ * hours, social links, map) so the mobile Contact screen stays in sync when
+ * an admin edits the copy — no app rebuild. The caller renders nothing extra
+ * when the fetch fails or returns nothing (offline / endpoint unavailable).
+ */
+export interface ContactSocial {
+  twitter: string;
+  instagram: string;
+  linkedin: string;
+  youtube: string;
+  facebook: string;
+}
+
+export interface ContactMap {
+  lat: number;
+  lng: number;
+  zoom: number;
+  label: string;
+}
+
+export interface ContactContent {
+  title: string;
+  address: string;
+  email: string;
+  phone: string;
+  hours: string;
+  social: ContactSocial;
+  map: ContactMap;
+}
+
+interface ContactResponse {
+  data?: {
+    title?: string;
+    address?: string;
+    email?: string;
+    phone?: string;
+    hours?: string;
+    social?: Partial<ContactSocial>;
+    map?: Partial<ContactMap>;
+  };
+}
+
+let contactCache: ContactContent | null = null;
+let contactInflight: Promise<ContactContent | null> | null = null;
+
+export async function fetchContactContent(): Promise<ContactContent | null> {
+  if (contactCache) return contactCache;
+  if (contactInflight) return contactInflight;
+
+  contactInflight = (async () => {
+    try {
+      const res = await fetch(`${getBaseUrl()}/api/v1/site/contact`, {
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) return null;
+      const json = (await res.json()) as ContactResponse;
+      const data = json?.data;
+      if (!data) return null;
+
+      const s = data.social ?? {};
+      const m = data.map ?? {};
+
+      const content: ContactContent = {
+        title: (data.title ?? "").trim() || "Contact us",
+        address: (data.address ?? "").trim(),
+        email: (data.email ?? "").trim(),
+        phone: (data.phone ?? "").trim(),
+        hours: (data.hours ?? "").trim(),
+        social: {
+          twitter: (s.twitter ?? "").trim(),
+          instagram: (s.instagram ?? "").trim(),
+          linkedin: (s.linkedin ?? "").trim(),
+          youtube: (s.youtube ?? "").trim(),
+          facebook: (s.facebook ?? "").trim(),
+        },
+        map: {
+          lat: Number.isFinite(Number(m.lat)) ? Number(m.lat) : 17.385,
+          lng: Number.isFinite(Number(m.lng)) ? Number(m.lng) : 78.4867,
+          zoom: Number.isFinite(Number(m.zoom)) ? Number(m.zoom) : 12,
+          label: (m.label ?? "").trim(),
+        },
+      };
+
+      // A payload with no usable details isn't worth swapping in; let the
+      // caller keep the screen free of an empty card.
+      const hasDetail =
+        content.address !== "" ||
+        content.email !== "" ||
+        content.phone !== "" ||
+        content.hours !== "" ||
+        Object.values(content.social).some((u) => u !== "");
+      if (!hasDetail) return null;
+
+      contactCache = content;
+      return content;
+    } catch {
+      return null;
+    } finally {
+      contactInflight = null;
+    }
+  })();
+
+  return contactInflight;
+}
+
 export async function fetchAboutContent(): Promise<AboutContent | null> {
   if (cache) return cache;
   if (inflight) return inflight;
