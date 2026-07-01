@@ -628,4 +628,125 @@ class DialerSearchVisibilityTest extends TestCase
         $this->assertNotContains($suspended->id, $people, 'web People must not leak a suspended account');
         $this->assertNotContains($blocker->id, $people, 'web People must not leak an account that blocked the searcher');
     }
+
+    // ===== (6) Followed links reachability — status + blocks =====
+    //
+    // The "Followed" group (DialerSearch::followedLinkItems) pulls links from
+    // every creator the searcher follows. canViewLink() only enforces the
+    // per-link visibility tiers (public/registered/followers/subscribers) — it
+    // does NOT re-check the owning account's reachability. So a followed creator
+    // who gets suspended/deactivated, or who blocks the searcher, must silently
+    // drop out of the Followed group (their link title / alias / SEO meta /
+    // biolink URL must not surface). These tests lock both cases on the shared
+    // contract and on BOTH surfaces.
+
+    public function test_followed_links_exclude_a_suspended_or_deactivated_creator(): void
+    {
+        $viewer     = $this->makeUser('viewer');
+        $suspended  = $this->makeUser('suspended');
+        $deactivated = $this->makeUser('deactivated');
+
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $suspended->id]);
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $deactivated->id]);
+
+        // Public links (canViewLink passes) — only the account-level gate can
+        // keep them out.
+        $suspendedLink   = $this->makeLink($suspended, 'public');
+        $deactivatedLink = $this->makeLink($deactivated, 'public');
+        $suspended->forceFill(['status' => 'suspended'])->save();
+        $deactivated->forceFill(['status' => 'deactivated'])->save();
+
+        $followed = $this->groupLinkIds(DialerSearch::universal($viewer, self::TOKEN), 'followed');
+
+        $this->assertNotContains($suspendedLink->id, $followed, 'a suspended creator\'s link must not surface');
+        $this->assertNotContains($deactivatedLink->id, $followed, 'a deactivated creator\'s link must not surface');
+    }
+
+    public function test_followed_links_exclude_a_creator_that_blocked_the_searcher(): void
+    {
+        $viewer  = $this->makeUser('viewer');
+        $creator = $this->makeUser('creator');
+
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $creator->id]);
+        $link = $this->makeLink($creator, 'public');
+        UserBlock::create(['blocker_user_id' => $creator->id, 'blocked_user_id' => $viewer->id]);
+
+        $followed = $this->groupLinkIds(DialerSearch::universal($viewer, self::TOKEN), 'followed');
+
+        $this->assertNotContains($link->id, $followed, 'a link from a creator who blocked the searcher must not surface');
+    }
+
+    public function test_followed_links_still_show_a_creator_the_searcher_blocked(): void
+    {
+        // The block gate is directional: the searcher blocking a creator does
+        // not remove that creator's links from the Followed group — only "they
+        // blocked me" removes an account (mirrors the People group behavior).
+        $viewer  = $this->makeUser('viewer');
+        $creator = $this->makeUser('creator');
+
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $creator->id]);
+        $link = $this->makeLink($creator, 'public');
+        UserBlock::create(['blocker_user_id' => $viewer->id, 'blocked_user_id' => $creator->id]);
+
+        $followed = $this->groupLinkIds(DialerSearch::universal($viewer, self::TOKEN), 'followed');
+
+        $this->assertContains($link->id, $followed, 'a viewer-side block must not remove the creator\'s links from Followed');
+    }
+
+    public function test_api_followed_links_exclude_suspended_and_blocking_creators(): void
+    {
+        $viewer     = $this->makeUser('viewer');
+        $suspended  = $this->makeUser('suspended');
+        $blocker    = $this->makeUser('blocker');
+        $reachable  = $this->makeUser('reachable');
+
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $suspended->id]);
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $blocker->id]);
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $reachable->id]);
+
+        $suspendedLink = $this->makeLink($suspended, 'public');
+        $blockerLink   = $this->makeLink($blocker, 'public');
+        $reachableLink = $this->makeLink($reachable, 'public');
+        $suspended->forceFill(['status' => 'suspended'])->save();
+        UserBlock::create(['blocker_user_id' => $blocker->id, 'blocked_user_id' => $viewer->id]);
+
+        $resp = $this->asUser($viewer)->getJson('/api/v1/dialer/search?q=' . self::TOKEN);
+        $resp->assertOk();
+
+        $followed = $this->groupLinkIds($resp->json('data'), 'followed');
+        $this->assertContains($reachableLink->id, $followed, 'an active, non-blocking creator\'s link must still surface');
+        $this->assertNotContains($suspendedLink->id, $followed, 'API Followed must not leak a suspended creator\'s link');
+        $this->assertNotContains($blockerLink->id, $followed, 'API Followed must not leak a blocking creator\'s link');
+
+        // Belt and suspenders: neither must appear anywhere in the payload.
+        $all = $this->linkIds($resp->json('data'));
+        $this->assertNotContains($suspendedLink->id, $all);
+        $this->assertNotContains($blockerLink->id, $all);
+    }
+
+    public function test_web_followed_links_exclude_suspended_and_blocking_creators(): void
+    {
+        $viewer     = $this->makeUser('viewer');
+        $suspended  = $this->makeUser('suspended');
+        $blocker    = $this->makeUser('blocker');
+        $reachable  = $this->makeUser('reachable');
+
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $suspended->id]);
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $blocker->id]);
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $reachable->id]);
+
+        $suspendedLink = $this->makeLink($suspended, 'public');
+        $blockerLink   = $this->makeLink($blocker, 'public');
+        $reachableLink = $this->makeLink($reachable, 'public');
+        $suspended->forceFill(['status' => 'suspended'])->save();
+        UserBlock::create(['blocker_user_id' => $blocker->id, 'blocked_user_id' => $viewer->id]);
+
+        $resp = $this->actingAsWeb($viewer)->getJson(route('user.dialer.search', ['q' => self::TOKEN]));
+        $resp->assertOk();
+
+        $followed = $this->groupLinkIds($resp->json('data'), 'followed');
+        $this->assertContains($reachableLink->id, $followed, 'an active, non-blocking creator\'s link must still surface');
+        $this->assertNotContains($suspendedLink->id, $followed, 'web Followed must not leak a suspended creator\'s link');
+        $this->assertNotContains($blockerLink->id, $followed, 'web Followed must not leak a blocking creator\'s link');
+    }
 }

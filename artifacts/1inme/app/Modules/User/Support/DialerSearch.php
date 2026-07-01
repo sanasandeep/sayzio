@@ -319,6 +319,30 @@ class DialerSearch
             return [];
         }
 
+        // Even for a creator the searcher follows, never surface links from an
+        // account the searcher can't reach right now: one that has since been
+        // suspended/deactivated (status != active), or one that has blocked the
+        // searcher. This mirrors the reachability gate on the People group
+        // (peopleItems); canViewLink() below only enforces the per-link
+        // visibility tiers, not account-level reachability.
+        $blockedByIds = UserBlock::where('blocked_user_id', $user->id)
+            ->whereIn('blocker_user_id', $creatorIds)
+            ->pluck('blocker_user_id')->map(fn ($id) => (int) $id)->all();
+
+        $creatorIds = User::whereIn('id', $creatorIds)
+            ->where(function ($w) {
+                // Treat a null status as active (mirrors the login guard
+                // `($user->status ?? 'active') !== 'active'`).
+                $w->where('status', 'active')
+                  ->orWhereNull('status');
+            })
+            ->when(!empty($blockedByIds), fn ($qq) => $qq->whereNotIn('id', $blockedByIds))
+            ->pluck('id')->map(fn ($id) => (int) $id)->unique();
+
+        if ($creatorIds->isEmpty()) {
+            return [];
+        }
+
         // Followed creators' links live in THEIR workspaces, not the searcher's.
         // On the web surface the `workspace.scope` middleware binds the searcher's
         // active workspace and the BelongsToWorkspace global scope would filter
