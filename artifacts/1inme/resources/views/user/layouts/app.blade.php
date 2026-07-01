@@ -1395,13 +1395,16 @@
 
             <div x-show="mobileMenu" x-cloak
                  class="lg:hidden fixed inset-0 z-50 backdrop-blur-sm" @click.self="mobileMenu = false" style="background: var(--overlay-bg);">
-                <div class="w-[280px] h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: none;">
+                <div class="w-full h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: none;">
                     <div class="h-[64px] flex items-center justify-between px-5" style="border-bottom: 1px solid var(--border-subtle);">
                         <div class="flex items-center gap-2.5">
                             @include('common.partials.brand-logo', ['height' => 'h-7'])
                         </div>
                         <button @click="mobileMenu = false" class="p-1.5 rounded-lg" style="color: var(--text-muted);"><i class="fas fa-times text-sm"></i></button>
                     </div>
+                    @auth
+                        @include('user.partials.workspace-switcher')
+                    @endauth
                     <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto overscroll-contain" style="-webkit-overflow-scrolling: touch;">
                         {{-- ========== TOP LEVEL — mirrors desktop most-used destinations ========== --}}
                         <a href="{{ route('user.dashboard') }}" class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-house"></i></div> <span>Dashboard</span></a>
