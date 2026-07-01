@@ -9,6 +9,7 @@ use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class WorkspaceController extends Controller
 {
@@ -28,13 +29,26 @@ class WorkspaceController extends Controller
     {
         $user = $request->user();
         $data = $request->validate([
-            'name' => 'required|string|max:120',
+            'name'  => 'required|string|max:120',
+            'icon'  => ['nullable', 'string', Rule::in(array_keys(Workspace::ICON_CHOICES))],
+            'color' => ['nullable', 'string', Rule::in(Workspace::COLOR_CHOICES)],
         ]);
 
         $max = (int) $user->getPlanFeature('max_workspaces', 1);
         $owned = $user->ownedWorkspaces()->count();
         if ($max !== -1 && $owned >= $max) {
             return back()->with('error', "Your plan allows at most {$max} workspace(s). Upgrade to add more.");
+        }
+
+        // Persist the chosen symbol + colour into the generic settings JSON
+        // (no dedicated columns). Only stored when the user actually picked
+        // one; otherwise the workspace falls back to the automatic icon.
+        $settings = [];
+        if (!empty($data['icon']) || !empty($data['color'])) {
+            $settings['appearance'] = array_filter([
+                'icon'  => $data['icon'] ?? null,
+                'color' => $data['color'] ?? null,
+            ]);
         }
 
         // New workspaces created from the switcher are team workspaces.
@@ -44,6 +58,7 @@ class WorkspaceController extends Controller
             'name'        => $data['name'],
             'slug'        => Str::slug($data['name']) . '-' . Str::random(4),
             'is_personal' => false,
+            'settings'    => $settings ?: null,
         ]);
 
         $this->ctx->set($ws);

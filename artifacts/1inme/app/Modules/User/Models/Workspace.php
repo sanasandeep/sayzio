@@ -31,6 +31,65 @@ class Workspace extends Model
         return $this->is_personal ? 'Personal' : 'Team';
     }
 
+    /**
+     * Curated set of Font Awesome icon symbols a user may pick for a
+     * workspace at creation time. Keys are the stored value; values are
+     * the Font Awesome class (without the `fas` prefix).
+     */
+    public const ICON_CHOICES = [
+        'user'         => 'fa-user',
+        'users'        => 'fa-users',
+        'briefcase'    => 'fa-briefcase',
+        'building'     => 'fa-building',
+        'rocket'       => 'fa-rocket',
+        'star'         => 'fa-star',
+        'heart'        => 'fa-heart',
+        'bolt'         => 'fa-bolt',
+        'palette'      => 'fa-palette',
+        'globe'        => 'fa-globe',
+        'store'        => 'fa-store',
+        'layer-group'  => 'fa-layer-group',
+    ];
+
+    /** Curated colour swatches a user may pick for a workspace icon. */
+    public const COLOR_CHOICES = [
+        '#3d6bff', '#10b981', '#8b5cf6', '#ef4444',
+        '#f59e0b', '#ec4899', '#06b6d4', '#64748b',
+    ];
+
+    /** Read the chosen appearance out of the `settings` JSON, if any. */
+    protected function appearanceSetting(string $key): ?string
+    {
+        $val = (($this->settings ?? [])['appearance'] ?? [])[$key] ?? null;
+        return (is_string($val) && $val !== '') ? $val : null;
+    }
+
+    /**
+     * Font Awesome class for this workspace's icon. Falls back to the
+     * automatic personal/team icon when the user never picked one.
+     */
+    public function iconSymbol(): string
+    {
+        $chosen = $this->appearanceSetting('icon');
+        if ($chosen !== null && isset(self::ICON_CHOICES[$chosen])) {
+            return self::ICON_CHOICES[$chosen];
+        }
+        return $this->is_personal ? 'fa-user' : 'fa-users';
+    }
+
+    /**
+     * Background colour for this workspace's icon. Falls back to the
+     * automatic personal/team colour when the user never picked one.
+     */
+    public function iconColor(): string
+    {
+        $chosen = $this->appearanceSetting('color');
+        if ($chosen !== null && in_array($chosen, self::COLOR_CHOICES, true)) {
+            return $chosen;
+        }
+        return $this->is_personal ? '#3d6bff' : '#10b981';
+    }
+
     public function owner()
     {
         return $this->belongsTo(User::class, 'owner_user_id');
