@@ -52,7 +52,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   home-hero-orbit-popover.spec.ts \
   home-hero-claim-handle.spec.ts \
   brand-consistency-apply-fix.spec.ts \
-  create-link-picker.spec.ts
+  create-link-picker.spec.ts \
+  marketing-background-seam.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -104,7 +105,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these fourteen specs are gated (and not the whole suite)
+### Why these fifteen specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -221,19 +222,45 @@ The gate covers the specs that run reliably as an unattended check here:
   because the demo account holds `user.banned_names.bypass`, so for that
   privileged user the live checker correctly treats banned names as available;
   the taken/banned *guard* is covered via the taken alias.
+- `marketing-background-seam.spec.ts` — no login/seeding. Loads every marketing
+  page that `@extends('public.layouts.site')` (about, analytics, audience,
+  how-it-works, integrations, forms, notifications, buzz, domains, discovery,
+  ai-product via `/ai-chatbot`, use-case via `/for/creators`, workspace-team,
+  contact, demos, features, pricing) with a pre-seeded consent cookie (so the
+  banner never mounts and page scroll is free), in BOTH dark and light mode. For
+  each it asserts no full-bleed, tall element inside `<main>` carries a
+  fully-opaque background-colour — the signature of a reintroduced opaque
+  hero/section band (e.g. the retired flat `#1e2330`) that would paint over the
+  shared fixed `.aurora` and seam against the rest of the page — and that the
+  sticky header stays pinned (its viewport-top doesn't drift) on scroll. Gating
+  it stops a future page/edit from reintroducing a background seam.
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the fourteen gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the fifteen gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
 
 ## Specs
 
+- `marketing-background-seam.spec.ts` — gated, no login/seeding. Loads every
+  marketing page that `@extends('public.layouts.site')` (about, analytics,
+  audience, how-it-works, integrations, forms, notifications, buzz, domains,
+  discovery, ai-product via `/ai-chatbot`, use-case via `/for/creators`,
+  workspace-team, contact, demos, features, pricing) in BOTH dark and light
+  mode, pre-seeding the consent cookie so the scroll-locking banner never
+  mounts. For each page/mode it walks `<main>` for any full-bleed (touching
+  both viewport edges), tall (≥160px) element whose computed
+  `background-color` is fully opaque — the fingerprint of a reintroduced
+  opaque hero/section band that would paint over the shared fixed `.aurora`
+  glow and seam against the rest of the page — and asserts none exists. It
+  also asserts the sticky header stays pinned (viewport-top unchanged) after
+  scrolling. Guards `public/layouts/site.blade.php`'s uniform-aurora contract
+  against a future page reintroducing an opaque backdrop.
 - `create-link-picker.spec.ts` — Gated. Seeds the demo user (user-admin
   role) plus a link that already owns a known alias, logs in once, and
   drives the redesigned Create Link manual picker on a desktop and a
