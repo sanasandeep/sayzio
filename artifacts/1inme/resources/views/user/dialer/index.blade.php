@@ -43,14 +43,23 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {{-- Number pad --}}
         <div class="card-premium p-6">
-            <h3 class="text-sm font-bold mb-3" style="color:var(--text-primary);">Number pad <span class="text-[10px] font-normal" style="color:var(--text-faint);">— type digits to T9-search names too</span></h3>
-            <input id="dialer-number" type="tel" value="" placeholder="+1 555 0100" autocomplete="off"
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold" style="color:var(--text-primary);">Number pad <span class="text-[10px] font-normal" style="color:var(--text-faint);">— search everything</span></h3>
+                {{-- Keypad mode toggle: T9 digit grid ↔ alphanumeric keyboard.
+                     Both modes write to the same input and feed the same
+                     universal search, so results never differ by mode. --}}
+                <div class="inline-flex rounded-lg overflow-hidden" style="border:1px solid rgba(255,255,255,.12);">
+                    <button type="button" id="mode-t9" onclick="setKeypadMode('t9')" class="px-2.5 py-1 text-[11px] font-semibold">T9</button>
+                    <button type="button" id="mode-abc" onclick="setKeypadMode('abc')" class="px-2.5 py-1 text-[11px] font-semibold">Keyboard</button>
+                </div>
+            </div>
+            <input id="dialer-number" type="text" inputmode="tel" value="" placeholder="+1 555 0100 or a name" autocomplete="off"
                    class="w-full text-center text-2xl font-mono px-3 py-3 rounded-xl mb-4" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
 
-            {{-- Live filter results --}}
-            <div id="dialer-live" class="mb-3 hidden space-y-2 max-h-48 overflow-y-auto"></div>
+            {{-- Live universal results (grouped) --}}
+            <div id="dialer-live" class="mb-3 hidden space-y-3 max-h-72 overflow-y-auto"></div>
 
-            <div class="grid grid-cols-3 gap-2 mb-4">
+            <div id="keypad-grid" class="grid grid-cols-3 gap-2 mb-4">
                 @php $sub = ['1'=>'','2'=>'ABC','3'=>'DEF','4'=>'GHI','5'=>'JKL','6'=>'MNO','7'=>'PQRS','8'=>'TUV','9'=>'WXYZ','*'=>'','0'=>'+','#'=>'']; @endphp
                 @foreach(['1','2','3','4','5','6','7','8','9','*','0','#'] as $key)
                     <button type="button" onclick="dialerPress('{{ $key }}')" class="py-3 rounded-xl transition flex flex-col items-center" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-primary);" onmouseover="this.style.background='rgba(61,107,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">
@@ -85,36 +94,28 @@
         {{-- Search + recent --}}
         <div class="space-y-4">
             <div class="card-premium p-5">
-                <h3 class="text-sm font-bold mb-3" style="color:var(--text-primary);">Search contacts</h3>
-                <form method="GET" action="{{ route('user.dialer.index') }}">
-                    <div class="relative">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);"></i>
-                        <input type="text" name="q" value="{{ $q }}" placeholder="Name or phone"
-                               class="w-full pl-9 pr-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
-                    </div>
-                </form>
+                <h3 class="text-sm font-bold mb-3" style="color:var(--text-primary);">Search everything <span class="text-[10px] font-normal" style="color:var(--text-faint);">— contacts, people, links, workspaces</span></h3>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);"></i>
+                    <input type="text" id="universal-q" value="{{ $q }}" placeholder="Name, handle, alias, keyword…"
+                           class="w-full pl-9 pr-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                </div>
 
-                @if($q !== '' && $contacts->isEmpty())
-                    <p class="text-xs mt-3" style="color:var(--text-muted);">No matches.</p>
-                @elseif($contacts->isNotEmpty())
-                    <div class="mt-3 space-y-2">
-                        @foreach($contacts as $c)
-                            @php $first = $c->phones->first(); @endphp
-                            <a href="{{ $first ? route('user.dialer.profile', ['number' => $first->value_e164 ?: $first->value, 'contact' => $c->id]) : route('user.contacts.show', $c) }}"
-                               class="flex items-center gap-3 px-3 py-2 rounded-xl" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);">
-                                <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">{{ $c->initials() }}</div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="text-sm font-semibold truncate" style="color:var(--text-primary);">
-                                        {{ $c->nameForDisplay() }}
-                                        @if($c->biolink_user_id)<span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(236,72,153,.15);color:#f472b6">Sayzio</span>@endif
-                                    </div>
-                                    <div class="text-xs truncate" style="color:var(--text-muted);">{{ $first?->value ?? '—' }}</div>
-                                </div>
-                                <i class="fas fa-chevron-right text-[10px] opacity-40"></i>
-                            </a>
-                        @endforeach
+                {{-- Advanced filter chips (contacts + verification) --}}
+                <div class="flex flex-wrap items-center gap-2 mt-3">
+                    <button type="button" id="filter-verified" onclick="toggleFilter('verified')" class="uni-chip px-2.5 py-1 rounded-full text-[11px] font-semibold" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-muted);">
+                        <i class="fas fa-badge-check mr-1"></i> Verified
+                    </button>
+                    <button type="button" id="filter-biolink" onclick="toggleFilter('has_biolink')" class="uni-chip px-2.5 py-1 rounded-full text-[11px] font-semibold" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-muted);">
+                        <i class="fas fa-link mr-1"></i> On Sayzio
+                    </button>
+                    <div class="relative">
+                        <input type="text" id="filter-tag" oninput="runUniversal()" placeholder="Tag…"
+                               class="w-24 px-2.5 py-1 rounded-full text-[11px]" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
                     </div>
-                @endif
+                </div>
+
+                <div id="search-results" class="mt-3 space-y-3"></div>
             </div>
 
             <div class="card-premium p-5" id="recent-card" @if(empty($recent)) style="display:none" @endif>
@@ -134,7 +135,11 @@ const dialerRoot = document.getElementById('dialer-root');
 const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
 const inp     = document.getElementById('dialer-number');
 const liveBox = document.getElementById('dialer-live');
-const searchInp = document.querySelector('input[name="q"]');
+const searchInp = document.getElementById('universal-q');
+const SEARCH_URL = '{{ route('user.dialer.search') }}';
+
+// Advanced-search filter state (verification badge / on-Sayzio / tag).
+const uniFilters = { verified: false, has_biolink: false, tag: '' };
 
 function dialerPress(k) { inp.value += k; liveFilter(); }
 function dialerBack()   { inp.value = inp.value.slice(0, -1); liveFilter(); }
@@ -268,47 +273,152 @@ function profileHref(number, contactId) {
     return u;
 }
 
-// Debounced live filter — hits the JSON branch (T9-aware on the server).
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+// ── Universal finder ─────────────────────────────────────────────────
+// One grouped search across Contacts, People, My links, Followed and
+// Workspaces (server: App\Modules\User\Support\DialerSearch). Fed by BOTH
+// keypad modes (T9 grid + alphanumeric keyboard) and the advanced box, so
+// the result set never differs by how you typed.
+async function fetchUniversal(q, filters) {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (filters) {
+        if (filters.verified)    params.set('filter', 'verified');
+        if (filters.has_biolink) params.set('has_biolink', '1');
+        if (filters.tag)         params.set('tag', filters.tag);
+    }
+    try {
+        const r = await fetch(SEARCH_URL + '?' + params.toString(), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (!r.ok) return null;
+        const body = await r.json();
+        return body.data || null;
+    } catch (e) { return null; }
+}
+
+function uniItemHtml(item) {
+    const badges = [];
+    if (item.badge)   badges.push(`<span class="px-1 rounded text-[8px] font-bold" style="background:rgba(236,72,153,.15);color:#f472b6">${escapeHtml(item.badge)}</span>`);
+    if (item.verified) badges.push(`<span title="${escapeHtml(item.verified_label || 'Verified')}" style="color:#3d6bff"><i class="fas fa-check-circle text-[10px]"></i></span>`);
+    const typeLabel = item.type_label
+        ? `<span class="px-1 rounded text-[8px] font-bold flex-shrink-0" style="background:rgba(255,255,255,.08);color:var(--text-faint)">${escapeHtml(item.type_label)}</span>` : '';
+    const inner = `
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">${escapeHtml(item.initials)}</div>
+        <div class="flex-1 min-w-0">
+            <div class="text-xs font-semibold truncate flex items-center gap-1" style="color:var(--text-primary);">${escapeHtml(item.title)} ${badges.join(' ')}</div>
+            <div class="text-[11px] truncate" style="color:var(--text-muted);">${escapeHtml(item.subtitle || '')}</div>
+        </div>
+        ${typeLabel}`;
+    const cls = 'flex items-center gap-2 px-2 py-1.5 rounded-lg';
+    const style = 'background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);';
+    const a = item.action || {};
+    let row;
+    if (a.kind === 'workspace' && a.switch_url) {
+        row = `<button type="button" onclick="switchWorkspace('${a.switch_url}')" class="${cls} w-full text-left" style="${style}">${inner}</button>`;
+    } else if (a.url) {
+        row = `<a href="${a.url}" class="${cls}" style="${style}">${inner}</a>`;
+    } else {
+        row = `<div class="${cls}" style="${style}">${inner}</div>`;
+    }
+    // Direct app-connection links (call / SMS / WhatsApp / Telegram / …) for
+    // any result that carries a phone number — one tap to reach them without
+    // leaving search. Rendered as a sibling so we never nest buttons in an <a>.
+    const channels = a.number ? `<div class="mt-1 px-2 pb-0.5">${channelActions(a.number, 'sm')}</div>` : '';
+    return channels ? `<div>${row}${channels}</div>` : row;
+}
+
+function renderGroups(container, data, emptyMsg) {
+    if (!data || !Array.isArray(data.groups) || !data.groups.length) {
+        container.innerHTML = `<div class="text-xs text-center py-2" style="color:var(--text-faint);">${emptyMsg}</div>`;
+        return;
+    }
+    container.innerHTML = data.groups.map(g => `
+        <div>
+            <div class="text-[10px] font-bold uppercase tracking-wide mb-1.5 flex items-center gap-1.5" style="color:var(--text-faint);">
+                ${escapeHtml(g.label)} <span style="opacity:.6">${g.items.length}</span>
+            </div>
+            <div class="space-y-1.5">${g.items.map(uniItemHtml).join('')}</div>
+        </div>
+    `).join('');
+}
+
+async function switchWorkspace(url) {
+    try {
+        await fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+    } catch (e) { /* ignore */ }
+    window.location.reload();
+}
+
+// Keypad live results (both T9 grid + keyboard mode write to #dialer-number).
 let _t = null;
 function liveFilter() {
     const q = inp.value.trim();
     clearTimeout(_t);
     if (!q) { liveBox.classList.add('hidden'); liveBox.innerHTML = ''; return; }
-    _t = setTimeout(() => fetchMatches(q), 180);
-}
-async function fetchMatches(q) {
-    try {
-        const r = await fetch('{{ route('user.dialer.index') }}?q=' + encodeURIComponent(q), {
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        });
-        if (!r.ok) return;
-        const data = await r.json();
-        if (!data.matches.length) {
-            liveBox.classList.remove('hidden');
-            liveBox.innerHTML = '<div class="text-xs text-center py-2" style="color:var(--text-faint);">No matches</div>';
-            return;
-        }
+    _t = setTimeout(async () => {
+        const data = await fetchUniversal(q, null);
         liveBox.classList.remove('hidden');
-        liveBox.innerHTML = data.matches.map(m => `
-            <a href="${m.profile_url}" class="flex items-center gap-2 px-2 py-1.5 rounded-lg" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">${m.initials}</div>
-                <div class="flex-1 min-w-0">
-                    <div class="text-xs font-semibold truncate" style="color:var(--text-primary);">${escapeHtml(m.name)}${m.biolink ? ' <span class=\"px-1 rounded text-[8px] font-bold\" style=\"background:rgba(236,72,153,.15);color:#f472b6\">Sayzio</span>' : ''}${m.is_spam ? ' <span class=\"px-1 rounded text-[8px] font-bold\" style=\"background:rgba(239,68,68,.15);color:#ef4444\">SPAM</span>' : ''}</div>
-                    <div class="text-[11px] truncate" style="color:var(--text-muted);">${m.phone || ''}</div>
-                </div>
-            </a>
-        `).join('');
-    } catch (e) { /* ignore */ }
+        renderGroups(liveBox, data, 'No matches');
+    }, 200);
 }
-function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+// Advanced search box + filter chips.
+let _tu = null;
+function runUniversal() {
+    uniFilters.tag = (document.getElementById('filter-tag')?.value || '').trim();
+    const q = (searchInp?.value || '').trim();
+    const box = document.getElementById('search-results');
+    if (!box) return;
+    clearTimeout(_tu);
+    const anyFilter = uniFilters.verified || uniFilters.has_biolink || uniFilters.tag;
+    if (!q && !anyFilter) { box.innerHTML = ''; return; }
+    _tu = setTimeout(async () => {
+        const data = await fetchUniversal(q, uniFilters);
+        renderGroups(box, data, 'No matches');
+    }, 220);
+}
+
+function toggleFilter(key) {
+    uniFilters[key] = !uniFilters[key];
+    const el = document.getElementById(key === 'verified' ? 'filter-verified' : 'filter-biolink');
+    if (el) {
+        if (uniFilters[key]) { el.style.background = 'rgba(61,107,255,.18)'; el.style.color = '#90acff'; el.style.borderColor = 'rgba(61,107,255,.4)'; }
+        else { el.style.background = 'rgba(255,255,255,.05)'; el.style.color = 'var(--text-muted)'; el.style.borderColor = 'rgba(255,255,255,.10)'; }
+    }
+    runUniversal();
+}
+
+// Keypad mode toggle: T9 digit grid ↔ alphanumeric keyboard.
+let keypadMode = 't9';
+function setKeypadMode(mode) {
+    keypadMode = mode;
+    const grid = document.getElementById('keypad-grid');
+    const t9btn = document.getElementById('mode-t9');
+    const abcbtn = document.getElementById('mode-abc');
+    const active = 'background:rgba(61,107,255,.2);color:#90acff;';
+    const idle   = 'background:transparent;color:var(--text-muted);';
+    if (mode === 't9') {
+        if (grid) grid.style.display = '';
+        inp.setAttribute('inputmode', 'tel');
+        if (t9btn)  t9btn.style.cssText = active;
+        if (abcbtn) abcbtn.style.cssText = idle;
+    } else {
+        if (grid) grid.style.display = 'none';
+        inp.setAttribute('inputmode', 'text');
+        if (abcbtn) abcbtn.style.cssText = active;
+        if (t9btn)  t9btn.style.cssText = idle;
+        inp.focus();
+    }
+}
 
 renderKeypadChannels();
+setKeypadMode('t9');
 inp.addEventListener('input', liveFilter);
 if (searchInp) {
-    searchInp.addEventListener('input', () => {
-        inp.value = searchInp.value;
-        liveFilter();
-    });
+    searchInp.addEventListener('input', runUniversal);
+    if (searchInp.value.trim()) runUniversal();
 }
 
 // ── Favorites: remove + drag-to-reorder ──────────────────────────────

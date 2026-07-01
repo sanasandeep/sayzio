@@ -34,8 +34,11 @@ import {
   type DialerFavorite,
   type DialerFrequent,
   type DialerRecent,
+  type DialerSearchItem,
+  type DialerSearchResult,
   dialerHistory,
   dialerLive,
+  dialerSearch,
   getDialerChannels,
   listFavorites,
   lookupNumber,
@@ -272,6 +275,14 @@ export default function DialerScreen() {
   const [contactsQuery, setContactsQuery] = useState("");
   const [appContacts, setAppContacts] = useState<Contact[]>([]);
   const [keypadMatches, setKeypadMatches] = useState<Contact[]>([]);
+  // Universal finder (keypad): grouped results across Contacts, People, My
+  // links, Followed and Workspaces via the shared server contract. `keypadMode`
+  // toggles the T9 digit grid ↔ an alphanumeric keyboard; both feed this.
+  const [keypadMode, setKeypadMode] = useState<"t9" | "abc">("t9");
+  const [uni, setUni] = useState<DialerSearchResult | null>(null);
+  const [uniLoading, setUniLoading] = useState(false);
+  const [filterVerified, setFilterVerified] = useState(false);
+  const [filterBiolink, setFilterBiolink] = useState(false);
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [deviceAccess, setDeviceAccess] = useState<
@@ -330,16 +341,18 @@ export default function DialerScreen() {
     return () => clearTimeout(t);
   }, [tab, contactsQuery]);
 
-  // Debounced T9 smart-dial as the user types on the keypad.
+  // Debounced universal finder as the user types on the keypad (either mode)
+  // or flips a filter chip. T9 smart-dial is preserved server-side.
   useEffect(() => {
     const q = number.trim();
-    if (q.length < 2) {
-      setKeypadMatches([]);
+    const anyFilter = filterVerified || filterBiolink;
+    if (q.length < 2 && !anyFilter) {
+      setUni(null);
       return;
     }
-    const t = setTimeout(() => void runT9Search(q), 200);
+    const t = setTimeout(() => void runUniversal(q), 220);
     return () => clearTimeout(t);
-  }, [number]);
+  }, [number, filterVerified, filterBiolink]);
 
   const refreshRecent = useCallback(async () => {
     setRecentLoading(true);
@@ -401,6 +414,46 @@ export default function DialerScreen() {
       setKeypadMatches([]);
     }
   }, []);
+
+  // Universal grouped finder — shared server contract (web/API/mobile). Fed
+  // by both keypad modes + the verified / on-Sayzio filter chips.
+  const runUniversal = useCallback(
+    async (q: string) => {
+      setUniLoading(true);
+      try {
+        const res = await dialerSearch(q, {
+          verified: filterVerified,
+          has_biolink: filterBiolink,
+        });
+        setUni(res);
+      } catch {
+        setUni(null);
+      } finally {
+        setUniLoading(false);
+      }
+    },
+    [filterVerified, filterBiolink],
+  );
+
+  // Route a universal result to the right place. Contacts open the in-app
+  // profile; people / links open their public URL; workspaces have no mobile
+  // switch target so they're informational.
+  const openUniversalItem = useCallback(
+    (item: DialerSearchItem) => {
+      const a = item.action || {};
+      if (item.type === "contact" && a.number) {
+        openProfile(a.number, {
+          contactId: a.contact_id ?? null,
+          name: item.title,
+        });
+        return;
+      }
+      if (a.url) void Linking.openURL(a.url);
+    },
+    // openProfile is stable (defined below via useCallback)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   const requestDeviceContacts = useCallback(async () => {
     try {
@@ -721,6 +774,77 @@ export default function DialerScreen() {
           )}
 
           <View style={styles.keypadWrap}>
+            {/* Keypad mode toggle: T9 digit grid ↔ alphanumeric keyboard.
+                Both write to the same query and feed the same universal search. */}
+            <View style={styles.modeToggle}>
+              {(["t9", "abc"] as const).map((m) => {
+                const active = keypadMode === m;
+                return (
+                  <Pressable
+                    key={m}
+                    onPress={() => setKeypadMode(m)}
+                    style={[
+                      styles.modeBtn,
+                      {
+                        backgroundColor: active ? colors.primary : colors.card,
+                        borderColor: active ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Feather
+                      name={m === "t9" ? "grid" : "type"}
+                      size={13}
+                      color={active ? "#fff" : colors.mutedForeground}
+                    />
+                    <Text
+                      style={{
+                        color: active ? "#fff" : colors.mutedForeground,
+                        fontSize: 12,
+                        fontFamily: "SpaceGrotesk_600SemiBold",
+                        marginLeft: 6,
+                      }}
+                    >
+                      {m === "t9" ? "T9" : "Keyboard"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Advanced filter chips (verification badge / on Sayzio). */}
+            <View style={styles.filterRow}>
+              {(
+                [
+                  { key: "verified", label: "Verified", on: filterVerified, set: setFilterVerified, icon: "check-circle" },
+                  { key: "biolink", label: "On Sayzio", on: filterBiolink, set: setFilterBiolink, icon: "link" },
+                ] as const
+              ).map((f) => (
+                <Pressable
+                  key={f.key}
+                  onPress={() => f.set((v) => !v)}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: f.on ? colors.primary : colors.card,
+                      borderColor: f.on ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Feather name={f.icon} size={12} color={f.on ? "#fff" : colors.mutedForeground} />
+                  <Text
+                    style={{
+                      color: f.on ? "#fff" : colors.mutedForeground,
+                      fontSize: 11,
+                      fontFamily: "SpaceGrotesk_500Medium",
+                      marginLeft: 5,
+                    }}
+                  >
+                    {f.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
             <View style={styles.numberRow}>
               <Text
                 numberOfLines={1}
@@ -744,77 +868,128 @@ export default function DialerScreen() {
               )}
             </View>
 
-            {/* T9 live matches */}
-            {keypadMatches.length > 0 && (
-              <View style={styles.t9Wrap}>
-                {keypadMatches.map((c) => {
-                  const phone = c.phones.find((p) => p.is_primary) ?? c.phones[0];
-                  const num = phone?.value_e164 || phone?.value || "";
-                  const name = contactName(c);
-                  return (
-                    <Pressable
-                      key={`t9-${c.id}`}
-                      onPress={() => num && openProfile(num, { contactId: c.id, name })}
-                      style={({ pressed }) => [
-                        styles.t9Row,
-                        { borderColor: colors.border, backgroundColor: pressed ? colors.muted : colors.card },
-                      ]}
-                    >
-                      <View style={[styles.t9Avatar, { backgroundColor: colors.primary }]}>
-                        <Text style={styles.t9Initials}>
-                          {name.slice(0, 2).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text
-                          numberOfLines={1}
-                          style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold" }}
-                        >
-                          {name}
-                        </Text>
-                        <Text
-                          numberOfLines={1}
-                          style={{ color: colors.mutedForeground, fontSize: 12 }}
-                        >
-                          {phone?.value}
-                        </Text>
-                      </View>
-                      <Pressable
-                        onPress={() => num && dial(num, name)}
-                        hitSlop={10}
-                        style={[styles.callPill, { backgroundColor: "#16a34a" }]}
-                      >
-                        <Feather name="phone" size={15} color="#fff" />
-                      </Pressable>
-                    </Pressable>
-                  );
-                })}
-              </View>
+            {/* Keyboard mode: full alphanumeric input feeding the same search. */}
+            {keypadMode === "abc" && (
+              <TextInput
+                value={number}
+                onChangeText={setNumber}
+                autoFocus
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="Name, handle, alias, keyword…"
+                placeholderTextColor={colors.mutedForeground}
+                style={[
+                  styles.abcInput,
+                  { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card },
+                ]}
+              />
             )}
 
-            <View style={styles.keypad}>
-              {KEYS.map((k) => (
-                <Pressable
-                  key={k.v}
-                  onPress={() => press(k.v)}
-                  onLongPress={k.v === "0" ? longPressZero : undefined}
-                  style={({ pressed }) => [
-                    styles.key,
-                    {
-                      backgroundColor: pressed ? colors.muted : colors.card,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.keyV, { color: colors.foreground }]}>{k.v}</Text>
-                  {k.sub && (
-                    <Text style={[styles.keySub, { color: colors.mutedForeground }]}>
-                      {k.sub}
+            {/* Universal grouped results (Contacts / People / My links /
+                Followed / Workspaces) — same contract as web + REST. */}
+            {uni && uni.groups.length > 0 && (
+              <View style={styles.t9Wrap}>
+                {uni.groups.map((g) => (
+                  <View key={g.key} style={{ marginBottom: 10 }}>
+                    <Text style={[styles.uniGroupLabel, { color: colors.mutedForeground }]}>
+                      {g.label} · {g.items.length}
                     </Text>
-                  )}
-                </Pressable>
-              ))}
-            </View>
+                    {g.items.map((item) => {
+                      const chanNum = item.action?.number || null;
+                      return (
+                        <View key={`${g.key}-${item.id}`} style={{ marginBottom: 6 }}>
+                          <Pressable
+                            onPress={() => openUniversalItem(item)}
+                            style={({ pressed }) => [
+                              styles.t9Row,
+                              { borderColor: colors.border, backgroundColor: pressed ? colors.muted : colors.card },
+                            ]}
+                          >
+                            <View style={[styles.t9Avatar, { backgroundColor: colors.primary }]}>
+                              <Text style={styles.t9Initials}>{item.initials}</Text>
+                            </View>
+                            <View style={{ flex: 1, minWidth: 0 }}>
+                              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                                <Text
+                                  numberOfLines={1}
+                                  style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold", flexShrink: 1 }}
+                                >
+                                  {item.title}
+                                </Text>
+                                {item.verified && (
+                                  <Feather name="check-circle" size={13} color={colors.primary} />
+                                )}
+                                {item.badge && (
+                                  <View style={[styles.uniBadge, { borderColor: colors.border }]}>
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 9, fontFamily: "SpaceGrotesk_600SemiBold" }}>
+                                      {item.badge}
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                              {!!item.subtitle && (
+                                <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 12 }}>
+                                  {item.subtitle}
+                                </Text>
+                              )}
+                            </View>
+                            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
+                              {item.type_label}
+                            </Text>
+                          </Pressable>
+                          {/* Direct app-connection links for results with a phone
+                              number — call / SMS / WhatsApp / Telegram / … in one
+                              tap, without leaving search. */}
+                          {!!chanNum && (
+                            <View style={styles.uniChannels}>
+                              {resolveChannels(channelPrefs).map((c) => (
+                                <Pressable
+                                  key={c.key}
+                                  onPress={() => chanOpen(c.js, chanNum)}
+                                  hitSlop={6}
+                                  style={[styles.uniChanBtn, { backgroundColor: c.color + "24" }]}
+                                >
+                                  <Feather name={featherName(c)} size={13} color={c.color} />
+                                </Pressable>
+                              ))}
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
+            )}
+            {uni && uni.groups.length === 0 && !uniLoading && (number.trim().length >= 2 || filterVerified || filterBiolink) && (
+              <Text style={[styles.uniEmpty, { color: colors.mutedForeground }]}>No matches</Text>
+            )}
+
+            {keypadMode === "t9" && (
+              <View style={styles.keypad}>
+                {KEYS.map((k) => (
+                  <Pressable
+                    key={k.v}
+                    onPress={() => press(k.v)}
+                    onLongPress={k.v === "0" ? longPressZero : undefined}
+                    style={({ pressed }) => [
+                      styles.key,
+                      {
+                        backgroundColor: pressed ? colors.muted : colors.card,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.keyV, { color: colors.foreground }]}>{k.v}</Text>
+                    {k.sub && (
+                      <Text style={[styles.keySub, { color: colors.mutedForeground }]}>
+                        {k.sub}
+                      </Text>
+                    )}
+                  </Pressable>
+                ))}
+              </View>
+            )}
 
             <View style={styles.actionRow}>
               <Pressable
@@ -1481,6 +1656,67 @@ const styles = StyleSheet.create({
   },
   t9Avatar: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   t9Initials: { color: "#fff", fontFamily: "SpaceGrotesk_700Bold", fontSize: 13 },
+  modeToggle: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  modeBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  abcInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    fontFamily: "SpaceGrotesk_500Medium",
+    marginBottom: 10,
+  },
+  uniGroupLabel: {
+    fontSize: 11,
+    fontFamily: "SpaceGrotesk_700Bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 5,
+  },
+  uniBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 5,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  uniEmpty: {
+    textAlign: "center",
+    fontSize: 13,
+    fontFamily: "SpaceGrotesk_500Medium",
+    paddingVertical: 16,
+  },
+  uniChannels: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingTop: 6,
+  },
+  uniChanBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   keypad: {
     flexDirection: "row",
     flexWrap: "wrap",

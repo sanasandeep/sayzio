@@ -32,3 +32,30 @@ through one shared read helper.
 
 - Mobile has no datetimepicker dep → callback uses fixed quick-pick presets
   (1h/3h/tomorrow/3d), not a calendar.
+
+## Universal finder (dialer search)
+
+- **Single source of truth is `app/Modules/User/Support/DialerSearch.php`** —
+  `universal(User,$q,$filters)` returns `{q,filter,total,groups[{key,label,items[]}]}`;
+  `contactsAdvanced()` for the richer contacts-only path. Web
+  (`User\Controllers\DialerController@search`, returns `{data}`), REST
+  (`Api\Controllers\DialerController@search` via `ApiResponses::ok`, `GET /api/v1/dialer/search`)
+  and mobile (`lib/api/dialer.ts` `dialerSearch`) ALL call it — never re-derive the
+  grouped shape per surface.
+- **Groups**: Contacts, People, My links, Followed, Workspaces. `GROUP_LIMIT=12`.
+  People scope = self + `Follow.creator_id` + `contacts.biolink_user_id`.
+- **Visibility gating** mirrors biolink enforcement (`canViewLink()`): public/registered/
+  followers pass for an authed dialer user; `subscribers` needs an active `Subscriber`
+  with email; only biolink-family + `['url','file','ics','vcf','reviews','paid_page','brand_kit']`
+  are gated. Keywords come from `settings #>> '{biolink,meta,keywords}'`; alias back-halves
+  from `LinkAlias`.
+- **Verification badge** = `links.is_verified` + `verified_name`; a *person* is "verified"
+  if they own any `is_verified` link. Filter chips: `verified` (query param `filter=verified`)
+  and `has_biolink` ("On Sayzio").
+- **Keypad toggle (T9 grid ↔ alphanumeric keyboard)** exists on BOTH web
+  (`setKeypadMode` in `user/dialer/index.blade.php`) and mobile (`keypadMode` state in
+  `app/dialer.tsx`); both modes write one query that feeds the same universal search.
+  T9 smart-dial stays server-side (mobile dropped its client-side `runT9Search` render).
+- **Mobile action routing** (`openUniversalItem`): `type==='contact'` → in-app
+  `openProfile(number,...)`; anything with `action.url` → `Linking.openURL`; workspaces
+  have no mobile switch target (informational only — web uses the POST switch route).

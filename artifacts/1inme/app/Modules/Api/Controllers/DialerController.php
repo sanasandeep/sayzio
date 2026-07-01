@@ -13,6 +13,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Support\DialerChannels;
 use App\Modules\User\Support\DialerData;
 use App\Modules\User\Support\DialerIdentity;
+use App\Modules\User\Support\DialerSearch;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
@@ -29,6 +30,24 @@ use Illuminate\Support\Facades\Schema;
 class DialerController extends Controller
 {
     use ApiResponses;
+
+    /**
+     * Universal finder — grouped search across Contacts, People, My links,
+     * Followed and Workspaces. Mirrors the web dialer 1:1 via the shared
+     * DialerSearch contract so web/API/mobile never drift.
+     */
+    public function search(Request $request)
+    {
+        $user = $request->user();
+        $q = trim((string) $request->query('q', ''));
+        $filters = [
+            'filter'      => $request->query('filter'),
+            'tag'         => $request->query('tag'),
+            'has_biolink' => $request->boolean('has_biolink'),
+        ];
+
+        return $this->ok(DialerSearch::universal($user, $q, $filters));
+    }
 
     public function lookup(Request $request)
     {

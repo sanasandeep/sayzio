@@ -340,6 +340,27 @@ class DialerController extends Controller
     }
 
     /**
+     * Universal finder — grouped search across Contacts, People, My links,
+     * Followed and Workspaces (see DialerSearch for the shared contract). Fed
+     * by BOTH keypad modes (T9 grid + alphanumeric keyboard) and the advanced
+     * search box; also powers the REST + mobile surfaces via the same class.
+     */
+    public function search(Request $request)
+    {
+        $user = $request->user();
+        $q = trim((string) $request->query('q', ''));
+        $filters = [
+            'filter'      => $request->query('filter'),
+            'tag'         => $request->query('tag'),
+            'has_biolink' => $request->boolean('has_biolink'),
+        ];
+
+        return response()->json([
+            'data' => \App\Modules\User\Support\DialerSearch::universal($user, $q, $filters),
+        ]);
+    }
+
+    /**
      * Shared contact search supporting T9 smart-dial. A pure digit sequence
      * matches phone numbers (substring) OR keypad-spelled names; free text
      * matches names + numbers as before.

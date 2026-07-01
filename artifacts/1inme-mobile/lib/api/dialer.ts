@@ -213,6 +213,74 @@ export async function clearCallback(id: number): Promise<void> {
   await apiFetch(`/dialer/callback/${id}`, { method: "DELETE" });
 }
 
+// ── Universal finder ─────────────────────────────────────────────────
+// One grouped search across Contacts, People, My links, Followed and
+// Workspaces. Backed by the same server class (DialerSearch) as web + REST
+// so the three surfaces can never drift. Fed by BOTH keypad modes (T9 grid
+// + alphanumeric keyboard) on the mobile dialer.
+
+export type DialerSearchAction = {
+  kind: string;
+  url: string | null;
+  number?: string | null;
+  contact_id?: number | null;
+  handle?: string | null;
+  user_id?: number | null;
+  link_id?: number | null;
+  edit_url?: string | null;
+  switch_url?: string | null;
+  workspace_id?: number | null;
+};
+
+export type DialerSearchItem = {
+  type: string;
+  category: string;
+  id: number;
+  title: string;
+  subtitle: string;
+  type_label: string;
+  initials: string;
+  badge: string | null;
+  verified: boolean;
+  verified_label: string | null;
+  action: DialerSearchAction;
+};
+
+export type DialerSearchGroup = {
+  key: string;
+  label: string;
+  items: DialerSearchItem[];
+};
+
+export type DialerSearchResult = {
+  q: string;
+  filter: string | null;
+  total: number;
+  groups: DialerSearchGroup[];
+};
+
+export type DialerSearchFilters = {
+  verified?: boolean;
+  has_biolink?: boolean;
+  tag?: string;
+};
+
+/** Universal grouped finder. Same contract as the web + REST dialer search. */
+export async function dialerSearch(
+  q: string,
+  filters: DialerSearchFilters = {},
+): Promise<DialerSearchResult> {
+  const qs = new URLSearchParams();
+  if (q) qs.set("q", q);
+  if (filters.verified) qs.set("filter", "verified");
+  if (filters.has_biolink) qs.set("has_biolink", "1");
+  if (filters.tag) qs.set("tag", filters.tag);
+  const res = await apiFetch<{ data: DialerSearchResult }>(
+    `/dialer/search?${qs.toString()}`,
+  );
+  return res.data;
+}
+
 // ── Preferred messaging channels ─────────────────────────────────────
 // Which of call / SMS / WhatsApp / Telegram / Signal / Viber the one-tap
 // channel rows show. Single source of truth shared with the web dialer via
