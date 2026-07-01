@@ -4,6 +4,7 @@ namespace App\Modules\User\Services\Contacts;
 
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\LinkedIdentifier;
+use App\Modules\User\Support\DialerReachability;
 
 class BiolinkAttachResolver
 {
@@ -26,6 +27,10 @@ class BiolinkAttachResolver
             if (!$matched) continue;
             if ($matched->id === $contact->user_id) continue; // don't auto-attach own account
             if ($detached->contains($matched->id)) continue;
+            // Never auto-attach a creator the contact owner can't reach right
+            // now (suspended/deactivated, or one that has blocked the owner);
+            // that seeds the caller-ID surface with an unreachable account.
+            if (!DialerReachability::reaches($contact->user_id, $matched)) continue;
 
             if ($contact->biolink_user_id !== $matched->id) {
                 $contact->forceFill([

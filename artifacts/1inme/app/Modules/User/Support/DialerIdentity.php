@@ -59,6 +59,10 @@ class DialerIdentity
             $matchedUser = LinkedIdentifier::resolveUser('phone', $needle);
         }
 
+        // Never enrich caller-ID with a creator the searcher can't reach right
+        // now (suspended/deactivated, or one that has blocked the searcher).
+        $matchedUser = DialerReachability::enrichableCreator($owner->id, $matchedUser);
+
         $bio = null;
         if ($matchedUser) {
             $bio = Link::where('user_id', $matchedUser->id)

@@ -13,6 +13,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Support\DialerChannels;
 use App\Modules\User\Support\DialerData;
 use App\Modules\User\Support\DialerIdentity;
+use App\Modules\User\Support\DialerReachability;
 use App\Modules\User\Support\DialerSearch;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -74,6 +75,9 @@ class DialerController extends Controller
         if (!$matchedUser) {
             $matchedUser = LinkedIdentifier::resolveUser('phone', $e164);
         }
+        // Never enrich caller-ID with a creator the searcher can't reach right
+        // now (suspended/deactivated, or one that has blocked the searcher).
+        $matchedUser = DialerReachability::enrichableCreator($userId, $matchedUser);
         $bio = null;
         if ($matchedUser) {
             $bio = Link::where('user_id', $matchedUser->id)
