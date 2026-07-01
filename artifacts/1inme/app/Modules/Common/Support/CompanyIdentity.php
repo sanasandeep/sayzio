@@ -82,6 +82,12 @@ class CompanyIdentity
                 'type'    => 'email',
                 'default' => '',
             ],
+            'company_email_grievance' => [
+                'label'   => 'Grievance officer email',
+                'help'    => 'Mailbox for the Grievance Officer (expected under the India IT Rules / DPDP Act).',
+                'type'    => 'email',
+                'default' => '',
+            ],
             'company_website_url' => [
                 'label'   => 'Public website URL',
                 'help'    => 'The canonical marketing website URL (used to derive default email domains).',
@@ -120,7 +126,7 @@ class CompanyIdentity
             return $val;
         }
 
-        if (in_array($key, ['company_email_general', 'company_email_legal', 'company_email_privacy'], true)) {
+        if (in_array($key, ['company_email_general', 'company_email_legal', 'company_email_privacy', 'company_email_grievance'], true)) {
             if ($key === 'company_email_general') {
                 $inbox = trim((string) AppSetting::get('contact_recipient_email', ''));
                 if ($inbox !== '') {
@@ -128,9 +134,10 @@ class CompanyIdentity
                 }
             }
             $localPart = [
-                'company_email_general' => 'hello',
-                'company_email_legal'   => 'legal',
-                'company_email_privacy' => 'privacy',
+                'company_email_general'   => 'support',
+                'company_email_legal'     => 'legal',
+                'company_email_privacy'   => 'privacy',
+                'company_email_grievance' => 'grievance',
             ][$key];
             return $localPart . '@' . self::emailDomain();
         }
@@ -183,6 +190,7 @@ class CompanyIdentity
             'company_email_general'      => self::value('company_email_general'),
             'company_email_legal'        => self::value('company_email_legal'),
             'company_email_privacy'      => self::value('company_email_privacy'),
+            'company_email_grievance'    => self::value('company_email_grievance'),
             'company_website_url'        => self::value('company_website_url'),
             'app_name'                   => (string) config('app.name', 'Sayzio'),
         ];
@@ -218,7 +226,7 @@ class CompanyIdentity
         $host = preg_replace('/^www\./i', '', (string) $host);
         $host = trim((string) $host);
         if ($host === '' || $host === 'localhost') {
-            return 'sayzio.com';
+            return 'sayzio.app';
         }
         return $host;
     }

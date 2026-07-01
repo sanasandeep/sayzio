@@ -7,19 +7,23 @@ description: How the admin-editable company identity flows into legal pages, and
 
 `CompanyIdentity` (Common/Support) is the single source for the operating
 company's legal identity (legal name, registered address, jurisdiction
-city/state/country, general/legal/privacy-DPO emails, website URL). Each field
-is one `AppSetting` key; blanks fall back to code defaults (Hyderabad, Telangana,
-India; emails derived from website domain → `contact_recipient_email`).
+city/state/country, general/legal/privacy-DPO/grievance emails, website URL).
+Each field is one `AppSetting` key; blanks fall back to code defaults (Hyderabad,
+Telangana, India; email local-parts are fixed — general→`support`, `legal`,
+`privacy`, `grievance` — on `emailDomain()` which falls back to `sayzio.app`).
+`grievance@` is the India IT-Rules / DPDP-Act Grievance Officer mailbox.
 `tokens()`/`substitute()` replace `{{company_*}}`, `{{jurisdiction*}}`,
 `{{app_name}}` tokens in policy section bodies/intros at render time
 (`public/policy.blade.php`) and feed the footer.
 
 ## Policy seed-version refresh rule (the non-obvious part)
 
-`SitePagesContent::policyDefaults()` is the **current** (V2) default set with
-tokens + AWS/AI/tracking-pixel disclosures. Prior frozen snapshots live in
-`policyDefaultsV1()` and `richDefaults()`, surfaced together via
-`policyPreviousDefaults()` (keyed by slug → list of {title,meta,intro,sections}).
+`SitePagesContent::policyDefaults()` is the **current** (V3) default set: deep
+Terms/Privacy/Refunds/GDPR copy, all contacts token-driven onto the dedicated
+mailboxes, plus grievance-officer sections. Prior frozen snapshots live in
+`richDefaults()`, `policyDefaultsV1()` and `policyDefaultsV2()`, surfaced together
+via `policyPreviousDefaults()` (keyed by slug → list of {title,meta,intro,sections}).
+Cookies V3 is byte-identical to V2 (its emails are already token-driven).
 
 **Why multiple snapshots:** an untouched page may match *any* earlier shipped
 default, not just the immediately previous one. So both the seeder and the
