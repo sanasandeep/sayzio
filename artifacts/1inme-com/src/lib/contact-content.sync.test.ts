@@ -95,15 +95,24 @@ describe("marketing contact fallback stays in sync with the product app", () => 
     email: readPhpDefault(body, "email"),
     address: readPhpDefault(body, "address"),
     phone: readPhpDefault(body, "phone"),
+    hours: readPhpDefault(body, "hours"),
   };
 
-  // Only the fields the marketing Contact page actually renders from the
-  // fallback are guarded. Hours/social deliberately differ (the marketing
-  // fallback keeps social blank), so they are out of scope.
-  it.each(["email", "address", "phone"] as const)(
+  // The scalar fields the marketing Contact page renders from the fallback —
+  // email, address, blank phone and business hours — must match the canonical
+  // PHP source. Social links deliberately differ (the marketing fallback keeps
+  // them blank) and there is no map field here, so those stay out of scope.
+  it.each(["email", "address", "phone", "hours"] as const)(
     "DEFAULT_CONTACT_CONTENT.%s matches SitePagesContent::contactExtraDefault()",
     (field) => {
       expect(DEFAULT_CONTACT_CONTENT[field]).toBe(phpDefaults[field]);
     },
   );
+
+  // A fake/placeholder phone number is the worst regression, so pin it blank
+  // explicitly in both the canonical source and the marketing fallback.
+  it("keeps the phone blank in both the PHP source and the marketing fallback", () => {
+    expect(phpDefaults.phone).toBe("");
+    expect(DEFAULT_CONTACT_CONTENT.phone).toBe("");
+  });
 });

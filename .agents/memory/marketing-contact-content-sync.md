@@ -27,23 +27,32 @@ blog feed pattern.
 **Why:** a fetch failure or a one-sided defaults edit must never surface stale
 placeholders (an old support@ address, a made-up phone, the wrong city). The
 duplicate defaults are the fallback shown when the API is unreachable, so if
-<<<<<<< HEAD
-they drift from the PHP source the marketing site silently misrepresents the
-company. Coverage lives in a server feature test (defaults vs admin-override
-paths) plus a frontend test (renders fetched values; falls back to brand
-defaults on fetch failure).
+they drift from the PHP source a client silently misrepresents the company.
+Coverage lives in a server feature test (defaults vs admin-override paths) plus
+frontend tests (renders fetched values; falls back to brand defaults on fetch
+failure).
 
-**Drift guard:** `contact-content.sync.test.ts` (in `1inme-com/src/lib`, part of
-the `test:1inme-com` validation via `vitest run`) reads the PHP source at
-runtime, extracts `contactExtraDefault()`'s email/address/phone, and asserts
-they equal `DEFAULT_CONTACT_CONTENT` — no hard-coded third copy. It scopes the
-regex to the method body (keys like `email` recur in the form/messages
-sub-arrays) and decodes PHP string escapes (double-quoted `\n` → newline). Only
-email/address/phone are guarded: hours/social deliberately differ (the marketing
-fallback keeps social blank). Renaming the PHP method or changing the return
-shape makes the test throw a clear message, not silently pass.
+**Drift guards (TWO, both source-driven — read the canonical PHP + the shipped
+client at runtime, no hard-coded third copy):**
+- Marketing: `contact-content.sync.test.ts` (`1inme-com/src/lib`, in the
+  `test:1inme-com` vitest gate) guards email/address/phone/hours + an explicit
+  blank-phone assertion. Social deliberately blank there and there is NO map
+  field, so both stay out of scope.
+- Mobile: `scripts/test-contact-content-sync.mjs` (`test:contact-content`,
+  chained into `test:unit` → the `mobile-unit` validation gate). The mobile
+  fallback FULLY mirrors PHP, so it guards address/email/blank-phone/hours/
+  social(all 5 links)/map(lat/lng/zoom/label). Evals the shipped
+  `DEFAULT_CONTACT_CONTENT` object literal via `new Function`.
+  - COMPLEMENTARY sibling `scripts/test-contact-details.mjs`
+    (`test:contact-details`, also in `test:unit`) is NOT a drift guard — it
+    tests `fetchContactContent` runtime merge/offline/cache BEHAVIOR + screen
+    wiring with hardcoded expectations. Keep BOTH; different risks.
 
-Mobile (`1inme-mobile/lib/api/siteContent.ts`) now includes `DEFAULT_CONTACT_CONTENT`
-to ensure parity. fetchContactContent() merges server results with these defaults
-and returns the full default on failure, ensuring the screen never renders a blank
-card.
+Both drift guards scope the regex to the `contactExtraDefault()` body (keys like `email`
+recur in the form/messages sub-arrays), decode PHP escapes (double-quoted `\n` →
+newline), and throw a clear message if the method is renamed / shape changes.
+Phone MUST stay blank in the canonical source AND every client (no fake number).
+
+Not guarded: the mobile **About** screen's separate `FALLBACK_EEFIND`
+(parent-company address/email in `app/info/about.tsx`) — same drift risk, no
+guard yet (tracked as a follow-up).
