@@ -8,6 +8,7 @@ use App\Modules\Admin\Models\CardTemplate;
 use App\Modules\Admin\Models\PageTemplate;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Admin\Services\TemplateService;
+use App\Modules\Common\Support\TemplateGalleryHealth;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Support\TemplateSnapshotValidator;
@@ -82,6 +83,10 @@ class TemplateController extends Controller
         }
         $modelClass::create($payload);
 
+        // Let the empty-gallery dashboard banner clear immediately instead of
+        // waiting out the cache TTL.
+        TemplateGalleryHealth::flush();
+
         return redirect()->route('admin.templates.index', ['tab' => $kind])
             ->with('success', ucfirst($kind) . ' template created.');
     }
@@ -141,6 +146,9 @@ class TemplateController extends Controller
         }
         $tpl->fill($fillPayload)->save();
 
+        // is_active may have flipped — refresh the empty-gallery banner signal.
+        TemplateGalleryHealth::flush();
+
         return redirect()->route('admin.templates.index', ['tab' => $kind])
             ->with('success', ucfirst($kind) . ' template updated.');
     }
@@ -149,6 +157,10 @@ class TemplateController extends Controller
     {
         $tpl = $this->resolve($kind, $id);
         $tpl->delete();
+
+        // Deleting the last active template must re-arm the empty-gallery banner.
+        TemplateGalleryHealth::flush();
+
         return redirect()->route('admin.templates.index', ['tab' => $kind])
             ->with('success', ucfirst($kind) . ' template deleted.');
     }
@@ -208,6 +220,10 @@ class TemplateController extends Controller
         $tpl = $this->resolve($kind, $id);
         $tpl->is_active = !$tpl->is_active;
         $tpl->save();
+
+        // Active count changed — refresh the empty-gallery banner signal.
+        TemplateGalleryHealth::flush();
+
         return back()->with('success', 'Template ' . ($tpl->is_active ? 'activated' : 'deactivated') . '.');
     }
 
@@ -231,6 +247,9 @@ class TemplateController extends Controller
 
         $isActive = $data['action'] === 'activate';
         $count = $modelClass::whereIn('id', $data['ids'])->update(['is_active' => $isActive]);
+
+        // Bulk (de)activation can empty or restock the gallery — refresh the banner.
+        TemplateGalleryHealth::flush();
 
         $verb = $isActive ? 'activated' : 'deactivated';
         return redirect()->route('admin.templates.index', ['tab' => $kind])

@@ -7,6 +7,7 @@ use App\Modules\Common\Support\ContactRecipientHealth;
 use App\Modules\Common\Support\ExpectedSchemaHealth;
 use App\Modules\Common\Support\SchemaHealth;
 use App\Modules\Common\Support\StatsStorageHealth;
+use App\Modules\Common\Support\TemplateGalleryHealth;
 use App\Modules\Common\Support\WorkspaceColumnHealth;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Admin;
@@ -55,7 +56,13 @@ class DashboardController extends Controller
         // notified by email. Cached.
         $contactRecipientHealth = ContactRecipientHealth::cached();
 
-        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage', 'contactRecipientHealth'));
+        // Proactive empty-onboarding-gallery warning: zero active page templates,
+        // so the onboarding wizard silently degrades to its "No templates
+        // available yet" escape and new users land on a bare setup screen with
+        // nobody being told. Cached.
+        $templateGalleryHealth = TemplateGalleryHealth::cached();
+
+        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage', 'contactRecipientHealth', 'templateGalleryHealth'));
     }
 
     /**

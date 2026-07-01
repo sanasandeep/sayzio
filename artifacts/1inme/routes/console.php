@@ -393,6 +393,19 @@ Schedule::command('templates:check-design-health')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: detect an empty onboarding template gallery (zero active page
+// templates). The onboarding wizard gracefully degrades to a "No templates
+// available yet" escape when a persona/plan has nothing to offer — the right
+// safety net for the end user, but it fails silently for the operator, so new
+// users can quietly land on a bare setup screen for days. This is the automated
+// safety net: it alerts ops admins (in-app + email) when the gallery goes empty
+// and sends an all-clear once a template is added/re-activated. No-op when at
+// least one active template exists; cooldown-guarded so it won't spam admins.
+Schedule::command('templates:check-gallery')
+    ->hourlyAt(55)
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Task #1211 — weekly creator digest. Mondays 08:00 UTC. The service
 // itself dedupes by users.creator_digest_last_sent_at so reruns inside
 // the same week are no-ops, and only emails creators with at least one
