@@ -196,7 +196,7 @@ class DialerController extends Controller
             ->when(!$contact && $e164, fn ($q) => $q->where('number_e164', $e164)->whereNull('contact_id'))
             ->first();
         if ($existing) {
-            return response()->json(['data' => ['favorite' => DialerData::transformFavorite($existing->load('contact.phones')), 'already' => true]]);
+            return response()->json(['data' => ['favorite' => DialerData::transformSingleFavorite($existing, $user->id), 'already' => true]]);
         }
 
         $max = (int) DialerFavorite::where('user_id', $user->id)->max('sort_order');
@@ -208,7 +208,7 @@ class DialerController extends Controller
             'sort_order'  => $max + 1,
         ]);
 
-        return response()->json(['data' => ['favorite' => DialerData::transformFavorite($fav->load('contact.phones'))]]);
+        return response()->json(['data' => ['favorite' => DialerData::transformSingleFavorite($fav, $user->id)]]);
     }
 
     public function favoriteDestroy(Request $request, int $favorite)

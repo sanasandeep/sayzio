@@ -19,15 +19,48 @@ class DialerData
     /** Speed-dial favorites for a user, ordered, enriched. */
     public static function favorites(int $userId): array
     {
-        return DialerFavorite::where('user_id', $userId)
-            ->with('contact.phones')
+        $favorites = DialerFavorite::where('user_id', $userId)
+            ->with(['contact.phones', 'contact.biolinkUser'])
             ->orderBy('sort_order')->orderBy('id')
-            ->get()
-            ->map(fn ($f) => self::transformFavorite($f))
+            ->get();
+
+        // Batch the caller-ID reachability check across every favorited
+        // contact's attached creator so a suspended/blocking creator is not
+        // badged (matching recents/frequent + the single-lookup gate), using a
+        // single `user_blocks` query for the whole list — never one per row.
+        $contactsByNumber = [];
+        foreach ($favorites as $f) {
+            if ($f->contact) {
+                $contactsByNumber[] = $f->contact;
+            }
+        }
+        $reachable = self::reachableBiolinkIds($userId, $contactsByNumber);
+
+        return $favorites
+            ->map(fn ($f) => self::transformFavorite($f, $reachable))
             ->all();
     }
 
-    public static function transformFavorite(DialerFavorite $f): array
+    /**
+     * Enrich a SINGLE favorite (add/toggle responses) with the same caller-ID
+     * reachability gate the list uses, resolving the block/status check for the
+     * one attached creator so the `biolink` badge never leaks a suspended /
+     * blocking creator.
+     */
+    public static function transformSingleFavorite(DialerFavorite $f, int $userId): array
+    {
+        $f->loadMissing(['contact.phones', 'contact.biolinkUser']);
+        $reachable = $f->contact
+            ? self::reachableBiolinkIds($userId, [$f->contact])
+            : [];
+        return self::transformFavorite($f, $reachable);
+    }
+
+    /**
+     * @param array<int,bool> $reachable Pre-computed creatorId => reachable map;
+     *        when omitted the badge is suppressed (fail-closed).
+     */
+    public static function transformFavorite(DialerFavorite $f, array $reachable = []): array
     {
         $contact = $f->contact;
         $number = $f->number_e164
@@ -39,7 +72,7 @@ class DialerData
             'number_e164' => $f->number_e164 ?: ($contact?->phones->first()?->value_e164),
             'label'       => $f->label ?: ($contact?->nameForDisplay() ?: $number),
             'initials'    => $contact?->initials() ?: self::numberInitials($number),
-            'biolink'     => (bool) ($contact?->biolink_user_id),
+            'biolink'     => self::contactHasReachableBiolink($contact, $reachable),
             'sort_order'  => $f->sort_order,
         ];
     }

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\ContactPhone;
+use App\Modules\User\Models\DialerFavorite;
 use App\Modules\User\Models\DialerLookup;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
@@ -96,7 +97,87 @@ class DialerCallerIdReachabilityScaleTest extends TestCase
         return $contact;
     }
 
+    /**
+     * A saved contact for $owner whose phone matches $e164, attached to
+     * $creator's biolink, and pinned as a speed-dial favorite.
+     */
+    private function seedAttachedFavorite(User $owner, string $e164, User $creator): DialerFavorite
+    {
+        $contact = Contact::create([
+            'user_id'         => $owner->id,
+            'display_name'    => 'Fav ' . Str::random(4),
+            'biolink_user_id' => $creator->id,
+        ]);
+        ContactPhone::create([
+            'contact_id' => $contact->id,
+            'value'      => $e164,
+            'value_e164' => $e164,
+            'is_primary' => true,
+        ]);
+        return DialerFavorite::create([
+            'user_id'     => $owner->id,
+            'contact_id'  => $contact->id,
+            'number_e164' => $e164,
+            'sort_order'  => DialerFavorite::where('user_id', $owner->id)->count() + 1,
+        ]);
+    }
+
     // ===== Correctness — the batch render obeys the gate =====
+
+    public function test_favorites_hide_a_suspended_or_blocking_creators_biolink_badge(): void
+    {
+        $owner = $this->makeUser('owner');
+
+        // Reachable creator → badge stays on.
+        $okE164 = $this->uniqueE164();
+        $okC    = $this->makeCreatorWithPhone($okE164);
+        $this->seedAttachedFavorite($owner, $okE164, $okC);
+
+        // Suspended creator → badge must drop.
+        $suspE164 = $this->uniqueE164();
+        $suspC    = $this->makeCreatorWithPhone($suspE164, 'suspended');
+        $this->seedAttachedFavorite($owner, $suspE164, $suspC);
+
+        // Creator that blocked the owner → badge must drop.
+        $blkE164 = $this->uniqueE164();
+        $blkC    = $this->makeCreatorWithPhone($blkE164);
+        UserBlock::create(['blocker_user_id' => $blkC->id, 'blocked_user_id' => $owner->id]);
+        $this->seedAttachedFavorite($owner, $blkE164, $blkC);
+
+        $badgeByNumber = collect(DialerData::favorites($owner->id))
+            ->mapWithKeys(fn ($r) => [$r['number_e164'] => $r['biolink']]);
+
+        $this->assertTrue($badgeByNumber[$okE164], 'reachable creator keeps the caller-ID badge');
+        $this->assertFalse($badgeByNumber[$suspE164], 'suspended creator must not badge favorites');
+        $this->assertFalse($badgeByNumber[$blkE164], 'blocking creator must not badge favorites');
+    }
+
+    public function test_favorites_reachability_does_not_n_plus_1_on_user_blocks(): void
+    {
+        $owner = $this->makeUser('owner');
+
+        for ($i = 0; $i < 12; $i++) {
+            $e164    = $this->uniqueE164();
+            $creator = $this->makeCreatorWithPhone($e164);
+            if ($i % 4 === 0) {
+                UserBlock::create(['blocker_user_id' => $creator->id, 'blocked_user_id' => $owner->id]);
+            }
+            $this->seedAttachedFavorite($owner, $e164, $creator);
+        }
+
+        DB::enableQueryLog();
+        DialerData::favorites($owner->id);
+        $blockQueries = $this->countBlockQueries(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertLessThanOrEqual(
+            1,
+            $blockQueries,
+            'favorites caller-ID gating must batch the user_blocks check, not run it per row'
+        );
+    }
+
+    // ===== Correctness (recents/frequent) — the batch render obeys the gate =====
 
     public function test_recents_hide_a_suspended_or_blocking_creators_biolink_badge(): void
     {
