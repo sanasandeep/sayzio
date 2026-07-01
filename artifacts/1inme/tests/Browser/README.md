@@ -62,7 +62,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   header-mobile-account-menu.spec.ts \
   header-mobile-logged-out-cta.spec.ts \
   dashboard-mobile-account.spec.ts \
-  header-desktop-logged-out-cta.spec.ts
+  header-desktop-logged-out-cta.spec.ts \
+  dialer-live-sync.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -114,7 +115,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these twenty-three specs are gated (and not the whole suite)
+### Why these twenty-four specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -361,13 +362,31 @@ The gate covers the specs that run reliably as an unattended check here:
   auth modal on the correct tab (login → identifier field, register → name
   field). Guards the desktop sign-in entry points against silently drifting out
   of the header (memory user-sidebar-dual-nav).
+- `dialer-live-sync.spec.ts` — self-bootstrapping: it seeds the demo user
+  (active + verified + `onboarded_at` + the `user-admin` web role + a resolved
+  active workspace so the dialer route's `workspace.can:settings.view` gate
+  passes) and clears any leftover sentinel rows via `php artisan tinker`, logs
+  in, and lands on `/user/dialer`. Covers the browser half of the dialer
+  live-sync (the server contract is `tests/Feature/DialerLiveSyncTest.php`,
+  memory dialer-everyday): that the page's client poll/render loop actually
+  APPLIES another device's change to the DOM. Asserts the 12s auto-poll timer is
+  wired (a `setInterval` wrapper armed via `addInitScript` records a 12000ms
+  delay), that a distinctive sentinel favorite / call-log row is ABSENT on first
+  load, then — after creating it out-of-band via tinker ("another device") and
+  driving the page's own `window.pollLive()` — that it appears in
+  `#favorites-grid` / `#recent-list` (and the once-empty card un-hides) WITHOUT a
+  full page reload (a survives-across-refresh `window.__noReload` sentinel is
+  still set). The change is driven on demand rather than by waiting on the
+  background interval so the poll fires a bounded number of times instead of
+  saturating the few PHP-CLI workers (memory editor-e2e-heartbeat-saturation).
+  All tests share one logged-in context (the `demo-login` route is rate-limited).
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the twenty-three gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the twenty-four gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
