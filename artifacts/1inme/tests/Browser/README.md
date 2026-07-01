@@ -58,7 +58,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   home-ai-zone.spec.ts \
   onboarding-flow.spec.ts \
   dashboard-layout.spec.ts \
-  header-account-menu.spec.ts
+  header-account-menu.spec.ts \
+  header-mobile-account-menu.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -110,7 +111,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these twenty specs are gated (and not the whole suite)
+### Why these twenty-one specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -301,13 +302,27 @@ The gate covers the specs that run reliably as an unattended check here:
   overflow). Checked in both dark and light mode (the server `light-mode` html
   class). All tests share one logged-in context (the `demo-login` route is
   rate-limited).
+- `header-mobile-account-menu.spec.ts` — self-bootstrapping: it seeds the demo
+  user (active + verified + `onboarded_at`) via `php artisan tinker`, logs in,
+  and lands on `/contact` (the shared public header) on a MOBILE viewport
+  (400px, below `lg`) where the hamburger drawer is the only nav. Opens the
+  drawer and asserts the PARALLEL logged-in section (distinct from the desktop
+  dropdown) exposes a working "Dashboard" link (`-> /user/dashboard`) and a
+  "Sign out" logout form with the correct action (`route('user.logout')`),
+  method POST, and a non-empty CSRF token, then actually submits it and proves
+  the session ends (the authed drawer controls vanish and the logged-out CTAs
+  return). Checked in both dark and light mode (the server `light-mode` html
+  class). Guards the mobile drawer against silently drifting from the desktop
+  account controls (memory user-sidebar-dual-nav). All tests share one
+  logged-in context (the `demo-login` route is rate-limited); the destructive
+  logout test runs last and re-establishes the session on retry.
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the twenty gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the twenty-one gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
