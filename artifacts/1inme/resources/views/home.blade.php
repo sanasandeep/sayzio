@@ -2505,8 +2505,8 @@
      The home page now matches all other marketing pages, which use a sticky
      sidebar TOC (features, faqs, policy) instead of a horizontal sub-nav. --}}
 
+{{-- ==================== ZONE · HOOK & CREDIBILITY ==================== --}}
 @include('home.partials.hero')
-@include('home.partials.ai-hero')
 {{-- ============================ "1IN.ME is Sayzio" BRAND SECTION ============================ --}}
 @include('home.partials.brand-sayzio')
 {{-- ============================ MARQUEE STRIP ============================ --}}
@@ -2538,6 +2538,7 @@
 {{-- ============================ CREDIBILITY BAND (near-hero trust numbers) ============================ --}}
 @include('public.partials.marketing-trust-band')
 
+{{-- ==================== ZONE · WHO IT'S FOR & HOW IT WORKS ==================== --}}
 {{-- ============================ AUDIENCE (CREATORS / BUSINESSES / NETWORKING) ============================ --}}
 @php
     $__audiences = [
@@ -2684,6 +2685,7 @@
     </div>
 </section>
 
+{{-- ==================== ZONE · WHAT YOU CAN BUILD ==================== --}}
 {{-- ============================ 1 · BUILD ============================ --}}
 <section id="features" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -3706,9 +3708,93 @@
     </div>
 </section>
 
-@include('home.partials.ai-suite')
-@include('home.partials.ai-marketing-strategist')
-@include('home.partials.whatsapp-agent')
+{{-- ==================== ZONE · THE SAYZIO AI TEAM ==================== --}}
+<style>
+    /* Shared wash + intro that binds every AI section into one continuous zone. */
+    .ai-zone { position: relative; isolation: isolate; }
+    .ai-zone-wash {
+        position: absolute; inset: 0; z-index: -2; pointer-events: none;
+        background:
+            radial-gradient(ellipse 92% 52% at 50% 0%, rgba(61,107,255,.16), transparent 62%),
+            radial-gradient(ellipse 65% 45% at 12% 34%, rgba(27,212,217,.10), transparent 55%),
+            radial-gradient(ellipse 70% 50% at 88% 68%, rgba(92,131,255,.12), transparent 55%),
+            linear-gradient(180deg, transparent, rgba(61,107,255,.045) 16%, rgba(61,107,255,.045) 84%, transparent);
+    }
+    html.light-mode .ai-zone-wash {
+        background:
+            radial-gradient(ellipse 92% 52% at 50% 0%, rgba(61,107,255,.08), transparent 62%),
+            radial-gradient(ellipse 70% 52% at 88% 68%, rgba(92,131,255,.06), transparent 55%),
+            linear-gradient(180deg, transparent, rgba(61,107,255,.03) 16%, rgba(61,107,255,.03) 84%, transparent);
+    }
+    .ai-zone-aura {
+        position: absolute; z-index: -1; width: 520px; height: 520px; border-radius: 9999px;
+        filter: blur(120px); opacity: .18; pointer-events: none; will-change: transform;
+    }
+    .ai-zone-aura-a { top: 4%; left: -9%; background: #3d6bff; animation: aiZoneA 28s ease-in-out infinite; }
+    .ai-zone-aura-b { bottom: 6%; right: -7%; background: #1bd4d9; opacity: .13; animation: aiZoneB 34s ease-in-out infinite; }
+    @keyframes aiZoneA { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(70px,50px,0) scale(1.12); } }
+    @keyframes aiZoneB { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-60px,-46px,0) scale(1.1); } }
+    html.light-mode .ai-zone-aura { opacity: .08; }
+
+    .ai-zone-pill {
+        color: #90acff; background: rgba(61,107,255,.1); border: 1px solid rgba(61,107,255,.25);
+    }
+    html.light-mode .ai-zone-pill { color: #3d6bff; background: rgba(61,107,255,.08); }
+    .ai-zone-pill-dot {
+        width: 7px; height: 7px; border-radius: 9999px; background: #3d6bff;
+        box-shadow: 0 0 0 0 rgba(61,107,255,.55); animation: aiZonePulse 2.2s ease-out infinite;
+    }
+    @keyframes aiZonePulse { 0% { box-shadow: 0 0 0 0 rgba(61,107,255,.5); } 70% { box-shadow: 0 0 0 8px rgba(61,107,255,0); } 100% { box-shadow: 0 0 0 0 rgba(61,107,255,0); } }
+
+    .ai-zone-chip {
+        display: inline-flex; align-items: center; gap: 7px; font-size: .8rem; font-weight: 700;
+        padding: 8px 15px; border-radius: 9999px; color: #cbd5e1;
+        background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
+        transition: color .25s ease, border-color .25s ease, background .25s ease, transform .25s ease;
+    }
+    .ai-zone-chip:hover { color: #fff; border-color: rgba(61,107,255,.5); background: rgba(61,107,255,.12); transform: translateY(-2px); }
+    html.light-mode .ai-zone-chip { color: #475569; background: #fff; border-color: rgba(15,23,42,.1); }
+    html.light-mode .ai-zone-chip:hover { color: #0f172a; background: rgba(61,107,255,.08); }
+    .ai-zone-chip i { color: #3d6bff; font-size: .72rem; }
+
+    @media (prefers-reduced-motion: reduce) {
+        .ai-zone-aura, .ai-zone-pill-dot { animation: none !important; }
+    }
+</style>
+<div id="ai-zone" class="ai-zone relative overflow-hidden">
+    <div class="ai-zone-wash" aria-hidden="true"></div>
+    <div class="ai-zone-aura ai-zone-aura-a" aria-hidden="true"></div>
+    <div class="ai-zone-aura ai-zone-aura-b" aria-hidden="true"></div>
+
+    {{-- Shared zone intro --}}
+    <section class="relative pt-24 lg:pt-32 pb-2" aria-labelledby="ai-zone-h">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="reveal inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-[.2em] ai-zone-pill">
+                <span class="ai-zone-pill-dot" aria-hidden="true"></span> The Sayzio AI Zone
+            </div>
+            <h2 id="ai-zone-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mt-5 mb-5">
+                Your always-on <span class="grad-text">AI team</span>, built in.
+            </h2>
+            <p class="reveal rd-2 text-lg text-gray-400">
+                From your Link in Bio to your phone line, Sayzio ships a whole crew of AI coworkers — a page
+                builder, a chatbot, an agent, an embeddable widget, a voice receptionist, a marketing
+                strategist and a WhatsApp teammate. One login, all grounded in your real data.
+            </p>
+            <div class="reveal rd-3 mt-7 flex flex-wrap items-center justify-center gap-2.5">
+                <a href="#ai-suite" class="ai-zone-chip"><i class="fas fa-robot"></i> Chatbot &amp; Agent</a>
+                <a href="#ai-marketing-strategist" class="ai-zone-chip"><i class="fas fa-chart-line"></i> Marketing Strategist</a>
+                <a href="#whatsapp-agent" class="ai-zone-chip"><i class="fab fa-whatsapp"></i> WhatsApp Agent</a>
+            </div>
+        </div>
+    </section>
+
+    @include('home.partials.ai-hero')
+    @include('home.partials.ai-suite')
+    @include('home.partials.ai-marketing-strategist')
+    @include('home.partials.whatsapp-agent')
+</div>
+
+{{-- ==================== ZONE · DEEPER FEATURE SHOWCASE ==================== --}}
 @include('home.partials.resume')
 @include('home.partials.forms')
 @include('home.partials.notifications')
@@ -4051,6 +4137,7 @@
     </div>
 </section>
 
+{{-- ==================== ZONE · PROOF ==================== --}}
 {{-- ============================ BY THE NUMBERS (stats strip) ============================ --}}
 <section id="stats" class="py-12 lg:py-16 relative overflow-hidden" aria-label="By the numbers">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -4131,132 +4218,7 @@
     @endif
 </section>
 
-{{-- ============================ FAQ (homepage — searchable, chip-filtered) ============================ --}}
-@php
-    $__homeFaqGroups = \App\Modules\Common\Support\SitePagesContent::homepageFaqs();
-    $__homeFaqHighlights = \App\Modules\Common\Support\SitePagesContent::homepageFaqHighlights();
-    $__faqNode = \App\Modules\Common\Support\MarketingSchema::faqPage($__homeFaqHighlights);
-@endphp
-@if($__faqNode)
-<script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph([$__faqNode]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-@endif
-<section id="faq" class="pt-16 pb-10 lg:pt-20 lg:pb-12 relative overflow-hidden">
-    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-8">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
-            <h2 class="reveal rd-1 text-3xl sm:text-4xl font-bold tracking-tight mb-2">Questions? <span class="grad-text">Answered.</span></h2>
-            <p class="reveal rd-2 text-sm text-gray-400">How the AI builder, coach and the rest actually work — a quick highlight reel; the full searchable library lives on the FAQ page.</p>
-        </div>
-
-        <div class="reveal rd-3 space-y-3">
-            @foreach($__homeFaqHighlights as $f)
-                <details class="faq-item glass rounded-2xl px-5 py-4 hover:bg-white/[.06] transition-colors">
-                    <summary class="flex items-center justify-between gap-4 cursor-pointer">
-                        <span class="font-semibold text-sm sm:text-base pr-4">{{ $f['q'] }}</span>
-                        <span class="faq-icon w-6 h-6 rounded-full grad-bar text-white flex items-center justify-center font-bold flex-shrink-0">
-                            <i class="fas fa-plus text-[10px]"></i>
-                        </span>
-                    </summary>
-                    <p class="mt-3 text-sm text-gray-300 leading-relaxed">{{ $f['a'] }}</p>
-                </details>
-            @endforeach
-        </div>
-
-        <div class="reveal rd-4 mt-6 text-center">
-            <a href="{{ route('site.faqs') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-blue-200 transition">
-                Browse all answers <i class="fas fa-arrow-right text-xs"></i>
-            </a>
-        </div>
-    </div>
-</section>
-
-{{-- ============================ FEATURED POSTS CAROUSEL ============================ --}}
-@if(!empty($featuredBlogPosts) && $featuredBlogPosts->count())
-<section id="blog-featured" class="pt-14 pb-12 lg:pt-16 lg:pb-14 relative overflow-hidden">
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-end justify-between mb-10 gap-6 flex-wrap">
-            <div>
-                <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">From the blog</div>
-                <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-3">Featured <span class="grad-text">stories.</span></h2>
-                <p class="reveal rd-2 text-gray-400 max-w-xl">AI playbooks, product news and creator deep-dives — fresh from the Sayzio team.</p>
-            </div>
-            <a href="{{ route('site.blogs.index') }}" class="hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-blue-200 transition">
-                Browse all posts
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-            </a>
-        </div>
-
-        {{-- Snap-scroll carousel on mobile, 3-up grid from md+. --}}
-        <div class="-mx-4 sm:mx-0 px-4 sm:px-0 flex sm:grid sm:grid-cols-2 md:grid-cols-3 gap-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory scroll-smooth pb-4 sm:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            @foreach($featuredBlogPosts as $post)
-                <a href="{{ route('site.blogs.show', $post->slug) }}"
-                   class="group shrink-0 w-[85%] sm:w-auto snap-start block bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden hover:border-blue-500/40 transition reveal rd-{{ $loop->iteration + 1 }}">
-                    @if($post->cover_image)
-                        <div class="aspect-[16/9] bg-white/5 overflow-hidden">
-                            <img src="{{ $post->cover_image }}" alt="" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
-                        </div>
-                    @else
-                        <div class="aspect-[16/9]" style="background:rgba(61,107,255,.18);"></div>
-                    @endif
-                    <div class="p-6">
-                        @if($post->category)
-                            <span class="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full mb-3" style="background: {{ $post->category->color ? $post->category->color . '22' : 'rgba(61,107,255,.15)' }}; color: {{ $post->category->color ?: '#90acff' }};">{{ $post->category->name }}</span>
-                        @endif
-                        <h3 class="text-lg font-semibold text-white group-hover:text-blue-200 transition">{{ $post->title }}</h3>
-                        @if($post->excerpt)
-                            <p class="mt-2 text-sm text-gray-400 line-clamp-3">{{ $post->excerpt }}</p>
-                        @endif
-                        <div class="mt-4 flex items-center gap-2 text-xs text-white/50">
-                            <span>{{ optional($post->published_at)->format('M j, Y') }}</span>
-                            <span>·</span>
-                            <span>{{ $post->reading_time_min }} min read</span>
-                        </div>
-                    </div>
-                </a>
-            @endforeach
-        </div>
-
-        <div class="mt-8 sm:hidden text-center">
-            <a href="{{ route('site.blogs.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-blue-200 transition">
-                Browse all posts
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-            </a>
-        </div>
-    </div>
-</section>
-@endif
-
-{{-- ============================ TRUST BAND (security & reliability) ============================ --}}
-<section id="trust" class="py-12 lg:py-14 relative overflow-hidden" aria-label="Trust signals">
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="reveal glass rounded-3xl p-6 sm:p-8">
-            <div class="grid md:grid-cols-2 gap-6 items-center">
-                <div>
-                    <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-2" style="color:var(--c1)">Built on trust</div>
-                    <h3 class="text-2xl sm:text-3xl font-bold text-white leading-tight">Your data stays <span class="grad-text">your data.</span></h3>
-                    <p class="text-sm text-gray-400 mt-2">Encrypted in transit and at rest, GDPR-friendly by default, no third-party trackers on your published pages — ever.</p>
-                </div>
-                <ul class="grid grid-cols-2 gap-3">
-                    @foreach([
-                        ['fa-shield-halved', '99.9% uptime', 'Multi-region edge'],
-                        ['fa-lock', 'TLS 1.3', 'End-to-end encrypted'],
-                        ['fa-user-shield', 'GDPR-ready', 'EU/UK SCCs in place'],
-                        ['fa-server', 'Daily backups', '30-day retention'],
-                    ] as $i => $t)
-                        <li class="flex items-center gap-3 p-3 rounded-2xl bg-white/[.04] border border-white/5">
-                            <span class="w-10 h-10 rounded-xl flex items-center justify-center grad-bar shrink-0"><i class="fas {{ $t[0] }} text-white text-sm"></i></span>
-                            <div>
-                                <div class="text-sm font-bold text-white leading-tight">{{ $t[1] }}</div>
-                                <div class="text-[11px] text-gray-400">{{ $t[2] }}</div>
-                            </div>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-    </div>
-</section>
-
+{{-- ==================== ZONE · COMPARE & PRICING ==================== --}}
 {{-- ============================ HOW WE COMPARE ============================ --}}
 @include('public.partials._compare', ['teaser' => true, 'eyebrowOverride' => 'How we compare'])
 @php
@@ -4410,6 +4372,133 @@
 @endif
 
 @include('home.partials.pricing')
+{{-- ==================== ZONE · ANSWERS, TRUST & FINAL CTA ==================== --}}
+{{-- ============================ FAQ (homepage — searchable, chip-filtered) ============================ --}}
+@php
+    $__homeFaqGroups = \App\Modules\Common\Support\SitePagesContent::homepageFaqs();
+    $__homeFaqHighlights = \App\Modules\Common\Support\SitePagesContent::homepageFaqHighlights();
+    $__faqNode = \App\Modules\Common\Support\MarketingSchema::faqPage($__homeFaqHighlights);
+@endphp
+@if($__faqNode)
+<script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph([$__faqNode]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endif
+<section id="faq" class="pt-16 pb-10 lg:pt-20 lg:pb-12 relative overflow-hidden">
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-8">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
+            <h2 class="reveal rd-1 text-3xl sm:text-4xl font-bold tracking-tight mb-2">Questions? <span class="grad-text">Answered.</span></h2>
+            <p class="reveal rd-2 text-sm text-gray-400">How the AI builder, coach and the rest actually work — a quick highlight reel; the full searchable library lives on the FAQ page.</p>
+        </div>
+
+        <div class="reveal rd-3 space-y-3">
+            @foreach($__homeFaqHighlights as $f)
+                <details class="faq-item glass rounded-2xl px-5 py-4 hover:bg-white/[.06] transition-colors">
+                    <summary class="flex items-center justify-between gap-4 cursor-pointer">
+                        <span class="font-semibold text-sm sm:text-base pr-4">{{ $f['q'] }}</span>
+                        <span class="faq-icon w-6 h-6 rounded-full grad-bar text-white flex items-center justify-center font-bold flex-shrink-0">
+                            <i class="fas fa-plus text-[10px]"></i>
+                        </span>
+                    </summary>
+                    <p class="mt-3 text-sm text-gray-300 leading-relaxed">{{ $f['a'] }}</p>
+                </details>
+            @endforeach
+        </div>
+
+        <div class="reveal rd-4 mt-6 text-center">
+            <a href="{{ route('site.faqs') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-blue-200 transition">
+                Browse all answers <i class="fas fa-arrow-right text-xs"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+{{-- ============================ FEATURED POSTS CAROUSEL ============================ --}}
+@if(!empty($featuredBlogPosts) && $featuredBlogPosts->count())
+<section id="blog-featured" class="pt-14 pb-12 lg:pt-16 lg:pb-14 relative overflow-hidden">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-end justify-between mb-10 gap-6 flex-wrap">
+            <div>
+                <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">From the blog</div>
+                <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-3">Featured <span class="grad-text">stories.</span></h2>
+                <p class="reveal rd-2 text-gray-400 max-w-xl">AI playbooks, product news and creator deep-dives — fresh from the Sayzio team.</p>
+            </div>
+            <a href="{{ route('site.blogs.index') }}" class="hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-blue-200 transition">
+                Browse all posts
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+        </div>
+
+        {{-- Snap-scroll carousel on mobile, 3-up grid from md+. --}}
+        <div class="-mx-4 sm:mx-0 px-4 sm:px-0 flex sm:grid sm:grid-cols-2 md:grid-cols-3 gap-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory scroll-smooth pb-4 sm:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            @foreach($featuredBlogPosts as $post)
+                <a href="{{ route('site.blogs.show', $post->slug) }}"
+                   class="group shrink-0 w-[85%] sm:w-auto snap-start block bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden hover:border-blue-500/40 transition reveal rd-{{ $loop->iteration + 1 }}">
+                    @if($post->cover_image)
+                        <div class="aspect-[16/9] bg-white/5 overflow-hidden">
+                            <img src="{{ $post->cover_image }}" alt="" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        </div>
+                    @else
+                        <div class="aspect-[16/9]" style="background:rgba(61,107,255,.18);"></div>
+                    @endif
+                    <div class="p-6">
+                        @if($post->category)
+                            <span class="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full mb-3" style="background: {{ $post->category->color ? $post->category->color . '22' : 'rgba(61,107,255,.15)' }}; color: {{ $post->category->color ?: '#90acff' }};">{{ $post->category->name }}</span>
+                        @endif
+                        <h3 class="text-lg font-semibold text-white group-hover:text-blue-200 transition">{{ $post->title }}</h3>
+                        @if($post->excerpt)
+                            <p class="mt-2 text-sm text-gray-400 line-clamp-3">{{ $post->excerpt }}</p>
+                        @endif
+                        <div class="mt-4 flex items-center gap-2 text-xs text-white/50">
+                            <span>{{ optional($post->published_at)->format('M j, Y') }}</span>
+                            <span>·</span>
+                            <span>{{ $post->reading_time_min }} min read</span>
+                        </div>
+                    </div>
+                </a>
+            @endforeach
+        </div>
+
+        <div class="mt-8 sm:hidden text-center">
+            <a href="{{ route('site.blogs.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-blue-200 transition">
+                Browse all posts
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+        </div>
+    </div>
+</section>
+@endif
+
+{{-- ============================ TRUST BAND (security & reliability) ============================ --}}
+<section id="trust" class="py-12 lg:py-14 relative overflow-hidden" aria-label="Trust signals">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="reveal glass rounded-3xl p-6 sm:p-8">
+            <div class="grid md:grid-cols-2 gap-6 items-center">
+                <div>
+                    <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-2" style="color:var(--c1)">Built on trust</div>
+                    <h3 class="text-2xl sm:text-3xl font-bold text-white leading-tight">Your data stays <span class="grad-text">your data.</span></h3>
+                    <p class="text-sm text-gray-400 mt-2">Encrypted in transit and at rest, GDPR-friendly by default, no third-party trackers on your published pages — ever.</p>
+                </div>
+                <ul class="grid grid-cols-2 gap-3">
+                    @foreach([
+                        ['fa-shield-halved', '99.9% uptime', 'Multi-region edge'],
+                        ['fa-lock', 'TLS 1.3', 'End-to-end encrypted'],
+                        ['fa-user-shield', 'GDPR-ready', 'EU/UK SCCs in place'],
+                        ['fa-server', 'Daily backups', '30-day retention'],
+                    ] as $i => $t)
+                        <li class="flex items-center gap-3 p-3 rounded-2xl bg-white/[.04] border border-white/5">
+                            <span class="w-10 h-10 rounded-xl flex items-center justify-center grad-bar shrink-0"><i class="fas {{ $t[0] }} text-white text-sm"></i></span>
+                            <div>
+                                <div class="text-sm font-bold text-white leading-tight">{{ $t[1] }}</div>
+                                <div class="text-[11px] text-gray-400">{{ $t[2] }}</div>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- ============================ FINAL CTA ============================ --}}
 {{-- Visually distinct from the gradient hero blocks above: a single asymmetric
      glass card with a left-aligned headline + right-aligned action, so the
