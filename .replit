@@ -85,7 +85,7 @@ isValidation = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts biolink-editor-card-gallery-preview.spec.ts biolink-editor-palette-dnd.spec.ts cookie-consent-footer-gap.spec.ts cookie-consent-layout-styles.spec.ts cookie-consent-theme-match.spec.ts voice-assistant-bridge.spec.ts voice-assistant-panel.spec.ts slides-mode.spec.ts cookie-consent-footer-reserve.spec.ts home-hero-orbit-popover.spec.ts home-hero-claim-handle.spec.ts brand-consistency-apply-fix.spec.ts create-link-picker.spec.ts marketing-background-seam.spec.ts home-section-structure.spec.ts home-ai-zone.spec.ts onboarding-flow.spec.ts dashboard-layout.spec.ts"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts biolink-editor-card-gallery-preview.spec.ts biolink-editor-palette-dnd.spec.ts cookie-consent-footer-gap.spec.ts cookie-consent-layout-styles.spec.ts cookie-consent-theme-match.spec.ts voice-assistant-bridge.spec.ts voice-assistant-panel.spec.ts slides-mode.spec.ts cookie-consent-footer-reserve.spec.ts home-hero-orbit-popover.spec.ts home-hero-claim-handle.spec.ts brand-consistency-apply-fix.spec.ts create-link-picker.spec.ts marketing-background-seam.spec.ts home-section-structure.spec.ts home-ai-zone.spec.ts onboarding-flow.spec.ts dashboard-layout.spec.ts header-account-menu.spec.ts"
 
 [[workflows.workflow]]
 name = "e2e-mobile-main"

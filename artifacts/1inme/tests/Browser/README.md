@@ -57,7 +57,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   home-section-structure.spec.ts \
   home-ai-zone.spec.ts \
   onboarding-flow.spec.ts \
-  dashboard-layout.spec.ts
+  dashboard-layout.spec.ts \
+  header-account-menu.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -109,7 +110,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these nineteen specs are gated (and not the whole suite)
+### Why these twenty specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -288,13 +289,25 @@ The gate covers the specs that run reliably as an unattended check here:
   anything in the purple hue band, and scans the dashboard markup for a retired
   purple token (hex / `purple-`/`violet-` utility class / rgb). All tests share
   one logged-in context (the `demo-login` route is rate-limited).
+- `header-account-menu.spec.ts` — self-bootstrapping: it seeds the demo user
+  (active + verified + `onboarded_at`) via `php artisan tinker`, logs in, and
+  lands on a marketing page (`/contact`) that renders the shared public header.
+  Clicks the desktop account (user) icon and asserts the logged-in account
+  dropdown opens at its intended narrow width (Tailwind `w-44` ≈ 176px) — not
+  squashed and not stretched — that it does NOT carry the `.mkt-navbar-bar`
+  class (the exact Task #3278 regression that reused the navbar's responsive
+  width and collapsed the panel), that its width stays far below the navbar
+  bar's, and that "Sign out" renders on a single line (one client rect, no
+  overflow). Checked in both dark and light mode (the server `light-mode` html
+  class). All tests share one logged-in context (the `demo-login` route is
+  rate-limited).
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the nineteen gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the twenty gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
