@@ -28,3 +28,14 @@ check is directional — only "they blocked me" hides an account; a searcher-sid
 block does not. Read-side gating covers stale attachments (a creator suspended
 after auto-attach), so the auto-attach only needs to skip seeding new ones.
 Tests: `DialerCallerIdReachabilityTest` (mirrors `DialerSearchVisibilityTest`).
+
+**Stale-attachment cleanup (write-side):** read-side gating only HIDES a stale
+`contact.biolink_user_id`; the row persists and silently reappears if the creator
+becomes reachable again. `BiolinkAttachResolver::reconcile()` (scheduled hourly
+via `contacts:reconcile-attachments`) actively clears it, gated by the SAME
+`DialerReachability::reaches()` (single source of truth — don't re-derive the
+status/block rule). Decision that matters: a **block** (creator blocked owner)
+also records the id in detach memory (`detached_biolink_user_ids`) so an unblock
+can't silently re-attach; a **suspension/deactivation/deletion** is only cleared
+so reactivation re-attaches via `resolveFor`. Detach memory is never undone.
+Test: `ContactAttachmentReconcileTest`.

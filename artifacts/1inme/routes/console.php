@@ -63,6 +63,17 @@ Schedule::command('contacts:sync')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: clear caller-ID biolink attachments whose creator is no longer
+// reachable to the contact owner (suspended/deactivated/deleted, or has since
+// blocked the owner). The read-time gate already hides these, so this is
+// low-urgency cleanup that stops a stale attachment silently reappearing if the
+// creator becomes reachable again; a block additionally records a detach so it
+// can't re-attach after an unblock. Detach memory is always respected.
+Schedule::command('contacts:reconcile-attachments')
+    ->hourly()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every 30 minutes: pull inbound CRM contacts (Salesforce/HubSpot/Zoho) into
 // Sayzio contacts for every active, pull-enabled Connected Apps connection.
 Schedule::command('connected-apps:pull')

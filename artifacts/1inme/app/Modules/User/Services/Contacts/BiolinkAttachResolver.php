@@ -4,6 +4,8 @@ namespace App\Modules\User\Services\Contacts;
 
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\LinkedIdentifier;
+use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserBlock;
 use App\Modules\User\Support\DialerReachability;
 
 class BiolinkAttachResolver
@@ -57,6 +59,53 @@ class BiolinkAttachResolver
                 $contact->forceFill(['biolink_user_id' => null, 'biolink_attached_at' => null])->save();
             }
         }
+    }
+
+    /**
+     * Clean up a stale auto-attachment whose creator is no longer reachable to
+     * the contact owner. Reachability is decided by DialerReachability (the
+     * single source of truth also used at read time): a reachable creator is
+     * left untouched.
+     *
+     * When the creator has *blocked* the owner we record a detach so the
+     * attachment can never silently reappear if they later unblock — the owner
+     * can re-attach manually. A merely suspended/deactivated (or deleted)
+     * creator is only cleared, so a later reactivation lets the normal resolve
+     * path re-attach on the next sync.
+     *
+     * Detach memory is respected throughout: a manually detached creator was
+     * already cleared and never re-attaches, so this is a no-op for it.
+     */
+    public function reconcile(Contact $contact): void
+    {
+        $attachedId = $contact->biolink_user_id;
+        if (!$attachedId) return;
+
+        $creator = $contact->relationLoaded('biolinkUser')
+            ? $contact->biolinkUser
+            : User::find($attachedId);
+
+        // Still reachable right now — keep the attachment.
+        if (DialerReachability::reaches($contact->user_id, $creator)) {
+            return;
+        }
+
+        // Unreachable. If the cause is a directional block (creator blocked the
+        // owner) remember the detach so an unblock can't silently re-attach;
+        // otherwise (suspended/deactivated/deleted) just clear.
+        $blockedOwner = $creator && UserBlock::where('blocker_user_id', $creator->id)
+            ->where('blocked_user_id', $contact->user_id)
+            ->exists();
+
+        if ($blockedOwner) {
+            $this->detach($contact, (int) $attachedId);
+            return;
+        }
+
+        $contact->forceFill([
+            'biolink_user_id'     => null,
+            'biolink_attached_at' => null,
+        ])->save();
     }
 
     /** Mark a biolink as detached so a subsequent sync won't re-attach it. */
