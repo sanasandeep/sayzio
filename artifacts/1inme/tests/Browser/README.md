@@ -54,7 +54,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   brand-consistency-apply-fix.spec.ts \
   create-link-picker.spec.ts \
   marketing-background-seam.spec.ts \
-  home-section-structure.spec.ts
+  home-section-structure.spec.ts \
+  home-ai-zone.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -106,7 +107,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these sixteen specs are gated (and not the whole suite)
+### Why these seventeen specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -241,19 +242,47 @@ The gate covers the specs that run reliably as an unattended check here:
   `#ai-marketing-strategist`, `#whatsapp-agent`) all render inside the single
   `#ai-zone` wrapper. Catches a reorganisation that silently drops, duplicates,
   or moves a section anchor out of `#ai-zone` and breaks nav / jump / deep links.
+- `home-ai-zone.spec.ts` — no login/seeding. Loads `/` with a pre-seeded
+  consent cookie and, under `reducedMotion:"reduce"` (which disables the AI
+  Suite's own 5.4s scene auto-cycle so the scene only moves on click), guards
+  the consolidated home AI zone: all four AI Suite tabs (`[data-aisx-tab]`) are
+  present and clicking each swaps the live demo scene (`[data-aisx-scene]` /
+  `[data-aisx-screen]` title + selected state), the three jump chips
+  (`a.ai-zone-chip`) anchor-scroll to `#ai-suite`, `#ai-marketing-strategist`
+  and `#whatsapp-agent`, the active scene rests fully assembled (every
+  `.aisx-row` at opacity 1 — the reduced-motion fallback), and the page has no
+  horizontal overflow at desktop and mobile widths. Pins the AI zone behaviour
+  that was previously only verifiable by hand on a live instance.
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the sixteen gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the seventeen gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
 
 ## Specs
 
+- `home-ai-zone.spec.ts` — gated, no login/seeding. Loads `/` with a pre-seeded
+  consent cookie under `reducedMotion:"reduce"` (freezing the AI Suite's own
+  scene auto-cycle so it only advances on an explicit click, and disabling the
+  row-reveal keyframes). Asserts the interactive AI Suite demo works — all four
+  product cards/tabs (`[data-aisx-tab]`) exist and clicking each activates the
+  matching scene (`[data-aisx-scene].is-active`), updates the demo screen title
+  (`[data-aisx-title]`) and `aria-selected`, with exactly one scene active at a
+  time. Asserts the three zone jump chips (`a.ai-zone-chip[href="#..."]`)
+  scroll their target section (`#ai-suite`, `#ai-marketing-strategist`,
+  `#whatsapp-agent`) to the top of the viewport (the page intercepts in-page
+  anchor clicks with a global `scrollIntoView` handler, so the scroll position —
+  not a URL hash — is asserted). Asserts the active scene settles into its
+  assembled state (every `.aisx-row` at opacity 1, never stranded invisible),
+  and that the page has no
+  horizontal overflow (`documentElement.scrollWidth === clientWidth`) at a
+  desktop (1280px) and mobile (390px) width. Locks in the AI zone behaviour that
+  could previously only be verified manually on a live instance.
 - `marketing-background-seam.spec.ts` — gated, no login/seeding. Loads every
   marketing page that `@extends('public.layouts.site')` (about, analytics,
   audience, how-it-works, integrations, forms, notifications, buzz, domains,

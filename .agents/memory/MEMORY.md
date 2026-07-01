@@ -156,3 +156,4 @@
 - [Marketing site layout bg + sticky](marketing-site-layout-bg-sticky.md) — public.layouts.site must share home`s deep --bg/aurora; in-flow sticky <nav> needs display:contents on its Alpine wrapper (gated !$fixed).
 - [AppSetting cache invalidation](appsetting-cache-invalidation.md) — get() caches 5min, only put() forgets; raw Eloquent delete/update leaves stale config served (looks like a flake); use put() or `cache:clear`.
 - [Cookie-consent scroll lock scope](cookie-consent-scroll-lock.md) — only modal/takeover may lock page scroll (bodyOverflow:hidden via wantsScrollLock keyed on live layout); bar layouts (banner/inline/corner/pill) must never lock.
+- [Home e2e anchor + reduced-motion](home-anchor-and-reducedmotion-e2e.md) — home in-page anchor clicks don't set URL hash (assert scroll pos); reducedMotion emulation flaky in headless, assert settled end-state via expect.poll not an instant frame.
