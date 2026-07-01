@@ -24,3 +24,17 @@ they drift from the PHP source the marketing site silently misrepresents the
 company. Coverage lives in a server feature test (defaults vs admin-override
 paths) plus a frontend test (renders fetched values; falls back to brand
 defaults on fetch failure).
+
+**Drift guard:** `contact-content.sync.test.ts` (in `1inme-com/src/lib`, part of
+the `test:1inme-com` validation via `vitest run`) reads the PHP source at
+runtime, extracts `contactExtraDefault()`'s email/address/phone, and asserts
+they equal `DEFAULT_CONTACT_CONTENT` — no hard-coded third copy. It scopes the
+regex to the method body (keys like `email` recur in the form/messages
+sub-arrays) and decodes PHP string escapes (double-quoted `\n` → newline). Only
+email/address/phone are guarded: hours/social deliberately differ (the marketing
+fallback keeps social blank). Renaming the PHP method or changing the return
+shape makes the test throw a clear message, not silently pass.
+
+Mobile (`1inme-mobile/lib/api/siteContent.ts`) has NO contact fallback const —
+it returns null on fetch failure and renders nothing — so there is nothing to
+guard there.
