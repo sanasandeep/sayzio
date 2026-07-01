@@ -203,7 +203,46 @@ export default function BillingCompaniesScreen() {
           contentContainerStyle={{ padding: 20, gap: 10 }}
           ListHeaderComponent={
             <View style={{ gap: 10, marginBottom: 4 }}>
-              {showWallet ? (
+              {walletQ.isLoading ? (
+                <View
+                  style={[
+                    styles.summaryCard,
+                    { borderColor: colors.border, borderRadius: colors.radius },
+                  ]}
+                  accessibilityLabel="Loading balance…"
+                >
+                  <View style={styles.summaryTop}>
+                    <View style={{ flex: 1 }}>
+                      <View
+                        style={[
+                          styles.skeleton,
+                          { backgroundColor: colors.muted, width: 90, height: 11 },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.skeleton,
+                          { backgroundColor: colors.muted, width: 120, height: 24, marginTop: 8 },
+                        ]}
+                      />
+                    </View>
+                    <View style={styles.summaryActions}>
+                      <View
+                        style={[
+                          styles.skeleton,
+                          { backgroundColor: colors.muted, width: 96, height: 30 },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.skeleton,
+                          { backgroundColor: colors.muted, width: 96, height: 30 },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                </View>
+              ) : showWallet ? (
                 <View
                   style={[
                     styles.summaryCard,
@@ -448,6 +487,7 @@ const styles = StyleSheet.create({
   modalTitle: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 16 },
   switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   summaryCard: { padding: 14, borderWidth: 1 },
+  skeleton: { borderRadius: 6, opacity: 0.7 },
   summaryTop: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   summaryLabel: {
     fontFamily: "SpaceGrotesk_600SemiBold",
