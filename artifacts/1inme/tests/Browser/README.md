@@ -53,7 +53,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   home-hero-claim-handle.spec.ts \
   brand-consistency-apply-fix.spec.ts \
   create-link-picker.spec.ts \
-  marketing-background-seam.spec.ts
+  marketing-background-seam.spec.ts \
+  home-section-structure.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -105,7 +106,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these fifteen specs are gated (and not the whole suite)
+### Why these sixteen specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -234,13 +235,19 @@ The gate covers the specs that run reliably as an unattended check here:
   shared fixed `.aurora` and seam against the rest of the page — and that the
   sticky header stays pinned (its viewport-top doesn't drift) on scroll. Gating
   it stops a future page/edit from reintroducing a background seam.
+- `home-section-structure.spec.ts` — no login/seeding. Renders `/` and asserts
+  each contractual home section id is present EXACTLY once (missing or duplicated
+  fails), and that the four AI partials (ai-hero via `#ai-hero-h`, `#ai-suite`,
+  `#ai-marketing-strategist`, `#whatsapp-agent`) all render inside the single
+  `#ai-zone` wrapper. Catches a reorganisation that silently drops, duplicates,
+  or moves a section anchor out of `#ai-zone` and breaks nav / jump / deep links.
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the fifteen gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the sixteen gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
@@ -291,6 +298,18 @@ bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
   the home-page sign-in popup, asserts the correct tab is active, the
   close button clears the tabs, background scroll is locked, and the X /
   Escape keys close the popup and restore scrolling. No login/seeding.
+- `home-section-structure.spec.ts` — gated, no login/seeding. Renders `/`
+  and asserts the home page's contractual structure: every required
+  section id (`#audience`, `#how-it-works`, `#features`, `#share`,
+  `#domains`, `#create`, `#everything`, `#ai-zone`, `#ai-suite`,
+  `#ai-marketing-strategist`, `#whatsapp-agent`, `#workspace-team`,
+  `#buzz`, `#stats`, `#proof`, `#faq`, `#trust`, `#cta-final`) appears
+  **exactly once** — catching a silently dropped or duplicated anchor that
+  would break nav / jump / deep links; the conditionally-rendered
+  `#blog-featured` is checked as "at most once". It also asserts the four
+  AI partials (ai-hero via `#ai-hero-h`, `#ai-suite`,
+  `#ai-marketing-strategist`, `#whatsapp-agent`) all render **inside**
+  `#ai-zone`, with the AI hero present exactly once.
 - `home-hero-claim-handle.spec.ts` — gated. Drives the hero "claim your
   link" pill: types a handle, submits it, and asserts the register modal
   opens with that handle in its hidden `desired_handle` field + the
