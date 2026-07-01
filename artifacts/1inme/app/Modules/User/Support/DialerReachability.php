@@ -66,4 +66,61 @@ class DialerReachability
 
         return true;
     }
+
+    /**
+     * Batch variant of {@see reaches()} for caller-ID LIST renders (recents /
+     * frequent). Given a set of candidate creators — already loaded so their
+     * status lives in memory — return `[creatorId => bool reachable]` using a
+     * SINGLE `UserBlock` query for the whole set, never one query per creator.
+     *
+     * Mirrors how the search path pre-fetches subscribers once
+     * (.agents/memory/dialer-search-scaling.md) so a growing history / contact
+     * book can't turn caller-ID gating into an N+1
+     * (.agents/memory/dialer-callerid-reachability.md). The result is exactly
+     * consistent with calling `reaches()` per creator.
+     *
+     * @param iterable<User> $creators
+     * @return array<int,bool>
+     */
+    public static function reachableMap(?int $searcherId, iterable $creators): array
+    {
+        $byId = [];
+        foreach ($creators as $creator) {
+            if ($creator) {
+                $byId[$creator->id] = $creator;
+            }
+        }
+        if (empty($byId)) {
+            return [];
+        }
+
+        // ONE query for the whole batch: which of these creators have blocked
+        // the searcher. Self can never block self, so it needs no special case.
+        $blocked = [];
+        if ($searcherId !== null) {
+            $blocked = array_flip(
+                UserBlock::whereIn('blocker_user_id', array_keys($byId))
+                    ->where('blocked_user_id', $searcherId)
+                    ->pluck('blocker_user_id')
+                    ->all()
+            );
+        }
+
+        $out = [];
+        foreach ($byId as $id => $creator) {
+            $isSelf = $searcherId !== null && $id === $searcherId;
+
+            if (!$isSelf && ($creator->status ?? 'active') !== 'active') {
+                $out[$id] = false;
+                continue;
+            }
+            if (!$isSelf && $searcherId !== null && isset($blocked[$id])) {
+                $out[$id] = false;
+                continue;
+            }
+            $out[$id] = true;
+        }
+
+        return $out;
+    }
 }

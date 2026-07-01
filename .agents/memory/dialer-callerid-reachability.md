@@ -12,11 +12,19 @@ searcher via `UserBlock.blocked_user_id = searcher`):
    in `peopleItems` / `followedLinkItems`.
 2. **Caller-ID enrichment** — resolving a number to a creator's name/handle/
    biolink. Gate lives in `DialerReachability` (`reaches()` / `enrichableCreator()`)
-   and is applied at THREE call sites:
+   and is applied at THREE single-lookup call sites:
    - `Api\DialerController::lookup` (`/api/v1/dialer/lookup`)
    - `DialerIdentity::resolve` (backs web + API `/dialer/profile`)
    - `BiolinkAttachResolver::resolveFor` (silent auto-attach that SEEDS
      `contact.biolink_user_id`, i.e. the `$contact->biolinkUser` read path)
+3. **Batch/history render** — the recents + frequent lists (`DialerData::
+   groupedRecents` / `frequent`) badge each row's number as a Sayzio creator
+   via `contact.biolink_user_id`. That badge is gated too, but per-row `reaches()`
+   would be an N+1 on the history hot path. Use `DialerReachability::reachableMap`
+   (ONE `user_blocks` query for the whole set; status comes from the eager-loaded
+   `biolinkUser`, so no extra query) — mirrors the search path pre-fetching subs
+   once (dialer-search-scaling.md). Consistency + no-N+1 locked by
+   `DialerCallerIdReachabilityScaleTest`.
 
 **Why:** neither `contact.biolink_user_id` nor `LinkedIdentifier::resolveUser()`
 checks reachability, so without the gate a suspended/deactivated or blocking

@@ -63,11 +63,12 @@ class DialerData
         $numbers = $rows->pluck('number_e164')->all();
         $contacts = self::contactsForNumbers($userId, $numbers);
         $flags = self::flagsForNumbers($userId, $numbers);
+        $reachable = self::reachableBiolinkIds($userId, $contacts);
 
         return $rows
             ->reject(fn ($r) => (bool) ($flags[$r->number_e164]['is_blocked'] ?? false))
             ->take($limit)
-            ->map(function ($r) use ($contacts, $flags) {
+            ->map(function ($r) use ($contacts, $flags, $reachable) {
                 $c = $contacts[$r->number_e164] ?? null;
                 $flag = $flags[$r->number_e164] ?? null;
                 return [
@@ -77,7 +78,7 @@ class DialerData
                     'name'        => $c?->nameForDisplay() ?: $r->number_e164,
                     'initials'    => $c?->initials() ?: self::numberInitials($r->number_e164),
                     'calls'       => (int) $r->calls,
-                    'biolink'     => (bool) ($c?->biolink_user_id),
+                    'biolink'     => self::contactHasReachableBiolink($c, $reachable),
                     'is_spam'     => (bool) ($flag['is_spam'] ?? false),
                 ];
             })->values()->all();
@@ -98,6 +99,7 @@ class DialerData
         $numbers = $rows->pluck('number_e164')->filter()->unique()->values()->all();
         $contacts = self::contactsForNumbers($userId, $numbers);
         $flags = self::flagsForNumbers($userId, $numbers);
+        $reachable = self::reachableBiolinkIds($userId, $contacts);
 
         $groups = [];
         foreach ($rows as $r) {
@@ -112,7 +114,7 @@ class DialerData
                     'contact_id'  => $c?->id ?: $r->contact_id,
                     'name'        => $c?->nameForDisplay() ?: $r->number_e164,
                     'initials'    => $c?->initials() ?: self::numberInitials($r->number_e164),
-                    'biolink'     => (bool) ($c?->biolink_user_id),
+                    'biolink'     => self::contactHasReachableBiolink($c, $reachable),
                     'is_spam'     => (bool) ($flag['is_spam'] ?? false),
                     'is_blocked'  => (bool) ($flag['is_blocked'] ?? false),
                     'calls'       => 0,
@@ -184,6 +186,45 @@ class DialerData
             'at'          => optional($r->looked_up_at)->toIso8601String(),
             'at_human'    => optional($r->looked_up_at)->diffForHumans(),
         ];
+    }
+
+    /**
+     * Reachability map for the biolink creators attached to a batch of resolved
+     * contacts. Powers the caller-ID `biolink` badge on the recents / frequent
+     * list renders so it hides a creator who has since been suspended or has
+     * blocked the owner — exactly like the single-lookup gate — while touching
+     * `user_blocks` at most ONCE for the whole batch (the contacts already carry
+     * their eager-loaded `biolinkUser`, so status needs no query). This keeps
+     * caller-ID gating from N+1-ing as the dialer history / contact book grows
+     * (.agents/memory/dialer-callerid-reachability.md).
+     *
+     * @param array<string, Contact> $contactsByNumber
+     * @return array<int,bool> creatorId => reachable
+     */
+    private static function reachableBiolinkIds(int $userId, array $contactsByNumber): array
+    {
+        $creators = [];
+        foreach ($contactsByNumber as $c) {
+            $u = $c->biolinkUser ?? null;
+            if ($u) {
+                $creators[$u->id] = $u;
+            }
+        }
+        return DialerReachability::reachableMap($userId, $creators);
+    }
+
+    /**
+     * Whether a contact's attached biolink creator is still reachable by the
+     * owner (present in the pre-computed reachable set). A `null` contact, an
+     * unattached one, or one whose creator failed the reachability gate all
+     * yield false — the caller-ID badge is suppressed.
+     *
+     * @param array<int,bool> $reachable
+     */
+    private static function contactHasReachableBiolink(?Contact $c, array $reachable): bool
+    {
+        $uid = $c?->biolink_user_id;
+        return $uid !== null && ($reachable[$uid] ?? false);
     }
 
     /**
