@@ -232,6 +232,25 @@ html.light-mode .mkt-navbar-bar.is-stuck {
     .mkt-navbar-bar { transition: none; }
 }
 
+/* ---- Account dropdown panel chrome ----
+   The header account menu needs the same translucent/blur look as the navbar
+   bar, but must NOT inherit the bar's responsive width/centering rules (those
+   squash the narrow dropdown and wrap its label). Keep this decoupled so the
+   Tailwind width (w-44), rounded corners, border and shadow on the panel apply
+   cleanly. */
+.mkt-acct-menu {
+    background-color: rgba(30,35,48,0.75);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+}
+html.light-mode .mkt-acct-menu {
+    background-color: rgba(255,255,255,0.85);
+}
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .mkt-acct-menu { background-color: rgba(30,35,48,0.96); }
+    html.light-mode .mkt-acct-menu { background-color: rgba(255,255,255,0.96); }
+}
+
 /* ---- Seamless top for the in-flow (sticky) marketing header ----
    On non-home marketing pages the header sticks in normal flow, so the floating
    bar's top margin used to expose a bare band of page background above it (the

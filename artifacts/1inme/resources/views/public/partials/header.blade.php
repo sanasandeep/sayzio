@@ -261,7 +261,7 @@
                              x-transition:enter="transition ease-out duration-150"
                              x-transition:enter-start="opacity-0 translate-y-1"
                              x-transition:enter-end="opacity-100 translate-y-0"
-                             class="absolute right-0 mt-2 w-44 rounded-xl mkt-navbar-bar border border-white/10 shadow-xl p-1.5 z-50">
+                             class="absolute right-0 mt-2 w-44 rounded-xl mkt-acct-menu border border-white/10 shadow-xl p-1.5 z-50">
                             <form action="{{ route('user.logout') }}" method="POST">
                                 @csrf
                                 <button type="submit" class="flex w-full items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-red-500/10 hover:text-red-400">
