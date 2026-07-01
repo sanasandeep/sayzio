@@ -1,23 +1,30 @@
 /**
- * AI tool-name drift guard (admin / back-office blades).
+ * AI tool-name drift guard (admin + customer app + marketing site + mobile).
  *
  * The nine customer-facing AI tools now carry an "AI " prefix and are spelled
- * the SAME way in the customer app and the back-office admin screens:
+ * the SAME way everywhere they appear to a human:
  *
  *   AI Knowledge Bases · AI Coach · AI Voice Assistant · AI Personas ·
  *   AI Companions · AI Marketing Strategist · AI Inbox Agent · AI Brand Kit ·
  *   AI Resume
  *
- * Nothing else enforces that the two sides stay in sync. A future copy edit on
- * the admin side can silently reintroduce a bare / retired name (e.g. "Ask
- * Coach", "Knowledge Bases", "Voice Assistant") and recreate the internal
- * mismatch. This guard fails (exit 1) when an admin blade renders one of the
- * DISTINCTIVE tool-name phrases WITHOUT the required "AI " prefix.
+ * Nothing else enforces that the surfaces stay in sync. A future copy edit on
+ * ANY surface can silently reintroduce a bare / retired name (e.g. "Ask Coach",
+ * "Knowledge Bases", "Voice Assistant") and recreate the mismatch. This guard
+ * fails (exit 1) when a rendered DISTINCTIVE tool-name phrase is missing the
+ * required "AI " prefix.
+ *
+ * Scanned surfaces
+ * ----------------
+ *   - Laravel views  artifacts/1inme/resources/views/**\/*.blade.php
+ *     (admin, user AND common modules; the do-not-touch vendor/ views excluded)
+ *   - Marketing site artifacts/1inme-com/src/**\/*.{ts,tsx}
+ *   - Mobile app     artifacts/1inme-mobile/{app,components,constants,lib}/**\/*.{ts,tsx}
  *
  * What is flagged
  * ---------------
  * A capitalized, multi-word tool-name phrase that is NOT immediately preceded
- * by "AI ":
+ * by "AI " (or the "AI · " kicker form):
  *
  *   Knowledge Base(s)    -> AI Knowledge Base(s)
  *   Ask Coach            -> AI Coach            (retired name — always wrong)
@@ -29,29 +36,33 @@
  *
  * Why only these multi-word phrases (and not bare "Personas" / "Companions" /
  * "Coach" / "Resume"): those single words are ordinary entity nouns that appear
- * legitimately all over the admin UI ("All Personas", "Disable Companion",
- * "Coach Defaults", the "Resume / Portfolio" link type). Guarding them would
- * flag correct copy. The distinctive phrases above unambiguously name the tool,
- * so a bare occurrence is real drift.
+ * legitimately all over the UI ("All Personas", "Disable Companion", "Coach
+ * Defaults", the "Resume / Portfolio" link type). Guarding them would flag
+ * correct copy. The distinctive phrases above unambiguously name the tool, so a
+ * bare occurrence is real drift.
  *
  * Documented exceptions (respected automatically)
  * -----------------------------------------------
- *   - "AI Chat", "AI Agents", "Chat Widgets", "Site Assistant" — not one of the
- *     nine tools / out of scope; none of the guarded phrases match them.
+ *   - "AI Chat", "AI Agents", "Chat Widgets", "Site Assistant",
+ *     "Performer Specialist" (mobile Marketing-Strategist alias) — not one of
+ *     the nine tools / out of scope; none of the guarded phrases match them.
  *   - Lowercase descriptive prose ("knowledge bases", "voice assistant") — the
  *     phrases are matched case-sensitively, so prose is never flagged.
- *   - Code comments — blade `{{-- --}}` and HTML `<!-- -->` comments are blanked
- *     before scanning (line/column positions preserved).
- *   - Wire tokens — route names (`admin.ask-coach.*`), feature tags
+ *   - Comments — blade, HTML, C-style block and `//` line comments are blanked
+ *     before scanning (line/column preserved).
+ *   - The "AI · X" kicker form (e.g. "AI · Marketing Strategist") already reads
+ *     as AI, so it is allowed via a negative lookbehind.
+ *   - Wire / lookup tokens — route names (`admin.ask-coach.*`), feature tags
  *     (`ask_coach.*`), CSS classes, etc. are lowercase / underscored / hyphenated
  *     and never match the capitalized phrases.
+ *   - Map / object KEYS — `'Ask Coach' => 'AI Coach'` (blade) and
+ *     `"Marketing Strategist":` (TS) are lookup tokens whose VALUE carries the
+ *     "AI " prefix; a quote-wrapped phrase immediately followed by `=>` or `:`
+ *     is treated as a key and allowed.
  *   - Count badges — "{{ $n }} Knowledge Base(s)" stays bare (documented in
  *     .agents/memory/knowledge-bases-display-rename.md); a Knowledge Base(s)
  *     match preceded by a digit or a `}}` blade echo is allowed.
  *   - Anything in the ALLOWLIST below (add with a reason).
- *
- * Scope: every blade under artifacts/1inme/resources/views/admin/**. The
- * do-not-touch vendor/ views are excluded.
  *
  * Run:  pnpm --filter @workspace/scripts run check:ai-tool-names
  *       (add `--explain` to print the guarded phrases + exceptions and exit 0)
@@ -64,8 +75,45 @@ import path from "node:path";
 
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
-/** Admin blade root to scan (relative to repo root). */
-const ADMIN_VIEWS_ROOT = "artifacts/1inme/resources/views/admin";
+type CommentSyntax = "blade" | "js";
+
+type ScanRoot = {
+  /** Human label for the --explain output. */
+  label: string;
+  /** Directories to scan (relative to repo root). Passed straight to rg. */
+  dirs: string[];
+  /** rg include globs (e.g. "*.blade.php", "*.tsx"). */
+  globs: string[];
+  /** Which comment forms to blank before scanning. */
+  comments: CommentSyntax;
+};
+
+/** Every surface a human reads the tool names on. */
+const SCAN_ROOTS: ScanRoot[] = [
+  {
+    label: "Laravel views (admin + user + common)",
+    dirs: ["artifacts/1inme/resources/views"],
+    globs: ["*.blade.php"],
+    comments: "blade",
+  },
+  {
+    label: "Marketing site",
+    dirs: ["artifacts/1inme-com/src"],
+    globs: ["*.ts", "*.tsx"],
+    comments: "js",
+  },
+  {
+    label: "Mobile app",
+    dirs: [
+      "artifacts/1inme-mobile/app",
+      "artifacts/1inme-mobile/components",
+      "artifacts/1inme-mobile/constants",
+      "artifacts/1inme-mobile/lib",
+    ],
+    globs: ["*.ts", "*.tsx"],
+    comments: "js",
+  },
+];
 
 type ToolName = {
   /** The bare / retired form as a regex fragment (case-sensitive, word-bounded). */
@@ -124,13 +172,19 @@ const LABEL_TOOL_NAMES: { bare: string; canonical: string }[] = [
  */
 const AI_HEADING_DIRS = ["ai-personas", "ai-companions", "ask-coach", "ai-minds"];
 
+/**
+ * Root of the admin blade views. The single-word label pass (scanLabelContexts)
+ * is confined here — it targets the admin sidebar / page-title labels for the
+ * tools, not customer-facing copy (which the distinctive multi-word scan covers).
+ */
+const ADMIN_VIEWS_ROOT = "artifacts/1inme/resources/views/admin";
+
 type AllowEntry = { path: string; kind: "file" | "dir"; reason: string };
 
 /**
- * Explicit allow-list of intentional bare occurrences within the admin views.
- * Empty today (the admin surfaces are in sync); documented here so a future
- * intentional exception is recorded with a reason instead of weakening the
- * regex.
+ * Explicit allow-list of intentional bare occurrences. Empty today (every
+ * scanned surface is in sync); documented here so a future intentional
+ * exception is recorded with a reason instead of weakening the regex.
  */
 const ALLOWLIST: AllowEntry[] = [];
 
@@ -145,29 +199,50 @@ function isAllowed(file: string): boolean {
  * Build the case-sensitive matcher for one tool name. The negative lookbehinds
  * exclude:
  *   - the correct "AI " prefix,
+ *   - the "AI \u00B7 " kicker form (e.g. "AI \u00B7 Marketing Strategist"),
  *   - and, for count-badge-eligible names, a preceding digit or `}}` echo.
  */
 function buildRegex(tool: ToolName): RegExp {
   const badges = tool.countBadge ? String.raw`(?<!\d )(?<!\}\} )(?<!\}\}\s)` : "";
-  return new RegExp(String.raw`(?<!AI )${badges}\b(?:${tool.bare})\b`, "g");
+  return new RegExp(String.raw`(?<!AI )(?<!AI \u00B7 )${badges}\b(?:${tool.bare})\b`, "g");
 }
 
 /**
- * Blank out blade `{{-- --}}` and HTML `<!-- -->` comments so their contents
- * are never scanned, while preserving newlines (and column offsets) so reported
- * line/column numbers still point at the real source.
+ * Blank out comment spans so their contents are never scanned, while preserving
+ * newlines (and column offsets) so reported line/column numbers still point at
+ * the real source. Handles:
+ *   - C-style `/* *\/` block comments (JS/TS/JSX `{/* *\/}`, PHP, CSS)
+ *   - blade `{{-- --}}` and HTML `<!-- -->` (blade files only)
+ *   - `//` line comments (not when preceded by `:`, so `https://` survives)
  */
-export function blankComments(src: string): string {
-  return src.replace(/\{\{--[\s\S]*?--\}\}|<!--[\s\S]*?-->/g, (m) =>
-    m.replace(/[^\n]/g, " "),
-  );
+export function blankComments(src: string, mode: CommentSyntax = "blade"): string {
+  const blank = (m: string) => m.replace(/[^\n]/g, " ");
+  let out = src.replace(/\/\*[\s\S]*?\*\//g, blank);
+  if (mode === "blade") {
+    out = out.replace(/\{\{--[\s\S]*?--\}\}|<!--[\s\S]*?-->/g, blank);
+  }
+  // `//` to end-of-line, but not the `//` in `https://`, `tel://`, etc.
+  out = out.replace(/(^|[^:])(\/\/[^\n]*)/gm, (_m, pre: string, cmt: string) => pre + " ".repeat(cmt.length));
+  return out;
+}
+
+/**
+ * A quote-wrapped phrase immediately followed by `=>` or `:` is a map/object
+ * KEY (a lookup token whose VALUE carries the "AI " prefix), not display copy.
+ *   blade:  'Ask Coach'  => 'AI Coach'
+ *   ts:     "Marketing Strategist": "AI Marketing Strategist ..."
+ */
+function isMapKey(line: string, start: number, end: number): boolean {
+  const before = line[start - 1];
+  if (before !== "'" && before !== '"') return false;
+  return /^['"]\s*(=>|:)/.test(line.slice(end));
 }
 
 type Offender = { file: string; line: number; col: number; text: string; canonical: string };
 
-/** Scan a single blade file's already-comment-blanked source. */
-export function scanSource(relFile: string, src: string): Offender[] {
-  const cleaned = blankComments(src);
+/** Scan a single file's source. `mode` selects the comment syntax to blank. */
+export function scanSource(relFile: string, src: string, mode: CommentSyntax = "blade"): Offender[] {
+  const cleaned = blankComments(src, mode);
   const lines = cleaned.split("\n");
   const rawLines = src.split("\n");
   const offenders: Offender[] = [];
@@ -178,13 +253,15 @@ export function scanSource(relFile: string, src: string): Offender[] {
       re.lastIndex = 0;
       let m: RegExpExecArray | null;
       while ((m = re.exec(line)) !== null) {
-        offenders.push({
-          file: relFile,
-          line: i + 1,
-          col: m.index + 1,
-          text: (rawLines[i] ?? "").trim(),
-          canonical: tool.canonical,
-        });
+        if (!isMapKey(line, m.index, m.index + m[0].length)) {
+          offenders.push({
+            file: relFile,
+            line: i + 1,
+            col: m.index + 1,
+            text: (rawLines[i] ?? "").trim(),
+            canonical: tool.canonical,
+          });
+        }
         if (m.index === re.lastIndex) re.lastIndex++;
       }
     }
@@ -289,15 +366,18 @@ export function scanLabelContexts(relFile: string, src: string): Offender[] {
   return offenders;
 }
 
-/** List every `*.blade.php` under the admin views root (excluding vendor/). */
-function listAdminBlades(): string[] {
-  const res = spawnSync(
-    "rg",
-    ["--files", "-g", "*.blade.php", "-g", "!**/vendor/**", ADMIN_VIEWS_ROOT],
-    { cwd: REPO_ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
-  );
+/** List every matching file under a scan root (excluding vendor/). */
+function listFiles(root: ScanRoot): string[] {
+  const args = ["--files", "-g", "!**/vendor/**"];
+  for (const g of root.globs) args.push("-g", g);
+  args.push(...root.dirs);
+  const res = spawnSync("rg", args, {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
   if (res.error) {
-    console.error("ai-tool-names guard: failed to list blades:", res.error.message);
+    console.error("ai-tool-names guard: failed to list files:", res.error.message);
     process.exit(2);
   }
   return res.stdout.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -317,16 +397,21 @@ function printExplain(): void {
   );
   console.log("   so 'All Personas' / 'Coach usage & quality' / 'Coach Defaults' / 'AI Usage' pass.)");
   console.log("\nExceptions (never flagged):");
-  console.log("  • AI Chat / AI Agents / Chat Widgets / Site Assistant (out of scope)");
+  console.log("  • AI Chat / AI Agents / Chat Widgets / Site Assistant / Performer Specialist (out of scope)");
   console.log("  • lowercase descriptive prose (matched case-sensitively)");
-  console.log("  • blade {{-- --}} and HTML <!-- --> comments (blanked before scan)");
+  console.log("  • comments: blade {{-- --}}, HTML <!-- -->, C-style /* */, // line (blanked before scan)");
+  console.log("  • the 'AI · X' kicker form (e.g. 'AI · Marketing Strategist')");
+  console.log("  • map/object keys: 'Ask Coach' => …  /  \"Marketing Strategist\": … (value carries the prefix)");
   console.log("  • wire tokens: route names, ask_coach.* feature tags, CSS classes");
   console.log("  • count badges: '{{ $n }} Knowledge Base(s)' (digit / }} before the name)");
   if (ALLOWLIST.length) {
-    console.log("\nAllow-listed files:");
+    console.log("\nAllow-listed paths:");
     for (const e of ALLOWLIST) console.log(`  • ${e.path}${e.kind === "dir" ? "/**" : ""} — ${e.reason}`);
   }
-  console.log(`\nScope: ${ADMIN_VIEWS_ROOT}/**/*.blade.php`);
+  console.log("\nScanned surfaces:");
+  for (const r of SCAN_ROOTS) {
+    console.log(`  • ${r.label}: ${r.dirs.join(", ")} (${r.globs.join(", ")})`);
+  }
 }
 
 function main(): void {
@@ -335,34 +420,42 @@ function main(): void {
     process.exit(0);
   }
 
-  const files = listAdminBlades();
   const offenders: Offender[] = [];
-  for (const rel of files) {
-    if (isAllowed(rel)) continue;
-    let src: string;
-    try {
-      src = fs.readFileSync(path.join(REPO_ROOT, rel), "utf8");
-    } catch {
-      continue;
+  for (const root of SCAN_ROOTS) {
+    for (const rel of listFiles(root)) {
+      if (isAllowed(rel)) continue;
+      let src: string;
+      try {
+        src = fs.readFileSync(path.join(REPO_ROOT, rel), "utf8");
+      } catch {
+        continue;
+      }
+      offenders.push(...scanSource(rel, src, root.comments));
+      // Second pass: single-word tool labels in ADMIN blade label contexts
+      // (section titles, nav-label/sidebar-tooltip spans, AI-view headings).
+      if (
+        root.comments === "blade" &&
+        rel.split(path.sep).join("/").startsWith(`${ADMIN_VIEWS_ROOT}/`)
+      ) {
+        offenders.push(...scanLabelContexts(rel, src));
+      }
     }
-    offenders.push(...scanSource(rel, src));
-    offenders.push(...scanLabelContexts(rel, src));
   }
 
   if (offenders.length === 0) {
     console.log(
-      "✓ ai-tool-names guard passed — admin AI tool names carry the 'AI ' prefix (customer/admin vocabulary in sync).",
+      "✓ ai-tool-names guard passed — AI tool names carry the 'AI ' prefix across admin, customer app, marketing site and mobile.",
     );
     process.exit(0);
   }
 
-  console.error("✗ ai-tool-names guard FAILED — bare AI tool name(s) found in admin blades:\n");
+  console.error("✗ ai-tool-names guard FAILED — bare AI tool name(s) found:\n");
   for (const o of offenders) {
     console.error(`  ${o.file}:${o.line}:${o.col}  (use "${o.canonical}")`);
     console.error(`      ${o.text}`);
   }
   console.error(
-    `\n${offenders.length} match(es). Admin and customer copy must spell the nine AI tools the same way (with the "AI " prefix).`,
+    `\n${offenders.length} match(es). Every surface must spell the nine AI tools the same way (with the "AI " prefix).`,
   );
   console.error(
     "If a bare occurrence is genuinely intentional, add the file to ALLOWLIST in scripts/src/check-ai-tool-names.ts with a reason.",

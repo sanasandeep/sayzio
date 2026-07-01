@@ -1,15 +1,20 @@
 ---
-name: AI tool-name drift guard (admin blades)
-description: Validation gate that keeps admin AI tool names spelled the same as the customer app (with the "AI " prefix).
+name: AI tool-name drift guard (all human-facing surfaces)
+description: Validation gate that keeps AI tool names spelled the same (with the "AI " prefix) across admin, customer app, marketing site and mobile.
 ---
 
 # AI tool-name drift guard
 
 Validation step `ai-tool-names` (script `scripts/src/check-ai-tool-names.ts`,
-`pnpm --filter @workspace/scripts run check:ai-tool-names`) fails CI if an admin
-blade renders a DISTINCTIVE multi-word AI tool name WITHOUT the required "AI "
-prefix. Keeps the nine tool names in sync between the customer app and
-back-office admin (see `knowledge-bases-display-rename.md`).
+`pnpm --filter @workspace/scripts run check:ai-tool-names`) fails CI if a
+DISTINCTIVE multi-word AI tool name is rendered WITHOUT the required "AI "
+prefix. Keeps the nine tool names in sync (see `knowledge-bases-display-rename.md`).
+
+**Scope (SCAN_ROOTS, all human-facing surfaces):** every `*.blade.php` under
+`artifacts/1inme/resources/views` (admin + user + common, vendor/ excluded),
+`artifacts/1inme-com/src` `*.{ts,tsx}`, and mobile `app|components|constants|lib`
+`*.{ts,tsx}`. Each root declares its comment syntax (`blade` vs `js`); the
+script is the source of truth for exact phrases + exceptions (`-- --explain`).
 
 **Why multi-word phrases only:** bare single words (Personas, Companions, Coach,
 Resume) are ordinary entity nouns used all over admin ("All Personas", "Disable
@@ -20,10 +25,14 @@ Generator) unambiguously name the tool, so a bare hit is real drift. The script
 is the source of truth for the exact phrase list + exceptions (`-- --explain`).
 
 **How it stays quiet on legit copy:** case-sensitive match; negative lookbehind
-for "AI "; blade `{{-- --}}` + HTML `<!-- -->` comments are blanked (line/col
-preserved) before scan; Knowledge Base(s) preceded by a digit or `}}` echo is a
-count badge (allowed). Route names / `ask_coach.*` feature tags / CSS classes
-are lowercase/hyphenated/underscored so they never match.
+for "AI " AND the "AI · X" kicker form; comments blanked before scan (blade
+`{{-- --}}` + HTML `<!-- -->` for blade roots, plus C-style `/* */` and `//` for
+all roots — `//` skipped when preceded by `:` so `https://` survives); a
+quote-wrapped phrase immediately followed by `=>`/`:` is a map/object KEY whose
+VALUE carries the prefix (allowed); Knowledge Base(s) preceded by a digit or `}}`
+echo is a count badge (allowed). Route names / `ask_coach.*` feature tags / CSS
+classes are lowercase/hyphenated/underscored so they never match; mobile
+Marketing-Strategist alias "Performer Specialist" doesn't match either.
 
 **Label-context pass (single words):** the multi-word scan deliberately skips bare
 single words (Personas/Companions/Coach/Resume). A second pass (`scanLabelContexts`)

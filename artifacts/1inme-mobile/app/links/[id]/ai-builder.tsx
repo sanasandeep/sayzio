@@ -305,7 +305,7 @@ export default function AiBuilderScreen() {
                 On-Brand AI
               </Text>
               <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
-                Use your “{intake.brand_kit?.name}” Brand Kit voice and colors.
+                Use your “{intake.brand_kit?.name}” AI Brand Kit voice and colors.
               </Text>
             </View>
             <Switch

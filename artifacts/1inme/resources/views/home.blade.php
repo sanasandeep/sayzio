@@ -3782,7 +3782,7 @@
             </p>
             <div class="reveal rd-3 mt-7 flex flex-wrap items-center justify-center gap-2.5">
                 <a href="#ai-suite" class="ai-zone-chip"><i class="fas fa-robot"></i> Chatbot &amp; Agent</a>
-                <a href="#ai-marketing-strategist" class="ai-zone-chip"><i class="fas fa-chart-line"></i> Marketing Strategist</a>
+                <a href="#ai-marketing-strategist" class="ai-zone-chip"><i class="fas fa-chart-line"></i> AI Marketing Strategist</a>
                 <a href="#whatsapp-agent" class="ai-zone-chip"><i class="fab fa-whatsapp"></i> WhatsApp Agent</a>
             </div>
         </div>
