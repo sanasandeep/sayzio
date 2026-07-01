@@ -6,16 +6,40 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { BrandWordmark } from "@/components/Brand";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { getOnboardingStatus } from "@/lib/api/profile";
 import { getOnboardingComplete } from "@/lib/secure";
 
 export default function GateScreen() {
   const colors = useColors();
   const { ready, user, locked, biometricEnabled, token } = useAuth();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
+  // Server-side first-run setup gate (separate from the local intro-slides
+  // flag above): null = not yet checked, true = needs the stepped /setup flow.
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
 
   useEffect(() => {
     getOnboardingComplete().then(setOnboarded);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user || !token) {
+      setNeedsSetup(false);
+      return;
+    }
+    setNeedsSetup(null);
+    getOnboardingStatus()
+      .then((s) => {
+        if (!cancelled) setNeedsSetup(s.onboarded_at === null);
+      })
+      // Fail open: never trap the user on the splash if the check fails.
+      .catch(() => {
+        if (!cancelled) setNeedsSetup(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, token]);
 
   if (!ready || onboarded === null) {
     return (
@@ -38,6 +62,17 @@ export default function GateScreen() {
   if (!onboarded) return <Redirect href="/onboarding" />;
   if (!user || !token) return <Redirect href="/(auth)" />;
   if (locked && biometricEnabled) return <Redirect href={"/lock" as never} />;
+  // Wait for the server onboarding check before deciding between the stepped
+  // first-run setup and the app itself.
+  if (needsSetup === null) {
+    return (
+      <View style={[styles.splash, { backgroundColor: colors.background }]}>
+        <BrandWordmark size={56} />
+        <ActivityIndicator color={colors.primary} style={{ marginTop: 32 }} />
+      </View>
+    );
+  }
+  if (needsSetup) return <Redirect href={"/setup" as never} />;
   return <Redirect href="/(tabs)" />;
 }
 

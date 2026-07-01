@@ -8,7 +8,10 @@
 @section('content')
 @php $pendingNumber = $pending ?? null; @endphp
 <div class="max-w-xl mx-auto px-4 py-8 sm:py-12"
-     x-data="{ phase: '{{ $pendingNumber ? 'code' : 'number' }}' }">
+     x-data="{ phase: '{{ $pendingNumber ? 'code' : 'number' }}', stepIndex: {{ (int) ($activeIndex ?? 0) }} }">
+
+    {{-- Visible progress indicator (shared with the onboarding wizard) --}}
+    @includeWhen(!empty($steps), 'user.onboarding._stepper', ['steps' => $steps ?? []])
 
     <div class="glass rounded-3xl border border-white/10 overflow-hidden">
         {{-- Header --}}

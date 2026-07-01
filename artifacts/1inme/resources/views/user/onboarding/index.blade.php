@@ -20,6 +20,7 @@
     // attribute at the first " and break the whole Alpine component.
     $onboardingConfig = [
         'initialPersona'     => $current ?? '',
+        'initialStep'        => $initialStep ?? 'welcome',
         'templatesUrl'       => route('user.onboarding.templates.list'),
         'savePersonaUrl'     => route('user.onboarding.persona.save'),
         'rememberPreviewUrl' => route('user.onboarding.preview.remember'),
@@ -29,40 +30,76 @@
         'haystacks'          => $groupHaystackMap,
         'resume'             => $resume ?? null,
     ];
+    $firstName = auth()->user()->name ? explode(' ', auth()->user()->name)[0] : '';
 @endphp
 @section('content')
 <script type="application/json" id="onboarding-config">@json($onboardingConfig)</script>
 <div class="max-w-[1400px] mx-auto"
      x-data="onboarding(JSON.parse(document.getElementById('onboarding-config').textContent))">
 
-    {{-- Header (no STEP X OF Y — it's one page now) --}}
+    {{-- Persistent header: skip is available at every stage --}}
     <div class="flex items-start justify-between gap-4 mb-5">
-        <div class="flex-1">
+        <div class="flex-1 min-w-0">
             <h1 class="text-2xl sm:text-3xl font-bold text-white mb-1">
-                Welcome{{ auth()->user()->name ? ', ' . explode(' ', auth()->user()->name)[0] : '' }} 👋
+                Let's set up your page{{ $firstName ? ', ' . $firstName : '' }} 👋
             </h1>
-            <p class="text-sm text-white/50">Pick what fits — we'll surface matching templates. Nothing gets created until you preview and confirm.</p>
+            <p class="text-sm text-white/50">A few quick steps — nothing gets created until you preview and confirm.</p>
         </div>
         <form method="POST" action="{{ route('user.onboarding.go-to-dashboard') }}" class="shrink-0">
             @csrf
             <button type="submit" class="inline-flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 hover:text-white rounded-xl text-xs font-semibold transition">
-                <i class="fas fa-th-large text-xs"></i> Skip for now
+                <i class="fas fa-th-large text-xs"></i> Skip setup
             </button>
         </form>
     </div>
+
+    {{-- Visible progress indicator --}}
+    @include('user.onboarding._stepper', ['steps' => $steps])
 
     @if(session('error'))
         <div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm text-center">{{ session('error') }}</div>
     @endif
 
-    {{-- Split layout: stacks on small screens, side-by-side from md up --}}
-    <div class="grid grid-cols-1 lg:grid-cols-[340px,1fr] gap-5">
+    {{-- ============================ STEP 1: WELCOME ============================ --}}
+    <section x-show="stepKey === 'welcome'" x-cloak>
+        <div class="glass rounded-2xl border border-white/10 p-6 sm:p-10 max-w-2xl mx-auto text-center">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-blue-600/40 to-fuchsia-600/30 flex items-center justify-center mb-5">
+                <i class="fas fa-wand-magic-sparkles text-2xl text-white"></i>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-white mb-2">Welcome to {{ config('app.name') }}</h2>
+            <p class="text-sm text-white/60 max-w-md mx-auto mb-6">
+                We'll get your Link in Bio ready in three quick steps.
+            </p>
+            <ol class="text-left max-w-sm mx-auto space-y-3 mb-8">
+                <li class="flex items-start gap-3">
+                    <span class="shrink-0 w-6 h-6 rounded-full bg-white/10 text-white/70 text-xs font-bold flex items-center justify-center">1</span>
+                    <span class="text-sm text-white/70"><span class="text-white font-semibold">Pick your persona</span> — so we can suggest templates that fit you.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="shrink-0 w-6 h-6 rounded-full bg-white/10 text-white/70 text-xs font-bold flex items-center justify-center">2</span>
+                    <span class="text-sm text-white/70"><span class="text-white font-semibold">Choose a template</span> — preview it live, then make it yours.</span>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="shrink-0 w-6 h-6 rounded-full bg-white/10 text-white/70 text-xs font-bold flex items-center justify-center">3</span>
+                    <span class="text-sm text-white/70"><span class="text-white font-semibold">Connect WhatsApp</span> <span class="text-white/40">(optional)</span> — sign in faster and stay reachable.</span>
+                </li>
+            </ol>
+            <button type="button" @click="goStep('persona')"
+                    class="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition inline-flex items-center justify-center gap-2">
+                Let's go <i class="fas fa-arrow-right text-xs"></i>
+            </button>
+        </div>
+    </section>
 
-        {{-- LEFT: persona column --}}
-        <aside class="glass rounded-2xl border border-white/10 p-3 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
-            <div class="px-1.5 pb-2">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-white/40 mb-2">Who are you?</p>
-                <div class="relative">
+    {{-- ============================ STEP 2: PERSONA ============================ --}}
+    <section x-show="stepKey === 'persona'" x-cloak>
+        <div class="glass rounded-2xl border border-white/10 p-4 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Who are you?</h2>
+                    <p class="text-xs text-white/50">Pick the closest fit — we'll surface matching templates. You can change this later.</p>
+                </div>
+                <div class="relative sm:w-64 shrink-0">
                     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-white/30"></i>
                     <input type="text" x-model="q" placeholder="Search personas…"
                            class="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder:text-white/30">
@@ -70,18 +107,18 @@
             </div>
 
             @foreach($grouped as $groupName => $items)
-                <div x-show="groupVisible(@js($groupName))">
-                    <h2 class="text-[10px] font-bold uppercase tracking-wider text-white/40 px-1.5 pt-3 pb-1.5">{{ $groupName }}</h2>
-                    <div class="space-y-1">
+                <div x-show="groupVisible(@js($groupName))" class="mb-4">
+                    <h3 class="text-[10px] font-bold uppercase tracking-wider text-white/40 px-1 pt-1 pb-2">{{ $groupName }}</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                         @foreach($items as $p)
                             @php $haystack = strtolower($p['label'] . ' ' . ($p['blurb'] ?? '') . ' ' . $p['slug']); @endphp
                             <button type="button"
                                     data-persona-card
                                     x-show="q === '' || @js($haystack).includes(q.toLowerCase())"
                                     @click="selectPersona(@js($p['slug']))"
-                                    :class="picked === @js($p['slug']) ? 'bg-blue-600/20 border-blue-500/60 ring-1 ring-blue-500/40' : 'border-transparent hover:bg-white/5'"
-                                    class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg border text-left transition">
-                                <span class="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600/40 to-fuchsia-600/30 flex items-center justify-center overflow-hidden">
+                                    :class="picked === @js($p['slug']) ? 'bg-blue-600/20 border-blue-500/60 ring-1 ring-blue-500/40' : 'border-white/10 hover:bg-white/5'"
+                                    class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition">
+                                <span class="shrink-0 w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600/40 to-fuchsia-600/30 flex items-center justify-center overflow-hidden">
                                     @if(!empty($p['image']))
                                         <img src="{{ $p['image'] }}" alt="" loading="lazy"
                                              onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';"
@@ -92,8 +129,8 @@
                                     @endif
                                 </span>
                                 <span class="flex-1 min-w-0">
-                                    <span class="block text-[12.5px] font-semibold text-white truncate">{{ $p['label'] }}</span>
-                                    <span class="block text-[10.5px] text-white/45 truncate">{{ $p['blurb'] }}</span>
+                                    <span class="block text-[13px] font-semibold text-white truncate">{{ $p['label'] }}</span>
+                                    <span class="block text-[11px] text-white/45 truncate">{{ $p['blurb'] }}</span>
                                 </span>
                                 <i class="fas fa-check text-[10px] text-blue-300" x-show="picked === @js($p['slug'])" x-cloak></i>
                             </button>
@@ -105,57 +142,71 @@
             <div x-show="q !== '' && noPersonaMatches()" x-cloak class="text-center text-xs text-white/30 py-3 px-2">
                 No personas match "<span x-text="q"></span>".
             </div>
-        </aside>
 
-        {{-- RIGHT: templates panel --}}
-        <section class="min-w-0">
-            {{-- Resume hint: shown if the user previewed a template last
-                 time but didn't apply or skip. Disappears as soon as they
-                 act on it (or when they apply / skip elsewhere). --}}
-            <div x-show="resume" x-cloak
-                 class="mb-3 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30">
-                <i class="fas fa-clock-rotate-left text-blue-300 text-xs shrink-0"></i>
-                <p class="flex-1 text-xs text-white/80 min-w-0 truncate">
-                    Pick up where you left off — you were checking out
-                    <span class="font-semibold text-white" x-text="'&quot;' + (resume?.name || '') + '&quot;'"></span>
-                </p>
-                <button type="button" @click="resumePreview()"
-                        class="shrink-0 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold inline-flex items-center gap-1.5">
-                    <i class="fas fa-eye"></i> Open again
+            <div class="flex items-center justify-between gap-3 pt-4 mt-2 border-t border-white/10">
+                <button type="button" @click="goStep('welcome')"
+                        class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-xs font-semibold transition inline-flex items-center gap-2">
+                    <i class="fas fa-arrow-left text-[10px]"></i> Back
                 </button>
-                <button type="button" @click="dismissResume()"
-                        class="shrink-0 w-7 h-7 rounded-lg hover:bg-white/10 text-white/50 hover:text-white inline-flex items-center justify-center"
-                        aria-label="Dismiss">
-                    <i class="fas fa-times text-[11px]"></i>
+                <button type="button" @click="goStep('template')"
+                        class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition inline-flex items-center gap-2">
+                    <span x-text="picked ? 'Next: choose a template' : 'Skip — show all templates'"></span>
+                    <i class="fas fa-arrow-right text-[10px]"></i>
                 </button>
             </div>
+        </div>
+    </section>
 
-            <div class="flex items-center justify-between mb-3 px-1">
-                <p class="text-xs text-white/50" x-show="!picked" x-cloak>
-                    <i class="fas fa-arrow-left mr-1 text-white/30"></i>
-                    Pick a persona to see matching templates — or browse them all below.
-                </p>
-                <p class="text-xs text-white/50" x-show="picked" x-cloak>
+    {{-- ============================ STEP 3: TEMPLATE ============================ --}}
+    <section x-show="stepKey === 'template'" x-cloak>
+        {{-- Resume hint: shown if the user previewed a template last time but
+             didn't apply or skip. Disappears as soon as they act on it. --}}
+        <div x-show="resume" x-cloak
+             class="mb-3 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30">
+            <i class="fas fa-clock-rotate-left text-blue-300 text-xs shrink-0"></i>
+            <p class="flex-1 text-xs text-white/80 min-w-0 truncate">
+                Pick up where you left off — you were checking out
+                <span class="font-semibold text-white" x-text="'&quot;' + (resume?.name || '') + '&quot;'"></span>
+            </p>
+            <button type="button" @click="resumePreview()"
+                    class="shrink-0 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold inline-flex items-center gap-1.5">
+                <i class="fas fa-eye"></i> Open again
+            </button>
+            <button type="button" @click="dismissResume()"
+                    class="shrink-0 w-7 h-7 rounded-lg hover:bg-white/10 text-white/50 hover:text-white inline-flex items-center justify-center"
+                    aria-label="Dismiss">
+                <i class="fas fa-times text-[11px]"></i>
+            </button>
+        </div>
+
+        <div class="flex items-center justify-between gap-3 mb-3 px-1">
+            <div class="flex items-center gap-3 min-w-0">
+                <button type="button" @click="goStep('persona')"
+                        class="shrink-0 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-[11px] font-semibold transition inline-flex items-center gap-1.5">
+                    <i class="fas fa-arrow-left text-[10px]"></i> Back
+                </button>
+                <p class="text-xs text-white/50 truncate" x-show="!picked" x-cloak>Browse all templates below.</p>
+                <p class="text-xs text-white/50 truncate" x-show="picked" x-cloak>
                     Showing templates for <span class="text-white font-semibold" x-text="pickedLabel()"></span>
                 </p>
-                <button type="button" @click="clearPersona()" x-show="picked" x-cloak
-                        class="text-[11px] text-white/40 hover:text-white/80 underline-offset-2 hover:underline">
-                    Show all templates
-                </button>
             </div>
+            <button type="button" @click="clearPersona()" x-show="picked" x-cloak
+                    class="shrink-0 text-[11px] text-white/40 hover:text-white/80 underline-offset-2 hover:underline">
+                Show all templates
+            </button>
+        </div>
 
-            <div class="relative" :class="loading ? 'opacity-50 pointer-events-none' : ''">
-                <div x-ref="grid" id="onboarding-template-grid">
-                    {!! $initialGrid !!}
-                </div>
-                <div x-show="loading" x-cloak class="absolute inset-0 flex items-start justify-center pt-10 pointer-events-none">
-                    <div class="px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-xs text-white/70 backdrop-blur">
-                        <i class="fas fa-spinner fa-spin mr-1"></i> Loading templates…
-                    </div>
+        <div class="relative" :class="loading ? 'opacity-50 pointer-events-none' : ''">
+            <div x-ref="grid" id="onboarding-template-grid">
+                {!! $initialGrid !!}
+            </div>
+            <div x-show="loading" x-cloak class="absolute inset-0 flex items-start justify-center pt-10 pointer-events-none">
+                <div class="px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-xs text-white/70 backdrop-blur">
+                    <i class="fas fa-spinner fa-spin mr-1"></i> Loading templates…
                 </div>
             </div>
-        </section>
-    </div>
+        </div>
+    </section>
 
     {{-- LIVE PREVIEW MODAL --}}
     <div x-show="previewOpen" x-cloak
@@ -211,7 +262,7 @@
 </div>
 
 <script>
-function onboarding({ initialPersona, templatesUrl, savePersonaUrl, rememberPreviewUrl, dismissPreviewUrl, csrf, personas, haystacks, resume }) {
+function onboarding({ initialPersona, initialStep, templatesUrl, savePersonaUrl, rememberPreviewUrl, dismissPreviewUrl, csrf, personas, haystacks, resume }) {
     return {
         picked: initialPersona || '',
         personas: personas || [],
@@ -221,9 +272,21 @@ function onboarding({ initialPersona, templatesUrl, savePersonaUrl, rememberPrev
         previewOpen: false,
         selectedTemplate: null,
         resume: resume || null,
+        stepKey: initialStep || 'welcome',
 
         init() {
             // Server-rendered grid lives in $refs.grid — no init needed.
+        },
+
+        // Numeric position of the active client-side stage, consumed by the
+        // shared _stepper partial. welcome=0, persona=1, template=2.
+        get stepIndex() {
+            return ({ welcome: 0, persona: 1, template: 2 })[this.stepKey] ?? 0;
+        },
+
+        goStep(key) {
+            this.stepKey = key;
+            try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
         },
 
         async selectPersona(slug) {
@@ -245,6 +308,9 @@ function onboarding({ initialPersona, templatesUrl, savePersonaUrl, rememberPrev
                     body: 'persona=' + encodeURIComponent(next || ''),
                 });
             } catch (e) { /* ignore */ }
+            // Picking a persona advances straight to the template stage so
+            // the flow stays quick and discrete.
+            if (next) this.goStep('template');
         },
 
         async clearPersona() {

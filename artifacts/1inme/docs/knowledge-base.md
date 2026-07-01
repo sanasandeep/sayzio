@@ -73,9 +73,10 @@ anyone who wants a polished, trackable online presence.
 1. Go to the sign-up page and enter your name and email (a phone number may be
    allowed depending on platform settings).
 2. Set a password, or use the passwordless option (see OTP below).
-3. You'll land in a short **onboarding** flow that asks what kind of page you
-   want (e.g. Creator, Business) and offers a starter template so you can launch
-   your first page in minutes. You can skip it and explore on your own.
+3. You'll land in a short, **step-by-step onboarding** flow with a progress bar
+   — Welcome → pick a persona (e.g. Creator, Business) → choose a starter
+   template → optionally connect WhatsApp → Done — so you can launch your first
+   page in minutes. You can skip it and explore on your own.
 
 ### Signing in
 
@@ -96,22 +97,30 @@ administrator.
 
 ### Onboarding (persona wizard)
 
-**What it is.** A guided first-run experience on a single page: a **persona**
-picker on the left and matching **starter templates** on the right.
+**What it is.** A guided first-run experience broken into clear, discrete stages
+with a **visible progress stepper**: **Welcome → Pick persona → Choose template
+→ Connect WhatsApp (optional) → Done**. The stepper shows where you are and how
+many steps remain.
 
-**Why use it.** It gets you from empty account to a real, shareable page fast.
+**Why use it.** It gets you from empty account to a real, shareable page fast,
+one focused step at a time.
 
 **How to use it.**
-1. Pick the **persona** that best describes you (e.g. Creator, Business). The
-   template list on the right updates to recommend designs that suit it.
-2. Click a template to open a **live preview** of how your page would look.
-3. Choose **"Use this template"** and Sayzio builds your page from it and drops
-   you on the dashboard, ready to edit.
+1. **Welcome** — a quick overview of the steps ahead.
+2. **Pick persona** — choose the one that best describes you (e.g. Creator,
+   Business); the next step's templates are filtered to suit it.
+3. **Choose template** — click a template to open a **live preview**, then choose
+   **"Use this template"** and Sayzio builds your page from it and drops you into
+   the editor, ready to customise.
+4. **Connect WhatsApp** (optional) — verify a WhatsApp number for faster sign-in
+   and alerts, or skip it.
 
 **Good to know.** The template you last previewed is remembered, so you can come
-back and pick up where you left off. You can skip onboarding and explore on your
-own, and the older two-step persona/template links still work — they just send
-you to this single page.
+back and pick up where you left off. You can skip onboarding at any step and
+explore on your own, and the older two-step persona/template links still work —
+they just send you to this staged flow. On the **mobile app**, the same staged
+setup appears right after you sign in for the first time (the intro slides you
+see before signing in are separate).
 
 ---
 

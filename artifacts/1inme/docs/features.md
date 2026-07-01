@@ -721,20 +721,33 @@ sync with the owner's connected calendar (Google; Outlook where supported).
 
 ### 5.16 Persona onboarding
 
-A first-run wizard that gets a new user to a published page fast.
+A first-run wizard that gets a new user to a published page fast, presented as
+clear discrete stages with a **visible progress stepper**: **Welcome → Pick
+persona → Choose template → Connect WhatsApp (optional) → Done**.
 
-- **Single page, two panels** — pick a **persona** (who you are, from
-  `PersonaCatalog`) on the left; matching **starter templates** (recommended-first)
-  appear on the right with a live mini-preview drawer.
+- **Staged flow** — the same single-page wizard, now walked one stage at a time.
+  **Welcome** sets expectations; **Pick persona** (who you are, from
+  `PersonaCatalog`) filters the **Choose template** stage to matching starter
+  templates (recommended-first) with a live mini-preview drawer. The stages are
+  driven client-side (Alpine) so there is no extra round-trip; the stepper shows
+  the current stage (and a "Step X of Y" caption on small screens). The shared
+  step model lives in `OnboardingSteps`; the header is `onboarding/_stepper`.
 - **Resume hint** — the last template you previewed is remembered, so you can pick
   up where you left off.
-- **Apply** — choosing "Use this template" builds your biolink from the template;
-  the wizard then drops you on the dashboard. (Replaces the older two-step
-  persona/template flow — old `/onboarding/persona` and `/onboarding/template`
-  URLs redirect to the single page.)
+- **Apply** — choosing "Use this template" builds your biolink from the template,
+  stamps `onboarded_at`, and drops you into the editor. **Skip** stamps
+  `onboarded_at` and goes to the dashboard. Both outcomes are unchanged from the
+  pre-staging flow. (The older two-step persona/template flow — old
+  `/onboarding/persona` and `/onboarding/template` URLs — still redirect here.)
+- **Connect WhatsApp** — the existing one-time WhatsApp prompt is the fourth,
+  optional stage (skippable); it carries the same stepper header.
 
-*Web (the persona + template picker is web-only). Mobile reads admin-managed
-splash slides and onboarding status via the REST API.*
+*Web (`OnboardingController`, the persona + template picker). Mobile mirrors the
+same staged setup (`app/setup.tsx`): a post-sign-in **Welcome → Persona →
+Template → WhatsApp (optional) → Done** flow with its own progress stepper,
+reached from the launch gate when the REST onboarding status reports
+`onboarded_at` is null (the pre-auth intro splash slides are separate and
+untouched). Persona/template/WhatsApp all reuse the existing REST endpoints.*
 
 ---
 

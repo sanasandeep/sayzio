@@ -12,6 +12,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\PersonaCatalog;
+use App\Modules\User\Support\OnboardingSteps;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -59,6 +60,10 @@ class OnboardingController extends Controller
             'personaLabel'=> PersonaCatalog::pluralLabelFor($persona),
             'initialGrid' => $this->renderTemplateGrid($persona),
             'resume'      => $resume,
+            'steps'       => OnboardingSteps::forUser($user),
+            // Resume straight to the template stage when we have a hint,
+            // otherwise start at the welcome stage.
+            'initialStep' => $resume ? 'template' : 'welcome',
         ]);
     }
 
@@ -334,9 +339,13 @@ class OnboardingController extends Controller
             return redirect()->route('user.dashboard');
         }
 
+        $steps = OnboardingSteps::forUser($user);
+
         return view('user.onboarding.whatsapp', [
-            'channelUrl' => $this->whatsappChannelUrl(),
-            'pending'    => session('whatsapp_connect_pending'),
+            'channelUrl'  => $this->whatsappChannelUrl(),
+            'pending'     => session('whatsapp_connect_pending'),
+            'steps'       => $steps,
+            'activeIndex' => OnboardingSteps::indexOf($steps, 'whatsapp'),
         ]);
     }
 
