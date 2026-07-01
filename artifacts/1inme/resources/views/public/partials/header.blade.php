@@ -46,6 +46,13 @@
     $navUseCases = \App\Modules\Common\Support\SitePagesContent::useCaseMeta();
 @endphp
 <div x-data="{ mobileOpen:false, mobileGroup:null, openMenu:null, scrolled:false {{ $useModal ? ', authOpen:false, authTab:\'login\', authHandle:\'\'' : '' }} }"
+     {{-- For the in-flow sticky header (non-home pages) the Alpine wrapper must
+          NOT form a containing block, or the sticky <nav> would be trapped in a
+          box only as tall as itself and unstick immediately. `display:contents`
+          dissolves this wrapper so the nav's containing block becomes the body,
+          giving it the full scrollable page to stay pinned across. The fixed
+          (home) header is positioned out of flow, so it keeps a normal box. --}}
+     @if(! $fixed) style="display: contents;" @endif
      x-init="scrolled = window.scrollY > 8"
      @scroll.window.passive="scrolled = window.scrollY > 8"
      x-effect="document.body.style.overflow = (mobileOpen{{ $useModal ? ' || authOpen' : '' }}) ? 'hidden' : ''"

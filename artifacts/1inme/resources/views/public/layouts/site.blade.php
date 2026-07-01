@@ -68,10 +68,35 @@
         };
     </script>
     <style>
-        html, body { background:#1e2330; }
+        /* Match the home page's richer, full-height background so marketing
+           pages are visually consistent with it (and with the shared header's
+           mega-menu panels, which are designed against this deep base). A flat
+           mid-slate body used to clash with the home page, the darker section
+           cards (#11101c) and the near-black footer (#08020f), leaving a seam. */
+        :root { --bg:#0a0a14; }
+        html, body { background: var(--bg); }
+        html { overflow-x: clip; }
         body { color:#fff; font-family:'Space Grotesk', sans-serif; }
+        html.light-mode { --bg:#f8fafc; }
         html.light-mode, html.light-mode body { background:#f8fafc; color:#111827; }
+        html.light-mode .aurora { opacity: 0.18; }
         [x-cloak]{display:none!important}
+
+        /* Aurora background (mirrors the home page) — a fixed, full-viewport
+           glow that stays seamless from the header through to the footer as the
+           page scrolls. */
+        .aurora { position: fixed; inset: -10%; z-index: -1; pointer-events: none; opacity: .6; filter: blur(80px); }
+        .aurora b { position: absolute; border-radius: 50%; mix-blend-mode: screen; animation: aurora 22s ease-in-out infinite; }
+        .aurora b:nth-child(1) { top:-10%; left:-10%; width:60vw; height:60vw; background:#3d6bff; animation-delay:-2s; }
+        .aurora b:nth-child(2) { bottom:-15%; right:-10%; width:55vw; height:55vw; background:#5c83ff; animation-delay:-8s; }
+        .aurora b:nth-child(3) { top:30%; left:40%; width:40vw; height:40vw; background:#6e61ff; animation-delay:-14s; }
+        .aurora b:nth-child(4) { top:60%; left:5%; width:35vw; height:35vw; background:#2342c7; opacity:.7; animation-delay:-18s; }
+        @keyframes aurora {
+            0%,100% { transform: translate(0,0) scale(1); }
+            33%     { transform: translate(6%,-4%) scale(1.15); }
+            66%     { transform: translate(-5%,5%) scale(.95); }
+        }
+        @media (prefers-reduced-motion: reduce) { .aurora b { animation: none; } }
         .prose-light p { margin-bottom:.75rem; line-height:1.65; color:#d1d5db; }
         .prose-light a { color:#90acff; text-decoration:underline; }
         .prose-light strong { color:#f5f3ff; font-weight:600; }
@@ -92,6 +117,9 @@
     @stack('head')
 </head>
 <body class="min-h-screen flex flex-col">
+
+{{-- Aurora background (consistent with the home page) --}}
+<div class="aurora" aria-hidden="true"><b></b><b></b><b></b><b></b></div>
 
 @include('common.partials.announcement-banner', ['surface' => 'site'])
 
