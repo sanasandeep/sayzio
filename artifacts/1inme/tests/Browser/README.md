@@ -60,7 +60,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   dashboard-layout.spec.ts \
   header-account-menu.spec.ts \
   header-mobile-account-menu.spec.ts \
-  header-mobile-logged-out-cta.spec.ts
+  header-mobile-logged-out-cta.spec.ts \
+  dashboard-mobile-account.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -112,7 +113,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these twenty-two specs are gated (and not the whole suite)
+### Why these twenty-three specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -328,13 +329,32 @@ The gate covers the specs that run reliably as an unattended check here:
   the two-panel auth modal on the correct tab (login → identifier field, register
   → name field). Guards the visitor sign-in entry points against silently
   drifting out of the mobile drawer (memory user-sidebar-dual-nav).
+- `dashboard-mobile-account.spec.ts` — self-bootstrapping: it seeds the demo
+  user (active + verified + `onboarded_at`, plus the `user-admin` web role so
+  the account/settings nav group renders) via `php artisan tinker`, logs in, and
+  lands on `/user/dashboard` (the IN-APP shell, distinct from the public header
+  the sibling header specs cover) on a MOBILE viewport (400px, below `lg`). Guards
+  the mobile account controls of the authenticated app shell — the parallel
+  hamburger drawer + header ⋮ overflow menu that tend to drift from the desktop
+  aside (memory user-sidebar-dual-nav). Opens the hamburger drawer, expands its
+  collapsible Account group, and asserts it exposes exactly ONE consolidated
+  "Settings" entry wired into the `/user/settings/{tab}` hub (Task #3220). Then
+  opens the header ⋮ overflow menu (the mobile sign-out surface — the drawer
+  itself carries no logout form) and asserts its Settings link points into the
+  same hub and its "Sign out" logout form is correctly wired (action
+  `route('user.logout')`, POST, non-empty CSRF token), before actually submitting
+  it and proving the session ends (redirect to the login page, the authed logout
+  form gone). Non-destructive assertions run in both dark and light mode (the
+  server `light-mode` html class); the destructive logout test runs last and
+  re-establishes the session on retry. All tests share one logged-in context (the
+  `demo-login` route is rate-limited).
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the twenty-two gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the twenty-three gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
