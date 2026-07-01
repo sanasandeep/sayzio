@@ -61,7 +61,17 @@ class GoogleContactsAccountController extends Controller
     public function syncNow(Request $request, GoogleContactsAccount $account)
     {
         abort_if($account->user_id !== $request->user()->id, 403);
-        $stats = $this->sync->syncAccount($account);
+
+        $result = $this->sync->syncNow($account);
+
+        if ($result['status'] === 'throttled') {
+            return back()->with('info', "Already up to date — you just synced. Try again in {$result['retry_after']}s.");
+        }
+        if ($result['status'] === 'in_progress') {
+            return back()->with('info', 'A sync is already running — give it a few seconds.');
+        }
+
+        $stats = $result['stats'];
         $msg = "Synced — +{$stats['created']} ~{$stats['updated']} -{$stats['deleted']} pushed {$stats['pushed']}";
         if (!empty($stats['skipped_capped'])) {
             return back()->with('error', $msg . " — {$stats['skipped_capped']} contact(s) were not imported because you've reached your plan's contact limit. Upgrade your plan to import the rest.");

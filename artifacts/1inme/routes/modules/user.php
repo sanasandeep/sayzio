@@ -226,7 +226,7 @@ Route::prefix('user')->name('user.')->group(function () {
             ->name('security.logins');
         Route::post('security/logins/{loginEvent}/revoke', [\App\Modules\User\Controllers\SecurityController::class, 'revokeFromList'])
             ->name('security.logins.revoke-from-list');
-        Route::get('dashboard', [DashboardController::class, 'index'])->middleware('onboarding.gate')->name('dashboard');
+        Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['onboarding.gate', 'contacts.sync-on-open'])->name('dashboard');
 
         // ---- Personal 2FA enrollment ----
         Route::get   ('settings/security',            [\App\Modules\User\Controllers\TwoFactorController::class, 'show'])
@@ -1224,7 +1224,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // (CRM). Read endpoints require `settings.view`, mutations
         // `settings.edit` so non-admin members can't see or modify the
         // workspace's address book.
-        Route::get('contacts',                              [ContactController::class, 'index'])->middleware('workspace.can:settings.view')->name('contacts.index');
+        Route::get('contacts',                              [ContactController::class, 'index'])->middleware(['workspace.can:settings.view', 'contacts.sync-on-open'])->name('contacts.index');
         Route::get('contacts/create',                       [ContactController::class, 'create'])->middleware('workspace.can:settings.edit')->name('contacts.create');
         Route::post('contacts',                             [ContactController::class, 'store'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max', CheckPlanLimit::class . ':leads'])->name('contacts.store');
         Route::get('contacts/import',                       [ContactController::class, 'importForm'])->middleware('workspace.can:settings.edit')->name('contacts.import');

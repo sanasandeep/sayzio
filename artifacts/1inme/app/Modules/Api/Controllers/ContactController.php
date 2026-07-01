@@ -7,6 +7,7 @@ use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Common\Services\ContactCandidateValidator;
 use App\Modules\User\Controllers\ContactController as WebContactController;
 use App\Modules\User\Models\Contact;
+use App\Modules\User\Models\ContactDeletionTombstone;
 use App\Modules\User\Models\ContactEmail;
 use App\Modules\User\Models\ContactImport;
 use App\Modules\User\Models\ContactPhone;
@@ -143,6 +144,10 @@ class ContactController extends Controller
                     'at'   => now()->toIso8601String(),
                     'kind' => 'extension',
                 ]] : null,
+                // Mark dirty so the immediate push (and any pull-side conflict
+                // guard) treats this as a locally-originated change, matching
+                // the web create path.
+                'locally_modified_at' => now(),
             ]);
             $c->workspace_id = $wsId;
             $c->save();
@@ -151,8 +156,12 @@ class ContactController extends Controller
             return $c->fresh(['phones', 'emails']);
         });
 
+        // Immediately mirror the new contact to Google (best-effort), so it
+        // shows up there within seconds instead of at the next scheduled sync.
+        $this->pushToGoogleSafely($userId, $contact);
+
         return $this->created([
-            'contact'      => $this->transform($contact),
+            'contact'      => $this->transform($contact->fresh(['phones', 'emails'])),
             'duplicate_of' => $v->duplicateOf, // surfaced for non-strict callers
         ]);
     }
@@ -244,10 +253,17 @@ class ContactController extends Controller
                     $existing->save();
                 }
             }
+            // Mark dirty so the immediate push carries the merge and the
+            // pull-side conflict guard doesn't clobber it.
+            $existing->locally_modified_at = now();
+            $existing->save();
             return $existing->fresh(['phones', 'emails']);
         });
 
-        return $this->ok(['contact' => $this->transform($contact)]);
+        // Immediately mirror the merged contact to Google (best-effort).
+        $this->pushToGoogleSafely($userId, $contact);
+
+        return $this->ok(['contact' => $this->transform($contact->fresh(['phones', 'emails']))]);
     }
 
     public function update(Request $request, int $id)
@@ -263,7 +279,11 @@ class ContactController extends Controller
             $c->fill(array_intersect_key($data, array_flip([
                 'display_name', 'given_name', 'family_name',
                 'organization', 'job_title', 'notes',
-            ])))->save();
+            ])));
+            // Mark dirty so the pull-side conflict guard doesn't clobber this
+            // edit and the immediate push carries it, matching the web path.
+            $c->locally_modified_at = now();
+            $c->save();
 
             if (array_key_exists('emails', $data)) {
                 $this->syncEmails($c, $data['emails'] ?? []);
@@ -274,14 +294,30 @@ class ContactController extends Controller
             return $c->fresh(['phones', 'emails']);
         });
 
-        return $this->ok(['contact' => $this->transform($contact)]);
+        // Immediately mirror the edit to Google (best-effort).
+        $this->pushToGoogleSafely($request->user()->id, $contact);
+
+        return $this->ok(['contact' => $this->transform($contact->fresh(['phones', 'emails']))]);
     }
 
     public function destroy(Request $request, int $id)
     {
         $c = Contact::where('user_id', $request->user()->id)->find($id);
         if (!$c) return $this->notFound('Contact not found');
+
+        // Park a deletion tombstone before removing the row so the sync can
+        // finalise it on Google, then attempt an immediate best-effort delete.
+        // The tombstone is the source of truth and gets retried on failure.
+        $tombstone = null;
+        if ($c->google_contacts_account_id && $c->google_resource_name) {
+            $tombstone = ContactDeletionTombstone::create([
+                'user_id'                    => $c->user_id,
+                'google_contacts_account_id' => $c->google_contacts_account_id,
+                'google_resource_name'       => $c->google_resource_name,
+            ]);
+        }
         $c->delete();
+        $this->deleteFromGoogleSafely($tombstone);
         return $this->noContent();
     }
 
@@ -533,21 +569,38 @@ class ContactController extends Controller
         return $this->ok(['account' => $account ? $this->transformGoogleAccount($account) : null]);
     }
 
-    /** Run a sync for the connected Google account now (pull + push). */
+    /**
+     * Run an on-demand sync for the connected Google account now (pull + push).
+     * Throttled per-account via the service so it can't be hammered; returns a
+     * clear status the client can surface:
+     *   status=synced       — ran now, `stats` populated
+     *   status=throttled    — synced very recently, retry after `retry_after`s
+     *   status=in_progress  — a sync is already running
+     */
     public function googleSync(Request $request)
     {
         $account = GoogleContactsAccount::where('user_id', $request->user()->id)->first();
         if (!$account) return $this->fail('No Google account connected.', 422, 'google_not_connected');
 
         try {
-            $stats = $this->sync->syncAccount($account);
+            $result = $this->sync->syncNow($account);
         } catch (\Throwable $e) {
             \Log::warning('API Google contacts sync failed', ['err' => $e->getMessage()]);
             return $this->fail('Sync failed: ' . $e->getMessage(), 502, 'google_sync_failed');
         }
 
+        if ($result['status'] === 'throttled' || $result['status'] === 'in_progress') {
+            return $this->ok([
+                'status'      => $result['status'],
+                'retry_after' => $result['retry_after'],
+                'stats'       => null,
+                'account'     => $this->transformGoogleAccount($account->fresh()),
+            ]);
+        }
+
         return $this->ok([
-            'stats'   => $stats,
+            'status'  => 'synced',
+            'stats'   => $result['stats'],
             'account' => $this->transformGoogleAccount($account->fresh()),
         ]);
     }
@@ -574,6 +627,34 @@ class ContactController extends Controller
         if (!$account) return $this->fail('No Google account connected.', 422, 'google_not_connected');
         $account->delete();
         return $this->ok(['disconnected' => true]);
+    }
+
+    /**
+     * Push a locally-changed contact to Google now (best-effort). Mirrors the
+     * web ContactController helper: only pushes when a push-enabled account
+     * exists, and never fails the API request on a Google error.
+     */
+    private function pushToGoogleSafely(int $userId, Contact $contact): void
+    {
+        $account = GoogleContactsAccount::where('user_id', $userId)->where('push_enabled', true)->first();
+        if (!$account) return;
+        try { $this->sync->pushContact($account, $contact); }
+        catch (\Throwable $e) { \Log::warning('API push contact failed', ['err' => $e->getMessage()]); }
+    }
+
+    /**
+     * Immediately try to finalise a just-created deletion tombstone on Google.
+     * Best-effort: the tombstone is the source of truth and the scheduled sync
+     * retries it on failure, so this never fails the request.
+     */
+    private function deleteFromGoogleSafely(?ContactDeletionTombstone $tombstone): void
+    {
+        if (!$tombstone) return;
+        $account = GoogleContactsAccount::where('id', $tombstone->google_contacts_account_id)
+            ->where('push_enabled', true)->first();
+        if (!$account) return; // push disabled → leave for the scheduled drain
+        try { $this->sync->attemptTombstoneDelete($account, $tombstone); }
+        catch (\Throwable $e) { \Log::warning('API immediate contact delete failed', ['err' => $e->getMessage()]); }
     }
 
     protected function transformGoogleAccount(GoogleContactsAccount $a): array

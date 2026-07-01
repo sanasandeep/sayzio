@@ -91,6 +91,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'workspace.2fa'     => \App\Modules\User\Middleware\EnsureTwoFactorPolicy::class,
             'portal.session'    => \App\Modules\User\Middleware\ResolvePortalSession::class,
             'user.can'          => \App\Modules\User\Middleware\UserPermission::class,
+            'contacts.sync-on-open' => \App\Modules\User\Middleware\SyncGoogleContactsOnOpen::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

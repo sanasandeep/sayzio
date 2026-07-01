@@ -182,15 +182,17 @@ class ContactController extends Controller
         if ($contact->photo_path) Storage::disk('public')->delete($contact->photo_path);
         // Park a deletion tombstone before removing the row so the next sync
         // can finalise it on Google. Best-effort immediate attempt too — but
-        // the tombstone is the source of truth and gets retried.
+        // the tombstone is the source of truth and gets retried on failure.
+        $tombstone = null;
         if ($contact->google_contacts_account_id && $contact->google_resource_name) {
-            ContactDeletionTombstone::create([
+            $tombstone = ContactDeletionTombstone::create([
                 'user_id'                    => $contact->user_id,
                 'google_contacts_account_id' => $contact->google_contacts_account_id,
                 'google_resource_name'       => $contact->google_resource_name,
             ]);
         }
         $contact->delete();
+        $this->deleteFromGoogleSafely($tombstone);
         return redirect()->route('user.contacts.index')->with('success', 'Contact deleted.');
     }
 
@@ -847,6 +849,21 @@ class ContactController extends Controller
         if (!$account) return;
         try { $this->sync->pushContact($account, $contact); }
         catch (\Throwable $e) { \Log::warning('Push contact failed', ['err' => $e->getMessage()]); }
+    }
+
+    /**
+     * Immediately try to finalise a just-created deletion tombstone on Google.
+     * Best-effort: the tombstone is the source of truth and the scheduled sync
+     * retries it on failure, so this never fails the request.
+     */
+    private function deleteFromGoogleSafely(?ContactDeletionTombstone $tombstone): void
+    {
+        if (!$tombstone) return;
+        $account = GoogleContactsAccount::where('id', $tombstone->google_contacts_account_id)
+            ->where('push_enabled', true)->first();
+        if (!$account) return; // push disabled → leave for the scheduled drain
+        try { $this->sync->attemptTombstoneDelete($account, $tombstone); }
+        catch (\Throwable $e) { \Log::warning('Immediate contact delete failed', ['err' => $e->getMessage()]); }
     }
 
     public function biolinkPreview(Contact $contact): ?array

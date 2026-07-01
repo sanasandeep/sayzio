@@ -17,9 +17,20 @@ class SyncContactsCommand extends Command
         if ($id = $this->option('account')) $q->where('id', $id);
         $accounts = $q->get();
 
+        // An explicit --account run is an operator forcing a sync, so bypass
+        // the cooldown; the unattended backstop routes through syncNow so it
+        // cheaply skips accounts an on-demand trigger or sync-on-open just
+        // handled (avoids double-hitting the Google People API).
+        $force = (bool) $this->option('account');
+
         $this->info("Syncing contacts for {$accounts->count()} account(s)…");
         foreach ($accounts as $account) {
-            $stats = $sync->syncAccount($account);
+            $result = $sync->syncNow($account, $force);
+            if ($result['status'] !== 'ok') {
+                $this->line("  #{$account->id} {$account->account_email}: skipped ({$result['status']})");
+                continue;
+            }
+            $stats = $result['stats'];
             $this->line("  #{$account->id} {$account->account_email}: +{$stats['created']} ~{$stats['updated']} -{$stats['deleted']} pushed {$stats['pushed']} (errors {$stats['errors']})");
         }
         return self::SUCCESS;

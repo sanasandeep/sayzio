@@ -57,10 +57,15 @@ Schedule::command('calendars:pull-published')
     ->withoutOverlapping()
     ->onOneServer();
 
-// Every 30 minutes: pull/push Google Contacts for all connected accounts.
+// Every 2 minutes: near-real-time backstop that pulls/pushes Google Contacts
+// for all connected accounts. On-demand triggers + sync-on-open handle the
+// interactive path; this catches changes for users who aren't actively in the
+// app. withoutOverlapping(10) guards against a slow run overlapping the next
+// tick (the lock auto-expires after 10 min); the per-account cooldown inside
+// syncNow means this cheaply skips accounts that just synced.
 Schedule::command('contacts:sync')
-    ->everyThirtyMinutes()
-    ->withoutOverlapping()
+    ->everyTwoMinutes()
+    ->withoutOverlapping(10)
     ->onOneServer();
 
 // Hourly: clear caller-ID biolink attachments whose creator is no longer

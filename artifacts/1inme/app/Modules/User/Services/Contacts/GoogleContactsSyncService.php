@@ -8,16 +8,68 @@ use App\Modules\User\Models\ContactEmail;
 use App\Modules\User\Models\ContactPhone;
 use App\Modules\User\Models\GoogleContactsAccount;
 use App\Modules\User\Models\UserNotification;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class GoogleContactsSyncService
 {
+    /**
+     * Minimum seconds between two real syncs of the same account. On-demand
+     * triggers, the sync-on-open background job, and the scheduled backstop
+     * all funnel through syncNow() so no single account can be hammered
+     * against the Google People API regardless of how often it's requested.
+     */
+    public const SYNC_COOLDOWN_SECONDS = 15;
+
     public function __construct(
         protected GoogleContactsProvider $provider,
         protected BiolinkAttachResolver $resolver,
     ) {}
+
+    /**
+     * Run a sync for one account, throttled per-account so it can't be
+     * hammered. Returns a small status envelope the callers surface to the
+     * user:
+     *   ['status' => 'ok',          'stats' => [...]]              — ran now
+     *   ['status' => 'throttled',   'retry_after' => N, 'stats' => null]
+     *   ['status' => 'in_progress', 'retry_after' => N, 'stats' => null]
+     *
+     * The cooldown gate uses a short-lived cache stamp; an atomic lock guards
+     * against two concurrent syncs of the same account (e.g. a manual click
+     * racing the scheduled backstop). Pass $force=true to bypass the cooldown
+     * (used for the very first sync right after connecting an account).
+     */
+    public function syncNow(GoogleContactsAccount $account, bool $force = false, int $cooldown = self::SYNC_COOLDOWN_SECONDS): array
+    {
+        $stampKey = "google-contacts:sync-at:{$account->id}";
+        $now      = time();
+
+        if (!$force) {
+            $last = (int) Cache::get($stampKey, 0);
+            $elapsed = $now - $last;
+            if ($last && $elapsed < $cooldown) {
+                return ['status' => 'throttled', 'retry_after' => max(1, $cooldown - $elapsed), 'stats' => null];
+            }
+        }
+
+        $lock = Cache::lock("google-contacts:sync-lock:{$account->id}", 180);
+        if (!$lock->get()) {
+            return ['status' => 'in_progress', 'retry_after' => 5, 'stats' => null];
+        }
+
+        try {
+            // Re-stamp before running so a burst of requests that arrive while
+            // this sync is in flight are throttled off the current attempt.
+            Cache::put($stampKey, $now, now()->addSeconds(max($cooldown, 60)));
+            $stats = $this->syncAccount($account);
+        } finally {
+            $lock->release();
+        }
+
+        return ['status' => 'ok', 'stats' => $stats];
+    }
 
     /** Per-user contacts cap from the active plan. -1 = unlimited. */
     protected function contactsCapFor(GoogleContactsAccount $account): int
@@ -93,15 +145,10 @@ class GoogleContactsSyncService
                     ->where('attempts', '<', 5)
                     ->limit(200)->get();
                 foreach ($tombstones as $t) {
-                    try {
-                        $this->provider->deletePerson($account, $t->google_resource_name);
-                        $t->delete();
+                    if ($this->attemptTombstoneDelete($account, $t)) {
                         $stats['deleted']++;
-                    } catch (\Throwable $e) {
-                        $t->increment('attempts');
-                        $t->update(['last_error' => \Illuminate\Support\Str::limit($e->getMessage(), 500)]);
+                    } else {
                         $stats['errors']++;
-                        Log::warning('Google contact deletion retry failed', ['tomb' => $t->id, 'err' => $e->getMessage()]);
                     }
                 }
             }
@@ -304,6 +351,28 @@ class GoogleContactsSyncService
         if ($contact->google_resource_name) {
             try { $this->provider->deletePerson($account, $contact->google_resource_name); }
             catch (\Throwable $e) { Log::warning('Google contact delete failed', ['c' => $contact->id, 'err' => $e->getMessage()]); }
+        }
+    }
+
+    /**
+     * Attempt to finalise one deletion tombstone on Google. On success the
+     * tombstone is removed; on failure its attempt counter is bumped and it's
+     * left in place for the next scheduled drain (retry safety). Returns true
+     * only when the Google-side delete succeeded. Shared by the scheduled
+     * sync and the immediate best-effort delete on the destroy paths, so the
+     * retry/backoff behaviour lives in exactly one place.
+     */
+    public function attemptTombstoneDelete(GoogleContactsAccount $account, ContactDeletionTombstone $tombstone): bool
+    {
+        try {
+            $this->provider->deletePerson($account, $tombstone->google_resource_name);
+            $tombstone->delete();
+            return true;
+        } catch (\Throwable $e) {
+            $tombstone->increment('attempts');
+            $tombstone->update(['last_error' => Str::limit($e->getMessage(), 500)]);
+            Log::warning('Google contact deletion retry failed', ['tomb' => $tombstone->id, 'err' => $e->getMessage()]);
+            return false;
         }
     }
 }
