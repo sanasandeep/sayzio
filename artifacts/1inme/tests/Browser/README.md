@@ -61,7 +61,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   header-account-menu.spec.ts \
   header-mobile-account-menu.spec.ts \
   header-mobile-logged-out-cta.spec.ts \
-  dashboard-mobile-account.spec.ts
+  dashboard-mobile-account.spec.ts \
+  header-desktop-logged-out-cta.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -348,6 +349,18 @@ The gate covers the specs that run reliably as an unattended check here:
   server `light-mode` html class); the destructive logout test runs last and
   re-establishes the session on retry. All tests share one logged-in context (the
   `demo-login` route is rate-limited).
+- `header-desktop-logged-out-cta.spec.ts` — no login/seeding. Lands on a DESKTOP
+  viewport (1280px, above `lg`) where the desktop CTA cluster (`hidden lg:flex`)
+  is the nav surface, with a pre-seeded consent cookie so the banner can't
+  intercept clicks. Guards the LOGGED-OUT `@else` branch of the header `@auth`
+  block on the DESKTOP surface (distinct from the mobile drawer guard above): on
+  a non-modal page (`/contact`) it asserts the header shows Login/Register
+  **links** pointing at the login (`/login`) and register (`/register`) pages
+  (and that the auth modal is absent); on the modal home page (`/`,
+  `useModal=true`) it asserts the Login/Register **buttons** open the two-panel
+  auth modal on the correct tab (login → identifier field, register → name
+  field). Guards the desktop sign-in entry points against silently drifting out
+  of the header (memory user-sidebar-dual-nav).
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
