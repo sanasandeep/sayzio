@@ -90,6 +90,40 @@ const TOOL_NAMES: ToolName[] = [
   { bare: "Persona Generator", canonical: "AI Persona Generator" },
 ];
 
+/**
+ * Bare single-word tool labels that the DISTINCTIVE multi-word scan above
+ * deliberately ignores (they double as ordinary entity nouns: "All Personas",
+ * "Disable Companion", "Coach Defaults", the "Resume / Portfolio" link type).
+ *
+ * Those same words ARE the admin sidebar / page-title labels for the tools
+ * (`admin.ai-personas`, `admin.ai-companions`, `admin.ask-coach`), so a copy
+ * edit could revert a label to its bare form and the multi-word scan would not
+ * notice. This second pass closes that gap by looking ONLY at label contexts
+ * (section titles, nav-label / sidebar-tooltip spans, and AI-view headings) and
+ * flagging a label whose WHOLE text is exactly a bare tool name.
+ *
+ * Whole-label (not substring) matching is what keeps the entity-noun false
+ * positives out: "All Personas", "Coach usage & quality", "Coach Defaults" and
+ * "AI Usage" are longer than / different from the bare tool name, so they never
+ * match; only a label that is nothing but "Personas" / "Companions" / "Coach" /
+ * "Resume" is drift.
+ */
+const LABEL_TOOL_NAMES: { bare: string; canonical: string }[] = [
+  { bare: "Personas", canonical: "AI Personas" },
+  { bare: "Companions", canonical: "AI Companions" },
+  { bare: "Coach", canonical: "AI Coach" },
+  { bare: "Resume", canonical: "AI Resume" },
+];
+
+/**
+ * Admin view directories (relative to ADMIN_VIEWS_ROOT) whose own page headings
+ * name an AI tool. Heading tags are only checked inside these — a bare tool-name
+ * heading here is drift, whereas a generic heading elsewhere is not our concern.
+ * `coach-defaults/` is intentionally NOT listed: its headings ("Coach Defaults",
+ * "Score Presets") are entity nouns, not the AI Coach tool label.
+ */
+const AI_HEADING_DIRS = ["ai-personas", "ai-companions", "ask-coach", "ai-minds"];
+
 type AllowEntry = { path: string; kind: "file" | "dir"; reason: string };
 
 /**
@@ -158,6 +192,103 @@ export function scanSource(relFile: string, src: string): Offender[] {
   return offenders;
 }
 
+/** 1-based line/column of a character index within `src`. */
+function lineColAt(src: string, index: number): { line: number; col: number } {
+  let line = 1;
+  let lastNewline = -1;
+  for (let i = 0; i < index; i++) {
+    if (src[i] === "\n") {
+      line++;
+      lastNewline = i;
+    }
+  }
+  return { line, col: index - lastNewline };
+}
+
+/** Decode the handful of HTML entities that appear in admin labels. */
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, " ");
+}
+
+/**
+ * Reduce a label's inner markup to its plain visible text: strip HTML/blade
+ * tags, decode entities, collapse whitespace. Used for WHOLE-label equality so
+ * "All Personas" / "Coach usage & quality" never collapse to a bare tool name.
+ */
+function normalizeLabel(inner: string): string {
+  return decodeEntities(inner.replace(/<[^>]*>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** True when `relFile` lives under one of the AI tool view directories. */
+function isAiHeadingView(relFile: string): boolean {
+  const norm = relFile.split(path.sep).join("/");
+  return AI_HEADING_DIRS.some((dir) => norm.includes(`${ADMIN_VIEWS_ROOT}/${dir}/`));
+}
+
+/** Flag a normalized label if it is exactly a bare tool name (never prefixed). */
+function checkLabel(
+  relFile: string,
+  src: string,
+  matchIndex: number,
+  rawLines: string[],
+  label: string,
+  offenders: Offender[],
+): void {
+  const hit = LABEL_TOOL_NAMES.find((t) => t.bare === label);
+  if (!hit) return;
+  const { line, col } = lineColAt(src, matchIndex);
+  offenders.push({
+    file: relFile,
+    line,
+    col,
+    text: (rawLines[line - 1] ?? "").trim(),
+    canonical: hit.canonical,
+  });
+}
+
+/**
+ * Scan the label contexts of one blade for bare (un-prefixed) tool names:
+ *   - `@section('title'|'page-title', '<literal>')`
+ *   - `<span class="… nav-label …">…</span>` / `sidebar-tooltip`
+ *   - heading tags `<h1>…</h6>` — but only in the AI tool view directories.
+ * Only WHOLE-label matches count, so entity-noun labels are never flagged.
+ */
+export function scanLabelContexts(relFile: string, src: string): Offender[] {
+  const cleaned = blankComments(src);
+  const rawLines = src.split("\n");
+  const offenders: Offender[] = [];
+
+  const sectionRe =
+    /@section\(\s*(['"])(title|page-title)\1\s*,\s*(['"])([\s\S]*?)\3\s*\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = sectionRe.exec(cleaned)) !== null) {
+    checkLabel(relFile, cleaned, m.index, rawLines, normalizeLabel(m[4] ?? ""), offenders);
+  }
+
+  const spanRe =
+    /<span\b[^>]*\bclass="[^"]*\b(?:nav-label|sidebar-tooltip)\b[^"]*"[^>]*>([\s\S]*?)<\/span>/g;
+  while ((m = spanRe.exec(cleaned)) !== null) {
+    checkLabel(relFile, cleaned, m.index, rawLines, normalizeLabel(m[1] ?? ""), offenders);
+  }
+
+  if (isAiHeadingView(relFile)) {
+    const headingRe = /<(h[1-6])\b[^>]*>([\s\S]*?)<\/\1>/g;
+    while ((m = headingRe.exec(cleaned)) !== null) {
+      checkLabel(relFile, cleaned, m.index, rawLines, normalizeLabel(m[2] ?? ""), offenders);
+    }
+  }
+
+  return offenders;
+}
+
 /** List every `*.blade.php` under the admin views root (excluding vendor/). */
 function listAdminBlades(): string[] {
   const res = spawnSync(
@@ -177,6 +308,14 @@ function printExplain(): void {
   for (const t of TOOL_NAMES) {
     console.log(`  • ${t.bare.replace("s?", "(s)")}  ->  ${t.canonical}`);
   }
+  console.log("\nBare single-word tool labels (must carry 'AI ' in label contexts only):");
+  for (const t of LABEL_TOOL_NAMES) {
+    console.log(`  • ${t.bare}  ->  ${t.canonical}`);
+  }
+  console.log(
+    `  (label contexts: @section('title'|'page-title'), nav-label/sidebar-tooltip spans,\n   headings <h1..h6> in: ${AI_HEADING_DIRS.join(", ")}. WHOLE-label match only,`,
+  );
+  console.log("   so 'All Personas' / 'Coach usage & quality' / 'Coach Defaults' / 'AI Usage' pass.)");
   console.log("\nExceptions (never flagged):");
   console.log("  • AI Chat / AI Agents / Chat Widgets / Site Assistant (out of scope)");
   console.log("  • lowercase descriptive prose (matched case-sensitively)");
@@ -207,6 +346,7 @@ function main(): void {
       continue;
     }
     offenders.push(...scanSource(rel, src));
+    offenders.push(...scanLabelContexts(rel, src));
   }
 
   if (offenders.length === 0) {

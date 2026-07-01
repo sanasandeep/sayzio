@@ -25,6 +25,15 @@ preserved) before scan; Knowledge Base(s) preceded by a digit or `}}` echo is a
 count badge (allowed). Route names / `ask_coach.*` feature tags / CSS classes
 are lowercase/hyphenated/underscored so they never match.
 
+**Label-context pass (single words):** the multi-word scan deliberately skips bare
+single words (Personas/Companions/Coach/Resume). A second pass (`scanLabelContexts`)
+closes the copy-edit gap by flagging a WHOLE label that is exactly a bare tool name in
+label contexts only: `@section('title'|'page-title')`, `nav-label`/`sidebar-tooltip`
+spans (all admin blades), and `<h1..h6>` headings but ONLY in `AI_HEADING_DIRS`
+(ai-personas, ai-companions, ask-coach, ai-minds — coach-defaults excluded on purpose).
+Whole-label equality is what keeps "All Personas"/"Coach usage & quality"/"Coach
+Defaults"/"AI Usage" from flagging. Add new single-word labels to `LABEL_TOOL_NAMES`.
+
 **How to apply:** if a bare occurrence is genuinely intentional, add the file to
 the script's `ALLOWLIST` with a reason — never weaken the regex.
 
