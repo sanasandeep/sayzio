@@ -213,6 +213,41 @@ echo 'REACT_OK';
 }
 
 /**
+ * Put the demo user into the exact state where the one-time post-registration
+ * "Connect WhatsApp" step is applicable: onboarded (so the dashboard is
+ * reachable after skipping), the one-time step NOT yet marked shown, and NO
+ * verified WhatsApp number on file. That is precisely the gate
+ * OnboardingSteps::whatsappPending() checks, so the stepper will include the
+ * optional WhatsApp stage and `GET /user/onboarding/whatsapp` will render the
+ * step instead of redirecting straight past it. Mirrors the mobile
+ * `whatsappNeeded` gating exercised in test-onboarding-setup.mjs.
+ */
+function prepareWhatsappStep(): void {
+  const php = `
+use App\\Modules\\User\\Models\\User;
+use App\\Modules\\User\\Models\\LinkedIdentifier;
+
+$u = User::where('email', 'demo@1inme.com')->firstOrFail();
+
+// Drop any verified phone identifier so hasWhatsappNumber() is false and the
+// step is genuinely applicable (a prior run may have linked one).
+LinkedIdentifier::where('user_id', $u->id)->where('kind', 'phone')->delete();
+
+// Onboarded, but the WhatsApp step has never been shown yet.
+$settings = $u->settings ?? [];
+unset($settings['whatsapp_step_shown_at']);
+$u->forceFill(['onboarded_at' => now(), 'settings' => $settings])->save();
+
+echo 'WHATSAPP_PREP_OK';
+`.trim();
+
+  const out = runTinkerSeed(php);
+  if (!out.includes("WHATSAPP_PREP_OK")) {
+    throw new Error("WhatsApp step prep failed, output:\n" + out);
+  }
+}
+
+/**
  * Restore the demo user to an onboarded state on the way out so any sibling
  * spec that assumes the demo user is already onboarded (the common case) isn't
  * bounced through the onboarding gate by leftover state from this spec.
@@ -433,5 +468,44 @@ test.describe("first-run onboarding wizard", () => {
     } finally {
       restoreTemplates();
     }
+  });
+
+  test("the optional WhatsApp step is reachable and skipping it lands on the dashboard", async ({
+    page,
+  }) => {
+    // Put the user in the state where the one-time WhatsApp step applies.
+    prepareWhatsappStep();
+
+    // The step is reachable: GET /user/onboarding/whatsapp renders the connect
+    // screen (a user with a verified number would be redirected straight past
+    // it — see whatsappStep()).
+    await page.goto("/user/onboarding/whatsapp", { timeout: 120_000 });
+    await expect(
+      page.getByRole("heading", { name: "Add your WhatsApp number" }),
+    ).toBeVisible({ timeout: 120_000 });
+
+    // It's clearly optional: the shared stepper includes the "Connect WhatsApp"
+    // stage flagged "optional", so the visible progress never promises a stage
+    // the user is forced through.
+    // (The label span holds "Connect WhatsApp" plus a "· optional" child span,
+    // so match by substring rather than exact text.)
+    const stepper = page.locator('nav[aria-label="Onboarding progress"]');
+    await expect(stepper).toBeVisible();
+    await expect(stepper.getByText(/Connect WhatsApp/)).toBeVisible();
+    await expect(stepper.getByText("optional")).toBeVisible();
+
+    // And there is a persistent "Skip for now" escape hatch.
+    const skipBtn = page.getByRole("button", { name: /Skip for now/ });
+    await expect(skipBtn).toBeVisible();
+
+    // Skipping (without connecting any number) must land the user on the
+    // dashboard — a finished state — never bounce them back into onboarding or
+    // the WhatsApp step (which would trap a user who declines to connect).
+    await Promise.all([
+      page.waitForURL("**/user/dashboard", { timeout: 120_000 }),
+      skipBtn.click(),
+    ]);
+    expect(page.url()).toContain("/user/dashboard");
+    expect(page.url()).not.toContain("/user/onboarding");
   });
 });
