@@ -372,33 +372,25 @@ class DialerController extends Controller
         $needle = '%' . $q . '%';
         $phoneNeedle = '%' . ContactPhone::normalize($q) . '%';
 
+        // T9: if the user typed a digit sequence, also surface contacts whose
+        // name spells the digits on the keypad. Matched in SQL (against the T9
+        // encoding of the name) so it never loads up to 300 extra contacts into
+        // PHP to loop over with DialerT9::matches().
+        $seq = DialerT9::isDigitSequence($q) ? (string) preg_replace('/\D+/', '', $q) : '';
+
         $base = Contact::where('user_id', $userId)
             ->with(['phones', 'biolinkUser'])
-            ->where(function ($w) use ($needle, $phoneNeedle) {
+            ->where(function ($w) use ($needle, $phoneNeedle, $seq) {
                 $w->where('display_name', 'ilike', $needle)
                   ->orWhere('given_name', 'ilike', $needle)
                   ->orWhere('family_name', 'ilike', $needle)
                   ->orWhereHas('phones', fn ($q2) => $q2->where('value_e164', 'ilike', $phoneNeedle));
+                if (strlen($seq) >= 2) {
+                    $w->orWhereRaw(DialerT9::sqlEncode(DialerT9::CONTACT_NAME_SQL) . ' LIKE ?', ['%' . $seq . '%']);
+                }
             })
             ->orderBy('display_name')
             ->limit(50)->get();
-
-        // T9: if the user typed a digit sequence, also surface contacts whose
-        // name spells the digits on the keypad (and merge, de-duped).
-        if (DialerT9::isDigitSequence($q)) {
-            $seq = preg_replace('/\D+/', '', $q);
-            if (strlen($seq) >= 2) {
-                $haveIds = $base->pluck('id')->all();
-                $candidates = Contact::where('user_id', $userId)
-                    ->with(['phones', 'biolinkUser'])
-                    ->whereNotIn('id', $haveIds ?: [0])
-                    ->orderBy('display_name')
-                    ->limit(300)->get()
-                    ->filter(fn ($c) => DialerT9::matches($c->nameForDisplay(), $seq))
-                    ->take(50 - $base->count());
-                $base = $base->concat($candidates)->values();
-            }
-        }
 
         return $base;
     }

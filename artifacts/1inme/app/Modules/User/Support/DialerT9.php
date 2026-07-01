@@ -59,4 +59,38 @@ class DialerT9
         $v = trim($value);
         return $v !== '' && preg_match('/^[+]?[\d\s().*#-]+$/', $v) === 1;
     }
+
+    /**
+     * Postgres SQL expression that reproduces encode() for a given column /
+     * text expression, so a keypad digit sequence can be matched in SQL
+     * (`sqlEncode('name') LIKE '%526%'`) instead of loading candidate rows
+     * into PHP and looping with matches(). The work then never scales with
+     * the size of the reachable set, and a matching functional GIN
+     * (gin_trgm_ops) index makes it index-backed.
+     *
+     * Mirrors encode() exactly: lowercase, map a–z to their keypad digit,
+     * keep existing digits, drop everything else. All three functions used
+     * (lower / translate / regexp_replace) are IMMUTABLE, so the identical
+     * expression can also back a functional index.
+     *
+     * The alphabet→digit target string is the concatenation of the keypad
+     * digit for each letter a…z (abc=2, def=3, ghi=4, jkl=5, mno=6,
+     * pqrs=7, tuv=8, wxyz=9).
+     */
+    public static function sqlEncode(string $columnExpr): string
+    {
+        return "regexp_replace(translate(lower($columnExpr), "
+            . "'abcdefghijklmnopqrstuvwxyz', '22233344455566677778889999'), "
+            . "'[^0-9]', '', 'g')";
+    }
+
+    /**
+     * SQL expression matching the name portion of Contact::nameForDisplay()
+     * (display_name when set, else "given_name family_name"). Kept as a
+     * shared constant so the dialer search queries and the functional T9
+     * index stay in lockstep. Uses only IMMUTABLE operators/functions
+     * (coalesce / nullif / trim / ||) so it can back a functional index.
+     */
+    public const CONTACT_NAME_SQL =
+        "coalesce(nullif(display_name, ''), trim(coalesce(given_name, '') || ' ' || coalesce(family_name, '')))";
 }

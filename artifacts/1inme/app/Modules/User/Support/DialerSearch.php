@@ -95,7 +95,11 @@ class DialerSearch
         $query = Contact::where('user_id', $userId)->with(['phones', 'emails', 'biolinkUser']);
 
         if ($q !== '') {
-            $query->where(function ($w) use ($needle, $phoneNeedle) {
+            // T9 smart-dial (keypad-spelled names) is folded into the same SQL
+            // WHERE, so a digit query no longer loads up to 300 extra contacts
+            // into PHP to filter with DialerT9::matches().
+            $seq = DialerT9::isDigitSequence($q) ? (string) preg_replace('/\D+/', '', $q) : '';
+            $query->where(function ($w) use ($needle, $phoneNeedle, $seq) {
                 $w->where('display_name', 'ilike', $needle)
                   ->orWhere('given_name', 'ilike', $needle)
                   ->orWhere('family_name', 'ilike', $needle)
@@ -110,6 +114,9 @@ class DialerSearch
                       $q2->where('value', 'ilike', $needle)
                          ->orWhere('value_e164', 'ilike', $phoneNeedle);
                   });
+                if (strlen($seq) >= 2) {
+                    $w->orWhereRaw(DialerT9::sqlEncode(DialerT9::CONTACT_NAME_SQL) . ' LIKE ?', ['%' . $seq . '%']);
+                }
             });
         }
 
@@ -127,22 +134,6 @@ class DialerSearch
         }
 
         $rows = $query->orderBy('display_name')->limit(100)->get();
-
-        // T9 augmentation for digit queries (keypad-spelled names).
-        if ($q !== '' && DialerT9::isDigitSequence($q)) {
-            $seq = preg_replace('/\D+/', '', $q);
-            if (strlen($seq) >= 2 && $rows->count() < 100) {
-                $haveIds = $rows->pluck('id')->all();
-                $extra = Contact::where('user_id', $userId)
-                    ->with(['phones', 'emails', 'biolinkUser'])
-                    ->whereNotIn('id', $haveIds ?: [0])
-                    ->orderBy('display_name')
-                    ->limit(300)->get()
-                    ->filter(fn ($c) => DialerT9::matches($c->nameForDisplay(), $seq))
-                    ->take(100 - $rows->count());
-                $rows = $rows->concat($extra)->values();
-            }
-        }
 
         return $rows;
     }
@@ -235,31 +226,21 @@ class DialerSearch
         $query = User::whereIn('id', $ids);
         if ($q !== '') {
             $needle = '%' . $q . '%';
-            $query->where(function ($w) use ($needle, $q) {
+            // T9 smart-dial: a keypad digit sequence resolves keypad-spelled
+            // names. Matched entirely in SQL (against the T9 encoding of the
+            // name) so the work never scales with the size of the reachable
+            // set — no more loading up to 200 candidate users into PHP and
+            // looping with DialerT9::matches() on every keystroke.
+            $seq = DialerT9::isDigitSequence($q) ? (string) preg_replace('/\D+/', '', $q) : '';
+            $query->where(function ($w) use ($needle, $seq) {
                 $w->where('name', 'ilike', $needle)
                   ->orWhere('handle', 'ilike', $needle);
-                if (DialerT9::isDigitSequence($q)) {
-                    // Allow keypad-spelled names to resolve people too.
-                    $seq = preg_replace('/\D+/', '', $q);
-                    if (strlen($seq) >= 2) {
-                        // handled post-fetch below
-                    }
+                if (strlen($seq) >= 2) {
+                    $w->orWhereRaw(DialerT9::sqlEncode('name') . ' LIKE ?', ['%' . $seq . '%']);
                 }
             });
         }
         $candidates = $query->orderBy('name')->limit(60)->get();
-
-        // T9 post-filter for digit queries (spell a name on the keypad).
-        if ($q !== '' && DialerT9::isDigitSequence($q)) {
-            $seq = preg_replace('/\D+/', '', $q);
-            if (strlen($seq) >= 2) {
-                $extra = User::whereIn('id', $ids)
-                    ->whereNotIn('id', $candidates->pluck('id')->all() ?: [0])
-                    ->orderBy('name')->limit(200)->get()
-                    ->filter(fn ($u) => DialerT9::matches((string) $u->name, $seq));
-                $candidates = $candidates->concat($extra)->values();
-            }
-        }
 
         // Which of these accounts carry a verification badge (a verified link)?
         // A person's verified link may live in ANY of their workspaces. On the
