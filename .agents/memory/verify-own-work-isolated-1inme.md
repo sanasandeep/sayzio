@@ -35,3 +35,9 @@ env except `ServeCommand::$passthroughVariables`, giving "no password supplied".
 Clear `storage/framework/views/*.php` first if you edited a blade — stale compiled
 views serve the OLD markup. A real (tens-of-KB) 200 on the target page that greps
 for your new markup proves the module renders.
+
+**Verifying controller/service logic WITHOUT HTTP:** over a distant RDS the dev
+`php -S` frequently crashes on DB-heavy authed routes (even `/api/v1/profile`).
+When you just need to exercise controller/service code, write a standalone
+bootstrap PHP script that boots the framework kernel and calls the method
+directly — do NOT use the `tinker` REPL, which mangles multi-statement input.
