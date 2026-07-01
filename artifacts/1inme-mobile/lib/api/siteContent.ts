@@ -66,8 +66,10 @@ function formatStatValue(value: string, suffix: string): string {
  * app's public `/api/v1/site/contact` endpoint. Mirrors the web /contact
  * page's "Contact details" card (address, support email, phone, business
  * hours, social links, map) so the mobile Contact screen stays in sync when
- * an admin edits the copy — no app rebuild. The caller renders nothing extra
- * when the fetch fails or returns nothing (offline / endpoint unavailable).
+ * an admin edits the copy — no app rebuild. When the fetch fails or returns
+ * nothing (offline / endpoint unavailable) the caller still renders the
+ * correct brand details via {@see DEFAULT_CONTACT_CONTENT} (never a blank
+ * card, never a fake phone).
  */
 export interface ContactSocial {
   twitter: string;
@@ -106,10 +108,49 @@ interface ContactResponse {
   };
 }
 
-let contactCache: ContactContent | null = null;
-let contactInflight: Promise<ContactContent | null> | null = null;
+/**
+ * The correct brand contact details, used as the first-paint value and the
+ * fallback when the endpoint is unreachable (offline / server down). Kept in
+ * lockstep with the product app's {@see SitePagesContent::contactExtraDefault()}
+ * (and the marketing site's `DEFAULT_CONTACT_CONTENT`) so a fetch failure can
+ * never blank out a field or surface a fake phone number: Sayzio is a product
+ * of EEFind Private Limited (Banjara Hills, Hyderabad), the public inbox is
+ * hello@sayzio.app, and there is deliberately NO phone number.
+ */
+export const DEFAULT_CONTACT_CONTENT: ContactContent = {
+  title: "Contact us",
+  address:
+    "EEFind Private Limited\n8 Amrutha Nilayam, Banjara Hills\nHyderabad, Telangana 500034, India",
+  email: "hello@sayzio.app",
+  phone: "",
+  hours: "Mon–Fri · 10:00 – 18:00 IST\nClosed on public holidays",
+  social: {
+    twitter: "https://x.com/1INMEOfficial",
+    instagram: "https://instagram.com/1in.me",
+    linkedin: "https://linkedin.com/company/1INMEOfficial",
+    youtube: "",
+    facebook: "",
+  },
+  map: {
+    lat: 17.4139,
+    lng: 78.4483,
+    zoom: 14,
+    label: "EEFind Private Limited · Banjara Hills, Hyderabad",
+  },
+};
 
-export async function fetchContactContent(): Promise<ContactContent | null> {
+let contactCache: ContactContent | null = null;
+let contactInflight: Promise<ContactContent> | null = null;
+
+/**
+ * Fetch the admin-editable contact details from the product app. Always
+ * resolves to a renderable {@see ContactContent}: any missing field falls back
+ * to the correct brand default, and a non-OK/empty/failed request resolves to
+ * {@see DEFAULT_CONTACT_CONTENT} wholesale — so the mobile Contact screen never
+ * shows a blank card or a fake phone. Only successful fetches are cached, so a
+ * transient failure can be retried on the next mount.
+ */
+export async function fetchContactContent(): Promise<ContactContent> {
   if (contactCache) return contactCache;
   if (contactInflight) return contactInflight;
 
@@ -118,20 +159,35 @@ export async function fetchContactContent(): Promise<ContactContent | null> {
       const res = await fetch(`${getBaseUrl()}/api/v1/site/contact`, {
         headers: { Accept: "application/json" },
       });
-      if (!res.ok) return null;
+      if (!res.ok) return DEFAULT_CONTACT_CONTENT;
       const json = (await res.json()) as ContactResponse;
       const data = json?.data;
-      if (!data) return null;
+      if (!data) return DEFAULT_CONTACT_CONTENT;
 
       const s = data.social ?? {};
       const m = data.map ?? {};
 
+      // A blank server value for a field that must always resolve (title,
+      // address, email, hours) falls back to the brand default; a non-blank
+      // server value overrides it.
+      const clean = (value: unknown, fallback: string): string => {
+        const str = typeof value === "string" ? value.trim() : "";
+        return str !== "" ? str : fallback;
+      };
+
       const content: ContactContent = {
-        title: (data.title ?? "").trim() || "Contact us",
-        address: (data.address ?? "").trim(),
-        email: (data.email ?? "").trim(),
-        phone: (data.phone ?? "").trim(),
-        hours: (data.hours ?? "").trim(),
+        title: clean(data.title, DEFAULT_CONTACT_CONTENT.title),
+        address: clean(data.address, DEFAULT_CONTACT_CONTENT.address),
+        email: clean(data.email, DEFAULT_CONTACT_CONTENT.email),
+        // Phone is intentionally allowed to be empty (no fake number). Only a
+        // server-provided string is honored; a missing key keeps the default.
+        phone:
+          typeof data.phone === "string"
+            ? data.phone.trim()
+            : DEFAULT_CONTACT_CONTENT.phone,
+        hours: clean(data.hours, DEFAULT_CONTACT_CONTENT.hours),
+        // Social links are authoritative from the server on a successful fetch:
+        // an admin who clears one should see it gone, so blanks stay blank.
         social: {
           twitter: (s.twitter ?? "").trim(),
           instagram: (s.instagram ?? "").trim(),
@@ -140,27 +196,23 @@ export async function fetchContactContent(): Promise<ContactContent | null> {
           facebook: (s.facebook ?? "").trim(),
         },
         map: {
-          lat: Number.isFinite(Number(m.lat)) ? Number(m.lat) : 17.385,
-          lng: Number.isFinite(Number(m.lng)) ? Number(m.lng) : 78.4867,
-          zoom: Number.isFinite(Number(m.zoom)) ? Number(m.zoom) : 12,
-          label: (m.label ?? "").trim(),
+          lat: Number.isFinite(Number(m.lat))
+            ? Number(m.lat)
+            : DEFAULT_CONTACT_CONTENT.map.lat,
+          lng: Number.isFinite(Number(m.lng))
+            ? Number(m.lng)
+            : DEFAULT_CONTACT_CONTENT.map.lng,
+          zoom: Number.isFinite(Number(m.zoom))
+            ? Number(m.zoom)
+            : DEFAULT_CONTACT_CONTENT.map.zoom,
+          label: clean(m.label, DEFAULT_CONTACT_CONTENT.map.label),
         },
       };
-
-      // A payload with no usable details isn't worth swapping in; let the
-      // caller keep the screen free of an empty card.
-      const hasDetail =
-        content.address !== "" ||
-        content.email !== "" ||
-        content.phone !== "" ||
-        content.hours !== "" ||
-        Object.values(content.social).some((u) => u !== "");
-      if (!hasDetail) return null;
 
       contactCache = content;
       return content;
     } catch {
-      return null;
+      return DEFAULT_CONTACT_CONTENT;
     } finally {
       contactInflight = null;
     }

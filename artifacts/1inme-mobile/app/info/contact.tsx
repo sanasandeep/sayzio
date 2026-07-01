@@ -25,6 +25,7 @@ import {
   type QuickContactChannel,
 } from "@/lib/api/assistant";
 import {
+  DEFAULT_CONTACT_CONTENT,
   fetchContactContent,
   type ContactContent,
 } from "@/lib/api/siteContent";
@@ -102,8 +103,12 @@ export default function QuickContactScreen() {
 
   // Brand contact details (address, support email, phone, hours, social, map),
   // fetched at runtime from the same admin-editable source as the web /contact
-  // card. Stays null (nothing extra rendered) when offline / unavailable.
-  const [details, setDetails] = useState<ContactContent | null>(null);
+  // card. Seeded with the correct brand defaults so the first paint — and any
+  // offline / failed fetch — shows real details (EEFind, Banjara Hills,
+  // hello@sayzio.app, no fake phone) rather than a blank card.
+  const [details, setDetails] = useState<ContactContent>(
+    DEFAULT_CONTACT_CONTENT,
+  );
   useEffect(() => {
     let alive = true;
     fetchContactContent()
@@ -195,9 +200,7 @@ export default function QuickContactScreen() {
             </View>
           ) : (
             <>
-              {details ? (
-                <ContactDetailsCard details={details} colors={colors} />
-              ) : null}
+              <ContactDetailsCard details={details} colors={colors} />
 
               <Text style={[styles.title, { color: colors.foreground }]}>
                 Request a callback
