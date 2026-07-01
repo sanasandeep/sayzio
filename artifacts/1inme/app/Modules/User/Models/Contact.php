@@ -35,6 +35,46 @@ protected $fillable = [
         ];
     }
 
+    /**
+     * When a contact is captured in Sayzio (manual add, bulk import, Google
+     * sync, biolink auto-attach), fan it out to the owner's connected CRMs.
+     * Loop-safe: contacts imported *from* a CRM carry a `crm:` source, so they
+     * are never echoed back out. The push job builds the lead from the fresh
+     * record after commit, so emails/phones attached later are included.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (Contact $contact): void {
+            if (!$contact->user_id) {
+                return;
+            }
+            foreach ((array) $contact->sources as $source) {
+                if (is_string($source) && str_starts_with($source, 'crm:')) {
+                    return;
+                }
+            }
+            \App\Jobs\PushLeadToCrmJob::forContact((int) $contact->user_id, (int) $contact->id);
+        });
+    }
+
+    /** @return array<string,mixed> normalized CRM lead payload. */
+    public function toCrmLead(): array
+    {
+        $email = $this->emails()->orderByDesc('is_primary')->value('value');
+        $phone = $this->phones()->orderByDesc('is_primary')->value('value');
+        $display = $this->display_name ?: trim(($this->given_name ?? '') . ' ' . ($this->family_name ?? ''));
+
+        return [
+            'email'        => $email,
+            'phone'        => $phone,
+            'first_name'   => $this->given_name,
+            'last_name'    => $this->family_name,
+            'display_name' => $display !== '' ? $display : null,
+            'company'      => $this->organization,
+            'source'       => 'contact',
+        ];
+    }
+
     public function user(): BelongsTo            { return $this->belongsTo(User::class); }
     public function biolinkUser(): BelongsTo     { return $this->belongsTo(User::class, 'biolink_user_id'); }
     public function googleAccount(): BelongsTo   { return $this->belongsTo(GoogleContactsAccount::class, 'google_contacts_account_id'); }

@@ -30,6 +30,37 @@ protected $fillable = [
         ];
     }
 
+    /**
+     * When a new subscriber (biolink email/WhatsApp opt-in) is captured, fan
+     * it out to the owner's connected CRMs. Loop-safe: inbound CRM pulls only
+     * ever create Contacts, never Subscribers, so this can never echo back.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (Subscriber $sub): void {
+            if ($sub->is_spam || !$sub->user_id) {
+                return;
+            }
+            \App\Jobs\PushLeadToCrmJob::forUser((int) $sub->user_id, $sub->toCrmLead());
+        });
+    }
+
+    /** @return array<string,mixed> normalized CRM lead payload. */
+    public function toCrmLead(): array
+    {
+        $name  = trim((string) $this->name);
+        $parts = $name !== '' ? preg_split('/\s+/', $name, 2) : [];
+        return [
+            'email'        => $this->email,
+            'phone'        => $this->phone,
+            'first_name'   => $parts[0] ?? null,
+            'last_name'    => $parts[1] ?? null,
+            'display_name' => $name !== '' ? $name : null,
+            'company'      => null,
+            'source'       => 'subscriber:' . ($this->type ?: 'email'),
+        ];
+    }
+
     public function user()
     {
         return $this->belongsTo(\App\Modules\User\Models\User::class);

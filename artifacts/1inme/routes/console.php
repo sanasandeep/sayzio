@@ -63,6 +63,13 @@ Schedule::command('contacts:sync')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Every 30 minutes: pull inbound CRM contacts (Salesforce/HubSpot/Zoho) into
+// Sayzio contacts for every active, pull-enabled Connected Apps connection.
+Schedule::command('connected-apps:pull')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every 5 minutes: deliver due dialer call-back reminders (in-app + push),
 // once each. The command stamps callback_notified_at so reruns are idempotent.
 Schedule::command('dialer:send-callback-reminders')

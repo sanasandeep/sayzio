@@ -7,6 +7,7 @@ use App\Modules\Api\Controllers\BiolinkBlockController;
 use App\Modules\Api\Controllers\BiolinkController;
 use App\Modules\Api\Controllers\BiolinkWizardController;
 use App\Modules\Api\Controllers\CardScanController;
+use App\Modules\Api\Controllers\ConnectedAppController;
 use App\Modules\Api\Controllers\ContactController;
 use App\Modules\Api\Controllers\CreatorPostController;
 use App\Modules\Api\Controllers\DiscoveryController;
@@ -781,6 +782,16 @@ Route::prefix('v1')->group(function () {
         Route::delete('/contacts/import/preview/{token}',        [ContactController::class, 'importCancel']);
         Route::post  ('/contacts/import/preview/{token}/confirm',[ContactController::class, 'importConfirm']);
         Route::get   ('/contacts/import/status/{id}',            [ContactController::class, 'importStatus'])->whereNumber('id');
+
+        // Connected Apps (CRM two-way sync + GA4 forwarding). Mirrors the
+        // web /user/connected-apps area; OAuth is delegated to the shared
+        // stateless web callback (finishes to the sayzio:// deep link).
+        Route::get   ('/connected-apps',                    [ConnectedAppController::class, 'index']);
+        Route::post  ('/connected-apps/{provider}/connect-url', [ConnectedAppController::class, 'connectUrl'])->middleware('throttle:30,1');
+        Route::post  ('/connected-apps/google-analytics',   [ConnectedAppController::class, 'saveGa']);
+        Route::patch ('/connected-apps/{id}',               [ConnectedAppController::class, 'update'])->whereNumber('id');
+        Route::post  ('/connected-apps/{id}/sync',          [ConnectedAppController::class, 'syncNow'])->whereNumber('id')->middleware('throttle:12,1');
+        Route::delete('/connected-apps/{id}',               [ConnectedAppController::class, 'destroy'])->whereNumber('id');
 
         // Forms (mobile can list + create-on-the-spot from the block
         // editor; richer editing lives on web).

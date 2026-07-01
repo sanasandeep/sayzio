@@ -484,6 +484,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('storage', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editStorage'])->middleware(CheckPermission::class . ':settings.manage')->name('storage.edit');
             Route::put('storage', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateStorage'])->middleware(CheckPermission::class . ':settings.manage')->name('storage.update');
             Route::post('storage/test', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'testStorage'])->middleware(CheckPermission::class . ':settings.manage')->name('storage.test');
+
+            // Connected Apps: CRM OAuth clients (data-driven per provider) + GA4 forwarding switch.
+            Route::get('connected-apps/{provider}', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editConnectedApp'])->middleware(CheckPermission::class . ':settings.manage')->name('connected-app.edit')->where('provider', 'salesforce|hubspot|zoho');
+            Route::put('connected-apps/{provider}', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateConnectedApp'])->middleware(CheckPermission::class . ':settings.manage')->name('connected-app.update')->where('provider', 'salesforce|hubspot|zoho');
+            Route::get('google-analytics', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editGoogleAnalytics'])->middleware(CheckPermission::class . ':settings.manage')->name('google-analytics.edit');
+            Route::put('google-analytics', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateGoogleAnalytics'])->middleware(CheckPermission::class . ':settings.manage')->name('google-analytics.update');
         });
 
         // AI Engine: OpenAI key, models/rates, wallet→credits conversion,

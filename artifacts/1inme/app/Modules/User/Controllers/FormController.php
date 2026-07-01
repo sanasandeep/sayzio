@@ -1032,6 +1032,27 @@ class FormController extends Controller
             'line_items' => $isPaid ? $lineItems : null,
         ]);
 
+        // Fan the captured submission out to the owner's connected CRMs as a
+        // lead (queued off the request cycle; no-op when no CRM is connected).
+        // Obvious spam is never forwarded. Loop-safe: CRM pulls create Contacts
+        // only, never form submissions.
+        if (!$spamCheck['is_spam'] && $form->user_id && ($senderEmail || $senderPhone)) {
+            $senderName = null;
+            foreach (['name', 'Name', 'full_name', 'first_name', 'first_name '] as $k) {
+                if (!empty($data[$k]) && is_string($data[$k])) { $senderName = $data[$k]; break; }
+            }
+            $nameParts = $senderName ? preg_split('/\s+/', trim($senderName), 2) : [];
+            \App\Jobs\PushLeadToCrmJob::forUser((int) $form->user_id, [
+                'email'        => $senderEmail,
+                'phone'        => $senderPhone,
+                'first_name'   => $nameParts[0] ?? null,
+                'last_name'    => $nameParts[1] ?? null,
+                'display_name' => $senderName,
+                'company'      => null,
+                'source'       => 'form:' . $form->id,
+            ]);
+        }
+
         // Paid form (Task #2319 / #2321): hold the submission pending and send
         // the customer to the OWNER's gateway for the computed total. Counting +
         // owner notifications happen only on a verified return

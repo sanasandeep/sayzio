@@ -129,6 +129,69 @@ class IntegrationsController extends Controller
     }
 
     // ═════════════════════════════════════════════════════════════
+    // Connected Apps: CRM OAuth clients (Salesforce / HubSpot / Zoho)
+    // ═════════════════════════════════════════════════════════════
+
+    public function editConnectedApp(string $provider)
+    {
+        $meta = \App\Modules\User\Support\ConnectedApps\ConnectedAppRegistry::provider($provider);
+        abort_if(!$meta || ($meta['connect_type'] ?? null) !== 'oauth', 404);
+
+        return view('admin.integrations.connected-app', [
+            'provider'     => $provider,
+            'meta'         => $meta,
+            'status'       => PlatformServiceSettings::connectedAppStatus($provider),
+            'clientId'     => PlatformServiceSettings::connectedAppClientId($provider),
+            'hasSecret'    => PlatformServiceSettings::connectedAppClientSecret($provider) !== null,
+            'maskedSecret' => PlatformServiceSettings::maskedConnectedAppClientSecret($provider),
+        ]);
+    }
+
+    public function updateConnectedApp(Request $request, string $provider)
+    {
+        $meta = \App\Modules\User\Support\ConnectedApps\ConnectedAppRegistry::provider($provider);
+        abort_if(!$meta || ($meta['connect_type'] ?? null) !== 'oauth', 404);
+
+        $data = $request->validate([
+            'client_id'           => 'nullable|string|max:255',
+            'client_secret'       => 'nullable|string|max:255',
+            'clear_client_secret' => 'nullable|boolean',
+        ]);
+
+        PlatformServiceSettings::setConnectedAppClientId($provider, $data['client_id'] ?? null);
+
+        if ($request->boolean('clear_client_secret')) {
+            PlatformServiceSettings::setConnectedAppClientSecret($provider, null);
+        } elseif (!empty($data['client_secret'])) {
+            PlatformServiceSettings::setConnectedAppClientSecret($provider, $data['client_secret']);
+        }
+
+        return redirect()->route('admin.integrations.connected-app.edit', $provider)
+            ->with('success', $meta['label'] . ' OAuth settings saved.');
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // Connected Apps: Google Analytics 4 forwarding (enable switch)
+    // ═════════════════════════════════════════════════════════════
+
+    public function editGoogleAnalytics()
+    {
+        return view('admin.integrations.google-analytics', [
+            'status'  => PlatformServiceSettings::googleAnalyticsStatus(),
+            'enabled' => PlatformServiceSettings::googleAnalyticsEnabled(),
+        ]);
+    }
+
+    public function updateGoogleAnalytics(Request $request)
+    {
+        $data = $request->validate(['enabled' => 'nullable|boolean']);
+        PlatformServiceSettings::setGoogleAnalyticsEnabled($request->boolean('enabled'));
+
+        return redirect()->route('admin.integrations.google-analytics.edit')
+            ->with('success', 'Google Analytics forwarding ' . ($request->boolean('enabled') ? 'enabled' : 'disabled') . '.');
+    }
+
+    // ═════════════════════════════════════════════════════════════
     // S3 / CloudFront storage
     // ═════════════════════════════════════════════════════════════
 

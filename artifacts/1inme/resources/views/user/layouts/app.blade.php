@@ -746,6 +746,13 @@
                             <span class="nav-label">Dialer</span>
                             <span class="sidebar-tooltip">Dialer</span>
                         </a>
+                        <a href="{{ route('user.connected-apps.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.connected-apps.*') ? 'active' : '' }}"
+                           style="--nav-tint:#818cf8; --nav-tint-soft:rgba(129,140,248,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-plug-circle-bolt"></i></div>
+                            <span class="nav-label">Connected Apps</span>
+                            <span class="sidebar-tooltip">Connected Apps</span>
+                        </a>
                         @endif
                     </div>
                 </div>
@@ -1477,6 +1484,7 @@
                                 @if($__can['settings_view'])
                                 <a href="{{ route('user.contacts.index') }}" class="sidebar-link {{ request()->routeIs('user.contacts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div> <span>Contacts</span></a>
                                 <a href="{{ route('user.dialer.index') }}" class="sidebar-link {{ request()->routeIs('user.dialer.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-phone"></i></div> <span>Dialer</span></a>
+                                <a href="{{ route('user.connected-apps.index') }}" class="sidebar-link {{ request()->routeIs('user.connected-apps.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plug-circle-bolt"></i></div> <span>Connected Apps</span></a>
                                 @endif
                             </div>
                         </div>

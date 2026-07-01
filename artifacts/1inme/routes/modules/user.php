@@ -1243,6 +1243,16 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('contacts/google/{account}/sync',       [GoogleContactsAccountController::class, 'syncNow'])->middleware('workspace.can:settings.edit')->name('contacts.google.sync');
         Route::delete('contacts/google/{account}',          [GoogleContactsAccountController::class, 'destroy'])->middleware('workspace.can:settings.edit')->name('contacts.google.destroy');
 
+        // Connected Apps (CRM two-way sync + Google Analytics forwarding).
+        // Plan-gated on the `connected_apps` feature key; the public OAuth
+        // callback lives in routes/web.php (stateless, shared with mobile).
+        Route::get   ('connected-apps',                     [\App\Modules\User\Controllers\ConnectedAppController::class, 'index'])->middleware('workspace.can:settings.view')->name('connected-apps.index');
+        Route::get   ('connected-apps/connect/{provider}',  [\App\Modules\User\Controllers\ConnectedAppController::class, 'connect'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':connected_apps'])->name('connected-apps.connect');
+        Route::post  ('connected-apps/google-analytics',    [\App\Modules\User\Controllers\ConnectedAppController::class, 'saveGa'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':connected_apps'])->name('connected-apps.google-analytics');
+        Route::put   ('connected-apps/{connectedApp}',      [\App\Modules\User\Controllers\ConnectedAppController::class, 'update'])->whereNumber('connectedApp')->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':connected_apps'])->name('connected-apps.update');
+        Route::post  ('connected-apps/{connectedApp}/sync', [\App\Modules\User\Controllers\ConnectedAppController::class, 'syncNow'])->whereNumber('connectedApp')->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':connected_apps'])->name('connected-apps.sync');
+        Route::delete('connected-apps/{connectedApp}',      [\App\Modules\User\Controllers\ConnectedAppController::class, 'destroy'])->whereNumber('connectedApp')->middleware('workspace.can:settings.edit')->name('connected-apps.destroy');
+
         // Dialer.
         Route::get('dialer',                                [DialerController::class, 'index'])->middleware('workspace.can:settings.view')->name('dialer.index');
         Route::get('dialer/profile',                        [DialerController::class, 'profile'])->middleware('workspace.can:settings.view')->name('dialer.profile');

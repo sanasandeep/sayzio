@@ -136,6 +136,71 @@ class AppServiceProvider extends ServiceProvider
         $this->alertOnFailedBackgroundJobs();
         $this->guardDestructiveSchemaCommands();
         $this->recordScheduledTaskRuns();
+        $this->forwardClicksToConnectedAnalytics();
+    }
+
+    /**
+     * Forward real-human click / block-click events to a creator's connected
+     * Google Analytics 4 properties via the Measurement Protocol.
+     *
+     * Runs entirely off the click hot path: the listener only queues a job
+     * (and only when the owner actually has a GA property connected), so the
+     * click write itself is never blocked by GA availability or latency.
+     */
+    protected function forwardClicksToConnectedAnalytics(): void
+    {
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\LinkClicked::class,
+            function (\App\Events\LinkClicked $event): void {
+                $userId = (int) ($event->link->user_id ?? 0);
+                if ($userId <= 0) {
+                    return;
+                }
+                \App\Jobs\ForwardAnalyticsEventJob::forUser($userId, [
+                    'name'      => 'link_click',
+                    'client_id' => $this->gaClientId($event->click),
+                    'params'    => array_filter([
+                        'link_alias'  => $event->click->alias,
+                        'source'      => $event->click->source,
+                        'country'     => $event->click->country_code,
+                        'device_type' => $event->click->device_type,
+                        'engagement_time_msec' => 1,
+                    ], fn ($v) => $v !== null && $v !== ''),
+                ]);
+            }
+        );
+
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\BlockClicked::class,
+            function (\App\Events\BlockClicked $event): void {
+                $userId = (int) ($event->link->user_id ?? 0);
+                if ($userId <= 0) {
+                    return;
+                }
+                \App\Jobs\ForwardAnalyticsEventJob::forUser($userId, [
+                    'name'      => 'block_click',
+                    'client_id' => $this->gaClientId($event->click),
+                    'params'    => array_filter([
+                        'link_alias'  => $event->click->alias,
+                        'block_type'  => $event->block->type ?? null,
+                        'destination' => $event->destinationUrl,
+                        'country'     => $event->click->country_code,
+                        'device_type' => $event->click->device_type,
+                        'engagement_time_msec' => 1,
+                    ], fn ($v) => $v !== null && $v !== ''),
+                ]);
+            }
+        );
+    }
+
+    /** Stable-ish GA client id derived from the click's visitor fingerprint. */
+    protected function gaClientId(\App\Modules\User\Models\LinkClick $click): string
+    {
+        $seed = ($click->ip_address ?? '') . '|' . ($click->user_agent ?? '');
+        if (trim($seed) === '|') {
+            return 'sayzio.' . \Illuminate\Support\Str::random(16);
+        }
+        return 'sayzio.' . substr(hash('sha256', $seed), 0, 20);
     }
 
     /**

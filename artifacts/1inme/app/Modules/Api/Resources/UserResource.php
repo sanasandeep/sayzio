@@ -59,6 +59,11 @@ class UserResource
                     // a second round-trip. Default-true matches the web
                     // helper's fallback for plans that don't set the key.
                     'analytics_export' => (bool) $u->getPlanFeature('analytics_export', true),
+                    // Connected Apps (CRM two-way sync + GA4 forwarding).
+                    // Lets the mobile Connected Apps screen gate connect
+                    // actions + show an upgrade prompt without a second
+                    // round-trip. Default-false: opt-in paid capability.
+                    'connected_apps' => (bool) $u->getPlanFeature('connected_apps', false),
                     // Per-plan monthly Buzz (social-proof) impressions
                     // allowance + current-period usage. -1 = unlimited.
                     // Lets the mobile/extension Buzz surface show the same

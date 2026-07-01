@@ -409,6 +409,12 @@ Route::get('/r/{code}', [\App\Modules\User\Controllers\ReferralController::class
     ->name('referrals.track')
     ->where('code', '[a-z0-9_\-]{3,32}');
 
+// Connected Apps OAuth callback — stateless (APP_KEY-encrypted state), so the
+// same endpoint serves the web app and the mobile app (which returns to a
+// sayzio:// deep link). Must precede the catch-all /{alias} routes.
+Route::get('/connected-apps/oauth/callback', [\App\Modules\User\Controllers\ConnectedAppController::class, 'callback'])
+    ->name('connected-apps.callback');
+
 // Stable resume PDF URL. The controller decides access:
 //   * Owner (signed-in & handle matches) — always allowed.
 //   * Anyone else — allowed only when the owner enabled `is_public_pdf`,

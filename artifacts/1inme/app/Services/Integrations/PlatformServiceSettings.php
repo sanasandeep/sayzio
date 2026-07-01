@@ -385,6 +385,108 @@ class PlatformServiceSettings
     }
 
     // ═════════════════════════════════════════════════════════════
+    // Connected Apps — per-CRM OAuth client credentials + GA toggle
+    // ═════════════════════════════════════════════════════════════
+    //
+    // CRMs (Salesforce / HubSpot / Zoho) authenticate creators via OAuth using
+    // a platform-level client id + secret the admin provides here; absent ⇒
+    // the provider shows as "coming soon" in the creator UI. Google Analytics
+    // needs no platform OAuth client (creators bring their own Measurement ID +
+    // API secret), so it is gated by a simple admin enable flag instead.
+
+    public const KEY_CONNECTED_APP_CLIENT_ID  = 'connected_apps.%s.client_id';
+    public const KEY_CONNECTED_APP_SECRET_ENC = 'connected_apps.%s.client_secret_enc';
+    public const KEY_GOOGLE_ANALYTICS_ENABLED = 'connected_apps.google_analytics.enabled';
+
+    private static function connectedAppIdKey(string $provider): string
+    {
+        return sprintf(self::KEY_CONNECTED_APP_CLIENT_ID, $provider);
+    }
+
+    private static function connectedAppSecretKey(string $provider): string
+    {
+        return sprintf(self::KEY_CONNECTED_APP_SECRET_ENC, $provider);
+    }
+
+    public static function connectedAppClientId(string $provider): ?string
+    {
+        $v = AppSetting::get(self::connectedAppIdKey($provider));
+        if (is_string($v) && trim($v) !== '') return trim($v);
+        // env fallback: e.g. SALESFORCE_CLIENT_ID
+        $env = (string) env(strtoupper($provider) . '_CLIENT_ID', '');
+        return $env !== '' ? $env : null;
+    }
+
+    public static function connectedAppClientSecret(string $provider): ?string
+    {
+        $v = self::decrypt(self::connectedAppSecretKey($provider));
+        if ($v !== null && $v !== '') return $v;
+        $env = (string) env(strtoupper($provider) . '_CLIENT_SECRET', '');
+        return $env !== '' ? $env : null;
+    }
+
+    public static function setConnectedAppClientId(string $provider, ?string $v): void
+    {
+        AppSetting::put(self::connectedAppIdKey($provider), self::cleanScalar($v));
+    }
+
+    public static function setConnectedAppClientSecret(string $provider, ?string $v): void
+    {
+        self::storeSecret(self::connectedAppSecretKey($provider), $v);
+    }
+
+    public static function maskedConnectedAppClientSecret(string $provider): ?string
+    {
+        return self::maskSecret(self::connectedAppClientSecret($provider));
+    }
+
+    public static function connectedAppHasAdminValue(string $provider): bool
+    {
+        $id  = AppSetting::get(self::connectedAppIdKey($provider));
+        $sec = self::decrypt(self::connectedAppSecretKey($provider));
+        return (is_string($id) && trim($id) !== '') || ($sec !== null && $sec !== '');
+    }
+
+    public static function connectedAppConfigured(string $provider): bool
+    {
+        return self::connectedAppClientId($provider) !== null
+            && self::connectedAppClientSecret($provider) !== null;
+    }
+
+    public static function connectedAppStatus(string $provider): array
+    {
+        if (self::connectedAppHasAdminValue($provider)) {
+            if (!self::connectedAppConfigured($provider)) {
+                return ['key' => 'incomplete', 'label' => 'Incomplete (need both)', 'tone' => 'amber'];
+            }
+            return ['key' => 'configured', 'label' => 'Configured', 'tone' => 'green'];
+        }
+        if (self::connectedAppConfigured($provider)) {
+            return ['key' => 'env', 'label' => 'Using env fallback', 'tone' => 'amber'];
+        }
+        return ['key' => 'preview', 'label' => 'Not configured', 'tone' => 'slate'];
+    }
+
+    public static function googleAnalyticsEnabled(): bool
+    {
+        $v = AppSetting::get(self::KEY_GOOGLE_ANALYTICS_ENABLED);
+        if ($v !== null) return (bool) $v;
+        return (bool) env('CONNECTED_APPS_GA_ENABLED', false);
+    }
+
+    public static function setGoogleAnalyticsEnabled(bool $on): void
+    {
+        AppSetting::put(self::KEY_GOOGLE_ANALYTICS_ENABLED, $on);
+    }
+
+    public static function googleAnalyticsStatus(): array
+    {
+        return self::googleAnalyticsEnabled()
+            ? ['key' => 'configured', 'label' => 'Enabled', 'tone' => 'green']
+            : ['key' => 'preview', 'label' => 'Disabled', 'tone' => 'slate'];
+    }
+
+    // ═════════════════════════════════════════════════════════════
     // Runtime override
     // ═════════════════════════════════════════════════════════════
 

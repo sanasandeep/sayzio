@@ -156,6 +156,12 @@ class IntegrationCatalog
                 ],
             ],
             [
+                'key'   => 'crm-analytics',
+                'label' => 'CRM & Analytics',
+                'icon'  => 'fas fa-plug-circle-bolt',
+                'items' => self::connectedAppItems(),
+            ],
+            [
                 'key'   => 'storage',
                 'label' => 'Storage',
                 'icon'  => 'fas fa-database',
@@ -195,6 +201,42 @@ class IntegrationCatalog
     // Per-integration status helpers for systems without their own
     // status() descriptor.
     // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Connected Apps hub items, derived from the data-driven registry so a
+     * new provider auto-appears here. CRMs route to the generic OAuth editor;
+     * Google Analytics routes to its own enable switch.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private static function connectedAppItems(): array
+    {
+        $items = [];
+        foreach (\App\Modules\User\Support\ConnectedApps\ConnectedAppRegistry::all() as $key => $meta) {
+            if ($key === 'google_analytics') {
+                $items[] = [
+                    'key'      => 'google-analytics',
+                    'label'    => $meta['label'],
+                    'desc'     => 'Server-side GA4 Measurement Protocol forwarding of click events. Creators bring their own property; toggle availability here.',
+                    'icon'     => $meta['icon'],
+                    'status'   => PlatformServiceSettings::googleAnalyticsStatus(),
+                    'route'    => route('admin.integrations.google-analytics.edit'),
+                    'external' => false,
+                ];
+                continue;
+            }
+            $items[] = [
+                'key'      => $key,
+                'label'    => $meta['label'],
+                'desc'     => 'OAuth client credentials for two-way ' . $meta['label'] . ' sync. Absent ⇒ creators see "coming soon".',
+                'icon'     => $meta['icon'],
+                'status'   => PlatformServiceSettings::connectedAppStatus($key),
+                'route'    => route('admin.integrations.connected-app.edit', $key),
+                'external' => false,
+            ];
+        }
+        return $items;
+    }
 
     private static function aiEngineStatus(): array
     {

@@ -37,6 +37,11 @@ export default function OAuthCallback() {
     code?: string | string[];
     state?: string | string[];
     error?: string | string[];
+    // Connected Apps (CRM/GA) OAuth completion carries these instead of a
+    // session — see the web ConnectedAppController::finish deep link.
+    feature?: string | string[];
+    status?: string | string[];
+    message?: string | string[];
   }>();
 
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +63,20 @@ export default function OAuthCallback() {
 
     const first = (v: string | string[] | undefined) =>
       Array.isArray(v) ? v[0] : v;
+
+    // Connected Apps (CRM / GA4) OAuth completion: no session, just a
+    // status + message. Bounce back to the Connected Apps screen with the
+    // outcome instead of trying to sign in.
+    if (first(params.feature) === "connected-apps") {
+      router.replace({
+        pathname: "/connected-apps",
+        params: {
+          oauth_status: first(params.status) ?? "ok",
+          oauth_message: first(params.message) ?? "",
+        },
+      });
+      return;
+    }
 
     // Resolve the provider up front so every failure branch can name it.
     const provider = first(params.provider);

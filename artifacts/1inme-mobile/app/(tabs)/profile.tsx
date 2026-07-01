@@ -150,6 +150,7 @@ const SETTINGS_PAGES: {
     | "/workspaces"
     | "/domains"
     | "/integrations"
+    | "/connected-apps"
     | "/vault"
     | "/verification"
     | "/security";
@@ -162,6 +163,7 @@ const SETTINGS_PAGES: {
   { href: "/workspaces", label: "Workspaces", icon: "briefcase" },
   { href: "/domains", label: "Custom domains", icon: "globe" },
   { href: "/integrations", label: "Integrations", icon: "link" },
+  { href: "/connected-apps", label: "Connected apps", icon: "zap" },
   { href: "/vault", label: "Vault", icon: "lock" },
   { href: "/verification", label: "Verification", icon: "award" },
   { href: "/security", label: "Security & recovery", icon: "shield" },
