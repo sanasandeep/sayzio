@@ -138,6 +138,22 @@ class DialerSearchVisibilityTest extends TestCase
         return [];
     }
 
+    /** Flatten every user_id in the 'people' group that carries a verified badge. */
+    private function verifiedPeopleUserIds(array $result): array
+    {
+        foreach ($result['groups'] as $g) {
+            if ($g['key'] === 'people') {
+                return array_values(array_filter(array_map(
+                    fn ($i) => ($i['type'] ?? null) === 'person' && ($i['verified'] ?? false)
+                        ? ($i['action']['user_id'] ?? $i['id'])
+                        : null,
+                    $g['items']
+                )));
+            }
+        }
+        return [];
+    }
+
     /**
      * Seed a Sayzio account whose display NAME carries the search token so the
      * People group's name/handle match picks it up. The token lives only in the
@@ -566,6 +582,61 @@ class DialerSearchVisibilityTest extends TestCase
         $this->assertContains($followed->id, $people);
         $this->assertContains($contactBio->id, $people);
         $this->assertNotContains($stranger->id, $people, 'web People must not leak strangers');
+    }
+
+    public function test_web_people_search_shows_verified_badge_for_a_link_in_a_non_active_workspace(): void
+    {
+        // Regression: the web dialer runs under `workspace.scope`, which binds
+        // the searcher's active workspace. A person's verification badge lookup
+        // (`Link::whereIn('user_id', ...)->where('is_verified', true)`) would run
+        // under the BelongsToWorkspace global scope, narrowing it to the
+        // SEARCHER's active workspace — so a person whose only verified link
+        // lives in a non-active workspace would wrongly show as UNverified on
+        // the web surface (and be excluded by the `verified` filter chip), while
+        // the API/Sanctum surface (no workspace binding) shows the badge. Opting
+        // the verified lookup out of the workspace scope locks web/API parity.
+        $viewer   = $this->makePerson('viewer');
+        $followed  = $this->makePerson('followed');
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $followed->id]);
+
+        // The followed person's verified link lives in a workspace of THEIRS —
+        // never the searcher's active workspace.
+        $otherWs = \App\Modules\User\Models\Workspace::create([
+            'owner_user_id' => $followed->id,
+            'name'          => 'Followed WS ' . Str::random(4),
+            'is_personal'   => false,
+        ]);
+        $followed->links()->create([
+            'user_id'      => $followed->id,
+            'workspace_id' => $otherWs->id,
+            'type'         => 'biolink',
+            'alias'        => 'a' . substr(Str::random(10), 0, 10),
+            'title'        => 'a verified biolink',
+            'is_active'    => true,
+            'visibility'   => 'public',
+            'is_verified'  => true,
+        ]);
+
+        // The viewer searches from their OWN (different) active workspace.
+        $resp = $this->actingAsWeb($viewer)->getJson(route('user.dialer.search', ['q' => self::TOKEN]));
+        $resp->assertOk();
+
+        $verified = $this->verifiedPeopleUserIds($resp->json('data'));
+        $this->assertContains(
+            $followed->id,
+            $verified,
+            'a person whose verified link is in a non-active workspace must still show the badge on the web dialer'
+        );
+
+        // And the `verified` filter chip must include them too.
+        $filtered = $this->actingAsWeb($viewer)
+            ->getJson(route('user.dialer.search', ['q' => self::TOKEN, 'filter' => 'verified']));
+        $filtered->assertOk();
+        $this->assertContains(
+            $followed->id,
+            $this->peopleUserIds($filtered->json('data')),
+            'the verified filter chip must not exclude a person whose verified link is in a non-active workspace'
+        );
     }
 
     // ===== (5) People group reachability — status + blocks =====

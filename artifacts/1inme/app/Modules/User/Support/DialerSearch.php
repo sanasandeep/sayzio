@@ -262,7 +262,17 @@ class DialerSearch
         }
 
         // Which of these accounts carry a verification badge (a verified link)?
-        $verifiedIds = $candidates->isEmpty() ? collect() : Link::whereIn('user_id', $candidates->pluck('id'))
+        // A person's verified link may live in ANY of their workspaces. On the
+        // web surface the `workspace.scope` middleware binds the searcher's
+        // active workspace and the BelongsToWorkspace global scope would narrow
+        // this to the active workspace only — so a person whose only verified
+        // link is in a non-active workspace would wrongly show as UNverified
+        // (and be excluded by the `verified` filter chip), while the
+        // API/Sanctum surface (no workspace binding) shows the badge correctly.
+        // Opt out of the workspace filter so web matches API/mobile; the
+        // user_id predicate still scopes this to the candidate accounts.
+        $verifiedIds = $candidates->isEmpty() ? collect() : Link::withoutGlobalScope('workspace')
+            ->whereIn('user_id', $candidates->pluck('id'))
             ->where('is_verified', true)
             ->pluck('user_id')->unique();
 
