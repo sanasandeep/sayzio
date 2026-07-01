@@ -490,10 +490,40 @@ window.__cookieConsent = window.__cookieConsent || (function(){
         });
     }
 
+    // Only the full-screen blocker layouts (modal / takeover) are meant to hold
+    // the visitor on the prompt. Bottom-pinned "bar" layouts (banner / inline /
+    // corner / pill) must NEVER lock scrolling — visitors should be free to keep
+    // reading the marketing page (Pricing/Features/etc.) before deciding on
+    // cookies. Keep this keyed on the *live* layout so the one-shot inline/pill
+    // -> modal "Customize" upgrade correctly locks while the sheet is open.
+    function wantsScrollLock() {
+        const liveLayout = state.layoutOverride || cfg.layout;
+        return liveLayout === 'modal' || liveLayout === 'takeover';
+    }
+    function lockScroll() {
+        if (state.scrollLocked) return;
+        const de = document.documentElement;
+        // Remember any prior inline overflow so unlock restores the page exactly
+        // (the site layout sets `overflow-x: clip` via a stylesheet rule, not an
+        // inline style, so an empty restore lets that rule take over again).
+        state.prevHtmlOverflow = de.style.overflow;
+        state.prevBodyOverflow = document.body.style.overflow;
+        de.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+        state.scrollLocked = true;
+    }
+    function unlockScroll() {
+        if (!state.scrollLocked) return;
+        document.documentElement.style.overflow = state.prevHtmlOverflow || '';
+        document.body.style.overflow = state.prevBodyOverflow || '';
+        state.scrollLocked = false;
+    }
+
     function show() {
         if (state.host) return;
         state.host = buildHost();
         document.body.appendChild(state.host);
+        if (wantsScrollLock()) lockScroll();
         updateFooterReserve();
         if (!state.reserveListener) {
             state.reserveListener = function(){ updateFooterReserve(); };
@@ -523,6 +553,7 @@ window.__cookieConsent = window.__cookieConsent || (function(){
     }
     function hide() {
         if (state.host) { state.host.remove(); state.host = null; }
+        unlockScroll();
         document.body.style.paddingBottom = '';
         if (state.reserveListener) {
             window.removeEventListener('resize', state.reserveListener);
