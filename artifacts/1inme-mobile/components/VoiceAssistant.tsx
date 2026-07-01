@@ -422,7 +422,7 @@ export function VoiceAssistant() {
     try {
       const perm = await AudioModule.requestRecordingPermissionsAsync();
       if (!perm.granted) {
-        setError("Microphone permission is required for the Voice Assistant.");
+        setError("Microphone permission is required for the AI Voice Assistant.");
         return;
       }
       await setAudioModeAsync({
@@ -649,7 +649,7 @@ export function VoiceAssistant() {
       {/* ── Floating mic button ────────────────────────────────── */}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Open Voice Assistant"
+        accessibilityLabel="Open AI Voice Assistant"
         onPress={() => setOpen(true)}
         style={({ pressed }) => [
           styles.fab,
@@ -695,7 +695,7 @@ export function VoiceAssistant() {
           >
             <View style={styles.header}>
               <Text style={[styles.title, { color: colors.foreground }]}>
-                Voice Assistant
+                AI Voice Assistant
               </Text>
               <View style={styles.headerActions}>
                 {view === "session" && aiEnabled !== false ? (

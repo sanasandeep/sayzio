@@ -95,7 +95,7 @@ export default function ResumeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: "Resume" }} />
+      <Stack.Screen options={{ title: "AI Resume" }} />
       {q.isLoading || !resume ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.primary} />

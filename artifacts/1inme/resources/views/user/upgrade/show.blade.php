@@ -259,7 +259,7 @@
                         'max_events' => 'events',
                         'max_workspaces' => 'team workspaces',
                         'max_seats_per_workspace' => 'seats per workspace',
-                        'max_minds' => 'Knowledge Bases',
+                        'max_minds' => 'AI Knowledge Bases',
                         'max_personas' => 'AI Personas',
                         'max_companions' => 'AI Companions',
                     ] as $key => $label)
@@ -279,8 +279,8 @@
                             'link_deep_link'          => 'Deep-link / open-in-app',
                             'link_smart_rules'        => 'Smart redirect rules',
                             'ai_widget'               => 'Site Assistant widget',
-                            'ai_voice_assistant'      => 'Voice Assistant',
-                            'ask_coach'               => 'Ask Coach',
+                            'ai_voice_assistant'      => 'AI Voice Assistant',
+                            'ask_coach'               => 'AI Coach',
                             'card_scan'               => 'Card & Brochure Scanner',
                             'ai_resume_tools'         => 'AI Resume Tools',
                         ];

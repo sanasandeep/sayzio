@@ -95,7 +95,7 @@
                 <input type="checkbox" x-model="useBrandKit" class="mt-0.5 rounded border-white/20 bg-white/5 text-blue-500">
                 <span class="text-sm">
                     <span class="text-white font-medium"><i class="fas fa-palette text-blue-300 mr-1"></i> Keep it on-brand</span>
-                    <span class="block text-xs text-white/40 mt-0.5">Use your “{{ $brandKit->name }}” Brand Kit — its voice, tone and palette — to guide the page.</span>
+                    <span class="block text-xs text-white/40 mt-0.5">Use your “{{ $brandKit->name }}” AI Brand Kit — its voice, tone and palette — to guide the page.</span>
                 </span>
             </label>
             @endif

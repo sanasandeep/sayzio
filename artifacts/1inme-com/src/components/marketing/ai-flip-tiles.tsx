@@ -41,8 +41,8 @@ const AI_TILES: AiTile[] = [
     features: [
       "Chat Widgets on your page",
       "Embeddable AI Widget for any site",
-      "Persona Generator in your tone",
-      "Knowledge Bases your AI can draw on",
+      "AI Persona Generator in your tone",
+      "AI Knowledge Bases your AI can draw on",
     ],
   },
   {
@@ -62,7 +62,7 @@ const AI_TILES: AiTile[] = [
     desc: "A Performance Coach that turns numbers into next steps.",
     backTitle: "Plus everyday tools",
     features: [
-      "Account Assistant for plain-English insights",
+      "AI Coach for plain-English insights",
       "AI Resume — import, tailor, cover letter",
       "AI Card & Brochure scanner",
     ],

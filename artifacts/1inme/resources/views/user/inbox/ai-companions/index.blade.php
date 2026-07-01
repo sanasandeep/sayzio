@@ -7,7 +7,7 @@
         <div>
             <a href="{{ route('user.inbox.dms.index') }}" class="text-xs text-white/40 hover:text-white/70"><i class="fas fa-arrow-left"></i> Back to Inbox</a>
             <h1 class="text-2xl font-bold text-white mt-1">AI Companions</h1>
-            <p class="text-xs text-white/50 mt-1">Chat with your Companions as if they were inbox contacts. Useful for testing prompts and knowledge before going live.</p>
+            <p class="text-xs text-white/50 mt-1">Chat with your AI Companions as if they were inbox contacts. Useful for testing prompts and knowledge before going live.</p>
         </div>
         <a href="{{ route('user.ai-companions.index') }}" class="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white"><i class="fas fa-cog mr-1"></i>Manage</a>
     </div>
@@ -24,7 +24,7 @@
             </a>
         @empty
             <div class="p-8 text-center text-sm text-white/40">
-                You haven't created any Companions yet.
+                You haven't created any AI Companions yet.
                 <a href="{{ route('user.ai-companions.create') }}" class="text-blue-400 hover:text-blue-300 font-semibold ml-1">Create one →</a>
             </div>
         @endforelse

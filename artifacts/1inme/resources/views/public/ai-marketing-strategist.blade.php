@@ -54,8 +54,8 @@
         ['icon' => 'fa-chart-line',  'label' => 'Analytics',           'desc' => 'Recent click trends and device split.'],
         ['icon' => 'fa-users',       'label' => 'Followers & subs',    'desc' => 'Audience size and how it is growing.'],
         ['icon' => 'fa-bullseye',    'label' => 'Tracking pixels',     'desc' => 'The ad pixels you already have connected.'],
-        ['icon' => 'fa-brain',       'label' => 'Knowledge Bases',     'desc' => 'Your knowledge bases, by name.'],
-        ['icon' => 'fa-palette',     'label' => 'Brand Kits',          'desc' => 'Your palette, voice and taglines.'],
+        ['icon' => 'fa-brain',       'label' => 'AI Knowledge Bases',     'desc' => 'Your knowledge bases, by name.'],
+        ['icon' => 'fa-palette',     'label' => 'AI Brand Kit',          'desc' => 'Your palette, voice and taglines.'],
         ['icon' => 'fa-user-astronaut','label' => 'AI Personas',       'desc' => 'Your saved AI persona agents.'],
         ['icon' => 'fa-comments',    'label' => 'AI Companions',       'desc' => 'Your published AI chat companions.'],
     ];
@@ -83,7 +83,7 @@
     ];
 
     $faqs = [
-        ['q' => 'Does it use my real account data?', 'a' => 'Yes. You choose which sources to include — links, analytics, audience, pixels, Brand Kits and more — and the strategist builds the plan from a compact, PII-free snapshot of just those. It never invents metrics, follower counts or URLs.'],
+        ['q' => 'Does it use my real account data?', 'a' => 'Yes. You choose which sources to include — links, analytics, audience, pixels, AI Brand Kit and more — and the strategist builds the plan from a compact, PII-free snapshot of just those. It never invents metrics, follower counts or URLs.'],
         ['q' => 'What do I actually get back?', 'a' => 'A structured strategy: a short summary, an organic plan and a paid plan where every play names the Sayzio feature it uses, the KPIs to watch, and a short list of one-click actions you can apply right away.'],
         ['q' => 'Can I change the plan after it is generated?', 'a' => 'Absolutely. You can chat with the strategist to refine it — swap channels, tighten the budget, go deeper on a play — and it stays grounded in your data and the original plan.'],
         ['q' => 'Which plans include the AI Marketing Strategist?', 'a' => 'It is included on every paid Sayzio plan. Generation is metered against your plan allowance, and any overage is covered by your coin wallet so you are never cut off mid-plan.'],
@@ -289,7 +289,7 @@
                         <span class="ms-dot" aria-hidden="true"></span>
                         <span class="ms-dot" aria-hidden="true"></span>
                         <span class="ms-dot" aria-hidden="true"></span>
-                        <span class="ms-term-title"><span class="ms-live" aria-hidden="true"></span> Sayzio · Marketing Strategist</span>
+                        <span class="ms-term-title"><span class="ms-live" aria-hidden="true"></span> Sayzio · AI Marketing Strategist</span>
                     </div>
                     <div class="ms-term-body">
                         @php $msFirst = $examples[0] ?? ['goal' => '', 'lines' => []]; @endphp
@@ -599,7 +599,7 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">FAQ</div>
-            <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Common questions about the <span class="grad-text">Marketing Strategist</span>.</h3>
+            <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Common questions about the <span class="grad-text">AI Marketing Strategist</span>.</h3>
         </div>
         <div class="space-y-3" data-anim="fade-up" data-stagger>
             @foreach($faqs as $faq)

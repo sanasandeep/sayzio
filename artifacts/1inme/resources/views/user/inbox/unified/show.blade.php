@@ -57,7 +57,7 @@
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: {{ $thread->categoryColor() }}22; color: {{ $thread->categoryColor() }};">{{ $thread->categoryLabel() }}</span>
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: {{ $thread->priorityColor() }}22; color: {{ $thread->priorityColor() }};"><i class="fas fa-flag mr-1"></i>{{ $thread->priorityLabel() }}</span>
                             @if($thread->wasSentByAi())
-                                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: rgba(92,131,255,0.15); color: #5c83ff;" title="Replied automatically by the Inbox Agent {{ optional($thread->ai_handled_at)->diffForHumans() }}"><i class="fas fa-robot mr-1"></i>Sent by AI</span>
+                                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: rgba(92,131,255,0.15); color: #5c83ff;" title="Replied automatically by the AI Inbox Agent {{ optional($thread->ai_handled_at)->diffForHumans() }}"><i class="fas fa-robot mr-1"></i>Sent by AI</span>
                             @elseif($thread->needsReview())
                                 <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded" style="background: rgba(92,131,255,0.15); color: #5c83ff;"><i class="fas fa-robot mr-1"></i>AI draft ready</span>
                             @endif
@@ -179,7 +179,7 @@
                 @if($thread->needsReview())
                     <div class="p-2.5 rounded-lg text-[11px] flex items-start gap-2" style="background: rgba(92,131,255,0.08); border: 1px solid rgba(92,131,255,0.2); color: #bccfff;">
                         <i class="fas fa-robot mt-0.5"></i>
-                        <span>The Inbox Agent drafted this reply automatically and is waiting for your review. Edit it as needed, then send.</span>
+                        <span>The AI Inbox Agent drafted this reply automatically and is waiting for your review. Edit it as needed, then send.</span>
                     </div>
                 @endif
 

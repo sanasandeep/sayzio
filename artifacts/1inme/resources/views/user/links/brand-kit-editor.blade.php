@@ -19,7 +19,7 @@
         <div class="flex-1">
             <h1 class="text-2xl font-bold text-white">Brand / Press Kit</h1>
             <p class="text-xs text-white/40 mt-0.5">
-                Built from your saved Brand Kit.
+                Built from your saved AI Brand Kit.
                 <a href="{{ $publicUrl }}" target="_blank" class="text-blue-400 hover:underline">View public page <i class="fas fa-external-link-alt text-[10px]"></i></a>
             </p>
         </div>

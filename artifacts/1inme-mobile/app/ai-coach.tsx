@@ -5,7 +5,7 @@ export default function AiCoachScreen() {
     <AiMindPickerScreen
       feature="coach"
       title="Growth Coach"
-      subtitle="Pick which Knowledge Bases Growth Coach should reference when suggesting experiments. We'll remember your selection for next time."
+      subtitle="Pick which AI Knowledge Bases Growth Coach should reference when suggesting experiments. We'll remember your selection for next time."
       disabledFeature="Growth Coach"
     />
   );

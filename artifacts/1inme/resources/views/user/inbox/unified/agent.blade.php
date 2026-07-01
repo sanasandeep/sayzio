@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Inbox Agent')
+@section('title', 'AI Inbox Agent')
 
 @section('content')
 @php
@@ -7,7 +7,7 @@
 @endphp
 <div class="max-w-3xl mx-auto">
     @include('user.partials.page-hero', [
-        'title' => 'Inbox Agent',
+        'title' => 'AI Inbox Agent',
         'subtitle' => 'Let AI triage, draft, and auto-reply across every channel',
         'icon' => 'fa-robot',
         'actions' => [
@@ -29,7 +29,7 @@
 
     @unless($planAllows)
         <div class="mb-4 px-4 py-3 rounded-xl text-sm flex items-center justify-between gap-3" style="background: rgba(92,131,255,0.1); border: 1px solid rgba(92,131,255,0.25); color: #bccfff;">
-            <span><i class="fas fa-lock mr-1.5"></i>The Inbox Agent isn't included in your current plan@if($upgradePlan) — upgrade to <strong>{{ $upgradePlan->name }}</strong> to unlock AI triage, drafting, and autopilot@endif.</span>
+            <span><i class="fas fa-lock mr-1.5"></i>The AI Inbox Agent isn't included in your current plan@if($upgradePlan) — upgrade to <strong>{{ $upgradePlan->name }}</strong> to unlock AI triage, drafting, and autopilot@endif.</span>
             <a href="{{ route('user.upgrade') }}" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex-shrink-0" style="background: linear-gradient(135deg,#5c83ff,#2342c7);">Upgrade</a>
         </div>
     @endunless

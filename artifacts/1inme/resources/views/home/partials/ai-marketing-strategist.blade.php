@@ -71,7 +71,7 @@
                         <span class="ms-dot" aria-hidden="true"></span>
                         <span class="ms-dot" aria-hidden="true"></span>
                         <span class="ms-dot" aria-hidden="true"></span>
-                        <span class="ms-card-title"><span class="ms-live" aria-hidden="true"></span> Sayzio · Marketing Strategist</span>
+                        <span class="ms-card-title"><span class="ms-live" aria-hidden="true"></span> Sayzio · AI Marketing Strategist</span>
                     </div>
                     <div class="ms-card-body">
                         <div class="ms-goal-row">

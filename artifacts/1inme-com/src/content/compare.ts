@@ -183,7 +183,7 @@ export const compareGroups: CompareGroup[] = [
     category: "Growth & AI",
     features: [
       "AI Performance coach",
-      "Knowledge Bases, AI Agents & Chat Widgets",
+      "AI Knowledge Bases, AI Agents & Chat Widgets",
       "AI Agent (multi-step automation)",
       "Site Assistant widget",
       "AI Voice Assistant",
@@ -235,7 +235,7 @@ export const featureSupport: Record<string, Record<string, boolean>> = {
   "Click heatmap": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
   "UTM builder": { ours: true, linktree: false, bitly: true, beacons: false, carrd: false, taplink: false, stan: false },
   "AI Performance coach": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
-  "Knowledge Bases, AI Agents & Chat Widgets": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
+  "AI Knowledge Bases, AI Agents & Chat Widgets": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
   "Site Assistant widget": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
   "AI Voice Assistant": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },
   "Card & brochure scanner": { ours: true, linktree: false, bitly: false, beacons: false, carrd: false, taplink: false, stan: false },

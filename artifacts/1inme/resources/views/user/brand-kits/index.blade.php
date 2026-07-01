@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Brand Kit')
+@section('title', 'AI Brand Kit')
 
 @section('content')
 <div class="max-w-6xl mx-auto px-4 py-8 space-y-6"
@@ -44,7 +44,7 @@
                     </div>
                 </div>
                 @if(empty($consistency['findings']))
-                    <p class="text-sm text-emerald-300 self-center"><i class="fas fa-circle-check mr-1"></i>Every Link in Bio matches your Brand Kit. Nice and tidy.</p>
+                    <p class="text-sm text-emerald-300 self-center"><i class="fas fa-circle-check mr-1"></i>Every Link in Bio matches your AI Brand Kit. Nice and tidy.</p>
                 @endif
             </div>
 

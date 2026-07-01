@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Resume / Portfolio')
+@section('title', 'AI Resume / Portfolio')
 
 @push('styles')
 <style>
@@ -222,7 +222,7 @@
 <div x-data="resumeEditor()" x-init="init()" x-cloak>
     <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-            <h1 class="text-2xl font-bold" style="color: var(--text-primary,#fff);">Resume / Portfolio</h1>
+            <h1 class="text-2xl font-bold" style="color: var(--text-primary,#fff);">AI Resume / Portfolio</h1>
             <p class="text-xs mt-1" style="color: var(--text-muted,#9ca3af);">Build a polished resume with a live preview. Switch templates and color themes any time.</p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">

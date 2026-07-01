@@ -87,7 +87,7 @@ export function AiMindPickerScreen({
       } else if (err?.status === 403) {
         setDisabled("plan");
       } else {
-        Alert.alert("Couldn't load Knowledge Bases", err?.message ?? "Try again in a moment.");
+        Alert.alert("Couldn't load AI Knowledge Bases", err?.message ?? "Try again in a moment.");
       }
     } finally {
       setLoading(false);
@@ -230,7 +230,7 @@ export function AiMindPickerScreen({
             ]}
           >
             <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
-              You don't have any Knowledge Bases yet. Create one on the web to ground generations
+              You don't have any AI Knowledge Bases yet. Create one on the web to ground generations
               in your own knowledge base.
             </Text>
           </View>
@@ -241,10 +241,10 @@ export function AiMindPickerScreen({
               { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
             ]}
           >
-            <Text style={[styles.section, { color: colors.foreground }]}>Your Knowledge Bases</Text>
+            <Text style={[styles.section, { color: colors.foreground }]}>Your AI Knowledge Bases</Text>
             {minds.mine.length === 0 ? (
               <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
-                You haven't created any Knowledge Bases yet.
+                You haven't created any AI Knowledge Bases yet.
               </Text>
             ) : (
               <View style={{ gap: 4 }}>
@@ -285,7 +285,7 @@ export function AiMindPickerScreen({
                   style={[styles.divider, { backgroundColor: colors.border }]}
                 />
                 <Text style={[styles.section, { color: colors.foreground }]}>
-                  Platform Knowledge Base
+                  Platform AI Knowledge Base
                 </Text>
                 <Pressable
                   onPress={() => setIncludePlatform((v) => !v)}

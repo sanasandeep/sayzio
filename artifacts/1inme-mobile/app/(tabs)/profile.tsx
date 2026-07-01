@@ -123,13 +123,13 @@ const TOOL_PAGES: {
   { href: "/projects", label: "Projects", icon: "folder" },
   { href: "/qr", label: "QR codes", icon: "grid" },
   { href: "/qr-studio", label: "QR studio", icon: "grid" },
-  { href: "/brand-kits", label: "Brand kit", icon: "feather" },
+  { href: "/brand-kits", label: "AI Brand Kit", icon: "feather" },
   { href: "/marketing-strategist", label: "Performer Specialist", icon: "target" },
   { href: "/splash", label: "Splash pages", icon: "layout" },
   { href: "/calendars", label: "My Calendar", icon: "calendar" },
   { href: "/calendar", label: "Calendar sync", icon: "refresh-cw" },
   { href: "/notifications", label: "Notifications", icon: "bell" },
-  { href: "/resume", label: "Resume builder", icon: "file-text" },
+  { href: "/resume", label: "AI Resume builder", icon: "file-text" },
   { href: "/backlinks", label: "Backlinks", icon: "link" },
   { href: "/visitors", label: "Visitors", icon: "users" },
   { href: "/carbon", label: "Carbon footprint", icon: "cloud" },
@@ -691,7 +691,7 @@ export default function Profile() {
                   >
                     {wakeWordEnabled
                       ? "On — listens while the app is open. Wake checks don't use AI credits."
-                      : "Off — tap the floating mic to start the Voice Assistant."}
+                      : "Off — tap the floating mic to start the AI Voice Assistant."}
                   </Text>
                 </View>
                 {wakeWordBusy ? (

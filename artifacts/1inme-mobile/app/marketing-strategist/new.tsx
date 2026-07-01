@@ -64,10 +64,10 @@ const FALLBACK_SOURCES: StrategySource[] = [
   { key: "analytics", label: "Analytics", description: "Click & view stats" },
   { key: "audience", label: "Audience", description: "Followers & subscribers" },
   { key: "pixels", label: "Pixels", description: "Tracking pixels", selectable: true },
-  { key: "minds", label: "Knowledge Bases", description: "Your knowledge bases", selectable: true },
-  { key: "brand_kits", label: "Brand Kits", description: "Brand identity", selectable: true },
-  { key: "personas", label: "Personas", description: "AI personas", selectable: true },
-  { key: "companions", label: "Companions", description: "AI companions", selectable: true },
+  { key: "minds", label: "AI Knowledge Bases", description: "Your knowledge bases", selectable: true },
+  { key: "brand_kits", label: "AI Brand Kit", description: "Brand identity", selectable: true },
+  { key: "personas", label: "AI Personas", description: "AI personas", selectable: true },
+  { key: "companions", label: "AI Companions", description: "AI companions", selectable: true },
 ];
 
 // Single-line text parameters, grouped into sections for a tidier form.

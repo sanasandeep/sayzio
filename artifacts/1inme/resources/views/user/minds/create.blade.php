@@ -1,12 +1,12 @@
 @extends('user.layouts.app')
-@section('title', 'New Knowledge Base')
+@section('title', 'New AI Knowledge Base')
 
 @section('content')
 <div class="max-w-2xl mx-auto px-4 py-8 space-y-6">
     @if(session('error'))<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm">{{ session('error') }}</div>@endif
 
     <div>
-        <h1 class="text-2xl font-bold text-white">Create a Knowledge Base</h1>
+        <h1 class="text-2xl font-bold text-white">Create an AI Knowledge Base</h1>
         <p class="text-sm text-white/50 mt-1">Give your knowledge base a name. You'll add sources (text, FAQs, documents, links, Sayzio data) on the next page.</p>
     </div>
 

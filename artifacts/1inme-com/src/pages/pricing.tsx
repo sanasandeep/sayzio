@@ -31,7 +31,7 @@ export default function Pricing() {
         "Custom domains",
         "Removed branding",
         "50 short links",
-        "Knowledge Bases, AI Agents & Chat Widgets"
+        "AI Knowledge Bases, AI Agents & Chat Widgets"
       ],
       cta: "Get started",
       variant: "outline" as const,

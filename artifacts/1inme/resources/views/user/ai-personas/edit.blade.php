@@ -99,7 +99,7 @@
                         class="mt-0.5 rounded border-white/20 bg-white/5 text-pink-500">
                     <span class="text-sm text-white">
                         Keep replies on-brand
-                        <span class="block text-[10px] text-white/40">Blend your saved Brand Kit’s voice &amp; tone into this Companion’s system prompt.</span>
+                        <span class="block text-[10px] text-white/40">Blend your saved AI Brand Kit’s voice &amp; tone into this Companion’s system prompt.</span>
                     </span>
                 </label>
             </div>

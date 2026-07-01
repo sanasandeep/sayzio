@@ -13,7 +13,7 @@
             ($counts['review'] ?? 0) > 0 ? ['icon' => 'fa-robot text-blue-400', 'text' => number_format($counts['review']) . ' to review'] : null,
         ])),
         'actions' => [
-            ['label' => 'Inbox Agent',      'url' => route('user.inbox.unified.agent'),          'icon' => 'fa-robot', 'class' => 'btn-ghost'],
+            ['label' => 'AI Inbox Agent',   'url' => route('user.inbox.unified.agent'),          'icon' => 'fa-robot', 'class' => 'btn-ghost'],
             ['label' => 'Snippets',         'url' => route('user.inbox.unified.snippets.index'), 'icon' => 'fa-bolt',  'class' => 'btn-ghost'],
             ['label' => 'Classic inbox',    'url' => route('user.inbox.index'),                  'icon' => 'fa-arrow-rotate-left', 'class' => 'btn-ghost'],
         ],
@@ -146,9 +146,9 @@
                                                 <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: {{ $t->priorityColor() }}22; color: {{ $t->priorityColor() }};"><i class="fas fa-flag mr-1"></i>{{ $t->priorityLabel() }}</span>
                                             @endif
                                             @if($t->wasSentByAi())
-                                                <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(92,131,255,0.15); color: #5c83ff;" title="Replied automatically by the Inbox Agent"><i class="fas fa-robot mr-1"></i>Sent by AI</span>
+                                                <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(92,131,255,0.15); color: #5c83ff;" title="Replied automatically by the AI Inbox Agent"><i class="fas fa-robot mr-1"></i>Sent by AI</span>
                                             @elseif($t->needsReview())
-                                                <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(92,131,255,0.15); color: #5c83ff;" title="The Inbox Agent drafted a reply awaiting your review"><i class="fas fa-robot mr-1"></i>AI draft</span>
+                                                <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(92,131,255,0.15); color: #5c83ff;" title="The AI Inbox Agent drafted a reply awaiting your review"><i class="fas fa-robot mr-1"></i>AI draft</span>
                                             @endif
                                             @if($t->isOverdue())
                                                 <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(239,68,68,0.15); color: #f87171;"><i class="fas fa-clock mr-1"></i>Overdue</span>

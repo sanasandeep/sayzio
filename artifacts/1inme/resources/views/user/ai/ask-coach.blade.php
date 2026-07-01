@@ -1,11 +1,11 @@
 @extends('user.layouts.app')
-@section('title', 'Account Assistant')
+@section('title', 'AI Coach')
 
 @section('content')
 <div class="max-w-6xl mx-auto px-4 py-8">
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
-        'title'    => 'Account Assistant',
+        'title'    => 'AI Coach',
         'subtitle' => 'Read-only self-support — the assistant pulls from your live links, audience, payments and account to answer.',
         'balance'  => $balance,
     ])

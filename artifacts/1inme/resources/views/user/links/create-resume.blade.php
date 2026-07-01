@@ -1,12 +1,12 @@
 @extends('user.layouts.app')
-@section('title', 'Create Resume / Portfolio')
+@section('title', 'Create AI Resume / Portfolio')
 
 @section('content')
 <div class="max-w-2xl mx-auto">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-white/30 hover:text-white/50" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
         <div>
-            <h1 class="text-2xl font-bold text-white">Create Resume / Portfolio</h1>
+            <h1 class="text-2xl font-bold text-white">Create AI Resume / Portfolio</h1>
             <p class="text-xs text-white/40 mt-0.5">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-blue-400 hover:underline">change type</a></p>
         </div>
     </div>

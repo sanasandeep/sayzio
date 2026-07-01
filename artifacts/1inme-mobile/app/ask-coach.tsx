@@ -94,8 +94,8 @@ export default function AskCoachScreen() {
         setDisabled("plan");
       } else {
         Alert.alert(
-          "Account Assistant unavailable",
-          e?.message || "Could not load Account Assistant.",
+          "AI Coach unavailable",
+          e?.message || "Could not load AI Coach.",
         );
         router.back();
       }
@@ -144,12 +144,12 @@ export default function AskCoachScreen() {
         onError: (err) => {
           // Drop the placeholder and surface the failure.
           setHistory((h) => h.filter((m) => m.id !== assistantTempId));
-          Alert.alert("Send failed", err.message || "Account Assistant could not reply.");
+          Alert.alert("Send failed", err.message || "AI Coach could not reply.");
         },
       });
     } catch (e: any) {
       setHistory((h) => h.filter((m) => m.id !== assistantTempId));
-      Alert.alert("Send failed", e?.message || "Account Assistant could not reply.");
+      Alert.alert("Send failed", e?.message || "AI Coach could not reply.");
     } finally {
       setSending(false);
       requestAnimationFrame(() => scrollRef.current?.scrollToEnd());
@@ -172,13 +172,13 @@ export default function AskCoachScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: "Account Assistant" }} />
+      <Stack.Screen options={{ title: "AI Coach" }} />
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.text} />
         </View>
       ) : disabled ? (
-        <AiDisabledNotice feature="Account Assistant" variant={disabled} />
+        <AiDisabledNotice feature="AI Coach" variant={disabled} />
       ) : (
         <KeyboardAvoidingView
           style={{ flex: 1 }}

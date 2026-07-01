@@ -1,11 +1,11 @@
 @extends('user.layouts.app')
-@section('title', 'Persona Generator')
+@section('title', 'AI Persona Generator')
 
 @section('content')
 <div class="max-w-3xl mx-auto px-4 py-8">
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
-        'title'    => 'Persona Generator',
+        'title'    => 'AI Persona Generator',
         'subtitle' => 'Describe your audience — get a profile to anchor your copy.',
         'balance'  => $balance,
     ])

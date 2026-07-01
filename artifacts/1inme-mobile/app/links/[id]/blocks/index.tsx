@@ -2681,7 +2681,7 @@ function SpecialCreateModal(props: {
                       {updateBrandKit.isError
                         ? (updateBrandKit.error as { message?: string })
                             ?.message || "Couldn't update. Try again."
-                        : `Use your Brand Kit voice and tone in ${selectedPersona.name}'s replies.`}
+                        : `Use your AI Brand Kit voice and tone in ${selectedPersona.name}'s replies.`}
                     </Text>
                   </View>
                   {updateBrandKit.isPending ? (
@@ -2933,7 +2933,7 @@ function SpecialCreateModal(props: {
                       <Text
                         style={{ color: colors.mutedForeground, fontSize: 12 }}
                       >
-                        Use your Brand Kit voice and tone in replies.
+                        Use your AI Brand Kit voice and tone in replies.
                       </Text>
                     </View>
                     <Switch

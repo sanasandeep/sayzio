@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Knowledge Bases')
+@section('title', 'AI Knowledge Bases')
 
 @section('content')
 <div class="max-w-5xl mx-auto px-4 py-8 space-y-6">
@@ -8,7 +8,7 @@
 
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-bold text-white">Knowledge Bases</h1>
+            <h1 class="text-2xl font-bold text-white">AI Knowledge Bases</h1>
             <p class="text-sm text-white/50 mt-1">Labelled knowledge bases your AI agents and Growth Coach can draw on. Add text, FAQs, documents, links, or live Sayzio data.</p>
         </div>
         <div class="flex items-center gap-2">

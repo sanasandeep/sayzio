@@ -186,7 +186,7 @@ export default function BrandKitsScreen() {
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ title: "Brand kits" }} />
+      <Stack.Screen options={{ title: "AI Brand Kit" }} />
       <ScrollView contentContainerStyle={styles.content}>
         {query.isLoading ? (
           <View style={styles.center}>
@@ -504,7 +504,7 @@ function ConsistencyCard({
         <View style={styles.notice}>
           <Feather name="check-circle" size={16} color={colors.success} />
           <Text style={[styles.noticeText, { color: colors.foreground }]}>
-            Every page matches your Brand Kit. Nice work!
+            Every page matches your AI Brand Kit. Nice work!
           </Text>
         </View>
       ) : (

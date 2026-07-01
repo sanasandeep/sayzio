@@ -63,7 +63,7 @@ window.__voice = { dictateUrl: @js(route('user.ai.voice.transcribe')), csrf: @js
      instead of recording, so the feature isn't a silent dead end. --}}
 <div class="fixed bottom-5 right-5 z-[1000]" style="font-family: inherit">
     <a href="{{ route('user.ai.voice.show') }}"
-       title="Voice Assistant — upgrade to unlock"
+       title="AI Voice Assistant — upgrade to unlock"
        class="relative w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-xl flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-blue-400">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/>

@@ -105,7 +105,7 @@ export const LINK_KINDS: LinkKindMeta[] = [
     apiType: "brand_kit",
     label: "Brand / Press Kit",
     blurb:
-      "A shareable press kit from your saved Brand Kit — logos, colours, fonts & boilerplate.",
+      "A shareable press kit from your saved AI Brand Kit — logos, colours, fonts & boilerplate.",
     icon: "feather",
   },
   {

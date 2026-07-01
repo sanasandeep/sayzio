@@ -1232,7 +1232,7 @@ class SitePagesContent
                     ['name' => 'Resume / Portfolio', 'icon' => 'fa-file-lines', 'description' => 'A shareable resume / portfolio page with named versions, a downloadable PDF, and AI tailoring for each role you apply to.'],
                     ['name' => 'Bizs Profile', 'icon' => 'fa-crown', 'description' => 'A themeable creator home that automatically surfaces all your posts, membership tiers and tips in one gated profile — no manual linking needed.'],
                     ['name' => 'Reviews Page', 'icon' => 'fa-star', 'description' => 'A dedicated review wall that collects and shows star ratings and feedback from your visitors.'],
-                    ['name' => 'Brand / Press Kit', 'icon' => 'fa-palette', 'description' => 'A polished, shareable press kit built from your saved Brand Kit — logo downloads, copy-able colour swatches, your font pairing, brand voice and boilerplate.'],
+                    ['name' => 'Brand / Press Kit', 'icon' => 'fa-palette', 'description' => 'A polished, shareable press kit built from your saved AI Brand Kit — logo downloads, copy-able colour swatches, your font pairing, brand voice and boilerplate.'],
                 ],
             ],
             self::aiSuiteFeaturesCategory(),
