@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\BillingCompany;
+use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\TaxRule;
 use App\Services\Billing\CompanyMailSettings;
 use App\Services\Billing\WalletService;
@@ -29,10 +30,24 @@ class BillingCompanyController extends Controller
             $walletLowThreshold = (int) ($wallet->low_balance_threshold ?? 0);
         }
 
+        // A short preview of the most recent client invoices for the current
+        // workspace (Task #3240). Read-only; mirrors the columns shown on the
+        // full client-invoice dashboard (number, status, amount, issued date).
+        $recentInvoices = collect();
+        if ($ws = app('current_workspace')) {
+            $recentInvoices = Invoice::query()
+                ->where('workspace_id', $ws->id)
+                ->where('kind', 'client')
+                ->orderByDesc('id')
+                ->limit(5)
+                ->get();
+        }
+
         return view('user.billing.companies.index', compact(
             'companies',
             'wallet',
-            'walletLowThreshold'
+            'walletLowThreshold',
+            'recentInvoices'
         ));
     }
 

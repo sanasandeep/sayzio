@@ -44,8 +44,32 @@
                 </div>
                 <span class="nav-icon-wrap shrink-0" style="width:2.25rem;height:2.25rem;"><i class="fas fa-file-invoice-dollar"></i></span>
             </div>
+
+            {{-- Inline preview of the most recent client invoices (Task #3240).
+                 Read-only; each row opens the existing invoice edit screen. --}}
+            @if(!empty($recentInvoices) && $recentInvoices->isNotEmpty())
+                <ul class="mt-3 divide-y" style="--tw-divide-opacity:1;">
+                    @foreach($recentInvoices as $inv)
+                        <li class="py-2" style="border-top: 1px solid var(--border-soft);">
+                            <a href="{{ route('user.client-invoices.edit', $inv) }}" class="flex items-center justify-between gap-3 group">
+                                <div class="min-w-0">
+                                    <div class="text-xs font-mono truncate" style="color: var(--text-primary);">{{ $inv->number ?? '—' }}</div>
+                                    <div class="text-[11px]" style="color: var(--text-muted);">{{ optional($inv->issued_at)->format('M j, Y') ?? '—' }}</div>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <span class="text-xs font-semibold" style="color: var(--text-primary);">{{ strtoupper($inv->currency ?: 'USD') }} {{ number_format(((int) $inv->grand_total_minor) / 100, 2) }}</span>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background: rgba(61,107,255,0.12); color: #3d6bff;">{{ strtoupper($inv->status) }}</span>
+                                </div>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <p class="mt-3 text-xs" style="color: var(--text-muted);">No invoices yet.</p>
+            @endif
+
             <div class="mt-4">
-                <a href="{{ route('user.client-invoices.dashboard') }}" class="text-xs px-3 py-1.5 rounded-lg border inline-flex items-center" style="border-color: var(--border-soft); color: var(--text-primary);">Open invoice history <i class="fas fa-arrow-right ml-1.5"></i></a>
+                <a href="{{ route('user.client-invoices.dashboard') }}" class="text-xs px-3 py-1.5 rounded-lg border inline-flex items-center" style="border-color: var(--border-soft); color: var(--text-primary);">View all <i class="fas fa-arrow-right ml-1.5"></i></a>
             </div>
         </div>
     </div>
