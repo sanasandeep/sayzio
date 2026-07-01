@@ -3214,7 +3214,7 @@
             <p class="reveal rd-2 text-lg text-gray-400">See visitors land on a world map, watch click trends per block, and let your AI Performance Coach suggest one-click fixes.</p>
         </div>
 
-        <div class="grid lg:grid-cols-12 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {{-- Live geo card --}}
             <div class="reveal rd-1 lg:col-span-7 glass rounded-3xl p-7 tilt">
                 <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
