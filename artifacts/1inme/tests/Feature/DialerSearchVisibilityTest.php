@@ -404,6 +404,51 @@ class DialerSearchVisibilityTest extends TestCase
         );
     }
 
+    public function test_web_search_returns_the_searchers_own_link_from_a_non_active_workspace(): void
+    {
+        // Regression: the web dialer runs under `workspace.scope`, which binds
+        // the searcher's active workspace. A user can OWN links in more than one
+        // workspace; without opting the "My links" query out of the
+        // BelongsToWorkspace global scope, links the same user owns in their
+        // OTHER (non-active) workspaces are silently filtered out (the API
+        // surface, which binds no workspace, returns them all). This locks
+        // web/API parity for the "My links" group.
+        $owner = $this->makeUser('owner');
+
+        // Resolve the user's personal workspace (this becomes the active one).
+        $activeWs = app(WorkspaceContext::class)->resolve($owner);
+
+        // A second workspace owned by the same user, where a link will live.
+        $otherWs = \App\Modules\User\Models\Workspace::create([
+            'owner_user_id' => $owner->id,
+            'name'          => 'Other WS ' . Str::random(4),
+            'is_personal'   => false,
+        ]);
+
+        // A link the user owns that lives in the OTHER (non-active) workspace.
+        $otherLink = $owner->links()->create([
+            'user_id'      => $owner->id,
+            'workspace_id' => $otherWs->id,
+            'type'         => 'biolink',
+            'alias'        => 'a' . substr(Str::random(10), 0, 10),
+            'title'        => self::TOKEN . ' other-workspace biolink',
+            'is_active'    => true,
+            'visibility'   => 'public',
+        ]);
+
+        $resp = $this->actingAs($owner)
+            ->withSession([WorkspaceContext::SESSION_KEY => $activeWs->id])
+            ->getJson(route('user.dialer.search', ['q' => self::TOKEN]));
+        $resp->assertOk();
+
+        $mine = $this->groupLinkIds($resp->json('data'), 'my_links');
+        $this->assertContains(
+            $otherLink->id,
+            $mine,
+            'the searcher\'s own link from a non-active workspace must surface in "My links" on the web dialer'
+        );
+    }
+
     public function test_web_search_never_leaks_a_followed_creators_subscribers_only_link(): void
     {
         $viewer  = $this->makeUser('viewer');

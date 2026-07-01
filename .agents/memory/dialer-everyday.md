@@ -56,6 +56,12 @@ through one shared read helper.
   (`setKeypadMode` in `user/dialer/index.blade.php`) and mobile (`keypadMode` state in
   `app/dialer.tsx`); both modes write one query that feeds the same universal search.
   T9 smart-dial stays server-side (mobile dropped its client-side `runT9Search` render).
+- **Workspace-scope opt-out for cross-workspace groups**: the web dialer runs under
+  `workspace.scope`, so `BelongsToWorkspace`'s global scope narrows `Link` queries to the
+  active workspace. BOTH `followedLinkItems()` (cross-account) AND `myLinkItems()`
+  (same-user, other workspaces) call `Link::withoutGlobalScope('workspace')` so web matches
+  the Sanctum API/mobile (which bind no workspace). Ownership/visibility is still enforced
+  by the `user_id` predicate + `canViewLink()`; the opt-out never widens who is seen.
 - **Mobile action routing** (`openUniversalItem`): `type==='contact'` → in-app
   `openProfile(number,...)`; anything with `action.url` → `Linking.openURL`; workspaces
   have no mobile switch target (informational only — web uses the POST switch route).

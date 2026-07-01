@@ -299,7 +299,16 @@ class DialerSearch
     /** @return array<int,array<string,mixed>> */
     private static function myLinkItems(User $user, string $q, bool $onlyVerified): array
     {
-        $query = Link::where('user_id', $user->id);
+        // "My links" means every link the searcher OWNS, regardless of which
+        // workspace it lives in. On the web surface the `workspace.scope`
+        // middleware binds the searcher's active workspace and the
+        // BelongsToWorkspace global scope would narrow this to the active
+        // workspace only — hiding the same user's links in their OTHER
+        // workspaces (the API/Sanctum surface binds no workspace and already
+        // returns them all). Opt out of the workspace filter so web matches
+        // API/mobile; ownership is still enforced by the user_id predicate, so
+        // this never exposes another account's links.
+        $query = Link::withoutGlobalScope('workspace')->where('user_id', $user->id);
         self::applyLinkTextMatch($query, $q, $user->id);
         if ($onlyVerified) {
             $query->where('is_verified', true);
