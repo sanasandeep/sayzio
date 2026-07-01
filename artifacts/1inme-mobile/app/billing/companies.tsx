@@ -4,14 +4,15 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { Stack, useRouter } from "expo-router";
-import { useState } from "react";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
@@ -115,6 +116,26 @@ export default function BillingCompaniesScreen() {
     walletBalance.low_balance_threshold > 0 &&
     walletBalance.balance < walletBalance.low_balance_threshold;
 
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([q.refetch(), walletQ.refetch()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [q, walletQ]);
+
+  // Keep the wallet balance current when returning to this screen after
+  // topping up coins or issuing an invoice on another screen. Depend on the
+  // stable queryClient (query result objects are not referentially stable, so
+  // depending on them would retrigger the effect every render).
+  useFocusEffect(
+    useCallback(() => {
+      void qc.invalidateQueries({ queryKey: ["wallet-balance"] });
+    }, [qc]),
+  );
+
   const save = useMutation({
     mutationFn: () => {
       const payload = {
@@ -201,6 +222,9 @@ export default function BillingCompaniesScreen() {
           data={q.data ?? []}
           keyExtractor={(c) => String(c.id)}
           contentContainerStyle={{ padding: 20, gap: 10 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           ListHeaderComponent={
             <View style={{ gap: 10, marginBottom: 4 }}>
               {walletQ.isLoading ? (
