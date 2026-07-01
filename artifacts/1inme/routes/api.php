@@ -238,8 +238,10 @@ Route::prefix('v1')->group(function () {
         ->get('/site/about', [\App\Modules\Api\Controllers\SiteContentController::class, 'about']);
 
     // Public brand contact details (address, support email, phone, hours,
-    // social links, map) mirroring the admin-editable web /contact card so the
-    // mobile Contact screen stays in sync without an app rebuild.
+    // social links, map) mirroring the admin-editable web /contact card so both
+    // the mobile Contact screen and the marketing site's Contact page stay in
+    // sync with admin edits without an app rebuild or redeploy, and always serve
+    // the correct brand defaults (never stale placeholders) when unedited.
     Route::middleware('throttle:60,1')
         ->get('/site/contact', [\App\Modules\Api\Controllers\SiteContentController::class, 'contact']);
 

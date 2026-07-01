@@ -4,16 +4,23 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { Mail, MapPin, Clock, Languages, Zap, Handshake, Lightbulb, Check, AlertCircle, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { Mail, MapPin, Phone, Clock, Languages, Zap, Handshake, Lightbulb, Check, AlertCircle, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { submitContactMessage, ApiError } from "@workspace/api-client-react";
-
-const SUPPORT_EMAIL = "support@1inme.com";
+import {
+  fetchContactContent,
+  DEFAULT_CONTACT_CONTENT,
+  type ContactContent,
+} from "@/lib/contact-content";
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Start from the correct brand defaults so the very first paint (and any
+  // fetch failure) shows real details (hello@sayzio.app, Banjara Hills, no
+  // fake phone) rather than stale placeholders.
+  const [contact, setContact] = useState<ContactContent>(DEFAULT_CONTACT_CONTENT);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -22,6 +29,18 @@ export default function Contact() {
     // Honeypot — hidden from real users; bots that fill it are dropped server-side.
     website: "",
   });
+
+  // Pull the admin-editable contact details from the product app. On any
+  // failure we keep the correct brand defaults already in state.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchContactContent(controller.signal)
+      .then((data) => setContact(data))
+      .catch(() => {
+        // Ignore — DEFAULT_CONTACT_CONTENT is already in state.
+      });
+    return () => controller.abort();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +74,7 @@ export default function Contact() {
     }
   };
 
-  const mailtoHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
+  const mailtoHref = `mailto:${contact.email}?subject=${encodeURIComponent(
     form.subject || "Hello from 1inme.com",
   )}&body=${encodeURIComponent(
     `${form.message}\n\n— ${form.name} (${form.email})`,
@@ -120,19 +139,36 @@ export default function Contact() {
                 </div>
                 <h3 className="font-semibold mb-1">Email us</h3>
                 <a
-                  href={`mailto:${SUPPORT_EMAIL}`}
+                  href={`mailto:${contact.email}`}
                   className="text-muted-foreground hover:text-primary transition-colors break-all"
                 >
-                  {SUPPORT_EMAIL}
+                  {contact.email}
                 </a>
               </div>
+
+              {contact.phone && (
+                <div className="glass-card p-6 rounded-3xl">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                    <Phone className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-semibold mb-1">Call us</h3>
+                  <a
+                    href={`tel:${contact.phone.replace(/\s+/g, "")}`}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {contact.phone}
+                  </a>
+                </div>
+              )}
 
               <div className="glass-card p-6 rounded-3xl">
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
                   <MapPin className="w-6 h-6" />
                 </div>
                 <h3 className="font-semibold mb-1">Where we are</h3>
-                <p className="text-muted-foreground">Hyderabad · India</p>
+                <address className="text-muted-foreground not-italic whitespace-pre-line">
+                  {contact.address}
+                </address>
               </div>
 
               <div className="space-y-3">

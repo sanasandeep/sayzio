@@ -93,6 +93,7 @@
 - [Mobile live-domain tests](mobile-live-domain-tests.md) — icon-fonts/live smokes need the `artifacts/1inme-mobile: expo` workflow up; auth-flow-e2e self-boots; don't leave live-server checks as validation gates; Playwright catch-all route must be registered BEFORE specific ones.
 - [Addon-aware effective features](addon-effective-features.md) — EffectivePlanFeatures merges plan + active-sub addons×qty into User::getPlanFeature; checkout bills addons[ID]=QTY (per-unit amount_minor, qty in meta), eligibility via addon_plan pivot.
 - [OTP code-send surfaces](otp-send-surfaces.md) — no central send funnel; a cross-cutting OTP change must touch ~9 web/API/mobile spots, and no-user branches must issue/reveal nothing.
+- [Contact page brand content](contact-page-brand-content.md) — 1inme marketing /contact fetches from /api/v1/site/contact; code-default fallback (EEFind/Banjara Hills/hello@sayzio.app) must match SitePagesContent::contactExtraDefault() exactly; phone card hidden when blank.
 - [Registration pause switch](registration-pause-switch.md) — one admin app_settings toggle gates ~6 account-creation surfaces (web/API register, OTP-as-signup, social); gating only /register misses the rest.
 - [Buzz impression metering](buzz-impression-metering.md) — per-plan monthly Buzz view cap (`max_buzz_impressions`) meters a period-scoped counter (NOT cumulative `social_proofs.impressions`); enforce in public config(), default -1/unlimited when key missing.
 - [Adding a monetization checkout kind](monetization-checkout-kind.md) — a new paid "kind" needs lockstep edits across event consts, MonetizationCheckout, the 3 controller allow-lists, and the caller; confirm runs outside the request cycle.
@@ -157,4 +158,8 @@
 - [Coming-soon launch notify](feature-launch-notify.md) — "Notify me" payoff needs BOTH an inline hook (admin clears override) AND an hourly sweep (config-connect path has no code hook); idempotency = `notified_at` stamp, never delete.
 - [Forcing 1inme user-layout theme in Playwright](user-layout-theme-in-playwright.md) — theme = server `light-mode` html class only; toggle that class after nav for dark/light shots, cookie round-trip is unreliable.
 - [Consolidated Settings hub](settings-hub-consolidation.md) — /user/settings/{tab} hub: repoint routes in-place keeping names, register in SettingsTabs, any-verb redirects LAST; sidebar dual-nav lockstep; mobile parity = list order in profile.tsx.
+<<<<<<< HEAD
 - [e2e slow-redirect click auto-wait](e2e-slow-redirect-click-autowait.md) — form-submit clicks on SLOW error/redirect round-trips time out on click()'s 30s nav auto-wait even inside Promise.all([waitForURL,click]); use click({noWaitAfter:true})+waitUntil:'commit'.
+=======
+- [Marketing contact details sync](marketing-contact-content-sync.md) — /api/v1/site/contact mirrors /site/about; marketing fetches directly (not codegen); brand defaults duplicated in PHP contactExtraDefault + TS DEFAULT_CONTACT_CONTENT must stay in lockstep.
+>>>>>>> 2bfaa51e (Task #3259: Guard corrected Contact details from silent reversion)

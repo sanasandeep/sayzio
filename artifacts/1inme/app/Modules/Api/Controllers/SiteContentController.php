@@ -76,14 +76,19 @@ class SiteContentController extends Controller
     }
 
     /**
-     * Resolved /contact card content. Returns the brand's public contact
-     * details — address, support email, phone, business hours, social links
-     * and map coordinates — exactly the resolution the web
-     * {@see \App\Modules\Common\Controllers\SitePageController} performs for
-     * the /contact page's "Contact details" card. When no DB row exists yet,
-     * code defaults are returned so the payload is always renderable. This
-     * keeps the mobile Contact screen in sync with the admin-editable web
-     * copy without an app rebuild.
+     * Resolved /contact details. Returns the brand's public contact block —
+     * address, support email, phone, business hours, social links and map
+     * coordinates — exactly the resolution the web
+     * {@see \App\Modules\Common\Controllers\SitePageController} performs for the
+     * /contact page's "Contact details" card. When the contact SitePage row has
+     * an `extra` override it is normalized and served; when no row (or no
+     * override) exists, the code defaults
+     * ({@see SitePagesContent::contactExtraDefault()}) are returned so the
+     * payload always carries the correct brand details (EEFind Private Limited,
+     * Banjara Hills, hello@sayzio.app, no phone) rather than stale placeholders.
+     * Consumed by both the mobile Contact screen and the marketing site's
+     * Contact page so an admin edit flows through without an app rebuild or
+     * redeploy.
      */
     public function contact(): JsonResponse
     {

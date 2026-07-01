@@ -1869,23 +1869,28 @@ class SitePagesContent
      */
     public static function contactExtraDefault(): array
     {
+        // Real, correct contact details for the entity behind Sayzio.
+        // Sayzio is a brand/product of EEFind Private Limited (EEFIND PVT LTD),
+        // based in Banjara Hills, Hyderabad. The public support inbox is
+        // hello@sayzio.app and there is deliberately NO phone number — leaving
+        // it blank prevents a fake/placeholder number ever being shown.
         return [
-            'address' => "Sayzio Technologies Pvt Ltd\n4th Floor, Cyber Heights\nHITEC City, Madhapur\nHyderabad 500081, India",
-            'email'   => 'hello@1inme.example',
-            'phone'   => '+91 40 1234 5678',
+            'address' => "EEFind Private Limited\n8 Amrutha Nilayam, Banjara Hills\nHyderabad, Telangana 500034, India",
+            'email'   => 'hello@sayzio.app',
+            'phone'   => '',
             'hours'   => "Mon–Fri · 10:00 – 18:00 IST\nClosed on public holidays",
             'social'  => [
-                'twitter'   => 'https://x.com/1inme',
-                'instagram' => 'https://instagram.com/1inme',
-                'linkedin'  => 'https://linkedin.com/company/1inme',
+                'twitter'   => 'https://x.com/1INMEOfficial',
+                'instagram' => 'https://instagram.com/1in.me',
+                'linkedin'  => 'https://linkedin.com/company/1INMEOfficial',
                 'youtube'   => '',
                 'facebook'  => '',
             ],
             'map' => [
-                'lat'  => 17.4435,
-                'lng'  => 78.3772,
+                'lat'  => 17.4139,
+                'lng'  => 78.4483,
                 'zoom' => 14,
-                'label'=> 'Our Hyderabad office',
+                'label'=> 'EEFind Private Limited · Banjara Hills, Hyderabad',
             ],
             // Hero pill, availability/language line, side image and the small
             // floating "Friendly humans" card. Defaults mirror the literals
