@@ -106,8 +106,17 @@
         font-size: 9px; font-weight: 800; color:#fff;
     }
 
-    /* Back face: in-call / caller-ID screen */
-    .dc-call-body { display:flex; flex-direction:column; align-items:center; text-align:center; padding: 46px 20px 20px; height: 100%; }
+    /* Quick-channel strip on the dialer face (animates with the T9 match chip) */
+    .dc-dialchans { display:flex; align-items:center; justify-content:center; gap: 7px; margin-top: 5px; opacity: 0; }
+    .dc-dialchan {
+        width: 28px; height: 28px; border-radius: 9px;
+        display:flex; align-items:center; justify-content:center;
+        color:#fff; font-size: 11px; flex-shrink:0;
+    }
+    .dc-dialchan-label { font-size: 7.5px; font-weight: 700; color: rgba(255,255,255,.5); margin-top: 2px; text-align:center; display:block; }
+
+    /* Back face: incoming-call / caller-ID screen */
+    .dc-call-body { display:flex; flex-direction:column; align-items:center; text-align:center; padding: 40px 20px 16px; height: 100%; }
     .dc-cid-pill {
         display:inline-flex; align-items:center; gap: 6px;
         padding: 5px 12px; border-radius: 999px;
@@ -117,39 +126,51 @@
     }
     .dc-cid-pill i { color: #7a9eff; font-size: 9px; }
     .dc-avatar-lg {
-        position: relative; width: 92px; height: 92px; border-radius: 30px;
-        margin-top: 26px; flex-shrink: 0;
+        position: relative; width: 84px; height: 84px; border-radius: 28px;
+        margin-top: 18px; flex-shrink: 0;
         background: linear-gradient(135deg, #3d6bff, #1bd4d9);
         display:flex; align-items:center; justify-content:center;
-        color:#fff; font-weight: 800; font-size: 28px;
+        color:#fff; font-weight: 800; font-size: 26px;
         box-shadow: 0 16px 36px -12px rgba(61,107,255,.75);
     }
     .dc-avatar-lg img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius: inherit; }
     .dc-avatar-lg::before {
-        content:""; position:absolute; inset:-9px; border-radius: 36px;
+        content:""; position:absolute; inset:-9px; border-radius: 34px;
         border: 2px solid rgba(61,107,255,.5); opacity:.5;
     }
-    .dc-call-name { margin-top: 18px; font-size: 18px; font-weight: 800; color:#fff; display:flex; align-items:center; gap: 6px; }
+    .dc-call-name { margin-top: 14px; font-size: 17px; font-weight: 800; color:#fff; display:flex; align-items:center; gap: 6px; }
     .dc-call-name i { color:#3d6bff; font-size: 13px; }
-    .dc-call-handle { margin-top: 3px; font-size: 11.5px; color: #a8b3cf; font-weight: 600; }
-    .dc-call-num { margin-top: 10px; font-size: 13px; color: #cbd5e1; font-weight: 600; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
-    .dc-call-status { margin-top: 14px; font-size: 11.5px; font-weight: 700; color: #34d399; display:flex; align-items:center; gap: 2px; }
+    .dc-call-handle { margin-top: 2px; font-size: 11px; color: #a8b3cf; font-weight: 600; }
+    .dc-call-num { margin-top: 7px; font-size: 12.5px; color: #cbd5e1; font-weight: 600; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+    .dc-call-status { margin-top: 10px; font-size: 11px; font-weight: 700; color: #34d399; display:flex; align-items:center; gap: 2px; }
     .dc-dot { display:inline-block; width: 3.5px; height: 3.5px; border-radius: 999px; background: #34d399; margin-left: 3px; }
-    .dc-chans { display:flex; align-items:center; justify-content:center; gap: 10px; margin-top: auto; }
-    .dc-chan {
-        width: 38px; height: 38px; border-radius: 13px;
+    /* Incoming-call action buttons */
+    .dc-incall-actions { margin-top: auto; width: 100%; display:flex; flex-direction:column; align-items:center; gap: 8px; padding-bottom: 2px; }
+    .dc-incall-msg { display:flex; flex-direction:column; align-items:center; gap: 3px; }
+    .dc-msgbtn {
+        width: 34px; height: 34px; border-radius: 999px;
+        background: rgba(255,255,255,.11); border: 1px solid rgba(255,255,255,.18);
         display:flex; align-items:center; justify-content:center;
-        color:#fff; font-size: 14px; flex-shrink:0;
+        color:#fff; font-size: 12px;
     }
-    .dc-chan span { display: none; }
-    .dc-endcall {
-        width: 54px; height: 54px; border-radius: 999px; margin-top: 16px;
+    .dc-incall-main { display:flex; align-items:center; justify-content:center; gap: 30px; }
+    .dc-decline, .dc-answer { display:flex; flex-direction:column; align-items:center; gap: 5px; }
+    .dc-decline-btn {
+        width: 54px; height: 54px; border-radius: 999px;
         background: linear-gradient(135deg, #dc2626, #ef4444);
         display:flex; align-items:center; justify-content:center;
-        color:#fff; font-size: 18px;
-        box-shadow: 0 14px 30px -12px rgba(239,68,68,.8);
+        color:#fff; font-size: 19px;
+        box-shadow: 0 14px 30px -12px rgba(239,68,68,.75);
     }
-    .dc-endcall i { transform: rotate(135deg); }
+    .dc-answer-btn {
+        width: 54px; height: 54px; border-radius: 999px;
+        background: linear-gradient(135deg, #16a34a, #22c55e);
+        display:flex; align-items:center; justify-content:center;
+        color:#fff; font-size: 19px;
+        box-shadow: 0 14px 30px -12px rgba(34,197,94,.75);
+    }
+    .dc-btn-label { font-size: 9px; font-weight: 700; color: rgba(255,255,255,.5); letter-spacing:.03em; }
+    .dc-smalllabel { font-size: 8px; font-weight: 700; color: rgba(255,255,255,.45); }
 
     @media (prefers-reduced-motion: no-preference) {
         /* 12s master loop: dial digits -> press SIM 1 -> flip to in-call
@@ -250,6 +271,9 @@
             35%, 100% { transform: none; filter: none; }
         }
 
+        /* Quick-channel strip on the dialer face: appear with the T9 match chip */
+        .dc-armed .dc-dialchans { animation: dcMatch 12s ease-in-out infinite; }
+
         /* In-call screen life: pulsing avatar ring + calling dots */
         .dc-armed .dc-avatar-lg::before { animation: dcRing 2.2s ease-in-out infinite; }
         @keyframes dcRing { 0%,100% { transform: scale(1); opacity:.4; } 50% { transform: scale(1.12); opacity:.85; } }
@@ -337,6 +361,25 @@
                                         <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
                                         Aisha Rahman <i class="fas fa-circle-check"></i>
                                     </div>
+                                    {{-- Quick-channel icons appear with the T9 match --}}
+                                    <div class="dc-dialchans">
+                                        <div style="display:flex;flex-direction:column;align-items:center;">
+                                            <div class="dc-dialchan" style="background:#3d6bff;"><i class="fas fa-comment-sms"></i></div>
+                                            <span class="dc-dialchan-label">SMS</span>
+                                        </div>
+                                        <div style="display:flex;flex-direction:column;align-items:center;">
+                                            <div class="dc-dialchan" style="background:#25d366;"><i class="fab fa-whatsapp"></i></div>
+                                            <span class="dc-dialchan-label">WhatsApp</span>
+                                        </div>
+                                        <div style="display:flex;flex-direction:column;align-items:center;">
+                                            <div class="dc-dialchan" style="background:#229ed9;"><i class="fab fa-telegram"></i></div>
+                                            <span class="dc-dialchan-label">Telegram</span>
+                                        </div>
+                                        <div style="display:flex;flex-direction:column;align-items:center;">
+                                            <div class="dc-dialchan" style="background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);"><i class="fas fa-link" style="font-size:9px;"></i></div>
+                                            <span class="dc-dialchan-label">Biolink</span>
+                                        </div>
+                                    </div>
                                     <div class="dc-numdisplay">
                                         <span class="dc-numdigits">
                                             @foreach($dial as $i => $d)
@@ -382,16 +425,25 @@
                                     <div class="dc-call-handle">@aisha &middot; on Sayzio</div>
                                     <div class="dc-call-num">+1 (415) 555-0182</div>
                                     <div class="dc-call-status">
-                                        Calling via SIM 1
+                                        <i class="fas fa-phone-volume" style="font-size:9px;margin-right:3px;"></i> Incoming call &middot; SIM 1
                                         <span class="dc-dot"></span><span class="dc-dot"></span><span class="dc-dot"></span>
                                     </div>
-                                    <div class="dc-chans">
-                                        <div class="dc-chan" style="background:#3d6bff;" title="SMS"><i class="fas fa-comment-sms"></i></div>
-                                        <div class="dc-chan" style="background:#25d366;" title="WhatsApp"><i class="fab fa-whatsapp"></i></div>
-                                        <div class="dc-chan" style="background:#229ed9;" title="Telegram"><i class="fab fa-telegram"></i></div>
-                                        <div class="dc-chan" style="background:rgba(255,255,255,.12);" title="Open biolink"><i class="fas fa-link text-[11px]"></i></div>
+                                    <div class="dc-incall-actions">
+                                        <div class="dc-incall-msg">
+                                            <div class="dc-msgbtn"><i class="fas fa-comment-sms"></i></div>
+                                            <span class="dc-smalllabel">Message</span>
+                                        </div>
+                                        <div class="dc-incall-main">
+                                            <div class="dc-decline">
+                                                <div class="dc-decline-btn"><i class="fas fa-phone-slash"></i></div>
+                                                <span class="dc-btn-label">Decline</span>
+                                            </div>
+                                            <div class="dc-answer">
+                                                <div class="dc-answer-btn"><i class="fas fa-phone"></i></div>
+                                                <span class="dc-btn-label">Answer</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="dc-endcall"><i class="fas fa-phone"></i></div>
                                 </div>
                             </div>
 
