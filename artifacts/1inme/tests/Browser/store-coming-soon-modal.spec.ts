@@ -208,11 +208,50 @@ async function closeModalAndExpectGone(page: Page): Promise<void> {
   await expect(overlay).toBeHidden();
 }
 
+/**
+ * Pin the two-app ("Sayzio" + "Dialer") copy and the real screenshot so the
+ * modal can't silently regress to the old single-app text or a blank mockup:
+ *  - the headline names one of the apps (Sayzio/Dialer), not just the
+ *    store-name suffix ("coming to Google Play"),
+ *  - the phone frame holds an actual <img.store-cs-screenshot> that DECODED
+ *    (naturalWidth > 0) — a missing/broken asset or a CSS-only mockup fails,
+ *  - at least one feature bullet mentions the Dialer app ("dialer"/"caller").
+ */
+async function expectDialerCopyAndScreenshot(page: Page): Promise<void> {
+  const overlay = dialog(page);
+
+  // Headline names an app, not just the store suffix.
+  await expect(overlay.locator("h3")).toContainText(/Sayzio|Dialer/i);
+
+  // The screenshot exists inside the phone frame and actually loaded.
+  const screenshot = overlay.locator(".store-cs-phone img.store-cs-screenshot");
+  await expect(screenshot).toHaveCount(1);
+  await expect
+    .poll(() =>
+      screenshot.evaluate(
+        (img) => (img as HTMLImageElement).naturalWidth,
+      ),
+    )
+    .toBeGreaterThan(0);
+
+  // At least one feature bullet pins the Dialer-app copy.
+  const dialerFeature = overlay
+    .locator(".store-cs-feat")
+    .filter({ hasText: /dialer|caller/i });
+  await expect(dialerFeature.first()).toBeVisible();
+}
+
 test.describe("store-badge coming-soon modal — never blank/trapped", () => {
   // Freeze the marketing entrance animations at their settled state so the
   // dialer section's `.reveal` wrappers rest at opacity 1 and the badges are
   // deterministically clickable (home.blade.php's reduced-motion block).
-  test.use({ reducedMotion: "reduce" });
+  // A realistic desktop viewport: the two-column modal only renders at sm+
+  // widths, and the taller "coming to the App Store" headline wraps to an extra
+  // line — pushing the card just past a 720px-tall viewport. 900px is a normal
+  // desktop height and keeps the strict "fully inside the viewport" invariant
+  // meaningful for BOTH store variants (the modal is genuinely scrollable, so a
+  // card that overflows a short viewport is by design, not the off-screen bug).
+  test.use({ reducedMotion: "reduce", viewport: { width: 1280, height: 900 } });
 
   test.beforeAll(() => {
     seedStoreUrlsUnconfigured();
@@ -238,6 +277,8 @@ test.describe("store-badge coming-soon modal — never blank/trapped", () => {
     await expect(dialog(page).locator("h3")).toContainText(
       "coming to Google Play",
     );
+    // Two-app copy + real screenshot must not regress.
+    await expectDialerCopyAndScreenshot(page);
 
     await closeModalAndExpectGone(page);
   });
