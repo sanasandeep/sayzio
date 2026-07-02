@@ -56,6 +56,45 @@ echo 'OK_STORE_URLS_CLEARED';
 }
 
 /**
+ * Count app-launch signup rows for an email, straight from the real DB via
+ * tinker. Used by the notify-form tests to prove the end-to-end effect the
+ * browser can't otherwise see: a valid submit actually persists a row, while a
+ * honeypot-tripped submit persists NOTHING even though the UI shows "success".
+ * The controller lowercases the stored email, so we compare lowercased.
+ */
+function countSignups(email: string): number {
+  const php = `
+use App\\Modules\\Common\\Models\\AppLaunchSignup;
+echo 'COUNT:' . AppLaunchSignup::where('email', strtolower('${email}'))->count() . ':END';
+`.trim();
+  const out = execFileSync("php", ["artisan", "tinker", "--execute=" + php], {
+    cwd: ARTIFACT_ROOT,
+    encoding: "utf8",
+  });
+  const m = out.match(/COUNT:(\d+):END/);
+  return m ? parseInt(m[1], 10) : -1;
+}
+
+/**
+ * Remove any rows created by the notify-form tests so repeated local runs and
+ * the shared RDS don't accumulate throwaway signups (and so a later run can't
+ * hit the duplicate-email path for a reused address).
+ */
+function deleteNotifyTestSignups(): void {
+  const php = `
+use App\\Modules\\Common\\Models\\AppLaunchSignup;
+AppLaunchSignup::where('email', 'like', 'browser-notify-%@example.com')
+    ->orWhere('email', 'like', 'browser-honeypot-%@example.com')
+    ->delete();
+echo 'OK_NOTIFY_SIGNUPS_CLEARED';
+`.trim();
+  execFileSync("php", ["artisan", "tinker", "--execute=" + php], {
+    cwd: ARTIFACT_ROOT,
+    stdio: "inherit",
+  });
+}
+
+/**
  * Navigate to `path` with consent already given (so the bottom-pinned cookie
  * banner cannot cover footer badges or intercept clicks) and wait for Alpine
  * to both load AND finish processing the x-teleport template so the modal is
@@ -353,5 +392,136 @@ test.describe("store-badge coming-soon modal — never blank/trapped", () => {
       "coming to the App Store",
     );
     await closeModalAndExpectGone(page);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// "Notify me at launch" email-capture form inside the coming-soon modal.
+//
+// The teleport/blank-modal suite above never touches the form. This suite
+// exercises the Alpine notifySubmit() handler + honeypot end-to-end so a
+// regression in the endpoint, CSRF wiring, client validation, or the inline
+// success/error rendering can't silently drop launch-notification signups:
+//  - an invalid email surfaces the inline validation error and sends NO request
+//    (the client short-circuits before fetch),
+//  - a valid email POSTs the real site.app-launch.notify route and flips to the
+//    inline "you're on the list" done state (form hidden), AND actually writes a
+//    row in the DB,
+//  - the honeypot field is present but hidden from humans, and a honeypot-filled
+//    submit is a server-side no-op (no row) even though the UI still shows the
+//    friendly success state (so bots learn nothing).
+//
+// Self-bootstrapping: same seed as above (store URLs unconfigured → badges are
+// <button>s that open the modal). Rows created here are cleaned up afterAll.
+// ---------------------------------------------------------------------------
+test.describe("store coming-soon modal — notify-me signup can't silently fail", () => {
+  test.use({ reducedMotion: "reduce", viewport: { width: 1280, height: 900 } });
+
+  test.beforeAll(() => {
+    seedStoreUrlsUnconfigured();
+  });
+
+  test.afterAll(() => {
+    deleteNotifyTestSignups();
+  });
+
+  /** Open the home dialer-section Play badge → the shared modal, ready to type. */
+  async function openModal(page: Page): Promise<Locator> {
+    await gotoHome(page);
+    const badge = page
+      .locator("#dialer-contacts")
+      .getByRole("button", { name: /Google Play/ });
+    await badge.scrollIntoViewIfNeeded();
+    await expect(badge).toBeVisible();
+    await badge.click();
+    const overlay = dialog(page);
+    await expect(overlay).toBeVisible();
+    return overlay;
+  }
+
+  test("invalid email shows the inline error and sends no request", async ({
+    page,
+  }) => {
+    // Track any POST to the notify endpoint — an invalid email must never
+    // reach the server (the client validates and short-circuits first).
+    let notifyRequests = 0;
+    page.on("request", (req) => {
+      if (req.url().includes("/app-launch/notify")) notifyRequests++;
+    });
+
+    const overlay = await openModal(page);
+
+    await overlay.locator("#store-cs-notify-email").fill("not-an-email");
+    await overlay.getByRole("button", { name: "Notify me" }).click();
+
+    // Inline validation error appears…
+    const err = overlay.locator("p").filter({ hasText: /valid email/i });
+    await expect(err).toBeVisible();
+
+    // …the form is still shown (no success state) and nothing was sent.
+    await expect(overlay.locator("form")).toBeVisible();
+    await expect(overlay.locator(".store-cs-notify-done")).toBeHidden();
+    expect(notifyRequests).toBe(0);
+  });
+
+  test("valid email posts the real route, flips to the done state, and writes a row", async ({
+    page,
+  }) => {
+    const email = `browser-notify-${Date.now()}@example.com`;
+
+    const overlay = await openModal(page);
+
+    await overlay.locator("#store-cs-notify-email").fill(email);
+    await overlay.getByRole("button", { name: "Notify me" }).click();
+
+    // Inline success state renders (auto-waits through the async fetch) with
+    // the confirmation copy, and the form is hidden.
+    const done = overlay.locator(".store-cs-notify-done");
+    await expect(done).toBeVisible();
+    await expect(done).toContainText(/on the list/i);
+    await expect(overlay.locator("form")).toBeHidden();
+
+    // The signup actually persisted against the real endpoint.
+    expect(countSignups(email)).toBe(1);
+  });
+
+  test("honeypot is present, hidden from humans, and a filled submit writes no row", async ({
+    page,
+  }) => {
+    const email = `browser-honeypot-${Date.now()}@example.com`;
+
+    const overlay = await openModal(page);
+
+    // The honeypot exists and is genuinely hidden from humans: off-screen,
+    // fully transparent, and removed from the tab order.
+    const honeypot = overlay.locator('input[name="website"]');
+    await expect(honeypot).toHaveCount(1);
+    const hp = await honeypot.evaluate((el) => {
+      const s = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      return {
+        offscreen: r.left < 0 || r.top < 0,
+        opacity: parseFloat(s.opacity || "1"),
+        tabindex: el.getAttribute("tabindex"),
+      };
+    });
+    expect(hp.offscreen).toBe(true);
+    expect(hp.opacity).toBeLessThan(0.05);
+    expect(hp.tabindex).toBe("-1");
+
+    // A bot fills the honeypot (set value + dispatch input so Alpine's x-model
+    // picks it up), then submits a valid-looking email.
+    await honeypot.evaluate((el) => {
+      (el as HTMLInputElement).value = "http://spam.example";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await overlay.locator("#store-cs-notify-email").fill(email);
+    await overlay.getByRole("button", { name: "Notify me" }).click();
+
+    // The UI still shows the friendly success state (bots learn nothing)…
+    await expect(overlay.locator(".store-cs-notify-done")).toBeVisible();
+
+    // …but the server no-oped: NO row was written despite the "success" UI.
+    expect(countSignups(email)).toBe(0);
   });
 });
