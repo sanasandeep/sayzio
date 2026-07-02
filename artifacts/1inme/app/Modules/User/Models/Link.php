@@ -802,15 +802,16 @@ protected $fillable = [
     /**
      * Host the embed snippets/endpoints should be built on. Mirrors
      * {@see getShortUrl()} — a verified custom domain when attached, else
-     * the platform APP_URL — so the embed resolves on whichever host the
-     * short link itself lives on.
+     * the real public platform host (Replit deployment domain, dev-preview
+     * domain, or brand domain) — so the embed resolves on a publicly
+     * reachable URL, never on localhost.
      */
     public function embedBaseUrl(): string
     {
         if ($this->domain) {
             return 'https://' . $this->domain->domain;
         }
-        return rtrim(config('app.url'), '/');
+        return 'https://' . \App\Modules\Common\Support\PlatformHosts::primary();
     }
 
     /** Auto-rendering `<script>` embed snippet (injects a sized iframe). */

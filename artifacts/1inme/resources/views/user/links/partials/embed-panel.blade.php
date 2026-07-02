@@ -8,7 +8,11 @@
     $isCard       = $link->isEmbedCard();
     $scriptSnippet = $link->embedScriptSnippet();
     $iframeSnippet = $link->embedIframeSnippet();
-    $previewSrc   = $link->embedBaseUrl() . '/embed/link/' . $link->alias . '/iframe';
+    // The live preview renders inside the editor, so load it same-origin
+    // (relative path) — it always resolves against whatever host the editor
+    // is currently served on. Only the copyable snippets above need the
+    // real public host, since those get pasted onto external sites.
+    $previewSrc   = '/embed/link/' . $link->alias . '/iframe';
     $kindLabel    = $isCard ? 'compact action card' : 'responsive page';
 @endphp
 
