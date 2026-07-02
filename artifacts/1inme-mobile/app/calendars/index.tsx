@@ -3,8 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
+  Alert,
   FlatList,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -17,6 +20,7 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import {
+  exportMyCalendar,
   getMyCalendar,
   getTodayEvents,
   listCalendars,
@@ -144,6 +148,58 @@ export default function CalendarsScreen() {
     enabled: tab === "agenda",
   });
 
+  const [exporting, setExporting] = useState(false);
+  const runExport = useCallback(
+    async (format: "ics" | "csv") => {
+      setExporting(true);
+      try {
+        await exportMyCalendar(format, filters);
+      } catch (e) {
+        const message =
+          e instanceof Error ? e.message : "Couldn't export your calendar.";
+        if (Platform.OS === "web") {
+          // eslint-disable-next-line no-alert
+          alert(message);
+        } else {
+          Alert.alert("Export failed", message);
+        }
+      } finally {
+        setExporting(false);
+      }
+    },
+    [filters],
+  );
+
+  const onExportPress = useCallback(() => {
+    if (exporting) return;
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: "Export calendar",
+          options: ["Cancel", "Calendar file (.ics)", "Spreadsheet (.csv)"],
+          cancelButtonIndex: 0,
+        },
+        (i) => {
+          if (i === 1) void runExport("ics");
+          else if (i === 2) void runExport("csv");
+        },
+      );
+    } else if (Platform.OS === "web") {
+      // Simple prompt fallback on web.
+      // eslint-disable-next-line no-alert
+      const csv = confirm(
+        "Export as a spreadsheet (.csv)?\n\nOK = CSV, Cancel = Calendar file (.ics)",
+      );
+      void runExport(csv ? "csv" : "ics");
+    } else {
+      Alert.alert("Export calendar", "Choose a format", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Calendar file (.ics)", onPress: () => void runExport("ics") },
+        { text: "Spreadsheet (.csv)", onPress: () => void runExport("csv") },
+      ]);
+    }
+  }, [exporting, runExport]);
+
   const todayQ = useQuery({
     queryKey: ["my-calendar-today"],
     queryFn: getTodayEvents,
@@ -202,7 +258,23 @@ export default function CalendarsScreen() {
                     <Feather name="plus" size={22} color={colors.primary} />
                   </Pressable>
                 )
-              : undefined,
+              : tab === "agenda"
+                ? () => (
+                    <Pressable
+                      onPress={onExportPress}
+                      disabled={exporting}
+                      hitSlop={10}
+                      style={{ paddingHorizontal: 4, opacity: exporting ? 0.5 : 1 }}
+                      accessibilityLabel="Export calendar"
+                    >
+                      {exporting ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <Feather name="share" size={20} color={colors.primary} />
+                      )}
+                    </Pressable>
+                  )
+                : undefined,
         }}
       />
 

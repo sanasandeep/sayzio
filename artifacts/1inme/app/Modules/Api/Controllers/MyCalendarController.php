@@ -8,6 +8,7 @@ use App\Modules\User\Models\CalendarEvent;
 use App\Modules\User\Models\CalendarFollow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\UserNotification;
+use App\Modules\User\Support\ExportsCalendarEvents;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
@@ -29,6 +30,7 @@ use Illuminate\Validation\Rule;
 class MyCalendarController extends Controller
 {
     use ApiResponses;
+    use ExportsCalendarEvents;
 
     /** Calendars the user owns or follows, with counts + following flag. */
     public function index(Request $request)
@@ -221,6 +223,84 @@ class MyCalendarController extends Controller
                 'last_page'    => $page->lastPage(),
             ],
         ]);
+    }
+
+    /**
+     * Export the "My Calendar" agenda as a downloadable ICS or CSV file,
+     * honouring the same source / date / hashtag / search filters as {@see feed}.
+     * Mobile parity for the web
+     * {@see \App\Modules\User\Controllers\CalendarController::myCalendarExport}.
+     *
+     * Returns a StreamedResponse (not the JSON envelope) so the client can
+     * download the file directly and hand it to the native share sheet.
+     */
+    public function export(Request $request)
+    {
+        $user = $request->user();
+
+        $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');
+        $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
+
+        $source = $request->query('source', 'all');
+        $calendarIds = match ($source) {
+            'owned'    => $ownedIds,
+            'followed' => $followedIds,
+            default    => $ownedIds->merge($followedIds)->unique()->values(),
+        };
+
+        // Optional per-calendar filter — only when owned or followed.
+        $calendarId = $request->query('calendar');
+        if ($calendarId !== null && $calendarId !== '' && $calendarIds->contains((int) $calendarId)) {
+            $calendarIds = collect([(int) $calendarId]);
+        }
+
+        $userTz = $user->timezone ?: config('app.timezone', 'UTC');
+
+        $query = CalendarEvent::query()
+            ->with('calendar:id,title,accent_color,user_id,timezone')
+            ->whereIn('calendar_id', $calendarIds);
+
+        $from = $request->query('from');
+        $to   = $request->query('to');
+        if ($from) {
+            $query->where('start_at', '>=', Carbon::parse($from)->startOfDay());
+        } elseif (!$request->boolean('past')) {
+            $query->where('start_at', '>=', now()->startOfDay());
+        }
+        if ($to) {
+            $query->where('start_at', '<=', Carbon::parse($to)->endOfDay());
+        }
+
+        if ($tag = $request->query('tag')) {
+            $tag = CalendarEvent::normalizeHashtags($tag)[0] ?? null;
+            if ($tag) {
+                $query->whereJsonContains('hashtags', $tag);
+            }
+        }
+
+        if ($search = trim((string) $request->query('q', ''))) {
+            $like = '%' . str_replace(['%', '_'], ['\%', '\_'], $search) . '%';
+            $query->where(function ($q) use ($like) {
+                $q->where('title', 'ilike', $like)
+                  ->orWhere('description', 'ilike', $like)
+                  ->orWhere('location', 'ilike', $like);
+            });
+        }
+
+        $events = $query->orderBy('start_at')->orderBy('id')->limit(5000)->get();
+
+        $format = strtolower((string) $request->query('format', 'ics'));
+        if (!in_array($format, ['ics', 'csv'], true)) {
+            $format = 'ics';
+        }
+
+        $filename = 'my-calendar-' . now($userTz)->format('Y-m-d') . '.' . $format;
+
+        if ($format === 'csv') {
+            return $this->exportCalendarCsv($events, $filename, $userTz);
+        }
+
+        return $this->exportCalendarIcs($events, $filename, $userTz, $user->name ?? 'My Calendar');
     }
 
     /**

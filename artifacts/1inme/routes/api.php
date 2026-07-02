@@ -1020,6 +1020,7 @@ Route::prefix('v1')->group(function () {
         // follow toggle, "My Calendar" agenda feed, today's reminders.
         Route::get   ('/calendars',                       [\App\Modules\Api\Controllers\MyCalendarController::class, 'index']);
         Route::get   ('/my-calendar',                     [\App\Modules\Api\Controllers\MyCalendarController::class, 'feed']);
+        Route::get   ('/my-calendar/export',              [\App\Modules\Api\Controllers\MyCalendarController::class, 'export']);
         Route::get   ('/my-calendar/today',               [\App\Modules\Api\Controllers\MyCalendarController::class, 'today']);
         Route::get   ('/calendars/{calendar}',            [\App\Modules\Api\Controllers\MyCalendarController::class, 'show'])->whereNumber('calendar');
         Route::post  ('/calendars/{calendar}/follow',     [\App\Modules\Api\Controllers\MyCalendarController::class, 'toggleFollow'])->whereNumber('calendar');

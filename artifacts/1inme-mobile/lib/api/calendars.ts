@@ -1,4 +1,7 @@
-import { apiFetch } from "@/lib/api";
+import { Platform } from "react-native";
+
+import { apiFetch, getBaseUrl, MOBILE_USER_AGENT } from "@/lib/api";
+import { getToken } from "@/lib/secure";
 
 // Mobile parity for the followable `calendar` link type. These mirror the
 // stateless Sanctum endpoints in artifacts/1inme
@@ -127,6 +130,63 @@ export async function getMyCalendar(
     data: { items: CalendarEventItem[]; meta: FeedMeta };
   }>(`/my-calendar${qs ? `?${qs}` : ""}`);
   return res.data;
+}
+
+/**
+ * Download the "My Calendar" agenda as an ICS or CSV file — honouring the same
+ * filters as {@see getMyCalendar} — and hand it to the OS share sheet. Mirrors
+ * the web "My Calendar" export. The endpoint sits behind auth:sanctum, so the
+ * request MUST carry the bearer token — a plain browser open would 401. On web
+ * we fetch a blob and trigger an anchor download; on native we download to the
+ * cache with the auth header and share the local file.
+ */
+export async function exportMyCalendar(
+  format: "ics" | "csv",
+  filters: MyCalendarFilters = {},
+): Promise<void> {
+  const q = new URLSearchParams();
+  q.set("format", format);
+  if (filters.source && filters.source !== "all") q.set("source", filters.source);
+  if (filters.calendar != null) q.set("calendar", String(filters.calendar));
+  if (filters.from) q.set("from", filters.from);
+  if (filters.to) q.set("to", filters.to);
+  if (filters.tag) q.set("tag", filters.tag);
+  if (filters.q) q.set("q", filters.q);
+  if (filters.past) q.set("past", "1");
+
+  const token = await getToken();
+  const url = `${getBaseUrl()}/api/v1/my-calendar/export?${q.toString()}`;
+  const filename = `my-calendar-${new Date().toISOString().slice(0, 10)}.${format}`;
+  const mimeType = format === "csv" ? "text/csv" : "text/calendar";
+  const headers: Record<string, string> = {
+    "User-Agent": MOBILE_USER_AGENT,
+    "X-1INME-Client": MOBILE_USER_AGENT,
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  if (Platform.OS === "web") {
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error(`Export failed (${res.status}).`);
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+    return;
+  }
+
+  const FileSystem = await import("expo-file-system/legacy");
+  const Sharing = await import("expo-sharing");
+  const target = `${FileSystem.cacheDirectory ?? ""}${filename}`;
+  const dl = await FileSystem.downloadAsync(url, target, { headers });
+  if (dl.status !== 200) throw new Error(`Export failed (${dl.status}).`);
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(dl.uri, { mimeType, dialogTitle: "Export calendar" });
+  }
 }
 
 /** Today's events across owned + followed calendars (user's local timezone). */
