@@ -246,6 +246,11 @@ class CalendarController extends Controller
         } else {
             // The blade only renders the visible days; cap the window fetch.
             $gridEvents = $query->limit(2000)->get();
+
+            // The +/-1 day padding above over-fetches on purpose (to catch
+            // cross-tz boundary events); narrow back to exactly the events the
+            // grid blades render so the screen and the export never diverge.
+            $gridEvents = $this->visibleGridEvents($gridEvents, $view, $focus, $userTz);
         }
 
         $calendars = Calendar::whereIn('id', $ownedIds->merge($followedIds)->unique())
@@ -306,6 +311,13 @@ class CalendarController extends Controller
         $userTz = $built['userTz'];
 
         $events = $built['query']->limit(5000)->get();
+
+        // Grid views: drop the +/-1 day padding rows the grid blades never render
+        // so the exported set is byte-for-byte the events on screen (agenda has no
+        // windowing so it passes through unchanged).
+        if ($view !== 'agenda') {
+            $events = $this->visibleGridEvents($events, $view, $focus, $userTz);
+        }
 
         $format = strtolower((string) $request->query('format', 'ics'));
         if (!in_array($format, ['ics', 'csv'], true)) {
@@ -414,20 +426,7 @@ class CalendarController extends Controller
         // in UTC so events authored in other zones near a boundary still land in
         // the right cell (the blade only renders visible days).
         if ($view !== 'agenda') {
-            [$winStart, $winEnd] = match ($view) {
-                'month' => [
-                    $focus->copy()->startOfMonth()->startOfWeek(Carbon::SUNDAY),
-                    $focus->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY),
-                ],
-                'week'  => [
-                    $focus->copy()->startOfWeek(Carbon::SUNDAY),
-                    $focus->copy()->endOfWeek(Carbon::SUNDAY),
-                ],
-                default => [ // day
-                    $focus->copy()->startOfDay(),
-                    $focus->copy()->endOfDay(),
-                ],
-            };
+            [$winStart, $winEnd] = $this->gridWindow($view, $focus);
 
             $query->where('start_at', '>=', $winStart->copy()->subDay()->utc())
                   ->where('start_at', '<=', $winEnd->copy()->addDay()->utc());
@@ -527,6 +526,60 @@ class CalendarController extends Controller
     }
 
     // ── helpers ───────────────────────────────────────────────────────────
+
+    /**
+     * The [start, end] of the grid period actually rendered on screen for a
+     * grid view, expressed in the viewer's timezone. This is the *unpadded*
+     * window — the SQL query pads it by a day on each side, but the blades only
+     * render these day cells. Single source of truth shared by {@see myCalendar}
+     * and {@see myCalendarExport} so their windowing can never drift apart.
+     */
+    private function gridWindow(string $view, Carbon $focus): array
+    {
+        return match ($view) {
+            'month' => [
+                $focus->copy()->startOfMonth()->startOfWeek(Carbon::SUNDAY),
+                $focus->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY),
+            ],
+            'week' => [
+                $focus->copy()->startOfWeek(Carbon::SUNDAY),
+                $focus->copy()->endOfWeek(Carbon::SUNDAY),
+            ],
+            default => [ // day
+                $focus->copy()->startOfDay(),
+                $focus->copy()->endOfDay(),
+            ],
+        };
+    }
+
+    /**
+     * Narrow a grid-windowed (padded) event set down to exactly the events the
+     * month / week / day blades render: an event is visible iff its own
+     * timezone-local start date falls within a rendered day cell. Mirrors the
+     * bucketing in the calendar-month / calendar-timegrid partials so the export
+     * emits the same events the user sees on screen — including cross-timezone
+     * boundary events (kept when their local date is visible) and excluding the
+     * +/-1 day padding rows (dropped when their local date is off-grid).
+     *
+     * @param  \Illuminate\Support\Collection  $events
+     * @return \Illuminate\Support\Collection
+     */
+    private function visibleGridEvents($events, string $view, Carbon $focus, string $userTz)
+    {
+        [$winStart, $winEnd] = $this->gridWindow($view, $focus);
+        $startKey = $winStart->format('Y-m-d');
+        $endKey   = $winEnd->format('Y-m-d');
+
+        return $events->filter(function ($ev) use ($startKey, $endKey, $userTz) {
+            if (!$ev->start_at) {
+                return false;
+            }
+            $etz   = $ev->timezone ?: ($ev->calendar?->effectiveTimezone() ?? $userTz);
+            $local = $ev->start_at->copy()->timezone($etz)->format('Y-m-d');
+
+            return $local >= $startKey && $local <= $endKey;
+        })->values();
+    }
 
     private function validateEvent(Request $request): array
     {

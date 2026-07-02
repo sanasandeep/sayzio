@@ -334,4 +334,172 @@ class MyCalendarExportTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    // ── Screen ⇔ export parity ─────────────────────────────────────────────
+    //
+    // These tests are the heart of "keep the on-screen agenda and its export
+    // showing the same events": they drive BOTH myCalendar (the screen) and
+    // myCalendarExport (the download) with the same query string and assert the
+    // exported VEVENT id set is IDENTICAL to the events the view would render —
+    // including the grid-window +/-1 day padding and cross-timezone boundary
+    // handling that used to live in two separate code paths.
+
+    /** Ids of the events myCalendar would actually render on screen for $query. */
+    private function renderedIds(User $user, array $query = []): array
+    {
+        $this->bind($user);
+        $res  = $this->actingAs($user)->get(route('user.calendars.mine', $query))->assertOk();
+        $view = $query['view'] ?? 'agenda';
+
+        if ($view === 'agenda') {
+            $items = $res->viewData('events')->items();
+            return collect($items)->pluck('id')->map(fn ($x) => (int) $x)->sort()->values()->all();
+        }
+
+        return collect($res->viewData('gridEvents'))
+            ->pluck('id')->map(fn ($x) => (int) $x)->sort()->values()->all();
+    }
+
+    /** Ids of the events the ICS export emits for $query (parsed from UID). */
+    private function exportedIds(User $user, array $query = []): array
+    {
+        $body = $this->export($user, $query)->assertOk()->streamedContent();
+        preg_match_all('/UID:ev-(\d+)@1inme/', $body, $m);
+
+        return collect($m[1])->map(fn ($x) => (int) $x)->sort()->values()->all();
+    }
+
+    public function test_export_renders_identical_event_set_across_all_views_and_filters(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-02 09:00:00', 'UTC'));
+
+        $user = $this->makeUser();
+        $cal  = $this->makeCalendar($user);
+
+        // A spread of events across ~3 months, in mixed timezones, so every
+        // window/filter combination exercises a different subset.
+        $this->makeEvent($cal, ['title' => 'AugMid',  'start_at' => Carbon::parse('2026-08-15 10:00:00', 'UTC'), 'hashtags' => CalendarEvent::normalizeHashtags('#music')]);
+        $this->makeEvent($cal, ['title' => 'AugWed',  'start_at' => Carbon::parse('2026-08-12 14:00:00', 'UTC')]);
+        $this->makeEvent($cal, ['title' => 'AugSun',  'start_at' => Carbon::parse('2026-08-09 08:00:00', 'UTC')]);
+        $this->makeEvent($cal, ['title' => 'JulLate', 'start_at' => Carbon::parse('2026-07-20 10:00:00', 'UTC')]);
+        $this->makeEvent($cal, ['title' => 'SepMid',  'start_at' => Carbon::parse('2026-09-10 10:00:00', 'UTC')]);
+        $this->makeEvent($cal, ['title' => 'JunPast', 'start_at' => Carbon::parse('2026-06-15 10:00:00', 'UTC')]);
+        $this->makeEvent($cal, ['title' => 'AugEnd',  'start_at' => Carbon::parse('2026-08-31 23:00:00', 'UTC')]);
+        // A cross-tz event whose UTC instant sits on the day BEFORE the Aug week
+        // window, but whose own-tz (+14) local date is the first visible day.
+        $this->makeEvent($cal, [
+            'title'    => 'AheadTz',
+            'start_at' => Carbon::parse('2026-08-09 01:00:00', 'Pacific/Kiritimati'),
+            'timezone' => 'Pacific/Kiritimati',
+        ]);
+
+        $combos = [
+            ['view' => 'month', 'date' => '2026-08-15'],
+            ['view' => 'week',  'date' => '2026-08-12'],
+            ['view' => 'day',   'date' => '2026-08-12'],
+            ['view' => 'day',   'date' => '2026-08-09'],
+            ['view' => 'agenda'],
+            ['view' => 'agenda', 'past' => 1],
+            ['view' => 'month', 'date' => '2026-08-15', 'tag' => 'music'],
+            ['view' => 'agenda', 'from' => '2026-08-01', 'to' => '2026-08-31'],
+            ['view' => 'week',  'date' => '2026-08-12', 'q' => 'Aug'],
+        ];
+
+        foreach ($combos as $q) {
+            $this->assertSame(
+                $this->renderedIds($user, $q),
+                $this->exportedIds($user, $q),
+                'Export diverged from the screen for query ' . json_encode($q)
+            );
+        }
+
+        Carbon::setTestNow();
+    }
+
+    public function test_month_export_excludes_grid_padding_days_that_are_never_rendered(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-02 09:00:00', 'UTC'));
+
+        $user = $this->makeUser();
+        $cal  = $this->makeCalendar($user);
+
+        // Derive the rendered month grid the same way the blade does, then place
+        // events exactly on the visible boundaries and one day beyond each edge.
+        $focus     = Carbon::parse('2026-08-15', 'UTC')->startOfDay();
+        $gridStart = $focus->copy()->startOfMonth()->startOfWeek(Carbon::SUNDAY);
+        $gridEnd   = $focus->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
+
+        $this->makeEvent($cal, ['title' => 'GridFirstDay', 'start_at' => $gridStart->copy()->setTime(10, 0)]);
+        $this->makeEvent($cal, ['title' => 'GridMidMonth', 'start_at' => $focus->copy()->setTime(10, 0)]);
+        $this->makeEvent($cal, ['title' => 'GridLastDay',  'start_at' => $gridEnd->copy()->setTime(10, 0)]);
+        // These two land in the SQL +/-1 day padding but on days the grid never
+        // draws — before the fix they leaked into the download only.
+        $this->makeEvent($cal, ['title' => 'LowerPadDay',  'start_at' => $gridStart->copy()->subDay()->setTime(12, 0)]);
+        $this->makeEvent($cal, ['title' => 'UpperPadDay',  'start_at' => $gridEnd->copy()->addDay()->setTime(12, 0)]);
+
+        $query = ['view' => 'month', 'date' => '2026-08-15'];
+
+        // Screen and export agree on the exact id set …
+        $this->assertSame($this->renderedIds($user, $query), $this->exportedIds($user, $query));
+
+        // … and it is precisely the three on-grid events.
+        $body = $this->export($user, $query)->assertOk()->streamedContent();
+        $this->assertStringContainsString('SUMMARY:GridFirstDay', $body);
+        $this->assertStringContainsString('SUMMARY:GridMidMonth', $body);
+        $this->assertStringContainsString('SUMMARY:GridLastDay', $body);
+        $this->assertStringNotContainsString('SUMMARY:LowerPadDay', $body);
+        $this->assertStringNotContainsString('SUMMARY:UpperPadDay', $body);
+
+        // The padding-day events must not appear on screen either.
+        $this->bind($user);
+        $html = $this->actingAs($user)->get(route('user.calendars.mine', $query))->assertOk()->getContent();
+        $this->assertStringContainsString('GridMidMonth', $html);
+        $this->assertStringNotContainsString('LowerPadDay', $html);
+        $this->assertStringNotContainsString('UpperPadDay', $html);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_cross_timezone_boundary_event_is_kept_when_its_local_date_is_visible(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-02 09:00:00', 'UTC'));
+
+        $user = $this->makeUser();
+        $cal  = $this->makeCalendar($user);
+
+        // Week grid: Sunday 2026-08-09 … Saturday 2026-08-15 (viewer tz UTC).
+        // The +14 event's UTC instant (Aug 8) falls on the -1 day padding, yet
+        // its own-tz local date is Sunday Aug 9 — the first *visible* column, so
+        // it must show on screen AND export.
+        $this->makeEvent($cal, [
+            'title'    => 'KiritimatiSun',
+            'start_at' => Carbon::parse('2026-08-09 01:00:00', 'Pacific/Kiritimati'),
+            'timezone' => 'Pacific/Kiritimati',
+        ]);
+        // A -11 event whose UTC instant (Aug 16) is on the +1 padding day but
+        // whose local date is Saturday Aug 15 — the last visible column.
+        $this->makeEvent($cal, [
+            'title'    => 'PagoSat',
+            'start_at' => Carbon::parse('2026-08-15 23:00:00', 'Pacific/Pago_Pago'),
+            'timezone' => 'Pacific/Pago_Pago',
+        ]);
+        // A control event genuinely off-grid: local date Aug 16 (Sunday, next
+        // week) — inside the SQL padding, but never rendered.
+        $this->makeEvent($cal, [
+            'title'    => 'NextWeekUtc',
+            'start_at' => Carbon::parse('2026-08-16 10:00:00', 'UTC'),
+            'timezone' => 'UTC',
+        ]);
+
+        $query = ['view' => 'week', 'date' => '2026-08-12'];
+
+        $this->assertSame($this->renderedIds($user, $query), $this->exportedIds($user, $query));
+
+        $body = $this->export($user, $query)->assertOk()->streamedContent();
+        $this->assertStringContainsString('SUMMARY:KiritimatiSun', $body);
+        $this->assertStringContainsString('SUMMARY:PagoSat', $body);
+        $this->assertStringNotContainsString('SUMMARY:NextWeekUtc', $body);
+
+        Carbon::setTestNow();
+    }
 }
