@@ -352,6 +352,17 @@ Route::post('/newsletter/subscribe', [\App\Modules\Common\Controllers\Newsletter
     ->name('site.newsletter.subscribe')->middleware('throttle:10,10');
 Route::post('/app-launch/notify', [\App\Modules\Common\Controllers\AppLaunchNotifyController::class, 'store'])
     ->name('site.app-launch.notify')->middleware('throttle:10,10');
+// Signed one-click unsubscribe for the app-launch announcement email. GET is
+// the recipient clicking the footer link in a browser; POST is the RFC 8058
+// one-click opt-out the inbox provider fires from the native "Unsubscribe"
+// chip (CSRF-exempt in bootstrap/app.php). The provider POST arrives from a
+// small pool of mailbox-provider egress IPs, so a tight per-IP throttle would
+// cause false 429s across a blast — the signed URL bounds abuse, so the POST
+// bucket is generous while the browser GET stays modest.
+Route::get('/app-launch/unsubscribe/{signup}', [\App\Modules\Common\Controllers\AppLaunchNotifyController::class, 'unsubscribe'])
+    ->name('site.app-launch.unsubscribe')->middleware('throttle:30,10');
+Route::post('/app-launch/unsubscribe/{signup}', [\App\Modules\Common\Controllers\AppLaunchNotifyController::class, 'unsubscribe'])
+    ->name('site.app-launch.unsubscribe.post')->middleware('throttle:600,1');
 Route::get('/newsletter/unsubscribe/{subscriber}', [\App\Modules\Common\Controllers\NewsletterController::class, 'unsubscribe'])
     ->name('site.newsletter.unsubscribe')->middleware('throttle:30,10');
 // RFC 8058 one-click POST target. Inbox providers (Gmail, Apple Mail) hit

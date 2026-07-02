@@ -29,6 +29,16 @@ signup's `store` column only picks the *primary CTA link*, it does not filter re
 - No-email rows skipped + left unstamped; `chunkById` paginates by id while filtering.
 - These are explicitly user-requested emails — no NotificationService pref gate.
 
+**One-click unsubscribe (RFC 8058, mirrors the newsletter opt-out):** signups are
+anonymous (no user), so the launch email carries a Laravel *signed* unsubscribe URL
+bound to the signup id (no expiry) plus `List-Unsubscribe`/`List-Unsubscribe-Post`
+headers. `AppLaunchNotifyController::unsubscribe` handles GET (browser) + POST (inbox
+one-click, bare 200) behind `hasValidSignature`; the POST route is CSRF-exempt in
+bootstrap/app.php (`app-launch/unsubscribe/*`) and gets a generous throttle (provider
+egress IPs). Opt-out stamps `unsubscribed_at`; the notifier query filters
+`whereNull('unsubscribed_at')` alongside `notified_at`, so opted-out rows are never
+emailed even if they were never notified. Idempotent re-clicks don't move the stamp.
+
 **Gotcha:** verifying a *successful* send in an isolated env is impossible (admin
 MailSettings forces an unreachable SMTP at boot). Prove the no-op (no store URL) and the
 no-stamp/retry (launched but SMTP down) paths instead — stamp mechanics are the standard

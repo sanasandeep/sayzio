@@ -8,6 +8,7 @@ use App\Modules\Common\Models\AppLaunchSignup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 /**
@@ -114,6 +115,66 @@ class AppLaunchNotifyTest extends TestCase
 
         // Only the first attempt ever created a row.
         $this->assertDatabaseCount('app_launch_signups', 1);
+    }
+
+    // ---- One-click unsubscribe --------------------------------------------
+
+    public function test_signed_unsubscribe_link_flags_the_signup(): void
+    {
+        $row = AppLaunchSignup::create(['email' => 'optout@example.com']);
+
+        $url = URL::signedRoute('site.app-launch.unsubscribe', ['signup' => $row->id]);
+
+        $resp = $this->get($url);
+
+        $resp->assertOk();
+        $resp->assertSee('unsubscribed', false);
+        $this->assertNotNull($row->fresh()->unsubscribed_at);
+    }
+
+    public function test_unsubscribe_without_a_valid_signature_is_forbidden(): void
+    {
+        $row = AppLaunchSignup::create(['email' => 'nosig@example.com']);
+
+        // Unsigned URL — the signature guard must reject it.
+        $resp = $this->get('/app-launch/unsubscribe/' . $row->id);
+
+        $resp->assertStatus(403);
+        $this->assertNull($row->fresh()->unsubscribed_at);
+    }
+
+    public function test_rfc8058_one_click_post_returns_bare_200_and_flags(): void
+    {
+        $row = AppLaunchSignup::create(['email' => 'oneclick@example.com']);
+
+        $url = URL::signedRoute('site.app-launch.unsubscribe.post', ['signup' => $row->id]);
+
+        // Inbox-provider one-click POST cannot present a CSRF token; the
+        // signed URL is the authenticator and the route is CSRF-exempt.
+        $resp = $this->post($url);
+
+        $resp->assertOk();
+        $this->assertSame('', $resp->getContent());
+        $this->assertNotNull($row->fresh()->unsubscribed_at);
+    }
+
+    public function test_unsubscribe_is_idempotent(): void
+    {
+        $row = AppLaunchSignup::create([
+            'email'           => 'already@example.com',
+            'unsubscribed_at' => now()->subDay(),
+        ]);
+        $originalAt = $row->unsubscribed_at;
+
+        $url = URL::signedRoute('site.app-launch.unsubscribe', ['signup' => $row->id]);
+
+        $this->get($url)->assertOk();
+
+        // A second click does not move the timestamp.
+        $this->assertEquals(
+            $originalAt->toDateTimeString(),
+            $row->fresh()->unsubscribed_at->toDateTimeString()
+        );
     }
 
     // ---- Admin surface (light coverage) -----------------------------------

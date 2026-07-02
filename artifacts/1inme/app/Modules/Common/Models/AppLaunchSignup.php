@@ -12,12 +12,13 @@ use Illuminate\Database\Eloquent\Model;
  */
 class AppLaunchSignup extends Model
 {
-    protected $fillable = ['email', 'store', 'ip', 'user_agent', 'notified_at'];
+    protected $fillable = ['email', 'store', 'ip', 'user_agent', 'notified_at', 'unsubscribed_at'];
 
     protected function casts(): array
     {
         return [
-            'notified_at' => 'datetime',
+            'notified_at'     => 'datetime',
+            'unsubscribed_at' => 'datetime',
         ];
     }
 }

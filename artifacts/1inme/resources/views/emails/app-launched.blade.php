@@ -63,6 +63,9 @@
 
             <p style="color:#94a3b8; font-size:12px; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:20px;">
                 You're receiving this once because you asked to be notified when the {{ $appName ?? 'Sayzio' }} mobile app became available.
+                @if(!empty($unsubscribeUrl))
+                    Prefer not to hear from us? <a href="{{ $unsubscribeUrl }}" style="color:#64748b; text-decoration:underline;">Unsubscribe in one click</a>.
+                @endif
             </p>
         </div>
     </div>

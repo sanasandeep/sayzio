@@ -6,6 +6,7 @@ use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\AppLaunchSignup;
 use App\Modules\Common\Services\Emailer;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 
 /**
  * Closes the loop on the mobile-app launch mailing list collected by the
@@ -59,6 +60,9 @@ final class AppLaunchNotifier
 
         AppLaunchSignup::query()
             ->whereNull('notified_at')
+            // Never email anyone who opted out via the signed one-click
+            // unsubscribe link in a prior launch email.
+            ->whereNull('unsubscribed_at')
             ->orderBy('id')
             ->chunkById(200, function ($signups) use ($stores, &$processed) {
                 foreach ($signups as $signup) {
@@ -131,6 +135,12 @@ final class AppLaunchNotifier
         $primaryUrl = ($signup->store === 'app' ? $appUrl : ($signup->store === 'play' ? $playUrl : ''))
             ?: ($playUrl ?: $appUrl);
 
+        // Signed, no-login-required one-click unsubscribe link bound to this
+        // exact signup. No expiry so a recipient can still opt out of an old
+        // launch email. Also carried in the RFC 2369/8058 List-Unsubscribe
+        // headers so Gmail/Apple Mail/Outlook render their native chip.
+        $unsubscribeUrl = URL::signedRoute('site.app-launch.unsubscribe', ['signup' => $signup->id]);
+
         try {
             Emailer::send('app.launched', $email, [
                 'app_name'  => $appName,
@@ -140,12 +150,17 @@ final class AppLaunchNotifier
             ], [
                 'related'          => $signup,
                 'throw_on_failure' => true,
+                'headers'          => [
+                    'List-Unsubscribe'      => '<' . $unsubscribeUrl . '>',
+                    'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
+                ],
                 'view_data'        => [
-                    'subject'  => "The {$appName} app is here — download it now",
-                    'appName'  => $appName,
-                    'playUrl'  => $playUrl,
-                    'appUrl'   => $appUrl,
-                    'storeUrl' => $primaryUrl,
+                    'subject'        => "The {$appName} app is here — download it now",
+                    'appName'        => $appName,
+                    'playUrl'        => $playUrl,
+                    'appUrl'         => $appUrl,
+                    'storeUrl'       => $primaryUrl,
+                    'unsubscribeUrl' => $unsubscribeUrl,
                 ],
             ]);
         } catch (\Throwable $e) {

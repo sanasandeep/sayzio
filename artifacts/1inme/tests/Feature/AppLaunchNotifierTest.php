@@ -85,6 +85,21 @@ class AppLaunchNotifierTest extends TestCase
         $this->assertSame(0, $this->sentCount('done@example.com'));
     }
 
+    public function test_it_skips_unsubscribed_rows(): void
+    {
+        AppLaunchSignup::create(['email' => 'stay@example.com']);
+        AppLaunchSignup::create(['email' => 'gone@example.com', 'unsubscribed_at' => now()]);
+
+        $processed = AppLaunchNotifier::notifyIfLaunched();
+
+        // Only the still-subscribed row is emailed; the opted-out one is
+        // never contacted and is left unstamped (nothing was sent to it).
+        $this->assertSame(1, $processed);
+        $this->assertSame(1, $this->sentCount('stay@example.com'));
+        $this->assertSame(0, $this->sentCount('gone@example.com'));
+        $this->assertNull(AppLaunchSignup::where('email', 'gone@example.com')->first()->notified_at);
+    }
+
     public function test_the_command_runs_the_notifier(): void
     {
         AppLaunchSignup::create(['email' => 'cmd@example.com']);

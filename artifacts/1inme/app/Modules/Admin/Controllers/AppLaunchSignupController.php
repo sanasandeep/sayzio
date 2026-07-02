@@ -43,7 +43,7 @@ class AppLaunchSignupController extends Controller
         $filename = 'app-launch-signups-' . date('Ymd-His') . '.csv';
         return new StreamedResponse(function () {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['email', 'store', 'signed_up_at', 'notified_at']);
+            fputcsv($out, ['email', 'store', 'signed_up_at', 'notified_at', 'unsubscribed_at']);
             AppLaunchSignup::orderBy('id')->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $r) {
                     fputcsv($out, [
@@ -51,6 +51,7 @@ class AppLaunchSignupController extends Controller
                         $r->store,
                         optional($r->created_at)->toIso8601String(),
                         optional($r->notified_at)->toIso8601String(),
+                        optional($r->unsubscribed_at)->toIso8601String(),
                     ]);
                 }
             });
