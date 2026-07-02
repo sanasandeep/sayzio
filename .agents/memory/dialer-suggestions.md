@@ -26,3 +26,5 @@ Suggestions piggyback on the dialer live poll (`DialerData::liveSignature/liveSt
 **Why:** Reuses the shared renderer contract so suggestions and live search results are visually identical. Follow scoping was the key gotcha — global workspace scope silently returns empty results.
 
 **How to apply:** When adding a new group, add a group builder method, call it in `forUser()`, and return items in the same normalized shape as `DialerSearchItem` (type, category, id, title, subtitle, type_label, initials, badge, verified, verified_label, action).
+
+- New-leads group is actionable-only: filter no-contact subscribers (SQL) and blank-payload form submissions (over-fetch LIMIT*4 + extract + filter) BEFORE the merged take(LIMIT), or dead rows starve out older actionable leads.

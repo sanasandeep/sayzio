@@ -26,7 +26,10 @@ use Tests\TestCase;
  *   (6) Active subscribers appear in "new_leads".
  *   (7) A suspended follower is excluded (reachability gate).
  *   (8) A follower that has blocked the user is excluded (block gate).
- *   (9) Web route (/user/dialer/suggestions) returns the same {data} envelope.
+ *   (9) Form submissions from all user workspaces appear in new_leads.
+ *   (10) Leads (submissions/subscribers) with no name, email, or phone are
+ *        excluded, and blank leads don't starve out older actionable leads.
+ *   (11) Web route (/user/dialer/suggestions) returns the same {data} envelope.
  */
 class DialerSuggestionsTest extends TestCase
 {
@@ -271,7 +274,106 @@ class DialerSuggestionsTest extends TestCase
         $this->assertContains('Cross Workspace Lead', $titles);
     }
 
-    // ── (10) Web route envelope ───────────────────────────────────────
+    // ── (10) Leads with no contact info are excluded ──────────────────
+
+    public function test_leads_without_contact_info_are_excluded_from_new_leads(): void
+    {
+        $creator = $this->makeUser('cr7');
+
+        $form = \App\Modules\User\Models\Form::create([
+            'user_id' => $creator->id,
+            'name'    => 'Feedback form',
+        ]);
+
+        // Submission whose payload has no extractable name/email/phone.
+        FormSubmission::create([
+            'form_id'    => $form->id,
+            'data'       => ['message' => 'Great site!', 'rating' => '5'],
+            'is_spam'    => false,
+            'is_read'    => false,
+            'is_starred' => false,
+            'status'     => 'completed',
+        ]);
+
+        // Subscriber row with no name, email, or phone.
+        Subscriber::create([
+            'user_id' => $creator->id,
+            'type'    => 'email',
+            'status'  => 'active',
+        ]);
+
+        // An actionable submission so the group still renders.
+        FormSubmission::create([
+            'form_id'    => $form->id,
+            'data'       => ['name' => 'Actionable Lead', 'email' => 'act@example.com'],
+            'is_spam'    => false,
+            'is_read'    => false,
+            'is_starred' => false,
+            'status'     => 'completed',
+        ]);
+
+        $resp = $this->apiSuggestions($creator);
+        $resp->assertOk();
+
+        $groups = $resp->json('data.groups');
+        $leadsGroup = collect($groups)->firstWhere('key', 'new_leads');
+        $this->assertNotNull($leadsGroup, 'Expected a new_leads group');
+        $this->assertCount(1, $leadsGroup['items'], 'Blank-data leads must be excluded');
+        $this->assertSame('Actionable Lead', $leadsGroup['items'][0]['title']);
+        $titles = array_column($leadsGroup['items'], 'title');
+        $this->assertNotContains('Form lead', $titles);
+        $this->assertNotContains('Subscriber', $titles);
+    }
+
+    public function test_blank_leads_do_not_starve_out_older_actionable_leads(): void
+    {
+        $creator = $this->makeUser('cr8');
+
+        $form = \App\Modules\User\Models\Form::create([
+            'user_id' => $creator->id,
+            'name'    => 'Survey form',
+        ]);
+
+        // One OLDER actionable submission…
+        $old = FormSubmission::create([
+            'form_id'    => $form->id,
+            'data'       => ['name' => 'Older Actionable Lead', 'phone' => '+15550002222'],
+            'is_spam'    => false,
+            'is_read'    => false,
+            'is_starred' => false,
+            'status'     => 'completed',
+        ]);
+        $old->created_at = now()->subDays(3);
+        $old->save();
+
+        // …buried under more-than-LIMIT newer blank submissions.
+        for ($i = 0; $i < 10; $i++) {
+            FormSubmission::create([
+                'form_id'    => $form->id,
+                'data'       => ['message' => 'no contact info ' . $i],
+                'is_spam'    => false,
+                'is_read'    => false,
+                'is_starred' => false,
+                'status'     => 'completed',
+            ]);
+        }
+
+        $resp = $this->apiSuggestions($creator);
+        $resp->assertOk();
+
+        $groups = $resp->json('data.groups');
+        $leadsGroup = collect($groups)->firstWhere('key', 'new_leads');
+        $this->assertNotNull($leadsGroup, 'Expected a new_leads group');
+        $titles = array_column($leadsGroup['items'], 'title');
+        $this->assertContains(
+            'Older Actionable Lead',
+            $titles,
+            'Blank leads must not consume list slots and hide actionable leads'
+        );
+        $this->assertNotContains('Form lead', $titles);
+    }
+
+    // ── (11) Web route envelope ───────────────────────────────────────
 
     public function test_web_route_returns_data_envelope(): void
     {

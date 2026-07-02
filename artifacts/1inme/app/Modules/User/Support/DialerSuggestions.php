@@ -166,32 +166,58 @@ class DialerSuggestions
      */
     private static function newLeadsItems(User $user): array
     {
+        // Only actionable subscribers: at least one of name/email/phone set
+        // (filtered in SQL so dead rows never consume list slots).
         $subs = Subscriber::withoutGlobalScope('workspace')
             ->where('user_id', $user->id)
             ->where('status', 'active')
             ->where(function ($q) { $q->where('is_spam', false)->orWhereNull('is_spam'); })
+            ->where(function ($q) {
+                $q->where(fn ($w) => $w->whereNotNull('name')->where('name', '!=', ''))
+                    ->orWhere(fn ($w) => $w->whereNotNull('email')->where('email', '!=', ''))
+                    ->orWhere(fn ($w) => $w->whereNotNull('phone')->where('phone', '!=', ''));
+            })
             ->orderByDesc('created_at')
             ->limit(self::LIMIT)
             ->get();
 
+        // Form-submission contact info lives inside the JSON payload, so
+        // over-fetch and drop non-actionable rows BEFORE the merged take()
+        // so blank submissions can't starve out older actionable leads.
         $submissions = FormSubmission::withoutGlobalScope('workspace')
             ->whereHas('form', fn ($q) => $q->withoutGlobalScope('workspace')->where('user_id', $user->id))
             ->completed()
             ->where(function ($q) { $q->where('is_spam', false)->orWhereNull('is_spam'); })
             ->orderByDesc('created_at')
-            ->limit(self::LIMIT)
-            ->get();
+            ->limit(self::LIMIT * 4)
+            ->get()
+            ->map(function ($fs) {
+                $data = $fs->data ?? [];
+                return [
+                    'src'   => 'submission',
+                    'model' => $fs,
+                    'at'    => $fs->created_at,
+                    'name'  => self::extractField($data, ['name', 'full_name', 'your_name', 'your name']),
+                    'email' => self::extractField($data, ['email', 'email_address', 'your_email', 'your email']),
+                    'phone' => self::extractField($data, ['phone', 'phone_number', 'mobile', 'tel', 'your_phone', 'your phone']),
+                ];
+            })
+            ->filter(fn ($r) => $r['name'] || $r['email'] || $r['phone'])
+            ->take(self::LIMIT);
 
         $combined = collect()
             ->merge($subs->map(fn ($s) => ['src' => 'subscriber', 'model' => $s, 'at' => $s->created_at]))
-            ->merge($submissions->map(fn ($fs) => ['src' => 'submission', 'model' => $fs, 'at' => $fs->created_at]))
+            ->merge($submissions)
             ->sortByDesc('at')
             ->take(self::LIMIT);
 
         $items = [];
         foreach ($combined as $row) {
             if ($row['src'] === 'subscriber') {
-                $s    = $row['model'];
+                $s = $row['model'];
+                if (! $s->name && ! $s->email && ! $s->phone) {
+                    continue;
+                }
                 $name = $s->name ?: $s->email ?: $s->phone ?: 'Subscriber';
                 $leadPhone      = $s->phone ?: null;
                 $leadProfileUrl = $leadPhone
@@ -216,11 +242,13 @@ class DialerSuggestions
                     ],
                 ];
             } else {
-                $fs   = $row['model'];
-                $data = $fs->data ?? [];
-                $name  = self::extractField($data, ['name', 'full_name', 'your_name', 'your name']);
-                $email = self::extractField($data, ['email', 'email_address', 'your_email', 'your email']);
-                $phone = self::extractField($data, ['phone', 'phone_number', 'mobile', 'tel', 'your_phone', 'your phone']);
+                $fs    = $row['model'];
+                $name  = $row['name'];
+                $email = $row['email'];
+                $phone = $row['phone'];
+                if (! $name && ! $email && ! $phone) {
+                    continue;
+                }
                 $display = $name ?: $email ?: $phone ?: 'Form lead';
                 $formPhone      = $phone ?: null;
                 $formProfileUrl = $formPhone
