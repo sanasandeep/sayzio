@@ -15,6 +15,9 @@ description: Pre-query empty-state suggestions contract, group sources, and cros
 - **following** — `Follow` where `follower_id=$user->id`, ordered by `created_at desc`
 - **new_leads** — active `Subscriber` + completed `FormSubmission` (owned via form relationship), merged by date
 
+## Live refresh
+Suggestions piggyback on the dialer live poll (`DialerData::liveSignature/liveState`) — the cursor folds in favorites, flags, call log, follows (both directions) and subscribers (count + max(id) each), so `changed=true` is the single "re-fetch suggestions" trigger on web (`refreshSuggestions()` in the dialer blade, empty-state-guarded) and the standalone mobile poll. No dedicated suggestions-freshness endpoint; `changed=false` cycles make zero extra calls.
+
 ## Gotchas
 - `Follow` and `FormSubmission` use `BelongsToWorkspace` trait — must use `withoutGlobalScope('workspace')` or queries return nothing.
 - `FormSubmission` has no direct `user_id`; scope via `whereHas('form', fn($q) => $q->where('user_id', $user->id))`.

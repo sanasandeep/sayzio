@@ -7,6 +7,8 @@ use App\Modules\User\Models\ContactPhone;
 use App\Modules\User\Models\DialerFavorite;
 use App\Modules\User\Models\DialerLookup;
 use App\Modules\User\Models\DialerNumberFlag;
+use App\Modules\User\Models\Follow;
+use App\Modules\User\Models\Subscriber;
 use Illuminate\Support\Collection;
 
 /**
@@ -335,6 +337,11 @@ class DialerData
      * Favorites/flags carry timestamps (reorder & toggle bump updated_at);
      * the call log is append-only so max(id) advances on every new call. We
      * fold in counts too so deletes are caught even if timestamps regress.
+     *
+     * Follows (either direction) and subscribers are folded in as well so the
+     * pre-query suggestions (new followers / following / new leads) refresh
+     * on the same poll cycle without their own endpoint — count + max(id)
+     * catches both new rows and deletes (unfollow / unsubscribe).
      */
     public static function liveSignature(int $userId): string
     {
@@ -348,7 +355,21 @@ class DialerData
         $flagUpdated = DialerNumberFlag::where('user_id', $userId)->max('updated_at');
         $flagTs      = $flagUpdated ? strtotime((string) $flagUpdated) : 0;
 
-        return implode('.', [$lookupMaxId, $favCount, $favTs, $flagCount, $flagTs]);
+        $follow = Follow::withoutGlobalScope('workspace')
+            ->where(fn ($q) => $q->where('creator_id', $userId)->orWhere('follower_id', $userId))
+            ->selectRaw('count(*) as c, coalesce(max(id), 0) as m')
+            ->first();
+
+        $sub = Subscriber::withoutGlobalScope('workspace')
+            ->where('user_id', $userId)
+            ->selectRaw('count(*) as c, coalesce(max(id), 0) as m')
+            ->first();
+
+        return implode('.', [
+            $lookupMaxId, $favCount, $favTs, $flagCount, $flagTs,
+            (int) ($follow->c ?? 0), (int) ($follow->m ?? 0),
+            (int) ($sub->c ?? 0), (int) ($sub->m ?? 0),
+        ]);
     }
 
     /**

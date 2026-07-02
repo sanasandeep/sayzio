@@ -307,6 +307,12 @@ export default function DialerScreen() {
         if (state.favorites) setFavorites(state.favorites);
         if (state.frequent) setFrequent(state.frequent);
         if (state.recents) setRecents(state.recents);
+        // The cursor also advances on favorite edits and new followers /
+        // subscribers, so re-fetch the empty-state suggestions on the same
+        // cycle. No changed=false cycle ever triggers this extra call.
+        void getDialerSuggestions()
+          .then((s) => setSuggestions(s.total > 0 ? s : null))
+          .catch(() => { /* offline — keep the current suggestions */ });
       } catch {
         /* offline / transient — keep what we have */
       }

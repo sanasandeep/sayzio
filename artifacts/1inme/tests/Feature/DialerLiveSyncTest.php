@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Modules\User\Models\DialerFavorite;
 use App\Modules\User\Models\DialerLookup;
 use App\Modules\User\Models\DialerNumberFlag;
+use App\Modules\User\Models\Follow;
+use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Modules\User\Support\DialerData;
@@ -130,6 +132,49 @@ class DialerLiveSyncTest extends TestCase
         $this->assertTrue($state['changed']);
         $labels = array_column($state['favorites'], 'label');
         $this->assertContains('New Fav', $labels);
+    }
+
+    public function test_new_follower_advances_cursor(): void
+    {
+        $user  = $this->makeUser('g');
+        $other = $this->makeUser('h');
+
+        $cursor = DialerData::liveState($user->id, null)['cursor'];
+        $this->assertFalse(DialerData::liveState($user->id, $cursor)['changed']);
+
+        // Someone follows the user while the dialer tab is open: the cursor
+        // must advance so the pre-query suggestions (new_followers group)
+        // refresh on the next poll without a page reload.
+        Follow::withoutGlobalScope('workspace')->create([
+            'follower_id' => $other->id,
+            'creator_id'  => $user->id,
+            'created_at'  => now(),
+        ]);
+
+        $state = DialerData::liveState($user->id, $cursor);
+        $this->assertTrue($state['changed']);
+        $this->assertNotSame($cursor, $state['cursor']);
+    }
+
+    public function test_new_subscriber_advances_cursor(): void
+    {
+        $user = $this->makeUser('i');
+
+        $cursor = DialerData::liveState($user->id, null)['cursor'];
+        $this->assertFalse(DialerData::liveState($user->id, $cursor)['changed']);
+
+        // A new subscriber (a "new lead" in the suggestions) must advance the
+        // cursor too, so the suggestions stay fresh via the same poll.
+        Subscriber::withoutGlobalScope('workspace')->create([
+            'user_id' => $user->id,
+            'type'    => 'email',
+            'email'   => 'lead-' . Str::random(6) . '@example.com',
+            'status'  => 'active',
+        ]);
+
+        $state = DialerData::liveState($user->id, $cursor);
+        $this->assertTrue($state['changed']);
+        $this->assertNotSame($cursor, $state['cursor']);
     }
 
     public function test_flag_toggle_advances_cursor(): void

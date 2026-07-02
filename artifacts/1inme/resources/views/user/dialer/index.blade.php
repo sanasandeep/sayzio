@@ -379,6 +379,18 @@ async function loadSuggestions(box) {
     } catch (e) { box.innerHTML = ''; }
 }
 
+// Re-fetch suggestions after a relevant mutation (favorite added/removed,
+// new follower/subscriber via the live poll) — but only while the empty
+// state is actually showing them (no query, no filter chips), so we never
+// stomp on live search results or fetch for a hidden box.
+function refreshSuggestions() {
+    const box = document.getElementById('search-results');
+    if (!box) return;
+    const q = (searchInp?.value || '').trim();
+    const anyFilter = uniFilters.verified || uniFilters.has_biolink || uniFilters.tag;
+    if (!q && !anyFilter) void loadSuggestions(box);
+}
+
 // Advanced search box + filter chips.
 let _tu = null;
 function runUniversal() {
@@ -450,6 +462,7 @@ async function removeFavorite(ev, id) {
         if (r.ok) {
             document.getElementById('fav-' + id)?.remove();
             if (favGrid && favGrid.children.length === 0) favCard.style.display = 'none';
+            refreshSuggestions();
         }
     } catch (e) {}
 }
@@ -566,7 +579,7 @@ async function pollLive() {
         const body = await r.json();
         const d = body.data || {};
         liveCursor = d.cursor || liveCursor;
-        if (d.changed) applyLive(d);
+        if (d.changed) { applyLive(d); refreshSuggestions(); }
     } catch (e) { /* ignore */ }
 }
 pollLive();
