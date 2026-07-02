@@ -25,10 +25,15 @@ this Laravel 12 app has NO `server.php` router (only `public/index.php`), so
 `php -S ... -t public server.php` fatals ("Failed opening required 'server.php'")
 yet STILL returns HTTP 200 serving the PHP error page — a 200 alone is a false
 pass; always check the byte size / grep for real content (a 300-430 byte body is
-the error/redirect page, a real rendered page is tens of KB). Write a tiny router
-to `/tmp` with an ABSOLUTE app path (a relative `__DIR__` resolves to `/tmp`, not
-the app): `$uri=urldecode(parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)); if($uri!=='/' && file_exists('<ABS>/public'.$uri)) return false; require '<ABS>/public/index.php';`
-then `nohup php -S 127.0.0.1:5060 /tmp/router.php &` and curl it. **Why `php -S`
+the error/redirect page, a real rendered page is tens of KB). Two working routers:
+(a) the vendored framework router, but it resolves `index.php` from CWD so you MUST
+`cd public/` first: `cd <app>/public && php -S 127.0.0.1:5060 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php`;
+or (b) write a tiny router to `/tmp` with an ABSOLUTE app path (a relative
+`__DIR__` resolves to `/tmp`, not the app): `$uri=urldecode(parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)); if($uri!=='/' && file_exists('<ABS>/public'.$uri)) return false; require '<ABS>/public/index.php';`
+then `php -S 127.0.0.1:5060 /tmp/router.php` and curl it. Backgrounded servers are
+REAPED when the bash tool call exits — run server + curl in ONE foreground call
+(`php -S ... & SPID=$!; curl ...; kill $SPID`); first render over distant RDS can
+take ~20-100s, size the curl `--max-time` accordingly. **Why `php -S`
 over `php artisan serve`:** `php -S` inherits the current shell env directly, so
 DB_* creds pass through — `artisan serve` spawns a child `php -S` that strips all
 env except `ServeCommand::$passthroughVariables`, giving "no password supplied".

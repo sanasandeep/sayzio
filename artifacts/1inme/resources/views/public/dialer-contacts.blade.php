@@ -24,21 +24,228 @@
         animation: dcpFloat 6.5s ease-in-out infinite;
     }
     @keyframes dcpFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-    .dcp-screen { position:absolute; inset:12px; border-radius:32px; overflow:hidden; background: linear-gradient(180deg,#14091f,#0a0a14); display:flex; flex-direction:column; }
-    .dcp-notch { position:absolute; top:8px; left:50%; transform:translateX(-50%); width:84px; height:20px; border-radius:999px; background:#05030a; z-index:5; }
-    .dcp-callerid {
-        margin: 30px 14px 0; border-radius:18px; padding:14px;
-        background: linear-gradient(135deg, rgba(61,107,255,.22), rgba(27,212,217,.14));
-        border:1px solid rgba(255,255,255,.12); box-shadow: 0 18px 40px -20px rgba(61,107,255,.6);
+
+    /* 3D flip stage: front = dialer keypad, back = in-call caller-ID screen.
+       Everything rendered inside the screen uses scoped dcp-* classes with
+       explicit colors so the global html.light-mode gray-text remapping can
+       never darken text on this always-dark phone display. */
+    .dcp-stage { position: absolute; inset: 12px; perspective: 1400px; }
+    .dcp-flip { position: absolute; inset: 0; transform-style: preserve-3d; will-change: transform; }
+    .dcp-face {
+        position: absolute; inset: 0; border-radius: 32px; overflow: hidden;
+        backface-visibility: hidden; -webkit-backface-visibility: hidden;
+        background: linear-gradient(180deg, #14091f 0%, #0a0a14 100%);
+        display: flex; flex-direction: column; color: #fff;
     }
-    .dcp-avatar { position:relative; overflow:hidden; width:46px; height:46px; border-radius:14px; flex-shrink:0; background:linear-gradient(135deg,#3d6bff,#1bd4d9); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:17px; }
-    .dcp-avatar img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:inherit; }
-    .dcp-chan { width:34px; height:34px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; flex-shrink:0; }
-    .dcp-keys { margin:16px 22px 20px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .dcp-back { transform: rotateY(180deg); background: linear-gradient(180deg, #101733 0%, #0a0a14 100%); }
+    .dcp-notch { position:absolute; top:8px; left:50%; transform:translateX(-50%); width:84px; height:20px; border-radius:999px; background:#05030a; z-index:5; }
+    .dcp-status {
+        display:flex; align-items:center; justify-content:space-between;
+        padding: 12px 20px 0; font-size: 10px; font-weight: 700;
+        color: #8f9bb8; letter-spacing: .04em;
+    }
+    .dcp-status i { font-size: 9px; margin-left: 5px; color: #8f9bb8; }
+
+    /* Number display above the keypad (types out digits like a real dialer) */
+    .dcp-numwrap { margin: auto 20px 4px; text-align: center; min-height: 66px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap: 8px; }
+    .dcp-match {
+        display:inline-flex; align-items:center; gap: 6px;
+        padding: 4px 10px 4px 5px; border-radius: 999px;
+        background: rgba(61,107,255,.16); border: 1px solid rgba(61,107,255,.4);
+        font-size: 10px; font-weight: 700; color: #dbe4ff; opacity: 0;
+    }
+    .dcp-match img { width: 18px; height: 18px; border-radius: 999px; object-fit: cover; }
+    .dcp-match i { color: #7a9eff; font-size: 9px; }
+    .dcp-numdisplay { min-height: 30px; display:flex; align-items:center; justify-content:center; }
+    .dcp-numdigits { display:inline-flex; align-items:center; }
+    .dcp-digit {
+        display:inline-block; opacity: 0;
+        font-size: 22px; font-weight: 600; color: #fff; letter-spacing: .06em;
+        font-variant-numeric: tabular-nums;
+    }
+    .dcp-digit.gp { margin-left: 8px; }
+    .dcp-caret {
+        display:inline-block; width: 2px; height: 22px; margin-left: 4px;
+        background: #3d6bff; border-radius: 2px;
+        animation: dcpCaret 1.1s steps(2, start) infinite;
+    }
+    @keyframes dcpCaret { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+
+    /* T9 keypad */
+    .dcp-keys { margin:12px 22px 14px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
     .dcp-key { aspect-ratio:1; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; line-height:1; }
     .dcp-key .d { font-size:18px; font-weight:700; }
     .dcp-key .l { font-size:7px; letter-spacing:.12em; color:rgba(255,255,255,.45); margin-top:2px; }
-    .dcp-call { margin:0 22px 18px; height:50px; border-radius:999px; background:linear-gradient(135deg,#16a34a,#22c55e); display:flex; align-items:center; justify-content:center; gap:8px; color:#fff; font-weight:700; font-size:14px; box-shadow:0 14px 30px -12px rgba(34,197,94,.8); }
+
+    /* Dual-SIM call buttons */
+    .dcp-sims { display:flex; gap: 10px; margin: 0 22px 18px; }
+    .dcp-sim {
+        flex: 1; height: 46px; border-radius: 999px;
+        display:flex; align-items:center; justify-content:center; gap: 7px;
+        color:#fff; font-weight: 700; font-size: 12.5px;
+    }
+    .dcp-sim-1 {
+        background: linear-gradient(135deg, #16a34a, #22c55e);
+        box-shadow: 0 12px 26px -12px rgba(34,197,94,.8);
+    }
+    .dcp-sim-2 {
+        background: linear-gradient(135deg, #0d9488, #14b8a6);
+        box-shadow: 0 12px 26px -12px rgba(20,184,166,.7);
+    }
+    .dcp-sim .sb {
+        width: 15px; height: 15px; border-radius: 4px 4px 4px 1px;
+        background: rgba(255,255,255,.22); border: 1px solid rgba(255,255,255,.55);
+        display:flex; align-items:center; justify-content:center;
+        font-size: 9px; font-weight: 800; color:#fff;
+    }
+
+    /* Back face: in-call / caller-ID screen */
+    .dcp-call-body { display:flex; flex-direction:column; align-items:center; text-align:center; padding: 46px 20px 20px; height: 100%; }
+    .dcp-cid-pill {
+        display:inline-flex; align-items:center; gap: 6px;
+        padding: 5px 12px; border-radius: 999px;
+        background: rgba(61,107,255,.16); border: 1px solid rgba(61,107,255,.4);
+        font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+        color: #dbe4ff;
+    }
+    .dcp-cid-pill i { color: #7a9eff; font-size: 9px; }
+    .dcp-avatar-lg {
+        position: relative; width: 92px; height: 92px; border-radius: 30px;
+        margin-top: 26px; flex-shrink: 0;
+        background: linear-gradient(135deg, #3d6bff, #1bd4d9);
+        display:flex; align-items:center; justify-content:center;
+        color:#fff; font-weight: 800; font-size: 28px;
+        box-shadow: 0 16px 36px -12px rgba(61,107,255,.75);
+    }
+    .dcp-avatar-lg img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius: inherit; }
+    .dcp-avatar-lg::before {
+        content:""; position:absolute; inset:-9px; border-radius: 36px;
+        border: 2px solid rgba(61,107,255,.5); opacity:.5;
+    }
+    .dcp-call-name { margin-top: 18px; font-size: 18px; font-weight: 800; color:#fff; display:flex; align-items:center; gap: 6px; }
+    .dcp-call-name i { color:#3d6bff; font-size: 13px; }
+    .dcp-call-handle { margin-top: 3px; font-size: 11.5px; color: #a8b3cf; font-weight: 600; }
+    .dcp-call-num { margin-top: 10px; font-size: 13px; color: #cbd5e1; font-weight: 600; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+    .dcp-call-status { margin-top: 14px; font-size: 11.5px; font-weight: 700; color: #34d399; display:flex; align-items:center; gap: 2px; }
+    .dcp-dot { display:inline-block; width: 3.5px; height: 3.5px; border-radius: 999px; background: #34d399; margin-left: 3px; }
+    .dcp-chans { display:flex; align-items:center; justify-content:center; gap: 10px; margin-top: auto; }
+    .dcp-chan { width:38px; height:38px; border-radius:13px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; flex-shrink:0; }
+    .dcp-endcall {
+        width: 54px; height: 54px; border-radius: 999px; margin-top: 16px;
+        background: linear-gradient(135deg, #dc2626, #ef4444);
+        display:flex; align-items:center; justify-content:center;
+        color:#fff; font-size: 18px;
+        box-shadow: 0 14px 30px -12px rgba(239,68,68,.8);
+    }
+    .dcp-endcall i { transform: rotate(135deg); }
+
+    @media (prefers-reduced-motion: no-preference) {
+        /* 12s master loop: dial digits -> press SIM 1 -> flip to in-call
+           caller-ID screen -> flip back. All keyframe percentages are of 12s. */
+        .dcp-armed .dcp-flip { animation: dcpFlip 12s ease-in-out infinite; }
+        @keyframes dcpFlip {
+            0%, 38% { transform: rotateY(0deg); }
+            45%     { transform: rotateY(180deg); }
+            88%     { transform: rotateY(180deg); }
+            95%     { transform: rotateY(360deg); }
+            100%    { transform: rotateY(360deg); }
+        }
+
+        /* Digits type into the number display in sync with the keys
+           (per-digit animation-delay set inline; presses at 0.6s + n*0.3s). */
+        .dcp-armed .dcp-digit { animation: dcpDigitIn 12s linear infinite; }
+        @keyframes dcpDigitIn {
+            0%       { opacity: 0; transform: translateY(4px) scale(.85); }
+            1%       { opacity: 1; transform: none; }
+            50%      { opacity: 1; }
+            53%,100% { opacity: 0; }
+        }
+        /* Whole display clears while the phone is flipped (call in progress) */
+        .dcp-armed .dcp-numdigits { animation: dcpNumWrap 12s linear infinite; }
+        @keyframes dcpNumWrap {
+            0%, 42%  { opacity: 1; }
+            45%, 99% { opacity: 0; }
+            100%     { opacity: 1; }
+        }
+        /* T9 match chip appears once enough digits are in */
+        .dcp-armed .dcp-match { animation: dcpMatch 12s ease-in-out infinite; }
+        @keyframes dcpMatch {
+            0%, 18%  { opacity: 0; transform: translateY(4px); }
+            21%, 41% { opacity: 1; transform: none; }
+            44%,100% { opacity: 0; }
+        }
+
+        /* Key press flashes — one keyframe set per key, percentages encode
+           every press of that key inside the 12s loop (multiple comma
+           animations on one element would override each other). */
+        .dcp-armed .dcp-key.k4 { animation: dcpK4 12s linear infinite; }
+        .dcp-armed .dcp-key.k1 { animation: dcpK1 12s linear infinite; }
+        .dcp-armed .dcp-key.k5 { animation: dcpK5 12s linear infinite; }
+        .dcp-armed .dcp-key.k0 { animation: dcpK0 12s linear infinite; }
+        .dcp-armed .dcp-key.k8 { animation: dcpK8 12s linear infinite; }
+        .dcp-armed .dcp-key.k2 { animation: dcpK2 12s linear infinite; }
+        @keyframes dcpK4 {
+            0%, 4%   { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            5%       { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            6.2%     { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            7.5%,100%{ background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+        }
+        @keyframes dcpK1 {
+            0%, 6.5% { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            7.5%     { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            8.7%     { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            10%,21.5%{ background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            22.5%    { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            23.7%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            25%,100% { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+        }
+        @keyframes dcpK5 {
+            0%, 9%   { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            10%      { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            11.2%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            12.5%    { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            13.7%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            15%      { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            16.2%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            17.5%    { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            18.7%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            20%,100% { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+        }
+        @keyframes dcpK0 {
+            0%, 19%  { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            20%      { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            21.2%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            22.5%,100%{ background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+        }
+        @keyframes dcpK8 {
+            0%, 24%  { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            25%      { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            26.2%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            27.5%,100%{ background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+        }
+        @keyframes dcpK2 {
+            0%, 26.5%{ background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            27.5%    { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            28.7%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            30%,100% { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+        }
+
+        /* SIM 1 gets "pressed" right after the number is complete */
+        .dcp-armed .dcp-sim-1 { animation: dcpSimPress 12s ease-in-out infinite; }
+        @keyframes dcpSimPress {
+            0%, 31.5% { transform: none; filter: none; }
+            33%       { transform: scale(.93); filter: brightness(1.35); }
+            35%, 100% { transform: none; filter: none; }
+        }
+
+        /* In-call screen life: pulsing avatar ring + calling dots */
+        .dcp-armed .dcp-avatar-lg::before { animation: dcpRing 2.2s ease-in-out infinite; }
+        @keyframes dcpRing { 0%,100% { transform: scale(1); opacity:.4; } 50% { transform: scale(1.12); opacity:.85; } }
+        .dcp-armed .dcp-dot { animation: dcpDot 1.2s ease-in-out infinite; }
+        .dcp-armed .dcp-dot:nth-child(2) { animation-delay: .18s; }
+        .dcp-armed .dcp-dot:nth-child(3) { animation-delay: .36s; }
+        @keyframes dcpDot { 0%,100% { opacity:.25; transform: translateY(0); } 40% { opacity:1; transform: translateY(-2.5px); } }
+    }
 
     /* Everything grid cards */
     .dcp-card { transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease; }
@@ -60,16 +267,19 @@
     @keyframes dcpArrow { 0%,100% { opacity:.4; transform: translateX(0); } 50% { opacity:1; transform: translateX(4px); } }
 
     @media (prefers-reduced-motion: reduce) {
-        .dcp-mesh::before, .dcp-phone, .dcp-sync-arrows i { animation: none !important; }
+        .dcp-mesh::before, .dcp-phone, .dcp-sync-arrows i, .dcp-caret { animation: none !important; }
+        /* Static, fully-visible caller-ID state: show the in-call face only */
+        .dcp-flip { transform: none !important; }
+        .dcp-front { display: none !important; }
+        .dcp-back { transform: none !important; }
+        .dcp-match { opacity: 1 !important; transform: none !important; }
     }
 
-    /* Light mode: the phone screen stays a dark display, so pin its text back
-       to light colors (the global html.light-mode remap darkens .text-white /
-       .text-gray-300 / accent-400 utilities, which would go dark-on-dark here). */
+    /* Light mode: the phone screen stays a dark display. All text inside the
+       screen uses scoped dcp-* classes with explicit light colors, so the
+       global html.light-mode gray-text remapping cannot darken it; only the
+       frame gradient needs a light-mode variant. */
     html.light-mode .dcp-phone { background: linear-gradient(160deg, #101827, #060b16); }
-    html.light-mode .dcp-screen .text-white { color: #ffffff !important; }
-    html.light-mode .dcp-screen .text-gray-300 { color: #cbd5e1 !important; }
-    html.light-mode .dcp-screen [class*="text-emerald-4"] { color: #34d399 !important; }
 </style>
 
 {{-- ============== HERO ============== --}}
@@ -107,37 +317,85 @@
                 Free Forever plan &middot; Two-way Google sync &middot; Works on web &amp; mobile
             </p>
         </div>
-        <div data-anim="fade-left" class="flex justify-center relative">
-            <div class="dcp-phone" role="img" aria-label="Sayzio dialer resolving a phone number into a profile">
-                <div class="dcp-screen">
-                    <div class="dcp-notch" aria-hidden="true"></div>
-                    <div class="dcp-callerid">
-                        <div class="flex items-center gap-3">
-                            <div class="dcp-avatar">AR<img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()"></div>
-                            <div class="min-w-0">
-                                <div class="text-sm font-bold text-white leading-tight flex items-center gap-1.5">
-                                    Aisha Rahman <i class="fas fa-circle-check text-[11px]" style="color:#3d6bff;"></i>
+        <div data-anim="fade-left" class="dcp-wrap flex justify-center relative">
+            <div class="dcp-phone" role="img" aria-label="Sayzio dialer typing a phone number on a dual-SIM keypad, then flipping to a caller-ID screen that resolves the number into a verified Sayzio profile">
+                <div class="dcp-stage" aria-hidden="true">
+                    <div class="dcp-flip">
+
+                        {{-- FRONT: dialer keypad --}}
+                        <div class="dcp-face dcp-front">
+                            <div class="dcp-notch"></div>
+                            <div class="dcp-status">
+                                <span>9:41</span>
+                                <span><i class="fas fa-signal"></i><i class="fas fa-wifi"></i><i class="fas fa-battery-three-quarters"></i></span>
+                            </div>
+
+                            {{-- Number display + T9 match chip --}}
+                            @php
+                                // Digits typed into the display, in press order (0.6s + n*0.3s).
+                                $dial = ['4','1','5','5','5','5','0','1','8','2'];
+                                // Keys that flash — keyframes per key encode every press time.
+                                $keyAnim = ['4' => 'k4', '1' => 'k1', '5' => 'k5', '0' => 'k0', '8' => 'k8', '2' => 'k2'];
+                            @endphp
+                            <div class="dcp-numwrap">
+                                <div class="dcp-match">
+                                    <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
+                                    Aisha Rahman <i class="fas fa-circle-check"></i>
                                 </div>
-                                <div class="text-[11px] text-gray-300">@aisha &middot; on Sayzio</div>
+                                <div class="dcp-numdisplay">
+                                    <span class="dcp-numdigits">
+                                        @foreach($dial as $i => $d)
+                                            <span class="dcp-digit {{ in_array($i, [3, 6], true) ? 'gp' : '' }}" style="animation-delay: {{ number_format(0.6 + $i * 0.3, 1) }}s;">{{ $d }}</span>
+                                        @endforeach
+                                        <span class="dcp-caret"></span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            {{-- T9 keypad --}}
+                            <div class="dcp-keys">
+                                @foreach([['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['*',''],['0','+'],['#','']] as $k)
+                                    <div class="dcp-key {{ $keyAnim[$k[0]] ?? '' }}">
+                                        <span class="d">{{ $k[0] }}</span>
+                                        @if($k[1] !== '')<span class="l">{{ $k[1] }}</span>@endif
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            {{-- Dual-SIM call buttons --}}
+                            <div class="dcp-sims">
+                                <div class="dcp-sim dcp-sim-1"><span class="sb">1</span> <i class="fas fa-phone text-[11px]"></i> SIM 1</div>
+                                <div class="dcp-sim dcp-sim-2"><span class="sb">2</span> <i class="fas fa-phone text-[11px]"></i> SIM 2</div>
                             </div>
                         </div>
-                        <div class="text-[11px] text-gray-300 mt-2.5 flex items-center gap-1.5">
-                            <i class="fas fa-phone text-[9px] text-emerald-400"></i> +1 (415) 555-0182
+
+                        {{-- BACK: in-call / caller-ID screen --}}
+                        <div class="dcp-face dcp-back">
+                            <div class="dcp-notch"></div>
+                            <div class="dcp-call-body">
+                                <div class="dcp-cid-pill"><i class="fas fa-address-card"></i> Sayzio Caller ID</div>
+                                <div class="dcp-avatar-lg">
+                                    AR
+                                    <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
+                                </div>
+                                <div class="dcp-call-name">Aisha Rahman <i class="fas fa-circle-check"></i></div>
+                                <div class="dcp-call-handle">@aisha &middot; on Sayzio</div>
+                                <div class="dcp-call-num">+1 (415) 555-0182</div>
+                                <div class="dcp-call-status">
+                                    Calling via SIM 1
+                                    <span class="dcp-dot"></span><span class="dcp-dot"></span><span class="dcp-dot"></span>
+                                </div>
+                                <div class="dcp-chans">
+                                    <div class="dcp-chan" style="background:#3d6bff;" title="SMS"><i class="fas fa-comment-sms"></i></div>
+                                    <div class="dcp-chan" style="background:#25d366;" title="WhatsApp"><i class="fab fa-whatsapp"></i></div>
+                                    <div class="dcp-chan" style="background:#229ed9;" title="Telegram"><i class="fab fa-telegram"></i></div>
+                                    <div class="dcp-chan" style="background:rgba(255,255,255,.12);" title="Open biolink"><i class="fas fa-link text-[11px]"></i></div>
+                                </div>
+                                <div class="dcp-endcall"><i class="fas fa-phone"></i></div>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2 mt-3">
-                            <div class="dcp-chan" style="background:#22c55e;" title="Call"><i class="fas fa-phone"></i></div>
-                            <div class="dcp-chan" style="background:#3d6bff;" title="SMS"><i class="fas fa-comment-sms"></i></div>
-                            <div class="dcp-chan" style="background:#25d366;" title="WhatsApp"><i class="fab fa-whatsapp"></i></div>
-                            <div class="dcp-chan" style="background:#229ed9;" title="Telegram"><i class="fab fa-telegram"></i></div>
-                            <div class="dcp-chan ml-auto" style="background:rgba(255,255,255,.12);" title="Open biolink"><i class="fas fa-link text-[11px]"></i></div>
-                        </div>
+
                     </div>
-                    <div class="dcp-keys mt-auto" aria-hidden="true">
-                        @foreach([['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['*',''],['0','+'],['#','']] as $k)
-                            <div class="dcp-key"><span class="d">{{ $k[0] }}</span>@if($k[1] !== '')<span class="l">{{ $k[1] }}</span>@endif</div>
-                        @endforeach
-                    </div>
-                    <div class="dcp-call" aria-hidden="true"><i class="fas fa-phone"></i> Call</div>
                 </div>
             </div>
         </div>
@@ -370,4 +628,24 @@
         </div>
     </div>
 </section>
+
+<script>
+(function () {
+    var hero = document.getElementById('dcp-hero');
+    if (!hero) return;
+    var wrap = hero.querySelector('.dcp-wrap');
+    if (!wrap) return;
+
+    var reduceMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reduceMq.matches) return;
+    if (typeof window.IntersectionObserver !== 'function') return;
+
+    var io = new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+            wrap.classList.toggle('dcp-armed', entries[i].isIntersecting);
+        }
+    }, { threshold: 0.25, rootMargin: '0px 0px -10% 0px' });
+    io.observe(hero);
+})();
+</script>
 @endsection
