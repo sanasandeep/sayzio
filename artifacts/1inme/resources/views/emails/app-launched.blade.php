@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>{{ $subject ?? 'The Sayzio app is here' }}</title>
+    <title>{{ $subject ?? 'The ' . ($appName ?? 'Sayzio') . ' app is here' }}</title>
 </head>
 <body style="margin:0; padding:0; font-family: Arial, Helvetica, sans-serif; background-color:#f8fafc;">
     <div style="max-width:560px; margin:0 auto; padding:32px 16px;">
@@ -16,11 +16,11 @@
             </p>
 
             <h1 style="font-size:20px; color:#1e293b; margin:0 0 12px 0;">
-                The Sayzio mobile app just launched
+                The {{ $appName ?? 'Sayzio' }} mobile app just launched
             </h1>
 
             <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
-                You asked us to let you know the moment the Sayzio app hit the stores — it just did.
+                You asked us to let you know the moment the {{ $appName ?? 'Sayzio' }} app hit the stores — it just did.
                 Manage your links, biolinks and QR codes, chat with your audience and watch your stats
                 live, all from your pocket.
             </p>
@@ -62,7 +62,7 @@
             @endif
 
             <p style="color:#94a3b8; font-size:12px; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:20px;">
-                You're receiving this once because you asked to be notified when the Sayzio mobile app became available.
+                You're receiving this once because you asked to be notified when the {{ $appName ?? 'Sayzio' }} mobile app became available.
             </p>
         </div>
     </div>

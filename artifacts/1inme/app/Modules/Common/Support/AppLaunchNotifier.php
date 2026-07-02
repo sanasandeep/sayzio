@@ -17,13 +17,14 @@ use Illuminate\Support\Facades\Log;
  * the live store link(s), and their row is stamped `notified_at` so they are
  * never emailed again.
  *
- * Two entry points feed this (mirrors FeatureLaunchNotifier):
+ * Three entry points feed this (mirrors FeatureLaunchNotifier):
  *   - MarketingSettingsController::update() calls notifyIfLaunched() the moment
- *     the launch state transitions empty → live (immediate payoff), and
+ *     the launch state transitions empty → live (immediate payoff),
  *   - a scheduled command (app-launch:notify-signups) calls the same method so
- *     a transient SMTP blip that left rows unstamped is always retried.
+ *     a transient SMTP blip that left rows unstamped is always retried, and
+ *   - a manual command (app-launch:notify) lets an operator send/retry on demand.
  *
- * Both are idempotent and safe to re-run: only rows with a null `notified_at`
+ * All are idempotent and safe to re-run: only rows with a null `notified_at`
  * are ever considered, and a row is stamped ONLY after its email is confirmed
  * delivered. `Emailer::send` swallows transport errors by default, so we opt
  * into `throw_on_failure`: a transient failure throws AFTER the failed
@@ -36,7 +37,8 @@ final class AppLaunchNotifier
      * Email every pending signup, if (and only if) the app is now live on at
      * least one store. A no-op while both store URLs are still empty, so it is
      * safe to call unconditionally (e.g. from the marketing-settings save on
-     * every field change). Returns the number of signups emailed + stamped.
+     * every field change, or from a manual/scheduled command). Returns the
+     * number of signups emailed + stamped.
      */
     public static function notifyIfLaunched(): int
     {
@@ -64,7 +66,7 @@ final class AppLaunchNotifier
 
     /**
      * Whether the app is currently live on at least one store — i.e. any store
-     * URL is configured. This is the "launched" signal both entry points share.
+     * URL is configured. This is the "launched" signal all entry points share.
      */
     public static function isLaunched(): bool
     {
@@ -113,6 +115,8 @@ final class AppLaunchNotifier
             return false;
         }
 
+        $appName = (string) config('app.name', 'Sayzio');
+
         $playUrl = $stores['play'] ?? '';
         $appUrl  = $stores['app'] ?? '';
         // Prefer the store the visitor originally clicked; otherwise the first
@@ -122,14 +126,16 @@ final class AppLaunchNotifier
 
         try {
             Emailer::send('app.launched', $email, [
-                'play_url' => $playUrl,
-                'app_url'  => $appUrl,
+                'app_name'  => $appName,
+                'play_url'  => $playUrl,
+                'app_url'   => $appUrl,
                 'store_url' => $primaryUrl,
             ], [
                 'related'          => $signup,
                 'throw_on_failure' => true,
                 'view_data'        => [
-                    'subject'  => 'The Sayzio app is here — download it now',
+                    'subject'  => "The {$appName} app is here — download it now",
+                    'appName'  => $appName,
                     'playUrl'  => $playUrl,
                     'appUrl'   => $appUrl,
                     'storeUrl' => $primaryUrl,
