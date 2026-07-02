@@ -121,8 +121,11 @@
         color: #fff; font-weight: 700; font-size: 10px;
     }
 </style>
-{{-- Coming-soon modal — mounted once per page; opened from any store badge via
-     the open-store-coming-soon window event. Self-contained Alpine scope. --}}
+{{-- Coming-soon modal — teleported to <body> so it is never trapped inside a
+     transformed / opacity-animated / overflow-hidden ancestor (e.g. the dialer
+     section's .reveal wrapper on the homepage).  Opened from any store badge
+     via the open-store-coming-soon window event. Self-contained Alpine scope. --}}
+<template x-teleport="body">
 <div x-data="{ open: false, store: 'play' }"
      @open-store-coming-soon.window="store = $event.detail && $event.detail.store ? $event.detail.store : 'play'; open = true"
      x-show="open" x-cloak
@@ -204,4 +207,5 @@
         </div>
     </div>
 </div>
+</template>
 @endonce
