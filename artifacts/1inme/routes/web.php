@@ -350,6 +350,8 @@ Route::post('/marketing-events/track', [\App\Modules\Common\Controllers\Marketin
     ->name('marketing-events.track');
 Route::post('/newsletter/subscribe', [\App\Modules\Common\Controllers\NewsletterController::class, 'subscribe'])
     ->name('site.newsletter.subscribe')->middleware('throttle:10,10');
+Route::post('/app-launch/notify', [\App\Modules\Common\Controllers\AppLaunchNotifyController::class, 'store'])
+    ->name('site.app-launch.notify')->middleware('throttle:10,10');
 Route::get('/newsletter/unsubscribe/{subscriber}', [\App\Modules\Common\Controllers\NewsletterController::class, 'unsubscribe'])
     ->name('site.newsletter.unsubscribe')->middleware('throttle:30,10');
 // RFC 8058 one-click POST target. Inbox providers (Gmail, Apple Mail) hit

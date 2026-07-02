@@ -297,6 +297,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/settings', [\App\Modules\Admin\Controllers\NewsletterController::class, 'updateSettings'])->middleware(CheckPermission::class . ':settings.manage')->name('settings.update');
             Route::delete('/{subscriber}', [\App\Modules\Admin\Controllers\NewsletterController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
+        Route::prefix('app-launch')->name('app-launch.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\AppLaunchSignupController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('/export', [\App\Modules\Admin\Controllers\AppLaunchSignupController::class, 'export'])->middleware(CheckPermission::class . ':settings.manage')->name('export');
+            Route::delete('/{signup}', [\App\Modules\Admin\Controllers\AppLaunchSignupController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
         Route::prefix('cookie-consent')->name('cookie-consent.')->group(function () {
             Route::get('/',  [\App\Modules\Admin\Controllers\CookieConsentController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('/', [\App\Modules\Admin\Controllers\CookieConsentController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');

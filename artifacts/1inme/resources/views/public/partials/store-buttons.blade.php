@@ -80,6 +80,35 @@
     html.light-mode .store-cs-feat { background: rgba(15,23,42,.04); border-color: rgba(15,23,42,.08); }
     .store-cs-feat i { color: #1bd4d9; width: 16px; text-align: center; }
 
+    /* Notify-me email capture inside the modal */
+    .store-cs-notify-input {
+        background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);
+        color: #fff; outline: none;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .store-cs-notify-input::placeholder { color: rgba(255,255,255,.35); }
+    .store-cs-notify-input:focus {
+        border-color: rgba(61,107,255,.65);
+        box-shadow: 0 0 0 3px rgba(61,107,255,.2);
+    }
+    html.light-mode .store-cs-notify-input {
+        background: rgba(15,23,42,.04); border-color: rgba(15,23,42,.16); color: #0f172a;
+    }
+    html.light-mode .store-cs-notify-input::placeholder { color: rgba(15,23,42,.4); }
+    .store-cs-notify-btn {
+        background: linear-gradient(135deg, #3d6bff, #1bd4d9); color: #fff; border: none;
+        cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
+    }
+    .store-cs-notify-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 22px -10px rgba(61,107,255,.65);
+    }
+    .store-cs-notify-btn:disabled { opacity: .6; cursor: default; }
+    .store-cs-notify-done {
+        background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); color: #e7fbef;
+    }
+    html.light-mode .store-cs-notify-done { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.35); color: #14532d; }
+
     /* Mini phone mockup inside the modal — adapted from the homepage dialer
        phone-frame style, kept lightweight (pure CSS, no images). */
     .store-cs-phone {
@@ -126,7 +155,42 @@
      section's .reveal wrapper on the homepage).  Opened from any store badge
      via the open-store-coming-soon window event. Self-contained Alpine scope. --}}
 <template x-teleport="body">
-<div x-data="{ open: false, store: 'play' }"
+<div x-data="{
+        open: false, store: 'play',
+        nEmail: '', nHp: '', nBusy: false, nDone: false, nMsg: '', nErr: '',
+        async notifySubmit() {
+            if (this.nBusy || this.nDone) return;
+            this.nErr = '';
+            if (!this.nEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.nEmail)) {
+                this.nErr = 'Please enter a valid email address.';
+                return;
+            }
+            this.nBusy = true;
+            try {
+                const res = await fetch(@js(route('site.app-launch.notify')), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': @js(csrf_token()),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ email: this.nEmail, store: this.store, website: this.nHp }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.ok) {
+                    this.nDone = true;
+                    this.nMsg = data.message || 'You\'re on the list!';
+                } else {
+                    this.nErr = (data && data.message) ? data.message : 'Something went wrong — please try again.';
+                }
+            } catch (e) {
+                this.nErr = 'Something went wrong — please try again.';
+            } finally {
+                this.nBusy = false;
+            }
+        },
+     }"
      @open-store-coming-soon.window="store = $event.detail && $event.detail.store ? $event.detail.store : 'play'; open = true"
      x-show="open" x-cloak
      class="fixed inset-0 z-[120] overflow-y-auto overscroll-contain bg-black/70 backdrop-blur-sm"
@@ -198,10 +262,37 @@
                         <div class="store-cs-feat"><i class="fas fa-chart-line"></i> Live analytics in your pocket</div>
                         <div class="store-cs-feat"><i class="fas fa-phone-volume"></i> Smart dialer &amp; caller ID</div>
                     </div>
-                    <p class="store-cs-muted text-xs mt-4">
-                        <i class="fas fa-bell mr-1 text-[10px]"></i>
-                        Check back soon — the download buttons will go live the moment the app ships.
-                    </p>
+                    {{-- Notify-me email capture — posts to the public app-launch
+                         list (rate-limited + honeypot server-side) and shows the
+                         success state inline without closing the modal. --}}
+                    <form class="mt-4" @submit.prevent="notifySubmit()" x-show="!nDone" novalidate>
+                        <label class="store-cs-muted text-xs font-semibold block mb-1.5" for="store-cs-notify-email">
+                            <i class="fas fa-bell mr-1 text-[10px]"></i>
+                            Get an email the moment the app ships
+                        </label>
+                        <div class="flex items-stretch gap-2">
+                            <input type="email" id="store-cs-notify-email" x-model="nEmail"
+                                   placeholder="you@example.com" autocomplete="email" required
+                                   class="store-cs-notify-input flex-1 min-w-0 px-3 py-2 rounded-lg text-sm"
+                                   :disabled="nBusy">
+                            <button type="submit" :disabled="nBusy"
+                                    class="store-cs-notify-btn px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap">
+                                <span x-show="!nBusy">Notify me</span>
+                                <span x-show="nBusy"><i class="fas fa-circle-notch fa-spin"></i></span>
+                            </button>
+                        </div>
+                        {{-- Honeypot — hidden from humans, tempting to bots. --}}
+                        <input type="text" x-model="nHp" name="website" tabindex="-1" autocomplete="off"
+                               aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
+                        <p class="text-xs mt-2" style="color:#f87171;" x-show="nErr" x-text="nErr"></p>
+                        <p class="store-cs-muted text-[11px] mt-2">
+                            One email at launch — no spam, ever.
+                        </p>
+                    </form>
+                    <div class="store-cs-notify-done mt-4 px-3.5 py-3 rounded-xl text-sm flex items-start gap-2.5" x-show="nDone" x-cloak>
+                        <i class="fas fa-circle-check mt-0.5" style="color:#22c55e;"></i>
+                        <span x-text="nMsg"></span>
+                    </div>
                 </div>
             </div>
         </div>

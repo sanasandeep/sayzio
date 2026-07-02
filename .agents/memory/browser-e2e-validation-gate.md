@@ -68,3 +68,19 @@ gate, re-register with
 `.replit` is platform-owned — change the `e2e` args via `setValidationCommand`,
 not by editing `.replit` (except while resolving a rebase). First run in a fresh
 env pays a one-time chromium download; cached no-op after.
+
+**Stale spec: voice-assistant-bridge.spec.ts is deterministically RED (July 2026).**
+All ~6 bridge tests fail identically (waitForFunction 120s mount timeout, both
+retries, ~2-2.5m each) in the full gate AND in isolation on a fresh server.
+Root cause is NOT flake: the Zio-panel move set
+`@include('partials.voice-assistant', ['voiceFloating' => false])` layout-wide
+in `user/layouts/app.blade.php`, and the floating `x-data="voiceAssistant(...)"`
+markup is gated on `@if($voiceFloating && $voiceAvailable)` — so the component
+the spec waits for (`[x-data^="voiceAssistant"]` on /user/links/create,
+/user/links/wizard, etc.) can never render on user pages. Voice itself is fine
+(`window.__voice` present in the HTML; voice-assistant-panel.spec.ts passes on
+the same server). Diagnosis trick: curl the page on the live :5050 e2e server
+mid-run and grep for `voiceAssistant` vs `__voice`. Fix belongs to the voice/Zio
+feature: rewrite the bridge spec to drive the panel voice agent (or drop it from
+the gate); until then every task's `e2e` gate fails on these specs regardless of
+its change.

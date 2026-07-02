@@ -415,6 +415,14 @@
             <span class="sidebar-tooltip">Newsletter</span>
         </a>
 
+        <a href="{{ route('admin.app-launch.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.app-launch.*') ? 'active' : '' }}"
+           style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-mobile-screen-button"></i></div>
+            <span class="nav-label">App Launch Signups</span>
+            <span class="sidebar-tooltip">App Launch Signups</span>
+        </a>
+
         <a href="{{ route('admin.notifications.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.notifications.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
