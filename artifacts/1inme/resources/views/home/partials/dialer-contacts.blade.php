@@ -10,7 +10,10 @@
     }
     @keyframes dcMesh { 0% { transform: translate3d(0,0,0) scale(1); } 100% { transform: translate3d(-2%,2%,0) scale(1.06); } }
 
-    /* Phone frame that houses the dialer + resolved caller card */
+    /* Phone frame that houses the flipping dialer / in-call screens.
+       Everything rendered inside the screen uses scoped dc-* classes with
+       explicit colors so the global html.light-mode gray-text remapping can
+       never darken text on this always-dark phone display. */
     .dc-phone {
         position: relative; width: 300px; max-width: 84vw; margin: 0 auto;
         aspect-ratio: 300 / 600; border-radius: 42px; padding: 12px;
@@ -23,42 +26,55 @@
     }
     html.light-mode .dc-phone { background: linear-gradient(160deg, #101827, #060b16); }
     @keyframes dcFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-    .dc-screen {
-        position: absolute; inset: 12px; border-radius: 32px; overflow: hidden;
+
+    /* 3D flip stage: front = dialer keypad, back = in-call caller-ID screen */
+    .dc-stage { position: absolute; inset: 12px; perspective: 1400px; }
+    .dc-flip { position: absolute; inset: 0; transform-style: preserve-3d; will-change: transform; }
+    .dc-face {
+        position: absolute; inset: 0; border-radius: 32px; overflow: hidden;
+        backface-visibility: hidden; -webkit-backface-visibility: hidden;
         background: linear-gradient(180deg, #14091f 0%, #0a0a14 100%);
-        display: flex; flex-direction: column;
+        display: flex; flex-direction: column; color: #fff;
     }
+    .dc-back { transform: rotateY(180deg); background: linear-gradient(180deg, #101733 0%, #0a0a14 100%); }
     .dc-notch {
         position:absolute; top: 8px; left: 50%; transform: translateX(-50%);
         width: 86px; height: 20px; border-radius: 999px; background: #05030a; z-index: 5;
     }
+    .dc-status {
+        display:flex; align-items:center; justify-content:space-between;
+        padding: 12px 20px 0; font-size: 10px; font-weight: 700;
+        color: #8f9bb8; letter-spacing: .04em;
+    }
+    .dc-status i { font-size: 9px; margin-left: 5px; color: #8f9bb8; }
 
-    /* Resolved caller-ID card that slides in over the keypad */
-    .dc-callerid {
-        margin: 30px 14px 0; border-radius: 18px; padding: 14px;
-        background: linear-gradient(135deg, rgba(61,107,255,.22), rgba(27,212,217,.14));
-        border: 1px solid rgba(255,255,255,.12);
-        box-shadow: 0 18px 40px -20px rgba(61,107,255,.6);
-        backdrop-filter: blur(8px);
+    /* Number display above the keypad (types out digits like a real dialer) */
+    .dc-numwrap { margin: auto 20px 4px; text-align: center; min-height: 66px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap: 8px; }
+    .dc-match {
+        display:inline-flex; align-items:center; gap: 6px;
+        padding: 4px 10px 4px 5px; border-radius: 999px;
+        background: rgba(61,107,255,.16); border: 1px solid rgba(61,107,255,.4);
+        font-size: 10px; font-weight: 700; color: #dbe4ff; opacity: 0;
     }
-    .dc-avatar {
-        width: 46px; height: 46px; border-radius: 14px; flex-shrink:0;
-        background: linear-gradient(135deg, #3d6bff, #1bd4d9);
-        display:flex; align-items:center; justify-content:center;
-        color:#fff; font-weight:800; font-size: 17px;
-        box-shadow: 0 8px 20px -6px rgba(61,107,255,.7);
+    .dc-match img { width: 18px; height: 18px; border-radius: 999px; object-fit: cover; }
+    .dc-match i { color: #7a9eff; font-size: 9px; }
+    .dc-numdisplay { min-height: 30px; display:flex; align-items:center; justify-content:center; }
+    .dc-numdigits { display:inline-flex; align-items:center; }
+    .dc-digit {
+        display:inline-block; opacity: 0;
+        font-size: 22px; font-weight: 600; color: #fff; letter-spacing: .06em;
+        font-variant-numeric: tabular-nums;
     }
-    .dc-verified { color:#3d6bff; font-size: 11px; }
-    .dc-chan {
-        width: 34px; height: 34px; border-radius: 11px;
-        display:flex; align-items:center; justify-content:center;
-        color:#fff; font-size: 13px; flex-shrink:0;
-        transition: transform .25s ease;
+    .dc-digit.gp { margin-left: 8px; }
+    .dc-caret {
+        display:inline-block; width: 2px; height: 22px; margin-left: 4px;
+        background: #3d6bff; border-radius: 2px;
+        animation: dcCaret 1.1s steps(2, start) infinite;
     }
-    .dc-chan:hover { transform: translateY(-3px); }
+    @keyframes dcCaret { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
 
     /* T9 keypad */
-    .dc-keys { margin: 16px 22px 20px; display:grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .dc-keys { margin: 12px 22px 14px; display:grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
     .dc-key {
         aspect-ratio: 1; border-radius: 999px;
         background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
@@ -67,33 +83,180 @@
     }
     .dc-key .d { font-size: 18px; font-weight: 700; }
     .dc-key .l { font-size: 7px; letter-spacing: .12em; color: rgba(255,255,255,.45); margin-top: 2px; }
-    .dc-key.lit {
-        background: linear-gradient(135deg, rgba(61,107,255,.35), rgba(27,212,217,.28));
-        border-color: rgba(61,107,255,.55);
-        box-shadow: 0 0 0 2px rgba(61,107,255,.25), 0 10px 24px -10px rgba(61,107,255,.8);
+
+    /* Dual-SIM call buttons */
+    .dc-sims { display:flex; gap: 10px; margin: 0 22px 18px; }
+    .dc-sim {
+        flex: 1; height: 46px; border-radius: 999px;
+        display:flex; align-items:center; justify-content:center; gap: 7px;
+        color:#fff; font-weight: 700; font-size: 12.5px;
     }
-    .dc-call {
-        margin: 0 22px 18px; height: 50px; border-radius: 999px;
+    .dc-sim-1 {
         background: linear-gradient(135deg, #16a34a, #22c55e);
-        display:flex; align-items:center; justify-content:center; gap:8px;
-        color:#fff; font-weight:700; font-size: 14px;
-        box-shadow: 0 14px 30px -12px rgba(34,197,94,.8);
+        box-shadow: 0 12px 26px -12px rgba(34,197,94,.8);
+    }
+    .dc-sim-2 {
+        background: linear-gradient(135deg, #0d9488, #14b8a6);
+        box-shadow: 0 12px 26px -12px rgba(20,184,166,.7);
+    }
+    .dc-sim .sb {
+        width: 15px; height: 15px; border-radius: 4px 4px 4px 1px;
+        background: rgba(255,255,255,.22); border: 1px solid rgba(255,255,255,.55);
+        display:flex; align-items:center; justify-content:center;
+        font-size: 9px; font-weight: 800; color:#fff;
     }
 
+    /* Back face: in-call / caller-ID screen */
+    .dc-call-body { display:flex; flex-direction:column; align-items:center; text-align:center; padding: 46px 20px 20px; height: 100%; }
+    .dc-cid-pill {
+        display:inline-flex; align-items:center; gap: 6px;
+        padding: 5px 12px; border-radius: 999px;
+        background: rgba(61,107,255,.16); border: 1px solid rgba(61,107,255,.4);
+        font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+        color: #dbe4ff;
+    }
+    .dc-cid-pill i { color: #7a9eff; font-size: 9px; }
+    .dc-avatar-lg {
+        position: relative; width: 92px; height: 92px; border-radius: 30px;
+        margin-top: 26px; flex-shrink: 0;
+        background: linear-gradient(135deg, #3d6bff, #1bd4d9);
+        display:flex; align-items:center; justify-content:center;
+        color:#fff; font-weight: 800; font-size: 28px;
+        box-shadow: 0 16px 36px -12px rgba(61,107,255,.75);
+    }
+    .dc-avatar-lg img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius: inherit; }
+    .dc-avatar-lg::before {
+        content:""; position:absolute; inset:-9px; border-radius: 36px;
+        border: 2px solid rgba(61,107,255,.5); opacity:.5;
+    }
+    .dc-call-name { margin-top: 18px; font-size: 18px; font-weight: 800; color:#fff; display:flex; align-items:center; gap: 6px; }
+    .dc-call-name i { color:#3d6bff; font-size: 13px; }
+    .dc-call-handle { margin-top: 3px; font-size: 11.5px; color: #a8b3cf; font-weight: 600; }
+    .dc-call-num { margin-top: 10px; font-size: 13px; color: #cbd5e1; font-weight: 600; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+    .dc-call-status { margin-top: 14px; font-size: 11.5px; font-weight: 700; color: #34d399; display:flex; align-items:center; gap: 2px; }
+    .dc-dot { display:inline-block; width: 3.5px; height: 3.5px; border-radius: 999px; background: #34d399; margin-left: 3px; }
+    .dc-chans { display:flex; align-items:center; justify-content:center; gap: 10px; margin-top: auto; }
+    .dc-chan {
+        width: 38px; height: 38px; border-radius: 13px;
+        display:flex; align-items:center; justify-content:center;
+        color:#fff; font-size: 14px; flex-shrink:0;
+    }
+    .dc-chan span { display: none; }
+    .dc-endcall {
+        width: 54px; height: 54px; border-radius: 999px; margin-top: 16px;
+        background: linear-gradient(135deg, #dc2626, #ef4444);
+        display:flex; align-items:center; justify-content:center;
+        color:#fff; font-size: 18px;
+        box-shadow: 0 14px 30px -12px rgba(239,68,68,.8);
+    }
+    .dc-endcall i { transform: rotate(135deg); }
+
     @media (prefers-reduced-motion: no-preference) {
-        /* Sequentially light up keypad keys to "type" a number */
-        .dc-armed .dc-key.k-seq { animation: dcKey 5.5s ease-in-out infinite; }
-        @keyframes dcKey {
-            0%, 8%   { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow:none; }
-            10%, 22% { background: linear-gradient(135deg, rgba(61,107,255,.35), rgba(27,212,217,.28)); border-color: rgba(61,107,255,.55); box-shadow: 0 0 0 2px rgba(61,107,255,.25), 0 10px 24px -10px rgba(61,107,255,.8); }
-            30%,100% { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow:none; }
+        /* 12s master loop: dial digits -> press SIM 1 -> flip to in-call
+           caller-ID screen -> flip back. All keyframe percentages are of 12s. */
+        .dc-armed .dc-flip { animation: dcFlip 12s ease-in-out infinite; }
+        @keyframes dcFlip {
+            0%, 38% { transform: rotateY(0deg); }
+            45%     { transform: rotateY(180deg); }
+            88%     { transform: rotateY(180deg); }
+            95%     { transform: rotateY(360deg); }
+            100%    { transform: rotateY(360deg); }
         }
-        .dc-armed .dc-callerid { animation: dcCard 5.5s ease-in-out infinite; }
-        @keyframes dcCard {
-            0%, 30%  { opacity: 0; transform: translateY(14px) scale(.97); }
-            42%, 92% { opacity: 1; transform: translateY(0) scale(1); }
-            100%     { opacity: 0; transform: translateY(-8px) scale(.99); }
+
+        /* Digits type into the number display in sync with the keys
+           (per-digit animation-delay set inline; presses at 0.6s + n*0.3s). */
+        .dc-armed .dc-digit { animation: dcDigitIn 12s linear infinite; }
+        @keyframes dcDigitIn {
+            0%       { opacity: 0; transform: translateY(4px) scale(.85); }
+            1%       { opacity: 1; transform: none; }
+            50%      { opacity: 1; }
+            53%,100% { opacity: 0; }
         }
+        /* Whole display clears while the phone is flipped (call in progress) */
+        .dc-armed .dc-numdigits { animation: dcNumWrap 12s linear infinite; }
+        @keyframes dcNumWrap {
+            0%, 42%  { opacity: 1; }
+            45%, 99% { opacity: 0; }
+            100%     { opacity: 1; }
+        }
+        /* T9 match chip appears once enough digits are in */
+        .dc-armed .dc-match { animation: dcMatch 12s ease-in-out infinite; }
+        @keyframes dcMatch {
+            0%, 18%  { opacity: 0; transform: translateY(4px); }
+            21%, 41% { opacity: 1; transform: none; }
+            44%,100% { opacity: 0; }
+        }
+
+        /* Key press flashes — one keyframe set per key, percentages encode
+           every press of that key inside the 12s loop (multiple comma
+           animations on one element would override each other). */
+        .dc-armed .dc-key.k4 { animation: dcK4 12s linear infinite; }
+        .dc-armed .dc-key.k1 { animation: dcK1 12s linear infinite; }
+        .dc-armed .dc-key.k5 { animation: dcK5 12s linear infinite; }
+        .dc-armed .dc-key.k0 { animation: dcK0 12s linear infinite; }
+        .dc-armed .dc-key.k8 { animation: dcK8 12s linear infinite; }
+        .dc-armed .dc-key.k2 { animation: dcK2 12s linear infinite; }
+        @keyframes dcK4 {
+            0%, 4%   { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            5%       { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            6.2%     { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            7.5%,100%{ background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+        }
+        @keyframes dcK1 {
+            0%, 6.5% { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            7.5%     { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            8.7%     { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            10%,21.5%{ background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            22.5%    { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            23.7%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            25%,100% { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+        }
+        @keyframes dcK5 {
+            0%, 9%   { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            10%      { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            11.2%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            12.5%    { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            13.7%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            15%      { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            16.2%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            17.5%    { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            18.7%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            20%,100% { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+        }
+        @keyframes dcK0 {
+            0%, 19%  { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            20%      { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            21.2%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            22.5%,100%{ background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+        }
+        @keyframes dcK8 {
+            0%, 24%  { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            25%      { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            26.2%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            27.5%,100%{ background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+        }
+        @keyframes dcK2 {
+            0%, 26.5%{ background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+            27.5%    { background-color: rgba(61,107,255,.45); border-color: rgba(122,158,255,.7); box-shadow: 0 0 18px rgba(61,107,255,.55); transform: scale(.88); }
+            28.7%    { background-color: rgba(61,107,255,.3);  border-color: rgba(61,107,255,.55); box-shadow: 0 0 12px rgba(61,107,255,.4);  transform: none; }
+            30%,100% { background-color: rgba(255,255,255,.06); border-color: rgba(255,255,255,.08); box-shadow: none; transform: none; }
+        }
+
+        /* SIM 1 gets "pressed" right after the number is complete */
+        .dc-armed .dc-sim-1 { animation: dcSimPress 12s ease-in-out infinite; }
+        @keyframes dcSimPress {
+            0%, 31.5% { transform: none; filter: none; }
+            33%       { transform: scale(.93); filter: brightness(1.35); }
+            35%, 100% { transform: none; filter: none; }
+        }
+
+        /* In-call screen life: pulsing avatar ring + calling dots */
+        .dc-armed .dc-avatar-lg::before { animation: dcRing 2.2s ease-in-out infinite; }
+        @keyframes dcRing { 0%,100% { transform: scale(1); opacity:.4; } 50% { transform: scale(1.12); opacity:.85; } }
+        .dc-armed .dc-dot { animation: dcDot 1.2s ease-in-out infinite; }
+        .dc-armed .dc-dot:nth-child(2) { animation-delay: .18s; }
+        .dc-armed .dc-dot:nth-child(3) { animation-delay: .36s; }
+        @keyframes dcDot { 0%,100% { opacity:.25; transform: translateY(0); } 40% { opacity:1; transform: translateY(-2.5px); } }
     }
 
     /* Feature pills */
@@ -126,8 +289,12 @@
     @keyframes dcBubble { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
     @media (prefers-reduced-motion: reduce) {
-        .dc-mesh::before, .dc-phone, .dc-bubble, .dc-feat-icon::after { animation: none !important; }
-        .dc-callerid { opacity: 1 !important; transform: none !important; }
+        .dc-mesh::before, .dc-phone, .dc-bubble, .dc-feat-icon::after, .dc-caret { animation: none !important; }
+        /* Static, fully-visible caller-ID state: show the in-call face only */
+        .dc-flip { transform: none !important; }
+        .dc-front { display: none !important; }
+        .dc-back { transform: none !important; }
+        .dc-match { opacity: 1 !important; transform: none !important; }
     }
 </style>
 <section id="dialer-contacts" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="dc-h">
@@ -146,53 +313,89 @@
         <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {{-- LEFT: animated phone / dialer --}}
             <div class="reveal rd-3 dc-wrap relative flex justify-center">
-                <div class="dc-phone" role="img" aria-label="Sayzio dialer resolving a phone number into a profile">
-                    <div class="dc-screen">
-                        <div class="dc-notch" aria-hidden="true"></div>
+                <div class="dc-phone" role="img" aria-label="Sayzio dialer typing a phone number on a dual-SIM keypad, then flipping to a caller-ID screen that resolves the number into a verified Sayzio profile">
+                    <div class="dc-stage" aria-hidden="true">
+                        <div class="dc-flip">
 
-                        {{-- Resolved caller-ID card (phone number → biolink profile) --}}
-                        <div class="dc-callerid">
-                            <div class="flex items-center gap-3">
-                                <div class="dc-avatar">AR</div>
-                                <div class="min-w-0">
-                                    <div class="text-sm font-bold text-white leading-tight flex items-center gap-1.5">
-                                        Aisha Rahman <i class="fas fa-circle-check dc-verified"></i>
+                            {{-- FRONT: dialer keypad --}}
+                            <div class="dc-face dc-front">
+                                <div class="dc-notch"></div>
+                                <div class="dc-status">
+                                    <span>9:41</span>
+                                    <span><i class="fas fa-signal"></i><i class="fas fa-wifi"></i><i class="fas fa-battery-three-quarters"></i></span>
+                                </div>
+
+                                {{-- Number display + T9 match chip --}}
+                                @php
+                                    // Digits typed into the display, in press order (0.6s + n*0.3s).
+                                    $dial = ['4','1','5','5','5','5','0','1','8','2'];
+                                    // Keys that flash — keyframes per key encode every press time.
+                                    $keyAnim = ['4' => 'k4', '1' => 'k1', '5' => 'k5', '0' => 'k0', '8' => 'k8', '2' => 'k2'];
+                                @endphp
+                                <div class="dc-numwrap">
+                                    <div class="dc-match">
+                                        <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
+                                        Aisha Rahman <i class="fas fa-circle-check"></i>
                                     </div>
-                                    <div class="text-[11px] text-gray-300">@aisha &middot; on Sayzio</div>
+                                    <div class="dc-numdisplay">
+                                        <span class="dc-numdigits">
+                                            @foreach($dial as $i => $d)
+                                                <span class="dc-digit {{ in_array($i, [3, 6], true) ? 'gp' : '' }}" style="animation-delay: {{ number_format(0.6 + $i * 0.3, 1) }}s;">{{ $d }}</span>
+                                            @endforeach
+                                            <span class="dc-caret"></span>
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="text-[11px] text-gray-300 mt-2.5 flex items-center gap-1.5">
-                                <i class="fas fa-phone text-[9px] text-emerald-400"></i> +1 (415) 555-0182
-                            </div>
-                            <div class="flex items-center gap-2 mt-3">
-                                <div class="dc-chan" style="background:#22c55e;" title="Call"><i class="fas fa-phone"></i></div>
-                                <div class="dc-chan" style="background:#3d6bff;" title="SMS"><i class="fas fa-comment-sms"></i></div>
-                                <div class="dc-chan" style="background:#25d366;" title="WhatsApp"><i class="fab fa-whatsapp"></i></div>
-                                <div class="dc-chan" style="background:#229ed9;" title="Telegram"><i class="fab fa-telegram"></i></div>
-                                <div class="dc-chan ml-auto" style="background:rgba(255,255,255,.12);" title="Open biolink"><i class="fas fa-link text-[11px]"></i></div>
-                            </div>
-                        </div>
 
-                        {{-- T9 keypad --}}
-                        <div class="dc-keys mt-auto" aria-hidden="true">
-                            @php
-                                $keys = [
-                                    ['1',''], ['2','ABC'], ['3','DEF'],
-                                    ['4','GHI'], ['5','JKL'], ['6','MNO'],
-                                    ['7','PQRS'], ['8','TUV'], ['9','WXYZ'],
-                                    ['*',''], ['0','+'], ['#',''],
-                                ];
-                                // Keys that light up in sequence to "dial" a number.
-                                $seq = ['4','1','5'];
-                            @endphp
-                            @foreach($keys as $k)
-                                <div class="dc-key {{ in_array($k[0], $seq, true) ? 'k-seq' : '' }}" @if(in_array($k[0], $seq, true)) style="animation-delay: {{ array_search($k[0], $seq, true) * 0.5 }}s;" @endif>
-                                    <span class="d">{{ $k[0] }}</span>
-                                    @if($k[1] !== '')<span class="l">{{ $k[1] }}</span>@endif
+                                {{-- T9 keypad --}}
+                                <div class="dc-keys">
+                                    @foreach([
+                                        ['1',''], ['2','ABC'], ['3','DEF'],
+                                        ['4','GHI'], ['5','JKL'], ['6','MNO'],
+                                        ['7','PQRS'], ['8','TUV'], ['9','WXYZ'],
+                                        ['*',''], ['0','+'], ['#',''],
+                                    ] as $k)
+                                        <div class="dc-key {{ $keyAnim[$k[0]] ?? '' }}">
+                                            <span class="d">{{ $k[0] }}</span>
+                                            @if($k[1] !== '')<span class="l">{{ $k[1] }}</span>@endif
+                                        </div>
+                                    @endforeach
                                 </div>
-                            @endforeach
+
+                                {{-- Dual-SIM call buttons --}}
+                                <div class="dc-sims">
+                                    <div class="dc-sim dc-sim-1"><span class="sb">1</span> <i class="fas fa-phone text-[11px]"></i> SIM 1</div>
+                                    <div class="dc-sim dc-sim-2"><span class="sb">2</span> <i class="fas fa-phone text-[11px]"></i> SIM 2</div>
+                                </div>
+                            </div>
+
+                            {{-- BACK: in-call / caller-ID screen --}}
+                            <div class="dc-face dc-back">
+                                <div class="dc-notch"></div>
+                                <div class="dc-call-body">
+                                    <div class="dc-cid-pill"><i class="fas fa-address-card"></i> Sayzio Caller ID</div>
+                                    <div class="dc-avatar-lg">
+                                        AR
+                                        <img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()">
+                                    </div>
+                                    <div class="dc-call-name">Aisha Rahman <i class="fas fa-circle-check"></i></div>
+                                    <div class="dc-call-handle">@aisha &middot; on Sayzio</div>
+                                    <div class="dc-call-num">+1 (415) 555-0182</div>
+                                    <div class="dc-call-status">
+                                        Calling via SIM 1
+                                        <span class="dc-dot"></span><span class="dc-dot"></span><span class="dc-dot"></span>
+                                    </div>
+                                    <div class="dc-chans">
+                                        <div class="dc-chan" style="background:#3d6bff;" title="SMS"><i class="fas fa-comment-sms"></i></div>
+                                        <div class="dc-chan" style="background:#25d366;" title="WhatsApp"><i class="fab fa-whatsapp"></i></div>
+                                        <div class="dc-chan" style="background:#229ed9;" title="Telegram"><i class="fab fa-telegram"></i></div>
+                                        <div class="dc-chan" style="background:rgba(255,255,255,.12);" title="Open biolink"><i class="fas fa-link text-[11px]"></i></div>
+                                    </div>
+                                    <div class="dc-endcall"><i class="fas fa-phone"></i></div>
+                                </div>
+                            </div>
+
                         </div>
-                        <div class="dc-call" aria-hidden="true"><i class="fas fa-phone"></i> Call</div>
                     </div>
                 </div>
 

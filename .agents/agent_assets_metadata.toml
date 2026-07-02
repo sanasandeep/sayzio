@@ -840,6 +840,12 @@ uri = "file://artifacts/1inme/public/images/zio-nodes/domain.png"
 type = "image"
 title = "zio domain icon"
 
+[[generated]]
+id = "f-6teVCelJTmt4OwwRjtr"
+uri = "file://artifacts/1inme/public/images/marketing/contact-aisha.jpg"
+type = "image"
+title = "contact profile photo"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"

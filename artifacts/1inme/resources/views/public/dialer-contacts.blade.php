@@ -31,7 +31,8 @@
         background: linear-gradient(135deg, rgba(61,107,255,.22), rgba(27,212,217,.14));
         border:1px solid rgba(255,255,255,.12); box-shadow: 0 18px 40px -20px rgba(61,107,255,.6);
     }
-    .dcp-avatar { width:46px; height:46px; border-radius:14px; flex-shrink:0; background:linear-gradient(135deg,#3d6bff,#1bd4d9); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:17px; }
+    .dcp-avatar { position:relative; overflow:hidden; width:46px; height:46px; border-radius:14px; flex-shrink:0; background:linear-gradient(135deg,#3d6bff,#1bd4d9); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:17px; }
+    .dcp-avatar img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:inherit; }
     .dcp-chan { width:34px; height:34px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; flex-shrink:0; }
     .dcp-keys { margin:16px 22px 20px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
     .dcp-key { aspect-ratio:1; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; line-height:1; }
@@ -61,6 +62,14 @@
     @media (prefers-reduced-motion: reduce) {
         .dcp-mesh::before, .dcp-phone, .dcp-sync-arrows i { animation: none !important; }
     }
+
+    /* Light mode: the phone screen stays a dark display, so pin its text back
+       to light colors (the global html.light-mode remap darkens .text-white /
+       .text-gray-300 / accent-400 utilities, which would go dark-on-dark here). */
+    html.light-mode .dcp-phone { background: linear-gradient(160deg, #101827, #060b16); }
+    html.light-mode .dcp-screen .text-white { color: #ffffff !important; }
+    html.light-mode .dcp-screen .text-gray-300 { color: #cbd5e1 !important; }
+    html.light-mode .dcp-screen [class*="text-emerald-4"] { color: #34d399 !important; }
 </style>
 
 {{-- ============== HERO ============== --}}
@@ -104,7 +113,7 @@
                     <div class="dcp-notch" aria-hidden="true"></div>
                     <div class="dcp-callerid">
                         <div class="flex items-center gap-3">
-                            <div class="dcp-avatar">AR</div>
+                            <div class="dcp-avatar">AR<img src="{{ asset('images/marketing/contact-aisha.jpg') }}" alt="" loading="lazy" onerror="this.remove()"></div>
                             <div class="min-w-0">
                                 <div class="text-sm font-bold text-white leading-tight flex items-center gap-1.5">
                                     Aisha Rahman <i class="fas fa-circle-check text-[11px]" style="color:#3d6bff;"></i>
