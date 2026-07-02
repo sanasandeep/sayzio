@@ -10,7 +10,7 @@
 <meta property="og:description" content="{{ \Illuminate\Support\Str::limit($calendar->description ?: ('Follow ' . $calendar->title), 180) }}">
 <meta property="og:type" content="website">
 @vite(['resources/css/app.css', 'resources/js/app.js'])
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">

@@ -13,7 +13,7 @@
     @endphp
     <title>@yield('title', 'Client Portal') · {{ $brandName }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
     <style>
         :root { --portal-brand: {{ $brandColor }}; }
         body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; color: #0f172a; }

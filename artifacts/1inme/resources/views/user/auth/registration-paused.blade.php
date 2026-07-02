@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow">
     <title>We&rsquo;re upgrading &mdash; {{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>

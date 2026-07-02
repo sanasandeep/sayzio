@@ -20,7 +20,7 @@
     <meta property="og:image" content="{{ $creator->avatar }}">
 @endif
 @vite(['resources/css/app.css', 'resources/js/app.js'])
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
 <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
 <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
 <style>

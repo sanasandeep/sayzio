@@ -38,7 +38,7 @@
 <meta property="og:description" content="{{ Str::limit($config['tagline'] ?: $config['about'] ?: ('Brand assets for ' . $brandName), 180) }}">
 <meta property="og:type" content="website">
 @if(!empty($logos[0]['url']))<meta property="og:image" content="{{ $logos[0]['url'] }}">@endif
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family={{ $fontParam }}&display=swap" rel="stylesheet">
