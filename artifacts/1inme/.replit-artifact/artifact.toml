@@ -38,6 +38,20 @@ paths = ["/"]
 # manifest — with it the prior build's hashed assets stay until the fresh build
 # overwrites the manifest, so the periodic restart is gap-free.
 #
+# WATCHDOG / CRASH-LOOP GUARD (Task #3440): `--kill-others` only tears the
+# workflow down when the tailwind CHILD PROCESS actually exits. But the cycle is
+# a `while true` loop, so it never exits on its own — a healthy cycle just runs
+# vite for the ~60s window, gets TERMed by `timeout`, and loops. Problem: if vite
+# starts crashing IMMEDIATELY every cycle (bad config, missing bin, port held),
+# the loop busy-spins forever — the tailwind process stays alive but rebuilds
+# nothing, so concurrently never fires --kill-others and the preview silently
+# serves stale CSS behind a live PHP server. So build:watch:cycle now
+# distinguishes a normal timeout cycle (ran the full window → resilient, keep
+# looping) from a crash loop (vite exited in <10s): after 5 consecutive fast
+# exits it bails with a non-zero exit, which lets concurrently --kill-others tear
+# down the PHP server too and trigger a clean Replit workflow auto-restart with a
+# fresh Tailwind watcher, instead of stranding a style-less orphan.
+#
 # STALE VIEW CACHE NOTE: Tailwind's content scan also reads Laravel's compiled-
 # blade cache (storage/framework/views/*.php) via an `@source` in
 # resources/css/app.css. If those cached files hold pre-sweep class tokens (e.g.
