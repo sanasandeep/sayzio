@@ -37,7 +37,6 @@ const REQUIRED_SECTION_IDS: readonly string[] = [
   "share",
   "domains",
   "create",
-  "everything",
   // The consolidated AI zone wrapper + its three anchored AI sections.
   "ai-zone",
   "ai-suite",
@@ -46,12 +45,16 @@ const REQUIRED_SECTION_IDS: readonly string[] = [
   // Remaining major sections below the AI zone.
   "workspace-team",
   "buzz",
-  "stats",
   "proof",
   "faq",
-  "trust",
   "cta-final",
 ] as const;
+
+// NOTE: `#everything` (the "Everything you get" overview grid), `#stats` (the
+// mid-page stats strip) and `#trust` (the near-bottom security/trust strip) were
+// intentionally removed when the three repeated stats/credibility strips were
+// consolidated into the single near-hero credibility band
+// (public.partials.marketing-trust-band). They are no longer contractual anchors.
 
 // Section ids that are CONDITIONALLY rendered (data- or flag-gated), so they may
 // legitimately be absent. They are still contractual anchors WHEN present, so we

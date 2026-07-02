@@ -470,9 +470,9 @@ bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 - `home-section-structure.spec.ts` — gated, no login/seeding. Renders `/`
   and asserts the home page's contractual structure: every required
   section id (`#audience`, `#how-it-works`, `#features`, `#share`,
-  `#domains`, `#create`, `#everything`, `#ai-zone`, `#ai-suite`,
+  `#domains`, `#create`, `#ai-zone`, `#ai-suite`,
   `#ai-marketing-strategist`, `#whatsapp-agent`, `#workspace-team`,
-  `#buzz`, `#stats`, `#proof`, `#faq`, `#trust`, `#cta-final`) appears
+  `#buzz`, `#proof`, `#faq`, `#cta-final`) appears
   **exactly once** — catching a silently dropped or duplicated anchor that
   would break nav / jump / deep links; the conditionally-rendered
   `#blog-featured` is checked as "at most once". It also asserts the four

@@ -1,13 +1,11 @@
 {{--
-    Compact credibility band — sits directly under the hero so a few headline
-    trust numbers land above the fold. It is reinforced lower down by the fuller
-    "By the numbers" section (public.partials.marketing-stats).
+    Consolidated credibility band — sits directly under the hero so headline
+    trust numbers and security signals land above the fold.
 
-    Numbers are pulled from the same admin-editable SiteStat source of truth
-    (Admin → Site stats), never hard-coded in markup. The count-up shares the
-    `.js-stat-count` runtime defined in marketing-stats (which honours
-    prefers-reduced-motion); `.reveal` entrance + glassmorphism inherit the
-    existing dark/light theming.
+    Numbers are pulled from the admin-editable SiteStat source of truth
+    (Admin → Site stats), never hard-coded in markup. The count-up uses the
+    `.js-stat-count` runtime (honours prefers-reduced-motion); `.reveal`
+    entrance + glassmorphism inherit the existing dark/light theming.
 --}}
 @php
     try {
@@ -16,10 +14,12 @@
         $__heroStats = collect();
     }
 @endphp
-@if($__heroStats->isNotEmpty())
 <section class="py-8 sm:py-10 relative overflow-hidden" aria-label="Sayzio at a glance">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="reveal glass rounded-2xl sm:rounded-3xl border border-white/10 px-4 py-5 sm:px-8 sm:py-6">
+
+            {{-- Stats row (shown only when there are admin-seeded stats) --}}
+            @if($__heroStats->isNotEmpty())
             <div class="flex flex-col lg:flex-row lg:items-center gap-5 lg:gap-8">
                 <div class="flex items-center gap-3 shrink-0">
                     <div class="flex -space-x-2" aria-hidden="true">
@@ -51,7 +51,68 @@
                     @endforeach
                 </div>
             </div>
+
+            <div class="mt-5 pt-5 border-t border-white/[.07]"></div>
+            @endif
+
+            {{-- Security / reliability signals row — always visible --}}
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                @foreach([
+                    ['fa-shield-halved', '99.9% uptime',  'Multi-region edge',      'var(--c1)'],
+                    ['fa-lock',          'TLS 1.3',        'End-to-end encrypted',   'var(--c2)'],
+                    ['fa-user-shield',   'GDPR-ready',     'EU/UK SCCs in place',    'var(--c3)'],
+                    ['fa-server',        'Daily backups',  '30-day retention',       'var(--c4)'],
+                ] as [$icon, $title, $sub, $color])
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style="background: rgba(255,255,255,.05); color: {{ $color }};"><i class="fas {{ $icon }} text-xs"></i></span>
+                        <div class="min-w-0">
+                            <div class="text-xs font-bold text-white leading-tight">{{ $title }}</div>
+                            <div class="text-[10px] text-gray-400 leading-tight">{{ $sub }}</div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
         </div>
     </div>
 </section>
-@endif
+
+<script>
+(function(){
+    if (window.__inmeStatsCountupBound) return;
+    window.__inmeStatsCountupBound = true;
+    const reduce = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const fmt = (n) => n.toLocaleString('en-IN');
+    const animate = (el) => {
+        const target = parseInt(el.dataset.target || '', 10);
+        const display = el.dataset.display || '';
+        if (!Number.isFinite(target) || target <= 0) { el.textContent = display; return; }
+        const dur = parseInt(el.dataset.duration || '1500', 10);
+        const start = performance.now();
+        const tick = (now) => {
+            const t = Math.min(1, (now - start) / dur);
+            const eased = 1 - Math.pow(1 - t, 3);
+            const cur = Math.round(target * eased);
+            el.textContent = fmt(cur);
+            if (t < 1) requestAnimationFrame(tick);
+            else el.textContent = display;
+        };
+        requestAnimationFrame(tick);
+    };
+    const els = document.querySelectorAll('.js-stat-count');
+    if (reduce || !('IntersectionObserver' in window)) {
+        els.forEach(el => { el.textContent = el.dataset.display || el.textContent; });
+        return;
+    }
+    const io = new IntersectionObserver((entries) => {
+        entries.forEach(en => {
+            if (en.isIntersecting) {
+                animate(en.target);
+                io.unobserve(en.target);
+            }
+        });
+    }, { threshold: 0.4 });
+    els.forEach(el => io.observe(el));
+})();
+</script>
