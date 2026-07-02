@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +14,7 @@ import {
 } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
-import { googleContacts, type GoogleSyncStats } from "@/lib/api/contacts";
+import { googleContacts } from "@/lib/api/contacts";
 
 // Google Contacts two-way sync management (parity with the web Contacts
 // settings panel). OAuth *connect* still happens on the web (session-based);
@@ -30,12 +31,55 @@ export default function GoogleSyncScreen() {
 
   const account = q.data;
 
+  // Live cooldown countdown (seconds). Seeded from the API `retry_after` on a
+  // throttled response and ticked down to 0, disabling "Sync now" meanwhile.
+  const [cooldown, setCooldown] = useState(0);
+  const cooldownEndsAt = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setInterval(() => {
+      const endsAt = cooldownEndsAt.current;
+      if (endsAt == null) {
+        setCooldown(0);
+        return;
+      }
+      const remaining = Math.ceil((endsAt - Date.now()) / 1000);
+      setCooldown(remaining > 0 ? remaining : 0);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [cooldown]);
+
   const syncMut = useMutation({
     mutationFn: googleContacts.sync,
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["google-contacts-status"] });
       qc.invalidateQueries({ queryKey: ["contacts"] });
-      const s: GoogleSyncStats = r.stats;
+
+      if (r.status === "in_progress") {
+        Alert.alert(
+          "Sync already running",
+          "A sync is already in progress. Give it a moment and check back.",
+        );
+        return;
+      }
+
+      if (r.status === "throttled") {
+        const secs = Math.max(1, Math.ceil(r.retry_after ?? 0));
+        cooldownEndsAt.current = Date.now() + secs * 1000;
+        setCooldown(secs);
+        Alert.alert(
+          "Already up to date",
+          `You synced very recently. Try again in ${secs}s.`,
+        );
+        return;
+      }
+
+      const s = r.stats;
+      if (!s) {
+        Alert.alert("Sync complete", "Your contacts are up to date.");
+        return;
+      }
       Alert.alert(
         "Sync complete",
         `Created ${s.created}, updated ${s.updated}, deleted ${s.deleted}, pushed ${s.pushed}` +
@@ -45,7 +89,7 @@ export default function GoogleSyncScreen() {
       );
     },
     onError: (e: any) =>
-      Alert.alert("Sync failed", e?.message ?? "Try again"),
+      Alert.alert("Sync failed", e?.message || "Try again"),
   });
 
   const updateMut = useMutation({
@@ -53,7 +97,7 @@ export default function GoogleSyncScreen() {
       googleContacts.update(prefs),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["google-contacts-status"] }),
-    onError: (e: any) => Alert.alert("Error", e?.message ?? "Try again"),
+    onError: (e: any) => Alert.alert("Error", e?.message || "Try again"),
   });
 
   const disconnectMut = useMutation({
@@ -62,7 +106,7 @@ export default function GoogleSyncScreen() {
       qc.invalidateQueries({ queryKey: ["google-contacts-status"] });
       Alert.alert("Disconnected", "Your Google account has been unlinked.");
     },
-    onError: (e: any) => Alert.alert("Error", e?.message ?? "Try again"),
+    onError: (e: any) => Alert.alert("Error", e?.message || "Try again"),
   });
 
   const confirmDisconnect = () =>
@@ -159,13 +203,18 @@ export default function GoogleSyncScreen() {
 
             <Pressable
               onPress={() => syncMut.mutate()}
-              disabled={syncMut.isPending}
-              style={[btn(colors, colors.primary)]}
+              disabled={syncMut.isPending || cooldown > 0}
+              style={[
+                btn(colors, colors.primary),
+                (syncMut.isPending || cooldown > 0) && { opacity: 0.6 },
+              ]}
             >
               {syncMut.isPending ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.btnText}>Sync now</Text>
+                <Text style={styles.btnText}>
+                  {cooldown > 0 ? `Try again in ${cooldown}s` : "Sync now"}
+                </Text>
               )}
             </Pressable>
 

@@ -67,6 +67,11 @@ one-to-one.
 
 ## How it stays in sync with Sayzio
 
+> Maintainers: the transplanted files are tracked in `sync-manifest.json`, and
+> **`SYNC.md`** documents the repeatable procedure (plus the
+> `check:dialer-sync` drift checker in the monorepo) for re-applying main-app
+> dialer changes here.
+
 - **No backend duplication.** All data comes from the existing Sayzio REST API,
   so contacts, caller-ID lookups, call logging, favourites and universal search
   return exactly what the web dialer sees.

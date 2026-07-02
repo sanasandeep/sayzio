@@ -1,0 +1,290 @@
+{
+  "sourceRoot": "artifacts/1inme-mobile",
+  "files": [
+    {
+      "standalone": "app/(auth)/cancel-change.tsx",
+      "source": "app/(auth)/cancel-change.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/(auth)/_layout.tsx",
+      "source": "app/(auth)/_layout.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/(auth)/verify.tsx",
+      "source": "app/(auth)/verify.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/call/active.tsx",
+      "source": "app/call/active.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/call/incoming.tsx",
+      "source": "app/call/incoming.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/contacts/_form.tsx",
+      "source": "app/contacts/_form.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/contacts/google-sync.tsx",
+      "source": "app/contacts/google-sync.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/contacts/[id].tsx",
+      "source": "app/contacts/[id].tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/contacts/import.tsx",
+      "source": "app/contacts/import.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/contacts/new.tsx",
+      "source": "app/contacts/new.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/dialer-profile.tsx",
+      "source": "app/dialer-profile.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/info/about.tsx",
+      "source": "app/info/about.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/info/help.tsx",
+      "source": "app/info/help.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/info/_layout.tsx",
+      "source": "app/info/_layout.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/info/privacy.tsx",
+      "source": "app/info/privacy.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/info/terms.tsx",
+      "source": "app/info/terms.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "components/AppIcon.tsx",
+      "source": "components/AppIcon.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "components/Brand.tsx",
+      "source": "components/Brand.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "components/Button.tsx",
+      "source": "components/Button.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "components/EmptyState.tsx",
+      "source": "components/EmptyState.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "components/InfoPage.tsx",
+      "source": "components/InfoPage.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "components/MapPickerModal.tsx",
+      "source": "components/MapPickerModal.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "components/MapPreview.tsx",
+      "source": "components/MapPreview.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "components/RegistrationPausedNotice.tsx",
+      "source": "components/RegistrationPausedNotice.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "components/SocialMergePrompt.tsx",
+      "source": "components/SocialMergePrompt.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "components/TextField.tsx",
+      "source": "components/TextField.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "constants/colors.ts",
+      "source": "constants/colors.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "contexts/AuthContext.tsx",
+      "source": "contexts/AuthContext.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "contexts/ThemeContext.tsx",
+      "source": "contexts/ThemeContext.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "hooks/useColors.ts",
+      "source": "hooks/useColors.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "hooks/useCooldown.ts",
+      "source": "hooks/useCooldown.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/api.ts",
+      "source": "lib/api.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/api/authConfig.ts",
+      "source": "lib/api/authConfig.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/api/branding.ts",
+      "source": "lib/api/branding.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/api/contacts.ts",
+      "source": "lib/api/contacts.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/api/dialer.ts",
+      "source": "lib/api/dialer.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/api/notifications.ts",
+      "source": "lib/api/notifications.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/api/push.ts",
+      "source": "lib/api/push.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/api/security.ts",
+      "source": "lib/api/security.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/api/siteContent.ts",
+      "source": "lib/api/siteContent.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/biometrics.ts",
+      "source": "lib/biometrics.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/biometricsPrompt.ts",
+      "source": "lib/biometricsPrompt.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/push.ts",
+      "source": "lib/push.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/secure.ts",
+      "source": "lib/secure.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/(tabs)/dialer.tsx",
+      "source": "app/dialer.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/(auth)/index.tsx",
+      "source": "app/(auth)/index.tsx",
+      "relation": "adapted",
+      "sourceSha256": "b452164cc1b49e32b937279a391067b7a938319dd26a05e7f62400a6321fa74f",
+      "note": "dev-only missing-env alert text reworded (no monorepo path); everything else must match the main app"
+    },
+    {
+      "standalone": "app/index.tsx",
+      "source": "app/index.tsx",
+      "relation": "adapted",
+      "sourceSha256": "9d2ba6c34f03614063c9ae8a6f2496488bc4071c436c9f143359fba0af9cf6dd",
+      "note": "launch gate simplified: no onboarding/biometric-lock routing; signed-in users go straight to the Dialer tab"
+    },
+    {
+      "standalone": "app/_layout.tsx",
+      "source": "app/_layout.tsx",
+      "relation": "adapted",
+      "sourceSha256": "a4f032d14dc9d50902c72c2694b8bdf67ecfd90aeac01ec2fa586b3edeb986cd",
+      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, @workspace/api-client-react wiring); mounts useContactAutoSync"
+    },
+    {
+      "standalone": "app/oauth-callback.tsx",
+      "source": "app/oauth-callback.tsx",
+      "relation": "adapted",
+      "sourceSha256": "bf85302f7734f879d540c1ff3d13da69e047129688aa81a16bd7d407fa3283bd",
+      "note": "Connected-Apps OAuth completion branch removed (standalone has no connected-apps screen); session handling must match"
+    },
+    {
+      "standalone": "app/(tabs)/_layout.tsx",
+      "source": "app/(tabs)/_layout.tsx",
+      "relation": "adapted",
+      "sourceSha256": "620a5adace405e22ff6d5bd125fce0f34c4ef96db498b72f6c38bf5d7561f397",
+      "note": "different tab set: Dialer / Contacts / Caller ID (+ header search button) instead of the main-app tabs"
+    },
+    {
+      "standalone": "app/(tabs)/contacts.tsx",
+      "source": "app/contacts/index.tsx",
+      "relation": "adapted",
+      "sourceSha256": "c0642dcba93d4157ceb5c497d9845195b86db2911db9beeff080bb94fdc52fee",
+      "note": "card/brochure-scan button removed; device import goes through lib/deviceContacts.ts helper instead of inline expo-contacts code"
+    }
+  ],
+  "standaloneOnly": [
+    {
+      "path": "app/search.tsx",
+      "note": "universal-finder modal screen; UI derived from the dialer inline search, backed by the same /api/v1/dialer/search endpoint"
+    },
+    {
+      "path": "app/(tabs)/caller-id.tsx",
+      "note": "dedicated Caller ID lookup tab (main app reaches caller-id via the dialer + dialer-profile flows)"
+    },
+    {
+      "path": "hooks/useContactAutoSync.ts",
+      "note": "auto device-contact import + Google Contacts sync trigger on app open / foreground"
+    },
+    {
+      "path": "lib/deviceContacts.ts",
+      "note": "shared device-contact import helper used by the contacts tab and useContactAutoSync"
+    }
+  ]
+}

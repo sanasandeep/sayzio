@@ -180,6 +180,15 @@ export type GoogleSyncStats = {
   skipped_capped: number;
 };
 
+export type GoogleSyncStatus = "synced" | "throttled" | "in_progress";
+
+export type GoogleSyncResult = {
+  status: GoogleSyncStatus;
+  retry_after?: number | null;
+  stats: GoogleSyncStats | null;
+  account: GoogleContactsAccount;
+};
+
 export const googleContacts = {
   status: async (): Promise<GoogleContactsAccount | null> => {
     const res = await apiFetch<{ data: { account: GoogleContactsAccount | null } }>(
@@ -187,10 +196,11 @@ export const googleContacts = {
     );
     return res.data.account;
   },
-  sync: async (): Promise<{ stats: GoogleSyncStats; account: GoogleContactsAccount }> => {
-    const res = await apiFetch<{
-      data: { stats: GoogleSyncStats; account: GoogleContactsAccount };
-    }>(`/contacts/google/sync`, { method: "POST" });
+  sync: async (): Promise<GoogleSyncResult> => {
+    const res = await apiFetch<{ data: GoogleSyncResult }>(
+      `/contacts/google/sync`,
+      { method: "POST" },
+    );
     return res.data;
   },
   update: async (
