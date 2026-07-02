@@ -153,8 +153,14 @@
 {{-- Coming-soon modal — teleported to <body> so it is never trapped inside a
      transformed / opacity-animated / overflow-hidden ancestor (e.g. the dialer
      section's .reveal wrapper on the homepage).  Opened from any store badge
-     via the open-store-coming-soon window event. Self-contained Alpine scope. --}}
-<template x-teleport="body">
+     via the open-store-coming-soon window event. Self-contained Alpine scope.
+
+     The empty x-data on the <template> is REQUIRED: Alpine.start() only
+     initializes trees rooted at [x-data] elements, and this partial is included
+     in plain (non-Alpine) markup — without its own x-data root the x-teleport
+     directive is never processed and the modal silently never mounts.
+     Guarded by tests/Browser/store-coming-soon-modal.spec.ts. --}}
+<template x-data x-teleport="body">
 <div x-data="{
         open: false, store: 'play',
         nEmail: '', nHp: '', nBusy: false, nDone: false, nMsg: '', nErr: '',

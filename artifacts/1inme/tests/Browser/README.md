@@ -63,7 +63,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   header-mobile-logged-out-cta.spec.ts \
   dashboard-mobile-account.spec.ts \
   header-desktop-logged-out-cta.spec.ts \
-  dialer-live-sync.spec.ts
+  dialer-live-sync.spec.ts \
+  store-coming-soon-modal.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -115,7 +116,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these twenty-four specs are gated (and not the whole suite)
+### Why these twenty-six specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -380,13 +381,25 @@ The gate covers the specs that run reliably as an unattended check here:
   background interval so the poll fires a bounded number of times instead of
   saturating the few PHP-CLI workers (memory editor-e2e-heartbeat-saturation).
   All tests share one logged-in context (the `demo-login` route is rate-limited).
+- `store-coming-soon-modal.spec.ts` — gated, no login. Guards the store-badge
+  "coming soon" popup (`public/partials/store-buttons.blade.php`) against the
+  blank-modal regression: the dialog must be teleported to `<body>` (Alpine
+  `x-teleport`, plus the required empty `x-data` root on the `<template>` — see
+  the comment in the partial), never trapped inside a CSS-transformed /
+  opacity-animated ancestor. Seeds blank `marketing_play_store_url` /
+  `marketing_app_store_url` via tinker so badges render as buttons, then in BOTH
+  contexts — the homepage `#dialer-contacts` section and the `/contact` footer —
+  clicks a Play badge and asserts the overlay's parent is `<body>`, the card is
+  visible, effectively opaque (opacity > 0.95), fully inside the viewport, and
+  hit-testable at its center; the footer test also re-opens via the App Store
+  badge and checks the headline switches. Close-button click must dismiss it.
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the twenty-four gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the twenty-six gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
