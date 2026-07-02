@@ -89,7 +89,7 @@ export default function GoogleSyncScreen() {
       );
     },
     onError: (e: any) =>
-      Alert.alert("Sync failed", e?.message ?? "Try again"),
+      Alert.alert("Sync failed", e?.message || "Try again"),
   });
 
   const updateMut = useMutation({
@@ -97,7 +97,7 @@ export default function GoogleSyncScreen() {
       googleContacts.update(prefs),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["google-contacts-status"] }),
-    onError: (e: any) => Alert.alert("Error", e?.message ?? "Try again"),
+    onError: (e: any) => Alert.alert("Error", e?.message || "Try again"),
   });
 
   const disconnectMut = useMutation({
@@ -106,7 +106,7 @@ export default function GoogleSyncScreen() {
       qc.invalidateQueries({ queryKey: ["google-contacts-status"] });
       Alert.alert("Disconnected", "Your Google account has been unlinked.");
     },
-    onError: (e: any) => Alert.alert("Error", e?.message ?? "Try again"),
+    onError: (e: any) => Alert.alert("Error", e?.message || "Try again"),
   });
 
   const confirmDisconnect = () =>

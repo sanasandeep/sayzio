@@ -61,3 +61,6 @@ instead of fast-skip) steals CPU from the others and can tip THEM over. Symptom 
 contention (not a code bug): 0ms worker crashes + fast-fail cascades + a different
 gate failing each run. The lever is keeping each job's failure mode a fast SKIP, and
 treating a persistently-reshuffling gate as environment-blocked, not chasing each.
+
+## Parallel validation contention
+When the full validation suite runs all gates in parallel, the throwaway-Expo gates (auth-flow-e2e core, icon-fonts-e2e) can starve on CPU: Metro reports the bundle "served" but `page.goto` still exceeds its 90s timeout. Not a code regression — re-run just the failing gate(s) via `startValidationRun([...])` in isolation to confirm; they pass alone.

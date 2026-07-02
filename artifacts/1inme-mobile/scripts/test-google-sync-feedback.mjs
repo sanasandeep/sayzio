@@ -99,23 +99,34 @@ assert.ok(
   "extracted onSuccess branches on the sync status envelope",
 );
 
-// Build a callable handler with injected dependencies. `qc` + `Alert` are free
-// vars in the shipped closure, so they become factory params here.
+// Build a callable handler with injected dependencies. `qc`, `Alert`, and the
+// cooldown state (`cooldownEndsAt` ref + `setCooldown` setter) are free vars
+// in the shipped closure, so they become factory params here.
 // eslint-disable-next-line no-new-func
-const makeHandler = new Function("qc", "Alert", `return ${onSuccessArrow};`);
+const makeHandler = new Function(
+  "qc",
+  "Alert",
+  "cooldownEndsAt",
+  "setCooldown",
+  `return ${onSuccessArrow};`,
+);
 
 function run(result) {
   const alerts = [];
   const invalidated = [];
+  const cooldowns = [];
+  const cooldownEndsAt = { current: null };
   const qc = {
     invalidateQueries: (arg) => invalidated.push(arg),
   };
   const Alert = {
     alert: (title, body) => alerts.push({ title, body }),
   };
-  const handler = makeHandler(qc, Alert);
+  const handler = makeHandler(qc, Alert, cooldownEndsAt, (s) =>
+    cooldowns.push(s),
+  );
   handler(result);
-  return { alerts, invalidated };
+  return { alerts, invalidated, cooldowns, cooldownEndsAt };
 }
 
 const sampleAccount = {
@@ -179,12 +190,13 @@ ok("in_progress → 'Sync already running' (no fall-through)");
 
 // ===========================================================================
 // 2. throttled → "Already up to date" with the retry_after seconds rendered
-//    (rounded, floored at 1), tolerant of a null/omitted retry_after.
+//    (ceil'd, floored at 1), tolerant of a null/omitted retry_after, and the
+//    live cooldown countdown seeded so "Sync now" disables.
 // ===========================================================================
 {
-  // A concrete retry_after is rounded and rendered.
+  // A concrete retry_after is ceil'd and rendered, and seeds the cooldown.
   {
-    const { alerts } = run({
+    const { alerts, cooldowns, cooldownEndsAt } = run({
       status: "throttled",
       retry_after: 42.4,
       stats: null,
@@ -197,11 +209,21 @@ ok("in_progress → 'Sync already running' (no fall-through)");
       "throttled uses the 'Already up to date' title",
     );
     assert.ok(
-      /Try again in 42s\./.test(alerts[0].body),
-      `throttled renders the retry_after seconds (got: ${alerts[0].body})`,
+      /Try again in 43s\./.test(alerts[0].body),
+      `throttled ceils + renders the retry_after seconds (got: ${alerts[0].body})`,
+    );
+    assert.deepEqual(
+      cooldowns,
+      [43],
+      "throttled seeds the live cooldown countdown with the same seconds",
+    );
+    assert.ok(
+      typeof cooldownEndsAt.current === "number" &&
+        cooldownEndsAt.current > Date.now(),
+      "throttled records a future cooldown end timestamp",
     );
   }
-  // retry_after rounds up (42.6 → 43).
+  // retry_after always rounds UP (42.6 → 43) so we never promise too soon.
   {
     const { alerts } = run({
       status: "throttled",
@@ -211,7 +233,7 @@ ok("in_progress → 'Sync already running' (no fall-through)");
     });
     assert.ok(
       /Try again in 43s\./.test(alerts[0].body),
-      "throttled rounds the retry_after seconds",
+      "throttled rounds the retry_after seconds up",
     );
   }
   // Null retry_after is floored to a sensible 1s (never "in 0s" / NaN).
@@ -357,5 +379,134 @@ assert.ok(
   "sync() POSTs /contacts/google/sync and returns the raw {data} envelope",
 );
 ok("api client sync() matches the status-envelope contract the screen consumes");
+
+// ===========================================================================
+// 6. Error feedback — every mutation on the screen (sync / preference update /
+//    disconnect) maps a thrown error to a VISIBLE Alert. A refactor that drops
+//    one of these onError handlers (or stops surfacing the server message)
+//    would leave users staring at a silent failure.
+//
+//    Same technique as onSuccess above: pull the REAL `onError: (e...) => ...`
+//    handler out of each mutation's source and rebuild it as a callable with
+//    an injected Alert, so we test what ships.
+// ===========================================================================
+function extractOnErrorArrow(src, mutationAnchor) {
+  const anchor = src.indexOf(mutationAnchor);
+  if (anchor === -1) throw new Error(`could not find ${mutationAnchor}`);
+  // Bound the search to this mutation's options object so we never pick up a
+  // later mutation's onError.
+  const nextMut = src.indexOf("useMutation(", anchor + mutationAnchor.length);
+  const scopeEnd = nextMut === -1 ? src.length : nextMut;
+  const key = src.indexOf("onError:", anchor);
+  if (key === -1 || key >= scopeEnd)
+    throw new Error(`${mutationAnchor} has NO onError handler — errors would be silent`);
+  const arrowTok = src.indexOf("=>", key);
+  if (arrowTok === -1 || arrowTok >= scopeEnd)
+    throw new Error(`could not find onError arrow for ${mutationAnchor}`);
+  // Walk the arrow body: braced block or a single expression ending at the
+  // first `,` / `}` at zero nesting depth (string/template aware).
+  let i = arrowTok + 2;
+  while (/\s/.test(src[i])) i++;
+  const braced = src[i] === "{";
+  let depth = 0;
+  let inStr = null;
+  let end = -1;
+  for (let j = i; j < src.length; j++) {
+    const ch = src[j];
+    const prev = src[j - 1];
+    if (inStr) {
+      if (ch === inStr && prev !== "\\") inStr = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      inStr = ch;
+      continue;
+    }
+    if (ch === "{" || ch === "(" || ch === "[") depth++;
+    else if (ch === "}" || ch === ")" || ch === "]") {
+      if (braced && ch === "}" && depth === 1) {
+        end = j + 1;
+        break;
+      }
+      if (!braced && depth === 0) {
+        end = j;
+        break;
+      }
+      depth--;
+    } else if (!braced && ch === "," && depth === 0) {
+      end = j;
+      break;
+    }
+  }
+  if (end === -1) throw new Error(`unterminated onError body for ${mutationAnchor}`);
+  return src.slice(i, end).trim();
+}
+
+function makeErrorHandler(mutationAnchor) {
+  const body = extractOnErrorArrow(screenSrc, mutationAnchor);
+  // The shipped param is `(e: any)`; we rebuild the arrow ourselves so the TS
+  // annotation never reaches the Function constructor.
+  // eslint-disable-next-line no-new-func
+  const factory = new Function(
+    "Alert",
+    "qc",
+    `return (e) => ${body.startsWith("{") ? body : `(${body})`};`,
+  );
+  return (e) => {
+    const alerts = [];
+    const Alert = { alert: (title, body2) => alerts.push({ title, body: body2 }) };
+    const qc = { invalidateQueries: () => {} };
+    factory(Alert, qc)(e);
+    return alerts;
+  };
+}
+
+const errorCases = [
+  {
+    anchor: "const syncMut = useMutation(",
+    label: "sync",
+    title: "Sync failed",
+  },
+  {
+    anchor: "const updateMut = useMutation(",
+    label: "preference update",
+    title: "Error",
+  },
+  {
+    anchor: "const disconnectMut = useMutation(",
+    label: "disconnect",
+    title: "Error",
+  },
+];
+
+for (const { anchor, label, title } of errorCases) {
+  const handle = makeErrorHandler(anchor);
+
+  // A server-provided message is surfaced verbatim.
+  {
+    const alerts = handle(new Error("Google token expired. Reconnect your account."));
+    assert.equal(alerts.length, 1, `${label} error shows exactly one alert`);
+    assert.equal(alerts[0].title, title, `${label} error uses the '${title}' title`);
+    assert.equal(
+      alerts[0].body,
+      "Google token expired. Reconnect your account.",
+      `${label} error surfaces the server-provided message`,
+    );
+  }
+
+  // No message → the "Try again" fallback (never undefined/empty).
+  for (const bare of [{}, new Error(""), null, undefined]) {
+    const alerts = handle(bare);
+    assert.equal(alerts.length, 1, `${label} bare error still shows an alert`);
+    assert.equal(alerts[0].title, title, `${label} bare error keeps the '${title}' title`);
+    assert.equal(
+      alerts[0].body,
+      "Try again",
+      `${label} error with no message falls back to 'Try again' (got: ${JSON.stringify(alerts[0].body)})`,
+    );
+  }
+
+  ok(`${label} onError → visible '${title}' alert (server message + 'Try again' fallback)`);
+}
 
 console.log(`\n[test-google-sync-feedback] all ${passed} checks passed`);
