@@ -22,7 +22,7 @@
     }
     $payload      = $isEdit ? ($qrCode->payload ?? []) : [];
     $currentType  = $isEdit ? $qrCode->type : 'url';
-    $linkId       = $isEdit ? $qrCode->link_id : null;
+    $linkId       = $isEdit ? $qrCode->link_id : ($prefillLinkId ?? null);
 
     $catalog = [
         'dots'      => QrCodeCatalog::dotShapes(),
@@ -92,7 +92,7 @@
                 <i class="fas fa-arrow-left"></i>
             </a>
             <input type="text" name="name" required maxlength="160" placeholder="Untitled QR code"
-                   value="{{ old('name', $isEdit ? $qrCode->name : '') }}"
+                   value="{{ old('name', $isEdit ? $qrCode->name : ($prefillName ?? '')) }}"
                    class="flex-1 min-w-[200px] px-3 py-2 text-base font-bold rounded-lg outline-none"
                    style="background: transparent; border: 1px solid transparent; color: var(--text-primary);">
             <select name="project_id" class="px-3 py-2 text-sm rounded-lg outline-none"

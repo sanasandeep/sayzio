@@ -54,6 +54,26 @@ class QrCodeController extends Controller
         $links = workspace_owner()->links()->where('is_active', true)
             ->orderBy('created_at', 'desc')->limit(200)
             ->get(['id', 'alias', 'title']);
+
+        // Deep-link prefill: link pages ("QR Code" actions) open the studio
+        // in create mode pre-bound to that link (?link_id=N). Ownership is
+        // enforced; the link is injected into the picker if it fell outside
+        // the recent-200 window or is inactive.
+        $prefillLinkId = null;
+        $prefillName   = null;
+        if (!($qrCode && $qrCode->exists) && $request->filled('link_id')) {
+            $prefillLink = Link::where('id', (int) $request->query('link_id'))
+                ->where('user_id', workspace_owner_id())
+                ->first(['id', 'alias', 'title']);
+            if ($prefillLink) {
+                $prefillLinkId = $prefillLink->id;
+                $prefillName   = 'QR — ' . ($prefillLink->title ?: $prefillLink->alias);
+                if (!$links->contains('id', $prefillLink->id)) {
+                    $links->prepend($prefillLink);
+                }
+            }
+        }
+
         $defaultDesign = $this->defaultDesign();
         $presets       = QrCodeCatalog::presets();
 
@@ -70,7 +90,8 @@ class QrCodeController extends Controller
 
         return view('user.qr-codes.builder', compact(
             'qrCode', 'types', 'projects', 'links', 'defaultDesign', 'presets',
-            'qrArtEnabled', 'qrArtAllowed', 'qrArtCost', 'qrArtBalance', 'qrArtPresets'
+            'qrArtEnabled', 'qrArtAllowed', 'qrArtCost', 'qrArtBalance', 'qrArtPresets',
+            'prefillLinkId', 'prefillName'
         ));
     }
 
