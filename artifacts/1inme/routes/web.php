@@ -275,6 +275,8 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     Route::view('/docs/api', 'public.api-docs', ['seoKey' => 'api-docs'])->name('site.api-docs');
     // Standalone marketing page for the Résumé / Portfolio Builder module.
     Route::view('/resume-builder', 'public.resume-builder', ['seoKey' => 'resume-builder'])->name('site.resume-builder');
+    // Standalone marketing page for the Dialer & Contacts module.
+    Route::view('/dialer-contacts', 'public.dialer-contacts', ['seoKey' => 'dialer-contacts'])->name('site.dialer-contacts');
     // Standalone marketing page for the AI Marketing Strategist feature.
     Route::view('/ai-marketing-strategist', 'public.ai-marketing-strategist', [
         'seoKey' => 'ai-marketing-strategist',

@@ -3796,6 +3796,7 @@
 
 {{-- ==================== ZONE · DEEPER FEATURE SHOWCASE ==================== --}}
 @include('home.partials.resume')
+@include('home.partials.dialer-contacts')
 @include('home.partials.forms')
 @include('home.partials.notifications')
 {{-- ============================ WORKSPACE & TEAM ============================ --}}

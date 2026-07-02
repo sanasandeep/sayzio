@@ -32,7 +32,7 @@ final class ReservedAlias
         'coins', 'blogs', 'legal', 'watermark',
         'signed-media', 'stats', 'moderation', 'u', 'p', 'c', 'm',
         'sustainability', 'checkout', 'analytics', 'audience', 'integrations',
-        'compare', 'for', 'demos',
+        'compare', 'for', 'demos', 'dialer-contacts',
     ];
 
     /**

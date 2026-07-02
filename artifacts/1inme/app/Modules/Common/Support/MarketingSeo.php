@@ -114,6 +114,14 @@ class MarketingSeo
                 'description' => 'Build a polished online résumé and portfolio with Sayzio and share it from a single link or QR code. Export to PDF and keep it always up to date.',
                 'keywords' => 'resume builder, online cv, portfolio builder, shareable resume, pdf resume, personal page',
             ],
+            'dialer-contacts' => [
+                'label' => 'Dialer & Contacts',
+                'group' => 'Capabilities',
+                'url' => '/dialer-contacts',
+                'title' => 'Smart Dialer & Contacts — Call, Sync & Turn Numbers Into Profiles',
+                'description' => 'A T9 smart dialer, quick call / SMS / WhatsApp / Telegram channels, two-way Google Contacts sync, phone-to-biolink resolution, an AI business-card scanner and shareable vCards — your whole address book, supercharged on Sayzio.',
+                'keywords' => 'smart dialer, contacts, t9 dialer, google contacts sync, business card scanner, vcard, phone to biolink, speed dial, call log, caller id, sayzio dialer',
+            ],
             'ai-marketing-strategist' => [
                 'label' => 'AI Marketing Strategist',
                 'group' => 'AI suite',
