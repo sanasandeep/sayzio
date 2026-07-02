@@ -1007,15 +1007,21 @@
             box-shadow: 0 28px 70px -20px rgba(61,107,255,.55), 0 0 0 1px rgba(255,255,255,.08);
         }
         .bb-screen { position: relative; width:100%; height:100%; border-radius: 28px; overflow: hidden;
-            background: linear-gradient(180deg,#3d6bff 0%,#e94e8c 55%,#ff8a3c 100%); }
+            background:
+                radial-gradient(ellipse at 25% 0%,   rgba(61,107,255,.55) 0%, transparent 55%),
+                radial-gradient(ellipse at 85% 38%,  rgba(233,78,140,.5)  0%, transparent 52%),
+                radial-gradient(ellipse at 50% 100%, rgba(255,138,60,.45) 0%, transparent 48%),
+                #0d0820; }
         .bb-notch { position:absolute; top: 7px; left:50%; transform: translateX(-50%); width:64px; height:14px; background:#08020f; border-radius:10px; z-index:20; }
-        .bb-scroll { position:absolute; inset: 28px 10px 10px; overflow-y: auto; display:flex; flex-direction:column; gap:7px;
-            scrollbar-width: none; }
+        .bb-scroll { position:absolute; inset:28px 10px 10px; overflow:hidden; display:flex; flex-direction:column;
+            scrollbar-width:none; z-index:2; mask-image:linear-gradient(180deg,transparent 0,#000 12px,#000 88%,transparent 100%); -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 12px,#000 88%,transparent 100%); }
         .bb-scroll::-webkit-scrollbar { display:none; }
         .bb-prof { text-align:center; color:#fff; padding: 4px 0; }
-        .bb-prof .bb-av { width: 44px; height:44px; border-radius:50%; background: rgba(255,255,255,.25);
-            margin: 0 auto; display:flex; align-items:center; justify-content:center; font-size: 12px; font-weight: 900;
-            border: 2px solid rgba(255,255,255,.4); }
+        .bb-prof .bb-av { width: 48px; height:48px; border-radius:50%;
+            background: linear-gradient(135deg,#3d6bff 0%,#e94e8c 100%);
+            margin: 0 auto; display:flex; align-items:center; justify-content:center; font-size: 13px; font-weight: 900; color:#fff;
+            border: 2.5px solid rgba(255,255,255,.55);
+            box-shadow: 0 0 0 4px rgba(61,107,255,.25), 0 8px 20px -8px rgba(61,107,255,.7); }
         .bb-prof .bb-h { font-size: 11px; font-weight: 900; margin-top: 4px; }
         .bb-prof .bb-t { font-size: 8px; opacity: .85; margin-top: 1px; }
         .bb-prof .bb-soc { display:flex; justify-content:center; gap:7px; margin-top:5px; font-size:9px; color:#fff; opacity:.9; }
@@ -1091,6 +1097,82 @@
         .bb-socials { display:flex; justify-content:space-around; padding: 7px 4px; border-radius: 10px; color:#fff; font-size: 11px;
             background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.18); }
         .bb-foot { text-align:center; font-size: 8px; opacity:.7; color:#fff; padding: 4px 0 8px; }
+
+        /* ─── Phone: subtle inner shine overlay ─── */
+        .bb-screen::before {
+            content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+            background: radial-gradient(ellipse at 20% 8%, rgba(255,255,255,.13) 0%, transparent 50%);
+        }
+        /* ─── Phone auto-scroll pan ─── */
+        @keyframes bbScroll {
+            0%,8%   { transform: translateY(0); }
+            32%,44% { transform: translateY(-35%); }
+            70%,82% { transform: translateY(-66%); }
+            96%,100%{ transform: translateY(0); }
+        }
+        .bb-scroll > * { flex-shrink: 0; }
+        .bb-phone-inner { display:flex; flex-direction:column; gap:7px; animation: bbScroll 22s ease-in-out infinite; }
+
+        /* ─── Builder drag-reorder states ─── */
+        .bl-drop-indicator {
+            height: 3px; border-radius: 999px; flex-shrink: 0;
+            background: linear-gradient(90deg, var(--c2), var(--c3));
+            box-shadow: 0 0 10px rgba(61,107,255,.7);
+            margin: 1px 0;
+            animation: blIndicatorPop .22s cubic-bezier(.34,1.56,.64,1) both;
+        }
+        @keyframes blIndicatorPop { from { opacity:0; transform:scaleX(.3); } to { opacity:1; transform:scaleX(1); } }
+        .build-row.bl-dragging {
+            background: rgba(61,107,255,.18) !important;
+            border-color: rgba(61,107,255,.6) !important;
+            box-shadow: 0 18px 42px -12px rgba(61,107,255,.55), 0 0 0 1.5px rgba(61,107,255,.4) !important;
+            transform: translateY(-5px) scale(1.025) translateX(2px) !important;
+            z-index: 10; position: relative; cursor: grabbing;
+        }
+        .build-row.bl-dragging .bl-grip { color: var(--c2) !important; }
+        .build-row.bl-ghost {
+            opacity: .25 !important;
+            background: rgba(255,255,255,.025) !important;
+            border-style: dashed !important;
+            transform: scale(.98) !important;
+        }
+        .build-row.bl-dropping { animation: blDrop .4s cubic-bezier(.16,1,.3,1) both; }
+        @keyframes blDrop { 0%{ transform:translateY(-5px) scale(1.025); } 55%{ transform:translateY(2px) scale(.99); } 100%{ transform:translateY(0) scale(1); } }
+
+        /* ─── Theme swatch active ring ─── */
+        .th-swatch { transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s, outline-color .35s; }
+        .th-swatch.is-active {
+            transform: translateY(-4px) scale(1.16);
+            outline: 2.5px solid rgba(255,255,255,.8);
+            outline-offset: 2px;
+            box-shadow: 0 0 0 5px rgba(255,255,255,.1), 0 10px 22px -8px rgba(0,0,0,.6) !important;
+        }
+
+        /* ─── Right-col card polish: swatch preview bar ─── */
+        .th-preview-bar {
+            height: 4px; border-radius: 999px; overflow:hidden; position:relative;
+            background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08);
+        }
+        .th-preview-bar-fill {
+            height:100%; border-radius:999px; width:0%;
+            transition: width .6s cubic-bezier(.16,1,.3,1), background .4s ease;
+        }
+
+        /* ─── Mobile-first stat bar animation ─── */
+        @keyframes mfStatIn { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+        .mf-stat-bar { height:3px; border-radius:999px; transform-origin:left; animation: mfStatIn 1.2s cubic-bezier(.16,1,.3,1) both; }
+
+        /* ─── Reduced motion: all new builder/phone/swatch animations ─── */
+        @media (prefers-reduced-motion: reduce) {
+            .build-row.bl-dragging, .build-row.bl-ghost, .build-row.bl-dropping,
+            .bl-drop-indicator, .bb-phone-inner, .th-swatch, .th-swatch.is-active,
+            .mf-stat-bar {
+                animation: none !important;
+                transform: none !important;
+                transition: none !important;
+            }
+            .th-swatch.is-active { outline: 2.5px solid rgba(255,255,255,.7); }
+        }
 
         /* ============ Hero category gallery ============ */
         .hero-gallery {
@@ -2411,6 +2493,11 @@
             border-color: #e2e8f0;
         }
         html.light-mode .mf-stats span { color: #64748b; }
+        /* ---- New animation elements: theme preview bar + stat bar ---- */
+        html.light-mode .th-preview-bar { background: #e2e8f0; border-color: #cbd5e1; }
+        html.light-mode #th-active-label { background: rgba(61,107,255,.08) !important; border-color: rgba(61,107,255,.35) !important; }
+        html.light-mode .build-row.bl-dragging { background: rgba(61,107,255,.1) !important; }
+        html.light-mode .build-row.bl-ghost { background: rgba(15,23,42,.04) !important; }
 
         /* ---- Share section · channel chips ---- */
         html.light-mode .ch-icon {
@@ -2832,6 +2919,7 @@
                             <div class="bb-screen">
                                 <div class="bb-notch" aria-hidden="true"></div>
                                 <div class="bb-scroll">
+                                  <div class="bb-phone-inner">
                                     {{-- Profile header --}}
                                     <div class="bb-prof">
                                         <div class="bb-av">JD</div>
@@ -2880,6 +2968,7 @@
                                     {{-- Socials --}}
                                     <div class="bb-socials"><i class="fab fa-instagram"></i><i class="fab fa-tiktok"></i><i class="fab fa-youtube"></i><i class="fab fa-x-twitter"></i><i class="fab fa-spotify"></i></div>
                                     <div class="bb-foot">1inme.co/@jane</div>
+                                  </div>
                                 </div>
                             </div>
                         </div>
@@ -2893,19 +2982,28 @@
                     <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-25" style="background:var(--c1)"></div>
                     <div class="relative flex flex-col flex-1">
                         <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(27,212,217,.2)"><i class="fas fa-palette text-xl" style="color:var(--c1)"></i></div>
-                        <h3 class="text-lg font-bold mb-2">Themes &amp; design controls</h3>
+                        <h3 class="text-lg font-bold mb-1.5">Themes &amp; design controls</h3>
                         <p class="text-sm text-gray-400 mb-5">Pick from beautiful presets, then fine-tune fonts, colours and layouts to match your vibe.</p>
 
                         <div class="mt-auto space-y-3">
+                            {{-- Active theme label --}}
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Theme</span>
+                                <span id="th-active-label" class="text-[10px] font-bold px-2 py-0.5 rounded-full border" style="background:rgba(27,212,217,.12);border-color:rgba(27,212,217,.35);color:var(--c1)">Aurora</span>
+                            </div>
                             {{-- Theme preset swatches --}}
                             <div class="flex items-center gap-2">
-                                <span class="th-swatch" style="background:linear-gradient(135deg,#1bd4d9,#3d6bff)" title="Aurora"></span>
-                                <span class="th-swatch" style="background:linear-gradient(135deg,#e94e8c,#ff8a3c)" title="Sunset"></span>
-                                <span class="th-swatch" style="background:linear-gradient(135deg,#0e0e10,#3f3f46);border:1px solid rgba(255,255,255,.15)" title="Noir"></span>
-                                <span class="th-swatch" style="background:linear-gradient(135deg,#fef3c7,#f59e0b)" title="Sand"></span>
-                                <span class="th-swatch" style="background:linear-gradient(135deg,#a7f3d0,#10b981)" title="Mint"></span>
-                                <span class="th-swatch" style="background:linear-gradient(135deg,#dbeafe,#3b82f6)" title="Sky"></span>
+                                <span class="th-swatch" data-th-name="Aurora" data-th-c1="#1bd4d9" data-th-c2="#3d6bff" style="background:linear-gradient(135deg,#1bd4d9,#3d6bff)" title="Aurora"></span>
+                                <span class="th-swatch" data-th-name="Sunset" data-th-c1="#e94e8c" data-th-c2="#ff8a3c" style="background:linear-gradient(135deg,#e94e8c,#ff8a3c)" title="Sunset"></span>
+                                <span class="th-swatch" data-th-name="Noir"   data-th-c1="#6b7280" data-th-c2="#3f3f46" style="background:linear-gradient(135deg,#0e0e10,#3f3f46);border:1px solid rgba(255,255,255,.15)" title="Noir"></span>
+                                <span class="th-swatch" data-th-name="Sand"   data-th-c1="#f59e0b" data-th-c2="#fef3c7" style="background:linear-gradient(135deg,#fef3c7,#f59e0b)" title="Sand"></span>
+                                <span class="th-swatch" data-th-name="Mint"   data-th-c1="#10b981" data-th-c2="#a7f3d0" style="background:linear-gradient(135deg,#a7f3d0,#10b981)" title="Mint"></span>
+                                <span class="th-swatch" data-th-name="Sky"    data-th-c1="#3b82f6" data-th-c2="#dbeafe" style="background:linear-gradient(135deg,#dbeafe,#3b82f6)" title="Sky"></span>
                                 <span class="text-[11px] font-bold text-gray-500 ml-1">+24</span>
+                            </div>
+                            {{-- Theme preview bar --}}
+                            <div class="th-preview-bar">
+                                <div id="th-preview-fill" class="th-preview-bar-fill" style="width:100%;background:linear-gradient(90deg,#1bd4d9,#3d6bff)"></div>
                             </div>
                             {{-- Font + radius row --}}
                             <div class="flex items-center gap-2 flex-wrap">
@@ -2923,7 +3021,7 @@
                     <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-25" style="background:var(--c3)"></div>
                     <div class="relative flex flex-col flex-1">
                         <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(233,78,140,.2)"><i class="fas fa-mobile-screen text-xl" style="color:var(--c3)"></i></div>
-                        <h3 class="text-lg font-bold mb-2">Mobile-first by default</h3>
+                        <h3 class="text-lg font-bold mb-1.5">Mobile-first by default</h3>
                         <p class="text-sm text-gray-400 mb-5">Every theme looks razor-sharp on small screens — that’s where your audience actually is.</p>
 
                         <div class="mt-auto mf-mock" aria-hidden="true">
@@ -2933,23 +3031,167 @@
                                 <div class="mf-avatar"></div>
                                 <div class="mf-name"></div>
                                 <div class="mf-handle"></div>
-                                <div class="mf-btn"></div>
-                                <div class="mf-btn" style="width:78%"></div>
-                                <div class="mf-btn" style="width:65%"></div>
+                                <div class="mf-btn" style="animation-delay:0s"></div>
+                                <div class="mf-btn" style="width:78%;animation-delay:.28s"></div>
+                                <div class="mf-btn" style="width:62%;animation-delay:.56s"></div>
                             </div>
                             {{-- Stats --}}
                             <div class="mf-stats">
-                                <div><strong>92%</strong><span>mobile traffic</span></div>
-                                <div><strong>&lt;1.2s</strong><span>load time</span></div>
-                                <div><strong>100</strong><span>Lighthouse</span></div>
+                                <div>
+                                    <strong>92%</strong><span>mobile traffic</span>
+                                    <div class="mf-stat-bar mt-1.5" style="background:linear-gradient(90deg,var(--c1),var(--c2));width:92%;animation-delay:.1s"></div>
+                                </div>
+                                <div>
+                                    <strong>&lt;1.2s</strong><span>load time</span>
+                                    <div class="mf-stat-bar mt-1.5" style="background:linear-gradient(90deg,var(--c3),var(--c4));width:82%;animation-delay:.35s"></div>
+                                </div>
+                                <div>
+                                    <strong>100</strong><span>Lighthouse</span>
+                                    <div class="mf-stat-bar mt-1.5" style="background:linear-gradient(90deg,#10b981,#1bd4d9);width:100%;animation-delay:.6s"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>                </div>
             </div>
         </div>
     </div>
 </section>
+
+<script>
+(function () {
+    'use strict';
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ─── Builder drag-reorder loop ─── */
+    var buildList = document.querySelector('.build-list');
+    if (buildList && !reducedMotion) {
+        var busy = false;
+
+        function pickRow(rows, exclude) {
+            var candidates = rows.filter(function (r) { return r !== exclude; });
+            return candidates[Math.floor(Math.random() * candidates.length)];
+        }
+
+        function runDrag() {
+            if (busy) return;
+            var rows = Array.from(buildList.querySelectorAll('.build-row'));
+            if (rows.length < 4) return;
+
+            /* Pick src from middle of list (avoid first/last) */
+            var srcIdx = 1 + Math.floor(Math.random() * (rows.length - 3));
+            var src = rows[srcIdx];
+
+            /* Pick target at least 2 slots away */
+            var tgtIdx;
+            var tries = 0;
+            do {
+                tgtIdx = Math.floor(Math.random() * rows.length);
+                tries++;
+            } while (Math.abs(tgtIdx - srcIdx) < 2 && tries < 20);
+            var tgt = rows[tgtIdx];
+
+            busy = true;
+
+            /* Phase 1: lift */
+            src.classList.add('bl-dragging');
+
+            setTimeout(function () {
+                /* Phase 2: ghost + drop indicator */
+                src.classList.remove('bl-dragging');
+                src.classList.add('bl-ghost');
+
+                var indicator = document.createElement('div');
+                indicator.className = 'bl-drop-indicator';
+                var insertRef = tgtIdx > srcIdx ? tgt.nextSibling : tgt;
+                buildList.insertBefore(indicator, insertRef);
+
+                setTimeout(function () {
+                    /* Phase 3: move + drop */
+                    indicator.remove();
+                    src.classList.remove('bl-ghost');
+
+                    var moveBefore = tgtIdx > srcIdx ? tgt.nextSibling : tgt;
+                    buildList.insertBefore(src, moveBefore);
+                    src.classList.add('bl-dropping');
+
+                    setTimeout(function () {
+                        src.classList.remove('bl-dropping');
+                        busy = false;
+                    }, 450);
+                }, 650);
+            }, 550);
+        }
+
+        /* Start after 1.8s, then every 4.2s */
+        setTimeout(function () {
+            runDrag();
+            setInterval(runDrag, 4200);
+        }, 1800);
+    }
+
+    /* ─── Theme swatch cycling ─── */
+    var swatches = Array.from(document.querySelectorAll('.th-swatch[data-th-name]'));
+    var thLabel = document.getElementById('th-active-label');
+    var thFill  = document.getElementById('th-preview-fill');
+    if (swatches.length && !reducedMotion) {
+        var thIdx = 0;
+        function cycleSwatch() {
+            swatches.forEach(function (s) { s.classList.remove('is-active'); });
+            var active = swatches[thIdx];
+            active.classList.add('is-active');
+            var name = active.dataset.thName || '';
+            var c1   = active.dataset.thC1 || '#1bd4d9';
+            var c2   = active.dataset.thC2 || '#3d6bff';
+            if (thLabel) {
+                thLabel.textContent = name;
+                thLabel.style.background     = 'rgba(' + hexToRgb(c1) + ',.14)';
+                thLabel.style.borderColor    = 'rgba(' + hexToRgb(c1) + ',.4)';
+                thLabel.style.color          = c1;
+            }
+            if (thFill) {
+                thFill.style.background = 'linear-gradient(90deg,' + c1 + ',' + c2 + ')';
+                /* animate width: collapse then expand */
+                thFill.style.transition = 'none';
+                thFill.style.width = '0%';
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        thFill.style.transition = 'width .55s cubic-bezier(.16,1,.3,1)';
+                        thFill.style.width = '100%';
+                    });
+                });
+            }
+            thIdx = (thIdx + 1) % swatches.length;
+        }
+        cycleSwatch();
+        setInterval(cycleSwatch, 2000);
+    }
+
+    function hexToRgb(hex) {
+        var r = parseInt(hex.slice(1,3),16);
+        var g = parseInt(hex.slice(3,5),16);
+        var b = parseInt(hex.slice(5,7),16);
+        return r + ',' + g + ',' + b;
+    }
+
+    /* ─── mf-stat-bar: re-trigger animation on intersection ─── */
+    var statBars = document.querySelectorAll('.mf-stat-bar');
+    if (statBars.length && 'IntersectionObserver' in window && !reducedMotion) {
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+                if (e.isIntersecting) {
+                    e.target.style.animation = 'none';
+                    requestAnimationFrame(function () {
+                        e.target.style.animation = '';
+                    });
+                    io.unobserve(e.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        statBars.forEach(function (b) { io.observe(b); });
+    }
+})();
+</script>
 
 {{-- ============================ 2 · SHARE ============================ --}}
 <section id="share" class="py-24 lg:py-32 relative overflow-hidden">
