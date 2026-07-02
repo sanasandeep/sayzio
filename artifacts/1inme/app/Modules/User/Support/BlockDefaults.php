@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Support;
 
+use App\Modules\Admin\Models\AppSetting;
 use App\Modules\User\Models\BiolinkBlock;
 
 /**
@@ -13,13 +14,127 @@ use App\Modules\User\Models\BiolinkBlock;
  * border style/width). Colour fields (bg_color, border_color,
  * text_color) are left to {@see BiolinkBlock::STYLE_DEFAULTS} so the
  * active biolink theme resolves them at render time.
+ *
+ * Admin overrides are stored in `app_settings` under the key
+ * `block_defaults.overrides` as a JSON object keyed by block type:
+ * { "link": { "content": {...}, "style": {...} }, ... }
+ * They are merged on top of the hardcoded defaults at read time so
+ * any unconfigured field falls back to the original system value.
  */
 class BlockDefaults
 {
+    private const SETTING_KEY = 'block_defaults.overrides';
+
+    /**
+     * When true, getAdminOverrideForType() returns [] for every type so
+     * that contentForType() / styleForType() return pure system defaults.
+     * Used by admin tooling to read system defaults without touching the
+     * database. NOT safe across async/concurrent request paths.
+     */
+    private static bool $bypassAdminOverrides = false;
+
+    /**
+     * Execute $fn with admin overrides suppressed, then restore.
+     * Returns the result of $fn. Safe within a single synchronous request.
+     *
+     * @template T
+     * @param callable(): T $fn
+     * @return T
+     */
+    public static function withoutAdminOverrides(callable $fn): mixed
+    {
+        self::$bypassAdminOverrides = true;
+        try {
+            return $fn();
+        } finally {
+            self::$bypassAdminOverrides = false;
+        }
+    }
+
+    /**
+     * Read all admin overrides from the app_settings store.
+     * Returns an array keyed by block type.
+     *
+     * @return array<string,array{content?:array,style?:array}>
+     */
+    public static function getAdminOverrides(): array
+    {
+        $raw = AppSetting::get(self::SETTING_KEY, []);
+        return is_array($raw) ? $raw : [];
+    }
+
+    /**
+     * Return the admin override payload for a single block type.
+     * The type is canonicalized before lookup so that alias types (e.g.
+     * `cta_button` → `link`) inherit the canonical type's override.
+     * Returns an empty array when bypassed via withoutAdminOverrides().
+     *
+     * @return array{content?:array,style?:array}
+     */
+    public static function getAdminOverrideForType(string $type): array
+    {
+        if (self::$bypassAdminOverrides) {
+            return [];
+        }
+        $canonical = BlockTypeRegistry::canonical($type);
+        $all = self::getAdminOverrides();
+        return $all[$canonical] ?? [];
+    }
+
+    /**
+     * Persist admin overrides for a single block type.
+     * The type is canonicalized before storage so alias types share their
+     * canonical type's override entry.
+     * Pass null to clear both content and style overrides.
+     *
+     * @param array{content?:array,style?:array}|null $data
+     */
+    public static function saveAdminOverrideForType(string $type, ?array $data): void
+    {
+        $canonical = BlockTypeRegistry::canonical($type);
+        $all = self::getAdminOverrides();
+        if ($data === null || ($data === [])) {
+            unset($all[$canonical]);
+        } else {
+            $entry = $all[$canonical] ?? [];
+            if (isset($data['content'])) {
+                if ($data['content'] === null || $data['content'] === []) {
+                    unset($entry['content']);
+                } else {
+                    $entry['content'] = $data['content'];
+                }
+            }
+            if (isset($data['style'])) {
+                if ($data['style'] === null || $data['style'] === []) {
+                    unset($entry['style']);
+                } else {
+                    $entry['style'] = $data['style'];
+                }
+            }
+            if (empty($entry)) {
+                unset($all[$canonical]);
+            } else {
+                $all[$canonical] = $entry;
+            }
+        }
+        AppSetting::put(self::SETTING_KEY, $all);
+    }
+
+    /**
+     * Clear ALL admin overrides for a block type (both content and style).
+     */
+    public static function resetAdminOverrideForType(string $type): void
+    {
+        self::saveAdminOverrideForType($type, null);
+    }
     /**
      * Per-block-type structural style overrides layered on top of
      * {@see BiolinkBlock::STYLE_DEFAULTS}. Variant catalog payloads
      * still fully replace `_style` at apply-variant time.
+     *
+     * Admin overrides (stored via the Block Defaults admin editor) are
+     * merged on top of the hardcoded defaults so any unconfigured field
+     * falls back to the original system value.
      *
      * @return array<string,mixed>
      */
@@ -27,7 +142,7 @@ class BlockDefaults
     {
         $canonical = BlockTypeRegistry::canonical($type);
 
-        return match ($canonical) {
+        $hardcoded = match ($canonical) {
             'heading', 'heading_logo' => [
                 'font_size' => '28', 'font_weight' => '700',
                 'display_mode' => 'content', 'padding' => '8',
@@ -102,6 +217,12 @@ class BlockDefaults
                 'display_mode' => 'card', 'shadow_preset' => 'soft',
             ],
         };
+
+        $adminOverride = self::getAdminOverrideForType($type)['style'] ?? [];
+        if (!empty($adminOverride) && is_array($adminOverride)) {
+            return array_merge($hardcoded, $adminOverride);
+        }
+        return $hardcoded;
     }
 
     /**
@@ -173,7 +294,7 @@ class BlockDefaults
         $pptUrl       = self::sampleMediaUrl('pptx');
         $xlsxUrl      = self::sampleMediaUrl('xlsx');
 
-        return match ($type) {
+        $hardcoded = match ($type) {
             'link' => ['url' => 'https://example.com', 'text' => 'My Link', 'icon' => '', 'thumbnail' => '', '_placeholder' => true],
             'link_big' => ['url' => 'https://example.com', 'text' => 'My Featured Link', 'description' => 'A short blurb about where this goes.', 'icon' => '', 'thumbnail' => $imgSquareUrl, 'bg_color' => '#3d6bff', '_placeholder' => true],
             'heading' => ['text' => 'Hello, I\'m new here', 'size' => 'h2', 'align' => 'center', 'style' => 'plain', '_placeholder' => true],
@@ -541,6 +662,19 @@ class BlockDefaults
 
             default => [],
         };
+
+        $adminOverride = self::getAdminOverrideForType($type)['content'] ?? [];
+        if (!empty($adminOverride) && is_array($adminOverride)) {
+            // Preserve the _placeholder flag from the hardcoded defaults so the
+            // "sample content" banner still fires for admin-overridden content.
+            $placeholder = $hardcoded['_placeholder'] ?? false;
+            $merged = array_replace($hardcoded, $adminOverride);
+            if ($placeholder && !isset($adminOverride['_placeholder'])) {
+                $merged['_placeholder'] = true;
+            }
+            return $merged;
+        }
+        return $hardcoded;
     }
 
     /**

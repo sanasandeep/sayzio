@@ -356,6 +356,14 @@
             <span class="sidebar-tooltip">Score Presets</span>
         </a>
 
+        <a href="{{ route('admin.block-defaults.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.block-defaults.*') ? 'active' : '' }}"
+           style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div>
+            <span class="nav-label">Block Defaults</span>
+            <span class="sidebar-tooltip">Block First-Paint Defaults</span>
+        </a>
+
         {{-- ============ Marketing & Comms ============ --}}
         <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Marketing &amp; Comms</div>
 

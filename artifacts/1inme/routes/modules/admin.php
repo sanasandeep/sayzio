@@ -16,6 +16,7 @@ use App\Modules\Admin\Controllers\OnboardingSlideController;
 use App\Modules\Admin\Controllers\WalletSettingsController;
 use App\Modules\Admin\Controllers\LinkManagementController;
 use App\Modules\Admin\Controllers\CoachDefaultsController;
+use App\Modules\Admin\Controllers\BlockDefaultsController;
 use App\Modules\Admin\Controllers\TemplateController;
 use App\Modules\Admin\Controllers\AdminAssetController;
 use App\Modules\Admin\Controllers\BrandingController;
@@ -169,6 +170,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('coach-defaults')->name('coach-defaults.')->group(function () {
             Route::get('/', [CoachDefaultsController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::post('/', [CoachDefaultsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+
+        Route::prefix('block-defaults')->name('block-defaults.')->middleware(CheckPermission::class . ':settings.manage')->group(function () {
+            Route::get('/', [BlockDefaultsController::class, 'index'])->name('index');
+            Route::get('{type}', [BlockDefaultsController::class, 'edit'])->name('edit');
+            Route::put('{type}', [BlockDefaultsController::class, 'update'])->name('update');
+            Route::delete('{type}', [BlockDefaultsController::class, 'reset'])->name('reset');
         });
 
         Route::prefix('assets')->name('assets.')->group(function () {

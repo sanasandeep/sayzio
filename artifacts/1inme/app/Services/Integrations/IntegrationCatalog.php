@@ -5,6 +5,7 @@ namespace App\Services\Integrations;
 use App\Services\AI\AiEngineSettings;
 use App\Services\Billing\GatewayManager;
 use App\Modules\User\Services\SocialFollowers\SocialOAuthService;
+use Illuminate\Support\Str;
 
 /**
  * Single source of truth describing every third-party integration the
@@ -177,6 +178,22 @@ class IntegrationCatalog
                     ],
                 ],
             ],
+            [
+                'key'   => 'biolink-defaults',
+                'label' => 'Biolink Block Defaults',
+                'icon'  => 'fas fa-layer-group',
+                'items' => [
+                    [
+                        'key'      => 'block-defaults',
+                        'label'    => 'Block First-Paint Defaults',
+                        'desc'     => 'Configure sample text, placeholder images/media URLs, and default styling for each biolink block type. Only affects newly-created blocks.',
+                        'icon'     => 'fas fa-layer-group',
+                        'status'   => self::blockDefaultsStatus(),
+                        'route'    => route('admin.block-defaults.index'),
+                        'external' => true,
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -282,5 +299,19 @@ class IntegrationCatalog
             return ['key' => 'preview', 'label' => 'None configured', 'tone' => 'slate'];
         }
         return ['key' => 'configured', 'label' => $configured . '/' . $total . ' configured', 'tone' => 'green'];
+    }
+
+    private static function blockDefaultsStatus(): array
+    {
+        try {
+            $overrides = \App\Modules\User\Support\BlockDefaults::getAdminOverrides();
+            $count = count($overrides);
+        } catch (\Throwable $e) {
+            $count = 0;
+        }
+        if ($count === 0) {
+            return ['key' => 'default', 'label' => 'System defaults', 'tone' => 'slate'];
+        }
+        return ['key' => 'customised', 'label' => $count . ' ' . Str::plural('type', $count) . ' customised', 'tone' => 'green'];
     }
 }
