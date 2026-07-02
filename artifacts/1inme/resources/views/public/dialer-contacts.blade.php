@@ -176,6 +176,25 @@
             95%     { transform: rotateY(360deg); }
             100%    { transform: rotateY(360deg); }
         }
+        /* Belt-and-suspenders: explicitly hide each face while the other is
+           facing the viewer. backface-visibility alone is unreliable in some
+           browsers when the face also has overflow:hidden + border-radius inside
+           a nested 3D transform context, causing keypad digits to bleed through
+           the caller-ID face. Swap points (41.5% ≈ mid forward-flip, 91.5% ≈
+           mid flip-back) coincide with each 90° edge-on moment so neither face
+           is ever visible edge-on. */
+        .dcp-armed .dcp-front { animation: dcpFrontVis 12s linear infinite; }
+        .dcp-armed .dcp-back  { animation: dcpBackVis  12s linear infinite; }
+        @keyframes dcpFrontVis {
+            0%, 41%   { visibility: visible; }
+            42%, 91%  { visibility: hidden;  }
+            92%, 100% { visibility: visible; }
+        }
+        @keyframes dcpBackVis {
+            0%, 41%   { visibility: hidden;  }
+            42%, 91%  { visibility: visible; }
+            92%, 100% { visibility: hidden;  }
+        }
 
         /* Digits type into the number display in sync with the keys
            (per-digit animation-delay set inline; presses at 0.6s + n*0.3s). */
