@@ -226,10 +226,128 @@ class CalendarController extends Controller
     {
         $user = $request->user();
 
-        $ownedIds = Calendar::where('user_id', $user->id)->pluck('id');
+        // Shared filter/query builder — the single source of truth for the
+        // source / calendar / tag / search / date-range / grid-window logic that
+        // {@see myCalendarExport} also uses (see {@see buildMyCalendarQuery}).
+        $built = $this->buildMyCalendarQuery($request, $user);
+
+        $query       = $built['query'];
+        $ownedIds    = $built['ownedIds'];
+        $followedIds = $built['followedIds'];
+        $view        = $built['view'];
+        $focus       = $built['focusDate'];
+        $userTz      = $built['userTz'];
+
+        $events     = null;
+        $gridEvents = collect();
+
+        if ($view === 'agenda') {
+            $events = $query->paginate(40)->withQueryString();
+        } else {
+            // The blade only renders the visible days; cap the window fetch.
+            $gridEvents = $query->limit(2000)->get();
+        }
+
+        $calendars = Calendar::whereIn('id', $ownedIds->merge($followedIds)->unique())
+            ->withCount('events')
+            ->orderBy('title')
+            ->get();
+
+        // Distinct event tags across everything the user owns/follows, for the
+        // toggleable tag-filter chips.
+        $availableTags = CalendarEvent::whereIn('calendar_id', $ownedIds->merge($followedIds)->unique())
+            ->whereNotNull('hashtags')
+            ->pluck('hashtags')
+            ->flatMap(fn ($h) => is_array($h) ? $h : [])
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->take(40);
+
+        return view('user.calendars.my-calendar', [
+            'events'        => $events,
+            'gridEvents'    => $gridEvents,
+            'calendars'     => $calendars,
+            'ownedIds'      => $ownedIds,
+            'followedIds'   => $followedIds,
+            'view'          => $view,
+            'focusDate'     => $focus,
+            'userTz'        => $userTz,
+            'availableTags' => $availableTags,
+            'filters'       => [
+                'source'   => $built['source'],
+                'calendar' => $built['calendar'],
+                'from'     => $built['from'],
+                'to'       => $built['to'],
+                'tag'      => $built['tag'],
+                'q'        => $built['q'],
+                'past'     => $built['past'],
+            ],
+        ]);
+    }
+
+    /**
+     * Export the user's "My Calendar" events (honouring the same filters as
+     * {@see myCalendar}) as a downloadable ICS or CSV file.
+     *
+     * Route: GET /user/my-calendar/export?format=ics|csv[&source=…&calendar=…&from=…&to=…&q=…&tag=…&past=…]
+     */
+    public function myCalendarExport(Request $request): \Symfony\Component\HttpFoundation\Response
+    {
+        $user = $request->user();
+
+        // Same shared filter/query builder the on-screen agenda uses — only the
+        // row limit differs (export pulls a larger flat set, no pagination).
+        $built  = $this->buildMyCalendarQuery($request, $user);
+        $view   = $built['view'];
+        $focus  = $built['focusDate'];
+        $userTz = $built['userTz'];
+
+        $events = $built['query']->limit(5000)->get();
+
+        $format = strtolower((string) $request->query('format', 'ics'));
+        if (!in_array($format, ['ics', 'csv'], true)) {
+            $format = 'ics';
+        }
+
+        $slug      = 'my-calendar-' . $view . '-' . $focus->format('Y-m-d');
+        $filename  = $slug . '.' . $format;
+
+        if ($format === 'csv') {
+            return $this->exportCalendarCsv($events, $filename, $userTz);
+        }
+
+        return $this->exportCalendarIcs($events, $filename, $userTz, $user->name ?? 'My Calendar');
+    }
+
+    /**
+     * The single source of truth for the "My Calendar" filter/query logic shared
+     * by {@see myCalendar} (on-screen agenda/grid) and {@see myCalendarExport}
+     * (ICS/CSV download). Resolves the accessible calendar set, the source /
+     * per-calendar / tag / free-text / date-range filters, and the grid-window
+     * clamp for the selected view, returning a fully-constrained, ordered query
+     * that callers only need to paginate or limit.
+     *
+     * Keeping both callers on this one method is what stops the export drifting
+     * from what the user sees on screen.
+     *
+     * @return array{
+     *   query: \Illuminate\Database\Eloquent\Builder,
+     *   ownedIds: \Illuminate\Support\Collection,
+     *   followedIds: \Illuminate\Support\Collection,
+     *   calendarIds: \Illuminate\Support\Collection,
+     *   source: string, calendar: string, view: string,
+     *   focusDate: Carbon, userTz: string,
+     *   from: ?string, to: ?string, past: bool, tag: ?string, q: string
+     * }
+     */
+    private function buildMyCalendarQuery(Request $request, $user): array
+    {
+        $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');
         $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
 
-        $source = $request->query('source', 'all');
+        $source      = $request->query('source', 'all');
         $calendarIds = match ($source) {
             'owned'    => $ownedIds,
             'followed' => $followedIds,
@@ -263,7 +381,7 @@ class CalendarController extends Controller
         $focus = $focus->startOfDay();
 
         $query = CalendarEvent::query()
-            ->with('calendar:id,link_id,title,accent_color,user_id')
+            ->with('calendar:id,link_id,title,accent_color,user_id,timezone')
             ->whereIn('calendar_id', $calendarIds);
 
         $from = $request->query('from');
@@ -280,7 +398,8 @@ class CalendarController extends Controller
         }
 
         // Free-text search across title + description + location — every view.
-        if ($search = trim((string) $request->query('q', ''))) {
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
             $like = '%' . str_replace(['%', '_'], ['\%', '\_'], $search) . '%';
             $query->where(function ($q) use ($like) {
                 $q->where('title', 'ilike', $like)
@@ -289,26 +408,11 @@ class CalendarController extends Controller
             });
         }
 
-        $events     = null;
-        $gridEvents = collect();
-
-        if ($view === 'agenda') {
-            // Date range — default to "from now" so the agenda is forward-looking.
-            if ($from) {
-                $query->where('start_at', '>=', Carbon::parse($from)->startOfDay());
-            } elseif (!$past) {
-                $query->where('start_at', '>=', now()->startOfDay());
-            }
-            if ($to) {
-                $query->where('start_at', '<=', Carbon::parse($to)->endOfDay());
-            }
-
-            $events = $query->orderBy('start_at')->orderBy('id')->paginate(40)->withQueryString();
-        } else {
-            // Grid views widen the date window to the visible period. The window
-            // is computed in the viewer's tz, then padded a day on each side and
-            // queried in UTC so events authored in other zones near a boundary
-            // still land in the right cell (the blade only renders visible days).
+        // Grid views widen the date window to the visible period. The window is
+        // computed in the viewer's tz, then padded a day on each side and queried
+        // in UTC so events authored in other zones near a boundary still land in
+        // the right cell (the blade only renders visible days).
+        if ($view !== 'agenda') {
             [$winStart, $winEnd] = match ($view) {
                 'month' => [
                     $focus->copy()->startOfMonth()->startOfWeek(Carbon::SUNDAY),
@@ -326,186 +430,39 @@ class CalendarController extends Controller
 
             $query->where('start_at', '>=', $winStart->copy()->subDay()->utc())
                   ->where('start_at', '<=', $winEnd->copy()->addDay()->utc());
-
-            // Honour an explicit date-range filter on top of the window.
-            if ($from) {
-                $query->where('start_at', '>=', Carbon::parse($from)->startOfDay());
-            } elseif (!$past) {
-                // "Include past events" off (default) clamps the lower bound to
-                // today — mirrors the agenda view so the filter behaves the same
-                // across every view (e.g. earlier days of the current month grid
-                // hide their past events unless the toggle is on).
-                $query->where('start_at', '>=', now()->startOfDay());
-            }
-            if ($to) {
-                $query->where('start_at', '<=', Carbon::parse($to)->endOfDay());
-            }
-
-            $gridEvents = $query->orderBy('start_at')->orderBy('id')->limit(2000)->get();
         }
 
-        $calendars = Calendar::whereIn('id', $ownedIds->merge($followedIds)->unique())
-            ->withCount('events')
-            ->orderBy('title')
-            ->get();
-
-        // Distinct event tags across everything the user owns/follows, for the
-        // toggleable tag-filter chips.
-        $availableTags = CalendarEvent::whereIn('calendar_id', $ownedIds->merge($followedIds)->unique())
-            ->whereNotNull('hashtags')
-            ->pluck('hashtags')
-            ->flatMap(fn ($h) => is_array($h) ? $h : [])
-            ->filter()
-            ->unique()
-            ->sort()
-            ->values()
-            ->take(40);
-
-        return view('user.calendars.my-calendar', [
-            'events'        => $events,
-            'gridEvents'    => $gridEvents,
-            'calendars'     => $calendars,
-            'ownedIds'      => $ownedIds,
-            'followedIds'   => $followedIds,
-            'view'          => $view,
-            'focusDate'     => $focus,
-            'userTz'        => $userTz,
-            'availableTags' => $availableTags,
-            'filters'       => [
-                'source'   => $source,
-                'calendar' => $calendarId,
-                'from'     => $from,
-                'to'       => $to,
-                'tag'      => $tag,
-                'q'        => $search ?? '',
-                'past'     => $past,
-            ],
-        ]);
-    }
-
-    /**
-     * Export the user's "My Calendar" events (honouring the same filters as
-     * {@see myCalendar}) as a downloadable ICS or CSV file.
-     *
-     * Route: GET /user/my-calendar/export?format=ics|csv[&source=…&calendar=…&from=…&to=…&q=…&tag=…&past=…]
-     */
-    public function myCalendarExport(Request $request): \Symfony\Component\HttpFoundation\Response
-    {
-        $user = $request->user();
-
-        $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');
-        $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
-
-        $source      = $request->query('source', 'all');
-        $calendarIds = match ($source) {
-            'owned'    => $ownedIds,
-            'followed' => $followedIds,
-            default    => $ownedIds->merge($followedIds)->unique()->values(),
-        };
-
-        $calendarId = $request->query('calendar');
-        if ($calendarId !== null && $calendarId !== '' && $calendarIds->contains((int) $calendarId)) {
-            $calendarIds = collect([(int) $calendarId]);
+        // Date-range filter — applies to every view. Default (no explicit `from`,
+        // "Include past events" off) clamps the lower bound to today so the view
+        // is forward-looking; for grid views this hides earlier days' past events
+        // unless the toggle is on, keeping the filter consistent across views.
+        if ($from) {
+            $query->where('start_at', '>=', Carbon::parse($from)->startOfDay());
+        } elseif (!$past) {
+            $query->where('start_at', '>=', now()->startOfDay());
+        }
+        if ($to) {
+            $query->where('start_at', '<=', Carbon::parse($to)->endOfDay());
         }
 
-        $userTz = $user->timezone ?: config('app.timezone', 'UTC');
+        $query->orderBy('start_at')->orderBy('id');
 
-        // Resolve the view + focus date so the export matches the visible period —
-        // mirrors the same logic myCalendar() uses for the grid window.
-        $view = $request->query('view', 'agenda');
-        if (!in_array($view, ['month', 'week', 'day', 'agenda'], true)) {
-            $view = 'agenda';
-        }
-
-        try {
-            $focus = $request->filled('date')
-                ? Carbon::parse((string) $request->query('date'), $userTz)
-                : Carbon::now($userTz);
-        } catch (\Throwable) {
-            $focus = Carbon::now($userTz);
-        }
-        $focus = $focus->startOfDay();
-
-        $query = CalendarEvent::query()
-            ->with('calendar:id,link_id,title,accent_color,user_id,timezone')
-            ->whereIn('calendar_id', $calendarIds);
-
-        if ($tag = $request->query('tag')) {
-            $normalized = CalendarEvent::normalizeHashtags($tag)[0] ?? null;
-            if ($normalized) {
-                $query->whereJsonContains('hashtags', $normalized);
-            }
-        }
-
-        if ($search = trim((string) $request->query('q', ''))) {
-            $like = '%' . str_replace(['%', '_'], ['\%', '\_'], $search) . '%';
-            $query->where(function ($q) use ($like) {
-                $q->where('title', 'ilike', $like)
-                  ->orWhere('description', 'ilike', $like)
-                  ->orWhere('location', 'ilike', $like);
-            });
-        }
-
-        $from = $request->query('from');
-        $to   = $request->query('to');
-        $past = $request->boolean('past');
-
-        if ($view !== 'agenda') {
-            // Constrain to the visible grid window (same as myCalendar's windowing).
-            [$winStart, $winEnd] = match ($view) {
-                'month' => [
-                    $focus->copy()->startOfMonth()->startOfWeek(Carbon::SUNDAY),
-                    $focus->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY),
-                ],
-                'week' => [
-                    $focus->copy()->startOfWeek(Carbon::SUNDAY),
-                    $focus->copy()->endOfWeek(Carbon::SUNDAY),
-                ],
-                default => [ // day
-                    $focus->copy()->startOfDay(),
-                    $focus->copy()->endOfDay(),
-                ],
-            };
-
-            $query->where('start_at', '>=', $winStart->copy()->subDay()->utc())
-                  ->where('start_at', '<=', $winEnd->copy()->addDay()->utc());
-
-            // Explicit date-range filters further narrow within the window.
-            if ($from) {
-                $query->where('start_at', '>=', Carbon::parse($from)->startOfDay());
-            } elseif (!$past) {
-                $query->where('start_at', '>=', now()->startOfDay());
-            }
-            if ($to) {
-                $query->where('start_at', '<=', Carbon::parse($to)->endOfDay());
-            }
-        } else {
-            // Agenda: open-ended range, default to forward-looking.
-            if ($from) {
-                $query->where('start_at', '>=', Carbon::parse($from)->startOfDay());
-            } elseif (!$past) {
-                $query->where('start_at', '>=', now()->startOfDay());
-            }
-            if ($to) {
-                $query->where('start_at', '<=', Carbon::parse($to)->endOfDay());
-            }
-        }
-
-        $events = $query->orderBy('start_at')->orderBy('id')->limit(5000)->get();
-
-        $format = strtolower((string) $request->query('format', 'ics'));
-        if (!in_array($format, ['ics', 'csv'], true)) {
-            $format = 'ics';
-        }
-
-        $slug      = 'my-calendar-' . $view . '-' . $focus->format('Y-m-d');
-        $filename  = $slug . '.' . $format;
-
-        if ($format === 'csv') {
-            return $this->exportCalendarCsv($events, $filename, $userTz);
-        }
-
-        return $this->exportCalendarIcs($events, $filename, $userTz, $user->name ?? 'My Calendar');
+        return [
+            'query'       => $query,
+            'ownedIds'    => $ownedIds,
+            'followedIds' => $followedIds,
+            'calendarIds' => $calendarIds,
+            'source'      => $source,
+            'calendar'    => $calendarId,
+            'view'        => $view,
+            'focusDate'   => $focus,
+            'userTz'      => $userTz,
+            'from'        => $from,
+            'to'          => $to,
+            'past'        => $past,
+            'tag'         => $tag,
+            'q'           => $search,
+        ];
     }
 
     // ── helpers ───────────────────────────────────────────────────────────
