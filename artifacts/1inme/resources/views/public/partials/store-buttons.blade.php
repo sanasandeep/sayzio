@@ -134,6 +134,23 @@
         object-fit: cover; object-position: top center;
         display: block;
     }
+    /* Graceful fallback shown only if the screenshot fails to load, so the
+       phone frame never renders an empty dark rectangle. */
+    .store-cs-screen-fallback {
+        position: absolute; inset: 8px; border-radius: 23px;
+        display: none;
+        flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+        text-align: center; padding: 16px;
+        background: linear-gradient(160deg, #3d6bff 0%, #1bd4d9 100%);
+    }
+    .store-cs-screen-fallback .store-cs-wordmark {
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+        font-weight: 700; font-size: 22px; letter-spacing: -0.02em; color: #fff;
+    }
+    .store-cs-screen-fallback .store-cs-wordmark-sub {
+        font-size: 11px; font-weight: 600; color: rgba(255,255,255,.85);
+        text-transform: uppercase; letter-spacing: .08em;
+    }
 </style>
 {{-- Coming-soon modal — teleported to <body> so it is never trapped inside a
      transformed / opacity-animated / overflow-hidden ancestor (e.g. the dialer
@@ -206,7 +223,12 @@
                              alt="Sayzio app dashboard: links list with click counts and stat tiles"
                              class="store-cs-screenshot"
                              loading="lazy" decoding="async"
-                             width="390" height="690">
+                             width="390" height="690"
+                             onerror="this.style.display='none'; var fb=this.parentElement.querySelector('.store-cs-screen-fallback'); if (fb) fb.style.display='flex';">
+                        <div class="store-cs-screen-fallback" aria-hidden="true">
+                            <span class="store-cs-wordmark">Sayzio</span>
+                            <span class="store-cs-wordmark-sub">Coming soon</span>
+                        </div>
                     </div>
                 </div>
 
