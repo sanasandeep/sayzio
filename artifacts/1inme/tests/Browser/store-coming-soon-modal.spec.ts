@@ -36,7 +36,7 @@ const ARTIFACT_ROOT = path.resolve(
   "../..",
 );
 const CONSENT_COOKIE = "1inme_cookie_consent";
-const MODAL_LABEL = "Sayzio mobile app — coming soon";
+const MODAL_LABEL = "Sayzio and Dialer apps — coming soon";
 
 function seedStoreUrlsUnconfigured(): void {
   // NOTE: passed straight to `tinker --execute=`. `\\` in this JS template

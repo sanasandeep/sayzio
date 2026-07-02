@@ -109,8 +109,10 @@
     }
     html.light-mode .store-cs-notify-done { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.35); color: #14532d; }
 
-    /* Mini phone mockup inside the modal — adapted from the homepage dialer
-       phone-frame style, kept lightweight (pure CSS, no images). */
+    /* Phone frame that wraps the real app screenshot.
+       The frame itself keeps the on-brand purple glow + dark bezel.
+       The screenshot fills the screen area (inset 8px) with border-radius
+       to mimic the rounded display — no CSS-drawn content needed. */
     .store-cs-phone {
         position: relative; width: 190px; max-width: 60vw; margin: 0 auto;
         aspect-ratio: 300 / 600; border-radius: 30px; padding: 8px;
@@ -119,35 +121,18 @@
             0 30px 70px -26px rgba(61,107,255,.55),
             0 10px 26px -10px rgba(0,0,0,.7),
             inset 0 0 0 1.5px rgba(255,255,255,.08);
-    }
-    .store-cs-screen {
-        position: absolute; inset: 8px; border-radius: 23px; overflow: hidden;
-        background: linear-gradient(180deg, #14091f 0%, #0a0a14 100%);
-        display: flex; flex-direction: column; padding: 26px 12px 12px;
+        overflow: hidden;
     }
     .store-cs-notch {
         position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
         width: 58px; height: 14px; border-radius: 999px; background: #05030a; z-index: 5;
     }
-    .store-cs-row {
-        display: flex; align-items: center; gap: 8px;
-        border-radius: 12px; padding: 8px;
-        background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
-        margin-bottom: 8px;
-    }
-    .store-cs-ava {
-        width: 26px; height: 26px; border-radius: 9px; flex-shrink: 0;
-        background: linear-gradient(135deg, #3d6bff, #1bd4d9);
-        display: flex; align-items: center; justify-content: center;
-        color: #fff; font-weight: 800; font-size: 10px;
-    }
-    .store-cs-line { height: 6px; border-radius: 999px; background: rgba(255,255,255,.22); }
-    .store-cs-line.thin { height: 5px; background: rgba(255,255,255,.12); margin-top: 4px; }
-    .store-cs-cta {
-        margin-top: auto; height: 30px; border-radius: 999px;
-        background: linear-gradient(135deg, #3d6bff, #1bd4d9);
-        display: flex; align-items: center; justify-content: center; gap: 6px;
-        color: #fff; font-weight: 700; font-size: 10px;
+    /* Real screenshot fills the bezel area inside the phone frame. */
+    .store-cs-screenshot {
+        position: absolute; inset: 8px; border-radius: 23px;
+        width: calc(100% - 16px); height: calc(100% - 16px);
+        object-fit: cover; object-position: top center;
+        display: block;
     }
 </style>
 {{-- Coming-soon modal — teleported to <body> so it is never trapped inside a
@@ -202,7 +187,7 @@
      class="fixed inset-0 z-[120] overflow-y-auto overscroll-contain bg-black/70 backdrop-blur-sm"
      @click.self="open = false"
      @keydown.escape.window="open = false"
-     role="dialog" aria-modal="true" aria-label="Sayzio mobile app — coming soon">
+     role="dialog" aria-modal="true" aria-label="Sayzio and Dialer apps — coming soon">
     <div class="min-h-full flex items-center justify-center p-4" @click.self="open = false">
         <div class="store-cs-card relative w-full max-w-2xl my-8 rounded-2xl shadow-2xl overflow-hidden">
             <button type="button" @click="open = false"
@@ -212,61 +197,40 @@
             </button>
 
             <div class="grid sm:grid-cols-2">
-                {{-- Left: mini phone mockup --}}
+                {{-- Left: real Sayzio app screenshot inside an on-brand phone frame. --}}
                 <div class="hidden sm:flex items-center justify-center p-8"
                      style="background: radial-gradient(circle at 30% 20%, rgba(61,107,255,.25), transparent 60%), radial-gradient(circle at 75% 80%, rgba(27,212,217,.18), transparent 55%), #0b0616;">
-                    <div class="store-cs-phone" role="img" aria-label="Preview of the Sayzio mobile app">
-                        <div class="store-cs-screen">
-                            <div class="store-cs-notch" aria-hidden="true"></div>
-                            <div class="store-cs-row">
-                                <div class="store-cs-ava">AR</div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="store-cs-line" style="width: 70%;"></div>
-                                    <div class="store-cs-line thin" style="width: 50%;"></div>
-                                </div>
-                                <i class="fas fa-circle-check text-[10px]" style="color:#3d6bff;"></i>
-                            </div>
-                            <div class="store-cs-row">
-                                <div class="store-cs-ava" style="background: linear-gradient(135deg, #e94e8c, #ff8a3c);">QR</div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="store-cs-line" style="width: 62%;"></div>
-                                    <div class="store-cs-line thin" style="width: 44%;"></div>
-                                </div>
-                                <i class="fas fa-qrcode text-[10px] text-white/50"></i>
-                            </div>
-                            <div class="store-cs-row">
-                                <div class="store-cs-ava" style="background: linear-gradient(135deg, #22c55e, #1bd4d9);">
-                                    <i class="fas fa-chart-line text-[9px]"></i>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="store-cs-line" style="width: 76%;"></div>
-                                    <div class="store-cs-line thin" style="width: 58%;"></div>
-                                </div>
-                            </div>
-                            <div class="store-cs-cta"><i class="fas fa-link text-[9px]"></i> Share your link</div>
-                        </div>
+                    <div class="store-cs-phone" role="img" aria-label="Screenshot of the Sayzio mobile app showing the links dashboard">
+                        <div class="store-cs-notch" aria-hidden="true"></div>
+                        <img src="{{ asset('img/app-screenshot-sayzio.png') }}"
+                             alt="Sayzio app dashboard: links list with click counts and stat tiles"
+                             class="store-cs-screenshot"
+                             loading="lazy" decoding="async"
+                             width="390" height="690">
                     </div>
                 </div>
 
-                {{-- Right: copy --}}
+                {{-- Right: copy — promotes both Sayzio app and the Dialer app. --}}
                 <div class="p-6 sm:p-8 flex flex-col justify-center">
                     <span class="inline-flex items-center gap-1.5 self-start px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider"
                           style="background: rgba(61,107,255,.14); color: #6d92ff; border: 1px solid rgba(61,107,255,.35);">
                         <i class="fas fa-rocket text-[10px]"></i> Coming soon
                     </span>
                     <h3 class="text-xl sm:text-2xl font-bold mt-3 leading-tight">
-                        The Sayzio app is
+                        Sayzio &amp; Dialer are
                         <span x-text="store === 'play' ? 'coming to Google Play' : 'coming to the App Store'"></span>
                     </h3>
                     <p class="store-cs-muted text-sm mt-2.5 leading-relaxed">
-                        Manage your links, biolinks and QR codes, chat with your audience and watch
-                        your stats live — all from your pocket. We're putting the finishing touches
-                        on the mobile app right now.
+                        Two powerful apps in one ecosystem. <strong>Sayzio</strong> lets you manage
+                        links, biolinks and QR codes and watch your stats live from your pocket.
+                        <strong>Dialer</strong> brings a smart T9 dialer and caller&nbsp;ID that
+                        resolves any number to a full Sayzio profile — so you always know who's calling.
                     </p>
                     <div class="grid gap-2 mt-4">
-                        <div class="store-cs-feat"><i class="fas fa-link"></i> Create &amp; edit links on the go</div>
-                        <div class="store-cs-feat"><i class="fas fa-chart-line"></i> Live analytics in your pocket</div>
-                        <div class="store-cs-feat"><i class="fas fa-phone-volume"></i> Smart dialer &amp; caller ID</div>
+                        <div class="store-cs-feat"><i class="fas fa-link"></i> Create &amp; manage links, biolinks &amp; QR codes</div>
+                        <div class="store-cs-feat"><i class="fas fa-chart-line"></i> Live analytics &amp; performance insights</div>
+                        <div class="store-cs-feat"><i class="fas fa-phone-alt"></i> Smart dialer with T9 search</div>
+                        <div class="store-cs-feat"><i class="fas fa-id-badge"></i> Caller ID resolved to Sayzio profiles</div>
                     </div>
                     {{-- Notify-me email capture — posts to the public app-launch
                          list (rate-limited + honeypot server-side) and shows the
@@ -274,7 +238,7 @@
                     <form class="mt-4" @submit.prevent="notifySubmit()" x-show="!nDone" novalidate>
                         <label class="store-cs-muted text-xs font-semibold block mb-1.5" for="store-cs-notify-email">
                             <i class="fas fa-bell mr-1 text-[10px]"></i>
-                            Get an email the moment the app ships
+                            Get an email the moment the apps ship
                         </label>
                         <div class="flex items-stretch gap-2">
                             <input type="email" id="store-cs-notify-email" x-model="nEmail"
