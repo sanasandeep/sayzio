@@ -300,6 +300,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('app-launch')->name('app-launch.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\AppLaunchSignupController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::get('/export', [\App\Modules\Admin\Controllers\AppLaunchSignupController::class, 'export'])->middleware(CheckPermission::class . ':settings.manage')->name('export');
+            Route::post('/notify', [\App\Modules\Admin\Controllers\AppLaunchSignupController::class, 'notify'])->middleware(CheckPermission::class . ':settings.manage')->name('notify');
             Route::delete('/{signup}', [\App\Modules\Admin\Controllers\AppLaunchSignupController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
         Route::prefix('cookie-consent')->name('cookie-consent.')->group(function () {

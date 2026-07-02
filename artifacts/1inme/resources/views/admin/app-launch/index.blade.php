@@ -11,11 +11,42 @@
                     {{ number_format($totals['all']) }} total
                 </p>
             </div>
-            <a href="{{ route('admin.app-launch.export') }}"
-               class="px-3 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs text-white">
-                <i class="fas fa-download mr-1"></i> Export CSV
-            </a>
+            <div class="flex items-center gap-2 flex-wrap">
+                <a href="{{ route('admin.app-launch.export') }}"
+                   class="px-3 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs text-white">
+                    <i class="fas fa-download mr-1"></i> Export CSV
+                </a>
+                @if($totals['pending'] > 0)
+                    <form method="POST" action="{{ route('admin.app-launch.notify') }}" class="inline"
+                          onsubmit="return window.themedConfirmSubmit(this, {
+                              title: 'Announce the launch now?',
+                              message: @js(
+                                  ($isLaunched
+                                      ? 'This will email the launch announcement to ' . number_format($totals['pending']) . ' ' . ($totals['pending'] === 1 ? 'signup who has' : 'signups who have') . ' not been notified yet, with the live store link(s). Already-notified signups are skipped.'
+                                      : 'Warning: no store URL is configured yet. Set a Google Play or App Store URL in Marketing Settings first, or nothing will be sent.'
+                                  )
+                              ),
+                              confirmText: 'Send announcement',
+                              confirmIcon: 'fa-bullhorn',
+                              iconClass: @js($isLaunched ? 'fa-bullhorn' : 'fa-triangle-exclamation')
+                          })">
+                        @csrf
+                        <button type="submit"
+                                class="px-3 py-2 bg-primary-600/90 hover:bg-primary-600 border border-primary-400/30 rounded-lg text-xs text-white font-medium">
+                            <i class="fas fa-bullhorn mr-1"></i> Announce launch now
+                            <span class="ml-1 px-1.5 py-0.5 rounded-full bg-white/15 text-[10px]">{{ number_format($totals['pending']) }}</span>
+                        </button>
+                    </form>
+                @endif
+            </div>
         </div>
+
+        @unless($isLaunched)
+            <div class="mb-4 px-3 py-2 bg-amber-500/10 border border-amber-400/30 text-amber-200 rounded-lg text-xs flex items-start gap-2">
+                <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                <span>No store URL is set yet, so the announcement can't be sent. Add a Google Play or App Store URL in <span class="font-medium">Marketing Settings</span> to enable "Announce launch now".</span>
+            </div>
+        @endunless
 
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
             <div class="px-3 py-2 bg-white/[0.03] border border-white/5 rounded-lg">
@@ -35,6 +66,12 @@
         @if(session('success'))
             <div class="mb-4 px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm">
                 {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="mb-4 px-3 py-2 bg-red-500/10 border border-red-400/30 text-red-200 rounded-lg text-sm">
+                {{ session('error') }}
             </div>
         @endif
 
