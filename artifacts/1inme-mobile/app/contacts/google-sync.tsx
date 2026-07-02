@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -30,6 +31,25 @@ export default function GoogleSyncScreen() {
 
   const account = q.data;
 
+  // Live cooldown countdown (seconds). Seeded from the API `retry_after` on a
+  // throttled response and ticked down to 0, disabling "Sync now" meanwhile.
+  const [cooldown, setCooldown] = useState(0);
+  const cooldownEndsAt = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setInterval(() => {
+      const endsAt = cooldownEndsAt.current;
+      if (endsAt == null) {
+        setCooldown(0);
+        return;
+      }
+      const remaining = Math.ceil((endsAt - Date.now()) / 1000);
+      setCooldown(remaining > 0 ? remaining : 0);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [cooldown]);
+
   const syncMut = useMutation({
     mutationFn: googleContacts.sync,
     onSuccess: (r) => {
@@ -45,7 +65,9 @@ export default function GoogleSyncScreen() {
       }
 
       if (r.status === "throttled") {
-        const secs = Math.max(1, Math.round(r.retry_after ?? 0));
+        const secs = Math.max(1, Math.ceil(r.retry_after ?? 0));
+        cooldownEndsAt.current = Date.now() + secs * 1000;
+        setCooldown(secs);
         Alert.alert(
           "Already up to date",
           `You synced very recently. Try again in ${secs}s.`,
@@ -181,13 +203,18 @@ export default function GoogleSyncScreen() {
 
             <Pressable
               onPress={() => syncMut.mutate()}
-              disabled={syncMut.isPending}
-              style={[btn(colors, colors.primary)]}
+              disabled={syncMut.isPending || cooldown > 0}
+              style={[
+                btn(colors, colors.primary),
+                (syncMut.isPending || cooldown > 0) && { opacity: 0.6 },
+              ]}
             >
               {syncMut.isPending ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.btnText}>Sync now</Text>
+                <Text style={styles.btnText}>
+                  {cooldown > 0 ? `Try again in ${cooldown}s` : "Sync now"}
+                </Text>
               )}
             </Pressable>
 
