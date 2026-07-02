@@ -5,7 +5,9 @@ description: sayzio-dialer-standalone is a manifest-tracked transplant of the ma
 
 `sayzio-dialer-standalone/` is a deliberate verbatim-copy (no shared package — it must stay liftable out of the monorepo) of the dialer surface of `artifacts/1inme-mobile/`.
 
-**Rule:** any change to the main app's dialer / contacts / caller-id / search screens or their `lib/api` clients must be re-applied to the standalone copy, then re-baselined.
+**The main app has since REMOVED its Dialer/Contacts/Caller ID surfaces entirely** (screens + `lib/api/dialer.ts`/`contacts.ts`); the standalone is now their sole home and those files are tracked as `standaloneOnly` in the manifest. What still syncs is the shared foundation: auth screens, components, contexts, hooks, shared `lib/` modules.
+
+**Rule:** any change to those shared main-app files must be re-applied to the standalone copy, then re-baselined. Post-auth redirects in the standalone target `/(tabs)/dialer` (its tab group has no `index`), so `(auth)/_layout.tsx` + `(auth)/verify.tsx` are `adapted`, not `identical`.
 
 **How to apply:**
 - `pnpm --filter @workspace/scripts run check:dialer-sync` detects drift via `sayzio-dialer-standalone/sync-manifest.json` (relations: `identical` = must be byte-identical, copy over; `adapted` = intentional diff, source-hash-tracked, diff & hand-apply; `standaloneOnly`).

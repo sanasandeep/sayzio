@@ -9,57 +9,23 @@
     {
       "standalone": "app/(auth)/_layout.tsx",
       "source": "app/(auth)/_layout.tsx",
-      "relation": "identical"
+      "relation": "adapted",
+      "note": "signed-in redirect targets /(tabs)/dialer (standalone tab group has no index screen); otherwise identical",
+      "sourceSha256": "afdea40807667a2fcb86ee05a0b2501fc7f8f2806f5b28859ca245f61aee3f08"
     },
     {
       "standalone": "app/(auth)/verify.tsx",
       "source": "app/(auth)/verify.tsx",
-      "relation": "identical"
-    },
-    {
-      "standalone": "app/call/active.tsx",
-      "source": "app/call/active.tsx",
-      "relation": "identical"
-    },
-    {
-      "standalone": "app/call/incoming.tsx",
-      "source": "app/call/incoming.tsx",
-      "relation": "identical"
-    },
-    {
-      "standalone": "app/contacts/_form.tsx",
-      "source": "app/contacts/_form.tsx",
-      "relation": "identical"
-    },
-    {
-      "standalone": "app/contacts/google-sync.tsx",
-      "source": "app/contacts/google-sync.tsx",
-      "relation": "identical"
-    },
-    {
-      "standalone": "app/contacts/[id].tsx",
-      "source": "app/contacts/[id].tsx",
-      "relation": "identical"
-    },
-    {
-      "standalone": "app/contacts/import.tsx",
-      "source": "app/contacts/import.tsx",
-      "relation": "identical"
-    },
-    {
-      "standalone": "app/contacts/new.tsx",
-      "source": "app/contacts/new.tsx",
-      "relation": "identical"
-    },
-    {
-      "standalone": "app/dialer-profile.tsx",
-      "source": "app/dialer-profile.tsx",
-      "relation": "identical"
+      "relation": "adapted",
+      "note": "post-verify redirect targets /(tabs)/dialer (standalone tab group has no index screen); otherwise identical",
+      "sourceSha256": "baf60c151e892a6a88c9cedf15c6cddc047af9e7f3f09185dc07632d389bde56"
     },
     {
       "standalone": "app/info/about.tsx",
       "source": "app/info/about.tsx",
-      "relation": "identical"
+      "relation": "adapted",
+      "note": "standalone copy keeps the contacts/dialer mentions the main app removed when its dialer surfaces were dropped",
+      "sourceSha256": "f0614eb38205023d2ee467f9ef5159ae9645532927632788cfcd0b8d9087ab9b"
     },
     {
       "standalone": "app/info/help.tsx",
@@ -109,7 +75,9 @@
     {
       "standalone": "components/MapPickerModal.tsx",
       "source": "components/MapPickerModal.tsx",
-      "relation": "identical"
+      "relation": "adapted",
+      "note": "webRef uses structural typing ({ injectJavaScript }) so it compiles across react-native-webview versions; otherwise identical",
+      "sourceSha256": "c446252b6c4d5066f36257cf0a97838af9f2f1666125214b9503a2aabf969c52"
     },
     {
       "standalone": "components/MapPreview.tsx",
@@ -124,7 +92,9 @@
     {
       "standalone": "components/SocialMergePrompt.tsx",
       "source": "components/SocialMergePrompt.tsx",
-      "relation": "identical"
+      "relation": "adapted",
+      "note": "standalone has no native /account-merge screen; 'Merge now' opens the web /user/merge page via Linking instead of router.push",
+      "sourceSha256": "b968ae5d595c4b3205cec89caa882806cfd66fece3137f00f2d11a0606d5b1e7"
     },
     {
       "standalone": "components/TextField.tsx",
@@ -172,17 +142,6 @@
       "relation": "identical"
     },
     {
-      "standalone": "lib/api/contacts.ts",
-      "source": "lib/api/contacts.ts",
-      "relation": "identical"
-    },
-    {
-      "standalone": "lib/api/dialer.ts",
-      "source": "lib/api/dialer.ts",
-      "relation": "adapted",
-      "note": "adds DialerSuggestionsResult type + getDialerSuggestions(); otherwise identical"
-    },
-    {
       "standalone": "lib/api/notifications.ts",
       "source": "lib/api/notifications.ts",
       "relation": "identical"
@@ -215,18 +174,14 @@
     {
       "standalone": "lib/push.ts",
       "source": "lib/push.ts",
-      "relation": "identical"
+      "relation": "adapted",
+      "note": "notification-tap fallbacks all route to the dialer home (standalone has no notifications / API-usage / admin screens)",
+      "sourceSha256": "d495d7e08f58db8294fd6631208f8ddc49ce1a727d97e2fb057deed099c1def7"
     },
     {
       "standalone": "lib/secure.ts",
       "source": "lib/secure.ts",
       "relation": "identical"
-    },
-    {
-      "standalone": "app/(tabs)/dialer.tsx",
-      "source": "app/dialer.tsx",
-      "relation": "adapted",
-      "note": "adds suggestions state + empty-state section on keypad tab; otherwise mirrors the 1inme-mobile source"
     },
     {
       "standalone": "app/(auth)/index.tsx",
@@ -246,7 +201,7 @@
       "standalone": "app/_layout.tsx",
       "source": "app/_layout.tsx",
       "relation": "adapted",
-      "sourceSha256": "a4f032d14dc9d50902c72c2694b8bdf67ecfd90aeac01ec2fa586b3edeb986cd",
+      "sourceSha256": "c3358bb33603f57f33193987bb7d5eb2aca6cf2a44a76f36dbbcd4d6de162833",
       "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, @workspace/api-client-react wiring); mounts useContactAutoSync"
     },
     {
@@ -262,16 +217,57 @@
       "relation": "adapted",
       "sourceSha256": "620a5adace405e22ff6d5bd125fce0f34c4ef96db498b72f6c38bf5d7561f397",
       "note": "different tab set: Dialer / Contacts / Caller ID (+ header search button) instead of the main-app tabs"
-    },
-    {
-      "standalone": "app/(tabs)/contacts.tsx",
-      "source": "app/contacts/index.tsx",
-      "relation": "adapted",
-      "sourceSha256": "c0642dcba93d4157ceb5c497d9845195b86db2911db9beeff080bb94fdc52fee",
-      "note": "card/brochure-scan button removed; device import goes through lib/deviceContacts.ts helper instead of inline expo-contacts code"
     }
   ],
   "standaloneOnly": [
+    {
+      "path": "app/(tabs)/dialer.tsx",
+      "note": "dialer keypad screen (with suggestions empty-state); the main app removed its app/dialer.tsx — this standalone is now the sole home of the mobile dialer surface"
+    },
+    {
+      "path": "app/(tabs)/contacts.tsx",
+      "note": "contacts list screen; the main app removed its app/contacts/ screens — device import goes through lib/deviceContacts.ts"
+    },
+    {
+      "path": "app/dialer-profile.tsx",
+      "note": "caller/contact profile screen; removed from the main app along with the dialer surfaces"
+    },
+    {
+      "path": "app/call/active.tsx",
+      "note": "active-call screen; removed from the main app along with the dialer surfaces"
+    },
+    {
+      "path": "app/call/incoming.tsx",
+      "note": "incoming-call screen; removed from the main app along with the dialer surfaces"
+    },
+    {
+      "path": "app/contacts/_form.tsx",
+      "note": "contact create/edit form; removed from the main app along with the contacts surfaces"
+    },
+    {
+      "path": "app/contacts/[id].tsx",
+      "note": "contact detail screen; removed from the main app along with the contacts surfaces"
+    },
+    {
+      "path": "app/contacts/new.tsx",
+      "note": "new-contact screen; removed from the main app along with the contacts surfaces"
+    },
+    {
+      "path": "app/contacts/import.tsx",
+      "note": "bulk contact import screen; removed from the main app along with the contacts surfaces"
+    },
+    {
+      "path": "app/contacts/google-sync.tsx",
+      "note": "Google Contacts sync screen; removed from the main app along with the contacts surfaces"
+    },
+    {
+      "path": "lib/api/dialer.ts",
+      "note": "dialer API client incl. DialerSuggestionsResult + getDialerSuggestions(); removed from the main app along with the dialer surfaces (backend /api/v1/dialer endpoints remain)"
+    },
+    {
+      "path": "lib/api/contacts.ts",
+      "note": "contacts API client; removed from the main app along with the contacts surfaces (backend /api/v1/contacts endpoints remain)"
+    },
     {
       "path": "app/search.tsx",
       "note": "universal-finder modal screen; UI derived from the dialer inline search, backed by the same /api/v1/dialer/search endpoint; shows dialer suggestions on empty query"

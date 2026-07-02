@@ -2,10 +2,16 @@
 
 This standalone dialer was **transplanted verbatim** from
 `artifacts/1inme-mobile/` and then trimmed to the dialer surface. There is no
-shared package between the two, so fixes to the main app's dialer, contacts,
-caller-ID, search screens or their API clients do **not** flow in
-automatically. This document is the repeatable procedure for re-applying
-main-app changes here.
+shared package between the two, so fixes to the main app's shared screens or
+API clients do **not** flow in automatically. This document is the repeatable
+procedure for re-applying main-app changes here.
+
+> **Note:** the main app has since **removed** its Dialer, Contacts, and
+> Caller ID surfaces entirely — this standalone app is now the **sole home**
+> of those screens and their API clients (`lib/api/dialer.ts`,
+> `lib/api/contacts.ts`); they are tracked as `standaloneOnly` in the
+> manifest. What still syncs from the main app is the shared foundation:
+> auth screens, components, contexts, hooks, and the shared `lib/` modules.
 
 ## The manifest + drift checker
 
@@ -56,15 +62,22 @@ Most files map 1:1 at the same relative path. The exceptions:
 
 | Standalone | Main app | What changed |
 | --- | --- | --- |
-| `app/(tabs)/dialer.tsx` | `app/dialer.tsx` | Moved into the tab group; content byte-identical. |
-| `app/(tabs)/contacts.tsx` | `app/contacts/index.tsx` | Moved into the tab group; card/brochure-scan button removed; device import via `lib/deviceContacts.ts`. |
+| `app/(tabs)/dialer.tsx` | — | Dialer keypad (with suggestions empty-state); main app removed `app/dialer.tsx`. |
+| `app/(tabs)/contacts.tsx` | — | Contacts list; main app removed `app/contacts/`; device import via `lib/deviceContacts.ts`. |
 | `app/(tabs)/_layout.tsx` | `app/(tabs)/_layout.tsx` | Different tab set: Dialer / Contacts / Caller ID + header search button. |
-| `app/(tabs)/caller-id.tsx` | — | New: dedicated Caller ID tab (main app reaches caller-id through dialer flows). |
-| `app/search.tsx` | — | New: universal-finder modal (same `/api/v1/dialer/search` backend). |
-| `app/_layout.tsx` | `app/_layout.tsx` | Providers trimmed to the dialer's needs; mounts `useContactAutoSync`. |
+| `app/(tabs)/caller-id.tsx` | — | Dedicated Caller ID tab. |
+| `app/search.tsx` | — | Universal-finder modal (same `/api/v1/dialer/search` backend). |
+| `app/dialer-profile.tsx`, `app/call/*`, `app/contacts/*` | — | Dialer/contacts screens removed from the main app; standalone-only now. |
+| `lib/api/dialer.ts`, `lib/api/contacts.ts` | — | API clients removed from the main app (backend endpoints remain); standalone-only now. |
+| `app/_layout.tsx` | `app/_layout.tsx` | Providers trimmed to the dialer's needs; mounts `useContactAutoSync`; keeps the dialer/call route entries the main app dropped. |
 | `app/index.tsx` | `app/index.tsx` | Launch gate simplified (no onboarding / idle-lock routing). |
 | `app/oauth-callback.tsx` | `app/oauth-callback.tsx` | Connected-Apps OAuth completion branch removed. |
 | `app/(auth)/index.tsx` | `app/(auth)/index.tsx` | Dev-only missing-env alert text reworded. |
+| `app/(auth)/_layout.tsx`, `app/(auth)/verify.tsx` | same paths | Post-auth redirects target `/(tabs)/dialer` (no tab `index` here). |
+| `app/info/about.tsx` | `app/info/about.tsx` | Keeps the contacts/dialer copy the main app removed. |
+| `components/SocialMergePrompt.tsx` | same path | "Merge now" opens web `/user/merge` (no native `/account-merge` screen). |
+| `lib/push.ts` | `lib/push.ts` | Notification-tap fallbacks all route to the dialer home. |
+| `components/MapPickerModal.tsx` | same path | `webRef` uses structural typing for webview-version compatibility. |
 | `hooks/useContactAutoSync.ts` | — | New: auto device-import + Google sync on open/foreground. |
 | `lib/deviceContacts.ts` | — | New: shared device-contact import helper. |
 
