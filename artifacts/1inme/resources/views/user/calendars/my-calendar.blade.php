@@ -5,7 +5,7 @@
 @php
     use Illuminate\Support\Carbon;
 
-    $inputClass = 'w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40';
+    $inputClass = 'w-full h-10 border border-white/10 rounded-xl px-3 py-0 text-sm leading-none focus:ring-2 focus:ring-blue-500/40';
 
     // Query helpers — all view/filter links go through these so every existing
     // filter rides along when the view, date or a chip changes.
@@ -37,17 +37,48 @@
     $prevDate = $unit ? $focusDate->copy()->sub($unit, 1)->format('Y-m-d') : null;
     $nextDate = $unit ? $focusDate->copy()->add($unit, 1)->format('Y-m-d') : null;
     $todayDate = Carbon::now($userTz)->format('Y-m-d');
+
+    // Export URL — carries all current filters through.
+    $exportBaseQ = array_filter(request()->query(), fn ($v) => $v !== null && $v !== '' && $v !== []);
+    unset($exportBaseQ['page']);
+    $exportIcsUrl = route('user.calendars.mine.export', array_merge($exportBaseQ, ['format' => 'ics']));
+    $exportCsvUrl = route('user.calendars.mine.export', array_merge($exportBaseQ, ['format' => 'csv']));
 @endphp
 
 <div class="max-w-6xl mx-auto space-y-6">
+    {{-- ── Page header ─────────────────────────────────────────── --}}
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold text-white">My Calendar</h1>
             <p class="text-xs text-white/40 mt-0.5">Everything from the calendars you own and follow, in one place.</p>
         </div>
-        <a href="{{ route('user.calendars.create') }}" class="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white">
-            <i class="fas fa-plus mr-1"></i> New calendar
-        </a>
+        <div class="flex items-center gap-2">
+            {{-- Export dropdown --}}
+            <div class="relative" x-data="{ open: false }" @keydown.escape.window="open = false" @click.outside="open = false">
+                <button @click="open = !open" type="button"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border border-white/10 text-white/70 hover:text-white hover:border-white/30 transition">
+                    <i class="fas fa-download text-xs"></i> Export
+                    <i class="fas fa-chevron-down text-[10px] opacity-60" :class="open ? 'rotate-180' : ''" style="transition:transform .15s"></i>
+                </button>
+                <div x-show="open" x-transition
+                     class="absolute right-0 mt-1.5 w-44 rounded-xl border border-white/10 shadow-xl z-30"
+                     style="background: rgba(20,18,35,0.97); backdrop-filter: blur(12px);">
+                    <a href="{{ $exportIcsUrl }}"
+                       class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-t-xl transition">
+                        <i class="far fa-calendar-alt w-4 text-center text-blue-400"></i>
+                        ICS / iCal
+                    </a>
+                    <a href="{{ $exportCsvUrl }}"
+                       class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-b-xl transition border-t border-white/5">
+                        <i class="fas fa-table w-4 text-center text-emerald-400"></i>
+                        CSV Spreadsheet
+                    </a>
+                </div>
+            </div>
+            <a href="{{ route('user.calendars.create') }}" class="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white transition">
+                <i class="fas fa-plus mr-1"></i> New calendar
+            </a>
+        </div>
     </div>
 
     {{-- ── View switcher + period navigation ─────────────────── --}}
@@ -55,7 +86,7 @@
         <div class="inline-flex p-1 rounded-xl glass">
             @foreach($views as $key => $label)
                 <a href="{{ $linkTo(['view' => $key, 'date' => $focusDate->format('Y-m-d')]) }}"
-                   class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition {{ $view === $key ? 'bg-blue-600 text-white' : 'text-white/60 hover:text-white' }}">
+                   class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition {{ $view === $key ? 'bg-blue-600 text-white shadow-sm' : 'text-white/60 hover:text-white' }}">
                     {{ $label }}
                 </a>
             @endforeach
@@ -63,20 +94,26 @@
 
         @if($periodLabel)
         <div class="flex items-center gap-2">
-            <a href="{{ $linkTo(['view' => $view, 'date' => $todayDate]) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/60 hover:text-white hover:border-white/30">Today</a>
-            <a href="{{ $linkTo(['view' => $view, 'date' => $prevDate]) }}" class="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-white/10 text-white/60 hover:text-white hover:border-white/30"><i class="fas fa-chevron-left text-xs"></i></a>
+            <a href="{{ $linkTo(['view' => $view, 'date' => $todayDate]) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition">Today</a>
+            <a href="{{ $linkTo(['view' => $view, 'date' => $prevDate]) }}" class="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition"><i class="fas fa-chevron-left text-xs"></i></a>
             <span class="text-sm font-semibold text-white min-w-[10rem] text-center">{{ $periodLabel }}</span>
-            <a href="{{ $linkTo(['view' => $view, 'date' => $nextDate]) }}" class="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-white/10 text-white/60 hover:text-white hover:border-white/30"><i class="fas fa-chevron-right text-xs"></i></a>
+            <a href="{{ $linkTo(['view' => $view, 'date' => $nextDate]) }}" class="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition"><i class="fas fa-chevron-right text-xs"></i></a>
         </div>
         @endif
     </div>
 
     {{-- ── Filters ───────────────────────────────────────────── --}}
-    <form method="GET" action="{{ route('user.calendars.mine') }}" class="glass rounded-2xl p-5">
+    <style>
+        /* Native date pickers default to the dark glass theme, but follow the
+           light theme when the dashboard is toggled to light mode. */
+        .mycal-filters input, .mycal-filters select { color-scheme: dark; }
+        html.light-mode .mycal-filters input, html.light-mode .mycal-filters select { color-scheme: light; }
+    </style>
+    <form method="GET" action="{{ route('user.calendars.mine') }}" class="mycal-filters glass rounded-2xl p-5">
         {{-- Carry view + focus date so applying filters doesn't reset them. --}}
         <input type="hidden" name="view" value="{{ $view }}">
         <input type="hidden" name="date" value="{{ $focusDate->format('Y-m-d') }}">
-        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-center">
             <div class="md:col-span-2">
                 <input type="text" name="q" value="{{ $filters['q'] }}" placeholder="Search events…" class="{{ $inputClass }}">
             </div>
@@ -107,12 +144,12 @@
                 <span class="text-[11px] px-2 py-1 rounded-full bg-blue-500/10 text-blue-300">#{{ $filters['tag'] }}</span>
                 <input type="hidden" name="tag" value="{{ $filters['tag'] }}">
             @endif
-            <label class="flex items-center gap-2 text-xs text-white/50">
+            <label class="flex items-center gap-2 text-xs text-white/50 cursor-pointer">
                 <input type="checkbox" name="past" value="1" {{ $filters['past'] ? 'checked' : '' }} class="rounded text-blue-500"> Include past events
             </label>
             <div class="ml-auto flex gap-2">
-                <a href="{{ route('user.calendars.mine', ['view' => $view]) }}" class="px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white">Reset</a>
-                <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white">Apply</button>
+                <a href="{{ route('user.calendars.mine', ['view' => $view]) }}" class="px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white transition">Reset</a>
+                <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white transition">Apply</button>
             </div>
         </div>
     </form>
@@ -132,7 +169,7 @@
                 <a href="{{ $linkTo(['calendar' => $isActive ? null : $cal->id]) }}"
                    class="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border transition {{ $isActive ? 'border-blue-400/60 bg-blue-500/15 text-white' : 'border-white/10 text-white/60 hover:text-white hover:border-white/30' }}"
                    title="{{ $isActive ? 'Clear this filter' : 'Show only this calendar' }}">
-                    <span class="w-2.5 h-2.5 rounded-full" style="background: {{ $accent }}"></span>
+                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background: {{ $accent }}"></span>
                     {{ $cal->title }}
                     <span class="text-white/30">{{ $cal->events_count }} · {{ $isOwned ? 'owned' : 'following' }}</span>
                     @if($isActive)<i class="fas fa-xmark text-[10px] text-white/50"></i>@endif
