@@ -502,4 +502,211 @@ class MyCalendarExportTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    // ── RFC 5545 structural validity (real-client import) ───────────────────
+
+    /**
+     * Lint an ICS payload against the RFC 5545 rules that Google Calendar and
+     * Apple Calendar are strict about (and that plain string assertions miss):
+     * CRLF endings, ≤75-octet physical lines, balanced BEGIN/END components,
+     * the mandatory VCALENDAR/VEVENT properties, and — crucially — that every
+     * TZID a VEVENT references has a matching VTIMEZONE definition so the file
+     * imports without a missing-timezone warning.
+     */
+    private function assertValidIcs(string $body): void
+    {
+        // Every line must terminate with CRLF — a bare LF is a hard error for
+        // strict parsers. (No LF may appear that isn't preceded by a CR.)
+        $this->assertSame(0, preg_match('/(?<!\r)\n/', $body), 'ICS contains a bare LF (must be CRLF).');
+
+        $lines = explode("\r\n", rtrim($body, "\r\n"));
+
+        // Folded-line reconstruction + per-physical-line octet cap.
+        $stack        = [];
+        $definedTz    = [];
+        $referencedTz = [];
+        $logical      = [];
+        $current      = '';
+
+        foreach ($lines as $line) {
+            $this->assertLessThanOrEqual(75, strlen($line), "Physical line exceeds 75 octets: {$line}");
+
+            if ($line !== '' && ($line[0] === ' ' || $line[0] === "\t")) {
+                // Continuation of the previous logical line.
+                $current .= substr($line, 1);
+                continue;
+            }
+            if ($current !== '') {
+                $logical[] = $current;
+            }
+            $current = $line;
+        }
+        if ($current !== '') {
+            $logical[] = $current;
+        }
+
+        $this->assertNotEmpty($logical, 'ICS body is empty.');
+        $this->assertSame('BEGIN:VCALENDAR', $logical[0], 'ICS must start with BEGIN:VCALENDAR.');
+        $this->assertSame('END:VCALENDAR', end($logical), 'ICS must end with END:VCALENDAR.');
+
+        $hasVersion = false;
+        $hasProdId  = false;
+        $veventReq  = [];
+
+        foreach ($logical as $logicalLine) {
+            if (str_starts_with($logicalLine, 'BEGIN:')) {
+                $comp    = substr($logicalLine, 6);
+                $stack[] = $comp;
+                if ($comp === 'VEVENT') {
+                    $veventReq = ['UID' => false, 'DTSTAMP' => false, 'DTSTART' => false];
+                }
+                continue;
+            }
+            if (str_starts_with($logicalLine, 'END:')) {
+                $comp = substr($logicalLine, 4);
+                $this->assertNotEmpty($stack, "Unbalanced END:{$comp}.");
+                $this->assertSame($comp, array_pop($stack), "Mismatched END:{$comp}.");
+                if ($comp === 'VEVENT') {
+                    foreach ($veventReq as $prop => $seen) {
+                        $this->assertTrue($seen, "VEVENT missing required {$prop}.");
+                    }
+                }
+                continue;
+            }
+
+            // Property line — split name/params from value.
+            $name = strtok($logicalLine, ':;');
+
+            if ($name === 'VERSION') {
+                $hasVersion = true;
+            } elseif ($name === 'PRODID') {
+                $hasProdId = true;
+            } elseif ($name === 'TZID' && end($stack) === 'VTIMEZONE') {
+                $definedTz[substr($logicalLine, 5)] = true;
+            } elseif (in_array($name, ['UID', 'DTSTAMP', 'DTSTART'], true) && !empty($veventReq)) {
+                $veventReq[$name] = true;
+            }
+
+            // Collect any ;TZID=… parameter reference (DTSTART / DTEND).
+            if (preg_match('/;TZID=([^:;]+)/', $logicalLine, $m)) {
+                $referencedTz[$m[1]] = true;
+            }
+        }
+
+        $this->assertEmpty($stack, 'Unbalanced BEGIN/END components.');
+        $this->assertTrue($hasVersion, 'VCALENDAR missing VERSION.');
+        $this->assertTrue($hasProdId, 'VCALENDAR missing PRODID.');
+
+        foreach (array_keys($referencedTz) as $tzid) {
+            $this->assertArrayHasKey(
+                $tzid,
+                $definedTz,
+                "TZID '{$tzid}' is referenced but has no matching VTIMEZONE (would warn on import)."
+            );
+        }
+    }
+
+    public function test_ics_export_is_structurally_valid_rfc5545(): void
+    {
+        $user = $this->makeUser(['timezone' => 'America/New_York']);
+        $cal  = $this->makeCalendar($user, ['timezone' => 'America/New_York']);
+
+        // A timed event (TZID reference), an all-day event, and one in a second
+        // timezone so multiple VTIMEZONE blocks are exercised.
+        $this->makeEvent($cal, [
+            'title'    => 'Timed NY',
+            'start_at' => Carbon::now('UTC')->addDays(3),
+            'timezone' => 'America/New_York',
+        ]);
+        $this->makeEvent($cal, [
+            'title'    => 'All Day',
+            'start_at' => Carbon::now('UTC')->addDays(4)->startOfDay(),
+            'all_day'  => true,
+        ]);
+        $this->makeEvent($cal, [
+            'title'    => 'Timed London',
+            'start_at' => Carbon::now('UTC')->addDays(5),
+            'timezone' => 'Europe/London',
+        ]);
+
+        $body = $this->export($user)->assertOk()->streamedContent();
+
+        $this->assertValidIcs($body);
+    }
+
+    // ── Line folding (RFC 5545 §3.1) ────────────────────────────────────────
+
+    public function test_ics_export_folds_long_lines_at_75_octets_with_space_continuation(): void
+    {
+        $user = $this->makeUser();
+        $cal  = $this->makeCalendar($user);
+
+        $longTitle = 'Grand ' . str_repeat('Anniversary Gala Celebration ', 6) . 'Finale';
+        $this->makeEvent($cal, [
+            'title'       => $longTitle,
+            'description' => str_repeat('All the details you could ever want about this event. ', 8),
+        ]);
+
+        $body = $this->export($user)->assertOk()->streamedContent();
+
+        // The long SUMMARY must be folded — a continuation line begins with a
+        // single leading space after a CRLF.
+        $this->assertMatchesRegularExpression('/SUMMARY:.{1,}\r\n /', $body);
+
+        // No physical line may exceed 75 octets (excluding the CRLF).
+        foreach (explode("\r\n", $body) as $line) {
+            $this->assertLessThanOrEqual(75, strlen($line), "Unfolded line too long: {$line}");
+        }
+
+        // Unfolding (drop CRLF + the single leading space) must restore the
+        // original escaped title intact.
+        $unfolded = str_replace("\r\n ", '', $body);
+        $this->assertStringContainsString('SUMMARY:' . $longTitle, $unfolded);
+    }
+
+    // ── VTIMEZONE for referenced TZIDs (missing-VTIMEZONE warning) ──────────
+
+    public function test_ics_export_emits_vtimezone_for_each_referenced_tzid(): void
+    {
+        $user = $this->makeUser(['timezone' => 'America/New_York']);
+        $cal  = $this->makeCalendar($user, ['timezone' => 'America/New_York']);
+
+        $this->makeEvent($cal, [
+            'title'    => 'Board Meeting',
+            'start_at' => Carbon::now('UTC')->addDays(3),
+            'timezone' => 'America/New_York',
+        ]);
+
+        $body = $this->export($user)->assertOk()->streamedContent();
+
+        // The event references TZID=America/New_York …
+        $this->assertStringContainsString('DTSTART;TZID=America/New_York:', $body);
+        // … and a matching VTIMEZONE is defined for it.
+        $this->assertStringContainsString("BEGIN:VTIMEZONE\r\nTZID:America/New_York", $body);
+        $this->assertStringContainsString('END:VTIMEZONE', $body);
+        // A DST zone yields both a STANDARD and a DAYLIGHT observance with offsets.
+        $this->assertStringContainsString('BEGIN:STANDARD', $body);
+        $this->assertStringContainsString('BEGIN:DAYLIGHT', $body);
+        $this->assertMatchesRegularExpression('/TZOFFSETFROM:[+-]\d{4}/', $body);
+        $this->assertMatchesRegularExpression('/TZOFFSETTO:[+-]\d{4}/', $body);
+    }
+
+    public function test_ics_export_all_day_only_calendar_emits_no_vtimezone(): void
+    {
+        // All-day events use VALUE=DATE (no TZID), so no VTIMEZONE is needed —
+        // and none should be emitted (an orphan VTIMEZONE is just noise).
+        $user = $this->makeUser();
+        $cal  = $this->makeCalendar($user);
+        $this->makeEvent($cal, [
+            'title'    => 'Holiday',
+            'start_at' => Carbon::now('UTC')->addDays(4)->startOfDay(),
+            'all_day'  => true,
+        ]);
+
+        $body = $this->export($user)->assertOk()->streamedContent();
+
+        $this->assertStringNotContainsString('BEGIN:VTIMEZONE', $body);
+        $this->assertStringNotContainsString(';TZID=', $body);
+        $this->assertValidIcs($body);
+    }
 }
