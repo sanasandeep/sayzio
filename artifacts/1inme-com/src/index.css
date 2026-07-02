@@ -438,6 +438,53 @@
   .flip-tile-inner { transition: none !important; }
 }
 
+/* ---------- AI builder showcase (mirrors Laravel .ai-prompt-card) ---------- */
+.ai-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.15em;
+  border-radius: 1px;
+  background: hsl(var(--primary));
+  animation: ai-caret-blink 1s step-end infinite;
+}
+@keyframes ai-caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+.ai-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #4ade80;
+}
+.ai-status-dot[data-building="true"] {
+  background: hsl(var(--primary));
+  animation: ai-dot-pulse 1s ease-in-out infinite;
+}
+@keyframes ai-dot-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 6px hsl(var(--primary) / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-caret,
+  .ai-status-dot[data-building="true"] {
+    animation: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

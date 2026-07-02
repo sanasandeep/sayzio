@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { CTABand, Eyebrow } from "@/components/marketing/marketing";
 import { LinkTypesShowcase } from "@/components/marketing/link-types-showcase";
 import { AiFlipTiles } from "@/components/marketing/ai-flip-tiles";
+import { AiBuilderShowcase } from "@/components/marketing/ai-builder-showcase";
 import { OrbitalUniverse } from "@/components/marketing/orbital-universe";
 import { BrandSayzio } from "@/components/marketing/brand-sayzio";
 import { motion, useReducedMotion } from "framer-motion";
@@ -227,6 +228,9 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
+      {/* ─── AI builder showcase — describe it, AI builds it ──────── */}
+      <AiBuilderShowcase />
 
       {/* ─── WhatsApp Agent — build links from chat ───────────────── */}
       <section
