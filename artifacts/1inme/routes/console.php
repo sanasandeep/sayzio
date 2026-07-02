@@ -327,16 +327,6 @@ Schedule::command('images:backfill-reoptimize --chunk=200 --limit=500')
     ->withoutOverlapping()
     ->onOneServer();
 
-// First of each month: estimate the prior month's per-biolink CO2 from
-// PageSession traffic and (for opted-in links) auto-purchase verified
-// carbon offsets via the workspace's connected provider. The command
-// itself is idempotent on (link, period_start) so re-running mid-month
-// is safe.
-Schedule::command('carbon:snapshot-monthly')
-    ->monthlyOn(1, '02:30')
-    ->withoutOverlapping()
-    ->onOneServer();
-
 // Daily (off-peak): delete orphaned conversational-flow visitor uploads
 // (storage/app/public/cv_uploads/) older than 7 days that aren't
 // referenced by any completed session. Visitors who upload then drop

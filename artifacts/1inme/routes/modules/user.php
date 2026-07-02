@@ -826,10 +826,6 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('links/{link}/themes/schedules',                [\App\Modules\User\Controllers\BiolinkThemeController::class, 'storeSchedule'])->middleware('workspace.can:links.edit')->name('links.themes.schedules.store');
         Route::patch ('links/{link}/themes/schedules/{schedule}',     [\App\Modules\User\Controllers\BiolinkThemeController::class, 'updateSchedule'])->middleware('workspace.can:links.edit')->name('links.themes.schedules.update');
         Route::post  ('links/{link}/themes/schedules/{schedule}/cancel', [\App\Modules\User\Controllers\BiolinkThemeController::class, 'cancelSchedule'])->middleware('workspace.can:links.edit')->name('links.themes.schedules.cancel');
-        Route::get ('links/{link}/settings/ar',     [\App\Modules\User\Controllers\ArSettingsController::class, 'edit'])->middleware('workspace.can:links.view')->name('links.settings.ar');
-        Route::post('links/{link}/settings/ar',     [\App\Modules\User\Controllers\ArSettingsController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.settings.ar.update');
-        Route::get ('links/{link}/settings/carbon', [\App\Modules\User\Controllers\CarbonController::class, 'editLink'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.settings.carbon');
-        Route::post('links/{link}/settings/carbon', [\App\Modules\User\Controllers\CarbonController::class, 'updateLink'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.settings.carbon.update');
         Route::post('links/{link}/blocks', [BiolinkBlockController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.blocks.store');
         Route::put('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.blocks.update');
         Route::get('links/{link}/blocks/{block}/edit-form', [BiolinkBlockController::class, 'editForm'])->middleware('workspace.can:links.view')->name('links.blocks.editForm');
@@ -1739,17 +1735,6 @@ Route::prefix('user')->name('user.')->group(function () {
                 ->middleware('throttle:60,1')->name('give.lookup');
             Route::post('give', [\App\Modules\User\Controllers\BadgeRequestController::class, 'give'])
                 ->middleware('workspace.can:settings.edit')->name('give');
-        });
-
-        // Carbon-Neutral Biolinks: per-workspace sustainability dashboard
-        // (footprint snapshots + offset receipts) and per-link toggle.
-        // Workspace-level defaults are owner-only; per-link overrides
-        // are gated to the link owner inside the controller.
-        Route::prefix('carbon')->name('carbon.')->group(function () {
-            Route::get ('/',                    [\App\Modules\User\Controllers\CarbonController::class, 'index'])->name('index');
-            Route::post('workspace',            [\App\Modules\User\Controllers\CarbonController::class, 'updateWorkspace'])->middleware('workspace.owner')->name('workspace.update');
-            Route::post('links/{link}',         [\App\Modules\User\Controllers\CarbonController::class, 'updateLink'])->whereNumber('link')->name('link.update');
-            Route::get ('methodology',          [\App\Modules\User\Controllers\CarbonController::class, 'methodology'])->name('methodology');
         });
 
         Route::middleware('user.can:user.plans.manage')->group(function () {

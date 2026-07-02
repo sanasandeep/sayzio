@@ -154,7 +154,6 @@ function RootLayoutNav() {
       />
       <Stack.Screen name="backlinks" options={{ title: "Backlinks" }} />
       <Stack.Screen name="visitors" options={{ title: "Visitors" }} />
-      <Stack.Screen name="carbon" options={{ title: "Carbon" }} />
       <Stack.Screen name="team" options={{ title: "Team" }} />
       <Stack.Screen name="client-portals" options={{ title: "Client portals" }} />
       <Stack.Screen name="client-portals/[id]" options={{ title: "Portal" }} />

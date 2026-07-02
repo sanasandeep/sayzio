@@ -61,7 +61,6 @@ class CronJobsInspector
         'blogs:publish-scheduled'               => 'Flip blog posts whose scheduled time has passed from scheduled to published.',
         'biolinks:apply-scheduled-themes'       => 'Activate due Link in Bio theme schedules and revert ones whose window has ended.',
         'images:backfill-reoptimize'            => 'Downscale oversized images that slipped past the upload-time compression pipeline.',
-        'carbon:snapshot-monthly'               => 'Estimate the prior month\'s per Link in Bio CO2 and auto-purchase carbon offsets for opted-in links.',
         'cv-uploads:prune-abandoned'            => 'Delete orphaned conversational-flow visitor uploads not referenced by any completed session.',
         'reviews:sync'                          => 'Pull third-party reviews (Google, Trustpilot, …) into external_reviews for connected providers.',
         'db:check-pending-migrations'           => 'Alert admins when the database schema is out of date (pending migrations) before users hit 500s.',

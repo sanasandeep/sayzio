@@ -98,7 +98,6 @@ const TOOL_PAGES: {
     | "/resume"
     | "/backlinks"
     | "/visitors"
-    | "/carbon"
     | "/team"
     | "/client-portals"
     | "/invoices"
@@ -128,7 +127,6 @@ const TOOL_PAGES: {
   { href: "/resume", label: "AI Resume builder", icon: "file-text" },
   { href: "/backlinks", label: "Backlinks", icon: "link" },
   { href: "/visitors", label: "Visitors", icon: "users" },
-  { href: "/carbon", label: "Carbon footprint", icon: "cloud" },
   { href: "/team", label: "Team & staff", icon: "users" },
   { href: "/client-portals", label: "Client portals", icon: "briefcase" },
   { href: "/invoices", label: "Invoices", icon: "file-text" },

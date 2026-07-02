@@ -20,13 +20,6 @@ Route::post('/webhooks/inbox/{token}', [\App\Modules\User\Controllers\InboxInbou
     ->where('token', '[A-Za-z0-9]{20,80}')
     ->name('webhooks.inbox.ingest');
 
-// Carbon offset provider webhooks (Cloverly, Patch, …). Signature
-// verification lives in each adapter; the controller refuses unknown
-// providers with a 404 so probing returns no information.
-Route::post('/webhooks/carbon/{provider}', [\App\Modules\Common\Controllers\CarbonPublicController::class, 'webhook'])
-    ->where('provider', '[a-z0-9_-]+')
-    ->name('webhooks.carbon');
-
 // PayU posts the buyer's browser back to this success/failure URL
 // (surl/furl) with the signed transaction result. We run the canonical
 // webhook pipeline (signature verify + activation, idempotent) and then

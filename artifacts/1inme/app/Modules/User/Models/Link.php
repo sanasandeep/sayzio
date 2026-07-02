@@ -30,8 +30,6 @@ protected $fillable = [
         'insurance_last_checked_at', 'insurance_last_failover_at',
         'insurance_fallback_message',
         'insurance_primary_serve_count', 'insurance_failover_serve_count',
-        // AR Business Card
-        'ar_enabled', 'ar_settings',
         // Spam/abuse moderation (admin actioned)
         'moderation_state', 'moderation_reason', 'moderation_note',
         'moderation_at', 'moderation_appealed_at', 'moderation_appeal_message',
@@ -55,8 +53,6 @@ protected $fillable = [
             'insurance_consecutive_successes'   => 'integer',
             'insurance_last_checked_at'         => 'datetime',
             'insurance_last_failover_at'        => 'datetime',
-            'ar_enabled'                        => 'boolean',
-            'ar_settings'                       => 'array',
             'auto_pixel'                        => 'boolean',
         ];
     }

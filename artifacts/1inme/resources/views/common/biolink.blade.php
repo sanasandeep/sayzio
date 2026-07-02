@@ -2342,7 +2342,6 @@
         else document.addEventListener('DOMContentLoaded', start);
     })();
     </script>
-    @include('common.blocks._carbon_badge', ['link' => $link])
     @include('common.partials.biolink-report')
     {{-- reviews_wall: interactive star picker inside the "Write a review" modal. --}}
     <script>

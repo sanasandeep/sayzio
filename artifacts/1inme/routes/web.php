@@ -483,17 +483,6 @@ Route::post('/{handle}/resume/v/{slug}', [\App\Modules\Common\Controllers\Public
     ->where('handle', '[A-Za-z0-9_.-]{2,40}')
     ->where('slug', '[a-z0-9\-]{1,60}');
 
-// ---- AR Business Card (public) ---------------------------------------
-// Reserved /ar/* prefix — must be declared BEFORE the catch-all /{alias}
-// matcher so the alias regex doesn't swallow it.
-Route::prefix('ar/{alias}')->where(['alias' => '[A-Za-z0-9._-]+'])->group(function () {
-    Route::get('/',           [\App\Modules\Common\Controllers\ArCardController::class, 'view'])->name('ar.card.view');
-    Route::get('model.glb',   [\App\Modules\Common\Controllers\ArCardController::class, 'glb'])->name('ar.card.glb');
-    Route::get('model.usdz',  [\App\Modules\Common\Controllers\ArCardController::class, 'usdz'])->name('ar.card.usdz');
-    Route::get('texture.png', [\App\Modules\Common\Controllers\ArCardController::class, 'texture'])->name('ar.card.texture');
-    Route::get('kit',         [\App\Modules\Common\Controllers\ArCardController::class, 'kit'])->name('ar.card.kit');
-    Route::get('kit.pdf',     [\App\Modules\Common\Controllers\ArCardController::class, 'kitPdf'])->name('ar.card.kit.pdf');
-});
 
 // ── Creator Profile: public /@handle surface (Task #1207) ──────────
 // MUST live above the catch-all `/{alias}` matcher so the @-prefixed
@@ -581,15 +570,6 @@ Route::post  ('/@{handle}/manage-subscription/resume', [\App\Modules\Common\Cont
 Route::get ('/checkout/preview', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'preview'])->name('checkout.preview');
 Route::post('/checkout/preview/confirm', [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'confirmPreview'])->name('checkout.preview.confirm');
 Route::get ('/checkout/return',  [\App\Modules\Common\Controllers\MonetizationCheckoutController::class, 'returnHandler'])->name('checkout.return');
-
-// Carbon-Neutral Biolinks: public methodology page (linked from the
-// "Carbon Neutral" badge popover on every opted-in biolink) and a
-// JSON endpoint the badge JS hits on first open. Both must be public
-// because biolink visitors are anonymous.
-Route::get('/sustainability/methodology', [\App\Modules\Common\Controllers\CarbonPublicController::class, 'methodology'])
-    ->name('public.carbon.methodology');
-Route::get('/sustainability/badge/{link}', [\App\Modules\Common\Controllers\CarbonPublicController::class, 'badge'])
-    ->whereNumber('link')->middleware('throttle:60,1')->name('public.carbon.badge');
 
 // In-page biolink storefront (Task #1761). Multi-segment paths so they
 // never collide with the single-segment `/{alias}` catch-all below. Cart

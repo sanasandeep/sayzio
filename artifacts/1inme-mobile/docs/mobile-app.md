@@ -184,7 +184,7 @@ Generated from `app/` (expo-router). `(auth)` and `(tabs)` are route groups; `[p
 | Route file | Purpose |
 | ---------- | ------- |
 | `app/stats.tsx`, `app/visitors.tsx` | Stats & live visitors. |
-| `app/leaderboard.tsx`, `app/insider.tsx`, `app/carbon.tsx` | Leaderboard, insider, carbon. |
+| `app/leaderboard.tsx`, `app/insider.tsx` | Leaderboard, insider. |
 | `app/moderation.tsx` | Moderation (where applicable). |
 
 ### Account, security & info

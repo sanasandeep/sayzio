@@ -266,8 +266,6 @@ All applicable to short links and (where relevant) the broader link set.
 - **Link insurance** — monitors a destination on a cadence and auto-fails-over to
   a backup URL on consecutive failures, auto-restoring on recovery; tracks
   primary vs failover serve counts.
-- **AR business card** — `ar_enabled` / `ar_settings` for an AR card experience;
-  AR scans are tracked as an analytics source.
 - **Auto-pixel** — auto-fire workspace tracking pixels (Meta/TikTok/Google Ads)
   on click.
 - **Moderation** — admin spam/abuse moderation state with reason/note and an
