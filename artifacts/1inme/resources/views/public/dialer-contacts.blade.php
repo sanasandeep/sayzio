@@ -707,6 +707,16 @@
     </div>
 </section>
 
+{{-- ============== TAKE IT WITH YOU ============== --}}
+<section id="dcp-store" class="py-12 lg:py-16">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="text-[11px] font-bold uppercase tracking-[.14em] text-gray-500 mb-4" data-anim="fade-up">Take the dialer with you</div>
+        <div class="flex flex-wrap items-center justify-center" data-anim="fade-up">
+            @include('public.partials.store-buttons')
+        </div>
+    </div>
+</section>
+
 {{-- ============== CLOSING CTA ============== --}}
 <section class="py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

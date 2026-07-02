@@ -14,8 +14,9 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 // (resources/views/public/partials/store-buttons.blade.php).
 //
 // Nothing controller-level can observe that failure mode — it only exists in a
-// real layout engine. These tests pin the invariant for BOTH current include
-// contexts of the partial (the homepage dialer section and the shared footer):
+// real layout engine. These tests pin the invariant for ALL include contexts of
+// the partial (the homepage dialer section, the dedicated Dialer & Contacts page
+// section, and the shared footer):
 // clicking a store badge with no store URL configured must open a modal card
 // that is genuinely visible, un-clipped, fully inside the viewport, and
 // actually hit-testable at its center; the close button must dismiss it. If a
@@ -55,13 +56,22 @@ echo 'OK_STORE_URLS_CLEARED';
 }
 
 /**
- * Load the home page with consent already given (so the bottom-pinned cookie
- * banner can't cover the footer badges or intercept clicks) and wait for
- * Alpine — the modal only exists in the DOM once Alpine processes the
- * x-teleport template. reducedMotion is set per-describe below so the
- * `.reveal` entrance animations resolve to their settled opacity-1 state.
+ * Navigate to `path` with consent already given (so the bottom-pinned cookie
+ * banner cannot cover footer badges or intercept clicks) and wait for Alpine
+ * to both load AND finish processing the x-teleport template so the modal is
+ * actually attached to <body> before any badge is clicked.
+ *
+ * Waiting for `window.Alpine` alone is not sufficient: Alpine.start() is
+ * called synchronously after the Alpine IIFE sets window.Alpine, but
+ * Playwright's waitForFunction polling resolves as soon as the condition is
+ * truthy — which can happen in a CDP round-trip that lands before the
+ * queueMicrotask-scheduled init queue drains. The extra waitForSelector on the
+ * teleported dialog element (state:'attached') is the definitive gate: it
+ * resolves only once Alpine has appended the cloned template content to <body>
+ * and set up the @open-store-coming-soon.window listener. This makes every
+ * badge click reliable regardless of CPU load or VM scheduling jitter.
  */
-async function gotoHome(page: Page): Promise<void> {
+async function gotoPageWithConsent(page: Page, path: string): Promise<void> {
   await page.context().addCookies([
     {
       name: CONSENT_COOKIE,
@@ -77,10 +87,37 @@ async function gotoHome(page: Page): Promise<void> {
     },
   ]);
   // The home page is heavy (maps, embeds); don't wait for full network idle.
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.goto(path, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(
     () => !!(window as unknown as { Alpine?: unknown }).Alpine,
   );
+  // Definitive Alpine-init gate: wait until the x-teleport has fired and the
+  // modal div is attached to <body>. Without this the window event can fire
+  // before the @open-store-coming-soon listener is registered, silently
+  // dropping the open signal.
+  await page.waitForSelector(
+    `[role="dialog"][aria-label="${MODAL_LABEL}"]`,
+    { state: "attached" },
+  );
+}
+
+/**
+ * Load the home page with consent already given and wait for Alpine —
+ * the modal only exists in the DOM once Alpine processes the x-teleport
+ * template. reducedMotion is set per-describe below so the `.reveal`
+ * entrance animations resolve to their settled opacity-1 state.
+ */
+async function gotoHome(page: Page): Promise<void> {
+  await gotoPageWithConsent(page, "/");
+}
+
+/**
+ * Load the dedicated Dialer & Contacts page with consent given and wait for
+ * Alpine. On this page the @once block fires in the #dcp-store section (first
+ * include), so the modal is teleported from there — not from the footer.
+ */
+async function gotoDialerContacts(page: Page): Promise<void> {
+  await gotoPageWithConsent(page, "/dialer-contacts");
 }
 
 /** The single (@once) coming-soon dialog, teleported under <body>. */
@@ -218,6 +255,10 @@ test.describe("store-badge coming-soon modal — never blank/trapped", () => {
     await badge.click();
 
     await expectModalOpenAndCentered(page);
+    // Store-aware headline: Play badge opens the Google Play copy.
+    await expect(dialog(page).locator("h3")).toContainText(
+      "coming to Google Play",
+    );
     await closeModalAndExpectGone(page);
 
     // Same page, other store: the footer App Store badge re-opens the shared
@@ -227,6 +268,45 @@ test.describe("store-badge coming-soon modal — never blank/trapped", () => {
       .locator("footer")
       .getByRole("button", { name: /App Store/ });
     await appBadge.click();
+    await expectModalOpenAndCentered(page);
+    await expect(dialog(page).locator("h3")).toContainText(
+      "coming to the App Store",
+    );
+    await closeModalAndExpectGone(page);
+  });
+
+  test("dedicated /dialer-contacts page — section badge opens modal; footer badge switches store copy", async ({
+    page,
+  }) => {
+    await gotoDialerContacts(page);
+
+    // The #dcp-store section on the dedicated page includes the partial in its
+    // own content (first include on this page, so @once fires here).  With no
+    // store URL configured these are <button>s, not <a> links.
+    const sectionBadge = page
+      .locator("#dcp-store")
+      .getByRole("button", { name: /Google Play/ });
+    await sectionBadge.scrollIntoViewIfNeeded();
+    await expect(sectionBadge).toBeVisible();
+    await sectionBadge.click();
+
+    await expectModalOpenAndCentered(page);
+    await expect(dialog(page).locator("h3")).toContainText(
+      "coming to Google Play",
+    );
+    await closeModalAndExpectGone(page);
+
+    // Footer App Store badge on the same page: the @once modal (already
+    // teleported from the content section) must re-open with App Store copy,
+    // proving that the footer badges work even when @once skips the footer
+    // include and only the content-section include rendered the teleport.
+    const footerAppBadge = page
+      .locator("footer")
+      .getByRole("button", { name: /App Store/ });
+    await footerAppBadge.scrollIntoViewIfNeeded();
+    await expect(footerAppBadge).toBeVisible();
+    await footerAppBadge.click();
+
     await expectModalOpenAndCentered(page);
     await expect(dialog(page).locator("h3")).toContainText(
       "coming to the App Store",
