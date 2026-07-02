@@ -104,6 +104,46 @@
         $bgAttachment = $bs['bg_attachment'] ?? 'fixed';
         $bgFallbackColor = $bs['bg_fallback_color'] ?? '#0a0612';
         $bgFallbackImage = $bs['bg_fallback_image'] ?? '';
+
+        // Contrast safeguard: when no explicit background_type has been saved the
+        // page falls back to the dark default gradient (#0a0612 / $bgFallbackColor).
+        // A stale or mis-matched font_color (e.g. dark #212529 left over from a
+        // cleared theme) can produce unreadable text.  We compute the WCAG contrast
+        // ratio between the effective background and the stored font color; if it is
+        // below 3:1 we override the font to white (dark bg) or near-black (light bg).
+        // Intentionally-themed biolinks (explicit background_type key present in
+        // saved settings) are never touched — this guard only fires on the no-theme path.
+        if (!isset($bs['background_type'])) {
+            // Helper: relative luminance of a 6-digit hex color (returns null on bad input).
+            $__lum = function(string $color): ?float {
+                $h = ltrim($color, '#');
+                if (strlen($h) !== 6 || !ctype_xdigit($h)) {
+                    return null;
+                }
+                $r = hexdec(substr($h, 0, 2)) / 255;
+                $g = hexdec(substr($h, 2, 2)) / 255;
+                $b = hexdec(substr($h, 4, 2)) / 255;
+                $lin = fn($c) => $c <= 0.03928 ? $c / 12.92 : (($c + 0.055) / 1.055) ** 2.4;
+                return 0.2126 * $lin($r) + 0.7152 * $lin($g) + 0.0722 * $lin($b);
+            };
+            // Effective background: bgFallbackColor is the CSS background-color
+            // that always renders (gradient/image layers sit on top of it).
+            // Default is #0a0612 (luminance ≈ 0.0016 — very dark).
+            $__bgLum   = $__lum(is_string($bgFallbackColor) ? $bgFallbackColor : '') ?? 0.0016;
+            $__fontLum = $__lum(is_string($fontColor) ? $fontColor : '');
+            if ($__fontLum !== null) {
+                $__lighter = max($__bgLum, $__fontLum);
+                $__darker  = min($__bgLum, $__fontLum);
+                $__ratio   = ($__lighter + 0.05) / ($__darker + 0.05);
+                if ($__ratio < 3.0) {
+                    // Insufficient contrast — pick a readable override for the bg tone.
+                    $fontColor = $__bgLum < 0.18 ? '#ffffff' : '#212529';
+                }
+            } else {
+                // Unparseable font color — safe default based on effective bg tone.
+                $fontColor = $__bgLum < 0.18 ? '#ffffff' : '#212529';
+            }
+        }
         $bgBlur = (int)($bs['bg_blur'] ?? 0);
         $bgOverlayColor = $bs['bg_overlay_color'] ?? '#000000';
         $bgOverlayOpacity = (int)($bs['bg_overlay_opacity'] ?? 0);
