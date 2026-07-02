@@ -1,0 +1,84 @@
+{
+  "expo": {
+    "name": "Sayzio Dialer",
+    "slug": "sayzio-dialer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "sayzio",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#3d6bff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.sayzio.dialer",
+      "infoPlist": {
+        "NSContactsUsageDescription": "Sayzio Dialer reads your contacts so you can call, message and manage them, and match incoming numbers to saved people.",
+        "NSLocationWhenInUseUsageDescription": "Sayzio Dialer can show and pick a contact's location on a map. This is optional and only used while the app is open.",
+        "NSFaceIDUsageDescription": "Sayzio Dialer uses Face ID so you can unlock the app without re-entering your code."
+      }
+    },
+    "android": {
+      "package": "com.sayzio.dialer",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#0a0a0f"
+      },
+      "permissions": [
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.VIBRATE",
+        "android.permission.CALL_PHONE"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#3d6bff",
+          "imageWidth": 220,
+          "dark": {
+            "image": "./assets/images/icon.png",
+            "backgroundColor": "#3d6bff"
+          }
+        }
+      ],
+      "expo-web-browser",
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Sayzio Dialer uses Face ID so you can unlock the app without re-entering your code."
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Sayzio Dialer can read your contacts so you can call, message and manage them."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Sayzio Dialer can show and pick a contact's location on a map."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

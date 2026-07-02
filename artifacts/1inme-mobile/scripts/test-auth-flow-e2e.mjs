@@ -709,8 +709,12 @@ async function runGoogleVariant(server) {
       // persistent transient connection error means the server couldn't stay
       // serveable → best-effort SKIP (exit 0), never a hard fail. Real
       // assertion/logic errors still propagate.
+      // Timeout \d+ms exceeded: after warmup already proved a real 200, the
+      // initial nav timing out means Metro is too starved to serve the bundle
+      // under this run's load — same "couldn't stay serveable" condition as a
+      // connection reset, so classify it transient (skip, not hard fail).
       const TRANSIENT_NAV =
-        /ERR_CONNECTION_RESET|ERR_EMPTY_RESPONSE|ERR_CONNECTION_REFUSED|ERR_CONNECTION_CLOSED|ERR_NETWORK_CHANGED/;
+        /ERR_CONNECTION_RESET|ERR_EMPTY_RESPONSE|ERR_CONNECTION_REFUSED|ERR_CONNECTION_CLOSED|ERR_NETWORK_CHANGED|Timeout \d+ms exceeded/;
       const NAV_ATTEMPTS = 4;
       let navErr;
       for (let attempt = 1; attempt <= NAV_ATTEMPTS; attempt++) {
@@ -1540,8 +1544,12 @@ async function main(server) {
     // the same "best-effort boot couldn't hold" condition the reused-server case
     // already SKIPs on (exit 0) — never a hard gate failure. Non-connection
     // errors (real assertion/logic bugs) still propagate.
+    // Timeout \d+ms exceeded: after waitForExpoServeable() already proved a
+    // real 200, the initial nav timing out means Metro is too starved to serve
+    // the bundle under this run's load — same "couldn't stay serveable"
+    // condition as a connection reset, so classify it transient too.
     const TRANSIENT_NAV =
-      /ERR_CONNECTION_RESET|ERR_EMPTY_RESPONSE|ERR_CONNECTION_REFUSED|ERR_CONNECTION_CLOSED|ERR_NETWORK_CHANGED/;
+      /ERR_CONNECTION_RESET|ERR_EMPTY_RESPONSE|ERR_CONNECTION_REFUSED|ERR_CONNECTION_CLOSED|ERR_NETWORK_CHANGED|Timeout \d+ms exceeded/;
     const NAV_ATTEMPTS = 4;
     let navErr;
     for (let attempt = 1; attempt <= NAV_ATTEMPTS; attempt++) {

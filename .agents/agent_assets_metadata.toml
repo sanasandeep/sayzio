@@ -1079,3 +1079,9 @@ id = "8ogHG0-rt4zRMkrok1NPe"
 uri = "file://exports/1inme-link-types-poster-portrait.png"
 type = "image"
 title = "1INME — 12 Link Types Poster (Portrait, 2160×3840)"
+
+[[outputs]]
+id = "Xqmf2Nsw_zH_-GMPwUish"
+uri = "file://dist/sayzio-dialer-app.tar.gz"
+type = "unspecified"
+title = "Sayzio Dialer — standalone app source bundle"
