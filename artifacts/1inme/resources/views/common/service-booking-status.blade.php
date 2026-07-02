@@ -5,7 +5,7 @@
     $accent = optional($config)->accent_color ?: '#3d6bff';
     $currency = $booking->currency ?: 'USD';
     $title = optional($link)->title ?: optional($link)->alias ?: 'Booking';
-    $tz = optional($config)->effectiveTimezone() ?: config('app.timezone', 'UTC');
+    $tz = optional($config)->effectiveTimezone() ?: \App\Support\PlatformTimezone::platformDefault();
     $fmt = fn ($n) => $currency . ' ' . number_format((float) $n, 2);
     $when = $booking->slot_start ? \Carbon\Carbon::parse($booking->slot_start)->setTimezone($tz)->format('D, M j · g:i A') : null;
 @endphp

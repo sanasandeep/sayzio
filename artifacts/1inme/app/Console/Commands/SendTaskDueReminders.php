@@ -42,7 +42,7 @@ class SendTaskDueReminders extends Command
                 ->pluck('workspace_id'))
             ->chunk(100, function ($workspaces) use ($force, &$sent) {
                 foreach ($workspaces as $ws) {
-                    $tz = optional($ws->owner)->timezone ?: 'UTC';
+                    $tz = \App\Support\PlatformTimezone::forUser($ws->owner);
                     $nowLocal = Carbon::now($tz);
 
                     // Schedule fires hourly; only do real work at 8 AM local.

@@ -1026,7 +1026,7 @@ class BiolinkBlock extends Model
     public static function matchesTimeSlot(array $slots): bool
     {
         try {
-            $tz = config('app.timezone') ?: 'UTC';
+            $tz = \App\Support\PlatformTimezone::platformDefault();
             $now = new \DateTimeImmutable('now', new \DateTimeZone($tz));
         } catch (\Throwable $e) {
             return true; // fail-open on bad tz

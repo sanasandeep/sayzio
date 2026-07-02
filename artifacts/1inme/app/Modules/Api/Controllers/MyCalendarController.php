@@ -310,7 +310,7 @@ class MyCalendarController extends Controller
     public function today(Request $request)
     {
         $user = $request->user();
-        $tz   = $user->timezone ?: 'UTC';
+        $tz   = \App\Support\PlatformTimezone::forUser($user);
         $now  = Carbon::now($tz);
 
         $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');

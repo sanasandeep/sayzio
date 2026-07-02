@@ -69,6 +69,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Platform Default (Display) Timezone
+    |--------------------------------------------------------------------------
+    |
+    | The framework timezone above stays UTC for storage/date-math purposes.
+    | This value is the platform-wide *fallback* timezone used to display or
+    | interpret times whenever a user (or a resource tied to one) has not
+    | chosen a personal timezone. Users who set their own timezone always see
+    | their own — this is only the default for everyone else. See
+    | App\Support\PlatformTimezone.
+    |
+    */
+
+    'platform_default_timezone' => env('PLATFORM_DEFAULT_TIMEZONE', 'Asia/Kolkata'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

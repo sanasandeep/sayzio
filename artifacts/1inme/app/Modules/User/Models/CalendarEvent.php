@@ -20,7 +20,7 @@ class CalendarEvent extends Model
     ];
 
     protected $attributes = [
-        'timezone' => 'UTC',
+        'timezone' => \App\Support\PlatformTimezone::DEFAULT,
         'all_day'  => false,
     ];
 
@@ -50,9 +50,7 @@ class CalendarEvent extends Model
     /** Effective timezone, always a valid string for date math. */
     public function effectiveTimezone(): string
     {
-        $tz = trim((string) $this->timezone);
-
-        return $tz !== '' ? $tz : 'UTC';
+        return \App\Support\PlatformTimezone::resolve($this->timezone);
     }
 
     /** Normalize a free-text hashtag list into clean, deduped slugs. */

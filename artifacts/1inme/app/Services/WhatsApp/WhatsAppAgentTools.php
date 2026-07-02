@@ -246,7 +246,7 @@ class WhatsAppAgentTools
             $endAt = $startAt->modify('+1 hour');
         }
 
-        $tz = trim((string) ($args['timezone'] ?? '')) ?: 'UTC';
+        $tz = trim((string) ($args['timezone'] ?? '')) ?: \App\Support\PlatformTimezone::forUser($this->user);
 
         $link = Link::create([
             'user_id'    => $this->user->id,

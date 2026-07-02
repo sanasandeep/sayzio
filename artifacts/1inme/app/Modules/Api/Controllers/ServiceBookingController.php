@@ -653,7 +653,7 @@ class ServiceBookingController extends Controller
                 'slot_length_minutes' => 30,
                 'lead_time_minutes'   => 120,
                 'max_days_ahead'      => 30,
-                'timezone'            => config('app.timezone') ?: 'UTC',
+                'timezone'            => \App\Support\PlatformTimezone::platformDefault(),
             ]);
     }
 

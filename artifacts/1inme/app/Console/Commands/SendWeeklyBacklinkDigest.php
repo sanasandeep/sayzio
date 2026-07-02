@@ -96,7 +96,7 @@ class SendWeeklyBacklinkDigest extends Command
                     // in their timezone. Carbon's setTimezone naturally
                     // handles DST.
                     if (! $anyTime) {
-                        $tz = $user->timezone ?: 'UTC';
+                        $tz = \App\Support\PlatformTimezone::forUser($user);
                         try {
                             $userMoment = $now->copy()->utc()->setTime($runHour, 0)->setTimezone($tz);
                         } catch (\Throwable $e) {

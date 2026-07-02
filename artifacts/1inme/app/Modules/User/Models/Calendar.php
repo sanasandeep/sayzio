@@ -23,7 +23,7 @@ class Calendar extends Model
 
     protected $attributes = [
         'accent_color' => '#3d6bff',
-        'timezone'     => 'UTC',
+        'timezone'     => \App\Support\PlatformTimezone::DEFAULT,
     ];
 
     protected function casts(): array
@@ -76,8 +76,6 @@ class Calendar extends Model
     /** Effective timezone, always a valid string for date math. */
     public function effectiveTimezone(): string
     {
-        $tz = trim((string) $this->timezone);
-
-        return $tz !== '' ? $tz : 'UTC';
+        return \App\Support\PlatformTimezone::resolve($this->timezone);
     }
 }

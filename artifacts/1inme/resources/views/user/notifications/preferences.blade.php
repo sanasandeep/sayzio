@@ -131,12 +131,12 @@
                         <option value="{{ $h }}" {{ $blHour === $h ? 'selected' : '' }}>{{ $disp }}:00 {{ $suffix }}</option>
                     @endfor
                 </select>
-                <span class="text-xs" style="color: var(--text-faint);">in your timezone ({{ $user->timezone ?: 'UTC' }})</span>
+                <span class="text-xs" style="color: var(--text-faint);">in your timezone ({{ \App\Support\PlatformTimezone::resolve($user->timezone) }})</span>
             </div>
             <p class="text-xs mt-3" style="color: var(--text-muted);">
                 <i class="fas fa-clock mr-1" style="color: var(--text-faint);"></i>
                 Next digest:
-                <span id="bl-digest-next-preview" data-tz="{{ $user->timezone ?: 'UTC' }}"
+                <span id="bl-digest-next-preview" data-tz="{{ \App\Support\PlatformTimezone::resolve($user->timezone) }}"
                       style="color: var(--text-primary); font-weight: 600;">…</span>
             </p>
         </div>

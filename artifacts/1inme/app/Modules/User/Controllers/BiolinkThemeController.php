@@ -118,8 +118,8 @@ class BiolinkThemeController extends Controller
         ]);
         $theme = BiolinkTheme::where('link_id', $link->id)->findOrFail($data['theme_id']);
 
-        $tz = $data['timezone'] ?? 'UTC';
-        if (!in_array($tz, \DateTimeZone::listIdentifiers(), true)) $tz = 'UTC';
+        $tz = $data['timezone'] ?? \App\Support\PlatformTimezone::platformDefault();
+        if (!in_array($tz, \DateTimeZone::listIdentifiers(), true)) $tz = \App\Support\PlatformTimezone::platformDefault();
 
         // Treat the form's local datetime strings as wall-clock in `$tz`.
         $startsAt = \Carbon\Carbon::parse($data['starts_at'], $tz)->utc();
@@ -171,8 +171,8 @@ class BiolinkThemeController extends Controller
             'ends_at'   => 'required|date|after:starts_at',
             'timezone'  => 'nullable|string|max:64',
         ]);
-        $tz = $data['timezone'] ?? $schedule->timezone ?? 'UTC';
-        if (!in_array($tz, \DateTimeZone::listIdentifiers(), true)) $tz = 'UTC';
+        $tz = $data['timezone'] ?? $schedule->timezone ?? \App\Support\PlatformTimezone::platformDefault();
+        if (!in_array($tz, \DateTimeZone::listIdentifiers(), true)) $tz = \App\Support\PlatformTimezone::platformDefault();
         $startsAt = \Carbon\Carbon::parse($data['starts_at'], $tz)->utc();
         $endsAt   = \Carbon\Carbon::parse($data['ends_at'], $tz)->utc();
 

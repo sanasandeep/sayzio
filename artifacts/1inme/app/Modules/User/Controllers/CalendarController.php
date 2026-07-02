@@ -38,7 +38,7 @@ class CalendarController extends Controller
                 'user_id'  => $link->user_id,
                 'title'    => $link->title ?: 'My Calendar',
                 'slug'     => $link->alias,
-                'timezone' => workspace_owner()->timezone ?: 'UTC',
+                'timezone' => \App\Support\PlatformTimezone::forUser(workspace_owner()),
             ]
         );
 
@@ -63,7 +63,7 @@ class CalendarController extends Controller
             'prefillAlias'    => (string) $request->query('alias', ''),
             'aliasLimits'     => workspace_owner()->getAliasLengthLimits(),
             'timezones'       => timezone_identifiers_list(),
-            'defaultTimezone' => workspace_owner()->timezone ?: 'UTC',
+            'defaultTimezone' => \App\Support\PlatformTimezone::forUser(workspace_owner()),
         ]);
     }
 
@@ -383,7 +383,7 @@ class CalendarController extends Controller
             $view = 'agenda';
         }
 
-        $userTz = $user->timezone ?: config('app.timezone', 'UTC');
+        $userTz = \App\Support\PlatformTimezone::forUser($user);
         try {
             $focus = $request->filled('date')
                 ? Carbon::parse((string) $request->query('date'), $userTz)
@@ -497,7 +497,7 @@ class CalendarController extends Controller
         $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
         $calendarIds = $ownedIds->merge($followedIds)->unique()->values();
 
-        $userTz = $user->timezone ?: config('app.timezone', 'UTC');
+        $userTz = \App\Support\PlatformTimezone::forUser($user);
 
         // Forward-looking window mirrors the export's default agenda behaviour.
         $events = CalendarEvent::query()

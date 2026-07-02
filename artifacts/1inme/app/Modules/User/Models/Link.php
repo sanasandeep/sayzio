@@ -376,7 +376,7 @@ protected $fillable = [
         $aw = $s['active_window'] ?? null;
         if (!is_array($aw) || empty($aw['enabled'])) return true;
 
-        $tz    = $s['timezone'] ?? 'UTC';
+        $tz    = \App\Support\PlatformTimezone::resolve($s['timezone'] ?? null);
         $days  = (array) ($aw['days'] ?? []);
 
         // Normalise to a list of slots. Supports the new multi-slot shape
@@ -466,7 +466,7 @@ protected $fillable = [
         $aw = $s['active_window'] ?? null;
         if (!is_array($aw) || empty($aw['enabled'])) return null;
 
-        $tz   = $s['timezone'] ?? 'UTC';
+        $tz   = \App\Support\PlatformTimezone::resolve($s['timezone'] ?? null);
         $days = (array) ($aw['days'] ?? ['mon','tue','wed','thu','fri','sat','sun']);
 
         $slots = [];

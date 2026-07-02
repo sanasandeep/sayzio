@@ -578,7 +578,7 @@ class LinkController extends Controller
         if ($link->type === 'calendar') {
             $tz = (string) $request->input('calendar_timezone', '');
             if ($tz === '' || !in_array($tz, timezone_identifiers_list(), true)) {
-                $tz = workspace_owner()->timezone ?: 'UTC';
+                $tz = \App\Support\PlatformTimezone::forUser(workspace_owner());
             }
             $accent = (string) $request->input('calendar_accent_color', '#3d6bff');
             if (!preg_match('/^#[0-9a-fA-F]{6}$/', $accent)) {

@@ -129,7 +129,7 @@ class CronJobsInspector
             $run = $runs[$this->runLog->key($event)] ?? null;
 
             $lastRun = ($run !== null && isset($run['ran_at']))
-                ? Carbon::createFromTimestamp((int) $run['ran_at'])->setTimezone(config('app.timezone', 'UTC'))
+                ? Carbon::createFromTimestamp((int) $run['ran_at'])->setTimezone(\App\Support\PlatformTimezone::platformDefault())
                 : null;
 
             $lastOk = (is_array($run) && array_key_exists('ok', $run) && is_bool($run['ok'])) ? $run['ok'] : null;
@@ -200,7 +200,7 @@ class CronJobsInspector
 
         return [
             'state'         => $age <= $threshold ? 'healthy' : 'stale',
-            'last_tick'     => $tick->setTimezone(config('app.timezone', 'UTC')),
+            'last_tick'     => $tick->setTimezone(\App\Support\PlatformTimezone::platformDefault()),
             'overdue_count' => $overdueCount,
         ];
     }
@@ -290,12 +290,12 @@ class CronJobsInspector
     protected function nextRun(Event $event): ?Carbon
     {
         try {
-            $tz = $event->timezone ?: config('app.timezone', 'UTC');
+            $tz = $event->timezone ?: \App\Support\PlatformTimezone::platformDefault();
 
             return Carbon::instance(
                 (new CronExpression($event->expression))
                     ->getNextRunDate(Carbon::now()->setTimezone($tz))
-            )->setTimezone(config('app.timezone', 'UTC'));
+            )->setTimezone(\App\Support\PlatformTimezone::platformDefault());
         } catch (\Throwable $e) {
             return null;
         }
@@ -309,12 +309,12 @@ class CronJobsInspector
     protected function prevRun(Event $event): ?Carbon
     {
         try {
-            $tz = $event->timezone ?: config('app.timezone', 'UTC');
+            $tz = $event->timezone ?: \App\Support\PlatformTimezone::platformDefault();
 
             return Carbon::instance(
                 (new CronExpression($event->expression))
                     ->getPreviousRunDate(Carbon::now()->setTimezone($tz))
-            )->setTimezone(config('app.timezone', 'UTC'));
+            )->setTimezone(\App\Support\PlatformTimezone::platformDefault());
         } catch (\Throwable $e) {
             return null;
         }
@@ -391,7 +391,7 @@ class CronJobsInspector
     {
         return str_pad((string) (int) $hour, 2, '0', STR_PAD_LEFT)
             . ':' . str_pad((string) (int) $min, 2, '0', STR_PAD_LEFT)
-            . ' ' . config('app.timezone', 'UTC');
+            . ' ' . \App\Support\PlatformTimezone::platformDefault();
     }
 
     protected function weekday(string $dow): string

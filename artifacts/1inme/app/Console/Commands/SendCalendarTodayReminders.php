@@ -65,7 +65,7 @@ class SendCalendarTodayReminders extends Command
             ->get(['id', 'timezone']);
 
         foreach ($users as $user) {
-            $tz = $user->timezone ?: 'UTC';
+            $tz = \App\Support\PlatformTimezone::forUser($user);
             $nowLocal = Carbon::now($tz);
 
             // Schedule fires hourly; only do real work at 8 AM local time.

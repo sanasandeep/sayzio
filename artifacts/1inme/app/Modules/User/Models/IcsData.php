@@ -82,7 +82,7 @@ class IcsData extends Model
      */
     public function upcomingOccurrences(int $limit = 12, ?\DateTimeInterface $from = null): array
     {
-        $tz   = new \DateTimeZone($this->timezone ?: 'UTC');
+        $tz   = new \DateTimeZone(\App\Support\PlatformTimezone::resolve($this->timezone));
         $from = $from ? \DateTime::createFromInterface($from) : new \DateTime('now', $tz);
         $slots = $this->resolvedSlots();
         if (empty($slots)) return [];
@@ -186,7 +186,7 @@ class IcsData extends Model
         $ics .= "METHOD:PUBLISH\r\n";
 
         $rrule = $this->buildRRule();
-        $tz    = new \DateTimeZone($this->timezone ?: 'UTC');
+        $tz    = new \DateTimeZone(\App\Support\PlatformTimezone::resolve($this->timezone));
         $slots = $this->resolvedSlots();
 
         if (empty($slots)) {
@@ -232,7 +232,7 @@ class IcsData extends Model
 
     protected function renderVevent($summary, $description, $location, $start, $end, ?string $rrule, string $now, string $uid): string
     {
-        $tz = $this->timezone ?: 'UTC';
+        $tz = \App\Support\PlatformTimezone::resolve($this->timezone);
 
         if ($this->all_day) {
             $startStr = $this->normalizeDate($start)->format('Ymd');

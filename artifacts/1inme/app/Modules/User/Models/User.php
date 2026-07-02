@@ -94,6 +94,20 @@ class User extends Authenticatable
         return $token;
     }
 
+    /**
+     * New accounts default to the platform timezone (IST) until the user
+     * explicitly picks their own (Task #3480).
+     */
+    protected $attributes = [
+        'timezone' => \App\Support\PlatformTimezone::DEFAULT,
+    ];
+
+    /** Effective timezone: the user's chosen zone, else the platform default (IST). */
+    public function effectiveTimezone(): string
+    {
+        return \App\Support\PlatformTimezone::forUser($this);
+    }
+
     protected function casts(): array
     {
         return [

@@ -77,9 +77,7 @@ class ServiceBooking extends Model
 
     public function effectiveTimezone(): string
     {
-        $tz = trim((string) ($this->timezone ?? ''));
-
-        return $tz !== '' ? $tz : (config('app.timezone') ?: 'UTC');
+        return \App\Support\PlatformTimezone::resolve($this->timezone);
     }
 
     // ── Tax / GST settings (stored in the `settings` JSON) ───────────

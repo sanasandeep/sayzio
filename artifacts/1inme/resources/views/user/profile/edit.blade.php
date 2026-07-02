@@ -153,7 +153,7 @@
                         <label class="block text-sm font-medium text-white/60 mb-1.5">Timezone</label>
                         <select name="timezone" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                             @foreach($timezones as $tz)
-                                <option value="{{ $tz }}" {{ $user->timezone == $tz ? 'selected' : '' }} class="bg-[#0d0818]">{{ $tz }}</option>
+                                <option value="{{ $tz }}" {{ \App\Support\PlatformTimezone::resolve($user->timezone) === $tz ? 'selected' : '' }} class="bg-[#0d0818]">{{ $tz }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -259,7 +259,7 @@
                                         @endfor
                                     </select>
                                     <span class="text-xs text-white/50">
-                                        in your timezone ({{ $user->timezone ?: 'UTC' }})
+                                        in your timezone ({{ \App\Support\PlatformTimezone::resolve($user->timezone) }})
                                     </span>
                                 </div>
                                 <p class="text-xs text-white/40 mt-1.5">Only applies when "Daily digest" is selected above.</p>

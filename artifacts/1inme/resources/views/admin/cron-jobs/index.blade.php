@@ -85,7 +85,7 @@
         <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between gap-3">
             <div>
                 <h2 class="text-base font-semibold text-white">Scheduled jobs</h2>
-                <p class="text-xs text-white/50 mt-0.5">{{ count($jobs) }} job{{ count($jobs) === 1 ? '' : 's' }} registered. Times shown in {{ config('app.timezone', 'UTC') }}.</p>
+                <p class="text-xs text-white/50 mt-0.5">{{ count($jobs) }} job{{ count($jobs) === 1 ? '' : 's' }} registered. Times shown in {{ \App\Support\PlatformTimezone::platformDefault() }}.</p>
             </div>
         </div>
 

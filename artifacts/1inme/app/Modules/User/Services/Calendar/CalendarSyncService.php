@@ -149,7 +149,7 @@ class CalendarSyncService
                     'organizer_email' => $orgEmail,
                     'start_date'      => $event['start'],
                     'end_date'        => $event['end'],
-                    'timezone'        => $event['timezone'] ?: 'UTC',
+                    'timezone'        => \App\Support\PlatformTimezone::resolve($event['timezone'] ?? null),
                     'all_day'         => (bool) $event['all_day'],
                     'url'             => $event['url'],
                     'recurrence_freq' => null,  // singleEvents=true expands; we mirror per-instance
@@ -199,7 +199,7 @@ class CalendarSyncService
             'location'    => $ics->location,
             'start'       => $ics->start_date,
             'end'         => $ics->end_date,
-            'timezone'    => $ics->timezone ?: 'UTC',
+            'timezone'    => \App\Support\PlatformTimezone::resolve($ics->timezone),
             'all_day'     => (bool) $ics->all_day,
             'url'         => $ics->url,
             'organizer'   => $ics->organizer ? ['name' => $ics->organizer, 'email' => $ics->organizer_email] : null,
@@ -299,7 +299,7 @@ class CalendarSyncService
             'location'    => $event->location,
             'start'       => $start,
             'end'         => $end,
-            'timezone'    => $event->effectiveTimezone() ?: 'UTC',
+            'timezone'    => $event->effectiveTimezone(),
             'all_day'     => (bool) $event->all_day,
             'url'         => $event->payment_url,
         ];
@@ -486,7 +486,7 @@ class CalendarSyncService
                 'location'    => $external['location'],
                 'start_at'    => $external['start'],
                 'end_at'      => $external['end'],
-                'timezone'    => $external['timezone'] ?: 'UTC',
+                'timezone'    => \App\Support\PlatformTimezone::resolve($external['timezone'] ?? null),
                 'all_day'     => (bool) $external['all_day'],
             ]);
             $mirror->update([

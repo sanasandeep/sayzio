@@ -54,7 +54,7 @@ class SendFollowerDigest extends Command
 
         $query->chunkById(200, function ($users) use (&$sent, &$skipped, $now, $runHour, $anyHour, $force) {
             foreach ($users as $user) {
-                $tz = $user->timezone ?: 'UTC';
+                $tz = \App\Support\PlatformTimezone::forUser($user);
                 try {
                     $userNow = $now->copy()->setTimezone($tz);
                 } catch (\Throwable $e) {
