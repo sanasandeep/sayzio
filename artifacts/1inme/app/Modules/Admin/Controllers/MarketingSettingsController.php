@@ -22,6 +22,8 @@ class MarketingSettingsController extends Controller
             'whatsapp_channel_url'     => (string) AppSetting::get('marketing_whatsapp_channel_url', ''),
             'whatsapp_number'          => (string) AppSetting::get('marketing_whatsapp_number', ''),
             'whatsapp_message'         => (string) AppSetting::get('marketing_whatsapp_message', ''),
+            'play_store_url'           => (string) AppSetting::get('marketing_play_store_url', ''),
+            'app_store_url'            => (string) AppSetting::get('marketing_app_store_url', ''),
             'trust_strip'              => SitePagesContent::normalizeTrustStrip(
                 (array) AppSetting::get('marketing_trust_strip', [])
             ),
@@ -50,6 +52,10 @@ class MarketingSettingsController extends Controller
             'whatsapp_channel_url'            => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'whatsapp_number'                 => ['nullable', 'string', 'max:20', 'regex:/^\+?[0-9]{7,15}$/'],
             'whatsapp_message'                => ['nullable', 'string', 'max:280'],
+            // Mobile-app store links surfaced on the homepage dialer section and
+            // the public footer. When empty the badge opens a "coming soon" modal.
+            'play_store_url'                  => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
+            'app_store_url'                   => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'trust_strip'                     => 'nullable|array|max:6',
             'trust_strip.*.value'             => 'nullable|string|max:60',
             'trust_strip.*.label'             => 'nullable|string|max:120',
@@ -76,6 +82,8 @@ class MarketingSettingsController extends Controller
         AppSetting::put('marketing_whatsapp_channel_url', trim((string) ($data['whatsapp_channel_url'] ?? '')));
         AppSetting::put('marketing_whatsapp_number', trim((string) ($data['whatsapp_number'] ?? '')));
         AppSetting::put('marketing_whatsapp_message', trim((string) ($data['whatsapp_message'] ?? '')));
+        AppSetting::put('marketing_play_store_url', trim((string) ($data['play_store_url'] ?? '')));
+        AppSetting::put('marketing_app_store_url', trim((string) ($data['app_store_url'] ?? '')));
         AppSetting::put('marketing_trust_strip',
             SitePagesContent::normalizeTrustStrip((array) ($data['trust_strip'] ?? []))
         );

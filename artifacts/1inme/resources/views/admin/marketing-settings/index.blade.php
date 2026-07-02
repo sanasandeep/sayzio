@@ -78,6 +78,30 @@
             </div>
         </div>
 
+        {{-- Mobile app store links --}}
+        <div class="glass rounded-2xl p-6 space-y-5">
+            <div>
+                <h2 class="text-lg font-semibold text-white">Mobile app store links</h2>
+                <p class="text-xs text-white/50">Power the Google Play / App Store buttons in the homepage Dialer section and the public footer. Leave a field blank and its button shows a "coming soon" modal instead of linking out.</p>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Google Play URL</label>
+                    <input type="url" name="play_store_url" value="{{ old('play_store_url', $play_store_url) }}"
+                           placeholder="https://play.google.com/store/apps/details?id=..."
+                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('play_store_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Apple App Store URL</label>
+                    <input type="url" name="app_store_url" value="{{ old('app_store_url', $app_store_url) }}"
+                           placeholder="https://apps.apple.com/app/id..."
+                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('app_store_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+            </div>
+        </div>
+
         {{-- Subscribe block — WhatsApp settings --}}
         <div class="glass rounded-2xl p-6 space-y-5">
             <div>

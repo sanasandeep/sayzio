@@ -6,6 +6,10 @@
                     @include('common.partials.brand-logo', ['height' => 'h-9'])
                 </a>
                 <p class="text-sm text-gray-500 mt-3 leading-relaxed max-w-sm">The all-in-one link platform: build a drag-and-drop Link in Bio, share it everywhere, and grow with live analytics and a built-in Performance Coach.</p>
+                <div class="mt-5">
+                    <div class="text-xs font-bold text-gray-300 uppercase tracking-wider mb-3">Get the app</div>
+                    @include('public.partials.store-buttons')
+                </div>
             </div>
             <div>
                 <h4 class="text-xs font-bold text-gray-300 uppercase tracking-wider mb-4">Product</h4>

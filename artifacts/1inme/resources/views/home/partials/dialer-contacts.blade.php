@@ -227,6 +227,11 @@
                         See how sync works <i class="fas fa-rotate text-[10px]"></i>
                     </a>
                 </div>
+
+                <div class="reveal rd-4 pt-2">
+                    <div class="text-[11px] font-bold uppercase tracking-[.14em] text-gray-500 mb-2.5">Take the dialer with you</div>
+                    @include('public.partials.store-buttons')
+                </div>
             </div>
         </div>
     </div>
