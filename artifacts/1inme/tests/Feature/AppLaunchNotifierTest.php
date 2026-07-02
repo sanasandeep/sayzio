@@ -95,4 +95,34 @@ class AppLaunchNotifierTest extends TestCase
         $this->assertSame(1, $this->sentCount('cmd@example.com'));
         $this->assertSame(0, AppLaunchSignup::whereNull('notified_at')->count());
     }
+
+    public function test_the_command_refuses_when_no_store_url_is_configured(): void
+    {
+        // Both store URLs empty — the launch email would have no download buttons.
+        AppSetting::put('marketing_play_store_url', '');
+        AppSetting::put('marketing_app_store_url', '');
+
+        AppLaunchSignup::create(['email' => 'burned@example.com']);
+
+        $this->artisan('app-launch:notify')
+            ->assertExitCode(1);
+
+        // Nothing sent, nothing stamped — the list is preserved for a real launch.
+        $this->assertSame(0, $this->sentCount('burned@example.com'));
+        $this->assertSame(1, AppLaunchSignup::whereNull('notified_at')->count());
+    }
+
+    public function test_the_force_flag_sends_even_with_no_store_url(): void
+    {
+        AppSetting::put('marketing_play_store_url', '');
+        AppSetting::put('marketing_app_store_url', '');
+
+        AppLaunchSignup::create(['email' => 'forced@example.com']);
+
+        $this->artisan('app-launch:notify', ['--force' => true])
+            ->assertExitCode(0);
+
+        $this->assertSame(1, $this->sentCount('forced@example.com'));
+        $this->assertSame(0, AppLaunchSignup::whereNull('notified_at')->count());
+    }
 }

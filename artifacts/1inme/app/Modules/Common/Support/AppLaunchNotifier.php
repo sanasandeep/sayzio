@@ -39,11 +39,18 @@ final class AppLaunchNotifier
      * safe to call unconditionally (e.g. from the marketing-settings save on
      * every field change, or from a manual/scheduled command). Returns the
      * number of signups emailed + stamped.
+     *
+     * $force overrides the "must be launched" guard so an operator can send a
+     * store-less launch email intentionally (the email then has no download
+     * buttons). This is deliberately opt-in — the manual `app-launch:notify
+     * --force` command is the only caller that passes it — because each signup
+     * is a one-shot send: once stamped it is never emailed again, so an
+     * unintentional store-less blast permanently burns the list.
      */
-    public static function notifyIfLaunched(): int
+    public static function notifyIfLaunched(bool $force = false): int
     {
         $stores = self::liveStores();
-        if ($stores === []) {
+        if ($stores === [] && ! $force) {
             // Not launched yet — nothing to announce.
             return 0;
         }
