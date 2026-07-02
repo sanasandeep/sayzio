@@ -165,6 +165,7 @@
     .dc-btn-label { font-size: 9px; font-weight: 700; color: rgba(255,255,255,.5); letter-spacing:.03em; }
     /* Quick-channel row on the caller-ID (back) face */
     .dc-cid-chans { display:flex; align-items:center; justify-content:center; gap: 7px; }
+    .dc-cid-chans > div { opacity: 0; }
 
     @media (prefers-reduced-motion: no-preference) {
         /* 12s master loop: dial digits -> press SIM 1 -> flip to in-call
@@ -287,6 +288,20 @@
         /* Quick-channel strip on the dialer face: appear with the T9 match chip */
         .dc-armed .dc-dialchans { animation: dcMatch 12s ease-in-out infinite; }
 
+        /* Caller-ID channel icons fade up, staggered, once the flip completes
+           (~45%); they stay through the back face (visible ~42%-91%) then drop
+           out just before the flip-back. Timing is baked into keyframe
+           percentages — not animation-delay — so they stay in sync with the
+           12s master loop instead of drifting a cycle. */
+        .dc-armed .dc-cid-chans > div:nth-child(1) { animation: dcCidChan1 12s ease-out infinite; }
+        .dc-armed .dc-cid-chans > div:nth-child(2) { animation: dcCidChan2 12s ease-out infinite; }
+        .dc-armed .dc-cid-chans > div:nth-child(3) { animation: dcCidChan3 12s ease-out infinite; }
+        .dc-armed .dc-cid-chans > div:nth-child(4) { animation: dcCidChan4 12s ease-out infinite; }
+        @keyframes dcCidChan1 { 0%,46% { opacity:0; transform: translateY(6px); } 50%,88% { opacity:1; transform:none; } 91%,100% { opacity:0; transform: translateY(6px); } }
+        @keyframes dcCidChan2 { 0%,48% { opacity:0; transform: translateY(6px); } 52%,88% { opacity:1; transform:none; } 91%,100% { opacity:0; transform: translateY(6px); } }
+        @keyframes dcCidChan3 { 0%,50% { opacity:0; transform: translateY(6px); } 54%,88% { opacity:1; transform:none; } 91%,100% { opacity:0; transform: translateY(6px); } }
+        @keyframes dcCidChan4 { 0%,52% { opacity:0; transform: translateY(6px); } 56%,88% { opacity:1; transform:none; } 91%,100% { opacity:0; transform: translateY(6px); } }
+
         /* In-call screen life: pulsing avatar ring + calling dots */
         .dc-armed .dc-avatar-lg::before { animation: dcRing 2.2s ease-in-out infinite; }
         @keyframes dcRing { 0%,100% { transform: scale(1); opacity:.4; } 50% { transform: scale(1.12); opacity:.85; } }
@@ -332,6 +347,7 @@
         .dc-front { display: none !important; }
         .dc-back { transform: none !important; }
         .dc-match { opacity: 1 !important; transform: none !important; }
+        .dc-cid-chans > div { opacity: 1 !important; transform: none !important; }
     }
 </style>
 <section id="dialer-contacts" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="dc-h">
