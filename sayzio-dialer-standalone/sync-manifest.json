@@ -179,7 +179,8 @@
     {
       "standalone": "lib/api/dialer.ts",
       "source": "lib/api/dialer.ts",
-      "relation": "identical"
+      "relation": "adapted",
+      "note": "adds DialerSuggestionsResult type + getDialerSuggestions(); otherwise identical"
     },
     {
       "standalone": "lib/api/notifications.ts",
@@ -224,7 +225,8 @@
     {
       "standalone": "app/(tabs)/dialer.tsx",
       "source": "app/dialer.tsx",
-      "relation": "identical"
+      "relation": "adapted",
+      "note": "adds suggestions state + empty-state section on keypad tab; otherwise mirrors the 1inme-mobile source"
     },
     {
       "standalone": "app/(auth)/index.tsx",
@@ -272,7 +274,7 @@
   "standaloneOnly": [
     {
       "path": "app/search.tsx",
-      "note": "universal-finder modal screen; UI derived from the dialer inline search, backed by the same /api/v1/dialer/search endpoint"
+      "note": "universal-finder modal screen; UI derived from the dialer inline search, backed by the same /api/v1/dialer/search endpoint; shows dialer suggestions on empty query"
     },
     {
       "path": "app/(tabs)/caller-id.tsx",

@@ -12,6 +12,7 @@ use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Support\DialerChannels;
 use App\Modules\User\Support\DialerData;
 use App\Modules\User\Support\DialerIdentity;
+use App\Modules\User\Support\DialerSuggestions;
 use App\Modules\User\Support\DialerT9;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -337,6 +338,16 @@ class DialerController extends Controller
         $row->callback_notified_at = null;
         $row->save();
         return response()->json(['data' => ['cleared' => true]]);
+    }
+
+    /**
+     * Pre-query suggestions for the dialer search empty state. Returns the
+     * same grouped {total, groups[]} contract as search() so the web JS
+     * renderer (renderGroups) can display suggestions without extra code.
+     */
+    public function suggestions(Request $request)
+    {
+        return response()->json(['data' => DialerSuggestions::forUser($request->user())]);
     }
 
     /**

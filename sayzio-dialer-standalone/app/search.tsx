@@ -17,7 +17,9 @@ import { useColors } from "@/hooks/useColors";
 import {
   type DialerSearchItem,
   type DialerSearchResult,
+  type DialerSuggestionsResult,
   dialerSearch,
+  getDialerSuggestions,
 } from "@/lib/api/dialer";
 
 const E164 = /^\+[1-9]\d{6,14}$/;
@@ -36,6 +38,12 @@ export default function SearchScreen() {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DialerSearchResult | null>(null);
+  const [suggestions, setSuggestions] = useState<DialerSuggestionsResult | null>(null);
+
+  // Fetch suggestions once on mount for the empty-query state.
+  useEffect(() => {
+    void getDialerSuggestions().then(setSuggestions).catch(() => setSuggestions(null));
+  }, []);
 
   const run = useCallback(
     async (term: string, verified: boolean) => {
@@ -134,6 +142,43 @@ export default function SearchScreen() {
           <View style={styles.center}>
             <ActivityIndicator color={colors.primary} />
           </View>
+        ) : !result && !q.trim() && suggestions && suggestions.total > 0 ? (
+          suggestions.groups.map((group) => (
+            <View key={group.key} style={styles.group}>
+              <Text style={[styles.groupLabel, { color: colors.mutedForeground }]}>
+                {group.label}
+              </Text>
+              {group.items.map((item) => (
+                <Pressable
+                  key={`${group.key}-${item.type}-${item.id}`}
+                  onPress={() => open(item)}
+                  style={({ pressed }) => [
+                    styles.row,
+                    { backgroundColor: pressed ? colors.muted : colors.card, borderColor: colors.border },
+                  ]}
+                >
+                  <View style={[styles.avatar, { backgroundColor: colors.muted }]}>
+                    <Text style={[styles.initials, { color: colors.mutedForeground }]}>
+                      {item.initials}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text numberOfLines={1} style={[styles.name, { color: colors.foreground }]}>
+                      {item.title}
+                    </Text>
+                    {!!item.subtitle && (
+                      <Text numberOfLines={1} style={[styles.sub, { color: colors.mutedForeground }]}>
+                        {item.subtitle}
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={[styles.typeLabel, { color: colors.mutedForeground }]}>
+                    {item.type_label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ))
         ) : !result ? (
           <Text style={[styles.empty, { color: colors.mutedForeground }]}>
             Start typing to search across everything you can reach.

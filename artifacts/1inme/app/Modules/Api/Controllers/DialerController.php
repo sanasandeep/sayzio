@@ -15,6 +15,7 @@ use App\Modules\User\Support\DialerData;
 use App\Modules\User\Support\DialerIdentity;
 use App\Modules\User\Support\DialerReachability;
 use App\Modules\User\Support\DialerSearch;
+use App\Modules\User\Support\DialerSuggestions;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
@@ -31,6 +32,17 @@ use Illuminate\Support\Facades\Schema;
 class DialerController extends Controller
 {
     use ApiResponses;
+
+    /**
+     * Pre-query suggestions for the dialer empty state. Returns the same
+     * grouped {total, groups[]} envelope as search() so the mobile renderer
+     * needs no changes. Grouped by: Favorites, Recents, New followers,
+     * Following, New leads (subscribers + form submissions).
+     */
+    public function suggestions(Request $request)
+    {
+        return $this->ok(DialerSuggestions::forUser($request->user()));
+    }
 
     /**
      * Universal finder — grouped search across Contacts, People, My links,

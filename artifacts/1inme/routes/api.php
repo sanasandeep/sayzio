@@ -1127,6 +1127,7 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:30,1');
 
         // Dialer
+        Route::get   ('/dialer/suggestions',        [DialerController::class, 'suggestions']);
         Route::get   ('/dialer/search',             [DialerController::class, 'search']);
         Route::post  ('/dialer/lookup',             [DialerController::class, 'lookup'])->middleware('throttle:60,1');
         Route::get   ('/dialer/profile',            [DialerController::class, 'profile']);

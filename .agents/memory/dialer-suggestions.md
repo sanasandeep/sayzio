@@ -1,0 +1,25 @@
+---
+name: Dialer suggestions
+description: Pre-query empty-state suggestions contract, group sources, and cross-surface rendering pattern.
+---
+
+# Dialer Suggestions
+
+## Rule
+`DialerSuggestions::forUser()` is the single source of truth for the 5 groups (favorites, recents, new_followers, following, new_leads). Returns the same `{total, groups[]}` contract as `DialerSearch::universal()` so ALL renderers (web `renderGroups()`, mobile grouped results, standalone search) work with zero extra code.
+
+## Group sources
+- **favorites** — `DialerData::favorites()`
+- **recents** — `DialerData::groupedRecents()`
+- **new_followers** — `Follow` where `creator_id=$user->id`, ordered by `created_at desc`
+- **following** — `Follow` where `follower_id=$user->id`, ordered by `created_at desc`
+- **new_leads** — active `Subscriber` + completed `FormSubmission` (owned via form relationship), merged by date
+
+## Gotchas
+- `Follow` and `FormSubmission` use `BelongsToWorkspace` trait — must use `withoutGlobalScope('workspace')` or queries return nothing.
+- `FormSubmission` has no direct `user_id`; scope via `whereHas('form', fn($q) => $q->where('user_id', $user->id))`.
+- People groups (new_followers/following) go through the same suspended/blocked gate as `DialerSearch::peopleItems()`.
+
+**Why:** Reuses the shared renderer contract so suggestions and live search results are visually identical. Follow scoping was the key gotcha — global workspace scope silently returns empty results.
+
+**How to apply:** When adding a new group, add a group builder method, call it in `forUser()`, and return items in the same normalized shape as `DialerSearchItem` (type, category, id, title, subtitle, type_label, initials, badge, verified, verified_label, action).

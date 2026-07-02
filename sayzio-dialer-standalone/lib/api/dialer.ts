@@ -265,6 +265,25 @@ export type DialerSearchFilters = {
   tag?: string;
 };
 
+/**
+ * Pre-query suggestions for the dialer empty state.
+ * Returns the same grouped {total, groups[]} contract as DialerSearchResult
+ * (without the `q` / `filter` search-context fields) so the same grouped
+ * renderer works for both suggestions and live search results.
+ */
+export type DialerSuggestionsResult = {
+  total: number;
+  groups: DialerSearchGroup[];
+};
+
+/** Fetch grouped dialer suggestions for the current user. */
+export async function getDialerSuggestions(): Promise<DialerSuggestionsResult> {
+  const res = await apiFetch<{ data: DialerSuggestionsResult }>(
+    "/dialer/suggestions",
+  );
+  return res.data;
+}
+
 /** Universal grouped finder. Same contract as the web + REST dialer search. */
 export async function dialerSearch(
   q: string,

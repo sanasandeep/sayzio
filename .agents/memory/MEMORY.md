@@ -1,3 +1,4 @@
+- [Dialer suggestions](dialer-suggestions.md) — DialerSuggestions::forUser() 5-group pre-query empty state; same {total,groups[]} contract as DialerSearch::universal(); Follow needs withoutGlobalScope('workspace').
 - [Internal (admin-only) plans](internal-admin-only-plans.md) — `Plan::scopePublic()` (is_internal=false) is the canonical filter; every self-serve list/upgrade surface adds `->public()`, admin list & assign-picker do not.
 - [Mobile apiFetch envelope](mobile-apifetch-envelope.md) — apiFetch returns the RAW {data} envelope; helpers must request `<{data:X}>` and return res.data (typecheck won't catch it).
 - [Plan upgrade/downgrade billing](plan-upgrade-downgrade-billing.md) — no proration: upgrade=full-price fresh cycle + admin credit review; downgrade=scheduled lower-paid plan applied at cycle end by renewal job; resolveMinor only compares prices.

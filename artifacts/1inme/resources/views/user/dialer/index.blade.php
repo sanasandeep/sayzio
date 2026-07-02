@@ -136,7 +136,8 @@ const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
 const inp     = document.getElementById('dialer-number');
 const liveBox = document.getElementById('dialer-live');
 const searchInp = document.getElementById('universal-q');
-const SEARCH_URL = '{{ route('user.dialer.search') }}';
+const SEARCH_URL       = '{{ route('user.dialer.search') }}';
+const SUGGESTIONS_URL  = '{{ route('user.dialer.suggestions') }}';
 
 // Advanced-search filter state (verification badge / on-Sayzio / tag).
 const uniFilters = { verified: false, has_biolink: false, tag: '' };
@@ -364,6 +365,20 @@ function liveFilter() {
     }, 200);
 }
 
+// Load and display pre-query suggestions when the search box is empty.
+async function loadSuggestions(box) {
+    try {
+        const r = await fetch(SUGGESTIONS_URL, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (!r.ok) { box.innerHTML = ''; return; }
+        const body = await r.json();
+        const data = body.data || null;
+        if (!data || !data.total) { box.innerHTML = ''; return; }
+        renderGroups(box, data, '');
+    } catch (e) { box.innerHTML = ''; }
+}
+
 // Advanced search box + filter chips.
 let _tu = null;
 function runUniversal() {
@@ -373,7 +388,7 @@ function runUniversal() {
     if (!box) return;
     clearTimeout(_tu);
     const anyFilter = uniFilters.verified || uniFilters.has_biolink || uniFilters.tag;
-    if (!q && !anyFilter) { box.innerHTML = ''; return; }
+    if (!q && !anyFilter) { void loadSuggestions(box); return; }
     _tu = setTimeout(async () => {
         const data = await fetchUniversal(q, uniFilters);
         renderGroups(box, data, 'No matches');
@@ -556,5 +571,11 @@ async function pollLive() {
 }
 pollLive();
 setInterval(pollLive, 12000);
+
+// Seed suggestions for the search empty state on page load.
+document.addEventListener('DOMContentLoaded', () => {
+    const box = document.getElementById('search-results');
+    if (box) void loadSuggestions(box);
+});
 </script>
 @endsection

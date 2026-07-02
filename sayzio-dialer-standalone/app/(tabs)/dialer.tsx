@@ -41,6 +41,8 @@ import {
   dialerSearch,
   getDialerChannels,
   listFavorites,
+  type DialerSuggestionsResult,
+  getDialerSuggestions,
   lookupNumber,
   updateDialerChannels,
 } from "@/lib/api/dialer";
@@ -260,6 +262,7 @@ export default function DialerScreen() {
   const [keypadMode, setKeypadMode] = useState<"t9" | "abc">("t9");
   const [uni, setUni] = useState<DialerSearchResult | null>(null);
   const [uniLoading, setUniLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<DialerSuggestionsResult | null>(null);
   const [filterVerified, setFilterVerified] = useState(false);
   const [filterBiolink, setFilterBiolink] = useState(false);
   const [deviceContacts, setDeviceContacts] = useState<DeviceContact[]>([]);
@@ -280,6 +283,9 @@ export default function DialerScreen() {
         /* keep the fallback catalog/defaults on failure */
       }
     })();
+    void getDialerSuggestions()
+      .then((s) => setSuggestions(s.total > 0 ? s : null))
+      .catch(() => { /* offline — leave null */ });
   }, []);
 
   // Near-real-time cross-device sync: poll the lastId-style cursor. The
@@ -394,7 +400,11 @@ export default function DialerScreen() {
   const openUniversalItem = useCallback(
     (item: DialerSearchItem) => {
       const a = item.action || {};
-      if (item.type === "contact" && a.number) {
+      // Open dialer profile for any item that carries a phone number —
+      // this includes contacts, favorites, recents, and leads in addition
+      // to items that have type==="contact". The original contact-only guard
+      // was too narrow and silently no-oped on suggestion rows.
+      if (a.number) {
         openProfile(a.number, {
           contactId: a.contact_id ?? null,
           name: item.title,
@@ -916,6 +926,84 @@ export default function DialerScreen() {
             )}
             {uni && uni.groups.length === 0 && !uniLoading && (number.trim().length >= 2 || filterVerified || filterBiolink) && (
               <Text style={[styles.uniEmpty, { color: colors.mutedForeground }]}>No matches</Text>
+            )}
+
+            {/* Suggestions: shown in the empty state (no number typed, no search). */}
+            {!number.trim() && !uni && suggestions && suggestions.groups.length > 0 && (
+              <View style={styles.t9Wrap}>
+                {suggestions.groups.map((g) => (
+                  <View key={g.key} style={{ marginBottom: 10 }}>
+                    <Text style={[styles.uniGroupLabel, { color: colors.mutedForeground }]}>
+                      {g.label} · {g.items.length}
+                    </Text>
+                    {g.items.map((item) => {
+                      const chanNum = item.action?.number || null;
+                      return (
+                        <View key={`sugg-${g.key}-${item.id}`} style={{ marginBottom: 6 }}>
+                          <Pressable
+                            onPress={() => openUniversalItem(item)}
+                            style={({ pressed }) => [
+                              styles.t9Row,
+                              { borderColor: colors.border, backgroundColor: pressed ? colors.muted : colors.card },
+                            ]}
+                          >
+                            <View style={[styles.t9Avatar, { backgroundColor: colors.primary }]}>
+                              <Text style={styles.t9Initials}>{item.initials}</Text>
+                            </View>
+                            <View style={{ flex: 1, minWidth: 0 }}>
+                              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                                <Text
+                                  numberOfLines={1}
+                                  style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold", flexShrink: 1 }}
+                                >
+                                  {item.title}
+                                </Text>
+                                {item.badge && (
+                                  <View style={[styles.uniBadge, { borderColor: colors.border }]}>
+                                    <Text style={{ color: colors.mutedForeground, fontSize: 9, fontFamily: "SpaceGrotesk_600SemiBold" }}>
+                                      {item.badge}
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                              {!!item.subtitle && (
+                                <Text numberOfLines={1} style={{ color: colors.mutedForeground, fontSize: 12 }}>
+                                  {item.subtitle}
+                                </Text>
+                              )}
+                            </View>
+                            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
+                              {item.type_label}
+                            </Text>
+                          </Pressable>
+                          {!!chanNum && (
+                            <View style={styles.uniChannels}>
+                              {resolveChannels(channelPrefs).map((c) => (
+                                <Pressable
+                                  key={c.key}
+                                  onPress={() => chanOpen(c.js, chanNum)}
+                                  hitSlop={6}
+                                  accessibilityLabel={c.label}
+                                  style={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: 14,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    backgroundColor: `${c.color}22`,
+                                  }}
+                                >
+                                  <Feather name={featherName(c)} size={13} color={c.color} />
+                                </Pressable>
+                              ))}
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
             )}
 
             {keypadMode === "t9" && (
