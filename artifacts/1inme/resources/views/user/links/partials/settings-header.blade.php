@@ -64,7 +64,7 @@
 /* AJAX-swap settings sub-tabs so the device preview iframe never reloads.
    Only the left column (#settings-tab-content) is fetched and replaced.
    Falls back to a normal navigation if the destination doesn't expose the
-   #settings-tab-content slot (e.g. the Intro/splash page). */
+   #settings-tab-content slot. */
 (function() {
     if (window.__settingsTabSwapInit) return;
     window.__settingsTabSwapInit = true;
