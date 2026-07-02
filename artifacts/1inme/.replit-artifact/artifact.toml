@@ -62,8 +62,15 @@ paths = ["/"]
 # splash for WINDOW_MS after boot. It keys off the boot timestamp written below into
 # storage/framework/cache/dev_boot_ms; the real home page serves normally once the
 # window elapses, and the middleware is a no-op in production.
+#
+# PORT RECLAIM NOTE: on workflow restart a previous `php artisan serve` process may
+# still hold port 5000, causing `Address already in use` which kills the concurrently
+# group and strands a style-less orphan server. We reclaim the port before binding:
+# `pkill` targets our specific artisan command (no-op if absent); `fuser -k` evicts
+# any remaining process; both are followed by `|| true` / `;true` so the step never
+# aborts the run when nothing was listening.
 [services.development]
-run = '''cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || { php artisan view:clear && pnpm --dir /home/runner/workspace/artifacts/1inme run build; }; } && rm -f storage/framework/views/*.php && mkdir -p storage/framework/cache && date +%s%3N > storage/framework/cache/dev_boot_ms && pnpm exec concurrently --kill-others --names tailwind,serve "pnpm --dir /home/runner/workspace/artifacts/1inme run build:watch:cycle" "PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"'''
+run = '''cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || { php artisan view:clear && pnpm --dir /home/runner/workspace/artifacts/1inme run build; }; } && rm -f storage/framework/views/*.php && mkdir -p storage/framework/cache && date +%s%3N > storage/framework/cache/dev_boot_ms && { pkill -f "artisan serve --host=0.0.0.0 --port=5000" 2>/dev/null; fuser -k 5000/tcp 2>/dev/null; true; } && pnpm exec concurrently --kill-others --names tailwind,serve "pnpm --dir /home/runner/workspace/artifacts/1inme run build:watch:cycle" "PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"'''
 
 [services.development.env]
 PORT = "5000"
