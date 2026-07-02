@@ -8,6 +8,7 @@
     "check:brand-color": "tsx ./src/check-brand-color.ts",
     "check:brand-color-build": "tsx ./src/check-brand-color-build.ts",
     "check:ai-tool-names": "tsx ./src/check-ai-tool-names.ts",
+    "check:home-preview-blocks": "tsx ./src/check-home-preview-blocks.ts",
     "check:dialer-sync": "tsx ./src/check-dialer-standalone-sync.ts",
     "check:dialer-sync:accept": "tsx ./src/check-dialer-standalone-sync.ts --accept",
     "test": "vitest run",

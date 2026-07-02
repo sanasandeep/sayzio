@@ -80,6 +80,10 @@ args = "scripts-tests"
 task = "workflow.run"
 args = "favicon-sync"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "home-preview-blocks"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -252,6 +256,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-com run check:favicons"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "home-preview-blocks"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:home-preview-blocks"
 
 [workflows.workflow.metadata]
 isValidation = true
