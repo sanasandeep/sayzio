@@ -154,4 +154,8 @@
 - [AI Marketing Strategist report surfaces](marketing-strategist-report-surfaces.md) — analysis blocks render TWICE (service toHtml for PDF/public share + show.blade dashboard); add new sections to both; forecast scenarios||bands, outcome needs a baseline or soft-errors.
 - [Marketing favicon sync](marketing-favicon-sync.md) — 1inme-com favicons are copied from artifacts/1inme/public and ?v= is derived from config('app.icon_version'); sync-favicons.mjs + favicon-sync gate enforce it.
 - [Google Contacts near-real-time sync](google-contacts-realtime-sync.md) — all sync triggers funnel through throttled GoogleContactsSyncService::syncNow (never syncAccount); CRUD pushes immediately; tombstone retry via shared attemptTombstoneDelete.
+<<<<<<< HEAD
 - [Standalone dialer sync](dialer-standalone-sync.md) — sayzio-dialer-standalone is a manifest-tracked transplant of 1inme-mobile; after mobile dialer/contacts changes run check:dialer-sync, hand-apply, then :accept.
+=======
+- [Standalone dialer bundle verification](standalone-dialer-bundle-verification.md) — typed routes regen after expo boots (re-typecheck!); bare "/(tabs)" push = Unmatched Route when index is renamed; runTest browser can't reliably reach arbitrary ports — use in-container Playwright.
+>>>>>>> 54fa2189 (Update navigation to target specific screens and improve asset handling)

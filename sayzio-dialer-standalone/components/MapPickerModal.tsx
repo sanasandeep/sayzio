@@ -108,7 +108,11 @@ export function MapPickerModal({
 }: MapPickerModalProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const webRef = useRef<import("react-native-webview").WebView | null>(null);
+  // Structural typing (rather than the WebView class) keeps this compatible
+  // across react-native-webview versions where WebView gained a generic param.
+  const webRef = useRef<{ injectJavaScript: (script: string) => void } | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<PickedPoint | null>(null);

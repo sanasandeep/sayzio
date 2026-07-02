@@ -93,7 +93,7 @@ export default function OAuthCallback() {
       }
       applySession(token, user)
         .then(() => {
-          router.replace("/(tabs)");
+          router.replace("/(tabs)/dialer");
           maybeOfferBiometricEnrollment(auth);
         })
         .catch((e) => {
@@ -117,7 +117,7 @@ export default function OAuthCallback() {
         access_token: accessToken,
       })
         .then(() => {
-          router.replace("/(tabs)");
+          router.replace("/(tabs)/dialer");
           maybeOfferBiometricEnrollment(auth);
         })
         .catch((e: ApiError) => {

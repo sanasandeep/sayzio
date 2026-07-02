@@ -7,7 +7,7 @@ export default function AuthLayout() {
   const colors = useColors();
   const { ready, user } = useAuth();
 
-  if (ready && user) return <Redirect href="/(tabs)" />;
+  if (ready && user) return <Redirect href="/(tabs)/dialer" />;
 
   return (
     <Stack

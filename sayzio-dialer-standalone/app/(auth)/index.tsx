@@ -133,7 +133,7 @@ export default function AuthLanding() {
     if (!idToken) return;
     socialLogin({ provider: "google", id_token: idToken })
       .then(() => {
-        router.replace("/(tabs)");
+        router.replace("/(tabs)/dialer");
         maybeOfferBiometricEnrollment(auth);
       })
       .catch((e: ApiError) => {
@@ -262,7 +262,7 @@ export default function AuthLanding() {
     setError(null);
     try {
       await demoLogin(role === "user" ? "user" : "super_admin");
-      router.replace("/(tabs)");
+      router.replace("/(tabs)/dialer");
       maybeOfferBiometricEnrollment(auth);
     } catch (e) {
       setError((e as ApiError)?.message ?? "Demo unavailable");

@@ -86,7 +86,7 @@ export default function Verify() {
       } else {
         await verifyOtp({ channel, identifier, code: code.trim() });
       }
-      router.replace("/(tabs)");
+      router.replace("/(tabs)/dialer");
       maybeOfferBiometricEnrollment(auth);
     } catch (e) {
       const err = e as ApiError;

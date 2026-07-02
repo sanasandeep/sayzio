@@ -135,8 +135,8 @@ function openPushTarget(target: string): void {
  *   - `markReadId`: the originating in-app row to mark read, or null when
  *     the payload carried no usable `notification_id`.
  *   - `navigation`: open the deep-link `target` when the server stamped a
- *     `url`; otherwise fall back by type (API-usage warnings → the usage
- *     screen, everything else → the notifications list).
+ *     `url`; otherwise fall back to the dialer home (this standalone app
+ *     has no notifications / API-usage / admin screens).
  */
 export function decidePushAction(data: Record<string, unknown> | undefined): {
   markReadId: number | null;
@@ -158,14 +158,12 @@ export function decidePushAction(data: Record<string, unknown> | undefined): {
     return { markReadId, navigation: { kind: "open", target } };
   }
 
-  const type = typeof data?.type === "string" ? data.type : null;
-  const path =
-    type === "api.usage_warning"
-      ? "/api-usage"
-      : type === "expected_columns_missing"
-        ? "/admin"
-        : "/notifications";
-  return { markReadId, navigation: { kind: "route", path } };
+  // The standalone dialer has no notifications / API-usage / admin screens
+  // (those live in the main Sayzio app), so every fallback routes to the
+  // dialer home. The `type` field is still read so a future screen can
+  // branch on it without changing callers.
+  void (typeof data?.type === "string" ? data.type : null);
+  return { markReadId, navigation: { kind: "route", path: "/(tabs)/dialer" } };
 }
 
 /**
@@ -173,8 +171,7 @@ export function decidePushAction(data: Record<string, unknown> | undefined): {
  * We deep-link to the exact same target the in-app row uses (carried as
  * `url` in the push data, resolved server-side by the single source of
  * truth) and mark the originating row read in the same gesture. When no
- * target is present we fall back gracefully: API-usage warnings to the
- * usage screen, everything else to the notifications list.
+ * target is present we fall back gracefully to the dialer home.
  */
 export function addPushResponseListener(): Notifications.EventSubscription {
   return Notifications.addNotificationResponseReceivedListener((response) => {
@@ -194,6 +191,6 @@ export function addPushResponseListener(): Notifications.EventSubscription {
       openPushTarget(navigation.target);
       return;
     }
-    router.push(navigation.path as "/api-usage" | "/notifications" | "/admin");
+    router.push("/(tabs)/dialer");
   });
 }
