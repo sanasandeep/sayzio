@@ -1682,6 +1682,104 @@
         }
         .mf-stats span { font-size: 10px; color: #9ca3af; margin-top: 2px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
 
+        /* ── AI builder prompt showcase (typewriter loop) ── */
+        .ai-prompt-card {
+            position: relative; overflow: hidden;
+            padding: 18px 20px 20px;
+            border-radius: 22px;
+        }
+        .ai-prompt-card::before {
+            content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
+            background: radial-gradient(120% 140% at 12% -10%, rgba(27,212,217,.16), transparent 55%),
+                        radial-gradient(120% 140% at 88% 120%, rgba(61,107,255,.18), transparent 55%);
+            opacity: .9;
+        }
+        .ai-prompt-head { position: relative; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .ai-badge {
+            display: inline-flex; align-items: center; gap: 7px;
+            font-size: 11px; font-weight: 800; letter-spacing: .04em;
+            padding: 5px 11px; border-radius: 9999px;
+            color: #bff3f5;
+            background: rgba(27,212,217,.14);
+            border: 1px solid rgba(27,212,217,.32);
+        }
+        .ai-badge i { font-size: 11px; color: var(--c1); }
+        .ai-status {
+            display: inline-flex; align-items: center; gap: 7px;
+            font-size: 11px; font-weight: 700; color: #9ca3af;
+            transition: color .3s ease;
+        }
+        .ai-status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #4ade80; box-shadow: 0 0 0 0 rgba(74,222,128,.6);
+        }
+        .ai-status.is-building { color: var(--c1); }
+        .ai-status.is-building .ai-status-dot {
+            background: var(--c1);
+            animation: aiPulseDot 1s ease-in-out infinite;
+        }
+        @keyframes aiPulseDot {
+            0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c1) 55%, transparent); }
+            50%     { box-shadow: 0 0 0 6px rgba(27,212,217,0); }
+        }
+        .ai-prompt-input {
+            position: relative; display: flex; align-items: center; gap: 12px;
+            padding: 14px 14px 14px 16px;
+            border-radius: 16px;
+            background: rgba(10,10,20,.55);
+            border: 1px solid rgba(255,255,255,.10);
+        }
+        .ai-prompt-input > .ai-spark { font-size: 15px; color: var(--c2); flex-shrink: 0; }
+        .ai-typed {
+            flex: 1; min-width: 0;
+            font-size: 14px; line-height: 1.5; font-weight: 500; color: #e8ebf5;
+            min-height: 21px;
+            white-space: normal; word-break: break-word;
+        }
+        .ai-typed .ai-placeholder { color: #6b7280; }
+        .ai-caret {
+            display: inline-block; width: 2px; height: 15px;
+            margin-left: 1px; vertical-align: -2px;
+            background: var(--c1); border-radius: 1px;
+            animation: aiCaret 1s step-end infinite;
+        }
+        @keyframes aiCaret { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+        .ai-gen-btn {
+            flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px;
+            font-size: 12px; font-weight: 800; color: #fff;
+            padding: 9px 15px; border-radius: 11px;
+            background: linear-gradient(90deg, var(--c1), var(--c2));
+            box-shadow: 0 10px 24px -12px rgba(61,107,255,.8);
+            transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, filter .3s ease;
+        }
+        .ai-gen-btn i { font-size: 10px; }
+        .ai-prompt-card.is-building .ai-gen-btn {
+            transform: scale(.96);
+            filter: saturate(1.25) brightness(1.08);
+            box-shadow: 0 12px 30px -10px rgba(27,212,217,.9);
+        }
+        .ai-build-chips {
+            position: relative; display: flex; flex-wrap: wrap; gap: 8px;
+            margin-top: 14px; min-height: 30px; align-items: center;
+        }
+        .ai-build-hint { font-size: 11px; font-weight: 600; color: #6b7280; }
+        .ai-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 11px; font-weight: 700; color: #cbd5e1;
+            padding: 5px 10px; border-radius: 9999px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.09);
+            opacity: 0; transform: translateY(6px) scale(.94);
+            transition: opacity .32s ease, transform .32s cubic-bezier(.16,1,.3,1);
+        }
+        .ai-chip.is-in { opacity: 1; transform: translateY(0) scale(1); }
+        .ai-chip i { font-size: 10px; }
+        @media (prefers-reduced-motion: reduce) {
+            .ai-caret { animation: none; }
+            .ai-status.is-building .ai-status-dot { animation: none; }
+            .ai-chip { opacity: 1; transform: none; transition: none; }
+        }
+
         /* QR · scanning beam */
         .qr-stage {
             position: relative;
@@ -2448,6 +2546,13 @@
            block label reads clearly on the light card. Dark mode is unaffected. */
         html.light-mode .bl-title { color: #0f172a; }
         html.light-mode .bl-sub   { color: #64748b; }
+        /* AI builder prompt — light-mode legibility */
+        html.light-mode .ai-prompt-input { background: #f8fafc; border-color: #e2e8f0; }
+        html.light-mode .ai-typed { color: #1e293b; }
+        html.light-mode .ai-typed .ai-placeholder { color: #94a3b8; }
+        html.light-mode .ai-status { color: #64748b; }
+        html.light-mode .ai-chip { background: #f1f5f9; border-color: #e2e8f0; color: #475569; }
+        html.light-mode .ai-build-hint { color: #94a3b8; }
         html.light-mode .bl-col-t { color: #334155; }
         html.light-mode .bl-chip  {
             background: #f1f5f9;
@@ -2782,6 +2887,27 @@
                 A whole website,<br><span class="grad-text">AI-built or drag-and-drop.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">Describe it and your AI stacks the blocks &mdash; or build by hand: text, images, video, audio, files, embeds and forms in multi-column layouts. Pick a theme. Go live.</p>
+        </div>
+
+        {{-- AI builder prompt showcase (typewriter loop, balances the drag loop below) --}}
+        <div class="reveal rd-3 ai-prompt-card glass max-w-3xl mx-auto mb-8">
+            <div class="ai-prompt-head">
+                <span class="ai-badge"><i class="fas fa-wand-magic-sparkles"></i> AI builder</span>
+                <span class="ai-status" id="ai-prompt-status"><span class="ai-status-dot"></span><span id="ai-prompt-status-text">Ready</span></span>
+            </div>
+            <div class="ai-prompt-input">
+                <i class="fas fa-wand-magic-sparkles ai-spark" aria-hidden="true"></i>
+                <div class="ai-typed" aria-hidden="true"><span id="ai-typed-text"></span><span class="ai-caret"></span></div>
+                <button type="button" class="ai-gen-btn" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','ai_builder'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))">Generate <i class="fas fa-arrow-right"></i></button>
+            </div>
+            <div class="ai-build-chips" id="ai-build-chips" aria-hidden="true">
+                <span class="ai-build-hint">AI stacks your blocks:</span>
+                <span class="ai-chip"><i class="fas fa-user" style="color:var(--c1)"></i>Profile</span>
+                <span class="ai-chip"><i class="fas fa-image" style="color:var(--c2)"></i>Hero</span>
+                <span class="ai-chip"><i class="fas fa-share-nodes" style="color:var(--c3)"></i>Socials</span>
+                <span class="ai-chip"><i class="fas fa-store" style="color:var(--c4)"></i>Shop</span>
+                <span class="ai-chip"><i class="fas fa-wpforms" style="color:var(--c5)"></i>Form</span>
+            </div>
         </div>
 
         <div class="grid lg:grid-cols-12 gap-6">
@@ -3172,6 +3298,75 @@
         var g = parseInt(hex.slice(3,5),16);
         var b = parseInt(hex.slice(5,7),16);
         return r + ',' + g + ',' + b;
+    }
+
+    /* ─── AI builder prompt typewriter loop ─── */
+    var aiTyped   = document.getElementById('ai-typed-text');
+    var aiStatus  = document.getElementById('ai-prompt-status');
+    var aiStatusT = document.getElementById('ai-prompt-status-text');
+    var aiChips   = document.getElementById('ai-build-chips');
+    if (aiTyped) {
+        var aiPrompts = [
+            'Build a page for a Berlin techno artist with tour dates & merch',
+            'Create a link-in-bio for a vegan fitness coach',
+            'Make a landing page for my coffee shop with a menu & map',
+            'Design a portfolio for a freelance photographer',
+            'Set up a link-in-bio for a podcast with episodes & socials'
+        ];
+        var aiCard  = aiTyped.closest('.ai-prompt-card');
+        var chipEls = aiChips ? Array.prototype.slice.call(aiChips.querySelectorAll('.ai-chip')) : [];
+
+        function aiSetStatus(text, building) {
+            if (aiStatusT) aiStatusT.textContent = text;
+            if (aiStatus) aiStatus.classList.toggle('is-building', !!building);
+            if (aiCard) aiCard.classList.toggle('is-building', !!building);
+        }
+
+        if (reducedMotion) {
+            /* Static, fully-typed state — no motion */
+            aiTyped.textContent = aiPrompts[0];
+            aiSetStatus('Page built', false);
+            chipEls.forEach(function (c) { c.classList.add('is-in'); });
+        } else {
+            var aiIdx = 0;
+            function clearChips() { chipEls.forEach(function (c) { c.classList.remove('is-in'); }); }
+
+            function typePrompt() {
+                var text = aiPrompts[aiIdx];
+                aiTyped.textContent = '';
+                clearChips();
+                aiSetStatus('Ready', false);
+                var i = 0;
+                (function typeChar() {
+                    if (i <= text.length) {
+                        aiTyped.textContent = text.slice(0, i);
+                        i++;
+                        setTimeout(typeChar, 32 + Math.random() * 34);
+                    } else {
+                        /* Done typing → "build" the page */
+                        setTimeout(buildPhase, 480);
+                    }
+                })();
+            }
+
+            function buildPhase() {
+                aiSetStatus('Building…', true);
+                chipEls.forEach(function (c, n) {
+                    setTimeout(function () { c.classList.add('is-in'); }, 140 + n * 200);
+                });
+                var settle = 140 + chipEls.length * 200 + 500;
+                setTimeout(function () {
+                    aiSetStatus('Page built', false);
+                    /* Hold the finished state, then move on */
+                    setTimeout(function () {
+                        aiIdx = (aiIdx + 1) % aiPrompts.length;
+                        typePrompt();
+                    }, 2000);
+                }, settle);
+            }
+
+            setTimeout(typePrompt, 900);
+        }
     }
 
     /* ─── mf-stat-bar: re-trigger animation on intersection ─── */
