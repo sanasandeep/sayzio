@@ -146,13 +146,6 @@
     .dc-dot { display:inline-block; width: 3.5px; height: 3.5px; border-radius: 999px; background: #34d399; margin-left: 3px; }
     /* Incoming-call action buttons */
     .dc-incall-actions { margin-top: auto; width: 100%; display:flex; flex-direction:column; align-items:center; gap: 8px; padding-bottom: 2px; }
-    .dc-incall-msg { display:flex; flex-direction:column; align-items:center; gap: 3px; }
-    .dc-msgbtn {
-        width: 34px; height: 34px; border-radius: 999px;
-        background: rgba(255,255,255,.11); border: 1px solid rgba(255,255,255,.18);
-        display:flex; align-items:center; justify-content:center;
-        color:#fff; font-size: 12px;
-    }
     .dc-incall-main { display:flex; align-items:center; justify-content:center; gap: 30px; }
     .dc-decline, .dc-answer { display:flex; flex-direction:column; align-items:center; gap: 5px; }
     .dc-decline-btn {
@@ -170,7 +163,8 @@
         box-shadow: 0 14px 30px -12px rgba(34,197,94,.75);
     }
     .dc-btn-label { font-size: 9px; font-weight: 700; color: rgba(255,255,255,.5); letter-spacing:.03em; }
-    .dc-smalllabel { font-size: 8px; font-weight: 700; color: rgba(255,255,255,.45); }
+    /* Quick-channel row on the caller-ID (back) face */
+    .dc-cid-chans { display:flex; align-items:center; justify-content:center; gap: 7px; }
 
     @media (prefers-reduced-motion: no-preference) {
         /* 12s master loop: dial digits -> press SIM 1 -> flip to in-call
@@ -448,9 +442,23 @@
                                         <span class="dc-dot"></span><span class="dc-dot"></span><span class="dc-dot"></span>
                                     </div>
                                     <div class="dc-incall-actions">
-                                        <div class="dc-incall-msg">
-                                            <div class="dc-msgbtn"><i class="fas fa-comment-sms"></i></div>
-                                            <span class="dc-smalllabel">Message</span>
+                                        <div class="dc-cid-chans">
+                                            <div style="display:flex;flex-direction:column;align-items:center;">
+                                                <div class="dc-dialchan" style="background:#3d6bff;"><i class="fas fa-comment-sms"></i></div>
+                                                <span class="dc-dialchan-label">SMS</span>
+                                            </div>
+                                            <div style="display:flex;flex-direction:column;align-items:center;">
+                                                <div class="dc-dialchan" style="background:#25d366;"><i class="fab fa-whatsapp"></i></div>
+                                                <span class="dc-dialchan-label">WhatsApp</span>
+                                            </div>
+                                            <div style="display:flex;flex-direction:column;align-items:center;">
+                                                <div class="dc-dialchan" style="background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);"><i class="fab fa-instagram"></i></div>
+                                                <span class="dc-dialchan-label">Instagram</span>
+                                            </div>
+                                            <div style="display:flex;flex-direction:column;align-items:center;">
+                                                <div class="dc-dialchan" style="background:#229ed9;"><i class="fab fa-telegram"></i></div>
+                                                <span class="dc-dialchan-label">Telegram</span>
+                                            </div>
                                         </div>
                                         <div class="dc-incall-main">
                                             <div class="dc-decline">
