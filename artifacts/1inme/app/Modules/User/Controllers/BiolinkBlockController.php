@@ -135,7 +135,8 @@ class BiolinkBlockController extends Controller
         $link->load(['pixels', 'aliases']);
         $projects = auth()->user()->projects()->orderBy('name')->get();
         $pixels = auth()->user()->pixels()->orderBy('name')->get();
-        return view('user.links.settings.appearance', compact('link', 'bgTemplates', 'projects', 'pixels'));
+        $domains = \App\Modules\User\Models\Domain::availableTo(auth()->user())->get();
+        return view('user.links.settings.appearance', compact('link', 'bgTemplates', 'projects', 'pixels', 'domains'));
     }
 
     /**

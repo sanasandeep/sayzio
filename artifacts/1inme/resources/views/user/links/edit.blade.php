@@ -25,7 +25,7 @@
     ])
 
     <div class="mb-6">
-        @include('user.links.partials.aliases-card', ['link' => $link])
+        @include('user.links.partials.aliases-card', ['link' => $link, 'domains' => $domains ?? collect()])
     </div>
 
     @php
@@ -145,20 +145,6 @@
                 @include('user.links.partials.visibility-field', ['link' => $link])
             </div>
 
-            @if(($domains ?? collect())->isNotEmpty() || $link->domain_id)
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-white/60 mb-1">Custom Domain</label>
-                @php $selectedDomainId = old('domain_id', $link->domain_id ?? ($defaultDomainId ?? '')); @endphp
-                <select name="domain_id" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">
-                    <option value="" {{ (string) $selectedDomainId === '' ? 'selected' : '' }}>{{ \App\Modules\Common\Support\PlatformHosts::currentRequestHost() ?: \App\Modules\Common\Support\PlatformHosts::primary() }}{{ empty($defaultDomainId) ? ' (default)' : '' }}</option>
-                    @foreach($domains as $d)
-                        <option value="{{ $d->id }}" {{ (string) $selectedDomainId === (string) $d->id ? 'selected' : '' }}>{{ $d->domain }}{{ (isset($defaultDomainId) && (string) $defaultDomainId === (string) $d->id) ? ' (default)' : '' }}</option>
-                    @endforeach
-                </select>
-                @error('domain_id') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
-                <p class="text-[11px] text-white/40 mt-1">The short URL renders on the host you choose. Add a domain in <a href="{{ route('user.domains.index') }}" class="text-blue-400 hover:text-blue-300">Domains</a>.</p>
-            </div>
-            @endif
         </div>
 
         @if($link->type === 'resume' && ($resumeVersions ?? collect())->isNotEmpty())

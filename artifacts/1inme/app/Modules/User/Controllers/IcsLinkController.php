@@ -71,8 +71,9 @@ class IcsLinkController extends Controller
         $projects   = workspace_owner()->projects()->orderBy('name')->get();
         $timezones  = self::TIMEZONES;
         $calAccounts = $this->ownerCalendarAccounts();
+        $domains    = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
 
-        return view('user.links.edit-ics', compact('link', 'ics', 'projects', 'timezones', 'calAccounts'));
+        return view('user.links.edit-ics', compact('link', 'ics', 'projects', 'timezones', 'calAccounts', 'domains'));
     }
 
     public function update(Request $request, Link $link)

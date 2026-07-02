@@ -61,6 +61,7 @@ class LinkAliasController extends Controller
                 'required', 'string', 'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max'],
                 new \App\Modules\User\Rules\AliasFormat(),
             ],
+            'domain_id' => ['nullable', $this->availableDomainRule($user)],
         ]);
 
         $alias = $validated['alias'];
@@ -86,11 +87,47 @@ class LinkAliasController extends Controller
         }
 
         $row = LinkAlias::create([
-            'link_id' => $link->id,
-            'alias'   => $alias,
+            'link_id'   => $link->id,
+            'alias'     => $alias,
+            'domain_id' => $validated['domain_id'] ?? null,
         ]);
 
         return $this->respond($request, true, 'Alias added.', 200, ['alias' => $row]);
+    }
+
+    /**
+     * Change the custom domain an existing additional alias renders on.
+     * Mirrors the primary alias's domain_id update but scoped to a
+     * link_aliases row instead of the link itself.
+     */
+    public function updateDomain(Request $request, Link $link, LinkAlias $alias)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($alias->link_id !== $link->id, 404);
+
+        $validated = $request->validate([
+            'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
+        ]);
+
+        $alias->update(['domain_id' => $validated['domain_id'] ?? null]);
+
+        return $this->respond($request, true, 'Domain updated.', 200, ['alias' => $alias]);
+    }
+
+    /**
+     * Build a Validation rule that constrains domain_id to a domain the
+     * user can actually attach. Mirrors LinkController::availableDomainRule
+     * so primary and additional aliases enforce the exact same entitlement.
+     */
+    private function availableDomainRule(\App\Modules\User\Models\User $user): \Closure
+    {
+        return function ($attribute, $value, $fail) use ($user) {
+            if (empty($value)) return;
+            $allowed = \App\Modules\User\Models\Domain::availableTo($user)->pluck('id')->all();
+            if (!in_array((int) $value, $allowed, true)) {
+                $fail('That domain is not available on your plan.');
+            }
+        };
     }
 
     public function destroy(Request $request, Link $link, LinkAlias $alias)
@@ -138,14 +175,21 @@ class LinkAliasController extends Controller
             return $this->respond($request, true, 'Already the primary alias.');
         }
 
-        DB::transaction(function () use ($link, $alias, $oldPrimary, $newPrimary) {
+        // Domains travel with their alias: the promoted alias's domain
+        // becomes the link's new primary domain, while the demoted old
+        // primary keeps the domain the link previously had.
+        $oldPrimaryDomainId = $link->domain_id;
+        $newPrimaryDomainId = $alias->domain_id;
+
+        DB::transaction(function () use ($link, $alias, $oldPrimary, $newPrimary, $oldPrimaryDomainId, $newPrimaryDomainId) {
             // Free up the unique constraint by removing the new-primary row first.
             $alias->delete();
-            // Switch the primary alias on the link itself.
-            $link->update(['alias' => $newPrimary]);
-            // Demote the old primary into the extras table so its URL still resolves.
+            // Switch the primary alias (and its domain) on the link itself.
+            $link->update(['alias' => $newPrimary, 'domain_id' => $newPrimaryDomainId]);
+            // Demote the old primary into the extras table, carrying its old
+            // domain along, so its URL still resolves on the same host.
             if ($oldPrimary) {
-                LinkAlias::create(['link_id' => $link->id, 'alias' => $oldPrimary]);
+                LinkAlias::create(['link_id' => $link->id, 'alias' => $oldPrimary, 'domain_id' => $oldPrimaryDomainId]);
             }
         });
 

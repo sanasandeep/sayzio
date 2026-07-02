@@ -15,7 +15,7 @@
     </div>
 
     <div class="mb-6">
-        @include('user.links.partials.aliases-card', ['link' => $link])
+        @include('user.links.partials.aliases-card', ['link' => $link, 'domains' => $domains ?? collect()])
     </div>
 
     <form method="POST" action="{{ route('user.links.vcf.update', $link) }}" enctype="multipart/form-data">

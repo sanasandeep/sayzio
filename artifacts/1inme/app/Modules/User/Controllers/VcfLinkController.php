@@ -41,8 +41,9 @@ class VcfLinkController extends Controller
         $projects = workspace_owner()->projects()->orderBy('name')->get();
         $aliasLimits = workspace_owner()->getAliasLengthLimits();
         $vcf = $link->vcfData ?: new VcfData();
+        $domains = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
 
-        return view('user.links.edit-vcf', $this->formContext() + compact('link', 'vcf', 'projects', 'aliasLimits'));
+        return view('user.links.edit-vcf', $this->formContext() + compact('link', 'vcf', 'projects', 'aliasLimits', 'domains'));
     }
 
     public function store(Request $request)

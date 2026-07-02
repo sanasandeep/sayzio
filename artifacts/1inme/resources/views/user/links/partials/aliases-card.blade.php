@@ -2,21 +2,37 @@
     /**
      * Reusable "Short URL & Aliases" card.
      * Shows the editable primary alias plus the additional-aliases manager.
-     * Drop-in: @include('user.links.partials.aliases-card', ['link' => $link])
+     * Each alias (primary + every extra) can be independently bound to the
+     * platform's default host, an entitled global domain, or one of the
+     * user's own verified domains.
+     * Drop-in: @include('user.links.partials.aliases-card', ['link' => $link, 'domains' => $domains])
      */
     use App\Modules\Common\Support\PlatformHosts;
     $maxExtras  = auth()->user()->getMaxAliasesPerLink($link->type);
     $extras     = $link->aliases()->orderBy('created_at')->get();
     $usedExtras = $extras->count();
     $canAddMore = $maxExtras === -1 || $usedExtras < $maxExtras;
+
+    // Domains this user is entitled to attach (own verified + entitled
+    // global) — same set the create form offers.
+    $domains = $domains ?? collect();
+    $domainsById = $domains->keyBy('id');
+
     // Prefer the host the creator is currently browsing on (when it's a
     // configured platform host) so the displayed/copied URL matches their
     // current context. Falls back to the platform's primary public host
     // (deploy domain → dev preview → APP_URL), never to "localhost/".
-    $aliasHost  = $link->domain?->domain
-        ?: (PlatformHosts::currentRequestHost() ?: PlatformHosts::primary());
-    // Only show "also live on" hints for platform short links (no custom domain).
-    $showHostsHint = !$link->domain;
+    $defaultHost = PlatformHosts::currentRequestHost() ?: PlatformHosts::primary();
+    $hostFor = function ($domainId) use ($domainsById, $defaultHost) {
+        if ($domainId && $domainsById->has($domainId)) {
+            return $domainsById[$domainId]->domain;
+        }
+        return $defaultHost;
+    };
+    $aliasHost = $hostFor($link->domain_id);
+    // Only show "also live on" hints for links still on a platform host.
+    $showHostsHint = !$link->domain_id;
+
     // Live per-plan alias length range, surfaced inline so users see the
     // constraint before validation rejects their input. Falls back to the
     // permissive DB-width range if no owner is resolvable.
@@ -25,7 +41,27 @@
     $aliasMax = $aliasLimits['max'];
 @endphp
 
-<div class="card-premium p-6" x-data="{ editing: false, alias: @js($link->alias) }">
+<div class="card-premium p-6" x-data="{
+        editing: false,
+        alias: @js($link->alias),
+        domainId: @js($link->domain_id ? (string) $link->domain_id : ''),
+        savedAlias: @js($link->alias),
+        savedDomainId: @js($link->domain_id ? (string) $link->domain_id : ''),
+        save() {
+            fetch('{{ route('user.links.update-alias', $link) }}', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type':'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                    'Accept':'application/json'
+                },
+                body: JSON.stringify({alias: alias, domain_id: domainId || null})
+            }).then(r => r.json()).then(d => {
+                if (d.success || !d.errors) { editing = false; location.reload(); }
+                else { alert(d.errors?.alias?.[0] || d.errors?.domain_id?.[0] || d.message || 'Error'); domainId = savedDomainId; }
+            }).catch(() => { alert('Error'); domainId = savedDomainId; })
+        }
+    }">
     <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(61,107,255,0.1);">
@@ -33,7 +69,7 @@
             </div>
             <div>
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">Short URL &amp; Aliases</h3>
-                <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">All aliases serve the same page — no redirect. Domain is fixed; only the slug is editable.</p>
+                <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">All aliases serve the same page — no redirect. Bind each alias to a domain and edit its slug.</p>
             </div>
         </div>
         <span class="text-[10px] px-2 py-0.5 rounded-full" style="background: var(--bg-glass-input); color: var(--text-faint);">
@@ -49,14 +85,22 @@
     <div class="mb-3">
         <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Primary alias</label>
         <div class="flex items-stretch rounded-xl overflow-hidden" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-            <span class="px-3 flex items-center text-sm flex-shrink-0" style="color: var(--text-faint); border-right: 1px solid var(--border-glass); background: var(--bg-glass);">{{ $aliasHost }}/</span>
+            <select x-model="domainId" @change="save()"
+                    class="px-2 flex-shrink-0 text-sm outline-none max-w-[42%] truncate"
+                    style="color: var(--text-faint); border-right: 1px solid var(--border-glass); background: var(--bg-glass);">
+                <option value="">{{ $defaultHost }}</option>
+                @foreach($domains as $d)
+                    <option value="{{ $d->id }}">{{ $d->domain }}</option>
+                @endforeach
+            </select>
+            <span class="px-1.5 flex items-center text-sm flex-shrink-0" style="color: var(--text-faint);">/</span>
             <template x-if="!editing">
                 <button type="button"
-                        class="flex-1 px-3 py-2.5 text-sm font-medium text-left flex items-center justify-between gap-2 group"
+                        class="flex-1 px-1 py-2.5 text-sm font-medium text-left flex items-center justify-between gap-2 group"
                         style="color: var(--text-primary);"
                         @click="editing = true; $nextTick(() => $refs.aliasInput.focus())">
                     <span x-text="alias"></span>
-                    <span class="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1" style="color: var(--text-faint);">
+                    <span class="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2" style="color: var(--text-faint);">
                         <i class="fas fa-pen text-[9px]"></i> Edit
                     </span>
                 </button>
@@ -65,34 +109,23 @@
                 <div class="flex-1 flex items-center">
                     <input x-ref="aliasInput" type="text" x-model="alias"
                            minlength="{{ $aliasMin }}" maxlength="{{ $aliasMax }}" pattern="[a-zA-Z0-9_-]+"
-                           class="flex-1 px-3 py-2.5 text-sm font-medium bg-transparent outline-none"
+                           class="flex-1 px-1 py-2.5 text-sm font-medium bg-transparent outline-none"
                            style="color: var(--text-primary);"
-                           @keydown.escape="editing = false; alias = @js($link->alias)">
+                           @keydown.escape="editing = false; alias = savedAlias; domainId = savedDomainId">
                     <div class="flex items-center gap-1 pr-2">
                         <button type="button"
-                                @click="editing = false; alias = @js($link->alias)"
+                                @click="editing = false; alias = savedAlias; domainId = savedDomainId"
                                 class="text-[11px] px-2.5 py-1 rounded-md hover:bg-white/5"
                                 style="color: var(--text-faint);">Cancel</button>
                         <button type="button"
                                 class="text-[11px] px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-                                @click="fetch('{{ route('user.links.update-alias', $link) }}', {
-                                    method: 'PUT',
-                                    headers: {
-                                        'Content-Type':'application/json',
-                                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                                        'Accept':'application/json'
-                                    },
-                                    body: JSON.stringify({alias: alias})
-                                }).then(r => r.json()).then(d => {
-                                    if (d.success || !d.errors) { editing = false; location.reload(); }
-                                    else { alert(d.errors?.alias?.[0] || d.message || 'Error'); }
-                                }).catch(() => alert('Error'))">Save</button>
+                                @click="save()">Save</button>
                     </div>
                 </div>
             </template>
         </div>
         <p class="text-[11px] mt-1.5" style="color: var(--text-faint);">
-            <i class="fas fa-info-circle mr-1"></i>{{ $aliasMin }}–{{ $aliasMax }} characters · letters, numbers, hyphens &amp; underscores
+            <i class="fas fa-info-circle mr-1"></i>{{ $aliasMin }}–{{ $aliasMax }} characters · letters, numbers, hyphens &amp; underscores · pick a domain from the dropdown, or add one in <a href="{{ route('user.domains.index') }}" class="hover:underline" style="color: #90acff;">Domains</a>.
         </p>
     </div>
 
@@ -104,9 +137,35 @@
         @if($extras->isNotEmpty())
         <div class="space-y-1.5 mb-2">
             @foreach($extras as $a)
-            <div class="flex items-stretch rounded-lg overflow-hidden group" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                <span class="px-3 flex items-center text-xs flex-shrink-0" style="color: var(--text-faint); border-right: 1px solid var(--border-glass); background: var(--bg-glass);">{{ $aliasHost }}/</span>
-                <a href="{{ url($a->alias) }}" target="_blank" class="flex-1 px-3 py-2 text-sm truncate" style="color: var(--text-primary);">{{ $a->alias }}</a>
+            <div class="flex items-stretch rounded-lg overflow-hidden group" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"
+                 x-data="{
+                     domainId: @js($a->domain_id ? (string) $a->domain_id : ''),
+                     saved: @js($a->domain_id ? (string) $a->domain_id : ''),
+                     saveDomain() {
+                         fetch('{{ route('user.links.aliases.update-domain', [$link, $a]) }}', {
+                             method: 'PUT',
+                             headers: {
+                                 'Content-Type':'application/json',
+                                 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                                 'Accept':'application/json'
+                             },
+                             body: JSON.stringify({domain_id: domainId || null})
+                         }).then(r => r.json()).then(d => {
+                             if (d.success || !d.errors) { location.reload(); }
+                             else { alert(d.errors?.domain_id?.[0] || d.message || 'Error'); domainId = saved; }
+                         }).catch(() => { alert('Error'); domainId = saved; })
+                     }
+                 }">
+                <select x-model="domainId" @change="saveDomain()"
+                        class="px-2 flex-shrink-0 text-xs outline-none max-w-[42%] truncate"
+                        style="color: var(--text-faint); border-right: 1px solid var(--border-glass); background: var(--bg-glass);">
+                    <option value="">{{ $defaultHost }}</option>
+                    @foreach($domains as $d)
+                        <option value="{{ $d->id }}">{{ $d->domain }}</option>
+                    @endforeach
+                </select>
+                <span class="px-1.5 flex items-center text-xs flex-shrink-0" style="color: var(--text-faint);">/</span>
+                <a href="{{ 'https://' . $hostFor($a->domain_id) . '/' . $a->alias }}" target="_blank" class="flex-1 px-1 py-2 text-sm truncate" style="color: var(--text-primary);">{{ $a->alias }}</a>
                 <div class="flex items-center gap-0.5 pr-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                     <form method="POST" action="{{ route('user.links.aliases.promote', [$link, $a]) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Make this the primary alias?', message: 'The current primary will become an alternative.', confirmText: 'Make primary', confirmIcon: 'fa-star', iconClass: 'fa-star'})">
                         @csrf
@@ -129,9 +188,16 @@
         @if($canAddMore)
         <form method="POST" action="{{ route('user.links.aliases.store', $link) }}" class="flex items-stretch rounded-lg overflow-hidden" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
             @csrf
-            <span class="px-3 flex items-center text-xs flex-shrink-0" style="color: var(--text-faint); border-right: 1px dashed var(--border-glass); background: var(--bg-glass);">{{ $aliasHost }}/</span>
+            <select name="domain_id" class="px-2 flex-shrink-0 text-xs outline-none max-w-[42%] truncate"
+                    style="color: var(--text-faint); border-right: 1px dashed var(--border-glass); background: var(--bg-glass);">
+                <option value="">{{ $defaultHost }}</option>
+                @foreach($domains as $d)
+                    <option value="{{ $d->id }}">{{ $d->domain }}</option>
+                @endforeach
+            </select>
+            <span class="px-1.5 flex items-center text-xs flex-shrink-0" style="color: var(--text-faint);">/</span>
             <input type="text" name="alias" required minlength="{{ $aliasMin }}" maxlength="{{ $aliasMax }}" pattern="[a-zA-Z0-9_-]+"
-                   placeholder="my-campaign" class="flex-1 px-3 py-2 text-sm bg-transparent outline-none" style="color: var(--text-primary);">
+                   placeholder="my-campaign" class="flex-1 px-1 py-2 text-sm bg-transparent outline-none" style="color: var(--text-primary);">
             <button type="submit" class="px-3 text-xs font-semibold whitespace-nowrap hover:bg-blue-500/10" style="color: #90acff;">
                 <i class="fas fa-plus text-[10px] mr-1"></i>Add alias
             </button>
@@ -140,6 +206,7 @@
             <i class="fas fa-info-circle mr-1"></i>{{ $aliasMin }}–{{ $aliasMax }} characters · letters, numbers, hyphens &amp; underscores
         </p>
         @error('alias') <p class="text-red-400 text-[11px] mt-1">{{ $message }}</p> @enderror
+        @error('domain_id') <p class="text-red-400 text-[11px] mt-1">{{ $message }}</p> @enderror
         @else
         <p class="text-[11px] mt-2" style="color: var(--text-faint);"><i class="fas fa-info-circle mr-1"></i> Alias limit reached on your current plan.</p>
         @endif

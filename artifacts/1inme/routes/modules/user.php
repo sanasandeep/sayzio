@@ -735,6 +735,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/aliases', [\App\Modules\User\Controllers\LinkAliasController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.aliases.store');
         Route::delete('links/{link}/aliases/{alias}', [\App\Modules\User\Controllers\LinkAliasController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('links.aliases.destroy');
         Route::post('links/{link}/aliases/{alias}/promote', [\App\Modules\User\Controllers\LinkAliasController::class, 'promote'])->middleware('workspace.can:links.edit')->name('links.aliases.promote');
+        Route::put('links/{link}/aliases/{alias}/domain', [\App\Modules\User\Controllers\LinkAliasController::class, 'updateDomain'])->middleware('workspace.can:links.edit')->name('links.aliases.update-domain');
 
         Route::get('links-file/create', [FileLinkController::class, 'create'])->middleware('workspace.can:links.create')->name('links.file.create');
         Route::post('links-file', [FileLinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.file.store');

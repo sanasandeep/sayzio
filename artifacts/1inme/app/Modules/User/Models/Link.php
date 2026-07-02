@@ -298,15 +298,31 @@ protected $fillable = [
         }
         if ($link) return $link;
 
+        // Each additional alias renders on its own bound domain (or on any
+        // platform host when its own domain_id is null) — independent of
+        // the parent link's domain_id. Scope directly against the
+        // link_aliases row rather than the parent link.
+        $extraScope = function ($q) use ($domainId, $isPlatformHost) {
+            if ($isPlatformHost) {
+                $q->whereNull('domain_id');
+                $platformIds = Domain::platformDomainIds();
+                if (!empty($platformIds)) {
+                    $q->orWhereIn('domain_id', $platformIds);
+                }
+                return;
+            }
+            $domainId === null ? $q->whereNull('domain_id') : $q->where('domain_id', $domainId);
+        };
+
         $extraQ = LinkAlias::where('alias', $alias);
         if ($host !== null) {
-            $extraQ->whereHas('link', $scope);
+            $extraQ->where($extraScope);
         }
         $extra = $extraQ->first();
         if (! $extra && $alias !== $lower) {
             $extraQ = LinkAlias::whereRaw('LOWER(alias) = ?', [$lower]);
             if ($host !== null) {
-                $extraQ->whereHas('link', $scope);
+                $extraQ->where($extraScope);
             }
             $extra = $extraQ->first();
         }

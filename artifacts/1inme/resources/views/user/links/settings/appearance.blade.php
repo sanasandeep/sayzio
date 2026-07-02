@@ -41,7 +41,7 @@
             {{-- Aliases card lives OUTSIDE the page-settings form because it contains
                  its own <form> tags (add / promote / delete) — nesting forms is invalid HTML. --}}
             <div class="mb-6">
-                @include('user.links.partials.aliases-card', ['link' => $link])
+                @include('user.links.partials.aliases-card', ['link' => $link, 'domains' => $domains ?? collect()])
             </div>
 
             <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">

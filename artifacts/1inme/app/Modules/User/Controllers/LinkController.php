@@ -3153,6 +3153,7 @@ class LinkController extends Controller
                 },
                 new \App\Modules\Admin\Rules\NotBannedName(),
             ],
+            'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
         ]);
 
         // If the new primary value is currently an EXTRA alias on this same
@@ -3163,10 +3164,14 @@ class LinkController extends Controller
             ->where('alias', $validated['alias'])
             ->delete();
 
-        $link->update(['alias' => $validated['alias']]);
+        $update = ['alias' => $validated['alias']];
+        if ($request->has('domain_id')) {
+            $update['domain_id'] = $validated['domain_id'] ?: null;
+        }
+        $link->update($update);
 
         if ($request->wantsJson() || $request->ajax()) {
-            return response()->json(['success' => true, 'alias' => $validated['alias']]);
+            return response()->json(['success' => true, 'alias' => $validated['alias'], 'domain_id' => $link->domain_id]);
         }
 
         return back()->with('success', 'URL alias updated successfully.');
