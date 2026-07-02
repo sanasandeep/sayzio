@@ -65,3 +65,12 @@ through one shared read helper.
 - **Mobile action routing** (`openUniversalItem`): `type==='contact'` → in-app
   `openProfile(number,...)`; anything with `action.url` → `Linking.openURL`; workspaces
   have no mobile switch target (informational only — web uses the POST switch route).
+
+## Main mobile app no longer ships dialer/contacts (July 2026)
+
+The Dialer, Contacts, and Caller-ID surfaces were REMOVED from
+`artifacts/1inme-mobile` — they live in a dedicated standalone dialer app.
+Mobile-parity notes above now apply to that standalone app, not the main app.
+In the main app `tel:` biolink blocks hand off to the OS phone app, and
+`expo-contacts` is no longer a dependency. Backend `/api/v1/dialer/*` and
+`/api/v1/contacts/*` endpoints and all web surfaces are unchanged.

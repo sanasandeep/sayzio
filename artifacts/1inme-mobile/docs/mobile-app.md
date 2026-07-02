@@ -19,7 +19,7 @@ monetization from their phone.
 - **react-native-purchases** (RevenueCat) for in-app subscriptions;
   **expo-web-browser** / **expo-auth-session** for hosted-onboarding handoffs
   (e.g. payouts).
-- Native modules: `expo-contacts`, `expo-location`, `expo-audio` (voice
+- Native modules: `expo-location`, `expo-audio` (voice
   assistant), `expo-notifications` (push), `react-native-nfc-manager` (NFC),
   `expo-local-authentication` (biometric app lock), `react-native-qrcode-svg`,
   `react-native-webview` (web-only feature fallbacks).
@@ -40,7 +40,7 @@ Base URL resolution lives in `lib/api.ts` (`getBaseUrl()`), checked in order:
 `Authorization: Bearer <token>`, a `User-Agent`, and an `X-1INME-Client` header
 identifying the app version, then unwraps the unified `{data}` / `{error}`
 envelope. Per-domain typed clients live under `lib/api/*` (e.g. `lib/api/qr.ts`,
-`lib/api/payouts.ts`, `lib/api/contacts.ts`).
+`lib/api/payouts.ts`, `lib/api/forms.ts`).
 
 ### Auth handshake
 
@@ -142,15 +142,6 @@ Generated from `app/` (expo-router). `(auth)` and `(tabs)` are route groups; `[p
 | `app/social/index.tsx` | Connected social accounts / proofs. |
 | `app/profile/[handle].tsx`, `app/profile-edit.tsx` | Public creator profile + edit. |
 
-### Contacts, dialer & calls
-
-| Route file | Purpose |
-| ---------- | ------- |
-| `app/contacts/index.tsx`, `new.tsx`, `[id].tsx`, `_form.tsx` | Address book CRUD. |
-| `app/dialer.tsx` | Number-pad dialer + lookup. |
-| `app/dialer-profile.tsx` | Caller-ID profile resolved from a phone number. |
-| `app/call/active.tsx`, `app/call/incoming.tsx` | Call UI (`tel:`-based). |
-
 ### Monetization, wallet & billing
 
 | Route file | Purpose |
@@ -220,7 +211,7 @@ Reachable only by an operator whose Sanctum token is email-linked to a back-offi
 
 | Feature | Status | Notes |
 | ------- | ------ | ----- |
-| **Contacts & Dialer** | Full | `expo-contacts` import, CRUD, dialer lookup (`tel:`-based). |
+| **Contacts & Dialer** | Removed | Lives in the standalone dialer app; `tel:` links hand off to the OS. |
 | **Creator Payouts** | Full | `app/payouts.tsx`; hosted onboarding (Stripe/PayPal/Razorpay/CCBill/Segpay) opened via `expo-web-browser`. |
 | **18+ Adult Content** | Full | Inline three-checkbox consent in `app/payouts.tsx`; `/api/v1/adult-content`. |
 | **Forms** | Full | List, view, and submissions (`app/forms/`). |

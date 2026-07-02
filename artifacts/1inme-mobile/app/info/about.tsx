@@ -22,11 +22,11 @@ const FALLBACK_SECTIONS: InfoSection[] = [
   },
   {
     heading: "One account, every surface",
-    body: "Sign in once and your profile, links, contacts, and analytics stay in sync between the Sayzio web dashboard and this mobile app.",
+    body: "Sign in once and your profile, links, and analytics stay in sync between the Sayzio web dashboard and this mobile app.",
   },
   {
     heading: "Made for sharing",
-    body: "Built-in NFC writer, QR codes, universal links, and a fast in-app dialer turn every moment into an opportunity to connect.",
+    body: "Built-in NFC writer, QR codes, and universal links turn every moment into an opportunity to connect.",
   },
 ];
 

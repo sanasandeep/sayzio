@@ -82,8 +82,6 @@ const INFO_PAGES: {
 const TOOL_PAGES: {
   href:
     | "/posts"
-    | "/contacts"
-    | "/dialer"
     | "/forms"
     | "/cloud-files"
     | "/followers"
@@ -114,8 +112,6 @@ const TOOL_PAGES: {
 }[] = [
   { href: "/orders", label: "Orders", icon: "shopping-bag" },
   { href: "/posts", label: "Posts", icon: "message-square" },
-  { href: "/contacts", label: "Contacts", icon: "users" },
-  { href: "/dialer", label: "Dialer", icon: "phone" },
   { href: "/forms", label: "Forms", icon: "file-text" },
   { href: "/cloud-files", label: "Cloud files", icon: "cloud" },
   { href: "/followers", label: "Followers & Following", icon: "user-check" },
