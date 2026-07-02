@@ -160,6 +160,9 @@
             <div>
                 <h2 class="text-base font-semibold text-white">WhatsApp login</h2>
                 <p class="text-xs text-white/50">When off, email is the only way to sign in or reset access.</p>
+                <p class="text-xs text-white/40 mt-1">WhatsApp delivery credentials (Phone Number ID, Access Token, and OTP template) are configured on the
+                    <a href="{{ route('admin.api-keys.index') }}" class="text-blue-300 hover:underline">API Keys &amp; Plugins</a> page.
+                </p>
             </div>
 
             <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">

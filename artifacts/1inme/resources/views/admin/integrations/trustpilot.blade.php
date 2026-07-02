@@ -24,8 +24,23 @@
         The Trustpilot API key is used to import Business Unit reviews. The key is encrypted at rest and never
         displayed back &mdash; leave the field blank to keep the stored value. Until you save a key here the platform
         falls back to the <span class="font-mono">TRUSTPILOT_API_KEY</span> environment variable; with no key at
-        all, review import runs in preview mode.
+        all, review import runs in preview mode (no live data fetched).
     </p>
+
+    @include('admin.partials.help-note', [
+        'body' => '<strong>How to get a Trustpilot API key</strong>
+            <ol class="list-decimal pl-4 mt-1 space-y-0.5">
+                <li>You need a <strong>Trustpilot Business</strong> account. Register or log in at <a class="underline" href="https://businessapp.b2b.trustpilot.com/" target="_blank" rel="noopener">business.trustpilot.com</a>.</li>
+                <li>Go to <a class="underline" href="https://businessapp.b2b.trustpilot.com/developer/" target="_blank" rel="noopener">Business App → Integrations → Developer</a> and create an API application.</li>
+                <li>The generated API key (sometimes called the <em>public key</em> or <em>apikey</em>) authenticates read requests to the Trustpilot public API — it is <strong>not</strong> a secret but is still stored encrypted here for safety.</li>
+                <li>Paste the key in the field below. No redirect URI or OAuth flow is required — this is a simple API-key integration.</li>
+            </ol>',
+    ])
+
+    @include('admin.partials.help-note', [
+        'type' => 'warn',
+        'body' => 'Without this key, the Reviews feature will show platform-native reviews only. Trustpilot Business Unit reviews will not be imported or displayed.',
+    ])
 
     @if ($errors->any())
         <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
@@ -44,7 +59,7 @@
                     <h3 class="font-semibold text-white flex items-center gap-2">
                         <i class="fas fa-star text-amber-400"></i> API key
                     </h3>
-                    <p class="text-xs text-white/40">The public API key from your Trustpilot Business account.</p>
+                    <p class="text-xs text-white/40">The public API key from your Trustpilot Business application.</p>
                 </div>
                 <span class="shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-medium {{ $toneClass($status['tone']) }}">
                     {{ $status['label'] }}
@@ -59,11 +74,12 @@
                 <input type="password" name="api_key" autocomplete="new-password"
                        placeholder="{{ $hasValue ? 'Paste a new key to replace' : '••••••••' }}"
                        class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                <p class="text-[11px] text-white/30 mt-1">Stored encrypted. Used only for reading Business Unit review data via the Trustpilot public API.</p>
                 @if($hasValue)
                     <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                         <input type="hidden" name="clear_api_key" value="0">
                         <input type="checkbox" name="clear_api_key" value="1" class="accent-red-500">
-                        Remove the stored key (revert to env)
+                        Remove the stored key (revert to env / preview mode)
                     </label>
                 @endif
             </div>

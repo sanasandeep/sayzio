@@ -28,6 +28,16 @@
             <span class="text-sm text-white">Enable AI Engine</span>
         </label>
 
+        @include('admin.partials.help-note', [
+            'body' => '<strong>Getting an OpenAI API key</strong>
+                <ol class="list-decimal pl-4 mt-1 space-y-0.5">
+                    <li>Sign up or log in at <a class="underline" href="https://platform.openai.com/" target="_blank" rel="noopener">platform.openai.com</a>.</li>
+                    <li>Go to <a class="underline" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">API Keys</a> and click <em>Create new secret key</em>. Keys start with <code>sk-proj-…</code> (project-scoped) or <code>sk-…</code> (legacy org-scoped).</li>
+                    <li>Prefer <strong>project-scoped keys</strong> (<code>sk-proj-…</code>) — they can be scoped to a single project and revoked without touching other integrations.</li>
+                    <li>Add billing credits at <a class="underline" href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener">Billing</a>. API calls fail with a quota error if the balance reaches zero — the AI usage report shows consumption, but the actual USD balance lives on OpenAI\'s side.</li>
+                </ol>',
+        ])
+
         <div>
             <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">OpenAI API key</label>
             @if($hasKey)
@@ -344,6 +354,16 @@
                 Without a token the QR Studio "AI Artistic" tab runs in preview / disabled mode.
             </p>
         </div>
+
+        @include('admin.partials.help-note', [
+            'body' => '<strong>Getting a Replicate API token</strong>
+                <ol class="list-decimal pl-4 mt-1 space-y-0.5">
+                    <li>Sign up or log in at <a class="underline" href="https://replicate.com/" target="_blank" rel="noopener">replicate.com</a>.</li>
+                    <li>Go to <a class="underline" href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener">Account → API Tokens</a> and create a new token. Tokens start with <code>r8_…</code>.</li>
+                    <li>Replicate bills per-second of GPU time used by each prediction run — add a payment method in your Replicate account before enabling this in production.</li>
+                    <li>Without a token, the QR Studio <em>AI Artistic</em> tab is hidden or shown in preview mode — no charges occur.</li>
+                </ol>',
+        ])
 
         <div>
             <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Replicate API token</label>

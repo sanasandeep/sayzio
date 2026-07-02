@@ -51,6 +51,27 @@
                 </span>
             </div>
 
+            @include('admin.partials.help-note', [
+                'body' => '<strong>How to get WhatsApp Cloud API credentials</strong>
+                    <ol class="list-decimal pl-4 mt-1 space-y-0.5">
+                        <li>Create or open an app at <a class="underline" href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Meta for Developers → My Apps</a>. Choose <em>Business</em> as the app type and add the <strong>WhatsApp</strong> product.</li>
+                        <li><strong>Phone Number ID</strong> — shown on the <em>WhatsApp → API Setup</em> page of your Meta app, next to the test or registered business number.</li>
+                        <li><strong>Access token</strong> — for testing, use the temporary token on the API Setup page. For production, generate a <em>System User</em> token in <a class="underline" href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener">Meta Business Suite → Settings → System Users</a> with the <code>whatsapp_business_messaging</code> permission.</li>
+                        <li>The <strong>Graph API version</strong> field should match the API version shown in the Meta documentation; default is <code>v19.0</code>.</li>
+                    </ol>',
+            ])
+
+            <div class="glass rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200/85 space-y-1">
+                <div class="flex items-start gap-2">
+                    <i class="fas fa-triangle-exclamation text-amber-400 mt-0.5 shrink-0"></i>
+                    <div>
+                        <strong>OTP message templates must be pre-approved in Meta Business Suite.</strong>
+                        The template name and language entered below must exactly match an <em>approved</em> template in your WhatsApp Business account. Unapproved or mismatched templates cause delivery to fail silently.
+                        <a class="underline ml-1" href="https://business.facebook.com/wa/manage/message-templates/" target="_blank" rel="noopener">Manage templates →</a>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
                     <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Phone number ID</label>
@@ -81,16 +102,19 @@
                     <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Template name</label>
                     <input type="text" name="wa_template_name" value="{{ old('wa_template_name', $waTemplate) }}"
                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    <p class="text-[11px] text-white/30 mt-1">Exact name of the approved WhatsApp message template.</p>
                 </div>
                 <div>
                     <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Template language</label>
                     <input type="text" name="wa_template_language" value="{{ old('wa_template_language', $waLanguage) }}"
                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    <p class="text-[11px] text-white/30 mt-1">Language code of the approved template, e.g. <code>en_US</code>, <code>en</code>.</p>
                 </div>
                 <div>
                     <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Graph API version</label>
                     <input type="text" name="wa_graph_version" value="{{ old('wa_graph_version', $waGraphVersion) }}"
                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    <p class="text-[11px] text-white/30 mt-1">Meta Graph API version, e.g. <code>v19.0</code>.</p>
                 </div>
             </div>
             <p class="text-[11px] text-white/30">Token is encrypted at rest with the application key. Other fields are plain configuration.</p>
@@ -104,6 +128,9 @@
                         <i class="fas fa-robot text-emerald-400"></i> WhatsApp AI agent
                     </h3>
                     <p class="text-xs text-white/40">Lets verified, paid-plan users create &amp; edit links by messaging the WhatsApp number. Requires the Cloud API credentials above plus the inbound webhook below.</p>
+                    @include('admin.partials.help-note', [
+                        'body' => '<strong>Webhook setup in Meta:</strong> in your Meta app → WhatsApp → Configuration, set the <em>Callback URL</em> to the value shown below and enter your <em>Verify token</em>. Subscribe to the <code>messages</code> webhook field. The <em>App Secret</em> is shown in your Meta app\'s <em>App Settings → Basic</em> page and is used to verify the <code>X-Hub-Signature-256</code> on inbound payloads.',
+                    ])
                 </div>
                 <span class="shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-medium {{ $waAgentEnabled ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-white/5 text-white/50 border-white/10' }}">
                     {{ $waAgentEnabled ? 'Enabled' : 'Disabled' }}
@@ -117,14 +144,10 @@
                 <span class="text-sm text-white">Enable the WhatsApp AI agent</span>
             </label>
 
-            <div>
-                <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Callback URL</label>
-                <div class="flex items-center gap-2">
-                    <input type="text" readonly value="{{ $waCallbackUrl }}"
-                           class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white/70 font-mono">
-                </div>
-                <p class="text-[11px] text-white/30 mt-1">Set this as the webhook callback URL in the Meta app dashboard (subscribe to the <span class="font-mono">messages</span> field).</p>
-            </div>
+            @include('admin.partials.copy-uri', [
+                'label' => 'Callback URL — set this as the webhook in Meta → WhatsApp → Configuration (subscribe to the messages field)',
+                'value' => $waCallbackUrl,
+            ])
 
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
@@ -173,6 +196,14 @@
                         <i class="fas fa-bell text-amber-400"></i> Internal alerts
                     </h3>
                     <p class="text-xs text-white/40">Post system &amp; team alerts (downtime, broadcasts, health notices) to a Slack and/or Discord incoming webhook.</p>
+
+                    @include('admin.partials.help-note', [
+                        'body' => '<strong>Getting incoming webhook URLs</strong>
+                            <ul class="list-disc pl-4 mt-1 space-y-0.5">
+                                <li><strong>Slack:</strong> go to <a class="underline" href="https://api.slack.com/apps" target="_blank" rel="noopener">api.slack.com/apps</a>, create an app (or open an existing one), enable <em>Incoming Webhooks</em> under Features, and click <em>Add New Webhook to Workspace</em>. Pick a channel and copy the <code>https://hooks.slack.com/services/…</code> URL.</li>
+                                <li><strong>Discord:</strong> open a Discord server you manage, go to channel Settings → Integrations → Webhooks → New Webhook. Name it, choose a channel, then copy the <code>https://discord.com/api/webhooks/…</code> URL.</li>
+                            </ul>',
+                    ])
                 </div>
                 <span class="shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-medium {{ $toneClass($alertsStatus['tone']) }}">
                     {{ $alertsStatus['label'] }}

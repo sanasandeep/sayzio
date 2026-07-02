@@ -27,6 +27,21 @@
         &ldquo;coming soon&rdquo;.
     </p>
 
+    @include('admin.partials.help-note', [
+        'body' => '<strong>How this works</strong>
+            <ul class="list-disc pl-4 mt-1 space-y-0.5">
+                <li>When enabled, creators see a <strong>Connect Google Analytics</strong> button in their Connected Apps area.</li>
+                <li>Each creator provides their own <strong>GA4 Measurement ID</strong> (<code>G-XXXXXXXXXX</code>) and a <strong>Measurement Protocol API secret</strong> generated in their GA4 property.</li>
+                <li>The platform forwards link-click and page-view events to the creator\'s property server-side — no JavaScript snippet or browser SDK is needed.</li>
+                <li>No platform-level Google credentials are required. You do <strong>not</strong> need to configure anything in Google Cloud Console for this feature.</li>
+            </ul>',
+    ])
+
+    @include('admin.partials.help-note', [
+        'type' => 'tip',
+        'body' => '<strong>Helping creators set up GA4:</strong> creators need to create a Measurement Protocol API secret at <a class="underline" href="https://analytics.google.com/" target="_blank" rel="noopener">Google Analytics</a> → Admin → Data Streams → choose stream → Measurement Protocol API secrets → Create. They then paste both the Measurement ID and the API secret when connecting in their account settings.',
+    ])
+
     <form method="POST" action="{{ route('admin.integrations.google-analytics.update') }}" class="space-y-6">
         @csrf @method('PUT')
 
@@ -48,6 +63,8 @@
                 <input type="checkbox" name="enabled" value="1" class="accent-emerald-500" @checked($enabled)>
                 Enable Google Analytics for creators
             </label>
+
+            <p class="text-[11px] text-white/30">When disabled, the GA4 option shows as &ldquo;coming soon&rdquo; in the creator Connected Apps area. No events are forwarded regardless of any existing creator connections.</p>
         </div>
 
         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">

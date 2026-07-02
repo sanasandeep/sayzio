@@ -20,12 +20,22 @@
         </div>
     </div>
 
-    <div class="glass rounded-2xl border border-white/10 p-5">
+    <div class="glass rounded-2xl border border-white/10 p-5 space-y-3">
         <h2 class="text-sm font-semibold text-white">How this works</h2>
-        <p class="text-xs text-white/50 mt-1 leading-relaxed">
+        <p class="text-xs text-white/50 leading-relaxed">
             Each social platform below offers a one-click "Connect with…" button to creators when its OAuth credentials are present in the server environment.
             Until you set the listed environment variables, creators have to fall back to pasting an access token by hand. Set the variables, restart the app, and the buttons turn on automatically — no code changes needed.
         </p>
+        @include('admin.partials.help-note', [
+            'body' => '<strong>General setup steps for each provider</strong>
+                <ol class="list-decimal pl-4 mt-1 space-y-0.5">
+                    <li>Click <em>Register a developer app</em> on any provider card below to open its developer console.</li>
+                    <li>Create a new OAuth app (type: <strong>Web application</strong> or server-side app — not a CLI or mobile app).</li>
+                    <li>Add the exact <strong>redirect URI</strong> shown on each card to the app\'s allowed redirect URIs. Even a trailing-slash mismatch will cause OAuth to fail.</li>
+                    <li>Set the two environment variables (<code>_CLIENT_ID</code> and <code>_CLIENT_SECRET</code>) shown on each card in your server environment, then restart the application.</li>
+                    <li>Credentials live in the server environment, not the admin database, for these providers. Use <code>.env</code> or your hosting provider\'s secrets manager.</li>
+                </ol>',
+        ])
     </div>
 
     <div class="space-y-3">

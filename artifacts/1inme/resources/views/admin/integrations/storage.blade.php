@@ -25,9 +25,25 @@
         When on, the user-content disks (public, user files and admin assets) are all served from your S3 bucket.
         The access key and secret are encrypted at rest and never displayed back &mdash; leave them blank to keep the
         stored values. Each field falls back to the corresponding <span class="font-mono">AWS_*</span> environment
-        variable until you save a value here. <strong>The bucket should have ACLs disabled</strong> (no object-level
-        visibility is set).
+        variable until you save a value here.
     </p>
+
+    @include('admin.partials.help-note', [
+        'body' => '<strong>S3 bucket setup checklist</strong>
+            <ol class="list-decimal pl-4 mt-1 space-y-0.5">
+                <li><strong>IAM credentials</strong> — create a dedicated IAM user in <a class="underline" href="https://console.aws.amazon.com/iam/home#/users" target="_blank" rel="noopener">AWS IAM</a> with programmatic access. Attach a policy granting <code>s3:GetObject</code>, <code>s3:PutObject</code>, <code>s3:DeleteObject</code>, and <code>s3:ListBucket</code> on your bucket ARN only.</li>
+                <li><strong>ACLs disabled</strong> — create the bucket with <em>Object Ownership: Bucket owner enforced</em> (ACLs disabled). The platform never sets per-object ACLs; enabling them is not required and can break uploads.</li>
+                <li><strong>Public access</strong> — for public user content, either attach a bucket policy granting <code>s3:GetObject</code> to <code>*</code>, or front the bucket with a CloudFront distribution and enter the distribution domain as the Public URL.</li>
+                <li><strong>CORS</strong> — if the browser uploads directly (presigned URLs), add a CORS rule allowing <code>PUT</code> / <code>GET</code> from your domain. If all uploads go server-side, CORS is not required.</li>
+                <li><strong>Region</strong> — use the short-form region code, e.g. <code>us-east-1</code>, <code>eu-west-2</code>.</li>
+                <li><strong>S3-compatible providers</strong> (Cloudflare R2, MinIO, DigitalOcean Spaces) — enter the provider\'s S3-compatible endpoint and enable path-style if needed.</li>
+            </ol>',
+    ])
+
+    @include('admin.partials.help-note', [
+        'type' => 'warn',
+        'body' => '<strong>Switching storage mid-production:</strong> enabling S3 moves <em>new</em> uploads to the bucket but does not migrate existing files. Run a one-off migration of existing user files after enabling, or users may see broken image links for previously uploaded content.',
+    ])
 
     @if ($errors->any())
         <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
@@ -75,6 +91,7 @@
                     <input type="password" name="s3_key" autocomplete="new-password"
                            placeholder="{{ $hasKey ? 'Paste a new key to replace' : 'AKIA…' }}"
                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    <p class="text-[11px] text-white/30 mt-1">IAM access key ID — starts with <code>AKIA</code>.</p>
                     @if($hasKey)
                         <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                             <input type="hidden" name="clear_s3_key" value="0">
@@ -91,6 +108,7 @@
                     <input type="password" name="s3_secret" autocomplete="new-password"
                            placeholder="{{ $hasSecret ? 'Paste a new secret to replace' : '••••••••' }}"
                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    <p class="text-[11px] text-white/30 mt-1">IAM secret key — encrypted at rest, never displayed back.</p>
                     @if($hasSecret)
                         <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                             <input type="hidden" name="clear_s3_secret" value="0">
@@ -104,26 +122,28 @@
                     <input type="text" name="s3_region" value="{{ old('s3_region', $region) }}" autocomplete="off"
                            placeholder="us-east-1"
                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    <p class="text-[11px] text-white/30 mt-1">AWS region short code, e.g. <code>us-east-1</code>, <code>eu-west-2</code>.</p>
                 </div>
                 <div>
                     <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Bucket</label>
                     <input type="text" name="s3_bucket" value="{{ old('s3_bucket', $bucket) }}" autocomplete="off"
                            placeholder="my-bucket"
                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    <p class="text-[11px] text-white/30 mt-1">Bucket name only — no <code>s3://</code> prefix or path.</p>
                 </div>
                 <div class="sm:col-span-2">
                     <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Public URL (CDN / CloudFront)</label>
                     <input type="text" name="s3_url" value="{{ old('s3_url', $url) }}" autocomplete="off"
                            placeholder="https://cdn.example.com"
                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
-                    <p class="text-[11px] text-white/30 mt-1">Optional. Base URL used when generating public links to stored objects.</p>
+                    <p class="text-[11px] text-white/30 mt-1">Optional. Base URL used when generating public links to stored objects — use your CloudFront or CDN domain here to avoid direct S3 traffic costs.</p>
                 </div>
                 <div class="sm:col-span-2">
                     <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Custom endpoint</label>
                     <input type="text" name="s3_endpoint" value="{{ old('s3_endpoint', $endpoint) }}" autocomplete="off"
                            placeholder="https://s3.eu-central-1.amazonaws.com"
                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
-                    <p class="text-[11px] text-white/30 mt-1">Optional. For S3-compatible providers (R2, MinIO, Spaces).</p>
+                    <p class="text-[11px] text-white/30 mt-1">Optional. For S3-compatible providers (Cloudflare R2, MinIO, DigitalOcean Spaces). Leave blank for standard AWS S3.</p>
                 </div>
             </div>
 
@@ -131,7 +151,7 @@
                 <input type="hidden" name="s3_use_path_style" value="0">
                 <input type="checkbox" name="s3_use_path_style" value="1" {{ old('s3_use_path_style', $usePathStyle) ? 'checked' : '' }} class="accent-blue-500 w-4 h-4">
                 <span class="text-sm text-white/80">Use path-style endpoint</span>
-                <span class="text-[11px] text-white/30">(required by some S3-compatible providers)</span>
+                <span class="text-[11px] text-white/30">(required by MinIO and some other S3-compatible providers; not needed for AWS S3 or Cloudflare R2)</span>
             </label>
         </div>
 
