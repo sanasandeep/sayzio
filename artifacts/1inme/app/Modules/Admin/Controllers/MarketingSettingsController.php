@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AppSetting;
+use App\Modules\Common\Support\AppLaunchNotifier;
 use App\Modules\Common\Support\SitePagesContent;
 use Illuminate\Http\Request;
 
@@ -82,8 +83,20 @@ class MarketingSettingsController extends Controller
         AppSetting::put('marketing_whatsapp_channel_url', trim((string) ($data['whatsapp_channel_url'] ?? '')));
         AppSetting::put('marketing_whatsapp_number', trim((string) ($data['whatsapp_number'] ?? '')));
         AppSetting::put('marketing_whatsapp_message', trim((string) ($data['whatsapp_message'] ?? '')));
+
+        // Detect the app-launch transition (empty → live) so we can email the
+        // "coming soon" launch list the moment the app actually ships. We take
+        // the aggregate "live on any store" state before/after the save so the
+        // first store URL to be configured fires exactly once; a later second
+        // store link does not re-notify (already live). The notifier itself is
+        // idempotent + a no-op while no store URL is set.
+        $wasLaunched = AppLaunchNotifier::isLaunched();
         AppSetting::put('marketing_play_store_url', trim((string) ($data['play_store_url'] ?? '')));
         AppSetting::put('marketing_app_store_url', trim((string) ($data['app_store_url'] ?? '')));
+        if (!$wasLaunched && AppLaunchNotifier::isLaunched()) {
+            AppLaunchNotifier::notifyIfLaunched();
+        }
+
         AppSetting::put('marketing_trust_strip',
             SitePagesContent::normalizeTrustStrip((array) ($data['trust_strip'] ?? []))
         );

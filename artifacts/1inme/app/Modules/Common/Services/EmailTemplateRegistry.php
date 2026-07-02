@@ -748,6 +748,26 @@ class EmailTemplateRegistry
                     'featureUrl' => 'https://sayzio.app/user/dialer',
                 ],
             ],
+            'app.launched' => [
+                'category' => 'messaging',
+                'label' => 'Mobile app launched',
+                'description' => 'Sent once to everyone on the mobile-app launch list (the "coming soon" modal) the moment an admin sets a store URL and the app goes live.',
+                'format' => 'html',
+                'body_type' => 'view',
+                'view' => 'emails.app-launched',
+                'subject' => 'The Sayzio app is here — download it now',
+                'variables' => [
+                    'play_url' => ['label' => 'Google Play link', 'sample' => 'https://play.google.com/store/apps/details?id=app.sayzio'],
+                    'app_url' => ['label' => 'App Store link', 'sample' => 'https://apps.apple.com/app/sayzio/id123456789'],
+                    'store_url' => ['label' => 'Primary store link (the one the visitor clicked, else the first live store)', 'sample' => 'https://play.google.com/store/apps/details?id=app.sayzio'],
+                ],
+                'sample_view' => [
+                    'subject' => 'The Sayzio app is here — download it now',
+                    'playUrl' => 'https://play.google.com/store/apps/details?id=app.sayzio',
+                    'appUrl' => 'https://apps.apple.com/app/sayzio/id123456789',
+                    'storeUrl' => 'https://play.google.com/store/apps/details?id=app.sayzio',
+                ],
+            ],
             'messaging.dm_new' => [
                 'category' => 'messaging',
                 'label' => 'New direct message',

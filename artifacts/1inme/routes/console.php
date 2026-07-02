@@ -529,3 +529,14 @@ Schedule::command('features:notify-launched')
     ->hourlyAt(50)
     ->withoutOverlapping()
     ->onOneServer();
+
+// Hourly: safety sweep for the mobile-app launch mailing list. The marketing
+// settings save already emails the "coming soon" signups the moment an admin
+// sets a store URL (empty → live). This retries any signup left unstamped by a
+// transient SMTP blip during that inline send, so a launch email is never
+// permanently dropped. No-op while no store URL is configured; only un-notified
+// signups are considered, so a per-hour cadence never double-sends.
+Schedule::command('app-launch:notify-signups')
+    ->hourlyAt(52)
+    ->withoutOverlapping()
+    ->onOneServer();
