@@ -53,6 +53,45 @@
             <p class="text-xs text-white/40 mt-0.5">Everything from the calendars you own and follow, in one place.</p>
         </div>
         <div class="flex items-center gap-2">
+            {{-- Subscribe (live ICS feed) --}}
+            <div class="relative" x-data="{ open: false, copied: false, url: @js($feedUrl) }"
+                 @keydown.escape.window="open = false" @click.outside="open = false">
+                <button @click="open = !open" type="button"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border border-white/10 text-white/70 hover:text-white hover:border-white/30 transition">
+                    <i class="fas fa-rss text-xs"></i> Subscribe
+                    <i class="fas fa-chevron-down text-[10px] opacity-60" :class="open ? 'rotate-180' : ''" style="transition:transform .15s"></i>
+                </button>
+                <div x-show="open" x-transition
+                     class="absolute right-0 mt-1.5 w-80 rounded-xl border border-white/10 shadow-xl z-30 p-4"
+                     style="background: rgba(20,18,35,0.97); backdrop-filter: blur(12px);" x-cloak>
+                    <p class="text-sm font-semibold text-white">Subscribe to your calendar</p>
+                    <p class="text-xs text-white/50 mt-1 leading-relaxed">
+                        Paste this link into Google Calendar, Apple Calendar, or Outlook to keep it in
+                        sync automatically — new events appear without downloading a new file.
+                    </p>
+                    <div class="mt-3 flex items-stretch gap-1.5">
+                        <input type="text" readonly :value="url" x-ref="feedInput"
+                               @focus="$event.target.select()"
+                               class="flex-1 min-w-0 h-9 border border-white/10 rounded-lg px-2.5 text-xs text-white/80 bg-black/30 focus:ring-2 focus:ring-blue-500/40" />
+                        <button type="button"
+                                @click="navigator.clipboard.writeText(url).then(() => { copied = true; setTimeout(() => copied = false, 1800); }).catch(() => { $refs.feedInput.select(); document.execCommand('copy'); copied = true; setTimeout(() => copied = false, 1800); })"
+                                class="shrink-0 h-9 px-3 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white transition">
+                            <span x-show="!copied"><i class="far fa-copy mr-1"></i>Copy</span>
+                            <span x-show="copied" x-cloak><i class="fas fa-check mr-1"></i>Copied</span>
+                        </button>
+                    </div>
+                    <form method="POST" action="{{ route('user.calendars.mine.feed.reset') }}"
+                          onsubmit="return confirm('Reset your subscription link? Any calendar app already subscribed with the old link will stop updating until you re-subscribe.');"
+                          class="mt-3 pt-3 border-t border-white/5">
+                        @csrf
+                        <button type="submit" class="text-xs text-white/50 hover:text-red-300 transition">
+                            <i class="fas fa-rotate mr-1"></i> Reset link
+                        </button>
+                        <p class="text-[11px] text-white/30 mt-1 leading-snug">Use this if the link was shared by mistake. It can't be undone.</p>
+                    </form>
+                </div>
+            </div>
+
             {{-- Export dropdown --}}
             <div class="relative" x-data="{ open: false }" @keydown.escape.window="open = false" @click.outside="open = false">
                 <button @click="open = !open" type="button"

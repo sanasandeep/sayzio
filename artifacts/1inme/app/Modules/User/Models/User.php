@@ -62,7 +62,37 @@ class User extends Authenticatable
         'comp_plan_expires_at', 'comp_plan_granted_by',
     ];
 
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = ['password', 'remember_token', 'my_calendar_feed_token'];
+
+    /**
+     * Return this user's long-lived "My Calendar" ICS subscription token,
+     * minting one on first access. This token authenticates the session-less
+     * feed URL that external calendar apps (Google / Apple / Outlook) poll,
+     * so it must be unguessable and stable until deliberately rotated.
+     */
+    public function myCalendarFeedToken(): string
+    {
+        if (blank($this->my_calendar_feed_token)) {
+            $this->regenerateMyCalendarFeedToken();
+        }
+
+        return (string) $this->my_calendar_feed_token;
+    }
+
+    /**
+     * Rotate the "My Calendar" feed token, invalidating any previously shared
+     * feed URL. Retries on the (astronomically unlikely) unique collision.
+     */
+    public function regenerateMyCalendarFeedToken(): string
+    {
+        do {
+            $token = \Illuminate\Support\Str::random(48);
+        } while (static::where('my_calendar_feed_token', $token)->exists());
+
+        $this->forceFill(['my_calendar_feed_token' => $token])->save();
+
+        return $token;
+    }
 
     protected function casts(): array
     {

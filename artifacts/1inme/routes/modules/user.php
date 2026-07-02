@@ -767,6 +767,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get   ('calendars/create',               [\App\Modules\User\Controllers\CalendarController::class, 'create'])->middleware('workspace.can:links.create')->name('calendars.create');
         Route::get   ('my-calendar',                     [\App\Modules\User\Controllers\CalendarController::class, 'myCalendar'])->name('calendars.mine');
         Route::get   ('my-calendar/export',              [\App\Modules\User\Controllers\CalendarController::class, 'myCalendarExport'])->name('calendars.mine.export');
+        Route::post  ('my-calendar/feed/reset',          [\App\Modules\User\Controllers\CalendarController::class, 'regenerateMyCalendarFeed'])->name('calendars.mine.feed.reset');
         Route::get   ('calendars/{link}/editor',         [\App\Modules\User\Controllers\CalendarController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('calendars.editor');
         Route::post  ('calendars/{link}/settings',       [\App\Modules\User\Controllers\CalendarController::class, 'updateSettings'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('calendars.settings');
         Route::post  ('calendars/{link}/sync',           [\App\Modules\User\Controllers\CalendarController::class, 'syncToGoogle'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('calendars.sync');

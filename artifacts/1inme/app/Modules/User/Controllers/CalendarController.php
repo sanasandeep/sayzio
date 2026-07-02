@@ -269,6 +269,7 @@ class CalendarController extends Controller
             'events'        => $events,
             'gridEvents'    => $gridEvents,
             'calendars'     => $calendars,
+            'feedUrl'       => route('public.calendars.mine.feed', ['token' => $user->myCalendarFeedToken()]),
             'ownedIds'      => $ownedIds,
             'followedIds'   => $followedIds,
             'view'          => $view,
@@ -463,6 +464,66 @@ class CalendarController extends Controller
             'tag'         => $tag,
             'q'           => $search,
         ];
+    }
+
+    /**
+     * Serve the user's aggregated "My Calendar" as a live ICS subscription
+     * feed, authenticated by a long-lived per-user token instead of a session
+     * so Google / Apple / Outlook can poll it. Returns the same forward-looking
+     * event set the export produces with its default (agenda) filters, across
+     * every calendar the user owns OR follows. Emits an empty-but-valid feed on
+     * an unknown/rotated token so calendar apps don't hard-error on a stale URL.
+     *
+     * Route: GET /calendars/feed/my/{token}/calendar.ics  (public, no session)
+     */
+    public function myCalendarFeed(Request $request, string $token): \Symfony\Component\HttpFoundation\Response
+    {
+        $user = strlen($token) >= 20
+            ? \App\Modules\User\Models\User::where('my_calendar_feed_token', $token)->first()
+            : null;
+
+        $headers = [
+            'Content-Type'        => 'text/calendar; charset=UTF-8',
+            'Content-Disposition' => 'inline; filename="my-calendar.ics"',
+            'Cache-Control'       => 'public, max-age=900',
+        ];
+
+        if (!$user) {
+            // Unknown / rotated token — respond with a valid empty calendar
+            // (200) so subscribed apps quietly show nothing rather than erroring.
+            return response($this->composeMyCalendarIcs([], config('app.timezone', 'UTC'), 'My Calendar'), 200, $headers);
+        }
+
+        $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');
+        $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
+        $calendarIds = $ownedIds->merge($followedIds)->unique()->values();
+
+        $userTz = $user->timezone ?: config('app.timezone', 'UTC');
+
+        // Forward-looking window mirrors the export's default agenda behaviour.
+        $events = CalendarEvent::query()
+            ->with('calendar:id,link_id,title,accent_color,user_id,timezone')
+            ->whereIn('calendar_id', $calendarIds)
+            ->where('start_at', '>=', now()->startOfDay())
+            ->orderBy('start_at')
+            ->orderBy('id')
+            ->limit(5000)
+            ->get();
+
+        $body = $this->composeMyCalendarIcs($events, $userTz, $user->name ?? 'My Calendar');
+
+        return response($body, 200, $headers);
+    }
+
+    /**
+     * Rotate the signed-in user's "My Calendar" feed token, invalidating the
+     * previously shared subscription URL. The page re-reads the fresh token.
+     */
+    public function regenerateMyCalendarFeed(Request $request)
+    {
+        $request->user()->regenerateMyCalendarFeedToken();
+
+        return back()->with('success', 'Your calendar subscription link was reset. Update it in any app you had subscribed.');
     }
 
     // ── helpers ───────────────────────────────────────────────────────────

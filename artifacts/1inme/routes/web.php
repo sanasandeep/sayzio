@@ -115,6 +115,13 @@ Route::post  ('/viewer/follow/{creator}', [\App\Modules\Common\Controllers\Viewe
 Route::post('/calendars/{calendar}/follow', [\App\Modules\Common\Controllers\PublicCalendarController::class, 'toggleFollow'])->whereNumber('calendar')->middleware('throttle:30,1')->name('public.calendars.follow');
 Route::get ('/calendars/{calendar}/calendar.ics', [\App\Modules\Common\Controllers\PublicCalendarController::class, 'icsFeed'])->whereNumber('calendar')->name('public.calendars.ics');
 
+// "My Calendar" aggregated ICS subscription feed — token-authenticated (no
+// session) so external calendar apps can poll everything the user owns/follows.
+// Multi-segment path keeps it clear of the single-segment /{alias} catch-all.
+Route::get('/calendars/feed/my/{token}/calendar.ics', [\App\Modules\User\Controllers\CalendarController::class, 'myCalendarFeed'])
+    ->where('token', '[A-Za-z0-9]+')
+    ->name('public.calendars.mine.feed');
+
 // ---- AI Mind webhook ingest (public): inbound content for a "webhook" Knowledge Base source ----
 // CSRF-exempt + unauthenticated; security is the per-source signing token
 // (header X-Mind-Webhook-Token, ?token=, or a `token` body field).
