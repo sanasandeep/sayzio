@@ -42,9 +42,16 @@ class LinkController extends Controller
         };
     }
 
-    public function index(Request $request)
+    /**
+     * Build the filtered "My Links" query shared by the index list and its
+     * CSV export so both always resolve to the exact same set of links for a
+     * given search / type / project / status query string. Eager-loads are
+     * caller-supplied (the list needs relations for rendering; the export
+     * selects them explicitly).
+     */
+    protected function buildLinksQuery(Request $request)
     {
-        $query = workspace_owner()->links()->with(['project', 'domain', 'fileLink']);
+        $query = workspace_owner()->links();
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
@@ -68,7 +75,22 @@ class LinkController extends Controller
             $query->where('is_active', false);
         }
 
-        $links = $query->latest()->paginate(15)->withQueryString();
+        return $query;
+    }
+
+    /** Per-page sizes offered on the My Links list. */
+    protected const LINKS_PER_PAGE = [15, 30, 50, 100];
+
+    public function index(Request $request)
+    {
+        $query = $this->buildLinksQuery($request)->with(['project', 'domain', 'fileLink']);
+
+        $perPage = (int) $request->get('per_page', 15);
+        if (!in_array($perPage, self::LINKS_PER_PAGE, true)) {
+            $perPage = 15;
+        }
+
+        $links = $query->latest()->paginate($perPage)->withQueryString();
         $projects = workspace_owner()->projects()->orderBy('name')->get();
 
         // Lightweight, unfiltered roll-up for the bento command-center hero /
@@ -82,6 +104,59 @@ class LinkController extends Controller
         ];
 
         return view('user.links.index', compact('links', 'projects', 'summary'));
+    }
+
+    /**
+     * Stream the current My Links list (honouring the same search / type /
+     * project / status filters as the on-screen list) as a CSV. Streamed and
+     * chunked so an account with thousands of links never loads them all into
+     * memory. Not plan-gated — exporting your own link inventory is a basic
+     * data-portability feature (mirrors the ungated backlinks export), unlike
+     * analytics/follower exports which are gated behind `analytics_export`.
+     */
+    public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $query = $this->buildLinksQuery($request)->with(['project', 'domain']);
+
+        $filename = 'my-links-' . now()->format('Y-m-d') . '.csv';
+
+        // Defend against CSV formula injection when opened in a spreadsheet —
+        // prefix any cell starting with =, +, -, @ with a single quote so the
+        // spreadsheet treats it as text.
+        $safe = function ($value) {
+            $s = (string) $value;
+            if ($s !== '' && in_array($s[0], ['=', '+', '-', '@'], true)) {
+                return "'" . $s;
+            }
+            return $s;
+        };
+
+        return response()->streamDownload(function () use ($query, $safe) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, [
+                'title', 'type', 'short_url', 'destination',
+                'project', 'status', 'total_clicks', 'created_at',
+            ]);
+
+            $query->latest()->chunk(500, function ($rows) use ($out, $safe) {
+                foreach ($rows as $link) {
+                    fputcsv($out, [
+                        $safe($link->title ?: $link->alias),
+                        $safe($link->type),
+                        $safe($link->getShortUrl()),
+                        $safe($link->long_url),
+                        $safe(optional($link->project)->name),
+                        $link->is_active ? 'active' : 'inactive',
+                        (int) $link->total_clicks,
+                        optional($link->created_at)->toIso8601String(),
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 
     public function create(Request $request)

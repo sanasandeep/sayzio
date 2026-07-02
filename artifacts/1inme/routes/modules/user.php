@@ -671,6 +671,11 @@ Route::prefix('user')->name('user.')->group(function () {
         // matched as a literal path and not as the `links/{link}` show-route.
         Route::get('links/check-alias', [LinkController::class, 'checkAlias'])->middleware('workspace.can:links.create')->name('links.check-alias');
 
+        // Export the My Links list (honours the list filters) as CSV. Must sit
+        // BEFORE Route::resource('links', ...) so `links/export` is matched as
+        // a literal path and not as the `links/{link}` show-route.
+        Route::get('links/export', [LinkController::class, 'export'])->middleware('workspace.can:links.view')->name('links.export');
+
         Route::resource('links', LinkController::class)->except(['store', 'update', 'destroy'])->middleware('workspace.can:links.view');
         Route::put('links/{link}',  [LinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.update');
         Route::patch('links/{link}',[LinkController::class, 'update'])->middleware('workspace.can:links.edit');

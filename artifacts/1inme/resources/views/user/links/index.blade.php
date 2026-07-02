@@ -16,6 +16,9 @@
         $__heroActions[] = ['label' => 'Bulk links', 'url' => route('user.links.url.bulk'), 'icon' => 'fa-layer-group', 'class' => 'btn-ghost'];
         $__heroActions[] = ['label' => 'Bulk pages', 'url' => route('user.links.biolink.bulk'), 'icon' => 'fa-table', 'class' => 'btn-ghost'];
     }
+    // Export the currently-filtered list as CSV. Available to anyone who can
+    // view links (viewers included) — it's the same data already on screen.
+    $__heroActions[] = ['label' => 'Export CSV', 'url' => route('user.links.export', request()->only('search', 'type', 'project_id', 'status')), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'];
     // Move-to-workspace: only the workspace owner can move links, and only
     // makes sense if they own more than one workspace.
     $__moveTargets = collect();
@@ -423,7 +426,27 @@
     @endforeach
 </div>
 
-<div class="mt-5">{{ $links->links() }}</div>
+<div class="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div class="flex items-center gap-3 text-xs" style="color: var(--text-faint);">
+        <span>
+            Showing
+            <strong style="color: var(--text-secondary);">{{ number_format($links->firstItem() ?? 0) }}–{{ number_format($links->lastItem() ?? 0) }}</strong>
+            of <strong style="color: var(--text-secondary);">{{ number_format($links->total()) }}</strong>
+        </span>
+        <form method="GET" class="flex items-center gap-1.5">
+            @foreach(request()->except(['per_page', 'page']) as $__k => $__v)
+                <input type="hidden" name="{{ $__k }}" value="{{ $__v }}">
+            @endforeach
+            <label for="per_page" class="whitespace-nowrap">Per page</label>
+            <select id="per_page" name="per_page" onchange="this.form.submit()" class="theme-input appearance-none pr-7 py-1 text-xs">
+                @foreach([15, 30, 50, 100] as $__pp)
+                    <option value="{{ $__pp }}" {{ (int) request('per_page', 15) === $__pp ? 'selected' : '' }} class="bg-[#0a0612]">{{ $__pp }}</option>
+                @endforeach
+            </select>
+        </form>
+    </div>
+    <div>{{ $links->onEachSide(1)->links() }}</div>
+</div>
 </div>{{-- /x-data wrapper --}}
 @endif
 
