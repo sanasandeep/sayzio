@@ -26,12 +26,12 @@
                     <span class="grad-text">One Platform. Endless Conversations.</span>
                 </div>
 
-                <h1 id="hero-h" class="reveal rd-1 text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.04] tracking-tight mb-6">
+                <h1 id="hero-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
                     One AI runs your whole <span class="grad-text">universe</span>
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-9 leading-relaxed">
-                    <strong class="text-white">Zio</strong> is the AI at the heart of Sayzio. It builds your pages, coaches your growth, replies to visitors — even answers your calls. One smart link that markets you 24/7, <strong class="text-white">free forever</strong>, no card required.
+                    <strong class="text-white">Zio</strong> is the AI behind Sayzio — building your pages, coaching your growth, replying to visitors, even answering your calls. One smart link, working for you 24/7, <strong class="text-white">free forever</strong>, no card required.
                 </p>
 
                 @guest
@@ -93,11 +93,11 @@
                 <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-3 mt-12 justify-center lg:justify-start text-sm">
                     <span class="flex items-center gap-2 text-gray-400">
                         <span class="w-1.5 h-1.5 rounded-full" style="background:#1ed760"></span>
-                        <span class="font-bold text-white">120,000+</span><span class="text-gray-500">creators</span>
+                        <span class="font-bold text-white">375,000+</span><span class="text-gray-500">creators</span>
                     </span>
                     <span class="flex items-center gap-2 text-gray-400">
                         <span class="w-1.5 h-1.5 rounded-full" style="background:var(--c2)"></span>
-                        <span class="font-bold text-white">8 tools,</span><span class="text-gray-500">one AI brain</span>
+                        <span class="font-bold text-white">4 tools,</span><span class="text-gray-500">one AI brain</span>
                     </span>
                     <span class="flex items-center gap-2 text-gray-400">
                         <span class="w-1.5 h-1.5 rounded-full" style="background:var(--c1)"></span>
