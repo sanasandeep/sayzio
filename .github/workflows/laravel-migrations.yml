@@ -58,21 +58,53 @@ name: Laravel migrations
 #   matching the sibling laravel-tests.yml. Extra CI minutes on frontend-only
 #   PRs are a cheap price for never letting a broken rebuild slip past merge.
 
+# IMPORTANT — why there is no `paths:` filter on the triggers below, and a
+# `changes` detection job instead:
+#   A workflow-level `paths:` filter means the WHOLE workflow never triggers for
+#   a PR that doesn't touch those paths — so GitHub never receives a status for
+#   the jobs. The moment an admin marks "migrate cycle (PostgreSQL)" /
+#   "migrate cycle (MySQL)" as *required* status checks in branch protection,
+#   any PR that changes only marketing-site (artifacts/1inme-com/**), mobile,
+#   or lib/** files hangs forever waiting for a check that will never run — the
+#   classic path-filter + required-check deadlock.
+#   The fix: trigger on every PR (no `paths:`), detect in a cheap `changes` job
+#   whether the paths we care about actually changed, then either run the real
+#   guard (relevant change) or a passthrough companion job with the SAME check
+#   name that short-circuits to green (no relevant change). Either way a status
+#   with the required name is ALWAYS reported, so the checks can be safely
+#   required without deadlocking unrelated PRs, while a broken migrate:fresh
+#   still turns the real job red and blocks the merge.
 on:
   push:
     branches: [main]
-    paths:
-      - 'artifacts/1inme/**'
-      - '.github/workflows/laravel-migrations.yml'
   pull_request:
-    paths:
-      - 'artifacts/1inme/**'
-      - '.github/workflows/laravel-migrations.yml'
   workflow_dispatch:
 
 jobs:
+  changes:
+    name: Detect 1inme changes
+    runs-on: ubuntu-latest
+    outputs:
+      onein: ${{ steps.filter.outputs.onein }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            onein:
+              - 'artifacts/1inme/**'
+              - '.github/workflows/laravel-migrations.yml'
+
   migrate:
     name: migrate cycle (${{ matrix.display_name }})
+    needs: changes
+    # Run the real guard only when the 1inme app (or this workflow) changed, or
+    # on a manual dispatch. Otherwise the passthrough companion below reports
+    # the same-named check as green.
+    if: needs.changes.outputs.onein == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     # `fail-fast: false` so a regression on one engine never masks a
@@ -203,3 +235,26 @@ jobs:
         # "succeed" but leave behind tables, types, sequences or indexes that
         # then collide on the next up().
         run: php artisan migrate --force
+
+  # Passthrough companion: reports the SAME check names as the real `migrate`
+  # job ("migrate cycle (PostgreSQL)" / "migrate cycle (MySQL)") as green when
+  # the PR touches nothing under artifacts/1inme/**. This is what makes the
+  # checks safe to mark as *required* — every PR always gets a status for each
+  # required name, so unrelated PRs never deadlock. When the real guard runs
+  # instead, this job is skipped (which branch protection treats as passing),
+  # so a genuine failure in the real `migrate` job still blocks the merge.
+  migrate-passthrough:
+    name: migrate cycle (${{ matrix.display_name }})
+    needs: changes
+    if: needs.changes.outputs.onein != 'true' && github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Must mirror the display names produced by the real `migrate` matrix
+        # above so the reported check names match exactly.
+        display_name: [PostgreSQL, MySQL]
+    steps:
+      - name: No 1inme changes — migration cycle not required for this PR
+        run: |
+          echo "No changes under artifacts/1inme/** for this PR."
+          echo "The '${{ matrix.display_name }}' migrate cycle is not required; reporting success."

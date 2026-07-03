@@ -15,21 +15,50 @@ name: Laravel tests (PostgreSQL)
 # regressions (e.g. jsonb `?` operator collisions) were exactly the kind
 # of thing a sqlite-backed suite would silently miss.
 
+# IMPORTANT — why there is no `paths:` filter on the triggers below, and a
+# `changes` detection job instead:
+#   A workflow-level `paths:` filter means the WHOLE workflow never triggers for
+#   a PR that doesn't touch those paths — so GitHub never receives a status for
+#   any of these jobs. The moment an admin marks them as *required* status
+#   checks in branch protection (Task #3508), any PR that changes only
+#   marketing-site (artifacts/1inme-com/**), mobile, or lib/** files hangs
+#   forever waiting for checks that will never run — the classic path-filter +
+#   required-check deadlock.
+#   The fix: trigger on every PR (no `paths:`), detect in a cheap `changes` job
+#   whether the paths we care about actually changed, then either run the real
+#   guards (relevant change) or a passthrough companion job with the SAME check
+#   names that short-circuits to green (no relevant change). Either way a status
+#   with every required name is ALWAYS reported, so the checks can be safely
+#   required without deadlocking unrelated PRs, while a real regression still
+#   turns the corresponding job red and blocks the merge.
 on:
   push:
     branches: [main]
-    paths:
-      - 'artifacts/1inme/**'
-      - '.github/workflows/laravel-tests.yml'
   pull_request:
-    paths:
-      - 'artifacts/1inme/**'
-      - '.github/workflows/laravel-tests.yml'
   workflow_dispatch:
 
 jobs:
+  changes:
+    name: Detect 1inme changes
+    runs-on: ubuntu-latest
+    outputs:
+      onein: ${{ steps.filter.outputs.onein }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            onein:
+              - 'artifacts/1inme/**'
+              - '.github/workflows/laravel-tests.yml'
+
   phpunit-postgres:
     name: php artisan test against PostgreSQL
+    needs: changes
+    if: needs.changes.outputs.onein == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     services:
@@ -125,6 +154,8 @@ jobs:
 
   database-guard:
     name: Dev-database safety net guard
+    needs: changes
+    if: needs.changes.outputs.onein == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     # Tests\TestCase::guardAgainstNonTestDatabase() aborts the whole PHPUnit run
@@ -179,6 +210,8 @@ jobs:
 
   php84-deprecations:
     name: PHP 8.4 deprecation guard
+    needs: changes
+    if: needs.changes.outputs.onein == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     # PHP 8.4 emits a compile-time deprecation for every implicitly-nullable
@@ -210,6 +243,8 @@ jobs:
 
   migration-ordering:
     name: Migration ordering guard (no database)
+    needs: changes
+    if: needs.changes.outputs.onein == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     # Catch a migration that modifies or foreign-keys a table only created by a
@@ -260,3 +295,29 @@ jobs:
 
       - name: Replay migrations from an empty schema and check ordering
         run: composer check:migration-ordering
+
+  # Passthrough companion: reports the SAME check names as the four real jobs
+  # above as green when the PR touches nothing under artifacts/1inme/**. This is
+  # what makes those checks safe to mark as *required* — every PR always gets a
+  # status for each required name, so unrelated PRs never deadlock. When a real
+  # guard runs instead, this job is skipped (which branch protection treats as
+  # passing), so a genuine failure in any real job still blocks the merge.
+  tests-passthrough:
+    name: ${{ matrix.check_name }}
+    needs: changes
+    if: needs.changes.outputs.onein != 'true' && github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Must mirror the `name:` of every real job above exactly so the
+        # reported check names match what branch protection requires.
+        check_name:
+          - php artisan test against PostgreSQL
+          - Dev-database safety net guard
+          - PHP 8.4 deprecation guard
+          - Migration ordering guard (no database)
+    steps:
+      - name: No 1inme changes — guard not required for this PR
+        run: |
+          echo "No changes under artifacts/1inme/** for this PR."
+          echo "The '${{ matrix.check_name }}' guard is not required; reporting success."

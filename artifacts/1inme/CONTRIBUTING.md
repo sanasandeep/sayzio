@@ -25,14 +25,24 @@ nondeterministic ordering bug, etc.) shows up immediately instead of after the
 change has shipped.
 
 A GitHub Actions job — `.github/workflows/laravel-migrations.yml` — runs the
-exact same command against a real PostgreSQL 16 service on every push or pull
-request that changes:
+exact same command against a real PostgreSQL 16 (and MySQL 8) service. The
+workflow triggers on **every** push and pull request, but a cheap `changes`
+job first checks whether anything under `artifacts/1inme/**` (or the workflow
+file itself) actually changed:
 
-- `artifacts/1inme/database/migrations/**`
-- `artifacts/1inme/composer.json` / `composer.lock`
-- the workflow file itself
+- if it did, the real `migrate cycle (…)` jobs run the full migrate:fresh /
+  reset / migrate cycle;
+- if it did not, a passthrough companion job reports the same check names as
+  green so the job never blocks an unrelated (marketing-only, mobile-only,
+  `lib/**`) PR.
 
-If that job is red, your migrations will not boot a fresh install. Fix them
+This always-report design is what lets those jobs be marked as **required**
+status checks in branch protection without deadlocking PRs that don't touch the
+filtered paths — a required check that simply never runs would leave the PR
+waiting forever. The same pattern is applied to every job in the sibling
+`.github/workflows/laravel-tests.yml`.
+
+If the real job is red, your migrations will not boot a fresh install. Fix them
 locally with the command above before merging.
 
 ## Backfill / seed migration `down()` policy
