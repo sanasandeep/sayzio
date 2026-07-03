@@ -221,7 +221,7 @@ function openChannelPicker() {
     document.getElementById('channel-picker')?.remove();
     const rows = DIALER_CH_CATALOG.map(c => {
         const on = DIALER_CH_ENABLED.includes(c.key);
-        return `<label class="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);">
+        return `<label class="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer" style="background:var(--bg-glass-hover);border:1px solid var(--border-glass);">
             <input type="checkbox" value="${c.key}" ${on ? 'checked' : ''} class="channel-pick-cb" style="accent-color:${c.color};width:16px;height:16px;">
             <span class="w-7 h-7 rounded-full flex items-center justify-center" style="background:${c.color}24;color:${c.color};"><i class="${c.fa} text-xs"></i></span>
             <span class="text-sm font-medium" style="color:var(--text-primary);">${c.short}</span>
@@ -232,12 +232,12 @@ function openChannelPicker() {
     el.className = 'fixed inset-0 z-[60] flex items-center justify-center p-4';
     el.innerHTML = `
         <div class="absolute inset-0" style="background:rgba(0,0,0,.55);" onclick="document.getElementById('channel-picker').remove()"></div>
-        <div class="relative w-full max-w-sm rounded-2xl p-5" style="background:var(--surface,#141019);border:1px solid rgba(255,255,255,.12);">
+        <div class="relative w-full max-w-sm rounded-2xl p-5" style="background:var(--surface-soft);border:1px solid var(--border-glass);">
             <h3 class="text-base font-bold mb-1" style="color:var(--text-primary);">Preferred channels</h3>
             <p class="text-xs mb-4" style="color:var(--text-muted);">Pick the messaging apps you actually use. Only these appear as one-tap actions on the keypad, favourites and recents.</p>
             <div class="space-y-2 max-h-[50vh] overflow-y-auto">${rows}</div>
             <div class="flex items-center justify-end gap-2 mt-5">
-                <button type="button" onclick="document.getElementById('channel-picker').remove()" class="px-4 py-2 rounded-xl text-sm font-medium" style="background:rgba(255,255,255,.06);color:var(--text-primary);">Cancel</button>
+                <button type="button" onclick="document.getElementById('channel-picker').remove()" class="px-4 py-2 rounded-xl text-sm font-medium" style="background:var(--bg-glass-hover);color:var(--text-primary);border:1px solid var(--border-glass);">Cancel</button>
                 <button type="button" onclick="saveChannelPicker(this)" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">Save</button>
             </div>
         </div>`;
