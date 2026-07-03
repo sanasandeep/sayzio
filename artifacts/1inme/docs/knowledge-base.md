@@ -519,8 +519,10 @@ and conversions also flow to your own marketing tools.
 
 **Exporting your data.** You can export analytics (link clicks, your follower /
 subscriber lists, and slide stats) and the creator-stats dashboard to **CSV** —
-CSV export is a plan feature, so on lower tiers the export button may be locked
-until you upgrade.
+that analytics CSV export is a plan feature, so on lower tiers the export button
+may be locked until you upgrade. Exporting **your list of links** is different:
+the **Export CSV** button on the My Links page (and in the mobile app) is free on
+every plan and respects whatever type/search filters you have applied.
 
 **How far back you can see.** Each plan keeps analytics history for a set length
 of time (higher tiers keep more; some keep it indefinitely). Older click and

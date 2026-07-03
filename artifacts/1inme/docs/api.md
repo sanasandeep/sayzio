@@ -158,6 +158,7 @@ handle and a first link.
 | Method | Path             | Auth | Description                                                                          |
 | ------ | ---------------- | ---- | ------------------------------------------------------------------------------------ |
 | GET    | `/links`         | yes  | Paginated list. Filters: `type`, `q`, `per_page`.                                    |
+| GET    | `/links/export.csv` | yes | CSV export of your links (same `type`/`q` filters as the list). Streamed; **not** plan-gated. Columns: `title,type,short_url,destination,project,status,total_clicks,created_at`. |
 | POST   | `/links`         | yes  | Body: `type` (short/biolink/file/qr/event/vcard/social/sms/wifi/pdf/ai_chat/…), `alias?`, `title?`, `long_url?`, `visibility?`. |
 | GET    | `/links/{id}`    | yes  | Show single link you own.                                                            |
 | PATCH  | `/links/{id}`    | yes  | Partial update.                                                                      |

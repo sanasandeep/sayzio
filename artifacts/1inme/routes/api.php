@@ -527,6 +527,10 @@ Route::prefix('v1')->group(function () {
         // Links
         Route::get('/links',         [LinkController::class, 'index']);
         Route::post('/links',        [LinkController::class, 'store']);
+        // CSV export of the caller's link list (web parity for
+        // user.links.export). Literal `export.csv` is registered before the
+        // whereNumber-guarded `/links/{id}` show route below.
+        Route::get('/links/export.csv', [LinkController::class, 'export']);
         // Live Custom URL availability check (mobile parity for the web
         // user.links.check-alias). Literal `check-alias` wins over the
         // whereNumber-guarded `/links/{id}` route below.

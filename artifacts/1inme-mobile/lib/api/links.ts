@@ -1,4 +1,7 @@
-import { apiFetch } from "@/lib/api";
+import { Platform } from "react-native";
+
+import { apiFetch, getBaseUrl, MOBILE_USER_AGENT } from "@/lib/api";
+import { getToken } from "@/lib/secure";
 
 export type Link = {
   id: number;
@@ -48,6 +51,59 @@ export async function listLinks(params: {
     `/links${qs.toString() ? `?${qs}` : ""}`,
   );
   return res.data;
+}
+
+/**
+ * Download the caller's link list as a CSV, honouring the same
+ * `type`/`q` filters as the list. Mirrors the web "Export CSV" action and
+ * the exportMyCalendar pattern: on web we fetch a blob and trigger an
+ * anchor download; on native we download to the cache with the auth header
+ * and hand the file to the share sheet. Not plan-gated.
+ */
+export async function exportLinksCsv(
+  params: { type?: string; q?: string } = {},
+): Promise<void> {
+  const qs = new URLSearchParams();
+  if (params.type) qs.set("type", params.type);
+  if (params.q) qs.set("q", params.q);
+
+  const token = await getToken();
+  const url = `${getBaseUrl()}/api/v1/links/export.csv${
+    qs.toString() ? `?${qs}` : ""
+  }`;
+  const filename = `my-links-${new Date().toISOString().slice(0, 10)}.csv`;
+  const headers: Record<string, string> = {
+    "User-Agent": MOBILE_USER_AGENT,
+    "X-1INME-Client": MOBILE_USER_AGENT,
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  if (Platform.OS === "web") {
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error(`Export failed (${res.status}).`);
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+    return;
+  }
+
+  const FileSystem = await import("expo-file-system/legacy");
+  const Sharing = await import("expo-sharing");
+  const target = `${FileSystem.cacheDirectory ?? ""}${filename}`;
+  const dl = await FileSystem.downloadAsync(url, target, { headers });
+  if (dl.status !== 200) throw new Error(`Export failed (${dl.status}).`);
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(dl.uri, {
+      mimeType: "text/csv",
+      dialogTitle: "Export links",
+    });
+  }
 }
 
 export type AliasCheck = {

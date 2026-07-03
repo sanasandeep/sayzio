@@ -92,6 +92,70 @@ class LinkController extends Controller
         ]);
     }
 
+    /**
+     * CSV export of the caller's links, honouring the same `type`/`q`
+     * filters as index(). Streamed + chunked so large accounts don't blow
+     * memory. Mirrors the web /user/links/export (identical columns) and is
+     * NOT plan-gated — exporting your own link list is data portability,
+     * like the backlinks export (distinct from the plan-gated analytics
+     * CSV exports).
+     */
+    public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $q = Link::where('user_id', $request->user()->id)->with(['project', 'domain']);
+
+        if ($type = $request->string('type')->toString()) {
+            $q->where('type', $type);
+        }
+        if ($search = $request->string('q')->toString()) {
+            $q->where(function ($w) use ($search) {
+                $w->where('title', 'ilike', "%{$search}%")
+                  ->orWhere('alias', 'ilike', "%{$search}%")
+                  ->orWhere('long_url', 'ilike', "%{$search}%");
+            });
+        }
+
+        $filename = 'my-links-' . now()->format('Y-m-d') . '.csv';
+
+        // Defend against CSV formula injection when opened in a spreadsheet —
+        // prefix any cell starting with =, +, -, @ with a single quote so the
+        // spreadsheet treats it as text.
+        $safe = function ($value) {
+            $s = (string) $value;
+            if ($s !== '' && in_array($s[0], ['=', '+', '-', '@'], true)) {
+                return "'" . $s;
+            }
+            return $s;
+        };
+
+        return response()->streamDownload(function () use ($q, $safe) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, [
+                'title', 'type', 'short_url', 'destination',
+                'project', 'status', 'total_clicks', 'created_at',
+            ]);
+
+            $q->orderByDesc('id')->chunk(500, function ($rows) use ($out, $safe) {
+                foreach ($rows as $link) {
+                    fputcsv($out, [
+                        $safe($link->title ?: $link->alias),
+                        $safe($link->type),
+                        $safe($link->getShortUrl()),
+                        $safe($link->long_url),
+                        $safe(optional($link->project)->name),
+                        $link->is_active ? 'active' : 'inactive',
+                        (int) $link->total_clicks,
+                        optional($link->created_at)->toIso8601String(),
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
     public function store(Request $request)
     {
         // Per-plan alias minimum (free/unconfigured = largest, paid tiers

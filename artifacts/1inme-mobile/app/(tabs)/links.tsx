@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Platform,
   Pressable,
@@ -21,7 +22,7 @@ import { LinkRow } from "@/components/LinkRow";
 import { onVoiceAction, setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
 import type { VoiceClientAction } from "@/lib/api/voice";
-import { listLinks } from "@/lib/api/links";
+import { exportLinksCsv, listLinks } from "@/lib/api/links";
 import { LINK_KINDS } from "@/lib/linkKinds";
 
 const FILTERS: { key: string; label: string }[] = [
@@ -64,6 +65,24 @@ export default function LinksTab() {
 
   const refreshing = query.isFetching && !query.isLoading;
 
+  // Export the current (filtered) link list to CSV — web parity for the
+  // "Export CSV" action on /user/links. Not plan-gated.
+  const [exporting, setExporting] = useState(false);
+  const onExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await exportLinksCsv({ type: type || undefined, q: q || undefined });
+    } catch (e) {
+      Alert.alert(
+        "Export failed",
+        e instanceof Error ? e.message : "Could not export your links.",
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View
@@ -79,6 +98,26 @@ export default function LinksTab() {
             Links
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Pressable
+              onPress={onExport}
+              hitSlop={8}
+              accessibilityLabel="Export CSV"
+              disabled={exporting}
+              style={[
+                styles.healthBtn,
+                {
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                  opacity: exporting ? 0.6 : 1,
+                },
+              ]}
+            >
+              {exporting ? (
+                <ActivityIndicator size="small" color={colors.foreground} />
+              ) : (
+                <Feather name="download" size={16} color={colors.foreground} />
+              )}
+            </Pressable>
             <Pressable
               onPress={() => router.push("/links/insurance" as any)}
               hitSlop={8}

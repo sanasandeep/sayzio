@@ -284,8 +284,15 @@ All applicable to short links and (where relevant) the broader link set.
   (`BulkBiolinkController` + `MailMergeSheet`). The batch is gated against **both**
   `max_links` and `max_biolinks`, and the locked starting template is chosen by
   plan tier. Entry points mirror the bulk-URL flow (the create hub + the index).
+- **My Links list + CSV export** — the link list page paginates (per-page choices
+  15/30/50/100 on web) with a "Showing X–Y of Z" count, and exports the current
+  (filtered) list to CSV from web (`/user/links/export`), REST
+  (`GET /api/v1/links/export.csv`) and mobile (share sheet). The export honours the
+  active `type`/search filters, is streamed and chunked for large accounts, and is
+  **not** plan-gated — exporting your own link list is data portability, distinct
+  from the plan-gated analytics CSV exports (see §5).
 
-*Web · REST (link CRUD, rules, A/B, NFC writes) · Mobile.*
+*Web · REST (link CRUD, rules, A/B, NFC writes, list CSV export) · Mobile.*
 
 ---
 
@@ -408,7 +415,8 @@ Workspace-wide (**Stats**) and per-link analytics.
 - **CSV export (plan-gated)** — link click logs, follower/subscriber lists, slide
   analytics, and the creator-stats dashboard export to CSV only when the plan's
   `analytics_export` feature is on; otherwise the export action is blocked
-  (mobile reads the same capability).
+  (mobile reads the same capability). The **My Links list** export (§3) is
+  separate and always available on every plan.
 - **History retention (per plan)** — how far back analytics can be viewed is
   bounded by the plan's `stats_retention_days` (default 365; values below 30 are
   raised to 30 on save; `-1` = kept forever). A scheduled stats-history pruning
