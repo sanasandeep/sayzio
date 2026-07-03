@@ -37,6 +37,23 @@ spend real money. ALWAYS read the controller method before allowing.
   (AI image gen — charges coins against the workspace-owner wallet, throws
   `InsufficientCoinsForAiException`, gated by `AiPlanAccess` — MUST stay blocked).
 
+## coach.suggest / mind.think are allowlisted AI *generation* (subtle)
+Unlike the `.estimate` routes (pure arithmetic), `user.ai.coach.suggest` and
+`user.ai.mind.think` ARE allowlisted yet DO call `OpenAiService::chat` — which
+charges the wallet AFTER a successful HTTP call. They're deemed demo-safe only
+because they (a) never write a business row (their sole side effect is a
+`session()->flash()` + redirect) and (b) in the demo env the AI engine is OFF, so
+`ensureEnabled()` aborts 404 before the charge. **Why this matters for tests:** in
+the CI persistence test you must MOCK `OpenAiService` (via
+`$this->app->instance(OpenAiService::class, $mock)` returning a fixed chat array
+incl. `credits_spent`/`content`/`model`), ENABLE the engine
+(`AiEngineSettings::setEnabled(true)`), and give the demo user a PAID plan — else
+the route 404s/gate-fails and "persists nothing" passes for the wrong reason
+(never reaching the controller). The `.estimate` routes also gate on a paid plan
+(marketing_strategist needs `!isOnFreePlan()`), so grant one there too; resume /
+brand-kit / ai-builder estimates fall back to allowed when the plan key is absent.
+See `ReadonlyDemoAllowlistPersistenceTest` (full-DB row-count snapshot per route).
+
 ## Drift guard: `demo:check-allowlist` (CheckDemoAllowlist)
 `composer check:demo-allowlist` + `DemoAllowlistDriftTest`, registered as the
 `demo-allowlist` validation gate. Scans the in-memory route table (no DB), so it
