@@ -34,7 +34,13 @@ use Illuminate\Support\Facades\Route;
  * that no longer match any registered write route — so the lists don't
  * accumulate dead references.
  *
- * Admin routes (admin guard, never reachable by the demo persona) are excluded.
+ * Admin / back-office routes are excluded — permanently, by design (see
+ * {@see self::isAdmin()} for the full rationale): the read-only demo is a
+ * `users` row whose `is_readonly_demo` flag {@see Guard} only ever reads via
+ * the `web`/`sanctum` guards, whereas every admin surface authenticates through
+ * the entirely separate `admins` table + `admin` guard, so a demo account can
+ * never reach one. Scoping them in would be a *different* feature (an
+ * admin-authenticated demo persona) that does not exist today.
  * No database is required — it inspects the in-memory route table only, so it
  * runs as a fast pre-merge validation step.
  *
@@ -184,7 +190,29 @@ class CheckDemoAllowlist extends Command
         return self::FAILURE;
     }
 
-    /** Admin surfaces live behind the admin guard; the demo persona never reaches them. */
+    /**
+     * Admin / back-office surfaces are excluded from the demo drift check
+     * permanently, by design — not merely because "the current demo happens to
+     * be a plain user".
+     *
+     * The read-only demo is a row in the `users` table flagged
+     * `is_readonly_demo`, and {@see Guard} only ever resolves that actor through
+     * the `web` and `sanctum` guards (both the `users` provider). Every admin
+     * surface authenticates through the entirely separate `admins` table + the
+     * `admin` guard (see routes/modules/admin.php behind `AdminAuth`); even the
+     * mobile "switch to admin" flow bridges to a real matching `admins` row by
+     * email. A public demo `users` row therefore can NEVER authenticate into an
+     * admin/back-office route, so its interactive previews (`.estimate`,
+     * `.preview*`, `.suggest`, `generate-art`, …) can never surface the wrong
+     * "changes aren't saved" banner to a demo visitor and need no classification
+     * here.
+     *
+     * Bringing admin routes in scope would require first building an
+     * admin-authenticated read-only demo persona (a demo identity in the
+     * `admins` table plus the guard wiring for {@see Guard} to detect it). That
+     * does not exist today; if it is ever built, relax this exclusion and
+     * classify the admin interactive routes in {@see Guard} at the same time.
+     */
     private function isAdmin(?string $name, string $uri): bool
     {
         return ($name !== null && str_starts_with($name, 'admin.'))

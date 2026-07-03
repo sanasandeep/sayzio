@@ -50,6 +50,20 @@ use Symfony\Component\HttpFoundation\Response;
  *   disabled. Opening them would defeat the read-only guarantee and expose
  *   the demo to cost/abuse; giving the demo a truly non-persisting,
  *   non-charging AI path is separate feature work.
+ * Admin / back-office surfaces are intentionally out of scope for this guard,
+ * permanently and by design. The demo actor is a `users` row (its
+ * `is_readonly_demo` flag is read below only via the `web` and `sanctum`
+ * guards), whereas every admin surface authenticates through the entirely
+ * separate `admins` table + `admin` guard. A public demo `users` row can never
+ * authenticate into an admin route, so admin interactive previews
+ * (`.estimate`/`.preview*`/`.suggest`/`generate-art`) can never wrongly show a
+ * demo visitor the "changes aren't saved" banner — hence they are neither
+ * allowlisted here nor scanned by the `demo:check-allowlist` drift guard. If an
+ * admin-authenticated read-only demo persona is ever built (a demo identity in
+ * the `admins` table + guard wiring for this middleware to detect it), that
+ * exclusion must be relaxed and the admin interactive routes classified here at
+ * the same time. See {@see \App\Console\Commands\CheckDemoAllowlist::isAdmin()}.
+ *
  * - Every other state-changing method (POST/PUT/PATCH/DELETE) from this
  *   account is short-circuited BEFORE the controller/model ever runs, so
  *   nothing is persisted:

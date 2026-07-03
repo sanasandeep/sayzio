@@ -51,8 +51,11 @@ class DemoAllowlistDriftTest extends TestCase
             $uri = $route->uri();
             $name = $route->getName();
 
-            // Admin surfaces live behind the admin guard; the demo persona
-            // never reaches them.
+            // Admin / back-office surfaces are permanently out of scope: the
+            // demo actor is a `users` row (its is_readonly_demo flag is read
+            // only via the web/sanctum guards) while admin routes authenticate
+            // through the separate `admins` table + admin guard, so a demo
+            // account can never reach one. See CheckDemoAllowlist::isAdmin().
             if (($name !== null && str_starts_with($name, 'admin.'))
                 || str_starts_with($uri, 'admin/')
                 || str_starts_with($uri, 'api/v1/admin/')) {
