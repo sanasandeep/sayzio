@@ -53,7 +53,39 @@ class PlansAndAddonsSeeder extends Seeder
      */
     public function seedPlans(): void
     {
-        $defs = $this->planDefinitions();
+        $this->convergePlans($this->planDefinitions());
+    }
+
+    /**
+     * Converge only the plan(s) matching the given slug(s), leaving every
+     * other plan untouched. Used by one-time additive data migrations that
+     * need to seed a single new plan (e.g. an internal/admin-only plan)
+     * without paying for a full-lineup convergence pass. Adding another
+     * internal plan later is just another entry in planDefinitions() plus a
+     * migration calling this with its slug.
+     *
+     * @param string[] $slugs
+     */
+    public function seedPlansBySlug(array $slugs): void
+    {
+        $defs = array_values(array_filter(
+            $this->planDefinitions(),
+            fn (array $def) => in_array($def['slug'], $slugs, true)
+        ));
+
+        $this->convergePlans($defs);
+    }
+
+    /**
+     * Shared idempotent convergence logic for a set of plan definitions:
+     * fills in missing fields on existing rows (never overwriting curator
+     * edits), creates missing rows, and backfills their USD/INR prices.
+     */
+    private function convergePlans(array $defs): void
+    {
+        if (!$defs) {
+            return;
+        }
 
         // First-class per-plan AI feature limits. Merged here (rather than
         // hardcoded inside each tier's array) so the values live in ONE place
@@ -214,6 +246,20 @@ class PlansAndAddonsSeeder extends Seeder
                 'marketing_strategist' => true,
             ],
             'enterprise-api' => [
+                'max_minds'       => -1,
+                'max_personas'    => -1,
+                'max_companions'  => -1,
+                'max_brand_kits'  => -1,
+                'ask_coach'       => true,
+                'card_scan'       => true,
+                'ai_resume_tools' => true,
+                'inbox_agent'          => true,
+                'brand_consistency'    => true,
+                'qr_art'               => true,
+                'whatsapp_agent'       => true,
+                'marketing_strategist' => true,
+            ],
+            'unlimited' => [
                 'max_minds'       => -1,
                 'max_personas'    => -1,
                 'max_companions'  => -1,
@@ -1118,6 +1164,112 @@ class PlansAndAddonsSeeder extends Seeder
                     'ab_tests' => true,
                     'ab_max_variants' => -1,
                     'connected_apps' => true,
+                    'api_access' => true,
+                    'stats_retention_days' => -1,
+                    'api_calls_monthly' => -1,
+                    'api_rate_per_min' => -1,
+                    'integration_accounts_max' => ['payment' => -1, 'sms' => -1, 'email' => -1],
+                    'integration_providers_allowed' => ['payment' => '*', 'sms' => '*', 'email' => '*'],
+                ],
+            ],
+            [
+                // Internal/admin-only comp plan. Never appears on any
+                // self-serve surface (Plan::scopePublic() excludes it), but
+                // is fully listed and assignable in the admin "Assign plan"
+                // picker. $0, not default, sort_order far past the public
+                // lineup. Every metered cap is -1 (unlimited) and every
+                // boolean feature flag is enabled — this is the ceiling
+                // plan staff grant manually (see `is_internal` on Plan).
+                'name' => 'Unlimited',
+                'slug' => 'unlimited',
+                'description' => 'Internal comp plan — every cap and feature unlocked. Staff-assignable only, never shown on public pricing or upgrade surfaces.',
+                'monthly_price' => 0,
+                'annual_price' => 0,
+                'trial_days' => 0,
+                'is_default' => false,
+                'is_popular' => false,
+                'status' => 'active',
+                'is_archived' => false,
+                'is_internal' => true,
+                'sort_order' => 100,
+                'metadata' => ['tier' => 'internal', 'comp' => true],
+                'features' => [
+                    'max_links' => -1,
+                    'max_biolinks' => -1,
+                    'max_conversational' => -1,
+                    'max_slides' => -1,
+                    'max_ai_chat' => -1,
+                    'max_restaurant_menu' => -1,
+                    'max_service_booking' => -1,
+                    'max_reviews' => -1,
+                    'max_resume' => -1,
+                    'max_paid_page' => -1,
+                    'max_store_menu' => -1,
+                    'max_calendars' => -1,
+                    'max_calendar_events' => -1,
+                    'max_brand_kit_pages' => -1,
+                    'max_file_size_mb' => -1,
+                    'storage_limit_mb' => -1,
+                    'max_projects' => -1,
+                    'contacts_max' => -1,
+                    'max_aliases_per_link' => ['default' => -1],
+                    'min_alias_length' => 1,
+                    'max_alias_length' => 80,
+                    'max_workspaces' => -1,
+                    'max_seats_per_workspace' => -1,
+                    'contacts_google_sync' => true,
+                    'custom_domains' => true,
+                    'max_custom_domains' => -1,
+                    'qr_customization' => true,
+                    'analytics' => 'advanced',
+                    'analytics_export' => true,
+                    'paid_forms' => true,
+                    'form_analytics_advanced' => true,
+                    'pixels' => true,
+                    'utm_params' => true,
+                    'link_protection' => true,
+                    'seo_settings' => true,
+                    'teams' => true,
+                    'ecommerce' => true,
+                    'custom_forms' => true,
+                    'connected_apps' => true,
+                    'custom_branding' => true,
+                    'remove_branding' => true,
+                    'custom_favicon' => true,
+                    'custom_code' => true,
+                    'ai_chatbot' => true,
+                    'ai_agent' => true,
+                    'ai_widget' => true,
+                    'ai_voice_assistant' => true,
+                    'block_types_allowed' => '*',
+                    'max_forms' => -1,
+                    'buzz_popups' => true,
+                    'max_buzz_items' => -1,
+                    'max_buzz_impressions' => -1,
+                    'splash_pages' => true,
+                    'max_splash_pages' => -1,
+                    'files' => true,
+                    'max_files' => -1,
+                    'vaults' => true,
+                    'max_vault_items' => -1,
+                    'tasks' => true,
+                    'max_task_boards' => -1,
+                    'leads' => true,
+                    'max_leads' => -1,
+                    'creator_profile_public' => true,
+                    'events' => true,
+                    'max_events' => -1,
+                    'calendar_sync' => true,
+                    'verification_eligible' => true,
+                    'link_password' => true,
+                    'link_expiry' => true,
+                    'link_geo_targeting' => true,
+                    'link_device_targeting' => true,
+                    'link_deep_link' => true,
+                    'link_smart_rules' => true,
+                    'link_active_window' => true,
+                    'ab_tests' => true,
+                    'ab_max_variants' => -1,
                     'api_access' => true,
                     'stats_retention_days' => -1,
                     'api_calls_monthly' => -1,
