@@ -84,6 +84,10 @@ args = "favicon-sync"
 task = "workflow.run"
 args = "home-preview-blocks"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "demo-allowlist"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -267,6 +271,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:home-preview-blocks"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "demo-allowlist"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:demo-allowlist"
 
 [workflows.workflow.metadata]
 isValidation = true

@@ -74,6 +74,9 @@
         "check:migration-ordering": [
             "@php artisan db:check-migration-ordering"
         ],
+        "check:demo-allowlist": [
+            "@php artisan demo:check-allowlist"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

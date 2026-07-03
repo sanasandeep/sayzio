@@ -62,41 +62,19 @@ class BlockReadonlyDemoWrites
 {
     private const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
 
-    /** Named routes that must always be allowed through untouched. */
-    private const ALLOWED_ROUTE_NAMES = [
+    /** Named auth routes that must always be allowed through untouched. */
+    public const ALLOWED_ROUTE_NAMES = [
         'user.login.submit',
         'user.logout',
         'user.demo.login',
     ];
 
     /**
-     * Interactive-but-non-persisting POST surfaces the read-only demo may
-     * exercise end to end (see the class docblock for the safety contract:
-     * every entry writes nothing and charges no coins). Keep this list in
-     * lockstep with the routes it names — a route that starts persisting or
-     * charging must be removed from here.
+     * Path patterns (matched with {@see Request::is()}) for auth endpoints
+     * that carry no route name (routes/api.php largely doesn't name its
+     * routes).
      */
-    private const ALLOWED_INTERACTIVE_ROUTE_NAMES = [
-        // QR generation — renders an image response, saves nothing.
-        'user.qrcode.download',
-        'user.links.qrcode.download',
-        // Live biolink draft preview — writes only a short-lived cache key.
-        'user.links.preview-draft',
-        // Bulk import previews — validate + render, persist nothing.
-        'user.links.url.bulk.preview',
-        'user.links.biolink.bulk.preview',
-        // AI coin-cost estimates — pure dry-run arithmetic, no AI call.
-        'user.ai.cost-estimate',
-        'user.links.ai-builder.estimate',
-        'user.brand-kits.estimate',
-        'user.ai.marketing-strategist.estimate',
-    ];
-
-    /**
-     * Path patterns for auth endpoints that carry no route name
-     * (routes/api.php largely doesn't name its routes).
-     */
-    private const ALLOWED_PATHS = [
+    public const ALLOWED_PATHS = [
         'api/v1/auth/login',
         'api/v1/auth/logout',
         'api/v1/auth/demo',
@@ -104,6 +82,100 @@ class BlockReadonlyDemoWrites
         'api/v1/links/*/ai-builder/estimate',
         'api/v1/brand-kits/estimate',
         'api/v1/ai/marketing-strategist/estimate',
+    ];
+
+    /*
+     * -----------------------------------------------------------------------
+     * Interactive-but-non-persisting write allowlist (drift-guarded)
+     * -----------------------------------------------------------------------
+     * Some POST/PUT endpoints are *interactive* yet save nothing: AI previews,
+     * cost estimates, quotes, number lookups, draft renders. Blocking these
+     * for the demo account shows a wrong, confusing "changes aren't saved"
+     * banner on a feature that never saved anything, so they are allowed
+     * through here.
+     *
+     * This list is hand-maintained and WILL rot as new features ship, so it is
+     * kept honest by the `demo:check-allowlist` drift guard
+     * ({@see \App\Console\Commands\CheckDemoAllowlist}). That command scans every
+     * registered write route whose route-name OR URI ends in one of
+     * {@see self::INTERACTIVE_VERB_SUFFIXES} (or a segment starting with
+     * "preview") and FAILS if the route is neither listed as allowed below nor
+     * consciously acknowledged as intentionally-blocked. So the moment a new
+     * `.estimate` / `.suggest` / `.preview*` / `lookup` / `generate-art` / etc.
+     * route is added, CI forces a developer to classify it here — it can never
+     * silently drift out of sync. Run it via `composer check:demo-allowlist`.
+     *
+     * When adding an entry: verify the controller method genuinely persists
+     * nothing (no save/create/update/delete). If it *does* persist despite an
+     * interactive-looking name (e.g. `preview-complete`), add it to the
+     * ACKNOWLEDGED_* lists instead so it stays blocked.
+     */
+
+    /** Interactive, non-persisting web routes a demo visitor may exercise. */
+    public const ALLOWED_INTERACTIVE_ROUTE_NAMES = [
+        'creator-profile.subscribe.preview-promo', // previews a promo-code discount
+        'rm.public.quote',                          // restaurant estimated-bill quote
+        'sb.public.quote',                          // service-booking price quote
+        'user.ai.coach.suggest',                    // AI coach suggestions
+        'user.ai.cost-estimate',                    // unified AI coin-cost estimate (read-only, no charge)
+        'user.ai.marketing-strategist.estimate',    // AI credit-cost estimate
+        'user.ai.mind.think',                       // AI reasoning preview
+        'user.billing.companies.emails.preview',    // renders an email-template preview
+        'user.brand-kits.estimate',                 // AI credit-cost estimate
+        'user.links.ai-builder.estimate',           // AI credit-cost estimate
+        'user.links.biolink.bulk.preview',          // bulk mail-merge dry-run preview
+        'user.links.preview-draft',                 // renders an unsaved editor draft
+        'user.links.qrcode.download',               // renders a link's QR image (no charge/save)
+        'user.links.url.bulk.preview',              // bulk URL-import dry-run preview
+        'user.qrcode.download',                      // renders a standalone QR image (no charge/save)
+        'user.resume.cover-letters.estimate',       // AI credit-cost estimate
+        'user.resume.tailor.estimate',              // AI credit-cost estimate
+    ];
+
+    /** Interactive, non-persisting API path patterns a demo visitor may exercise. */
+    public const ALLOWED_INTERACTIVE_PATHS = [
+        'api/v1/account/merge/preview',                 // account-merge dry-run preview
+        'api/v1/ai/marketing-strategist/estimate',      // AI credit-cost estimate
+        'api/v1/brand-kits/estimate',                   // AI credit-cost estimate
+        'api/v1/billing/companies/*/emails/*/preview',  // email-template preview render
+        'api/v1/links/*/ai-builder/estimate',           // AI credit-cost estimate
+        'api/v1/restaurant/*/quote',                    // restaurant estimated-bill quote
+        'api/v1/service-booking/*/quote',               // service-booking price quote
+    ];
+
+    /**
+     * Routes whose name/URI *looks* interactive (matches the verb patterns)
+     * but that actually PERSIST state, so they must stay blocked for the demo.
+     * Listed only so the drift guard treats them as consciously reviewed
+     * rather than as missing/unclassified. Each entry notes what it writes.
+     */
+    public const ACKNOWLEDGED_NONALLOWED_ROUTE_NAMES = [
+        'user.payouts.preview-complete', // writes creator_payment_connections (marks provider connected)
+        'user.qr-codes.generate-art',    // charges coins for AI image gen against the shared demo wallet
+    ];
+
+    /** Interactive-looking API paths that persist and must stay blocked. */
+    public const ACKNOWLEDGED_NONALLOWED_PATHS = [
+        'api/v1/dialer/lookup',         // persists a DialerLookup history row
+        'api/v1/qr-codes/generate-art', // charges coins for AI image gen against the shared demo wallet
+    ];
+
+    /**
+     * Trailing route-name / URI segments that signal an interactive,
+     * non-persisting feature. The `demo:check-allowlist` drift guard treats
+     * any write route whose last name/URI segment is one of these — or starts
+     * with "preview" — as interactive, and requires it to be classified in one
+     * of the lists above. Deliberately EXCLUDES persisting verbs such as
+     * `generate` (creates content), `apply`, `confirm`, `complete`.
+     */
+    public const INTERACTIVE_VERB_SUFFIXES = [
+        'estimate',
+        'suggest',
+        'think',
+        'lookup',
+        'generate-art',
+        'check',
+        'quote',
     ];
 
     public function handle(Request $request, Closure $next): Response
@@ -142,7 +214,10 @@ class BlockReadonlyDemoWrites
             return true;
         }
 
-        foreach (self::ALLOWED_PATHS as $path) {
+        // ACKNOWLEDGED_NONALLOWED_* are intentionally NOT checked here: they
+        // match the interactive verb patterns but persist, so they stay blocked
+        // — they exist only to keep the drift guard's classification complete.
+        foreach (array_merge(self::ALLOWED_PATHS, self::ALLOWED_INTERACTIVE_PATHS) as $path) {
             if ($request->is($path)) {
                 return true;
             }
