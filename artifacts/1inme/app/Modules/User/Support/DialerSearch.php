@@ -30,6 +30,17 @@ use Illuminate\Support\Collection;
  * by the web dialer, the REST API and the mobile app so the three surfaces can
  * never drift. T9 smart-dial is preserved (a digit sequence still matches both
  * phone numbers and keypad-spelled names / aliases).
+ *
+ * Task #3497 (contact privacy): every group here is intentionally built from
+ * name/handle/alias/title metadata only — it never echoes a stranger's raw
+ * phone number, email, exact location or socials. The Contacts group only
+ * ever surfaces the *searcher's own* saved contact data (always visible to
+ * them by definition), and the People group's `subtitle` is just `@handle`.
+ * There is nothing here for {@see ContactPrivacy} to strip. The moment any
+ * group starts rendering a candidate's phone/email/location/socials, it MUST
+ * route that candidate through `ContactPrivacy::applyToPayload()` first
+ * (mirroring {@see DialerIdentity::payload()}) unless the viewer is looking
+ * themself up or the candidate is already in the viewer's own contact book.
  */
 class DialerSearch
 {

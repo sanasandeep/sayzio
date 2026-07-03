@@ -32,6 +32,10 @@ class OnboardingSteps
             $steps[] = ['key' => 'whatsapp', 'label' => 'Connect WhatsApp', 'optional' => true];
         }
 
+        if (self::privacyPending($user)) {
+            $steps[] = ['key' => 'privacy', 'label' => 'Contact privacy', 'optional' => true];
+        }
+
         $steps[] = ['key' => 'done', 'label' => 'Done'];
 
         return $steps;
@@ -59,5 +63,17 @@ class OnboardingSteps
 
         return !$user->hasWhatsappNumber()
             && empty($settings['whatsapp_step_shown_at'] ?? null);
+    }
+
+    /**
+     * Whether the one-time contact-privacy step (Task #3497) is still
+     * pending — the creator has never made an explicit choice (or skipped)
+     * on what strangers can see via caller-ID / search. Mirrors
+     * {@see whatsappPending()}: no forced default, shown once, editable
+     * anytime afterwards from Settings > Contact Privacy.
+     */
+    public static function privacyPending(User $user): bool
+    {
+        return empty(ContactPrivacy::forUser($user)['configured_at'] ?? null);
     }
 }

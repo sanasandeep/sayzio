@@ -150,6 +150,7 @@ const SETTINGS_PAGES: {
     | "/integrations"
     | "/domains"
     | "/notifications"
+    | "/contact-privacy"
     | "/verification"
     | "/workspaces"
     | "/vault";
@@ -164,6 +165,7 @@ const SETTINGS_PAGES: {
   { href: "/integrations", label: "Integrations", icon: "link" },
   { href: "/domains", label: "Custom domains", icon: "globe" },
   { href: "/notifications", label: "Notifications", icon: "bell" },
+  { href: "/contact-privacy", label: "Contact privacy", icon: "eye-off" },
   { href: "/verification", label: "Verification & badges", icon: "award" },
   { href: "/workspaces", label: "Workspaces", icon: "briefcase" },
   { href: "/vault", label: "Vault", icon: "lock" },

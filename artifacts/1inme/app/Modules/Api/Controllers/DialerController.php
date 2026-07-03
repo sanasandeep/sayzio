@@ -10,6 +10,7 @@ use App\Modules\User\Models\DialerLookup;
 use App\Modules\User\Models\DialerNumberFlag;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Support\ContactPrivacy;
 use App\Modules\User\Support\DialerChannels;
 use App\Modules\User\Support\DialerData;
 use App\Modules\User\Support\DialerIdentity;
@@ -98,6 +99,12 @@ class DialerController extends Controller
         }
 
         $flag = DialerNumberFlag::where('user_id', $userId)->where('number_e164', $e164)->first();
+
+        // Task #3497: this quick lookup only ever echoes the number the
+        // caller already dialed/typed and a bare name/handle — no channels,
+        // socials or locations — so there's nothing here for a creator's
+        // contact-privacy prefs to strip. The richer profile() endpoint
+        // below (backed by DialerIdentity::payload) is where those apply.
 
         DialerLookup::create([
             'user_id'      => $userId,
@@ -204,6 +211,55 @@ class DialerController extends Controller
         DialerChannels::forget($user->id);
 
         return $this->ok(DialerChannels::payloadFor($user));
+    }
+
+    /**
+     * Task #3497 — the caller's current contact-privacy preferences (what
+     * strangers may see about them via caller-ID / search) plus the
+     * un-shareable channel/social candidates for a picker UI. Mobile parity
+     * for the web Settings > Contact Privacy tab.
+     */
+    public function contactPrivacy(Request $request)
+    {
+        $user = $request->user();
+
+        return $this->ok([
+            'prefs'      => ContactPrivacy::forUser($user),
+            'candidates' => ContactPrivacy::shareableCandidatesFor($user),
+        ]);
+    }
+
+    /** Save the caller's explicit contact-privacy choices. Partial updates only touch the fields present. */
+    public function updateContactPrivacy(Request $request)
+    {
+        $data = $request->validate([
+            'share_phone'      => ['nullable', 'string', 'in:,0,1'],
+            'share_email'      => ['nullable', 'string', 'in:,0,1'],
+            'share_location'   => ['nullable', 'string', 'in:,0,1'],
+            'share_socials'    => ['nullable', 'string', 'in:,0,1'],
+            'hidden_channels'   => ['sometimes', 'array'],
+            'hidden_channels.*' => ['string'],
+        ]);
+
+        $user = $request->user();
+        $updates = [];
+        foreach (['share_phone', 'share_email', 'share_location', 'share_socials'] as $field) {
+            if ($request->has($field)) {
+                $value = $data[$field] ?? null;
+                $updates[$field] = ($value === '' || $value === null) ? null : (bool) $value;
+            }
+        }
+        if (array_key_exists('hidden_channels', $data)) {
+            $updates['hidden_channels'] = $data['hidden_channels'];
+        }
+
+        $prefs = ContactPrivacy::updateFor($user, $updates);
+        ContactPrivacy::markConfigured($user);
+
+        return $this->ok([
+            'prefs'      => $prefs,
+            'candidates' => ContactPrivacy::shareableCandidatesFor($user),
+        ]);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Middleware;
 
+use App\Modules\User\Support\OnboardingSteps;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -41,6 +42,13 @@ class RedirectToOnboarding
 
             if (!$stepShown && $recentlyOnboarded && !$user->hasWhatsappNumber()) {
                 return redirect()->route('user.onboarding.whatsapp');
+            }
+
+            // One-time contact-privacy nudge (Task #3497), shown only after
+            // the WhatsApp step is out of the way so a recent sign-up never
+            // gets stacked with two redirects at once.
+            if ($recentlyOnboarded && ($stepShown || $user->hasWhatsappNumber()) && OnboardingSteps::privacyPending($user)) {
+                return redirect()->route('user.onboarding.privacy');
             }
         }
 

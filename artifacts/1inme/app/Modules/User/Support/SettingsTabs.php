@@ -123,6 +123,12 @@ class SettingsTabs
                 'route' => 'user.notifications.preferences',
                 'match' => ['user.notifications.preferences'],
             ],
+            'privacy' => [
+                'label' => 'Contact Privacy',
+                'icon'  => 'fa-user-shield',
+                'route' => 'user.settings.privacy.show',
+                'match' => ['user.settings.privacy.*'],
+            ],
             'billing' => [
                 'label' => 'Billing & Identity',
                 'icon'  => 'fa-building',

@@ -312,6 +312,12 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('whatsapp/send',   [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappSend'])->middleware('throttle:5,1')->name('whatsapp.send');
             Route::post('whatsapp/verify', [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappVerify'])->middleware('throttle:10,1')->name('whatsapp.verify');
             Route::post('whatsapp/skip',   [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappSkip'])->name('whatsapp.skip');
+
+            // Post-registration contact-privacy step (Task #3497) — no
+            // forced default, one-time nudge, editable later from Settings.
+            Route::get ('privacy',      [\App\Modules\User\Controllers\OnboardingController::class, 'privacyStep'])->name('privacy');
+            Route::post('privacy',      [\App\Modules\User\Controllers\OnboardingController::class, 'privacySave'])->name('privacy.save');
+            Route::post('privacy/skip', [\App\Modules\User\Controllers\OnboardingController::class, 'privacySkip'])->name('privacy.skip');
         });
 
         // ===== Social: followers, posts, notifications (dashboard) =====
@@ -367,6 +373,12 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('notifications/{id}/restore', [\App\Modules\User\Controllers\NotificationController::class, 'restore'])->name('notifications.restore')->whereNumber('id');
         Route::get('settings/notifications', [\App\Modules\User\Controllers\NotificationController::class, 'preferences'])->name('notifications.preferences');
         Route::put('notifications/preferences', [\App\Modules\User\Controllers\NotificationController::class, 'updatePreferences'])->name('notifications.preferences.update');
+        // Task #3497: contact-privacy prefs (hide phone/email/location/socials
+        // from strangers via the dialer caller-ID + universal search).
+        Route::prefix('settings/privacy')->name('settings.privacy.')->group(function () {
+            Route::get('/', [\App\Modules\User\Controllers\ContactPrivacyController::class, 'show'])->name('show');
+            Route::put('/', [\App\Modules\User\Controllers\ContactPrivacyController::class, 'update'])->name('update');
+        });
         // On-demand "Send sample now" preview for the weekly backlink
         // digest. Always emails the signed-in user, never an arbitrary
         // recipient, and is rate-limited inside the controller.

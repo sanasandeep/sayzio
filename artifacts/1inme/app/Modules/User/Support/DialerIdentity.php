@@ -26,7 +26,7 @@ class DialerIdentity
      * Resolve a contact + matched Sayzio user + their default biolink from a
      * contact id and/or a phone number, scoped to the requesting owner.
      *
-     * @return array{contact: ?Contact, matchedUser: ?User, bio: ?Link, number: string, needle: ?string}
+     * @return array{contact: ?Contact, matchedUser: ?User, bio: ?Link, number: string, needle: ?string, isSelf: bool, isSaved: bool}
      */
     public static function resolve(User $owner, ?int $contactId, ?string $number): array
     {
@@ -72,7 +72,14 @@ class DialerIdentity
                 ->first();
         }
 
-        return compact('contact', 'matchedUser', 'bio', 'number', 'needle');
+        // Task #3497: the two exemptions from a creator's contact-privacy
+        // prefs — looking yourself up, and a number you've already saved as
+        // a contact (the row is always scoped to $owner, so its mere
+        // presence means "already saved").
+        $isSelf = $matchedUser !== null && $owner->id === $matchedUser->id;
+        $isSaved = $contact !== null;
+
+        return compact('contact', 'matchedUser', 'bio', 'number', 'needle', 'isSelf', 'isSaved');
     }
 
     /**
@@ -94,7 +101,7 @@ class DialerIdentity
 
         $manual = self::normalizeManual($contact?->manual_profile);
 
-        return [
+        $payload = [
             'number'   => $number,
             'contact'  => $contact ? [
                 'id'           => $contact->id,
@@ -130,6 +137,19 @@ class DialerIdentity
             'manual'    => $manual,
             'vcard_url' => self::vcardUrl($owner, $contact, $number),
         ];
+
+        // Task #3497: strip the fields/channels this creator has hidden from
+        // strangers. No-op for self-lookups and already-saved contacts.
+        if ($matchedUser) {
+            $payload = ContactPrivacy::applyToPayload(
+                $matchedUser,
+                $payload,
+                (bool) ($resolved['isSelf'] ?? ($owner->id === $matchedUser->id)),
+                (bool) ($resolved['isSaved'] ?? ($contact !== null)),
+            );
+        }
+
+        return $payload;
     }
 
     /**

@@ -544,6 +544,39 @@ class DialerSearchVisibilityTest extends TestCase
         $this->assertNotContains($stranger->id, $people, 'a stranger must stay excluded');
     }
 
+    /**
+     * Task #3497 (contact privacy): the People group only ever renders
+     * name/handle metadata, so it never needs ContactPrivacy::applyToPayload()
+     * — locks in the contract documented on DialerSearch's class docblock.
+     * Even a followed creator who has opted OUT of every share_* category
+     * must still resolve in People (they're reachable), and the item must
+     * carry no phone/email/location/socials field at all.
+     */
+    public function test_people_search_result_never_carries_privacy_gated_fields(): void
+    {
+        $viewer   = $this->makePerson('viewer');
+        $followed = $this->makePerson('followed');
+
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $followed->id]);
+        \App\Modules\User\Support\ContactPrivacy::updateFor($followed, [
+            'share_phone'    => false,
+            'share_email'    => false,
+            'share_location' => false,
+            'share_socials'  => false,
+        ]);
+
+        $result = DialerSearch::universal($viewer, self::TOKEN);
+        $people = $this->peopleUserIds($result);
+        $this->assertContains($followed->id, $people, 'an opted-out but followed creator must still be reachable');
+
+        $group = collect($result['groups'])->firstWhere('key', 'people');
+        $item = collect($group['items'])->first(fn ($i) => ($i['action']['user_id'] ?? null) === $followed->id);
+        $this->assertNotNull($item);
+        foreach (['phone', 'email', 'number', 'number_e164', 'location', 'locations', 'socials', 'channels'] as $gatedKey) {
+            $this->assertArrayNotHasKey($gatedKey, $item, "People item must never carry a `{$gatedKey}` field");
+        }
+    }
+
     public function test_api_people_search_excludes_strangers_but_keeps_reachable(): void
     {
         $viewer     = $this->makePerson('viewer');

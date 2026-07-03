@@ -1139,6 +1139,9 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/dialer/history',            [DialerController::class, 'history']);
         Route::get   ('/dialer/channels',           [DialerController::class, 'channels']);
         Route::put   ('/dialer/channels',           [DialerController::class, 'updateChannels']);
+        // Contact privacy (Task #3497) — what strangers may see via caller-ID / search.
+        Route::get   ('/me/contact-privacy',        [DialerController::class, 'contactPrivacy']);
+        Route::put   ('/me/contact-privacy',        [DialerController::class, 'updateContactPrivacy']);
         // Pollable live-sync cursor (favorites/flags/call-log across devices).
         Route::get   ('/dialer/live',               [DialerController::class, 'live']);
         // Speed-dial favorites.

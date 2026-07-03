@@ -12,6 +12,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\PersonaCatalog;
+use App\Modules\User\Support\ContactPrivacy;
 use App\Modules\User\Support\OnboardingSteps;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -461,5 +462,57 @@ class OnboardingController extends Controller
     private function whatsappChannelUrl(): string
     {
         return trim((string) AppSetting::get('marketing_whatsapp_channel_url', ''));
+    }
+
+    /**
+     * One-time post-registration step (Task #3497) asking a freshly
+     * onboarded creator what strangers may see about them via caller-ID /
+     * search — no forced default, editable later from Settings > Contact
+     * Privacy. Skipping (or saving) stamps `configured_at` so it fires once.
+     */
+    public function privacyStep()
+    {
+        $user  = Auth::user();
+        $steps = OnboardingSteps::forUser($user);
+
+        return view('user.onboarding.privacy', [
+            'prefs'       => ContactPrivacy::forUser($user),
+            'steps'       => $steps,
+            'activeIndex' => OnboardingSteps::indexOf($steps, 'privacy'),
+        ]);
+    }
+
+    /** Save the creator's explicit contact-privacy choices and continue. */
+    public function privacySave(Request $request)
+    {
+        $user = Auth::user();
+        $request->validate([
+            'share_phone'    => ['nullable', 'in:0,1'],
+            'share_email'    => ['nullable', 'in:0,1'],
+            'share_location' => ['nullable', 'in:0,1'],
+            'share_socials'  => ['nullable', 'in:0,1'],
+        ]);
+
+        $updates = [];
+        foreach (['share_phone', 'share_email', 'share_location', 'share_socials'] as $field) {
+            $value = $request->input($field);
+            $updates[$field] = ($value === '' || $value === null) ? null : (bool) $value;
+        }
+
+        ContactPrivacy::updateFor($user, $updates);
+        ContactPrivacy::markConfigured($user);
+
+        return redirect()->route('user.dashboard')
+            ->with('success', 'Your contact privacy preferences are saved. You can change them anytime from Settings.');
+    }
+
+    /** Skip the contact-privacy step for now (defaults stay "shown"). */
+    public function privacySkip()
+    {
+        $user = Auth::user();
+        ContactPrivacy::markConfigured($user);
+
+        return redirect()->route('user.dashboard')
+            ->with('success', 'No problem — everything stays visible to strangers until you change it from Settings.');
     }
 }
