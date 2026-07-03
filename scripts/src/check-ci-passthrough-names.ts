@@ -1,9 +1,9 @@
 /**
  * CI passthrough-name parity guard.
  *
- * The two database-safety workflows are safe to mark as *required* status
- * checks ONLY because each real job is paired with a "passthrough" companion
- * that reports the EXACT SAME check name when a PR touches nothing under
+ * The database-safety workflows are safe to mark as *required* status checks
+ * ONLY because each real job is paired with a "passthrough" companion that
+ * reports the EXACT SAME check name when a PR touches nothing under
  * `artifacts/1inme/**`:
  *
  *   - `.github/workflows/laravel-migrations.yml`
@@ -16,18 +16,32 @@
  * If someone renames a real job (or adds a new required job) and forgets to
  * update the passthrough list, the passthrough silently stops covering that
  * name — and the next unrelated PR deadlocks forever waiting on a required
- * check that never reports, with no error anywhere. That is exactly the bug
- * this guard exists to catch BEFORE it merges.
+ * check that never reports, with no error anywhere.
  *
- * What it does (fast, static — parses the two YAMLs, no CI run required)
+ * But per-workflow parity alone is NOT enough. The guard used to only know
+ * about a hard-coded list of workflow files. If someone deleted or renamed a
+ * whole safety workflow — or branch protection kept a check name marked as
+ * *required* that no longer maps to any job — the same deadlock returns and the
+ * guard would silently skip the missing file. So the list of *required* check
+ * names is now the single source of truth, committed as a small manifest at
+ * `.github/required-checks.json`. The guard asserts, across ALL workflows, that
+ * every required name is BOTH produced by some real job AND covered by a
+ * passthrough companion — failing loudly if a required name has no producer at
+ * all (deleted/renamed workflow) or no passthrough (deadlock risk).
+ *
+ * What it does (fast, static — parses the YAMLs, no CI run required)
  * ---------------------------------------------------------------------
- * For each workflow file it:
- *   1. Classifies every job as the `changes` detector (has `outputs`, skipped),
- *      a passthrough job (key ends `-passthrough`), or a real guard job.
- *   2. Expands every job `name:` across its `strategy.matrix` (both the
- *      `include:` form and the plain list form) into concrete check names.
- *   3. Asserts the set of real check names equals the set of passthrough check
- *      names — failing loudly on any name covered by one side but not the other.
+ * 1. Discovers every workflow under `.github/workflows/` (so a renamed file is
+ *    still seen). For each it classifies every job as the `changes` detector
+ *    (exposes the `onein` output, skipped), a passthrough job (key ends
+ *    `-passthrough`), or a real guard job, then expands each job `name:` across
+ *    its `strategy.matrix` (both the `include:` and plain-list forms) into
+ *    concrete check names.
+ * 2. For every workflow that participates in the passthrough scheme, asserts
+ *    the set of real check names equals the set of passthrough check names.
+ * 3. Loads the committed required-check manifest and asserts every required
+ *    name is produced by a real job AND covered by a passthrough SOMEWHERE
+ *    across all workflows — the durable guard against a deleted/renamed file.
  *
  * Run:  pnpm --filter @workspace/scripts run check:ci-passthrough-names
  */
@@ -39,11 +53,15 @@ import { parse as parseYaml } from "yaml";
 
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
-/** Workflow files that gate merges via required, path-aware passthrough jobs. */
-export const WORKFLOW_FILES = [
-  ".github/workflows/laravel-migrations.yml",
-  ".github/workflows/laravel-tests.yml",
-] as const;
+/** Directory GitHub reads workflow definitions from. */
+export const WORKFLOWS_DIR = ".github/workflows";
+
+/**
+ * Committed single source of truth for the check names branch protection marks
+ * as *required*. Keeping this list separate from the workflow YAMLs is what
+ * makes the guard robust to a whole workflow file being deleted or renamed.
+ */
+export const REQUIRED_CHECKS_MANIFEST = ".github/required-checks.json";
 
 type MatrixCombo = Record<string, unknown>;
 
@@ -227,11 +245,163 @@ export function checkWorkflowParity(file: string, doc: WorkflowDef): ParityProbl
   return problems;
 }
 
-/** Read + parse + check every configured workflow file. */
+/**
+ * Discover every workflow definition under `.github/workflows/`. We glob the
+ * directory rather than hard-coding filenames so that RENAMING a safety
+ * workflow file (keeping its jobs) does not blind the guard — the jobs are
+ * still found, and the manifest coverage check keys off check names, not paths.
+ */
+export function discoverWorkflowFiles(repoRoot = REPO_ROOT): string[] {
+  const dir = path.join(repoRoot, WORKFLOWS_DIR);
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(dir);
+  } catch {
+    return [];
+  }
+  return entries
+    .filter((f) => f.endsWith(".yml") || f.endsWith(".yaml"))
+    .map((f) => `${WORKFLOWS_DIR}/${f}`)
+    .sort();
+}
+
+/**
+ * Workflow files that gate merges via required, path-aware passthrough jobs.
+ * Retained for callers/tests that want the concrete list; derived from
+ * discovery so a renamed file is still reflected.
+ */
+export const WORKFLOW_FILES = discoverWorkflowFiles();
+
+/**
+ * A workflow participates in the passthrough scheme if it has the `changes`
+ * detector or any `*-passthrough` job. Per-workflow parity is only meaningful
+ * for those — an unrelated future workflow (lint, release, …) has neither and
+ * must not trip the `no-passthrough-job` / `no-real-jobs` heuristics.
+ */
+export function usesPassthroughScheme(doc: WorkflowDef): boolean {
+  for (const [jobKey, job] of Object.entries(doc.jobs ?? {})) {
+    if (jobKey.endsWith("-passthrough")) return true;
+    if (isChangeDetector(job)) return true;
+  }
+  return false;
+}
+
+/** Collect the real-guard and passthrough check names produced by one workflow. */
+export function collectCheckNames(doc: WorkflowDef): {
+  real: Set<string>;
+  passthrough: Set<string>;
+} {
+  const real = new Set<string>();
+  const passthrough = new Set<string>();
+  for (const [jobKey, job] of Object.entries(doc.jobs ?? {})) {
+    if (isChangeDetector(job)) continue;
+    const target = jobKey.endsWith("-passthrough") ? passthrough : real;
+    for (const name of jobCheckNames(job)) target.add(name);
+  }
+  return { real, passthrough };
+}
+
+export interface RequiredChecks {
+  names: string[];
+  problem?: ParityProblem;
+}
+
+/** Load + validate the committed required-check manifest. */
+export function loadRequiredChecks(repoRoot = REPO_ROOT): RequiredChecks {
+  const abs = path.join(repoRoot, REQUIRED_CHECKS_MANIFEST);
+  let raw: string;
+  try {
+    raw = fs.readFileSync(abs, "utf8");
+  } catch (e) {
+    return {
+      names: [],
+      problem: {
+        file: REQUIRED_CHECKS_MANIFEST,
+        kind: "manifest-read-error",
+        detail: `cannot read the required-check manifest ${REQUIRED_CHECKS_MANIFEST}: ${(e as Error).message}. This manifest is the single source of truth for which checks branch protection requires — restore it.`,
+      },
+    };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    return {
+      names: [],
+      problem: {
+        file: REQUIRED_CHECKS_MANIFEST,
+        kind: "manifest-parse-error",
+        detail: `cannot parse ${REQUIRED_CHECKS_MANIFEST} as JSON: ${(e as Error).message}`,
+      },
+    };
+  }
+
+  const list = (parsed as { requiredChecks?: unknown })?.requiredChecks;
+  if (!Array.isArray(list) || !list.every((n) => typeof n === "string")) {
+    return {
+      names: [],
+      problem: {
+        file: REQUIRED_CHECKS_MANIFEST,
+        kind: "manifest-shape-error",
+        detail: `${REQUIRED_CHECKS_MANIFEST} must contain a "requiredChecks" array of strings.`,
+      },
+    };
+  }
+
+  if (list.length === 0) {
+    return {
+      names: [],
+      problem: {
+        file: REQUIRED_CHECKS_MANIFEST,
+        kind: "manifest-empty",
+        detail: `${REQUIRED_CHECKS_MANIFEST} lists no required checks. If branch protection truly requires none, this guard is pointless; otherwise the manifest has drifted out of sync.`,
+      },
+    };
+  }
+
+  return { names: list as string[] };
+}
+
+/**
+ * The durable assertion: every *required* check name (per the manifest) must be
+ * BOTH produced by some real job AND covered by a passthrough companion,
+ * anywhere across all workflows. A missing producer means a workflow was
+ * deleted/renamed (or the name was mistyped) so the required check will never
+ * report; a missing passthrough means unrelated PRs deadlock.
+ */
+export function assessRequiredCoverage(
+  requiredNames: string[],
+  allReal: Set<string>,
+  allPassthrough: Set<string>,
+): ParityProblem[] {
+  const problems: ParityProblem[] = [];
+  for (const name of requiredNames) {
+    if (!allReal.has(name)) {
+      problems.push({
+        file: REQUIRED_CHECKS_MANIFEST,
+        kind: "required-without-producer",
+        detail: `required check "${name}" is not produced by any real guard job in any workflow. A safety workflow was likely deleted or renamed, or the name drifted — every PR now deadlocks forever on a required check that never reports. Restore the job or update the manifest.`,
+      });
+    }
+    if (!allPassthrough.has(name)) {
+      problems.push({
+        file: REQUIRED_CHECKS_MANIFEST,
+        kind: "required-without-passthrough",
+        detail: `required check "${name}" has no passthrough companion in any workflow. Any PR that does not touch artifacts/1inme/** will deadlock waiting on it — add a passthrough job that reports "${name}".`,
+      });
+    }
+  }
+  return problems;
+}
+
+/** Read + parse + check every discovered workflow file, then the manifest. */
 export function checkAllWorkflows(repoRoot = REPO_ROOT): ParityProblem[] {
   const problems: ParityProblem[] = [];
+  const allReal = new Set<string>();
+  const allPassthrough = new Set<string>();
 
-  for (const rel of WORKFLOW_FILES) {
+  for (const rel of discoverWorkflowFiles(repoRoot)) {
     const abs = path.join(repoRoot, rel);
     let raw: string;
     try {
@@ -257,7 +427,22 @@ export function checkAllWorkflows(repoRoot = REPO_ROOT): ParityProblem[] {
       continue;
     }
 
-    problems.push(...checkWorkflowParity(rel, doc));
+    const { real, passthrough } = collectCheckNames(doc);
+    for (const n of real) allReal.add(n);
+    for (const n of passthrough) allPassthrough.add(n);
+
+    // Per-workflow parity only applies to workflows using the passthrough scheme.
+    if (usesPassthroughScheme(doc)) {
+      problems.push(...checkWorkflowParity(rel, doc));
+    }
+  }
+
+  // Cross-workflow, manifest-driven coverage — the durable source of truth.
+  const required = loadRequiredChecks(repoRoot);
+  if (required.problem) {
+    problems.push(required.problem);
+  } else {
+    problems.push(...assessRequiredCoverage(required.names, allReal, allPassthrough));
   }
 
   return problems;

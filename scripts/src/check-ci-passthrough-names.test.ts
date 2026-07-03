@@ -1,15 +1,22 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
 import {
   REPO_ROOT,
+  REQUIRED_CHECKS_MANIFEST,
   WORKFLOW_FILES,
   expandMatrix,
   expandName,
   jobCheckNames,
   checkWorkflowParity,
   checkAllWorkflows,
+  discoverWorkflowFiles,
+  usesPassthroughScheme,
+  collectCheckNames,
+  loadRequiredChecks,
+  assessRequiredCoverage,
 } from "./check-ci-passthrough-names.js";
 
 /**
@@ -18,7 +25,9 @@ import {
  * Pins the behaviours that keep required checks from deadlocking:
  *   - the LIVE workflows pass (real names ↔ passthrough names are balanced),
  *   - a renamed real job with a stale passthrough entry is flagged both ways,
- *   - matrix expansion handles both the include-list and plain-list forms.
+ *   - matrix expansion handles both the include-list and plain-list forms,
+ *   - the committed required-check manifest is the source of truth: a required
+ *     name with no producer (deleted/renamed workflow) or no passthrough fails.
  */
 
 const readDoc = (rel: string) =>
@@ -111,5 +120,115 @@ describe("parity detection", () => {
     };
     const problems = checkWorkflowParity("x.yml", doc);
     expect(problems.some((p) => p.kind === "no-passthrough-job")).toBe(true);
+  });
+});
+
+describe("workflow discovery", () => {
+  it("discovers both live safety workflows", () => {
+    const files = discoverWorkflowFiles();
+    expect(files).toContain(".github/workflows/laravel-migrations.yml");
+    expect(files).toContain(".github/workflows/laravel-tests.yml");
+  });
+
+  it("returns an empty list when the workflows dir is absent", () => {
+    expect(discoverWorkflowFiles(path.join(REPO_ROOT, "does-not-exist"))).toEqual([]);
+  });
+
+  it("recognises the passthrough scheme via a change detector or -passthrough job", () => {
+    expect(
+      usesPassthroughScheme({ jobs: { changes: { outputs: { onein: "x" } } } }),
+    ).toBe(true);
+    expect(
+      usesPassthroughScheme({ jobs: { "foo-passthrough": { name: "foo" } } }),
+    ).toBe(true);
+    expect(usesPassthroughScheme({ jobs: { lint: { name: "lint" } } })).toBe(false);
+  });
+
+  it("collectCheckNames splits real and passthrough names", () => {
+    const { real, passthrough } = collectCheckNames({
+      jobs: {
+        changes: { name: "Detect", outputs: { onein: "x" } },
+        real: { name: "guard A" },
+        "real-passthrough": { name: "guard A" },
+      },
+    });
+    expect([...real]).toEqual(["guard A"]);
+    expect([...passthrough]).toEqual(["guard A"]);
+  });
+});
+
+describe("required-check manifest", () => {
+  it("loads with every live required name produced by a real job", () => {
+    const { names, problem } = loadRequiredChecks();
+    expect(problem).toBeUndefined();
+    expect(names.length).toBeGreaterThan(0);
+
+    const allReal = new Set<string>();
+    for (const rel of WORKFLOW_FILES) {
+      for (const n of collectCheckNames(readDoc(rel)).real) allReal.add(n);
+    }
+    for (const name of names) expect(allReal.has(name)).toBe(true);
+  });
+
+  it("the manifest exactly matches the live real-guard names (no drift either way)", () => {
+    const { names } = loadRequiredChecks();
+    const allReal = new Set<string>();
+    for (const rel of WORKFLOW_FILES) {
+      for (const n of collectCheckNames(readDoc(rel)).real) allReal.add(n);
+    }
+    // Every required name has a real producer, and no live safety job is
+    // silently absent from the manifest.
+    expect([...names].sort()).toEqual([...allReal].sort());
+  });
+
+  it("reports manifest-read-error when the manifest is missing", () => {
+    const { problem } = loadRequiredChecks(path.join(REPO_ROOT, "does-not-exist"));
+    expect(problem?.kind).toBe("manifest-read-error");
+  });
+});
+
+describe("required-check coverage", () => {
+  const real = new Set(["A", "B"]);
+  const pass = new Set(["A", "B"]);
+
+  it("is green when every required name has a real producer and a passthrough", () => {
+    expect(assessRequiredCoverage(["A", "B"], real, pass)).toEqual([]);
+  });
+
+  it("flags a required name with no producer (deleted/renamed workflow)", () => {
+    const problems = assessRequiredCoverage(["A", "GONE"], real, pass);
+    expect(problems.some((p) => p.kind === "required-without-producer")).toBe(true);
+  });
+
+  it("flags a required name with no passthrough (deadlock risk)", () => {
+    const problems = assessRequiredCoverage(["A"], new Set(["A"]), new Set());
+    expect(problems.some((p) => p.kind === "required-without-passthrough")).toBe(true);
+  });
+
+  it("checkAllWorkflows surfaces a required name whose whole workflow vanished", () => {
+    // Build a throwaway fixture repo that has the manifest but NO workflow
+    // files at all — the exact "someone deleted the whole safety workflow"
+    // scenario. Running the full guard end-to-end must flag every required
+    // name as having no producer and no passthrough.
+    const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "ci-passthrough-"));
+    try {
+      fs.mkdirSync(path.join(fixture, ".github", "workflows"), { recursive: true });
+      fs.copyFileSync(
+        path.join(REPO_ROOT, REQUIRED_CHECKS_MANIFEST),
+        path.join(fixture, REQUIRED_CHECKS_MANIFEST),
+      );
+
+      const { names } = loadRequiredChecks(fixture);
+      const problems = checkAllWorkflows(fixture);
+
+      expect(problems.filter((p) => p.kind === "required-without-producer")).toHaveLength(
+        names.length,
+      );
+      expect(problems.filter((p) => p.kind === "required-without-passthrough")).toHaveLength(
+        names.length,
+      );
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
   });
 });
