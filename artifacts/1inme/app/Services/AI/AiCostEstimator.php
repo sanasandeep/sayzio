@@ -2,7 +2,7 @@
 
 namespace App\Services\AI;
 
-use App\Models\User;
+use App\Modules\User\Models\User;
 
 /**
  * Single source of truth for the "what will this cost me?" coin estimates

@@ -124,6 +124,39 @@ class ReadonlyDemoWriteGuardTest extends TestCase
         $this->get('/user/links')->assertOk();
     }
 
+    public function test_readonly_demo_can_use_allowlisted_non_persisting_interactive_post(): void
+    {
+        $demo = $this->makeUser(true);
+        $this->loginViaOtp($demo);
+
+        // The standalone QR generator (user.qrcode.download) is an interactive
+        // POST that only renders an image — it writes nothing and charges no
+        // coins — so it is allowlisted for the demo. It must run the controller
+        // and return the SVG, not be short-circuited with the block flash.
+        // (SVG avoids the imagick-only PNG backend so this holds anywhere.)
+        $this->post('/user/qrcode', [
+            'url'    => 'https://example.com/demo-qr',
+            'format' => 'svg',
+        ])
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/svg+xml')
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_readonly_demo_ai_generation_write_is_still_blocked(): void
+    {
+        $demo = $this->makeUser(true);
+        $this->loginViaOtp($demo);
+
+        // The interactive allowlist is deliberately narrow: AI-*generation*
+        // surfaces (here the artistic QR) persist rows and/or charge real coins
+        // from the shared demo wallet, so they must stay blocked even though
+        // other interactive POSTs are now allowed.
+        $this->post('/user/qr-codes/generate-art', ['prompt' => 'a neon fox'])
+            ->assertRedirect()
+            ->assertSessionHas('error', self::BLOCK_MESSAGE);
+    }
+
     public function test_readonly_demo_logout_still_works(): void
     {
         $demo = $this->makeUser(true);
