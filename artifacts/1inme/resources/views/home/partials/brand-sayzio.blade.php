@@ -41,31 +41,73 @@
     /* Brand cards */
     .bs-card {
         position: relative; overflow: hidden;
-        border-radius: 1.5rem;
-        border: 1px solid rgba(255,255,255,.12);
-        background: rgba(255,255,255,.05);
-        backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-        box-shadow: 0 28px 70px -34px rgba(61,107,255,.55), inset 0 1px 0 rgba(255,255,255,.08);
-        transition: transform .4s cubic-bezier(.16,1,.3,1), box-shadow .4s;
+        border-radius: 1.75rem;
+        border: 1px solid rgba(255,255,255,.14);
+        background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        box-shadow:
+            0 32px 80px -32px rgba(61,107,255,.55),
+            0 10px 30px -18px rgba(0,0,0,.45),
+            inset 0 1px 0 rgba(255,255,255,.12),
+            inset 0 0 0 1px rgba(255,255,255,.02);
+        transition: transform .4s cubic-bezier(.16,1,.3,1), box-shadow .4s, border-color .4s;
     }
-    .bs-card:hover { transform: translateY(-6px); box-shadow: 0 36px 90px -34px rgba(61,107,255,.7), inset 0 1px 0 rgba(255,255,255,.10); }
+    .bs-card::after {
+        content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+        padding: 1px;
+        background: linear-gradient(155deg, rgba(255,255,255,.28), rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(255,255,255,.10));
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor; mask-composite: exclude;
+    }
+    .bs-card:hover {
+        transform: translateY(-7px);
+        border-color: rgba(255,255,255,.22);
+        box-shadow:
+            0 42px 100px -32px rgba(61,107,255,.7),
+            0 14px 36px -18px rgba(0,0,0,.5),
+            inset 0 1px 0 rgba(255,255,255,.16);
+    }
     .bs-card::before {
         content: ""; position: absolute; width: 240px; height: 240px; border-radius: 9999px;
         filter: blur(60px); opacity: .35; pointer-events: none;
     }
     .bs-card--id::before    { top: -90px; left: -70px;  background: var(--c2); }
     .bs-card--zio::before   { bottom: -110px; right: -70px; background: #6e61ff; }
-    html.light-mode .bs-card { background: #ffffff; border-color: rgba(15,23,42,.10); box-shadow: 0 24px 60px -34px rgba(61,107,255,.40); }
+    html.light-mode .bs-card {
+        background: linear-gradient(180deg, #ffffff, #fbfbfe);
+        border-color: rgba(15,23,42,.09);
+        box-shadow:
+            0 26px 64px -32px rgba(61,107,255,.35),
+            0 8px 22px -16px rgba(15,23,42,.10),
+            inset 0 1px 0 rgba(255,255,255,.9);
+    }
+    html.light-mode .bs-card::after { background: linear-gradient(155deg, rgba(15,23,42,.06), rgba(15,23,42,0) 40%); }
+    html.light-mode .bs-card:hover { box-shadow: 0 34px 84px -32px rgba(61,107,255,.42), 0 10px 26px -16px rgba(15,23,42,.14); }
     html.light-mode .bs-card::before { opacity: .22; }
 
-    /* Gradient wordmarks */
-    .bs-wordmark {
-        background: linear-gradient(95deg, #3d6bff, #6e61ff 55%, #1bd4d9);
-        -webkit-background-clip: text; background-clip: text; color: transparent;
-        background-size: 200% 100%; animation: bsGrad 6s ease-in-out infinite;
+    /* Solid brand wordmarks — no gradient. White for 1IN.ME, black for Sayzio.
+       A mode-aware "plate" keeps each legible when the surrounding surface would
+       otherwise swallow it (white text needs a dark plate in light mode; black
+       text needs a light plate in dark mode). */
+    .bs-word {
+        display: inline-block; position: relative; line-height: 1;
+        padding: .06em .22em; border-radius: .32em;
+        transition: background-color .3s ease, box-shadow .3s ease, color .3s ease;
     }
-    .bs-wordmark--zio { background: linear-gradient(95deg, #6e61ff, #e94e8c 60%, #ff8a3c); -webkit-background-clip: text; background-clip: text; }
-    @keyframes bsGrad { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    .bs-word--id { color: #fff; text-shadow: 0 2px 22px rgba(61,107,255,.4); }
+    html.light-mode .bs-word--id {
+        color: #fff; text-shadow: none;
+        background: linear-gradient(150deg, #140a22, #241536);
+        box-shadow: 0 10px 24px -12px rgba(20,10,34,.55), inset 0 1px 0 rgba(255,255,255,.10);
+    }
+    .bs-word--zio {
+        color: #0a0a12;
+        background: #ffffff;
+        box-shadow: 0 10px 24px -12px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.7);
+    }
+    html.light-mode .bs-word--zio {
+        color: #0a0a12; background: none; box-shadow: none; padding: 0;
+    }
 
     /* Mode-aware emphasis text — white on dark, near-black on light */
     .bs-emph { color: #fff; }
@@ -126,18 +168,29 @@
 
     /* Pillar chips */
     .bs-pillar {
-        display: flex; align-items: center; gap: .75rem;
-        padding: .85rem 1rem; border-radius: 1rem;
+        display: flex; align-items: center; gap: .9rem;
+        padding: 1.1rem 1.25rem; border-radius: 1.15rem;
         border: 1px solid rgba(255,255,255,.10);
-        background: rgba(255,255,255,.04);
-        transition: transform .3s ease, box-shadow .3s ease, background-color .3s ease;
+        background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 14px 30px -26px rgba(0,0,0,.5);
+        transition: transform .3s ease, box-shadow .3s ease, background-color .3s ease, border-color .3s ease;
     }
-    .bs-pillar:hover { transform: translateY(-4px); background: rgba(255,255,255,.07); box-shadow: 0 16px 40px -22px rgba(61,107,255,.55); }
-    html.light-mode .bs-pillar { background: #ffffff; border-color: rgba(15,23,42,.10); }
-    html.light-mode .bs-pillar:hover { background: #f9fafb; box-shadow: 0 16px 40px -24px rgba(61,107,255,.30); }
+    .bs-pillar:hover {
+        transform: translateY(-4px);
+        background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+        border-color: rgba(255,255,255,.18);
+        box-shadow: 0 18px 44px -22px rgba(61,107,255,.55), inset 0 1px 0 rgba(255,255,255,.10);
+    }
+    html.light-mode .bs-pillar {
+        background: linear-gradient(180deg, #ffffff, #fbfbfe);
+        border-color: rgba(15,23,42,.09);
+        box-shadow: 0 10px 22px -18px rgba(15,23,42,.12);
+    }
+    html.light-mode .bs-pillar:hover { background: #ffffff; border-color: rgba(15,23,42,.14); box-shadow: 0 18px 44px -24px rgba(61,107,255,.30); }
     .bs-pillar-ico {
-        flex-shrink: 0; width: 40px; height: 40px; border-radius: .8rem;
+        flex-shrink: 0; width: 42px; height: 42px; border-radius: .85rem;
         display: inline-flex; align-items: center; justify-content: center; font-size: 1rem;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.15);
     }
 
     /* Mascot drift (gentler, section-local variant of the float helpers). */
@@ -152,11 +205,10 @@
     .bs-mascot-anim { display: none; }
 
     @media (prefers-reduced-motion: reduce) {
-        .bs-wordmark, .bs-energy::after, .bs-is-pill::before, .bs-mascot,
+        .bs-energy::after, .bs-is-pill::before, .bs-mascot,
         .bs-backing-word--id, .bs-backing-word--zio {
             animation: none !important;
         }
-        .bs-wordmark { background-position: 0 50% !important; }
         .bs-energy::after { background: linear-gradient(90deg, var(--c1), #6e61ff, var(--c3)) !important; }
         .bs-backing-word--zio { opacity: .7; }
         .bs-mascot-video { display: none !important; }
@@ -172,41 +224,41 @@
 
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
         {{-- Eyebrow + heading --}}
-        <div class="text-center max-w-3xl mx-auto mb-14 lg:mb-20">
-            <div data-anim="fade-up" class="inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-6">
+        <div class="text-center max-w-3xl mx-auto mb-16 lg:mb-24">
+            <div data-anim="fade-up" class="inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-7">
                 <span class="relative flex h-2 w-2">
                     <span class="absolute inline-flex h-full w-full rounded-full" style="background:var(--c2)"></span>
                     <span class="ring-pulse" style="inset:0;background:var(--c2);"></span>
                 </span>
                 <span class="grad-text">The platform behind your links</span>
             </div>
-            <h2 id="bs-h" data-anim="fade-up" class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.08]">
-                <span class="bs-wordmark">1IN.ME</span>
+            <h2 id="bs-h" data-anim="fade-up" class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.12]">
+                <span class="bs-word bs-word--id">1IN.ME</span>
                 <span class="bs-is-word font-semibold italic px-1">is</span>
-                <span class="bs-wordmark bs-wordmark--zio">Sayzio</span>
+                <span class="bs-word bs-word--zio">Sayzio</span>
             </h2>
-            <p data-anim="fade-up" class="bs-copy mt-5 text-lg leading-relaxed">
+            <p data-anim="fade-up" class="bs-copy mt-6 text-lg leading-relaxed">
                 <strong class="bs-emph">1IN.ME</strong> is your digital identity, unified — and it runs on
                 <strong class="bs-emph">Sayzio</strong>, the smart, scalable, seamless platform powering every link, page and QR.
             </p>
         </div>
 
         {{-- Twin brand cards joined by an animated energy line + "is" pill --}}
-        <div class="relative grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6 lg:gap-0 items-stretch">
+        <div class="relative grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-7 lg:gap-0 items-stretch">
             {{-- 1IN.ME card --}}
-            <div data-anim="fade-right" class="bs-card bs-card--id p-6 sm:p-8 lg:mr-12">
+            <div data-anim="fade-right" class="bs-card bs-card--id p-7 sm:p-9 lg:mr-12">
                 <div class="relative flex items-center gap-4 sm:gap-5">
                     <span class="bs-glyph float-a w-16 h-16 sm:w-20 sm:h-20">
                         <img src="{{ asset('branding/1inme-mark.png') }}" alt="1IN.ME logo" width="72" height="56"
                              class="w-11 h-11 sm:w-14 sm:h-14 drop-shadow-[0_8px_22px_rgba(61,107,255,.45)]" loading="lazy" decoding="async">
                     </span>
                     <div class="min-w-0">
-                        <div class="text-3xl sm:text-4xl font-black tracking-tight"><span class="bs-wordmark">1IN.ME</span></div>
-                        <div class="mt-1 text-sm sm:text-base text-gray-300">Your Digital Identity, <span class="font-semibold" style="color:var(--c4)">Unified.</span></div>
+                        <div class="text-3xl sm:text-4xl font-black tracking-tight"><span class="bs-word bs-word--id">1IN.ME</span></div>
+                        <div class="mt-1.5 text-sm sm:text-base text-gray-300">Your Digital Identity, <span class="font-semibold" style="color:var(--c4)">Unified.</span></div>
                     </div>
                 </div>
-                <div class="relative mt-6 pt-6 border-t border-white/10">
-                    <div class="text-xs font-bold uppercase tracking-[.18em] mb-1" style="color:var(--c2)">All-in-one platform</div>
+                <div class="relative mt-7 pt-7 border-t border-white/10">
+                    <div class="text-xs font-bold uppercase tracking-[.18em] mb-1.5" style="color:var(--c2)">All-in-one platform</div>
                     <p class="text-sm text-gray-400 leading-relaxed">One link for everything — bio pages, short links, QR codes, forms and more, all under your handle.</p>
                 </div>
             </div>
@@ -219,7 +271,7 @@
             </div>
 
             {{-- Sayzio card --}}
-            <div data-anim="fade-left" class="bs-card bs-card--zio p-6 sm:p-8 lg:ml-12">
+            <div data-anim="fade-left" class="bs-card bs-card--zio p-7 sm:p-9 lg:ml-12">
                 <div class="relative flex items-center gap-4 sm:gap-5">
                     <span class="bs-glyph bs-glyph-zio w-16 h-16 sm:w-20 sm:h-20">
                         {{-- Animated transparent mascot clip (matches the hero). Autoplays
@@ -244,31 +296,31 @@
                              class="bs-mascot bs-mascot-anim w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_10px_26px_rgba(110,97,255,.55)]" decoding="async">
                     </span>
                     <div class="min-w-0">
-                        <div class="text-3xl sm:text-4xl font-black tracking-tight"><span class="bs-wordmark bs-wordmark--zio">Sayzio</span></div>
-                        <div class="mt-1 text-sm sm:text-base text-gray-300">
+                        <div class="text-3xl sm:text-4xl font-black tracking-tight"><span class="bs-word bs-word--zio">Sayzio</span></div>
+                        <div class="mt-1.5 text-sm sm:text-base text-gray-300">
                             <span class="font-semibold" style="color:var(--c2)">Smart.</span>
                             <span class="font-semibold" style="color:var(--c1)">Scalable.</span>
                             <span class="font-semibold" style="color:var(--c3)">Seamless.</span>
                         </div>
                     </div>
                 </div>
-                <div class="relative mt-6 pt-6 border-t border-white/10">
-                    <div class="text-xs font-bold uppercase tracking-[.18em] mb-1" style="color:#6e61ff">The power behind every experience</div>
+                <div class="relative mt-7 pt-7 border-t border-white/10">
+                    <div class="text-xs font-bold uppercase tracking-[.18em] mb-1.5" style="color:#6e61ff">The power behind every experience</div>
                     <p class="text-sm text-gray-400 leading-relaxed">The engine doing the heavy lifting — analytics, AI, automation and rock-solid delivery at any scale.</p>
                 </div>
             </div>
         </div>
 
         {{-- "Powered by Sayzio" connector --}}
-        <div data-anim="fade-up" class="mt-10 lg:mt-12 flex items-center justify-center">
+        <div data-anim="fade-up" class="mt-12 lg:mt-14 flex items-center justify-center">
             <div class="inline-flex items-center gap-3 px-5 py-2.5 glass rounded-full">
                 <span class="text-xs font-bold uppercase tracking-[.22em] text-gray-400">Powered by</span>
-                <span class="text-base font-extrabold"><span class="bs-wordmark bs-wordmark--zio">Sayzio</span></span>
+                <span class="text-base font-extrabold"><span class="bs-word bs-word--zio">Sayzio</span></span>
             </div>
         </div>
 
         {{-- Four pillars --}}
-        <div data-anim="fade-up" data-stagger class="mt-12 lg:mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div data-anim="fade-up" data-stagger class="mt-14 lg:mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             @foreach([
                 ['fa-rocket',        '#3d6bff', 'Built for',      'Performance'],
                 ['fa-shield-halved', '#1bd4d9', 'Engineered for', 'Reliability'],
