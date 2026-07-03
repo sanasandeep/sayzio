@@ -106,8 +106,12 @@ args = ["sh", "-c", "pnpm install --frozen-lockfile && (cd artifacts/1inme && ph
 # RDS, then applies the rest — additively, never dropping tables. If that still
 # fails we log a loud "::1inme:: DEPLOY MIGRATION FAILED" marker + the pending
 # list to stderr but STILL boot the web server, trading a possibly-incomplete
-# schema for avoiding full downtime. The startup health check below stays on "/"
-# (not /up/schema) on purpose so a partial schema does NOT fail the deploy.
+# schema for avoiding full downtime. The startup health check below uses "/up"
+# (Laravel's built-in health route: instant 200 with NO DB/schema dependency) —
+# NOT the home page "/", whose ~3-5s cold Blade render exceeds the autoscale
+# startup probe's latency bound and fails the promote (a "failed" build with no
+# build-phase logs), and NOT "/up/schema" (which 503s on drift). This keeps the
+# probe fast AND still lets a partial schema boot without failing the deploy.
 # Proactive detection of the resulting drift is handled in-app: the hourly
 # db:check-pending-migrations command alerts admins (in-app + email), the admin
 # dashboard shows a banner, and GET /up/schema returns 503 for external
@@ -122,4 +126,4 @@ APP_DEBUG = "false"
 DB_PERSISTENT = "false"
 
 [services.production.health.startup]
-path = "/"
+path = "/up"
