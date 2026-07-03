@@ -4,7 +4,9 @@
 
 @section('content')
 @if(!empty($schemaHealth['available']) && !empty($schemaHealth['pending']))
-@php($pendingMigrations = $schemaHealth['pending'])
+@php
+    $pendingMigrations = $schemaHealth['pending'];
+@endphp
 <div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.08);">
     <div class="flex items-start gap-4">
         <div class="w-11 h-11 shrink-0 bg-red-500/15 rounded-xl flex items-center justify-center">
@@ -36,7 +38,9 @@
 @endif
 
 @if(!empty($workspaceColumnHealth['available']) && !empty($workspaceColumnHealth['missing']))
-@php($missingColumns = $workspaceColumnHealth['missing'])
+@php
+    $missingColumns = $workspaceColumnHealth['missing'];
+@endphp
 <div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.08);">
     <div class="flex items-start gap-4">
         <div class="w-11 h-11 shrink-0 bg-red-500/15 rounded-xl flex items-center justify-center">
@@ -71,7 +75,9 @@
 @endif
 
 @if(!empty($expectedSchemaHealth['available']) && !empty($expectedSchemaHealth['missing']))
-@php($missingExpected = $expectedSchemaHealth['missing'])
+@php
+    $missingExpected = $expectedSchemaHealth['missing'];
+@endphp
 <div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.08);">
     <div class="flex items-start gap-4">
         <div class="w-11 h-11 shrink-0 bg-red-500/15 rounded-xl flex items-center justify-center">
@@ -86,7 +92,9 @@
                 migration (a recorded migration was later changed to add columns, so Laravel never re-ran it and
                 <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">migrate:status</code> still shows 0 pending).
                 Pages that read these columns will return errors until it's fixed.
-                @php($columnDriftOnly = collect($missingExpected)->every(fn ($m) => empty($m['table_missing'])))
+                @php
+                    $columnDriftOnly = collect($missingExpected)->every(fn ($m) => empty($m['table_missing']));
+                @endphp
                 @if($columnDriftOnly)
                     Click <span class="text-red-200 font-semibold">Fix now</span> to add and backfill the missing
                     columns in place, or run
