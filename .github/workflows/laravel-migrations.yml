@@ -38,20 +38,35 @@ name: Laravel migrations
 # 2026_11_12_000001_backfill_site_assistant_message_stream_status — it crashed
 # `php artisan migrate` on every fresh install but went unnoticed because no
 # automated job ran migrations from scratch on Postgres.
+#
+# IMPORTANT — why the trigger paths are the whole app, not just
+# database/migrations/**:
+#   A `migrate:fresh` does NOT only execute the SQL inside migration files. Data
+#   migrations invoke seeders and arbitrary application code — e.g.
+#   2027_06_29_000002_migrate_to_seven_plan_lineup calls
+#   PlansAndAddonsSeeder::seedPlans(), and several other backfill migrations
+#   `->run()` seeders or hydrate Eloquent models. That means a regression that
+#   breaks a from-empty rebuild can be introduced WITHOUT touching any file
+#   under database/migrations/ — it can live in database/seeders/**, app/**
+#   (a model global scope, a service, an accessor), config/**, or bootstrap/**.
+#   This is exactly how the "column is_internal does not exist" regression
+#   (Task #3501) shipped: the breaking change was a new internal plan added to
+#   PlansAndAddonsSeeder, a file the old narrow `database/migrations/**` path
+#   filter did not watch. If we only fire this job when a migration file
+#   changes, the gold-standard real-DB rebuild silently skips the very PRs most
+#   likely to break it. So we trigger on any change under artifacts/1inme/**,
+#   matching the sibling laravel-tests.yml. Extra CI minutes on frontend-only
+#   PRs are a cheap price for never letting a broken rebuild slip past merge.
 
 on:
   push:
     branches: [main]
     paths:
-      - 'artifacts/1inme/database/migrations/**'
-      - 'artifacts/1inme/composer.json'
-      - 'artifacts/1inme/composer.lock'
+      - 'artifacts/1inme/**'
       - '.github/workflows/laravel-migrations.yml'
   pull_request:
     paths:
-      - 'artifacts/1inme/database/migrations/**'
-      - 'artifacts/1inme/composer.json'
-      - 'artifacts/1inme/composer.lock'
+      - 'artifacts/1inme/**'
       - '.github/workflows/laravel-migrations.yml'
   workflow_dispatch:
 

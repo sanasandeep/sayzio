@@ -12,7 +12,15 @@ empty DB — the #2989 class):
 
 1. **Real-DB (gold standard):** `.github/workflows/laravel-migrations.yml` runs
    `migrate:fresh` against a throwaway Postgres. Catches everything but needs a
-   wipeable database, so it can ONLY live in GitHub Actions.
+   wipeable database, so it can ONLY live in GitHub Actions. **Its trigger paths
+   MUST be app-wide (`artifacts/1inme/**`), not just `database/migrations/**`:**
+   `migrate:fresh` executes data migrations that call seeders and app code (e.g.
+   seven_plan_lineup → PlansAndAddonsSeeder::seedPlans()), so a from-empty
+   regression can be introduced in `database/seeders/**` or `app/**` without
+   touching a migration file. A narrow migrations-only filter silently skips
+   exactly those PRs — that is how the is_internal seeder bug slipped the gate.
+   NOTE: this only makes the job *run*; GitHub branch protection (required status
+   check) is what actually *blocks* merge and lives in repo settings, not YAML.
 2. **DB-free static replay:** `MigrationOrderInspector` (Common\Support) +
    `db:check-migration-ordering` command + `MigrationOrderingTest`. Registered as
    the Replit validation step `migration-ordering` and as a no-DB GitHub job.
