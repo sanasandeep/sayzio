@@ -7,5 +7,7 @@
     "Dev-database safety net guard",
     "PHP 8.4 deprecation guard",
     "Migration ordering guard (no database)"
-  ]
+  ],
+  "advisoryDescription": "Check names produced by a real guard job in a passthrough-scheme (safety) workflow that are INTENTIONALLY not marked required in branch protection — i.e. they run and report but a red result does not block merges. Listing a name here is an explicit acknowledgement that the job is advisory. The guard flags any real safety-guard check that is in NEITHER requiredChecks NOR this list, so a brand-new safety job that someone forgot to make required cannot silently ship toothless. Keep this list minimal; prefer making a real safety check required.",
+  "advisoryChecks": []
 }

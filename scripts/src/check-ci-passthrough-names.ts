@@ -42,6 +42,14 @@
  * 3. Loads the committed required-check manifest and asserts every required
  *    name is produced by a real job AND covered by a passthrough SOMEWHERE
  *    across all workflows — the durable guard against a deleted/renamed file.
+ * 4. Enforces the MIRROR direction so the guard is not one-way (toothless):
+ *    every real check name produced by a safety (passthrough-scheme) workflow
+ *    must be EITHER in `requiredChecks` (enforced by branch protection) OR
+ *    explicitly acknowledged in `advisoryChecks` in the same manifest. Adding a
+ *    brand-new "Schema drift guard" style safety job and forgetting to make it
+ *    required — so it runs but a red result never blocks a merge — fails the
+ *    guard loudly instead of shipping a toothless check. `advisoryChecks` is the
+ *    documented escape hatch for jobs that are intentionally non-blocking.
  *
  * Run:  pnpm --filter @workspace/scripts run check:ci-passthrough-names
  */
@@ -303,6 +311,12 @@ export function collectCheckNames(doc: WorkflowDef): {
 
 export interface RequiredChecks {
   names: string[];
+  /**
+   * Check names in a safety workflow that are INTENTIONALLY not required
+   * (advisory / non-blocking). Explicitly acknowledged here so the mirror guard
+   * can tell "forgot to make it required" from "deliberately advisory".
+   */
+  advisory: string[];
   problem?: ParityProblem;
 }
 
@@ -315,6 +329,7 @@ export function loadRequiredChecks(repoRoot = REPO_ROOT): RequiredChecks {
   } catch (e) {
     return {
       names: [],
+      advisory: [],
       problem: {
         file: REQUIRED_CHECKS_MANIFEST,
         kind: "manifest-read-error",
@@ -329,6 +344,7 @@ export function loadRequiredChecks(repoRoot = REPO_ROOT): RequiredChecks {
   } catch (e) {
     return {
       names: [],
+      advisory: [],
       problem: {
         file: REQUIRED_CHECKS_MANIFEST,
         kind: "manifest-parse-error",
@@ -341,6 +357,7 @@ export function loadRequiredChecks(repoRoot = REPO_ROOT): RequiredChecks {
   if (!Array.isArray(list) || !list.every((n) => typeof n === "string")) {
     return {
       names: [],
+      advisory: [],
       problem: {
         file: REQUIRED_CHECKS_MANIFEST,
         kind: "manifest-shape-error",
@@ -352,6 +369,7 @@ export function loadRequiredChecks(repoRoot = REPO_ROOT): RequiredChecks {
   if (list.length === 0) {
     return {
       names: [],
+      advisory: [],
       problem: {
         file: REQUIRED_CHECKS_MANIFEST,
         kind: "manifest-empty",
@@ -360,7 +378,24 @@ export function loadRequiredChecks(repoRoot = REPO_ROOT): RequiredChecks {
     };
   }
 
-  return { names: list as string[] };
+  // `advisoryChecks` is optional; when present it must be an array of strings.
+  const advisoryRaw = (parsed as { advisoryChecks?: unknown })?.advisoryChecks;
+  if (
+    advisoryRaw !== undefined &&
+    (!Array.isArray(advisoryRaw) || !advisoryRaw.every((n) => typeof n === "string"))
+  ) {
+    return {
+      names: [],
+      advisory: [],
+      problem: {
+        file: REQUIRED_CHECKS_MANIFEST,
+        kind: "manifest-shape-error",
+        detail: `${REQUIRED_CHECKS_MANIFEST} "advisoryChecks" must be an array of strings when present.`,
+      },
+    };
+  }
+
+  return { names: list as string[], advisory: (advisoryRaw as string[]) ?? [] };
 }
 
 /**
@@ -395,11 +430,70 @@ export function assessRequiredCoverage(
   return problems;
 }
 
+/**
+ * The MIRROR assertion: every real check name produced by a safety
+ * (passthrough-scheme) workflow must be EITHER required (per the manifest) OR
+ * explicitly acknowledged as advisory. A real safety job that is neither is the
+ * toothless-guard bug: it runs and reports, but because branch protection never
+ * marks it required, a red result silently does not block the merge. This is
+ * the exact opposite of the deadlock the coverage check guards against.
+ *
+ * `safetyRealNames` are the real-guard names from passthrough-scheme workflows
+ * only — unrelated workflows (lint, release, …) do not participate in the
+ * required-safety net and are intentionally out of scope here.
+ */
+export function assessRequiredEnforcement(
+  safetyRealNames: string[],
+  requiredNames: string[],
+  advisoryNames: string[],
+): ParityProblem[] {
+  const problems: ParityProblem[] = [];
+  const required = new Set(requiredNames);
+  const advisory = new Set(advisoryNames);
+  const realSet = new Set(safetyRealNames);
+
+  // Core: a real safety-guard check that is neither required nor advisory.
+  for (const name of [...realSet].sort()) {
+    if (!required.has(name) && !advisory.has(name)) {
+      problems.push({
+        file: REQUIRED_CHECKS_MANIFEST,
+        kind: "real-not-required",
+        detail: `real guard job reports check "${name}" but it is in NEITHER "requiredChecks" NOR "advisoryChecks" in ${REQUIRED_CHECKS_MANIFEST}. The job runs, but if branch protection never marks it required a red result silently does NOT block the merge — a toothless safety check. Add "${name}" to "requiredChecks" (and mark it required in branch protection), or list it under "advisoryChecks" if it is intentionally non-blocking.`,
+      });
+    }
+  }
+
+  // Contradiction: a name declared both required and advisory.
+  for (const name of [...advisory].sort()) {
+    if (required.has(name)) {
+      problems.push({
+        file: REQUIRED_CHECKS_MANIFEST,
+        kind: "advisory-also-required",
+        detail: `check "${name}" is listed in BOTH "requiredChecks" and "advisoryChecks" in ${REQUIRED_CHECKS_MANIFEST}. A check is either enforced or advisory, not both — remove it from one list.`,
+      });
+    }
+  }
+
+  // Stale advisory: an acknowledged name that no real safety job produces.
+  for (const name of [...advisory].sort()) {
+    if (!realSet.has(name)) {
+      problems.push({
+        file: REQUIRED_CHECKS_MANIFEST,
+        kind: "advisory-without-producer",
+        detail: `"advisoryChecks" lists "${name}" but no real guard job in any safety workflow produces it — a renamed or removed job left a stale advisory entry. Remove or fix "${name}".`,
+      });
+    }
+  }
+
+  return problems;
+}
+
 /** Read + parse + check every discovered workflow file, then the manifest. */
 export function checkAllWorkflows(repoRoot = REPO_ROOT): ParityProblem[] {
   const problems: ParityProblem[] = [];
   const allReal = new Set<string>();
   const allPassthrough = new Set<string>();
+  const safetyReal = new Set<string>();
 
   for (const rel of discoverWorkflowFiles(repoRoot)) {
     const abs = path.join(repoRoot, rel);
@@ -432,7 +526,10 @@ export function checkAllWorkflows(repoRoot = REPO_ROOT): ParityProblem[] {
     for (const n of passthrough) allPassthrough.add(n);
 
     // Per-workflow parity only applies to workflows using the passthrough scheme.
+    // Those same workflows are the safety net whose real jobs are expected to be
+    // required, so their real names feed the mirror (enforcement) check.
     if (usesPassthroughScheme(doc)) {
+      for (const n of real) safetyReal.add(n);
       problems.push(...checkWorkflowParity(rel, doc));
     }
   }
@@ -443,6 +540,10 @@ export function checkAllWorkflows(repoRoot = REPO_ROOT): ParityProblem[] {
     problems.push(required.problem);
   } else {
     problems.push(...assessRequiredCoverage(required.names, allReal, allPassthrough));
+    // Mirror direction: a real safety job that is never marked required.
+    problems.push(
+      ...assessRequiredEnforcement([...safetyReal], required.names, required.advisory),
+    );
   }
 
   return problems;
@@ -463,7 +564,11 @@ function main(): void {
     console.error(`  [${p.kind}] ${p.file}: ${p.detail}`);
   }
   console.error(
-    "\nA required status check whose name has no passthrough counterpart deadlocks every PR that does not touch artifacts/1inme/** — the exact bug Task #3509 fixed. Keep the real job `name:` and the passthrough matrix in lockstep.",
+    "\nTwo failure modes are guarded here:\n" +
+      "  • A required check with no passthrough counterpart deadlocks every PR that does not touch artifacts/1inme/** — keep the real job `name:` and the passthrough matrix in lockstep.\n" +
+      "  • A real safety job that is in neither `requiredChecks` nor `advisoryChecks` runs but never blocks a merge (toothless) — add it to " +
+      REQUIRED_CHECKS_MANIFEST +
+      " and mark it required in branch protection, or list it as advisory.",
   );
   process.exit(1);
 }

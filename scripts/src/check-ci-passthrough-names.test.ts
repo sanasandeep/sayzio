@@ -17,6 +17,7 @@ import {
   collectCheckNames,
   loadRequiredChecks,
   assessRequiredCoverage,
+  assessRequiredEnforcement,
 } from "./check-ci-passthrough-names.js";
 
 /**
@@ -184,6 +185,155 @@ describe("required-check manifest", () => {
   it("reports manifest-read-error when the manifest is missing", () => {
     const { problem } = loadRequiredChecks(path.join(REPO_ROOT, "does-not-exist"));
     expect(problem?.kind).toBe("manifest-read-error");
+  });
+
+  it("loads advisoryChecks (empty by default) as a string array", () => {
+    const { advisory } = loadRequiredChecks();
+    expect(Array.isArray(advisory)).toBe(true);
+    expect(advisory.every((n) => typeof n === "string")).toBe(true);
+  });
+
+  it("rejects a non-array advisoryChecks", () => {
+    const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "ci-advisory-"));
+    try {
+      fs.mkdirSync(path.join(fixture, ".github"), { recursive: true });
+      fs.writeFileSync(
+        path.join(fixture, REQUIRED_CHECKS_MANIFEST),
+        JSON.stringify({ requiredChecks: ["A"], advisoryChecks: "nope" }),
+      );
+      const { problem } = loadRequiredChecks(fixture);
+      expect(problem?.kind).toBe("manifest-shape-error");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("required-check enforcement (mirror direction)", () => {
+  it("is green when every real safety check is required", () => {
+    expect(
+      assessRequiredEnforcement(["A", "B"], ["A", "B"], []),
+    ).toEqual([]);
+  });
+
+  it("flags a brand-new real safety job that is not in the manifest", () => {
+    // "Schema drift guard" runs (has a real job + passthrough) but nobody added
+    // it to requiredChecks — so it is toothless: red never blocks a merge.
+    const problems = assessRequiredEnforcement(
+      ["A", "Schema drift guard"],
+      ["A"],
+      [],
+    );
+    expect(problems.some((p) => p.kind === "real-not-required")).toBe(true);
+    expect(
+      problems.find((p) => p.kind === "real-not-required")?.detail,
+    ).toContain("Schema drift guard");
+  });
+
+  it("does NOT flag a real job explicitly acknowledged as advisory", () => {
+    const problems = assessRequiredEnforcement(
+      ["A", "Advisory lint hint"],
+      ["A"],
+      ["Advisory lint hint"],
+    );
+    expect(problems).toEqual([]);
+  });
+
+  it("flags a name listed as both required and advisory", () => {
+    const problems = assessRequiredEnforcement(["A"], ["A"], ["A"]);
+    expect(problems.some((p) => p.kind === "advisory-also-required")).toBe(true);
+  });
+
+  it("flags a stale advisory entry no real job produces", () => {
+    const problems = assessRequiredEnforcement(["A"], ["A"], ["Ghost advisory"]);
+    expect(problems.some((p) => p.kind === "advisory-without-producer")).toBe(true);
+  });
+
+  it("checkAllWorkflows flags a new required-looking safety job absent from the manifest", () => {
+    // Fixture repo: one passthrough-scheme workflow whose real jobs include a
+    // brand-new "Schema drift guard" (with a matching passthrough so per-workflow
+    // parity is clean), plus the manifest that lists every OTHER name but forgets
+    // the new one. The full guard must flag it as real-not-required.
+    const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "ci-enforce-"));
+    try {
+      const wfDir = path.join(fixture, ".github", "workflows");
+      fs.mkdirSync(wfDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(wfDir, "safety.yml"),
+        [
+          "jobs:",
+          "  changes:",
+          "    name: Detect changes",
+          "    outputs:",
+          "      onein: x",
+          "  established:",
+          "    name: Established guard",
+          "  drift:",
+          "    name: Schema drift guard",
+          "  passthrough:",
+          "    name: ${{ matrix.check_name }}",
+          "    strategy:",
+          "      matrix:",
+          "        check_name:",
+          "          - Established guard",
+          "          - Schema drift guard",
+          "",
+        ].join("\n"),
+      );
+      fs.writeFileSync(
+        path.join(fixture, REQUIRED_CHECKS_MANIFEST),
+        JSON.stringify({ requiredChecks: ["Established guard"] }),
+      );
+
+      const problems = checkAllWorkflows(fixture);
+      const flagged = problems.filter((p) => p.kind === "real-not-required");
+      expect(flagged).toHaveLength(1);
+      expect(flagged[0].detail).toContain("Schema drift guard");
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("checkAllWorkflows stays green when the new job is acknowledged as advisory", () => {
+    const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "ci-enforce-ok-"));
+    try {
+      const wfDir = path.join(fixture, ".github", "workflows");
+      fs.mkdirSync(wfDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(wfDir, "safety.yml"),
+        [
+          "jobs:",
+          "  changes:",
+          "    name: Detect changes",
+          "    outputs:",
+          "      onein: x",
+          "  established:",
+          "    name: Established guard",
+          "  drift:",
+          "    name: Schema drift guard",
+          "  passthrough:",
+          "    name: ${{ matrix.check_name }}",
+          "    strategy:",
+          "      matrix:",
+          "        check_name:",
+          "          - Established guard",
+          "          - Schema drift guard",
+          "",
+        ].join("\n"),
+      );
+      fs.writeFileSync(
+        path.join(fixture, REQUIRED_CHECKS_MANIFEST),
+        JSON.stringify({
+          requiredChecks: ["Established guard"],
+          advisoryChecks: ["Schema drift guard"],
+        }),
+      );
+
+      const problems = checkAllWorkflows(fixture);
+      expect(problems.some((p) => p.kind === "real-not-required")).toBe(false);
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
   });
 });
 
