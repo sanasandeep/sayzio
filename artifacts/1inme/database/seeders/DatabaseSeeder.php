@@ -190,5 +190,12 @@ class DatabaseSeeder extends Seeder
         $this->call(BgTemplateSeeder::class);
         $this->call(BgPatternTemplatesSeeder::class);
         $this->call(LightBgTemplatesSeeder::class);
+
+        // Fully-loaded showcase/demo account (sana@sayzio.app) — every link
+        // type, every biolink widget, and every other feature surface
+        // populated with sample data + backdated analytics. Idempotent
+        // (wipes and rebuilds only its own account's rows) and safe to call
+        // again standalone via `db:seed --class=ShowcaseAccountSeeder`.
+        $this->call(ShowcaseAccountSeeder::class);
     }
 }
