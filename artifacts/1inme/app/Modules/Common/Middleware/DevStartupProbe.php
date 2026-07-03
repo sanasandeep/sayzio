@@ -7,23 +7,40 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Dev-only startup fast-path for the root "/" route.
+ * Dev-only startup fast-path guarding against unstyled page renders.
  *
- * The Replit dev workflow readiness probe is hard-wired to poll the preview
- * path "/" (it ignores [services.development.health.startup].path) and enforces
- * a short per-response latency bound: it rejects the home page's ~1s warm /
- * ~3-5s cold Blade render and tears the (otherwise healthy) server down.
+ * Two related problems, one guard:
  *
- * During a brief window after boot we answer "/" with an instant lightweight
- * 200 (an auto-refreshing splash) so the probe immediately sees a healthy
- * endpoint; once the window elapses the real home page is served normally.
+ * 1) READINESS PROBE (root "/" only, time-windowed): the Replit dev workflow
+ *    readiness probe is hard-wired to poll the preview path "/" (it ignores
+ *    [services.development.health.startup].path) and enforces a short
+ *    per-response latency bound: it rejects the home page's ~1s warm /
+ *    ~3-5s cold Blade render and tears the (otherwise healthy) server down.
+ *    During a brief window after boot we answer "/" with an instant
+ *    lightweight 200 (the splash below) so the probe immediately sees a
+ *    healthy endpoint; once the window elapses this fast-path stops applying
+ *    to "/" and normal asset-readiness gating (below) takes over.
+ *
+ * 2) UNSTYLED PAGE (Task #3492, any HTML route, asset-readiness gated): the
+ *    compiled Vite/Tailwind assets (public/build/manifest.json + the files it
+ *    references) may not exist yet during a cold start before the first Vite
+ *    build finishes, or briefly during the periodic watch-cycle restart (see
+ *    artifact.toml). If an HTML page is served in that gap, its <link
+ *    rel="stylesheet"> 404s and the page renders with zero Tailwind CSS
+ *    (all responsive variants show at once, layout collapses). So for ANY GET
+ *    request that accepts HTML, if the compiled assets are not ready on disk,
+ *    we serve the same splash instead of letting the real page render
+ *    unstyled. This check is independent of the boot-timestamp window: it can
+ *    fire well after boot too (e.g. mid-session during a watch-cycle rebuild
+ *    gap), and it never intercepts the compiled asset requests themselves,
+ *    API/JSON/XHR requests, or non-GET methods.
+ *
  * The boot timestamp is written by the dev run command
  * (.replit-artifact/artifact.toml) into storage/framework/cache/dev_boot_ms.
  *
- * This NEVER runs in production (guarded by the environment check) and only
- * ever affects a GET "/" during the post-boot window. It is prepended to the
- * global stack (runs before StartSession), so it must not depend on session or
- * auth state — it intentionally treats every "/" hit in the window the same.
+ * This NEVER runs in production (guarded by the environment check). It is
+ * prepended to the global stack (runs before StartSession), so it must not
+ * depend on session or auth state.
  */
 class DevStartupProbe
 {
@@ -32,22 +49,61 @@ class DevStartupProbe
 
     private const MARKER = 'framework/cache/dev_boot_ms';
 
+    private const MANIFEST = 'build/manifest.json';
+
     public function handle(Request $request, Closure $next): Response
     {
+        if (!app()->environment(['local', 'development'])) {
+            return $next($request);
+        }
+
+        // Root readiness-probe fast-path is checked FIRST and independently of
+        // isHtmlGet()/Accept headers, matching the original behavior exactly:
+        // the Replit dev readiness probe's request shape is unverified, so we
+        // must not risk it failing to match isHtmlGet() and losing the fast
+        // 200 it depends on to keep the workflow alive.
         if ($this->withinStartupWindow($request)) {
+            return $this->splash();
+        }
+
+        if (!$this->isHtmlGet($request)) {
+            return $next($request);
+        }
+
+        if (!$this->assetsReady()) {
             return $this->splash();
         }
 
         return $next($request);
     }
 
-    private function withinStartupWindow(Request $request): bool
+    /**
+     * Only ever intercept a browser-style GET navigation for an HTML page.
+     * Never intercept compiled asset requests (/build/*), API/JSON/XHR calls,
+     * or non-GET methods — otherwise the guard could block the very
+     * stylesheet/script it's waiting for, or break API responses.
+     */
+    private function isHtmlGet(Request $request): bool
     {
-        if (!app()->environment(['local', 'development'])) {
+        if ($request->getMethod() !== 'GET') {
             return false;
         }
 
-        if ($request->getMethod() !== 'GET' || !$request->is('/')) {
+        if ($request->is('build/*') || $request->is('storage/*') || $request->is('api/*') || $request->is('up') || $request->is('up/*')) {
+            return false;
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return false;
+        }
+
+        return str_contains((string) $request->headers->get('Accept'), 'text/html')
+            || $request->headers->get('Accept') === null;
+    }
+
+    private function withinStartupWindow(Request $request): bool
+    {
+        if (!$request->is('/')) {
             return false;
         }
 
@@ -64,6 +120,44 @@ class DevStartupProbe
         $elapsed = (microtime(true) * 1000) - $bootMs;
 
         return $elapsed >= 0 && $elapsed < self::WINDOW_MS;
+    }
+
+    /**
+     * Reads public/build/manifest.json and confirms every entry file it
+     * references (app.css / app.js, etc.) actually exists under public/.
+     * A missing manifest, malformed JSON, or a dangling reference all count
+     * as "not ready" so we fail safe toward showing the splash rather than
+     * risking an unstyled render.
+     */
+    private function assetsReady(): bool
+    {
+        $manifestPath = public_path(self::MANIFEST);
+
+        if (!is_file($manifestPath)) {
+            return false;
+        }
+
+        $raw = @file_get_contents($manifestPath);
+        if ($raw === false) {
+            return false;
+        }
+
+        $manifest = json_decode($raw, true);
+        if (!is_array($manifest) || $manifest === []) {
+            return false;
+        }
+
+        foreach ($manifest as $entry) {
+            if (!is_array($entry) || !isset($entry['file'])) {
+                continue;
+            }
+
+            if (!is_file(public_path('build/' . $entry['file']))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function splash(): Response
