@@ -206,6 +206,7 @@
                         <i class="fas fa-clock"></i> Coming soon
                     </button>
                 @elseif($isConfig)
+                    <x-how-to-get-this guide-key="connected_apps.analytics.{{ $meta['key'] }}" class="mb-2" />
                     <form method="POST" action="{{ route('user.connected-apps.google-analytics') }}" class="space-y-2 mt-auto">
                         @csrf
                         @foreach($meta['config_fields'] ?? [] as $field)
@@ -222,11 +223,14 @@
                         </button>
                     </form>
                 @else
-                    <a href="{{ route('user.connected-apps.connect', $meta['key']) }}"
-                       class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold mt-auto"
-                       style="background: var(--accent); color: #fff;">
-                        <i class="fas fa-plug"></i> Connect {{ $meta['label'] }}
-                    </a>
+                    <div class="mt-auto">
+                        <x-how-to-get-this guide-key="connected_apps.crm.{{ $meta['key'] }}" class="mb-2" />
+                        <a href="{{ route('user.connected-apps.connect', $meta['key']) }}"
+                           class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold w-full"
+                           style="background: var(--accent); color: #fff;">
+                            <i class="fas fa-plug"></i> Connect {{ $meta['label'] }}
+                        </a>
+                    </div>
                 @endif
             </div>
         @endforeach

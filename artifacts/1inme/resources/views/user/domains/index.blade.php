@@ -33,6 +33,7 @@
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium">Add</button>
         </form>
         <p class="text-[11px] text-white/40 mt-2">After adding, you'll get the exact CNAME record (name + target + TTL) to paste into your DNS provider — then click Verify here.</p>
+        <x-how-to-get-this guide-key="domain.cname" />
     </div>
     @else
     <div class="rounded-2xl p-4 mb-6 flex items-start gap-3" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); color:#b45309;">

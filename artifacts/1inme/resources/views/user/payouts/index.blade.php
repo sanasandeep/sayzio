@@ -97,6 +97,10 @@
                     <div class="flex justify-between gap-3"><dt style="color: var(--text-muted);">Provider fees</dt><dd class="text-right" style="color: var(--text-secondary);">{{ $p['fees'] }}</dd></div>
                 </dl>
 
+                @if(!$conn)
+                    <x-how-to-get-this guide-key="payouts.{{ $slug }}" />
+                @endif
+
                 @if($conn)
                     <div class="mt-4 px-3 py-2 rounded-lg border text-xs" style="background: var(--bg-glass); border-color: var(--border-glass);">
                         <div class="flex items-center gap-2">

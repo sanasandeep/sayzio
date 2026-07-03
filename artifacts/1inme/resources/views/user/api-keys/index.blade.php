@@ -137,7 +137,8 @@
 
     {{-- Create form --}}
     <div class="rounded-2xl p-5 mb-6" style="background: var(--surface, rgba(255,255,255,0.03)); border: 1px solid var(--border, rgba(255,255,255,0.08));">
-        <h3 class="text-sm font-semibold mb-3" style="color: var(--text);">Create a new key</h3>
+        <h3 class="text-sm font-semibold mb-1" style="color: var(--text);">Create a new key</h3>
+        <x-how-to-get-this guide-key="api_keys.developer" class="mb-3" />
         <form method="POST" action="{{ route('user.api-keys.store') }}" class="flex flex-col sm:flex-row gap-3">
             @csrf
             <input type="text" name="name" required maxlength="120"

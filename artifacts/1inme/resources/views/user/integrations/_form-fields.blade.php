@@ -7,7 +7,11 @@
 @php
     $editing = isset($config) && $config !== null;
     $meta    = $editing ? (array) $config->meta : [];
+    $__providerKey = $provider ?? ($config->provider ?? null);
 @endphp
+@if($__providerKey && isset($kind))
+    <x-how-to-get-this guide-key="integrations.{{ $kind }}.{{ $__providerKey }}" class="mb-4" />
+@endif
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     @foreach($providerSchema['fields'] as $f)
         @php

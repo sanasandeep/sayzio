@@ -210,6 +210,8 @@
                 <button type="button" @click="addHook" class="text-xs px-3 py-1.5 rounded-lg font-semibold" style="background: rgba(99,102,241,0.15); color: #818cf8;"><i class="fas fa-plus text-[10px] mr-1"></i> Add</button>
             </div>
 
+            <x-how-to-get-this guide-key="forms.webhook" class="mb-3" style="margin-left: 3.25rem;" />
+
             <div class="space-y-3">
                 <template x-for="(h, i) in webhooks" :key="i">
                     <div class="p-4 rounded-xl space-y-2" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">

@@ -8,7 +8,7 @@
         <h1 class="text-2xl font-bold text-white">Edit Tracker</h1>
     </div>
 
-    <form method="POST" action="{{ route('user.pixels.update', $pixel) }}">
+    <form method="POST" action="{{ route('user.pixels.update', $pixel) }}" x-data="{ type: '{{ old('type', $pixel->type) }}' }">
         @csrf @method('PUT')
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
@@ -18,7 +18,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-white/60 mb-1">Type</label>
-                <select name="type" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40" required>
+                <select name="type" x-model="type" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40" required>
                     @foreach(['facebook', 'google_analytics', 'google_tag_manager', 'linkedin', 'twitter', 'pinterest', 'tiktok', 'snapchat', 'quora', 'custom'] as $t)
                         <option value="{{ $t }}" {{ $pixel->type === $t ? 'selected' : '' }}>{{ ucfirst(str_replace('_', ' ', $t)) }}</option>
                     @endforeach
@@ -27,6 +27,12 @@
             <div>
                 <label class="block text-sm font-medium text-white/60 mb-1">Tracker ID</label>
                 <input type="text" name="pixel_id" value="{{ old('pixel_id', $pixel->pixel_id) }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40" required>
+
+                @foreach(['facebook', 'google_analytics', 'google_tag_manager', 'linkedin', 'twitter', 'pinterest', 'tiktok', 'snapchat', 'quora', 'custom'] as $t)
+                    <div x-show="type === '{{ $t }}'" x-cloak>
+                        <x-how-to-get-this guide-key="pixel.{{ $t }}" />
+                    </div>
+                @endforeach
             </div>
         </div>
 
