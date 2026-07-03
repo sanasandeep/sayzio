@@ -7,6 +7,7 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\Admin\Models\Price;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Idempotent seeder for the 7 default plans and the default addon catalog.
@@ -98,6 +99,33 @@ class PlansAndAddonsSeeder extends Seeder
             $def['features'] = array_merge($extra, $def['features']);
         }
         unset($def);
+
+        // Internal plans (the staff-only "unlimited" comp plan) carry an
+        // `is_internal` flag, but that column is only added by a LATER migration
+        // (add_is_internal_to_plans). This seeder is invoked from inside the
+        // 7-plan-lineup data migration (it needs the public plan ids to remap
+        // subscribers), so on a truly-fresh `migrate:fresh` — or a stale env
+        // migrating the backlog forward in order — the column does not exist yet
+        // when we get here. Creating an internal plan now would fail with
+        // "column is_internal of relation plans does not exist" and abort the
+        // whole build.
+        //
+        // Skip internal-plan definitions entirely until the column exists (we
+        // don't just strip the key: creating the row now without the flag would
+        // leave the dedicated seed_unlimited_plan migration's later
+        // seedPlansBySlug() converge on an EXISTING row via the overlay path,
+        // which never sets is_internal — so the comp plan would wrongly show up
+        // on public surfaces). The dedicated migration re-runs this seeder for
+        // that slug once the column is present, creating it fresh with the flag.
+        if (! Schema::hasColumn('plans', 'is_internal')) {
+            $defs = array_values(array_filter(
+                $defs,
+                fn (array $def) => empty($def['is_internal'])
+            ));
+            if (! $defs) {
+                return;
+            }
+        }
 
         // Batch-load every existing plan row up front in ONE query, keyed by
         // slug, then diff in memory. This avoids the per-plan SELECT (and the

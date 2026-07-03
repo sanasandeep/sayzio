@@ -136,6 +136,114 @@ PHP);
         $this->assertSame('modify_before_create', $result['violations'][0]['type']);
     }
 
+    public function test_detects_write_to_a_column_before_it_is_created(): void
+    {
+        // A table is created, then an EARLIER-than-the-add-column migration
+        // (typically via a seeder it runs) writes a column that only a LATER
+        // migration adds — exactly the `is_internal` bug that broke
+        // `migrate:fresh`. The write is invisible to the schema-only checks
+        // because it lives in data, not a Blueprint.
+        $create = $this->writeMigration('2099_04_01_000001_create_ordering_seedtarget', <<<'PHP'
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+return new class extends Migration {
+    public function up(): void {
+        Schema::create('ordering_seedtarget', function (Blueprint $t) {
+            $t->id();
+            $t->string('name');
+        });
+    }
+};
+PHP);
+
+        $seed = $this->writeMigration('2099_04_01_000002_seed_ordering_flag', <<<'PHP'
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+return new class extends Migration {
+    public function up(): void {
+        // Writes `flag`, which is only added by the later migration below.
+        DB::table('ordering_seedtarget')->insert(['name' => 'x', 'flag' => true]);
+    }
+};
+PHP);
+
+        $addColumn = $this->writeMigration('2099_04_01_000003_add_flag_to_ordering_seedtarget', <<<'PHP'
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+return new class extends Migration {
+    public function up(): void {
+        Schema::table('ordering_seedtarget', function (Blueprint $t) {
+            $t->boolean('flag')->default(false);
+        });
+    }
+};
+PHP);
+
+        $this->mockMigrator([
+            '2099_04_01_000001_create_ordering_seedtarget'          => $create,
+            '2099_04_01_000002_seed_ordering_flag'                  => $seed,
+            '2099_04_01_000003_add_flag_to_ordering_seedtarget'     => $addColumn,
+        ]);
+
+        $result = MigrationOrderInspector::inspect();
+
+        $this->assertTrue($result['available']);
+        $this->assertNotEmpty($result['violations'], 'writing a not-yet-created column should be detected');
+
+        $violation = $result['violations'][0];
+        $this->assertSame('2099_04_01_000002_seed_ordering_flag', $violation['migration']);
+        $this->assertSame('write_column_before_create', $violation['type']);
+        $this->assertStringContainsString('flag', $violation['message']);
+    }
+
+    public function test_write_to_an_existing_column_is_not_flagged(): void
+    {
+        // Mirror of the test above: when the column already exists, a data write
+        // to it must not be flagged (no false positive).
+        $create = $this->writeMigration('2099_05_01_000001_create_ordering_writeok', <<<'PHP'
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+return new class extends Migration {
+    public function up(): void {
+        Schema::create('ordering_writeok', function (Blueprint $t) {
+            $t->id();
+            $t->string('name');
+            $t->boolean('flag')->default(false);
+        });
+    }
+};
+PHP);
+
+        $seed = $this->writeMigration('2099_05_01_000002_seed_ordering_writeok', <<<'PHP'
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+return new class extends Migration {
+    public function up(): void {
+        DB::table('ordering_writeok')->insert(['name' => 'x', 'flag' => true]);
+        DB::table('ordering_writeok')->where('name', 'x')->update(['flag' => false]);
+    }
+};
+PHP);
+
+        $this->mockMigrator([
+            '2099_05_01_000001_create_ordering_writeok' => $create,
+            '2099_05_01_000002_seed_ordering_writeok'   => $seed,
+        ]);
+
+        $result = MigrationOrderInspector::inspect();
+
+        $this->assertTrue($result['available']);
+        $this->assertSame([], $result['violations'], 'a write to an existing column must not be flagged');
+    }
+
     public function test_correct_order_produces_no_violation(): void
     {
         // The mirror of the foreign-key test: when the parent is created first,

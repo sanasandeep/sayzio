@@ -71,11 +71,17 @@ class MigrationOrderInspector
 
             $original = app('db.schema');
 
-            $replay = function () use ($files, $recorder, &$scanned) {
+            $replay = function () use ($files, $recorder, $connection, &$scanned) {
                 Schema::swap($recorder);
 
                 foreach ($files as $name => $path) {
                     $recorder->setCurrentMigration(self::migrationName($name, $path));
+
+                    // Snapshot the pretend query log length before this migration
+                    // so we can inspect exactly the write statements (incl. any
+                    // run by a seeder the migration invokes) it produced.
+                    $before = count($connection->getQueryLog());
+
                     try {
                         $migration = self::resolveMigration($path);
                         if ($migration === null || ! method_exists($migration, 'up')) {
@@ -86,6 +92,20 @@ class MigrationOrderInspector
                     } catch (\Throwable $e) {
                         // A data-backfill line can throw under pretend (no real
                         // rows); the schema ops already recorded — keep going.
+                    } finally {
+                        // Feed the INSERT/UPDATE statements this migration (and
+                        // any seeder it called) emitted to the recorder so it can
+                        // catch a write to a column that no earlier migration has
+                        // created yet — the class of bug that broke a fresh
+                        // `migrate:fresh` when the plan seeder wrote `is_internal`
+                        // before its add-column migration. Schema DDL from the
+                        // Blueprint recorder never hits the query log (build() is
+                        // never called), so this only ever sees data writes plus
+                        // any raw DB::statement SQL.
+                        $log = $connection->getQueryLog();
+                        for ($i = $before; $i < count($log); $i++) {
+                            $recorder->inspectWriteQuery($log[$i]['query'] ?? '');
+                        }
                     }
                 }
             };
@@ -290,6 +310,107 @@ class MigrationOrderRecorder
         }
 
         return true;
+    }
+
+    /**
+     * Inspect a data-write statement emitted during the current migration's
+     * replay (an INSERT or UPDATE run directly, or by a seeder the migration
+     * invokes) and flag any target column that no migration replayed so far has
+     * created. This catches the "seeder writes a not-yet-created column" class
+     * of ordering bug — invisible to the schema-only checks above because the
+     * offending write lives in PHP (a seeder), not in a Blueprint.
+     *
+     * Only writes to a table the recorder already knows about are checked: an
+     * unknown table means either a forward table reference (already caught
+     * elsewhere for schema ops) or a table this static replay simply cannot see
+     * (raw CREATE) — in the spirit of the inspector we under-detect rather than
+     * risk a false positive. Raw `ALTER TABLE ... ADD COLUMN` DDL (rare; only
+     * driver-gated branches use it) is parsed first so a column it adds is not
+     * then falsely flagged by a later write in the same batch.
+     */
+    public function inspectWriteQuery(string $sql): void
+    {
+        $sql = trim($sql);
+        if ($sql === '') {
+            return;
+        }
+
+        // Absorb any raw ADD COLUMN so a subsequent write to that column in the
+        // same migration is not falsely flagged. (Blueprint-driven schema
+        // changes never reach the query log, so this only matters for raw SQL.)
+        if (preg_match('/^alter\s+table\s+(["`]?)([a-z0-9_.]+)\1\s+(.*)$/is', $sql, $m)) {
+            $table = $m[2];
+            if (preg_match_all('/add\s+column\s+(["`]?)([a-z0-9_]+)\1/is', $m[3], $cols)) {
+                foreach ($cols[2] as $col) {
+                    $this->tables[$table][$col] = true;
+                }
+            }
+
+            return;
+        }
+
+        // INSERT INTO "table" ("c1", "c2", ...) VALUES ...
+        if (preg_match('/^insert\s+into\s+(["`]?)([a-z0-9_.]+)\1\s*\((.*?)\)\s+values/is', $sql, $m)) {
+            $this->checkWrittenColumns($m[2], $this->parseColumnList($m[3]));
+
+            return;
+        }
+
+        // UPDATE "table" SET "c1" = ?, "c2" = ? [WHERE ...]
+        if (preg_match('/^update\s+(["`]?)([a-z0-9_.]+)\1\s+set\s+(.*)$/is', $sql, $m)) {
+            $setClause = $m[3];
+            // Trim the trailing WHERE so we only check the columns being written.
+            if (($pos = stripos($setClause, ' where ')) !== false) {
+                $setClause = substr($setClause, 0, $pos);
+            }
+            if (preg_match_all('/(["`]?)([a-z0-9_]+)\1\s*=/is', $setClause, $cols)) {
+                $this->checkWrittenColumns($m[2], $cols[2]);
+            }
+        }
+    }
+
+    /** @param array<int,string> $columns */
+    private function checkWrittenColumns(string $table, array $columns): void
+    {
+        // Only known tables are checked (see method doc: under-detect, never
+        // false-positive on a table the static replay can't see).
+        if (! isset($this->tables[$table])) {
+            return;
+        }
+
+        foreach ($columns as $column) {
+            if ($column === '' || isset($this->tables[$table][$column])) {
+                continue;
+            }
+
+            $this->flag(
+                'write_column_before_create',
+                "writes column '{$column}' on table '{$table}', which is not created by any earlier "
+                . 'migration (the write — typically from a seeder this migration runs — would fail on a '
+                . 'fresh `migrate` from an empty database with a missing-column error). Add the column '
+                . 'before this migration, or guard the write with `Schema::hasColumn` until the column exists.'
+            );
+        }
+    }
+
+    /**
+     * Split a quoted, comma-separated column list ("a", "b", "c") into bare
+     * column names, tolerating single/double/back-quoting and whitespace.
+     *
+     * @return array<int,string>
+     */
+    private function parseColumnList(string $list): array
+    {
+        $columns = [];
+        foreach (explode(',', $list) as $part) {
+            $name = trim($part);
+            $name = trim($name, "\"`' \t\r\n");
+            if ($name !== '') {
+                $columns[] = $name;
+            }
+        }
+
+        return $columns;
     }
 
     public function whenTableHasColumn(string $table, string $column, Closure $callback): void

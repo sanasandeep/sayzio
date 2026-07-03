@@ -36,10 +36,27 @@ the column name; the value can be a `Stringable`, cast it). This is readable via
 `Blueprint::getCommands()` WITHOUT calling `build()` because the blueprint
 callback runs in the constructor.
 
+**Third class — `write_column_before_create` (seeder writes a not-yet-created
+column):** a migration that runs a seeder/backfill writing a column only added by
+a LATER migration (the `is_internal`-in-PlansAndAddonsSeeder bug that broke
+`migrate:fresh`). Schema-only checks miss it because the write lives in data
+(PHP), not a Blueprint. Caught by capturing the pretend query-log delta per
+migration in `inspect()` and parsing INSERT/UPDATE column lists against the
+recorded schema (`inspectWriteQuery`). **Non-obvious:** the pretend query log IS
+populated during `Connection::pretend()` (writes are inert but still `logQuery`'d,
+incl. Eloquent `insertGetId`'s `... returning "id"`); Blueprint DDL never hits the
+log (`build()` isn't called), so this only ever sees data writes + raw
+`DB::statement` SQL. Only writes to a KNOWN table are flagged (under-detect, never
+false-positive). The seeder-side fix: `Schema::hasColumn` guard that SKIPS the
+internal-plan def until the column exists (don't just strip the key — creating the
+row early makes the dedicated seed_unlimited_plan overlay never set is_internal).
+
 **Blind spot (under-detects only, never false-positives):** tables created or FKs
 declared via raw `DB::statement('CREATE/ALTER TABLE ...')` are invisible to the
 Blueprint recorder. There are currently no raw CREATE TABLE statements in the
-codebase, so this can't cause a missed forward reference today.
+codebase, so this can't cause a missed forward reference today. (`inspectWriteQuery`
+does parse raw `ALTER TABLE ... ADD COLUMN` from the query log so such a column
+isn't then falsely flagged by a later same-migration write.)
 
 **Verifying locally:** phpunit can't run in the isolated dev env (shared RDS +
 destructive guard), so detection was verified via
