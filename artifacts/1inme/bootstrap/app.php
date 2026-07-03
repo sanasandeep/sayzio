@@ -82,6 +82,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // web request (no-op for admin/API guards). See Task #2106.
         $middleware->web(append: [
             \App\Modules\User\Middleware\EnsureNotSuspended::class,
+            // Task #3498 — blocks every state-changing request from the
+            // read-only demo account (is_readonly_demo) before it reaches
+            // any controller/model.
+            \App\Modules\Common\Middleware\BlockReadonlyDemoWrites::class,
+        ]);
+
+        // API-guard (Sanctum) counterpart of the read-only demo write-guard
+        // above — covers the mobile app / REST API path.
+        $middleware->api(append: [
+            \App\Modules\Common\Middleware\BlockReadonlyDemoWrites::class,
         ]);
 
         $middleware->alias([

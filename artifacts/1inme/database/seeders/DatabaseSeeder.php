@@ -197,5 +197,14 @@ class DatabaseSeeder extends Seeder
         // (wipes and rebuilds only its own account's rows) and safe to call
         // again standalone via `db:seed --class=ShowcaseAccountSeeder`.
         $this->call(ShowcaseAccountSeeder::class);
+
+        // Second, publicly-safe showcase account (demo@sayzio.app):
+        // reuses ShowcaseAccountSeeder's full content pipeline for the
+        // exact same breadth of demo content, but with no admin/super-admin
+        // access and `is_readonly_demo = true` so the global write-guard
+        // middleware blocks every save attempt. Idempotent and scoped only
+        // to this one email — safe to call again standalone via
+        // `db:seed --class=ReadonlyDemoAccountSeeder`.
+        $this->call(ReadonlyDemoAccountSeeder::class);
     }
 }

@@ -69,9 +69,34 @@ class ShowcaseAccountSeeder extends Seeder
     public const EMAIL = 'sana@sayzio.app';
     public const PASSWORD = 'DiaryLabs@1906';
     public const HANDLE = 'sanashowcase';
+    public const NAME = 'Sana Rahman';
+    public const BIO = 'Full-product showcase account — every Sayzio feature, populated end to end.';
 
     private User $user;
     private Workspace $workspace;
+
+    /**
+     * Whether this account should be provisioned as a read-only demo
+     * (Task #3498): `is_readonly_demo = true` on the user row, which the
+     * global write-guard middleware uses to block every state-changing
+     * request from this account. Overridden by {@see ReadonlyDemoAccountSeeder}.
+     */
+    protected function isReadonlyDemo(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Whether this account should be granted the privileged `user-admin`
+     * web role (user-side admin surfaces such as role/plan management).
+     * Overridden to `false` by {@see ReadonlyDemoAccountSeeder} — a
+     * publicly-safe demo account must be a plain user with no elevated
+     * privileges of any kind (Task #3498).
+     */
+    protected function shouldAssignUserAdminRole(): bool
+    {
+        return true;
+    }
 
     public function run(): void
     {
@@ -162,7 +187,7 @@ class ShowcaseAccountSeeder extends Seeder
 
         $this->command?->info(sprintf(
             'Showcase account ready: %s (%d links across 16 types, %d biolinks incl. widget catalog, backdated analytics included).',
-            self::EMAIL,
+            static::EMAIL,
             count($allLinkIds),
             count($links['biolink'])
         ));
@@ -184,7 +209,7 @@ class ShowcaseAccountSeeder extends Seeder
      */
     public function seedAnalyticsForShowcaseUser(): void
     {
-        $user = User::where('email', self::EMAIL)->first();
+        $user = User::where('email', static::EMAIL)->first();
         if (!$user) {
             $this->command?->warn('ShowcaseAccountSeeder: account not found — run the main seeder first.');
             return;
@@ -202,12 +227,12 @@ class ShowcaseAccountSeeder extends Seeder
         $farFuture = now()->addYears(10);
 
         $user = User::updateOrCreate(
-            ['email' => self::EMAIL],
+            ['email' => static::EMAIL],
             [
-                'name' => 'Sana Rahman',
-                'password' => Hash::make(self::PASSWORD),
-                'handle' => self::HANDLE,
-                'bio' => 'Full-product showcase account — every Sayzio feature, populated end to end.',
+                'name' => static::NAME,
+                'password' => Hash::make(static::PASSWORD),
+                'handle' => static::HANDLE,
+                'bio' => static::BIO,
                 'status' => 'active',
                 'plan_id' => $plan->id,
                 'billing_cycle' => 'annual',
@@ -219,6 +244,7 @@ class ShowcaseAccountSeeder extends Seeder
                 'email_verified_at' => now(),
                 'onboarded_at' => now(),
                 'is_demo' => true,
+                'is_readonly_demo' => $this->isReadonlyDemo(),
             ]
         );
 
@@ -226,14 +252,28 @@ class ShowcaseAccountSeeder extends Seeder
             ->where('slug', 'user-admin')->where('guard', 'web')
             ->value('id');
         if ($userAdminRoleId) {
-            $user->roles()->syncWithoutDetaching([$userAdminRoleId]);
+            if ($this->shouldAssignUserAdminRole()) {
+                $user->roles()->syncWithoutDetaching([$userAdminRoleId]);
+            } else {
+                // Idempotent cleanup: if this account previously had the
+                // privileged role attached (e.g. from a run before this
+                // guard existed), strip it so a publicly-safe demo account
+                // is never left with elevated user-side privileges.
+                $user->roles()->detach($userAdminRoleId);
+            }
             $user->flushPermissionCache();
         }
 
         return $user->fresh();
     }
 
-    private function ensureAdminBridge(User $user): void
+    /**
+     * Bridges this user account to a back-office {@see Admin} record with
+     * super-admin access. Overridden as a no-op by
+     * {@see ReadonlyDemoAccountSeeder} so that account never gets admin or
+     * super-admin access (Task #3498, step 3).
+     */
+    protected function ensureAdminBridge(User $user): void
     {
         $superAdminRoleId = Role::where('slug', 'super-admin')->where('guard', 'admin')->value('id');
         if (!$superAdminRoleId) {
@@ -241,10 +281,10 @@ class ShowcaseAccountSeeder extends Seeder
         }
 
         Admin::updateOrCreate(
-            ['email' => self::EMAIL],
+            ['email' => static::EMAIL],
             [
                 'name' => $user->name,
-                'password' => Hash::make(self::PASSWORD),
+                'password' => Hash::make(static::PASSWORD),
                 'role_id' => $superAdminRoleId,
                 'status' => 'active',
             ]
@@ -340,7 +380,7 @@ class ShowcaseAccountSeeder extends Seeder
         return Link::create(array_merge([
             'user_id' => $this->user->id,
             'type' => $type,
-            'alias' => self::HANDLE . '-' . $aliasSuffix,
+            'alias' => static::HANDLE . '-' . $aliasSuffix,
             'title' => $title,
             'is_active' => true,
             'visibility' => 'public',
@@ -422,7 +462,7 @@ class ShowcaseAccountSeeder extends Seeder
                 'description' => "Join us for the {$eventName} — a showcase demo event.",
                 'location' => 'Online / Sayzio HQ',
                 'organizer' => $this->user->name,
-                'organizer_email' => self::EMAIL,
+                'organizer_email' => static::EMAIL,
                 'start_date' => $start,
                 'end_date' => (clone $start)->addHours(2),
                 'timezone' => 'UTC',
@@ -452,7 +492,7 @@ class ShowcaseAccountSeeder extends Seeder
                 'last_name' => $last,
                 'organization' => $org,
                 'title' => 'Showcase Contact',
-                'email' => self::EMAIL,
+                'email' => static::EMAIL,
                 'phone' => '+1 555 010 1000',
                 'website' => 'https://sayzio.example.com',
                 'city' => 'San Francisco',
@@ -522,7 +562,7 @@ class ShowcaseAccountSeeder extends Seeder
     {
         $link = Link::where('user_id', $this->user->id)
             ->where('type', 'biolink')
-            ->where('alias', self::HANDLE . '-bio-widget-catalog')
+            ->where('alias', static::HANDLE . '-bio-widget-catalog')
             ->first();
         if (!$link) {
             return;
@@ -748,7 +788,7 @@ class ShowcaseAccountSeeder extends Seeder
             $resume = Resume::create([
                 'user_id' => $this->user->id,
                 'name' => 'Resume — ' . Str::headline($suffix),
-                'slug' => self::HANDLE . '-resume-' . $suffix,
+                'slug' => static::HANDLE . '-resume-' . $suffix,
                 'is_public' => true,
                 'visibility' => 'public',
                 'is_default' => $i === 0,
@@ -790,7 +830,7 @@ class ShowcaseAccountSeeder extends Seeder
                 'link_id' => $link->id,
                 'user_id' => $this->user->id,
                 'title' => 'Calendar — ' . Str::headline($suffix),
-                'slug' => self::HANDLE . '-cal-' . $suffix,
+                'slug' => static::HANDLE . '-cal-' . $suffix,
                 'description' => 'Showcase calendar of upcoming events.',
                 'timezone' => 'UTC',
                 'is_public' => true,
@@ -872,7 +912,7 @@ class ShowcaseAccountSeeder extends Seeder
             BrandKit::create([
                 'user_id' => $this->user->id,
                 'name' => $name,
-                'slug' => self::HANDLE . '-brandkit-' . $suffix,
+                'slug' => static::HANDLE . '-brandkit-' . $suffix,
                 'is_default' => $i === 0,
                 'config' => [
                     'palette' => ['primary' => $palette[0], 'secondary' => $palette[1], 'accent' => $palette[2]],
@@ -994,13 +1034,13 @@ class ShowcaseAccountSeeder extends Seeder
         $firstDef = array_shift($restDefs);
         [$firstSlug, $firstTitle, $firstFields] = $firstDef;
         $first = Form::forceCreate([
-            'slug' => self::HANDLE . '-form-' . $firstSlug,
+            'slug' => static::HANDLE . '-form-' . $firstSlug,
             'title' => $firstTitle,
             'description' => "Showcase form: {$firstTitle}.",
             'fields' => $firstFields,
             'design' => [],
             'settings' => [],
-            'notifications' => ['email' => self::EMAIL],
+            'notifications' => ['email' => static::EMAIL],
             'is_active' => true,
             'is_multi_step' => false,
             'user_id' => $this->user->id,
@@ -1009,13 +1049,13 @@ class ShowcaseAccountSeeder extends Seeder
         $restRows = [];
         foreach ($restDefs as [$slug, $title, $fields]) {
             $restRows[] = [
-                'slug' => self::HANDLE . '-form-' . $slug,
+                'slug' => static::HANDLE . '-form-' . $slug,
                 'title' => $title,
                 'description' => "Showcase form: {$title}.",
                 'fields' => json_encode($fields),
                 'design' => json_encode([]),
                 'settings' => json_encode([]),
-                'notifications' => json_encode(['email' => self::EMAIL]),
+                'notifications' => json_encode(['email' => static::EMAIL]),
                 'is_active' => true,
                 'is_multi_step' => false,
                 'user_id' => $this->user->id,
@@ -1029,7 +1069,7 @@ class ShowcaseAccountSeeder extends Seeder
         }
 
         $forms = Form::where('user_id', $this->user->id)
-            ->whereIn('slug', array_map(fn ($d) => self::HANDLE . '-form-' . $d[0], $defs))
+            ->whereIn('slug', array_map(fn ($d) => static::HANDLE . '-form-' . $d[0], $defs))
             ->get();
         $this->seedFormSubmissions($forms);
 
@@ -1086,8 +1126,8 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = [
             ['url', ['url' => 'https://sayzio.example.com'], $urlLinks[0] ?? null],
             ['wifi', ['ssid' => 'Sayzio-Guest', 'password' => 'showcase123', 'encryption' => 'WPA'], null],
-            ['vcard', ['first_name' => 'Sana', 'last_name' => 'Rahman', 'organization' => 'Sayzio Inc.', 'email' => self::EMAIL], null],
-            ['email', ['email' => self::EMAIL, 'subject' => 'Hello from your QR code'], null],
+            ['vcard', ['first_name' => 'Sana', 'last_name' => 'Rahman', 'organization' => 'Sayzio Inc.', 'email' => static::EMAIL], null],
+            ['email', ['email' => static::EMAIL, 'subject' => 'Hello from your QR code'], null],
             ['location', ['lat' => 37.7749, 'lng' => -122.4194, 'label' => 'Sayzio HQ'], null],
         ];
         foreach ($defs as $i => [$type, $payload, $link]) {
