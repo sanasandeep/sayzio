@@ -383,6 +383,13 @@ export default function InvoiceDetailScreen() {
             </View>
           ) : null}
 
+          {canManage && inv.kind !== "receipt" ? (
+            <Button
+              label="Edit invoice"
+              variant="outline"
+              onPress={() => router.push(`/invoices/edit/${inv.id}` as never)}
+            />
+          ) : null}
           {canManage ? (
             <Button
               label={inv.status === "draft" ? "Send invoice" : "Resend invoice"}

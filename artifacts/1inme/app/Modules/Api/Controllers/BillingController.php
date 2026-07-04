@@ -365,11 +365,15 @@ class BillingController extends Controller
             $amt   = (int)   ($li['amount_minor'] ?? 0);
             $unit  = $qty > 0 ? (int) round($amt / $qty) : $amt;
             $lines[] = [
-                'id'           => (int) ($li['id'] ?? $idx + 1),
-                'description'  => (string) ($li['label'] ?? $li['description'] ?? 'Line item'),
-                'quantity'     => $qty,
-                'unit_minor'   => $unit,
-                'amount_minor' => $amt,
+                'id'            => (int) ($li['id'] ?? $idx + 1),
+                'description'   => (string) ($li['label'] ?? $li['description'] ?? 'Line item'),
+                'quantity'      => $qty,
+                'unit_minor'    => $unit,
+                'amount_minor'  => $amt,
+                // Expose per-line tax so the mobile edit screen can prefill the
+                // Tax % field and round-trip it back without silently dropping it.
+                'tax_rate_bps'  => (int) ($li['tax_rate_bps'] ?? 0),
+                'tax_inclusive' => (bool) ($li['tax_inclusive'] ?? false),
             ];
         }
 
@@ -516,6 +520,10 @@ class BillingController extends Controller
             'line_items.*.label'          => 'required|string|max:240',
             'line_items.*.amount_minor'   => 'required|integer|min:0',
             'line_items.*.quantity'       => 'nullable|integer|min:1|max:9999',
+            'line_items.*.tax_rate_bps'   => 'nullable|integer|min:0|max:100000',
+            'line_items.*.tax_name'       => 'nullable|string|max:64',
+            'line_items.*.tax_inclusive'  => 'nullable|boolean',
+            'line_items.*.catalog_item_id' => 'nullable|integer',
             'discount_minor'              => 'nullable|integer|min:0',
             'tax_total_minor'             => 'nullable|integer|min:0',
             'notes_md'                    => 'nullable|string|max:4000',
@@ -554,14 +562,26 @@ class BillingController extends Controller
         if (array_key_exists('line_items', $data)) {
             $items = [];
             foreach ((array) $data['line_items'] as $li) {
-                $items[] = [
+                $item = [
                     'label'        => $li['label'],
                     'amount_minor' => (int) $li['amount_minor'],
                     'quantity'     => (int) ($li['quantity'] ?? 1),
                     'meta'         => ['kind' => 'manual'],
                 ];
+                // Carry per-line tax through so editing line items recomputes
+                // (and preserves) tax instead of silently dropping the rate.
+                if (isset($li['tax_rate_bps']))            $item['tax_rate_bps']    = (int) $li['tax_rate_bps'];
+                if (isset($li['tax_name']))                $item['tax_name']        = (string) $li['tax_name'];
+                if (array_key_exists('tax_inclusive', $li)) $item['tax_inclusive']  = (bool) $li['tax_inclusive'];
+                if (isset($li['catalog_item_id']))         $item['catalog_item_id'] = (int) $li['catalog_item_id'];
+                $items[] = $item;
             }
-            $svc->recalculate($invoice, $items);
+            // Use the shared calculator (as create does) so subtotal/tax/grand
+            // recompute correctly from the edited line items + discount.
+            $svc->applyEdits($invoice, [
+                'line_items'     => $items,
+                'discount_minor' => (int) $invoice->discount_minor,
+            ]);
         }
         $this->applyLetterhead($invoice, $request, $data['letterhead_orientation'] ?? ($invoice->letterhead_orientation ?: 'portrait'));
 
@@ -848,6 +868,9 @@ class BillingController extends Controller
             'kind'              => $i->kind,
             'letterhead_orientation' => $i->letterhead_orientation,
             'letterhead_url'    => $i->letterhead_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($i->letterhead_path) : null,
+            // Editable fields the mobile edit screen needs to prefill faithfully.
+            'notes_md'          => $i->notes_md,
+            'discount_minor'    => (int) ($i->discount_minor ?? 0),
         ];
 
         // Mobile billing parity: expose the persistent "last send failed" state

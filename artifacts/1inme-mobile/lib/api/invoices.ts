@@ -7,6 +7,10 @@ export type InvoiceLine = {
   quantity: number;
   unit_minor: number;
   amount_minor: number;
+  /** Per-line tax rate in basis points (2000 = 20%). Present so the edit screen can prefill it. */
+  tax_rate_bps?: number;
+  /** Whether the line price already includes tax. */
+  tax_inclusive?: boolean;
 };
 
 export type Invoice = {
@@ -25,6 +29,10 @@ export type Invoice = {
   recipient_address?: string | null;
   vault_client_id?: number | null;
   contact_id?: number | null;
+  /** Free-form notes (markdown). Present so the edit screen can prefill it. */
+  notes_md?: string | null;
+  /** Discount in minor units. Present so the edit screen can prefill it. */
+  discount_minor?: number;
   kind?: string | null;
   /** Per-invoice letterhead orientation (falls back to the billing company's default). */
   letterhead_orientation?: "portrait" | "landscape" | null;
@@ -242,7 +250,7 @@ export async function getInvoiceReceipt(id: number): Promise<InvoiceReceipt> {
 export async function updateInvoice(
   id: number,
   input: Partial<{
-    line_items: { label: string; amount_minor: number; quantity?: number }[];
+    line_items: InvoiceLineInput[];
     discount_minor: number;
     tax_total_minor: number;
     notes_md: string | null;
