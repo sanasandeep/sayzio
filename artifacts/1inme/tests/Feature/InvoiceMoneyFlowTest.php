@@ -932,4 +932,89 @@ class InvoiceMoneyFlowTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    /**
+     * The end-to-end refund money-path invariant, in one place:
+     *   - a partial refund moves paid -> partially_refunded with the remaining
+     *     balance correct;
+     *   - the remainder refund moves it -> refunded with the balance zeroed;
+     *   - each refund mints exactly one credit note whose number is drawn from
+     *     the per-FY `invoice_counters` sequence (NOT the global refund id) and
+     *     never collides.
+     *
+     * The "not id-keyed" proof is the crux: the refund auto-increment id and
+     * the per-FY credit-note seq are deliberately forced apart by burning a
+     * few refund ids in an EARLIER financial year first, then refunding in a
+     * NEW FY where the credit-note counter resets to 1 while the refund ids
+     * keep climbing. The old bug keyed the number off the refund id
+     * ('CN/<fy>/<refund_id>'), which would embed 4/5 here instead of 1/2 —
+     * these assertions fail loudly if that scheme ever returns.
+     */
+    public function test_refund_credit_notes_are_counter_keyed_not_refund_id_keyed(): void
+    {
+        $u   = $this->user();
+        $ws  = $this->bind($u);
+        $svc = app(ClientInvoiceService::class);
+
+        // Burn refund ids 1..3 in an earlier FY so the global refund id and the
+        // per-FY credit-note seq diverge from here on.
+        Carbon::setTestNow(Carbon::create(2025, 6, 15, 12));
+        for ($i = 0; $i < 3; $i++) {
+            $warm = $this->paidInvoice($ws, $u, 5000);
+            $svc->refund($warm->fresh(), 0, 'warmup'); // refund ids 1, 2, 3
+        }
+
+        // New FY: the CN counter resets to 1 even though refund ids continue.
+        Carbon::setTestNow(Carbon::create(2026, 4, 1, 0, 5));
+        $fy = InvoiceService::financialYearFor(now());
+
+        $inv = $this->paidInvoice($ws, $u, 12000);
+
+        // --- Partial refund -> partially_refunded, remaining balance correct.
+        $r1 = $svc->refund($inv->fresh(), 5000, 'partial'); // refund id 4
+        $inv->refresh();
+        $this->assertSame('partially_refunded', $inv->status);
+        $this->assertSame(5000, $inv->refundedTotalMinor());
+        $this->assertSame(7000, (int) $inv->amount_paid_minor);
+        $this->assertSame(1, CreditNote::where('refund_id', $r1->id)->count());
+        $cn1 = CreditNote::where('refund_id', $r1->id)->firstOrFail();
+
+        // --- Full remainder refund -> refunded, balance zeroed.
+        $r2 = $svc->refund($inv->fresh(), 7000, 'remainder'); // refund id 5
+        $inv->refresh();
+        $this->assertSame('refunded', $inv->status);
+        $this->assertSame(12000, $inv->refundedTotalMinor());
+        $this->assertSame(0, (int) $inv->amount_paid_minor);
+        $this->assertSame(1, CreditNote::where('refund_id', $r2->id)->count());
+        $cn2 = CreditNote::where('refund_id', $r2->id)->firstOrFail();
+
+        // Refund ids climbed to 4 and 5, but the credit-note seqs reset to 1
+        // and 2 in the new FY — the number is keyed off the per-FY counter.
+        $this->assertGreaterThanOrEqual(4, (int) $r1->id);
+        $this->assertGreaterThan((int) $r1->id, (int) $r2->id);
+        $this->assertSame(1, (int) $cn1->seq);
+        $this->assertSame(2, (int) $cn2->seq);
+        $this->assertSame(sprintf('CN/%s/00001', $fy), $cn1->number);
+        $this->assertSame(sprintf('CN/%s/00002', $fy), $cn2->number);
+
+        // Explicitly reject the retired id-keyed scheme 'CN/<fy>/<refund_id>'.
+        $this->assertNotSame(sprintf('CN/%s/%d', $fy, $r1->id), $cn1->number);
+        $this->assertNotSame(sprintf('CN/%s/%d', $fy, $r2->id), $cn2->number);
+
+        // The two credit notes never collide, and every persisted number is
+        // distinct (the DB `credit_notes.number` UNIQUE constraint).
+        $this->assertNotSame($cn1->number, $cn2->number);
+        $this->assertSame(
+            CreditNote::count(),
+            CreditNote::query()->distinct()->count('number'),
+            'Every persisted credit-note number must be unique'
+        );
+
+        // Each credit note snapshots the exact refunded amount (the money that
+        // actually moved), so the reversing ledger entry stays correct.
+        $this->assertSame(5000, (int) $cn1->amount_minor);
+        $this->assertSame(7000, (int) $cn2->amount_minor);
+
+        Carbon::setTestNow();
+    }
 }
