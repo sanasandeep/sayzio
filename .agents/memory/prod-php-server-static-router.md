@@ -41,3 +41,6 @@ static-aware router script; pointing php -S straight at `index.php` will silentl
 serve all assets as HTML. The `URL::forceScheme('https')` fix in
 AppServiceProvider is complementary (ensures asset URLs are https, avoiding
 mixed-content blocks) but was NOT the cause here.
+
+## Post-fix single-browser "still broken" = client cache, not a server regression
+After the php -S static-router fix, if ONE browser still shows the unstyled page while others render fine AND `curl` proves the prod assets return correct `text/css`/`application/javascript` MIME + full byte length + identical output across UAs (no UA sniffing, no CSP, no service worker, no crossorigin), the cause is that browser's LOCAL state (HTTP cache or a content blocker), NOT the server. Modern Safari (e.g. 26.x) fully supports Tailwind v4's oklch/color-mix/@property, so a version-incompat theory is wrong there. Decisive one-shot diagnostic: open the page in a Safari Private Window (disables cache + extensions) — if it renders correctly, the fix is confirmed working and the user just needs to clear website data. Do NOT re-debug server.php / MIME / build output in that case.
