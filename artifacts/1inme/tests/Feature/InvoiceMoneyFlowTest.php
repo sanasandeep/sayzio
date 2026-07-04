@@ -1017,4 +1017,123 @@ class InvoiceMoneyFlowTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    // ------------------------------------------------------------------
+    // Atomicity of the refund transaction (survive a mid-refund crash)
+    //
+    // ClientInvoiceService::refund() writes a Refund row, mints a CreditNote
+    // (bumping the shared per-FY `invoice_counters` "CN" sequence), and
+    // downgrades the invoice status — all inside ONE DB transaction. If the
+    // credit-note mint fails partway (a DB error / UNIQUE violation), the
+    // whole thing MUST roll back atomically. A partial commit here would be
+    // silent money/accounting corruption: a refund with no credit note, a
+    // consumed counter seq with no document, or an invoice stuck in the
+    // wrong status.
+    // ------------------------------------------------------------------
+
+    public function test_refund_rolls_back_wholesale_when_credit_note_mint_fails(): void
+    {
+        $u   = $this->user();
+        $ws  = $this->bind($u);
+        $svc = app(ClientInvoiceService::class);
+
+        Carbon::setTestNow(Carbon::create(2025, 6, 15, 12));
+        $fy = InvoiceService::financialYearFor(now());
+
+        // Prime the collision with a REAL DB error rather than a mock: a first
+        // refund mints CN/<fy>/00001, then we rewind the shared CN counter to
+        // 0 so the NEXT mint re-requests 00001 and slams into the
+        // credit_notes.number UNIQUE constraint mid-transaction — exactly the
+        // kind of failure a mid-refund crash produces (see CreditNoteService).
+        $primer = $this->paidInvoice($ws, $u, 5000);
+        $svc->refund($primer->fresh(), 0, 'primer');
+        $this->assertSame(1, CreditNote::count());
+        DB::table('invoice_counters')
+            ->where('financial_year', $fy)->where('prefix', 'CN')
+            ->update(['last_seq' => 0]);
+
+        // The invoice we'll try (and fail) to refund.
+        $inv = $this->paidInvoice($ws, $u, 12000);
+
+        // Snapshot everything the refund transaction would touch.
+        $refundsBefore     = Refund::count();
+        $creditNotesBefore = CreditNote::count();
+        $statusBefore      = $inv->status; // 'paid'
+        $paidBefore        = (int) $inv->amount_paid_minor;
+        $counterBefore     = (int) DB::table('invoice_counters')
+            ->where('financial_year', $fy)->where('prefix', 'CN')->value('last_seq'); // 0
+
+        // The credit-note mint blows up on the UNIQUE violation...
+        try {
+            $svc->refund($inv->fresh(), 5000, 'will-fail');
+            $this->fail('Expected the credit-note mint to throw on the UNIQUE violation.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            // expected — the mint failed mid-transaction.
+        }
+
+        // ...and the WHOLE refund transaction rolled back: nothing persisted.
+        $inv->refresh();
+        $this->assertSame($refundsBefore, Refund::count(), 'No Refund row may survive a failed mint.');
+        $this->assertSame($creditNotesBefore, CreditNote::count(), 'No CreditNote may survive a failed mint.');
+        $this->assertSame('paid', $inv->status, 'Invoice status must stay paid.');
+        $this->assertSame($statusBefore, $inv->status);
+        $this->assertSame($paidBefore, (int) $inv->amount_paid_minor, 'amount_paid_minor must be untouched.');
+        $this->assertSame(0, $inv->refundedTotalMinor(), 'No refunded balance may be recorded.');
+
+        // The consumed counter seq is NOT left advanced — no orphan gap.
+        $this->assertSame(
+            $counterBefore,
+            (int) DB::table('invoice_counters')
+                ->where('financial_year', $fy)->where('prefix', 'CN')->value('last_seq'),
+            'The CN counter must NOT be left advanced by a failed mint.'
+        );
+
+        // And the whole thing still works once the collision is cleared —
+        // proving the failure left no poisoned state behind.
+        DB::table('credit_notes')->where('number', sprintf('CN/%s/00001', $fy))->delete();
+        $good = $svc->refund($inv->fresh(), 5000, 'retry');
+        $this->assertSame('succeeded', $good->status);
+        $this->assertSame(1, CreditNote::where('refund_id', $good->id)->count());
+        $this->assertSame('partially_refunded', $inv->fresh()->status);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_refund_commits_status_transition_and_counter_bump_together(): void
+    {
+        $u   = $this->user();
+        $ws  = $this->bind($u);
+        $svc = app(ClientInvoiceService::class);
+
+        Carbon::setTestNow(Carbon::create(2025, 6, 15, 12));
+        $fy = InvoiceService::financialYearFor(now());
+
+        $inv = $this->paidInvoice($ws, $u, 12000);
+
+        $counterBefore = (int) (DB::table('invoice_counters')
+            ->where('financial_year', $fy)->where('prefix', 'CN')->value('last_seq') ?? 0);
+        $this->assertSame('paid', $inv->status);
+
+        $refund = $svc->refund($inv->fresh(), 5000, 'partial');
+
+        // The status transition, the balance, the Refund + CreditNote rows,
+        // and the counter bump all landed together (all-or-nothing).
+        $inv->refresh();
+        $this->assertSame('partially_refunded', $inv->status);
+        $this->assertSame(5000, $inv->refundedTotalMinor());
+        $this->assertSame(7000, (int) $inv->amount_paid_minor);
+        $this->assertSame(1, Refund::where('invoice_id', $inv->id)->count());
+
+        $cn = CreditNote::where('refund_id', $refund->id)->firstOrFail();
+
+        // The CN counter advanced by exactly one, in lockstep with the status
+        // flip and the minted document — the counter bump and the state
+        // transition are one atomic unit, not two independent writes.
+        $counterAfter = (int) DB::table('invoice_counters')
+            ->where('financial_year', $fy)->where('prefix', 'CN')->value('last_seq');
+        $this->assertSame($counterBefore + 1, $counterAfter, 'The CN counter must advance by exactly one.');
+        $this->assertSame($counterAfter, (int) $cn->seq, 'The minted CN seq matches the advanced counter.');
+
+        Carbon::setTestNow();
+    }
 }
