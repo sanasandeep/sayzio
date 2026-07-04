@@ -82,6 +82,12 @@ export default function ContactsScreen() {
           headerRight: () => (
             <View style={{ flexDirection: "row", gap: 14, paddingRight: 12 }}>
               <Pressable
+                onPress={() => router.push("/contacts/follow-ups")}
+                hitSlop={8}
+              >
+                <Feather name="bell" size={19} color={colors.primary} />
+              </Pressable>
+              <Pressable
                 onPress={() => router.push("/contacts/google-sync")}
                 hitSlop={8}
               >

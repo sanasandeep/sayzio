@@ -786,6 +786,7 @@ Route::prefix('v1')->group(function () {
 
         // Contacts
         Route::get   ('/contacts',                  [ContactController::class, 'index']);
+        Route::get   ('/contacts/follow-ups',       [ContactController::class, 'followUps']);
         Route::post  ('/contacts',                  [ContactController::class, 'store'])->middleware('throttle:120,1');
         Route::post  ('/contacts/validate',         [ContactController::class, 'validateCandidate'])->middleware('throttle:120,1');
         Route::post  ('/contacts/bulk',             [ContactController::class, 'bulkImport']);

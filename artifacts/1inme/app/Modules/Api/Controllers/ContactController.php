@@ -69,6 +69,29 @@ class ContactController extends Controller
     }
 
     /**
+     * Consolidated follow-ups list for the mobile app: every contact with a
+     * scheduled follow_up_at, soonest-first, split into overdue vs upcoming so
+     * users see everything to act on without opening each contact.
+     */
+    public function followUps(Request $request)
+    {
+        $contacts = Contact::with(['phones', 'emails'])
+            ->where('user_id', $request->user()->id)
+            ->whereNotNull('follow_up_at')
+            ->orderBy('follow_up_at')
+            ->get();
+
+        $now = now();
+
+        return $this->ok([
+            'overdue'  => $contacts->filter(fn ($c) => $c->follow_up_at->lte($now))
+                ->map(fn ($c) => $this->transform($c))->values()->all(),
+            'upcoming' => $contacts->filter(fn ($c) => $c->follow_up_at->gt($now))
+                ->map(fn ($c) => $this->transform($c))->values()->all(),
+        ]);
+    }
+
+    /**
      * Plan-based contacts usage gauge, mirrors the web index banner so the
      * mobile app can warn the user before the create/import flow blocks them.
      */

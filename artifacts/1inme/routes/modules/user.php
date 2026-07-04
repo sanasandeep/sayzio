@@ -1277,6 +1277,10 @@ Route::prefix('user')->name('user.')->group(function () {
         // `settings.edit` so non-admin members can't see or modify the
         // workspace's address book.
         Route::get('contacts',                              [ContactController::class, 'index'])->middleware(['workspace.can:settings.view', 'contacts.sync-on-open'])->name('contacts.index');
+        // Consolidated "everything I need to follow up on" list. Must be
+        // registered before the contacts/{contact} wildcard below so the
+        // literal "follow-ups" segment isn't captured as a contact id.
+        Route::get('contacts/follow-ups',                   [ContactController::class, 'followUps'])->middleware('workspace.can:settings.view')->name('contacts.follow-ups');
         Route::get('contacts/create',                       [ContactController::class, 'create'])->middleware('workspace.can:settings.edit')->name('contacts.create');
         Route::post('contacts',                             [ContactController::class, 'store'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max', CheckPlanLimit::class . ':leads'])->name('contacts.store');
         Route::get('contacts/import',                       [ContactController::class, 'importForm'])->middleware('workspace.can:settings.edit')->name('contacts.import');

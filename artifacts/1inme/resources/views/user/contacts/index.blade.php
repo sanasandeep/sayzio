@@ -92,9 +92,12 @@
                 <a href="{{ route('user.contacts.import') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition mb-2" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.25)">
                     <i class="fas fa-file-import mr-1"></i> Import CSV / vCard
                 </a>
-                <a href="{{ route('user.contacts.scan.create') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition" style="background:rgba(236,72,153,.12);color:#ec4899;border:1px solid rgba(236,72,153,.25)">
+                <a href="{{ route('user.contacts.scan.create') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition mb-2" style="background:rgba(236,72,153,.12);color:#ec4899;border:1px solid rgba(236,72,153,.25)">
                     <i class="fas fa-camera mr-1"></i> Scan card / brochure
                     <span class="ml-1 text-[10px] uppercase tracking-wide opacity-70">AI</span>
+                </a>
+                <a href="{{ route('user.contacts.follow-ups') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition" style="background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)">
+                    <i class="fas fa-bell mr-1"></i> Follow-ups
                 </a>
             </div>
         </div>

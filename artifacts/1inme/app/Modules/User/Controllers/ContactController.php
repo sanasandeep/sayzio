@@ -89,6 +89,28 @@ class ContactController extends Controller
         return view('user.contacts.index', compact('contacts', 'tab', 'search', 'googleAccount', 'stats', 'usage', 'activeImport'));
     }
 
+    /**
+     * Consolidated follow-ups list: every contact with a scheduled
+     * follow_up_at, soonest-first, split into overdue vs upcoming so users
+     * can see everything they need to act on without opening each contact.
+     */
+    public function followUps(Request $request)
+    {
+        $user = $request->user();
+
+        $contacts = Contact::where('user_id', $user->id)
+            ->whereNotNull('follow_up_at')
+            ->with(['phones', 'emails'])
+            ->orderBy('follow_up_at')
+            ->get();
+
+        $now = now();
+        $overdue  = $contacts->filter(fn ($c) => $c->follow_up_at->lte($now))->values();
+        $upcoming = $contacts->filter(fn ($c) => $c->follow_up_at->gt($now))->values();
+
+        return view('user.contacts.follow-ups', compact('overdue', 'upcoming'));
+    }
+
     public function create(Request $request)
     {
         return view('user.contacts.create', [

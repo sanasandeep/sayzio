@@ -69,6 +69,21 @@ export async function listContacts(q?: string): Promise<{
   return { items: res.data.items, total: res.data.meta.total, usage: res.data.usage };
 }
 
+/**
+ * Consolidated follow-ups list: contacts with a scheduled `follow_up_at`,
+ * soonest-first, split into overdue (due already) and upcoming. Lets the
+ * user see everything to act on without opening each contact.
+ */
+export async function listFollowUps(): Promise<{
+  overdue: Contact[];
+  upcoming: Contact[];
+}> {
+  const res = await apiFetch<{
+    data: { overdue: Contact[]; upcoming: Contact[] };
+  }>(`/contacts/follow-ups`);
+  return { overdue: res.data.overdue, upcoming: res.data.upcoming };
+}
+
 export async function getContact(id: number): Promise<Contact> {
   const res = await apiFetch<{ data: { contact: Contact } }>(`/contacts/${id}`);
   return res.data.contact;
