@@ -19,6 +19,12 @@ class Invoice extends Model
         // Invoicing & accounting suite extensions:
         'billing_company_id', 'recurring_invoice_id', 'inbox_thread_id',
         'amount_paid_minor', 'paid_method',
+        // Contact/lead recipients + letterhead override (Task #3522):
+        'contact_id', 'recipient_name', 'recipient_address',
+        'letterhead_path', 'letterhead_orientation',
+        'letterhead_margin_top', 'letterhead_margin_right',
+        'letterhead_margin_bottom', 'letterhead_margin_left',
+        'letterhead_width', 'letterhead_height',
     ];
 
     protected function casts(): array
@@ -38,6 +44,13 @@ class Invoice extends Model
             'due_date'                 => 'date',
             'sent_at'                  => 'datetime',
             'amount_paid_minor'        => 'integer',
+            'contact_id'               => 'integer',
+            'letterhead_margin_top'    => 'integer',
+            'letterhead_margin_right'  => 'integer',
+            'letterhead_margin_bottom' => 'integer',
+            'letterhead_margin_left'   => 'integer',
+            'letterhead_width'         => 'integer',
+            'letterhead_height'        => 'integer',
         ];
     }
 
@@ -160,6 +173,17 @@ class Invoice extends Model
     public function vaultClient()
     {
         return $this->belongsTo(\App\Modules\User\Models\VaultClient::class, 'vault_client_id');
+    }
+
+    public function contact()
+    {
+        return $this->belongsTo(\App\Modules\User\Models\Contact::class, 'contact_id');
+    }
+
+    /** Whether this invoice has its own letterhead override (vs. inheriting the company's). */
+    public function hasLetterheadOverride(): bool
+    {
+        return (bool) $this->letterhead_path;
     }
 
     public function workspace()

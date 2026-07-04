@@ -4,6 +4,9 @@
     $lines = is_array($invoice->line_items) ? $invoice->line_items : [];
     $taxRows = is_array($invoice->tax_breakdown) ? $invoice->tax_breakdown : [];
     $refunded = (int) $invoice->refundedTotalMinor();
+    $letterhead = $letterhead ?? ['image_data_uri' => null, 'margins' => ['top' => 0, 'right' => 0, 'bottom' => 0, 'left' => 0]];
+    $lm = $letterhead['margins'] ?? ['top' => 0, 'right' => 0, 'bottom' => 0, 'left' => 0];
+    $pageMargin = sprintf('%dmm %dmm %dmm %dmm', 32 + (int) ($lm['top'] ?? 0), 36 + (int) ($lm['right'] ?? 0), 32 + (int) ($lm['bottom'] ?? 0), 36 + (int) ($lm['left'] ?? 0));
 @endphp
 <!DOCTYPE html>
 <html>
@@ -11,7 +14,14 @@
     <meta charset="utf-8">
     <title>Receipt {{ $receipt->number }}</title>
     <style>
-        @page { margin: 32px 36px; }
+        @page {
+            margin: {{ $pageMargin }};
+            @if(!empty($letterhead['image_data_uri']))
+            background-image: url('{{ $letterhead['image_data_uri'] }}');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            @endif
+        }
         * { box-sizing: border-box; }
         body { font-family: 'DejaVu Sans', sans-serif; color: #1f2430; font-size: 11px; line-height: 1.5; }
         .head { width: 100%; margin-bottom: 24px; }
@@ -80,7 +90,10 @@
             </td>
             <td>
                 <p class="section-label">Billed to</p>
-                <div>{{ $invoice->recipient_email ?: '—' }}</div>
+                @if($invoice->recipient_name)
+                    <div><strong>{{ $invoice->recipient_name }}</strong></div>
+                @endif
+                <div>{{ $invoice->recipient_email ?: ($invoice->recipient_name ? '' : '—') }}</div>
             </td>
             <td>
                 <p class="section-label">Reference</p>

@@ -185,7 +185,10 @@ class ClientInvoiceService
             $invoice->forceFill(array_filter([
                 'billing_company_id' => $company?->id,
                 'vault_client_id'    => $data['vault_client_id'] ?? null,
+                'contact_id'         => $data['contact_id'] ?? null,
                 'recipient_email'    => $data['recipient_email'] ?? null,
+                'recipient_name'     => $data['recipient_name'] ?? null,
+                'recipient_address'  => $data['recipient_address'] ?? null,
                 'due_date'           => $data['due_date'] ?? null,
                 'notes_md'           => $data['notes_md'] ?? null,
                 'inbox_thread_id'    => $data['inbox_thread_id'] ?? null,
@@ -245,6 +248,25 @@ class ClientInvoiceService
         // the receipt; the specific $method (bank_transfer/cash/card/other) is
         // preserved as the gateway label, and $reference as the gateway ref.
         return $this->markPaid($invoice, $method ?: 'manual', $reference, true);
+    }
+
+    /**
+     * Create a standalone receipt (no separate invoice-first workflow needed)
+     * against a Contact/lead or a VaultClient. Builds a fully-paid client
+     * invoice from the given line items and immediately generates its
+     * receipt, reusing the same numbering + PDF pipeline as a normal
+     * invoice payment — so a creator who was paid off-platform (cash,
+     * bank transfer, etc.) can hand over a proper receipt without first
+     * drafting and sending an invoice.
+     */
+    public function createStandaloneReceipt(array $data, Workspace $ws, int $userId): Invoice
+    {
+        $invoice = $this->createStandalone($data, $ws, $userId);
+        return $this->markPaidManual(
+            $invoice,
+            $data['method'] ?? 'manual',
+            $data['reference'] ?? null
+        );
     }
 
     /**

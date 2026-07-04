@@ -39,7 +39,7 @@ class ClientInvoicePdfRenderer
         $cacheKey = sprintf('client_invoice_pdf:%d:%s', $invoice->id, $version);
 
         $body = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($invoice) {
-            return $this->toPdf($this->invoiceHtml($invoice));
+            return $this->toPdf($this->invoiceHtml($invoice), $this->resolveLetterhead($invoice)['orientation']);
         });
 
         return [
@@ -58,8 +58,9 @@ class ClientInvoicePdfRenderer
     public function invoiceHtml(Invoice $invoice): string
     {
         return view('user.client_invoices.pdf', [
-            'invoice' => $invoice,
-            'brand'   => $this->resolveBrand($invoice),
+            'invoice'    => $invoice,
+            'brand'      => $this->resolveBrand($invoice),
+            'letterhead' => $this->resolveLetterhead($invoice),
         ])->render();
     }
 
@@ -72,7 +73,7 @@ class ClientInvoicePdfRenderer
         $cacheKey = sprintf('client_receipt_pdf:%d:%s', $receipt->id, substr(sha1($version), 0, 12));
 
         $body = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($invoice, $receipt) {
-            return $this->toPdf($this->receiptHtml($invoice, $receipt));
+            return $this->toPdf($this->receiptHtml($invoice, $receipt), $this->resolveLetterhead($invoice)['orientation']);
         });
 
         return [
@@ -89,13 +90,14 @@ class ClientInvoicePdfRenderer
     public function receiptHtml(Invoice $invoice, Receipt $receipt): string
     {
         return view('user.client_invoices.receipt-pdf', [
-            'invoice' => $invoice,
-            'receipt' => $receipt,
-            'brand'   => $this->resolveBrand($invoice),
+            'invoice'    => $invoice,
+            'receipt'    => $receipt,
+            'brand'      => $this->resolveBrand($invoice),
+            'letterhead' => $this->resolveLetterhead($invoice),
         ])->render();
     }
 
-    private function toPdf(string $html): string
+    private function toPdf(string $html, string $orientation = 'portrait'): string
     {
         $options = new Options();
         $options->set('isRemoteEnabled', false);
@@ -104,10 +106,47 @@ class ClientInvoicePdfRenderer
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html, 'UTF-8');
-        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->setPaper('A4', $orientation === 'landscape' ? 'landscape' : 'portrait');
         $dompdf->render();
 
         return (string) $dompdf->output();
+    }
+
+    /**
+     * Resolve the effective letterhead for a document: a per-invoice override
+     * wins, else the issuing BillingCompany's default. Returns a flat shape
+     * the print views drop straight into an `@page` background + margin
+     * rules: image_data_uri, orientation, margins (mm, defaulting to 0 so an
+     * unconfigured letterhead never clips content), and pixel dimensions
+     * (used to preserve aspect ratio when scaling the background to the
+     * page).
+     */
+    private function resolveLetterhead(Invoice $invoice): array
+    {
+        $company = $invoice->billing_company_id ? BillingCompany::find($invoice->billing_company_id) : null;
+
+        $path        = $invoice->letterhead_path ?: $company?->letterhead_path;
+        $orientation = $invoice->letterhead_orientation ?: ($company?->letterhead_orientation ?: 'portrait');
+
+        // Margins fall back field-by-field: an invoice-level letterhead
+        // override doesn't necessarily set its own margins (the create/edit
+        // forms only let you override the image), so a null invoice margin
+        // must inherit the issuing company's configured safe area rather
+        // than collapsing to 0 and letting content collide with the artwork.
+        $margins = [
+            'top'    => (int) ($invoice->letterhead_margin_top    ?? $company?->letterhead_margin_top    ?? 0),
+            'right'  => (int) ($invoice->letterhead_margin_right  ?? $company?->letterhead_margin_right  ?? 0),
+            'bottom' => (int) ($invoice->letterhead_margin_bottom ?? $company?->letterhead_margin_bottom ?? 0),
+            'left'   => (int) ($invoice->letterhead_margin_left   ?? $company?->letterhead_margin_left   ?? 0),
+        ];
+
+        return [
+            'image_data_uri' => $path ? $this->logoDataUri($path) : null,
+            'orientation'    => $orientation === 'landscape' ? 'landscape' : 'portrait',
+            'margins'        => $margins,
+            'width'          => $invoice->letterhead_width  ?? $company?->letterhead_width  ?? null,
+            'height'         => $invoice->letterhead_height ?? $company?->letterhead_height ?? null,
+        ];
     }
 
     /**

@@ -7,9 +7,17 @@
             <h1 class="hero-title">Client Invoices</h1>
             <p class="hero-subtitle">Invoices generated from your kanban cards.</p>
         </div>
-        <a href="{{ route('user.tasks.index') }}" class="px-3 py-2 rounded-lg text-sm font-semibold border" style="border-color: var(--border-strong); color: var(--text-primary);">
-            <i class="fas fa-columns mr-1"></i> Boards
-        </a>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('user.client-invoices.receipts.create') }}" class="px-3 py-2 rounded-lg text-sm font-semibold border" style="border-color: var(--border-strong); color: var(--text-primary);">
+                <i class="fas fa-receipt mr-1"></i> New Receipt
+            </a>
+            <a href="{{ route('user.client-invoices.create') }}" class="px-3 py-2 rounded-lg text-sm font-semibold border" style="border-color: var(--border-strong); color: var(--text-primary);">
+                <i class="fas fa-file-invoice mr-1"></i> New Invoice
+            </a>
+            <a href="{{ route('user.tasks.index') }}" class="px-3 py-2 rounded-lg text-sm font-semibold border" style="border-color: var(--border-strong); color: var(--text-primary);">
+                <i class="fas fa-columns mr-1"></i> Boards
+            </a>
+        </div>
     </div>
 
     @if(session('success'))<div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>@endif

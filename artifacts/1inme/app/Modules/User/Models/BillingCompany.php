@@ -22,6 +22,11 @@ class BillingCompany extends Model
         // never mass-assigned — see CompanyMailSettings / the controller).
         'smtp_enabled', 'smtp_host', 'smtp_port', 'smtp_encryption',
         'smtp_username', 'smtp_from_address', 'smtp_from_name',
+        // Default letterhead (PDF background), overridable per invoice (Task #3522):
+        'letterhead_path', 'letterhead_orientation',
+        'letterhead_margin_top', 'letterhead_margin_right',
+        'letterhead_margin_bottom', 'letterhead_margin_left',
+        'letterhead_width', 'letterhead_height',
     ];
 
     protected $hidden = [
@@ -36,6 +41,12 @@ class BillingCompany extends Model
             'smtp_enabled'        => 'boolean',
             'smtp_port'           => 'integer',
             'smtp_verified_at'    => 'datetime',
+            'letterhead_margin_top'    => 'integer',
+            'letterhead_margin_right'  => 'integer',
+            'letterhead_margin_bottom' => 'integer',
+            'letterhead_margin_left'   => 'integer',
+            'letterhead_width'         => 'integer',
+            'letterhead_height'        => 'integer',
         ];
     }
 
@@ -116,5 +127,11 @@ class BillingCompany extends Model
             ])),
             'currency'  => $this->default_currency,
         ];
+    }
+
+    /** True when this company has a default letterhead configured. */
+    public function hasLetterhead(): bool
+    {
+        return (bool) $this->letterhead_path;
     }
 }

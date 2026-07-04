@@ -1073,6 +1073,7 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/billing/invoices',         [BillingController::class, 'invoices']);
         Route::get   ('/billing/invoices/{id}',    [BillingController::class, 'showInvoice'])->whereNumber('id');
         Route::post  ('/billing/invoices',         [BillingController::class, 'storeInvoice']);
+        Route::post  ('/billing/receipts',         [BillingController::class, 'storeReceipt']);
         Route::patch ('/billing/invoices/{id}',    [BillingController::class, 'updateInvoice'])->whereNumber('id');
         Route::delete('/billing/invoices/{id}',    [BillingController::class, 'destroyInvoice'])->whereNumber('id');
         Route::post  ('/billing/invoices/{id}/send', [BillingController::class, 'sendInvoice'])->whereNumber('id')->middleware('throttle:30,1');

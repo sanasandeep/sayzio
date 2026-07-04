@@ -54,7 +54,7 @@
         </div>
     @endif
 
-    <form action="{{ route('user.client-invoices.update', $invoice) }}" method="POST" class="space-y-6">
+    <form action="{{ route('user.client-invoices.update', $invoice) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
         @csrf @method('PUT')
 
         @php
@@ -83,6 +83,14 @@
                         @endforeach
                     </select>
                 </label>
+                <label class="text-xs" style="color: var(--text-muted);">Contact / lead
+                    <select name="contact_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
+                        <option value="">— None —</option>
+                        @foreach($contacts as $ct)
+                            <option value="{{ $ct->id }}" @selected((int) old('contact_id', $invoice->contact_id) === $ct->id)>{{ $ct->nameForDisplay() }}</option>
+                        @endforeach
+                    </select>
+                </label>
                 <label class="text-xs" style="color: var(--text-muted);" x-show="clientEmails.length > 0" x-cloak>
                     Contact email on file
                     <select @change="if ($event.target.value) email = $event.target.value"
@@ -98,6 +106,41 @@
                     <input type="email" name="recipient_email" x-model="email"
                            class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
                 </label>
+                <label class="text-xs" style="color: var(--text-muted);">Recipient name
+                    <input name="recipient_name" value="{{ old('recipient_name', $invoice->recipient_name) }}"
+                           class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
+                </label>
+                <label class="block md:col-span-3 text-xs" style="color: var(--text-muted);">Recipient address
+                    <textarea name="recipient_address" rows="2"
+                              class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">{{ old('recipient_address', $invoice->recipient_address) }}</textarea>
+                </label>
+            </div>
+        </section>
+
+        <section class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
+            <h2 class="font-bold mb-1" style="color: var(--text-primary);">Letterhead override</h2>
+            <p class="text-xs mb-3" style="color: var(--text-muted);">Overrides the billing company's default letterhead for this invoice only.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                @if($invoice->letterhead_path)
+                    <img src="{{ asset('storage/' . $invoice->letterhead_path) }}" alt="Letterhead preview"
+                         class="w-16 h-20 rounded-xl object-cover bg-white p-1" style="border: 1px solid var(--border-soft);">
+                @endif
+                <label class="text-xs" style="color: var(--text-muted);">Letterhead image
+                    <input type="file" name="letterhead" accept="image/png,image/jpeg,image/webp" class="block w-full mt-1 p-2 rounded-lg border text-xs" style="background: var(--bg-glass-input);">
+                </label>
+                <label class="text-xs" style="color: var(--text-muted);">Orientation
+                    <select name="letterhead_orientation" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
+                        <option value="portrait" @selected(($invoice->letterhead_orientation ?: 'portrait') === 'portrait')>Portrait</option>
+                        <option value="landscape" @selected($invoice->letterhead_orientation === 'landscape')>Landscape</option>
+                    </select>
+                </label>
+                @if($invoice->letterhead_path)
+                    <label class="flex items-center gap-2 text-[11px]" style="color: var(--text-muted);">
+                        <input type="hidden" name="remove_letterhead" value="0">
+                        <input type="checkbox" name="remove_letterhead" value="1" class="accent-rose-500">
+                        Remove this override (fall back to the company default)
+                    </label>
+                @endif
             </div>
         </section>
 

@@ -1635,6 +1635,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('drafts',                    [\App\Modules\User\Controllers\ClientInvoiceController::class, 'createDraft'])->middleware('workspace.can:tasks.edit')->name('draft');
             Route::get('create',                     [\App\Modules\User\Controllers\ClientInvoiceController::class, 'create'])->middleware('workspace.can:tasks.edit')->name('create');
             Route::post('/',                         [\App\Modules\User\Controllers\ClientInvoiceController::class, 'store'])->middleware('workspace.can:tasks.edit')->name('store');
+            Route::get('receipts/create',            [\App\Modules\User\Controllers\ClientInvoiceController::class, 'createReceipt'])->middleware('workspace.can:tasks.edit')->name('receipts.create');
+            Route::post('receipts',                  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'storeReceipt'])->middleware('workspace.can:tasks.edit')->name('receipts.store');
             Route::get('{invoice}',                  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'edit'])->name('edit');
             Route::put('{invoice}',                  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'update'])->middleware('workspace.can:tasks.edit')->name('update');
             Route::post('{invoice}/send',            [\App\Modules\User\Controllers\ClientInvoiceController::class, 'send'])->middleware('workspace.can:tasks.edit')->name('send');

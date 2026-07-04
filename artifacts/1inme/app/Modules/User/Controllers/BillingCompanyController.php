@@ -7,6 +7,7 @@ use App\Modules\User\Models\BillingCompany;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\TaxRule;
 use App\Services\Billing\CompanyMailSettings;
+use App\Services\Billing\LetterheadValidator;
 use App\Services\Billing\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -72,11 +73,13 @@ class BillingCompanyController extends Controller
         $data = $this->validated($request);
         $this->validateSmtp($request);
         $this->validateLogo($request);
+        $this->validateLetterhead($request, $data['letterhead_orientation'] ?? 'portrait');
         $data['user_id'] = auth()->id();
         $data['workspace_id'] = optional(app('current_workspace'))->id;
         $company = DB::transaction(function () use ($data, $request) {
             $c = BillingCompany::create($data);
             $this->applyLogo($c, $request);
+            $this->applyLetterhead($c, $request);
             $this->applySmtp($c, $request);
             $this->syncDefault($c);
             return $c;
@@ -90,9 +93,11 @@ class BillingCompanyController extends Controller
         $data = $this->validated($request);
         $this->validateSmtp($request);
         $this->validateLogo($request);
+        $this->validateLetterhead($request, $data['letterhead_orientation'] ?? ($company->letterhead_orientation ?: 'portrait'));
         DB::transaction(function () use ($company, $data, $request) {
             $company->update($data);
             $this->applyLogo($company, $request);
+            $this->applyLetterhead($company, $request);
             $this->applySmtp($company, $request);
             $this->syncDefault($company);
         });
@@ -175,6 +180,11 @@ class BillingCompanyController extends Controller
             'default_tax_rule_id' => 'nullable|integer',
             'notes'               => 'nullable|string|max:2000',
             'is_default'          => 'nullable|boolean',
+            'letterhead_orientation'   => 'nullable|in:portrait,landscape',
+            'letterhead_margin_top'    => 'nullable|integer|min:0|max:60',
+            'letterhead_margin_right'  => 'nullable|integer|min:0|max:60',
+            'letterhead_margin_bottom' => 'nullable|integer|min:0|max:60',
+            'letterhead_margin_left'   => 'nullable|integer|min:0|max:60',
         ]);
     }
 
@@ -219,6 +229,49 @@ class BillingCompanyController extends Controller
             Storage::disk('public')->delete($path);
         } catch (\Throwable $e) {
             // ignore — the row no longer references it
+        }
+    }
+
+    /** Validate the optional default letterhead upload (image, size + pixel-dimension/aspect checks). */
+    protected function validateLetterhead(Request $request, string $orientation): void
+    {
+        $request->validate([
+            'letterhead'        => LetterheadValidator::rules(),
+            'remove_letterhead' => 'nullable|boolean',
+        ]);
+        if ($request->hasFile('letterhead')) {
+            $error = LetterheadValidator::validateDimensions($request->file('letterhead'), $orientation);
+            if ($error) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['letterhead' => $error]);
+            }
+        }
+    }
+
+    /**
+     * Persist (or clear) the company's default letterhead — the background
+     * image ClientInvoicePdfRenderer stamps onto every invoice/receipt PDF
+     * that doesn't have its own per-invoice override.
+     */
+    protected function applyLetterhead(BillingCompany $company, Request $request): void
+    {
+        if ($request->boolean('remove_letterhead') && $company->letterhead_path) {
+            $this->deleteLogoFile($company->letterhead_path);
+            $company->forceFill(['letterhead_path' => null, 'letterhead_width' => null, 'letterhead_height' => null])->save();
+            return;
+        }
+
+        if ($request->hasFile('letterhead')) {
+            $old = $company->letterhead_path;
+            $file = $request->file('letterhead');
+            $dims = LetterheadValidator::dimensions($file);
+            $company->forceFill([
+                'letterhead_path'   => $file->store('billing/letterheads', 'public'),
+                'letterhead_width'  => $dims['width'] ?? null,
+                'letterhead_height' => $dims['height'] ?? null,
+            ])->save();
+            if ($old) {
+                $this->deleteLogoFile($old);
+            }
         }
     }
 

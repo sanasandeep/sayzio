@@ -411,12 +411,16 @@ class BillingController extends Controller
         $data = $request->validate([
             'currency'                     => 'nullable|string|size:3',
             'recipient_email'              => 'nullable|email|max:190',
+            'recipient_name'               => 'nullable|string|max:190',
+            'recipient_address'            => 'nullable|string|max:2000',
             'vault_client_id'              => 'nullable|integer',
+            'contact_id'                   => 'nullable|integer',
             'billing_company_id'           => 'nullable|integer',
             'notes_md'                     => 'nullable|string|max:4000',
             'due_date'                     => 'nullable|date',
             'discount_minor'               => 'nullable|integer|min:0',
             'inbox_thread_id'              => 'nullable|integer',
+            'letterhead_orientation'       => 'nullable|in:portrait,landscape',
             'line_items'                   => 'nullable|array',
             'line_items.*.label'           => 'required_with:line_items|string|max:240',
             'line_items.*.amount_minor'    => 'required_with:line_items|integer|min:0',
@@ -426,15 +430,18 @@ class BillingController extends Controller
             'line_items.*.tax_inclusive'   => 'nullable|boolean',
             'line_items.*.catalog_item_id' => 'nullable|integer',
         ]);
+        $this->validateLetterhead($request, $data['letterhead_orientation'] ?? 'portrait');
 
         $user = $request->user();
         $ws   = $this->ctx->resolve($user);
         if (!$ws) return $this->fail('No active workspace.', 422);
+        $data = $this->resolveRecipient($data, $ws);
 
         // Standalone create: when line items are supplied, build a fully
         // costed invoice via the shared calculator (web/API/mobile parity).
         if (!empty($data['line_items'])) {
             $invoice = $svc->createStandalone($data, $ws, (int) $user->id);
+            $this->applyLetterhead($invoice, $request, $data['letterhead_orientation'] ?? 'portrait');
             if (($thread = (int) ($data['inbox_thread_id'] ?? 0)) && \Illuminate\Support\Facades\Schema::hasTable('inbox_thread_conversions')) {
                 DB::table('inbox_thread_conversions')->where('thread_id', $thread)->update(['invoice_id' => $invoice->id]);
             }
@@ -484,11 +491,16 @@ class BillingController extends Controller
                 'status'                   => 'draft',
                 'issued_at'                => now(),
                 'recipient_email'          => $data['recipient_email'] ?? null,
+                'recipient_name'           => $data['recipient_name'] ?? null,
+                'recipient_address'        => $data['recipient_address'] ?? null,
                 'vault_client_id'          => $data['vault_client_id'] ?? null,
+                'contact_id'               => $data['contact_id'] ?? null,
                 'notes_md'                 => $data['notes_md'] ?? null,
                 'due_date'                 => $data['due_date'] ?? null,
+                'letterhead_orientation'   => $data['letterhead_orientation'] ?? 'portrait',
             ]);
         });
+        $this->applyLetterhead($invoice, $request, $data['letterhead_orientation'] ?? 'portrait');
 
         return $this->created(['invoice' => $this->transformInvoice($invoice)]);
     }
@@ -509,8 +521,20 @@ class BillingController extends Controller
             'notes_md'                    => 'nullable|string|max:4000',
             'due_date'                    => 'nullable|date',
             'vault_client_id'             => 'nullable|integer',
+            'contact_id'                  => 'nullable|integer',
             'recipient_email'             => 'nullable|email|max:190',
+            'recipient_name'              => 'nullable|string|max:190',
+            'recipient_address'           => 'nullable|string|max:2000',
+            'letterhead_orientation'      => 'nullable|in:portrait,landscape',
+            'remove_letterhead'           => 'nullable|boolean',
         ]);
+        $this->validateLetterhead($request, $data['letterhead_orientation'] ?? ($invoice->letterhead_orientation ?: 'portrait'));
+
+        $contact = array_key_exists('contact_id', $data) && $data['contact_id']
+            ? \App\Modules\User\Models\Contact::withoutWorkspaceScope()
+                ->where('workspace_id', $invoice->workspace_id)
+                ->find($data['contact_id'])
+            : null;
 
         $invoice->forceFill([
             'discount_minor'  => (int) ($data['discount_minor'] ?? $invoice->discount_minor ?? 0),
@@ -518,7 +542,13 @@ class BillingController extends Controller
             'notes_md'        => array_key_exists('notes_md', $data) ? $data['notes_md'] : $invoice->notes_md,
             'due_date'        => array_key_exists('due_date', $data) ? $data['due_date'] : $invoice->due_date,
             'vault_client_id' => array_key_exists('vault_client_id', $data) ? $data['vault_client_id'] : $invoice->vault_client_id,
-            'recipient_email' => array_key_exists('recipient_email', $data) ? $data['recipient_email'] : $invoice->recipient_email,
+            'contact_id'      => array_key_exists('contact_id', $data) ? ($contact?->id) : $invoice->contact_id,
+            'recipient_email' => $data['recipient_email'] ?? ($contact ? optional($contact->emails()->orderByDesc('is_primary')->first())->value : $invoice->recipient_email),
+            'recipient_name'  => $data['recipient_name'] ?? ($contact ? $contact->nameForDisplay() : $invoice->recipient_name),
+            'recipient_address' => array_key_exists('recipient_address', $data)
+                ? $data['recipient_address']
+                : ($contact && is_array($contact->manual_profile) ? ($contact->manual_profile['location']['address'] ?? $invoice->recipient_address) : $invoice->recipient_address),
+            'letterhead_orientation' => $data['letterhead_orientation'] ?? $invoice->letterhead_orientation,
         ])->save();
 
         if (array_key_exists('line_items', $data)) {
@@ -533,8 +563,124 @@ class BillingController extends Controller
             }
             $svc->recalculate($invoice, $items);
         }
+        $this->applyLetterhead($invoice, $request, $data['letterhead_orientation'] ?? ($invoice->letterhead_orientation ?: 'portrait'));
 
         return $this->ok(['invoice' => $this->transformInvoice($invoice->refresh())]);
+    }
+
+    /** Standalone receipt: create + immediately mark-paid (mirrors the web flow). */
+    public function storeReceipt(Request $request, ClientInvoiceService $svc)
+    {
+        $data = $request->validate([
+            'currency'                     => 'nullable|string|size:3',
+            'recipient_email'              => 'nullable|email|max:190',
+            'recipient_name'               => 'nullable|string|max:190',
+            'recipient_address'            => 'nullable|string|max:2000',
+            'vault_client_id'              => 'nullable|integer',
+            'contact_id'                   => 'nullable|integer',
+            'billing_company_id'           => 'nullable|integer',
+            'notes_md'                     => 'nullable|string|max:4000',
+            'discount_minor'               => 'nullable|integer|min:0',
+            'method'                       => 'nullable|string|max:32',
+            'reference'                    => 'nullable|string|max:190',
+            'letterhead_orientation'       => 'nullable|in:portrait,landscape',
+            'line_items'                   => 'required|array|min:1',
+            'line_items.*.label'           => 'required|string|max:240',
+            'line_items.*.amount_minor'    => 'required|integer|min:0',
+            'line_items.*.quantity'        => 'nullable|integer|min:1|max:9999',
+            'line_items.*.tax_rate_bps'    => 'nullable|integer|min:0|max:100000',
+            'line_items.*.tax_name'        => 'nullable|string|max:64',
+            'line_items.*.tax_inclusive'   => 'nullable|boolean',
+            'line_items.*.catalog_item_id' => 'nullable|integer',
+        ]);
+        $this->validateLetterhead($request, $data['letterhead_orientation'] ?? 'portrait');
+
+        $user = $request->user();
+        $ws   = $this->ctx->resolve($user);
+        if (!$ws) return $this->fail('No active workspace.', 422);
+        $data = $this->resolveRecipient($data, $ws);
+
+        if (empty($data['vault_client_id']) && empty($data['contact_id']) && empty($data['recipient_email'])) {
+            return $this->fail('Pick a client, contact, or recipient email for the receipt.', 422);
+        }
+
+        $invoice = $svc->createStandaloneReceipt($data, $ws, (int) $user->id);
+        $this->applyLetterhead($invoice, $request, $data['letterhead_orientation'] ?? 'portrait');
+
+        return $this->created(['invoice' => $this->transformInvoice($invoice)]);
+    }
+
+    /**
+     * Fill recipient_name/email/address from the chosen Contact when not
+     * explicitly given. The Contact lookup is scoped to the caller's
+     * workspace: the stateless API path does not bind `current_workspace`,
+     * so Contact's BelongsToWorkspace global scope no-ops there and an
+     * unscoped find() would leak another tenant's contact data.
+     */
+    protected function resolveRecipient(array $data, $ws): array
+    {
+        if (empty($data['contact_id'])) {
+            return $data;
+        }
+        $contact = \App\Modules\User\Models\Contact::withoutWorkspaceScope()
+            ->where('workspace_id', $ws->id)
+            ->find($data['contact_id']);
+        if (!$contact) {
+            $data['contact_id'] = null;
+            return $data;
+        }
+        $data['recipient_name']  = $data['recipient_name']  ?? $contact->nameForDisplay();
+        $data['recipient_email'] = $data['recipient_email'] ?? optional($contact->emails()->orderByDesc('is_primary')->first())->value;
+        $data['recipient_address'] = $data['recipient_address'] ?? (is_array($contact->manual_profile) ? ($contact->manual_profile['location']['address'] ?? null) : null);
+        return $data;
+    }
+
+    /** Validate the optional per-invoice letterhead override upload. */
+    protected function validateLetterhead(Request $request, string $orientation): void
+    {
+        $request->validate([
+            'letterhead' => \App\Services\Billing\LetterheadValidator::rules(),
+        ]);
+        if ($request->hasFile('letterhead')) {
+            $error = \App\Services\Billing\LetterheadValidator::validateDimensions($request->file('letterhead'), $orientation);
+            if ($error) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['letterhead' => $error]);
+            }
+        }
+    }
+
+    /** Persist (or clear) the per-invoice letterhead override on the public disk. */
+    protected function applyLetterhead(Invoice $invoice, Request $request, string $orientation): void
+    {
+        if ($request->boolean('remove_letterhead') && $invoice->letterhead_path) {
+            $this->deleteLetterheadFile($invoice->letterhead_path);
+            $invoice->forceFill(['letterhead_path' => null, 'letterhead_width' => null, 'letterhead_height' => null])->save();
+            return;
+        }
+
+        if ($request->hasFile('letterhead')) {
+            $old = $invoice->letterhead_path;
+            $file = $request->file('letterhead');
+            $dims = \App\Services\Billing\LetterheadValidator::dimensions($file);
+            $invoice->forceFill([
+                'letterhead_path'        => $file->store('billing/letterheads', 'public'),
+                'letterhead_orientation' => $orientation,
+                'letterhead_width'       => $dims['width'] ?? null,
+                'letterhead_height'      => $dims['height'] ?? null,
+            ])->save();
+            if ($old) {
+                $this->deleteLetterheadFile($old);
+            }
+        }
+    }
+
+    private function deleteLetterheadFile(string $path): void
+    {
+        try {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
+        } catch (\Throwable $e) {
+            // ignore — the row no longer references it
+        }
     }
 
     public function destroyInvoice(Request $request, int $id)
@@ -689,7 +835,13 @@ class BillingController extends Controller
             'paid_at'           => optional($i->paid_at)->toIso8601String(),
             'due_at'            => optional($i->due_date)->toIso8601String(),
             'recipient_email'   => $i->recipient_email,
+            'recipient_name'    => $i->recipient_name,
+            'recipient_address' => $i->recipient_address,
+            'vault_client_id'   => $i->vault_client_id,
+            'contact_id'        => $i->contact_id,
             'kind'              => $i->kind,
+            'letterhead_orientation' => $i->letterhead_orientation,
+            'letterhead_url'    => $i->letterhead_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($i->letterhead_path) : null,
         ];
 
         // Mobile billing parity: expose the persistent "last send failed" state
