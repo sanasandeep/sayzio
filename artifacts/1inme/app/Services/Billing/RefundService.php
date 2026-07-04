@@ -40,6 +40,8 @@ class RefundService
         $userInitiated  = (bool) ($opts['user_initiated'] ?? false);
         $adminId        = $opts['admin_id'] ?? null;
         $downgrade      = (bool) ($opts['downgrade_on_success'] ?? true);
+        $idempotencyKey = (isset($opts['idempotency_key']) && $opts['idempotency_key'] !== '')
+            ? (string) $opts['idempotency_key'] : null;
 
         if ($amountMinor <= 0 || $amountMinor > (int) $invoice->grand_total_minor) {
             throw new \InvalidArgumentException('Refund amount out of range.');
@@ -48,15 +50,53 @@ class RefundService
             throw new \InvalidArgumentException('Cannot refund an unpaid invoice.');
         }
 
-        $refund = DB::transaction(function () use ($invoice, $amountMinor, $reason, $userInitiated, $adminId, $downgrade) {
+        // Idempotency: a double-click, impatient retry, or webhook re-delivery
+        // must NOT create two Refund rows (and, once confirmed, two credit
+        // notes) for the same intended refund. Two guards prevent that, both
+        // under the invoice row lock so concurrent attempts serialize and see
+        // each other's committed writes rather than both passing the checks.
+        // Mirrors the client-invoice fix in ClientInvoiceService::refund().
+        [$refund, $isDuplicate] = DB::transaction(function () use ($invoice, $amountMinor, $reason, $userInitiated, $adminId, $downgrade, $idempotencyKey) {
             $locked = Invoice::whereKey($invoice->id)->lockForUpdate()->firstOrFail();
+
+            // Guard 1: explicit idempotency key -> return the original refund
+            // untouched (backed by the UNIQUE (invoice_id, idempotency_key)
+            // index as a race backstop; Postgres treats NULL keys as distinct
+            // so legacy/unkeyed refunds are unaffected).
+            if ($idempotencyKey !== null) {
+                $prior = Refund::where('invoice_id', $locked->id)
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->first();
+                if ($prior) return [$prior, true];
+            }
+
+            // Guard 2: no explicit key (e.g. a plain web double-submit) -> a
+            // short dedupe window collapses an identical (same amount + reason
+            // + initiator) refund still pending or succeeded into a no-op that
+            // returns the prior refund. Offline refunds sit in 'pending' until
+            // an admin confirms, so both states must be matched here.
+            if ($idempotencyKey === null) {
+                $window = (int) config('billing.refund.dedupe_seconds', 10);
+                if ($window > 0) {
+                    $dupe = Refund::where('invoice_id', $locked->id)
+                        ->whereIn('status', ['pending', 'succeeded'])
+                        ->where('amount_minor', $amountMinor)
+                        ->where('user_initiated', $userInitiated)
+                        ->where('reason', $reason)
+                        ->where('created_at', '>=', now()->subSeconds($window))
+                        ->latest('id')
+                        ->first();
+                    if ($dupe) return [$dupe, true];
+                }
+            }
+
             $already = (int) Refund::where('invoice_id', $locked->id)
                 ->whereIn('status', ['pending', 'succeeded'])
                 ->sum('amount_minor');
             if ($already + $amountMinor > (int) $locked->grand_total_minor) {
                 throw new \InvalidArgumentException('Refund would exceed invoice total.');
             }
-            return Refund::create([
+            return [Refund::create([
                 'invoice_id'           => $invoice->id,
                 'user_id'              => $invoice->user_id,
                 'amount_minor'         => $amountMinor,
@@ -67,8 +107,16 @@ class RefundService
                 'created_by_admin_id'  => $adminId,
                 'user_initiated'       => $userInitiated,
                 'downgrade_on_success' => $downgrade,
-            ]);
+                'idempotency_key'      => $idempotencyKey,
+            ]), false];
         });
+
+        // A duplicate returns the original refund as-is: never re-run the
+        // gateway adapter (which would issue a second real refund) or the
+        // post-success pipeline for it.
+        if ($isDuplicate) {
+            return $refund->fresh();
+        }
 
         try {
             $adapter = $this->gateways->for($refund->gateway);

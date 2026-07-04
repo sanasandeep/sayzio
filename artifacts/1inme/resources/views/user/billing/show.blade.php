@@ -128,6 +128,8 @@
             @if (in_array($inv->id, $refundableInvoices))
               <form method="POST" action="{{ route('user.billing.refund', $inv) }}" class="d-inline ms-2"
                     onsubmit="return window.themedConfirmSubmit(this, {title: 'Refund and downgrade to Free?', message: 'Your subscription will be refunded and the workspace will move to the Free plan.', confirmText: 'Refund &amp; downgrade', confirmIcon: 'fa-money-bill-wave', iconClass: 'fa-money-bill-wave'})">@csrf
+                {{-- Stable per-render key so a double-click / retried submit is a no-op instead of a second refund. --}}
+                <input type="hidden" name="idempotency_key" value="refund-{{ $inv->id }}-{{ \Illuminate\Support\Str::uuid() }}">
                 <button class="btn btn-link btn-sm text-danger p-0">Refund &amp; downgrade</button>
               </form>
             @elseif ($inv->status === 'paid' && $inv->paid_at)

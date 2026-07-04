@@ -31,5 +31,15 @@ a second Refund AND a second CreditNote (the reversing ledger entry via
 any new refund path must go through this service, not mint either row directly.
 Note `refunds` also has a separate UNIQUE `(gateway, gateway_ref)`.
 
-Out of scope: subscription refunds go through a different `RefundService` (User-module
-`BillingController::refundInvoice`), not this service.
+Subscription refunds go through a SEPARATE `RefundService::issue()` (web
+`User\BillingController::refundInvoice` + admin `Admin\RefundController::store`),
+not `ClientInvoiceService`. It now carries the SAME two-guard shape (explicit
+`opts['idempotency_key']` returning the prior Refund via the shared UNIQUE
+`(invoice_id, idempotency_key)` index, plus the `billing.refund.dedupe_seconds`
+window) inside its existing invoice row lock. Difference vs client-invoice: the
+dedupe window matches refunds in status IN ('pending','succeeded') because
+offline/manual refunds sit in `pending` until an admin `confirmManual()`s them —
+matching only 'succeeded' would miss a double-click on an offline refund. On a
+duplicate hit `issue()` returns the original refund WITHOUT re-running the gateway
+adapter or the post-success pipeline. Web form passes a stable per-render hidden
+`idempotency_key`; controller also honours the `Idempotency-Key` header.

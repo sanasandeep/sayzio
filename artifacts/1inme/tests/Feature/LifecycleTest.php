@@ -286,6 +286,74 @@ class LifecycleTest extends TestCase
         app(RefundService::class)->issue($invoice, $total - $first + 1, []);
     }
 
+    public function test_duplicate_subscription_refund_within_dedupe_window_is_a_noop(): void
+    {
+        config()->set('billing.refund.dedupe_seconds', 10);
+        $this->makeFreePlan();
+        $user = $this->makeUser();
+        $plan = $this->makePlan('pro', 9.99);
+        GatewaySetting::where('gateway_slug', 'offline')->update(['is_enabled' => true]);
+        $this->payPlanInvoice($user, $plan);
+        $invoice = Invoice::where('user_id', $user->id)->where('status', 'paid')->latest()->first();
+        $invoice->forceFill(['gateway' => 'offline'])->save();
+
+        // A double-click: two identical refunds with no explicit key. The
+        // second must collapse to the first instead of creating a second row.
+        $opts = ['user_initiated' => true, 'downgrade_on_success' => true];
+        $r1 = app(RefundService::class)->issue($invoice, (int) $invoice->grand_total_minor, $opts);
+        $r2 = app(RefundService::class)->issue($invoice, (int) $invoice->grand_total_minor, $opts);
+
+        $this->assertSame($r1->id, $r2->id, 'duplicate submit returns the original refund');
+        $this->assertSame(1, Refund::where('invoice_id', $invoice->id)->count(), 'only one refund created');
+    }
+
+    public function test_duplicate_subscription_refund_with_same_idempotency_key_is_a_noop(): void
+    {
+        // Disable the time window so only the explicit key can dedupe here.
+        config()->set('billing.refund.dedupe_seconds', 0);
+        $this->makeFreePlan();
+        $user = $this->makeUser();
+        $plan = $this->makePlan('pro', 9.99);
+        GatewaySetting::where('gateway_slug', 'offline')->update(['is_enabled' => true]);
+        $this->payPlanInvoice($user, $plan);
+        $invoice = Invoice::where('user_id', $user->id)->where('status', 'paid')->latest()->first();
+        $invoice->forceFill(['gateway' => 'offline'])->save();
+
+        $opts = ['user_initiated' => true, 'downgrade_on_success' => true, 'idempotency_key' => 'sub-refund-1'];
+        $r1 = app(RefundService::class)->issue($invoice, (int) $invoice->grand_total_minor, $opts);
+        $r2 = app(RefundService::class)->issue($invoice, (int) $invoice->grand_total_minor, $opts);
+
+        $this->assertSame($r1->id, $r2->id, 'same idempotency key returns the original refund');
+        $this->assertSame('sub-refund-1', $r1->fresh()->idempotency_key);
+        $this->assertSame(1, Refund::where('invoice_id', $invoice->id)->count(), 'only one refund created');
+    }
+
+    public function test_duplicate_full_refund_via_web_endpoint_creates_one_refund(): void
+    {
+        config()->set('billing.refund.dedupe_seconds', 10);
+        $free = $this->makeFreePlan();
+        $user = $this->makeUser();
+        $plan = $this->makePlan('pro', 9.99, 7, 7);
+        GatewaySetting::where('gateway_slug', 'offline')->update(['is_enabled' => true]);
+        $this->payPlanInvoice($user, $plan);
+        $invoice = Invoice::where('user_id', $user->id)->where('status', 'paid')->latest()->first();
+        $invoice->forceFill(['gateway' => 'offline', 'paid_at' => now()])->save();
+
+        // Same hidden idempotency key from one rendered form, submitted twice.
+        $payload = ['idempotency_key' => 'web-refund-' . $invoice->id];
+        $this->actingAs($user)
+            ->post(route('user.billing.refund', $invoice), $payload)
+            ->assertRedirect();
+        $this->actingAs($user)
+            ->post(route('user.billing.refund', $invoice), $payload)
+            ->assertRedirect();
+
+        $this->assertSame(1, Refund::where('invoice_id', $invoice->id)->count(), 'double-submit created one refund');
+        $refunded = (int) Refund::where('invoice_id', $invoice->id)
+            ->whereIn('status', ['pending', 'succeeded'])->sum('amount_minor');
+        $this->assertSame((int) $invoice->grand_total_minor, $refunded, 'not over-refunded');
+    }
+
     public function test_unpaid_offline_renewal_transitions_to_past_due_past_period_end(): void
     {
         $this->makeFreePlan();

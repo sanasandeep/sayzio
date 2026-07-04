@@ -323,11 +323,17 @@ class BillingController extends Controller
         if (Carbon::parse($invoice->paid_at)->addDays($window)->isPast()) {
             return back()->with('error', 'The refund window for this invoice has closed. Please contact support.');
         }
+        // Accept an idempotency key from a hidden form field or the standard
+        // Idempotency-Key header so a double-click / retried POST is a no-op
+        // that returns the original refund; the service also has a short
+        // dedupe window as a backstop when no key is supplied.
+        $idem = $request->input('idempotency_key') ?: $request->header('Idempotency-Key');
         try {
             $refund = $refunds->issue($invoice, (int) $invoice->grand_total_minor, [
                 'reason'         => 'Self-serve refund within policy window',
                 'user_initiated' => true,
                 'downgrade_on_success' => true,
+                'idempotency_key' => $idem ? (string) $idem : null,
             ]);
         } catch (\Throwable $e) {
             return back()->with('error', 'Refund could not be issued: ' . $e->getMessage());
