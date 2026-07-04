@@ -1,0 +1,262 @@
+{{-- Task #3525 — "Customize dashboard" chooser: 5 curated presets or
+     "Design with AI". Preset apply + AI estimate/generate all hit the
+     dashboard.layout.* / dashboard.ai.* JSON endpoints; on success we
+     just reload so every server-rendered tab/widget picks up the new
+     layout — no client-side re-render of the whole page. --}}
+<div x-data="dashboardCustomizer()"
+     x-show="open"
+     x-cloak
+     @open-dashboard-customize.window="openModal()"
+     @keydown.escape.window="close()"
+     class="fixed inset-0 z-[999] flex items-center justify-center p-4"
+     style="background: rgba(8,10,20,0.72); backdrop-filter: blur(4px);">
+    <div @click.outside="close()"
+         class="w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl"
+         style="background: var(--bg-glass-card, #14162a); border: 1px solid var(--border-glass); box-shadow: 0 24px 64px -12px rgba(0,0,0,0.55);">
+
+        {{-- Header --}}
+        <div class="flex items-center justify-between px-6 py-4" style="border-bottom: 1px solid var(--border-subtle);">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
+                    <i class="fas fa-sliders text-blue-400 text-xs"></i>
+                </div>
+                <h2 class="text-sm font-bold" style="color: var(--text-primary);">Customize dashboard</h2>
+            </div>
+            <button type="button" @click="close()" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" style="color: var(--text-faint);">
+                <i class="fas fa-times text-sm"></i>
+            </button>
+        </div>
+
+        <div class="p-6">
+            {{-- ===== STEP: picker (presets + AI entry point) ===== --}}
+            <template x-if="step === 'picker'">
+                <div>
+                    <p class="text-xs mb-4" style="color: var(--text-faint);">Pick a preset view, or let AI design one around what matters to you. You can switch back anytime.</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        @foreach($dashboardPresets as $preset)
+                        <button type="button"
+                                @click="applyPreset('{{ $preset['key'] }}')"
+                                :disabled="busy"
+                                class="text-left p-4 rounded-xl transition-all group disabled:opacity-50"
+                                style="background: var(--bg-glass-input); border: 1px solid var(--border-subtle);"
+                                :style="currentPreset === '{{ $preset['key'] }}' && !isCustom ? 'border-color: rgba(61,107,255,0.5); box-shadow: 0 0 0 1px rgba(61,107,255,0.3);' : ''">
+                            <div class="flex items-center gap-2.5 mb-2">
+                                <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
+                                    <i class="fas {{ $preset['icon'] }} text-blue-400 text-xs"></i>
+                                </div>
+                                <span class="text-xs font-bold" style="color: var(--text-primary);">{{ $preset['label'] }}</span>
+                                <i x-show="currentPreset === '{{ $preset['key'] }}' && !isCustom" class="fas fa-circle-check text-blue-400 text-xs ml-auto"></i>
+                            </div>
+                            <p class="text-[11px] leading-relaxed" style="color: var(--text-faint);">{{ $preset['description'] }}</p>
+                        </button>
+                        @endforeach
+                    </div>
+
+                    <div class="pt-4" style="border-top: 1px solid var(--border-subtle);">
+                        @if($dashboardAiAllowed)
+                        <button type="button" @click="step = 'ai-form'" :disabled="busy"
+                                class="w-full flex items-center gap-3 p-4 rounded-xl transition-all disabled:opacity-50"
+                                style="background: linear-gradient(135deg, rgba(61,107,255,0.12), rgba(124,58,237,0.10)); border: 1px solid rgba(61,107,255,0.25);">
+                            <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.15);">
+                                <i class="fas fa-wand-magic-sparkles text-blue-300"></i>
+                            </div>
+                            <div class="text-left">
+                                <p class="text-xs font-bold" style="color: var(--text-primary);">Design with AI</p>
+                                <p class="text-[11px]" style="color: var(--text-faint);">Describe your goal, AI picks the widgets that matter — charged from your coin wallet.</p>
+                            </div>
+                            <i class="fas fa-chevron-right text-[10px] ml-auto" style="color: var(--text-faint);"></i>
+                        </button>
+                        @else
+                        <div class="p-4 rounded-xl text-center" style="background: var(--bg-glass-input); border: 1px solid var(--border-subtle);">
+                            <p class="text-[11px]" style="color: var(--text-faint);">
+                                <i class="fas fa-wand-magic-sparkles mr-1"></i>
+                                "Design with AI" isn't available on your current plan.
+                            </p>
+                        </div>
+                        @endif
+                    </div>
+
+                    <p x-show="errorMsg" x-text="errorMsg" class="text-[11px] text-red-400 mt-3"></p>
+                </div>
+            </template>
+
+            {{-- ===== STEP: AI questionnaire ===== --}}
+            <template x-if="step === 'ai-form'">
+                <div>
+                    <button type="button" @click="step = 'picker'; errorMsg = ''" class="text-[11px] mb-4 inline-flex items-center gap-1.5" style="color: var(--text-faint);">
+                        <i class="fas fa-arrow-left text-[9px]"></i> Back
+                    </button>
+
+                    <label class="block text-[11px] font-semibold mb-1.5" style="color: var(--text-muted);">What should your dashboard focus on?</label>
+                    <textarea x-model="answers.goal" rows="2" maxlength="800" placeholder="e.g. I want to keep an eye on my growth and how my content is performing"
+                              class="w-full rounded-xl px-3 py-2.5 text-xs mb-3" style="background: var(--bg-glass-input); border: 1px solid var(--border-subtle); color: var(--text-primary);"></textarea>
+
+                    <label class="block text-[11px] font-semibold mb-1.5" style="color: var(--text-muted);">Anything else you'd prioritize? (optional)</label>
+                    <input type="text" x-model="priorityInput" @keydown.enter.prevent="addPriority()" placeholder="Type a priority and press Enter"
+                           class="w-full rounded-xl px-3 py-2.5 text-xs mb-2" style="background: var(--bg-glass-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                    <div class="flex flex-wrap gap-1.5 mb-3" x-show="answers.priorities.length">
+                        <template x-for="(p, idx) in answers.priorities" :key="idx">
+                            <span class="badge inline-flex items-center gap-1.5" style="background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border-subtle);">
+                                <span x-text="p"></span>
+                                <i class="fas fa-times text-[8px] cursor-pointer" @click="answers.priorities.splice(idx, 1)"></i>
+                            </span>
+                        </template>
+                    </div>
+
+                    <label class="block text-[11px] font-semibold mb-1.5" style="color: var(--text-muted);">Density</label>
+                    <div class="flex gap-2 mb-4">
+                        <template x-for="opt in ['minimal', 'balanced', 'detailed']" :key="opt">
+                            <button type="button" @click="answers.density = opt"
+                                    class="flex-1 text-[11px] font-semibold py-2 rounded-lg capitalize transition-all"
+                                    :style="answers.density === opt ? 'background: linear-gradient(135deg, #3d6bff, #5c83ff); color: #fff;' : 'background: var(--bg-glass-input); color: var(--text-muted); border: 1px solid var(--border-subtle);'"
+                                    x-text="opt"></button>
+                        </template>
+                    </div>
+
+                    <p x-show="errorMsg" x-text="errorMsg" class="text-[11px] text-red-400 mb-3"></p>
+
+                    <button type="button" @click="estimate()" :disabled="busy || answers.goal.trim().length < 5"
+                            class="w-full py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                            style="background: linear-gradient(135deg, #3d6bff, #5c83ff); color: #fff;">
+                        <span x-show="!busy"><i class="fas fa-wand-magic-sparkles mr-1.5"></i> Preview cost</span>
+                        <span x-show="busy"><i class="fas fa-spinner fa-spin mr-1.5"></i> Estimating&hellip;</span>
+                    </button>
+                </div>
+            </template>
+
+            {{-- ===== STEP: AI confirm cost ===== --}}
+            <template x-if="step === 'ai-confirm'">
+                <div>
+                    <button type="button" @click="step = 'ai-form'; errorMsg = ''" class="text-[11px] mb-4 inline-flex items-center gap-1.5" style="color: var(--text-faint);">
+                        <i class="fas fa-arrow-left text-[9px]"></i> Back
+                    </button>
+                    <div class="p-4 rounded-xl mb-4 text-center" style="background: var(--bg-glass-input); border: 1px solid var(--border-subtle);">
+                        <p class="text-[11px] mb-1" style="color: var(--text-faint);">This will cost</p>
+                        <p class="text-2xl font-bold" style="color: var(--text-primary);"><span x-text="estimatedCredits"></span> <span class="text-blue-300 text-sm">coins</span></p>
+                        <p class="text-[11px] mt-1" style="color: var(--text-faint);">Wallet balance: <span x-text="balance"></span> coins</p>
+                    </div>
+                    <p x-show="errorMsg" x-text="errorMsg" class="text-[11px] text-red-400 mb-3"></p>
+                    <button type="button" @click="generate()" :disabled="busy"
+                            class="w-full py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                            style="background: linear-gradient(135deg, #3d6bff, #5c83ff); color: #fff;">
+                        <span x-show="!busy"><i class="fas fa-check mr-1.5"></i> Design my dashboard</span>
+                        <span x-show="busy"><i class="fas fa-spinner fa-spin mr-1.5"></i> Designing&hellip;</span>
+                    </button>
+                </div>
+            </template>
+
+            {{-- ===== STEP: AI result ===== --}}
+            <template x-if="step === 'ai-result'">
+                <div class="text-center py-4">
+                    <div class="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: rgba(61,107,255,0.12);">
+                        <i class="fas fa-check text-blue-300 text-xl"></i>
+                    </div>
+                    <p class="text-sm font-bold mb-1" style="color: var(--text-primary);">Your dashboard is ready</p>
+                    <p class="text-[11px] mb-4" style="color: var(--text-faint);">Reloading with your new layout&hellip;</p>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+    function dashboardCustomizer() {
+        return {
+            open: false,
+            busy: false,
+            step: 'picker',
+            errorMsg: '',
+            currentPreset: @json($dashboardCurrentPreset),
+            isCustom: @json($dashboardIsCustom),
+            estimatedCredits: 0,
+            balance: 0,
+            priorityInput: '',
+            answers: { goal: '', priorities: [], density: 'balanced', notes: '' },
+
+            openModal() {
+                this.open = true;
+                this.step = 'picker';
+                this.errorMsg = '';
+            },
+            close() {
+                this.open = false;
+            },
+            addPriority() {
+                const v = this.priorityInput.trim();
+                if (v && this.answers.priorities.length < 10) {
+                    this.answers.priorities.push(v);
+                }
+                this.priorityInput = '';
+            },
+            csrf() {
+                return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            },
+            async postJson(url, body) {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': this.csrf(),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify(body || {}),
+                });
+                let data = {};
+                try { data = await res.json(); } catch (e) {}
+                if (!res.ok) {
+                    const err = new Error(data.message || 'Something went wrong.');
+                    err.data = data;
+                    throw err;
+                }
+                return data;
+            },
+            async applyPreset(key) {
+                this.busy = true;
+                this.errorMsg = '';
+                try {
+                    await this.postJson('{{ route('user.dashboard.layout.preset') }}', { preset: key });
+                    window.location.reload();
+                } catch (e) {
+                    this.errorMsg = e.message;
+                    this.busy = false;
+                }
+            },
+            async estimate() {
+                this.busy = true;
+                this.errorMsg = '';
+                try {
+                    const data = await this.postJson('{{ route('user.dashboard.ai.estimate') }}', this.answers);
+                    this.estimatedCredits = data.estimated_credits;
+                    this.balance = data.balance;
+                    this.step = 'ai-confirm';
+                } catch (e) {
+                    this.errorMsg = e.message;
+                } finally {
+                    this.busy = false;
+                }
+            },
+            async generate() {
+                this.busy = true;
+                this.errorMsg = '';
+                try {
+                    await this.postJson('{{ route('user.dashboard.ai.generate') }}', this.answers);
+                    this.step = 'ai-result';
+                    setTimeout(() => window.location.reload(), 900);
+                } catch (e) {
+                    if (e.data && e.data.required) {
+                        this.errorMsg = `${e.message} You need ${e.data.required} coins (balance: ${e.data.balance}).`;
+                    } else {
+                        this.errorMsg = e.message;
+                    }
+                    this.step = 'ai-confirm';
+                } finally {
+                    this.busy = false;
+                }
+            },
+        };
+    }
+</script>
+@endpush

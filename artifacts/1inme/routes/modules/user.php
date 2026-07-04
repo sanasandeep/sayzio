@@ -228,6 +228,11 @@ Route::prefix('user')->name('user.')->group(function () {
             ->name('security.logins.revoke-from-list');
         Route::get('dashboard', [DashboardController::class, 'index'])->middleware(['onboarding.gate', 'contacts.sync-on-open'])->name('dashboard');
 
+        // Task #3525 — "Customize dashboard": preset picker + AI designer.
+        Route::post('dashboard/layout/preset', [\App\Modules\User\Controllers\DashboardLayoutController::class, 'applyPreset'])->name('dashboard.layout.preset');
+        Route::post('dashboard/ai/estimate', [\App\Modules\User\Controllers\DashboardLayoutController::class, 'estimate'])->middleware('throttle:30,1')->name('dashboard.ai.estimate');
+        Route::post('dashboard/ai/generate', [\App\Modules\User\Controllers\DashboardLayoutController::class, 'generate'])->middleware('throttle:10,1')->name('dashboard.ai.generate');
+
         // ---- Personal 2FA enrollment ----
         Route::get   ('settings/security',            [\App\Modules\User\Controllers\TwoFactorController::class, 'show'])
             ->name('account.two-factor.show');

@@ -174,6 +174,10 @@ function RootLayoutNav() {
       <Stack.Screen name="whatsapp-verify" options={{ title: "Verify WhatsApp" }} />
       <Stack.Screen name="identifiers" options={{ title: "Linked emails & phones" }} />
       <Stack.Screen name="coming-soon" options={{ title: "Coming soon" }} />
+      <Stack.Screen
+        name="dashboard-customize"
+        options={{ title: "Customize dashboard" }}
+      />
     </Stack>
   );
 }

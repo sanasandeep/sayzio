@@ -188,21 +188,30 @@
         }">
 
         {{-- Dashboard view tabs — split the long scroll into calmer, focused views. --}}
-        <div class="dash-tabs mb-6" role="tablist" aria-label="Dashboard views">
-            <button type="button" role="tab"
-                    @click="tab = 'overview'" :aria-selected="tab === 'overview' ? 'true' : 'false'"
-                    class="dash-tab" :class="tab === 'overview' ? 'dash-tab-active' : ''">
-                <i class="fas fa-gauge-high text-[11px]"></i> Overview
-            </button>
-            <button type="button" role="tab"
-                    @click="tab = 'traffic'" :aria-selected="tab === 'traffic' ? 'true' : 'false'"
-                    class="dash-tab" :class="tab === 'traffic' ? 'dash-tab-active' : ''">
-                <i class="fas fa-chart-pie text-[11px]"></i> Traffic
-            </button>
-            <button type="button" role="tab"
-                    @click="tab = 'growth'" :aria-selected="tab === 'growth' ? 'true' : 'false'"
-                    class="dash-tab" :class="tab === 'growth' ? 'dash-tab-active' : ''">
-                <i class="fas fa-arrow-trend-up text-[11px]"></i> Growth
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <div class="dash-tabs" role="tablist" aria-label="Dashboard views">
+                <button type="button" role="tab"
+                        @click="tab = 'overview'" :aria-selected="tab === 'overview' ? 'true' : 'false'"
+                        class="dash-tab" :class="tab === 'overview' ? 'dash-tab-active' : ''">
+                    <i class="fas fa-gauge-high text-[11px]"></i> Overview
+                </button>
+                @if($dashboardTabs['traffic'] ?? true)
+                <button type="button" role="tab"
+                        @click="tab = 'traffic'" :aria-selected="tab === 'traffic' ? 'true' : 'false'"
+                        class="dash-tab" :class="tab === 'traffic' ? 'dash-tab-active' : ''">
+                    <i class="fas fa-chart-pie text-[11px]"></i> Traffic
+                </button>
+                @endif
+                @if($dashboardTabs['growth'] ?? true)
+                <button type="button" role="tab"
+                        @click="tab = 'growth'" :aria-selected="tab === 'growth' ? 'true' : 'false'"
+                        class="dash-tab" :class="tab === 'growth' ? 'dash-tab-active' : ''">
+                    <i class="fas fa-arrow-trend-up text-[11px]"></i> Growth
+                </button>
+                @endif
+            </div>
+            <button type="button" @click="$dispatch('open-dashboard-customize')" class="btn-ghost text-xs py-2">
+                <i class="fas fa-sliders text-[10px]"></i> Customize dashboard
             </button>
         </div>
 
@@ -212,6 +221,7 @@
             {{-- Metric bento: one tall feature tile (Total Clicks) + four regular tiles. --}}
             <div class="bento mb-5">
                 {{-- Total Clicks — tall feature tile --}}
+                @if(in_array('stat_total_clicks', $dashboardWidgets))
                 <div class="bento-tile accent b-feat justify-between p-6" style="--tile-accent: linear-gradient(90deg, #3b82f6, #90acff); --tile-glow: rgba(59,130,246,0.20);">
                     <span class="tile-orb"></span>
                     <div class="flex items-center justify-between">
@@ -227,8 +237,10 @@
                         </p>
                     </div>
                 </div>
+                @endif
 
                 {{-- Today --}}
+                @if(in_array('stat_today', $dashboardWidgets))
                 <div class="bento-tile accent b-2 justify-between p-5" style="--tile-accent: linear-gradient(90deg, #f59e0b, #fbbf24); --tile-glow: rgba(245,158,11,0.18);">
                     <span class="tile-orb"></span>
                     <div class="flex items-center justify-between">
@@ -239,8 +251,10 @@
                     </div>
                     <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ number_format($clicksToday) }}</p>
                 </div>
+                @endif
 
                 {{-- Plan --}}
+                @if(in_array('stat_plan', $dashboardWidgets))
                 <a href="{{ route('user.upgrade') }}" class="bento-tile accent b-2 justify-between p-5 group" style="--tile-accent: linear-gradient(90deg, #5c83ff, #90acff); --tile-glow: rgba(61,107,255,0.16);">
                     <span class="tile-orb"></span>
                     <div class="flex items-center justify-between">
@@ -256,8 +270,10 @@
                         @endif
                     </div>
                 </a>
+                @endif
 
                 {{-- Links --}}
+                @if(in_array('stat_links', $dashboardWidgets))
                 <div class="bento-tile accent b-2 justify-between p-5" style="--tile-accent: linear-gradient(90deg, #10b981, #34d399); --tile-glow: rgba(16,185,129,0.18);">
                     <span class="tile-orb"></span>
                     <div class="flex items-center justify-between">
@@ -268,8 +284,10 @@
                     </div>
                     <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ $totalLinks }}</p>
                 </div>
+                @endif
 
                 {{-- Projects --}}
+                @if(in_array('stat_projects', $dashboardWidgets))
                 <div class="bento-tile accent b-2 justify-between p-5" style="--tile-accent: linear-gradient(90deg, #22d3ee, #67e8f9); --tile-glow: rgba(34,211,238,0.18);">
                     <span class="tile-orb"></span>
                     <div class="flex items-center justify-between">
@@ -280,11 +298,13 @@
                     </div>
                     <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ $totalProjects }}</p>
                 </div>
+                @endif
             </div>
 
             {{-- Content bento: wide+tall Recent Links + Quick Actions + Plan detail. --}}
             <div class="bento">
                 {{-- Recent Links (wide, tall) --}}
+                @if(in_array('recent_links', $dashboardWidgets))
                 <div class="bento-tile b-4-tall">
                     <div class="flex items-center justify-between px-5 py-4" style="border-bottom: 1px solid var(--border-subtle);">
                         <div class="flex items-center gap-2.5">
@@ -440,8 +460,10 @@
                     </div>
                     @endif
                 </div>
+                @endif
 
                 {{-- Quick Actions --}}
+                @if(in_array('quick_actions', $dashboardWidgets))
                 <div class="bento-tile b-2 p-5">
                     <div class="flex items-center gap-2.5 mb-4">
                         <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
@@ -487,8 +509,10 @@
                         </a>
                     </div>
                 </div>
+                @endif
 
                 {{-- Your Plan detail --}}
+                @if(in_array('plan_detail', $dashboardWidgets))
                 <div class="bento-tile b-2 p-5">
                     <div class="flex items-center gap-2.5 mb-4">
                         <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
@@ -517,17 +541,20 @@
                         </div>
                     </div>
                 </div>
+                @endif
             </div>
         </div>
         {{-- /OVERVIEW TAB --}}
 
         {{-- ===================== TRAFFIC TAB ===================== --}}
+        @if($dashboardTabs['traffic'] ?? true)
         <div x-show="tab === 'traffic'" x-cloak role="tabpanel">
         {{-- ===================== WORKSPACE-WIDE CHANNEL BREAKDOWN =====================
              Rolls every link's click log up into a single "what share of my traffic
              comes from in-app webviews vs real browsers vs bots" view. The pills
              below double as a workspace-wide channel filter (?channel=…) that
              narrows the click-derived tiles above. --}}
+        @if(in_array('traffic_channels', $dashboardWidgets))
         <div class="bento">
             <div class="bento-tile b-6">
                 <div class="flex items-center justify-between px-5 py-4" style="border-bottom: 1px solid var(--border-subtle);">
@@ -590,15 +617,19 @@
                 </div>
             </div>
         </div>
+        @endif
         </div>
+        @endif
         {{-- /TRAFFIC TAB --}}
 
         {{-- ===================== GROWTH TAB ===================== --}}
+        @if($dashboardTabs['growth'] ?? true)
         <div x-show="tab === 'growth'" x-cloak role="tabpanel">
         <div class="bento">
             {{-- Backlink radar at-a-glance: how many new pages around the web have
                  linked back to one of this creator's properties in the last 7 days.
                  Click-through opens the full Backlinks dashboard page. --}}
+            @if(in_array('backlinks', $dashboardWidgets))
             <a href="{{ route('user.backlinks.index', ['days' => 7]) }}" class="bento-tile accent {{ \App\Services\AI\AiEngineSettings::isEnabled() ? 'b-3' : 'b-6' }} p-5 hover:border-cyan-500/40" style="--tile-accent: linear-gradient(90deg, #22d3ee, #67e8f9); --tile-glow: rgba(34,211,238,0.18);">
                 <span class="tile-orb"></span>
                 <div class="flex items-center justify-between">
@@ -621,10 +652,11 @@
                     </div>
                 </div>
             </a>
+            @endif
 
             {{-- Coin balance at-a-glance card (only visible when the AI engine is
                  on, since AI usage is now charged straight from the coin wallet). --}}
-            @if(\App\Services\AI\AiEngineSettings::isEnabled())
+            @if(in_array('coin_balance', $dashboardWidgets) && \App\Services\AI\AiEngineSettings::isEnabled())
                 @php
                     $aiCoins = app(\App\Services\Billing\WalletService::class)->getBalance($user);
                 @endphp
@@ -654,8 +686,11 @@
             @endif
         </div>
         </div>
+        @endif
         {{-- /GROWTH TAB --}}
 
     </div>
+
+    @include('user.dashboard.customize-modal')
 </div>
 @endsection

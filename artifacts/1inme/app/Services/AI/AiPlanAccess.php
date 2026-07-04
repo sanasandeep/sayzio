@@ -207,6 +207,10 @@ class AiPlanAccess
             'ai_staff_contacts'  => !$user->isOnFreePlan(),
             'ai_staff_inbox'     => !$user->isOnFreePlan(),
             'ai_staff_general'   => !$user->isOnFreePlan(),
+            // AI Dashboard Designer (Task #3525) — a paid-plan perk that
+            // drives metered AI spend. Until plans carry the explicit key,
+            // gate it to any non-free plan so free accounts can't run it.
+            'dashboard_designer' => !$user->isOnFreePlan(),
             default              => true,
         };
     }

@@ -686,6 +686,12 @@ Route::prefix('v1')->group(function () {
         // Dashboard summary (mobile home tab)
         Route::get ('/dashboard',                      [DashboardController::class, 'index']);
 
+        // Task #3525 — dashboard widget catalog/presets + AI designer parity.
+        Route::get ('/dashboard/layout',                [\App\Modules\Api\Controllers\DashboardLayoutController::class, 'show']);
+        Route::post('/dashboard/layout/preset',          [\App\Modules\Api\Controllers\DashboardLayoutController::class, 'applyPreset']);
+        Route::post('/dashboard/ai/estimate',            [\App\Modules\Api\Controllers\DashboardLayoutController::class, 'estimate'])->middleware('throttle:30,1');
+        Route::post('/dashboard/ai/generate',            [\App\Modules\Api\Controllers\DashboardLayoutController::class, 'generate'])->middleware('throttle:10,1');
+
         // Notifications
         Route::get ('/notifications',                  [NotificationController::class, 'index']);
         Route::post('/notifications/read-all',         [NotificationController::class, 'markAllRead']);

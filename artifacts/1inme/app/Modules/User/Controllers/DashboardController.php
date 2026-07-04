@@ -6,6 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\ChannelClassifier;
 use App\Modules\User\Models\Backlink;
 use App\Modules\User\Models\LinkClick;
+use App\Modules\User\Support\DashboardPresets;
+use App\Modules\User\Support\DashboardWidgetCatalog;
+use App\Services\AI\AiPlanAccess;
+use App\Services\AI\DashboardAiDesignerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -103,11 +107,26 @@ class DashboardController extends Controller
         $showWhatsappPrompt = !$whatsappPromptSnoozed && !$user->hasWhatsappNumber();
         $whatsappChannelUrl = trim((string) \App\Modules\Admin\Models\AppSetting::get('marketing_whatsapp_channel_url', ''));
 
+        // Task #3525 — resolve the user's chosen widget layout (default =
+        // every widget, i.e. today's exact page) plus the picker payload for
+        // the "Customize dashboard" modal.
+        $layout = DashboardPresets::resolveFor($user);
+        $dashboardWidgets = $layout['widgets'];
+        $dashboardTabs = DashboardWidgetCatalog::tabVisibility($dashboardWidgets);
+        $dashboardCurrentPreset = $layout['preset'];
+        $dashboardIsCustom = $layout['is_custom'];
+        $dashboardCatalog = DashboardWidgetCatalog::forFrontend();
+        $dashboardPresets = DashboardPresets::forFrontend();
+        $dashboardAiAllowed = AiPlanAccess::featureAllowed($user, DashboardAiDesignerService::FEATURE);
+
         return view('user.dashboard.index', compact(
             'user', 'totalLinks', 'totalClicks', 'totalProjects',
             'activeLinks', 'recentLinks', 'clicksToday',
             'channelStats', 'channelFilter', 'backlinksThisWeek',
-            'showWhatsappPrompt', 'whatsappChannelUrl'
+            'showWhatsappPrompt', 'whatsappChannelUrl',
+            'dashboardWidgets', 'dashboardTabs', 'dashboardCurrentPreset',
+            'dashboardIsCustom', 'dashboardCatalog', 'dashboardPresets',
+            'dashboardAiAllowed'
         ));
     }
 }

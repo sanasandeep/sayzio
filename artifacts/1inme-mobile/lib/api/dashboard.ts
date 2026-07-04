@@ -20,3 +20,95 @@ export async function getDashboard(): Promise<Dashboard> {
   const res = await apiFetch<{ data: Dashboard }>(`/dashboard`);
   return res.data;
 }
+
+// Mobile parity for the web "Customize dashboard" flow (Task #3525) —
+// App\Modules\Api\Controllers\DashboardLayoutController. Same widget
+// catalog, presets, and AI designer service as web; no drift possible since
+// both surfaces delegate to the shared Support/Service classes.
+
+export type DashboardWidget = {
+  key: string;
+  label: string;
+  description: string;
+  tab: string;
+};
+
+export type DashboardPreset = {
+  key: string;
+  label: string;
+  description: string;
+  widgets: string[];
+};
+
+export type DashboardLayoutState = {
+  catalog: DashboardWidget[];
+  presets: DashboardPreset[];
+  current: {
+    preset: string | null;
+    is_custom: boolean;
+    widgets: string[];
+    source: string;
+  };
+  ai_designer_allowed: boolean;
+  ai_enabled: boolean;
+};
+
+export type DashboardAiAnswers = {
+  goal: string;
+  priorities?: string[];
+  density?: "minimal" | "balanced" | "detailed";
+  notes?: string;
+};
+
+export type DashboardAiEstimate = {
+  estimated_credits: number;
+  balance: number;
+};
+
+export type DashboardAiResult = {
+  widgets: string[];
+  credits_spent: number;
+  balance: number;
+};
+
+export type DashboardPresetResult = {
+  preset: string;
+  widgets: string[];
+};
+
+export async function getDashboardLayout(): Promise<DashboardLayoutState> {
+  const res = await apiFetch<{ data: DashboardLayoutState }>(
+    `/dashboard/layout`,
+  );
+  return res.data;
+}
+
+export async function applyDashboardPreset(
+  preset: string,
+): Promise<DashboardPresetResult> {
+  const res = await apiFetch<{ data: DashboardPresetResult }>(
+    `/dashboard/layout/preset`,
+    { method: "POST", body: JSON.stringify({ preset }) },
+  );
+  return res.data;
+}
+
+export async function estimateDashboardAiDesign(
+  answers: DashboardAiAnswers,
+): Promise<DashboardAiEstimate> {
+  const res = await apiFetch<{ data: DashboardAiEstimate }>(
+    `/dashboard/ai/estimate`,
+    { method: "POST", body: JSON.stringify(answers) },
+  );
+  return res.data;
+}
+
+export async function generateDashboardAiDesign(
+  answers: DashboardAiAnswers,
+): Promise<DashboardAiResult> {
+  const res = await apiFetch<{ data: DashboardAiResult }>(
+    `/dashboard/ai/generate`,
+    { method: "POST", body: JSON.stringify(answers) },
+  );
+  return res.data;
+}
