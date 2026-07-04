@@ -29,6 +29,9 @@ class AiMindFeatureAdapter
         'inbox'       => 'Inbox',
         'social'      => 'Social Connections',
         'profile'     => 'Profile',
+        // Task #3523 — grounding for AI Staff's billing & contacts domains.
+        'billing'     => 'Billing & Invoices',
+        'contacts'    => 'Contacts & Leads',
     ];
 
     /**
@@ -86,6 +89,8 @@ class AiMindFeatureAdapter
             'inbox'     => $this->inbox($user),
             'social'    => $this->social($user),
             'profile'   => $this->profile($user),
+            'billing'   => $this->billing($user),
+            'contacts'  => $this->contacts($user),
             default     => '',
         };
     }
@@ -337,6 +342,81 @@ class AiMindFeatureAdapter
         } catch (\Throwable $e) {
             return '';
         }
+    }
+
+    /**
+     * Billing snapshot for AI Staff's billing domain: open/unpaid/overdue
+     * client invoice counts plus a short list of the most pressing overdue
+     * ones (number, client, amount, due date). Deliberately excludes
+     * recipient emails / notes — the model doesn't need them to draft or
+     * chase invoices, only their identifiers and amounts.
+     */
+    protected function billing(User $user): string
+    {
+        $invoices = \App\Modules\User\Models\Invoice::query()
+            ->where('user_id', $user->id)
+            ->where('kind', 'client')
+            ->get(['id', 'number', 'status', 'grand_total_minor', 'amount_paid_minor', 'currency', 'due_date', 'sent_at', 'vault_client_id']);
+
+        if ($invoices->isEmpty()) {
+            return 'You have no client invoices yet.';
+        }
+
+        $unpaid = $invoices->filter(fn ($i) => !in_array($i->status, ['paid', 'refunded', 'partially_refunded'], true));
+        $overdue = $unpaid->filter(fn ($i) => $i->due_date && $i->due_date->isPast());
+
+        $lines = [sprintf(
+            'Client invoices — %d total, %d unpaid, %d overdue:',
+            $invoices->count(), $unpaid->count(), $overdue->count()
+        )];
+
+        $clientNames = \App\Modules\User\Models\VaultClient::query()
+            ->whereIn('id', $overdue->pluck('vault_client_id')->filter()->unique())
+            ->pluck('name', 'id');
+
+        foreach ($overdue->sortBy('due_date')->take(5) as $inv) {
+            $balance = max(0, (int) $inv->grand_total_minor - (int) $inv->amount_paid_minor);
+            $lines[] = sprintf(
+                '- %s — %s owed by %s, due %s (%s)',
+                $inv->number,
+                number_format($balance / 100, 2) . ' ' . strtoupper((string) $inv->currency),
+                $clientNames[$inv->vault_client_id] ?? 'unknown client',
+                $inv->due_date?->format('M j, Y') ?? '—',
+                $inv->sent_at ? 'sent' : 'not yet sent'
+            );
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Contacts snapshot for AI Staff's contacts domain: a count plus a
+     * sample of name/organization/tags for the most recently touched
+     * contacts. Deliberately excludes emails/phones (PII-avoidance
+     * pattern used elsewhere in this file, e.g. vault()/inbox()).
+     */
+    protected function contacts(User $user): string
+    {
+        $contacts = \App\Modules\User\Models\Contact::query()
+            ->where('user_id', $user->id)
+            ->latest('updated_at')
+            ->limit(15)
+            ->get(['id', 'display_name', 'given_name', 'family_name', 'organization', 'tags']);
+
+        if ($contacts->isEmpty()) {
+            return 'You have no contacts yet.';
+        }
+
+        $total = \App\Modules\User\Models\Contact::query()->where('user_id', $user->id)->count();
+        $lines = ["Contacts — {$total} total (most recently touched):"];
+        foreach ($contacts as $c) {
+            $name = $c->nameForDisplay();
+            $org = $c->organization ? " ({$c->organization})" : '';
+            $tags = !empty($c->tags) ? ' [' . implode(', ', (array) $c->tags) . ']' : '';
+            $lines[] = "- {$name}{$org}{$tags}";
+        }
+
+        return implode("\n", $lines);
     }
 
     protected function profile(User $user): string

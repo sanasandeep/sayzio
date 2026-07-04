@@ -1079,6 +1079,22 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post  ('marketing-strategist/suggestions/{suggestion}/apply',   [\App\Modules\User\Controllers\AI\MarketingStrategistController::class, 'applySuggestion'])->whereNumber('suggestion')->middleware('throttle:30,1')->name('marketing-strategist.suggestions.apply');
             Route::post  ('marketing-strategist/suggestions/{suggestion}/dismiss', [\App\Modules\User\Controllers\AI\MarketingStrategistController::class, 'dismissSuggestion'])->whereNumber('suggestion')->name('marketing-strategist.suggestions.dismiss');
 
+            // AI Staff (Task #3523) — configurable AI agents across billing,
+            // contacts, inbox and general domains. Confirm-before-act
+            // suggestions mirror the Marketing Strategist pattern above.
+            Route::get   ('staff',                                [\App\Modules\User\Controllers\AI\AiStaffController::class, 'index'])->name('staff.index');
+            Route::post  ('staff',                                [\App\Modules\User\Controllers\AI\AiStaffController::class, 'store'])->middleware('throttle:20,1')->name('staff.store');
+            Route::get   ('staff/{staff}',                        [\App\Modules\User\Controllers\AI\AiStaffController::class, 'show'])->whereNumber('staff')->name('staff.show');
+            Route::put   ('staff/{staff}',                        [\App\Modules\User\Controllers\AI\AiStaffController::class, 'update'])->whereNumber('staff')->name('staff.update');
+            Route::delete('staff/{staff}',                        [\App\Modules\User\Controllers\AI\AiStaffController::class, 'destroy'])->whereNumber('staff')->name('staff.destroy');
+            Route::post  ('staff/{staff}/chat',                   [\App\Modules\User\Controllers\AI\AiStaffController::class, 'chat'])->whereNumber('staff')->middleware('throttle:30,1')->name('staff.chat');
+            Route::post  ('staff/{staff}/draft-invoice',          [\App\Modules\User\Controllers\AI\AiStaffController::class, 'draftInvoice'])->whereNumber('staff')->middleware('throttle:15,1')->name('staff.draft-invoice');
+            Route::post  ('staff/{staff}/chase-suggestions',      [\App\Modules\User\Controllers\AI\AiStaffController::class, 'generateChaseSuggestions'])->whereNumber('staff')->middleware('throttle:15,1')->name('staff.chase-suggestions');
+            Route::post  ('staff/{staff}/contacts/{contact}/summarize',    [\App\Modules\User\Controllers\AI\AiStaffController::class, 'summarizeContact'])->whereNumber(['staff', 'contact'])->middleware('throttle:30,1')->name('staff.contacts.summarize');
+            Route::post  ('staff/{staff}/contacts/{contact}/draft-followup', [\App\Modules\User\Controllers\AI\AiStaffController::class, 'draftFollowup'])->whereNumber(['staff', 'contact'])->middleware('throttle:30,1')->name('staff.contacts.draft-followup');
+            Route::post  ('staff/suggestions/{suggestion}/apply',   [\App\Modules\User\Controllers\AI\AiStaffController::class, 'applySuggestion'])->whereNumber('suggestion')->middleware('throttle:30,1')->name('staff.suggestions.apply');
+            Route::post  ('staff/suggestions/{suggestion}/dismiss', [\App\Modules\User\Controllers\AI\AiStaffController::class, 'dismissSuggestion'])->whereNumber('suggestion')->name('staff.suggestions.dismiss');
+
             // Voice Assistant — floating mic on every page. STT/LLM/TTS
             // are billed separately (`voice_stt`, `voice_llm`, `voice_tts`).
             // `voice` is the gate surface: engine-off / plan-gated users

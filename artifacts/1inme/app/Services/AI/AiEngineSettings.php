@@ -56,7 +56,7 @@ class AiEngineSettings
     public const DEFAULT_ELEVEN_VOICE   = 'EXAVITQu4vr4xnSDxMaL';
 
     /** Chat features whose model is admin-configurable. */
-    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach', 'resume_import', 'resume_tailor', 'resume_cover_letter', 'card_scan', 'biolink_builder', 'inbox_agent', 'brand_kit', 'whatsapp_agent', 'marketing_strategist'];
+    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach', 'resume_import', 'resume_tailor', 'resume_cover_letter', 'card_scan', 'biolink_builder', 'inbox_agent', 'brand_kit', 'whatsapp_agent', 'marketing_strategist', 'ai_staff_billing', 'ai_staff_contacts', 'ai_staff_general'];
 
     // ── Ask Coach (data-aware self-support chatbot) ───────────────
     public const KEY_ASK_COACH_PROMPT  = 'ai.ask_coach.system_prompt';

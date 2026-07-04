@@ -922,6 +922,15 @@
                             <span class="sidebar-tooltip">AI Marketing Strategist</span>
                         </a>
                         @endif
+                        @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && (\App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_billing') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_contacts') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_general')))
+                        <a href="{{ route('user.ai.staff.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.ai.staff.*') ? 'active' : '' }}"
+                           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-people-group"></i></div>
+                            <span class="nav-label">AI Staff</span>
+                            <span class="sidebar-tooltip">AI Staff</span>
+                        </a>
+                        @endif
                     </div>
                 </div>
 
@@ -1509,6 +1518,9 @@
                                 @endif
                                 @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'marketing_strategist'))
                                 <a href="{{ route('user.ai.marketing-strategist.index') }}" class="sidebar-link {{ request()->routeIs('user.ai.marketing-strategist.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>AI Marketing Strategist</span></a>
+                                @endif
+                                @if(auth()->check() && \App\Services\AI\AiEngineSettings::isEnabled() && (\App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_billing') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_contacts') || \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'ai_staff_general')))
+                                <a href="{{ route('user.ai.staff.index') }}" class="sidebar-link {{ request()->routeIs('user.ai.staff.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-people-group"></i></div> <span>AI Staff</span></a>
                                 @endif
                             </div>
                         </div>

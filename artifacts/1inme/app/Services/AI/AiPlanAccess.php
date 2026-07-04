@@ -199,6 +199,14 @@ class AiPlanAccess
             // drives metered AI spend. Until plans carry the explicit key,
             // gate it to any non-free plan so free accounts can't run it.
             'marketing_strategist' => !$user->isOnFreePlan(),
+            // AI Staff (Task #3523) — configurable autonomous-ish agents that
+            // can draft/send billing communication and read contacts/inbox
+            // data; a paid-plan perk like the other cost-driving agents
+            // above until plans carry the explicit keys.
+            'ai_staff_billing'   => !$user->isOnFreePlan(),
+            'ai_staff_contacts'  => !$user->isOnFreePlan(),
+            'ai_staff_inbox'     => !$user->isOnFreePlan(),
+            'ai_staff_general'   => !$user->isOnFreePlan(),
             default              => true,
         };
     }

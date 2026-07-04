@@ -520,6 +520,15 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/ai/marketing-strategist/suggestions/{suggestion}/apply',   [\App\Modules\Api\Controllers\MarketingStrategistController::class, 'applySuggestion'])->whereNumber('suggestion');
         Route::post  ('/ai/marketing-strategist/suggestions/{suggestion}/dismiss', [\App\Modules\Api\Controllers\MarketingStrategistController::class, 'dismissSuggestion'])->whereNumber('suggestion');
 
+        // AI Staff (Task #3523) — mobile parity is deliberately narrow:
+        // list/enable staff + read/apply/dismiss suggestions. Drafting,
+        // chat, and chase-generation stay web-only for now.
+        Route::get   ('/ai/staff',                                  [\App\Modules\Api\Controllers\AiStaffController::class, 'index']);
+        Route::patch ('/ai/staff/{staff}',                          [\App\Modules\Api\Controllers\AiStaffController::class, 'update'])->whereNumber('staff');
+        Route::get   ('/ai/staff/suggestions',                      [\App\Modules\Api\Controllers\AiStaffController::class, 'suggestions']);
+        Route::post  ('/ai/staff/suggestions/{suggestion}/apply',   [\App\Modules\Api\Controllers\AiStaffController::class, 'applySuggestion'])->whereNumber('suggestion');
+        Route::post  ('/ai/staff/suggestions/{suggestion}/dismiss', [\App\Modules\Api\Controllers\AiStaffController::class, 'dismissSuggestion'])->whereNumber('suggestion');
+
         // Onboarding
         Route::get('/onboarding',          [OnboardingController::class, 'status']);
         Route::post('/onboarding/complete',[OnboardingController::class, 'complete']);
