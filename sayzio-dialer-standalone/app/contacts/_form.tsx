@@ -123,12 +123,20 @@ export default function ContactForm({
     qc.invalidateQueries({ queryKey: ["contact", contact?.id] });
     qc.invalidateQueries({ queryKey: ["contacts"] });
   };
+  const deviceTimeZone = (() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+    } catch {
+      return null;
+    }
+  })();
   const scheduleFollowUp = useMutation({
     mutationFn: (ms: number) =>
       setContactFollowUp(
         contact!.id,
         new Date(Date.now() + ms).toISOString(),
         followUpNote.trim() || null,
+        deviceTimeZone,
       ),
     onSuccess: () => {
       invalidateContact();

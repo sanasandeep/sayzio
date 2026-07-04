@@ -529,15 +529,19 @@ class ContactController extends Controller
             'manual_profile' => \App\Modules\User\Support\DialerIdentity::normalizeManual($c->manual_profile),
             'follow_up_at'   => optional($c->follow_up_at)->toIso8601String(),
             'follow_up_note' => $c->follow_up_note,
+            'follow_up_tz'   => $c->follow_up_tz,
             'created_at'   => optional($c->created_at)->toIso8601String(),
         ];
     }
 
     /**
      * Set (or reschedule) a follow-up reminder for this contact/lead
-     * (Task #3524). `follow_up_at` is an ISO-8601 datetime (any timezone
-     * offset accepted; stored as UTC). Editing/resetting always clears the
-     * notified stamp so an updated reminder fires again.
+     * (Task #3524). `follow_up_at` is an ISO-8601 datetime; if it carries an
+     * explicit offset that fixes the instant, otherwise it is interpreted in
+     * the optional `follow_up_tz` (Task #3526) — falling back to the app
+     * timezone. Stored as an absolute UTC instant so the scheduler fires at
+     * the exact moment picked regardless of timezone. Editing/resetting
+     * always clears the notified stamp so an updated reminder fires again.
      */
     public function setFollowUp(Request $request, int $id)
     {
@@ -547,9 +551,11 @@ class ContactController extends Controller
         $v = $request->validate([
             'follow_up_at'   => ['required', 'date'],
             'follow_up_note' => ['nullable', 'string', 'max:2000'],
+            'follow_up_tz'   => ['nullable', 'string', 'timezone'],
         ]);
 
-        $at = \Illuminate\Support\Carbon::parse($v['follow_up_at'])->utc();
+        $tz = $v['follow_up_tz'] ?? config('app.timezone');
+        $at = \Illuminate\Support\Carbon::parse($v['follow_up_at'], $tz)->utc();
         if ($at->isPast()) {
             return $this->fail('Follow-up time must be in the future.', 422, 'follow_up_in_past');
         }
@@ -557,6 +563,7 @@ class ContactController extends Controller
         $c->update([
             'follow_up_at'          => $at,
             'follow_up_note'        => $v['follow_up_note'] ?? null,
+            'follow_up_tz'          => $v['follow_up_tz'] ?? null,
             'follow_up_notified_at' => null,
         ]);
 
@@ -572,6 +579,7 @@ class ContactController extends Controller
         $c->update([
             'follow_up_at'          => null,
             'follow_up_note'        => null,
+            'follow_up_tz'          => null,
             'follow_up_notified_at' => null,
         ]);
 

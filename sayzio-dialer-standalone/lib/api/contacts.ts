@@ -45,6 +45,7 @@ export type Contact = {
   manual_profile?: ManualProfile;
   follow_up_at: string | null;
   follow_up_note: string | null;
+  follow_up_tz: string | null;
   created_at: string | null;
 };
 
@@ -127,17 +128,26 @@ export async function deleteContact(id: number): Promise<void> {
  * Set (or reschedule) a follow-up reminder for this contact/lead
  * (Task #3524). `followUpAt` should be an ISO-8601 datetime; the server
  * stores it as UTC and delivers in-app + email + push when it comes due.
+ * `timezone` (Task #3526) optionally records which timezone the reminder was
+ * picked in so it is displayed in that same zone instead of the account
+ * default; it never changes the absolute instant when `followUpAt` already
+ * carries an offset (the presets send a UTC `Z` instant).
  */
 export async function setContactFollowUp(
   id: number,
   followUpAt: string,
   note?: string | null,
+  timezone?: string | null,
 ): Promise<Contact> {
   const res = await apiFetch<{ data: { contact: Contact } }>(
     `/contacts/${id}/follow-up`,
     {
       method: "POST",
-      body: JSON.stringify({ follow_up_at: followUpAt, follow_up_note: note ?? null }),
+      body: JSON.stringify({
+        follow_up_at: followUpAt,
+        follow_up_note: note ?? null,
+        follow_up_tz: timezone ?? null,
+      }),
     },
   );
   return res.data.contact;

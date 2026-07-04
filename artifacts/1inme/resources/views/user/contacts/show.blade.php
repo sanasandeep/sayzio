@@ -154,8 +154,9 @@
                 <div class="flex items-start justify-between gap-3 p-3 rounded-xl" style="background:rgba(61,107,255,.08);border:1px solid rgba(61,107,255,.18);">
                     <div class="min-w-0">
                         <div class="flex items-center gap-1.5 text-sm font-semibold" style="color:var(--text-primary);">
+                            @php($followUpTz = $contact->follow_up_tz ?? $contact->user->timezone ?? config('app.timezone'))
                             <i class="fas fa-bell" style="color:#90acff;"></i>
-                            Follow up {{ $contact->follow_up_at->timezone($contact->user->timezone ?? config('app.timezone'))->format('M j, Y g:i A') }}
+                            Follow up {{ $contact->follow_up_at->timezone($followUpTz)->format('M j, Y g:i A') }} ({{ $followUpTz }})
                         </div>
                         @if($contact->follow_up_note)
                             <p class="text-xs mt-1 whitespace-pre-line" style="color:var(--text-muted);">{{ $contact->follow_up_note }}</p>
@@ -182,11 +183,23 @@
 
             <form method="POST" action="{{ route('user.contacts.follow-up.set', $contact) }}" id="follow-up-form" class="{{ $errors->has('follow_up_at') ? '' : 'hidden' }} mt-3 space-y-3">
                 @csrf
+                @php($accountTz = $contact->user->timezone ?? config('app.timezone'))
+                @php($selectedTz = old('follow_up_tz', $contact->follow_up_tz ?? $accountTz))
                 <div>
                     <label class="block text-[11px] font-semibold mb-1" style="color:var(--text-faint);">Date &amp; time</label>
                     <input type="datetime-local" name="follow_up_at" required
-                           value="{{ old('follow_up_at', $contact->follow_up_at ? $contact->follow_up_at->timezone($contact->user->timezone ?? config('app.timezone'))->format('Y-m-d\TH:i') : '') }}"
+                           value="{{ old('follow_up_at', $contact->follow_up_at ? $contact->follow_up_at->timezone($contact->follow_up_tz ?? $accountTz)->format('Y-m-d\TH:i') : '') }}"
                            class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold mb-1" style="color:var(--text-faint);">Time zone</label>
+                    <select name="follow_up_tz"
+                            class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                        @foreach(timezone_identifiers_list() as $tzId)
+                            <option value="{{ $tzId }}" {{ $selectedTz === $tzId ? 'selected' : '' }}>{{ $tzId }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-[11px] mt-1" style="color:var(--text-faint);">Defaults to your account time zone ({{ $accountTz }}). Pick another to schedule in that zone.</p>
                 </div>
                 <div>
                     <label class="block text-[11px] font-semibold mb-1" style="color:var(--text-faint);">Note (optional)</label>

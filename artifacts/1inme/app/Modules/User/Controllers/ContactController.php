@@ -246,9 +246,11 @@ class ContactController extends Controller
 
     /**
      * Set (or reschedule) a follow-up reminder for this contact/lead
-     * (Task #3524). `at` is a datetime-local string interpreted in the
-     * signed-in user's timezone and stored as UTC; clearing/resetting always
-     * resets the notified stamp so an edited reminder fires again.
+     * (Task #3524). `follow_up_at` is a datetime-local string interpreted in
+     * the picked timezone (`follow_up_tz`, Task #3526) — falling back to the
+     * signed-in user's account timezone — and stored as an absolute UTC
+     * instant. Clearing/resetting always resets the notified stamp so an
+     * edited reminder fires again.
      */
     public function setFollowUp(Request $request, Contact $contact)
     {
@@ -256,9 +258,10 @@ class ContactController extends Controller
         $v = $request->validate([
             'follow_up_at'   => ['required', 'date'],
             'follow_up_note' => ['nullable', 'string', 'max:2000'],
+            'follow_up_tz'   => ['nullable', 'string', 'timezone'],
         ]);
 
-        $tz = $request->user()->timezone ?? config('app.timezone');
+        $tz = $v['follow_up_tz'] ?? ($request->user()->timezone ?? config('app.timezone'));
         $at = \Illuminate\Support\Carbon::parse($v['follow_up_at'], $tz)->utc();
 
         if ($at->isPast()) {
@@ -271,11 +274,12 @@ class ContactController extends Controller
         $contact->update([
             'follow_up_at'          => $at,
             'follow_up_note'        => $v['follow_up_note'] ?? null,
+            'follow_up_tz'          => $v['follow_up_tz'] ?? null,
             'follow_up_notified_at' => null,
         ]);
 
         if ($request->ajax()) {
-            return response()->json(['data' => ['follow_up_at' => $contact->follow_up_at->toIso8601String(), 'follow_up_note' => $contact->follow_up_note]]);
+            return response()->json(['data' => ['follow_up_at' => $contact->follow_up_at->toIso8601String(), 'follow_up_note' => $contact->follow_up_note, 'follow_up_tz' => $contact->follow_up_tz]]);
         }
         return back()->with('success', 'Follow-up reminder set.');
     }
@@ -287,6 +291,7 @@ class ContactController extends Controller
         $contact->update([
             'follow_up_at'          => null,
             'follow_up_note'        => null,
+            'follow_up_tz'          => null,
             'follow_up_notified_at' => null,
         ]);
 
