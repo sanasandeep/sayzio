@@ -142,6 +142,69 @@
                 <p class="text-sm whitespace-pre-line" style="color:var(--text-muted);">{{ $contact->notes }}</p>
             </div>
         @endif
+
+        <div class="mt-5 pt-4" style="border-top: 1px solid rgba(255,255,255,.06);">
+            <h3 class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color:var(--text-faint);">Follow-up reminder</h3>
+            @if($errors->has('follow_up_at'))
+                <div class="mb-3 px-4 py-3 rounded-xl text-xs" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20)">
+                    {{ $errors->first('follow_up_at') }}
+                </div>
+            @endif
+            @if($contact->follow_up_at)
+                <div class="flex items-start justify-between gap-3 p-3 rounded-xl" style="background:rgba(61,107,255,.08);border:1px solid rgba(61,107,255,.18);">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 text-sm font-semibold" style="color:var(--text-primary);">
+                            <i class="fas fa-bell" style="color:#90acff;"></i>
+                            Follow up {{ $contact->follow_up_at->timezone($contact->user->timezone ?? config('app.timezone'))->format('M j, Y g:i A') }}
+                        </div>
+                        @if($contact->follow_up_note)
+                            <p class="text-xs mt-1 whitespace-pre-line" style="color:var(--text-muted);">{{ $contact->follow_up_note }}</p>
+                        @endif
+                    </div>
+                    <div class="flex gap-1.5 flex-shrink-0">
+                        <button type="button" onclick="document.getElementById('follow-up-form').classList.remove('hidden'); document.getElementById('follow-up-toggle')?.classList.add('hidden');" class="px-3 py-1.5 rounded-lg text-xs font-medium" style="background:rgba(255,255,255,.06);color:var(--text-primary);border:1px solid rgba(255,255,255,.10)">
+                            Edit
+                        </button>
+                        <form method="POST" action="{{ route('user.contacts.follow-up.clear', $contact) }}">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20)">
+                                Clear
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @else
+                <button type="button" id="follow-up-toggle" onclick="document.getElementById('follow-up-form').classList.remove('hidden'); this.classList.add('hidden');" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20)">
+                    <i class="fas fa-bell mr-1"></i> Set a follow-up reminder
+                </button>
+            @endif
+
+            <form method="POST" action="{{ route('user.contacts.follow-up.set', $contact) }}" id="follow-up-form" class="{{ $errors->has('follow_up_at') ? '' : 'hidden' }} mt-3 space-y-3">
+                @csrf
+                <div>
+                    <label class="block text-[11px] font-semibold mb-1" style="color:var(--text-faint);">Date &amp; time</label>
+                    <input type="datetime-local" name="follow_up_at" required
+                           value="{{ old('follow_up_at', $contact->follow_up_at ? $contact->follow_up_at->timezone($contact->user->timezone ?? config('app.timezone'))->format('Y-m-d\TH:i') : '') }}"
+                           class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold mb-1" style="color:var(--text-faint);">Note (optional)</label>
+                    <textarea name="follow_up_note" rows="2" maxlength="2000" placeholder="What to follow up about…"
+                              class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">{{ old('follow_up_note', $contact->follow_up_note) }}</textarea>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:linear-gradient(135deg,#3d6bff,#ec4899);color:#fff;">
+                        Save reminder
+                    </button>
+                    @if($contact->follow_up_at)
+                        <button type="button" onclick="document.getElementById('follow-up-form').classList.add('hidden');" class="px-3 py-1.5 rounded-lg text-xs font-medium" style="background:rgba(255,255,255,.06);color:var(--text-primary);border:1px solid rgba(255,255,255,.10)">
+                            Cancel
+                        </button>
+                    @endif
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 @endsection

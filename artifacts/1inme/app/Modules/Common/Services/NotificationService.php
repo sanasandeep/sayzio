@@ -267,6 +267,14 @@ class NotificationService
                 'default_email'  => false,
                 'default_push'   => true,
             ],
+            // Contact / lead follow-up reminders (Task #3524).
+            'contact.follow_up_reminder' => [
+                'label'          => 'Contact follow-up reminders',
+                'description'    => 'When a follow-up you scheduled for a contact or lead is due.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
         ];
     }
 

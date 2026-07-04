@@ -128,7 +128,7 @@ class ContactController extends Controller
     public function show(Request $request, Contact $contact)
     {
         abort_if($contact->user_id !== workspace_owner_id(), 403);
-        $contact->load(['phones', 'emails', 'biolinkUser']);
+        $contact->load(['phones', 'emails', 'biolinkUser', 'user']);
         $biolinkPreview = $this->biolinkPreview($contact);
         return view('user.contacts.show', compact('contact', 'biolinkPreview'));
     }
@@ -220,6 +220,58 @@ class ContactController extends Controller
         }
         $this->resolver->resolveFor($contact->fresh('phones'));
         return back()->with('success', 'Link in Bio reattached if a matching Sayzio user was found.');
+    }
+
+    /**
+     * Set (or reschedule) a follow-up reminder for this contact/lead
+     * (Task #3524). `at` is a datetime-local string interpreted in the
+     * signed-in user's timezone and stored as UTC; clearing/resetting always
+     * resets the notified stamp so an edited reminder fires again.
+     */
+    public function setFollowUp(Request $request, Contact $contact)
+    {
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $v = $request->validate([
+            'follow_up_at'   => ['required', 'date'],
+            'follow_up_note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $tz = $request->user()->timezone ?? config('app.timezone');
+        $at = \Illuminate\Support\Carbon::parse($v['follow_up_at'], $tz)->utc();
+
+        if ($at->isPast()) {
+            if ($request->ajax()) {
+                abort(422, 'Follow-up time must be in the future.');
+            }
+            return back()->withErrors(['follow_up_at' => 'Follow-up time must be in the future.'])->withInput();
+        }
+
+        $contact->update([
+            'follow_up_at'          => $at,
+            'follow_up_note'        => $v['follow_up_note'] ?? null,
+            'follow_up_notified_at' => null,
+        ]);
+
+        if ($request->ajax()) {
+            return response()->json(['data' => ['follow_up_at' => $contact->follow_up_at->toIso8601String(), 'follow_up_note' => $contact->follow_up_note]]);
+        }
+        return back()->with('success', 'Follow-up reminder set.');
+    }
+
+    /** Clear a scheduled follow-up reminder without firing it. */
+    public function clearFollowUp(Request $request, Contact $contact)
+    {
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $contact->update([
+            'follow_up_at'          => null,
+            'follow_up_note'        => null,
+            'follow_up_notified_at' => null,
+        ]);
+
+        if ($request->ajax()) {
+            return response()->json(['data' => ['cleared' => true]]);
+        }
+        return back()->with('success', 'Follow-up reminder cleared.');
     }
 
     // ---- bulk import ------------------------------------------------------

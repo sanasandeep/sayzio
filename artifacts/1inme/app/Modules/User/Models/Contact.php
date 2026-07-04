@@ -19,6 +19,7 @@ protected $fillable = [
         'photo_path', 'photo_url',
         'biolink_user_id', 'biolink_attached_at', 'detached_biolink_user_ids',
         'last_synced_at', 'locally_modified_at',
+        'follow_up_at', 'follow_up_note', 'follow_up_notified_at',
     ];
 
     protected function casts(): array
@@ -32,6 +33,8 @@ protected $fillable = [
             'biolink_attached_at'       => 'datetime',
             'last_synced_at'            => 'datetime',
             'locally_modified_at'       => 'datetime',
+            'follow_up_at'              => 'datetime',
+            'follow_up_notified_at'     => 'datetime',
         ];
     }
 

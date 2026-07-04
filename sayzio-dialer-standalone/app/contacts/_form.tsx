@@ -19,11 +19,36 @@ import { useColors } from "@/hooks/useColors";
 import {
   type Contact,
   type ContactPayload,
+  clearContactFollowUp,
   createContact,
   deleteContact,
+  setContactFollowUp,
   smsBiolinkToContact,
   updateContact,
 } from "@/lib/api/contacts";
+
+const FOLLOW_UP_PRESETS: { label: string; ms: number }[] = [
+  { label: "In 1 hour", ms: 60 * 60 * 1000 },
+  { label: "Tomorrow", ms: 24 * 60 * 60 * 1000 },
+  { label: "In 3 days", ms: 3 * 24 * 60 * 60 * 1000 },
+  { label: "Next week", ms: 7 * 24 * 60 * 60 * 1000 },
+];
+
+function relativeFollowUp(at: string | null): string {
+  if (!at) return "";
+  const ms = new Date(at).getTime();
+  if (Number.isNaN(ms)) return "";
+  const diff = ms - Date.now();
+  const abs = Math.abs(diff);
+  const past = diff < 0;
+  const mins = Math.round(abs / 60000);
+  if (mins < 1) return "now";
+  if (mins < 60) return `${past ? "" : "in "}${mins}m${past ? " ago" : ""}`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${past ? "" : "in "}${hrs}h${past ? " ago" : ""}`;
+  const days = Math.round(hrs / 24);
+  return `${past ? "" : "in "}${days}d${past ? " ago" : ""}`;
+}
 
 export default function ContactForm({
   mode,
@@ -90,6 +115,36 @@ export default function ContactForm({
       Alert.alert("Sent", `Your Link in Bio was texted to ${r.to}.`),
     onError: (e: any) =>
       Alert.alert("Couldn't text", e?.message ?? "Try again"),
+  });
+
+  const [followUpNote, setFollowUpNote] = useState(contact?.follow_up_note ?? "");
+  const [editingFollowUp, setEditingFollowUp] = useState(false);
+  const invalidateContact = () => {
+    qc.invalidateQueries({ queryKey: ["contact", contact?.id] });
+    qc.invalidateQueries({ queryKey: ["contacts"] });
+  };
+  const scheduleFollowUp = useMutation({
+    mutationFn: (ms: number) =>
+      setContactFollowUp(
+        contact!.id,
+        new Date(Date.now() + ms).toISOString(),
+        followUpNote.trim() || null,
+      ),
+    onSuccess: () => {
+      invalidateContact();
+      setEditingFollowUp(false);
+      Alert.alert("Reminder set", "We'll remind you to follow up.");
+    },
+    onError: (e: any) =>
+      Alert.alert("Error", e?.message ?? "Could not set the reminder."),
+  });
+  const clearFollowUp = useMutation({
+    mutationFn: () => clearContactFollowUp(contact!.id),
+    onSuccess: () => {
+      invalidateContact();
+      setEditingFollowUp(false);
+    },
+    onError: () => Alert.alert("Error", "Could not clear the reminder."),
   });
 
   return (
@@ -186,6 +241,129 @@ export default function ContactForm({
           multiline
           numberOfLines={3}
         />
+
+        {mode === "edit" && contact ? (
+          <View
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+              borderRadius: colors.radius,
+              padding: 14,
+              gap: 10,
+            }}
+          >
+            <Text style={[styles.section, { color: colors.mutedForeground, marginTop: 0 }]}>
+              Follow-up reminder
+            </Text>
+            {contact.follow_up_at && !editingFollowUp ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Feather name="bell" size={14} color={colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      color: colors.foreground,
+                      fontFamily: "SpaceGrotesk_500Medium",
+                    }}
+                  >
+                    Follow up {relativeFollowUp(contact.follow_up_at)}
+                  </Text>
+                  {contact.follow_up_note ? (
+                    <Text
+                      style={{
+                        color: colors.mutedForeground,
+                        fontFamily: "SpaceGrotesk_400Regular",
+                        fontSize: 12,
+                        marginTop: 2,
+                      }}
+                    >
+                      {contact.follow_up_note}
+                    </Text>
+                  ) : null}
+                </View>
+                <Pressable
+                  onPress={() => {
+                    setFollowUpNote(contact.follow_up_note ?? "");
+                    setEditingFollowUp(true);
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontFamily: "SpaceGrotesk_500Medium",
+                    }}
+                  >
+                    Edit
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => clearFollowUp.mutate()}
+                  disabled={clearFollowUp.isPending}
+                >
+                  <Text
+                    style={{
+                      color: colors.destructive,
+                      fontFamily: "SpaceGrotesk_500Medium",
+                    }}
+                  >
+                    Clear
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              <>
+                <TextField
+                  label="Note (optional)"
+                  value={followUpNote}
+                  onChangeText={setFollowUpNote}
+                  placeholder="What to follow up about…"
+                />
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                  {FOLLOW_UP_PRESETS.map((p) => (
+                    <Pressable
+                      key={p.label}
+                      onPress={() => scheduleFollowUp.mutate(p.ms)}
+                      disabled={scheduleFollowUp.isPending}
+                      style={{
+                        paddingVertical: 8,
+                        paddingHorizontal: 12,
+                        borderRadius: 999,
+                        backgroundColor: colors.muted,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        opacity: scheduleFollowUp.isPending ? 0.6 : 1,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: colors.foreground,
+                          fontFamily: "SpaceGrotesk_500Medium",
+                          fontSize: 12,
+                        }}
+                      >
+                        {p.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {editingFollowUp ? (
+                  <Pressable onPress={() => setEditingFollowUp(false)}>
+                    <Text
+                      style={{
+                        color: colors.mutedForeground,
+                        fontFamily: "SpaceGrotesk_500Medium",
+                        fontSize: 12,
+                      }}
+                    >
+                      Cancel
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </>
+            )}
+          </View>
+        ) : null}
+
         <Button
           label={save.isPending ? "Saving…" : "Save contact"}
           onPress={() => save.mutate()}

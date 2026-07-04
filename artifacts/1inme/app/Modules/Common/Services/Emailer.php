@@ -253,7 +253,7 @@ class Emailer
 
         $thrown = null;
         try {
-            $callback = function ($m) use ($to, $subject, $opts) {
+            $callback = function ($m) use ($to, $subject, $opts, $key) {
                 $m->to($to, $opts['to_name'] ?? null);
                 if ($subject !== '') {
                     $m->subject($subject);

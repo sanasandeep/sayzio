@@ -93,6 +93,14 @@ Schedule::command('dialer:send-callback-reminders')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Every 5 minutes: deliver due contact/lead follow-up reminders (in-app +
+// email + push, honoring per-channel prefs), once each. The command stamps
+// follow_up_notified_at so reruns are idempotent (Task #3524).
+Schedule::command('contacts:send-follow-up-reminders')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every 4 hours: refresh cached follower counts for every connected social
 // account so biolink Follow buttons show fresh numbers without ever blocking
 // the public page render (renderer always serves the cached value).

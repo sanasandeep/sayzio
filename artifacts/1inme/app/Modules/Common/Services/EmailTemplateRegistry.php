@@ -814,6 +814,21 @@ class EmailTemplateRegistry
                     'orders_url' => ['label' => 'Orders dashboard URL', 'sample' => 'https://sayzio.app/user/links/1/restaurant/orders'],
                 ],
             ],
+            'contact.follow_up_reminder' => [
+                'category' => 'messaging',
+                'label' => 'Contact follow-up reminder',
+                'description' => 'Alerts the owner when a scheduled follow-up for a contact/lead is due.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => 'Follow-up reminder · {{contact_name}}',
+                'body' => "It's time to follow up with {{contact_name}}.{{note_line}}\n\nView contact: {{contact_url}}",
+                'pref_type' => 'contact.follow_up_reminder',
+                'variables' => [
+                    'contact_name' => ['label' => 'Contact name', 'sample' => 'Sam Carter'],
+                    'note_line' => ['label' => 'Reminder note (blank if none)', 'sample' => "\n\nNote: Discuss renewal pricing."],
+                    'contact_url' => ['label' => 'Contact URL', 'sample' => 'https://sayzio.app/user/contacts/1'],
+                ],
+            ],
             'store.new_order' => [
                 'category' => 'messaging',
                 'label' => 'New store order request',

@@ -43,6 +43,8 @@ export type Contact = {
   phones: ContactPhone[];
   photo_url: string | null;
   manual_profile?: ManualProfile;
+  follow_up_at: string | null;
+  follow_up_note: string | null;
   created_at: string | null;
 };
 
@@ -104,6 +106,34 @@ export async function updateContact(
 
 export async function deleteContact(id: number): Promise<void> {
   await apiFetch(`/contacts/${id}`, { method: "DELETE" });
+}
+
+/**
+ * Set (or reschedule) a follow-up reminder for this contact/lead
+ * (Task #3524). `followUpAt` should be an ISO-8601 datetime; the server
+ * stores it as UTC and delivers in-app + email + push when it comes due.
+ */
+export async function setContactFollowUp(
+  id: number,
+  followUpAt: string,
+  note?: string | null,
+): Promise<Contact> {
+  const res = await apiFetch<{ data: { contact: Contact } }>(
+    `/contacts/${id}/follow-up`,
+    {
+      method: "POST",
+      body: JSON.stringify({ follow_up_at: followUpAt, follow_up_note: note ?? null }),
+    },
+  );
+  return res.data.contact;
+}
+
+export async function clearContactFollowUp(id: number): Promise<Contact> {
+  const res = await apiFetch<{ data: { contact: Contact } }>(
+    `/contacts/${id}/follow-up`,
+    { method: "DELETE" },
+  );
+  return res.data.contact;
 }
 
 export type ManualProfilePayload = {

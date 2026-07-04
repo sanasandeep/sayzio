@@ -504,8 +504,55 @@ class ContactController extends Controller
             ])->values()->all(),
             'photo_url'    => $c->photoUrl(),
             'manual_profile' => \App\Modules\User\Support\DialerIdentity::normalizeManual($c->manual_profile),
+            'follow_up_at'   => optional($c->follow_up_at)->toIso8601String(),
+            'follow_up_note' => $c->follow_up_note,
             'created_at'   => optional($c->created_at)->toIso8601String(),
         ];
+    }
+
+    /**
+     * Set (or reschedule) a follow-up reminder for this contact/lead
+     * (Task #3524). `follow_up_at` is an ISO-8601 datetime (any timezone
+     * offset accepted; stored as UTC). Editing/resetting always clears the
+     * notified stamp so an updated reminder fires again.
+     */
+    public function setFollowUp(Request $request, int $id)
+    {
+        $c = Contact::where('user_id', $request->user()->id)->find($id);
+        if (!$c) return $this->notFound('Contact not found');
+
+        $v = $request->validate([
+            'follow_up_at'   => ['required', 'date'],
+            'follow_up_note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $at = \Illuminate\Support\Carbon::parse($v['follow_up_at'])->utc();
+        if ($at->isPast()) {
+            return $this->fail('Follow-up time must be in the future.', 422, 'follow_up_in_past');
+        }
+
+        $c->update([
+            'follow_up_at'          => $at,
+            'follow_up_note'        => $v['follow_up_note'] ?? null,
+            'follow_up_notified_at' => null,
+        ]);
+
+        return $this->ok(['contact' => $this->transform($c->fresh(['phones', 'emails']))]);
+    }
+
+    /** Clear a scheduled follow-up reminder without firing it. */
+    public function clearFollowUp(Request $request, int $id)
+    {
+        $c = Contact::where('user_id', $request->user()->id)->find($id);
+        if (!$c) return $this->notFound('Contact not found');
+
+        $c->update([
+            'follow_up_at'          => null,
+            'follow_up_note'        => null,
+            'follow_up_notified_at' => null,
+        ]);
+
+        return $this->ok(['contact' => $this->transform($c->fresh(['phones', 'emails']))]);
     }
 
     /**
