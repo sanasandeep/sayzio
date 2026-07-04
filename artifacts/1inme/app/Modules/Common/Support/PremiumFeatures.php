@@ -162,6 +162,7 @@ class PremiumFeatures
             ['key' => 'qr_art', 'group' => 'AI suite', 'name' => 'AI Artistic QR', 'description' => 'Generate eye-catching, on-brand artistic QR codes with AI that still scan reliably.'],
             ['key' => 'whatsapp_agent', 'group' => 'AI suite', 'name' => 'WhatsApp AI Agent', 'description' => 'An AI responder for inbound WhatsApp messages that answers questions and captures leads in your voice, around the clock.'],
             ['key' => 'marketing_strategist', 'group' => 'AI suite', 'name' => 'AI Marketing Strategist', 'description' => 'An AI strategist that analyses your account and audience to build saved, actionable marketing plans and campaign ideas.'],
+            ['key' => 'competitor_teardown', 'group' => 'AI suite', 'name' => 'Competitor Biolink Teardown', 'description' => 'Paste any competitor\'s link-in-bio URL and get an AI-scored teardown — strengths, weaknesses, missing elements and CTA quality — then build a better version with one click.'],
         ];
     }
 

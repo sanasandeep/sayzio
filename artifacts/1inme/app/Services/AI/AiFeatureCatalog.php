@@ -14,7 +14,7 @@ namespace App\Services\AI;
 class AiFeatureCatalog
 {
     /** Known AI features for filtering / reporting. */
-    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach', 'voice_stt', 'voice_llm', 'voice_tts', 'card_scan', 'resume_import', 'resume_tailor', 'inbox_agent', 'brand_kit', 'qr_art', 'marketing_strategist', 'marketing_strategist.chat', 'marketing_strategist.report', 'ai_staff_billing', 'ai_staff_contacts', 'ai_staff_general'];
+    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach', 'voice_stt', 'voice_llm', 'voice_tts', 'card_scan', 'resume_import', 'resume_tailor', 'inbox_agent', 'brand_kit', 'qr_art', 'marketing_strategist', 'marketing_strategist.chat', 'marketing_strategist.report', 'ai_staff_billing', 'ai_staff_contacts', 'ai_staff_general', 'competitor_teardown', 'biolink_builder'];
 
     /** Friendly labels for ledger / reporting surfaces. */
     public const FEATURE_LABELS = [
@@ -38,6 +38,8 @@ class AiFeatureCatalog
         'ai_staff_billing'      => 'AI Staff — Billing',
         'ai_staff_contacts'     => 'AI Staff — Contacts',
         'ai_staff_general'      => 'AI Staff — General Assistant',
+        'competitor_teardown'   => 'Competitor Biolink Teardown',
+        'biolink_builder'       => 'AI Link in Bio Builder',
     ];
 
     public static function featureLabel(?string $feature): string

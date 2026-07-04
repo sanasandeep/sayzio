@@ -822,6 +822,15 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/ai-builder/estimate', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'estimate'])->middleware(['workspace.can:links.edit', 'throttle:30,1'])->name('links.ai-builder.estimate');
         Route::post('links/{link}/ai-builder/generate', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'generate'])->middleware(['workspace.can:links.edit', 'throttle:10,1'])->name('links.ai-builder.generate');
 
+        // Competitor Biolink Teardown — paste a competitor URL, get an
+        // AI-scored teardown (strengths/weaknesses/missing elements/CTA
+        // quality), then hand off to the AI biolink builder to build a
+        // better version.
+        Route::get('links-teardown/create', [\App\Modules\User\Controllers\CompetitorTeardownController::class, 'create'])->middleware('workspace.can:links.create')->name('links.teardown.create');
+        Route::post('links-teardown', [\App\Modules\User\Controllers\CompetitorTeardownController::class, 'store'])->middleware(['workspace.can:links.create', 'throttle:10,1'])->name('links.teardown.store');
+        Route::get('links-teardown/{teardown}', [\App\Modules\User\Controllers\CompetitorTeardownController::class, 'show'])->whereNumber('teardown')->middleware('workspace.can:links.view')->name('links.teardown.show');
+        Route::post('links-teardown/{teardown}/build', [\App\Modules\User\Controllers\CompetitorTeardownController::class, 'build'])->whereNumber('teardown')->middleware(['workspace.can:links.create', 'throttle:10,1', CheckPlanLimit::class . ':links'])->name('links.teardown.build');
+
         // AI Brand Kit — persistent per-creator brand identity (palette, fonts,
         // voice, taglines, bio, recommended block theme). Plan-gated via the
         // max_brand_kits quantity cap; can be applied to a biolink or QR code.

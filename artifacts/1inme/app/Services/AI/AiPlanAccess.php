@@ -211,6 +211,12 @@ class AiPlanAccess
             // drives metered AI spend. Until plans carry the explicit key,
             // gate it to any non-free plan so free accounts can't run it.
             'dashboard_designer' => !$user->isOnFreePlan(),
+            // Competitor Biolink Teardown (Task #3532) — fetches + analyses a
+            // competitor's page and can hand off to the AI page builder, so
+            // it drives the same metered AI spend as the other paid-plan
+            // perks above; gate to any non-free plan until plans carry the
+            // explicit key.
+            'competitor_teardown' => !$user->isOnFreePlan(),
             default              => true,
         };
     }

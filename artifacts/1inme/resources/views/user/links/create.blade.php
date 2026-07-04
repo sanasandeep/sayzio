@@ -355,6 +355,20 @@
                     <i class="fas fa-arrow-right text-white/20 group-hover:text-sky-300 transition-colors text-xs"></i>
                 </div>
             </a>
+
+            <a href="{{ route('user.links.teardown.create') }}"
+               class="block glass rounded-xl p-4 border border-white/10 hover:border-blue-500/30 hover:bg-blue-500/[0.06] transition-all group">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-blue-500/15 text-blue-300 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-magnifying-glass-chart"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm text-white font-medium truncate">Competitor Biolink Teardown</div>
+                        <div class="text-xs text-white/40 mt-0.5">Paste a competitor URL, get an AI-scored teardown, build a better version.</div>
+                    </div>
+                    <i class="fas fa-arrow-right text-white/20 group-hover:text-blue-300 transition-colors text-xs"></i>
+                </div>
+            </a>
         </div>
     </div>
 </div>
