@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 
+import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import { apiFetch } from "@/lib/api";
@@ -73,7 +74,20 @@ export default function InvoicesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: "Invoices" }} />
+      <Stack.Screen
+        options={{
+          title: "Invoices",
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push("/invoices/new" as never)}
+              hitSlop={10}
+              style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, paddingHorizontal: 6 })}
+            >
+              <Feather name="plus" size={22} color={colors.primary} />
+            </Pressable>
+          ),
+        }}
+      />
       {q.isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.primary} />
@@ -131,6 +145,12 @@ export default function InvoicesScreen() {
               icon="file-text"
               title="No invoices yet"
               body="When you bill a client or your subscription renews, the invoices will land here."
+              action={
+                <Button
+                  label="New invoice"
+                  onPress={() => router.push("/invoices/new" as never)}
+                />
+              }
             />
           }
           refreshControl={
