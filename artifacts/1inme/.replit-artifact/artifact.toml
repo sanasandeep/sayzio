@@ -116,8 +116,21 @@ args = ["sh", "-c", "pnpm install --frozen-lockfile && (cd artifacts/1inme && ph
 # db:check-pending-migrations command alerts admins (in-app + email), the admin
 # dashboard shows a banner, and GET /up/schema returns 503 for external
 # monitoring.
+#
+# STATIC-ASSET ROUTER NOTE: the web server is PHP's built-in server pointed at
+# ../server.php (NOT public/index.php directly). We use `php -S` rather than
+# `php artisan serve` because artisan serve spawns a child php -S that strips all
+# env vars except a small allow-list (see artisan-serve-env-passthrough.md),
+# which would break DB_*/runtime config in production. But pointing php -S
+# straight at public/index.php makes Laravel's front controller the router for
+# EVERY request, so static assets (/branding/*.png, /images/*.png, /build/*.css)
+# get swallowed by the framework and returned as HTML — breaking every image and
+# stylesheet in production (dev worked only because artisan serve has its own
+# static-aware router). server.php restores that behaviour: it streams real files
+# under public/ as-is (correct Content-Type) and hands everything else to
+# index.php. See .agents/memory/prod-php-server-static-router.md.
 [services.production.run]
-args = ["sh", "-c", '''cd artifacts/1inme && { php artisan migrate --force; mst=$?; if [ "$mst" -ne 0 ]; then echo "::1inme:: migrate --force exited $mst — attempting self-healing reconcile of orphaned migrations..." >&2; php artisan db:reconcile-migrations --force; mst=$?; fi; if [ "$mst" -ne 0 ]; then echo "::1inme:: DEPLOY MIGRATION FAILED (exit=$mst) — database schema may be incomplete (missing tables/columns); workspace-backed and other pages may 500. Investigate immediately. Pending migrations:" >&2; php artisan migrate:status 2>&1 | grep -i pending >&2 || true; fi; } ; exec php -d variables_order=EGPCS -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M -S 0.0.0.0:5000 -t public public/index.php''']
+args = ["sh", "-c", '''cd artifacts/1inme && { php artisan migrate --force; mst=$?; if [ "$mst" -ne 0 ]; then echo "::1inme:: migrate --force exited $mst — attempting self-healing reconcile of orphaned migrations..." >&2; php artisan db:reconcile-migrations --force; mst=$?; fi; if [ "$mst" -ne 0 ]; then echo "::1inme:: DEPLOY MIGRATION FAILED (exit=$mst) — database schema may be incomplete (missing tables/columns); workspace-backed and other pages may 500. Investigate immediately. Pending migrations:" >&2; php artisan migrate:status 2>&1 | grep -i pending >&2 || true; fi; } ; exec php -d variables_order=EGPCS -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M -S 0.0.0.0:5000 -t public server.php''']
 
 [services.production.run.env]
 PORT = "5000"
