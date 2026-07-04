@@ -1296,6 +1296,7 @@ class SitePagesContent
             ['name' => 'Bizs Profile',    'icon' => 'fa-crown',               'color' => '#f43f5e', 'new' => true,  'desc' => 'A themeable creator home that automatically shows all your posts, tiers and tips — no linking needed.'],
             ['name' => 'Reviews Page',    'icon' => 'fa-star',                'color' => '#ffc845', 'new' => true,  'desc' => 'A review wall that collects and shows star ratings and feedback from your visitors.'],
             ['name' => 'Brand / Press Kit', 'icon' => 'fa-palette',           'color' => '#8b5cf6', 'new' => true,  'desc' => 'A polished press page with logo downloads, copy-able colour swatches, fonts and brand boilerplate.'],
+            ['name' => 'Paid Page',        'icon' => 'fa-lock',                'color' => '#f59e0b', 'new' => true,  'desc' => 'A gated page that only unlocks after a one-time payment or subscription — perfect for premium content.'],
         ];
     }
 
@@ -1394,6 +1395,7 @@ class SitePagesContent
                     ['name' => 'Bizs Profile', 'icon' => 'fa-crown', 'description' => 'A themeable creator home that automatically surfaces all your posts, membership tiers and tips in one gated profile — no manual linking needed.'],
                     ['name' => 'Reviews Page', 'icon' => 'fa-star', 'description' => 'A dedicated review wall that collects and shows star ratings and feedback from your visitors.'],
                     ['name' => 'Brand / Press Kit', 'icon' => 'fa-palette', 'description' => 'A polished, shareable press kit built from your saved AI Brand Kit — logo downloads, copy-able colour swatches, your font pairing, brand voice and boilerplate.'],
+                    ['name' => 'Paid Page', 'icon' => 'fa-lock', 'description' => 'A gated page that only unlocks after a one-time payment or subscription, built on the same creator feed and access tiers as your other pages.'],
                 ],
             ],
             self::aiSuiteFeaturesCategory(),
@@ -1672,6 +1674,77 @@ class SitePagesContent
                     ['name' => 'Pinterest connection', 'description' => 'Connect Pinterest to surface your boards and pins on your Link in Bio.'],
                     ['name' => 'Auto-retry on broken connections', 'description' => 'When a token expires we keep retrying with smart back-off and only ping you when we actually need you to reconnect.'],
                     ['name' => 'Connection health dashboard', 'description' => 'See "healthy / needs reconnect / paused" for every network at a glance, with last-synced timestamps.'],
+                ],
+            ],
+            [
+                'id' => 'reviews',
+                'icon' => 'fa-star',
+                'heading' => 'Reviews & reputation',
+                'intro' => 'Collect trust signals from real visitors and pull in ratings you already have — all moderated in one place and ready to drop anywhere on your page.',
+                'features' => [
+                    ['name' => 'Native review collection', 'description' => 'Visitors leave star ratings, written feedback and photo attachments, with spam checks before anything goes live.'],
+                    ['name' => 'Google & Trustpilot import', 'description' => 'Pull in your existing Google Places and Trustpilot ratings alongside native reviews so new visitors see your full reputation at a glance.'],
+                    ['name' => 'Reviews wall block', 'description' => 'Drop a live, filterable reviews wall onto any Link in Bio page as its own block.'],
+                    ['name' => 'Owner moderation', 'description' => 'Approve, hide or feature individual reviews before they ever reach visitors.'],
+                ],
+            ],
+            [
+                'id' => 'storefront',
+                'icon' => 'fa-store',
+                'heading' => 'Product storefront',
+                'intro' => "Sell directly from your Link in Bio with a native checkout — no separate store, no per-transaction platform fee.",
+                'features' => [
+                    ['name' => 'Product block', 'description' => 'Add a buyable product straight into your Link in Bio with photos, pricing and variants.'],
+                    ['name' => 'Native checkout', 'description' => "Visitors pay without ever leaving your page — no redirect to an external cart."],
+                    ['name' => '0% platform fee', 'description' => "Keep every cent you earn — Sayzio doesn't take a cut of your sales."],
+                    ['name' => 'Order dashboard', 'description' => 'See every order the moment it comes in, with per-item status you can update.'],
+                    ['name' => 'Earnings by source', 'description' => "Track how much you've earned from products alongside tips, subscriptions and every other revenue source."],
+                ],
+            ],
+            [
+                'id' => 'inbox-agent',
+                'icon' => 'fa-robot',
+                'heading' => 'AI Inbox Agent (Inbox 2.0)',
+                'intro' => 'An AI teammate that reads, drafts and — when you let it — sends replies in your inbox, so routine messages get handled while you focus on the ones that matter.',
+                'features' => [
+                    ['name' => 'AI-drafted replies', 'description' => 'Every incoming message gets a suggested reply in your voice, ready to send or edit in one tap.'],
+                    ['name' => 'Autopilot mode', 'description' => 'Turn on autopilot and let the agent send replies to routine messages automatically.'],
+                    ['name' => 'Built-in safety net', 'description' => "Autopilot always holds back spam, sensitive topics and low-confidence replies for your review instead of guessing."],
+                    ['name' => 'Review queue', 'description' => "Anything the agent isn't fully sure about lands in a review queue instead of going out unchecked."],
+                ],
+            ],
+            [
+                'id' => 'knowledge-bases',
+                'icon' => 'fa-book',
+                'heading' => 'AI Knowledge Bases',
+                'intro' => 'Ground every AI feature in your own content — upload docs, links and FAQs so your chatbot, agent and inbox actually know your business.',
+                'features' => [
+                    ['name' => 'Custom knowledge bases', 'description' => 'Upload documents, paste text or point to URLs to build a knowledge base your AI tools can draw on.'],
+                    ['name' => 'Grounded AI Chatbot & Coach', 'description' => 'Connect a knowledge base so answers come from your real content instead of a generic script.'],
+                    ['name' => 'External sources', 'description' => 'Sync knowledge in from a webhook or push it out to a connector, keeping your AI tools current automatically.'],
+                    ['name' => 'Owner-controlled access', 'description' => 'You decide which knowledge bases power which AI features.'],
+                ],
+            ],
+            [
+                'id' => 'ai-branding',
+                'icon' => 'fa-palette',
+                'heading' => 'AI Branding Specials',
+                'intro' => 'AI that keeps everything you publish on-brand, automatically — scored, checked and corrected against your own brand kit.',
+                'features' => [
+                    ['name' => 'Brand Consistency Score', 'description' => 'A live score on your Brand Kit shows how closely your published page matches your saved colors, fonts and voice.'],
+                    ['name' => 'On-Brand AI', 'description' => 'Every AI Page Builder and AI persona prompt is automatically steered by your brand kit, so AI-generated content matches your brand by default.'],
+                    ['name' => 'Brand Kit foundation', 'description' => 'Save your logo, colors, font pairing, voice and boilerplate once, then reuse it across pages, press kits and AI features.'],
+                ],
+            ],
+            [
+                'id' => 'ai-marketing-strategist',
+                'icon' => 'fa-chess',
+                'heading' => 'AI Marketing Strategist',
+                'intro' => 'Hand the AI a goal and get a full marketing plan back — forecasted outcomes, concrete tactics and the exact levers to pull inside Sayzio.',
+                'features' => [
+                    ['name' => 'Goal-driven strategy reports', 'description' => 'Describe what you\'re trying to achieve and get a tailored plan built from your own account data.', 'link' => '/ai-marketing-strategist'],
+                    ['name' => 'Outcome forecasting', 'description' => 'See a realistic forecast of where a strategy could take your numbers before you commit to it.'],
+                    ['name' => 'Actionable tactics', 'description' => 'Every report breaks down into concrete next steps you can act on directly inside Sayzio.'],
                 ],
             ],
         ];

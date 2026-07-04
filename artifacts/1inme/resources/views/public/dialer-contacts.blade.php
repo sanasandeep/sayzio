@@ -711,6 +711,9 @@
 <section id="dcp-store" class="py-12 lg:py-16">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div class="text-[11px] font-bold uppercase tracking-[.14em] text-gray-500 mb-4" data-anim="fade-up">Take the dialer with you</div>
+        <p class="text-sm text-gray-400 mb-5 max-w-xl mx-auto" data-anim="fade-up">
+            The full T9 dialer, quick channels and caller ID experience also ships as its own dedicated companion app, <strong class="text-white">Sayzio Dialer</strong> — alongside everything you already get inside the main Sayzio app.
+        </p>
         <div class="flex flex-wrap items-center justify-center" data-anim="fade-up">
             @include('public.partials.store-buttons')
         </div>

@@ -528,6 +528,9 @@
 
                 <div class="reveal rd-4 pt-2">
                     <div class="text-[11px] font-bold uppercase tracking-[.14em] text-gray-500 mb-2.5">Take the dialer with you</div>
+                    <p class="text-xs text-gray-400 mb-2.5 max-w-sm">
+                        Also available as its own dedicated companion app, <strong class="text-white">Sayzio Dialer</strong>.
+                    </p>
                     @include('public.partials.store-buttons')
                 </div>
             </div>

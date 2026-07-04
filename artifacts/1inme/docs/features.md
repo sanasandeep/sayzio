@@ -548,6 +548,10 @@ A personal CRM plus an in-app dialer with identity resolution.
 - **Scan a card or brochure** — AI tool (see [§8](#8-ai-engine--ai-features))
   that extracts contact details + logo from a photo/PDF to save a contact and/or
   seed a biolink draft.
+- **Sayzio Dialer (standalone companion app)** — the T9 dialer, quick channels and
+  caller-ID experience is also distributed as its own dedicated mobile app
+  download, in addition to being built into the main Sayzio app; both surfaces
+  read/write the same account data.
 
 *Web · REST · Mobile.*
 
