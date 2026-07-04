@@ -35,6 +35,17 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Behind Replit's TLS-terminating proxy the app receives plain HTTP
+        // internally (the public request is HTTPS). Without this, Laravel's
+        // url()/asset()/@vite generate absolute `http://` URLs on an `https://`
+        // page, so browsers (Safari especially) block every asset as mixed
+        // content — the live site loses its CSS, images and mascot. trustProxies
+        // already yields the correct host; we only need to pin the scheme.
+        // Production-only so local http dev is unaffected.
+        if ($this->app->environment('production')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         // `php artisan serve` spawns a child `php -S` process to handle requests
         // and, by default, only forwards a small allowlist of env vars to it
         // (ServeCommand::$passthroughVariables) — every other $_ENV var is
