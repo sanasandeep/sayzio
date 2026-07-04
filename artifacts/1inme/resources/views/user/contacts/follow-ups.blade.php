@@ -94,29 +94,24 @@ function followUpsList() {
             if (note) body.set('follow_up_note', note);
             await this._act(`{{ url('user/contacts') }}/${id}/follow-up`, 'POST', body);
         },
-        // Open the row's native datetime picker for a custom snooze time.
-        pickTime(id) {
-            const el = document.getElementById(`fu-dt-${id}`);
-            if (!el) return;
-            el.min = this._localInput(new Date());
-            if (!el.value) {
-                const d = new Date(Date.now() + 86400000);
-                d.setHours(9, 0, 0, 0);
-                el.value = this._localInput(d);
-            }
-            if (typeof el.showPicker === 'function') {
-                try { el.showPicker(); return; } catch (e) {}
-            }
-            el.focus();
-            el.click();
+        // Default value for the custom "Pick a time…" panel: tomorrow at 9am.
+        defaultPickAt() {
+            const d = new Date(Date.now() + 86400000);
+            d.setHours(9, 0, 0, 0);
+            return this._localInput(d);
+        },
+        // Lower bound for the custom picker so past times can't be chosen.
+        nowInput() {
+            return this._localInput(new Date());
         },
         // Snooze to a user-picked datetime-local value; the server interprets
-        // this naive string in the signed-in user's timezone.
+        // this naive string in the signed-in user's timezone. The note is sent
+        // unconditionally so the custom flow can add, edit, or clear it inline.
         async snoozeAt(id, value, note) {
             if (!value) return;
             const body = new URLSearchParams();
             body.set('follow_up_at', value);
-            if (note) body.set('follow_up_note', note);
+            body.set('follow_up_note', (note ?? '').trim());
             await this._act(`{{ url('user/contacts') }}/${id}/follow-up`, 'POST', body);
         },
         // Format a Date as a `datetime-local` value string (local wall-clock, no tz).

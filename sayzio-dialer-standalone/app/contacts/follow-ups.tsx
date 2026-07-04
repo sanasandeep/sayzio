@@ -130,8 +130,8 @@ export default function FollowUpsScreen() {
   // Snooze to a user-picked datetime-local value; sent as a naive wall-clock
   // string plus the device timezone so the server anchors it correctly.
   const snoozeAtM = useMutation({
-    mutationFn: ({ c, value }: { c: Contact; value: string }) =>
-      setContactFollowUp(c.id, value, c.follow_up_note, deviceTimeZone),
+    mutationFn: ({ c, value, note }: { c: Contact; value: string; note: string }) =>
+      setContactFollowUp(c.id, value, note.trim() ? note.trim() : null, deviceTimeZone),
     onMutate: ({ c }) => setBusyId(c.id),
     onSettled: () => {
       setBusyId(null);
@@ -333,9 +333,10 @@ export default function FollowUpsScreen() {
       <DateTimePickerModal
         visible={pickerFor !== null}
         title="Snooze until"
+        initialNote={pickerFor?.follow_up_note ?? ""}
         onClose={() => setPickerFor(null)}
-        onPick={(value) => {
-          if (pickerFor) snoozeAtM.mutate({ c: pickerFor, value });
+        onPick={(value, note) => {
+          if (pickerFor) snoozeAtM.mutate({ c: pickerFor, value, note });
         }}
       />
     </View>
