@@ -771,10 +771,16 @@ class BillingController extends Controller
         }
 
         $data = $request->validate([
-            'amount_minor' => 'nullable|integer|min:0',
-            'reason'       => 'nullable|string|max:240',
+            'amount_minor'    => 'nullable|integer|min:0',
+            'reason'          => 'nullable|string|max:240',
+            'idempotency_key' => 'nullable|string|max:80',
         ]);
-        $svc->refund($invoice, (int) ($data['amount_minor'] ?? 0), $data['reason'] ?? null, true);
+        // Accept an idempotency key from the request body or the standard
+        // Idempotency-Key header so a retried POST is a no-op that returns the
+        // original result; the service also has a short dedupe window as a
+        // backstop when no key is supplied.
+        $idem = $data['idempotency_key'] ?? $request->header('Idempotency-Key');
+        $svc->refund($invoice, (int) ($data['amount_minor'] ?? 0), $data['reason'] ?? null, true, $idem);
         return $this->ok(['invoice' => $this->transformInvoice($invoice->refresh())]);
     }
 

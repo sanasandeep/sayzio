@@ -10,6 +10,7 @@ class Refund extends Model
         'invoice_id', 'user_id', 'amount_minor', 'currency', 'status',
         'gateway', 'gateway_ref', 'reason', 'created_by_admin_id',
         'user_initiated', 'downgrade_on_success', 'processed_at',
+        'idempotency_key',
     ];
 
     protected function casts(): array

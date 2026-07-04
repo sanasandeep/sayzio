@@ -377,10 +377,15 @@ class ClientInvoiceController extends Controller
     {
         $this->authorizeInvoice($invoice);
         $data = $request->validate([
-            'amount_minor' => 'nullable|integer|min:0',
-            'reason'       => 'nullable|string|max:240',
+            'amount_minor'    => 'nullable|integer|min:0',
+            'reason'          => 'nullable|string|max:240',
+            'idempotency_key' => 'nullable|string|max:80',
         ]);
-        $svc->refund($invoice, (int) ($data['amount_minor'] ?? 0), $data['reason'] ?? null, true);
+        // Accept an idempotency key from a hidden form field or the standard
+        // Idempotency-Key header; the service also has a short dedupe window so
+        // a plain double-submit without a key is still a no-op.
+        $idem = $data['idempotency_key'] ?? $request->header('Idempotency-Key');
+        $svc->refund($invoice, (int) ($data['amount_minor'] ?? 0), $data['reason'] ?? null, true, $idem);
         return back()->with('success', 'Refund issued.');
     }
 

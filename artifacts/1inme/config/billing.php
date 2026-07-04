@@ -60,6 +60,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Refund idempotency
+    |--------------------------------------------------------------------------
+    |
+    | When a refund is issued without an explicit idempotency key, an identical
+    | succeeded refund (same amount + reason) created within this many seconds is
+    | treated as the same request and returned as a no-op — so a double-click or
+    | impatient retry can't over-refund. Set to 0 to disable the time window
+    | (explicit idempotency keys still dedupe regardless).
+    |
+    */
+    'refund' => [
+        'dedupe_seconds' => (int) env('REFUND_DEDUPE_SECONDS', 10),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Activation webhook secret
     |--------------------------------------------------------------------------
     |

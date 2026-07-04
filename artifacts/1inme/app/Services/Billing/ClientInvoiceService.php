@@ -459,32 +459,85 @@ class ClientInvoiceService
      * Issue a full/partial refund against a paid invoice. Records a Refund
      * + CreditNote (the reversing ledger entry) and downgrades the invoice
      * status to refunded / partially_refunded.
+     *
+     * Idempotency: a double-click, impatient retry, or webhook re-delivery must
+     * NOT create two Refund rows + two credit notes for the same intended
+     * refund. Two guards prevent that:
+     *   1. An explicit `$idempotencyKey` (when the caller supplies one) is
+     *      unique per invoice — a repeat with the same key returns the original
+     *      Refund untouched (backed by the UNIQUE (invoice_id, idempotency_key)
+     *      index as a race backstop).
+     *   2. When no key is supplied (e.g. a plain web double-submit), a short
+     *      dedupe window collapses an identical succeeded refund (same amount +
+     *      reason) created within the last few seconds into a no-op.
+     * Both run under a row lock on the invoice so concurrent attempts serialize
+     * and see each other's writes rather than both passing the balance check.
      */
-    public function refund(Invoice $invoice, int $amountMinor, ?string $reason = null, bool $userInitiated = true): Refund
+    public function refund(Invoice $invoice, int $amountMinor, ?string $reason = null, bool $userInitiated = true, ?string $idempotencyKey = null): Refund
     {
         if ($invoice->status !== 'paid' && $invoice->status !== 'partially_refunded') {
             abort(422, 'Only paid invoices can be refunded.');
         }
-        $alreadyRefunded = $invoice->refundedTotalMinor();
-        $remaining = max(0, (int) $invoice->grand_total_minor - $alreadyRefunded);
-        $amountMinor = (int) $amountMinor;
-        if ($amountMinor <= 0) $amountMinor = $remaining;
-        if ($amountMinor > $remaining) {
-            abort(422, 'Refund exceeds the refundable balance.');
-        }
 
-        return DB::transaction(function () use ($invoice, $amountMinor, $reason, $userInitiated, $alreadyRefunded) {
+        $idempotencyKey = ($idempotencyKey !== null && $idempotencyKey !== '') ? $idempotencyKey : null;
+
+        return DB::transaction(function () use ($invoice, $amountMinor, $reason, $userInitiated, $idempotencyKey) {
+            // Serialize concurrent refunds for this invoice (double-click,
+            // retry, webhook re-delivery) so duplicates see each other's
+            // committed writes instead of both passing the balance check.
+            /** @var Invoice $fresh */
+            $fresh = Invoice::query()->withoutGlobalScopes()
+                ->whereKey($invoice->id)->lockForUpdate()->firstOrFail();
+
+            // Guard 1: explicit idempotency key -> return the original refund.
+            if ($idempotencyKey !== null) {
+                $prior = Refund::where('invoice_id', $fresh->id)
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->first();
+                if ($prior) return $prior;
+            }
+
+            $alreadyRefunded = (int) $fresh->refunds()->where('status', 'succeeded')->sum('amount_minor');
+            $remaining = max(0, (int) $fresh->grand_total_minor - $alreadyRefunded);
+            $amountMinor = (int) $amountMinor;
+            if ($amountMinor <= 0) $amountMinor = $remaining;
+            if ($amountMinor > $remaining) {
+                abort(422, 'Refund exceeds the refundable balance.');
+            }
+
+            // Guard 2: no explicit key -> short dedupe window on an identical
+            // succeeded refund (same amount + reason + initiator).
+            if ($idempotencyKey === null) {
+                $window = (int) config('billing.refund.dedupe_seconds', 10);
+                if ($window > 0) {
+                    $dupe = Refund::where('invoice_id', $fresh->id)
+                        ->where('status', 'succeeded')
+                        ->where('amount_minor', $amountMinor)
+                        ->where('user_initiated', $userInitiated)
+                        ->when(
+                            $reason === null,
+                            fn ($q) => $q->whereNull('reason'),
+                            fn ($q) => $q->where('reason', $reason)
+                        )
+                        ->where('created_at', '>=', now()->subSeconds($window))
+                        ->latest('id')
+                        ->first();
+                    if ($dupe) return $dupe;
+                }
+            }
+
             $refund = Refund::create([
-                'invoice_id'     => $invoice->id,
-                'user_id'        => $invoice->user_id,
-                'amount_minor'   => $amountMinor,
-                'currency'       => $invoice->currency,
-                'status'         => 'succeeded',
-                'gateway'        => $invoice->gateway ?: 'manual',
-                'gateway_ref'    => 'refund_' . \Illuminate\Support\Str::random(12),
-                'reason'         => $reason,
-                'user_initiated' => $userInitiated,
-                'processed_at'   => now(),
+                'invoice_id'      => $fresh->id,
+                'user_id'         => $fresh->user_id,
+                'amount_minor'    => $amountMinor,
+                'currency'        => $fresh->currency,
+                'status'          => 'succeeded',
+                'gateway'         => $fresh->gateway ?: 'manual',
+                'gateway_ref'     => 'refund_' . \Illuminate\Support\Str::random(12),
+                'reason'          => $reason,
+                'user_initiated'  => $userInitiated,
+                'idempotency_key' => $idempotencyKey,
+                'processed_at'    => now(),
             ]);
 
             // Reversing ledger entry. Numbering goes through CreditNoteService
@@ -498,9 +551,9 @@ class ClientInvoiceService
             CreditNoteService::issue($refund);
 
             $totalRefunded = $alreadyRefunded + $amountMinor;
-            $invoice->forceFill([
-                'status'            => $totalRefunded >= (int) $invoice->grand_total_minor ? 'refunded' : 'partially_refunded',
-                'amount_paid_minor' => max(0, (int) $invoice->grand_total_minor - $totalRefunded),
+            $fresh->forceFill([
+                'status'            => $totalRefunded >= (int) $fresh->grand_total_minor ? 'refunded' : 'partially_refunded',
+                'amount_paid_minor' => max(0, (int) $fresh->grand_total_minor - $totalRefunded),
             ])->save();
 
             return $refund;
