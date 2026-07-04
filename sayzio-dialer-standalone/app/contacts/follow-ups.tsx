@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+import { DateTimePickerModal } from "@/components/DateTimePickerModal";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -22,6 +23,14 @@ import {
   listFollowUps,
   setContactFollowUp,
 } from "@/lib/api/contacts";
+
+const deviceTimeZone = (() => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
+})();
 
 function formatWhen(iso: string): { abs: string; rel: string } {
   const d = new Date(iso);
@@ -118,10 +127,27 @@ export default function FollowUpsScreen() {
     onError: () => Alert.alert("Couldn't snooze", "Please try again."),
   });
 
+  // Snooze to a user-picked datetime-local value; sent as a naive wall-clock
+  // string plus the device timezone so the server anchors it correctly.
+  const snoozeAtM = useMutation({
+    mutationFn: ({ c, value }: { c: Contact; value: string }) =>
+      setContactFollowUp(c.id, value, c.follow_up_note, deviceTimeZone),
+    onMutate: ({ c }) => setBusyId(c.id),
+    onSettled: () => {
+      setBusyId(null);
+      qc.invalidateQueries({ queryKey: ["follow-ups"] });
+    },
+    onError: () => Alert.alert("Couldn't snooze", "Please try again."),
+  });
+
+  // Contact whose custom "Pick a time…" picker is open (null when closed).
+  const [pickerFor, setPickerFor] = useState<Contact | null>(null);
+
   const promptSnooze = (c: Contact) => {
     Alert.alert("Snooze follow-up", `Reschedule ${c.display_name || "this contact"}?`, [
       { text: "Tomorrow", onPress: () => snoozeM.mutate({ c, days: 1 }) },
       { text: "Next week", onPress: () => snoozeM.mutate({ c, days: 7 }) },
+      { text: "Pick a time…", onPress: () => setPickerFor(c) },
       { text: "Cancel", style: "cancel" },
     ]);
   };
@@ -304,6 +330,14 @@ export default function FollowUpsScreen() {
           onUndo={() => undoM.mutate(undoContact)}
         />
       ) : null}
+      <DateTimePickerModal
+        visible={pickerFor !== null}
+        title="Snooze until"
+        onClose={() => setPickerFor(null)}
+        onPick={(value) => {
+          if (pickerFor) snoozeAtM.mutate({ c: pickerFor, value });
+        }}
+      />
     </View>
   );
 }

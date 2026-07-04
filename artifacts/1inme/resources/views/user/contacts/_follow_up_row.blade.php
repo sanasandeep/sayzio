@@ -52,7 +52,17 @@
                         style="color:var(--text-primary);background:rgba(255,255,255,.03);">
                     <i class="fas fa-calendar-week text-[10px] mr-1.5" style="color:#90acff;"></i> Next week
                 </button>
+                <button type="button" @click="menu = false; pickTime({{ $contact->id }})"
+                        class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition hover:brightness-125 mt-1"
+                        style="color:var(--text-primary);background:rgba(255,255,255,.03);">
+                    <i class="fas fa-calendar-day text-[10px] mr-1.5" style="color:#4ade80;"></i> Pick a time…
+                </button>
             </div>
         </div>
     </div>
+
+    {{-- Hidden native datetime picker for the "Pick a time…" snooze option; opened via showPicker(). --}}
+    <input type="datetime-local" id="fu-dt-{{ $contact->id }}"
+           class="sr-only" tabindex="-1" aria-hidden="true"
+           x-on:change="snoozeAt({{ $contact->id }}, $event.target.value, @js($contact->follow_up_note))">
 </div>

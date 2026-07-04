@@ -94,6 +94,36 @@ function followUpsList() {
             if (note) body.set('follow_up_note', note);
             await this._act(`{{ url('user/contacts') }}/${id}/follow-up`, 'POST', body);
         },
+        // Open the row's native datetime picker for a custom snooze time.
+        pickTime(id) {
+            const el = document.getElementById(`fu-dt-${id}`);
+            if (!el) return;
+            el.min = this._localInput(new Date());
+            if (!el.value) {
+                const d = new Date(Date.now() + 86400000);
+                d.setHours(9, 0, 0, 0);
+                el.value = this._localInput(d);
+            }
+            if (typeof el.showPicker === 'function') {
+                try { el.showPicker(); return; } catch (e) {}
+            }
+            el.focus();
+            el.click();
+        },
+        // Snooze to a user-picked datetime-local value; the server interprets
+        // this naive string in the signed-in user's timezone.
+        async snoozeAt(id, value, note) {
+            if (!value) return;
+            const body = new URLSearchParams();
+            body.set('follow_up_at', value);
+            if (note) body.set('follow_up_note', note);
+            await this._act(`{{ url('user/contacts') }}/${id}/follow-up`, 'POST', body);
+        },
+        // Format a Date as a `datetime-local` value string (local wall-clock, no tz).
+        _localInput(d) {
+            const p = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+        },
         async _act(url, method, body) {
             if (this.loading) return false;
             this.loading = true;
