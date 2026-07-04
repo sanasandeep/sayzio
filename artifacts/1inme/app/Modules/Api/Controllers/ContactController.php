@@ -568,11 +568,15 @@ class ContactController extends Controller
             'follow_up_at'   => ['required', 'date'],
             'follow_up_note' => ['nullable', 'string', 'max:2000'],
             'follow_up_tz'   => ['nullable', 'string', 'timezone'],
+            'restore'        => ['sometimes', 'boolean'],
         ]);
 
         $tz = $v['follow_up_tz'] ?? config('app.timezone');
         $at = \Illuminate\Support\Carbon::parse($v['follow_up_at'], $tz)->utc();
-        if ($at->isPast()) {
+        // Undo of an accidentally-cleared reminder may restore a moment already
+        // in the past (e.g. an overdue follow-up); allow that on restore, but
+        // keep the future-only rule for fresh sets and snoozes.
+        if (!$request->boolean('restore') && $at->isPast()) {
             return $this->fail('Follow-up time must be in the future.', 422, 'follow_up_in_past');
         }
 

@@ -23,6 +23,27 @@
     <div x-ref="body" :class="loading ? 'opacity-50 pointer-events-none transition' : ''">
         @include('user.contacts._follow_ups_body', ['overdue' => $overdue, 'upcoming' => $upcoming])
     </div>
+
+    {{-- Undo snackbar: a brief window to restore a follow-up cleared by accident. --}}
+    <div x-cloak x-show="toast.visible"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 translate-y-3"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-3"
+         class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl"
+         style="background:var(--surface-2, #1a1d2e);border:1px solid rgba(255,255,255,.14);">
+        <span class="text-sm font-medium whitespace-nowrap" style="color:var(--text-primary);">
+            <i class="fas fa-check-circle text-[12px] mr-1.5" style="color:#4ade80;"></i>
+            Follow-up cleared
+        </span>
+        <button type="button" x-on:click="undo()"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition hover:brightness-125"
+                style="background:rgba(61,107,255,.16);color:#90acff;border:1px solid rgba(61,107,255,.28);">
+            <i class="fas fa-rotate-left text-[10px]"></i> Undo
+        </button>
+    </div>
 </div>
 
 @push('scripts')
@@ -30,12 +51,40 @@
 function followUpsList() {
     return {
         loading: false,
+        toast: { visible: false },
+        undoState: null,
+        _toastT: null,
         _csrf() {
             return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         },
-        // Clear a follow-up straight from the list ("Done").
-        async done(id) {
-            await this._act(`{{ url('user/contacts') }}/${id}/follow-up`, 'DELETE');
+        // Clear a follow-up straight from the list ("Done"). Keep the previous
+        // reminder date + note around so an accidental click can be undone.
+        async done(id, prevAt, prevNote, prevTz) {
+            const ok = await this._act(`{{ url('user/contacts') }}/${id}/follow-up`, 'DELETE');
+            if (ok && prevAt) this._showUndo(id, prevAt, prevNote, prevTz);
+        },
+        // Re-set the follow-up we just cleared via the existing set endpoint.
+        async undo() {
+            const u = this.undoState;
+            if (!u) return;
+            this._hideToast();
+            const body = new URLSearchParams();
+            body.set('follow_up_at', u.at);
+            if (u.note) body.set('follow_up_note', u.note);
+            if (u.tz) body.set('follow_up_tz', u.tz);
+            // Allow restoring an overdue reminder whose time is already past.
+            body.set('restore', '1');
+            await this._act(`{{ url('user/contacts') }}/${u.id}/follow-up`, 'POST', body);
+        },
+        _showUndo(id, at, note, tz) {
+            this.undoState = { id, at, note, tz };
+            this.toast.visible = true;
+            clearTimeout(this._toastT);
+            this._toastT = setTimeout(() => this._hideToast(), 6000);
+        },
+        _hideToast() {
+            this.toast.visible = false;
+            clearTimeout(this._toastT);
         },
         // Snooze to a preset (+1 day / +7 days from now), preserving the note.
         async snooze(id, days, note) {
@@ -46,7 +95,7 @@ function followUpsList() {
             await this._act(`{{ url('user/contacts') }}/${id}/follow-up`, 'POST', body);
         },
         async _act(url, method, body) {
-            if (this.loading) return;
+            if (this.loading) return false;
             this.loading = true;
             try {
                 const headers = {
@@ -62,8 +111,10 @@ function followUpsList() {
                 const r = await fetch(url, opts);
                 if (!r.ok) throw new Error('request failed');
                 await this.reload();
+                return true;
             } catch (e) {
                 // Leave the list untouched on a transient failure.
+                return false;
             } finally {
                 this.loading = false;
             }

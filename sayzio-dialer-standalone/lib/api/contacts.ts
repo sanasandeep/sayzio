@@ -150,6 +150,10 @@ export async function setContactFollowUp(
   followUpAt: string,
   note?: string | null,
   timezone?: string | null,
+  // Set when restoring a follow-up cleared by accident: allows re-setting a
+  // moment already in the past (e.g. an overdue reminder), which the server
+  // otherwise rejects for fresh sets/snoozes.
+  restore?: boolean,
 ): Promise<Contact> {
   const res = await apiFetch<{ data: { contact: Contact } }>(
     `/contacts/${id}/follow-up`,
@@ -159,6 +163,7 @@ export async function setContactFollowUp(
         follow_up_at: followUpAt,
         follow_up_note: note ?? null,
         follow_up_tz: timezone ?? null,
+        restore: restore ?? false,
       }),
     },
   );
