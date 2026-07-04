@@ -38,10 +38,6 @@ args = "brand-color"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "brand-color-build"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "test:1inme-com"
 
 [[workflows.workflow.tasks]]
@@ -91,6 +87,10 @@ args = "demo-allowlist"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "ci-passthrough-names"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "brand-color-build"
 
 [[workflows.workflow]]
 name = "e2e"
@@ -143,17 +143,6 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:brand-color"
-
-[workflows.workflow.metadata]
-isValidation = true
-
-[[workflows.workflow]]
-name = "brand-color-build"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/scripts run check:brand-color-build"
 
 [workflows.workflow.metadata]
 isValidation = true
@@ -297,6 +286,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:ci-passthrough-names"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "brand-color-build"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:brand-color-build"
 
 [workflows.workflow.metadata]
 isValidation = true
