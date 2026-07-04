@@ -108,6 +108,12 @@ class ContactController extends Controller
         $overdue  = $contacts->filter(fn ($c) => $c->follow_up_at->lte($now))->values();
         $upcoming = $contacts->filter(fn ($c) => $c->follow_up_at->gt($now))->values();
 
+        // Inline quick-actions (Done / Snooze) refresh just the list body so
+        // the page never fully reloads; the full page is returned otherwise.
+        if ($request->ajax()) {
+            return view('user.contacts._follow_ups_body', compact('overdue', 'upcoming'));
+        }
+
         return view('user.contacts.follow-ups', compact('overdue', 'upcoming'));
     }
 

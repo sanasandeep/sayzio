@@ -3,11 +3,10 @@
 @section('title', 'Follow-ups')
 
 @section('content')
-@php($tz = auth()->user()->timezone ?? config('app.timezone'))
-<div class="max-w-4xl mx-auto">
+<div class="max-w-4xl mx-auto" x-data="followUpsList()" data-reload-url="{{ route('user.contacts.follow-ups') }}">
     @include('user.partials.page-hero', [
         'title' => 'Follow-ups',
-        'subtitle' => 'Everything you need to follow up on, soonest first — no need to open each contact.',
+        'subtitle' => 'Everything you need to follow up on, soonest first — clear or snooze right from here.',
         'icon' => 'fa-bell',
         'chips' => [
             ['icon' => 'fa-exclamation-circle text-red-400', 'text' => $overdue->count() . ' overdue'],
@@ -21,43 +20,65 @@
         </a>
     </div>
 
-    @if($overdue->isEmpty() && $upcoming->isEmpty())
-        <div class="card-premium p-10 text-center">
-            <div class="mx-auto mb-4 w-14 h-14 rounded-full flex items-center justify-center" style="background:rgba(61,107,255,.10);">
-                <i class="fas fa-bell-slash text-xl" style="color:#90acff;"></i>
-            </div>
-            <h3 class="text-base font-bold mb-1" style="color:var(--text-primary);">No follow-ups scheduled</h3>
-            <p class="text-sm mb-5" style="color:var(--text-muted);">Set a reminder on any contact and it'll show up here.</p>
-            <a href="{{ route('user.contacts.index') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold" style="background:linear-gradient(135deg,#3d6bff,#ec4899);color:#fff;">
-                <i class="fas fa-address-book"></i> Go to contacts
-            </a>
-        </div>
-    @endif
-
-    @if($overdue->isNotEmpty())
-        <div class="mb-8">
-            <h2 class="text-[11px] font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5" style="color:#ef4444;">
-                <i class="fas fa-exclamation-circle"></i> Overdue ({{ $overdue->count() }})
-            </h2>
-            <div class="space-y-2">
-                @foreach($overdue as $contact)
-                    @include('user.contacts._follow_up_row', ['contact' => $contact, 'tz' => $tz, 'overdue' => true])
-                @endforeach
-            </div>
-        </div>
-    @endif
-
-    @if($upcoming->isNotEmpty())
-        <div class="mb-8">
-            <h2 class="text-[11px] font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5" style="color:var(--text-faint);">
-                <i class="fas fa-clock" style="color:#90acff;"></i> Upcoming ({{ $upcoming->count() }})
-            </h2>
-            <div class="space-y-2">
-                @foreach($upcoming as $contact)
-                    @include('user.contacts._follow_up_row', ['contact' => $contact, 'tz' => $tz, 'overdue' => false])
-                @endforeach
-            </div>
-        </div>
-    @endif
+    <div x-ref="body" :class="loading ? 'opacity-50 pointer-events-none transition' : ''">
+        @include('user.contacts._follow_ups_body', ['overdue' => $overdue, 'upcoming' => $upcoming])
+    </div>
 </div>
+
+@push('scripts')
+<script>
+function followUpsList() {
+    return {
+        loading: false,
+        _csrf() {
+            return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        },
+        // Clear a follow-up straight from the list ("Done").
+        async done(id) {
+            await this._act(`{{ url('user/contacts') }}/${id}/follow-up`, 'DELETE');
+        },
+        // Snooze to a preset (+1 day / +7 days from now), preserving the note.
+        async snooze(id, days, note) {
+            const at = new Date(Date.now() + days * 86400000);
+            const body = new URLSearchParams();
+            body.set('follow_up_at', at.toISOString());
+            if (note) body.set('follow_up_note', note);
+            await this._act(`{{ url('user/contacts') }}/${id}/follow-up`, 'POST', body);
+        },
+        async _act(url, method, body) {
+            if (this.loading) return;
+            this.loading = true;
+            try {
+                const headers = {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': this._csrf(),
+                };
+                const opts = { method, headers };
+                if (body) {
+                    headers['Content-Type'] = 'application/x-www-form-urlencoded';
+                    opts.body = body.toString();
+                }
+                const r = await fetch(url, opts);
+                if (!r.ok) throw new Error('request failed');
+                await this.reload();
+            } catch (e) {
+                // Leave the list untouched on a transient failure.
+            } finally {
+                this.loading = false;
+            }
+        },
+        // Pull a fresh list body so overdue/upcoming buckets re-sort in place.
+        async reload() {
+            try {
+                const r = await fetch(this.$el.dataset.reloadUrl, {
+                    headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                if (r.ok) this.$refs.body.innerHTML = await r.text();
+            } catch (e) {}
+        },
+    };
+}
+</script>
+@endpush
 @endsection

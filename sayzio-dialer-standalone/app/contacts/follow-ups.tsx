@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,7 +15,12 @@ import {
 
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
-import { type Contact, listFollowUps } from "@/lib/api/contacts";
+import {
+  clearContactFollowUp,
+  type Contact,
+  listFollowUps,
+  setContactFollowUp,
+} from "@/lib/api/contacts";
 
 function formatWhen(iso: string): { abs: string; rel: string } {
   const d = new Date(iso);
@@ -36,15 +43,52 @@ function formatWhen(iso: string): { abs: string; rel: string } {
 export default function FollowUpsScreen() {
   const colors = useColors();
   const router = useRouter();
+  const qc = useQueryClient();
 
   const q = useQuery({
     queryKey: ["follow-ups"],
     queryFn: listFollowUps,
   });
 
+  // Inline quick-actions: clear ("Done") or snooze to a preset (+1 day / +7
+  // days). Both reuse the existing set/clear endpoints and refresh the list.
+  const [busyId, setBusyId] = useState<number | null>(null);
+
+  const doneM = useMutation({
+    mutationFn: (id: number) => clearContactFollowUp(id),
+    onMutate: (id) => setBusyId(id),
+    onSettled: () => {
+      setBusyId(null);
+      qc.invalidateQueries({ queryKey: ["follow-ups"] });
+    },
+    onError: () => Alert.alert("Couldn't clear", "Please try again."),
+  });
+
+  const snoozeM = useMutation({
+    mutationFn: ({ c, days }: { c: Contact; days: number }) => {
+      const at = new Date(Date.now() + days * 86400000);
+      return setContactFollowUp(c.id, at.toISOString(), c.follow_up_note);
+    },
+    onMutate: ({ c }) => setBusyId(c.id),
+    onSettled: () => {
+      setBusyId(null);
+      qc.invalidateQueries({ queryKey: ["follow-ups"] });
+    },
+    onError: () => Alert.alert("Couldn't snooze", "Please try again."),
+  });
+
+  const promptSnooze = (c: Contact) => {
+    Alert.alert("Snooze follow-up", `Reschedule ${c.display_name || "this contact"}?`, [
+      { text: "Tomorrow", onPress: () => snoozeM.mutate({ c, days: 1 }) },
+      { text: "Next week", onPress: () => snoozeM.mutate({ c, days: 7 }) },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
   const Row = ({ c, overdue }: { c: Contact; overdue: boolean }) => {
     const when = c.follow_up_at ? formatWhen(c.follow_up_at) : null;
     const accent = overdue ? colors.destructive : colors.primary;
+    const busy = busyId === c.id;
     return (
       <Pressable
         onPress={() => router.push(`/contacts/${c.id}`)}
@@ -106,8 +150,38 @@ export default function FollowUpsScreen() {
               {c.follow_up_note}
             </Text>
           ) : null}
+          <View style={styles.actions}>
+            <Pressable
+              disabled={busy}
+              onPress={() => doneM.mutate(c.id)}
+              hitSlop={6}
+              style={[
+                styles.actionBtn,
+                { backgroundColor: colors.success + "1e", borderColor: colors.success + "3a" },
+              ]}
+            >
+              <Feather name="check" size={12} color={colors.success} />
+              <Text style={[styles.actionText, { color: colors.success }]}>Done</Text>
+            </Pressable>
+            <Pressable
+              disabled={busy}
+              onPress={() => promptSnooze(c)}
+              hitSlop={6}
+              style={[
+                styles.actionBtn,
+                { backgroundColor: colors.primary + "1e", borderColor: colors.primary + "3a" },
+              ]}
+            >
+              <Feather name="clock" size={12} color={colors.primary} />
+              <Text style={[styles.actionText, { color: colors.primary }]}>Snooze</Text>
+            </Pressable>
+          </View>
         </View>
-        <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        {busy ? (
+          <ActivityIndicator size="small" color={colors.mutedForeground} />
+        ) : (
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        )}
       </Pressable>
     );
   };
@@ -213,6 +287,24 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
     marginTop: 4,
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  actionText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 11,
   },
   badge: {
     paddingHorizontal: 6,
