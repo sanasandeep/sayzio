@@ -12,6 +12,7 @@ use App\Modules\User\Services\WorkspaceContext;
 use App\Services\Billing\ClientInvoiceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -245,6 +246,205 @@ class ClientInvoiceTest extends TestCase
         $this->actingAs($u)
             ->post(route('user.client-invoices.remind', $invoice))
             ->assertStatus(302);
+
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'billing.payment_reminder',
+            'recipient' => 'client@ex.com',
+        ]);
+    }
+
+    /** Build a draft client invoice with a recipient set, ready to send. */
+    private function sendableDraft(User $u, Workspace $ws, string $name): Invoice
+    {
+        $this->actingAs($u)->post('/user/tasks/boards', ['name' => $name, 'scope' => 'team']);
+        $board = TaskBoard::where('name', $name)->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $card  = TaskCard::create([
+            'workspace_id' => $ws->id, 'board_id' => $board->id, 'column_id' => $col->id,
+            'title' => $name, 'position' => 1, 'priority' => 'normal',
+            'billable' => true, 'rate_type' => 'flat', 'rate_amount_minor' => 4200,
+        ]);
+        $invoice = app(ClientInvoiceService::class)->draftFromCards([$card->id], $ws, $u->id);
+        $invoice->forceFill(['recipient_email' => 'client@ex.com'])->save();
+        return $invoice->fresh();
+    }
+
+    // ------------------------------------------------------------------
+    // Send: delivery-first + failure-fallback (must not silently succeed)
+    // ------------------------------------------------------------------
+
+    public function test_send_stamps_sent_at_and_emails_recipient(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $invoice = $this->sendableDraft($u, $ws, 'SendOk');
+
+        // MAIL_MAILER=array in phpunit.xml -> a genuine successful delivery.
+        $this->actingAs($u)
+            ->post(route('user.client-invoices.send', $invoice))
+            ->assertStatus(302)
+            ->assertSessionHas('success');
+
+        $fresh = $invoice->fresh();
+        $this->assertSame('sent', $fresh->status);
+        $this->assertNotNull($fresh->sent_at, 'a successful send must stamp sent_at');
+
+        // The Emailer logs the delivery under the client-invoice key.
+        $this->assertDatabaseHas('email_logs', [
+            'email_key' => 'billing.client_invoice',
+            'recipient' => 'client@ex.com',
+            'status'    => 'sent',
+        ]);
+    }
+
+    public function test_send_transport_failure_does_not_stamp_sent_at_and_returns_pay_link(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $invoice = $this->sendableDraft($u, $ws, 'SendFail');
+
+        // Drive a REAL mail transport failure: the resolved mailer throws when
+        // the message is dispatched (as a down SMTP would). markSent opts into
+        // the Emailer's throw_on_failure, so the send raises instead of silently
+        // stamping the invoice "sent".
+        $mailer = \Mockery::mock();
+        $mailer->shouldReceive('html')->andThrow(new \RuntimeException('smtp down'));
+        $mailer->shouldReceive('raw')->andThrow(new \RuntimeException('smtp down'));
+        Mail::shouldReceive('mailer')->andReturn($mailer);
+
+        $resp = $this->actingAs($u)
+            ->post(route('user.client-invoices.send', $invoice));
+
+        // The controller catches the failure and surfaces the signed pay link
+        // for the owner to share manually, instead of 500ing.
+        $resp->assertStatus(302)
+            ->assertSessionHas('error')
+            ->assertSessionHas('pay_url');
+
+        // Crucially, the invoice was NOT marked sent.
+        $fresh = $invoice->fresh();
+        $this->assertNull($fresh->sent_at, 'a failed send must NOT stamp sent_at');
+        $this->assertSame('draft', $fresh->status);
+
+        // The failed delivery is still recorded for the admin log + resend.
+        $this->assertDatabaseHas('email_logs', [
+            'email_key' => 'billing.client_invoice',
+            'recipient' => 'client@ex.com',
+            'status'    => 'failed',
+        ]);
+    }
+
+    public function test_send_blocked_without_recipient_email(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $this->actingAs($u)->post('/user/tasks/boards', ['name' => 'SendNoRcpt', 'scope' => 'team']);
+        $board = TaskBoard::where('name', 'SendNoRcpt')->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $card  = TaskCard::create([
+            'workspace_id' => $ws->id, 'board_id' => $board->id, 'column_id' => $col->id,
+            'title' => 'NR', 'position' => 1, 'priority' => 'normal',
+            'billable' => true, 'rate_type' => 'flat', 'rate_amount_minor' => 3000,
+        ]);
+        $invoice = app(ClientInvoiceService::class)->draftFromCards([$card->id], $ws, $u->id);
+
+        $this->actingAs($u)
+            ->post(route('user.client-invoices.send', $invoice))
+            ->assertStatus(302)
+            ->assertSessionHas('error');
+
+        $this->assertNull($invoice->fresh()->sent_at);
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'billing.client_invoice',
+        ]);
+    }
+
+    public function test_api_send_transport_failure_returns_pay_link_and_keeps_unsent(): void
+    {
+        $u  = $this->user();
+        $ws = app(WorkspaceContext::class)->resolve($u);
+        app()->instance('current_workspace', $ws);
+        app()->instance('workspace_owner', $u);
+        $invoice = $this->sendableDraft($u, $ws, 'ApiSendFail');
+
+        $mailer = \Mockery::mock();
+        $mailer->shouldReceive('html')->andThrow(new \RuntimeException('smtp down'));
+        $mailer->shouldReceive('raw')->andThrow(new \RuntimeException('smtp down'));
+        Mail::shouldReceive('mailer')->andReturn($mailer);
+
+        $token = $u->createToken('test')->plainTextToken;
+        $resp  = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+            ->postJson("/api/v1/billing/invoices/{$invoice->id}/send");
+
+        // A transport failure returns an error envelope carrying the pay link,
+        // not a success — and the invoice stays unsent.
+        $resp->assertStatus(502)
+            ->assertJsonPath('error.details.pay_url', fn ($v) => is_string($v) && $v !== '');
+
+        $this->assertNull($invoice->fresh()->sent_at, 'API failed send must NOT stamp sent_at');
+    }
+
+    public function test_api_send_success_stamps_sent_at(): void
+    {
+        $u  = $this->user();
+        $ws = app(WorkspaceContext::class)->resolve($u);
+        app()->instance('current_workspace', $ws);
+        app()->instance('workspace_owner', $u);
+        $invoice = $this->sendableDraft($u, $ws, 'ApiSendOk');
+
+        $token = $u->createToken('test')->plainTextToken;
+        $resp  = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+            ->postJson("/api/v1/billing/invoices/{$invoice->id}/send");
+
+        $resp->assertOk()
+            ->assertJsonPath('data.invoice.status', 'sent')
+            ->assertJsonPath('data.pay_url', fn ($v) => is_string($v) && $v !== '');
+
+        $this->assertNotNull($invoice->fresh()->sent_at);
+    }
+
+    // ------------------------------------------------------------------
+    // Reminder guardrails
+    // ------------------------------------------------------------------
+
+    public function test_send_reminder_blocked_without_recipient_email(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $this->actingAs($u)->post('/user/tasks/boards', ['name' => 'RemNoRcpt', 'scope' => 'team']);
+        $board = TaskBoard::where('name', 'RemNoRcpt')->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $card  = TaskCard::create([
+            'workspace_id' => $ws->id, 'board_id' => $board->id, 'column_id' => $col->id,
+            'title' => 'RNR', 'position' => 1, 'priority' => 'normal',
+            'billable' => true, 'rate_type' => 'flat', 'rate_amount_minor' => 6000,
+        ]);
+        // Sent, but no recipient set -> reminder refused, nothing emailed.
+        $invoice = app(ClientInvoiceService::class)->draftFromCards([$card->id], $ws, $u->id);
+        $invoice->forceFill(['sent_at' => now(), 'status' => 'sent'])->save();
+
+        $this->actingAs($u)
+            ->post(route('user.client-invoices.remind', $invoice))
+            ->assertStatus(302)
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'billing.payment_reminder',
+        ]);
+    }
+
+    public function test_send_reminder_blocked_when_already_settled(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $invoice = $this->sendableDraft($u, $ws, 'RemPaid');
+        // Already paid -> settled -> reminder refused.
+        $invoice->forceFill(['sent_at' => now(), 'status' => 'paid', 'paid_at' => now()])->save();
+
+        $this->actingAs($u)
+            ->post(route('user.client-invoices.remind', $invoice))
+            ->assertStatus(302)
+            ->assertSessionHas('error');
 
         $this->assertDatabaseMissing('email_logs', [
             'email_key' => 'billing.payment_reminder',
