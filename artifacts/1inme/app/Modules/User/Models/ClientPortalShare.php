@@ -29,6 +29,7 @@ class ClientPortalShare extends Model
     public const TYPE_DRAFT_POST       = 'creator_post';
     public const TYPE_INVOICE          = 'invoice';
     public const TYPE_LINK_PERFORMANCE = 'link_performance';
+    public const TYPE_DELIVERY_PROJECT = 'delivery_project';
 
     public const TYPES = [
         self::TYPE_BOARD            => 'Kanban board',
@@ -36,6 +37,7 @@ class ClientPortalShare extends Model
         self::TYPE_DRAFT_POST       => 'Draft post',
         self::TYPE_INVOICE          => 'Invoice',
         self::TYPE_LINK_PERFORMANCE => 'Performance report',
+        self::TYPE_DELIVERY_PROJECT => 'Delivery project',
     ];
 
     public function portal()

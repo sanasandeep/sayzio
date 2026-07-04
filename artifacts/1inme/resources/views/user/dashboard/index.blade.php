@@ -462,6 +462,45 @@
                 </div>
                 @endif
 
+                {{-- Delivery Projects --}}
+                @if(in_array('delivery_projects', $dashboardWidgets))
+                <div class="bento-tile b-4-tall">
+                    <div class="flex items-center justify-between px-5 py-4" style="border-bottom: 1px solid var(--border-subtle);">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
+                                <i class="fas fa-diagram-project text-blue-400 text-xs"></i>
+                            </div>
+                            <h2 class="text-sm font-bold" style="color: var(--text-primary);">Delivery Projects</h2>
+                        </div>
+                        <a href="{{ route('user.delivery-projects.index') }}" class="text-[11px] text-blue-400 hover:text-blue-300 font-semibold transition-all flex items-center gap-1 hover:gap-2">
+                            View all <i class="fas fa-arrow-right text-[9px]"></i>
+                        </a>
+                    </div>
+                    @if($deliveryProjects->isEmpty())
+                        <div class="px-5 py-8 text-center">
+                            <p class="text-xs" style="color: var(--text-faint);">No active projects yet. Turn a finalized sale into a shared project.</p>
+                            <a href="{{ route('user.delivery-projects.create') }}" class="inline-block mt-3 text-[11px] px-3 py-1.5 rounded-lg font-semibold text-white" style="background: linear-gradient(135deg,#3d6bff,#90acff);">New project</a>
+                        </div>
+                    @else
+                        <div class="p-4 space-y-3">
+                            @foreach($deliveryProjects as $dp)
+                                @php $dpPct = $dp->tasks_count > 0 ? (int) round(($dp->done_tasks_count / $dp->tasks_count) * 100) : 0; @endphp
+                                <a href="{{ route('user.delivery-projects.show', $dp) }}" class="block rounded-xl p-3 border transition hover:shadow" style="background: var(--bg-glass-input); border-color: var(--border-subtle);">
+                                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                                        <span class="text-sm font-semibold truncate" style="color: var(--text-primary);">{{ $dp->title }}</span>
+                                        <span class="text-xs font-bold" style="color:#3d6bff;">{{ $dpPct }}%</span>
+                                    </div>
+                                    <div class="h-1.5 rounded-full overflow-hidden" style="background: var(--border-subtle);">
+                                        <div class="h-full rounded-full" style="width: {{ $dpPct }}%; background: linear-gradient(90deg,#3d6bff,#90acff);"></div>
+                                    </div>
+                                    <div class="text-[10px] mt-1" style="color: var(--text-faint);">{{ $dp->done_tasks_count }}/{{ $dp->tasks_count }} tasks @if($dp->warranty_expires_at) · warranty {{ $dp->warrantyExpired() ? 'expired' : 'to '.$dp->warranty_expires_at->format('M j') }}@endif</div>
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+                @endif
+
                 {{-- Quick Actions --}}
                 @if(in_array('quick_actions', $dashboardWidgets))
                 <div class="bento-tile b-2 p-5">

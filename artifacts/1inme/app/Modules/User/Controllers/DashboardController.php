@@ -107,6 +107,16 @@ class DashboardController extends Controller
         $showWhatsappPrompt = !$whatsappPromptSnoozed && !$user->hasWhatsappNumber();
         $whatsappChannelUrl = trim((string) \App\Modules\Admin\Models\AppSetting::get('marketing_whatsapp_channel_url', ''));
 
+        // Task #3564 — active Delivery Projects for the dashboard widget, with
+        // task counts so the tile can render a live progress bar per project.
+        $deliveryProjects = \App\Modules\User\Models\DeliveryProject::query()
+            ->where('status', \App\Modules\User\Models\DeliveryProject::STATUS_ACTIVE)
+            ->withCount('tasks')
+            ->withCount(['tasks as done_tasks_count' => fn ($q) => $q->where('status', \App\Modules\User\Models\DeliveryProjectTask::STATUS_DONE)])
+            ->orderByDesc('id')
+            ->take(5)
+            ->get();
+
         // Task #3525 — resolve the user's chosen widget layout (default =
         // every widget, i.e. today's exact page) plus the picker payload for
         // the "Customize dashboard" modal.
@@ -123,7 +133,7 @@ class DashboardController extends Controller
             'user', 'totalLinks', 'totalClicks', 'totalProjects',
             'activeLinks', 'recentLinks', 'clicksToday',
             'channelStats', 'channelFilter', 'backlinksThisWeek',
-            'showWhatsappPrompt', 'whatsappChannelUrl',
+            'showWhatsappPrompt', 'whatsappChannelUrl', 'deliveryProjects',
             'dashboardWidgets', 'dashboardTabs', 'dashboardCurrentPreset',
             'dashboardIsCustom', 'dashboardCatalog', 'dashboardPresets',
             'dashboardAiAllowed'

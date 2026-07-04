@@ -71,8 +71,17 @@ Route::prefix('portal')->name('portal.')->group(function () {
         Route::get ('invoices',               [\App\Modules\User\Controllers\PortalController::class, 'invoices'])->name('invoices');
         Route::post('invoices/{invoice}/pay', [\App\Modules\User\Controllers\PortalController::class, 'payInvoice'])->whereNumber('invoice')->name('invoices.pay');
         Route::get ('reports/{link}',         [\App\Modules\User\Controllers\PortalController::class, 'report'])->whereNumber('link')->name('report');
+        Route::get ('delivery-projects/{project}', [\App\Modules\User\Controllers\PortalController::class, 'deliveryProject'])->whereNumber('project')->name('delivery-project');
     });
 });
+
+// Public, read-only share of a Delivery Project for anonymous buyers (e.g.
+// restaurant/store order customers) who have no portal login. The unguessable
+// share_token in the URL is the only authenticator; the page is view-only.
+Route::get('dp/{token}', [\App\Modules\User\Controllers\DeliveryProjectController::class, 'share'])
+    ->where('token', '[A-Za-z0-9]{16,}')
+    ->middleware('throttle:60,1')
+    ->name('delivery-project.share');
 
 Route::prefix('user')->name('user.')->group(function () {
     Route::get('register', [AuthController::class, 'showRegister'])->name('register');
@@ -1625,6 +1634,24 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('cards/{card}/time-entries',       [\App\Modules\User\Controllers\TaskBoardController::class, 'storeTimeEntry'])->name('time-entries.store');
             Route::delete('time-entries/{entry}',          [\App\Modules\User\Controllers\TaskBoardController::class, 'destroyTimeEntry'])->name('time-entries.destroy');
             Route::put('boards/{board}/billed-column',     [\App\Modules\User\Controllers\TaskBoardController::class, 'setBilledColumn'])->name('boards.billed-column');
+        });
+
+        // ---- Delivery Projects: turn a finalized sale into a shared project ----
+        // Reads gated by tasks.view, mutations escalate to tasks.edit. Shares
+        // the tasks.* permission namespace (same "delivery/ops" surface).
+        Route::prefix('delivery-projects')->name('delivery-projects.')->middleware('workspace.can:tasks.view')->group(function () {
+            Route::get('/',                       [\App\Modules\User\Controllers\DeliveryProjectController::class, 'index'])->name('index');
+            Route::get('create',                  [\App\Modules\User\Controllers\DeliveryProjectController::class, 'create'])->middleware('workspace.can:tasks.edit')->name('create');
+            Route::post('/',                      [\App\Modules\User\Controllers\DeliveryProjectController::class, 'store'])->middleware('workspace.can:tasks.edit')->name('store');
+            Route::get('{deliveryProject}',       [\App\Modules\User\Controllers\DeliveryProjectController::class, 'show'])->whereNumber('deliveryProject')->name('show');
+            Route::put('{deliveryProject}',       [\App\Modules\User\Controllers\DeliveryProjectController::class, 'update'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('update');
+            Route::delete('{deliveryProject}',    [\App\Modules\User\Controllers\DeliveryProjectController::class, 'destroy'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.delete')->name('destroy');
+            Route::post('{deliveryProject}/share-token', [\App\Modules\User\Controllers\DeliveryProjectController::class, 'regenerateShareToken'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('share-token');
+
+            Route::post('{deliveryProject}/tasks',        [\App\Modules\User\Controllers\DeliveryProjectController::class, 'storeTask'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('tasks.store');
+            Route::post('{deliveryProject}/tasks/reorder',[\App\Modules\User\Controllers\DeliveryProjectController::class, 'reorderTasks'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('tasks.reorder');
+            Route::patch('tasks/{task}',          [\App\Modules\User\Controllers\DeliveryProjectController::class, 'updateTask'])->whereNumber('task')->middleware('workspace.can:tasks.edit')->name('tasks.update');
+            Route::delete('tasks/{task}',         [\App\Modules\User\Controllers\DeliveryProjectController::class, 'destroyTask'])->whereNumber('task')->middleware('workspace.can:tasks.edit')->name('tasks.destroy');
         });
 
         // ---- Client invoices (kanban -> Stripe) ----

@@ -57,6 +57,12 @@ class DashboardWidgetCatalog
             'icon'        => 'fa-clock',
             'tab'         => self::TAB_OVERVIEW,
         ],
+        'delivery_projects' => [
+            'label'       => 'Delivery Projects',
+            'description' => 'Active projects spun up from your sales, with live progress bars.',
+            'icon'        => 'fa-diagram-project',
+            'tab'         => self::TAB_OVERVIEW,
+        ],
         'quick_actions' => [
             'label'       => 'Quick Actions',
             'description' => 'One-tap shortcuts to create a link, project, tracker or QR code.',

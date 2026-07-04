@@ -24,6 +24,7 @@
                             'creator_post'       => route('portal.drafts'),
                             'invoice'            => route('portal.invoices'),
                             'link_performance'   => route('portal.report', $share->shareable_id),
+                            'delivery_project'   => route('portal.delivery-project', $share->shareable_id),
                             default              => '#',
                         };
                     @endphp

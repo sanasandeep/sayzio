@@ -8,6 +8,11 @@
             <p class="hero-subtitle">Status: <strong>{{ strtoupper($invoice->status) }}</strong> · {{ strtoupper($invoice->currency) }}</p>
         </div>
         <div class="flex items-center gap-2">
+            <a href="{{ route('user.delivery-projects.create', ['source_type' => 'invoice', 'source_id' => $invoice->id]) }}"
+               class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border"
+               style="border-color: var(--border-soft); color: var(--text-primary); background: var(--bg-card);">
+                <i class="fas fa-diagram-project"></i> Create project
+            </a>
             <a href="{{ \Illuminate\Support\Facades\URL::temporarySignedRoute('client-invoice.pdf', now()->addDay(), ['invoice' => $invoice->id]) }}"
                class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border"
                style="border-color: var(--border-soft); color: var(--text-primary); background: var(--bg-card);">

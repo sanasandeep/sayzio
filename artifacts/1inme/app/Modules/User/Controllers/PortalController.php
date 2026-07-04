@@ -84,6 +84,21 @@ class PortalController extends Controller
         return view('portal.board', compact('board', 'columns', 'cards', 'share'));
     }
 
+    public function deliveryProject(int $projectId)
+    {
+        $this->shareOrFail(ClientPortalShare::TYPE_DELIVERY_PROJECT, $projectId);
+
+        $project = \App\Modules\User\Models\DeliveryProject::query()->withoutGlobalScope('workspace')
+            ->where('workspace_id', $this->portal()->workspace_id)
+            ->where('id', $projectId)
+            ->with(['tasks.assignee:id,name'])
+            ->firstOrFail();
+
+        ClientPortalAction::record($this->portal(), $this->link(), 'viewed_section', 'delivery_project', $project->id);
+
+        return view('portal.delivery-project', compact('project'));
+    }
+
     public function files()
     {
         $portal = $this->portal();

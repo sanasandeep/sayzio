@@ -586,6 +586,19 @@ Route::prefix('v1')->group(function () {
         Route::post('/links/{id}/insurance/restore', [\App\Modules\Api\Controllers\LinkInsuranceController::class, 'restore'])->whereNumber('id');
         Route::post('/links/{id}/insurance/probe',   [\App\Modules\Api\Controllers\LinkInsuranceController::class, 'probe'])->whereNumber('id')->middleware('throttle:30,1');
 
+        // ── Delivery Projects (Task #3564) ───────────────────────────
+        // Bearer-token parity for the web /user/delivery-projects surfaces:
+        // list projects, view a project with tasks + workspace members, and
+        // task CRUD (add/update/delete). Reads need `tasks.view`, mutations
+        // need `tasks.edit`, resolved across accessible workspaces (the
+        // stateless Sanctum path never runs SetActiveWorkspace). The public
+        // share_token page and warranty reminders stay web/command-side.
+        Route::get   ('/delivery-projects',              [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'index']);
+        Route::get   ('/delivery-projects/{id}',         [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'show'])->whereNumber('id');
+        Route::post  ('/delivery-projects/{id}/tasks',   [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'storeTask'])->whereNumber('id');
+        Route::patch ('/delivery-projects/tasks/{task}', [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'updateTask'])->whereNumber('task');
+        Route::delete('/delivery-projects/tasks/{task}', [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'destroyTask'])->whereNumber('task');
+
         // Full-page AI chat link editor (links.type = ai_chat). Mirrors
         // the web user.links.ai-chat.{editor,save} routes, reusing the AI
         // Companion infra via the shared AiChatPageManager.

@@ -49,6 +49,10 @@
                                     <div class="text-sm font-bold" style="color: var(--text-primary);">{{ strtoupper($order->currency) }} {{ number_format($order->subtotal_cents / 100, 2) }}</div>
                                     <div class="text-[11px]" style="color: var(--text-faint);">{{ ucfirst($order->gateway) }}</div>
                                 </div>
+                                <a href="{{ route('user.delivery-projects.create', ['source_type' => 'product_order', 'source_id' => $order->id]) }}"
+                                   class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold" style="background: rgba(61,107,255,0.12); color: #3d6bff;">
+                                    <i class="fas fa-diagram-project"></i> Create project
+                                </a>
                                 @if($order->status === \App\Modules\User\Models\ProductOrder::STATUS_PAID && $order->contains_physical)
                                     <form method="POST" action="{{ route('user.monetization.orders.fulfill', $order->id) }}">
                                         @csrf

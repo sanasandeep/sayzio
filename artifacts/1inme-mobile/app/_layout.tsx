@@ -160,6 +160,8 @@ function RootLayoutNav() {
       <Stack.Screen name="invoices" options={{ title: "Invoices" }} />
       <Stack.Screen name="invoices/new" options={{ title: "New invoice" }} />
       <Stack.Screen name="invoices/[id]" options={{ title: "Invoice" }} />
+      <Stack.Screen name="delivery-projects" options={{ title: "Delivery projects" }} />
+      <Stack.Screen name="delivery-projects/[id]" options={{ title: "Project" }} />
       <Stack.Screen name="insider" options={{ title: "Insider" }} />
       <Stack.Screen name="leaderboard" options={{ title: "Leaderboard" }} />
       <Stack.Screen name="vault-audit" options={{ title: "Vault audit" }} />

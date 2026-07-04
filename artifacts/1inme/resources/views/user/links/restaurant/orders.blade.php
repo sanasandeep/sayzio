@@ -79,6 +79,7 @@
                 <template x-for="s in nextStatuses(o.status)" :key="s">
                     <button class="ro-btn" @click="setStatus(o, s)" x-text="actionLabel(s)"></button>
                 </template>
+                <a class="ro-btn" :href="projectBase + '?source_type=restaurant_order&source_id=' + o.id">Create project</a>
             </div>
         </div>
     </template>
@@ -91,6 +92,7 @@
 function ordersBoard() {
     return {
         orders: @json($ordersData),
+        projectBase: @json(route('user.delivery-projects.create')),
         openCount: {{ $orders->whereIn('status', \App\Modules\User\Models\RestaurantOrder::OPEN_STATUSES)->count() }},
         filter: 'open',
         base: @json(route('user.links.restaurant.orders', $link)),

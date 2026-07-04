@@ -101,6 +101,7 @@ const TOOL_PAGES: {
     | "/team"
     | "/client-portals"
     | "/invoices"
+    | "/delivery-projects"
     | "/insider"
     | "/leaderboard"
     | "/vault-audit"
@@ -130,6 +131,7 @@ const TOOL_PAGES: {
   { href: "/team", label: "Team & staff", icon: "users" },
   { href: "/client-portals", label: "Client portals", icon: "briefcase" },
   { href: "/invoices", label: "Invoices", icon: "file-text" },
+  { href: "/delivery-projects", label: "Delivery projects", icon: "clipboard" },
   { href: "/insider", label: "Insider & referrals", icon: "award" },
   { href: "/leaderboard", label: "Leaderboard", icon: "award" },
   { href: "/vault-audit", label: "Vault audit", icon: "shield" },

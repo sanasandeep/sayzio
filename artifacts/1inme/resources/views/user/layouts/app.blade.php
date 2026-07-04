@@ -956,6 +956,13 @@
                             <span class="nav-label">Tasks</span>
                             <span class="sidebar-tooltip">Task Boards</span>
                         </a>
+                        <a href="{{ route('user.delivery-projects.index') }}"
+                           class="sidebar-link {{ request()->routeIs('user.delivery-projects.*') ? 'active' : '' }}"
+                           style="--nav-tint:#3d6bff; --nav-tint-soft:rgba(61,107,255,0.12);">
+                            <div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div>
+                            <span class="nav-label">Delivery Projects</span>
+                            <span class="sidebar-tooltip">Delivery Projects</span>
+                        </a>
                         @endif
                         @if($__can['vault_view'])
                         <a href="{{ route('user.vault.index') }}"
@@ -1541,6 +1548,7 @@
                             <div x-show="open" x-cloak class="space-y-0.5">
                                 @if($__can['tasks_view'])
                                 <a href="{{ route('user.tasks.index') }}" class="sidebar-link {{ request()->routeIs('user.tasks.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-list-check"></i></div> <span>Tasks</span></a>
+                                <a href="{{ route('user.delivery-projects.index') }}" class="sidebar-link {{ request()->routeIs('user.delivery-projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-diagram-project"></i></div> <span>Delivery Projects</span></a>
                                 @endif
                                 @if($__can['vault_view'])
                                 <a href="{{ route('user.vault.index') }}" class="sidebar-link {{ request()->routeIs('user.vault.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-vault"></i></div> <span>Vault</span></a>

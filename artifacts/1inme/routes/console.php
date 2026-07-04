@@ -18,6 +18,13 @@ Schedule::command('tasks:send-due-reminders')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: notify Delivery Project creators before/at warranty expiry. Fires at
+// 8 AM in the workspace's own timezone; dedupe via persisted stamps.
+Schedule::command('delivery-projects:warranty-reminders')
+    ->hourlyAt(0)
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Hourly: notify calendar owners and followers about events happening today.
 // Recipient-tz aware (User.timezone) — the command only fires for a recipient
 // whose local time is 8 AM, so a UTC server delivers 8-AM reminders in every

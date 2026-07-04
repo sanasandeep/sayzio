@@ -18,6 +18,7 @@
             ['icon' => 'fa-network-wired', 'text' => $submission->ip ?? 'unknown ip'],
         ],
         'actions' => [
+            ['label' => 'Create project', 'url' => route('user.delivery-projects.create', ['source_type' => 'form_submission', 'source_id' => $submission->id]), 'icon' => 'fa-diagram-project', 'class' => 'btn-ghost'],
             ['label' => 'Back to inbox', 'url' => route('user.forms.submissions', $form), 'icon' => 'fa-arrow-left', 'class' => 'btn-ghost'],
         ],
     ])
