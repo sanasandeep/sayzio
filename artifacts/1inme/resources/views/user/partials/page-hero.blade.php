@@ -53,7 +53,7 @@
                         @foreach($chips as $c)
                             <span class="hero-chip">
                                 @if(!empty($c['icon']))<i class="fas {{ $c['icon'] }}"></i>@endif
-                                {{ $c['text'] ?? '' }}
+                                <span @if(!empty($c['textId'])) id="{{ $c['textId'] }}"@endif>{{ $c['text'] ?? '' }}</span>
                             </span>
                         @endforeach
                     </div>

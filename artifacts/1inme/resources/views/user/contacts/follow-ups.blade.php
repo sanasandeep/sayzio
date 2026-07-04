@@ -9,8 +9,8 @@
         'subtitle' => 'Everything you need to follow up on, soonest first — clear or snooze right from here.',
         'icon' => 'fa-bell',
         'chips' => [
-            ['icon' => 'fa-exclamation-circle text-red-400', 'text' => $overdue->count() . ' overdue'],
-            ['icon' => 'fa-clock text-cyan-400',            'text' => $upcoming->count() . ' upcoming'],
+            ['icon' => 'fa-exclamation-circle text-red-400', 'text' => $overdue->count() . ' overdue',  'textId' => 'foChipOverdue'],
+            ['icon' => 'fa-clock text-cyan-400',            'text' => $upcoming->count() . ' upcoming', 'textId' => 'foChipUpcoming'],
         ],
     ])
 
@@ -119,14 +119,30 @@ function followUpsList() {
                 this.loading = false;
             }
         },
-        // Pull a fresh list body so overdue/upcoming buckets re-sort in place.
+        // Pull a fresh list body so overdue/upcoming buckets re-sort in place,
+        // then sync the header chips to the refreshed counts.
         async reload() {
             try {
                 const r = await fetch(this.$el.dataset.reloadUrl, {
                     headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
                 });
-                if (r.ok) this.$refs.body.innerHTML = await r.text();
+                if (r.ok) {
+                    this.$refs.body.innerHTML = await r.text();
+                    this._syncChips();
+                }
             } catch (e) {}
+        },
+        // Read the fresh counts embedded in the reloaded body and update the
+        // page-hero chips so "N overdue / N upcoming" never lags the list.
+        _syncChips() {
+            const counts = this.$refs.body.querySelector('[data-fo-counts]');
+            if (!counts) return;
+            const overdue = counts.dataset.foOverdue;
+            const upcoming = counts.dataset.foUpcoming;
+            const overdueChip = document.getElementById('foChipOverdue');
+            const upcomingChip = document.getElementById('foChipUpcoming');
+            if (overdueChip && overdue != null) overdueChip.textContent = `${overdue} overdue`;
+            if (upcomingChip && upcoming != null) upcomingChip.textContent = `${upcoming} upcoming`;
         },
     };
 }

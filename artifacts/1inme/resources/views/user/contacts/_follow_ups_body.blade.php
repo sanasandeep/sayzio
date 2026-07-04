@@ -1,4 +1,5 @@
 @php($tz = auth()->user()->timezone ?? config('app.timezone'))
+<span class="hidden" data-fo-counts data-fo-overdue="{{ $overdue->count() }}" data-fo-upcoming="{{ $upcoming->count() }}"></span>
 @if($overdue->isEmpty() && $upcoming->isEmpty())
     <div class="card-premium p-10 text-center">
         <div class="mx-auto mb-4 w-14 h-14 rounded-full flex items-center justify-center" style="background:rgba(61,107,255,.10);">
