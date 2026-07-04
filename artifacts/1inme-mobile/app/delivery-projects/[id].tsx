@@ -22,9 +22,12 @@ import {
   createDeliveryTask,
   deleteDeliveryTask,
   getDeliveryProject,
+  reorderDeliveryTasks,
   updateDeliveryTask,
+  type DeliveryProjectMember,
   type DeliveryTask,
   type DeliveryTaskStatus,
+  type DeliveryTaskUpdate,
 } from "@/lib/api/deliveryProjects";
 
 const STATUS_ORDER: DeliveryTaskStatus[] = ["todo", "in_progress", "done"];
@@ -35,6 +38,17 @@ function nextStatus(s: DeliveryTaskStatus): DeliveryTaskStatus {
 }
 
 const PROGRESS_PRESETS = [0, 25, 50, 75, 100];
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Accept an empty string (clears the date) or a valid YYYY-MM-DD calendar date. */
+function isValidDateInput(v: string): boolean {
+  const t = v.trim();
+  if (!t) return true;
+  if (!DATE_RE.test(t)) return false;
+  const d = new Date(`${t}T00:00:00`);
+  return !Number.isNaN(d.getTime()) && t === d.toISOString().slice(0, 10);
+}
 
 type TimelineRow = { task: DeliveryTask; left: number; width: number };
 
@@ -77,6 +91,7 @@ export default function DeliveryProjectDetailScreen() {
   const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
   const [title, setTitle] = useState("");
+  const [editTask, setEditTask] = useState<DeliveryTask | null>(null);
 
   const q = useQuery({
     queryKey: ["delivery-project", id],
@@ -88,6 +103,8 @@ export default function DeliveryProjectDetailScreen() {
     qc.invalidateQueries({ queryKey: ["delivery-project", id] });
     qc.invalidateQueries({ queryKey: ["delivery-projects"] });
   };
+
+  const members: DeliveryProjectMember[] = q.data?.members ?? [];
 
   const add = useMutation({
     mutationFn: (t: string) => createDeliveryTask(id, { title: t }),
@@ -107,6 +124,44 @@ export default function DeliveryProjectDetailScreen() {
     onError: (e: { message?: string }) =>
       Alert.alert("Couldn't update", e?.message ?? "Try again."),
   });
+
+  const edit = useMutation({
+    mutationFn: ({ taskId, input }: { taskId: number; input: DeliveryTaskUpdate }) =>
+      updateDeliveryTask(taskId, input),
+    onSuccess: () => {
+      setEditTask(null);
+      invalidate();
+    },
+    onError: (e: { message?: string }) =>
+      Alert.alert("Couldn't save task", e?.message ?? "Try again."),
+  });
+
+  const reorder = useMutation({
+    mutationFn: (order: number[]) => reorderDeliveryTasks(id, order),
+    onSuccess: invalidate,
+    onError: (e: { message?: string }) => {
+      invalidate();
+      Alert.alert("Couldn't reorder", e?.message ?? "Try again.");
+    },
+  });
+
+  // Optimistically swap two adjacent tasks in the cache, then persist the
+  // full id order. On error we invalidate to snap back to the server truth.
+  const moveTask = (task: DeliveryTask, dir: -1 | 1) => {
+    const current = q.data;
+    if (!current) return;
+    const tasks = current.project.tasks;
+    const idx = tasks.findIndex((t) => t.id === task.id);
+    const target = idx + dir;
+    if (idx < 0 || target < 0 || target >= tasks.length) return;
+    const reordered = [...tasks];
+    [reordered[idx], reordered[target]] = [reordered[target], reordered[idx]];
+    qc.setQueryData(["delivery-project", id], {
+      ...current,
+      project: { ...current.project, tasks: reordered },
+    });
+    reorder.mutate(reordered.map((t) => t.id));
+  };
 
   const setProgress = useMutation({
     mutationFn: ({ taskId, progress }: { taskId: number; progress: number }) =>
@@ -256,7 +311,7 @@ export default function DeliveryProjectDetailScreen() {
               }
             />
           ) : (
-            project.tasks.map((task) => (
+            project.tasks.map((task, idx) => (
               <View
                 key={task.id}
                 style={[
@@ -268,6 +323,36 @@ export default function DeliveryProjectDetailScreen() {
                   },
                 ]}
               >
+                <View style={styles.reorderCol}>
+                  <Pressable
+                    onPress={() => moveTask(task, -1)}
+                    disabled={idx === 0 || reorder.isPending}
+                    hitSlop={8}
+                    accessibilityLabel="Move task up"
+                  >
+                    <Feather
+                      name="chevron-up"
+                      size={18}
+                      color={idx === 0 ? colors.border : colors.mutedForeground}
+                    />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => moveTask(task, 1)}
+                    disabled={idx === project.tasks.length - 1 || reorder.isPending}
+                    hitSlop={8}
+                    accessibilityLabel="Move task down"
+                  >
+                    <Feather
+                      name="chevron-down"
+                      size={18}
+                      color={
+                        idx === project.tasks.length - 1
+                          ? colors.border
+                          : colors.mutedForeground
+                      }
+                    />
+                  </Pressable>
+                </View>
                 <Pressable
                   onPress={() => cycle.mutate(task)}
                   hitSlop={8}
@@ -347,9 +432,22 @@ export default function DeliveryProjectDetailScreen() {
                     })}
                   </View>
                 </View>
-                <Pressable onPress={() => confirmRemove(task)} hitSlop={8}>
-                  <Feather name="trash-2" size={18} color={colors.destructive} />
-                </Pressable>
+                <View style={styles.actionCol}>
+                  <Pressable
+                    onPress={() => setEditTask(task)}
+                    hitSlop={8}
+                    accessibilityLabel="Edit task"
+                  >
+                    <Feather name="edit-2" size={17} color={colors.primary} />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => confirmRemove(task)}
+                    hitSlop={8}
+                    accessibilityLabel="Delete task"
+                  >
+                    <Feather name="trash-2" size={18} color={colors.destructive} />
+                  </Pressable>
+                </View>
               </View>
             ))
           )}
@@ -480,7 +578,218 @@ export default function DeliveryProjectDetailScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {editTask ? (
+        <EditTaskModal
+          task={editTask}
+          members={members}
+          saving={edit.isPending}
+          onClose={() => setEditTask(null)}
+          onSave={(input) => edit.mutate({ taskId: editTask.id, input })}
+        />
+      ) : null}
     </View>
+  );
+}
+
+function EditTaskModal({
+  task,
+  members,
+  saving,
+  onClose,
+  onSave,
+}: {
+  task: DeliveryTask;
+  members: DeliveryProjectMember[];
+  saving: boolean;
+  onClose: () => void;
+  onSave: (input: DeliveryTaskUpdate) => void;
+}) {
+  const colors = useColors();
+  const [title, setTitle] = useState(task.title);
+  const [assignee, setAssignee] = useState<number | null>(task.assignee_user_id);
+  const [startDate, setStartDate] = useState(task.start_date?.slice(0, 10) ?? "");
+  const [dueDate, setDueDate] = useState(task.due_date?.slice(0, 10) ?? "");
+
+  const startOk = isValidDateInput(startDate);
+  const dueOk = isValidDateInput(dueDate);
+  const titleOk = title.trim().length > 0;
+  const canSave = titleOk && startOk && dueOk && !saving;
+
+  const submit = () => {
+    if (!canSave) return;
+    onSave({
+      title: title.trim(),
+      assignee_user_id: assignee,
+      start_date: startDate.trim() || null,
+      due_date: dueDate.trim() || null,
+    });
+  };
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable
+          style={[
+            styles.modalCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              borderRadius: colors.radius,
+            },
+          ]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <ScrollView
+            contentContainerStyle={{ gap: 14 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={[styles.h1, { color: colors.foreground }]}>Edit task</Text>
+
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+                Title
+              </Text>
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Task title"
+                placeholderTextColor={colors.mutedForeground}
+                style={[
+                  styles.input,
+                  {
+                    color: colors.foreground,
+                    borderColor: colors.border,
+                    borderRadius: colors.radius,
+                  },
+                ]}
+              />
+            </View>
+
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+                Assignee
+              </Text>
+              <View style={styles.chipRow}>
+                <AssigneeChip
+                  label="Unassigned"
+                  active={assignee === null}
+                  onPress={() => setAssignee(null)}
+                />
+                {members.map((m) => (
+                  <AssigneeChip
+                    key={m.user_id}
+                    label={m.name ?? `#${m.user_id}`}
+                    active={assignee === m.user_id}
+                    onPress={() => setAssignee(m.user_id)}
+                  />
+                ))}
+              </View>
+              {members.length === 0 ? (
+                <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+                  No workspace members to assign yet.
+                </Text>
+              ) : null}
+            </View>
+
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+                Start date (YYYY-MM-DD)
+              </Text>
+              <TextInput
+                value={startDate}
+                onChangeText={setStartDate}
+                placeholder="2026-01-15"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="numbers-and-punctuation"
+                style={[
+                  styles.input,
+                  {
+                    color: colors.foreground,
+                    borderColor: startOk ? colors.border : colors.destructive,
+                    borderRadius: colors.radius,
+                  },
+                ]}
+              />
+            </View>
+
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
+                Due date (YYYY-MM-DD)
+              </Text>
+              <TextInput
+                value={dueDate}
+                onChangeText={setDueDate}
+                placeholder="2026-02-01"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="numbers-and-punctuation"
+                style={[
+                  styles.input,
+                  {
+                    color: colors.foreground,
+                    borderColor: dueOk ? colors.border : colors.destructive,
+                    borderRadius: colors.radius,
+                  },
+                ]}
+              />
+            </View>
+
+            <View style={styles.rowGap}>
+              <Button
+                label="Cancel"
+                variant="outline"
+                onPress={onClose}
+                style={{ flex: 1 }}
+              />
+              <Button
+                label={saving ? "Saving…" : "Save"}
+                onPress={submit}
+                disabled={!canSave}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function AssigneeChip({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={4}
+      style={[
+        styles.chip,
+        {
+          borderColor: active ? colors.primary : colors.border,
+          backgroundColor: active ? colors.primary : "transparent",
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.chipTxt,
+          { color: active ? "#fff" : colors.mutedForeground },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -512,6 +821,14 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
   },
+  reorderCol: { alignItems: "center", justifyContent: "center", gap: 2 },
+  actionCol: { alignItems: "center", gap: 14 },
+  fieldLabel: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 12,
+    letterSpacing: 0.4,
+  },
+  rowGap: { flexDirection: "row", gap: 10 },
   taskTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
   sub: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11, letterSpacing: 0.3 },
   taskBarTrack: { height: 6, borderRadius: 999, overflow: "hidden", marginTop: 2 },
@@ -550,6 +867,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
   },
-  modalCard: { width: "100%", maxWidth: 420, padding: 20, borderWidth: 1, gap: 14 },
+  modalCard: { width: "100%", maxWidth: 420, maxHeight: "85%", padding: 20, borderWidth: 1, gap: 14 },
   input: { borderWidth: 1, padding: 12, fontFamily: "SpaceGrotesk_500Medium", fontSize: 15 },
 });

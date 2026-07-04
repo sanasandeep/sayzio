@@ -9,6 +9,7 @@ use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceMember;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Task #3564 — Sanctum Bearer-token parity for the web Delivery Projects
@@ -17,6 +18,7 @@ use Illuminate\Routing\Controller;
  *   GET    /api/v1/delivery-projects                       list projects
  *   GET    /api/v1/delivery-projects/{id}                  project + tasks + members
  *   POST   /api/v1/delivery-projects/{id}/tasks            add a task
+ *   POST   /api/v1/delivery-projects/{id}/tasks/reorder    reorder tasks
  *   PATCH  /api/v1/delivery-projects/tasks/{task}          update a task
  *   DELETE /api/v1/delivery-projects/tasks/{task}          delete a task
  *
@@ -90,6 +92,26 @@ class DeliveryProjectController extends Controller
         ]);
 
         return $this->created(['task' => $this->taskArray($task)]);
+    }
+
+    public function reorderTasks(Request $request, int $id)
+    {
+        $project = $this->findProject($request, $id, 'tasks.edit');
+        if (!$project) return $this->notFound('Project not found');
+
+        $ids = (array) $request->input('order', []);
+        $owned = $project->tasks()->pluck('id')->all();
+        $clean = array_values(array_intersect(array_map('intval', $ids), $owned));
+
+        DB::transaction(function () use ($clean, $project) {
+            foreach ($clean as $i => $taskId) {
+                DeliveryProjectTask::where('id', $taskId)
+                    ->where('project_id', $project->id)
+                    ->update(['position' => $i + 1]);
+            }
+        });
+
+        return $this->ok(['updated' => count($clean)]);
     }
 
     public function updateTask(Request $request, int $task)

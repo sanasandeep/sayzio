@@ -596,6 +596,7 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/delivery-projects',              [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'index']);
         Route::get   ('/delivery-projects/{id}',         [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'show'])->whereNumber('id');
         Route::post  ('/delivery-projects/{id}/tasks',   [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'storeTask'])->whereNumber('id');
+        Route::post  ('/delivery-projects/{id}/tasks/reorder', [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'reorderTasks'])->whereNumber('id');
         Route::patch ('/delivery-projects/tasks/{task}', [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'updateTask'])->whereNumber('task');
         Route::delete('/delivery-projects/tasks/{task}', [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'destroyTask'])->whereNumber('task');
 

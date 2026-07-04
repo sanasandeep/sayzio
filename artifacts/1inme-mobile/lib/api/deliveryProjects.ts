@@ -113,3 +113,14 @@ export async function deleteDeliveryTask(taskId: number): Promise<void> {
     { method: "DELETE" },
   );
 }
+
+export async function reorderDeliveryTasks(
+  projectId: number,
+  order: number[],
+): Promise<number> {
+  const res = await apiFetch<{ data: { updated: number } }>(
+    `/delivery-projects/${projectId}/tasks/reorder`,
+    { method: "POST", body: JSON.stringify({ order }) },
+  );
+  return res.data.updated;
+}
