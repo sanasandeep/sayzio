@@ -40,10 +40,15 @@
         <div class="flex items-center gap-2">
             <i class="fas fa-flask text-indigo-400"></i>
             <h3 class="font-semibold text-sm">Layout A/B test</h3>
-            @if($__activeExp)
+            @if($__activeExp && !$__activeExp->isAdaptive())
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
                       style="background:rgba(16,185,129,0.18); color:#10b981;">
                     Running
+                </span>
+            @elseif($__activeExp && $__activeExp->isAdaptive())
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                      style="background:rgba(139,92,246,0.18); color:#a78bfa;">
+                    Paused — adaptive is on
                 </span>
             @elseif($__lastExp && $__lastExp->status === 'completed')
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
@@ -52,7 +57,7 @@
                 </span>
             @endif
         </div>
-        @if($__activeExp)
+        @if($__activeExp && !$__activeExp->isAdaptive())
             <form method="POST" action="{{ route('user.links.experiment.stop', $link) }}" class="flex items-center gap-2">
                 @csrf
                 <button type="submit" name="winner" value="a" class="ab-ghost-btn px-3 py-1.5 text-xs font-semibold rounded-lg">
@@ -75,7 +80,13 @@
         <div class="text-xs text-red-400 mb-2">{{ session('error') }}</div>
     @endif
 
-    @if(!$__activeExp)
+    @if($__activeExp && $__activeExp->isAdaptive())
+        <p class="text-xs theme-text-muted mb-1">
+            Adaptive optimization is running for this link — manual A/B testing is
+            disabled while it's on. Manage it in the <strong>Adaptive optimization</strong>
+            panel below.
+        </p>
+    @elseif(!$__activeExp)
         <p class="text-xs theme-text-muted mb-3">
             Snapshot the current layout as <strong>Variant A</strong>, then keep editing —
             your edits become <strong>Variant B</strong>. Visitors are split 50/50 (sticky per visitor).
@@ -154,7 +165,7 @@
     @endif
 </div>
 
-@if($__activeExp)
+@if($__activeExp && !$__activeExp->isAdaptive())
 <script>
 (function(){
     if (window.__abResultsPoll) { clearInterval(window.__abResultsPoll); window.__abResultsPoll = null; }
@@ -187,6 +198,120 @@
             .catch(function(){});
     }
     window.__abResultsPoll = setInterval(refresh, 8000);
+})();
+</script>
+@endif
+
+{{--
+    Adaptive Biolink (Task #3531) — auto-optimize block order per visitor
+    segment via a multi-armed bandit. Mutually exclusive with the manual
+    A/B test above (enforced server-side too).
+--}}
+@php
+    $__adaptiveOn = $__activeExp && $__activeExp->isAdaptive();
+    $__abBlocking = $__activeExp && !$__activeExp->isAdaptive();
+@endphp
+<div id="adaptive-panel"
+     class="rounded-2xl border p-4 mb-4"
+     style="background:linear-gradient(135deg, rgba(139,92,246,0.06), rgba(217,70,239,0.04)); border-color:var(--border-glass);">
+    <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+        <div class="flex items-center gap-2">
+            <i class="fas fa-wand-magic-sparkles text-purple-400"></i>
+            <h3 class="font-semibold text-sm">Adaptive optimization</h3>
+            @if($__adaptiveOn)
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                      style="background:rgba(16,185,129,0.18); color:#10b981;">
+                    On
+                </span>
+            @endif
+        </div>
+        @if($__adaptiveOn)
+            <form method="POST" action="{{ route('user.links.experiment.adaptive.disable', $link) }}">
+                @csrf
+                <button type="submit" class="ab-ghost-btn px-3 py-1.5 text-xs font-semibold rounded-lg">
+                    Turn off
+                </button>
+            </form>
+        @endif
+    </div>
+
+    @if($__adaptiveOn)
+        <p class="text-xs theme-text-muted mb-3">
+            Sayzio automatically features the best-performing block for each visitor
+            segment (device, OS, region, referrer, time of day, new vs. returning) and
+            keeps learning as clicks come in. No manual variants to manage.
+        </p>
+        <div id="adaptive-segments" class="space-y-2">
+            <p class="text-xs theme-text-dimmed" data-adaptive-empty>Collecting data — check back once visitors arrive.</p>
+        </div>
+    @elseif($__abBlocking)
+        <p class="text-xs theme-text-muted">
+            Stop the running A/B test above to turn on adaptive optimization.
+        </p>
+    @else
+        <p class="text-xs theme-text-muted mb-3">
+            Let Sayzio pick which block to feature for each visitor segment, and keep
+            improving automatically — no manual variants to manage.
+        </p>
+        <form method="POST" action="{{ route('user.links.experiment.adaptive.enable', $link) }}">
+            @csrf
+            <button type="submit"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-purple-600 hover:bg-purple-500 text-white">
+                <i class="fas fa-wand-magic-sparkles text-[10px] mr-1"></i> Turn on adaptive optimization
+            </button>
+        </form>
+    @endif
+</div>
+
+@if($__adaptiveOn)
+<script>
+(function(){
+    if (window.__adaptiveResultsPoll) { clearInterval(window.__adaptiveResultsPoll); window.__adaptiveResultsPoll = null; }
+    var url = @json(route('user.links.experiment.adaptive.results', $link));
+    function escapeHtml(s){
+        return String(s).replace(/[&<>"']/g, function(c){
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+        });
+    }
+    function render(segments){
+        var host = document.getElementById('adaptive-segments');
+        if (!host) return;
+        if (!segments || !segments.length) {
+            host.innerHTML = '<p class="text-xs theme-text-dimmed">Collecting data — check back once visitors arrive.</p>';
+            return;
+        }
+        var rows = segments.map(function(s){
+            var leader = s.leader;
+            var leaderLabel = leader ? escapeHtml(leader.featured_label) : '—';
+            var leaderRate = leader ? (leader.rate * 100).toFixed(1) + '%' : '—';
+            var baseRate = s.baseline ? (s.baseline.rate * 100).toFixed(1) + '%' : '—';
+            var lift = (s.lift_pct === null || s.lift_pct === undefined) ? '—' : (s.lift_pct > 0 ? '+' : '') + s.lift_pct + '%';
+            var liftColor = (s.lift_pct !== null && s.lift_pct > 0) ? '#10b981' : (s.lift_pct !== null && s.lift_pct < 0 ? '#f87171' : 'inherit');
+            return '<div class="rounded-xl border border-white/10 p-3 flex items-center justify-between gap-3 flex-wrap" style="background:rgba(255,255,255,0.03);">' +
+                '<div>' +
+                    '<div class="text-[10px] uppercase tracking-wider theme-text-dimmed">' + escapeHtml(s.segment) + '</div>' +
+                    '<div class="text-xs mt-0.5">Featuring <strong>' + leaderLabel + '</strong> · ' + s.impressions + ' impressions</div>' +
+                '</div>' +
+                '<div class="flex items-center gap-4 text-xs">' +
+                    '<div><div class="text-[10px] theme-text-faint">Baseline</div><div class="font-bold">' + baseRate + '</div></div>' +
+                    '<div><div class="text-[10px] theme-text-faint">Leader</div><div class="font-bold">' + leaderRate + '</div></div>' +
+                    '<div><div class="text-[10px] theme-text-faint">Lift</div><div class="font-bold" style="color:' + liftColor + ';">' + lift + '</div></div>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+        host.innerHTML = rows;
+    }
+    function refresh(){
+        fetch(url, {headers:{'Accept':'application/json'}, credentials:'same-origin'})
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if (!d || !d.experiment) return;
+                render(d.experiment.segments);
+            })
+            .catch(function(){});
+    }
+    refresh();
+    window.__adaptiveResultsPoll = setInterval(refresh, 8000);
 })();
 </script>
 @endif

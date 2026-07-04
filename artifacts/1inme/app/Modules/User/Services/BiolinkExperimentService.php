@@ -2,6 +2,8 @@
 
 namespace App\Modules\User\Services;
 
+use App\Modules\Common\Services\AdaptiveSegmentResolver;
+use App\Modules\User\Models\BiolinkAdaptiveArm;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\BiolinkExperiment;
 use App\Modules\User\Models\Link;
@@ -11,22 +13,54 @@ use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Coordinates everything to do with biolink layout A/B tests:
- *  - taking the variant A snapshot when an experiment starts
- *  - mirroring live block edits into the variant B snapshot
- *  - sticky 50/50 assignment per visitor
- *  - per-variant exposure / click / conversion accounting
- *  - stop-condition evaluation + winner promotion
+ * Coordinates everything to do with biolink layout optimization, in two
+ * modes that share one `biolink_experiments` row per link (never both
+ * running at once — `activeFor()` enforces a single active experiment):
+ *
+ *  - 'ab' (original): manual two-variant test.
+ *     - taking the variant A snapshot when an experiment starts
+ *     - mirroring live block edits into the variant B snapshot
+ *     - sticky 50/50 assignment per visitor
+ *     - per-variant exposure / click / conversion accounting
+ *     - stop-condition evaluation + winner promotion
+ *
+ *  - 'adaptive' (Task #3531): continuous per-segment optimization.
+ *     - visitors are bucketed into a coarse segment (device/OS/geo/
+ *       referrer/time-of-day/new-vs-returning) via AdaptiveSegmentResolver
+ *     - a multi-armed bandit (UCB1) picks which block to feature (or the
+ *       creator's default order) for that segment, from a small candidate
+ *       set of the link's clickable blocks
+ *     - clicks/conversions feed back into `biolink_adaptive_arms` so each
+ *       segment's ordering keeps improving over time; there's no
+ *       stop/winner step, it just keeps adapting while turned on
  *
  * "Live" biolink_blocks rows are treated as Variant B for the duration
- * of the experiment, so the existing editor keeps working unchanged —
+ * of an 'ab' experiment, so the existing editor keeps working unchanged —
  * Variant A is read from the snapshot, Variant B is read from / mirrored
- * into the live table.
+ * into the live table. Adaptive mode never rewrites live blocks at all;
+ * it only reorders them at render time.
  */
 class BiolinkExperimentService
 {
     public const COOKIE_PREFIX = '_blab_'; // biolink layout A/B
     public const COOKIE_TTL_DAYS = 60;
+
+    /**
+     * Block types eligible to be "featured" (moved to the top of the
+     * page) by the adaptive optimizer. Kept to conversion-oriented,
+     * link-like blocks — reordering a heading or divider isn't a
+     * meaningful lever, and container/media blocks are excluded so the
+     * optimizer never hoists something like an embedded video above
+     * the creator's actual call to action.
+     */
+    public const ADAPTIVE_FEATURABLE_TYPES = [
+        'link', 'link_big', 'cta_button', 'product', 'service', 'price',
+        'form', 'email_subscribe', 'email_collector', 'whatsapp_number_subscribe',
+        'whatsapp_channel_subscribe', 'buy_me_coffee', 'patreon', 'ko_fi',
+    ];
+
+    /** Max candidate "feature this block" arms per segment (+1 baseline). */
+    public const ADAPTIVE_MAX_CANDIDATES = 4;
 
     /**
      * Active experiment for the link, if any. Returns null when no
@@ -127,6 +161,10 @@ class BiolinkExperimentService
      */
     public function assignVariant(Request $request, BiolinkExperiment $exp): string
     {
+        if ($exp->isAdaptive()) {
+            return $this->assignAdaptiveArm($request, $exp);
+        }
+
         $cookieName = self::COOKIE_PREFIX . $exp->link_id;
 
         $existing = $request->cookie($cookieName);
@@ -161,6 +199,11 @@ class BiolinkExperimentService
      */
     public function recordVisit(BiolinkExperiment $exp, string $variant): BiolinkExperiment
     {
+        if ($exp->isAdaptive()) {
+            $this->bumpAdaptiveArm($variant, ['impressions']);
+            return $exp;
+        }
+
         $variant = $variant === 'a' ? 'a' : 'b';
         $exp->increment("variant_{$variant}_visits");
         $exp->refresh();
@@ -175,6 +218,11 @@ class BiolinkExperimentService
      */
     public function recordClick(BiolinkExperiment $exp, string $variant): void
     {
+        if ($exp->isAdaptive()) {
+            $this->bumpAdaptiveArm($variant, ['clicks', 'conversions']);
+            return;
+        }
+
         $variant = $variant === 'a' ? 'a' : 'b';
         $exp->increment("variant_{$variant}_clicks");
         $exp->increment("variant_{$variant}_conversions");
@@ -188,6 +236,11 @@ class BiolinkExperimentService
      */
     public function recordConversion(BiolinkExperiment $exp, string $variant): void
     {
+        if ($exp->isAdaptive()) {
+            $this->bumpAdaptiveArm($variant, ['conversions']);
+            return;
+        }
+
         $variant = $variant === 'a' ? 'a' : 'b';
         $exp->increment("variant_{$variant}_conversions");
     }
@@ -216,7 +269,9 @@ class BiolinkExperimentService
      */
     public function maybeAutoPromote(BiolinkExperiment $exp): BiolinkExperiment
     {
-        if (!$exp->isRunning()) return $exp;
+        // Adaptive experiments never "stop" on their own — they keep
+        // learning per segment for as long as the creator leaves them on.
+        if (!$exp->isRunning() || $exp->isAdaptive()) return $exp;
 
         $shouldStop = false;
         if ($exp->stop_condition === 'sample_size'
@@ -247,6 +302,10 @@ class BiolinkExperimentService
      */
     public function renderableBlocks(BiolinkExperiment $exp, string $variant): Collection
     {
+        if ($exp->isAdaptive()) {
+            return $this->renderableAdaptiveBlocks($exp, $variant);
+        }
+
         $variant = $variant === 'a' ? 'a' : 'b';
         $tree = $exp->{"variant_{$variant}_snapshot"} ?? [];
         return collect($tree)->map(fn ($node) => $this->hydrateNode($exp->link_id, $node));
@@ -269,6 +328,199 @@ class BiolinkExperimentService
             }
         }
         return null;
+    }
+
+    /**
+     * Turn on adaptive optimization for a link. Mutually exclusive with
+     * the manual A/B flow — `activeFor()` only ever returns one running
+     * experiment per link, so the caller (controller) is expected to
+     * refuse this when a manual test is already running, same as
+     * `start()` refuses a second manual test.
+     */
+    public function startAdaptive(Link $link): BiolinkExperiment
+    {
+        if ($existing = $this->activeFor($link)) {
+            return $existing;
+        }
+
+        return BiolinkExperiment::create([
+            'link_id'            => $link->id,
+            'mode'               => 'adaptive',
+            // Unused in adaptive mode, but the columns are NOT NULL —
+            // an empty tree is the correct "no snapshot" value.
+            'variant_a_snapshot' => [],
+            'variant_b_snapshot' => [],
+            'status'             => 'running',
+            'stop_condition'     => 'manual',
+            'started_at'         => now(),
+        ]);
+    }
+
+    /**
+     * Housekeeping for a long-running adaptive experiment: arm rows for
+     * segments that haven't been seen in a while (rare device/geo/time
+     * combos, or a featured block the creator has since deleted) just
+     * accumulate without ever contributing useful signal. Called from
+     * the scheduled command instead of `maybeAutoPromote()`.
+     */
+    public function pruneIdleAdaptiveArms(BiolinkExperiment $exp, int $idleDays = 90): int
+    {
+        return BiolinkAdaptiveArm::where('biolink_experiment_id', $exp->id)
+            ->where('updated_at', '<', now()->subDays($idleDays))
+            ->delete();
+    }
+
+    /**
+     * Adaptive counterpart to `assignVariant()`. Resolves the visitor's
+     * segment, then uses a UCB1 multi-armed bandit to pick which arm
+     * (baseline order, or "feature block X") to serve. Sticky per
+     * (link, segment) for a short window so a click a few seconds after
+     * page load attributes to the same arm the visitor actually saw,
+     * even though the bandit is free to pick differently on their next
+     * visit — segments are coarse but not static (time-of-day changes,
+     * a "new" visitor becomes "returning").
+     *
+     * @return string "arm:{id}"
+     */
+    protected function assignAdaptiveArm(Request $request, BiolinkExperiment $exp): string
+    {
+        $segment = app(AdaptiveSegmentResolver::class)->resolve($request);
+        $cookieName = 'adap_arm_' . $exp->link_id;
+
+        $existing = (string) $request->cookie($cookieName);
+        if ($existing !== '' && str_starts_with($existing, $segment . ':')) {
+            $armId = (int) substr($existing, strlen($segment) + 1);
+            if ($armId > 0
+                && BiolinkAdaptiveArm::where('id', $armId)->where('biolink_experiment_id', $exp->id)->exists()) {
+                return "arm:{$armId}";
+            }
+        }
+
+        $arm = $this->pickArmViaBandit($exp, $segment);
+
+        // Short TTL relative to the A/B sticky cookie: this only needs to
+        // survive one page-view-to-click round trip, not weeks, so a
+        // returning visitor's segment/arm gets re-evaluated against the
+        // latest stats far more often than a manual A/B assignment would.
+        Cookie::queue(
+            $cookieName,
+            $segment . ':' . $arm->id,
+            30,
+            null, null, true, false, false, 'lax'
+        );
+
+        return "arm:{$arm->id}";
+    }
+
+    /**
+     * UCB1 bandit: try every candidate arm at least once, then favor
+     * whichever arm maximizes (observed conversion rate + an exploration
+     * bonus that shrinks as an arm accumulates impressions). This keeps
+     * testing all arms forever (never fully "locks in"), which suits a
+     * segment whose visitor mix can drift over time.
+     */
+    protected function pickArmViaBandit(BiolinkExperiment $exp, string $segment): BiolinkAdaptiveArm
+    {
+        $candidateBlockIds = $this->candidateFeaturedBlocks($exp->link);
+
+        // null = baseline arm (creator's own block order, nothing featured).
+        $arms = collect([null])
+            ->concat($candidateBlockIds)
+            ->map(fn ($blockId) => $this->ensureAdaptiveArm($exp, $segment, $blockId));
+
+        $unshown = $arms->first(fn (BiolinkAdaptiveArm $arm) => $arm->impressions === 0);
+        if ($unshown) return $unshown;
+
+        $totalImpressions = max(1, (int) $arms->sum('impressions'));
+
+        return $arms->sortByDesc(function (BiolinkAdaptiveArm $arm) use ($totalImpressions) {
+            $mean = $arm->impressions > 0 ? $arm->conversions / $arm->impressions : 0.0;
+            $explorationBonus = sqrt(2 * log($totalImpressions) / max(1, $arm->impressions));
+            return $mean + $explorationBonus;
+        })->first();
+    }
+
+    /**
+     * The live top-level blocks eligible to be "featured" (moved to the
+     * top of the page), capped to a handful so the arm set per segment
+     * stays small enough to converge on real traffic volumes.
+     *
+     * @return Collection<int, int> block ids
+     */
+    protected function candidateFeaturedBlocks(Link $link): Collection
+    {
+        return BiolinkBlock::where('link_id', $link->id)
+            ->whereNull('parent_id')
+            ->where('is_active', true)
+            ->whereIn('type', self::ADAPTIVE_FEATURABLE_TYPES)
+            ->orderBy('sort_order')
+            ->limit(self::ADAPTIVE_MAX_CANDIDATES)
+            ->pluck('id');
+    }
+
+    protected function ensureAdaptiveArm(BiolinkExperiment $exp, string $segment, ?int $featuredBlockId): BiolinkAdaptiveArm
+    {
+        return BiolinkAdaptiveArm::firstOrCreate([
+            'biolink_experiment_id' => $exp->id,
+            'segment'               => $segment,
+            'featured_block_id'     => $featuredBlockId,
+        ]);
+    }
+
+    /**
+     * Increment one or more counter columns on the arm encoded in an
+     * adaptive `"arm:{id}"` variant string. Silently no-ops for
+     * malformed input or an arm that's since been deleted (e.g. by
+     * `pruneIdleAdaptiveArms()`) — bookkeeping should never break the
+     * click/conversion flow it's attached to.
+     */
+    protected function bumpAdaptiveArm(string $variant, array $columns): void
+    {
+        $armId = $this->parseArmId($variant);
+        if (!$armId) return;
+
+        $arm = BiolinkAdaptiveArm::find($armId);
+        if (!$arm) return;
+
+        foreach ($columns as $column) {
+            $arm->increment($column);
+        }
+    }
+
+    protected function parseArmId(string $variant): ?int
+    {
+        return preg_match('/^arm:(\d+)$/', $variant, $m) ? (int) $m[1] : null;
+    }
+
+    /**
+     * Adaptive counterpart to `renderableBlocks()`. Unlike the A/B
+     * flow — which reads a frozen snapshot — adaptive mode always
+     * reads the LIVE blocks (the creator's normal editor keeps working
+     * exactly as it does with no experiment running at all) and simply
+     * reorders them: the arm's featured block (if any, and if it still
+     * exists / is still active) is moved to the front.
+     */
+    public function renderableAdaptiveBlocks(BiolinkExperiment $exp, string $variant): Collection
+    {
+        $blocks = $exp->link->biolinkBlocks()
+            ->whereNull('parent_id')
+            ->orderBy('sort_order')
+            ->get();
+
+        $armId = $this->parseArmId($variant);
+        $featuredBlockId = $armId ? BiolinkAdaptiveArm::find($armId)?->featured_block_id : null;
+        if (!$featuredBlockId) {
+            return $blocks;
+        }
+
+        $featured = $blocks->firstWhere('id', $featuredBlockId);
+        if (!$featured || !$featured->is_active) {
+            return $blocks;
+        }
+
+        return $blocks->reject(fn (BiolinkBlock $b) => (int) $b->id === (int) $featured->id)
+            ->prepend($featured)
+            ->values();
     }
 
     // ─────────────────────────────────────────────────────────────────

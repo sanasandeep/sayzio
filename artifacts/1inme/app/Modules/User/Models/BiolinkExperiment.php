@@ -15,6 +15,7 @@ class BiolinkExperiment extends Model
 {
     protected $fillable = [
         'link_id',
+        'mode',
         'variant_a_snapshot',
         'variant_b_snapshot',
         'status',
@@ -56,6 +57,22 @@ class BiolinkExperiment extends Model
     public function isRunning(): bool
     {
         return $this->status === 'running';
+    }
+
+    /**
+     * 'adaptive' = per-segment multi-armed bandit block ordering
+     * (Task #3531). Anything else (including the historical default,
+     * empty string, or null on old rows) is the manual two-variant A/B
+     * flow this model originally shipped with.
+     */
+    public function isAdaptive(): bool
+    {
+        return $this->mode === 'adaptive';
+    }
+
+    public function adaptiveArms(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BiolinkAdaptiveArm::class, 'biolink_experiment_id');
     }
 
     /**

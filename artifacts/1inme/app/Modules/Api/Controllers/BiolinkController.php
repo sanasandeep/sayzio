@@ -59,8 +59,35 @@ class BiolinkController extends Controller
         $abInfo = null;
         if ($abExp) {
             $assigned = $abService->assignVariant($request, $abExp);
-            $tree = $abExp->{"variant_{$assigned}_snapshot"} ?? [];
-            $blocks = $this->flattenSnapshotForApi($tree);
+            // renderableBlocks() branches internally on experiment mode:
+            // for a manual A/B test it reads the frozen variant snapshot;
+            // for adaptive (Task #3531) it reads the LIVE blocks and
+            // reorders them per the visitor's assigned bandit arm. Either
+            // way we get a flat top-level Collection<BiolinkBlock> back,
+            // so the mobile payload shape stays identical for both modes.
+            $blocks = $abService->renderableBlocks($abExp, $assigned)
+                ->filter(fn ($b) => $b->is_active)
+                ->flatMap(function ($b) {
+                    $node = $this->decorateFormBlock([
+                        'id'         => (int) $b->id,
+                        'type'       => (string) $b->type,
+                        'sort_order' => (int) $b->sort_order,
+                        'parent_id'  => $b->parent_id,
+                        'settings'   => $b->settings ?? [],
+                    ]);
+                    $children = collect($b->children ?? [])
+                        ->filter(fn ($c) => $c->is_active)
+                        ->map(fn ($c) => $this->decorateFormBlock([
+                            'id'         => (int) $c->id,
+                            'type'       => (string) $c->type,
+                            'sort_order' => (int) $c->sort_order,
+                            'parent_id'  => $c->parent_id,
+                            'settings'   => $c->settings ?? [],
+                        ]));
+                    return collect([$node])->concat($children);
+                })
+                ->values()
+                ->all();
             $abInfo = [
                 'experiment_id' => $abExp->id,
                 'variant'       => $assigned,
@@ -140,34 +167,6 @@ class BiolinkController extends Controller
             'slides' => $slidesPayload,
             'ab_test' => $abInfo,
         ]);
-    }
-
-    /**
-     * Flatten an A/B variant snapshot tree (top-level + nested children)
-     * into the flat list the mobile client renders. We keep parent_id so
-     * the client can group children under their card containers, just
-     * like it already does for the live-row response shape.
-     *
-     * @param array<int, array<string, mixed>> $tree
-     * @return array<int, array<string, mixed>>
-     */
-    protected function flattenSnapshotForApi(array $tree): array
-    {
-        $out = [];
-        foreach ($tree as $node) {
-            if (!($node['is_active'] ?? true)) continue;
-            $out[] = $this->decorateFormBlock([
-                'id'         => (int) ($node['id'] ?? 0),
-                'type'       => (string) ($node['type'] ?? ''),
-                'sort_order' => (int) ($node['sort_order'] ?? 0),
-                'parent_id'  => $node['parent_id'] ?? null,
-                'settings'   => $node['settings'] ?? [],
-            ]);
-            foreach ($this->flattenSnapshotForApi($node['children'] ?? []) as $child) {
-                $out[] = $child;
-            }
-        }
-        return $out;
     }
 
     /**

@@ -880,6 +880,12 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/experiment/stop',   [\App\Modules\User\Controllers\BiolinkExperimentController::class, 'stop'])->middleware('workspace.can:links.edit')->name('links.experiment.stop');
         Route::get ('links/{link}/experiment.json',   [\App\Modules\User\Controllers\BiolinkExperimentController::class, 'results'])->middleware('workspace.can:links.view')->name('links.experiment.results');
 
+        // Adaptive Biolink (Task #3531) — per-segment bandit block ordering.
+        // Mutually exclusive with the manual A/B test above.
+        Route::post('links/{link}/experiment/adaptive/enable',  [\App\Modules\User\Controllers\BiolinkExperimentController::class, 'enableAdaptive'])->middleware('workspace.can:links.edit')->name('links.experiment.adaptive.enable');
+        Route::post('links/{link}/experiment/adaptive/disable', [\App\Modules\User\Controllers\BiolinkExperimentController::class, 'disableAdaptive'])->middleware('workspace.can:links.edit')->name('links.experiment.adaptive.disable');
+        Route::get ('links/{link}/experiment/adaptive/results.json', [\App\Modules\User\Controllers\BiolinkExperimentController::class, 'adaptiveResults'])->middleware('workspace.can:links.view')->name('links.experiment.adaptive.results');
+
         // Custom fonts (.woff/.woff2/.ttf/.otf) — surface in the "My Fonts"
         // section pinned at the top of every font picker. Lives at the user
         // level (not per-link) so a single upload powers every page.

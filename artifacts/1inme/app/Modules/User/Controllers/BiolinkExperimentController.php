@@ -119,6 +119,113 @@ class BiolinkExperimentController extends Controller
     }
 
     /**
+     * Turn on the adaptive optimizer (Task #3531). Mutually exclusive
+     * with the manual A/B flow — refuses when either is already running,
+     * mirroring `start()`'s guard against two concurrent experiments.
+     */
+    public function enableAdaptive(Request $request, Link $link)
+    {
+        $this->authorizeLink($request, $link);
+
+        if ($existing = $this->service->activeFor($link)) {
+            $msg = $existing->isAdaptive()
+                ? 'Adaptive optimization is already on for this link.'
+                : 'Stop the running A/B test before turning on adaptive optimization.';
+            return back()->with('error', $msg);
+        }
+
+        if (!$link->biolinkBlocks()->exists()) {
+            return back()->with('error', 'Add at least one block before turning on adaptive optimization.');
+        }
+
+        $this->service->startAdaptive($link);
+
+        return back()->with('status', 'Adaptive optimization is on. Sayzio will keep testing block order per visitor segment.');
+    }
+
+    /**
+     * Turn off adaptive optimization. Just stops the experiment — there's
+     * no "winner" to promote since the live blocks were never rewritten.
+     */
+    public function disableAdaptive(Request $request, Link $link)
+    {
+        $this->authorizeLink($request, $link);
+
+        $exp = $this->service->activeFor($link);
+        if (!$exp || !$exp->isAdaptive()) {
+            return back()->with('error', 'Adaptive optimization is not running on this link.');
+        }
+
+        $this->service->stop($exp);
+
+        return back()->with('status', 'Adaptive optimization turned off. Your block order stays as-is.');
+    }
+
+    /**
+     * JSON results for the adaptive dashboard: per-segment arm stats
+     * (baseline vs the leading featured-block arm) plus the lift the
+     * leader shows over baseline, so creators can see the optimizer is
+     * actually doing something without wading through raw arm rows.
+     */
+    public function adaptiveResults(Request $request, Link $link)
+    {
+        $this->authorizeLink($request, $link);
+
+        $exp = BiolinkExperiment::where('link_id', $link->id)
+            ->where('mode', 'adaptive')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$exp) {
+            return response()->json(['experiment' => null]);
+        }
+
+        $blockLabels = $link->biolinkBlocks()
+            ->get(['id', 'type'])
+            ->mapWithKeys(fn ($b) => [
+                (int) $b->id => \App\Modules\User\Models\BiolinkBlock::TYPES[$b->type]['label'] ?? ucfirst($b->type),
+            ]);
+
+        $segments = $exp->adaptiveArms()->get()->groupBy('segment')->map(function ($arms, $segment) use ($blockLabels) {
+            $baseline = $arms->firstWhere('featured_block_id', null);
+            $leader = $arms->filter(fn ($a) => $a->featured_block_id !== null)
+                ->sortByDesc(fn ($a) => $a->conversionRate())
+                ->first();
+
+            $baselineRate = $baseline ? $baseline->conversionRate() : 0.0;
+            $leaderRate = $leader ? $leader->conversionRate() : 0.0;
+            $lift = $baselineRate > 0 ? round((($leaderRate - $baselineRate) / $baselineRate) * 100, 1) : null;
+
+            return [
+                'segment'          => $segment,
+                'impressions'      => (int) $arms->sum('impressions'),
+                'baseline'         => $baseline ? [
+                    'impressions' => $baseline->impressions,
+                    'conversions' => $baseline->conversions,
+                    'rate'        => $baselineRate,
+                ] : null,
+                'leader'           => $leader ? [
+                    'featured_block_id' => $leader->featured_block_id,
+                    'featured_label'    => $blockLabels[$leader->featured_block_id] ?? 'Block #' . $leader->featured_block_id,
+                    'impressions'       => $leader->impressions,
+                    'conversions'       => $leader->conversions,
+                    'rate'              => $leaderRate,
+                ] : null,
+                'lift_pct'         => $lift,
+            ];
+        })->sortByDesc('impressions')->values();
+
+        return response()->json([
+            'experiment' => [
+                'id'         => $exp->id,
+                'status'     => $exp->status,
+                'started_at' => $exp->started_at?->toIso8601String(),
+                'segments'   => $segments,
+            ],
+        ]);
+    }
+
+    /**
      * Mirror the link-edit guard used elsewhere in this module. We don't
      * need a full policy for the v1 since experiment management is
      * scoped to the link's owner / workspace just like block editing.
