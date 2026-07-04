@@ -126,6 +126,14 @@ class AppServiceProvider extends ServiceProvider
             \App\Modules\Common\Services\AuthModalComposer::class
         );
 
+        // Share the authenticated user's overdue follow-ups count with the
+        // sidebar Contacts nav entry and the Contacts "Quick add" card so a
+        // red badge proactively pulls people into reminders that are due.
+        \Illuminate\Support\Facades\View::composer(
+            \App\Modules\Common\Services\ContactsFollowUpsBadgeComposer::VIEWS,
+            \App\Modules\Common\Services\ContactsFollowUpsBadgeComposer::class
+        );
+
         // Note: App\Listeners\IssueInvoiceOnSubscriptionActivated is wired to
         // App\Events\SubscriptionActivated by Laravel's event auto-discovery
         // (typed handle() method on a class under app/Listeners). An explicit

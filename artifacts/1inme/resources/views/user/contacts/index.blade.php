@@ -96,8 +96,11 @@
                     <i class="fas fa-camera mr-1"></i> Scan card / brochure
                     <span class="ml-1 text-[10px] uppercase tracking-wide opacity-70">AI</span>
                 </a>
-                <a href="{{ route('user.contacts.follow-ups') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition" style="background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)">
+                <a href="{{ route('user.contacts.follow-ups') }}" class="relative flex items-center justify-center w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition" style="background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25)">
                     <i class="fas fa-bell mr-1"></i> Follow-ups
+                    @if(($contactsOverdueFollowUps ?? 0) > 0)
+                        <span class="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none text-white" style="background:#ef4444;" title="{{ $contactsOverdueFollowUps }} overdue">{{ $contactsOverdueFollowUps > 99 ? '99+' : $contactsOverdueFollowUps }}</span>
+                    @endif
                 </a>
             </div>
         </div>

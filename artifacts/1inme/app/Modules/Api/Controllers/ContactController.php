@@ -92,6 +92,22 @@ class ContactController extends Controller
     }
 
     /**
+     * Lightweight overdue follow-ups count for the Contacts tab badge: the
+     * number of contacts whose scheduled follow_up_at is due already (<= now).
+     * Kept as a tiny count-only endpoint so the header badge can poll it
+     * without pulling the full follow-ups list.
+     */
+    public function followUpsCount(Request $request)
+    {
+        $overdue = Contact::where('user_id', $request->user()->id)
+            ->whereNotNull('follow_up_at')
+            ->where('follow_up_at', '<=', now())
+            ->count();
+
+        return $this->ok(['overdue' => $overdue]);
+    }
+
+    /**
      * Plan-based contacts usage gauge, mirrors the web index banner so the
      * mobile app can warn the user before the create/import flow blocks them.
      */

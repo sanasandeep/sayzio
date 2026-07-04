@@ -85,6 +85,18 @@ export async function listFollowUps(): Promise<{
   return { overdue: res.data.overdue, upcoming: res.data.upcoming };
 }
 
+/**
+ * Lightweight count of overdue follow-ups (contacts whose `follow_up_at` is
+ * due already). Powers the badge on the Contacts tab's bell button so users
+ * notice reminders without opening the full list.
+ */
+export async function getOverdueFollowUpsCount(): Promise<number> {
+  const res = await apiFetch<{ data: { overdue: number } }>(
+    `/contacts/follow-ups/count`,
+  );
+  return res.data.overdue;
+}
+
 export async function getContact(id: number): Promise<Contact> {
   const res = await apiFetch<{ data: { contact: Contact } }>(`/contacts/${id}`);
   return res.data.contact;

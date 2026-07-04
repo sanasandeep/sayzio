@@ -738,7 +738,11 @@
                         <a href="{{ route('user.contacts.index') }}"
                            class="sidebar-link {{ request()->routeIs('user.contacts.*') ? 'active' : '' }}"
                            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div>
+                            <div class="nav-icon-wrap" style="position:relative;"><i class="fas fa-address-book"></i>
+                                @if(($contactsOverdueFollowUps ?? 0) > 0)
+                                    <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold leading-none text-white ring-2" style="background:#ef4444; --tw-ring-color:var(--sidebar-bg,#0b1020);" title="{{ $contactsOverdueFollowUps }} overdue follow-up(s)">{{ $contactsOverdueFollowUps > 99 ? '99+' : $contactsOverdueFollowUps }}</span>
+                                @endif
+                            </div>
                             <span class="nav-label">Contacts</span>
                             <span class="sidebar-tooltip">Contacts</span>
                         </a>
@@ -1439,7 +1443,7 @@
                                 <a href="{{ route('user.posts.index') }}" class="sidebar-link {{ request()->routeIs('user.posts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-pen-to-square"></i></div> <span>My Posts</span></a>
                                 @endif
                                 @if($__can['settings_view'])
-                                <a href="{{ route('user.contacts.index') }}" class="sidebar-link {{ request()->routeIs('user.contacts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div> <span>Contacts</span></a>
+                                <a href="{{ route('user.contacts.index') }}" class="sidebar-link {{ request()->routeIs('user.contacts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div> <span>Contacts</span>@if(($contactsOverdueFollowUps ?? 0) > 0)<span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none text-white" style="background:#ef4444;" title="{{ $contactsOverdueFollowUps }} overdue follow-up(s)">{{ $contactsOverdueFollowUps > 99 ? '99+' : $contactsOverdueFollowUps }}</span>@endif</a>
                                 <a href="{{ route('user.dialer.index') }}" class="sidebar-link {{ request()->routeIs('user.dialer.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-phone"></i></div> <span>Dialer</span>@include('common.partials.soon-badge', ['feature' => 'dialer'])</a>
                                 @endif
                             </div>

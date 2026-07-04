@@ -16,7 +16,7 @@ import {
 
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
-import { listContacts } from "@/lib/api/contacts";
+import { getOverdueFollowUpsCount, listContacts } from "@/lib/api/contacts";
 import { importDeviceContacts } from "@/lib/deviceContacts";
 
 export default function ContactsScreen() {
@@ -30,6 +30,14 @@ export default function ContactsScreen() {
     queryKey: ["contacts", search],
     queryFn: () => listContacts(search || undefined),
   });
+
+  // Overdue follow-ups count powers the bell badge so users notice due
+  // reminders without opening the list.
+  const overdueQ = useQuery({
+    queryKey: ["contacts", "follow-ups", "overdue-count"],
+    queryFn: getOverdueFollowUpsCount,
+  });
+  const overdueCount = overdueQ.data ?? 0;
 
   const importDevice = async () => {
     setImporting(true);
@@ -84,8 +92,16 @@ export default function ContactsScreen() {
               <Pressable
                 onPress={() => router.push("/contacts/follow-ups")}
                 hitSlop={8}
+                style={{ position: "relative" }}
               >
                 <Feather name="bell" size={19} color={colors.primary} />
+                {overdueCount > 0 && (
+                  <View style={styles.bellBadge}>
+                    <Text style={styles.bellBadgeText}>
+                      {overdueCount > 99 ? "99+" : String(overdueCount)}
+                    </Text>
+                  </View>
+                )}
               </Pressable>
               <Pressable
                 onPress={() => router.push("/contacts/google-sync")}
@@ -287,4 +303,22 @@ const styles = StyleSheet.create({
   },
   name: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
   sub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, marginTop: 2 },
+  bellBadge: {
+    position: "absolute",
+    top: -6,
+    right: -8,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 3,
+    borderRadius: 999,
+    backgroundColor: "#ef4444",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bellBadgeText: {
+    color: "#fff",
+    fontSize: 9,
+    fontFamily: "SpaceGrotesk_700Bold",
+    lineHeight: 12,
+  },
 });

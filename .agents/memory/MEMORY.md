@@ -153,8 +153,5 @@
 - [Deploy-seed heavy demo content](deploy-seed-shared-rds.md) — dev==prod share far RDS so a 15-25min seeder only finishes on the co-located deploy server; run it via an env=production-guarded migration that BACKGROUND-spawns db:seed (never blocks migrate→server-boot→/up), advisory-locked vs concurrent boots; NEVER edit production.run (breaks deploy) and NEVER `migrate` in dev (consumption trap).
 - [Demo login prod + shared demo account](demo-login-prod-and-e2e-writable.md) — demo user/admin logins are public passwordless POSTs (Auth::login, no pw check); owner enabled BOTH in prod (admin=public super-admin). demo@1inme.com MUST stay writable (is_readonly_demo=false) or the browser e2e gate's write specs break; a safe public read-only demo needs a SEPARATE flagged account, not this one.
 - [Dashboard widget catalog mobile parity](dashboard-widget-catalog-mobile-parity.md) — when a web widget-catalog feature predates mobile home's fixed layout, mobile parity = a settings-screen control surface, not reshaping mobile home rendering.
-<<<<<<< HEAD
 - [Standalone repo cold npm install](standalone-repo-cold-npm-install.md) — sayzio-dialer-standalone has no lockfile/node_modules by default; first `npm install` can partially fail with ENOTEMPTY on a nested package dir, just rm -rf that one subpath and rerun (don't reinstall from scratch).
-=======
 - [Competitor Biolink Teardown](competitor-biolink-teardown.md) — fetch-before-charge ordering + refund idempotency; "build better version" reuses AiBiolinkBuilderService's own charge/gate, no new one; guard lets you verify wiring w/o a live OpenAI key.
->>>>>>> 3869057e (Add Competitor Biolink Teardown (Task #3532))
