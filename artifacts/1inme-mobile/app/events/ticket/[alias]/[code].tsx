@@ -3,22 +3,53 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SvgXml } from "react-native-svg";
 
+import { errorStatus } from "@/lib/api";
 import { useColors } from "@/hooks/useColors";
-import { type EventTicket, getEventTicket } from "@/lib/api/events";
+import {
+  type FullEventTicket,
+  getCachedEventTicket,
+  getEventTicket,
+} from "@/lib/api/events";
 
 export default function TicketViewScreen() {
   const { alias, code } = useLocalSearchParams<{ alias: string; code: string }>();
   const colors = useColors();
-  const [ticket, setTicket] = useState<(EventTicket & { qr_svg: string }) | null>(null);
+  const [ticket, setTicket] = useState<FullEventTicket | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     if (!alias || !code) return;
-    getEventTicket(alias, code)
-      .then(setTicket)
-      .catch(() => setError("This ticket could not be found."))
-      .finally(() => setLoading(false));
+    let active = true;
+    (async () => {
+      try {
+        const fresh = await getEventTicket(alias, code);
+        if (!active) return;
+        setTicket(fresh);
+        setOffline(false);
+      } catch (e) {
+        // Only fall back to the cached copy on a network/offline failure (no
+        // HTTP status). A server-authoritative error (e.g. 404/410 for a
+        // deleted ticket) must surface the error, not a stale saved QR.
+        const isNetworkFailure = errorStatus(e) === null;
+        const cached = isNetworkFailure
+          ? await getCachedEventTicket(alias, code)
+          : null;
+        if (!active) return;
+        if (cached) {
+          setTicket(cached);
+          setOffline(true);
+        } else {
+          setError("This ticket could not be found.");
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, [alias, code]);
 
   if (loading) {
@@ -46,6 +77,13 @@ export default function TicketViewScreen() {
   return (
     <ScrollView contentContainerStyle={[styles.wrap, { backgroundColor: colors.background }]}>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {offline ? (
+          <View style={[styles.offlineBanner, { borderColor: colors.border }]}>
+            <Text style={[styles.offlineText, { color: colors.mutedForeground }]}>
+              You&apos;re offline — showing your saved ticket
+            </Text>
+          </View>
+        ) : null}
         <Text style={[styles.eventTitle, { color: colors.foreground }]}>
           {ticket.event?.title ?? "Event"}
         </Text>
@@ -88,6 +126,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
+  offlineBanner: {
+    alignSelf: "stretch",
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  offlineText: { fontSize: 12, textAlign: "center" },
   eventTitle: { fontSize: 18, fontWeight: "800", textAlign: "center" },
   qrWrap: { marginVertical: 20 },
   code: { fontSize: 15, fontWeight: "700", letterSpacing: 1, marginTop: 4 },

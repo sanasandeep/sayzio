@@ -1,3 +1,5 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { apiFetch } from "@/lib/api";
 
 export type EventTier = {
@@ -114,14 +116,78 @@ export async function getMyEventTickets(): Promise<Paginated<EventTicket>> {
   return res.data;
 }
 
+export type FullEventTicket = EventTicket & {
+  checkin_url: string;
+  qr_svg: string;
+};
+
+// Attendees may need to show their QR at a venue with poor signal. Once a
+// ticket has been fetched successfully we persist its QR payload + key
+// details on-device (scoped per ticket code), so the ticket screen can fall
+// back to the cached copy when the network request fails.
+const TICKET_CACHE_PREFIX = "event:ticket:v1:";
+
+function ticketCacheKey(alias: string, code: string): string {
+  return `${TICKET_CACHE_PREFIX}${alias}:${code}`;
+}
+
+export async function getCachedEventTicket(
+  alias: string,
+  code: string,
+): Promise<FullEventTicket | null> {
+  if (!alias || !code) return null;
+  try {
+    const raw = await AsyncStorage.getItem(ticketCacheKey(alias, code));
+    return raw ? (JSON.parse(raw) as FullEventTicket) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function cacheEventTicket(
+  alias: string,
+  code: string,
+  ticket: FullEventTicket,
+): Promise<void> {
+  try {
+    await AsyncStorage.setItem(
+      ticketCacheKey(alias, code),
+      JSON.stringify(ticket),
+    );
+  } catch {
+    // Best-effort — a failed write just means no offline fallback exists,
+    // which is no worse than today.
+  }
+}
+
+export async function forgetCachedEventTicket(
+  alias: string,
+  code: string,
+): Promise<void> {
+  if (!alias || !code) return;
+  try {
+    await AsyncStorage.removeItem(ticketCacheKey(alias, code));
+  } catch {
+    // No-op — see cacheEventTicket comment.
+  }
+}
+
 export async function getEventTicket(
   alias: string,
   code: string,
-): Promise<EventTicket & { checkin_url: string; qr_svg: string }> {
-  const res = await apiFetch<{
-    data: EventTicket & { checkin_url: string; qr_svg: string };
-  }>(`/events/${encodeURIComponent(alias)}/tickets/${encodeURIComponent(code)}`);
-  return res.data;
+): Promise<FullEventTicket> {
+  const res = await apiFetch<{ data: FullEventTicket }>(
+    `/events/${encodeURIComponent(alias)}/tickets/${encodeURIComponent(code)}`,
+  );
+  const ticket = res.data;
+  // A refunded/cancelled ticket is no longer valid for entry, so drop any
+  // cached copy rather than letting a stale QR keep displaying offline.
+  if (ticket.status === "refunded" || ticket.status === "cancelled") {
+    await forgetCachedEventTicket(alias, code);
+  } else {
+    await cacheEventTicket(alias, code, ticket);
+  }
+  return ticket;
 }
 
 // ── Owner: tier management + door check-in ─────────────────────────
