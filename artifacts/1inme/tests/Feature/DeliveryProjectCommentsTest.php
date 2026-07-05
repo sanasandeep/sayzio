@@ -10,6 +10,7 @@ use App\Modules\User\Models\ClientPortalShare;
 use App\Modules\User\Models\DeliveryProject;
 use App\Modules\User\Models\DeliveryProjectComment;
 use App\Modules\User\Models\DeliveryProjectTask;
+use App\Modules\User\Models\NotificationPreference;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
 use App\Modules\User\Models\Workspace;
@@ -71,6 +72,15 @@ class DeliveryProjectCommentsTest extends TestCase
             'user_id'      => $user->id,
             'role'         => $role,
         ]);
+    }
+
+    /** @param array{in_app?:bool,email?:bool,push?:bool} $channels */
+    private function setPref(User $user, string $type, array $channels): void
+    {
+        NotificationPreference::create(array_merge([
+            'user_id' => $user->id,
+            'type'    => $type,
+        ], $channels));
     }
 
     private function makeProject(Workspace $ws, array $attrs = []): DeliveryProject
@@ -176,6 +186,57 @@ class DeliveryProjectCommentsTest extends TestCase
                 'type'    => 'delivery_project.comment',
             ]);
         }
+    }
+
+    public function test_comment_fanout_respects_each_members_channel_preferences(): void
+    {
+        $owner = $this->makeUser('owner');
+        $ws    = $owner->ownedWorkspaces()->first();
+
+        // Three teammates with different appetites for this notification type.
+        $emailOn  = $this->makeUser('on');   // wants in-app + email
+        $emailOff = $this->makeUser('off');  // in-app only, email muted
+        $muted    = $this->makeUser('mute'); // muted the type entirely
+        $this->memberOf($ws, $emailOn, 'editor');
+        $this->memberOf($ws, $emailOff, 'editor');
+        $this->memberOf($ws, $muted, 'editor');
+
+        $this->setPref($emailOn, 'delivery_project.comment', ['in_app' => true, 'email' => true, 'push' => false]);
+        $this->setPref($emailOff, 'delivery_project.comment', ['in_app' => true, 'email' => false, 'push' => false]);
+        $this->setPref($muted, 'delivery_project.comment', ['in_app' => false, 'email' => false, 'push' => false]);
+
+        $project = $this->makeProject($ws, ['title' => 'Pref delivery']);
+        $link    = $this->portalLinkFor($ws, $project);
+
+        $this->withSession(['portal_link_id' => $link->id])
+            ->post(route('portal.delivery-project.comment', $project->id), ['body' => 'Any update on my order?'])
+            ->assertRedirect();
+
+        // --- Email side: only members who allow email get a client_comment email.
+        $this->assertDatabaseHas('email_logs', [
+            'email_key' => 'delivery_project.client_comment',
+            'recipient' => $emailOn->email,
+        ]);
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'delivery_project.client_comment',
+            'recipient' => $emailOff->email,
+        ]);
+
+        // --- In-app side: the email-muted member still gets the in-app row.
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $emailOff->id,
+            'type'    => 'delivery_project.comment',
+        ]);
+
+        // --- The fully-muted member gets NEITHER channel.
+        $this->assertDatabaseMissing('user_notifications', [
+            'user_id' => $muted->id,
+            'type'    => 'delivery_project.comment',
+        ]);
+        $this->assertDatabaseMissing('email_logs', [
+            'email_key' => 'delivery_project.client_comment',
+            'recipient' => $muted->email,
+        ]);
     }
 
     public function test_portal_comment_requires_a_share(): void
