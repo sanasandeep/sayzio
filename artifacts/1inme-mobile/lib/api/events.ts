@@ -268,3 +268,18 @@ export async function checkinScan(
   );
   return res.data;
 }
+
+export type CheckinProgress = {
+  totals: { sold: number; checked_in: number; remaining: number };
+  tiers: { id: number; name: string; sold: number; checked_in: number }[];
+  updated_at: string;
+};
+
+export async function getCheckinProgress(
+  linkId: number,
+): Promise<CheckinProgress> {
+  const res = await apiFetch<{ data: CheckinProgress }>(
+    `/links/${linkId}/event-checkin/progress`,
+  );
+  return res.data;
+}

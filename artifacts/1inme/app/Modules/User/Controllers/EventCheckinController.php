@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\EventTicket;
 use App\Modules\User\Models\Link;
+use App\Services\Events\EventCheckinProgress;
 use Illuminate\Http\Request;
 
 /**
@@ -33,6 +34,19 @@ class EventCheckinController extends Controller
         $data = $request->validate(['code' => ['required', 'string', 'max:64']]);
 
         return response()->json($this->checkIn($link, $data['code'], $request->user()?->id));
+    }
+
+    /**
+     * Live door progress (checked-in / sold, overall + per tier) polled by
+     * the scanner so every staffer's screen updates as scans land across
+     * devices, without a manual refresh.
+     */
+    public function progress(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+        abort_if($link->type !== 'ics', 404);
+
+        return response()->json(EventCheckinProgress::for($link));
     }
 
     /**

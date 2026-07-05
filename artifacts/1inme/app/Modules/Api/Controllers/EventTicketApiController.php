@@ -280,6 +280,21 @@ class EventTicketApiController extends Controller
         return $this->ok(['ok' => true, 'status' => 'checked_in', 'message' => 'Checked in successfully.', 'ticket' => $this->ticketShape($ticket)]);
     }
 
+    /**
+     * Live door progress (checked-in / sold, overall + per tier). Polled by
+     * the mobile scanner so counts update as scans land across devices.
+     */
+    public function checkinProgress(Request $request, int $linkId)
+    {
+        $user = $request->user();
+        if (!$user) return $this->unauthorized();
+
+        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($linkId);
+        if (!$link) return $this->notFound();
+
+        return $this->ok(\App\Services\Events\EventCheckinProgress::for($link));
+    }
+
     // ─── Shapes / helpers ──────────────────────────────────────────
 
     protected function validateTier(Request $request): array

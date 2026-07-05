@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useLocalSearchParams } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +13,12 @@ import {
 } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
-import { checkinScan, type CheckinResult } from "@/lib/api/events";
+import {
+  checkinScan,
+  type CheckinProgress,
+  type CheckinResult,
+  getCheckinProgress,
+} from "@/lib/api/events";
 
 export default function CheckinScannerScreen() {
   const { linkId } = useLocalSearchParams<{ linkId: string }>();
@@ -23,7 +28,23 @@ export default function CheckinScannerScreen() {
   const [manualCode, setManualCode] = useState("");
   const [result, setResult] = useState<CheckinResult | null>(null);
   const [scanning, setScanning] = useState(true);
+  const [progress, setProgress] = useState<CheckinProgress | null>(null);
   const lockRef = useRef(false);
+
+  const loadProgress = useCallback(async () => {
+    try {
+      setProgress(await getCheckinProgress(id));
+    } catch {
+      // Non-fatal: keep last known counts.
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    loadProgress();
+    const timer = setInterval(loadProgress, 5000);
+    return () => clearInterval(timer);
+  }, [id, loadProgress]);
 
   const extractCode = (raw: string): string => {
     // The QR content is a full check-in lookup URL; ticket codes are
@@ -40,11 +61,12 @@ export default function CheckinScannerScreen() {
       try {
         const res = await checkinScan(id, code);
         setResult(res);
+        loadProgress();
       } catch (err) {
         setResult({ ok: false, status: "error", message: (err as Error)?.message ?? "Check-in failed." });
       }
     },
-    [id],
+    [id, loadProgress],
   );
 
   const scanAgain = useCallback(() => {
@@ -75,8 +97,39 @@ export default function CheckinScannerScreen() {
     );
   }
 
+  const totals = progress?.totals;
+  const pct =
+    totals && totals.sold > 0
+      ? Math.round((totals.checked_in / totals.sold) * 100)
+      : 0;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={[styles.progressBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={styles.progressHead}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>Live door progress</Text>
+          <Text style={{ color: colors.foreground, fontWeight: "700" }}>
+            {totals ? `${totals.checked_in} / ${totals.sold} in` : "…"}
+          </Text>
+        </View>
+        <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+          <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: colors.primary }]} />
+        </View>
+        {progress && progress.tiers.length > 1 ? (
+          <View style={styles.tierRows}>
+            {progress.tiers.map((t) => (
+              <View key={t.id} style={styles.tierRow}>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12 }} numberOfLines={1}>
+                  {t.name}
+                </Text>
+                <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>
+                  {t.checked_in} / {t.sold}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+      </View>
       {scanning ? (
         <CameraView
           style={{ flex: 1 }}
@@ -131,6 +184,12 @@ export default function CheckinScannerScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  progressBar: { borderBottomWidth: 1, paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+  progressHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  progressTrack: { height: 6, borderRadius: 3, overflow: "hidden" },
+  progressFill: { height: 6, borderRadius: 3 },
+  tierRows: { gap: 4, marginTop: 2 },
+  tierRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   resultWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   resultMsg: { fontSize: 17, fontWeight: "700", textAlign: "center", marginTop: 16 },
   buyBtn: { height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", paddingHorizontal: 24 },
