@@ -8,6 +8,7 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -17,20 +18,27 @@ import {
 import { AppIcon } from "@/components/AppIcon";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
-import { type EventItem, listEvents } from "@/lib/api/events";
+import {
+  type EventCategoryOption,
+  type EventItem,
+  listEvents,
+} from "@/lib/api/events";
 
 export default function EventsDirectoryScreen() {
   const colors = useColors();
   const [q, setQ] = useState("");
   const [nearMe, setNearMe] = useState(false);
+  const [category, setCategory] = useState<string | null>(null);
+  const [categories, setCategories] = useState<EventCategoryOption[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(
-    async (opts: { near?: boolean; query?: string } = {}) => {
+    async (opts: { near?: boolean; query?: string; category?: string | null } = {}) => {
       const near = opts.near ?? nearMe;
       const query = opts.query ?? q;
+      const cat = opts.category !== undefined ? opts.category : category;
       let lat: number | undefined;
       let lng: number | undefined;
       if (near) {
@@ -45,10 +53,18 @@ export default function EventsDirectoryScreen() {
           // ignore — falls back to unfiltered directory
         }
       }
-      const res = await listEvents({ q: query || undefined, lat, lng });
+      const res = await listEvents({
+        q: query || undefined,
+        category: cat || undefined,
+        lat,
+        lng,
+      });
       setEvents(res.items);
+      // The curated category catalogue is stable, so only seed it once from
+      // the first response — later filtered calls return the same list.
+      setCategories((prev) => (prev.length > 0 ? prev : res.categories));
     },
-    [nearMe, q],
+    [nearMe, q, category],
   );
 
   const onRefresh = useCallback(async () => {
@@ -79,6 +95,21 @@ export default function EventsDirectoryScreen() {
       setLoading(false);
     }
   }, [load, q]);
+
+  const toggleCategory = useCallback(
+    async (slug: string) => {
+      // Tapping the active chip clears the filter (parity with web).
+      const next = category === slug ? null : slug;
+      setCategory(next);
+      setLoading(true);
+      try {
+        await load({ category: next });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [category, load],
+  );
 
   useState(() => {
     load().finally(() => setLoading(false));
@@ -122,13 +153,58 @@ export default function EventsDirectoryScreen() {
         </Pressable>
       </View>
 
+      {categories.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
+          {categories.map((c) => {
+            const active = category === c.slug;
+            return (
+              <Pressable
+                key={c.slug}
+                onPress={() => toggleCategory(c.slug)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: active ? colors.primary : colors.card,
+                    borderColor: active ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                <AppIcon
+                  name={c.icon}
+                  size={13}
+                  color={active ? colors.primaryForeground : colors.foreground}
+                />
+                <Text
+                  style={[
+                    styles.chipLabel,
+                    {
+                      color: active ? colors.primaryForeground : colors.foreground,
+                    },
+                  ]}
+                >
+                  {c.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      ) : null}
+
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
       ) : events.length === 0 ? (
         <EmptyState
           icon="calendar"
           title="No events found"
-          body="Try a different search or turn off the near-me filter."
+          body={
+            category
+              ? "No events in this category yet. Tap the category again to clear it."
+              : "Try a different search or turn off the near-me filter."
+          }
         />
       ) : (
         <FlatList
@@ -237,6 +313,22 @@ const styles = StyleSheet.create({
     height: 44,
   },
   searchInput: { flex: 1, fontSize: 15 },
+  chipRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  chipLabel: { fontSize: 13, fontWeight: "600" },
   nearBtn: {
     width: 44,
     height: 44,

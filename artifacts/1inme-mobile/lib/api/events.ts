@@ -93,9 +93,25 @@ export type Paginated<T> = {
   meta: { current_page: number; last_page: number; total: number };
 };
 
+/**
+ * Curated event category surfaced by the directory endpoint (mirrors
+ * EventCategories::CATEGORIES on the server). `slug` is what the `category`
+ * filter param expects; `label`/`icon` drive the tappable chip UI so mobile
+ * matches the web /events directory exactly.
+ */
+export type EventCategoryOption = {
+  slug: string;
+  label: string;
+  icon: string;
+};
+
+export type EventsDirectoryResponse = Paginated<EventItem> & {
+  categories: EventCategoryOption[];
+};
+
 export async function listEvents(
   filters: EventsDirectoryFilters = {},
-): Promise<Paginated<EventItem>> {
+): Promise<EventsDirectoryResponse> {
   const params = new URLSearchParams();
   if (filters.q) params.set("q", filters.q);
   if (filters.category) params.set("category", filters.category);
@@ -105,7 +121,7 @@ export async function listEvents(
   if (filters.radius != null) params.set("radius", String(filters.radius));
   if (filters.page) params.set("page", String(filters.page));
   const qs = params.toString();
-  const res = await apiFetch<{ data: Paginated<EventItem> }>(
+  const res = await apiFetch<{ data: EventsDirectoryResponse }>(
     `/events${qs ? `?${qs}` : ""}`,
   );
   return res.data;
