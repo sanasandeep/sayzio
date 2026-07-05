@@ -240,6 +240,22 @@ class MailSettings
         return $p !== null && $p !== '';
     }
 
+    /**
+     * True when the SMTP mailer is selected but no usable password credential
+     * is available anywhere (neither an admin-stored value nor the env
+     * fallback). This is the single most common cause of silently-failing
+     * outbound email: every SMTP AUTH is rejected, so no message ever leaves
+     * the server while it merely records "failed" in email_logs. Surfaced as a
+     * warning on the admin Email/SMTP screen so the gap is visible, not silent.
+     */
+    public static function isMissingSmtpCredential(): bool
+    {
+        if (self::mailer() !== 'smtp') {
+            return false;
+        }
+        return self::password() === null;
+    }
+
     /** True when an admin has stored any email setting at all. */
     public static function hasAnyAdminValue(): bool
     {

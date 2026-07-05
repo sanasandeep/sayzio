@@ -31,6 +31,22 @@
         </div>
     @endif
 
+    @if (!empty($missingCredential))
+        <div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation mt-0.5 text-amber-300"></i>
+            <div class="space-y-1">
+                <p class="font-semibold text-amber-100">Outbound email is not configured to send.</p>
+                <p>
+                    The SMTP mailer is selected but <strong>no password / credential is stored</strong>
+                    (and none is set in the environment). Every send will fail SMTP authentication and be
+                    recorded as <span class="font-mono">failed</span> &mdash; recipients get nothing. Enter the
+                    mailbox password below, <strong>Save</strong>, then use <strong>Verify connection</strong>
+                    and <strong>Send test</strong> to confirm delivery.
+                </p>
+            </div>
+        </div>
+    @endif
+
     {{-- ============================================================ --}}
     {{-- Main settings form                                           --}}
     {{-- ============================================================ --}}

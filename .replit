@@ -94,10 +94,6 @@ args = "brand-color-build"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "1INME"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "mobile-docs-parity"
 
 [[workflows.workflow]]
@@ -308,18 +304,6 @@ args = "pnpm --filter @workspace/scripts run check:brand-color-build"
 
 [workflows.workflow.metadata]
 isValidation = true
-
-[[workflows.workflow]]
-name = "1INME"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || { php artisan view:clear && pnpm --dir /home/runner/workspace/artifacts/1inme run build; }; } && rm -f storage/framework/views/*.php && mkdir -p storage/framework/cache && date +%s%3N > storage/framework/cache/dev_boot_ms && { pkill -f \"artisan serve --host=0.0.0.0 --port=5000\" 2>/dev/null; fuser -k 5000/tcp 2>/dev/null; true; } && pnpm exec concurrently --kill-others --names tailwind,serve \"pnpm --dir /home/runner/workspace/artifacts/1inme run build:watch:cycle\" \"PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload\""
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[workflows.workflow]]
 name = "mobile-docs-parity"

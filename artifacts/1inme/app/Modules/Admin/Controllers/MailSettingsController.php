@@ -37,6 +37,7 @@ class MailSettingsController extends Controller
             'fromName'         => MailSettings::fromName(),
             'verifiedAt'       => MailSettings::verifiedAt(),
             'encryptionOptions' => MailSettings::ENCRYPTION_OPTIONS,
+            'missingCredential' => MailSettings::isMissingSmtpCredential(),
         ]);
     }
 
