@@ -661,7 +661,10 @@ fans pay, minus only the payment processor's own fee.
 - **Paid DMs** — charge for direct messages.
 - **Client invoicing** — bill your own clients under a **billing company** brand:
   issue branded invoices and receipts (downloadable PDFs), and optionally send
-  client emails from your own domain via per-company SMTP.
+  client emails from your own domain via per-company SMTP. Refunding an invoice
+  automatically issues a matching **credit note** (its own numbered, downloadable
+  PDF) — both live in your invoices list, and the mobile app shows credit notes
+  alongside invoices.
 
 The **Monetization** dashboard rolls up your earnings, subscribers, payments, and
 orders in one place.
@@ -719,6 +722,11 @@ Sayzio includes several AI helpers (all metered with **AI credits**):
   keeps AI-written content in your brand voice.
 - **AI QR Art** — turn a plain QR code into on-brand artwork that still scans (a
   built-in check verifies scannability before you use it).
+- **Competitor Biolink Teardown** — paste a competitor's public page URL and get
+  an AI-scored teardown: an overall score, strengths, weaknesses, missing
+  elements, a call-to-action check, and concrete recommendations. One tap on
+  **"Build a better version"** hands those findings to the AI biolink builder to
+  assemble an improved page for you.
 
 Other AI helpers appear inside specific tools — e.g. **resume tailoring** and
 **cover-letter generation** in the Resume builder, and the
@@ -1090,7 +1098,8 @@ and code check come first.
 
 - **Sayzio mobile app** — most creator features have native parity in the mobile
   app, including links, biolink editing, QR Studio, restaurant menus, reviews
-  moderation, payouts, and the 18+ toggle. Sign in with email/OTP or social.
+  moderation, payouts, the 18+ toggle, **Competitor Biolink Teardown**, and
+  **credit notes** (alongside invoices). Sign in with email/OTP or social.
 - **Browser extension** — helps with things like saving links and powering the
   Backlinks radar from your browser.
 
@@ -1309,6 +1318,11 @@ Razorpay, CCBill, or Segpay) via its hosted onboarding, and set a default.
 Add a **Product/Storefront** block or create a storefront link, then manage
 incoming **Orders** and fulfillment from the dashboard.
 
+**What happens if I refund a client invoice?**
+Sayzio automatically issues a matching **credit note** — its own numbered,
+downloadable PDF, linked back to the original invoice. It shows up next to your
+invoices on both web and mobile.
+
 **What's a Paid Page?**
 A monetized page that automatically shows your posts, tiers, and a tip option,
 gated by visibility/payment.
@@ -1390,6 +1404,12 @@ you can fix anything before saving.
 No. After scanning you choose what to do: **save as a contact**, **seed a biolink
 page draft**, or both. Saving a contact counts against your plan's contact limit;
 if you're at the cap, you can still seed just the biolink draft.
+
+**What does Competitor Biolink Teardown do?**
+Paste a competitor's public page URL and Sayzio fetches and AI-scores it —
+strengths, weaknesses, missing elements, a call-to-action check, and
+recommendations — then lets you tap **"Build a better version"** to have the AI
+biolink builder assemble an improved page for you. Available on web and mobile.
 
 ### Account safety
 

@@ -909,6 +909,14 @@ AI surfaces gated through the engine settings include the `biolink_builder`,
 - **WhatsApp AI Agent** — an AI responder for inbound WhatsApp messages that
   answers questions and captures leads in the owner's voice around the clock;
   charged as `whatsapp_agent` per model call with auto-refund on failure.
+- **Competitor Biolink Teardown** — paste a competitor's public page URL and AI
+  fetches + scores it (`CompetitorTeardownService`): an overall 0–100 score,
+  summary verdict, strengths, weaknesses, missing elements, a call-to-action
+  quality check, and concrete recommendations. A one-tap **"Build a better
+  version"** hands the findings to the AI biolink builder (`AiBiolinkBuilderService`)
+  to assemble an improved page for the user, reusing its existing safe
+  block-subset/plan-allowlist and charge/refund behavior. Charged/gated as
+  `competitor_teardown`.
 
 **Per-plan AI gating** (`AiPlanAccess`) — a single source of truth gates the
 first-class AI features per plan in two shapes: **quantity** caps for Knowledge
@@ -918,8 +926,9 @@ Bases / AI Agents / Chat Widgets / saved AI Brand Kits (`max_minds` /
 assistant (`ai_voice_assistant`), the Chat Widget (`ai_widget`), card/brochure
 scan (`card_scan`), AI resume tools (`ai_resume_tools`), the Inbox Agent
 (`inbox_agent`), the Marketing Strategist (`marketing_strategist`), the Brand
-Consistency Score (`brand_consistency`), AI Artistic QR (`qr_art`), and the
-WhatsApp AI Agent (`whatsapp_agent`). When a plan row predates a key it falls back to the legacy
+Consistency Score (`brand_consistency`), AI Artistic QR (`qr_art`), the
+WhatsApp AI Agent (`whatsapp_agent`), and the Competitor Biolink Teardown
+(`competitor_teardown`). When a plan row predates a key it falls back to the legacy
 global admin cap / allow-list so nothing regresses; the plan-limit bypass
 permission lifts every cap. Plans can also carry per-provider AI **coin-cost
 multipliers** that scale the base per-call coin cost. (Voice gating here is
@@ -932,8 +941,9 @@ period 80% / 100% / overage-unavailable warnings (email + in-app
 `api.usage_warning`).
 
 *Web · REST (`/ai/*`, Voice, AI Growth Coach, Chat Widgets, `/ai/marketing-strategist/*`,
-`/brand-kits/*`, `/inbox/*`) · Mobile (Account Assistant, AI Agent chat,
-floating-mic voice assistant, Inbox, Brand Kits).*
+`/brand-kits/*`, `/inbox/*`, `/links-teardown/*`) · Mobile (Account Assistant,
+AI Agent chat, floating-mic voice assistant, Inbox, Brand Kits, Competitor
+Teardown).*
 
 ---
 
@@ -986,8 +996,11 @@ floating-mic voice assistant, Inbox, Brand Kits).*
   policy window via `BillingController`, or admin / gateway-initiated) mints an
   immutable **credit note** with its own per-FY serial (`CreditNoteService`) that
   snapshots the original invoice, the reason, and the billing details. Invoice and
-  credit-note PDFs are downloadable (`GET /user/billing/credit-notes/{id}.pdf`).
-  See [`billing-ai-credit-audit.md`](./billing-ai-credit-audit.md).
+  credit-note PDFs are downloadable (`GET /user/billing/credit-notes/{id}.pdf`);
+  the web billing dashboard surfaces credit notes inline (no dedicated index) —
+  REST/mobile parity is `GET /billing/credit-notes` (short-lived signed `pdf_url`
+  per item, surfaced under Invoices on mobile). See
+  [`billing-ai-credit-audit.md`](./billing-ai-credit-audit.md).
 
 *Web · REST (`/wallet/*`) · Mobile.*
 

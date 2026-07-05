@@ -152,6 +152,8 @@ function RootLayoutNav() {
         name="marketing-strategist/[id]"
         options={{ title: "Strategy" }}
       />
+      <Stack.Screen name="teardown/index" options={{ title: "Competitor Teardown" }} />
+      <Stack.Screen name="teardown/[id]" options={{ title: "Teardown" }} />
       <Stack.Screen name="backlinks" options={{ title: "Backlinks" }} />
       <Stack.Screen name="visitors" options={{ title: "Visitors" }} />
       <Stack.Screen name="team" options={{ title: "Team" }} />

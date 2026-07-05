@@ -843,6 +843,46 @@ class BillingController extends Controller
     }
 
     /**
+     * Credit notes issued against the caller's own invoices (mobile parity
+     * for the web billing dashboard's "Credit notes" table). Read-only —
+     * credit notes are only ever minted server-side by
+     * {@see \App\Services\Billing\CreditNoteService::issue()} on a refund,
+     * never created directly by a client.
+     */
+    public function creditNotes(Request $request)
+    {
+        $items = \App\Modules\User\Models\CreditNote::where('user_id', $request->user()->id)
+            ->with('invoice')
+            ->orderByDesc('id')
+            ->limit(100)
+            ->get();
+
+        return $this->ok([
+            'items' => $items->map(function (\App\Modules\User\Models\CreditNote $cn) {
+                $pdfUrl = null;
+                try {
+                    $pdfUrl = URL::temporarySignedRoute(
+                        'credit-note.pdf.signed', now()->addHours(6), ['creditNote' => $cn->id]
+                    );
+                } catch (\Throwable $e) {
+                    $pdfUrl = null;
+                }
+
+                return [
+                    'id'             => $cn->id,
+                    'number'         => $cn->number,
+                    'currency'       => $cn->currency,
+                    'amount_minor'   => (int) $cn->amount_minor,
+                    'invoice_id'     => $cn->invoice_id,
+                    'invoice_number' => optional($cn->invoice)->number,
+                    'issued_at'      => optional($cn->issued_at)->toIso8601String(),
+                    'pdf_url'        => $pdfUrl,
+                ];
+            })->all(),
+        ]);
+    }
+
+    /**
      * @param  bool|null  $lastSendFailed  Precomputed "last send attempt failed"
      *   signal (pass from a batched lookup to avoid N+1 on list endpoints); when
      *   null it is derived per-invoice. Only meaningful for client invoices.

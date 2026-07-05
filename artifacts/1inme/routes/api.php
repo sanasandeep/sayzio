@@ -672,6 +672,16 @@ Route::prefix('v1')->group(function () {
         Route::post('/links/{id}/ai-builder/estimate', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'estimate'])->whereNumber('id')->middleware('throttle:30,1');
         Route::post('/links/{id}/ai-builder/generate', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'generate'])->whereNumber('id')->middleware('throttle:10,1');
 
+        // Competitor Biolink Teardown (mobile parity for the web
+        // links-teardown flow). Paste a competitor URL, get an AI-scored
+        // teardown (strengths/weaknesses/missing elements/CTA quality), then
+        // optionally hand off to the AI biolink builder to build a better
+        // version. Every write lands on the caller's own account.
+        Route::get ('/links-teardown',               [\App\Modules\Api\Controllers\CompetitorTeardownController::class, 'index']);
+        Route::post('/links-teardown',               [\App\Modules\Api\Controllers\CompetitorTeardownController::class, 'store'])->middleware('throttle:10,1');
+        Route::get ('/links-teardown/{id}',          [\App\Modules\Api\Controllers\CompetitorTeardownController::class, 'show'])->whereNumber('id');
+        Route::post('/links-teardown/{id}/build',    [\App\Modules\Api\Controllers\CompetitorTeardownController::class, 'build'])->whereNumber('id')->middleware('throttle:10,1');
+
         // Biolink themes (saved looks + scheduled application). Mobile
         // creators can save the current look, schedule it for a date
         // range, and cancel/end early. Public viewers always see the
@@ -1096,6 +1106,9 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/billing/invoices/{id}/mark-paid', [BillingController::class, 'markPaidInvoice'])->whereNumber('id');
         Route::post  ('/billing/invoices/{id}/refund',    [BillingController::class, 'refundInvoice'])->whereNumber('id');
         Route::get   ('/billing/invoices/{id}/receipt',   [BillingController::class, 'invoiceReceipt'])->whereNumber('id');
+        // Credit notes (mobile parity for the web billing dashboard's
+        // "Credit notes" table). Read-only; minted server-side on refund.
+        Route::get   ('/billing/credit-notes',            [BillingController::class, 'creditNotes']);
 
         // Accounting suite: billing companies, tax rules, catalog, expenses,
         // recurring invoices, ledger (all user-scoped; mirrors web).

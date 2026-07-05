@@ -79,6 +79,14 @@ Route::post('/pay/invoice/{invoice}', [\App\Modules\User\Controllers\ClientInvoi
 Route::get('/pay/invoice/{invoice}/pdf',         [\App\Modules\User\Controllers\ClientInvoiceController::class, 'pdf'])->name('client-invoice.pdf');
 Route::get('/pay/invoice/{invoice}/receipt.pdf', [\App\Modules\User\Controllers\ClientInvoiceController::class, 'receiptPdf'])->name('client-invoice.receipt-pdf');
 
+// Signed, session-less credit-note PDF (mobile parity for the web billing
+// dashboard's "PDF" link). Same document as `billing.credit-note.pdf`, just
+// authorized via Laravel signed-URL HMAC instead of a web session so the
+// Sanctum API can hand mobile a URL its WebBrowser can open directly.
+Route::get('/pay/credit-note/{creditNote}/pdf', [\App\Modules\User\Controllers\BillingController::class, 'creditNotePdfSigned'])
+    ->middleware('signed')
+    ->name('credit-note.pdf.signed');
+
 // ---- Universal Links / App Links manifests for the iOS + Android apps ----
 Route::get('/.well-known/apple-app-site-association',
     [\App\Modules\Common\Controllers\UniversalLinksController::class, 'appleAppSiteAssociation'])

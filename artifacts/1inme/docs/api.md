@@ -28,7 +28,7 @@ see [API usage metering](#api-usage-metering)).
 - [Reviews (public)](#reviews-public) · [Reviews moderation (owner)](#reviews-moderation-owner)
 - [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Paid pages](#paid-pages-public) · [Creator monetization](#creator-monetization) · [Product storefront](#product-storefront) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
 - [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Google Contacts sync](#google-contacts-sync) · [Connected apps](#connected-apps-crm-sync) · [Bulk import](#bulk-import-preview-workflow) · [Resume](#resume--portfolio) · [Projects](#projects)
-- [Wallet & coins](#wallet--coins) · [AI](#ai-credits-knowledge-bases-voice-account-assistant-chat-widgets) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
+- [Wallet & coins](#wallet--coins) · [AI](#ai-credits-knowledge-bases-voice-account-assistant-chat-widgets) · [Competitor Biolink Teardown](#competitor-biolink-teardown) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
 - [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Store menu](#store-menu) · [Service booking](#service-booking) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
 - [Admin (mobile back-office)](#admin-mobile-back-office) · [Banned names / reserved handles](#banned-names--reserved-handles) · [Plan editor](#plan-editor) · [Admin mail / SMTP](#admin-mail--smtp-settings)
@@ -821,6 +821,30 @@ Charged in AI credits (chat metered separately) with auto-refund on failure.
 
 ---
 
+## Competitor Biolink Teardown
+
+Paste a competitor's public page URL and AI fetches + scores it: overall 0–100
+score, verdict, strengths, weaknesses, missing elements, CTA quality, and
+recommendations (`CompetitorTeardownService`). "Build a better version" hands
+the findings to the AI biolink builder to assemble an improved page, reusing
+its existing charge/refund and plan-allowlist behavior. Charged/gated as
+`competitor_teardown`.
+
+| Method | Path                              | Auth | Description                                                     |
+| ------ | --------------------------------- | ---- | --------------------------------------------------------------- |
+| GET    | `/links-teardown`                 | yes  | List saved teardowns.                                           |
+| POST   | `/links-teardown`                 | yes  | Fetch + score a competitor URL. Body: `url`. Throttle: 10/min. `402` when unaffordable. |
+| GET    | `/links-teardown/{id}`            | yes  | Show a saved teardown.                                          |
+| POST   | `/links-teardown/{id}/build`      | yes  | Build a better version via the AI biolink builder. Throttle: 10/min. |
+
+```bash
+curl -X POST $BASE/links-teardown \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -H 'Accept: application/json' \
+  -d '{"url":"https://linktr.ee/example"}'
+```
+
+---
+
 ## Creator payouts
 
 Mobile parity for the "Earnings & Payouts" dashboard. The hosted-onboarding URL is returned to the app to open in an in-app browser; webhooks + return parsing remain server-side. Providers: Stripe Connect, PayPal, Razorpay Route, CCBill, Segpay.
@@ -865,6 +889,7 @@ curl -X POST $BASE/adult-content \
 | PATCH  | `/billing/invoices/{id}`          | yes  | Update an invoice.                  |
 | DELETE | `/billing/invoices/{id}`          | yes  | Delete an invoice.                  |
 | POST   | `/billing/invoices/{id}/send`     | yes  | Email an invoice. Throttle: 30/min. |
+| GET    | `/billing/credit-notes`           | yes  | List refund credit notes (up to 100, newest first). Each item includes a short-lived signed `pdf_url` (valid 6h). |
 
 ### Client billing companies & per-company email
 

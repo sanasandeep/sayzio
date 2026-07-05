@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -15,6 +17,7 @@ import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import { apiFetch } from "@/lib/api";
+import { listCreditNotes, type CreditNote } from "@/lib/api/creditNotes";
 
 type Invoice = {
   id: number | string;
@@ -71,6 +74,29 @@ export default function InvoicesScreen() {
     queryKey: ["billing-invoices"],
     queryFn: listInvoices,
   });
+
+  const creditNotesQ = useQuery({
+    queryKey: ["billing-credit-notes"],
+    queryFn: listCreditNotes,
+  });
+
+  const openPdf = async (url: string | null) => {
+    if (!url) {
+      Alert.alert("PDF unavailable", "Couldn't get a download link. Try again later.");
+      return;
+    }
+    try {
+      await WebBrowser.openBrowserAsync(url, {
+        toolbarColor: colors.background,
+        controlsColor: colors.primary,
+      });
+    } catch (e) {
+      Alert.alert(
+        "Couldn't open PDF",
+        e instanceof Error ? e.message : "Try again later.",
+      );
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -160,6 +186,47 @@ export default function InvoicesScreen() {
               tintColor={colors.primary}
             />
           }
+          ListFooterComponent={
+            creditNotesQ.data && creditNotesQ.data.length > 0 ? (
+              <View style={{ marginTop: 16, gap: 10 }}>
+                <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
+                  Credit notes
+                </Text>
+                {creditNotesQ.data.map((cn: CreditNote) => (
+                  <Pressable
+                    key={cn.id}
+                    onPress={() => openPdf(cn.pdf_url)}
+                    style={({ pressed }) => [
+                      styles.row,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        borderRadius: colors.radius,
+                        opacity: pressed ? 0.7 : 1,
+                      },
+                    ]}
+                  >
+                    <View style={[styles.iconWrap, { backgroundColor: colors.primary + "1c" }]}>
+                      <Feather name="rotate-ccw" size={18} color={colors.primary} />
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={[styles.name, { color: colors.foreground }]} numberOfLines={1}>
+                        {cn.number ?? `Credit note #${cn.id}`}
+                      </Text>
+                      <Text style={[styles.sub, { color: colors.mutedForeground }]} numberOfLines={1}>
+                        {cn.invoice_number ? `For ${cn.invoice_number}` : "—"}
+                        {cn.issued_at ? ` · ${cn.issued_at.slice(0, 10)}` : ""}
+                      </Text>
+                    </View>
+                    <Text style={[styles.amount, { color: colors.foreground }]} numberOfLines={1}>
+                      {cn.currency ?? ""} {(cn.amount_minor / 100).toFixed(2)}
+                    </Text>
+                    <Feather name="download" size={16} color={colors.mutedForeground} />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null
+          }
         />
       )}
     </View>
@@ -179,4 +246,10 @@ const styles = StyleSheet.create({
   name: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
   sub: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11, letterSpacing: 0.4 },
   amount: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 15 },
+  sectionTitle: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 13,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
 });

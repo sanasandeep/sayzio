@@ -92,6 +92,7 @@ const TOOL_PAGES: {
     | "/qr-studio"
     | "/brand-kits"
     | "/marketing-strategist"
+    | "/teardown"
     | "/splash"
     | "/calendar"
     | "/calendars"
@@ -122,6 +123,7 @@ const TOOL_PAGES: {
   { href: "/qr-studio", label: "QR studio", icon: "grid" },
   { href: "/brand-kits", label: "AI Brand Kit", icon: "feather" },
   { href: "/marketing-strategist", label: "Performer Specialist", icon: "target" },
+  { href: "/teardown", label: "Competitor Teardown", icon: "crosshair" },
   { href: "/splash", label: "Splash pages", icon: "layout" },
   { href: "/calendars", label: "My Calendar", icon: "calendar" },
   { href: "/calendar", label: "Calendar sync", icon: "refresh-cw" },

@@ -109,6 +109,15 @@ export const BLOCK_KINDS: BlockKind[] = [
     blurb: "A list of priced items, plans, or menu rows.",
     fields: [],
   },
+  // Map location uses a bespoke editor UI (map pin-picker + lat/lng/label/
+  // zoom/directions toggle) mirroring the web editor's `mapPinPicker`
+  // Alpine component, so its `fields` array is intentionally empty.
+  {
+    type: "map_location",
+    label: "Map location",
+    blurb: "An address or pinned coordinate with a map preview.",
+    fields: [],
+  },
 ];
 
 export function blockKind(type: string): BlockKind | null {

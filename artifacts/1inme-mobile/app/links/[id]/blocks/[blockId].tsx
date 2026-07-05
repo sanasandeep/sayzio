@@ -203,6 +203,7 @@ import {
   IconPickerButton,
   IconPickerModal,
 } from "@/components/IconPickerModal";
+import { MapPickerModal, type PickedPoint } from "@/components/MapPickerModal";
 import { TextField } from "@/components/TextField";
 import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
@@ -362,6 +363,14 @@ export default function EditBlockScreen() {
   // generic string `values` map, but `verified` (boolean) and `socials`
   // (array) need their own buckets — edited via a bespoke section below.
   const isProfileCard = canonicalBlockType(block?.type ?? "") === "profile_card";
+  // Map location block. Address/lat/lng/label/zoom already round-trip
+  // through the generic string `values` map (no bespoke bucket needed for
+  // those), but `show_directions` is boolean and the "pick on map"
+  // affordance needs its own modal-open flag — those get dedicated state,
+  // mirroring the web `mapPinPicker` editor.
+  const isMapLocation = block?.type === "map_location";
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [mapShowDirections, setMapShowDirections] = useState(true);
   const [profileVerified, setProfileVerified] = useState<boolean>(false);
   const [profileSocials, setProfileSocials] = useState<ProfileSocial[]>([]);
   // Stats (`[{label,value}]`, "stats" layout) and badges (`[{label}]`,
@@ -485,6 +494,13 @@ export default function EditBlockScreen() {
       setProfileSocials(normalizeProfileSocials(block.settings?.socials));
       setProfileStats(normalizeProfileStats(block.settings?.stats));
       setProfileBadges(normalizeProfileBadges(block.settings?.badges));
+    }
+    // Hydrate the map-location boolean toggle. Mirrors the web default
+    // (`$s['show_directions'] ?? true`) so blocks saved before this field
+    // existed still show the "Directions" button by default.
+    if (block.type === "map_location") {
+      const sd = block.settings?.show_directions;
+      setMapShowDirections(!(sd === false || sd === 0 || sd === "0" || sd === "false"));
     }
   }, [block]);
 
@@ -773,6 +789,13 @@ export default function EditBlockScreen() {
           .map((b) => ({ label: b.label.trim() }))
           .filter((b) => b.label !== "")
           .slice(0, 12);
+      }
+      // Map-location block: the boolean toggle round-trips through its own
+      // state (the generic `values` map would otherwise stringify it).
+      // address/lat/lng/label/zoom already ride along in `nextSettings`
+      // via the `...values` spread above.
+      if (isMapLocation) {
+        nextSettings.show_directions = mapShowDirections;
       }
       // Stamp the limits config alongside any existing settings — this
       // is a merge by the time the backend sanitizer sees it (the web
@@ -1484,6 +1507,87 @@ export default function EditBlockScreen() {
                   Add item
                 </Text>
               </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        {isMapLocation ? (
+          <View style={{ gap: 12 }}>
+            <TextField
+              label="Address"
+              value={values.address ?? ""}
+              onChangeText={(t) => setValues((p) => ({ ...p, address: t }))}
+              placeholder="123 Main St, City"
+            />
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                Pin location
+              </Text>
+              <Pressable
+                onPress={() => setMapPickerOpen(true)}
+                style={[styles.mapPickerBtn, { borderColor: colors.border, borderRadius: colors.radius }]}
+              >
+                <Feather name="map-pin" size={15} color={colors.primary} />
+                <Text style={[styles.mapPickerBtnText, { color: colors.primary }]}>
+                  {values.lat && values.lng ? "Change point on map" : "Pick a point on the map"}
+                </Text>
+              </Pressable>
+              {values.lat && values.lng ? (
+                <Pressable
+                  onPress={() =>
+                    setValues((p) => ({ ...p, lat: "", lng: "" }))
+                  }
+                  hitSlop={8}
+                >
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                    Clear pinned coordinates
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <TextField
+                  label="Latitude (optional)"
+                  value={values.lat ?? ""}
+                  onChangeText={(t) => setValues((p) => ({ ...p, lat: t }))}
+                  placeholder="37.7749"
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <TextField
+                  label="Longitude (optional)"
+                  value={values.lng ?? ""}
+                  onChangeText={(t) => setValues((p) => ({ ...p, lng: t }))}
+                  placeholder="-122.4194"
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: -6 }}>
+              If both latitude and longitude are set they take precedence over the address.
+            </Text>
+            <TextField
+              label="Display label (optional)"
+              value={values.label ?? ""}
+              onChangeText={(t) => setValues((p) => ({ ...p, label: t }))}
+            />
+            <TextField
+              label="Zoom"
+              value={values.zoom ?? "15"}
+              onChangeText={(t) => setValues((p) => ({ ...p, zoom: t }))}
+              keyboardType="numeric"
+            />
+            <View style={styles.row}>
+              <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                Show "Directions" button
+              </Text>
+              <Switch
+                value={mapShowDirections}
+                onValueChange={setMapShowDirections}
+                trackColor={{ true: colors.primary }}
+              />
             </View>
           </View>
         ) : null}
@@ -2556,6 +2660,22 @@ export default function EditBlockScreen() {
           }
         }}
       />
+
+      <MapPickerModal
+        visible={mapPickerOpen}
+        initialLat={values.lat ? parseFloat(values.lat) : null}
+        initialLng={values.lng ? parseFloat(values.lng) : null}
+        onClose={() => setMapPickerOpen(false)}
+        onPick={(p: PickedPoint) => {
+          setValues((prev) => ({
+            ...prev,
+            lat: String(p.lat),
+            lng: String(p.lng),
+            address: p.address && !prev.address?.trim() ? p.address : prev.address,
+          }));
+          setMapPickerOpen(false);
+        }}
+      />
     </View>
   );
 }
@@ -2571,6 +2691,15 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
   },
+  mapPickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+  },
+  mapPickerBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
   rowLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
   choiceLabel: {
     fontFamily: "SpaceGrotesk_500Medium",

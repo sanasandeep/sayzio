@@ -362,6 +362,25 @@ class BillingController extends Controller
         ]);
     }
 
+    /**
+     * Signed, session-less variant of {@see creditNotePdf} (mobile parity —
+     * the Sanctum API has no session to authorize the web route's
+     * `workspace.owner` middleware). Laravel's signed-URL HMAC over the
+     * credit note's id is the only authorization, matching
+     * {@see \App\Modules\User\Controllers\ClientInvoiceController::pdf()}.
+     */
+    public function creditNotePdfSigned(Request $request, CreditNote $creditNote)
+    {
+        if (!$request->hasValidSignature()) abort(401, 'Download link expired.');
+
+        $pdf = CreditNoteService::renderPdf($creditNote);
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . str_replace('/', '_', $creditNote->number) . '.pdf"',
+            'Cache-Control' => 'private, max-age=0, no-store',
+        ]);
+    }
+
     protected function activeSubscription($user): ?Subscription
     {
         return Subscription::where('user_id', $user->id)
