@@ -79,6 +79,11 @@ class CreatorProfilePublicController extends Controller
 
         $sectionsVisible = $creator->profileSectionVisibility();
 
+        // Task #3666 — a few upcoming public events for the profile's
+        // "Events" section, capped at 3 with a "See all events" link out
+        // to the standalone /@{handle}/events page.
+        $upcomingEvents = static::upcomingEventsQuery($creator)->limit(3)->get();
+
         $feed = $this->buildFeedViewData($creator, $viewer, $isOwner);
 
         $primaryBiolink = Link::query()
@@ -100,7 +105,76 @@ class CreatorProfilePublicController extends Controller
             'viewer'          => $viewer,
             'isOwner'         => $isOwner,
             'relatedCreators' => $relatedCreators,
+            'upcomingEvents'  => $upcomingEvents,
         ]));
+    }
+
+    /**
+     * Public /@{handle}/events — a creator's public, active, upcoming
+     * ics-type events, styled like the /events directory but scoped to
+     * one host and without its search/filter controls (Task #3666).
+     * Mirrors show()'s visibility gates (published/age/blocked/country).
+     */
+    public function events(string $handle, Request $request)
+    {
+        $creator = $this->resolveCreator($handle);
+        if (!$creator) abort(404);
+
+        $viewer = ViewerSession::user() ?? auth()->user();
+        $isOwner = $viewer && (int) $viewer->id === (int) $creator->id;
+        if (!$isOwner && !$creator->profile_published) {
+            abort(404);
+        }
+
+        if (!$isOwner && $creator->isAdultProfile() && !AgeGate::passed($request, $viewer)) {
+            return response()->view('public.age-gate', [
+                'creator' => $creator,
+            ], 200);
+        }
+
+        if (!$isOwner && $viewer && in_array((int) $creator->id, UserBlock::blockedIdsFor($viewer->id), true)) {
+            abort(404);
+        }
+
+        if (!$isOwner) {
+            $decision = app(CountryGate::class)->decide($creator, null, $request->ip());
+            if (empty($decision['allowed'])) {
+                return response()->view('public.region-blocked', [
+                    'creator' => $creator,
+                    'reason'  => $decision['reason'] ?? 'The creator has restricted this content in your region.',
+                ], 451);
+            }
+        }
+
+        $events = static::upcomingEventsQuery($creator)->paginate(24)->withQueryString();
+
+        return view('common.creator-events', [
+            'creator' => $creator,
+            'events'  => $events,
+        ]);
+    }
+
+    /**
+     * Shared query for a creator's public, active, upcoming ics events —
+     * used by both the /@{handle}/events listing and the profile's
+     * "Events" preview section. Mirrors EventsDirectoryController's base
+     * filters (type/active/visibility/upcoming/hide_from_directory)
+     * scoped to one host, ordered soonest-first.
+     */
+    public static function upcomingEventsQuery(User $creator)
+    {
+        return Link::query()
+            ->where('type', 'ics')
+            ->where('user_id', $creator->id)
+            ->where('is_active', true)
+            ->where('visibility', 'public')
+            ->with(['icsData', 'eventTicketTiers' => fn ($t) => $t->where('is_active', true)])
+            ->whereHas('icsData', fn ($w) => $w->where('start_date', '>=', now()->subDay()))
+            ->where(fn ($w) => $w->whereRaw("(settings->>'hide_from_directory') IS DISTINCT FROM 'true'"))
+            ->orderBy(
+                \App\Modules\User\Models\IcsData::select('start_date')
+                    ->whereColumn('ics_data.link_id', 'links.id')->limit(1)
+            );
     }
 
     /**

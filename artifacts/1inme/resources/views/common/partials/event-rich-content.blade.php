@@ -71,7 +71,16 @@
 
 @if(!empty($sameHostEvents) && $sameHostEvents->isNotEmpty())
     <div class="mb-3">
-        <div class="fw-semibold small mb-2">More from this host</div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="fw-semibold small">More from this host</div>
+            @if($link->user && $link->user->handle)
+                {{-- Task #3666 — links out to the host's full public events
+                     listing, not just this 4-item preview. --}}
+                <a href="{{ route('creator-profile.events', $link->user->handle) }}" class="small text-decoration-none">
+                    See all events by this host <i class="fas fa-arrow-right"></i>
+                </a>
+            @endif
+        </div>
         <div class="row g-2">
             @foreach($sameHostEvents as $rec)
                 <div class="col-6">

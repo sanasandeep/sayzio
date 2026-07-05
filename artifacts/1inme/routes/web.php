@@ -517,6 +517,13 @@ Route::get('/@{handle}/og.png', [\App\Modules\Common\Controllers\CreatorOgImageC
     ->where('handle', '[A-Za-z0-9_]+')
     ->name('creator-profile.og');
 
+// Task #3666 — a creator's public events listing at /@{handle}/events.
+// Two-segment path, so it never collides with the single-segment
+// `/{alias}` catch-all below.
+Route::get('/@{handle}/events', [\App\Modules\Common\Controllers\CreatorProfilePublicController::class, 'events'])
+    ->where('handle', '[A-Za-z0-9_]+')
+    ->name('creator-profile.events');
+
 // Task #1211 — public DMCA / IP takedown intake.
 Route::get ('/legal/dmca', [\App\Modules\Common\Controllers\DmcaController::class, 'show'])->name('legal.dmca.show');
 Route::post('/legal/dmca', [\App\Modules\Common\Controllers\DmcaController::class, 'store'])->middleware('throttle:10,60')->name('legal.dmca.store');

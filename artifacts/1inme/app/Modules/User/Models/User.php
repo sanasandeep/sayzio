@@ -234,6 +234,7 @@ class User extends Authenticatable
         'socials' => true,
         'biolink' => true,
         'contact' => true,
+        'events'  => true,
     ];
 
     public function profileSectionVisibility(): array

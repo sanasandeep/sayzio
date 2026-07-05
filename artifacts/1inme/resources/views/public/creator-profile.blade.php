@@ -263,6 +263,37 @@
         </section>
     @endif
 
+    {{-- ── Events (Task #3666) — a few upcoming public events, gated by
+         the same $sectionsVisible pattern and only shown when the
+         creator actually has upcoming events. ── --}}
+    @if(($sectionsVisible['events'] ?? true) && $upcomingEvents->isNotEmpty())
+        <section class="cp-card mt-3 p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Upcoming events</h2>
+                <a href="{{ route('creator-profile.events', $creator->handle) }}" class="text-xs font-semibold text-blue-600 hover:underline">See all events →</a>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                @foreach($upcomingEvents as $event)
+                    @php $eventIcs = $event->icsData; @endphp
+                    <a href="{{ url('/' . $event->alias) }}" class="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition">
+                        @if($eventIcs && $eventIcs->start_date)
+                            <div class="shrink-0 w-11 h-11 rounded-lg bg-slate-50 border border-slate-200 text-center leading-none flex flex-col items-center justify-center">
+                                <div class="text-[9px] font-bold uppercase text-blue-600">{{ $eventIcs->start_date->format('M') }}</div>
+                                <div class="text-sm font-extrabold text-slate-900">{{ $eventIcs->start_date->format('j') }}</div>
+                            </div>
+                        @endif
+                        <div class="min-w-0">
+                            <div class="text-xs font-semibold text-slate-900 truncate">{{ $event->title }}</div>
+                            @if($eventIcs && $eventIcs->start_date)
+                                <div class="text-[11px] text-slate-500 truncate">{{ $eventIcs->start_date->format('D, M j · g:i A') }}</div>
+                            @endif
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     {{-- ── Posts feed ─────────────────────────────────────── --}}
     @if(($sectionsVisible['posts'] ?? true))
         <section class="mt-4">
