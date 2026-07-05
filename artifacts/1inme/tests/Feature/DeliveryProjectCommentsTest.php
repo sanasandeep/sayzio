@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Common\Services\DeliveryProjectNotifier;
 use App\Modules\Common\Services\EmailTemplateRegistry;
+use App\Modules\Common\Services\ExpoPushNotifier;
 use App\Modules\User\Models\ClientPortal;
 use App\Modules\User\Models\ClientPortalLink;
 use App\Modules\User\Models\ClientPortalShare;
@@ -237,6 +238,48 @@ class DeliveryProjectCommentsTest extends TestCase
             'email_key' => 'delivery_project.client_comment',
             'recipient' => $muted->email,
         ]);
+    }
+
+    public function test_comment_fanout_respects_each_members_push_preference(): void
+    {
+        $owner = $this->makeUser('owner');
+        $ws    = $owner->ownedWorkspaces()->first();
+
+        // Two teammates: one keeps push on, one muted push (and everything).
+        $pushOn = $this->makeUser('pon');  // wants push
+        $muted  = $this->makeUser('pmut'); // muted the type entirely (push off)
+        $this->memberOf($ws, $pushOn, 'editor');
+        $this->memberOf($ws, $muted, 'editor');
+
+        $this->setPref($pushOn, 'delivery_project.comment', ['in_app' => true, 'email' => false, 'push' => true]);
+        $this->setPref($muted, 'delivery_project.comment', ['in_app' => false, 'email' => false, 'push' => false]);
+
+        // Also silence the owner's push so this test only asserts the members.
+        $this->setPref($owner, 'delivery_project.comment', ['in_app' => true, 'email' => false, 'push' => false]);
+
+        // Capture which user ids actually reach the Expo device-send layer.
+        $pushed = [];
+        $expo = Mockery::mock(ExpoPushNotifier::class);
+        $expo->shouldReceive('sendToUser')
+            ->andReturnUsing(function (int $userId) use (&$pushed) {
+                $pushed[] = $userId;
+                return 1;
+            });
+        $this->app->instance(ExpoPushNotifier::class, $expo);
+
+        $project = $this->makeProject($ws, ['title' => 'Push pref delivery']);
+        $link    = $this->portalLinkFor($ws, $project);
+
+        $this->withSession(['portal_link_id' => $link->id])
+            ->post(route('portal.delivery-project.comment', $project->id), ['body' => 'Any update on my order?'])
+            ->assertRedirect();
+
+        // A push-enabled member reaches the device-send layer …
+        $this->assertContains($pushOn->id, $pushed);
+        // … while the fully-muted member never gets a push.
+        $this->assertNotContains($muted->id, $pushed);
+        // The push-muted owner is likewise skipped.
+        $this->assertNotContains($owner->id, $pushed);
     }
 
     public function test_portal_comment_requires_a_share(): void
