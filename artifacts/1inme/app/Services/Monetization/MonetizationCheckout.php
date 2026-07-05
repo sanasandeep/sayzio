@@ -223,6 +223,168 @@ class MonetizationCheckout
     }
 
     /**
+     * Buy ticket(s) to a ticketed event (Task #3589). Mirrors startTip:
+     * free tiers (price 0) issue the ticket immediately with no provider
+     * hop; paid tiers route through the event owner's payout connection.
+     */
+    public function startEventTicket(
+        User $fan,
+        \App\Modules\User\Models\EventTicketTier $tier,
+        int $quantity,
+        array $attendee,
+        ?string $returnUrl = null,
+    ): array {
+        $quantity = max(1, min(20, $quantity));
+        if (!$tier->isOnSale()) abort(422, 'Tickets are not currently on sale for this tier.');
+        if ($tier->capacity !== null && $tier->remainingCapacity() < $quantity) {
+            abort(422, 'Not enough tickets remaining in this tier.');
+        }
+
+        $link = $tier->link;
+        $owner = $link?->user;
+        if (!$owner) abort(404, 'Event not found.');
+
+        $totalCents = (int) $tier->price_cents * $quantity;
+
+        if ($totalCents <= 0) {
+            $ticket = $this->issueEventTicket($tier, $fan, $attendee, $quantity, 0, 'free', null, null);
+            return [
+                'url'    => route('redirect.event.ticket', ['alias' => $link->alias, 'code' => $ticket->code]),
+                'ticket' => $ticket,
+            ];
+        }
+
+        $connection = $owner->defaultPaymentConnection()
+            ?: new CreatorPaymentConnection(['provider' => 'stripe', 'user_id' => $owner->id]);
+
+        $token = Str::random(32);
+        cache()->put($this->cacheKey('event', $tier->id, $token), [
+            'tier_id'   => $tier->id,
+            'link_id'   => $link->id,
+            'fan_id'    => $fan->id,
+            'quantity'  => $quantity,
+            'amount'    => $totalCents,
+            'currency'  => $tier->currency,
+            'attendee'  => $attendee,
+            'return_url' => $returnUrl,
+        ], now()->addMinutes(30));
+
+        $reference = 'event_ticket_' . $tier->id . '_' . $fan->id;
+        $url = PayoutProviderRegistry::adapter($connection->provider)->createOneTimeCheckout($connection, [
+            'kind'       => 'event_ticket',
+            'reference'  => $reference,
+            'token'      => $token,
+            'amount'     => $totalCents,
+            'currency'   => $tier->currency,
+            'fan_email'  => $fan->email,
+            'return_url' => route('checkout.return', ['kind' => 'event_ticket', 'reference' => $reference, 'token' => $token]),
+        ]);
+
+        return ['url' => $url];
+    }
+
+    protected function confirmEventTicket(array $p): array
+    {
+        $tier = \App\Modules\User\Models\EventTicketTier::find($p['tier_id']);
+        $fan  = User::find($p['fan_id']);
+        if (!$tier || !$fan) return ['url' => '/'];
+
+        $ticket = $this->issueEventTicket(
+            $tier, $fan, $p['attendee'] ?? [], (int) $p['quantity'],
+            (int) $p['amount'], 'preview', 'preview_event_' . Str::random(10), $p,
+        );
+
+        return [
+            'url'     => $p['return_url']
+                ?? route('redirect.event.ticket', ['alias' => $tier->link?->alias, 'code' => $ticket->code]),
+            'message' => 'You\'re in! Your ticket is ready.',
+        ];
+    }
+
+    /**
+     * Shared ticket-issuing path for both free and paid tiers. Creates the
+     * ticket row, bumps the tier's sold_count, logs the ledger row (paid
+     * only), and emails the buyer their QR ticket.
+     */
+    protected function issueEventTicket(
+        \App\Modules\User\Models\EventTicketTier $tier,
+        User $fan,
+        array $attendee,
+        int $quantity,
+        int $amountCents,
+        string $gateway,
+        ?string $gatewayChargeId,
+        ?array $payload,
+    ): \App\Modules\User\Models\EventTicket {
+        $ticket = \App\Modules\User\Models\EventTicket::create([
+            'tier_id'            => $tier->id,
+            'link_id'            => $tier->link_id,
+            'buyer_user_id'      => $fan->id,
+            'attendee_name'      => $attendee['name'] ?? $fan->name,
+            'attendee_email'     => $attendee['email'] ?? $fan->email,
+            'attendee_phone'     => $attendee['phone'] ?? null,
+            'quantity'           => $quantity,
+            'price_cents'        => $amountCents,
+            'currency'           => $tier->currency,
+            'code'               => \App\Modules\User\Models\EventTicket::generateCode(),
+            'status'             => \App\Modules\User\Models\EventTicket::STATUS_VALID,
+            'purchase_reference' => $payload['token'] ?? null,
+            'gateway'            => $gateway,
+            'gateway_charge_id'  => $gatewayChargeId,
+        ]);
+
+        $tier->increment('sold_count', $quantity);
+
+        $creator = $tier->link?->user;
+        if ($creator && $amountCents > 0) {
+            $this->logEvent($creator, $fan, CreatorPaymentEvent::SOURCE_EVENT, CreatorPaymentEvent::TYPE_TICKET_PURCHASED, $ticket, $amountCents, $tier->currency);
+        }
+        if ($creator) {
+            $this->notifyCreatorOfTicketSale($creator, $fan, $ticket, $tier);
+        }
+        $this->emailTicketConfirmation($ticket, $tier);
+
+        return $ticket;
+    }
+
+    protected function notifyCreatorOfTicketSale(User $creator, User $fan, \App\Modules\User\Models\EventTicket $ticket, \App\Modules\User\Models\EventTicketTier $tier): void
+    {
+        \App\Modules\User\Models\UserNotification::create([
+            'user_id'    => $creator->id,
+            'type'       => 'event.ticket_sold',
+            'data'       => [
+                'fan_id'   => $fan->id,
+                'fan_name' => $fan->name,
+                'tier_name' => $tier->name,
+                'quantity' => $ticket->quantity,
+                'message'  => $fan->name . ' got ' . $ticket->quantity . ' × ' . $tier->name . ' ticket(s).',
+                'link'     => route('user.links.ics.tickets', $tier->link_id),
+            ],
+            'created_at' => now(),
+        ]);
+        $this->emailCreatorBestEffort($creator, 'New ticket sale on Sayzio', $fan->name . ' just got ' . $ticket->quantity . ' × ' . $tier->name . ' ticket(s).');
+        if ($ticket->price_cents > 0) {
+            $this->whatsappPaymentAlert($creator, '🎟️ New ticket sale on Sayzio: ' . $fan->name . ' bought ' . $ticket->quantity . ' × ' . $tier->name . '.');
+        }
+    }
+
+    protected function emailTicketConfirmation(\App\Modules\User\Models\EventTicket $ticket, \App\Modules\User\Models\EventTicketTier $tier): void
+    {
+        $email = $ticket->attendee_email;
+        if (!$email) return;
+        try {
+            \App\Modules\Common\Services\Emailer::send('ticketing.confirmation', $email, [
+                'event_name' => $tier->link?->title,
+                'tier_name'  => $tier->name,
+                'quantity'   => $ticket->quantity,
+                'ticket_url' => route('redirect.event.ticket', ['alias' => $tier->link?->alias, 'code' => $ticket->code]),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('ticketing.confirmation_email.failed', ['ticket' => $ticket->id, 'err' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Reconcile a successful return-from-provider hand-off. The route
      * controller calls this with the kind + token. Returns a redirect
      * URL the user should land on (or null on failure).
@@ -242,6 +404,7 @@ class MonetizationCheckout
             'dm_att'       => $this->confirmDmAttachmentUnlock($payload),
             'product'      => $this->confirmProductOrder($payload),
             'form'         => $this->confirmFormPayment($payload),
+            'event_ticket' => $this->confirmEventTicket($payload),
             default        => null,
         };
     }
@@ -516,8 +679,50 @@ class MonetizationCheckout
             CreatorPaymentEvent::SOURCE_SUB     => $this->refundSubscription($referenceId),
             CreatorPaymentEvent::SOURCE_PRODUCT => $this->refundProductOrder($referenceId),
             CreatorPaymentEvent::SOURCE_FORM    => $this->refundFormSubmission($referenceId),
+            CreatorPaymentEvent::SOURCE_EVENT   => $this->refundEventTicket($referenceId),
             default => false,
         };
+    }
+
+    /**
+     * Refund + cancel an event ticket (Task #3589). Reverses the gateway
+     * charge (best-effort), flips the ticket to `refunded` (frees its seat
+     * back into the tier's remaining capacity), and writes a negative
+     * ledger row. Idempotent: a second call on an already-refunded or
+     * already-checked-in ticket is a no-op.
+     */
+    public function refundEventTicket(int $id): bool
+    {
+        $ticket = \App\Modules\User\Models\EventTicket::find($id);
+        if (!$ticket || in_array($ticket->status, [
+            \App\Modules\User\Models\EventTicket::STATUS_REFUNDED,
+            \App\Modules\User\Models\EventTicket::STATUS_CANCELLED,
+        ], true)) {
+            return false;
+        }
+
+        try {
+            if ($ticket->gateway && $ticket->gateway_charge_id && $ticket->price_cents > 0) {
+                PayoutProviderRegistry::adapter($ticket->gateway)->refundCharge($ticket->gateway_charge_id, $ticket->price_cents);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('refund.event_ticket.adapter_failed', ['ticket' => $id, 'err' => $e->getMessage()]);
+        }
+
+        $ticket->status = \App\Modules\User\Models\EventTicket::STATUS_REFUNDED;
+        $ticket->save();
+
+        if ($ticket->tier) {
+            $ticket->tier->decrement('sold_count', min($ticket->quantity, $ticket->tier->sold_count));
+        }
+
+        $creator = $ticket->link?->user;
+        $buyer   = $ticket->buyer;
+        if ($creator && $ticket->price_cents > 0) {
+            $this->logEvent($creator, $buyer, CreatorPaymentEvent::SOURCE_EVENT, CreatorPaymentEvent::TYPE_TICKET_REFUNDED, $ticket, -1 * $ticket->price_cents, $ticket->currency);
+        }
+
+        return true;
     }
 
     /**
@@ -1138,6 +1343,10 @@ class MonetizationCheckout
         if ($kind === 'form' && count($parts) === 2) {
             // form_{submissionId}
             return $this->cacheKey('form', (int) $parts[1], $token);
+        }
+        if ($kind === 'event_ticket' && count($parts) >= 3) {
+            // event_ticket_{tierId}_{fanId}
+            return $this->cacheKey('event', (int) $parts[2], $token);
         }
         return null;
     }

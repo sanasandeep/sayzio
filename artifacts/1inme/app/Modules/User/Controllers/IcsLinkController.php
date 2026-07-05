@@ -92,6 +92,23 @@ class IcsLinkController extends Controller
             'calendar_sync_mode'   => $this->parseCalendarSyncMode($request),
         ]);
 
+        // Ticketing (Task #3589): free RSVP behavior is completely
+        // unaffected unless the owner explicitly turns ticketing on for
+        // this event. Tiers themselves are managed separately via
+        // EventTicketTierController; this only flips the display mode
+        // and directory visibility.
+        if ($request->has('ticketing_enabled')) {
+            $newSettings['ticketing_enabled'] = $request->boolean('ticketing_enabled');
+        }
+        if ($request->has('hide_from_directory')) {
+            $newSettings['hide_from_directory'] = $request->boolean('hide_from_directory');
+        }
+        if ($request->filled('event_category')) {
+            $newSettings['event_category'] = mb_substr(trim((string) $request->input('event_category')), 0, 100);
+        } elseif ($request->has('event_category')) {
+            unset($newSettings['event_category']);
+        }
+
         // Calendar account binding (visible to the workspace owner only — members
         // see their owner's accounts in the dropdown but writes still gate by ownership).
         if ($request->has('push_calendar_account_id')) {
@@ -203,6 +220,9 @@ class IcsLinkController extends Controller
             'slots.*.label'        => 'nullable|string|max:255',
             'slots.*.location'     => 'nullable|string|max:500',
             'visibility'           => 'nullable|in:public,registered,followers,subscribers',
+            'latitude'             => 'nullable|numeric|between:-90,90',
+            'longitude'            => 'nullable|numeric|between:-180,180',
+            'event_category'       => 'nullable|string|max:100',
         ] + LinkController::protectionSchedulingRules());
     }
 
@@ -252,6 +272,8 @@ class IcsLinkController extends Controller
             'slots'               => $slots,
             // Keep extra_schedules in sync for back-compat readers.
             'extra_schedules'     => array_slice($slots, 1),
+            'latitude'            => $v['latitude'] ?? null,
+            'longitude'           => $v['longitude'] ?? null,
         ];
     }
 

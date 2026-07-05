@@ -18,6 +18,7 @@ class IcsData extends Model
         'extra_schedules',
         'slots',
         'monthly_mode', 'monthly_weekday_ordinal', 'yearly_month',
+        'latitude', 'longitude',
     ];
 
     protected function casts(): array
@@ -30,6 +31,8 @@ class IcsData extends Model
             'extra_schedules' => 'array',
             'slots' => 'array',
             'yearly_month' => 'integer',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 

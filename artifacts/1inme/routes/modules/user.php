@@ -781,6 +781,15 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links-ics', [IcsLinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links', CheckPlanLimit::class . ':events'])->name('links.ics.store');
         Route::get('links-ics/{link}/edit', [IcsLinkController::class, 'edit'])->middleware('workspace.can:links.edit')->name('links.ics.edit');
         Route::put('links-ics/{link}', [IcsLinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.ics.update');
+
+        // ===== Event ticketing (Task #3589): tier CRUD + sales dashboard + door check-in.
+        Route::get('links-ics/{link}/tickets', [\App\Modules\User\Controllers\EventTicketTierController::class, 'index'])->middleware('workspace.can:links.view')->name('links.ics.tickets');
+        Route::post('links-ics/{link}/tiers', [\App\Modules\User\Controllers\EventTicketTierController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.ics.tiers.store');
+        Route::put('links-ics/{link}/tiers/{tier}', [\App\Modules\User\Controllers\EventTicketTierController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.ics.tiers.update');
+        Route::delete('links-ics/{link}/tiers/{tier}', [\App\Modules\User\Controllers\EventTicketTierController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('links.ics.tiers.destroy');
+        Route::get('links-ics/{link}/checkin', [\App\Modules\User\Controllers\EventCheckinController::class, 'scanner'])->middleware('workspace.can:links.view')->name('links.ics.checkin');
+        Route::post('links-ics/{link}/checkin/scan', [\App\Modules\User\Controllers\EventCheckinController::class, 'scan'])->middleware('workspace.can:links.edit')->name('links.ics.checkin.scan');
+        Route::get('events/{link}/checkin/lookup/{code}', [\App\Modules\User\Controllers\EventCheckinController::class, 'lookup'])->name('events.checkin.lookup');
         Route::get('links-vcf/create', [VcfLinkController::class, 'create'])->middleware('workspace.can:links.create')->name('links.vcf.create');
         Route::post('links-vcf', [VcfLinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.vcf.store');
         Route::get('links-vcf/{link}/edit', [VcfLinkController::class, 'edit'])->middleware('workspace.can:links.edit')->name('links.vcf.edit');

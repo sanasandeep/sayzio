@@ -440,7 +440,9 @@ class RedirectController extends Controller
                 fn ($r) => $smartCookie && $r->withCookie($smartCookie)
             ),
             'file' => $this->handleFileDownload($link),
-            'ics' => $this->handleIcsDownload($link),
+            'ics' => !empty(($link->settings ?? [])['ticketing_enabled'])
+                ? $this->handleEventTicketingPage($request, $link)
+                : $this->handleIcsDownload($link),
             'vcf' => $this->handleVcfDownload($link),
             'reviews' => $this->handleReviewsPage($request, $link),
             'resume' => $this->handleResumePage($request, $link),
@@ -1017,6 +1019,24 @@ class RedirectController extends Controller
         $link->setAttribute('_abActiveExperiment', $exp);
         $link->setAttribute('_abAssignedVariant', $variant);
         $link->setAttribute('_abVariantBlocks', $blocks);
+    }
+
+    /**
+     * Public event page for `ics` links with ticketing enabled (Task
+     * #3589). Shows tiers + a buy/RSVP form instead of the plain .ics
+     * download — the raw calendar file is still reachable via the ?ics=1
+     * query so calendar apps / "Add to calendar" links keep working.
+     */
+    protected function handleEventTicketingPage(Request $request, Link $link)
+    {
+        if ($request->boolean('ics')) {
+            return $this->handleIcsDownload($link);
+        }
+
+        $link->load('icsData');
+        $tiers = $link->eventTicketTiers()->where('is_active', true)->get();
+
+        return response()->view('common.event-page', compact('link', 'tiers'));
     }
 
     protected function handleIcsDownload(Link $link)

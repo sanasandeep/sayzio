@@ -312,6 +312,25 @@ class EmailTemplateRegistry
             ],
 
             // ----------------------------------------------------------------
+            // Events & ticketing
+            // ----------------------------------------------------------------
+            'ticketing.confirmation' => [
+                'category' => 'events',
+                'label' => 'Ticket purchase confirmation',
+                'description' => 'Sent after a successful event ticket purchase, with a link to the QR ticket.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => "Your ticket for {{event_name}}",
+                'body' => "You're all set for {{event_name}}!\n\nTicket: {{tier_name}} × {{quantity}}\n\nShow this QR code at the door:\n{{ticket_url}}",
+                'variables' => [
+                    'event_name' => ['label' => 'Event name', 'sample' => 'Summer Music Fest'],
+                    'tier_name' => ['label' => 'Ticket tier', 'sample' => 'General Admission'],
+                    'quantity' => ['label' => 'Quantity purchased', 'sample' => '2'],
+                    'ticket_url' => ['label' => 'QR ticket link', 'sample' => 'https://sayzio.app/summerfest/tickets/ABC123'],
+                ],
+            ],
+
+            // ----------------------------------------------------------------
             // Developer API
             // ----------------------------------------------------------------
             'api.usage_nearing' => [

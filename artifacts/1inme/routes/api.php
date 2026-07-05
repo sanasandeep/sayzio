@@ -118,6 +118,11 @@ Route::prefix('v1')->group(function () {
         Route::get('/reviews/{alias}/summary',     [\App\Modules\Api\Controllers\ReviewApiController::class, 'summary']);
         Route::get('/discovery/creators',          [DiscoveryController::class, 'creators']);
         Route::get('/discovery/creators/{handle}', [DiscoveryController::class, 'creator']);
+
+        // Public events directory + event detail + QR ticket lookup (Task #3589).
+        Route::get('/events',                     [\App\Modules\Api\Controllers\EventTicketApiController::class, 'directory']);
+        Route::get('/events/{alias}',              [\App\Modules\Api\Controllers\EventTicketApiController::class, 'show']);
+        Route::get('/events/{alias}/tickets/{code}', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ticket']);
         Route::get('/feed',                        [FeedController::class, 'index']);
         Route::get('/creators/{handle}/feed',      [FeedController::class, 'byCreator']);
 
@@ -168,6 +173,18 @@ Route::prefix('v1')->group(function () {
         Route::get ('/store/orders/{order}',   [\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'order'])->whereNumber('order');
         Route::get ('/me/creator/orders',                [\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'ownerOrders']);
         Route::post('/me/creator/orders/{order}/fulfill',[\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'fulfillOrder'])->whereNumber('order');
+
+        // Paid event ticketing (Task #3589) — buy is auth-required on mobile
+        // (no guest checkout on the app), tier CRUD + door check-in are
+        // owner-only. Public directory/show/ticket lookup are registered
+        // above outside this authed group.
+        Route::post('/events/{alias}/buy',                 [\App\Modules\Api\Controllers\EventTicketApiController::class, 'buy'])->middleware('throttle:30,1');
+        Route::get ('/me/event-tickets',                   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'myTickets']);
+        Route::get ('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ownerTiers'])->whereNumber('link');
+        Route::post('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'storeTier'])->whereNumber('link');
+        Route::patch('/links/{link}/event-tiers/{tier}',    [\App\Modules\Api\Controllers\EventTicketApiController::class, 'updateTier'])->whereNumber('link')->whereNumber('tier');
+        Route::delete('/links/{link}/event-tiers/{tier}',   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'destroyTier'])->whereNumber('link')->whereNumber('tier');
+        Route::post('/links/{link}/event-checkin',          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'checkin'])->whereNumber('link')->middleware('throttle:120,1');
     });
 
     Route::post('/biolinks/{alias}/subscribe', [BiolinkController::class, 'subscribe'])

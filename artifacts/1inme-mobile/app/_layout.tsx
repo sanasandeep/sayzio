@@ -176,6 +176,15 @@ function RootLayoutNav() {
       <Stack.Screen name="calendars/[id]" options={{ title: "Calendar" }} />
       <Stack.Screen name="calendars/edit" options={{ title: "Calendar" }} />
       <Stack.Screen name="calendars/event" options={{ title: "Event" }} />
+      <Stack.Screen name="events/index" options={{ title: "Events near you" }} />
+      <Stack.Screen name="events/[alias]" options={{ title: "Event" }} />
+      <Stack.Screen name="events/my-tickets" options={{ title: "My tickets" }} />
+      <Stack.Screen name="events/ticket/[alias]/[code]" options={{ title: "Ticket" }} />
+      <Stack.Screen name="events/tiers/[linkId]" options={{ title: "Ticketing" }} />
+      <Stack.Screen
+        name="events/checkin/[linkId]"
+        options={{ title: "Door check-in", headerShown: false }}
+      />
       <Stack.Screen name="whatsapp-verify" options={{ title: "Verify WhatsApp" }} />
       <Stack.Screen name="identifiers" options={{ title: "Linked emails & phones" }} />
       <Stack.Screen name="coming-soon" options={{ title: "Coming soon" }} />

@@ -444,6 +444,13 @@ export default function EditLinkScreen() {
               }
             />
           ) : null}
+          {meta.kind === "calendar" ? (
+            <ActionTile
+              icon="credit-card"
+              label="Ticketing"
+              onPress={() => router.push(`/events/tiers/${id}` as any)}
+            />
+          ) : null}
           {meta.kind === "slides" ? (
             <ActionTile
               icon="edit-3"

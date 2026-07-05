@@ -107,6 +107,16 @@ protected $fillable = [
         return $this->hasOne(IcsData::class);
     }
 
+    public function eventTicketTiers()
+    {
+        return $this->hasMany(EventTicketTier::class)->orderBy('sort_order');
+    }
+
+    public function eventTickets()
+    {
+        return $this->hasMany(EventTicket::class);
+    }
+
     public function vcfData()
     {
         return $this->hasOne(VcfData::class);

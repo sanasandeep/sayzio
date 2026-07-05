@@ -107,11 +107,15 @@ const TOOL_PAGES: {
     | "/leaderboard"
     | "/vault-audit"
     | "/orders"
-    | "/links/conversational";
+    | "/links/conversational"
+    | "/events"
+    | "/events/my-tickets";
   label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
   { href: "/orders", label: "Orders", icon: "shopping-bag" },
+  { href: "/events", label: "Events near you", icon: "map-pin" },
+  { href: "/events/my-tickets", label: "My tickets", icon: "credit-card" },
   { href: "/posts", label: "Posts", icon: "message-square" },
   { href: "/forms", label: "Forms", icon: "file-text" },
   { href: "/cloud-files", label: "Cloud files", icon: "cloud" },

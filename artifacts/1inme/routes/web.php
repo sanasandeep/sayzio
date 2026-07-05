@@ -98,6 +98,9 @@ Route::get('/.well-known/assetlinks.json',
 // ---- Public Creators directory ----
 Route::get('/creators', [\App\Modules\Common\Controllers\CreatorsController::class, 'index'])->name('creators.index');
 
+// ---- Public Events directory (Task #3589) ----
+Route::get('/events', [\App\Modules\Common\Controllers\EventsDirectoryController::class, 'index'])->name('events.index');
+
 // ── Visitor 18+ age gate (Task #1208) ─────────────────────────────
 // Posted from the interstitial shown on /@handle when the creator
 // has the adult flag enabled. Stores a per-device cookie for 30 days.
@@ -694,3 +697,10 @@ Route::post('/{alias}/rsvp', [RedirectController::class, 'rsvpSubmit'])->name('r
 Route::get ('/{alias}/rsvp/manage/{token}',  [\App\Modules\Common\Controllers\RsvpManageController::class, 'show'])->name('redirect.rsvp.manage')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
 Route::post('/{alias}/rsvp/manage/{token}',  [\App\Modules\Common\Controllers\RsvpManageController::class, 'update'])->name('redirect.rsvp.manage.update')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
 Route::post('/{alias}/rsvp/manage/{token}/cancel', [\App\Modules\Common\Controllers\RsvpManageController::class, 'cancel'])->name('redirect.rsvp.manage.cancel')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
+
+// ---- Event ticketing (Task #3589): buy + view QR ticket. Multi-segment
+// paths so they never collide with the single-segment /{alias} catch-all. ----
+Route::post('/{alias}/tickets/buy', [\App\Modules\Common\Controllers\EventTicketPublicController::class, 'buy'])
+    ->name('redirect.event.buy')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
+Route::get('/{alias}/tickets/{code}', [\App\Modules\Common\Controllers\EventTicketPublicController::class, 'viewTicket'])
+    ->name('redirect.event.ticket')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->where('code', '[A-Za-z0-9\-]+');
