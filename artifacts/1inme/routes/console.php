@@ -93,6 +93,15 @@ Schedule::command('connected-apps:pull')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Weekly: recurring mobile/docs parity audit. The hard gate runs pre-merge (CI
+// + Replit validation via `parity:check-mobile-docs`); this scheduled run is a
+// belt-and-braces catch that surfaces drift in the logs even if a web block/
+// link type ever reaches production without going through the guard.
+Schedule::command('parity:check-mobile-docs')
+    ->weekly()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every 5 minutes: deliver due dialer call-back reminders (in-app + push),
 // once each. The command stamps callback_notified_at so reruns are idempotent.
 Schedule::command('dialer:send-callback-reminders')

@@ -296,7 +296,55 @@ jobs:
       - name: Replay migrations from an empty schema and check ordering
         run: composer check:migration-ordering
 
-  # Passthrough companion: reports the SAME check names as the four real jobs
+  mobile-docs-parity:
+    name: Mobile/docs parity guard (no database)
+    needs: changes
+    if: needs.changes.outputs.onein == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    # Fail when a newly-shipped web block/link type has no mobile editor entry
+    # (artifacts/1inme-mobile/lib/api/blocks.ts → BLOCK_KINDS) or docs mention
+    # triaged in docs/mobile-docs-parity.json — so mobile/docs drift is caught
+    # at the moment a new type ships, not by a later manual audit. Reads static
+    # PHP constants plus a few files, so it needs no database and also runs as
+    # the Replit pre-merge validation step against the shared RDS.
+
+    defaults:
+      run:
+        working-directory: artifacts/1inme
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo, pdo_pgsql, pgsql, bcmath, gd, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: artifacts/1inme/vendor
+          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('artifacts/1inme/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-php8.3-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare .env for CI
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Check mobile/docs parity against web block & link types
+        run: composer check:mobile-docs-parity
+
+  # Passthrough companion: reports the SAME check names as the five real jobs
   # above as green when the PR touches nothing under artifacts/1inme/**. This is
   # what makes those checks safe to mark as *required* — every PR always gets a
   # status for each required name, so unrelated PRs never deadlock. When a real
@@ -316,6 +364,7 @@ jobs:
           - Dev-database safety net guard
           - PHP 8.4 deprecation guard
           - Migration ordering guard (no database)
+          - Mobile/docs parity guard (no database)
     steps:
       - name: No 1inme changes — guard not required for this PR
         run: |

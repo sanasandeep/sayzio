@@ -96,6 +96,10 @@ args = "brand-color-build"
 task = "workflow.run"
 args = "1INME"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "mobile-docs-parity"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -316,6 +320,17 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "mobile-docs-parity"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:mobile-docs-parity"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"

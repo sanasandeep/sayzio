@@ -1,0 +1,711 @@
+{
+    "_comment": "Baseline for `php artisan parity:check-mobile-docs`. Records the triaged mobile-editor / docs coverage of every web block & link type. A new web type not listed here fails the check until it is triaged and this file is regenerated with `--accept`. Do NOT hand-edit unless you know why; regenerate instead.",
+    "blocks": {
+        "accordion": {
+            "label": "Accordion",
+            "mobile": false,
+            "docs": true
+        },
+        "affiliate_links": {
+            "label": "Affiliate Links",
+            "mobile": false,
+            "docs": false
+        },
+        "ai_companion": {
+            "label": "AI Companion",
+            "mobile": false,
+            "docs": true
+        },
+        "alert": {
+            "label": "Alert Banner",
+            "mobile": false,
+            "docs": true
+        },
+        "anchor_fm": {
+            "label": "Anchor / Podcast",
+            "mobile": false,
+            "docs": false
+        },
+        "apple_music": {
+            "label": "Apple Music",
+            "mobile": false,
+            "docs": true
+        },
+        "audio": {
+            "label": "Audio Player",
+            "mobile": false,
+            "docs": true
+        },
+        "audio_list": {
+            "label": "Audio Playlist",
+            "mobile": false,
+            "docs": false
+        },
+        "avatar": {
+            "label": "Avatar",
+            "mobile": false,
+            "docs": true
+        },
+        "badge": {
+            "label": "Badge",
+            "mobile": false,
+            "docs": true
+        },
+        "booking_slots": {
+            "label": "Booking Slots",
+            "mobile": false,
+            "docs": false
+        },
+        "buy_me_coffee": {
+            "label": "Buy Me a Coffee",
+            "mobile": false,
+            "docs": true
+        },
+        "calendly": {
+            "label": "Calendly",
+            "mobile": false,
+            "docs": false
+        },
+        "calendly_embed": {
+            "label": "Booking (Inline)",
+            "mobile": false,
+            "docs": false
+        },
+        "card": {
+            "label": "Card Container",
+            "mobile": false,
+            "docs": true
+        },
+        "card_slider": {
+            "label": "Card Carousel",
+            "mobile": false,
+            "docs": true
+        },
+        "catalog": {
+            "label": "Catalog",
+            "mobile": false,
+            "docs": true
+        },
+        "chart_pie": {
+            "label": "Pie Chart",
+            "mobile": false,
+            "docs": false
+        },
+        "contact_form": {
+            "label": "Contact Form",
+            "mobile": false,
+            "docs": true
+        },
+        "countdown": {
+            "label": "Countdown Timer",
+            "mobile": false,
+            "docs": true
+        },
+        "coupon": {
+            "label": "Coupon",
+            "mobile": false,
+            "docs": true
+        },
+        "cta_button": {
+            "label": "Call-to-Action",
+            "mobile": false,
+            "docs": true
+        },
+        "custom_html": {
+            "label": "Custom HTML",
+            "mobile": false,
+            "docs": true
+        },
+        "direct_message": {
+            "label": "Direct Message",
+            "mobile": false,
+            "docs": true
+        },
+        "discord_server": {
+            "label": "Discord Server",
+            "mobile": false,
+            "docs": false
+        },
+        "divider": {
+            "label": "Divider",
+            "mobile": true,
+            "docs": true
+        },
+        "donation": {
+            "label": "Donation",
+            "mobile": false,
+            "docs": true
+        },
+        "email_collector": {
+            "label": "Email Collector",
+            "mobile": false,
+            "docs": true
+        },
+        "email_subscribe": {
+            "label": "Newsletter Signup",
+            "mobile": false,
+            "docs": false
+        },
+        "event_list": {
+            "label": "Event List",
+            "mobile": false,
+            "docs": false
+        },
+        "excel": {
+            "label": "Spreadsheet (Excel)",
+            "mobile": false,
+            "docs": false
+        },
+        "facebook_post": {
+            "label": "Facebook Post",
+            "mobile": false,
+            "docs": false
+        },
+        "fan_leaderboard": {
+            "label": "Top Fans Leaderboard",
+            "mobile": false,
+            "docs": false
+        },
+        "faq": {
+            "label": "FAQ",
+            "mobile": false,
+            "docs": true
+        },
+        "faq_v2": {
+            "label": "FAQ (Accordion)",
+            "mobile": false,
+            "docs": false
+        },
+        "file": {
+            "label": "File Download",
+            "mobile": false,
+            "docs": true
+        },
+        "file_list": {
+            "label": "File List",
+            "mobile": false,
+            "docs": false
+        },
+        "form": {
+            "label": "Sayzio Form",
+            "mobile": false,
+            "docs": true
+        },
+        "grid": {
+            "label": "Grid Container",
+            "mobile": false,
+            "docs": true
+        },
+        "grid_auto": {
+            "label": "Auto-Fit Grid",
+            "mobile": false,
+            "docs": true
+        },
+        "header_video": {
+            "label": "Header Video",
+            "mobile": false,
+            "docs": true
+        },
+        "heading": {
+            "label": "Heading",
+            "mobile": false,
+            "docs": true
+        },
+        "heading_logo": {
+            "label": "Logo Heading",
+            "mobile": false,
+            "docs": true
+        },
+        "iframe_embed": {
+            "label": "Embed (iframe)",
+            "mobile": false,
+            "docs": false
+        },
+        "image": {
+            "label": "Image",
+            "mobile": true,
+            "docs": true
+        },
+        "image_grid": {
+            "label": "Image Grid",
+            "mobile": false,
+            "docs": true
+        },
+        "image_slider": {
+            "label": "Image Slider",
+            "mobile": false,
+            "docs": true
+        },
+        "image_slider_v2": {
+            "label": "Photo Carousel",
+            "mobile": false,
+            "docs": false
+        },
+        "insider": {
+            "label": "Insider Feed",
+            "mobile": false,
+            "docs": false
+        },
+        "instagram": {
+            "label": "Instagram",
+            "mobile": false,
+            "docs": true
+        },
+        "kick": {
+            "label": "Kick",
+            "mobile": false,
+            "docs": false
+        },
+        "ko_fi": {
+            "label": "Ko-fi",
+            "mobile": false,
+            "docs": true
+        },
+        "latest_youtube": {
+            "label": "Latest YouTube Video",
+            "mobile": false,
+            "docs": false
+        },
+        "link": {
+            "label": "Link Button",
+            "mobile": true,
+            "docs": true
+        },
+        "link_tree_group": {
+            "label": "Link Group",
+            "mobile": false,
+            "docs": true
+        },
+        "list": {
+            "label": "Bulleted List",
+            "mobile": true,
+            "docs": true
+        },
+        "list_numbered": {
+            "label": "Numbered List",
+            "mobile": true,
+            "docs": true
+        },
+        "list_pricing": {
+            "label": "Pricing List",
+            "mobile": true,
+            "docs": true
+        },
+        "map": {
+            "label": "Google Map",
+            "mobile": false,
+            "docs": true
+        },
+        "map_location": {
+            "label": "Map / Location",
+            "mobile": true,
+            "docs": true
+        },
+        "markdown": {
+            "label": "Markdown",
+            "mobile": false,
+            "docs": true
+        },
+        "market": {
+            "label": "Storefront",
+            "mobile": false,
+            "docs": true
+        },
+        "menu": {
+            "label": "Menu",
+            "mobile": false,
+            "docs": true
+        },
+        "menu_section": {
+            "label": "Menu Section",
+            "mobile": false,
+            "docs": false
+        },
+        "mixcloud": {
+            "label": "Mixcloud",
+            "mobile": false,
+            "docs": false
+        },
+        "nav_menu": {
+            "label": "Navigation Menu",
+            "mobile": false,
+            "docs": false
+        },
+        "notification": {
+            "label": "Notification Bar",
+            "mobile": false,
+            "docs": true
+        },
+        "one_time_offer": {
+            "label": "Limited Offer",
+            "mobile": false,
+            "docs": true
+        },
+        "paragraph_rich": {
+            "label": "Rich Text",
+            "mobile": false,
+            "docs": true
+        },
+        "patreon": {
+            "label": "Patreon",
+            "mobile": false,
+            "docs": true
+        },
+        "paypal": {
+            "label": "PayPal",
+            "mobile": false,
+            "docs": true
+        },
+        "pdf_document": {
+            "label": "PDF Document",
+            "mobile": false,
+            "docs": false
+        },
+        "phone_collector": {
+            "label": "Phone Collector",
+            "mobile": false,
+            "docs": true
+        },
+        "pinterest_profile": {
+            "label": "Pinterest Profile",
+            "mobile": false,
+            "docs": false
+        },
+        "poll": {
+            "label": "Poll",
+            "mobile": false,
+            "docs": true
+        },
+        "powerpoint": {
+            "label": "Slides (PowerPoint)",
+            "mobile": false,
+            "docs": false
+        },
+        "price": {
+            "label": "Price Tag",
+            "mobile": false,
+            "docs": true
+        },
+        "product": {
+            "label": "Product",
+            "mobile": false,
+            "docs": true
+        },
+        "profile_card_v1": {
+            "label": "Profile · Classic",
+            "mobile": false,
+            "docs": false
+        },
+        "profile_card_v2": {
+            "label": "Profile · Cover",
+            "mobile": false,
+            "docs": false
+        },
+        "profile_card_v3": {
+            "label": "Profile · Stats",
+            "mobile": false,
+            "docs": false
+        },
+        "profile_card_v4": {
+            "label": "Profile · Badges",
+            "mobile": false,
+            "docs": false
+        },
+        "progress": {
+            "label": "Progress Bar",
+            "mobile": false,
+            "docs": true
+        },
+        "qr_code": {
+            "label": "QR Code",
+            "mobile": false,
+            "docs": true
+        },
+        "quiz": {
+            "label": "Quiz",
+            "mobile": false,
+            "docs": true
+        },
+        "reddit_post": {
+            "label": "Reddit Post",
+            "mobile": false,
+            "docs": false
+        },
+        "resume": {
+            "label": "Resume / CV",
+            "mobile": false,
+            "docs": true
+        },
+        "review": {
+            "label": "Reviews",
+            "mobile": false,
+            "docs": true
+        },
+        "reviews_wall": {
+            "label": "Reviews Wall",
+            "mobile": false,
+            "docs": true
+        },
+        "roadmap": {
+            "label": "Public Roadmap",
+            "mobile": false,
+            "docs": false
+        },
+        "rss_feed": {
+            "label": "RSS Feed",
+            "mobile": false,
+            "docs": true
+        },
+        "rumble_video": {
+            "label": "Rumble",
+            "mobile": false,
+            "docs": false
+        },
+        "scroll_cards": {
+            "label": "Scrolling Cards",
+            "mobile": false,
+            "docs": true
+        },
+        "service": {
+            "label": "Service",
+            "mobile": false,
+            "docs": true
+        },
+        "share": {
+            "label": "Share Buttons",
+            "mobile": false,
+            "docs": true
+        },
+        "snapchat": {
+            "label": "Snapchat",
+            "mobile": false,
+            "docs": true
+        },
+        "social_proof": {
+            "label": "Buzz Notification",
+            "mobile": false,
+            "docs": false
+        },
+        "socials": {
+            "label": "Social Icons",
+            "mobile": false,
+            "docs": true
+        },
+        "soundcloud": {
+            "label": "SoundCloud",
+            "mobile": false,
+            "docs": true
+        },
+        "spacer": {
+            "label": "Spacer",
+            "mobile": false,
+            "docs": true
+        },
+        "spotify": {
+            "label": "Spotify",
+            "mobile": false,
+            "docs": true
+        },
+        "stats": {
+            "label": "Stats",
+            "mobile": false,
+            "docs": true
+        },
+        "tabs": {
+            "label": "Tabs",
+            "mobile": false,
+            "docs": true
+        },
+        "telegram_post": {
+            "label": "Telegram Post",
+            "mobile": false,
+            "docs": false
+        },
+        "testimonial_carousel": {
+            "label": "Testimonial Carousel",
+            "mobile": false,
+            "docs": false
+        },
+        "testimonials": {
+            "label": "Testimonials",
+            "mobile": false,
+            "docs": true
+        },
+        "ticker": {
+            "label": "News Ticker",
+            "mobile": false,
+            "docs": false
+        },
+        "tidal": {
+            "label": "Tidal",
+            "mobile": false,
+            "docs": false
+        },
+        "tiktok_profile": {
+            "label": "TikTok Profile",
+            "mobile": false,
+            "docs": false
+        },
+        "tiktok_video": {
+            "label": "TikTok Video",
+            "mobile": false,
+            "docs": false
+        },
+        "timeline": {
+            "label": "Timeline",
+            "mobile": false,
+            "docs": true
+        },
+        "timeline_staged": {
+            "label": "Staged Timeline",
+            "mobile": false,
+            "docs": false
+        },
+        "twitch": {
+            "label": "Twitch",
+            "mobile": false,
+            "docs": false
+        },
+        "twitter_profile": {
+            "label": "X / Twitter Profile",
+            "mobile": false,
+            "docs": false
+        },
+        "twitter_tweet": {
+            "label": "X / Twitter Post",
+            "mobile": false,
+            "docs": false
+        },
+        "twitter_video": {
+            "label": "X / Twitter Video",
+            "mobile": false,
+            "docs": false
+        },
+        "typeform": {
+            "label": "Typeform",
+            "mobile": false,
+            "docs": false
+        },
+        "vcard": {
+            "label": "Contact (vCard)",
+            "mobile": false,
+            "docs": true
+        },
+        "video": {
+            "label": "Video",
+            "mobile": true,
+            "docs": true
+        },
+        "vimeo": {
+            "label": "Vimeo",
+            "mobile": false,
+            "docs": true
+        },
+        "vk_video": {
+            "label": "VK Video",
+            "mobile": false,
+            "docs": false
+        },
+        "whatsapp_channel_subscribe": {
+            "label": "WhatsApp Channel",
+            "mobile": false,
+            "docs": true
+        },
+        "whatsapp_item": {
+            "label": "WhatsApp Button",
+            "mobile": false,
+            "docs": false
+        },
+        "whatsapp_number_subscribe": {
+            "label": "WhatsApp Number",
+            "mobile": false,
+            "docs": true
+        },
+        "whatsapp_widget": {
+            "label": "WhatsApp Chat",
+            "mobile": false,
+            "docs": true
+        },
+        "yandex_maps": {
+            "label": "Yandex Map",
+            "mobile": false,
+            "docs": true
+        },
+        "youtube": {
+            "label": "YouTube",
+            "mobile": false,
+            "docs": true
+        },
+        "youtube_feed": {
+            "label": "YouTube Feed",
+            "mobile": false,
+            "docs": false
+        }
+    },
+    "linkTypes": {
+        "ai_chat": {
+            "label": "AI Chatbot",
+            "docs": true
+        },
+        "biolink": {
+            "label": "Link in Bio",
+            "docs": true
+        },
+        "brand_kit": {
+            "label": "Brand / Press Kit",
+            "docs": true
+        },
+        "calendar": {
+            "label": "Calendar",
+            "docs": true
+        },
+        "conversational": {
+            "label": "Conversational",
+            "docs": true
+        },
+        "file": {
+            "label": "File Share",
+            "docs": true
+        },
+        "ics": {
+            "label": "Event",
+            "docs": true
+        },
+        "paid_page": {
+            "label": "Bizs Profile",
+            "docs": true
+        },
+        "restaurant_menu": {
+            "label": "Restaurant Menu",
+            "docs": true
+        },
+        "resume": {
+            "label": "Resume / Portfolio",
+            "docs": true
+        },
+        "reviews": {
+            "label": "Reviews Page",
+            "docs": true
+        },
+        "service_booking": {
+            "label": "Service Booking",
+            "docs": true
+        },
+        "slides": {
+            "label": "Slides",
+            "docs": true
+        },
+        "store_menu": {
+            "label": "Store Menu",
+            "docs": true
+        },
+        "url": {
+            "label": "Short Link",
+            "docs": true
+        },
+        "vcf": {
+            "label": "Contact Card",
+            "docs": true
+        }
+    }
+}

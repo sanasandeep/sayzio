@@ -77,6 +77,9 @@
         "check:demo-allowlist": [
             "@php artisan demo:check-allowlist"
         ],
+        "check:mobile-docs-parity": [
+            "@php artisan parity:check-mobile-docs"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
