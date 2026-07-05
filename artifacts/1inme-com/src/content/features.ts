@@ -10,7 +10,7 @@ export const featuresCategories: FeatureCategory[] = [
     id: "link-types",
     name: "Link types — everything you can create",
     intro:
-      "One dashboard, ten distinct kinds of link. Pick the format that fits the moment — from a simple short link to a full chat experience — and every one is tracked, themeable, and shareable from a single URL.",
+      "One dashboard, eighteen distinct kinds of link. Pick the format that fits the moment — from a simple short link to a full chat experience — and every one is tracked, themeable, and shareable from a single URL.",
     items: [
       { title: "Short Link", description: "Turn long URLs into clean, branded short links you can repoint anytime, with click analytics, expiry dates and click limits." },
       { title: "Link in Bio", description: "A drag-and-drop one-link landing page with a deep block library, custom themes and a guided setup wizard." },
@@ -18,10 +18,18 @@ export const featuresCategories: FeatureCategory[] = [
       { title: "Slides", description: "A swipeable, story-style page that presents your content as full-screen slides, with background music and transitions." },
       { title: "AI Chatbot", description: "An AI-powered page that answers visitor questions about you using your own content, around the clock." },
       { title: "Restaurant Menu", description: "A digital menu with categories, photos, descriptions and prices — plus optional table-side ordering by QR code." },
+      { title: "Store Menu", description: "A product catalog with categories and photos, plus a no-payment order-request cart for visitors." },
       { title: "File Share", description: "Upload a file and share it through a short link that streams the download straight to your visitors." },
       { title: "Event", description: "A shareable calendar event with a downloadable .ics file visitors can add to their own calendar in one tap." },
+      { title: "Calendar", description: "A followable calendar of your events visitors can subscribe to and sync to their own calendar." },
       { title: "Contact Card", description: "A downloadable vCard so people can save your full contact details — phones, emails, socials — with one tap." },
+      { title: "Resume / Portfolio", description: "A polished, shareable resume / portfolio page with a one-tap PDF download and AI tailoring." },
+      { title: "Bizs Profile", description: "A themeable creator home that automatically shows all your posts, tiers and tips — no linking needed." },
       { title: "Reviews Page", description: "A dedicated review wall that collects and shows star ratings and feedback from your visitors." },
+      { title: "Brand / Press Kit", description: "A polished press page with logo downloads, copy-able colour swatches, fonts and brand boilerplate." },
+      { title: "Paid Page", description: "A gated page that only unlocks after a one-time payment or subscription — perfect for premium content." },
+      { title: "QR Code", description: "A dynamic, styleable QR code that redirects anywhere you choose — re-point it any time without reprinting." },
+      { title: "Forms", description: "A standalone form page with dozens of field types, conditional logic and instant notifications for every submission." },
     ],
   },
   {

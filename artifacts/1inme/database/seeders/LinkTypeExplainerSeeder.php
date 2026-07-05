@@ -35,7 +35,7 @@ class LinkTypeExplainerSeeder extends Seeder
      * untouched pages get refreshed on the next seed. Edited pages are
      * still left alone (see refresh guard in seedPage()).
      */
-    private const SEED_VERSION = 5;
+    private const SEED_VERSION = 6;
 
     /**
      * Bump when the live demo restaurant menu (`/demo-restaurant`) content
@@ -650,6 +650,57 @@ class LinkTypeExplainerSeeder extends Seeder
                 'cta_label' => 'Create your press kit',
                 'cta_url' => $create('brand_kit'),
                 'cta_icon' => 'fa-palette',
+            ],
+            [
+                'alias' => 'demo-type-paid-page',
+                'link_type' => 'paid_page',
+                'title' => 'Paid Page — explained',
+                'heading' => 'Paid Page 🔒',
+                'intro' => 'A gated page that only unlocks after a one-time payment or subscription — perfect for premium content, courses and exclusive drops.',
+                'features' => [
+                    'Gate the whole page behind a one-time payment or subscription',
+                    'Reuse the same creator feed and blocks as your other pages',
+                    'Offer multiple price tiers for different access levels',
+                    'Payments settle straight to your connected payout account',
+                    'Track views, conversions and revenue in real time',
+                ],
+                'cta_label' => 'Create your paid page',
+                'cta_url' => $create('paid_page'),
+                'cta_icon' => 'fa-lock',
+            ],
+            [
+                'alias' => 'demo-type-qr-code',
+                'link_type' => 'qr',
+                'title' => 'QR Code — explained',
+                'heading' => 'QR Code 📱',
+                'intro' => 'A dynamic, styleable QR code that redirects anywhere you choose. Print it once and keep it working forever — the destination is editable any time.',
+                'features' => [
+                    'Style the code with your logo, colours and a design template',
+                    'Re-point the destination any time without reprinting',
+                    'Track scans separately from regular link clicks',
+                    'Export SVG or high-resolution PNG for print or packaging',
+                    'Run a scannability check before you publish',
+                ],
+                'cta_label' => 'Create your QR code',
+                'cta_url' => $create('qr'),
+                'cta_icon' => 'fa-qrcode',
+            ],
+            [
+                'alias' => 'demo-type-forms',
+                'link_type' => 'form',
+                'title' => 'Forms — explained',
+                'heading' => 'Forms 📝',
+                'intro' => 'A standalone form page with dozens of field types, conditional logic and instant notifications — built for signups, surveys, applications and lead capture.',
+                'features' => [
+                    'Add dozens of field types with conditional logic',
+                    'Match your brand with full design customization',
+                    'Get notified by email, SMS or webhook on every submission',
+                    'Embed the form anywhere or share it as its own link',
+                    'Every submission lands straight in your contacts',
+                ],
+                'cta_label' => 'Build your form',
+                'cta_url' => $create('form'),
+                'cta_icon' => 'fa-list-check',
             ],
         ];
     }

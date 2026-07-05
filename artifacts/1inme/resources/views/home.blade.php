@@ -3848,25 +3848,25 @@
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">What you can create</div>
             <h2 id="create-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Fifteen kinds of link.<br><span class="grad-text">One simple dashboard.</span>
+                Eighteen kinds of link.<br><span class="grad-text">One simple dashboard.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
                 A short link is just the start. Spin up a chat page, a slide story, a digital menu, a review wall and more — your AI helps draft each one, and every one is tracked and shareable from a single URL.
             </p>
         </div>
 
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-5">
+        <div class="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-3 sm:gap-4">
             @foreach($__linkTypes as $i => $lt)
-                <article class="reveal rd-{{ ($i % 5) + 1 }} glass rounded-2xl p-5 lift relative overflow-hidden">
-                    <div class="absolute -top-10 -right-10 w-28 h-28 rounded-full opacity-20" style="background:{{ $lt['color'] }};"></div>
+                <article class="reveal rd-{{ ($i % 5) + 1 }} glass rounded-xl p-4 lift relative overflow-hidden mb-3 sm:mb-4 break-inside-avoid inline-block w-full align-top">
+                    <div class="absolute -top-8 -right-8 w-20 h-20 rounded-full opacity-20" style="background:{{ $lt['color'] }};"></div>
                     @if($lt['new'])
-                        <span class="absolute top-3 right-3 inline-flex items-center text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,.08); color:{{ $lt['color'] }}; border:1px solid {{ $lt['color'] }}40;">New</span>
+                        <span class="absolute top-2.5 right-2.5 inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style="background:rgba(255,255,255,.08); color:{{ $lt['color'] }}; border:1px solid {{ $lt['color'] }}40;">New</span>
                     @endif
-                    <div class="relative w-11 h-11 rounded-xl flex items-center justify-center mb-4" style="background:{{ $lt['color'] }}; box-shadow:0 12px 28px -12px {{ $lt['color'] }};">
-                        <i class="fas {{ $lt['icon'] }} text-white"></i>
+                    <div class="relative w-9 h-9 rounded-lg flex items-center justify-center mb-3" style="background:{{ $lt['color'] }}; box-shadow:0 10px 22px -10px {{ $lt['color'] }};">
+                        <i class="fas {{ $lt['icon'] }} text-white text-sm"></i>
                     </div>
-                    <h3 class="relative text-base font-bold mb-1.5">{{ $lt['name'] }}</h3>
-                    <p class="relative text-sm text-gray-400 leading-relaxed">{{ $lt['desc'] }}</p>
+                    <h3 class="relative text-sm font-bold mb-1">{{ $lt['name'] }}</h3>
+                    <p class="relative text-xs text-gray-400 leading-relaxed">{{ $lt['desc'] }}</p>
                 </article>
             @endforeach
         </div>

@@ -20,7 +20,7 @@ class SitePagesContent
         return [
             'features' => [
                 'title' => 'Features',
-                'meta_description' => 'Everything you get with Sayzio — all 15 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, store menus, file shares, events, calendars, contact cards, resume / portfolio pages, Bizs Profiles, reviews, brand / press kits), dynamic QR codes, deep analytics, forms, contacts, broadcasts and more.',
+                'meta_description' => 'Everything you get with Sayzio — all 18 link types (short links, Link in Bio pages, conversational, slides, AI chatbot, restaurant menus, store menus, file shares, events, calendars, contact cards, resume / portfolio pages, Bizs Profiles, reviews, brand / press kits, paid pages, QR codes, forms), deep analytics, contacts, broadcasts and more.',
                 'sections' => [
                     ['heading' => 'A drag & drop Link in Bio page', 'body' => "Stack blocks for text, images, video, audio, embeds, products, donations and forms. Reorder by dragging, swap themes in a click, and publish a polished page in minutes — no design skills needed."],
                     ['heading' => 'Branded short links', 'body' => "Turn long URLs into clean, on-brand short links you can repoint at any time. Add UTMs automatically, password-protect sensitive links, expire them on a date or after N clicks, and route visitors by country, device or language."],
@@ -1297,6 +1297,8 @@ class SitePagesContent
             ['name' => 'Reviews Page',    'icon' => 'fa-star',                'color' => '#ffc845', 'new' => true,  'desc' => 'A review wall that collects and shows star ratings and feedback from your visitors.'],
             ['name' => 'Brand / Press Kit', 'icon' => 'fa-palette',           'color' => '#8b5cf6', 'new' => true,  'desc' => 'A polished press page with logo downloads, copy-able colour swatches, fonts and brand boilerplate.'],
             ['name' => 'Paid Page',        'icon' => 'fa-lock',                'color' => '#f59e0b', 'new' => true,  'desc' => 'A gated page that only unlocks after a one-time payment or subscription — perfect for premium content.'],
+            ['name' => 'QR Code',          'icon' => 'fa-qrcode',              'color' => '#06b6d4', 'new' => true,  'desc' => 'A dynamic, styleable QR code that redirects anywhere you choose — re-point it any time without reprinting.'],
+            ['name' => 'Forms',            'icon' => 'fa-list-check',          'color' => '#eab308', 'new' => true,  'desc' => 'A standalone form page with dozens of field types, conditional logic and instant notifications for every submission.'],
         ];
     }
 
@@ -1396,6 +1398,8 @@ class SitePagesContent
                     ['name' => 'Reviews Page', 'icon' => 'fa-star', 'description' => 'A dedicated review wall that collects and shows star ratings and feedback from your visitors.'],
                     ['name' => 'Brand / Press Kit', 'icon' => 'fa-palette', 'description' => 'A polished, shareable press kit built from your saved AI Brand Kit — logo downloads, copy-able colour swatches, your font pairing, brand voice and boilerplate.'],
                     ['name' => 'Paid Page', 'icon' => 'fa-lock', 'description' => 'A gated page that only unlocks after a one-time payment or subscription, built on the same creator feed and access tiers as your other pages.'],
+                    ['name' => 'QR Code', 'icon' => 'fa-qrcode', 'description' => 'A dynamic QR code you can style with your logo and brand colours — the destination is editable, so the same printed code keeps working forever, with scans tracked separately from clicks.'],
+                    ['name' => 'Forms', 'icon' => 'fa-list-check', 'description' => 'A shareable, standalone form page with dozens of field types, conditional logic, design customization and email / SMS / webhook notifications — perfect for signups, surveys and lead capture.'],
                 ],
             ],
             self::aiSuiteFeaturesCategory(),

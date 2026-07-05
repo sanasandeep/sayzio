@@ -2,26 +2,34 @@ import {
   Link2,
   File,
   Calendar,
+  CalendarDays,
   Contact,
   IdCard,
   GalleryHorizontalEnd,
   Utensils,
+  Store,
   FileText,
   Crown,
   Star,
+  Palette,
+  Lock,
   Bot,
   MessagesSquare,
+  QrCode,
+  ListChecks,
   type LucideIcon,
 } from "lucide-react";
 
 /**
- * Marketing mirror of the Laravel app's `LinkTypeCategories` source of truth
- * (`artifacts/1inme/app/Modules/User/Support/LinkTypeCategories.php`).
+ * Marketing mirror of the Laravel app's full link-type catalog
+ * (`SitePagesContent::homeLinkTypesDefault()` /
+ * `artifacts/1inme/app/Modules/User/Support/LinkTypeCategories.php`).
  *
  * The marketing site is a standalone React app with no runtime access to the
- * PHP catalog, so the grouped 12-link-type copy is mirrored here. Keep the
- * categories, labels and descriptions in step with `LinkTypeCategories` —
- * adding or renaming a type there should be reflected here too.
+ * PHP catalog, so the full grouped copy is mirrored here. Keep the
+ * categories, labels and descriptions — and above all the total count — in
+ * step with the Laravel showcase; adding or renaming a type there should be
+ * reflected here too.
  *
  * Font Awesome icons in the PHP catalog map to the closest lucide-react icon.
  */
@@ -45,7 +53,9 @@ export const linkTypeCategories: LinkTypeCategory[] = [
       { icon: Link2, label: "Short Link", desc: "Shorten any URL with a custom alias and click tracking." },
       { icon: File, label: "File Share", desc: "Share a downloadable file behind a short link." },
       { icon: Calendar, label: "Event", desc: "A calendar event visitors can add in a single tap." },
+      { icon: CalendarDays, label: "Calendar", desc: "A followable calendar of your events visitors can subscribe to." },
       { icon: Contact, label: "Contact Card", desc: "A digital business card visitors can save instantly." },
+      { icon: QrCode, label: "QR Code", desc: "A dynamic, styleable QR code you can re-point any time." },
     ],
   },
   {
@@ -55,6 +65,7 @@ export const linkTypeCategories: LinkTypeCategory[] = [
       { icon: IdCard, label: "Link in Bio", desc: "A mini-site of your links, blocks and media on one page." },
       { icon: GalleryHorizontalEnd, label: "Slides", desc: "Present a swipeable deck of slides from a single link." },
       { icon: Utensils, label: "Restaurant Menu", desc: "A digital menu with sections, items and prices." },
+      { icon: Store, label: "Store Menu", desc: "A product catalog with categories and an order-request cart." },
       { icon: FileText, label: "Resume / Portfolio", desc: "A shareable resume / portfolio page with PDF download." },
     ],
   },
@@ -64,6 +75,9 @@ export const linkTypeCategories: LinkTypeCategory[] = [
     types: [
       { icon: Crown, label: "Bizs Profile", desc: "A themeable home that automatically shows all your posts, tiers & tips — no linking needed." },
       { icon: Star, label: "Reviews Page", desc: "Collect and showcase reviews from your audience." },
+      { icon: Palette, label: "Brand / Press Kit", desc: "A shareable press kit with logo downloads, colours, fonts and brand voice." },
+      { icon: Lock, label: "Paid Page", desc: "A gated page that unlocks after a one-time payment or subscription." },
+      { icon: ListChecks, label: "Forms", desc: "A standalone form page with conditional logic and instant notifications." },
     ],
   },
   {
