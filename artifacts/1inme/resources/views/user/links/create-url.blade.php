@@ -20,9 +20,24 @@
 
             <div class="mb-4">
                 <label class="block text-sm font-medium text-white/60 mb-1.5">Destination URL <span class="text-red-400">*</span></label>
-                <input type="url" name="long_url" value="{{ old('long_url') }}" placeholder="https://example.com/your-long-url" required
+                <input type="url" id="long_url_field" name="long_url" value="{{ old('long_url') }}" placeholder="https://example.com/your-long-url" required
                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none transition-all">
                 @error('long_url') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
+                @php
+                    $myConnections = auth()->check()
+                        ? \App\Modules\User\Models\SocialAccountConnection::where('user_id', auth()->id())
+                            ->orderBy('platform')->orderBy('handle')->get()
+                        : collect();
+                @endphp
+                @if($myConnections->isNotEmpty())
+                    <div class="mt-2">
+                        @include('user.partials.social-autofill-picker', [
+                            'connections' => $myConnections,
+                            'onSelect'    => "document.getElementById('long_url_field').value = opt.dataset.url; if(!document.getElementById('title_field').value) document.getElementById('title_field').value = opt.dataset.label + ' · @' + opt.dataset.handle;",
+                            'buttonLabel' => 'Autofill from connected account',
+                        ])
+                    </div>
+                @endif
             </div>
 
             <div class="mb-4">
@@ -36,7 +51,7 @@
 
             <div class="mb-4">
                 <label class="block text-sm font-medium text-white/60 mb-1.5">Title</label>
-                <input type="text" name="title" value="{{ old('title', $prefillTitle ?? '') }}" placeholder="My awesome link"
+                <input type="text" id="title_field" name="title" value="{{ old('title', $prefillTitle ?? '') }}" placeholder="My awesome link"
                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none transition-all">
             </div>
 

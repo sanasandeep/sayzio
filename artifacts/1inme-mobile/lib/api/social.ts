@@ -1,5 +1,13 @@
 import { apiFetch } from "@/lib/api";
 
+export type SocialSyncSummary = {
+  biolink_count: number;
+  on_caller_id: boolean;
+  in_public_search: boolean;
+  in_dialer_finder: boolean;
+  label: string;
+};
+
 export type SocialConnection = {
   id: number;
   platform: string;
@@ -12,6 +20,8 @@ export type SocialConnection = {
   last_refreshed_at: string | null;
   last_refresh_status: string | null;
   last_refresh_error: string | null;
+  is_searchable: boolean;
+  sync_summary: SocialSyncSummary;
 };
 
 export type PlatformOption = { platform: string; label: string };
@@ -48,6 +58,17 @@ export async function refreshConnection(id: number): Promise<SocialConnection> {
 
 export async function disconnect(id: number): Promise<void> {
   await apiFetch(`/social/connections/${id}`, { method: "DELETE" });
+}
+
+export async function updateSearchable(
+  id: number,
+  isSearchable: boolean,
+): Promise<SocialConnection> {
+  const res = await apiFetch<{ data: { connection: SocialConnection } }>(
+    `/social/connections/${id}/searchable`,
+    { method: "PATCH", body: JSON.stringify({ is_searchable: isSearchable }) },
+  );
+  return res.data.connection;
 }
 
 export type SocialProof = {

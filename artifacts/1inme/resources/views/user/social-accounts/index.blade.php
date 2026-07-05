@@ -271,6 +271,38 @@
                                     @endif
                                 </div>
                             </div>
+
+                            {{-- Task #3588: public searchability toggle + "where it's synced" summary. --}}
+                            @php $__sync = $c->syncSummary(); @endphp
+                            <div class="mt-3 pt-3 flex items-start gap-3" style="border-top: 1px solid var(--border-glass);">
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-[11px] font-semibold" style="color: var(--text-primary);">
+                                        <i class="fas fa-magnifying-glass mr-1" style="color: var(--text-muted);"></i>Searchable in public
+                                    </div>
+                                    <div class="text-[10px] mt-0.5" style="color: var(--text-muted);">
+                                        {{ $__sync['label'] }}
+                                    </div>
+                                </div>
+                                @if($__canEdit)
+                                    <form method="POST" action="{{ route('user.social-accounts.searchable', $c) }}" class="flex-shrink-0">
+                                        @csrf
+                                        <input type="hidden" name="searchable" value="{{ $c->is_searchable ? '0' : '1' }}">
+                                        <button type="submit" title="{{ $c->is_searchable ? 'Turn off' : 'Turn on' }} public searchability"
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold"
+                                                style="background: {{ $c->is_searchable ? 'rgba(16,185,129,0.12)' : 'var(--bg-glass-input)' }};
+                                                       color: {{ $c->is_searchable ? '#10b981' : 'var(--text-muted)' }};
+                                                       border: 1px solid {{ $c->is_searchable ? 'rgba(16,185,129,0.3)' : 'var(--border-glass)' }};">
+                                            <i class="fas {{ $c->is_searchable ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
+                                            {{ $c->is_searchable ? 'On' : 'Off' }}
+                                        </button>
+                                    </form>
+                                @else
+                                    <span class="flex-shrink-0 text-[11px] font-semibold" style="color: {{ $c->is_searchable ? '#10b981' : 'var(--text-muted)' }};">
+                                        <i class="fas {{ $c->is_searchable ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
+                                        {{ $c->is_searchable ? 'On' : 'Off' }}
+                                    </span>
+                                @endif
+                            </div>
                         </div>
                     @endforeach
                 @endforeach

@@ -1227,6 +1227,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('social-accounts/{connection}/refresh',    [\App\Modules\User\Controllers\SocialAccountController::class, 'refresh'])->middleware('workspace.can:settings.edit')->name('social-accounts.refresh');
         Route::delete('social-accounts/{connection}',          [\App\Modules\User\Controllers\SocialAccountController::class, 'destroy'])->middleware('workspace.can:settings.edit')->name('social-accounts.destroy');
         Route::post('social-accounts/broken-emails/preference', [\App\Modules\User\Controllers\SocialAccountController::class, 'updateBrokenEmailPreference'])->middleware('workspace.can:settings.edit')->name('social-accounts.broken-emails.preference');
+        Route::post('social-accounts/{connection}/searchable',  [\App\Modules\User\Controllers\SocialAccountController::class, 'updateSearchable'])->middleware('workspace.can:settings.edit')->name('social-accounts.searchable');
 
         // OAuth connect / callback for providers that need a per-user token.
         // Each provider activates only when its CLIENT_ID + CLIENT_SECRET env

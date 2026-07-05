@@ -7,6 +7,7 @@ use App\Modules\User\Models\ContactPhone;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkAlias;
+use App\Modules\User\Models\SocialAccountConnection;
 use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserBlock;
@@ -72,6 +73,7 @@ class DialerSearch
         if ($q !== '' || $onlyVerified) {
             $groups[] = self::group('contacts', 'Contacts', self::contactItems($user, $q, $filters, $onlyVerified));
             $groups[] = self::group('people', 'People', self::peopleItems($user, $q, $onlyVerified));
+            $groups[] = self::group('social', 'Social', self::socialItems($user, $q, $onlyVerified));
             $groups[] = self::group('my_links', 'My links', self::myLinkItems($user, $q, $onlyVerified));
             $groups[] = self::group('followed', 'Followed', self::followedLinkItems($user, $q, $onlyVerified));
             $groups[] = self::group('workspaces', 'Workspaces', self::workspaceItems($user, $q, $onlyVerified));
@@ -197,38 +199,9 @@ class DialerSearch
     {
         // Reachable people = self + accounts the user follows + accounts linked
         // from the user's own contacts (owned + followed only — never a global
-        // user directory).
-        $ids = collect([$user->id]);
-        $ids = $ids->merge(Follow::where('follower_id', $user->id)->pluck('creator_id'));
-        $ids = $ids->merge(
-            Contact::where('user_id', $user->id)->whereNotNull('biolink_user_id')->pluck('biolink_user_id')
-        );
-        $ids = $ids->filter()->unique()->values();
-
-        if ($ids->isEmpty()) {
-            return [];
-        }
-
-        // Even within the reachable set, never surface an account the searcher
-        // can't reach right now: one that has since been suspended/deactivated
-        // (status != active — self is always exempt), or one that has blocked
-        // the searcher. Resolve the visible id set up front so BOTH the primary
-        // query and the T9 fallback query below share the same gate.
-        $blockedByIds = UserBlock::where('blocked_user_id', $user->id)
-            ->whereIn('blocker_user_id', $ids)
-            ->pluck('blocker_user_id')->map(fn ($id) => (int) $id)->all();
-
-        $ids = User::whereIn('id', $ids)
-            ->where(function ($w) use ($user) {
-                // Treat a null status as active (mirrors the login guard
-                // `($user->status ?? 'active') !== 'active'`); self is exempt so
-                // the searcher can always find their own account.
-                $w->where('status', 'active')
-                  ->orWhereNull('status')
-                  ->orWhere('id', $user->id);
-            })
-            ->when(!empty($blockedByIds), fn ($qq) => $qq->whereNotIn('id', $blockedByIds))
-            ->pluck('id')->map(fn ($id) => (int) $id)->values();
+        // user directory). Even within that set, never surface an account the
+        // searcher can't reach right now (suspended/deactivated, or blocking).
+        $ids = self::reachableUserIds($user);
 
         if ($ids->isEmpty()) {
             return [];
@@ -296,6 +269,109 @@ class DialerSearch
                 ],
             ];
         })->values()->all();
+    }
+
+    /**
+     * Task #3588: connected social accounts that a reachable person (self,
+     * followed, or contact-linked) has explicitly opted into "Searchable in
+     * public". Mirrors the reachability gate in {@see peopleItems()} — the
+     * shared {@see reachableUserIds()} helper keeps the two from drifting.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private static function socialItems(User $user, string $q, bool $onlyVerified): array
+    {
+        if ($q === '') {
+            return [];
+        }
+
+        $ids = self::reachableUserIds($user);
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $needle = '%' . $q . '%';
+        $rows = SocialAccountConnection::whereIn('user_id', $ids)
+            ->searchable()
+            ->where(function ($w) use ($needle, $q) {
+                $w->where('handle', 'ilike', $needle)
+                  ->orWhere('display_name', 'ilike', $needle)
+                  ->orWhere('platform', 'ilike', $needle);
+                if (isset(SocialAccountConnection::PLATFORM_META[strtolower($q)])) {
+                    $w->orWhere('platform', strtolower($q));
+                }
+            })
+            ->with('user')
+            ->orderBy('platform')
+            ->limit(self::GROUP_LIMIT * 2)
+            ->get();
+
+        if ($onlyVerified) {
+            $verifiedIds = Link::withoutGlobalScope('workspace')
+                ->whereIn('user_id', $rows->pluck('user_id')->unique())
+                ->where('is_verified', true)
+                ->pluck('user_id')->unique();
+            $rows = $rows->filter(fn ($c) => $verifiedIds->contains($c->user_id));
+        }
+
+        return $rows->take(self::GROUP_LIMIT)->map(function (SocialAccountConnection $c) use ($user) {
+            $owner = $c->user;
+            $isSelf = $owner && $owner->id === $user->id;
+
+            return [
+                'type'           => 'social',
+                'category'       => 'social',
+                'id'             => $c->id,
+                'title'          => '@' . $c->handle,
+                'subtitle'       => SocialAccountConnection::platformLabel($c->platform) . ($owner ? ' · ' . ($owner->name ?: $owner->publicHandle()) : ''),
+                'type_label'     => SocialAccountConnection::platformLabel($c->platform),
+                'initials'       => self::initialsOf($c->handle),
+                'badge'          => $isSelf ? 'You' : null,
+                'verified'       => false,
+                'verified_label' => null,
+                'action'         => [
+                    'kind'     => 'social',
+                    'url'      => $c->resolvedProfileUrl() ?: null,
+                    'handle'   => $c->handle,
+                    'platform' => $c->platform,
+                    'user_id'  => $c->user_id,
+                ],
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * Shared reachable-user-id set (self + followed + contact-linked, minus
+     * suspended/deactivated/blocking accounts). Extracted from
+     * {@see peopleItems()} so the Social group can't drift from it.
+     *
+     * @return Collection<int,int>
+     */
+    private static function reachableUserIds(User $user): Collection
+    {
+        $ids = collect([$user->id]);
+        $ids = $ids->merge(Follow::where('follower_id', $user->id)->pluck('creator_id'));
+        $ids = $ids->merge(
+            Contact::where('user_id', $user->id)->whereNotNull('biolink_user_id')->pluck('biolink_user_id')
+        );
+        $ids = $ids->filter()->unique()->values();
+
+        if ($ids->isEmpty()) {
+            return $ids;
+        }
+
+        $blockedByIds = UserBlock::where('blocked_user_id', $user->id)
+            ->whereIn('blocker_user_id', $ids)
+            ->pluck('blocker_user_id')->map(fn ($id) => (int) $id)->all();
+
+        return User::whereIn('id', $ids)
+            ->where(function ($w) use ($user) {
+                $w->where('status', 'active')
+                  ->orWhereNull('status')
+                  ->orWhere('id', $user->id);
+            })
+            ->when(!empty($blockedByIds), fn ($qq) => $qq->whereNotIn('id', $blockedByIds))
+            ->pluck('id')->map(fn ($id) => (int) $id)->values();
     }
 
     /** @return array<int,array<string,mixed>> */

@@ -12,7 +12,7 @@ class SocialAccountConnection extends Model
         'token_expires_at', 'follower_count', 'last_refreshed_at',
         'last_refresh_status', 'last_refresh_error', 'meta',
         'consecutive_failures', 'last_failure_notified_at',
-        'last_broken_email_sent_at',
+        'last_broken_email_sent_at', 'is_searchable',
     ];
 
     protected function casts(): array
@@ -25,10 +25,17 @@ class SocialAccountConnection extends Model
             'meta'                     => 'array',
             'follower_count'           => 'integer',
             'consecutive_failures'     => 'integer',
+            'is_searchable'            => 'boolean',
             // Tokens are encrypted at rest; nulls pass through.
             'access_token'             => 'encrypted',
             'refresh_token'            => 'encrypted',
         ];
+    }
+
+    /** Only accounts the owner has opted into public search / caller-ID / dialer surfaces. */
+    public function scopeSearchable($query)
+    {
+        return $query->where('is_searchable', true);
     }
 
     /** Number of consecutive failures at which we surface a stronger nudge. */
@@ -198,5 +205,58 @@ class SocialAccountConnection extends Model
             'unsupported' => '#7c3aed',
             default   => '#10b981',
         };
+    }
+
+    /**
+     * Task #3588: "where it's synced" summary for the Connected Accounts
+     * page — every surface a toggled-on connection actually reaches, plus
+     * how many of the owner's own biolinks reference it via a Socials /
+     * Multi-Socials block's `connection_id` autofill (regardless of the
+     * searchable flag — that wiring is independent of public search).
+     *
+     * @return array{biolink_count:int, on_caller_id:bool, in_public_search:bool, in_dialer_finder:bool, label:string}
+     */
+    public function syncSummary(): array
+    {
+        $biolinkCount = \App\Modules\User\Models\BiolinkBlock::withoutGlobalScope('workspace')
+            ->whereHas('link', fn ($q) => $q->where('user_id', $this->user_id))
+            ->whereIn('type', ['socials', 'socials_multi'])
+            ->where('is_active', true)
+            ->get(['id', 'settings'])
+            ->filter(function ($block) {
+                $settings = is_array($block->settings) ? $block->settings : [];
+                $platforms = $settings['platforms'] ?? [];
+                if (isset($settings['groups']) && is_array($settings['groups'])) {
+                    $platforms = [];
+                    foreach ($settings['groups'] as $group) {
+                        $platforms = array_merge($platforms, $group['platforms'] ?? []);
+                    }
+                }
+                foreach ($platforms as $p) {
+                    if ((int) ($p['connection_id'] ?? 0) === $this->id) return true;
+                }
+                return false;
+            })
+            ->count();
+
+        $searchable = (bool) $this->is_searchable;
+
+        $parts = [];
+        if ($biolinkCount > 0) {
+            $parts[] = $biolinkCount . ' biolink' . ($biolinkCount === 1 ? '' : 's');
+        }
+        if ($searchable) {
+            $parts[] = 'Caller-ID';
+            $parts[] = 'Dialer search';
+            $parts[] = 'Public search';
+        }
+
+        return [
+            'biolink_count'     => $biolinkCount,
+            'on_caller_id'      => $searchable,
+            'in_public_search'  => $searchable,
+            'in_dialer_finder'  => $searchable,
+            'label'             => $parts ? implode(' · ', $parts) : 'Not synced anywhere yet',
+        ];
     }
 }

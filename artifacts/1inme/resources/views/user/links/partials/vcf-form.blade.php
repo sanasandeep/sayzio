@@ -17,6 +17,15 @@
     $photoUrl    = $v?->photoUrl();
     $inputCls    = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40';
     $miniBtn     = 'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 transition';
+
+    // Task #3588: offer the user's own connected social accounts as
+    // one-click autofill (handle + resolved URL) for the vCard's Social
+    // Profiles section, mirroring the same picker on the biolink socials
+    // block editor.
+    $myConnections = auth()->check()
+        ? \App\Modules\User\Models\SocialAccountConnection::where('user_id', auth()->id())
+            ->orderBy('platform')->orderBy('handle')->get()
+        : collect();
 @endphp
 
 <div x-data="vcfForm({
@@ -164,6 +173,16 @@
             <h2 class="text-lg font-semibold text-white"><i class="fas fa-hashtag text-blue-400 mr-2"></i>Social Profiles</h2>
             <button type="button" @click="addSocial()" class="{{ $miniBtn }}"><i class="fas fa-plus text-[9px]"></i> Add</button>
         </div>
+        @if($myConnections->isNotEmpty())
+            <div class="mb-3">
+                @include('user.partials.social-autofill-picker', [
+                    'connections' => $myConnections,
+                    'onSelect'    => "socials.push({ service: opt.dataset.label, value: opt.dataset.handle })",
+                    'buttonLabel' => 'Autofill from connected account',
+                    'selectClass' => $inputCls . ' text-xs',
+                ])
+            </div>
+        @endif
         <template x-for="(s, i) in socials" :key="'s-'+i">
             <div class="flex gap-2 mb-2">
                 <select :name="`social_profiles[${i}][service]`" x-model="s.service" class="{{ $inputCls }}" style="max-width:150px;">

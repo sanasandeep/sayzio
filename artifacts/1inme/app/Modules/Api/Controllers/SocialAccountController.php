@@ -76,6 +76,20 @@ class SocialAccountController extends Controller
         return $this->noContent();
     }
 
+    /**
+     * Task #3588: mobile parity for the "Searchable in public" toggle on
+     * the Connected Accounts page — surfaces the connection in caller-ID
+     * enrichment, the Dialer universal finder, and public search.
+     */
+    public function updateSearchable(Request $request, int $id)
+    {
+        $c = SocialAccountConnection::where('user_id', $request->user()->id)->find($id);
+        if (!$c) return $this->notFound('Connection not found');
+        $data = $request->validate(['is_searchable' => ['required', 'boolean']]);
+        $c->forceFill(['is_searchable' => $data['is_searchable']])->save();
+        return $this->ok(['connection' => $this->transformConnection($c->fresh())]);
+    }
+
     public function socialProofs(Request $request)
     {
         $items = SocialProof::where('user_id', $request->user()->id)
@@ -158,6 +172,8 @@ class SocialAccountController extends Controller
             'last_refreshed_at'   => optional($c->last_refreshed_at)->toIso8601String(),
             'last_refresh_status' => $c->last_refresh_status,
             'last_refresh_error'  => $c->last_refresh_error,
+            'is_searchable'       => (bool) $c->is_searchable,
+            'sync_summary'        => $c->syncSummary(),
         ];
     }
 

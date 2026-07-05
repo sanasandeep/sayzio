@@ -27,6 +27,7 @@ import {
   listProofs,
   refreshConnection,
   updateProof,
+  updateSearchable,
 } from "@/lib/api/social";
 
 export default function SocialScreen() {
@@ -44,6 +45,10 @@ export default function SocialScreen() {
   });
   const remove = useMutation({
     mutationFn: (id: number) => disconnect(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["social", "conns"] }),
+  });
+  const toggleSearchable = useMutation({
+    mutationFn: ({ id, on }: { id: number; on: boolean }) => updateSearchable(id, on),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["social", "conns"] }),
   });
   const toggleProof = useMutation({
@@ -99,7 +104,7 @@ export default function SocialScreen() {
             <View
               key={c.id}
               style={[
-                styles.card,
+                styles.connCard,
                 {
                   backgroundColor: colors.card,
                   borderColor: colors.border,
@@ -107,38 +112,61 @@ export default function SocialScreen() {
                 },
               ]}
             >
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.name, { color: colors.foreground }]}>
-                  {c.platform_label} · @{c.handle}
-                </Text>
-                <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-                  {c.follower_count.toLocaleString()} followers
-                  {c.last_refresh_status === "error" ? " · sync error" : ""}
-                </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.name, { color: colors.foreground }]}>
+                    {c.platform_label} · @{c.handle}
+                  </Text>
+                  <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+                    {c.follower_count.toLocaleString()} followers
+                    {c.last_refresh_status === "error" ? " · sync error" : ""}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => refresh.mutate(c.id)}
+                  hitSlop={6}
+                  style={{ paddingHorizontal: 8 }}
+                >
+                  <Feather name="refresh-cw" size={16} color={colors.primary} />
+                </Pressable>
+                <Pressable
+                  onPress={() =>
+                    Alert.alert("Disconnect?", `Remove @${c.handle}?`, [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Remove",
+                        style: "destructive",
+                        onPress: () => remove.mutate(c.id),
+                      },
+                    ])
+                  }
+                  hitSlop={6}
+                  style={{ paddingHorizontal: 8 }}
+                >
+                  <Feather name="x" size={16} color={colors.destructive} />
+                </Pressable>
               </View>
-              <Pressable
-                onPress={() => refresh.mutate(c.id)}
-                hitSlop={6}
-                style={{ paddingHorizontal: 8 }}
+
+              <View
+                style={[
+                  styles.searchableRow,
+                  { borderTopColor: colors.border },
+                ]}
               >
-                <Feather name="refresh-cw" size={16} color={colors.primary} />
-              </Pressable>
-              <Pressable
-                onPress={() =>
-                  Alert.alert("Disconnect?", `Remove @${c.handle}?`, [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Remove",
-                      style: "destructive",
-                      onPress: () => remove.mutate(c.id),
-                    },
-                  ])
-                }
-                hitSlop={6}
-                style={{ paddingHorizontal: 8 }}
-              >
-                <Feather name="x" size={16} color={colors.destructive} />
-              </Pressable>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.name, { color: colors.foreground, fontSize: 13 }]}>
+                    Searchable in public
+                  </Text>
+                  <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+                    {c.sync_summary?.label ?? "Not synced anywhere yet"}
+                  </Text>
+                </View>
+                <Switch
+                  value={c.is_searchable}
+                  onValueChange={(on) => toggleSearchable.mutate({ id: c.id, on })}
+                  trackColor={{ true: colors.primary }}
+                />
+              </View>
             </View>
           ))
         )}
@@ -428,6 +456,18 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 14,
     borderWidth: 1,
+  },
+  connCard: {
+    padding: 14,
+    borderWidth: 1,
+  },
+  searchableRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   name: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
   sub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, marginTop: 2 },

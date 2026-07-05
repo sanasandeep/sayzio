@@ -7,6 +7,7 @@ use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\ContactPhone;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkedIdentifier;
+use App\Modules\User\Models\SocialAccountConnection;
 use App\Modules\User\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -98,6 +99,14 @@ class DialerIdentity
         $number = (string) ($resolved['number'] ?? '');
 
         $extracted = $bio ? self::extractFromBiolink($bio) : ['socials' => [], 'locations' => [], 'channels' => []];
+
+        // Task #3588: merge in any connected accounts the matched user has
+        // explicitly opted into "Searchable in public" — same reachability
+        // gate as the biolink extraction above ($matchedUser was already
+        // filtered through DialerReachability::enrichableCreator()).
+        if ($matchedUser) {
+            $extracted['socials'] = self::mergeSearchableConnections($matchedUser, $extracted['socials']);
+        }
 
         $manual = self::normalizeManual($contact?->manual_profile);
 
@@ -235,6 +244,35 @@ class DialerIdentity
             'locations' => $locations,
             'channels'  => self::dedupe($channels, 'url'),
         ];
+    }
+
+    /**
+     * Task #3588: merge a user's opted-in ("Searchable in public") connected
+     * social accounts into the auto-pulled socials list, deduped by URL so
+     * an account already surfaced via a biolink block isn't listed twice.
+     * Deliberately kept "source"-less (like biolink-derived rows) so both
+     * clients render them alongside the auto-pulled socials, not as manual.
+     *
+     * @param array<int,array> $existing
+     * @return array<int,array>
+     */
+    protected static function mergeSearchableConnections(User $matchedUser, array $existing): array
+    {
+        $connections = SocialAccountConnection::where('user_id', $matchedUser->id)
+            ->searchable()
+            ->get();
+
+        foreach ($connections as $conn) {
+            $url = $conn->resolvedProfileUrl();
+            if ($url === '') continue;
+            $existing[] = [
+                'platform' => $conn->platform,
+                'label'    => SocialAccountConnection::platformLabel($conn->platform),
+                'url'      => $url,
+            ];
+        }
+
+        return self::dedupe($existing, 'url');
     }
 
     /**

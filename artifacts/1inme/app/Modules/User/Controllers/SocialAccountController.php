@@ -101,6 +101,25 @@ class SocialAccountController extends Controller
     }
 
     /**
+     * Task #3588: toggle whether a connected account is "Searchable in
+     * public" — surfaced in caller-ID / identity-card enrichment, the
+     * Dialer universal finder, and public search. Off by default for both
+     * new and pre-existing connections (conservative: nothing becomes
+     * newly discoverable without an explicit opt-in).
+     */
+    public function updateSearchable(Request $request, SocialAccountConnection $connection)
+    {
+        abort_unless($connection->user_id === Auth::id(), 403);
+        $request->validate(['searchable' => 'nullable|boolean']);
+        $connection->forceFill(['is_searchable' => $request->boolean('searchable')])->save();
+
+        return redirect()->route('user.social-accounts.index')
+            ->with('success', $connection->is_searchable
+                ? SocialAccountConnection::platformLabel($connection->platform) . ' is now searchable in caller-ID, the dialer, and public search.'
+                : SocialAccountConnection::platformLabel($connection->platform) . ' is no longer searchable.');
+    }
+
+    /**
      * Toggle the per-user "send me an email when a social connection
      * breaks" preference. Posted from the toggle near the health badges
      * on the Connected Accounts page.

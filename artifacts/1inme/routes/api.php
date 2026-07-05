@@ -1051,6 +1051,7 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/social/connections',                 [SocialAccountController::class, 'connect']);
         Route::post  ('/social/connections/{id}/refresh',    [SocialAccountController::class, 'refresh'])->whereNumber('id');
         Route::delete('/social/connections/{id}',            [SocialAccountController::class, 'disconnect'])->whereNumber('id');
+        Route::patch ('/social/connections/{id}/searchable', [SocialAccountController::class, 'updateSearchable'])->whereNumber('id');
         Route::get   ('/social/proofs',                      [SocialAccountController::class, 'socialProofs']);
         Route::post  ('/social/proofs',                      [SocialAccountController::class, 'storeProof']);
         Route::patch ('/social/proofs/{id}',                 [SocialAccountController::class, 'updateProof'])->whereNumber('id');
