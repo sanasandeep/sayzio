@@ -296,6 +296,91 @@ class DeliveryProjectCommentsTest extends TestCase
         $this->assertSame(0, DeliveryProjectComment::query()->withoutGlobalScope('workspace')->count());
     }
 
+    // ----- Task #3575: the logged-in portal reads the team's reply ----------
+    //
+    // Task #3573 asserted the team-facing fan-out (client comment → team
+    // in-app notification) and the client-facing milestone emails, but never
+    // asserted the client's OWN copy of a team reply: the fresh thread state
+    // the logged-in portal renders. These tests close that gap by driving the
+    // real portal GET route (portal.session, not a user guard) and confirming
+    // the team's reply shows up in the client's read model + drops the
+    // "unanswered client question" badge back to zero.
+
+    public function test_portal_reads_a_team_web_reply_in_the_thread(): void
+    {
+        $owner   = $this->makeUser('owner');
+        $ws      = $owner->ownedWorkspaces()->first();
+        $project = $this->makeProject($ws, [
+            'title'        => 'Portal reads reply',
+            'client_email' => 'buyer@example.com',
+            'client_name'  => 'Buyer',
+        ]);
+        $link    = $this->portalLinkFor($ws, $project);
+
+        // The client asks a question from the logged-in portal → one open
+        // question awaiting the team.
+        $this->withSession(['portal_link_id' => $link->id])
+            ->post(route('portal.delivery-project.comment', $project->id), ['body' => 'When do the cabinets arrive?'])
+            ->assertRedirect();
+        $this->assertSame(1, $project->fresh()->unansweredClientCount());
+
+        // The team replies from the web surface.
+        session(['active_workspace_id' => $ws->id]);
+        $this->actingAs($owner)
+            ->post("/user/delivery-projects/{$project->id}/comments", ['body' => 'They ship next Monday.'])
+            ->assertRedirect();
+
+        // The reply is a team-authored comment …
+        $reply = DeliveryProjectComment::query()->withoutGlobalScope('workspace')
+            ->where('project_id', $project->id)
+            ->where('author_role', DeliveryProjectComment::ROLE_TEAM)
+            ->first();
+        $this->assertNotNull($reply);
+
+        // … which the logged-in portal renders in the thread the client reads.
+        $this->withSession(['portal_link_id' => $link->id])
+            ->get(route('portal.delivery-project', $project->id))
+            ->assertOk()
+            ->assertSee('They ship next Monday.')
+            ->assertSee('Team');
+
+        // The badge the team/portal reads shows the team is now caught up.
+        $this->assertSame(0, $project->fresh()->unansweredClientCount());
+    }
+
+    public function test_portal_reads_a_team_api_reply_in_the_thread(): void
+    {
+        $owner   = $this->makeUser('owner');
+        $ws      = $owner->ownedWorkspaces()->first();
+        $project = $this->makeProject($ws, [
+            'title'        => 'Portal reads API reply',
+            'client_email' => 'buyer@example.com',
+            'client_name'  => 'Buyer',
+        ]);
+        $link    = $this->portalLinkFor($ws, $project);
+
+        // Client asks via the portal.
+        $this->withSession(['portal_link_id' => $link->id])
+            ->post(route('portal.delivery-project.comment', $project->id), ['body' => 'Any update?'])
+            ->assertRedirect();
+        $this->assertSame(1, $project->fresh()->unansweredClientCount());
+
+        // The team replies over the REST API (real bearer token).
+        $this->withToken($this->token($owner))
+            ->postJson("/api/v1/delivery-projects/{$project->id}/comments", ['body' => 'Yes — installed today.'])
+            ->assertStatus(201)
+            ->assertJsonPath('data.comment.is_team', true);
+
+        // The API reply lands in the same thread the logged-in portal reads.
+        $this->withSession(['portal_link_id' => $link->id])
+            ->get(route('portal.delivery-project', $project->id))
+            ->assertOk()
+            ->assertSee('Yes — installed today.')
+            ->assertSee('Team');
+
+        $this->assertSame(0, $project->fresh()->unansweredClientCount());
+    }
+
     // ----- Surface 3: anonymous public share page ---------------------------
 
     public function test_public_share_comment_persists_author_name_and_notifies_team(): void
