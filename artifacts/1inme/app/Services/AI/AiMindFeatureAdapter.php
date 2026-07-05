@@ -501,9 +501,26 @@ class AiMindFeatureAdapter
                             $tierBits = [];
                             foreach ($tierModels as $tier) {
                                 $sold = (int) ($soldByTier[$tier->id]['sold'] ?? 0);
-                                $tierBits[] = $tier->capacity !== null
-                                    ? sprintf('%s %d/%d', $tier->name, $sold, (int) $tier->capacity)
-                                    : sprintf('%s %d sold', $tier->name, $sold);
+                                if ($tier->capacity === null) {
+                                    // Unbounded tier — no capacity to compare against,
+                                    // so no "almost sold out" / "sold out" flag.
+                                    $tierBits[] = sprintf('%s %d sold', $tier->name, $sold);
+                                    continue;
+                                }
+                                // At-a-glance capacity flag so the AI can answer
+                                // "which tiers should I add more capacity to?"
+                                // without eyeballing the ratios. Uses the same
+                                // sold/capacity figures shown; counts-only, no PII.
+                                $cap = (int) $tier->capacity;
+                                $flag = '';
+                                if ($cap > 0) {
+                                    if ($sold >= $cap) {
+                                        $flag = ' (sold out)';
+                                    } elseif ($sold / $cap >= 0.9) {
+                                        $flag = ' (90%+ full)';
+                                    }
+                                }
+                                $tierBits[] = sprintf('%s %d/%d%s', $tier->name, $sold, $cap, $flag);
                             }
                             $tierBreakdown = implode(', ', $tierBits);
                         }

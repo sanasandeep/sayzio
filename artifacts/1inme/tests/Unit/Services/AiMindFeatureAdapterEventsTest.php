@@ -221,6 +221,89 @@ class AiMindFeatureAdapterEventsTest extends TestCase
         $this->assertStringContainsString('tiers: VIP 3/20, General 5/200', $snapshot);
     }
 
+    public function test_per_tier_breakdown_flags_sold_out_and_near_capacity(): void
+    {
+        $user = $this->makeUser();
+
+        $eventLink = Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'ics',
+            'alias'     => 'ev' . bin2hex(random_bytes(3)),
+            'title'     => 'Capacity Fest',
+            'is_active' => true,
+        ]);
+        IcsData::create([
+            'link_id'    => $eventLink->id,
+            'event_name' => 'Capacity Fest',
+            'start_date' => now()->addDays(6),
+            'end_date'   => now()->addDays(6)->addHours(3),
+            'timezone'   => 'UTC',
+        ]);
+
+        // VIP: 20/20 => sold out.
+        $vip = EventTicketTier::create([
+            'link_id'    => $eventLink->id,
+            'name'       => 'VIP',
+            'capacity'   => 20,
+            'sort_order' => 1,
+        ]);
+        // General: 18/20 => 90%+ full.
+        $general = EventTicketTier::create([
+            'link_id'    => $eventLink->id,
+            'name'       => 'General',
+            'capacity'   => 20,
+            'sort_order' => 2,
+        ]);
+        // Balcony: 5/200 => plenty left, no flag.
+        $balcony = EventTicketTier::create([
+            'link_id'    => $eventLink->id,
+            'name'       => 'Balcony',
+            'capacity'   => 200,
+            'sort_order' => 3,
+        ]);
+        // Lawn: unbounded (null capacity) => never flagged.
+        $lawn = EventTicketTier::create([
+            'link_id'    => $eventLink->id,
+            'name'       => 'Lawn',
+            'capacity'   => null,
+            'sort_order' => 4,
+        ]);
+
+        EventTicket::create([
+            'tier_id'  => $vip->id,
+            'link_id'  => $eventLink->id,
+            'quantity' => 20,
+            'code'     => EventTicket::generateCode(),
+            'status'   => EventTicket::STATUS_VALID,
+        ]);
+        EventTicket::create([
+            'tier_id'  => $general->id,
+            'link_id'  => $eventLink->id,
+            'quantity' => 18,
+            'code'     => EventTicket::generateCode(),
+            'status'   => EventTicket::STATUS_VALID,
+        ]);
+        EventTicket::create([
+            'tier_id'  => $balcony->id,
+            'link_id'  => $eventLink->id,
+            'quantity' => 5,
+            'code'     => EventTicket::generateCode(),
+            'status'   => EventTicket::STATUS_VALID,
+        ]);
+        EventTicket::create([
+            'tier_id'  => $lawn->id,
+            'link_id'  => $eventLink->id,
+            'quantity' => 300,
+            'code'     => EventTicket::generateCode(),
+            'status'   => EventTicket::STATUS_VALID,
+        ]);
+
+        $adapter = new AiMindFeatureAdapter();
+        $snapshot = $adapter->snapshot($user, 'events');
+
+        $this->assertStringContainsString('tiers: VIP 20/20 (sold out), General 18/20 (90%+ full), Balcony 5/200, Lawn 300 sold', $snapshot);
+    }
+
     public function test_single_tier_event_has_no_per_tier_breakdown(): void
     {
         $user = $this->makeUser();
