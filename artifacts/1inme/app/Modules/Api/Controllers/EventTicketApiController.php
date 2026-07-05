@@ -295,6 +295,53 @@ class EventTicketApiController extends Controller
         return $this->ok(\App\Services\Events\EventCheckinProgress::for($link));
     }
 
+    // ─── Owner: ticket list + refund (Task #3591) ─────────────────
+
+    public function ownerTickets(Request $request, int $linkId)
+    {
+        $user = $request->user();
+        if (!$user) return $this->unauthorized();
+
+        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($linkId);
+        if (!$link) return $this->notFound();
+
+        $tickets = $link->eventTickets()->with('tier')->orderByDesc('created_at')->paginate(50);
+
+        return $this->ok([
+            'items' => collect($tickets->items())->map(fn (EventTicket $t) => $this->ticketShape($t))->all(),
+            'meta'  => [
+                'current_page' => $tickets->currentPage(),
+                'last_page'    => $tickets->lastPage(),
+                'total'        => $tickets->total(),
+            ],
+        ]);
+    }
+
+    public function refundTicket(Request $request, int $linkId, int $ticketId)
+    {
+        $user = $request->user();
+        if (!$user) return $this->unauthorized();
+
+        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($linkId);
+        if (!$link) return $this->notFound();
+
+        $ticket = EventTicket::where('link_id', $link->id)->find($ticketId);
+        if (!$ticket) return $this->notFound();
+
+        if (in_array($ticket->status, [EventTicket::STATUS_REFUNDED, EventTicket::STATUS_CANCELLED], true)) {
+            return $this->fail('This ticket has already been ' . $ticket->status . '.', 422);
+        }
+
+        $data = $request->validate(['refund_reason' => ['nullable', 'string', 'max:280']]);
+
+        $ok = $this->checkout->refundEventTicket($ticket->id, $data['refund_reason'] ?? null);
+        if (!$ok) {
+            return $this->fail('Could not refund this ticket.', 422);
+        }
+
+        return $this->ok($this->ticketShape($ticket->fresh(['tier'])));
+    }
+
     // ─── Shapes / helpers ──────────────────────────────────────────
 
     protected function validateTier(Request $request): array

@@ -75,6 +75,35 @@ class EventTicketTierController extends Controller
         return back()->with('success', 'Ticket tier removed.');
     }
 
+    /**
+     * Refund a single paid ticket (Task #3591). Reuses the shared refund
+     * plumbing (gateway reversal + negative ledger row, 0% platform fee),
+     * frees the seat back into its tier, rejects the ticket at door check-in,
+     * and emails/notifies the attendee. Idempotent against double-refund.
+     */
+    public function refundTicket(Request $request, Link $link, \App\Modules\User\Models\EventTicket $ticket)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+        abort_if($link->type !== 'ics', 404);
+        abort_if($ticket->link_id !== $link->id, 404);
+
+        if (in_array($ticket->status, ['refunded', 'cancelled'], true)) {
+            return back()->with('error', 'This ticket has already been ' . $ticket->status . '.');
+        }
+
+        $data = $request->validate([
+            'refund_reason' => ['nullable', 'string', 'max:280'],
+        ]);
+
+        $ok = app(\App\Services\Monetization\MonetizationCheckout::class)
+            ->refundEventTicket($ticket->id, $data['refund_reason'] ?? null);
+
+        return back()->with(
+            $ok ? 'success' : 'error',
+            $ok ? 'Ticket refunded — the attendee has been notified.' : 'Could not refund this ticket.',
+        );
+    }
+
     private function validateTier(Request $request): array
     {
         $data = $request->validate([

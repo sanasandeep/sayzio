@@ -329,6 +329,22 @@ class EmailTemplateRegistry
                     'ticket_url' => ['label' => 'QR ticket link', 'sample' => 'https://sayzio.app/summerfest/tickets/ABC123'],
                 ],
             ],
+            'ticketing.refunded' => [
+                'category' => 'events',
+                'label' => 'Ticket refund confirmation',
+                'description' => 'Sent to the attendee when the organizer refunds their event ticket.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => "Your ticket for {{event_name}} was refunded",
+                'body' => "Your ticket for {{event_name}} has been refunded.\n\nTicket: {{tier_name}} × {{quantity}}\nRefunded: {{amount}}\nReason: {{reason}}\n\nThe refund has been sent back to your original payment method. This ticket is no longer valid for entry.",
+                'variables' => [
+                    'event_name' => ['label' => 'Event name', 'sample' => 'Summer Music Fest'],
+                    'tier_name' => ['label' => 'Ticket tier', 'sample' => 'General Admission'],
+                    'quantity' => ['label' => 'Quantity refunded', 'sample' => '2'],
+                    'amount' => ['label' => 'Refunded amount', 'sample' => 'USD 50.00'],
+                    'reason' => ['label' => 'Refund reason', 'sample' => 'Event cancelled'],
+                ],
+            ],
 
             // ----------------------------------------------------------------
             // Developer API

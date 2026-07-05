@@ -17,9 +17,12 @@ import { useColors } from "@/hooks/useColors";
 import {
   createTier,
   deleteTier,
+  type EventTicket,
   type EventTier,
+  getOwnerTickets,
   getOwnerTiers,
   type OwnerTicketingTotals,
+  refundEventTicket,
   updateTier,
 } from "@/lib/api/events";
 
@@ -32,18 +35,55 @@ export default function OwnerTiersScreen() {
   const colors = useColors();
   const id = Number(linkId);
   const [tiers, setTiers] = useState<EventTier[]>([]);
+  const [tickets, setTickets] = useState<EventTicket[]>([]);
   const [totals, setTotals] = useState<OwnerTicketingTotals | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refunding, setRefunding] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [capacity, setCapacity] = useState("");
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await getOwnerTiers(id);
+    const [res, tix] = await Promise.all([
+      getOwnerTiers(id),
+      getOwnerTickets(id).catch(() => null),
+    ]);
     setTiers(res.tiers);
     setTotals(res.totals);
+    if (tix) setTickets(tix.items);
   }, [id]);
+
+  const refundTicket = useCallback(
+    (ticket: EventTicket) => {
+      Alert.alert(
+        "Refund ticket",
+        `Refund ${ticket.attendee_name ?? "this attendee"}'s ticket? This frees the seat and notifies them by email. This can't be undone.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Refund",
+            style: "destructive",
+            onPress: async () => {
+              setRefunding(ticket.id);
+              try {
+                await refundEventTicket(id, ticket.id);
+                await load();
+              } catch (err) {
+                Alert.alert(
+                  "Could not refund",
+                  (err as Error)?.message ?? "Try again.",
+                );
+              } finally {
+                setRefunding(null);
+              }
+            },
+          },
+        ],
+      );
+    },
+    [id, load],
+  );
 
   useEffect(() => {
     if (!id) return;
@@ -164,6 +204,45 @@ export default function OwnerTiersScreen() {
           </Pressable>
         </View>
       ))}
+
+      {tickets.length > 0 ? (
+        <>
+          <Text style={[styles.section, { color: colors.foreground, marginTop: 20 }]}>
+            Recent tickets
+          </Text>
+          {tickets.map((t) => {
+            const refundable = t.status === "valid" || t.status === "checked_in";
+            return (
+              <View
+                key={t.id}
+                style={[styles.tierCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                    {t.attendee_name ?? "Guest"}
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+                    {t.tier?.name ?? "—"} · qty {t.quantity} · {t.status}
+                  </Text>
+                </View>
+                {refundable ? (
+                  <Pressable
+                    onPress={() => refundTicket(t)}
+                    disabled={refunding === t.id}
+                    style={{ opacity: refunding === t.id ? 0.5 : 1 }}
+                  >
+                    <Text style={{ color: colors.destructive, fontWeight: "700", fontSize: 13 }}>
+                      {refunding === t.id ? "…" : "Refund"}
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>—</Text>
+                )}
+              </View>
+            );
+          })}
+        </>
+      ) : null}
 
       <Text style={[styles.section, { color: colors.foreground, marginTop: 20 }]}>Add a tier</Text>
       <TextInput

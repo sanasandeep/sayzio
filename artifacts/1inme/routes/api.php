@@ -186,6 +186,8 @@ Route::prefix('v1')->group(function () {
         Route::delete('/links/{link}/event-tiers/{tier}',   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'destroyTier'])->whereNumber('link')->whereNumber('tier');
         Route::post('/links/{link}/event-checkin',          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'checkin'])->whereNumber('link')->middleware('throttle:120,1');
         Route::get ('/links/{link}/event-checkin/progress', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'checkinProgress'])->whereNumber('link');
+        Route::get ('/links/{link}/event-tickets',          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ownerTickets'])->whereNumber('link');
+        Route::post('/links/{link}/event-tickets/{ticket}/refund', [\App\Modules\Api\Controllers\EventTicketApiController::class, 'refundTicket'])->whereNumber('link')->whereNumber('ticket');
     });
 
     Route::post('/biolinks/{alias}/subscribe', [BiolinkController::class, 'subscribe'])

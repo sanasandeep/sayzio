@@ -112,6 +112,7 @@
                         <th class="pb-2">Qty</th>
                         <th class="pb-2">Status</th>
                         <th class="pb-2">Purchased</th>
+                        <th class="pb-2 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -122,9 +123,22 @@
                         <td class="py-2" style="color: var(--text-secondary);">{{ $t->quantity }}</td>
                         <td class="py-2"><span class="text-xs px-2 py-0.5 rounded-full" style="background: rgba(255,255,255,0.06); color: var(--text-secondary);">{{ $t->status }}</span></td>
                         <td class="py-2" style="color: var(--text-muted);">{{ $t->created_at->format('M j, Y g:i A') }}</td>
+                        <td class="py-2 text-right">
+                            @if(in_array($t->status, ['valid', 'checked_in'], true))
+                            <form method="POST" action="{{ route('user.links.ics.tickets.refund', [$link, $t]) }}"
+                                  onsubmit="return confirm('Refund this ticket for ' + @js($t->attendee_name) + '? This frees the seat and notifies the attendee by email. This cannot be undone.');">
+                                @csrf
+                                <button type="submit" class="text-xs px-3 py-1 rounded-lg" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2);">
+                                    <i class="fas fa-rotate-left mr-1"></i> Refund
+                                </button>
+                            </form>
+                            @else
+                            <span class="text-xs" style="color: var(--text-muted);">—</span>
+                            @endif
+                        </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="py-4 text-center" style="color: var(--text-muted);">No tickets sold yet.</td></tr>
+                    <tr><td colspan="6" class="py-4 text-center" style="color: var(--text-muted);">No tickets sold yet.</td></tr>
                 @endforelse
                 </tbody>
             </table>

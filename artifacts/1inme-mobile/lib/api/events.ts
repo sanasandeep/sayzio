@@ -251,6 +251,28 @@ export async function deleteTier(
   });
 }
 
+export async function getOwnerTickets(
+  linkId: number,
+  page = 1,
+): Promise<Paginated<EventTicket>> {
+  const res = await apiFetch<{ data: Paginated<EventTicket> }>(
+    `/links/${linkId}/event-tickets?page=${page}`,
+  );
+  return res.data;
+}
+
+export async function refundEventTicket(
+  linkId: number,
+  ticketId: number,
+  reason?: string,
+): Promise<EventTicket> {
+  const res = await apiFetch<{ data: EventTicket }>(
+    `/links/${linkId}/event-tickets/${ticketId}/refund`,
+    { method: "POST", body: JSON.stringify({ refund_reason: reason ?? null }) },
+  );
+  return res.data;
+}
+
 export type CheckinResult = {
   ok: boolean;
   status: string;

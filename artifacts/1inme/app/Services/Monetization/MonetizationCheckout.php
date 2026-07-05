@@ -691,16 +691,30 @@ class MonetizationCheckout
      * ledger row. Idempotent: a second call on an already-refunded or
      * already-checked-in ticket is a no-op.
      */
-    public function refundEventTicket(int $id): bool
+    public function refundEventTicket(int $id, ?string $reason = null): bool
     {
-        $ticket = \App\Modules\User\Models\EventTicket::find($id);
-        if (!$ticket || in_array($ticket->status, [
-            \App\Modules\User\Models\EventTicket::STATUS_REFUNDED,
-            \App\Modules\User\Models\EventTicket::STATUS_CANCELLED,
-        ], true)) {
+        // Idempotency: claim the ticket under a row lock so two concurrent
+        // refund requests can't both pass the status check and double-refund.
+        // A second call on an already-refunded/cancelled ticket is a no-op.
+        $ticket = DB::transaction(function () use ($id) {
+            $ticket = \App\Modules\User\Models\EventTicket::whereKey($id)->lockForUpdate()->first();
+            if (!$ticket || in_array($ticket->status, [
+                \App\Modules\User\Models\EventTicket::STATUS_REFUNDED,
+                \App\Modules\User\Models\EventTicket::STATUS_CANCELLED,
+            ], true)) {
+                return null;
+            }
+            $ticket->status = \App\Modules\User\Models\EventTicket::STATUS_REFUNDED;
+            $ticket->save();
+            return $ticket;
+        });
+
+        if (!$ticket) {
             return false;
         }
 
+        // Best-effort gateway reversal (works in preview mode). Done outside
+        // the lock so a slow provider call doesn't hold the row.
         try {
             if ($ticket->gateway && $ticket->gateway_charge_id && $ticket->price_cents > 0) {
                 PayoutProviderRegistry::adapter($ticket->gateway)->refundCharge($ticket->gateway_charge_id, $ticket->price_cents);
@@ -708,9 +722,6 @@ class MonetizationCheckout
         } catch (\Throwable $e) {
             Log::warning('refund.event_ticket.adapter_failed', ['ticket' => $id, 'err' => $e->getMessage()]);
         }
-
-        $ticket->status = \App\Modules\User\Models\EventTicket::STATUS_REFUNDED;
-        $ticket->save();
 
         if ($ticket->tier) {
             $ticket->tier->decrement('sold_count', min($ticket->quantity, $ticket->tier->sold_count));
@@ -722,7 +733,57 @@ class MonetizationCheckout
             $this->logEvent($creator, $buyer, CreatorPaymentEvent::SOURCE_EVENT, CreatorPaymentEvent::TYPE_TICKET_REFUNDED, $ticket, -1 * $ticket->price_cents, $ticket->currency);
         }
 
+        $this->notifyAttendeeOfTicketRefund($ticket, $reason);
+
         return true;
+    }
+
+    /**
+     * Tell the attendee their event ticket was refunded — an email to the
+     * (possibly anonymous) attendee_email plus, for registered buyers, an
+     * in-app notification. Both are best-effort and never abort the refund.
+     */
+    protected function notifyAttendeeOfTicketRefund(\App\Modules\User\Models\EventTicket $ticket, ?string $reason = null): void
+    {
+        $eventName = $ticket->link?->title ?? 'the event';
+        $amount    = $this->formatMoney((int) $ticket->price_cents, (string) ($ticket->currency ?: 'USD'));
+        $reason    = $reason ? mb_substr(trim($reason), 0, 280) : null;
+
+        if ($ticket->attendee_email) {
+            try {
+                \App\Modules\Common\Services\Emailer::send('ticketing.refunded', $ticket->attendee_email, [
+                    'event_name' => $eventName,
+                    'tier_name'  => $ticket->tier?->name ?? 'Ticket',
+                    'quantity'   => $ticket->quantity,
+                    'amount'     => $amount,
+                    'reason'     => $reason ?: '—',
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('ticketing.refund_email.failed', ['ticket' => $ticket->id, 'err' => $e->getMessage()]);
+            }
+        }
+
+        $buyer = $ticket->buyer;
+        if ($buyer) {
+            try {
+                \App\Modules\User\Models\UserNotification::create([
+                    'user_id'    => $buyer->id,
+                    'type'       => 'ticket.refunded',
+                    'data'       => [
+                        'ticket_id' => $ticket->id,
+                        'event'     => $eventName,
+                        'amount'    => $amount,
+                        'message'   => 'Your ticket for ' . $eventName . ' was refunded — ' . $amount . '.',
+                        'link'      => $ticket->link?->alias
+                            ? route('redirect.event.ticket', ['alias' => $ticket->link->alias, 'code' => $ticket->code])
+                            : null,
+                    ],
+                    'created_at' => now(),
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('ticketing.refund_notification.failed', ['ticket' => $ticket->id, 'err' => $e->getMessage()]);
+            }
+        }
     }
 
     /**
