@@ -42,9 +42,32 @@
     .event-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -14px rgba(61,107,255,0.35); border-color: rgba(61,107,255,0.4); }
     .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .tier-breakdown.tier-open .tier-chevron { transform: rotate(180deg); }
-    .cat-tile { position:relative; border-radius:1rem; overflow:hidden; min-height:96px; transition:transform .15s ease; }
-    .cat-tile:hover { transform: translateY(-3px); }
-    .cat-tile.active { outline:2px solid #fff; outline-offset:-2px; }
+    .cat-tile-icon {
+        position:relative; width:64px; height:64px; flex:0 0 auto;
+        border:1.5px solid rgba(255,255,255,0.16); border-radius:0.85rem; background:transparent;
+        display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.65); font-size:1.2rem;
+        transition:border-color .15s ease, color .15s ease, transform .15s ease, background .15s ease;
+    }
+    .cat-tile-icon:hover { border-color:#3d6bff; color:#fff; transform:translateY(-2px); }
+    .cat-tile-icon.active { border-color:#3d6bff; background:rgba(61,107,255,0.16); color:#fff; }
+    .cat-tile-icon::after {
+        content: attr(data-label);
+        position:absolute; bottom:calc(100% + 9px); left:50%; transform:translateX(-50%) translateY(4px);
+        background:#0b0e16; color:#fff; font-size:11px; font-weight:600; white-space:nowrap; line-height:1;
+        padding:5px 9px; border-radius:6px; border:1px solid rgba(255,255,255,0.12); box-shadow:0 8px 20px -8px rgba(0,0,0,0.6);
+        opacity:0; pointer-events:none; transition:opacity .15s ease, transform .15s ease; z-index:20;
+    }
+    .cat-tile-icon:hover::after, .cat-tile-icon:focus-visible::after { opacity:1; transform:translateX(-50%) translateY(0); }
+    .cat-divider { width:1px; align-self:stretch; margin:2px 4px; background:rgba(255,255,255,0.14); }
+    .cat-more-btn {
+        flex:0 0 auto; width:64px; height:64px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+        border-radius:0.85rem; border:1.5px dashed rgba(255,255,255,0.22); color:rgba(255,255,255,0.6); font-size:10px; font-weight:700;
+        background:transparent; transition:border-color .15s ease, color .15s ease;
+    }
+    .cat-more-btn:hover { border-color:#3d6bff; color:#fff; }
+    @media (prefers-reduced-motion: reduce) {
+        .cat-tile-icon, .cat-tile-icon::after, .cat-more-btn { transition:none; }
+    }
     #search-map { height:200px; border-radius:0.9rem; }
     [x-cloak] { display:none !important; }
 
@@ -185,28 +208,39 @@
 
 <div class="events-page-body max-w-6xl mx-auto px-4 py-8">
 
-    {{-- Gradient category tiles. --}}
+    {{-- Icon-only category tiles: name shows as a hover tooltip, progressive
+         disclosure keeps the row to one line with a "more" toggle for the
+         rest (Task #3654). "All events" and "Other" are always visible. --}}
+    @php $catFitCount = 9; @endphp
     @if($categories->isNotEmpty() || $hasOtherCategory)
-        <div class="mb-6">
+        <div class="mb-6" x-data="{ showMoreCats: false }">
             <div class="text-xs font-bold uppercase tracking-wide text-white/40 mb-3">Browse by category</div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div class="flex flex-wrap items-center gap-2.5">
                 <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['category', 'page']), ['category' => ''])) }}"
-                   class="cat-tile {{ $category === '' ? 'active' : '' }} flex flex-col items-center justify-center gap-1.5 text-white text-sm font-semibold p-4"
-                   style="background: linear-gradient(135deg, #334155 0%, #1e293b 100%);">
-                    <i class="fas fa-layer-group text-lg"></i> All events
+                   class="cat-tile-icon {{ $category === '' ? 'active' : '' }}"
+                   data-label="All events" aria-label="All events">
+                    <i class="fas fa-layer-group"></i>
                 </a>
-                @foreach($categories as $c)
+                @foreach($categories as $i => $c)
                     <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['category', 'page']), ['category' => $category === $c ? '' : $c])) }}"
-                       class="cat-tile {{ $category === $c ? 'active' : '' }} flex flex-col items-center justify-center gap-1.5 text-white text-sm font-semibold p-4 text-center"
-                       style="background: {{ $categoryColors[$c] ?? \App\Modules\User\Support\EventCategories::gradient($c) }};">
-                        <i class="fas {{ $categoryIcons[$c] ?? 'fa-calendar-star' }} text-lg"></i> {{ $categoryLabels[$c] ?? ucfirst($c) }}
+                       class="cat-tile-icon {{ $category === $c ? 'active' : '' }}"
+                       data-label="{{ $categoryLabels[$c] ?? ucfirst($c) }}" aria-label="{{ $categoryLabels[$c] ?? ucfirst($c) }}"
+                       @if($i >= $catFitCount) x-show="showMoreCats" x-cloak @endif>
+                        <i class="fas {{ $categoryIcons[$c] ?? 'fa-calendar-star' }}"></i>
                     </a>
+                    @if($i === $catFitCount - 1 && $categories->count() > $catFitCount)
+                        <div class="cat-divider" aria-hidden="true"></div>
+                        <button type="button" @click="showMoreCats = !showMoreCats" class="cat-more-btn">
+                            <i class="fas" :class="showMoreCats ? 'fa-chevron-left' : 'fa-chevron-right'"></i>
+                            <span x-text="showMoreCats ? 'Less' : 'More'"></span>
+                        </button>
+                    @endif
                 @endforeach
                 @if($hasOtherCategory)
                     <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['category', 'page']), ['category' => $category === $otherCategory ? '' : $otherCategory])) }}"
-                       class="cat-tile {{ $category === $otherCategory ? 'active' : '' }} flex flex-col items-center justify-center gap-1.5 text-white text-sm font-semibold p-4"
-                       style="background: linear-gradient(135deg, #3d6bff 0%, #1e293b 100%);">
-                        <i class="fas fa-ellipsis text-lg"></i> Other
+                       class="cat-tile-icon {{ $category === $otherCategory ? 'active' : '' }}"
+                       data-label="Other" aria-label="Other">
+                        <i class="fas fa-ellipsis"></i>
                     </a>
                 @endif
             </div>
@@ -221,14 +255,15 @@
         </a>
     </div>
 
-    {{-- Trending hashtag row (recency-weighted). --}}
-    @if($trendingTags->isNotEmpty())
+    {{-- Hashtag row: admin-predefined tags first, backfilled with
+         auto-trending tags (deduped) — Task #3654. --}}
+    @if($tagRow->isNotEmpty())
         <div class="flex flex-wrap items-center gap-2 mb-6">
             <span class="text-xs font-bold uppercase tracking-wide text-white/40 mr-1"><i class="fas fa-fire mr-1" style="color:#f59e0b;"></i> Trending:</span>
-            @foreach($trendingTags as $trendingTag)
-                <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except('tag', 'page'), ['tag' => $tag === $trendingTag ? '' : $trendingTag])) }}"
-                   class="ev-chip {{ $tag === $trendingTag ? 'active' : '' }} inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold">
-                    #{{ $trendingTag }}
+            @foreach($tagRow as $rowTag)
+                <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except('tag', 'page'), ['tag' => $tag === $rowTag ? '' : $rowTag])) }}"
+                   class="ev-chip {{ $tag === $rowTag ? 'active' : '' }} inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold">
+                    #{{ $rowTag }}
                 </a>
             @endforeach
         </div>

@@ -13,6 +13,8 @@ use App\Modules\Admin\Controllers\PlanController;
 use App\Modules\Admin\Controllers\AddonController;
 use App\Modules\Admin\Controllers\CoinPackageController;
 use App\Modules\Admin\Controllers\OnboardingSlideController;
+use App\Modules\Admin\Controllers\EventCategoryController;
+use App\Modules\Admin\Controllers\EventHashtagController;
 use App\Modules\Admin\Controllers\WalletSettingsController;
 use App\Modules\Admin\Controllers\LinkManagementController;
 use App\Modules\Admin\Controllers\CoachDefaultsController;
@@ -451,6 +453,26 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{onboardingSlide}/edit',  [OnboardingSlideController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{onboardingSlide}',       [OnboardingSlideController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::delete('{onboardingSlide}',    [OnboardingSlideController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
+        Route::prefix('event-categories')->name('event-categories.')->group(function () {
+            Route::get('/',                     [EventCategoryController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('create',                [EventCategoryController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
+            Route::post('/',                    [EventCategoryController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::get('{eventCategory}/edit',  [EventCategoryController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('{eventCategory}',       [EventCategoryController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('{eventCategory}/toggle', [EventCategoryController::class, 'toggleEnabled'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
+            Route::delete('{eventCategory}',    [EventCategoryController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
+        Route::prefix('event-hashtags')->name('event-hashtags.')->group(function () {
+            Route::get('/',                   [EventHashtagController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('create',              [EventHashtagController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
+            Route::post('/',                  [EventHashtagController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::get('{eventHashtag}/edit', [EventHashtagController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('{eventHashtag}',      [EventHashtagController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('{eventHashtag}/move', [EventHashtagController::class, 'move'])->middleware(CheckPermission::class . ':settings.manage')->name('move');
+            Route::delete('{eventHashtag}',   [EventHashtagController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
         Route::prefix('testimonials')->name('testimonials.')->group(function () {

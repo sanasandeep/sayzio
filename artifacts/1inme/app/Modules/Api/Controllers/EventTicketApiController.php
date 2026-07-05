@@ -87,11 +87,11 @@ class EventTicketApiController extends Controller
 
         return $this->ok([
             'items' => collect($events->items())->map(fn (Link $l) => $this->eventShape($l))->all(),
-            // Curated category catalogue (EventCategories::CATEGORIES) so mobile can
-            // render the same tappable filter chips as the web /events directory
-            // without a separate round-trip. slug is what the `category` filter
-            // param expects; label/icon drive the chip UI.
-            'categories' => collect(EventCategories::CATEGORIES)
+            // Admin-managed category catalogue (EventCategories::all(), Task #3654)
+            // so mobile can render the same tappable filter chips as the web
+            // /events directory without a separate round-trip. slug is what the
+            // `category` filter param expects; label/icon drive the chip UI.
+            'categories' => collect(EventCategories::all())
                 ->map(fn (array $meta, string $slug) => [
                     'slug'  => $slug,
                     'label' => $meta['label'],

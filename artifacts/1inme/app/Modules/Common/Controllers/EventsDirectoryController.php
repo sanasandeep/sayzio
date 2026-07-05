@@ -47,7 +47,7 @@ class EventsDirectoryController extends Controller
             });
         }
 
-        $curatedSlugs = array_keys(\App\Modules\User\Support\EventCategories::CATEGORIES);
+        $curatedSlugs = array_keys(\App\Modules\User\Support\EventCategories::all());
 
         if ($category === \App\Modules\User\Support\EventCategories::OTHER) {
             // "Other" pill: every stored value that isn't a curated slug.
@@ -108,16 +108,28 @@ class EventsDirectoryController extends Controller
             ->selectRaw("DISTINCT settings->>'event_category' as category")
             ->pluck('category')->filter();
 
-        // Browse row shows only curated slugs (in curated order) that actually
-        // have events; every non-curated free-text value folds into one "Other"
-        // pill so a long tail of one-off custom values can't clutter the row.
+        // Live event counts per curated slug, used purely to order the browse
+        // row (most active categories first) — every enabled admin category
+        // is still shown even at a count of 0 (Task #3654).
+        $categoryCounts = Link::where('type', 'ics')
+            ->where('is_active', true)
+            ->whereRaw("settings->>'event_category' IS NOT NULL")
+            ->selectRaw("settings->>'event_category' as category, count(*) as cnt")
+            ->groupBy('category')
+            ->pluck('cnt', 'category');
+
         $categories = collect($curatedSlugs)
-            ->filter(fn ($slug) => $storedCategories->contains($slug))
+            ->sortByDesc(fn ($slug) => (int) ($categoryCounts[$slug] ?? 0))
             ->values();
         $hasOtherCategory = $storedCategories->contains(
             fn ($c) => !\App\Modules\User\Support\EventCategories::isKnown((string) $c)
         );
         $otherCategory = \App\Modules\User\Support\EventCategories::OTHER;
+
+        // Predefined admin hashtags (Task #3654) are shown first, in their
+        // configured order; auto-computed trending tags backfill the rest of
+        // the row, deduped against the predefined list.
+        $predefinedTags = \App\Modules\Admin\Models\EventHashtag::ordered()->pluck('tag');
 
         // Trending hashtags: weighted by both recency (sooner events count
         // more than far-off ones) and interest (events more people have
@@ -144,8 +156,13 @@ class EventsDirectoryController extends Controller
             ->groupBy('tag')
             ->map(fn ($rows) => $rows->sum('weight'))
             ->sortDesc()
-            ->take(12)
             ->keys()
+            ->values();
+
+        $tagRow = $predefinedTags
+            ->merge($trendingTags)
+            ->unique()
+            ->take(12)
             ->values();
 
         // Hero slider: a handful of upcoming public events, preferring ones
@@ -197,7 +214,7 @@ class EventsDirectoryController extends Controller
 
         return view('common.events-directory', compact(
             'events', 'q', 'category', 'tag', 'categories', 'categoryIcons', 'categoryLabels', 'categoryColors',
-            'hasOtherCategory', 'otherCategory', 'trendingTags', 'nearMe', 'lat', 'lng', 'radiusKm', 'online', 'heroEvents'
+            'hasOtherCategory', 'otherCategory', 'tagRow', 'nearMe', 'lat', 'lng', 'radiusKm', 'online', 'heroEvents'
         ));
     }
 

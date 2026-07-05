@@ -2,17 +2,22 @@
 
 namespace App\Modules\User\Support;
 
+use App\Modules\Admin\Models\EventCategory;
+use Illuminate\Support\Facades\Cache;
+
 /**
- * Curated event category list (Task #3615). `settings['event_category']` used
- * to be a free-text field, which fragmented the /events directory ("music" vs
- * "Music" vs "live music") and forced the directory to guess a display icon
- * from keywords. Categories are now picked from this fixed list, so the stored
- * value is a stable slug, the directory's icon/label lookup is exact, and
- * near-duplicate categories no longer split the browse row.
+ * Event category lookups (Task #3615, made admin-managed in Task #3654).
+ * `settings['event_category']` used to be a free-text field, which
+ * fragmented the /events directory ("music" vs "Music" vs "live music") and
+ * forced the directory to guess a display icon from keywords. Categories are
+ * now picked from an admin-managed list (see `EventCategory`, curated
+ * originally from DEFAULTS below), so the stored value is a stable slug, the
+ * directory's icon/label lookup is exact, and near-duplicate categories no
+ * longer split the browse row.
  *
  * Legacy free-text values already saved on events are not broken: unknown
- * slugs fall back to keyword-based icon guessing and a humanized label, and the
- * editor exposes an "Other" option that preserves any custom value.
+ * slugs fall back to keyword-based icon guessing and a humanized label, and
+ * the editor exposes an "Other" option that preserves any custom value.
  */
 class EventCategories
 {
@@ -20,10 +25,13 @@ class EventCategories
     public const OTHER = '__other__';
 
     /**
-     * Curated categories: stable slug => [label, Font Awesome icon]. The slug
-     * is what gets stored/filtered on; the label/icon drive the directory UI.
+     * Original curated categories: stable slug => [label, Font Awesome icon,
+     * color]. Only used to seed the `event_categories` table on install —
+     * runtime lookups go through `all()` which reads the admin-managed
+     * table. Kept here (rather than in the migration) so nothing is lost if
+     * the table is ever re-seeded from scratch.
      */
-    public const CATEGORIES = [
+    public const DEFAULTS = [
         'music'          => ['label' => 'Music',              'icon' => 'fa-music',              'color' => ['#3d6bff', '#5f8dff']],
         'nightlife'      => ['label' => 'Nightlife & Parties', 'icon' => 'fa-champagne-glasses',  'color' => ['#2342c7', '#3d6bff']],
         'arts'           => ['label' => 'Arts & Culture',     'icon' => 'fa-palette',             'color' => ['#0891b2', '#3d6bff']],
@@ -70,21 +78,61 @@ class EventCategories
 
     public const FALLBACK_ICON = 'fa-calendar-star';
 
-    /** Is this an exact curated slug? */
+    private const CACHE_KEY = 'event_categories.enabled';
+    private const CACHE_TTL_SECONDS = 300;
+
+    /**
+     * Enabled admin categories, ordered by their admin sort order, keyed by
+     * slug => ['label' => ..., 'icon' => ..., 'color' => [from, to]].
+     * Cached briefly since this is read on every /events request and every
+     * event editor page load.
+     *
+     * @return array<string, array{label:string, icon:string, color:array{0:string,1:string}}>
+     */
+    public static function all(): array
+    {
+        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL_SECONDS, function () {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('event_categories')) {
+                return self::DEFAULTS;
+            }
+
+            return EventCategory::query()
+                ->enabled()
+                ->ordered()
+                ->get()
+                ->mapWithKeys(fn (EventCategory $c) => [
+                    $c->slug => [
+                        'label' => $c->name,
+                        'icon'  => $c->icon,
+                        'color' => [$c->color_from, $c->color_to],
+                    ],
+                ])
+                ->all();
+        });
+    }
+
+    /** Forget the cached category map — call after any admin CRUD write. */
+    public static function flush(): void
+    {
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    /** Is this an exact, currently-enabled admin category slug? */
     public static function isKnown(string $slug): bool
     {
-        return isset(self::CATEGORIES[$slug]);
+        return isset(self::all()[$slug]);
     }
 
     /**
-     * Font Awesome icon for a stored category value. Exact lookup for curated
-     * slugs; keyword-guess fallback for legacy free-text; calendar-star for
-     * anything unrecognized.
+     * Font Awesome icon for a stored category value. Exact lookup for
+     * admin-managed slugs; keyword-guess fallback for legacy free-text;
+     * calendar-star for anything unrecognized.
      */
     public static function icon(string $category): string
     {
-        if (isset(self::CATEGORIES[$category])) {
-            return self::CATEGORIES[$category]['icon'];
+        $known = self::all();
+        if (isset($known[$category])) {
+            return $known[$category]['icon'];
         }
 
         $c = mb_strtolower($category);
@@ -100,14 +148,15 @@ class EventCategories
     }
 
     /**
-     * Human-readable label for a stored category value. Curated slugs use their
-     * curated label; legacy free-text is humanized (underscores → spaces, title
-     * case).
+     * Human-readable label for a stored category value. Admin-managed slugs
+     * use their configured name; legacy free-text is humanized (underscores
+     * → spaces, title case).
      */
     public static function label(string $category): string
     {
-        if (isset(self::CATEGORIES[$category])) {
-            return self::CATEGORIES[$category]['label'];
+        $known = self::all();
+        if (isset($known[$category])) {
+            return $known[$category]['label'];
         }
 
         return \Illuminate\Support\Str::title(str_replace('_', ' ', $category));
@@ -116,19 +165,19 @@ class EventCategories
     /** slug => label, for building the editor's <select>. */
     public static function selectOptions(): array
     {
-        return array_map(fn ($c) => $c['label'], self::CATEGORIES);
+        return array_map(fn ($c) => $c['label'], self::all());
     }
 
     /**
-     * Two-stop hex gradient for a category's directory tile. Curated
-     * categories use their assigned pair (always blue-forward, never
-     * purple, per brand guard); anything else gets the default blue pair.
+     * Two-stop hex gradient for a category's directory tile. Admin-managed
+     * categories use their configured pair; anything else gets the default
+     * blue pair (always blue-forward, never purple, per brand guard).
      *
      * @return array{0:string,1:string}
      */
     public static function colorStops(string $category): array
     {
-        return self::CATEGORIES[$category]['color'] ?? self::FALLBACK_COLOR;
+        return self::all()[$category]['color'] ?? self::FALLBACK_COLOR;
     }
 
     /** CSS `linear-gradient(...)` string for a category's directory tile. */
@@ -140,11 +189,12 @@ class EventCategories
 
     /**
      * Normalize a legacy free-text `event_category` value onto the closest
-     * curated slug, or null when it can't be confidently mapped. Reuses the
-     * same keyword map as icon(): if a legacy value resolves to a curated
-     * category's icon, it belongs in that category. Returns null for values
-     * that are already a curated slug (nothing to change), are empty/"Other",
-     * or don't match any keyword (genuinely custom — left untouched).
+     * admin-managed slug, or null when it can't be confidently mapped.
+     * Reuses the same keyword map as icon(): if a legacy value resolves to a
+     * known category's icon, it belongs in that category. Returns null for
+     * values that are already a known slug (nothing to change), are
+     * empty/"Other", or don't match any keyword (genuinely custom — left
+     * untouched).
      *
      * Used by the one-time normalization migration so old events group under
      * the curated categories in the /events directory.
@@ -152,7 +202,8 @@ class EventCategories
     public static function slugForLegacy(string $value): ?string
     {
         $value = trim($value);
-        if ($value === '' || $value === self::OTHER || isset(self::CATEGORIES[$value])) {
+        $known = self::all();
+        if ($value === '' || $value === self::OTHER || isset($known[$value])) {
             return null;
         }
 
@@ -161,7 +212,7 @@ class EventCategories
             return null;
         }
 
-        foreach (self::CATEGORIES as $slug => $meta) {
+        foreach ($known as $slug => $meta) {
             if ($meta['icon'] === $icon) {
                 return $slug;
             }
