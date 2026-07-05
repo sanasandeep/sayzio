@@ -16,15 +16,32 @@
     .events-hero {
         position: relative;
         background-color: #0b0e16;
-        background-image:
-            linear-gradient(180deg, rgba(6,8,18,0.58) 0%, rgba(6,8,18,0.80) 60%, rgba(6,8,18,0.95) 100%),
-            radial-gradient(1200px 400px at 15% -10%, rgba(140,165,255,0.18), transparent 60%),
-            url('{{ asset('images/events/events-hero-bg.webp') }}');
-        background-size: cover, cover, cover;
-        background-position: center, center, center 30%;
-        background-repeat: no-repeat, no-repeat, no-repeat;
         border-bottom: 1px solid rgba(255,255,255,0.06);
+        overflow: hidden;
     }
+    /* Photo sits on its own blurred/scaled layer behind the darkening
+       gradient — a filter:blur() on the element itself would blur the
+       foreground content too, so the image is a pseudo-element instead. */
+    .events-hero::before {
+        content: '';
+        position: absolute; inset: -20px;
+        background-image: url('{{ asset('images/events/events-hero-bg.webp') }}');
+        background-size: cover;
+        background-position: center 35%;
+        background-repeat: no-repeat;
+        filter: blur(9px) saturate(1.05);
+        transform: scale(1.06);
+        z-index: 0;
+    }
+    .events-hero::after {
+        content: '';
+        position: absolute; inset: 0;
+        background:
+            linear-gradient(180deg, rgba(6,8,18,0.78) 0%, rgba(6,8,18,0.90) 55%, rgba(6,8,18,0.97) 100%),
+            radial-gradient(1200px 400px at 15% -10%, rgba(140,165,255,0.16), transparent 60%);
+        z-index: 1;
+    }
+    .events-hero > * { position: relative; z-index: 2; }
     /* The global light-mode remap (marketing-anim.css) force-darkens
        .text-white / text-white/NN everywhere it isn't explicitly
        carved out — without this, hero text turns near-invisible dark
@@ -135,11 +152,16 @@
     html.light-mode .events-page-body .cat-more-btn { border-color:rgba(15,23,42,0.22); color:rgba(15,23,42,0.5); }
     html.light-mode .events-page-body .cat-more-btn:hover { border-color:#3d6bff; color:#2342c7; }
 
-    /* Currency toggle. */
-    .currency-toggle-btn { padding:.35rem .75rem; border-radius:999px; font-size:.75rem; font-weight:700; color:rgba(255,255,255,0.55); background:transparent; transition:background .15s ease, color .15s ease; }
-    .currency-toggle-btn.active { background:#3d6bff; color:#fff; }
-    html.light-mode .events-page-body .currency-toggle-btn { color:rgba(15,23,42,0.5); }
-    html.light-mode .events-page-body .currency-toggle-btn.active { background:#3d6bff; color:#fff; }
+    /* Blue CTA buttons and dark chips below the hero set their background
+       via inline styles / bespoke classes rather than a bg-*.text-white
+       Tailwind combo, so the sitewide allowlist can't exempt their
+       .text-white from the global dark-text remap — without this they
+       render invisible dark-on-dark (date chip) or low-contrast
+       dark-on-blue (CTA buttons, price badges). */
+    html.light-mode .events-page-body a[style*="background:#3d6bff"].text-white,
+    html.light-mode .events-page-body button[style*="background:#3d6bff"].text-white,
+    html.light-mode .events-page-body .ev-card-date-chip .text-white,
+    html.light-mode .events-page-body .ev-price-badge.text-white { color:#fff !important; }
 
     /* Custom date-range panel. */
     .ev-date-range-box { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); }
@@ -220,17 +242,12 @@
                         if ($hTiers->isEmpty()) {
                             $hPriceLabel = 'Free RSVP';
                             $hPriceIsFree = true;
-                            $hNativeCurrency = null;
-                            $hNativeCents = 0;
-                            $hPrefix = '';
                         } else {
                             $hLowest = $hTiers->first();
                             $hHasRange = $hTiers->count() > 1 && (int) $hTiers->last()->price_cents !== (int) $hLowest->price_cents;
                             $hPrefix = $hHasRange ? 'From ' : '';
                             $hPriceLabel = $hPrefix . $hLowest->priceLabel();
                             $hPriceIsFree = $hLowest->isFree() && !$hHasRange;
-                            $hNativeCurrency = strtoupper($hLowest->currency);
-                            $hNativeCents = (int) $hLowest->price_cents;
                         }
                     @endphp
                     <a href="{{ url('/' . $hero->alias) }}" class="hero-slide {{ $hi === 0 ? 'active' : '' }}" data-slide="{{ $hi }}">
@@ -241,9 +258,8 @@
                                 <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $hero->title }}" class="hero-slide-img">
                             @endif
                             <div class="hero-slide-scrim"></div>
-                            <span class="hero-slide-price ev-price-badge inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold {{ $hPriceIsFree ? 'bg-emerald-500 text-white' : 'text-white ev-price' }}"
-                                  style="position:absolute; top:1rem; right:1rem; {{ $hPriceIsFree ? '' : 'background:rgba(61,107,255,0.92);' }}"
-                                  @if(!$hPriceIsFree) data-native-currency="{{ $hNativeCurrency }}" data-native-cents="{{ $hNativeCents }}" data-prefix="{{ $hPrefix }}" @endif>
+                            <span class="hero-slide-price ev-price-badge inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold {{ $hPriceIsFree ? 'bg-emerald-500 text-white' : 'text-white' }}"
+                                  style="position:absolute; top:1rem; right:1rem; {{ $hPriceIsFree ? '' : 'background:rgba(61,107,255,0.92);' }}">
                                 {{ $hPriceLabel }}
                             </span>
                             <div class="hero-slide-content">
@@ -316,9 +332,8 @@
         $quickDateRanges = ['today' => 'Today', 'weekend' => 'This weekend', 'week' => 'This week', 'month' => 'This month'];
     @endphp
 
-    {{-- Filter bar: online / free / paid + date quick ranges + custom range
-         + a display-only currency toggle for ticket prices. --}}
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-5" x-data="{ showDateRange: {{ $hasCustomRange ? 'true' : 'false' }} }">
+    {{-- Filter bar: online / free / paid + date quick ranges + custom range. --}}
+    <div class="flex flex-wrap items-center gap-3 mb-5" x-data="{ showDateRange: {{ $hasCustomRange ? 'true' : 'false' }} }">
         <div class="flex flex-wrap items-center gap-2">
             <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['online', 'page']), $online ? [] : ['online' => 1])) }}"
                class="ev-chip {{ $online ? 'active' : '' }} inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
@@ -343,14 +358,6 @@
                     class="ev-chip {{ $hasCustomRange ? 'active' : '' }} inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold">
                 <i class="fas fa-calendar-days"></i> Custom range
             </button>
-        </div>
-
-        {{-- Currency toggle: display-only conversion, native price is always
-             the source of truth (see JS applyCurrency()). --}}
-        <div class="inline-flex items-center rounded-full p-1" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
-            <span class="text-[10px] font-bold uppercase tracking-wide text-white/30 px-2">Prices in</span>
-            <button type="button" class="currency-toggle-btn" data-currency="USD">USD</button>
-            <button type="button" class="currency-toggle-btn" data-currency="INR">INR</button>
         </div>
     </div>
 
@@ -476,17 +483,12 @@
                     if ($tiers->isEmpty()) {
                         $priceLabel = 'Free RSVP';
                         $priceIsFree = true;
-                        $nativeCurrency = null;
-                        $nativeCents = 0;
-                        $pricePrefix = '';
                     } else {
                         $lowest = $tiers->first();
                         $hasRange = $tiers->count() > 1 && (int) $tiers->last()->price_cents !== (int) $lowest->price_cents;
                         $pricePrefix = $hasRange ? 'From ' : '';
                         $priceLabel = $pricePrefix . $lowest->priceLabel();
                         $priceIsFree = $lowest->isFree() && !$hasRange;
-                        $nativeCurrency = strtoupper($lowest->currency);
-                        $nativeCents = (int) $lowest->price_cents;
                     }
                 @endphp
                 <div class="event-card ev-card overflow-hidden">
@@ -508,9 +510,8 @@
                             </div>
                         @endif
                         <div class="absolute bottom-3 right-3 z-10">
-                            <span class="ev-price-badge inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold {{ $priceIsFree ? 'bg-emerald-500 text-white' : 'text-white ev-price' }}"
-                                  style="{{ $priceIsFree ? '' : 'background:rgba(61,107,255,0.9);' }}"
-                                  @if(!$priceIsFree) data-native-currency="{{ $nativeCurrency }}" data-native-cents="{{ $nativeCents }}" data-prefix="{{ $pricePrefix }}" @endif>
+                            <span class="ev-price-badge inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold {{ $priceIsFree ? 'bg-emerald-500 text-white' : 'text-white' }}"
+                                  style="{{ $priceIsFree ? '' : 'background:rgba(61,107,255,0.9);' }}">
                                 {{ $priceLabel }}
                             </span>
                         </div>
@@ -555,8 +556,7 @@
                                     @foreach($tiers as $tier)
                                         <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs">
                                             <span class="text-white/50 truncate">{{ $tier->name }}</span>
-                                            <span class="font-bold whitespace-nowrap {{ $tier->isFree() ? 'text-emerald-400' : 'text-white ev-price' }}"
-                                                  @if(!$tier->isFree()) data-native-currency="{{ strtoupper($tier->currency) }}" data-native-cents="{{ (int) $tier->price_cents }}" data-prefix="" @endif>
+                                            <span class="font-bold whitespace-nowrap {{ $tier->isFree() ? 'text-emerald-400' : 'text-white' }}">
                                                 {{ $tier->priceLabel() }}
                                             </span>
                                         </div>
@@ -774,57 +774,5 @@ document.querySelectorAll('.tier-toggle').forEach(function (btn) {
         btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
 });
-
-// Ticket-price currency toggle (USD/INR). Purely a display conversion —
-// the native currency/amount stored on data-native-* is always the source
-// of truth; conversion is an approximate fixed rate, not a live FX quote.
-const FX_INR_PER_USD = 83;
-const CURRENCY_PREF_KEY = 'events_currency_pref';
-
-function formatMoney(currency, cents) {
-    const amount = cents / 100;
-    const formatted = currency === 'INR'
-        ? amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-        : amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return (currency === 'INR' ? '₹' : '$') + formatted;
-}
-
-function convertCents(nativeCurrency, nativeCents, targetCurrency) {
-    if (nativeCurrency === targetCurrency) return nativeCents;
-    if (nativeCurrency === 'USD' && targetCurrency === 'INR') return Math.round(nativeCents * FX_INR_PER_USD);
-    if (nativeCurrency === 'INR' && targetCurrency === 'USD') return Math.round(nativeCents / FX_INR_PER_USD);
-    // Unsupported native currency (not USD/INR) — leave the price as-is in
-    // its own currency rather than guess a conversion.
-    return null;
-}
-
-function applyCurrency(currency) {
-    document.querySelectorAll('.currency-toggle-btn').forEach(function (btn) {
-        btn.classList.toggle('active', btn.getAttribute('data-currency') === currency);
-    });
-    document.querySelectorAll('.ev-price').forEach(function (el) {
-        const nativeCurrency = el.getAttribute('data-native-currency');
-        const nativeCents = parseInt(el.getAttribute('data-native-cents') || '0', 10);
-        const prefix = el.getAttribute('data-prefix') || '';
-        if (!nativeCurrency) return;
-        const converted = convertCents(nativeCurrency, nativeCents, currency);
-        if (converted === null) {
-            el.textContent = prefix + formatMoney(nativeCurrency, nativeCents);
-            return;
-        }
-        el.textContent = prefix + (nativeCurrency === currency ? '' : '≈') + formatMoney(currency, converted);
-    });
-    try { localStorage.setItem(CURRENCY_PREF_KEY, currency); } catch (e) { /* storage unavailable */ }
-}
-
-document.querySelectorAll('.currency-toggle-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () { applyCurrency(btn.getAttribute('data-currency')); });
-});
-
-(function initCurrency() {
-    let pref = null;
-    try { pref = localStorage.getItem(CURRENCY_PREF_KEY); } catch (e) { /* storage unavailable */ }
-    applyCurrency(pref === 'USD' || pref === 'INR' ? pref : '{{ $defaultCurrency }}');
-})();
 </script>
 @endpush

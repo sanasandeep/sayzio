@@ -235,16 +235,10 @@ class EventsDirectoryController extends Controller
         $categoryLabels = $categories->mapWithKeys(fn ($c) => [$c => \App\Modules\User\Support\EventCategories::label($c)]);
         $categoryColors = $categories->mapWithKeys(fn ($c) => [$c => \App\Modules\User\Support\EventCategories::gradient($c)]);
 
-        // Default currency for the visitor's price toggle — reuses the same
-        // country/session/geo resolution as billing pricing (PricingResolver)
-        // so it matches whatever the visitor already sees elsewhere on the
-        // site. This is purely a display default; the toggle lets them switch.
-        $defaultCurrency = \App\Services\PricingResolver::currencyForUser(auth('web')->user());
-
         return view('common.events-directory', compact(
             'events', 'q', 'category', 'tag', 'categories', 'categoryIcons', 'categoryLabels', 'categoryColors',
             'hasOtherCategory', 'otherCategory', 'tagRow', 'nearMe', 'lat', 'lng', 'radiusKm', 'online', 'heroEvents',
-            'priceFilter', 'dateFilter', 'dateFrom', 'dateTo', 'defaultCurrency'
+            'priceFilter', 'dateFilter', 'dateFrom', 'dateTo'
         ));
     }
 
