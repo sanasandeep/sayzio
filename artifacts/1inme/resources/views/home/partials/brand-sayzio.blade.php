@@ -245,6 +245,11 @@
 
         {{-- Twin brand cards joined by an animated energy line + "is" pill --}}
         <div class="relative grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-7 lg:gap-0 items-stretch">
+            {{-- Full-span energy line — sits behind both cards so it reads evenly in the
+                 gap on either side of the centered "is" pill, regardless of the cards'
+                 lg:mr-12 / lg:ml-12 offsets. --}}
+            <div class="bs-energy hidden lg:block absolute top-1/2 -translate-y-1/2 left-0 right-0 z-0" aria-hidden="true"></div>
+
             {{-- 1IN.ME card --}}
             <div data-anim="fade-right" class="bs-card bs-card--id p-7 sm:p-9 lg:mr-12">
                 <div class="relative flex items-center gap-4 sm:gap-5">
@@ -263,9 +268,8 @@
                 </div>
             </div>
 
-            {{-- Center connector (energy line + "is" pill) --}}
-            <div class="relative flex lg:flex-col items-center justify-center gap-0 lg:px-2" aria-hidden="true">
-                <div class="bs-energy hidden lg:block absolute top-1/2 -translate-y-1/2 left-0 right-0"></div>
+            {{-- Center connector ("is" pill; desktop energy line now spans the full row above) --}}
+            <div class="relative z-10 flex lg:flex-col items-center justify-center gap-0 lg:px-2" aria-hidden="true">
                 <div class="bs-energy lg:hidden h-1 w-24 rotate-0"></div>
                 <span class="bs-is-pill float-c text-lg">is</span>
             </div>
