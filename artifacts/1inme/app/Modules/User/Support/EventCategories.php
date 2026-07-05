@@ -115,4 +115,36 @@ class EventCategories
     {
         return array_map(fn ($c) => $c['label'], self::CATEGORIES);
     }
+
+    /**
+     * Normalize a legacy free-text `event_category` value onto the closest
+     * curated slug, or null when it can't be confidently mapped. Reuses the
+     * same keyword map as icon(): if a legacy value resolves to a curated
+     * category's icon, it belongs in that category. Returns null for values
+     * that are already a curated slug (nothing to change), are empty/"Other",
+     * or don't match any keyword (genuinely custom — left untouched).
+     *
+     * Used by the one-time normalization migration so old events group under
+     * the curated categories in the /events directory.
+     */
+    public static function slugForLegacy(string $value): ?string
+    {
+        $value = trim($value);
+        if ($value === '' || $value === self::OTHER || isset(self::CATEGORIES[$value])) {
+            return null;
+        }
+
+        $icon = self::icon($value);
+        if ($icon === self::FALLBACK_ICON) {
+            return null;
+        }
+
+        foreach (self::CATEGORIES as $slug => $meta) {
+            if ($meta['icon'] === $icon) {
+                return $slug;
+            }
+        }
+
+        return null;
+    }
 }
