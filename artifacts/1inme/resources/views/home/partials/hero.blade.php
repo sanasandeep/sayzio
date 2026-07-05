@@ -31,7 +31,7 @@
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-9 leading-relaxed">
-                    <strong class="text-white">Zio</strong> is the AI behind Sayzio — building your pages, coaching your growth, replying to visitors, even answering your calls. One smart link, working for you 24/7, <strong class="text-white">free forever</strong>, no card required.
+                    Meet <strong class="text-white">Zio</strong> — the AI behind Sayzio. It builds your pages, answers your visitors and picks up your calls, <strong class="text-white">24/7, free forever</strong>, no card required.
                 </p>
 
                 @guest
@@ -96,8 +96,8 @@
                         <span class="font-bold text-white">375,000+</span><span class="text-gray-500">creators</span>
                     </span>
                     <span class="flex items-center gap-2 text-gray-400">
-                        <span class="w-1.5 h-1.5 rounded-full" style="background:var(--c2)"></span>
-                        <span class="font-bold text-white">4 tools,</span><span class="text-gray-500">one AI brain</span>
+                        <span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:var(--c2)"></span>
+                        <span class="font-bold text-white">16 AI tools,</span><span class="text-gray-500">one brain</span>
                     </span>
                     <span class="flex items-center gap-2 text-gray-400">
                         <span class="w-1.5 h-1.5 rounded-full" style="background:var(--c1)"></span>
@@ -348,6 +348,12 @@
             .zio-claim[data-state="checking"] .zio-claim-mark::before { animation: none; }
             .zio-claim-suggest-btn { transition: none; }
             .zio-claim-suggest-btn:hover { transform: none; }
+            .pulse-dot { animation: none; }
+        }
+        .pulse-dot { animation: zioStatPulse 2.2s ease-in-out infinite; }
+        @keyframes zioStatPulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(167,139,250,.55); }
+            50% { opacity: .75; box-shadow: 0 0 0 4px rgba(167,139,250,0); }
         }
         @media (max-width: 1023.98px) {
             .zio-claim-status, .zio-claim-suggest { text-align: center; justify-content: center; }
