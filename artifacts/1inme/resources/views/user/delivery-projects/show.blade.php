@@ -140,6 +140,31 @@
             </div>
 
             <div class="glass-card rounded-2xl p-5" style="border:1px solid var(--border);">
+                <h3 class="font-semibold mb-2" style="color: var(--text-primary);">Calendar privacy</h3>
+                <p class="text-xs mb-3" style="color: var(--text-tertiary);">Task start/due dates are automatically kept as calendar events. Choose who can see this project's schedule.</p>
+                <form method="POST" action="{{ route('user.delivery-projects.calendar-privacy', $project) }}" class="space-y-2" x-data="{ privacy: '{{ $project->calendarPrivacy() }}' }">
+                    @csrf @method('PUT')
+                    @foreach($calendarPrivacies as $value => $label)
+                        <label class="flex items-start gap-2 rounded-lg p-2 cursor-pointer" style="background: var(--surface-2); border:1px solid var(--border);">
+                            <input type="radio" name="privacy" value="{{ $value }}" x-model="privacy" @change="$el.closest('form').submit()" class="mt-1">
+                            <span>
+                                <span class="block text-sm font-semibold" style="color: var(--text-primary);">{{ $label }}</span>
+                                <span class="block text-xs" style="color: var(--text-tertiary);">{{ $calendarPrivacyCopy[$value] }}</span>
+                            </span>
+                        </label>
+                    @endforeach
+                    @if($project->calendarPrivacy() === \App\Modules\User\Models\DeliveryProject::CALENDAR_PRIVACY_PUBLIC && $project->calendar)
+                        <div class="flex gap-2 pt-1">
+                            <input readonly value="{{ route('public.calendars.ics', $project->calendar->id) }}" id="dp-calendar-feed-url"
+                                   class="flex-1 rounded-lg px-3 py-2 text-xs" style="background: var(--surface-2); border:1px solid var(--border); color: var(--text-secondary);">
+                            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('dp-calendar-feed-url').value)"
+                                    class="px-3 py-2 rounded-lg text-xs font-semibold border" style="border-color: var(--border-strong); color: var(--text-primary);"><i class="fas fa-copy"></i></button>
+                        </div>
+                    @endif
+                </form>
+            </div>
+
+            <div class="glass-card rounded-2xl p-5" style="border:1px solid var(--border);">
                 <h3 class="font-semibold mb-2" style="color: var(--text-primary);">Warranty</h3>
                 <form method="POST" action="{{ route('user.delivery-projects.update', $project) }}" class="space-y-3">
                     @csrf @method('PUT')

@@ -96,7 +96,7 @@ class PortalController extends Controller
 
         ClientPortalAction::record($this->portal(), $this->link(), 'viewed_section', 'delivery_project', $project->id);
 
-        $project->load(['comments.author:id,name']);
+        $project->load(['comments.author:id,name', 'calendar.events']);
 
         return view('portal.delivery-project', compact('project'));
     }

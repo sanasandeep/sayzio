@@ -3,6 +3,13 @@
     $tasks = $project->tasks;
     $overall = $project->progressPercent();
 
+    // Task #3584 — schedule events. Client-facing pages (share link + portal)
+    // inherently have project-level access, so the calendar always renders
+    // here regardless of privacy tier.
+    $calendarEvents = $project->relationLoaded('calendar') && $project->calendar
+        ? $project->calendar->events->sortBy('start_at')
+        : collect();
+
     // Build the timeline window from the earliest start/due to the latest.
     $dates = collect();
     foreach ($tasks as $t) {
@@ -73,6 +80,24 @@
         @endif
     </div>
 
+    {{-- Schedule / calendar --}}
+    @if($calendarEvents->isNotEmpty())
+        <div class="dp-card">
+            <h3 class="dp-card-title">Schedule</h3>
+            <div class="dp-schedule">
+                @foreach($calendarEvents as $event)
+                    <div class="dp-schedule-row">
+                        <div class="dp-schedule-date">
+                            {{ $event->start_at->format('M j') }}
+                            @if(!$event->end_at->isSameDay($event->start_at)) &rarr; {{ $event->end_at->format('M j') }} @endif
+                        </div>
+                        <div class="dp-schedule-title">{{ $event->title }}</div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     {{-- Gantt / timeline --}}
     @if($hasTimeline)
         <div class="dp-card">
@@ -128,6 +153,11 @@
     .dp-mini-fill { display: block; height: 100%; background: #3d6bff; }
     .dp-mini-value { font-size: 11px; color: #64748b; margin-left: 6px; }
     .dp-empty { color: #94a3b8; font-size: 13px; }
+    .dp-schedule { display: flex; flex-direction: column; gap: 6px; }
+    .dp-schedule-row { display: flex; align-items: baseline; gap: 12px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+    .dp-schedule-row:last-child { border-bottom: none; }
+    .dp-schedule-date { flex-shrink: 0; width: 130px; color: #64748b; font-weight: 600; }
+    .dp-schedule-title { color: #0f172a; }
     .dp-gantt { display: flex; flex-direction: column; gap: 8px; }
     .dp-gantt-row { display: flex; align-items: center; gap: 12px; }
     .dp-gantt-name { width: 140px; flex-shrink: 0; font-size: 12px; color: #475569; }

@@ -26,6 +26,27 @@ class CalendarController extends Controller
 {
     use ExportsCalendarEvents;
 
+    /**
+     * Task #3584 — ids of Delivery Project calendars that should roll into
+     * $user's "My Calendar" aggregate: any project calendar belonging to a
+     * workspace the user can access, set to "Workspace" or "Public" privacy.
+     * "Project" tier is deliberately excluded — it only surfaces on the
+     * project page itself and the client share link.
+     */
+    private function workspaceProjectCalendarIds(?\App\Modules\User\Models\User $user = null): \Illuminate\Support\Collection
+    {
+        $user = $user ?: request()->user();
+        if (!$user) return collect();
+
+        $wsIds = $user->accessibleWorkspaces()->pluck('id');
+        if ($wsIds->isEmpty()) return collect();
+
+        return Calendar::whereNotNull('delivery_project_id')
+            ->whereIn('workspace_id', $wsIds)
+            ->whereIn('privacy', [\App\Modules\User\Models\DeliveryProject::CALENDAR_PRIVACY_WORKSPACE, \App\Modules\User\Models\DeliveryProject::CALENDAR_PRIVACY_PUBLIC])
+            ->pluck('id');
+    }
+
     /** Resolve the Calendar for an owned `calendar` link or 404/403. */
     private function calendarForLink(Link $link): Calendar
     {
@@ -253,14 +274,14 @@ class CalendarController extends Controller
             $gridEvents = $this->visibleGridEvents($gridEvents, $view, $focus, $userTz);
         }
 
-        $calendars = Calendar::whereIn('id', $ownedIds->merge($followedIds)->unique())
+        $calendars = Calendar::whereIn('id', $built['calendarIds'])
             ->withCount('events')
             ->orderBy('title')
             ->get();
 
         // Distinct event tags across everything the user owns/follows, for the
         // toggleable tag-filter chips.
-        $availableTags = CalendarEvent::whereIn('calendar_id', $ownedIds->merge($followedIds)->unique())
+        $availableTags = CalendarEvent::whereIn('calendar_id', $built['calendarIds'])
             ->whereNotNull('hashtags')
             ->pluck('hashtags')
             ->flatMap(fn ($h) => is_array($h) ? $h : [])
@@ -360,11 +381,16 @@ class CalendarController extends Controller
         $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');
         $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
 
+        // Task #3584 — Delivery Project calendars set to "Workspace" or
+        // "Public" roll into every workspace member's My Calendar (never
+        // "Project" tier, which stays scoped to the project page + share link).
+        $wsProjectIds = $this->workspaceProjectCalendarIds();
+
         $source      = $request->query('source', 'all');
         $calendarIds = match ($source) {
             'owned'    => $ownedIds,
             'followed' => $followedIds,
-            default    => $ownedIds->merge($followedIds)->unique()->values(),
+            default    => $ownedIds->merge($followedIds)->merge($wsProjectIds)->unique()->values(),
         };
 
         // Optional per-calendar filter — only honoured when the calendar is one
@@ -495,7 +521,8 @@ class CalendarController extends Controller
 
         $ownedIds    = Calendar::where('user_id', $user->id)->pluck('id');
         $followedIds = CalendarFollow::where('follower_id', $user->id)->pluck('calendar_id');
-        $calendarIds = $ownedIds->merge($followedIds)->unique()->values();
+        $wsProjectIds = $this->workspaceProjectCalendarIds($user);
+        $calendarIds = $ownedIds->merge($followedIds)->merge($wsProjectIds)->unique()->values();
 
         $userTz = \App\Support\PlatformTimezone::forUser($user);
 

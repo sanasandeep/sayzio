@@ -1654,6 +1654,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::put('{deliveryProject}',       [\App\Modules\User\Controllers\DeliveryProjectController::class, 'update'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('update');
             Route::delete('{deliveryProject}',    [\App\Modules\User\Controllers\DeliveryProjectController::class, 'destroy'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.delete')->name('destroy');
             Route::post('{deliveryProject}/share-token', [\App\Modules\User\Controllers\DeliveryProjectController::class, 'regenerateShareToken'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('share-token');
+            Route::put('{deliveryProject}/calendar-privacy', [\App\Modules\User\Controllers\DeliveryProjectController::class, 'updateCalendarPrivacy'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('calendar-privacy');
 
             Route::post('{deliveryProject}/comments',     [\App\Modules\User\Controllers\DeliveryProjectController::class, 'storeComment'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('comments.store');
 

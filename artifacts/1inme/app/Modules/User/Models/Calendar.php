@@ -19,6 +19,7 @@ class Calendar extends Model
     protected $fillable = [
         'link_id', 'user_id', 'title', 'slug', 'description',
         'timezone', 'accent_color', 'is_public', 'followers_count', 'settings',
+        'workspace_id', 'delivery_project_id', 'privacy',
     ];
 
     protected $attributes = [
@@ -38,6 +39,12 @@ class Calendar extends Model
     public function link()
     {
         return $this->belongsTo(Link::class);
+    }
+
+    /** Task #3584 — the Delivery Project this calendar belongs to, if any. */
+    public function deliveryProject()
+    {
+        return $this->belongsTo(DeliveryProject::class, 'delivery_project_id');
     }
 
     public function user()

@@ -58,14 +58,17 @@ class DeliveryProjectController extends Controller
             'creator:id,name',
             'clientUser:id,name',
             'comments.author:id,name,avatar',
+            'calendar',
         ]);
         $members = $this->workspaceMembers();
 
         return view('user.delivery-projects.show', [
-            'project'  => $deliveryProject,
-            'members'  => $members,
-            'statuses' => DeliveryProjectTask::STATUSES,
-            'shareUrl' => route('delivery-project.share', $deliveryProject->share_token),
+            'project'          => $deliveryProject,
+            'members'          => $members,
+            'statuses'         => DeliveryProjectTask::STATUSES,
+            'shareUrl'         => route('delivery-project.share', $deliveryProject->share_token),
+            'calendarPrivacies' => DeliveryProject::CALENDAR_PRIVACIES,
+            'calendarPrivacyCopy' => DeliveryProject::CALENDAR_PRIVACY_COPY,
         ]);
     }
 
@@ -167,11 +170,41 @@ class DeliveryProjectController extends Controller
     public function destroy(DeliveryProject $deliveryProject)
     {
         DB::transaction(function () use ($deliveryProject) {
+            // Bulk deletes bypass model events, so the calendar (and its
+            // events) must be cleaned up explicitly rather than relying on
+            // the task-level `deleting` hook.
+            $calendar = $deliveryProject->calendar()->first();
+            $calendar?->events()->delete();
+            $calendar?->delete();
+
             $deliveryProject->tasks()->delete();
             $deliveryProject->delete();
         });
 
         return redirect()->route('user.delivery-projects.index')->with('success', 'Project deleted.');
+    }
+
+    /**
+     * Task #3584 — change who can see the project's schedule. `public` is the
+     * only tier that opens up the ICS subscribe link (mirrors the existing
+     * followable-calendar model via `is_public`).
+     */
+    public function updateCalendarPrivacy(Request $request, DeliveryProject $deliveryProject)
+    {
+        $data = $request->validate([
+            'privacy' => 'required|in:' . implode(',', array_keys(DeliveryProject::CALENDAR_PRIVACIES)),
+        ]);
+
+        $calendar = $deliveryProject->ensureCalendar();
+        $calendar->update([
+            'privacy'   => $data['privacy'],
+            'is_public' => $data['privacy'] === DeliveryProject::CALENDAR_PRIVACY_PUBLIC,
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true, 'privacy' => $calendar->privacy]);
+        }
+        return back()->with('success', 'Calendar privacy updated.');
     }
 
     /** Rotate the public share token, invalidating any previously shared link. */
@@ -190,7 +223,7 @@ class DeliveryProjectController extends Controller
         $project = DeliveryProject::query()
             ->withoutGlobalScope('workspace')
             ->where('share_token', $token)
-            ->with(['tasks.assignee:id,name', 'creator:id,name', 'comments.author:id,name'])
+            ->with(['tasks.assignee:id,name', 'creator:id,name', 'comments.author:id,name', 'calendar.events'])
             ->first();
 
         abort_unless($project, 404);

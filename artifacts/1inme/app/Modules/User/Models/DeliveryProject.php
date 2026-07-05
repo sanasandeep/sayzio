@@ -27,6 +27,24 @@ class DeliveryProject extends Model
         self::STATUS_ARCHIVED  => 'Archived',
     ];
 
+    /** Task #3584 — the project's own calendar privacy tiers. */
+    public const CALENDAR_PRIVACY_PROJECT   = 'project';
+    public const CALENDAR_PRIVACY_WORKSPACE = 'workspace';
+    public const CALENDAR_PRIVACY_PUBLIC    = 'public';
+
+    public const CALENDAR_PRIVACIES = [
+        self::CALENDAR_PRIVACY_PROJECT   => 'Project only',
+        self::CALENDAR_PRIVACY_WORKSPACE => 'Workspace',
+        self::CALENDAR_PRIVACY_PUBLIC    => 'Public',
+    ];
+
+    /** Plain-language copy for the privacy selector UI. */
+    public const CALENDAR_PRIVACY_COPY = [
+        self::CALENDAR_PRIVACY_PROJECT   => 'Only people working on this project can see its schedule, plus your client via the share link.',
+        self::CALENDAR_PRIVACY_WORKSPACE => 'Everyone on your workspace can see this schedule — it also shows up in their My Calendar.',
+        self::CALENDAR_PRIVACY_PUBLIC    => 'Anyone with the link can view and subscribe to this schedule (Google, Apple, Outlook).',
+    ];
+
     protected $fillable = [
         'workspace_id', 'created_by_user_id',
         'sourceable_type', 'sourceable_id',
@@ -131,6 +149,44 @@ class DeliveryProject extends Model
     public function source(): MorphTo
     {
         return $this->morphTo('sourceable');
+    }
+
+    public function calendar(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Calendar::class, 'delivery_project_id');
+    }
+
+    /**
+     * Task #3584 — the project's calendar, created on first use (lazily, so
+     * projects with no dated tasks never grow an empty calendar row).
+     */
+    public function ensureCalendar(): Calendar
+    {
+        $calendar = $this->calendar()->first();
+        if ($calendar) {
+            return $calendar;
+        }
+
+        return Calendar::create([
+            'delivery_project_id' => $this->id,
+            'workspace_id'        => $this->workspace_id,
+            'user_id'             => $this->created_by_user_id,
+            'title'               => $this->title . ' — Schedule',
+            'slug'                => 'dp-' . $this->id,
+            'description'         => 'Auto-generated schedule for delivery project "' . $this->title . '".',
+            'is_public'           => false,
+            'privacy'             => self::CALENDAR_PRIVACY_PROJECT,
+        ]);
+    }
+
+    public function calendarPrivacy(): string
+    {
+        return $this->calendar?->privacy ?? self::CALENDAR_PRIVACY_PROJECT;
+    }
+
+    public function calendarPrivacyLabel(): string
+    {
+        return self::CALENDAR_PRIVACIES[$this->calendarPrivacy()] ?? 'Project only';
     }
 
     /** Overall project progress = average of task progress (0 when no tasks). */

@@ -27,6 +27,7 @@ class DeliveryProjectTask extends Model
     protected $fillable = [
         'project_id', 'workspace_id', 'title', 'status',
         'assignee_user_id', 'start_date', 'due_date', 'progress', 'position',
+        'calendar_event_id',
     ];
 
     protected function casts(): array
@@ -47,6 +48,26 @@ class DeliveryProjectTask extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assignee_user_id');
+    }
+
+    public function calendarEvent(): BelongsTo
+    {
+        return $this->belongsTo(CalendarEvent::class, 'calendar_event_id');
+    }
+
+    /**
+     * Task #3584 — keep the project calendar in sync with this task's
+     * start/due dates on every create/update, and drop its event on delete.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (self $task) {
+            \App\Modules\User\Support\DeliveryProjectCalendarSync::syncTaskEvent($task);
+        });
+
+        static::deleting(function (self $task) {
+            \App\Modules\User\Support\DeliveryProjectCalendarSync::deleteTaskEvent($task);
+        });
     }
 
     public function statusLabel(): string
