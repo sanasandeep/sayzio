@@ -41,7 +41,7 @@
         [route('site.discovery'),                   'fa-compass',             'Discover creators',      'Browse the public directory'],
         [route('site.creators-feed'),               'fa-stream',              'Creators feed',          'What the community is shipping'],
         [route('site.buzz'),                        'fa-bullhorn',            'Buzz',                   'News, press & love'],
-        [route('site.features').'#cat-events',      'fa-calendar-day',        'Events & RSVPs',         'Run launches with one link'],
+        [route('events.index'),                     'fa-calendar-day',        'Events & RSVPs',         'Run launches with one link'],
         [route('site.features').'#cat-referrals',   'fa-gift',                'Referrals',              'Reward fans who spread the word'],
     ];
     $navUseCases = \App\Modules\Common\Support\SitePagesContent::useCaseMeta();

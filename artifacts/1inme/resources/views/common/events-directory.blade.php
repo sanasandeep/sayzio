@@ -1,44 +1,39 @@
-<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Discover Events — {{ config('app.name') }}</title>
-    <meta name="description" content="Find and RSVP to events near you — powered by {{ config('app.name') }}.">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family:'Space Grotesk',sans-serif; background:#0b0e16; color:#e8eaf0; min-height:100vh; }
-        .events-hero {
-            background:
-                radial-gradient(1200px 400px at 15% -10%, rgba(255,255,255,0.10), transparent 60%),
-                linear-gradient(135deg, #0b0e16 0%, #14204a 55%, #2342c7 130%);
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-        }
-        .ev-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:1rem; }
-        .ev-chip { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10); color:rgba(255,255,255,0.7); }
-        .ev-chip.active, .ev-chip:hover { background:#3d6bff; border-color:#3d6bff; color:#fff; }
-        .event-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-        .event-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -14px rgba(61,107,255,0.35); border-color: rgba(61,107,255,0.4); }
-        .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-        .tier-breakdown.tier-open .tier-chevron { transform: rotate(180deg); }
-        .cat-tile { position:relative; border-radius:1rem; overflow:hidden; min-height:96px; transition:transform .15s ease; }
-        .cat-tile:hover { transform: translateY(-3px); }
-        .cat-tile.active { outline:2px solid #fff; outline-offset:-2px; }
-        .hero-slide { display:none; }
-        .hero-slide.active { display:block; }
-        .hero-dot { width:7px; height:7px; border-radius:999px; background:rgba(255,255,255,0.3); }
-        .hero-dot.active { background:#fff; width:20px; border-radius:999px; }
-        #search-map { height:200px; border-radius:0.9rem; }
-        [x-cloak] { display:none !important; }
-    </style>
-</head>
-<body>
+@extends('public.layouts.site')
+@section('title', 'Discover Events')
 
+@php
+    $shareTitle = 'Discover Events';
+    $shareDescription = 'Find and RSVP to events near you — powered by ' . config('app.name') . '.';
+@endphp
+
+@push('head')
+<style>
+    .events-hero {
+        background:
+            radial-gradient(1200px 400px at 15% -10%, rgba(255,255,255,0.10), transparent 60%),
+            linear-gradient(135deg, #0b0e16 0%, #14204a 55%, #2342c7 130%);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .ev-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:1rem; }
+    .ev-chip { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10); color:rgba(255,255,255,0.7); }
+    .ev-chip.active, .ev-chip:hover { background:#3d6bff; border-color:#3d6bff; color:#fff; }
+    .event-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+    .event-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -14px rgba(61,107,255,0.35); border-color: rgba(61,107,255,0.4); }
+    .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .tier-breakdown.tier-open .tier-chevron { transform: rotate(180deg); }
+    .cat-tile { position:relative; border-radius:1rem; overflow:hidden; min-height:96px; transition:transform .15s ease; }
+    .cat-tile:hover { transform: translateY(-3px); }
+    .cat-tile.active { outline:2px solid #fff; outline-offset:-2px; }
+    .hero-slide { display:none; }
+    .hero-slide.active { display:block; }
+    .hero-dot { width:7px; height:7px; border-radius:999px; background:rgba(255,255,255,0.3); }
+    .hero-dot.active { background:#fff; width:20px; border-radius:999px; }
+    #search-map { height:200px; border-radius:0.9rem; }
+    [x-cloak] { display:none !important; }
+</style>
+@endpush
+
+@section('content')
 {{-- ── Hero: search + slider of featured events ─────────────────── --}}
 <div class="events-hero text-white px-4 py-12 sm:py-16">
     <div class="max-w-5xl mx-auto text-center">
@@ -66,7 +61,7 @@
                 </button>
             </div>
 
-            <div x-show="showMap" x-cloak x-transition class="mt-3 p-3 rounded-2xl text-left" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);">
+            <div x-show="showMap" x-cloak x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="mt-3 p-3 rounded-2xl text-left" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);">
                 <p class="text-xs text-white/50 mb-2"><i class="fas fa-hand-pointer mr-1"></i> Drag the pin or click the map to search a location.</p>
                 <div id="search-map" x-ref="map"></div>
                 <div class="flex items-center justify-between mt-2 text-xs text-white/50">
@@ -375,7 +370,9 @@
         </a>
     </div>
 </div>
+@endsection
 
+@push('scripts')
 <script>
 function heroSlider(count) {
     return {
@@ -408,12 +405,23 @@ function eventSearchMap(initLat, initLng) {
             if (this.showMap) {
                 const self = this;
                 ensureLeafletForSearch(function () {
-                    self.$nextTick(function () { self.initMap(); });
+                    self.$nextTick(function () {
+                        // The popup only just became visible (x-show flipped
+                        // this tick), so wait one more frame for layout to
+                        // settle before measuring/creating the map — Leaflet
+                        // reads the container's real width/height at init
+                        // time and renders a blank grey box if it's still 0.
+                        requestAnimationFrame(function () { self.initMap(); });
+                    });
                 });
             }
         },
         initMap() {
-            if (typeof L === 'undefined' || !this.$refs.map || this.map) return;
+            if (typeof L === 'undefined' || !this.$refs.map) return;
+            if (this.map) {
+                setTimeout(() => this.map.invalidateSize(), 60);
+                return;
+            }
             const hasPoint = this.lat && this.lng;
             const center = hasPoint ? [parseFloat(this.lat), parseFloat(this.lng)] : [20, 0];
             const zoom = hasPoint ? 12 : 2;
@@ -440,7 +448,10 @@ function eventSearchMap(initLat, initLng) {
                 self.marker.setOpacity(1);
                 self.setPoint(e.latlng.lat, e.latlng.lng);
             });
+            // Popup fade-in transition + font/layout settling can still leave
+            // Leaflet's cached size stale; invalidate a couple more times.
             setTimeout(function () { self.map.invalidateSize(); }, 80);
+            setTimeout(function () { self.map.invalidateSize(); }, 300);
         },
         setPoint(lat, lng) {
             this.lat = String(Math.round(lat * 1e6) / 1e6);
@@ -466,14 +477,17 @@ function ensureLeafletForSearch(cb) {
         const link = document.createElement('link');
         link.id = 'mpp-leaflet-css';
         link.rel = 'stylesheet';
-        link.href = '/css/vendor/leaflet.min.css';
+        link.href = '{{ asset('css/vendor/leaflet.min.css') }}';
         document.head.appendChild(link);
     }
     const existing = document.getElementById('mpp-leaflet-js');
-    if (existing) { existing.addEventListener('load', cb); return; }
+    if (existing) {
+        if (window.L) { cb(); } else { existing.addEventListener('load', cb); }
+        return;
+    }
     const s = document.createElement('script');
     s.id = 'mpp-leaflet-js';
-    s.src = '/js/vendor/leaflet.min.js';
+    s.src = '{{ asset('js/vendor/leaflet.min.js') }}';
     s.onload = cb;
     document.head.appendChild(s);
 }
@@ -563,5 +577,4 @@ document.querySelectorAll('.event-media').forEach(function (media) {
     });
 });
 </script>
-</body>
-</html>
+@endpush
