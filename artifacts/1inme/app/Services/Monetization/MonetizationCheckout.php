@@ -334,6 +334,7 @@ class MonetizationCheckout
         ]);
 
         $tier->increment('sold_count', $quantity);
+        \App\Services\Events\EventTierCapacityAlerter::check($tier);
 
         $creator = $tier->link?->user;
         if ($creator && $amountCents > 0) {

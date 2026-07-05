@@ -12,6 +12,7 @@ class EventTicketTier extends Model
         'link_id', 'name', 'description', 'price_cents', 'currency',
         'capacity', 'sold_count', 'sales_start', 'sales_end',
         'sort_order', 'is_active',
+        'capacity_alerted_near_at', 'capacity_alerted_full_at',
     ];
 
     protected function casts(): array
@@ -24,6 +25,8 @@ class EventTicketTier extends Model
             'sales_end'   => 'datetime',
             'sort_order'  => 'integer',
             'is_active'   => 'boolean',
+            'capacity_alerted_near_at' => 'datetime',
+            'capacity_alerted_full_at' => 'datetime',
         ];
     }
 
@@ -60,6 +63,17 @@ class EventTicketTier extends Model
     public function isSoldOut(): bool
     {
         return $this->capacity !== null && $this->remainingCapacity() <= 0;
+    }
+
+    /**
+     * Fraction of capacity sold (0.0–1.0), or null for unbounded tiers.
+     */
+    public function capacityFilledRatio(): ?float
+    {
+        if ($this->capacity === null) return null;
+        $cap = (int) $this->capacity;
+        if ($cap <= 0) return null;
+        return min(1.0, (int) $this->sold_count / $cap);
     }
 
     public function priceLabel(): string

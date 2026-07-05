@@ -346,6 +346,25 @@ class EmailTemplateRegistry
                 ],
             ],
 
+            'ticketing.tier_capacity' => [
+                'category' => 'events',
+                'label' => 'Ticket tier capacity alert',
+                'description' => 'Sent to the event owner the moment a paid ticket tier crosses "90%+ full" or "sold out", so they can add capacity before missing sales. Counts-only, no attendee details.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => '"{{tier_name}}" for {{event_name}} is {{status_label}}',
+                'body' => "Heads up — your \"{{tier_name}}\" ticket tier for {{event_name}} is {{status_label}}.\n\nSold: {{sold}} of {{capacity}} ({{remaining}} left)\n\nWant to sell more? Add capacity to this tier before you miss sales:\n{{manage_url}}",
+                'variables' => [
+                    'event_name' => ['label' => 'Event name', 'sample' => 'Summer Music Fest'],
+                    'tier_name' => ['label' => 'Ticket tier', 'sample' => 'VIP'],
+                    'status_label' => ['label' => 'Threshold crossed', 'sample' => 'sold out'],
+                    'sold' => ['label' => 'Tickets sold', 'sample' => '100'],
+                    'capacity' => ['label' => 'Tier capacity', 'sample' => '100'],
+                    'remaining' => ['label' => 'Tickets remaining', 'sample' => '0'],
+                    'manage_url' => ['label' => 'Manage tiers link', 'sample' => 'https://sayzio.app/user/links/1/tickets'],
+                ],
+            ],
+
             // ----------------------------------------------------------------
             // Developer API
             // ----------------------------------------------------------------

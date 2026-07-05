@@ -241,7 +241,15 @@ class EventTicketApiController extends Controller
         $tier = EventTicketTier::where('link_id', $link->id)->find($tierId);
         if (!$tier) return $this->notFound();
 
-        $tier->update($this->validateTier($request));
+        $data = $this->validateTier($request);
+        // If the owner raises capacity, clear the capacity-alert stamps so a
+        // subsequent re-fill re-alerts (Task #3623).
+        if (array_key_exists('capacity', $data) && $data['capacity'] !== null
+            && $tier->capacity !== null && (int) $data['capacity'] > (int) $tier->capacity) {
+            $data['capacity_alerted_near_at'] = null;
+            $data['capacity_alerted_full_at'] = null;
+        }
+        $tier->update($data);
 
         return $this->ok($this->tierShape($tier));
     }
