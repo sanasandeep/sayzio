@@ -23,6 +23,7 @@
         .tag-chip.active { background:#3d6bff; color:#fff; border-color:#3d6bff; }
         .btn-interest.active { background:#3d6bff; color:#fff; border-color:#3d6bff; }
         .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .tier-breakdown.tier-open .tier-chevron { transform: rotate(180deg); }
     </style>
 </head>
 <body class="bg-gradient-to-b from-slate-50 via-white to-slate-50 min-h-screen">
@@ -144,24 +145,51 @@
                         $priceLabel = ($hasRange ? 'From ' : '') . $lowest->priceLabel();
                         $priceIsFree = $lowest->isFree() && !$hasRange;
                     }
+
+                    // Gallery preview: cover first, then distinct gallery
+                    // images. Capped so the hover cycle stays lightweight.
+                    $gallery = array_values(array_filter(
+                        array_map('trim', (array) ($ics?->gallery ?? [])),
+                        fn ($u) => $u !== ''
+                    ));
+                    $previewImages = [];
+                    if ($cover) $previewImages[] = $cover;
+                    foreach ($gallery as $g) {
+                        if ($g !== $cover) $previewImages[] = $g;
+                    }
+                    $previewImages = array_slice(array_values(array_unique($previewImages)), 0, 5);
+                    $photoCount = count($previewImages);
                 @endphp
                 <div class="event-card bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                    <a href="{{ url('/' . $event->alias) }}" class="block relative aspect-[16/10] overflow-hidden">
-                        @if($cover)
-                            <img src="{{ $cover }}" alt="{{ $event->title }}" loading="lazy"
-                                 class="w-full h-full object-cover">
+                    <a href="{{ url('/' . $event->alias) }}"
+                       class="block relative aspect-[16/10] overflow-hidden {{ $photoCount > 1 ? 'event-media' : '' }}">
+                        @if($photoCount > 0)
+                            @foreach($previewImages as $pi => $imgUrl)
+                                <img src="{{ $imgUrl }}" alt="{{ $event->title }}" loading="lazy" data-idx="{{ $pi }}"
+                                     class="event-media-img absolute inset-0 w-full h-full object-cover transition-opacity duration-500 {{ $pi === 0 ? 'opacity-100' : 'opacity-0' }}">
+                            @endforeach
                         @else
                             <div class="cover-fallback w-full h-full flex items-center justify-center">
                                 <i class="fas {{ $catIcon }} text-white/70 text-4xl"></i>
                             </div>
                         @endif
                         @if($ics && $ics->start_date)
-                            <div class="absolute top-3 left-3 bg-white/95 backdrop-blur rounded-xl px-2.5 py-1.5 text-center shadow-sm leading-none">
+                            <div class="absolute top-3 left-3 z-10 bg-white/95 backdrop-blur rounded-xl px-2.5 py-1.5 text-center shadow-sm leading-none">
                                 <div class="text-[10px] font-bold uppercase text-blue-600">{{ $ics->start_date->format('M') }}</div>
                                 <div class="text-base font-extrabold text-slate-900">{{ $ics->start_date->format('j') }}</div>
                             </div>
                         @endif
-                        <div class="absolute bottom-3 right-3">
+                        @if($photoCount > 1)
+                            <div class="absolute top-3 right-3 z-10 inline-flex items-center gap-1 bg-black/55 text-white rounded-full px-2 py-1 text-[11px] font-semibold backdrop-blur-sm shadow-sm">
+                                <i class="fas fa-images"></i> {{ $photoCount }} photos
+                            </div>
+                            <div class="event-media-dots absolute bottom-3 left-3 z-10 flex items-center gap-1">
+                                @foreach($previewImages as $pi => $imgUrl)
+                                    <span class="event-media-dot h-1.5 w-1.5 rounded-full {{ $pi === 0 ? 'bg-white' : 'bg-white/60' }}" data-dot="{{ $pi }}"></span>
+                                @endforeach
+                            </div>
+                        @endif
+                        <div class="absolute bottom-3 right-3 z-10">
                             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold shadow-sm {{ $priceIsFree ? 'bg-emerald-500 text-white' : 'bg-white/95 text-slate-900' }}">
                                 {{ $priceLabel }}
                             </span>
@@ -193,6 +221,23 @@
                                     <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['tag', 'page']), ['tag' => $ht])) }}"
                                        class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700">#{{ $ht }}</a>
                                 @endforeach
+                            </div>
+                        @endif
+
+                        @if($tiers->count() > 1)
+                            <div class="tier-breakdown mt-3">
+                                <button type="button" class="tier-toggle inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700" aria-expanded="false">
+                                    <i class="fas fa-tags"></i> {{ $tiers->count() }} ticket tiers
+                                    <i class="fas fa-chevron-down text-[10px] transition-transform tier-chevron"></i>
+                                </button>
+                                <div class="tier-list hidden mt-2 rounded-lg border border-slate-100 bg-slate-50/70 divide-y divide-slate-100">
+                                    @foreach($tiers as $tier)
+                                        <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs">
+                                            <span class="text-slate-600 truncate">{{ $tier->name }}</span>
+                                            <span class="font-bold whitespace-nowrap {{ $tier->isFree() ? 'text-emerald-600' : 'text-slate-900' }}">{{ $tier->priceLabel() }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
                         @endif
 
@@ -264,6 +309,45 @@ document.querySelectorAll('.event-interest-btn').forEach(function (btn) {
             .finally(function () {
                 siblingButtons.forEach(function (b) { b.disabled = false; });
             });
+    });
+});
+
+// Ticket-tier breakdown: reveal the full name+price list inline without
+// leaving the directory. Default collapsed state keeps the "From $X" summary.
+document.querySelectorAll('.tier-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        const wrap = btn.closest('.tier-breakdown');
+        const list = wrap.querySelector('.tier-list');
+        const open = list.classList.toggle('hidden') === false;
+        wrap.classList.toggle('tier-open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+});
+
+// Lightweight hover gallery preview for cards with multiple photos.
+document.querySelectorAll('.event-media').forEach(function (media) {
+    const imgs = media.querySelectorAll('.event-media-img');
+    const dots = media.querySelectorAll('.event-media-dot');
+    if (imgs.length < 2) return;
+    let idx = 0;
+    let timer = null;
+
+    function show(next) {
+        imgs[idx].classList.replace('opacity-100', 'opacity-0');
+        if (dots[idx]) dots[idx].classList.replace('bg-white', 'bg-white/60');
+        idx = next;
+        imgs[idx].classList.replace('opacity-0', 'opacity-100');
+        if (dots[idx]) dots[idx].classList.replace('bg-white/60', 'bg-white');
+    }
+
+    media.addEventListener('mouseenter', function () {
+        if (timer) return;
+        timer = setInterval(function () { show((idx + 1) % imgs.length); }, 1100);
+    });
+    media.addEventListener('mouseleave', function () {
+        clearInterval(timer);
+        timer = null;
+        if (idx !== 0) show(0);
     });
 });
 </script>
