@@ -132,6 +132,13 @@
 
 @include('public.partials.header', ['useModal' => $useModal ?? false])
 
+{{-- Cross-page "Discover Events" promo band — every site-layout page shows
+     it except the events directory itself, which already has the full hero
+     it's modeled on. --}}
+@unless(request()->routeIs('events.index'))
+    @include('common.partials.events-hero-band')
+@endunless
+
 <main class="flex-1 mkt-site-main">
     @yield('content')
 </main>

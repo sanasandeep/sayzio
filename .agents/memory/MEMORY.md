@@ -1,3 +1,4 @@
+- [Blade @push must execute before @stack](blade-push-stack-order.md) — a partial's `@push('head')` silently renders nothing if `@include`d after the layout already flushed `@stack('head')`; inline the tag instead.
 - [Platform default timezone sweep](platform-default-timezone-sweep.md) — centralizing a "personal pref, else platform default" fallback needs a 2nd broad grep sweep (models/controllers/services/commands/views), naive grep misses many.
 - [Events directory hero/near-me/fallback](events-directory-hero-nearme-fallback.md) — hero ranks by proximity or trending (never flat-chronological); online events never dropped by radius filters; JSON-settings checkboxes need a hidden value=0 fallback input.
 - [Internal (admin-only) plans](internal-admin-only-plans.md) — `Plan::scopePublic()` (is_internal=false) is the canonical filter; every self-serve list/upgrade surface adds `->public()`, admin list & assign-picker do not.

@@ -102,6 +102,14 @@
                 <a href="{{ route('site.about') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">About</a>
                 <a href="{{ route('site.contact') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">Contact</a>
 
+                {{-- Highlighted "Events" badge — visually distinct pill (vs the
+                     plain text links above) to drive discovery of /events. --}}
+                <a href="{{ route('events.index') }}" @mouseenter="openMenu=null"
+                   class="ml-1 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors"
+                   style="background:rgba(61,107,255,0.14); border:1px solid rgba(61,107,255,0.4); color:#8fa8ff;">
+                    <i class="fas fa-calendar-day text-[11px]"></i> Events
+                </a>
+
                 {{-- ============ Product mega panel ============ --}}
                 {{-- Outer wrapper has no visible chrome and a top padding "bridge" so
                      the cursor can travel from the trigger to the panel without
@@ -350,6 +358,15 @@
                     @endforeach
                 </div>
             </div>
+
+            {{-- Highlighted "Events" badge (mobile) — same distinct pill
+                 treatment as desktop, placed above the accordions so it
+                 stays prominent. --}}
+            <a href="{{ route('events.index') }}" @click="mobileOpen=false"
+               class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold"
+               style="background:rgba(61,107,255,0.14); border:1px solid rgba(61,107,255,0.4); color:#8fa8ff;">
+                <i class="fas fa-calendar-day text-xs"></i> Events
+            </a>
 
             {{-- Company --}}
             <div class="rounded-xl border border-white/10 overflow-hidden">

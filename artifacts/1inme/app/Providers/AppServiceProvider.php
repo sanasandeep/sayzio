@@ -134,6 +134,14 @@ class AppServiceProvider extends ServiceProvider
             \App\Modules\Common\Services\ContactsFollowUpsBadgeComposer::class
         );
 
+        // Feed 2-3 featured upcoming events to the reusable events-hero promo
+        // band included from the marketing site layout, so pages showing the
+        // band always have fresh data without each controller wiring it up.
+        \Illuminate\Support\Facades\View::composer(
+            \App\Modules\Common\Services\EventsHeroBandComposer::VIEW,
+            \App\Modules\Common\Services\EventsHeroBandComposer::class
+        );
+
         // Note: App\Listeners\IssueInvoiceOnSubscriptionActivated is wired to
         // App\Events\SubscriptionActivated by Laravel's event auto-discovery
         // (typed handle() method on a class under app/Listeners). An explicit
