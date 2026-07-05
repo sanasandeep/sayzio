@@ -96,6 +96,10 @@ args = "brand-color-build"
 task = "workflow.run"
 args = "mobile-docs-parity"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check-plan-feature-coverage"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -312,6 +316,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && composer check:mobile-docs-parity"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check-plan-feature-coverage"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:plan-feature-coverage"
 
 [workflows.workflow.metadata]
 isValidation = true

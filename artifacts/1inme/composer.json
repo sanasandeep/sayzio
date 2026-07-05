@@ -80,6 +80,9 @@
         "check:mobile-docs-parity": [
             "@php artisan parity:check-mobile-docs"
         ],
+        "check:plan-feature-coverage": [
+            "vendor/bin/phpunit --filter=PlanFeatureEnforcementCoverageTest tests/Unit/Support/PlanFeatureEnforcementCoverageTest.php"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

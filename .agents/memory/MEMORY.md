@@ -142,8 +142,6 @@
 - [Event check-in workspace-aware access](event-checkin-workspace-access.md) — 3 lockstep auth call paths (web middleware, unauth QR lookup, stateless API findLink/canAct); RSVP tickets are tier-less EventTickets keyed by rsvp_id, synced via RsvpTicketService.
 - [Event tier capacity alerts](event-tier-capacity-alerts.md) — 90%/sold-out owner alert fires from issueEventTicket via EventTierCapacityAlerter; idempotent via 2 stamp cols claimed atomically, reset on capacity raise (web+API lockstep), counts-only no PII.
 - [1inme duplicate dev workflow](1inme-duplicate-dev-workflow.md) — canonical 1inme dev server is `artifacts/1inme: web` (artifact.toml); a hand-added duplicate `1INME` workflow reran the same command → port-5000 collision + "artifact failed to run". Remove the dup, restart the canonical.
-<<<<<<< HEAD
 - [bento-stage clobbers fixed overlays](bento-stage-fixed-overlay-clobber.md) — a fixed-position modal nested as a direct child of `.bento-stage` silently becomes `position:relative` via a CSS specificity tie-break; JS/Alpine state stays correct, only getComputedStyle reveals it.
-=======
 - [SitePages marketing page addition](sitepages-marketing-page-addition.md) — new landing page is 6 lockstep surfaces (richDefaults, route+catch-all exclusion, controller branch, home teaser+chip+tests, nav, backfill migration); skipping the migration 404s on prod.
->>>>>>> 871d41a1 (Add AI Dashboard marketing page + home teaser section)
+- [Plan-feature registries are separate systems](plan-feature-registries-are-three-separate-systems.md) — quantityLimits/featureFlags/aiSuite is only ONE registry; check modules()/moduleKeys()/aiCoinMultipliers() + all features[...] read shapes before calling a key "missing".
