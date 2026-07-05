@@ -46,7 +46,14 @@ class EventsDirectoryController extends Controller
             });
         }
 
-        if ($category !== '') {
+        $curatedSlugs = array_keys(\App\Modules\User\Support\EventCategories::CATEGORIES);
+
+        if ($category === \App\Modules\User\Support\EventCategories::OTHER) {
+            // "Other" pill: every stored value that isn't a curated slug.
+            $placeholders = implode(',', array_fill(0, count($curatedSlugs), '?'));
+            $query->whereRaw("settings->>'event_category' IS NOT NULL")
+                  ->whereRaw("settings->>'event_category' NOT IN ($placeholders)", $curatedSlugs);
+        } elseif ($category !== '') {
             $query->whereRaw("settings->>'event_category' = ?", [$category]);
         }
 
@@ -83,11 +90,22 @@ class EventsDirectoryController extends Controller
                 ->whereColumn('ics_data.link_id', 'links.id')->limit(1)
         )->paginate(24)->withQueryString();
 
-        $categories = Link::where('type', 'ics')
+        $storedCategories = Link::where('type', 'ics')
             ->where('is_active', true)
             ->whereRaw("settings->>'event_category' IS NOT NULL")
             ->selectRaw("DISTINCT settings->>'event_category' as category")
-            ->pluck('category')->filter()->values();
+            ->pluck('category')->filter();
+
+        // Browse row shows only curated slugs (in curated order) that actually
+        // have events; every non-curated free-text value folds into one "Other"
+        // pill so a long tail of one-off custom values can't clutter the row.
+        $categories = collect($curatedSlugs)
+            ->filter(fn ($slug) => $storedCategories->contains($slug))
+            ->values();
+        $hasOtherCategory = $storedCategories->contains(
+            fn ($c) => !\App\Modules\User\Support\EventCategories::isKnown((string) $c)
+        );
+        $otherCategory = \App\Modules\User\Support\EventCategories::OTHER;
 
         // Popular hashtags across public, upcoming events — used to render
         // filter chips in the directory (Task #3593).
@@ -109,7 +127,7 @@ class EventsDirectoryController extends Controller
         $categoryIcons  = $categories->mapWithKeys(fn ($c) => [$c => static::categoryIcon($c)]);
         $categoryLabels = $categories->mapWithKeys(fn ($c) => [$c => \App\Modules\User\Support\EventCategories::label($c)]);
 
-        return view('common.events-directory', compact('events', 'q', 'category', 'tag', 'categories', 'categoryIcons', 'categoryLabels', 'popularTags', 'nearMe', 'lat', 'lng', 'radiusKm'));
+        return view('common.events-directory', compact('events', 'q', 'category', 'tag', 'categories', 'categoryIcons', 'categoryLabels', 'hasOtherCategory', 'otherCategory', 'popularTags', 'nearMe', 'lat', 'lng', 'radiusKm'));
     }
 
     /**

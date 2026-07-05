@@ -58,7 +58,7 @@
 <div class="max-w-6xl mx-auto px-4 py-8">
 
     {{-- Category browse row (Eventbrite-style). --}}
-    @if($categories->isNotEmpty())
+    @if($categories->isNotEmpty() || $hasOtherCategory)
         <div class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 mb-5 snap-x">
             <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['category', 'page']), ['category' => ''])) }}"
                class="cat-pill snap-start flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-blue-300 {{ $category === '' ? 'active' : '' }}">
@@ -70,6 +70,12 @@
                     <i class="fas {{ $categoryIcons[$c] ?? 'fa-calendar-star' }}"></i> {{ $categoryLabels[$c] ?? ucfirst($c) }}
                 </a>
             @endforeach
+            @if($hasOtherCategory)
+                <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['category', 'page']), ['category' => $category === $otherCategory ? '' : $otherCategory])) }}"
+                   class="cat-pill snap-start flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-blue-300 {{ $category === $otherCategory ? 'active' : '' }}">
+                    <i class="fas fa-ellipsis"></i> Other
+                </a>
+            @endif
         </div>
     @endif
 
@@ -98,7 +104,11 @@
             @endif
             @if($category)
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100">
-                    <i class="fas {{ $categoryIcons[$category] ?? 'fa-calendar-star' }}"></i> {{ $categoryLabels[$category] ?? \App\Modules\User\Support\EventCategories::label($category) }}
+                    @if($category === $otherCategory)
+                        <i class="fas fa-ellipsis"></i> Other
+                    @else
+                        <i class="fas {{ $categoryIcons[$category] ?? 'fa-calendar-star' }}"></i> {{ $categoryLabels[$category] ?? \App\Modules\User\Support\EventCategories::label($category) }}
+                    @endif
                     <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['category', 'page'])) }}" class="text-slate-400 hover:text-slate-700">&times;</a>
                 </span>
             @endif
@@ -133,7 +143,10 @@
                 @php
                     $ics = $event->icsData;
                     $cover = $ics->cover_image_url ?? null;
-                    $catIcon = $categoryIcons[($event->settings['event_category'] ?? '')] ?? 'fa-calendar-star';
+                    $eventCategory = $event->settings['event_category'] ?? '';
+                    $catIcon = $eventCategory !== ''
+                        ? \App\Modules\User\Support\EventCategories::icon($eventCategory)
+                        : 'fa-calendar-star';
 
                     $tiers = $event->eventTicketTiers->sortBy('price_cents')->values();
                     if ($tiers->isEmpty()) {
