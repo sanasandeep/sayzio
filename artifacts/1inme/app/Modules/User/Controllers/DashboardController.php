@@ -128,6 +128,13 @@ class DashboardController extends Controller
         $dashboardCatalog = DashboardWidgetCatalog::forFrontend();
         $dashboardPresets = DashboardPresets::forFrontend();
         $dashboardAiAllowed = AiPlanAccess::featureAllowed($user, DashboardAiDesignerService::FEATURE);
+        // Task #3617 — active-layout badge label + per-tab "tiles are hidden"
+        // hint, both derived from the layout already resolved above.
+        $dashboardLayoutLabel = DashboardPresets::labelFor($layout);
+        $dashboardTrimmedTabs = DashboardWidgetCatalog::trimmedTabs(
+            $dashboardWidgets,
+            DashboardPresets::widgetsForPreset(DashboardPresets::DEFAULT_PRESET)
+        );
 
         return view('user.dashboard.index', compact(
             'user', 'totalLinks', 'totalClicks', 'totalProjects',
@@ -136,7 +143,7 @@ class DashboardController extends Controller
             'showWhatsappPrompt', 'whatsappChannelUrl', 'deliveryProjects',
             'dashboardWidgets', 'dashboardTabs', 'dashboardCurrentPreset',
             'dashboardIsCustom', 'dashboardCatalog', 'dashboardPresets',
-            'dashboardAiAllowed'
+            'dashboardAiAllowed', 'dashboardLayoutLabel', 'dashboardTrimmedTabs'
         ));
     }
 }

@@ -147,6 +147,35 @@ class DashboardWidgetCatalog
     }
 
     /**
+     * Task #3617 — for each tab, whether the active layout omits at least one
+     * widget that belongs to that tab in the "full" baseline layout. Drives
+     * the "some tiles are hidden by your current layout" inline hint.
+     *
+     * The baseline is the caller-supplied full widget set (the default
+     * Overview preset's widgets) rather than the entire catalog: not every
+     * catalog widget is part of the default "everything" experience (e.g.
+     * `delivery_projects` is catalog-valid for the AI designer/custom
+     * layouts but isn't in the Overview preset), so diffing against the
+     * raw catalog would flag the default layout itself as "trimmed".
+     *
+     * @param  list<string>  $activeWidgets
+     * @param  list<string>  $fullWidgets
+     * @return array{overview:bool, traffic:bool, growth:bool}
+     */
+    public static function trimmedTabs(array $activeWidgets, array $fullWidgets): array
+    {
+        $active = array_flip($activeWidgets);
+        $trimmed = ['overview' => false, 'traffic' => false, 'growth' => false];
+        foreach ($fullWidgets as $key) {
+            $tab = self::tabFor($key);
+            if ($tab !== null && !isset($active[$key])) {
+                $trimmed[$tab] = true;
+            }
+        }
+        return $trimmed;
+    }
+
+    /**
      * Frontend-friendly catalog payload (ordered, with tab grouping) used by
      * both the web "Customize dashboard" modal and the mobile API.
      *

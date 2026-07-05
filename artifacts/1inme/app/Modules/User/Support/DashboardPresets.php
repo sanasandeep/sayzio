@@ -141,6 +141,23 @@ class DashboardPresets
         ];
     }
 
+    /**
+     * Task #3617 — human-readable name for the currently active layout, for
+     * the badge shown beside the dashboard tabs. Mirrors the same
+     * preset/custom/source resolution as {@see resolveFor()}.
+     *
+     * @param  array{preset: ?string, is_custom: bool, widgets: list<string>, source: ?string}  $layout
+     */
+    public static function labelFor(array $layout): string
+    {
+        if (!empty($layout['is_custom'])) {
+            return ($layout['source'] ?? null) === 'ai' ? 'AI-designed layout' : 'Custom layout';
+        }
+
+        $key = $layout['preset'] ?? self::DEFAULT_PRESET;
+        return self::PRESETS[$key]['label'] ?? self::PRESETS[self::DEFAULT_PRESET]['label'];
+    }
+
     /** Persist a preset choice for the user. */
     public static function applyPreset(User $user, string $presetKey): void
     {

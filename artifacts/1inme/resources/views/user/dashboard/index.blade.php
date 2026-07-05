@@ -210,13 +210,29 @@
                 </button>
                 @endif
             </div>
-            <button type="button" @click="$dispatch('open-dashboard-customize')" class="btn-ghost text-xs py-2">
-                <i class="fas fa-sliders text-[10px]"></i> Customize dashboard
-            </button>
+            <div class="flex items-center gap-2">
+                {{-- Task #3617 — active-layout badge: makes it unambiguous which
+                     preset/custom layout is applied, and doubles as a shortcut
+                     into the picker. --}}
+                <button type="button" @click="$dispatch('open-dashboard-customize')"
+                        class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-all hover:opacity-80"
+                        style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.18); color: var(--accent-light, #90acff);"
+                        title="Click to switch layouts">
+                    <i class="fas {{ $dashboardIsCustom ? 'fa-wand-magic-sparkles' : 'fa-table-cells-large' }} text-[10px]"></i>
+                    Layout: {{ $dashboardLayoutLabel }}
+                </button>
+                <button type="button" @click="$dispatch('open-dashboard-customize')" class="btn-ghost text-xs py-2">
+                    <i class="fas fa-sliders text-[10px]"></i> Customize dashboard
+                </button>
+            </div>
         </div>
 
         {{-- ===================== OVERVIEW TAB ===================== --}}
         <div x-show="tab === 'overview'" x-cloak role="tabpanel">
+
+            @if($dashboardTrimmedTabs['overview'] ?? false)
+            @include('user.dashboard.partials.trimmed-hint')
+            @endif
 
             {{-- Metric bento: one tall feature tile (Total Clicks) + four regular tiles. --}}
             <div class="bento mb-5">
@@ -588,6 +604,9 @@
         {{-- ===================== TRAFFIC TAB ===================== --}}
         @if($dashboardTabs['traffic'] ?? true)
         <div x-show="tab === 'traffic'" x-cloak role="tabpanel">
+        @if($dashboardTrimmedTabs['traffic'] ?? false)
+        @include('user.dashboard.partials.trimmed-hint')
+        @endif
         {{-- ===================== WORKSPACE-WIDE CHANNEL BREAKDOWN =====================
              Rolls every link's click log up into a single "what share of my traffic
              comes from in-app webviews vs real browsers vs bots" view. The pills
@@ -664,6 +683,9 @@
         {{-- ===================== GROWTH TAB ===================== --}}
         @if($dashboardTabs['growth'] ?? true)
         <div x-show="tab === 'growth'" x-cloak role="tabpanel">
+        @if($dashboardTrimmedTabs['growth'] ?? false)
+        @include('user.dashboard.partials.trimmed-hint')
+        @endif
         <div class="bento">
             {{-- Backlink radar at-a-glance: how many new pages around the web have
                  linked back to one of this creator's properties in the last 7 days.
