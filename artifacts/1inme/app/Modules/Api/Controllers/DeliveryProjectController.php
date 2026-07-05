@@ -51,6 +51,7 @@ class DeliveryProjectController extends Controller
             ->with('creator:id,name')
             ->withCount('tasks')
             ->withCount(['tasks as done_tasks_count' => fn ($q) => $q->where('status', DeliveryProjectTask::STATUS_DONE)])
+            ->withUnansweredClientCount()
             ->orderByDesc('id')
             ->get()
             ->map(fn (DeliveryProject $p) => $this->projectArray($p))
@@ -309,6 +310,7 @@ class DeliveryProjectController extends Controller
             'warranty_reminder_days' => $p->warranty_reminder_days !== null ? (int) $p->warranty_reminder_days : null,
             'warranty_active'  => $p->warrantyActive(),
             'warranty_expired' => $p->warrantyExpired(),
+            'unanswered_client_count' => $p->unansweredClientCount(),
         ];
 
         if ($withTasks) {

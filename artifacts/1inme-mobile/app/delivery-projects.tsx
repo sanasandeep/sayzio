@@ -83,6 +83,28 @@ export default function DeliveryProjectsScreen() {
                     >
                       {item.title}
                     </Text>
+                    {item.unanswered_client_count > 0 ? (
+                      <View
+                        style={[
+                          styles.replyBadge,
+                          { backgroundColor: colors.destructive + "1F" },
+                        ]}
+                      >
+                        <Feather
+                          name="corner-up-left"
+                          size={10}
+                          color={colors.destructive}
+                        />
+                        <Text
+                          style={[
+                            styles.replyBadgeTxt,
+                            { color: colors.destructive },
+                          ]}
+                        >
+                          {item.unanswered_client_count}
+                        </Text>
+                      </View>
+                    ) : null}
                     <Text style={[styles.pct, { color: tint }]}>
                       {item.progress}%
                     </Text>
@@ -156,4 +178,13 @@ const styles = StyleSheet.create({
   barTrack: { height: 6, borderRadius: 999, overflow: "hidden" },
   barFill: { height: "100%", borderRadius: 999 },
   sub: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11, letterSpacing: 0.3 },
+  replyBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  replyBadgeTxt: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 11 },
 });

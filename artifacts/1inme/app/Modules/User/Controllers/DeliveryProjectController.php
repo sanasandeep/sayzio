@@ -44,6 +44,7 @@ class DeliveryProjectController extends Controller
             ->with('creator:id,name')
             ->withCount('tasks')
             ->withCount(['tasks as done_tasks_count' => fn ($q) => $q->where('status', DeliveryProjectTask::STATUS_DONE)])
+            ->withUnansweredClientCount()
             ->orderByDesc('id')
             ->get();
 

@@ -30,12 +30,22 @@
             @foreach($projects as $project)
                 @php
                     $overall = $project->tasks_count > 0 ? (int) round(($project->done_tasks_count / $project->tasks_count) * 100) : 0;
+                    $needsReply = $project->unansweredClientCount();
                 @endphp
                 <a href="{{ route('user.delivery-projects.show', $project) }}"
                    class="glass-card rounded-2xl p-5 block hover:shadow-lg transition" style="border:1px solid var(--border);">
                     <div class="flex items-start justify-between gap-2 mb-2">
                         <h3 class="font-semibold" style="color: var(--text-primary);">{{ $project->title }}</h3>
-                        <span class="text-xs px-2 py-0.5 rounded-full" style="background: var(--surface-2); color: var(--text-secondary);">{{ $project->statusLabel() }}</span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            @if($needsReply > 0)
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold inline-flex items-center gap-1"
+                                      style="background: rgba(239,68,68,.12); color:#ef4444;"
+                                      title="{{ $needsReply }} client {{ $needsReply === 1 ? 'question' : 'questions' }} awaiting a reply">
+                                    <i class="fas fa-reply"></i> {{ $needsReply }}
+                                </span>
+                            @endif
+                            <span class="text-xs px-2 py-0.5 rounded-full" style="background: var(--surface-2); color: var(--text-secondary);">{{ $project->statusLabel() }}</span>
+                        </div>
                     </div>
                     @if($project->client_name)
                         <p class="text-xs mb-3" style="color: var(--text-tertiary);"><i class="far fa-user mr-1"></i>{{ $project->client_name }}</p>

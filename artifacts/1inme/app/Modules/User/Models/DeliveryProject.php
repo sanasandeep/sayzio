@@ -76,6 +76,48 @@ class DeliveryProject extends Model
         return $this->hasMany(DeliveryProjectComment::class, 'project_id')->orderBy('id');
     }
 
+    /**
+     * Task #3574 — eager-load `unanswered_client_count`: the number of client
+     * comments posted after the most recent team reply (0 = the team is caught
+     * up, or the client never asked anything). Comments are inserted in
+     * chronological order so id ordering is chronological.
+     */
+    public function scopeWithUnansweredClientCount($query)
+    {
+        $table = (new DeliveryProjectComment)->getTable();
+
+        return $query->withCount(['comments as unanswered_client_count' => function ($q) use ($table) {
+            $q->where('author_role', DeliveryProjectComment::ROLE_CLIENT)
+              ->whereRaw(
+                  "{$table}.id > (select coalesce(max(t.id), 0) from {$table} as t"
+                  . " where t.project_id = {$table}.project_id and t.author_role = ?)",
+                  [DeliveryProjectComment::ROLE_TEAM]
+              );
+        }]);
+    }
+
+    /**
+     * Task #3574 — client comments still awaiting a team reply. Prefers the
+     * eager-loaded {@see scopeWithUnansweredClientCount} column, then a loaded
+     * comments relation, and finally a direct query as a last resort.
+     */
+    public function unansweredClientCount(): int
+    {
+        if (array_key_exists('unanswered_client_count', $this->attributes)) {
+            return (int) $this->attributes['unanswered_client_count'];
+        }
+
+        $comments = $this->relationLoaded('comments') ? $this->comments : $this->comments()->get();
+        $lastTeamId = (int) $comments
+            ->where('author_role', DeliveryProjectComment::ROLE_TEAM)
+            ->max('id');
+
+        return $comments
+            ->where('author_role', DeliveryProjectComment::ROLE_CLIENT)
+            ->filter(fn ($c) => (int) $c->id > $lastTeamId)
+            ->count();
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');

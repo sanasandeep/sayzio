@@ -33,6 +33,7 @@ export type DeliveryProjectSummary = {
   warranty_reminder_days: number | null;
   warranty_active: boolean;
   warranty_expired: boolean;
+  unanswered_client_count: number;
 };
 
 export type DeliveryProjectDetail = DeliveryProjectSummary & {

@@ -113,6 +113,9 @@ export default function DeliveryProjectDetailScreen() {
     onSuccess: () => {
       setCommentBody("");
       qc.invalidateQueries({ queryKey: ["delivery-project-comments", id] });
+      // Refresh the project + list summaries so the unanswered-client badge
+      // clears everywhere as soon as the team replies (Task #3574).
+      invalidate();
     },
     onError: (e: { message?: string }) =>
       Alert.alert("Couldn't send", e?.message ?? "Try again."),
@@ -124,6 +127,18 @@ export default function DeliveryProjectDetailScreen() {
   };
 
   const members: DeliveryProjectMember[] = q.data?.members ?? [];
+
+  // Task #3574 — a client comment still awaits a reply when it was posted
+  // after the most recent team reply. Derived from the live comment thread so
+  // the badge clears as soon as the team sends a reply.
+  const comments = commentsQ.data ?? [];
+  const lastTeamId = comments.reduce(
+    (max, c) => (c.is_team && c.id > max ? c.id : max),
+    0,
+  );
+  const isAwaiting = (c: (typeof comments)[number]) =>
+    !c.is_team && c.id > lastTeamId;
+  const awaitingCount = comments.filter(isAwaiting).length;
 
   const add = useMutation({
     mutationFn: (t: string) => createDeliveryTask(id, { title: t }),
@@ -548,9 +563,32 @@ export default function DeliveryProjectDetailScreen() {
             );
           })()}
 
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            Questions & comments
-          </Text>
+          <View style={styles.sectionRow}>
+            <Text
+              style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+            >
+              Questions & comments
+            </Text>
+            {awaitingCount > 0 ? (
+              <View
+                style={[
+                  styles.replyBadge,
+                  { backgroundColor: colors.destructive + "1F" },
+                ]}
+              >
+                <Feather
+                  name="corner-up-left"
+                  size={10}
+                  color={colors.destructive}
+                />
+                <Text
+                  style={[styles.replyBadgeTxt, { color: colors.destructive }]}
+                >
+                  {awaitingCount} awaiting reply
+                </Text>
+              </View>
+            ) : null}
+          </View>
           <View
             style={[
               styles.card,
@@ -568,41 +606,64 @@ export default function DeliveryProjectDetailScreen() {
                 No messages yet.
               </Text>
             ) : (
-              commentsQ.data!.map((c) => (
-                <View
-                  key={c.id}
-                  style={[
-                    styles.commentBubble,
-                    {
-                      backgroundColor: c.is_team
-                        ? colors.primary + "14"
-                        : colors.muted,
-                      borderRadius: colors.radius,
-                    },
-                  ]}
-                >
-                  <View style={styles.rowTop}>
-                    <Text
-                      style={[
-                        styles.commentAuthor,
-                        { color: c.is_team ? colors.primary : colors.foreground },
-                      ]}
-                    >
-                      {c.author_name} · {c.is_team ? "Team" : "Client"}
-                    </Text>
-                    {c.created_at ? (
+              commentsQ.data!.map((c) => {
+                const awaiting = isAwaiting(c);
+                return (
+                  <View
+                    key={c.id}
+                    style={[
+                      styles.commentBubble,
+                      {
+                        backgroundColor: c.is_team
+                          ? colors.primary + "14"
+                          : colors.muted,
+                        borderRadius: colors.radius,
+                      },
+                      awaiting
+                        ? { borderWidth: 1, borderColor: colors.destructive }
+                        : null,
+                    ]}
+                  >
+                    <View style={styles.rowTop}>
                       <Text
-                        style={[styles.axisTxt, { color: colors.mutedForeground }]}
+                        style={[
+                          styles.commentAuthor,
+                          {
+                            color: c.is_team
+                              ? colors.primary
+                              : colors.foreground,
+                          },
+                        ]}
                       >
-                        {c.created_at.slice(0, 10)}
+                        {c.author_name} · {c.is_team ? "Team" : "Client"}
+                      </Text>
+                      {c.created_at ? (
+                        <Text
+                          style={[
+                            styles.axisTxt,
+                            { color: colors.mutedForeground },
+                          ]}
+                        >
+                          {c.created_at.slice(0, 10)}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {awaiting ? (
+                      <Text
+                        style={[
+                          styles.needsReplyTag,
+                          { color: colors.destructive },
+                        ]}
+                      >
+                        Needs reply
                       </Text>
                     ) : null}
+                    <Text style={[styles.desc, { color: colors.foreground }]}>
+                      {c.body}
+                    </Text>
                   </View>
-                  <Text style={[styles.desc, { color: colors.foreground }]}>
-                    {c.body}
-                  </Text>
-                </View>
-              ))
+                );
+              })
             )}
             <TextInput
               value={commentBody}
@@ -916,6 +977,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: "uppercase",
   },
+  sectionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  replyBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  replyBadgeTxt: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 11 },
+  needsReplyTag: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 10 },
   taskRow: {
     flexDirection: "row",
     alignItems: "center",

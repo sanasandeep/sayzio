@@ -165,17 +165,33 @@
     </div>
 
     {{-- Client conversation --}}
+    @php
+        $needsReply = $project->unansweredClientCount();
+        $lastTeamId = (int) $project->comments->where('author_role', 'team')->max('id');
+    @endphp
     <div class="glass-card rounded-2xl p-5 mt-4" style="border:1px solid var(--border);">
-        <h3 class="font-semibold mb-1" style="color: var(--text-primary);">Conversation with client</h3>
+        <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <h3 class="font-semibold" style="color: var(--text-primary);">Conversation with client</h3>
+            @if($needsReply > 0)
+                <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold inline-flex items-center gap-1"
+                      style="background: rgba(239,68,68,.12); color:#ef4444;">
+                    <i class="fas fa-reply"></i> {{ $needsReply }} awaiting reply
+                </span>
+            @endif
+        </div>
         <p class="text-xs mb-3" style="color: var(--text-tertiary);">Questions from your buyer show up here. Replies are emailed to them.</p>
 
         <div class="space-y-3 mb-4">
             @forelse($project->comments as $comment)
-                <div class="rounded-lg p-3" style="background: var(--surface-2); border:1px solid var(--border);">
+                @php $awaiting = !$comment->isTeam() && (int) $comment->id > $lastTeamId; @endphp
+                <div class="rounded-lg p-3" style="background: var(--surface-2); border:1px solid {{ $awaiting ? '#ef4444' : 'var(--border)' }};">
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-xs font-semibold" style="color: {{ $comment->isTeam() ? '#3d6bff' : 'var(--text-primary)' }};">
                             <i class="fas fa-{{ $comment->isTeam() ? 'headset' : 'user' }} mr-1"></i>{{ $comment->displayName() }}
                             <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium" style="background: var(--surface); color: var(--text-tertiary);">{{ $comment->isTeam() ? 'Team' : 'Client' }}</span>
+                            @if($awaiting)
+                                <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold" style="background: rgba(239,68,68,.12); color:#ef4444;">Needs reply</span>
+                            @endif
                         </span>
                         <span class="text-[11px]" style="color: var(--text-tertiary);">{{ optional($comment->created_at)->diffForHumans() }}</span>
                     </div>
