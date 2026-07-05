@@ -457,6 +457,7 @@ class AiMindFeatureAdapter
                     'tz'        => $e->effectiveTimezone(),
                     'location'  => $e->location,
                     'ticketing' => null,
+                    'tiers'     => null,
                 ];
             }
 
@@ -476,15 +477,36 @@ class AiMindFeatureAdapter
                     }
 
                     $ticketing = null;
+                    $tierBreakdown = null;
                     if ($hasTierTable && $link->eventTicketTiers()->exists()) {
                         $progress = \App\Services\Events\EventCheckinProgress::for($link);
-                        $capacity = (int) $link->eventTicketTiers()->sum('capacity');
+                        $tierModels = $link->eventTicketTiers()
+                            ->orderBy('sort_order')
+                            ->get(['id', 'name', 'capacity']);
+                        $capacity = (int) $tierModels->sum('capacity');
                         $ticketing = sprintf(
                             '%d sold%s, %d checked in',
                             $progress['totals']['sold'],
                             $capacity > 0 ? " of {$capacity}" : '',
                             $progress['totals']['checked_in']
                         );
+
+                        // Per-tier sold/capacity breakdown when the event has
+                        // more than one priced tier, so the AI can answer
+                        // "how's VIP selling?" rather than only the total.
+                        // Counts-only, no attendee PII (same convention as the
+                        // total above).
+                        if ($tierModels->count() > 1) {
+                            $soldByTier = collect($progress['tiers'])->keyBy('id');
+                            $tierBits = [];
+                            foreach ($tierModels as $tier) {
+                                $sold = (int) ($soldByTier[$tier->id]['sold'] ?? 0);
+                                $tierBits[] = $tier->capacity !== null
+                                    ? sprintf('%s %d/%d', $tier->name, $sold, (int) $tier->capacity)
+                                    : sprintf('%s %d sold', $tier->name, $sold);
+                            }
+                            $tierBreakdown = implode(', ', $tierBits);
+                        }
                     } elseif ($hasRsvpTable) {
                         $totalRsvps = $link->rsvps()->count();
                         if ($totalRsvps > 0) {
@@ -502,6 +524,7 @@ class AiMindFeatureAdapter
                         'tz'        => \App\Support\PlatformTimezone::resolve($ics->timezone),
                         'location'  => $ics->location,
                         'ticketing' => $ticketing,
+                        'tiers'     => $tierBreakdown,
                     ];
                 }
             }
@@ -533,6 +556,9 @@ class AiMindFeatureAdapter
                 $loc = $e['location'] ? " @ {$e['location']}" : '';
                 $ticket = $e['ticketing'] ? " — {$e['ticketing']}" : '';
                 $lines[] = "- {$e['title']}{$ticket} ({$when}{$loc})";
+                if (!empty($e['tiers'])) {
+                    $lines[] = "   • tiers: {$e['tiers']}";
+                }
             }
 
             return implode("\n", $lines);

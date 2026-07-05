@@ -155,4 +155,107 @@ class AiMindFeatureAdapterEventsTest extends TestCase
         $this->assertStringNotContainsString('Carol Guest', $snapshot);
         $this->assertStringNotContainsString('carol@example.test', $snapshot);
     }
+
+    public function test_multi_tier_event_gets_a_per_tier_sold_capacity_breakdown(): void
+    {
+        $user = $this->makeUser();
+
+        $eventLink = Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'ics',
+            'alias'     => 'ev' . bin2hex(random_bytes(3)),
+            'title'     => 'Gala Night',
+            'is_active' => true,
+        ]);
+        IcsData::create([
+            'link_id'    => $eventLink->id,
+            'event_name' => 'Gala Night',
+            'location'   => 'Grand Ballroom',
+            'start_date' => now()->addDays(7),
+            'end_date'   => now()->addDays(7)->addHours(4),
+            'timezone'   => 'UTC',
+        ]);
+
+        $vip = EventTicketTier::create([
+            'link_id'    => $eventLink->id,
+            'name'       => 'VIP',
+            'capacity'   => 20,
+            'sort_order' => 1,
+        ]);
+        $general = EventTicketTier::create([
+            'link_id'    => $eventLink->id,
+            'name'       => 'General',
+            'capacity'   => 200,
+            'sort_order' => 2,
+        ]);
+
+        // VIP: 3 sold (2 valid + 1 checked-in), General: 5 sold.
+        EventTicket::create([
+            'tier_id'  => $vip->id,
+            'link_id'  => $eventLink->id,
+            'quantity' => 2,
+            'code'     => EventTicket::generateCode(),
+            'status'   => EventTicket::STATUS_VALID,
+        ]);
+        EventTicket::create([
+            'tier_id'  => $vip->id,
+            'link_id'  => $eventLink->id,
+            'quantity' => 1,
+            'code'     => EventTicket::generateCode(),
+            'status'   => EventTicket::STATUS_CHECKED_IN,
+        ]);
+        EventTicket::create([
+            'tier_id'  => $general->id,
+            'link_id'  => $eventLink->id,
+            'quantity' => 5,
+            'code'     => EventTicket::generateCode(),
+            'status'   => EventTicket::STATUS_VALID,
+        ]);
+
+        $adapter = new AiMindFeatureAdapter();
+        $snapshot = $adapter->snapshot($user, 'events');
+
+        // Total line still present.
+        $this->assertStringContainsString('8 sold of 220', $snapshot);
+        // Per-tier breakdown, ordered by sort_order.
+        $this->assertStringContainsString('tiers: VIP 3/20, General 5/200', $snapshot);
+    }
+
+    public function test_single_tier_event_has_no_per_tier_breakdown(): void
+    {
+        $user = $this->makeUser();
+
+        $eventLink = Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'ics',
+            'alias'     => 'ev' . bin2hex(random_bytes(3)),
+            'title'     => 'Solo Workshop',
+            'is_active' => true,
+        ]);
+        IcsData::create([
+            'link_id'    => $eventLink->id,
+            'event_name' => 'Solo Workshop',
+            'start_date' => now()->addDays(4),
+            'end_date'   => now()->addDays(4)->addHours(2),
+            'timezone'   => 'UTC',
+        ]);
+        $tier = EventTicketTier::create([
+            'link_id'  => $eventLink->id,
+            'name'     => 'Standard',
+            'capacity' => 50,
+        ]);
+        EventTicket::create([
+            'tier_id'  => $tier->id,
+            'link_id'  => $eventLink->id,
+            'quantity' => 4,
+            'code'     => EventTicket::generateCode(),
+            'status'   => EventTicket::STATUS_VALID,
+        ]);
+
+        $adapter = new AiMindFeatureAdapter();
+        $snapshot = $adapter->snapshot($user, 'events');
+
+        $this->assertStringContainsString('4 sold of 50', $snapshot);
+        $this->assertStringNotContainsString('tiers:', $snapshot);
+    }
 }
