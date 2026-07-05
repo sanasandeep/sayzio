@@ -89,11 +89,17 @@ export function BrandSayzio() {
           </p>
         </motion.div>
 
-        {/* Twin brand cards joined by an "is" pill */}
-        <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6 lg:gap-0 items-stretch">
+        {/* Twin brand cards joined by an "is" pill.
+            Flexbox (not CSS grid) is used here: grid items default to
+            `min-width: auto`, which sizes each track to its own content's
+            min-content width and can starve one 1fr track (the card's text
+            wraps to one word per line while the other card balloons). With
+            flex, `flex-1 min-w-0` on both cards guarantees equal width
+            regardless of content, immune to that grid track-sizing quirk. */}
+        <div className="relative flex flex-col lg:flex-row gap-6 lg:gap-0 items-stretch">
           {/* 1IN.ME card */}
           <motion.div
-            className="glass-card rounded-3xl p-6 sm:p-8 lg:mr-12 relative overflow-hidden"
+            className="glass-card rounded-3xl p-6 sm:p-8 lg:mr-12 lg:flex-1 lg:min-w-0 relative overflow-hidden"
             {...reveal(0, "right")}
           >
             <div
@@ -141,7 +147,7 @@ export function BrandSayzio() {
 
           {/* Center connector ("is" pill) */}
           <div
-            className="relative flex lg:flex-col items-center justify-center gap-0 lg:px-2"
+            className="relative flex lg:flex-col items-center justify-center gap-0 lg:px-2 lg:flex-none"
             aria-hidden
           >
             <span className="relative z-[2] inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#3d6bff] to-[#6e61ff] text-white font-extrabold tracking-wide shadow-xl">
@@ -151,7 +157,7 @@ export function BrandSayzio() {
 
           {/* Sayzio card */}
           <motion.div
-            className="glass-card rounded-3xl p-6 sm:p-8 lg:ml-12 relative overflow-hidden"
+            className="glass-card rounded-3xl p-6 sm:p-8 lg:ml-12 lg:flex-1 lg:min-w-0 relative overflow-hidden"
             {...reveal(0.1, "left")}
           >
             <div

@@ -243,15 +243,21 @@
             </p>
         </div>
 
-        {{-- Twin brand cards joined by an animated energy line + "is" pill --}}
-        <div class="relative grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-7 lg:gap-0 items-stretch">
+        {{-- Twin brand cards joined by an animated energy line + "is" pill.
+             Flexbox (not CSS grid) is used here: grid items default to
+             `min-width: auto`, which sizes each track to its own content's
+             min-content width and can starve one 1fr track (the card's text
+             wraps to one word per line while the other card balloons). With
+             flex, `flex-1 min-w-0` on both cards guarantees equal width
+             regardless of content, immune to that grid track-sizing quirk. --}}
+        <div class="relative flex flex-col lg:flex-row gap-7 lg:gap-0 items-stretch">
             {{-- Full-span energy line — sits behind both cards so it reads evenly in the
                  gap on either side of the centered "is" pill, regardless of the cards'
                  lg:mr-12 / lg:ml-12 offsets. --}}
             <div class="bs-energy hidden lg:block absolute top-1/2 -translate-y-1/2 left-0 right-0 z-0" aria-hidden="true"></div>
 
             {{-- 1IN.ME card --}}
-            <div data-anim="fade-right" class="bs-card bs-card--id p-7 sm:p-9 lg:mr-12">
+            <div data-anim="fade-right" class="bs-card bs-card--id p-7 sm:p-9 lg:mr-12 lg:flex-1 lg:min-w-0">
                 <div class="relative flex items-center gap-4 sm:gap-5">
                     <span class="bs-glyph float-a w-16 h-16 sm:w-20 sm:h-20">
                         <img src="{{ asset('branding/1inme-mark.png') }}" alt="1IN.ME logo" width="72" height="56"
@@ -269,13 +275,13 @@
             </div>
 
             {{-- Center connector ("is" pill; desktop energy line now spans the full row above) --}}
-            <div class="relative z-10 flex lg:flex-col items-center justify-center gap-0 lg:px-2" aria-hidden="true">
+            <div class="relative z-10 flex lg:flex-col items-center justify-center gap-0 lg:px-2 lg:flex-none" aria-hidden="true">
                 <div class="bs-energy lg:hidden h-1 w-24 rotate-0"></div>
                 <span class="bs-is-pill float-c text-lg">is</span>
             </div>
 
             {{-- Sayzio card --}}
-            <div data-anim="fade-left" class="bs-card bs-card--zio p-7 sm:p-9 lg:ml-12">
+            <div data-anim="fade-left" class="bs-card bs-card--zio p-7 sm:p-9 lg:ml-12 lg:flex-1 lg:min-w-0">
                 <div class="relative flex items-center gap-4 sm:gap-5">
                     <span class="bs-glyph bs-glyph-zio w-16 h-16 sm:w-20 sm:h-20">
                         {{-- Animated transparent mascot clip (matches the hero). Autoplays
