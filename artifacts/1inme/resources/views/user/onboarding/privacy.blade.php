@@ -10,7 +10,8 @@
         'share_socials'  => ['label' => 'Socials & other channels', 'desc' => 'Instagram, WhatsApp, Telegram and other links pulled from your biolink.'],
     ];
 @endphp
-<div class="max-w-xl mx-auto px-4 py-8 sm:py-12">
+<div class="max-w-xl mx-auto px-4 py-8 sm:py-12"
+     x-data="{ stepIndex: {{ (int) ($activeIndex ?? 0) }} }">
 
     {{-- Visible progress indicator (shared with the onboarding wizard) --}}
     @includeWhen(!empty($steps), 'user.onboarding._stepper', ['steps' => $steps ?? []])
