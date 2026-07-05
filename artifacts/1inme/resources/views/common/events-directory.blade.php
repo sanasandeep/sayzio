@@ -29,7 +29,7 @@
         background-size: cover;
         background-position: center 35%;
         background-repeat: no-repeat;
-        filter: blur(9px) saturate(1.05);
+        filter: blur(3px) saturate(1.05);
         transform: scale(1.06);
         z-index: 0;
     }
@@ -294,9 +294,9 @@
          rest (Task #3654). "All events" and "Other" are always visible. --}}
     @php $catFitCount = 9; @endphp
     @if($categories->isNotEmpty() || $hasOtherCategory)
-        <div class="mb-6" x-data="{ showMoreCats: false }">
-            <div class="cat-section-label text-xs font-bold uppercase tracking-wide text-white/40 mb-3">Browse by category</div>
-            <div class="flex flex-wrap items-center gap-2.5">
+        <div class="cat-float-block mb-6 relative z-10" style="margin-top:-4.5rem;" x-data="{ showMoreCats: false }">
+            <div class="cat-section-label text-xs font-bold uppercase tracking-wide text-white/40 mb-3 text-center">Browse by category</div>
+            <div class="flex flex-wrap items-center justify-center gap-2.5">
                 <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['category', 'page']), ['category' => ''])) }}"
                    class="cat-tile-icon {{ $category === '' ? 'active' : '' }}"
                    data-label="All events" aria-label="All events">
@@ -332,55 +332,61 @@
         $quickDateRanges = ['today' => 'Today', 'weekend' => 'This weekend', 'week' => 'This week', 'month' => 'This month'];
     @endphp
 
-    {{-- Filter bar: online / free / paid + date quick ranges + custom range. --}}
-    <div class="flex flex-wrap items-center gap-3 mb-5" x-data="{ showDateRange: {{ $hasCustomRange ? 'true' : 'false' }} }">
-        <div class="flex flex-wrap items-center gap-2">
-            <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['online', 'page']), $online ? [] : ['online' => 1])) }}"
-               class="ev-chip {{ $online ? 'active' : '' }} inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
-                <i class="fas fa-video"></i> Online events only
-            </a>
-            <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['price', 'page']), ['price' => $priceFilter === 'free' ? '' : 'free'])) }}"
-               class="ev-chip {{ $priceFilter === 'free' ? 'active' : '' }} inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
-                <i class="fas fa-gift"></i> Free
-            </a>
-            <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['price', 'page']), ['price' => $priceFilter === 'paid' ? '' : 'paid'])) }}"
-               class="ev-chip {{ $priceFilter === 'paid' ? 'active' : '' }} inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
-                <i class="fas fa-ticket"></i> Paid
-            </a>
-            <div class="w-px self-stretch mx-0.5" style="background:rgba(255,255,255,0.12);"></div>
-            @foreach($quickDateRanges as $key => $label)
-                <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['date', 'date_from', 'date_to', 'page']), $dateFilter === $key && !$hasCustomRange ? [] : ['date' => $key])) }}"
-                   class="ev-chip {{ ($dateFilter === $key && !$hasCustomRange) ? 'active' : '' }} inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold">
-                    {{ $label }}
+    {{-- Filter bar: online / free / paid + date quick ranges + custom range.
+         x-data wraps BOTH the pills bar and the date-range box below so
+         showDateRange stays in scope for the box's x-show (previously the
+         x-data lived on a div that closed before the box, leaving the
+         Custom range toggle non-functional). --}}
+    <div x-data="{ showDateRange: {{ $hasCustomRange ? 'true' : 'false' }} }">
+        <div class="flex flex-wrap items-center justify-center gap-3 mb-5">
+            <div class="flex flex-wrap items-center justify-center gap-2">
+                <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['online', 'page']), $online ? [] : ['online' => 1])) }}"
+                   class="ev-chip {{ $online ? 'active' : '' }} inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
+                    <i class="fas fa-video"></i> Online events only
                 </a>
-            @endforeach
-            <button type="button" @click="showDateRange = !showDateRange"
-                    class="ev-chip {{ $hasCustomRange ? 'active' : '' }} inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold">
-                <i class="fas fa-calendar-days"></i> Custom range
-            </button>
+                <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['price', 'page']), ['price' => $priceFilter === 'free' ? '' : 'free'])) }}"
+                   class="ev-chip {{ $priceFilter === 'free' ? 'active' : '' }} inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
+                    <i class="fas fa-gift"></i> Free
+                </a>
+                <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['price', 'page']), ['price' => $priceFilter === 'paid' ? '' : 'paid'])) }}"
+                   class="ev-chip {{ $priceFilter === 'paid' ? 'active' : '' }} inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
+                    <i class="fas fa-ticket"></i> Paid
+                </a>
+                <div class="w-px self-stretch mx-0.5" style="background:rgba(255,255,255,0.12);"></div>
+                @foreach($quickDateRanges as $key => $label)
+                    <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['date', 'date_from', 'date_to', 'page']), $dateFilter === $key && !$hasCustomRange ? [] : ['date' => $key])) }}"
+                       class="ev-chip {{ ($dateFilter === $key && !$hasCustomRange) ? 'active' : '' }} inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold">
+                        {{ $label }}
+                    </a>
+                @endforeach
+                <button type="button" @click="showDateRange = !showDateRange"
+                        class="ev-chip {{ $hasCustomRange ? 'active' : '' }} inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold">
+                    <i class="fas fa-calendar-days"></i> Custom range
+                </button>
+            </div>
         </div>
-    </div>
 
-    <div x-show="showDateRange" x-cloak x-transition class="ev-date-range-box mb-5 p-3 rounded-2xl">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            @foreach(['q', 'category', 'tag', 'lat', 'lng'] as $preserve)
-                @if(request($preserve))<input type="hidden" name="{{ $preserve }}" value="{{ request($preserve) }}">@endif
-            @endforeach
-            @if($online)<input type="hidden" name="online" value="1">@endif
-            @if($priceFilter)<input type="hidden" name="price" value="{{ $priceFilter }}">@endif
-            <div>
-                <label class="ev-date-range-label block text-[11px] font-semibold mb-1">From</label>
-                <input type="date" name="date_from" value="{{ $dateFrom }}" class="ev-date-range-input text-sm rounded-lg px-2.5 py-1.5">
-            </div>
-            <div>
-                <label class="ev-date-range-label block text-[11px] font-semibold mb-1">To</label>
-                <input type="date" name="date_to" value="{{ $dateTo }}" class="ev-date-range-input text-sm rounded-lg px-2.5 py-1.5">
-            </div>
-            <button type="submit" class="px-4 py-1.5 rounded-lg text-sm font-bold text-white" style="background:#3d6bff;">Apply</button>
-            @if($hasCustomRange)
-                <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['date_from', 'date_to', 'page'])) }}" class="text-xs font-semibold link-accent hover:underline">Clear range</a>
-            @endif
-        </form>
+        <div x-show="showDateRange" x-cloak x-transition class="ev-date-range-box mb-5 p-3 rounded-2xl">
+            <form method="GET" class="flex flex-wrap items-end justify-center gap-3">
+                @foreach(['q', 'category', 'tag', 'lat', 'lng'] as $preserve)
+                    @if(request($preserve))<input type="hidden" name="{{ $preserve }}" value="{{ request($preserve) }}">@endif
+                @endforeach
+                @if($online)<input type="hidden" name="online" value="1">@endif
+                @if($priceFilter)<input type="hidden" name="price" value="{{ $priceFilter }}">@endif
+                <div>
+                    <label class="ev-date-range-label block text-[11px] font-semibold mb-1">From</label>
+                    <input type="date" name="date_from" value="{{ $dateFrom }}" class="ev-date-range-input text-sm rounded-lg px-2.5 py-1.5">
+                </div>
+                <div>
+                    <label class="ev-date-range-label block text-[11px] font-semibold mb-1">To</label>
+                    <input type="date" name="date_to" value="{{ $dateTo }}" class="ev-date-range-input text-sm rounded-lg px-2.5 py-1.5">
+                </div>
+                <button type="submit" class="px-4 py-1.5 rounded-lg text-sm font-bold text-white" style="background:#3d6bff;">Apply</button>
+                @if($hasCustomRange)
+                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['date_from', 'date_to', 'page'])) }}" class="text-xs font-semibold link-accent hover:underline">Clear range</a>
+                @endif
+            </form>
+        </div>
     </div>
 
     {{-- Hashtag row: admin-predefined tags first, backfilled with
