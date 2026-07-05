@@ -37,7 +37,7 @@
         content: '';
         position: absolute; inset: 0;
         background:
-            linear-gradient(180deg, rgba(6,8,18,0.78) 0%, rgba(6,8,18,0.90) 55%, rgba(6,8,18,0.97) 100%),
+            linear-gradient(180deg, rgba(6,8,18,0.80) 0%, rgba(6,8,18,0.93) 45%, rgba(6,8,18,1) 82%, rgba(6,8,18,1) 100%),
             radial-gradient(1200px 400px at 15% -10%, rgba(140,165,255,0.16), transparent 60%);
         z-index: 1;
     }
@@ -294,7 +294,7 @@
          rest (Task #3654). "All events" and "Other" are always visible. --}}
     @php $catFitCount = 9; @endphp
     @if($categories->isNotEmpty() || $hasOtherCategory)
-        <div class="cat-float-block mb-6 relative z-10" style="margin-top:-4.5rem;" x-data="{ showMoreCats: false }">
+        <div class="cat-float-block mt-2 mb-6 relative z-10" x-data="{ showMoreCats: false }">
             <div class="cat-section-label text-xs font-bold uppercase tracking-wide text-white/40 mb-3 text-center">Browse by category</div>
             <div class="flex flex-wrap items-center justify-center gap-2.5">
                 <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['category', 'page']), ['category' => ''])) }}"
