@@ -751,7 +751,15 @@
         {{-- /GROWTH TAB --}}
 
     </div>
-
-    @include('user.dashboard.customize-modal')
 </div>
+
+{{-- Rendered OUTSIDE `.bento-stage` on purpose: that wrapper's
+     `.bento-stage > * { position: relative; z-index: 1; }` rule (shared by
+     every bento-grid page) tied on CSS specificity with the modal's Tailwind
+     `fixed`/`z-[999]` utilities and — because it's injected later in <head>
+     via @stack('styles') — won the cascade, silently downgrading the overlay
+     to `position: relative`. The "modal" still opened (Alpine state was
+     correct) but rendered in-flow far down the page instead of as a
+     fullscreen overlay, which is why the button looked unclickable. --}}
+@include('user.dashboard.customize-modal')
 @endsection
