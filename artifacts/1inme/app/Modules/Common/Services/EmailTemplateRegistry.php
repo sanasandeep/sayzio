@@ -657,6 +657,33 @@ class EmailTemplateRegistry
                     'title' => ['label' => 'Event title', 'sample' => 'Launch Party'],
                 ],
             ],
+            'events.new_nearby_alert' => [
+                'category' => 'events',
+                'label' => 'New event near you',
+                'description' => 'Alerts an opted-in user about a single new public event created inside their saved location radius (Task #3593).',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => 'New event near you: {{title}}',
+                'body' => "A new event was just created near you:\n\n{{title}}\n{{when}}\n\n{{url}}\n\nYou're getting this because you turned on nearby event alerts. You can adjust or turn off alerts anytime from your notification settings.",
+                'variables' => [
+                    'title' => ['label' => 'Event title', 'sample' => 'Rooftop Launch Party'],
+                    'when' => ['label' => 'Event date/time', 'sample' => 'Jul 12, 7:00 PM'],
+                    'url' => ['label' => 'Event page URL', 'sample' => 'https://sayzio.app/rooftop-launch'],
+                ],
+            ],
+            'events.new_nearby_digest' => [
+                'category' => 'events',
+                'label' => 'New events near you (daily digest)',
+                'description' => 'Once-daily batched summary of new public events near an opted-in user (Task #3593).',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => '{{count}} new event(s) near you',
+                'body' => "New public events were created near you today:\n\n{{list}}\n\nYou're getting this because you turned on nearby event alerts (daily digest). You can adjust or turn off alerts anytime from your notification settings.",
+                'variables' => [
+                    'count' => ['label' => 'Number of new events', 'sample' => '3'],
+                    'list' => ['label' => 'Newline-separated event list', 'sample' => "Rooftop Launch Party — Jul 12, 7:00 PM (https://sayzio.app/rooftop-launch)"],
+                ],
+            ],
 
             // ----------------------------------------------------------------
             // Reviews / privacy

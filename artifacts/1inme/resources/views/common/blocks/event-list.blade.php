@@ -1,5 +1,35 @@
 @php
-    $events = is_array($s['events'] ?? null) ? $s['events'] : (is_array($s['items'] ?? null) ? $s['items'] : []);
+    // Task #3593: the block can point at REAL `ics` event links (reusable
+    // event picker) in addition to / instead of hand-entered rows, so it
+    // always reflects live date/location/interest data. `link_ids` wins;
+    // manual `events`/`items` still work for pages that never picked a
+    // real event (backward compatible).
+    $linkIds = array_filter(array_map('intval', (array) ($s['link_ids'] ?? [])));
+    $pickedEvents = [];
+    if (!empty($linkIds)) {
+        $pickedLinks = \App\Modules\User\Models\Link::whereIn('id', $linkIds)
+            ->where('type', 'ics')
+            ->where('is_active', true)
+            ->where('visibility', 'public')
+            ->with('icsData')
+            ->get()
+            ->keyBy('id');
+        foreach ($linkIds as $lid) {
+            $pl = $pickedLinks->get($lid);
+            if (!$pl) continue;
+            $pickedEvents[] = [
+                'title'       => $pl->title,
+                'date'        => $pl->icsData?->start_date,
+                'location'    => $pl->icsData?->location,
+                'description' => $pl->icsData?->description,
+                'url'         => url('/' . $pl->alias),
+                'interested'  => $pl->eventInterests()->where('status', 'interested')->count(),
+            ];
+        }
+    }
+    $events = !empty($pickedEvents)
+        ? $pickedEvents
+        : (is_array($s['events'] ?? null) ? $s['events'] : (is_array($s['items'] ?? null) ? $s['items'] : []));
     $layout = $s['layout'] ?? ($s['_registry']['layout'] ?? 'compact');
     $accent = $s['accent_color'] ?? '#3d6bff';
     $title  = trim($s['title'] ?? '');

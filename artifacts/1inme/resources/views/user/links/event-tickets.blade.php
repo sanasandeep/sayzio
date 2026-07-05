@@ -12,7 +12,7 @@
         'chips' => [
             ['icon' => 'fa-coins text-emerald-400', 'text' => '$' . number_format($totals['gross_cents'] / 100, 2) . ' gross'],
             ['icon' => 'fa-users text-blue-400', 'text' => $totals['sold'] . ' sold'],
-            ['icon' => 'fa-door-open text-purple-400', 'text' => $totals['checked_in'] . ' checked in'],
+            ['icon' => 'fa-door-open text-primary-400', 'text' => $totals['checked_in'] . ' checked in'],
         ],
         'actions' => [
             ['label' => 'Scan tickets', 'url' => route('user.links.ics.checkin', $link), 'icon' => 'fa-qrcode', 'class' => 'btn-primary'],

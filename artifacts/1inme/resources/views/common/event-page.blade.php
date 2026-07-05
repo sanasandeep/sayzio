@@ -42,6 +42,8 @@
             <p class="text-muted">{{ $link->icsData->description }}</p>
         @endif
 
+        @include('common.partials.event-rich-content', ['link' => $link, 'similarEvents' => $similarEvents ?? collect(), 'sameHostEvents' => $sameHostEvents ?? collect(), 'interestCounts' => $interestCounts ?? []])
+
         <form method="POST" action="{{ route('redirect.event.buy', $link->alias) }}" id="ticket-form">
             @csrf
             <h2 class="h6 fw-bold mb-3">Choose your tickets</h2>

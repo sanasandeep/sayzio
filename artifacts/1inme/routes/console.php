@@ -34,6 +34,15 @@ Schedule::command('calendars:send-today-reminders')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: alert opted-in users about new public events created near their
+// saved location (Task #3593). "instant" recipients are processed every run;
+// "daily_digest" recipients are batched and only fire at 9 AM local time.
+// Idempotent via event_new_alerts_sent (never re-alerts the same pair).
+Schedule::command('events:send-new-alerts')
+    ->hourly()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Hourly: end any biolink layout A/B test whose stop condition (sample
 // size or end date) has been met. Most experiments end inline as
 // visitors trickle in, so this is the safety net for low-traffic pages.

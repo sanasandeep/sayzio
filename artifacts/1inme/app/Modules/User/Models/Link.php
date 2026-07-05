@@ -142,6 +142,11 @@ protected $fillable = [
         return $this->hasMany(Rsvp::class);
     }
 
+    public function eventInterests()
+    {
+        return $this->hasMany(EventInterest::class);
+    }
+
     public function pollVotes()
     {
         return $this->hasMany(PollVote::class);

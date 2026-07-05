@@ -33,6 +33,7 @@ class EventTicketApiController extends Controller
     {
         $q        = trim((string) $request->query('q', ''));
         $category = trim((string) $request->query('category', ''));
+        $tag      = mb_strtolower(ltrim(trim((string) $request->query('tag', '')), '#'));
         $lat      = $request->query('lat');
         $lng      = $request->query('lng');
         $radiusKm = max(1, min(500, (int) $request->query('radius', 50)));
@@ -49,11 +50,15 @@ class EventTicketApiController extends Controller
             $query->where(function ($w) use ($like) {
                 $w->where('title', 'ilike', $like)
                   ->orWhereHas('icsData', fn ($ics) => $ics->where('location', 'ilike', $like)
-                      ->orWhere('description', 'ilike', $like));
+                      ->orWhere('description', 'ilike', $like)
+                      ->orWhereRaw('hashtags::text ilike ?', [$like]));
             });
         }
         if ($category !== '') {
             $query->whereRaw("settings->>'event_category' = ?", [$category]);
+        }
+        if ($tag !== '') {
+            $query->whereHas('icsData', fn ($ics) => $ics->whereRaw('hashtags::text ilike ?', ['%"' . $tag . '"%']));
         }
         $query->where(fn ($w) => $w->whereRaw("(settings->>'hide_from_directory') IS DISTINCT FROM 'true'"));
 
@@ -102,10 +107,16 @@ class EventTicketApiController extends Controller
         $user = $request->user();
         if (!$user) return $this->unauthorized('Sign in to buy tickets.', 'login_required');
 
-        $link = Link::where('alias', $alias)->where('type', 'ics')->first();
+        $link = Link::where('alias', $alias)->where('type', 'ics')->with('icsData')->first();
         if (!$link) return $this->notFound('Event not found.');
         if (empty(($link->settings ?? [])['ticketing_enabled'])) {
             return $this->fail('This event does not sell tickets.', 422);
+        }
+
+        // Badge-gated events (Task #3593): mirrors RedirectController::rsvpSubmit.
+        $requiredBadgeId = $link->icsData?->required_badge_id;
+        if ($requiredBadgeId && !$user->accountBadges()->where('account_badges.id', $requiredBadgeId)->exists()) {
+            return $this->fail('This event requires an invite badge you don\'t have yet.', 403);
         }
 
         $data = $request->validate([
@@ -248,6 +259,34 @@ class EventTicketApiController extends Controller
         return $this->noContent();
     }
 
+    // ─── Interested / Not-interested signal (Task #3593) ──────────
+    // Separate from RSVP/ticket purchase — a one-tap interest signal any
+    // signed-in user can toggle. Mirrors web EventInterestController.
+
+    public function interest(Request $request, string $alias)
+    {
+        $user = $request->user();
+        if (!$user) return $this->unauthorized('Sign in to mark interest.', 'login_required');
+
+        $link = Link::where('alias', $alias)->where('type', 'ics')->first();
+        if (!$link) return $this->notFound('Event not found.');
+
+        $data = $request->validate(['status' => ['required', 'in:interested,not_interested']]);
+
+        $interest = \App\Modules\User\Models\EventInterest::updateOrCreate(
+            ['link_id' => $link->id, 'user_id' => $user->id],
+            ['status' => $data['status']],
+        );
+
+        return $this->ok([
+            'status' => $interest->status,
+            'counts' => [
+                'interested'     => $link->eventInterests()->where('status', 'interested')->count(),
+                'not_interested' => $link->eventInterests()->where('status', 'not_interested')->count(),
+            ],
+        ]);
+    }
+
     // ─── Owner: door check-in ──────────────────────────────────────
 
     public function checkin(Request $request, int $linkId)
@@ -275,7 +314,18 @@ class EventTicketApiController extends Controller
             return $this->ok(['ok' => false, 'status' => $ticket->status, 'message' => 'This ticket was ' . $ticket->status . ' and is not valid.']);
         }
 
+        $requiredBadgeId = $link->icsData?->required_badge_id;
+        if ($requiredBadgeId && !$this->attendeeHasBadge($ticket, $requiredBadgeId)) {
+            return $this->ok([
+                'ok' => false, 'status' => 'badge_required',
+                'message' => 'This event requires a badge that the attendee does not hold. Entry denied.',
+                'ticket' => $this->ticketShape($ticket),
+            ]);
+        }
+
         $ticket->update(['status' => EventTicket::STATUS_CHECKED_IN, 'checked_in_at' => now(), 'checked_in_by' => $user->id]);
+
+        $this->awardAttendanceBadge($link, $ticket);
 
         return $this->ok(['ok' => true, 'status' => 'checked_in', 'message' => 'Checked in successfully.', 'ticket' => $this->ticketShape($ticket)]);
     }
@@ -295,7 +345,7 @@ class EventTicketApiController extends Controller
         return $this->ok(\App\Services\Events\EventCheckinProgress::for($link));
     }
 
-    // ─── Owner: ticket list + refund (Task #3591) ─────────────────
+    // ─── Owner: ticket list + refund ─────────────────
 
     public function ownerTickets(Request $request, int $linkId)
     {
@@ -340,6 +390,41 @@ class EventTicketApiController extends Controller
         }
 
         return $this->ok($this->ticketShape($ticket->fresh(['tier'])));
+    }
+
+    /**
+     * Badge-powered entry rules: check-in is denied unless the attendee
+     * (resolved by email against a registered account) already holds the
+     * event's required badge. Mirrors EventCheckinController's web logic.
+     */
+    private function attendeeHasBadge(EventTicket $ticket, int $badgeId): bool
+    {
+        $attendee = $ticket->attendee_email
+            ? \App\Modules\User\Models\User::where('email', $ticket->attendee_email)->first()
+            : null;
+        if (!$attendee) return false;
+
+        return $attendee->accountBadges()->where('account_badges.id', $badgeId)->exists();
+    }
+
+    /**
+     * Badge-powered invites: checking in an attendee who is a registered
+     * account and matches the event's `award_badge_id` attaches that
+     * badge, if not already held. Mirrors EventCheckinController's web logic.
+     */
+    private function awardAttendanceBadge(Link $link, EventTicket $ticket): void
+    {
+        $awardBadgeId = $link->icsData?->award_badge_id;
+        if (!$awardBadgeId) return;
+
+        $attendee = $ticket->attendee_email
+            ? \App\Modules\User\Models\User::where('email', $ticket->attendee_email)->first()
+            : null;
+        if (!$attendee) return;
+
+        if (!$attendee->accountBadges()->where('account_badges.id', $awardBadgeId)->exists()) {
+            $attendee->accountBadges()->attach($awardBadgeId);
+        }
     }
 
     // ─── Shapes / helpers ──────────────────────────────────────────
@@ -387,6 +472,15 @@ class EventTicketApiController extends Controller
             'category'    => ($link->settings ?? [])['event_category'] ?? null,
             'ticketing_enabled' => (bool) (($link->settings ?? [])['ticketing_enabled'] ?? false),
             'tiers'       => $tiers->map(fn (EventTicketTier $t) => $this->tierShape($t))->values()->all(),
+            // Task #3593: hashtags, richer page content, badge invites/entry.
+            'hashtags'          => $ics?->hashtagList() ?? [],
+            'cover_image_url'   => $ics?->cover_image_url,
+            'gallery'           => $ics?->gallery ?? [],
+            'info_sections'     => $ics?->info_sections ?? [],
+            'required_badge_id' => $ics?->required_badge_id,
+            'award_badge_id'    => $ics?->award_badge_id,
+            'interested_count'      => $link->eventInterests()->where('status', 'interested')->count(),
+            'not_interested_count'  => $link->eventInterests()->where('status', 'not_interested')->count(),
         ];
     }
 

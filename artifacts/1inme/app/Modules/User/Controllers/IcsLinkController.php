@@ -223,6 +223,19 @@ class IcsLinkController extends Controller
             'latitude'             => 'nullable|numeric|between:-90,90',
             'longitude'            => 'nullable|numeric|between:-180,180',
             'event_category'       => 'nullable|string|max:100',
+
+            // Events overhaul (Task #3593): hashtags, richer page content,
+            // and badge-powered invite/entry rules.
+            'hashtags'             => 'nullable|array|max:15',
+            'hashtags.*'           => 'string|max:50',
+            'cover_image_url'      => 'nullable|url|max:2048',
+            'gallery'              => 'nullable|array|max:20',
+            'gallery.*'            => 'url|max:2048',
+            'info_sections'        => 'nullable|array|max:10',
+            'info_sections.*.title' => 'nullable|string|max:150',
+            'info_sections.*.body'  => 'nullable|string|max:5000',
+            'required_badge_id'    => ['nullable', 'exists:account_badges,id'],
+            'award_badge_id'       => ['nullable', 'exists:account_badges,id'],
         ] + LinkController::protectionSchedulingRules());
     }
 
@@ -274,7 +287,41 @@ class IcsLinkController extends Controller
             'extra_schedules'     => array_slice($slots, 1),
             'latitude'            => $v['latitude'] ?? null,
             'longitude'           => $v['longitude'] ?? null,
+
+            // Events overhaul (Task #3593).
+            'hashtags'            => $this->normalizeHashtags($v['hashtags'] ?? []),
+            'cover_image_url'     => $v['cover_image_url'] ?? null,
+            'gallery'             => array_values(array_filter(array_map('trim', $v['gallery'] ?? []))),
+            'info_sections'       => $this->normalizeInfoSections($v['info_sections'] ?? []),
+            'required_badge_id'   => $v['required_badge_id'] ?? null,
+            'award_badge_id'      => $v['award_badge_id'] ?? null,
         ];
+    }
+
+    /** Trim, drop the leading '#', lowercase, dedupe, and cap hashtags. */
+    private function normalizeHashtags(array $tags): array
+    {
+        return collect($tags)
+            ->map(fn ($t) => mb_strtolower(ltrim(trim((string) $t), '#')))
+            ->filter(fn ($t) => $t !== '')
+            ->unique()
+            ->take(15)
+            ->values()
+            ->all();
+    }
+
+    /** Drop info sections with no title and no body. */
+    private function normalizeInfoSections(array $sections): array
+    {
+        return collect($sections)
+            ->map(fn ($s) => [
+                'title' => trim((string) ($s['title'] ?? '')),
+                'body'  => trim((string) ($s['body'] ?? '')),
+            ])
+            ->filter(fn ($s) => $s['title'] !== '' || $s['body'] !== '')
+            ->take(10)
+            ->values()
+            ->all();
     }
 
     private function parseRsvpSettings(Request $request): array

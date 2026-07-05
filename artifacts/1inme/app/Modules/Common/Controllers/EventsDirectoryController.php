@@ -19,6 +19,7 @@ class EventsDirectoryController extends Controller
     {
         $q        = trim((string) $request->query('q', ''));
         $category = trim((string) $request->query('category', ''));
+        $tag      = mb_strtolower(ltrim(trim((string) $request->query('tag', '')), '#'));
         $lat      = $request->query('lat');
         $lng      = $request->query('lng');
         $radiusKm = max(1, min(500, (int) $request->query('radius', 50)));
@@ -28,6 +29,9 @@ class EventsDirectoryController extends Controller
             ->where('is_active', true)
             ->where('visibility', 'public')
             ->with(['icsData', 'eventTicketTiers' => fn ($t) => $t->where('is_active', true)])
+            ->withCount(['eventInterests as interested_count' => function ($w) {
+                $w->where('status', 'interested');
+            }])
             ->whereHas('icsData', function ($w) {
                 $w->where('start_date', '>=', now()->subDay());
             });
@@ -37,12 +41,19 @@ class EventsDirectoryController extends Controller
             $query->where(function ($w) use ($like) {
                 $w->where('title', 'ilike', $like)
                   ->orWhereHas('icsData', fn ($ics) => $ics->where('location', 'ilike', $like)
-                      ->orWhere('description', 'ilike', $like));
+                      ->orWhere('description', 'ilike', $like)
+                      ->orWhereRaw('hashtags::text ilike ?', [$like]));
             });
         }
 
         if ($category !== '') {
             $query->whereRaw("settings->>'event_category' = ?", [$category]);
+        }
+
+        if ($tag !== '') {
+            $query->whereHas('icsData', function ($ics) use ($tag) {
+                $ics->whereRaw('hashtags::text ilike ?', ['%"' . $tag . '"%']);
+            });
         }
 
         // Hidden-from-directory opt-out; missing key defaults to visible.
@@ -78,6 +89,23 @@ class EventsDirectoryController extends Controller
             ->selectRaw("DISTINCT settings->>'event_category' as category")
             ->pluck('category')->filter()->values();
 
-        return view('common.events-directory', compact('events', 'q', 'category', 'categories', 'nearMe', 'lat', 'lng', 'radiusKm'));
+        // Popular hashtags across public, upcoming events — used to render
+        // filter chips in the directory (Task #3593).
+        $popularTags = \App\Modules\User\Models\IcsData::query()
+            ->whereNotNull('hashtags')
+            ->whereRaw("jsonb_array_length(hashtags::jsonb) > 0")
+            ->whereHas('link', fn ($l) => $l->where('type', 'ics')->where('is_active', true)->where('visibility', 'public'))
+            ->where('start_date', '>=', now()->subDay())
+            ->pluck('hashtags')
+            ->flatMap(fn ($tags) => (array) $tags)
+            ->map(fn ($t) => mb_strtolower(trim((string) $t)))
+            ->filter()
+            ->countBy()
+            ->sortDesc()
+            ->take(20)
+            ->keys()
+            ->values();
+
+        return view('common.events-directory', compact('events', 'q', 'category', 'tag', 'categories', 'popularTags', 'nearMe', 'lat', 'lng', 'radiusKm'));
     }
 }

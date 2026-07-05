@@ -1035,8 +1035,80 @@ class RedirectController extends Controller
 
         $link->load('icsData');
         $tiers = $link->eventTicketTiers()->where('is_active', true)->get();
+        $extras = $this->eventPageExtras($link);
 
-        return response()->view('common.event-page', compact('link', 'tiers'));
+        return response()->view('common.event-page', array_merge(compact('link', 'tiers'), $extras));
+    }
+
+    /**
+     * Shared recommendation + Interested-count data for the two public
+     * event surfaces (RSVP page and ticketed event page) — Task #3593.
+     * Similar events match on shared hashtags; same-host events list the
+     * organizer's other upcoming public events. Both exclude the current
+     * event and cap at 4 results.
+     */
+    protected function eventPageExtras(Link $link): array
+    {
+        $ics = $link->icsData;
+        $hashtags = $ics ? $ics->hashtagList() : [];
+
+        $similarEvents = collect();
+        if (!empty($hashtags)) {
+            $likes = array_map(fn ($h) => '%"' . $h . '"%', $hashtags);
+            $similarEvents = Link::where('type', 'ics')
+                ->where('id', '!=', $link->id)
+                ->where('is_active', true)
+                ->where('visibility', 'public')
+                ->with('icsData')
+                ->whereHas('icsData', function ($w) use ($likes) {
+                    $w->where(function ($or) use ($likes) {
+                        foreach ($likes as $like) {
+                            $or->orWhereRaw('hashtags::text ilike ?', [$like]);
+                        }
+                    })->where('start_date', '>=', now()->subDay());
+                })
+                ->limit(4)
+                ->get();
+        }
+
+        // Fall back to same-category or same-location events when no hashtag
+        // overlap was found (or the event has no hashtags at all) so a
+        // "Similar events" section still has something useful to show.
+        if ($similarEvents->isEmpty()) {
+            $category = ($link->settings ?? [])['event_category'] ?? null;
+            $location = $ics->location ?? null;
+            if ($category || $location) {
+                $similarEvents = Link::where('type', 'ics')
+                    ->where('id', '!=', $link->id)
+                    ->where('is_active', true)
+                    ->where('visibility', 'public')
+                    ->with('icsData')
+                    ->where(function ($or) use ($category, $location) {
+                        if ($category) $or->orWhereRaw("settings->>'event_category' = ?", [$category]);
+                        if ($location) $or->orWhereHas('icsData', fn ($w) => $w->where('location', $location));
+                    })
+                    ->whereHas('icsData', fn ($w) => $w->where('start_date', '>=', now()->subDay()))
+                    ->limit(4)
+                    ->get();
+            }
+        }
+
+        $sameHostEvents = Link::where('type', 'ics')
+            ->where('id', '!=', $link->id)
+            ->where('user_id', $link->user_id)
+            ->where('is_active', true)
+            ->where('visibility', 'public')
+            ->with('icsData')
+            ->whereHas('icsData', fn ($w) => $w->where('start_date', '>=', now()->subDay()))
+            ->limit(4)
+            ->get();
+
+        $interestCounts = [
+            'interested'     => $link->eventInterests()->where('status', \App\Modules\User\Models\EventInterest::INTERESTED)->count(),
+            'not_interested' => $link->eventInterests()->where('status', \App\Modules\User\Models\EventInterest::NOT_INTERESTED)->count(),
+        ];
+
+        return compact('similarEvents', 'sameHostEvents', 'interestCounts');
     }
 
     protected function handleIcsDownload(Link $link)
@@ -1508,7 +1580,8 @@ class RedirectController extends Controller
         if (empty(($link->settings ?? [])['rsvp_enabled'])) abort(404);
         $link->load('icsData');
         $submitted = (bool) $request->session()->get('rsvp_submitted_' . $link->id);
-        return view('common.rsvp-form', compact('link', 'submitted'));
+        $extras = $this->eventPageExtras($link);
+        return view('common.rsvp-form', array_merge(compact('link', 'submitted'), $extras));
     }
 
     public function rsvpSubmit(Request $request, string $alias)
@@ -1517,6 +1590,23 @@ class RedirectController extends Controller
         if (!$link || $link->type !== 'ics') abort(404);
         $s = (array) ($link->settings ?? []);
         if (empty($s['rsvp_enabled'])) abort(404);
+
+        // Badge-gated events (Task #3593): RSVPing requires the signed-in
+        // account to already hold the event's `required_badge_id`. Guests
+        // (not signed in) can never satisfy a badge requirement.
+        $link->loadMissing('icsData');
+        $requiredBadgeId = $link->icsData?->required_badge_id;
+        if ($requiredBadgeId) {
+            $user = $request->user();
+            $hasBadge = $user && $user->accountBadges()->where('account_badges.id', $requiredBadgeId)->exists();
+            if (!$hasBadge) {
+                $message = 'This event requires an invite badge you don\'t have yet.';
+                if ($request->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => $message], 403);
+                }
+                return back()->withErrors(['response' => $message]);
+            }
+        }
 
         $allowPlusOnes = !empty($s['rsvp_allow_plus_ones']);
         $collectPhone  = !empty($s['rsvp_collect_phone']);

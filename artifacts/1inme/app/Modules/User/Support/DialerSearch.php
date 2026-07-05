@@ -77,6 +77,7 @@ class DialerSearch
             $groups[] = self::group('my_links', 'My links', self::myLinkItems($user, $q, $onlyVerified));
             $groups[] = self::group('followed', 'Followed', self::followedLinkItems($user, $q, $onlyVerified));
             $groups[] = self::group('workspaces', 'Workspaces', self::workspaceItems($user, $q, $onlyVerified));
+            $groups[] = self::group('events', 'Events', self::eventItems($user, $q, $filters, $onlyVerified));
         }
 
         $groups = array_values(array_filter($groups, fn ($g) => count($g['items']) > 0));
@@ -497,6 +498,88 @@ class DialerSearch
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
+
+    /**
+     * Task #3593: `ics` (event) links matching the query text OR a hashtag
+     * filter chip. Reuses {@see canViewLink} so a private/followers-only
+     * event never leaks to a searcher who can't already see it — the same
+     * visibility gate the other groups enforce.
+     *
+     * @param array{tag?:string} $filters
+     * @return array<int,array<string,mixed>>
+     */
+    private static function eventItems(User $user, string $q, array $filters, bool $onlyVerified): array
+    {
+        if ($onlyVerified) {
+            return [];
+        }
+        $tag = isset($filters['tag']) ? mb_strtolower(ltrim(trim((string) $filters['tag']), '#')) : '';
+        if ($q === '' && $tag === '') {
+            return [];
+        }
+
+        $query = Link::withoutGlobalScope('workspace')
+            ->where('type', 'ics')
+            ->where('is_active', true)
+            ->whereHas('icsData');
+
+        if ($q !== '') {
+            $needle = '%' . $q . '%';
+            $query->where(function ($w) use ($needle) {
+                $w->where('alias', 'ilike', $needle)
+                  ->orWhere('title', 'ilike', $needle)
+                  ->orWhereHas('icsData', function ($ic) use ($needle) {
+                      $ic->where('location', 'ilike', $needle)
+                         ->orWhere('description', 'ilike', $needle)
+                         ->orWhereRaw('hashtags::text ilike ?', [$needle]);
+                  });
+            });
+        }
+        if ($tag !== '') {
+            $query->whereHas('icsData', function ($ic) use ($tag) {
+                $ic->whereRaw('hashtags::text ilike ?', ['%"' . $tag . '"%']);
+            });
+        }
+
+        $links = $query->with('icsData')->orderByDesc('total_clicks')->limit(self::GROUP_LIMIT * 3)->get();
+
+        $subscribedCreatorIds = self::subscribedCreatorIds($user, $links);
+        $visible = $links
+            ->filter(fn (Link $l) => self::canViewLink($user, $l, $subscribedCreatorIds))
+            ->take(self::GROUP_LIMIT);
+
+        return $visible->map(fn (Link $l) => self::eventItem($l))->values()->all();
+    }
+
+    /** Build a normalized event item from an `ics` link. */
+    private static function eventItem(Link $l): array
+    {
+        $ics = $l->icsData;
+        $alias = $l->alias;
+        $public = $alias ? url('/' . $alias) : null;
+        $when = $ics && $ics->start_date ? $ics->start_date->format('M j, Y') : null;
+        $hashtags = $ics ? $ics->hashtagList() : [];
+
+        $subtitleParts = array_filter([$when, $ics->location ?? null]);
+
+        return [
+            'type'           => 'event',
+            'category'       => 'events',
+            'id'             => $l->id,
+            'title'          => $l->title ?: ($alias ?: 'Event'),
+            'subtitle'       => implode(' · ', $subtitleParts) ?: ($public ?? ''),
+            'type_label'     => 'Event',
+            'initials'       => self::initialsOf((string) ($l->title ?: $alias ?: 'EV')),
+            'badge'          => $hashtags ? ('#' . $hashtags[0]) : null,
+            'verified'       => (bool) $l->is_verified,
+            'verified_label' => $l->is_verified ? ($l->verified_name ?: 'Verified') : null,
+            'action'         => [
+                'kind'    => 'event',
+                'url'     => $public,
+                'link_id' => $l->id,
+            ],
+        ];
+    }
 
     /**
      * Apply the shared link text match (alias / back-half aliases / SEO

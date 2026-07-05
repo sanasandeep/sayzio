@@ -119,6 +119,13 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            'event.new_nearby' => [
+                'label'          => 'New events near you',
+                'description'    => 'When a new public event is created inside your saved location radius (Task #3593 event alerts).',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
             'link_failover' => [
                 'label'          => 'Link Insurance failover',
                 'description'    => 'When a short link\'s primary destination breaks and we promote one of your backup URLs to keep traffic flowing.',

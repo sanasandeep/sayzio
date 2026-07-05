@@ -87,16 +87,64 @@ class EventCheckinController extends Controller
             return ['ok' => false, 'status' => $ticket->status, 'message' => 'This ticket was ' . $ticket->status . ' and is not valid.'];
         }
 
+        $requiredBadgeId = $link->icsData?->required_badge_id;
+        if ($requiredBadgeId && !$this->attendeeHasBadge($ticket, $requiredBadgeId)) {
+            return [
+                'ok' => false, 'status' => 'badge_required',
+                'message' => 'This event requires a badge that the attendee does not hold. Entry denied.',
+                'ticket' => $this->ticketSummary($ticket),
+            ];
+        }
+
         $ticket->update([
             'status'        => EventTicket::STATUS_CHECKED_IN,
             'checked_in_at' => now(),
             'checked_in_by' => $staffId,
         ]);
 
+        $this->awardAttendanceBadge($link, $ticket);
+
         return [
             'ok' => true, 'status' => 'checked_in', 'message' => 'Checked in successfully.',
             'ticket' => $this->ticketSummary($ticket),
         ];
+    }
+
+    /**
+     * Badge-powered entry rules: when an event has a `required_badge_id`,
+     * check-in is denied unless the attendee (resolved by email against a
+     * registered account) already holds that badge. Guest attendees with
+     * no matching account never satisfy a required badge.
+     */
+    private function attendeeHasBadge(EventTicket $ticket, int $badgeId): bool
+    {
+        $user = $ticket->attendee_email
+            ? \App\Modules\User\Models\User::where('email', $ticket->attendee_email)->first()
+            : null;
+        if (!$user) return false;
+
+        return $user->accountBadges()->where('account_badges.id', $badgeId)->exists();
+    }
+
+    /**
+     * Badge-powered invites: checking in an attendee who is a
+     * registered account and matches the event's `award_badge_id` attaches
+     * that badge, if not already held. Guest (non-account) attendees have
+     * nothing to attach a badge to and are silently skipped.
+     */
+    private function awardAttendanceBadge(Link $link, EventTicket $ticket): void
+    {
+        $awardBadgeId = $link->icsData?->award_badge_id;
+        if (!$awardBadgeId) return;
+
+        $user = $ticket->attendee_email
+            ? \App\Modules\User\Models\User::where('email', $ticket->attendee_email)->first()
+            : null;
+        if (!$user) return;
+
+        if (!$user->accountBadges()->where('account_badges.id', $awardBadgeId)->exists()) {
+            $user->accountBadges()->attach($awardBadgeId);
+        }
     }
 
     private function ticketSummary(EventTicket $ticket): array

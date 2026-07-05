@@ -19,6 +19,10 @@ class IcsData extends Model
         'slots',
         'monthly_mode', 'monthly_weekday_ordinal', 'yearly_month',
         'latitude', 'longitude',
+        // Task #3593 (Events overhaul): hashtags, richer page content and
+        // badge-powered invite/entry rules.
+        'hashtags', 'gallery', 'info_sections', 'cover_image_url',
+        'required_badge_id', 'award_badge_id',
     ];
 
     protected function casts(): array
@@ -33,12 +37,36 @@ class IcsData extends Model
             'yearly_month' => 'integer',
             'latitude' => 'float',
             'longitude' => 'float',
+            'hashtags' => 'array',
+            'gallery' => 'array',
+            'info_sections' => 'array',
         ];
     }
 
     public function link()
     {
         return $this->belongsTo(Link::class);
+    }
+
+    public function requiredBadge()
+    {
+        return $this->belongsTo(\App\Modules\Admin\Models\AccountBadge::class, 'required_badge_id');
+    }
+
+    public function awardBadge()
+    {
+        return $this->belongsTo(\App\Modules\Admin\Models\AccountBadge::class, 'award_badge_id');
+    }
+
+    /** Normalized hashtag list (lowercase, no leading #, deduped, capped). */
+    public function hashtagList(): array
+    {
+        $tags = collect((array) $this->hashtags)
+            ->map(fn ($t) => mb_strtolower(ltrim(trim((string) $t), '#')))
+            ->filter(fn ($t) => $t !== '')
+            ->unique()
+            ->values();
+        return $tags->take(15)->all();
     }
 
     /**

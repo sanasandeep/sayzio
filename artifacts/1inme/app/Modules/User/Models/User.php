@@ -47,6 +47,9 @@ class User extends Authenticatable
         // Creator payouts + NSFW consent (Task #1208).
         'adult_content_enabled', 'adult_content_enabled_at',
         'age_verified_at',
+        // Location-based new-event alerts (Task #3593).
+        'event_alerts_enabled', 'event_alert_latitude', 'event_alert_longitude',
+        'event_alert_radius_km', 'event_alert_frequency',
         'adult_flag_suspended_at', 'adult_flag_suspended_reason', 'adult_flag_suspended_by',
         // Paid DMs (Task #1210).
         'dm_access_mode', 'dm_pay_price_cents', 'dm_pay_currency',
@@ -150,6 +153,11 @@ class User extends Authenticatable
             'adult_content_enabled_at'     => 'datetime',
             'age_verified_at'              => 'datetime',
             'adult_flag_suspended_at'      => 'datetime',
+            // Location-based new-event alerts (Task #3593).
+            'event_alerts_enabled'         => 'boolean',
+            'event_alert_latitude'         => 'float',
+            'event_alert_longitude'        => 'float',
+            'event_alert_radius_km'        => 'integer',
             // Paid DMs (Task #1210).
             'dm_pay_price_cents'           => 'integer',
             'dm_min_tier_id'               => 'integer',

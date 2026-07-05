@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Events — Sayzio</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
@@ -42,10 +43,25 @@
         </div>
         <input type="hidden" name="lat" value="{{ $lat }}">
         <input type="hidden" name="lng" value="{{ $lng }}">
+        <input type="hidden" name="tag" value="{{ $tag }}">
     </form>
+
+    @if($popularTags->isNotEmpty())
+        <div class="mb-3">
+            @foreach($popularTags as $popularTag)
+                <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except('tag', 'page'), ['tag' => $tag === $popularTag ? '' : $popularTag])) }}"
+                   class="badge rounded-pill text-decoration-none mb-1 {{ $tag === $popularTag ? 'bg-primary' : 'bg-light text-dark border' }}">
+                    #{{ $popularTag }}
+                </a>
+            @endforeach
+        </div>
+    @endif
 
     @if($nearMe)
         <div class="alert alert-info small">Showing events within {{ $radiusKm }}km of your location.</div>
+    @endif
+    @if($tag)
+        <div class="alert alert-secondary small">Filtering by hashtag <strong>#{{ $tag }}</strong> — <a href="{{ url()->current() }}?{{ http_build_query(request()->except('tag', 'page')) }}">clear</a></div>
     @endif
 
     <div class="row g-3">
@@ -61,6 +77,13 @@
                     @if($event->icsData && $event->icsData->location)
                         <div class="small text-muted mb-2"><i class="fas fa-map-marker-alt me-1"></i>{{ $event->icsData->location }}</div>
                     @endif
+                    @if($event->icsData && $event->icsData->hashtagList())
+                        <div class="small mb-2">
+                            @foreach($event->icsData->hashtagList() as $ht)
+                                <span class="badge bg-light text-dark border">#{{ $ht }}</span>
+                            @endforeach
+                        </div>
+                    @endif
                     @if($event->eventTicketTiers->isNotEmpty())
                         <div class="small mb-2">
                             From <strong>{{ $event->eventTicketTiers->sortBy('price_cents')->first()->priceLabel() }}</strong>
@@ -68,6 +91,17 @@
                     @else
                         <div class="small mb-2 text-success">Free RSVP</div>
                     @endif
+                    <div class="small mb-2 text-muted event-interest-counts" data-role="counts">
+                        <i class="fas fa-star me-1"></i><span data-role="interested-count">{{ $event->interested_count ?? 0 }}</span> interested
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mb-2 event-interest-widget" data-alias="{{ $event->alias }}">
+                        <button type="button" class="btn btn-sm btn-outline-success flex-fill event-interest-btn" data-status="interested">
+                            <i class="fas fa-star me-1"></i>Interested
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary flex-fill event-interest-btn" data-status="not_interested">
+                            <i class="fas fa-times me-1"></i>Not interested
+                        </button>
+                    </div>
                     <a href="{{ url('/' . $event->alias) }}" class="btn btn-sm btn-outline-primary">View event</a>
                 </div>
             </div>
@@ -87,6 +121,42 @@ document.getElementById('near-me-btn')?.addEventListener('click', function () {
         form.lat.value = pos.coords.latitude;
         form.lng.value = pos.coords.longitude;
         form.submit();
+    });
+});
+
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+document.querySelectorAll('.event-interest-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        const widget = btn.closest('.event-interest-widget');
+        const alias = widget.getAttribute('data-alias');
+        const status = btn.getAttribute('data-status');
+        const siblingButtons = widget.querySelectorAll('.event-interest-btn');
+        siblingButtons.forEach(function (b) { b.disabled = true; });
+
+        fetch('/' + alias + '/interest', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ status: status }),
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (!data || !data.success) return;
+                siblingButtons.forEach(function (b) {
+                    b.classList.toggle('active', b.getAttribute('data-status') === data.status);
+                });
+                const counts = widget.closest('.event-card').querySelector('[data-role="interested-count"]');
+                if (counts && data.counts) counts.textContent = data.counts.interested;
+            })
+            .catch(function () { /* silent — one-tap signal is best-effort */ })
+            .finally(function () {
+                siblingButtons.forEach(function (b) { b.disabled = false; });
+            });
     });
 });
 </script>
