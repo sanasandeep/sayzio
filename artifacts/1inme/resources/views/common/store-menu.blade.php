@@ -242,5 +242,6 @@
 })();
 </script>
 @endif
+@include('common.partials.link-type-pairings', ['pairingType' => 'store_menu', 'theme' => 'light'])
 </body>
 </html>

@@ -1317,6 +1317,93 @@ class SitePagesContent
     }
 
     /**
+     * Curated "Perfect pairings" cross-promo catalog: for each public
+     * link-type page, 2-4 complementary link types worth suggesting to the
+     * visitor/creator. Keyed by the page's pairing key (usually the
+     * `links.type` value; the whole biolink family shares the 'biolink'
+     * key). Kept deliberately small/handwritten — no ML personalization.
+     */
+    public static function linkTypePairingsCatalog(): array
+    {
+        return [
+            'ics' => [
+                ['name' => 'Calendar', 'type' => 'calendar', 'icon' => 'fa-calendar-days', 'benefit' => 'Let people follow every event you host, not just this one.'],
+                ['name' => 'Link in Bio', 'type' => 'biolink', 'icon' => 'fa-square-share-nodes', 'benefit' => 'Give guests one link to your socials, tickets and more.'],
+                ['name' => 'Reviews Page', 'type' => 'reviews', 'icon' => 'fa-star', 'benefit' => 'Collect feedback and star ratings after the event ends.'],
+                ['name' => 'Contact Card', 'type' => 'vcf', 'icon' => 'fa-address-card', 'benefit' => 'Hand out a tap-to-save vCard at check-in or the door.'],
+            ],
+            'restaurant_menu' => [
+                ['name' => 'Reviews Page', 'type' => 'reviews', 'icon' => 'fa-star', 'benefit' => 'Turn happy diners into a public star-rating wall.'],
+                ['name' => 'QR Code', 'type' => 'qr', 'icon' => 'fa-qrcode', 'benefit' => 'Print a branded QR for tables, flyers and packaging.'],
+                ['name' => 'Link in Bio', 'type' => 'biolink', 'icon' => 'fa-square-share-nodes', 'benefit' => 'Add hours, socials and directions around your menu.'],
+                ['name' => 'Event', 'type' => 'ics', 'icon' => 'fa-calendar-day', 'benefit' => 'Promote a tasting night or special with an RSVP page.'],
+            ],
+            'store_menu' => [
+                ['name' => 'Reviews Page', 'type' => 'reviews', 'icon' => 'fa-star', 'benefit' => 'Show off ratings from customers who already ordered.'],
+                ['name' => 'QR Code', 'type' => 'qr', 'icon' => 'fa-qrcode', 'benefit' => 'Print a scannable code for packaging, receipts and signage.'],
+                ['name' => 'Link in Bio', 'type' => 'biolink', 'icon' => 'fa-square-share-nodes', 'benefit' => 'Link your storefront alongside socials and contact info.'],
+                ['name' => 'Contact Card', 'type' => 'vcf', 'icon' => 'fa-address-card', 'benefit' => 'Share a tap-to-save card for order pickups and support.'],
+            ],
+            'resume' => [
+                ['name' => 'Link in Bio', 'type' => 'biolink', 'icon' => 'fa-square-share-nodes', 'benefit' => 'Pair your resume with a page for projects and socials.'],
+                ['name' => 'Contact Card', 'type' => 'vcf', 'icon' => 'fa-address-card', 'benefit' => 'Let recruiters save your details with a single tap.'],
+                ['name' => 'Brand / Press Kit', 'type' => 'brand_kit', 'icon' => 'fa-palette', 'benefit' => 'Share your personal brand assets alongside your resume.'],
+                ['name' => 'QR Code', 'type' => 'qr', 'icon' => 'fa-qrcode', 'benefit' => 'Put a scannable code on your business card or portfolio.'],
+            ],
+            'reviews' => [
+                ['name' => 'Link in Bio', 'type' => 'biolink', 'icon' => 'fa-square-share-nodes', 'benefit' => 'Give reviewers a home base for all your other links.'],
+                ['name' => 'Restaurant Menu', 'type' => 'restaurant_menu', 'icon' => 'fa-utensils', 'benefit' => 'Show the menu that earned you those five-star reviews.'],
+                ['name' => 'Event', 'type' => 'ics', 'icon' => 'fa-calendar-day', 'benefit' => 'Invite reviewers to your next event or pop-up.'],
+                ['name' => 'QR Code', 'type' => 'qr', 'icon' => 'fa-qrcode', 'benefit' => 'Print a QR so in-person visitors can leave a review fast.'],
+            ],
+            'biolink' => [
+                ['name' => 'QR Code', 'type' => 'qr', 'icon' => 'fa-qrcode', 'benefit' => 'Turn your page into a scannable code for print and signage.'],
+                ['name' => 'Contact Card', 'type' => 'vcf', 'icon' => 'fa-address-card', 'benefit' => 'Let visitors save your contact details in one tap.'],
+                ['name' => 'Reviews Page', 'type' => 'reviews', 'icon' => 'fa-star', 'benefit' => 'Collect and showcase feedback from your audience.'],
+                ['name' => 'Event', 'type' => 'ics', 'icon' => 'fa-calendar-day', 'benefit' => 'Promote your next event with tickets or RSVP built in.'],
+            ],
+        ];
+    }
+
+    /**
+     * Pairings for a single page, keyed by pairing key. Unknown/blank keys
+     * resolve to an empty list so the calling partial can hide gracefully.
+     */
+    public static function linkTypePairingsFor(?string $pairingKey): array
+    {
+        if (!$pairingKey) {
+            return [];
+        }
+
+        return self::linkTypePairingsCatalog()[$pairingKey] ?? [];
+    }
+
+    /**
+     * Maps a pairing item's `type` to the web create-flow route it should
+     * deep-link to (route name + optional extra route params). Types without
+     * a dedicated create route (restaurant_menu, store_menu) fall back to
+     * the general create flow pre-selected via a `type` query param — see
+     * LinkController::create(). Kept alongside the catalog above so the two
+     * stay in lockstep when a new pairing type is added.
+     */
+    public static function linkTypePairingCreateRoute(string $type): array
+    {
+        return match ($type) {
+            'calendar' => ['user.calendars.create', []],
+            'biolink' => ['user.links.biolink.create', []],
+            'reviews' => ['user.links.reviews.create', []],
+            'vcf' => ['user.links.vcf.create', []],
+            'resume' => ['user.links.resume.create', []],
+            'brand_kit' => ['user.links.brand-kit.create', []],
+            'qr' => ['user.qr-codes.create', []],
+            'ics' => ['user.links.ics.create', []],
+            'restaurant_menu' => ['user.links.create', ['type' => 'restaurant_menu']],
+            'store_menu' => ['user.links.create', ['type' => 'store_menu']],
+            default => ['user.links.create', []],
+        };
+    }
+
+    /**
      * Sanitise an admin-submitted home link-types list into the canonical
      * shape the public home page renders. Drops blank rows (no name and
      * no description), falls back to a safe icon/accent when missing, and

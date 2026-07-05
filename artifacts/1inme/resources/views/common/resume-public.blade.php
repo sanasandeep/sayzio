@@ -191,6 +191,8 @@
         <div class="resume-paper">
             @include('common.partials.resume-render', ['resume' => $resume])
         </div>
+
+        @include('common.partials.link-type-pairings', ['pairingType' => 'resume', 'theme' => 'light'])
     @endif
 
     <p style="text-align:center; font-size: 11px; color:#94a3b8; margin-top: 28px;">

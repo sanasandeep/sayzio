@@ -249,6 +249,8 @@
             </div>
         </div>
 
+        @include('common.partials.link-type-pairings', ['pairingType' => 'ics', 'theme' => 'dark'])
+
         <footer class="ev-footer text-center mt-8 text-xs">
             Powered by <a href="{{ url('/') }}" class="ev-accent-text hover:underline">{{ config('app.name') }}</a>
         </footer>

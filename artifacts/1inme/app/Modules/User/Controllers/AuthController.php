@@ -30,6 +30,18 @@ class AuthController extends Controller
             return response()->view('user.auth.registration-paused');
         }
 
+        // A "redirect" query param (e.g. from a "Perfect pairings" cross-promo
+        // card on a public link-type page) carries the visitor through to a
+        // specific in-app destination — usually a type-specific create
+        // flow — once they finish signing up. Stashed under Laravel's own
+        // `url.intended` session key so `redirect()->intended()` at the end
+        // of both the password and OTP sign-up paths picks it up for free.
+        // Only ever accept a same-app path so this can't become an open
+        // redirect.
+        if ($redirectTo = self::sameAppRedirectTarget($request->query('redirect'))) {
+            session(['url.intended' => $redirectTo]);
+        }
+
         $prefilledRef = $request->query('ref') ?: $request->cookie(ReferralService::COOKIE_NAME);
         return view('user.auth.register', [
             'prefilledRef'         => $prefilledRef,
@@ -155,7 +167,7 @@ class AuthController extends Controller
             if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
                 return $redirect;
             }
-            return redirect()->route('user.dashboard')->with('success', 'Account created. Welcome to Sayzio!');
+            return redirect()->intended(route('user.dashboard'))->with('success', 'Account created. Welcome to Sayzio!');
         }
 
         // Send a login OTP and route the new user through verification.
@@ -206,6 +218,37 @@ class AuthController extends Controller
         // sanitized handle when it couldn't be applied (so the caller can show
         // a friendly "that one was taken" notice).
         return \App\Modules\Common\Support\ClaimedHandle::apply($user, $raw);
+    }
+
+    /**
+     * Validate a caller-supplied `redirect` target is a same-app path before
+     * trusting it (e.g. from register()'s `?redirect=` query param). Rejects
+     * absolute URLs to other hosts and protocol-relative `//host` values so
+     * a crafted link can't turn sign-up into an open redirect. Returns a
+     * clean, app-relative path or null when the input isn't usable.
+     */
+    private static function sameAppRedirectTarget(?string $raw): ?string
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '' || str_starts_with($raw, '//')) {
+            return null;
+        }
+
+        // A bare path (e.g. "/user/links/create?type=ics") is always safe.
+        if (str_starts_with($raw, '/')) {
+            return $raw;
+        }
+
+        // An absolute URL must resolve to this app's own host.
+        $parts = parse_url($raw);
+        if (!is_array($parts) || empty($parts['host'])) {
+            return null;
+        }
+        if (strcasecmp($parts['host'], (string) parse_url(config('app.url'), PHP_URL_HOST)) !== 0) {
+            return null;
+        }
+
+        return $raw;
     }
 
     public function showLogin()

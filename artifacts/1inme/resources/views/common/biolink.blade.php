@@ -1190,6 +1190,8 @@
         @endif
     </div>
 
+    @include('common.partials.link-type-pairings', ['pairingType' => 'biolink', 'theme' => 'biolink', 'fontColor' => $fontColor ?? '#ffffff'])
+
     <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
     <script src="{{ asset('js/vendor/alpine.min.js') }}" defer></script>
     <script>

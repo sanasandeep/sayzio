@@ -157,3 +157,4 @@
 - [Admin-managed event categories & hashtags](admin-managed-event-categories-hashtags.md) — cached read (flush on every admin write) + explicit legacy/"Other" fallback branch, never a hard migration that could orphan old free-text event data.
 - [bg-*.text-white light-mode exemption gap](light-mode-textwhite-exemption-gap.md) — inline-style/bespoke-class backgrounds aren't covered by the sitewide bg-*.text-white allowlist; audit bare text-white hits by background source.
 - [Standalone page → marketing layout](standalone-page-to-marketing-layout.md) — set $shareTitle/$shareDescription/$shareImage before @section('content'); keep old dark colors as base, add html.light-mode counterparts per class.
+- [OTP register live-testing gotchas](otp-register-live-test.md) — invalid dev SMTP makes register POST slow (~40s, not hung); OTP in `otps` table (no model), verify field is `code` not `otp`; read final Location header instead of decrypting session.

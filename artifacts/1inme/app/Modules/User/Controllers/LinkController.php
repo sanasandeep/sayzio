@@ -166,9 +166,16 @@ class LinkController extends Controller
         //
         // Pre-select the type the user last picked (per-user, stored in session)
         // so power users who repeatedly create the same kind of link can fly
-        // through Step 1 with a single click + name.
-        $lastType = $request->session()->get('links.last_type');
-        if (!in_array($lastType, ['url', 'biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'store_menu', 'service_booking', 'file', 'ics', 'vcf'], true)) {
+        // through Step 1 with a single click + name. A `?type=` query param
+        // (e.g. from a "Perfect pairings" cross-promo card) takes priority
+        // over the remembered session type for a one-off deep link, but is
+        // never persisted to session itself.
+        $allowedTypes = ['url', 'biolink', 'conversational', 'slides', 'ai_chat', 'restaurant_menu', 'store_menu', 'service_booking', 'file', 'ics', 'vcf'];
+        $queryType = $request->query('type');
+        $lastType = in_array($queryType, $allowedTypes, true)
+            ? $queryType
+            : $request->session()->get('links.last_type');
+        if (!in_array($lastType, $allowedTypes, true)) {
             $lastType = null;
         }
 

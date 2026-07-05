@@ -198,6 +198,8 @@
     </div>
     @endif
 
+    @include('common.partials.link-type-pairings', ['pairingType' => 'reviews', 'theme' => 'dark'])
+
     <div class="foot"><a href="https://1in.me" target="_blank" rel="noopener">Powered by Sayzio</a></div>
 </div>
 

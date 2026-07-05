@@ -358,5 +358,6 @@
 })();
 </script>
 @endif
+@include('common.partials.link-type-pairings', ['pairingType' => 'restaurant_menu', 'theme' => 'light'])
 </body>
 </html>
