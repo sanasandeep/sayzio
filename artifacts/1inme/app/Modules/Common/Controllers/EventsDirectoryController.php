@@ -106,49 +106,20 @@ class EventsDirectoryController extends Controller
             ->keys()
             ->values();
 
-        $categoryIcons = $categories->mapWithKeys(fn ($c) => [$c => static::categoryIcon($c)]);
+        $categoryIcons  = $categories->mapWithKeys(fn ($c) => [$c => static::categoryIcon($c)]);
+        $categoryLabels = $categories->mapWithKeys(fn ($c) => [$c => \App\Modules\User\Support\EventCategories::label($c)]);
 
-        return view('common.events-directory', compact('events', 'q', 'category', 'tag', 'categories', 'categoryIcons', 'popularTags', 'nearMe', 'lat', 'lng', 'radiusKm'));
+        return view('common.events-directory', compact('events', 'q', 'category', 'tag', 'categories', 'categoryIcons', 'categoryLabels', 'popularTags', 'nearMe', 'lat', 'lng', 'radiusKm'));
     }
 
     /**
-     * Best-effort Font Awesome icon for a free-text event category (Task
-     * #3614). `event_category` is a plain string the owner types when
-     * creating the event (see IcsLinkController), not a fixed enum, so this
-     * matches on common keywords with a sensible calendar-star fallback for
-     * anything unrecognized.
+     * Font Awesome icon for a stored event category (Task #3615). Categories
+     * are now picked from a curated list (see EventCategories), so this is an
+     * exact slug→icon lookup; legacy free-text values kept from before the
+     * curated list fall back to keyword guessing with a calendar-star default.
      */
     protected static function categoryIcon(string $category): string
     {
-        $c = mb_strtolower($category);
-
-        $map = [
-            'fa-music' => ['music', 'concert', 'dj', 'band'],
-            'fa-microchip' => ['tech', 'technology', 'startup', 'coding', 'developer', 'software'],
-            'fa-palette' => ['art', 'design', 'craft', 'painting'],
-            'fa-utensils' => ['food', 'drink', 'dining', 'restaurant', 'wine', 'beer', 'culinary'],
-            'fa-basketball' => ['sport', 'fitness', 'run', 'yoga', 'gym'],
-            'fa-briefcase' => ['business', 'networking', 'conference', 'summit', 'career'],
-            'fa-heart-pulse' => ['health', 'wellness', 'meditation'],
-            'fa-graduation-cap' => ['education', 'workshop', 'class', 'seminar', 'training'],
-            'fa-people-group' => ['community', 'social', 'meetup', 'club'],
-            'fa-face-laugh' => ['comedy', 'standup'],
-            'fa-film' => ['film', 'movie', 'cinema', 'screening'],
-            'fa-gamepad' => ['gaming', 'esports'],
-            'fa-hand-holding-heart' => ['charity', 'fundraiser', 'nonprofit'],
-            'fa-mountain' => ['outdoor', 'travel', 'hiking', 'adventure'],
-            'fa-shirt' => ['fashion', 'style'],
-            'fa-champagne-glasses' => ['party', 'nightlife', 'festival', 'celebration'],
-        ];
-
-        foreach ($map as $icon => $keywords) {
-            foreach ($keywords as $kw) {
-                if (str_contains($c, $kw)) {
-                    return $icon;
-                }
-            }
-        }
-
-        return 'fa-calendar-star';
+        return \App\Modules\User\Support\EventCategories::icon($category);
     }
 }

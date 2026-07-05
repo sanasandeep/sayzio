@@ -67,7 +67,7 @@
             @foreach($categories as $c)
                 <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['category', 'page']), ['category' => $category === $c ? '' : $c])) }}"
                    class="cat-pill snap-start flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-blue-300 {{ $category === $c ? 'active' : '' }}">
-                    <i class="fas {{ $categoryIcons[$c] ?? 'fa-calendar-star' }}"></i> {{ ucfirst($c) }}
+                    <i class="fas {{ $categoryIcons[$c] ?? 'fa-calendar-star' }}"></i> {{ $categoryLabels[$c] ?? ucfirst($c) }}
                 </a>
             @endforeach
         </div>
@@ -98,7 +98,7 @@
             @endif
             @if($category)
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100">
-                    <i class="fas {{ $categoryIcons[$category] ?? 'fa-calendar-star' }}"></i> {{ ucfirst($category) }}
+                    <i class="fas {{ $categoryIcons[$category] ?? 'fa-calendar-star' }}"></i> {{ $categoryLabels[$category] ?? \App\Modules\User\Support\EventCategories::label($category) }}
                     <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['category', 'page'])) }}" class="text-slate-400 hover:text-slate-700">&times;</a>
                 </span>
             @endif
@@ -203,7 +203,7 @@
                             @endif
                             @if(!empty($event->settings['event_category'] ?? null))
                                 <span class="text-slate-300">&bull;</span>
-                                <span><i class="fas {{ $catIcon }} mr-1"></i>{{ ucfirst($event->settings['event_category']) }}</span>
+                                <span><i class="fas {{ $catIcon }} mr-1"></i>{{ \App\Modules\User\Support\EventCategories::label($event->settings['event_category']) }}</span>
                             @endif
                         </div>
 

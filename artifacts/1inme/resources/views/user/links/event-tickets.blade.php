@@ -43,9 +43,27 @@
                 <input type="checkbox" name="hide_from_directory" value="1" @checked(!empty($settings['hide_from_directory']))>
                 Hide from /events directory
             </label>
-            <input type="text" name="event_category" placeholder="Category (e.g. music, tech)" maxlength="60"
-                   value="{{ $settings['event_category'] ?? '' }}"
-                   class="px-3 py-2 rounded-lg text-sm flex-1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+            @php
+                $currentCategory = trim((string) ($settings['event_category'] ?? ''));
+                $isKnownCategory = \App\Modules\User\Support\EventCategories::isKnown($currentCategory);
+                $categorySelectValue = $currentCategory === ''
+                    ? ''
+                    : ($isKnownCategory ? $currentCategory : \App\Modules\User\Support\EventCategories::OTHER);
+            @endphp
+            <div x-data="{ cat: @js($categorySelectValue) }" class="flex flex-col sm:flex-row gap-2 flex-1">
+                <select name="event_category" x-model="cat"
+                        class="px-3 py-2 rounded-lg text-sm flex-1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+                    <option value="">No category</option>
+                    @foreach(\App\Modules\User\Support\EventCategories::selectOptions() as $slug => $label)
+                        <option value="{{ $slug }}">{{ $label }}</option>
+                    @endforeach
+                    <option value="{{ \App\Modules\User\Support\EventCategories::OTHER }}">Other…</option>
+                </select>
+                <input type="text" name="event_category_other" placeholder="Custom category" maxlength="100"
+                       value="{{ $isKnownCategory ? '' : $currentCategory }}"
+                       x-show="cat === '{{ \App\Modules\User\Support\EventCategories::OTHER }}'" x-cloak
+                       class="px-3 py-2 rounded-lg text-sm flex-1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+            </div>
             <button type="submit" class="btn-secondary px-4 py-2 text-sm rounded-lg">Save</button>
         </form>
     </div>

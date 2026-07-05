@@ -103,10 +103,13 @@ class IcsLinkController extends Controller
         if ($request->has('hide_from_directory')) {
             $newSettings['hide_from_directory'] = $request->boolean('hide_from_directory');
         }
-        if ($request->filled('event_category')) {
-            $newSettings['event_category'] = mb_substr(trim((string) $request->input('event_category')), 0, 100);
-        } elseif ($request->has('event_category')) {
-            unset($newSettings['event_category']);
+        if ($request->has('event_category')) {
+            $category = $this->resolveEventCategory($request);
+            if ($category !== null) {
+                $newSettings['event_category'] = $category;
+            } else {
+                unset($newSettings['event_category']);
+            }
         }
 
         // Calendar account binding (visible to the workspace owner only — members
@@ -223,6 +226,7 @@ class IcsLinkController extends Controller
             'latitude'             => 'nullable|numeric|between:-90,90',
             'longitude'            => 'nullable|numeric|between:-180,180',
             'event_category'       => 'nullable|string|max:100',
+            'event_category_other' => 'nullable|string|max:100',
 
             // Events overhaul (Task #3593): hashtags, richer page content,
             // and badge-powered invite/entry rules.
@@ -358,6 +362,27 @@ class IcsLinkController extends Controller
             'per_occurrence'        => $request->boolean('rsvp_per_occurrence'),
             'questions'             => $questions,
         ], fn ($v) => $v !== null);
+    }
+
+    /**
+     * Resolve the submitted event category into a stored value (Task #3615).
+     * The editor sends a curated slug, the "Other" sentinel (with a free-text
+     * companion field), or an empty value to clear it. Returns null to clear.
+     */
+    private function resolveEventCategory(Request $request): ?string
+    {
+        $selected = trim((string) $request->input('event_category'));
+
+        if ($selected === '') {
+            return null;
+        }
+
+        if ($selected === \App\Modules\User\Support\EventCategories::OTHER) {
+            $custom = mb_substr(trim((string) $request->input('event_category_other')), 0, 100);
+            return $custom !== '' ? $custom : null;
+        }
+
+        return mb_substr($selected, 0, 100);
     }
 
     private function parseCalendarSyncMode(Request $request): string
