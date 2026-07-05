@@ -24,6 +24,11 @@ class EventsDirectoryController extends Controller
         $lng      = $request->query('lng');
         $radiusKm = max(1, min(500, (int) $request->query('radius', 50)));
         $online   = $request->boolean('online');
+        $price    = trim((string) $request->query('price', ''));
+        $priceFilter = in_array($price, ['free', 'paid'], true) ? $price : '';
+        $dateFilter = trim((string) $request->query('date', ''));
+        $dateFrom   = trim((string) $request->query('date_from', ''));
+        $dateTo     = trim((string) $request->query('date_to', ''));
 
         $query = Link::query()
             ->where('type', 'ics')
@@ -71,6 +76,24 @@ class EventsDirectoryController extends Controller
 
         if ($online) {
             $query->whereRaw("(settings->>'is_online') = 'true'");
+        }
+
+        if ($priceFilter === 'free') {
+            $query->whereDoesntHave('eventTicketTiers', function ($t) {
+                $t->where('is_active', true)->where('price_cents', '>', 0);
+            });
+        } elseif ($priceFilter === 'paid') {
+            $query->whereHas('eventTicketTiers', function ($t) {
+                $t->where('is_active', true)->where('price_cents', '>', 0);
+            });
+        }
+
+        [$dateRangeStart, $dateRangeEnd] = static::resolveDateRange($dateFilter, $dateFrom, $dateTo);
+        if ($dateRangeStart || $dateRangeEnd) {
+            $query->whereHas('icsData', function ($w) use ($dateRangeStart, $dateRangeEnd) {
+                if ($dateRangeStart) $w->where('start_date', '>=', $dateRangeStart);
+                if ($dateRangeEnd) $w->where('start_date', '<=', $dateRangeEnd);
+            });
         }
 
         // Near-me distance filtering only makes sense for physical events —
@@ -174,7 +197,7 @@ class EventsDirectoryController extends Controller
             ->where('is_active', true)
             ->where('visibility', 'public')
             ->where(fn ($w) => $w->whereRaw("(settings->>'hide_from_directory') IS DISTINCT FROM 'true'"))
-            ->with('icsData')
+            ->with(['icsData', 'eventTicketTiers' => fn ($t) => $t->where('is_active', true)])
             ->withCount(['eventInterests as interested_count' => function ($w) {
                 $w->where('status', 'interested');
             }])
@@ -212,9 +235,16 @@ class EventsDirectoryController extends Controller
         $categoryLabels = $categories->mapWithKeys(fn ($c) => [$c => \App\Modules\User\Support\EventCategories::label($c)]);
         $categoryColors = $categories->mapWithKeys(fn ($c) => [$c => \App\Modules\User\Support\EventCategories::gradient($c)]);
 
+        // Default currency for the visitor's price toggle — reuses the same
+        // country/session/geo resolution as billing pricing (PricingResolver)
+        // so it matches whatever the visitor already sees elsewhere on the
+        // site. This is purely a display default; the toggle lets them switch.
+        $defaultCurrency = \App\Services\PricingResolver::currencyForUser(auth('web')->user());
+
         return view('common.events-directory', compact(
             'events', 'q', 'category', 'tag', 'categories', 'categoryIcons', 'categoryLabels', 'categoryColors',
-            'hasOtherCategory', 'otherCategory', 'tagRow', 'nearMe', 'lat', 'lng', 'radiusKm', 'online', 'heroEvents'
+            'hasOtherCategory', 'otherCategory', 'tagRow', 'nearMe', 'lat', 'lng', 'radiusKm', 'online', 'heroEvents',
+            'priceFilter', 'dateFilter', 'dateFrom', 'dateTo', 'defaultCurrency'
         ));
     }
 
@@ -227,5 +257,52 @@ class EventsDirectoryController extends Controller
     protected static function categoryIcon(string $category): string
     {
         return \App\Modules\User\Support\EventCategories::icon($category);
+    }
+
+    /**
+     * Resolve a [start, end] Carbon range for the date filter. An explicit
+     * date_from/date_to pair (custom range) always wins over a quick-range
+     * key; either side of a custom range may be omitted (open-ended).
+     * Invalid/unparseable dates are treated as "no filter" rather than
+     * erroring the request.
+     *
+     * @return array{0: ?\Illuminate\Support\Carbon, 1: ?\Illuminate\Support\Carbon}
+     */
+    protected static function resolveDateRange(string $quick, string $dateFrom, string $dateTo): array
+    {
+        if ($dateFrom !== '' || $dateTo !== '') {
+            try {
+                $start = $dateFrom !== '' ? \Illuminate\Support\Carbon::parse($dateFrom)->startOfDay() : null;
+                $end   = $dateTo !== '' ? \Illuminate\Support\Carbon::parse($dateTo)->endOfDay() : null;
+                return [$start, $end];
+            } catch (\Throwable $e) {
+                return [null, null];
+            }
+        }
+
+        $now = now();
+        switch ($quick) {
+            case 'today':
+                return [$now->copy()->startOfDay(), $now->copy()->endOfDay()];
+            case 'weekend':
+                $dow = (int) $now->dayOfWeekIso; // 1=Mon .. 7=Sun
+                // Days until the *upcoming* Saturday. If today is Sat (6) or
+                // Sun (7), treat the current/just-started weekend as "this
+                // weekend" rather than jumping a full week ahead.
+                $daysUntilSat = $dow >= 6 ? 0 : (6 - $dow);
+                $sat = $now->copy()->startOfDay()->addDays($daysUntilSat);
+                if ($dow === 7) {
+                    // On Sunday, the weekend's Saturday already passed.
+                    $sat = $now->copy()->startOfDay()->subDay();
+                }
+                $sun = $sat->copy()->addDay()->endOfDay();
+                return [$sat, $sun];
+            case 'week':
+                return [$now->copy()->startOfDay(), $now->copy()->endOfWeek()];
+            case 'month':
+                return [$now->copy()->startOfDay(), $now->copy()->endOfMonth()];
+            default:
+                return [null, null];
+        }
     }
 }

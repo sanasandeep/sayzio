@@ -4,6 +4,7 @@
 @php
     $shareTitle = 'Discover Events';
     $shareDescription = 'Find and RSVP to events near you — powered by ' . config('app.name') . '.';
+    $hasCustomRange = $dateFrom !== '' || $dateTo !== '';
 @endphp
 
 @push('head')
@@ -121,6 +122,39 @@
     html.light-mode .events-page-body .tier-list-box > div + div { border-color:rgba(15,23,42,0.08); }
     html.light-mode .events-page-body .ev-card-footer-divider { border-color:rgba(15,23,42,0.08); }
     html.light-mode .events-page-body .btn-not-interested { border-color:rgba(15,23,42,0.14); color:rgba(15,23,42,0.5); }
+
+    /* Category row (icon tiles) is near-invisible white-on-white in light
+       mode — the tiles use bespoke classes, not Tailwind utilities, so the
+       sitewide remap can't reach them. */
+    html.light-mode .events-page-body .cat-section-label { color:rgba(15,23,42,0.45); }
+    html.light-mode .events-page-body .cat-tile-icon { border-color:rgba(15,23,42,0.14); color:rgba(15,23,42,0.55); background:rgba(15,23,42,0.02); }
+    html.light-mode .events-page-body .cat-tile-icon:hover { border-color:#3d6bff; color:#3d6bff; background:rgba(61,107,255,0.06); }
+    html.light-mode .events-page-body .cat-tile-icon.active { border-color:#3d6bff; background:rgba(61,107,255,0.10); color:#2342c7; }
+    html.light-mode .events-page-body .cat-tile-icon::after { background:#0f172a; color:#fff; border-color:rgba(15,23,42,0.12); }
+    html.light-mode .events-page-body .cat-divider { background:rgba(15,23,42,0.14); }
+    html.light-mode .events-page-body .cat-more-btn { border-color:rgba(15,23,42,0.22); color:rgba(15,23,42,0.5); }
+    html.light-mode .events-page-body .cat-more-btn:hover { border-color:#3d6bff; color:#2342c7; }
+
+    /* Currency toggle. */
+    .currency-toggle-btn { padding:.35rem .75rem; border-radius:999px; font-size:.75rem; font-weight:700; color:rgba(255,255,255,0.55); background:transparent; transition:background .15s ease, color .15s ease; }
+    .currency-toggle-btn.active { background:#3d6bff; color:#fff; }
+    html.light-mode .events-page-body .currency-toggle-btn { color:rgba(15,23,42,0.5); }
+    html.light-mode .events-page-body .currency-toggle-btn.active { background:#3d6bff; color:#fff; }
+
+    /* Custom date-range panel. */
+    .ev-date-range-box { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); }
+    .ev-date-range-label { color:rgba(255,255,255,0.4); }
+    .ev-date-range-input { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); color:#fff; }
+    html.light-mode .events-page-body .ev-date-range-box { background:#ffffff; border-color:rgba(15,23,42,0.10); box-shadow:0 1px 2px rgba(15,23,42,0.04); }
+    html.light-mode .events-page-body .ev-date-range-label { color:rgba(15,23,42,0.5); }
+    html.light-mode .events-page-body .ev-date-range-input { background:#ffffff; border-color:rgba(15,23,42,0.18); color:#0f172a; }
+
+    /* ── Grid cards (redesigned, single image) ─────────────────────── */
+    .ev-card-img { width:100%; height:100%; object-fit:cover; transition:transform .5s ease; }
+    .event-card:hover .ev-card-img { transform:scale(1.06); }
+    .ev-card-date-chip { background:rgba(11,14,22,0.82); backdrop-filter:blur(4px); }
+    .ev-cat-pill { display:inline-flex; align-items:center; gap:.3rem; font-size:.65rem; font-weight:700; padding:.2rem .55rem; border-radius:999px; color:#fff; }
+    .ev-price-badge { box-shadow:0 6px 16px -4px rgba(0,0,0,0.35); }
 </style>
 @endpush
 
@@ -166,13 +200,39 @@
             <input type="hidden" name="category" value="{{ $category }}">
             <input type="hidden" name="tag" value="{{ $tag }}">
             @if($online)<input type="hidden" name="online" value="1">@endif
+            @if($priceFilter)<input type="hidden" name="price" value="{{ $priceFilter }}">@endif
+            @if($hasCustomRange)
+                <input type="hidden" name="date_from" value="{{ $dateFrom }}">
+                <input type="hidden" name="date_to" value="{{ $dateTo }}">
+            @elseif($dateFilter)
+                <input type="hidden" name="date" value="{{ $dateFilter }}">
+            @endif
         </form>
 
         {{-- Hero slider: 2-3 featured upcoming events. --}}
         @if(isset($heroEvents) && $heroEvents->isNotEmpty())
             <div class="mt-9 max-w-3xl mx-auto text-left" x-data="heroSlider({{ $heroEvents->count() }})" x-init="start()">
                 @foreach($heroEvents as $hi => $hero)
-                    @php $hIcs = $hero->icsData; $hCat = $hero->settings['event_category'] ?? ''; @endphp
+                    @php
+                        $hIcs = $hero->icsData;
+                        $hCat = $hero->settings['event_category'] ?? '';
+                        $hTiers = $hero->eventTicketTiers->sortBy('price_cents')->values();
+                        if ($hTiers->isEmpty()) {
+                            $hPriceLabel = 'Free RSVP';
+                            $hPriceIsFree = true;
+                            $hNativeCurrency = null;
+                            $hNativeCents = 0;
+                            $hPrefix = '';
+                        } else {
+                            $hLowest = $hTiers->first();
+                            $hHasRange = $hTiers->count() > 1 && (int) $hTiers->last()->price_cents !== (int) $hLowest->price_cents;
+                            $hPrefix = $hHasRange ? 'From ' : '';
+                            $hPriceLabel = $hPrefix . $hLowest->priceLabel();
+                            $hPriceIsFree = $hLowest->isFree() && !$hHasRange;
+                            $hNativeCurrency = strtoupper($hLowest->currency);
+                            $hNativeCents = (int) $hLowest->price_cents;
+                        }
+                    @endphp
                     <a href="{{ url('/' . $hero->alias) }}" class="hero-slide {{ $hi === 0 ? 'active' : '' }}" data-slide="{{ $hi }}">
                         <div class="hero-slide-media">
                             @if($hIcs && $hIcs->cover_image_url)
@@ -181,6 +241,11 @@
                                 <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $hero->title }}" class="hero-slide-img">
                             @endif
                             <div class="hero-slide-scrim"></div>
+                            <span class="hero-slide-price ev-price-badge inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold {{ $hPriceIsFree ? 'bg-emerald-500 text-white' : 'text-white ev-price' }}"
+                                  style="position:absolute; top:1rem; right:1rem; {{ $hPriceIsFree ? '' : 'background:rgba(61,107,255,0.92);' }}"
+                                  @if(!$hPriceIsFree) data-native-currency="{{ $hNativeCurrency }}" data-native-cents="{{ $hNativeCents }}" data-prefix="{{ $hPrefix }}" @endif>
+                                {{ $hPriceLabel }}
+                            </span>
                             <div class="hero-slide-content">
                                 <span class="hero-slide-badge"><i class="fas fa-star mr-1"></i> Featured</span>
                                 @if($hIcs && $hIcs->start_date)
@@ -214,7 +279,7 @@
     @php $catFitCount = 9; @endphp
     @if($categories->isNotEmpty() || $hasOtherCategory)
         <div class="mb-6" x-data="{ showMoreCats: false }">
-            <div class="text-xs font-bold uppercase tracking-wide text-white/40 mb-3">Browse by category</div>
+            <div class="cat-section-label text-xs font-bold uppercase tracking-wide text-white/40 mb-3">Browse by category</div>
             <div class="flex flex-wrap items-center gap-2.5">
                 <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['category', 'page']), ['category' => ''])) }}"
                    class="cat-tile-icon {{ $category === '' ? 'active' : '' }}"
@@ -247,12 +312,68 @@
         </div>
     @endif
 
-    {{-- Online filter toggle. --}}
-    <div class="flex flex-wrap items-center gap-2 mb-5">
-        <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['online', 'page']), $online ? [] : ['online' => 1])) }}"
-           class="ev-chip {{ $online ? 'active' : '' }} inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
-            <i class="fas fa-video"></i> Online events only
-        </a>
+    @php
+        $quickDateRanges = ['today' => 'Today', 'weekend' => 'This weekend', 'week' => 'This week', 'month' => 'This month'];
+    @endphp
+
+    {{-- Filter bar: online / free / paid + date quick ranges + custom range
+         + a display-only currency toggle for ticket prices. --}}
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5" x-data="{ showDateRange: {{ $hasCustomRange ? 'true' : 'false' }} }">
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['online', 'page']), $online ? [] : ['online' => 1])) }}"
+               class="ev-chip {{ $online ? 'active' : '' }} inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
+                <i class="fas fa-video"></i> Online events only
+            </a>
+            <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['price', 'page']), ['price' => $priceFilter === 'free' ? '' : 'free'])) }}"
+               class="ev-chip {{ $priceFilter === 'free' ? 'active' : '' }} inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
+                <i class="fas fa-gift"></i> Free
+            </a>
+            <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['price', 'page']), ['price' => $priceFilter === 'paid' ? '' : 'paid'])) }}"
+               class="ev-chip {{ $priceFilter === 'paid' ? 'active' : '' }} inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold">
+                <i class="fas fa-ticket"></i> Paid
+            </a>
+            <div class="w-px self-stretch mx-0.5" style="background:rgba(255,255,255,0.12);"></div>
+            @foreach($quickDateRanges as $key => $label)
+                <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['date', 'date_from', 'date_to', 'page']), $dateFilter === $key && !$hasCustomRange ? [] : ['date' => $key])) }}"
+                   class="ev-chip {{ ($dateFilter === $key && !$hasCustomRange) ? 'active' : '' }} inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold">
+                    {{ $label }}
+                </a>
+            @endforeach
+            <button type="button" @click="showDateRange = !showDateRange"
+                    class="ev-chip {{ $hasCustomRange ? 'active' : '' }} inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold">
+                <i class="fas fa-calendar-days"></i> Custom range
+            </button>
+        </div>
+
+        {{-- Currency toggle: display-only conversion, native price is always
+             the source of truth (see JS applyCurrency()). --}}
+        <div class="inline-flex items-center rounded-full p-1" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">
+            <span class="text-[10px] font-bold uppercase tracking-wide text-white/30 px-2">Prices in</span>
+            <button type="button" class="currency-toggle-btn" data-currency="USD">USD</button>
+            <button type="button" class="currency-toggle-btn" data-currency="INR">INR</button>
+        </div>
+    </div>
+
+    <div x-show="showDateRange" x-cloak x-transition class="ev-date-range-box mb-5 p-3 rounded-2xl">
+        <form method="GET" class="flex flex-wrap items-end gap-3">
+            @foreach(['q', 'category', 'tag', 'lat', 'lng'] as $preserve)
+                @if(request($preserve))<input type="hidden" name="{{ $preserve }}" value="{{ request($preserve) }}">@endif
+            @endforeach
+            @if($online)<input type="hidden" name="online" value="1">@endif
+            @if($priceFilter)<input type="hidden" name="price" value="{{ $priceFilter }}">@endif
+            <div>
+                <label class="ev-date-range-label block text-[11px] font-semibold mb-1">From</label>
+                <input type="date" name="date_from" value="{{ $dateFrom }}" class="ev-date-range-input text-sm rounded-lg px-2.5 py-1.5">
+            </div>
+            <div>
+                <label class="ev-date-range-label block text-[11px] font-semibold mb-1">To</label>
+                <input type="date" name="date_to" value="{{ $dateTo }}" class="ev-date-range-input text-sm rounded-lg px-2.5 py-1.5">
+            </div>
+            <button type="submit" class="px-4 py-1.5 rounded-lg text-sm font-bold text-white" style="background:#3d6bff;">Apply</button>
+            @if($hasCustomRange)
+                <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['date_from', 'date_to', 'page'])) }}" class="text-xs font-semibold link-accent hover:underline">Clear range</a>
+            @endif
+        </form>
     </div>
 
     {{-- Hashtag row: admin-predefined tags first, backfilled with
@@ -270,7 +391,7 @@
     @endif
 
     {{-- Active filters summary. --}}
-    @if($nearMe || $tag || $category || $q || $online)
+    @if($nearMe || $tag || $category || $q || $online || $priceFilter || $dateFilter || $hasCustomRange)
         <div class="flex flex-wrap items-center gap-2 mb-6 text-xs text-white/50">
             <span class="font-semibold text-white/40">Active filters:</span>
             @if($q)
@@ -301,6 +422,24 @@
                     <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['online', 'page'])) }}" class="chip-close">&times;</a>
                 </span>
             @endif
+            @if($priceFilter)
+                <span class="chip-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full">
+                    <i class="fas {{ $priceFilter === 'free' ? 'fa-gift' : 'fa-ticket' }}"></i> {{ ucfirst($priceFilter) }}
+                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['price', 'page'])) }}" class="chip-close">&times;</a>
+                </span>
+            @endif
+            @if($hasCustomRange)
+                <span class="chip-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full">
+                    <i class="fas fa-calendar-days"></i>
+                    {{ $dateFrom ?: '…' }} &rarr; {{ $dateTo ?: '…' }}
+                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['date_from', 'date_to', 'page'])) }}" class="chip-close">&times;</a>
+                </span>
+            @elseif($dateFilter)
+                <span class="chip-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full">
+                    <i class="fas fa-calendar-days"></i> {{ $quickDateRanges[$dateFilter] ?? ucfirst($dateFilter) }}
+                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['date', 'page'])) }}" class="chip-close">&times;</a>
+                </span>
+            @endif
             @if($nearMe)
                 <span class="chip-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full">
                     <i class="fas fa-location-arrow"></i> Within {{ $radiusKm }}km
@@ -316,7 +455,7 @@
             <i class="fas fa-calendar-xmark text-4xl text-white/20 mb-4"></i>
             <p class="text-white/70 font-semibold">No events found</p>
             <p class="text-white/40 text-sm mt-1">Try a different search, category, or clear your filters.</p>
-            @if($nearMe || $tag || $category || $q || $online)
+            @if($nearMe || $tag || $category || $q || $online || $priceFilter || $dateFilter || $hasCustomRange)
                 <a href="{{ route('events.index') }}" class="inline-block mt-4 px-4 py-2 rounded-lg text-white text-sm font-semibold" style="background:#3d6bff;">Clear filters</a>
             @endif
         </div>
@@ -337,40 +476,28 @@
                     if ($tiers->isEmpty()) {
                         $priceLabel = 'Free RSVP';
                         $priceIsFree = true;
+                        $nativeCurrency = null;
+                        $nativeCents = 0;
+                        $pricePrefix = '';
                     } else {
                         $lowest = $tiers->first();
                         $hasRange = $tiers->count() > 1 && (int) $tiers->last()->price_cents !== (int) $lowest->price_cents;
-                        $priceLabel = ($hasRange ? 'From ' : '') . $lowest->priceLabel();
+                        $pricePrefix = $hasRange ? 'From ' : '';
+                        $priceLabel = $pricePrefix . $lowest->priceLabel();
                         $priceIsFree = $lowest->isFree() && !$hasRange;
+                        $nativeCurrency = strtoupper($lowest->currency);
+                        $nativeCents = (int) $lowest->price_cents;
                     }
-
-                    // Gallery preview: cover first, then distinct gallery
-                    // images. Capped so the hover cycle stays lightweight.
-                    $gallery = array_values(array_filter(
-                        array_map('trim', (array) ($ics?->gallery ?? [])),
-                        fn ($u) => $u !== ''
-                    ));
-                    $previewImages = [];
-                    if ($cover) $previewImages[] = $cover;
-                    foreach ($gallery as $g) {
-                        if ($g !== $cover) $previewImages[] = $g;
-                    }
-                    $previewImages = array_slice(array_values(array_unique($previewImages)), 0, 5);
-                    $photoCount = count($previewImages);
                 @endphp
                 <div class="event-card ev-card overflow-hidden">
-                    <a href="{{ url('/' . $event->alias) }}"
-                       class="block relative aspect-[16/10] overflow-hidden {{ $photoCount > 1 ? 'event-media' : '' }}">
-                        @if($photoCount > 0)
-                            @foreach($previewImages as $pi => $imgUrl)
-                                <img src="{{ $imgUrl }}" alt="{{ $event->title }}" loading="lazy" data-idx="{{ $pi }}"
-                                     class="event-media-img absolute inset-0 w-full h-full object-cover transition-opacity duration-500 {{ $pi === 0 ? 'opacity-100' : 'opacity-0' }}">
-                            @endforeach
+                    <a href="{{ url('/' . $event->alias) }}" class="block relative aspect-[16/10] overflow-hidden">
+                        @if($cover)
+                            <img src="{{ $cover }}" alt="{{ $event->title }}" loading="lazy" class="ev-card-img">
                         @else
-                            <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $event->title }}" loading="lazy" class="w-full h-full object-cover">
+                            <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $event->title }}" loading="lazy" class="ev-card-img">
                         @endif
                         @if($ics && $ics->start_date)
-                            <div class="absolute top-3 left-3 z-10 rounded-xl px-2.5 py-1.5 text-center shadow-sm leading-none" style="background:rgba(11,14,22,0.85); backdrop-filter:blur(4px);">
+                            <div class="ev-card-date-chip absolute top-3 left-3 z-10 rounded-xl px-2.5 py-1.5 text-center shadow-sm leading-none">
                                 <div class="text-[10px] font-bold uppercase" style="color:#8fa8ff;">{{ $ics->start_date->format('M') }}</div>
                                 <div class="text-base font-extrabold text-white">{{ $ics->start_date->format('j') }}</div>
                             </div>
@@ -380,18 +507,10 @@
                                 <i class="fas fa-video"></i> Online
                             </div>
                         @endif
-                        @if($photoCount > 1)
-                            <div class="absolute top-3 right-3 z-10 inline-flex items-center gap-1 bg-black/55 text-white rounded-full px-2 py-1 text-[11px] font-semibold backdrop-blur-sm shadow-sm">
-                                <i class="fas fa-images"></i> {{ $photoCount }} photos
-                            </div>
-                            <div class="event-media-dots absolute bottom-3 left-3 z-10 flex items-center gap-1">
-                                @foreach($previewImages as $pi => $imgUrl)
-                                    <span class="event-media-dot h-1.5 w-1.5 rounded-full {{ $pi === 0 ? 'bg-white' : 'bg-white/60' }}" data-dot="{{ $pi }}"></span>
-                                @endforeach
-                            </div>
-                        @endif
                         <div class="absolute bottom-3 right-3 z-10">
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold shadow-sm {{ $priceIsFree ? 'bg-emerald-500 text-white' : 'text-white' }}" style="{{ $priceIsFree ? '' : 'background:rgba(61,107,255,0.9);' }}">
+                            <span class="ev-price-badge inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold {{ $priceIsFree ? 'bg-emerald-500 text-white' : 'text-white ev-price' }}"
+                                  style="{{ $priceIsFree ? '' : 'background:rgba(61,107,255,0.9);' }}"
+                                  @if(!$priceIsFree) data-native-currency="{{ $nativeCurrency }}" data-native-cents="{{ $nativeCents }}" data-prefix="{{ $pricePrefix }}" @endif>
                                 {{ $priceLabel }}
                             </span>
                         </div>
@@ -403,8 +522,9 @@
                                 <span><i class="far fa-clock mr-1"></i>{{ $ics->start_date->format('D, M j · g:i A') }}</span>
                             @endif
                             @if($eventCategory !== '')
-                                <span class="text-white/20">&bull;</span>
-                                <span><i class="fas {{ $catIcon }} mr-1"></i>{{ \App\Modules\User\Support\EventCategories::label($eventCategory) }}</span>
+                                <span class="ev-cat-pill" style="background:{{ $catGradient }};">
+                                    <i class="fas {{ $catIcon }}"></i> {{ \App\Modules\User\Support\EventCategories::label($eventCategory) }}
+                                </span>
                             @endif
                         </div>
 
@@ -435,7 +555,10 @@
                                     @foreach($tiers as $tier)
                                         <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs">
                                             <span class="text-white/50 truncate">{{ $tier->name }}</span>
-                                            <span class="font-bold whitespace-nowrap {{ $tier->isFree() ? 'text-emerald-400' : 'text-white' }}">{{ $tier->priceLabel() }}</span>
+                                            <span class="font-bold whitespace-nowrap {{ $tier->isFree() ? 'text-emerald-400' : 'text-white ev-price' }}"
+                                                  @if(!$tier->isFree()) data-native-currency="{{ strtoupper($tier->currency) }}" data-native-cents="{{ (int) $tier->price_cents }}" data-prefix="" @endif>
+                                                {{ $tier->priceLabel() }}
+                                            </span>
                                         </div>
                                     @endforeach
                                 </div>
@@ -652,31 +775,56 @@ document.querySelectorAll('.tier-toggle').forEach(function (btn) {
     });
 });
 
-// Lightweight hover gallery preview for cards with multiple photos.
-document.querySelectorAll('.event-media').forEach(function (media) {
-    const imgs = media.querySelectorAll('.event-media-img');
-    const dots = media.querySelectorAll('.event-media-dot');
-    if (imgs.length < 2) return;
-    let idx = 0;
-    let timer = null;
+// Ticket-price currency toggle (USD/INR). Purely a display conversion —
+// the native currency/amount stored on data-native-* is always the source
+// of truth; conversion is an approximate fixed rate, not a live FX quote.
+const FX_INR_PER_USD = 83;
+const CURRENCY_PREF_KEY = 'events_currency_pref';
 
-    function show(next) {
-        imgs[idx].classList.replace('opacity-100', 'opacity-0');
-        if (dots[idx]) dots[idx].classList.replace('bg-white', 'bg-white/60');
-        idx = next;
-        imgs[idx].classList.replace('opacity-0', 'opacity-100');
-        if (dots[idx]) dots[idx].classList.replace('bg-white/60', 'bg-white');
-    }
+function formatMoney(currency, cents) {
+    const amount = cents / 100;
+    const formatted = currency === 'INR'
+        ? amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+        : amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (currency === 'INR' ? '₹' : '$') + formatted;
+}
 
-    media.addEventListener('mouseenter', function () {
-        if (timer) return;
-        timer = setInterval(function () { show((idx + 1) % imgs.length); }, 1100);
+function convertCents(nativeCurrency, nativeCents, targetCurrency) {
+    if (nativeCurrency === targetCurrency) return nativeCents;
+    if (nativeCurrency === 'USD' && targetCurrency === 'INR') return Math.round(nativeCents * FX_INR_PER_USD);
+    if (nativeCurrency === 'INR' && targetCurrency === 'USD') return Math.round(nativeCents / FX_INR_PER_USD);
+    // Unsupported native currency (not USD/INR) — leave the price as-is in
+    // its own currency rather than guess a conversion.
+    return null;
+}
+
+function applyCurrency(currency) {
+    document.querySelectorAll('.currency-toggle-btn').forEach(function (btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-currency') === currency);
     });
-    media.addEventListener('mouseleave', function () {
-        clearInterval(timer);
-        timer = null;
-        if (idx !== 0) show(0);
+    document.querySelectorAll('.ev-price').forEach(function (el) {
+        const nativeCurrency = el.getAttribute('data-native-currency');
+        const nativeCents = parseInt(el.getAttribute('data-native-cents') || '0', 10);
+        const prefix = el.getAttribute('data-prefix') || '';
+        if (!nativeCurrency) return;
+        const converted = convertCents(nativeCurrency, nativeCents, currency);
+        if (converted === null) {
+            el.textContent = prefix + formatMoney(nativeCurrency, nativeCents);
+            return;
+        }
+        el.textContent = prefix + (nativeCurrency === currency ? '' : '≈') + formatMoney(currency, converted);
     });
+    try { localStorage.setItem(CURRENCY_PREF_KEY, currency); } catch (e) { /* storage unavailable */ }
+}
+
+document.querySelectorAll('.currency-toggle-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { applyCurrency(btn.getAttribute('data-currency')); });
 });
+
+(function initCurrency() {
+    let pref = null;
+    try { pref = localStorage.getItem(CURRENCY_PREF_KEY); } catch (e) { /* storage unavailable */ }
+    applyCurrency(pref === 'USD' || pref === 'INR' ? pref : '{{ $defaultCurrency }}');
+})();
 </script>
 @endpush
