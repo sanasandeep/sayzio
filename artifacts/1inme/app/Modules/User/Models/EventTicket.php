@@ -15,7 +15,7 @@ class EventTicket extends Model
     public const STATUS_REFUNDED   = 'refunded';
 
     protected $fillable = [
-        'tier_id', 'link_id', 'buyer_user_id',
+        'tier_id', 'rsvp_id', 'link_id', 'buyer_user_id',
         'attendee_name', 'attendee_email', 'attendee_phone',
         'quantity', 'price_cents', 'currency', 'code', 'status',
         'purchase_reference', 'gateway', 'gateway_charge_id',
@@ -34,6 +34,11 @@ class EventTicket extends Model
     public function tier()
     {
         return $this->belongsTo(EventTicketTier::class, 'tier_id');
+    }
+
+    public function rsvp()
+    {
+        return $this->belongsTo(Rsvp::class, 'rsvp_id');
     }
 
     public function link()

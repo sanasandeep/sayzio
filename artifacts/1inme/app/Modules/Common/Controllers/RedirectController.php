@@ -1721,10 +1721,15 @@ class RedirectController extends Controller
             logger()->warning('Inbox forwarder (rsvp) failed: ' . $e->getMessage());
         }
 
+        // Task #3606: confirmed "yes" RSVPs get a tier-less QR check-in
+        // ticket, same as paid tier buyers. Waitlisted/maybe/not-going
+        // RSVPs get none (see RsvpTicketService::sync()).
+        $ticket = \App\Services\Events\RsvpTicketService::sync($rsvp);
+
         // Confirmation + organizer notify (best-effort, swallow failures).
         try {
             if ($rsvp->email && ($rsvpSettings['send_confirmation'] ?? true)) {
-                \App\Modules\Common\Services\Emailer::sendMailable('events.rsvp_confirmation', $rsvp->email, new \App\Mail\EventRsvpConfirmationMail($link, $rsvp), ['title' => $link->title], ['related' => $link, 'user' => $link->user_id]);
+                \App\Modules\Common\Services\Emailer::sendMailable('events.rsvp_confirmation', $rsvp->email, new \App\Mail\EventRsvpConfirmationMail($link, $rsvp, $ticket), ['title' => $link->title], ['related' => $link, 'user' => $link->user_id]);
             }
         } catch (\Throwable $e) {
             logger()->warning('RSVP confirmation email failed: ' . $e->getMessage());

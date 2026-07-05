@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\EventTicket;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\Workspace;
 use App\Services\Events\EventCheckinProgress;
 use Illuminate\Http\Request;
 
@@ -58,7 +59,7 @@ class EventCheckinController extends Controller
     {
         abort_if($link->type !== 'ics', 404);
 
-        $isOwner = $request->user() && $link->user_id === workspace_owner_id();
+        $isOwner = $request->user() && $this->canCheckIn($request->user(), $link);
         $ticket = EventTicket::where('link_id', $link->id)->where('code', $code)->with('tier')->first();
 
         $result = null;
@@ -69,6 +70,21 @@ class EventCheckinController extends Controller
         return view('user.links.event-checkin-lookup', compact('link', 'ticket', 'isOwner', 'result'));
     }
 
+    /**
+     * Task #3606: check-in authorization must extend from "owner only" to
+     * any authorized team member with workspace access to this link (the
+     * scanner/scan/progress routes already enforce this via the
+     * `workspace.can:links.*` route middleware; `lookup` is reachable
+     * unauthenticated as the QR landing page, so it has to check itself).
+     */
+    private function canCheckIn($user, Link $link): bool
+    {
+        if ((int) $link->user_id === (int) $user->id) return true;
+        if (!$link->workspace_id) return false;
+        $workspace = Workspace::find($link->workspace_id);
+        return $workspace ? $user->canInWorkspace($workspace, 'links.edit') : false;
+    }
+
     private function checkIn(Link $link, string $code, ?int $staffId): array
     {
         $ticket = EventTicket::where('link_id', $link->id)->where('code', $code)->with('tier')->first();
@@ -77,9 +93,12 @@ class EventCheckinController extends Controller
             return ['ok' => false, 'status' => 'not_found', 'message' => 'No ticket matches that code.'];
         }
         if ($ticket->status === EventTicket::STATUS_CHECKED_IN) {
+            $ticket->loadMissing('checkedInBy');
+            $scannerName = $ticket->checkedInBy?->name;
             return [
                 'ok' => false, 'status' => 'already_checked_in',
-                'message' => 'Already checked in at ' . optional($ticket->checked_in_at)->format('g:i A'),
+                'message' => 'Already checked in at ' . optional($ticket->checked_in_at)->format('g:i A')
+                    . ($scannerName ? ' by ' . $scannerName : ''),
                 'ticket' => $this->ticketSummary($ticket),
             ];
         }
@@ -149,11 +168,15 @@ class EventCheckinController extends Controller
 
     private function ticketSummary(EventTicket $ticket): array
     {
+        $ticket->loadMissing('checkedInBy');
+
         return [
-            'attendee_name' => $ticket->attendee_name,
-            'tier_name'     => $ticket->tier?->name,
-            'quantity'      => $ticket->quantity,
-            'code'          => $ticket->code,
+            'attendee_name'  => $ticket->attendee_name,
+            'tier_name'      => $ticket->tier?->name ?? ($ticket->rsvp_id ? 'RSVP' : null),
+            'quantity'       => $ticket->quantity,
+            'code'           => $ticket->code,
+            'checked_in_at'  => optional($ticket->checked_in_at)->toIso8601String(),
+            'checked_in_by'  => $ticket->checkedInBy?->name,
         ];
     }
 }

@@ -20,7 +20,7 @@
             <h1 class="h5 fw-bold mb-0"><i class="fas fa-lock me-1"></i> Sign in required</h1>
         </div>
         <div class="card-body">
-            <p class="text-muted">Sign in as the event owner to check in this ticket.</p>
+            <p class="text-muted">Sign in as the event owner or an authorized team member to check in this ticket.</p>
             <a href="{{ route('login') }}" class="btn btn-primary">Sign in</a>
         </div>
     @elseif(!$ticket)
@@ -41,6 +41,12 @@
                 <div class="text-muted small mt-2">
                     {{ $result['ticket']['attendee_name'] }} &middot; {{ $result['ticket']['tier_name'] }} &middot; qty {{ $result['ticket']['quantity'] }}
                 </div>
+                @if($result['status'] === 'already_checked_in' && !empty($result['ticket']['checked_in_at']))
+                    <div class="text-muted small mt-1">
+                        Previously checked in {{ \Illuminate\Support\Carbon::parse($result['ticket']['checked_in_at'])->format('g:i A') }}
+                        @if(!empty($result['ticket']['checked_in_by'])) by {{ $result['ticket']['checked_in_by'] }}@endif
+                    </div>
+                @endif
             @endif
         </div>
     @endif

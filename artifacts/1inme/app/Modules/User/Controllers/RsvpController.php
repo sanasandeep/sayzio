@@ -91,6 +91,10 @@ class RsvpController extends Controller
             return back()->with('error', 'That RSVP is not on the waitlist.');
         }
         $rsvp->update(['status' => 'confirmed']);
+        // Task #3606: a waitlist promotion is a status change like any
+        // other and must mint/revive the RSVP's QR check-in ticket, same as
+        // the initial submit and guest self-manage paths.
+        \App\Services\Events\RsvpTicketService::sync($rsvp->fresh());
         return back()->with('success', "Promoted {$rsvp->name} from the waitlist.");
     }
 

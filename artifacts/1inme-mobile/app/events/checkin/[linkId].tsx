@@ -148,7 +148,14 @@ export default function CheckinScannerScreen() {
               <Text style={[styles.resultMsg, { color: colors.foreground }]}>{result.message}</Text>
               {result.ticket ? (
                 <Text style={{ color: colors.mutedForeground, marginTop: 4 }}>
-                  {result.ticket.attendee_name} · {result.ticket.tier?.name}
+                  {result.ticket.attendee_name} · {result.ticket.tier?.name ?? (result.ticket.is_rsvp_ticket ? "RSVP" : "")}
+                </Text>
+              ) : null}
+              {result.status === "already_checked_in" && result.ticket?.checked_in_at ? (
+                <Text style={{ color: colors.mutedForeground, marginTop: 4, fontSize: 12 }}>
+                  Previously checked in{" "}
+                  {new Date(result.ticket.checked_in_at).toLocaleTimeString()}
+                  {result.ticket.checked_in_by ? ` by ${result.ticket.checked_in_by}` : ""}
                 </Text>
               ) : null}
             </>

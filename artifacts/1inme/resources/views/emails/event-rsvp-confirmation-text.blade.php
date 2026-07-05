@@ -22,6 +22,13 @@ You picked these dates:
 Where: {{ $ics->location }}
 @endif
 
+@if($ticket && $ticket->isValid())
+Your check-in ticket:
+Code: {{ $ticket->code }}
+Show this at the door (or the QR code on your manage page):
+{{ route('redirect.event.ticket', ['alias' => $link->alias, 'code' => $ticket->code]) }}
+@endif
+
 Edit or cancel your RSVP any time:
 {{ $rsvp->manageUrl() }}
 

@@ -62,6 +62,10 @@ class RsvpManageController extends Controller
         }
         $rsvp->save();
 
+        // Task #3606: keep the RSVP's QR check-in ticket in sync with the
+        // (possibly just-changed) response/status.
+        \App\Services\Events\RsvpTicketService::sync($rsvp);
+
         return redirect()->route('redirect.rsvp.manage', [$alias, $token])
             ->with('success', 'Your RSVP was updated.');
     }
@@ -70,6 +74,7 @@ class RsvpManageController extends Controller
     {
         [, $rsvp] = $this->resolve($alias, $token);
         $rsvp->update(['status' => 'cancelled', 'response' => 'no']);
+        \App\Services\Events\RsvpTicketService::sync($rsvp);
         return redirect()->route('redirect.rsvp.manage', [$alias, $token])
             ->with('success', 'Your RSVP has been cancelled.');
     }

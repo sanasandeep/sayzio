@@ -23,6 +23,8 @@
         .pill-confirmed { background:#dcfce7; color:#166534; }
         .pill-waitlist { background:#fef3c7; color:#92400e; }
         .pill-cancelled { background:#fee2e2; color:#991b1b; }
+        .ticket-box { border:1px dashed #c4b5fd; border-radius:14px; padding:16px; text-align:center; background:#faf9ff; }
+        .ticket-box .qr-wrap { background:#fff; padding:10px; border-radius:10px; border:1px solid #e5e7eb; display:inline-block; }
     </style>
 </head>
 <body>
@@ -31,6 +33,12 @@
     $allowPlusOnes = !empty($s['rsvp_allow_plus_ones']);
     $rsvpSettings  = (array)($s['rsvp_settings'] ?? []);
     $questions     = (array)($rsvpSettings['questions'] ?? []);
+    $ticket = $rsvp->ticket;
+    $ticketQr = null;
+    if ($ticket && $ticket->isValid()) {
+        $checkinUrl = route('user.events.checkin.lookup', ['link' => $link->id, 'code' => $ticket->code]);
+        $ticketQr = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(180)->margin(1)->generate($checkinUrl);
+    }
 @endphp
 <div class="card rsvp-card">
     <div class="rsvp-header">
@@ -56,6 +64,15 @@
 
         @if($rsvp->status === 'cancelled')
             <div class="alert alert-secondary small">Your RSVP is cancelled. You can submit a new response below to reactivate it.</div>
+        @endif
+
+        @if($ticketQr)
+            <div class="ticket-box mb-4">
+                <div class="fw-semibold small mb-2"><i class="fas fa-ticket-alt me-1"></i> Your check-in ticket</div>
+                <div class="qr-wrap mb-2">{!! $ticketQr !!}</div>
+                <div class="small text-muted">Code: <code>{{ $ticket->code }}</code></div>
+                <a href="{{ route('redirect.event.ticket', ['alias' => $link->alias, 'code' => $ticket->code]) }}" class="small" target="_blank" rel="noopener">Open full-screen ticket</a>
+            </div>
         @endif
 
         <form method="POST" action="{{ route('redirect.rsvp.manage.update', [$link->alias, $rsvp->manage_token]) }}">

@@ -40,6 +40,15 @@ class Rsvp extends Model
         return $this->belongsTo(Link::class);
     }
 
+    /**
+     * The tier-less check-in ticket issued for this RSVP (Task #3606),
+     * when the response is confirmed+"yes". See RsvpTicketService::sync().
+     */
+    public function ticket()
+    {
+        return $this->hasOne(EventTicket::class, 'rsvp_id');
+    }
+
     public function manageUrl(): string
     {
         return url('/' . $this->link->alias . '/rsvp/manage/' . $this->manage_token);

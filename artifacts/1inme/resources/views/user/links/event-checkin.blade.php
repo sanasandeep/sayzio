@@ -82,6 +82,11 @@
         let extra = '';
         if (data.ticket) {
             extra = `<div class="mt-1">${esc(data.ticket.attendee_name)} &middot; ${esc(data.ticket.tier_name || '')} &middot; qty ${esc(data.ticket.quantity)}</div>`;
+            if (data.status === 'already_checked_in' && data.ticket.checked_in_at) {
+                const when = new Date(data.ticket.checked_in_at).toLocaleTimeString();
+                const who = data.ticket.checked_in_by ? ' by ' + esc(data.ticket.checked_in_by) : '';
+                extra += `<div class="mt-1" style="color: var(--text-muted);">Previously checked in ${when}${who}</div>`;
+            }
         }
         resultEl.innerHTML = `<div style="color:${cls}; font-weight:600;">${esc(data.message)}</div>${extra}`;
     }

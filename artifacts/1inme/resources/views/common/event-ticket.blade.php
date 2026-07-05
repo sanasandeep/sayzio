@@ -33,11 +33,12 @@
         <div class="qr-wrap mb-3">{!! $qr !!}</div>
 
         <div class="fw-semibold">{{ $ticket->attendee_name }}</div>
-        <div class="small text-muted mb-2">{{ $ticket->tier?->name }} &middot; Qty {{ $ticket->quantity }}</div>
+        <div class="small text-muted mb-2">{{ $ticket->tier?->name ?? ($ticket->rsvp_id ? 'RSVP' : null) }} &middot; Qty {{ $ticket->quantity }}</div>
         <div class="small text-muted mb-3">Code: <code>{{ $ticket->code }}</code></div>
 
         @if($ticket->status === \App\Modules\User\Models\EventTicket::STATUS_CHECKED_IN)
-            <span class="badge bg-success status-badge">Checked in{{ $ticket->checked_in_at ? ' · ' . $ticket->checked_in_at->format('g:i A') : '' }}</span>
+            @php($scannerName = $ticket->checkedInBy?->name)
+            <span class="badge bg-success status-badge">Checked in{{ $ticket->checked_in_at ? ' · ' . $ticket->checked_in_at->format('g:i A') : '' }}{{ $scannerName ? ' by ' . $scannerName : '' }}</span>
         @elseif(in_array($ticket->status, ['cancelled', 'refunded']))
             <span class="badge bg-secondary status-badge">{{ ucfirst($ticket->status) }}</span>
         @else

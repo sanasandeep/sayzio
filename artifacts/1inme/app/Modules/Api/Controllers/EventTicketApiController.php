@@ -6,9 +6,11 @@ use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\User\Models\EventTicket;
 use App\Modules\User\Models\EventTicketTier;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\Workspace;
 use App\Services\Monetization\MonetizationCheckout;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Schema;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 /**
@@ -187,8 +189,9 @@ class EventTicketApiController extends Controller
         $user = $request->user();
         if (!$user) return $this->unauthorized();
 
-        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($linkId);
+        $link = $this->findEventLink($request, $linkId);
         if (!$link) return $this->notFound();
+        if (!$this->canAct($request, $link, 'links.view')) return $this->forbidden();
 
         $tiers = $link->eventTicketTiers()->withCount([
             'tickets as sold' => fn ($q) => $q->whereIn('status', ['valid', 'checked_in']),
@@ -212,8 +215,9 @@ class EventTicketApiController extends Controller
         $user = $request->user();
         if (!$user) return $this->unauthorized();
 
-        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($linkId);
+        $link = $this->findEventLink($request, $linkId);
         if (!$link) return $this->notFound();
+        if (!$this->canAct($request, $link, 'links.edit')) return $this->forbidden();
 
         $data = $this->validateTier($request);
         $data['link_id'] = $link->id;
@@ -229,8 +233,9 @@ class EventTicketApiController extends Controller
         $user = $request->user();
         if (!$user) return $this->unauthorized();
 
-        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($linkId);
+        $link = $this->findEventLink($request, $linkId);
         if (!$link) return $this->notFound();
+        if (!$this->canAct($request, $link, 'links.edit')) return $this->forbidden();
 
         $tier = EventTicketTier::where('link_id', $link->id)->find($tierId);
         if (!$tier) return $this->notFound();
@@ -245,8 +250,9 @@ class EventTicketApiController extends Controller
         $user = $request->user();
         if (!$user) return $this->unauthorized();
 
-        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($linkId);
+        $link = $this->findEventLink($request, $linkId);
         if (!$link) return $this->notFound();
+        if (!$this->canAct($request, $link, 'links.edit')) return $this->forbidden();
 
         $tier = EventTicketTier::where('link_id', $link->id)->find($tierId);
         if (!$tier) return $this->notFound();
@@ -294,8 +300,9 @@ class EventTicketApiController extends Controller
         $user = $request->user();
         if (!$user) return $this->unauthorized();
 
-        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($linkId);
+        $link = $this->findEventLink($request, $linkId);
         if (!$link) return $this->notFound();
+        if (!$this->canAct($request, $link, 'links.edit')) return $this->forbidden();
 
         $data = $request->validate(['code' => ['required', 'string', 'max:64']]);
 
@@ -304,9 +311,12 @@ class EventTicketApiController extends Controller
             return $this->ok(['ok' => false, 'status' => 'not_found', 'message' => 'No ticket matches that code.']);
         }
         if ($ticket->status === EventTicket::STATUS_CHECKED_IN) {
+            $ticket->loadMissing('checkedInBy');
+            $scannerName = $ticket->checkedInBy?->name;
             return $this->ok([
                 'ok' => false, 'status' => 'already_checked_in',
-                'message' => 'Already checked in at ' . optional($ticket->checked_in_at)->format('g:i A'),
+                'message' => 'Already checked in at ' . optional($ticket->checked_in_at)->format('g:i A')
+                    . ($scannerName ? ' by ' . $scannerName : ''),
                 'ticket' => $this->ticketShape($ticket),
             ]);
         }
@@ -339,8 +349,9 @@ class EventTicketApiController extends Controller
         $user = $request->user();
         if (!$user) return $this->unauthorized();
 
-        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($linkId);
+        $link = $this->findEventLink($request, $linkId);
         if (!$link) return $this->notFound();
+        if (!$this->canAct($request, $link, 'links.view')) return $this->forbidden();
 
         return $this->ok(\App\Services\Events\EventCheckinProgress::for($link));
     }
@@ -352,8 +363,9 @@ class EventTicketApiController extends Controller
         $user = $request->user();
         if (!$user) return $this->unauthorized();
 
-        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($linkId);
+        $link = $this->findEventLink($request, $linkId);
         if (!$link) return $this->notFound();
+        if (!$this->canAct($request, $link, 'links.view')) return $this->forbidden();
 
         $tickets = $link->eventTickets()->with('tier')->orderByDesc('created_at')->paginate(50);
 
@@ -372,8 +384,9 @@ class EventTicketApiController extends Controller
         $user = $request->user();
         if (!$user) return $this->unauthorized();
 
-        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($linkId);
+        $link = $this->findEventLink($request, $linkId);
         if (!$link) return $this->notFound();
+        if (!$this->canAct($request, $link, 'links.edit')) return $this->forbidden();
 
         $ticket = EventTicket::where('link_id', $link->id)->find($ticketId);
         if (!$ticket) return $this->notFound();
@@ -425,6 +438,46 @@ class EventTicketApiController extends Controller
         if (!$attendee->accountBadges()->where('account_badges.id', $awardBadgeId)->exists()) {
             $attendee->accountBadges()->attach($awardBadgeId);
         }
+    }
+
+    // ─── Workspace-aware access (Task #3606) ────────────────────────
+    // Mirrors LinkInsuranceController::findLink/canAct/accessibleWorkspaceIds:
+    // the API is stateless (no active-workspace binding), so an "owner
+    // only" literal `user_id` match under-serves team members. Any
+    // authorized workspace collaborator with `links.view`/`links.edit`
+    // should reach the scanner/checkin/tier surfaces, not just the owner.
+
+    protected function findEventLink(Request $request, int $id): ?Link
+    {
+        $user = $request->user();
+
+        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($id);
+        if ($link) return $link;
+
+        $workspaceIds = $this->accessibleWorkspaceIds($user);
+        if (empty($workspaceIds)) return null;
+
+        return Link::where('type', 'ics')->whereIn('workspace_id', $workspaceIds)->find($id);
+    }
+
+    protected function accessibleWorkspaceIds($user): array
+    {
+        if (!Schema::hasColumn('links', 'workspace_id')) return [];
+
+        return $user->accessibleWorkspaces()->pluck('id')->all();
+    }
+
+    protected function canAct(Request $request, Link $link, string $permission): bool
+    {
+        $user = $request->user();
+
+        if ((int) $link->user_id === (int) $user->id) return true;
+        if (empty($link->workspace_id)) return true;
+
+        $workspace = Workspace::find($link->workspace_id);
+        if (!$workspace) return true;
+
+        return $user->canInWorkspace($workspace, $permission);
     }
 
     // ─── Shapes / helpers ──────────────────────────────────────────
@@ -505,6 +558,8 @@ class EventTicketApiController extends Controller
 
     protected function ticketShape(EventTicket $ticket): array
     {
+        $ticket->loadMissing('checkedInBy');
+
         return [
             'id'             => $ticket->id,
             'code'           => $ticket->code,
@@ -515,6 +570,8 @@ class EventTicketApiController extends Controller
             'attendee_name'  => $ticket->attendee_name,
             'attendee_email' => $ticket->attendee_email,
             'checked_in_at'  => optional($ticket->checked_in_at)->toIso8601String(),
+            'checked_in_by'  => $ticket->checkedInBy?->name,
+            'is_rsvp_ticket' => (bool) $ticket->rsvp_id,
             'created_at'     => optional($ticket->created_at)->toIso8601String(),
             'tier'           => $ticket->relationLoaded('tier') && $ticket->tier ? [
                 'id'   => $ticket->tier->id,

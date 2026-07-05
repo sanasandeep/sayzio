@@ -57,6 +57,8 @@ export type EventTicket = {
   attendee_name: string | null;
   attendee_email: string | null;
   checked_in_at: string | null;
+  checked_in_by: string | null;
+  is_rsvp_ticket?: boolean;
   created_at: string | null;
   tier: { id: number; name: string } | null;
   event: {
