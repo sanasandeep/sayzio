@@ -47,7 +47,7 @@
                 </span>
             @elseif($__activeExp && $__activeExp->isAdaptive())
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                      style="background:rgba(139,92,246,0.18); color:#a78bfa;">
+                      style="background:rgba(61,107,255,0.18); color:#90acff;">
                     Paused — adaptive is on
                 </span>
             @elseif($__lastExp && $__lastExp->status === 'completed')
@@ -213,10 +213,10 @@
 @endphp
 <div id="adaptive-panel"
      class="rounded-2xl border p-4 mb-4"
-     style="background:linear-gradient(135deg, rgba(139,92,246,0.06), rgba(217,70,239,0.04)); border-color:var(--border-glass);">
+     style="background:linear-gradient(135deg, rgba(61,107,255,0.06), rgba(61,107,255,0.04)); border-color:var(--border-glass);">
     <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
         <div class="flex items-center gap-2">
-            <i class="fas fa-wand-magic-sparkles text-purple-400"></i>
+            <i class="fas fa-wand-magic-sparkles text-blue-400"></i>
             <h3 class="font-semibold text-sm">Adaptive optimization</h3>
             @if($__adaptiveOn)
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
@@ -256,7 +256,7 @@
         <form method="POST" action="{{ route('user.links.experiment.adaptive.enable', $link) }}">
             @csrf
             <button type="submit"
-                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-purple-600 hover:bg-purple-500 text-white">
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white">
                 <i class="fas fa-wand-magic-sparkles text-[10px] mr-1"></i> Turn on adaptive optimization
             </button>
         </form>

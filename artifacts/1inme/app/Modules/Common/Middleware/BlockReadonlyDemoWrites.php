@@ -136,6 +136,7 @@ class BlockReadonlyDemoWrites
         'user.ai.mind.think',                       // AI reasoning preview
         'user.billing.companies.emails.preview',    // renders an email-template preview
         'user.brand-kits.estimate',                 // AI credit-cost estimate
+        'user.dashboard.ai.estimate',               // AI dashboard-designer credit-cost estimate (read-only, no charge)
         'user.links.ai-builder.estimate',           // AI credit-cost estimate
         'user.links.biolink.bulk.preview',          // bulk mail-merge dry-run preview
         'user.links.preview-draft',                 // renders an unsaved editor draft
@@ -151,6 +152,7 @@ class BlockReadonlyDemoWrites
         'api/v1/account/merge/preview',                 // account-merge dry-run preview
         'api/v1/ai/marketing-strategist/estimate',      // AI credit-cost estimate
         'api/v1/brand-kits/estimate',                   // AI credit-cost estimate
+        'api/v1/dashboard/ai/estimate',                 // AI dashboard-designer credit-cost estimate (read-only, no charge)
         'api/v1/billing/companies/*/emails/*/preview',  // email-template preview render
         'api/v1/links/*/ai-builder/estimate',           // AI credit-cost estimate
         'api/v1/restaurant/*/quote',                    // restaurant estimated-bill quote

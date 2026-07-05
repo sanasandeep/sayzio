@@ -54,8 +54,8 @@
 
     @if($staff->domain === 'inbox')
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 mb-6">
-            <h3 class="text-white font-semibold mb-2"><i class="fas fa-inbox text-blue-300/80 mr-1.5"></i>Inbox Agent</h3>
-            <p class="text-sm text-white/50">This staff member is a face on top of your existing Inbox Agent. Configure autopilot rules, tone and reply drafting from
+            <h3 class="text-white font-semibold mb-2"><i class="fas fa-inbox text-blue-300/80 mr-1.5"></i>AI Inbox Agent</h3>
+            <p class="text-sm text-white/50">This staff member is a face on top of your existing AI Inbox Agent. Configure autopilot rules, tone and reply drafting from
                 <a href="{{ url('/user/settings/inbox') }}" class="text-blue-300 hover:text-blue-200">Settings → Inbox</a> — nothing here duplicates that setup.</p>
         </div>
     @endif

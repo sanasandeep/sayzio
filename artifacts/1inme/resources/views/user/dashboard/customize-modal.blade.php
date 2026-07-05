@@ -57,7 +57,7 @@
                         @if($dashboardAiAllowed)
                         <button type="button" @click="step = 'ai-form'" :disabled="busy"
                                 class="w-full flex items-center gap-3 p-4 rounded-xl transition-all disabled:opacity-50"
-                                style="background: linear-gradient(135deg, rgba(61,107,255,0.12), rgba(124,58,237,0.10)); border: 1px solid rgba(61,107,255,0.25);">
+                                style="background: linear-gradient(135deg, rgba(61,107,255,0.12), rgba(61,107,255,0.10)); border: 1px solid rgba(61,107,255,0.25);">
                             <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.15);">
                                 <i class="fas fa-wand-magic-sparkles text-blue-300"></i>
                             </div>

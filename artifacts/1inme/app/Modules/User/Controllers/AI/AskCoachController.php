@@ -343,7 +343,19 @@ class AskCoachController extends Controller
                         ];
                         continue;
                     }
-                    $r = $this->tools->run($name, $user);
+                    // Decode any arguments the model supplied (e.g.
+                    // event_lookup's `query`). OpenAI sends them as a JSON
+                    // string; parameter-less tools send "" / "{}".
+                    $args = [];
+                    $rawArgs = $call['function']['arguments'] ?? null;
+                    if (is_string($rawArgs) && trim($rawArgs) !== '') {
+                        $decoded = json_decode($rawArgs, true);
+                        if (is_array($decoded)) $args = $decoded;
+                    } elseif (is_array($rawArgs)) {
+                        $args = $rawArgs;
+                    }
+
+                    $r = $this->tools->run($name, $user, $args);
                     $picks[] = $name;
                     $summary = (string) ($r['summary'] ?? '');
                     if ($summary !== '') {

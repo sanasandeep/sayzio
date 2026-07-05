@@ -352,8 +352,8 @@
         }
         .pulse-dot { animation: zioStatPulse 2.2s ease-in-out infinite; }
         @keyframes zioStatPulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(167,139,250,.55); }
-            50% { opacity: .75; box-shadow: 0 0 0 4px rgba(167,139,250,0); }
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(61,107,255,.55); }
+            50% { opacity: .75; box-shadow: 0 0 0 4px rgba(61,107,255,0); }
         }
         @media (max-width: 1023.98px) {
             .zio-claim-status, .zio-claim-suggest { text-align: center; justify-content: center; }

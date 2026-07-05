@@ -584,6 +584,264 @@ class AiMindFeatureAdapter
         }
     }
 
+    /**
+     * Dedicated single-event lookup (Task #3613). The events() snapshot is
+     * capped at 8 rows (soonest upcoming + a few recent), so any event
+     * outside that window is invisible to the grounded prompt. This method
+     * lets the AI fetch ONE named/dated event's full stats on demand,
+     * searching across ALL of the user's followable calendar events
+     * ({@see CalendarEvent}) and ticketed/RSVP `ics` event links — not just
+     * the soonest few — so a creator can ask "how did last spring's workshop
+     * do?" and get a real answer.
+     *
+     * Owner-only: every query is scoped to $user->id, and — exactly like
+     * events() — it only ever surfaces counts (tickets sold/checked-in,
+     * RSVP tallies), never attendee names/emails/phones (same PII-avoidance
+     * convention as billing()/contacts()). Returns a friendly not-found
+     * string when nothing matches, and is guarded against the
+     * calendar/ticketing tables being absent on older/partial installs.
+     */
+    public function eventLookup(User $user, string $query): string
+    {
+        $query = trim($query);
+        if ($query === '') {
+            return 'Please specify an event name or date to look up.';
+        }
+
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('calendar_events')) {
+                return '';
+            }
+
+            $needle = mb_strtolower($query);
+            $now = now();
+            $matches = [];
+
+            // Followable-calendar events (owner-scoped, uncapped).
+            $calendarEvents = \App\Modules\User\Models\CalendarEvent::query()
+                ->where('user_id', $user->id)
+                ->get(['id', 'title', 'description', 'start_at', 'end_at', 'timezone', 'location']);
+
+            foreach ($calendarEvents as $e) {
+                if (!$this->eventMatches($needle, (string) $e->title, $e->start_at)) {
+                    continue;
+                }
+                $matches[] = [
+                    'title'       => $e->title ?: 'Untitled event',
+                    'start_at'    => $e->start_at,
+                    'end_at'      => $e->end_at,
+                    'tz'          => $e->effectiveTimezone(),
+                    'location'    => $e->location,
+                    'description' => $e->description,
+                    'ticketing'   => null,
+                    'kind'        => 'Calendar event',
+                    'alias'       => null,
+                    'exact'       => str_contains(mb_strtolower((string) $e->title), $needle),
+                ];
+            }
+
+            // Ticketed / RSVP `ics` event links (owner-scoped, uncapped).
+            if (\Illuminate\Support\Facades\Schema::hasTable('ics_data')) {
+                $ticketedLinks = $user->links()
+                    ->where('type', 'ics')
+                    ->with('icsData')
+                    ->get(['id', 'user_id', 'title', 'alias']);
+
+                $hasTierTable = \Illuminate\Support\Facades\Schema::hasTable('event_ticket_tiers');
+                $hasRsvpTable = \Illuminate\Support\Facades\Schema::hasTable('rsvps');
+
+                foreach ($ticketedLinks as $link) {
+                    $ics = $link->icsData;
+                    $name = ($ics && $ics->event_name)
+                        ? $ics->event_name
+                        : ($link->title ?: ('@' . $link->alias));
+                    $start = $ics?->start_date;
+                    $haystack = $name . ' ' . (string) $link->alias;
+                    if (!$this->eventMatches($needle, $haystack, $start)) {
+                        continue;
+                    }
+                    $matches[] = [
+                        'title'       => $name,
+                        'start_at'    => $start,
+                        'end_at'      => $ics?->end_date,
+                        'tz'          => \App\Support\PlatformTimezone::resolve($ics?->timezone),
+                        'location'    => $ics?->location,
+                        'description' => $ics?->description,
+                        'ticketing'   => $this->ticketingDetail($link, $hasTierTable, $hasRsvpTable),
+                        'kind'        => 'Event link',
+                        'alias'       => $link->alias,
+                        'exact'       => str_contains(mb_strtolower($name), $needle),
+                    ];
+                }
+            }
+
+            if (empty($matches)) {
+                return sprintf('No event matching "%s" was found in your calendar or event links.', $query);
+            }
+
+            // Exact title hits first, then the ones happening nearest to now
+            // (undated events sink to the bottom). Cap at 3 so an ambiguous
+            // query stays compact in the prompt.
+            usort($matches, function ($a, $b) use ($now) {
+                if ($a['exact'] !== $b['exact']) {
+                    return $a['exact'] ? -1 : 1;
+                }
+                $da = $a['start_at'] ? abs($a['start_at']->diffInSeconds($now)) : PHP_INT_MAX;
+                $db = $b['start_at'] ? abs($b['start_at']->diffInSeconds($now)) : PHP_INT_MAX;
+                return $da <=> $db;
+            });
+            $shown = array_slice($matches, 0, 3);
+
+            $lines = [count($matches) === 1
+                ? 'Event details:'
+                : sprintf('%d events matched "%s" (showing the %d closest):', count($matches), $query, count($shown))];
+
+            foreach ($shown as $m) {
+                $when = $m['start_at']
+                    ? $m['start_at']->copy()->setTimezone($m['tz'])->format('D, M j, Y g:ia') . ' ' . $m['tz']
+                    : 'date TBD';
+                if ($m['start_at'] && $m['end_at']) {
+                    $when .= ' – ' . $m['end_at']->copy()->setTimezone($m['tz'])->format('g:ia');
+                }
+                $tense = $m['start_at']
+                    ? ($m['start_at']->gte($now) ? 'upcoming' : 'past')
+                    : 'unscheduled';
+
+                $lines[] = sprintf('- %s [%s, %s]', $m['title'], $m['kind'], $tense);
+                $lines[] = '   When: ' . $when;
+                if ($m['location']) {
+                    $lines[] = '   Where: ' . $m['location'];
+                }
+                if ($m['alias']) {
+                    $lines[] = '   Link alias: @' . $m['alias'];
+                }
+                if ($m['description']) {
+                    $desc = \Illuminate\Support\Str::limit(
+                        trim(strip_tags((string) $m['description'])), 200
+                    );
+                    if ($desc !== '') {
+                        $lines[] = '   About: ' . $desc;
+                    }
+                }
+                if ($m['ticketing']) {
+                    foreach (explode("\n", $m['ticketing']) as $tline) {
+                        $lines[] = '   ' . $tline;
+                    }
+                }
+            }
+
+            return implode("\n", $lines);
+        } catch (\Throwable $ex) {
+            return '';
+        }
+    }
+
+    /**
+     * Fuzzy "does this event match the user's query" test used by
+     * eventLookup(). A direct substring hit on the event's searchable text
+     * always matches. Otherwise the query is tokenized: every alphabetic
+     * word (3+ chars) must appear in the text, and any 4-digit year token
+     * must equal the event's start year — so "workshop 2025" only matches a
+     * 2025 workshop, while a bare "2025" matches any event that year.
+     *
+     * @param string $needle   Already lower-cased query.
+     * @param string $haystack Raw searchable text (title / event name / alias).
+     */
+    protected function eventMatches(string $needle, string $haystack, $startAt): bool
+    {
+        if ($needle === '') {
+            return false;
+        }
+        $hay = mb_strtolower(trim($haystack));
+        if ($hay !== '' && str_contains($hay, $needle)) {
+            return true;
+        }
+
+        $tokens = array_values(array_filter(
+            preg_split('/[^\p{L}\p{N}]+/u', $needle) ?: [],
+            fn ($t) => mb_strlen($t) >= 3
+        ));
+        if (empty($tokens)) {
+            return false;
+        }
+
+        $wordTokens = 0;
+        $wordHits = 0;
+        $yearOk = null;
+        foreach ($tokens as $t) {
+            if (preg_match('/^\d{4}$/', $t)) {
+                if ($startAt) {
+                    $yearOk = ($yearOk ?? true) && ($startAt->format('Y') === $t);
+                } else {
+                    $yearOk = false;
+                }
+                continue;
+            }
+            $wordTokens++;
+            if (str_contains($hay, $t)) {
+                $wordHits++;
+            }
+        }
+
+        if ($yearOk === false) {
+            return false;
+        }
+        if ($wordTokens > 0) {
+            return $wordHits === $wordTokens;
+        }
+
+        return $yearOk === true;
+    }
+
+    /**
+     * Full ticketing/RSVP breakdown for one `ics` event link, used by
+     * eventLookup(). Reuses {@see EventCheckinProgress} for ticketed events
+     * (overall + per-tier sold/checked-in vs capacity) and a grouped RSVP
+     * tally otherwise. Counts only — never attendee PII. Null when the event
+     * has neither ticket tiers nor RSVPs.
+     */
+    protected function ticketingDetail(\App\Modules\User\Models\Link $link, bool $hasTierTable, bool $hasRsvpTable): ?string
+    {
+        if ($hasTierTable && $link->eventTicketTiers()->exists()) {
+            $progress = \App\Services\Events\EventCheckinProgress::for($link);
+            $capacity = (int) $link->eventTicketTiers()->sum('capacity');
+            $totals = $progress['totals'];
+            $lines = [sprintf(
+                'Tickets: %d sold%s, %d checked in.',
+                $totals['sold'],
+                $capacity > 0 ? " of {$capacity} capacity" : '',
+                $totals['checked_in']
+            )];
+            foreach ($progress['tiers'] as $tier) {
+                $lines[] = sprintf(
+                    '   • %s — %d sold, %d checked in',
+                    $tier['name'], (int) $tier['sold'], (int) $tier['checked_in']
+                );
+            }
+            return implode("\n", $lines);
+        }
+
+        if ($hasRsvpTable) {
+            $counts = $link->rsvps()
+                ->where('status', '!=', 'cancelled')
+                ->selectRaw('response, count(*) as c')
+                ->groupBy('response')
+                ->pluck('c', 'response');
+            $total = (int) $counts->sum();
+            if ($total > 0) {
+                return sprintf(
+                    'RSVPs: %d going, %d maybe, %d not going (%d total).',
+                    (int) ($counts['yes'] ?? 0),
+                    (int) ($counts['maybe'] ?? 0),
+                    (int) ($counts['no'] ?? 0),
+                    $total
+                );
+            }
+        }
+
+        return null;
+    }
+
     protected function profile(User $user): string
     {
         $bits = array_filter([

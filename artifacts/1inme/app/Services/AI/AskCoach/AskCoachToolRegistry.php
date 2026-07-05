@@ -28,7 +28,9 @@ use Illuminate\Support\Facades\Schema;
  */
 class AskCoachToolRegistry
 {
-
+    public function __construct(
+        protected \App\Services\AI\AiMindFeatureAdapter $mind = new \App\Services\AI\AiMindFeatureAdapter(),
+    ) {}
 
     /**
      * Catalogue (id => label + summary). Surfaced to the user in the
@@ -39,12 +41,39 @@ class AskCoachToolRegistry
     public function tools(): array
     {
         return [
-            'biolinks'    => ['label' => 'Link in Bio',    'description' => 'Recent biolink pages, click counts, active state.'],
-            'links'       => ['label' => 'Short Links', 'description' => 'Per-link clicks, top performers, dead links.'],
-            'analytics'   => ['label' => 'Analytics',   'description' => 'Clicks over time, device split, drop-off funnel.'],
-            'payments'    => ['label' => 'Payments',    'description' => 'Wallet coin balance, billing plan.'],
-            'audience'    => ['label' => 'Audience',    'description' => 'Followers, subscribers, recent growth.'],
-            'account'     => ['label' => 'Account',     'description' => 'Plan, wallet coins, recent invoices.'],
+            'biolinks'     => ['label' => 'Link in Bio',    'description' => 'Recent biolink pages, click counts, active state.'],
+            'links'        => ['label' => 'Short Links', 'description' => 'Per-link clicks, top performers, dead links.'],
+            'analytics'    => ['label' => 'Analytics',   'description' => 'Clicks over time, device split, drop-off funnel.'],
+            'payments'     => ['label' => 'Payments',    'description' => 'Wallet coin balance, billing plan.'],
+            'audience'     => ['label' => 'Audience',    'description' => 'Followers, subscribers, recent growth.'],
+            'account'      => ['label' => 'Account',     'description' => 'Plan, wallet coins, recent invoices.'],
+            'event_lookup' => ['label' => 'Event lookup', 'description' => "Full stats for ONE specific event by name or date — tickets sold/checked in or RSVP counts. Use this when the user asks about a particular event, especially one that isn't in the recent-events overview."],
+        ];
+    }
+
+    /**
+     * Per-tool JSON-Schema parameters. Almost every tool is parameter-less
+     * (implicitly scoped to the asking user's workspace), but a few need an
+     * argument the model has to supply — e.g. `event_lookup` needs the event
+     * name/date the user is asking about. Tools with no entry here are
+     * exposed as callable-with-no-arguments.
+     *
+     * @return array<string,array>
+     */
+    protected function parameterSchemas(): array
+    {
+        return [
+            'event_lookup' => [
+                'type'       => 'object',
+                'properties' => [
+                    'query' => [
+                        'type'        => 'string',
+                        'description' => 'The event name, keyword, and/or date/year the user is asking about (e.g. "Product Launch Party" or "workshop 2025").',
+                    ],
+                ],
+                'required'             => ['query'],
+                'additionalProperties' => false,
+            ],
         ];
     }
 
@@ -59,6 +88,7 @@ class AskCoachToolRegistry
      */
     public function functionDefinitions(): array
     {
+        $schemas = $this->parameterSchemas();
         $defs = [];
         foreach ($this->tools() as $name => $meta) {
             $defs[] = [
@@ -66,10 +96,11 @@ class AskCoachToolRegistry
                 'function' => [
                     'name'        => $name,
                     'description' => $meta['description'],
-                    // Empty object schema: callable with no arguments.
-                    // `additionalProperties=false` keeps the model from
-                    // inventing parameters we'd then have to ignore.
-                    'parameters'  => [
+                    // Most tools take no arguments (implicitly scoped to
+                    // the asking user). `additionalProperties=false` keeps
+                    // the model from inventing parameters we'd then ignore.
+                    // A few (see parameterSchemas()) declare a real schema.
+                    'parameters'  => $schemas[$name] ?? [
                         'type'       => 'object',
                         'properties' => (object) [],
                         'additionalProperties' => false,
@@ -124,18 +155,19 @@ class AskCoachToolRegistry
      * Tools that error out for a given user (missing relation, etc)
      * return an empty `summary` so the runtime can skip them silently.
      */
-    public function run(string $tool, User $user): array
+    public function run(string $tool, User $user, array $args = []): array
     {
         $base = ['tool' => $tool, 'summary' => '', 'data' => [], 'actions' => [], 'citation' => null];
         try {
             $payload = match ($tool) {
-                'biolinks'  => $this->biolinks($user),
-                'links'     => $this->links($user),
-                'analytics' => $this->analytics($user),
-                'payments'  => $this->payments($user),
-                'audience'  => $this->audience($user),
-                'account'   => $this->account($user),
-                default     => $base,
+                'biolinks'     => $this->biolinks($user),
+                'links'        => $this->links($user),
+                'analytics'    => $this->analytics($user),
+                'payments'     => $this->payments($user),
+                'audience'     => $this->audience($user),
+                'account'      => $this->account($user),
+                'event_lookup' => $this->eventLookup($user, (string) ($args['query'] ?? '')),
+                default        => $base,
             };
         } catch (\Throwable $e) {
             return $base;
@@ -391,6 +423,33 @@ class AskCoachToolRegistry
                 $this->action('Top up coins', 'user.wallet.buy', 'Buy more coins to keep chatting with Coach.'),
             ],
             'citation'=> ['label' => 'Account & billing', 'source' => 'account'],
+        ];
+    }
+
+    /**
+     * Look up ONE specific event by name/date (Task #3613). The other tools
+     * summarise recent activity, but the events overview is capped, so an
+     * older or far-future event can't be answered from that window. This
+     * tool delegates to {@see AiMindFeatureAdapter::eventLookup()}, which
+     * searches ALL of the asking user's calendar events + ticketed/RSVP
+     * `ics` links (owner-scoped, counts only — never attendee PII) and
+     * returns that one event's full stats.
+     */
+    protected function eventLookup(User $user, string $query): array
+    {
+        $summary = $this->mind->eventLookup($user, $query);
+        if (trim($summary) === '') {
+            // Empty summary => tables absent / unexpected error; skip
+            // silently so the runtime falls back gracefully.
+            return ['summary' => ''];
+        }
+
+        return [
+            'summary'  => $summary,
+            'citation' => [
+                'label'  => 'Event lookup: ' . \Illuminate\Support\Str::limit(trim($query), 40),
+                'source' => 'event_lookup',
+            ],
         ];
     }
 

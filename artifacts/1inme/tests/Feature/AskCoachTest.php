@@ -272,4 +272,102 @@ class AskCoachTest extends TestCase
         $assistant->refresh();
         $this->assertSame('up', $assistant->feedback);
     }
+
+    // ── 4) native tool-calling threads event_lookup's query argument ──────────
+
+    /**
+     * Task #3613 — when the model asks to call `event_lookup`, the
+     * controller must decode the JSON `arguments` it supplied and pass the
+     * `query` through to the tool, so the tool response fed back to the
+     * model is that specific event's real stats (not a blank/whole-list
+     * answer). Guards the arg-threading in the native tool loop.
+     */
+    public function test_native_tool_call_threads_event_lookup_query(): void
+    {
+        $user = $this->makeUser('ev1');
+
+        // One ticketed event the model will "ask about" by name.
+        $link = \App\Modules\User\Models\Link::create([
+            'user_id'   => $user->id,
+            'type'      => 'ics',
+            'alias'     => 'ev' . Str::random(4),
+            'title'     => 'Product Launch Party',
+            'is_active' => true,
+        ]);
+        \App\Modules\User\Models\IcsData::create([
+            'link_id'    => $link->id,
+            'event_name' => 'Product Launch Party',
+            'location'   => 'Main Stage',
+            'start_date' => now()->addDays(5),
+            'end_date'   => now()->addDays(5)->addHours(3),
+            'timezone'   => 'UTC',
+        ]);
+        $tier = \App\Modules\User\Models\EventTicketTier::create([
+            'link_id' => $link->id, 'name' => 'General', 'capacity' => 100,
+        ]);
+        \App\Modules\User\Models\EventTicket::create([
+            'tier_id' => $tier->id, 'link_id' => $link->id,
+            'attendee_name' => 'Alice', 'attendee_email' => 'alice@example.test',
+            'quantity' => 3, 'code' => \App\Modules\User\Models\EventTicket::generateCode(),
+            'status' => \App\Modules\User\Models\EventTicket::STATUS_VALID,
+        ]);
+
+        // Mock: first chat() emits a tool_call for event_lookup with a
+        // JSON `arguments` string; second chat() returns the final answer.
+        $calls = [];
+        $step = 0;
+        $mock = Mockery::mock(OpenAiService::class);
+        $mock->shouldReceive('chat')
+            ->andReturnUsing(function ($u, $model, $messages, $opts = []) use (&$calls, &$step) {
+                $calls[] = $messages;
+                $step++;
+                if ($step === 1) {
+                    return [
+                        'content'    => '',
+                        'tool_calls' => [[
+                            'id'       => 'call_1',
+                            'type'     => 'function',
+                            'function' => [
+                                'name'      => 'event_lookup',
+                                'arguments' => json_encode(['query' => 'Product Launch Party']),
+                            ],
+                        ]],
+                        'credits_spent' => 2, 'model' => $model, 'raw' => [],
+                    ];
+                }
+                return [
+                    'content' => 'Your launch party has sold 3 tickets.',
+                    'tool_calls' => [], 'credits_spent' => 1, 'model' => $model, 'raw' => [],
+                ];
+            });
+        $this->app->instance(OpenAiService::class, $mock);
+
+        $thread = AskCoachThread::create([
+            'user_id'      => $user->id,
+            'workspace_id' => $this->workspaceIdFor($user),
+            'title'        => 'New chat',
+        ]);
+        $this->actingAs($user)
+            ->post(route('user.ai.ask-coach.send', $thread->id), ['message' => 'How did the Product Launch Party do?'])
+            ->assertRedirect(route('user.ai.ask-coach.thread', $thread->id));
+
+        // The second call must carry a tool message with the resolved
+        // event stats — proof the query argument was decoded and used.
+        $this->assertGreaterThanOrEqual(2, count($calls));
+        $toolMessages = array_values(array_filter(
+            $calls[1],
+            fn ($m) => ($m['role'] ?? '') === 'tool'
+        ));
+        $this->assertNotEmpty($toolMessages);
+        $toolContent = implode("\n", array_column($toolMessages, 'content'));
+        $this->assertStringContainsString('Product Launch Party', $toolContent);
+        $this->assertStringContainsString('3 sold of 100 capacity', $toolContent);
+        // Never leak attendee PII into the tool response.
+        $this->assertStringNotContainsString('alice@example.test', $toolContent);
+
+        // The event_lookup tool must be recorded as used on the turn.
+        $assistant = AskCoachMessage::where('thread_id', $thread->id)
+            ->where('role', 'assistant')->latest('id')->firstOrFail();
+        $this->assertContains('event_lookup', $assistant->meta['tools_used']);
+    }
 }
