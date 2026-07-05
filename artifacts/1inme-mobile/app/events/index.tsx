@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Location from "expo-location";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -144,6 +145,13 @@ export default function EventsDirectoryScreen() {
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
             >
+              {item.cover_image_url ? (
+                <Image
+                  source={{ uri: item.cover_image_url }}
+                  style={styles.cover}
+                  contentFit="cover"
+                />
+              ) : null}
               <Text style={[styles.cardTitle, { color: colors.foreground }]}>
                 {item.title}
               </Text>
@@ -157,15 +165,36 @@ export default function EventsDirectoryScreen() {
                   📍 {item.location}
                 </Text>
               ) : null}
-              {item.ticketing_enabled && item.tiers.length > 0 ? (
-                <Text style={{ color: colors.primary, fontWeight: "600", marginTop: 4 }}>
-                  From {item.tiers[0]?.price_label}
-                </Text>
-              ) : (
-                <Text style={{ color: colors.primary, fontWeight: "600", marginTop: 4 }}>
-                  Free RSVP
-                </Text>
-              )}
+              {item.hashtags.length > 0 ? (
+                <View style={styles.tagRow}>
+                  {item.hashtags.slice(0, 4).map((tag) => (
+                    <View
+                      key={tag}
+                      style={[styles.tagChip, { borderColor: colors.border }]}
+                    >
+                      <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                        #{tag}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              <View style={styles.cardFooterRow}>
+                {item.ticketing_enabled && item.tiers.length > 0 ? (
+                  <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                    From {item.tiers[0]?.price_label}
+                  </Text>
+                ) : (
+                  <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                    Free RSVP
+                  </Text>
+                )}
+                {item.interested_count > 0 ? (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+                    {item.interested_count} interested
+                  </Text>
+                ) : null}
+              </View>
             </Pressable>
           )}
         />
@@ -206,9 +235,29 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     gap: 4,
+    overflow: "hidden",
+  },
+  cover: {
+    width: "100%",
+    height: 120,
+    borderRadius: 10,
+    marginBottom: 6,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
+  },
+  tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
+  tagChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  cardFooterRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
   },
 });

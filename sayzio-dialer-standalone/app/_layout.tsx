@@ -56,6 +56,12 @@ function RootLayoutNav() {
       />
       <Stack.Screen name="info" options={{ headerShown: false }} />
       <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
+      <Stack.Screen name="events/[alias]" options={{ title: "Event" }} />
+      <Stack.Screen name="events/my-tickets" options={{ title: "My tickets" }} />
+      <Stack.Screen
+        name="events/ticket/[alias]/[code]"
+        options={{ title: "Ticket" }}
+      />
     </Stack>
   );
 }

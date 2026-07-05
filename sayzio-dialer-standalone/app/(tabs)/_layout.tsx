@@ -1,19 +1,29 @@
 import Feather from "@expo/vector-icons/Feather";
 import { Redirect, Tabs, useRouter } from "expo-router";
-import { Pressable } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useContactAutoSync } from "@/hooks/useContactAutoSync";
+import { useNearbyEventAlerts } from "@/hooks/useNearbyEventAlerts";
 
 export default function TabsLayout() {
   const colors = useColors();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { ready, user } = useAuth();
 
   // Near-instant contacts sync while signed in: import the device address book
   // on open / foreground and trigger the account's Google Contacts sync.
   useContactAutoSync(ready && !!user);
+
+  // Surfaces the real server-side `event.new_nearby` notification while
+  // foregrounded — see the hook for how it reuses the existing
+  // notifications feed. `latest` drives the deep-linking banner below;
+  // `count` drives the tab badge.
+  const { latest: newEvent, count: newEventCount, dismiss: dismissNewEvent } =
+    useNearbyEventAlerts(ready && !!user);
 
   if (ready && !user) return <Redirect href="/(auth)" />;
 
@@ -28,6 +38,7 @@ export default function TabsLayout() {
   );
 
   return (
+    <>
     <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
@@ -73,6 +84,104 @@ export default function TabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="events"
+        options={{
+          title: "Events",
+          tabBarIcon: ({ color, size }) => (
+            <View>
+              <Feather name="calendar" size={size} color={color} />
+              {newEventCount > 0 ? (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -4,
+                    right: -8,
+                    minWidth: 14,
+                    height: 14,
+                    borderRadius: 7,
+                    backgroundColor: colors.primary,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingHorizontal: 2,
+                  }}
+                />
+              ) : null}
+            </View>
+          ),
+        }}
+      />
     </Tabs>
+      {newEvent ? (
+        <Pressable
+          onPress={() => {
+            const alias = newEvent.alias;
+            dismissNewEvent();
+            router.push({ pathname: "/events/[alias]", params: { alias } });
+          }}
+          style={{
+            position: "absolute",
+            top: insets.top + 4,
+            left: 12,
+            right: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            backgroundColor: colors.card,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 14,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            shadowColor: "#000",
+            shadowOpacity: 0.15,
+            shadowRadius: 8,
+            shadowOffset: { width: 0, height: 3 },
+            elevation: 4,
+          }}
+        >
+          {newEvent.cover_image_url ? (
+            <Image
+              source={{ uri: newEvent.cover_image_url }}
+              style={{ width: 36, height: 36, borderRadius: 8 }}
+            />
+          ) : (
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                backgroundColor: colors.primary,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Feather name="calendar" size={18} color={colors.primaryForeground} />
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{ color: colors.foreground, fontWeight: "700", fontSize: 13 }}
+              numberOfLines={1}
+            >
+              New event near you
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12 }} numberOfLines={1}>
+              {newEvent.title}
+            </Text>
+          </View>
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              dismissNewEvent();
+            }}
+            hitSlop={8}
+            style={{ padding: 4 }}
+          >
+            <Feather name="x" size={16} color={colors.mutedForeground} />
+          </Pressable>
+        </Pressable>
+      ) : null}
+    </>
   );
 }

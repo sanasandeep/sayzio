@@ -80,6 +80,13 @@ export default function SearchScreen() {
         router.push({ pathname: "/contacts/[id]", params: { id: String(a.contact_id) } });
         return;
       }
+      if (a.kind === "event" && a.url) {
+        const alias = a.url.split("/").filter(Boolean).pop();
+        if (alias) {
+          router.push({ pathname: "/events/[alias]", params: { alias } });
+          return;
+        }
+      }
       if (a.url) {
         void Linking.openURL(a.url);
       }
@@ -299,6 +306,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarText: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" },
+  initials: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" },
+  name: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
+  sub: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
   rowTitle: { flexDirection: "row", alignItems: "center", gap: 6 },
   title: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
   subtitle: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },

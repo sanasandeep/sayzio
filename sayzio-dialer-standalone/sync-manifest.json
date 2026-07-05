@@ -202,7 +202,7 @@
       "source": "app/_layout.tsx",
       "relation": "adapted",
       "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) — new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
-      "sourceSha256": "4c3adc6fe87e96f146b884a48190e9c3f77e04bbf66c6bd546b2a789cdc3dd98"
+      "sourceSha256": "d8bf1e45af03b26ec3da5a9e1e9e372e1e78c6823ebbc9537b81eec49f454dcf"
     },
     {
       "standalone": "app/oauth-callback.tsx",
@@ -216,7 +216,22 @@
       "source": "app/(tabs)/_layout.tsx",
       "relation": "adapted",
       "sourceSha256": "620a5adace405e22ff6d5bd125fce0f34c4ef96db498b72f6c38bf5d7561f397",
-      "note": "different tab set: Dialer / Contacts / Caller ID (+ header search button) instead of the main-app tabs"
+      "note": "different tab set: Dialer / Contacts / Caller ID / Events (+ header search button + nearby-event badge) instead of the main-app tabs"
+    },
+    {
+      "standalone": "lib/api/events.ts",
+      "source": "lib/api/events.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/events/my-tickets.tsx",
+      "source": "app/events/my-tickets.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "app/events/ticket/[alias]/[code].tsx",
+      "source": "app/events/ticket/[alias]/[code].tsx",
+      "relation": "identical"
     }
   ],
   "standaloneOnly": [
@@ -283,6 +298,26 @@
     {
       "path": "lib/deviceContacts.ts",
       "note": "shared device-contact import helper used by the contacts tab and useContactAutoSync"
+    },
+    {
+      "path": "lib/eventsLocation.ts",
+      "note": "Single saved 'my location' anchoring Events near-me filtering + nearby-event alerts, set via device GPS or the shared MapPickerModal (the dialer's existing location-picker UI) — one location concept in this app, not a separate store; the main app has no equivalent single-location concept"
+    },
+    {
+      "path": "app/(tabs)/events.tsx",
+      "note": "Events directory tab anchored to lib/eventsLocation.ts (near-me toggle backed by MapPickerModal, tag chips, search); main app's app/events/index.tsx is a plain paginated directory with no location anchoring"
+    },
+    {
+      "path": "app/events/[alias].tsx",
+      "note": "Event detail/RSVP/buy/interest screen adapted from the main app's app/events/[alias].tsx to this app's auth context field names (user.display_name) and colors; adds an in-app RsvpWebViewModal (embeds the existing public /{alias}/rsvp page) for non-ticketed events since there is no JSON RSVP API — otherwise the same hashtags/gallery/info-sections/interest UI"
+    },
+    {
+      "path": "hooks/useNearbyEventAlerts.ts",
+      "note": "Foreground poll of the events directory near the saved location, diffed against a locally persisted seen-id set, surfaced as a deep-linking in-app banner + tab badge (see app/(tabs)/_layout.tsx); deliberately client-side only since no push/notification backend exists for events in the standalone app"
+    },
+    {
+      "path": "components/RsvpWebViewModal.tsx",
+      "note": "Standalone-only: embeds the existing public /{alias}/rsvp page in a WebView (same pattern as MapPickerModal) so free RSVP happens in-app without a new backend endpoint; detects success via the redirect to /rsvp/manage/."
     }
   ]
 }

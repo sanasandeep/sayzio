@@ -1,10 +1,10 @@
 import { Feather } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
   Pressable,
   ScrollView,
@@ -14,30 +14,35 @@ import {
   View,
 } from "react-native";
 
+import { RsvpWebViewModal } from "@/components/RsvpWebViewModal";
 import { useColors } from "@/hooks/useColors";
+import { errorStatus } from "@/lib/api";
 import {
   buyEventTicket,
   type EventInterestStatus,
   type EventItem,
   type EventTier,
   getEvent,
+  listEvents,
   setEventInterest,
 } from "@/lib/api/events";
-import { errorStatus } from "@/lib/api";
-import { getProfile } from "@/lib/api/profile";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function EventDetailScreen() {
   const { alias } = useLocalSearchParams<{ alias: string }>();
   const colors = useColors();
   const router = useRouter();
+  const { user } = useAuth();
   const [event, setEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState<EventTier | null>(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(user?.display_name ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [myInterest, setMyInterest] = useState<EventInterestStatus | null>(null);
   const [interestBusy, setInterestBusy] = useState(false);
+  const [rsvpOpen, setRsvpOpen] = useState(false);
+  const [similarEvents, setSimilarEvents] = useState<EventItem[]>([]);
 
   useEffect(() => {
     if (!alias) return;
@@ -45,16 +50,49 @@ export default function EventDetailScreen() {
       .then((e) => {
         setEvent(e);
         setTier(e.tiers.find((t) => t.is_active && !t.is_sold_out) ?? e.tiers[0] ?? null);
+        return e;
+      })
+      .then((e) => {
+        // "Similar events" — matched by shared hashtag via the existing
+        // directory tag filter, since there's no dedicated similar-events
+        // endpoint. Mirrors the web page's hashtag-based fallback.
+        const firstTag = e.hashtags[0];
+        if (!firstTag) return;
+        listEvents({ tag: firstTag })
+          .then((res) => setSimilarEvents(res.items.filter((it) => it.alias !== e.alias).slice(0, 4)))
+          .catch(() => setSimilarEvents([]));
       })
       .catch(() => Alert.alert("Not found", "This event could not be loaded."))
       .finally(() => setLoading(false));
-    getProfile()
-      .then((p) => {
-        setName(p.name ?? "");
-        setEmail(p.email ?? "");
-      })
-      .catch(() => {});
   }, [alias]);
+
+  const buy = useCallback(async () => {
+    if (!event || !tier) return;
+    if (!name.trim() || !email.trim()) {
+      Alert.alert("Missing info", "Please enter your name and email.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await buyEventTicket(event.alias, {
+        tier_id: tier.id,
+        quantity: 1,
+        name,
+        email,
+      });
+      await Linking.openURL(res.checkout_url);
+    } catch (err) {
+      if (errorStatus(err) === 401) {
+        Alert.alert("Sign in required", "Please sign in to buy a ticket.", [
+          { text: "OK", onPress: () => router.push("/(auth)") },
+        ]);
+      } else {
+        Alert.alert("Could not start checkout", (err as Error)?.message ?? "Try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }, [event, tier, name, email, router]);
 
   const toggleInterest = useCallback(
     async (status: EventInterestStatus) => {
@@ -88,34 +126,6 @@ export default function EventDetailScreen() {
     [event, myInterest, router],
   );
 
-  const buy = useCallback(async () => {
-    if (!event || !tier) return;
-    if (!name.trim() || !email.trim()) {
-      Alert.alert("Missing info", "Please enter your name and email.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await buyEventTicket(event.alias, {
-        tier_id: tier.id,
-        quantity: 1,
-        name,
-        email,
-      });
-      await Linking.openURL(res.checkout_url);
-    } catch (err) {
-      if (errorStatus(err) === 401) {
-        Alert.alert("Sign in required", "Please sign in to buy a ticket.", [
-          { text: "OK", onPress: () => router.push("/(auth)") },
-        ]);
-      } else {
-        Alert.alert("Could not start checkout", (err as Error)?.message ?? "Try again.");
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }, [event, tier, name, email, router]);
-
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -128,7 +138,7 @@ export default function EventDetailScreen() {
   return (
     <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.wrap}>
       {event.cover_image_url ? (
-        <Image source={{ uri: event.cover_image_url }} style={styles.cover} contentFit="cover" />
+        <Image source={{ uri: event.cover_image_url }} style={styles.cover} />
       ) : null}
 
       <Text style={[styles.title, { color: colors.foreground }]}>{event.title}</Text>
@@ -236,7 +246,37 @@ export default function EventDetailScreen() {
           <Text style={[styles.section, { color: colors.foreground }]}>Gallery</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
             {event.gallery.map((url) => (
-              <Image key={url} source={{ uri: url }} style={styles.galleryImg} contentFit="cover" />
+              <Image key={url} source={{ uri: url }} style={styles.galleryImg} />
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
+      {similarEvents.length > 0 ? (
+        <View style={{ marginTop: 20 }}>
+          <Text style={[styles.section, { color: colors.foreground }]}>Similar events</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
+            {similarEvents.map((e) => (
+              <Pressable
+                key={e.id}
+                onPress={() => router.push(`/events/${e.alias}`)}
+                style={[styles.similarCard, { borderColor: colors.border, backgroundColor: colors.card }]}
+              >
+                {e.cover_image_url ? (
+                  <Image source={{ uri: e.cover_image_url }} style={styles.similarCover} />
+                ) : null}
+                <Text
+                  numberOfLines={2}
+                  style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}
+                >
+                  {e.title}
+                </Text>
+                {e.start_date ? (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
+                    {new Date(e.start_date).toLocaleDateString()}
+                  </Text>
+                ) : null}
+              </Pressable>
             ))}
           </ScrollView>
         </View>
@@ -306,10 +346,27 @@ export default function EventDetailScreen() {
           </Pressable>
         </View>
       ) : (
-        <Text style={{ color: colors.mutedForeground, marginTop: 20 }}>
-          This event doesn't sell tickets — open the page on the web to RSVP.
-        </Text>
+        <View style={{ marginTop: 20 }}>
+          <Pressable
+            onPress={() => setRsvpOpen(true)}
+            style={[styles.buyBtn, { backgroundColor: colors.primary }]}
+          >
+            <Text style={{ color: colors.primaryForeground, fontWeight: "700" }}>
+              RSVP
+            </Text>
+          </Pressable>
+        </View>
       )}
+
+      <RsvpWebViewModal
+        visible={rsvpOpen}
+        alias={event.alias}
+        onClose={() => setRsvpOpen(false)}
+        onSubmitted={() => {
+          setRsvpOpen(false);
+          Alert.alert("You're on the list!", "Your RSVP has been recorded.");
+        }}
+      />
     </ScrollView>
   );
 }
@@ -338,6 +395,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   galleryImg: { width: 220, height: 140, borderRadius: 12, marginRight: 10 },
+  similarCard: {
+    width: 160,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    marginRight: 10,
+  },
+  similarCover: { width: "100%", height: 80, borderRadius: 8, marginBottom: 6 },
   tierRow: {
     flexDirection: "row",
     alignItems: "center",
