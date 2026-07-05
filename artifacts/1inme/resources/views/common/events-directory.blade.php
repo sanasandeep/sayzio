@@ -8,12 +8,33 @@
 
 @push('head')
 <style>
+    /* ── Hero: darkened photographic background ─────────────────────
+       Layered so the heading/search bar stay legible over the image in
+       BOTH themes — this panel is intentionally always-dark (like a
+       poster), independent of the site's light/dark toggle. */
     .events-hero {
-        background:
-            radial-gradient(1200px 400px at 15% -10%, rgba(255,255,255,0.10), transparent 60%),
-            linear-gradient(135deg, #0b0e16 0%, #14204a 55%, #2342c7 130%);
+        position: relative;
+        background-color: #0b0e16;
+        background-image:
+            linear-gradient(180deg, rgba(6,8,18,0.58) 0%, rgba(6,8,18,0.80) 60%, rgba(6,8,18,0.95) 100%),
+            radial-gradient(1200px 400px at 15% -10%, rgba(140,165,255,0.18), transparent 60%),
+            url('{{ asset('images/events/events-hero-bg.webp') }}');
+        background-size: cover, cover, cover;
+        background-position: center, center, center 30%;
+        background-repeat: no-repeat, no-repeat, no-repeat;
         border-bottom: 1px solid rgba(255,255,255,0.06);
     }
+    /* The global light-mode remap (marketing-anim.css) force-darkens
+       .text-white / text-white/NN everywhere it isn't explicitly
+       carved out — without this, hero text turns near-invisible dark
+       text over the dark photo in light mode. Re-assert white here with
+       higher selector specificity so it always wins. */
+    html.light-mode .events-hero,
+    html.light-mode .events-hero .text-white { color:#fff !important; }
+    html.light-mode .events-hero .text-white\/60 { color:rgba(255,255,255,0.6) !important; }
+    html.light-mode .events-hero .text-white\/40 { color:rgba(255,255,255,0.4) !important; }
+    html.light-mode .events-hero input::placeholder { color:rgba(255,255,255,0.35) !important; }
+
     .ev-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:1rem; }
     .ev-chip { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10); color:rgba(255,255,255,0.7); }
     .ev-chip.active, .ev-chip:hover { background:#3d6bff; border-color:#3d6bff; color:#fff; }
@@ -24,12 +45,59 @@
     .cat-tile { position:relative; border-radius:1rem; overflow:hidden; min-height:96px; transition:transform .15s ease; }
     .cat-tile:hover { transform: translateY(-3px); }
     .cat-tile.active { outline:2px solid #fff; outline-offset:-2px; }
-    .hero-slide { display:none; }
-    .hero-slide.active { display:block; }
-    .hero-dot { width:7px; height:7px; border-radius:999px; background:rgba(255,255,255,0.3); }
-    .hero-dot.active { background:#fff; width:20px; border-radius:999px; }
     #search-map { height:200px; border-radius:0.9rem; }
     [x-cloak] { display:none !important; }
+
+    /* ── Featured slider (redesigned) ──────────────────────────────
+       Full-bleed cover art with a scrim + overlaid title/meta, a soft
+       fade-in on slide change, and a subtle hover zoom for polish. */
+    .hero-slide { display:none; }
+    .hero-slide.active { display:block; animation: heroSlideIn .5s ease; }
+    @keyframes heroSlideIn { from { opacity:0; transform:scale(1.015); } to { opacity:1; transform:scale(1); } }
+    .hero-slide-media { position:relative; aspect-ratio:21/9; overflow:hidden; border-radius:1.25rem; box-shadow:0 24px 48px -18px rgba(0,0,0,0.55); }
+    .hero-slide-img { width:100%; height:100%; object-fit:cover; transition:transform .7s ease; }
+    .hero-slide:hover .hero-slide-img { transform:scale(1.06); }
+    .hero-slide-scrim { position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,10,20,0) 32%, rgba(6,8,16,0.6) 68%, rgba(4,5,12,0.94) 100%); }
+    .hero-slide-content { position:absolute; left:0; right:0; bottom:0; padding:1.1rem 1.4rem 1.3rem; }
+    .hero-slide-badge { display:inline-flex; align-items:center; font-size:.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#fff; padding:.3rem .7rem; border-radius:999px; background:linear-gradient(135deg,#3d6bff,#6e61ff); box-shadow:0 6px 16px -2px rgba(61,107,255,0.55); margin-bottom:.55rem; }
+    .hero-slide-date { font-size:.75rem; color:rgba(255,255,255,0.7); margin-bottom:.25rem; }
+    .hero-slide-title { font-size:1.3rem; font-weight:800; color:#fff; line-height:1.28; margin-bottom:.3rem; text-shadow:0 2px 14px rgba(0,0,0,0.5); }
+    @media (min-width: 640px) { .hero-slide-title { font-size:1.5rem; } }
+    .hero-slide-location { font-size:.75rem; color:rgba(255,255,255,0.6); }
+    .hero-dot { width:7px; height:7px; border-radius:999px; background:rgba(255,255,255,0.3); transition:all .25s ease; }
+    .hero-dot.active { background:linear-gradient(90deg,#3d6bff,#6e61ff); width:22px; }
+
+    /* ── Light-mode fixes for the rest of the page ──────────────────
+       Custom classes below (.ev-card, .ev-chip, chip pills, hashtag
+       pills, tier list) aren't Tailwind utilities, so the sitewide
+       light-mode remap can't reach them — scope fixes to everything
+       BELOW the hero (the hero itself stays a dark photo panel). */
+    .chip-pill { background:rgba(255,255,255,0.06); }
+    .chip-close { color:rgba(255,255,255,0.3); }
+    .chip-close:hover { color:#fff; }
+    .link-accent, .tier-toggle-link { color:#8fa8ff; }
+    .hashtag-pill { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.5); }
+    .hashtag-pill:hover { color:#fff; }
+    .tier-list-box { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:0.5rem; }
+    .tier-list-box > div + div { border-top:1px solid rgba(255,255,255,0.08); }
+    .ev-card-footer-divider { border-top:1px solid rgba(255,255,255,0.08); }
+    .btn-not-interested { border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.5); }
+
+    html.light-mode .events-page-body .ev-card { background:#ffffff; border-color:rgba(15,23,42,0.08); box-shadow:0 1px 2px rgba(15,23,42,0.04); }
+    html.light-mode .events-page-body .ev-chip { background:rgba(15,23,42,0.05); border-color:rgba(15,23,42,0.12); color:rgba(15,23,42,0.65); }
+    html.light-mode .events-page-body .ev-chip.active,
+    html.light-mode .events-page-body .ev-chip:hover { background:#3d6bff; border-color:#3d6bff; color:#fff; }
+    html.light-mode .events-page-body .chip-pill { background:rgba(15,23,42,0.05); border:1px solid rgba(15,23,42,0.10); }
+    html.light-mode .events-page-body .chip-close { color:rgba(15,23,42,0.35); }
+    html.light-mode .events-page-body .chip-close:hover { color:#0f172a; }
+    html.light-mode .events-page-body .link-accent,
+    html.light-mode .events-page-body .tier-toggle-link { color:#2342c7; }
+    html.light-mode .events-page-body .hashtag-pill { background:rgba(15,23,42,0.05); color:rgba(15,23,42,0.55); }
+    html.light-mode .events-page-body .hashtag-pill:hover { color:#0f172a; }
+    html.light-mode .events-page-body .tier-list-box { background:rgba(15,23,42,0.03); border-color:rgba(15,23,42,0.08); }
+    html.light-mode .events-page-body .tier-list-box > div + div { border-color:rgba(15,23,42,0.08); }
+    html.light-mode .events-page-body .ev-card-footer-divider { border-color:rgba(15,23,42,0.08); }
+    html.light-mode .events-page-body .btn-not-interested { border-color:rgba(15,23,42,0.14); color:rgba(15,23,42,0.5); }
 </style>
 @endpush
 
@@ -83,29 +151,28 @@
                 @foreach($heroEvents as $hi => $hero)
                     @php $hIcs = $hero->icsData; $hCat = $hero->settings['event_category'] ?? ''; @endphp
                     <a href="{{ url('/' . $hero->alias) }}" class="hero-slide {{ $hi === 0 ? 'active' : '' }}" data-slide="{{ $hi }}">
-                        <div class="ev-card flex flex-col sm:flex-row items-stretch overflow-hidden hover:border-white/20">
-                            <div class="sm:w-2/5 h-40 sm:h-auto relative">
-                                @if($hIcs && $hIcs->cover_image_url)
-                                    <img src="{{ $hIcs->cover_image_url }}" alt="{{ $hero->title }}" class="w-full h-full object-cover">
-                                @else
-                                    <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $hero->title }}" class="w-full h-full object-cover">
-                                @endif
-                                <span class="absolute top-3 left-3 text-[10px] font-bold uppercase px-2.5 py-1 rounded-full text-white" style="background:#3d6bff;">Featured</span>
-                            </div>
-                            <div class="p-5 flex-1">
+                        <div class="hero-slide-media">
+                            @if($hIcs && $hIcs->cover_image_url)
+                                <img src="{{ $hIcs->cover_image_url }}" alt="{{ $hero->title }}" class="hero-slide-img">
+                            @else
+                                <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $hero->title }}" class="hero-slide-img">
+                            @endif
+                            <div class="hero-slide-scrim"></div>
+                            <div class="hero-slide-content">
+                                <span class="hero-slide-badge"><i class="fas fa-star mr-1"></i> Featured</span>
                                 @if($hIcs && $hIcs->start_date)
-                                    <div class="text-xs text-white/40 mb-1"><i class="far fa-clock mr-1"></i>{{ $hIcs->start_date->format('D, M j · g:i A') }}</div>
+                                    <div class="hero-slide-date"><i class="far fa-clock mr-1"></i>{{ $hIcs->start_date->format('D, M j · g:i A') }}</div>
                                 @endif
-                                <h3 class="font-bold text-lg text-white leading-snug line-clamp-2">{{ $hero->title }}</h3>
+                                <h3 class="hero-slide-title line-clamp-2">{{ $hero->title }}</h3>
                                 @if($hIcs && $hIcs->location)
-                                    <div class="text-xs text-white/40 mt-1.5"><i class="fas fa-location-dot mr-1"></i>{{ $hIcs->location }}</div>
+                                    <div class="hero-slide-location"><i class="fas fa-location-dot mr-1"></i>{{ $hIcs->location }}</div>
                                 @endif
                             </div>
                         </div>
                     </a>
                 @endforeach
                 @if($heroEvents->count() > 1)
-                    <div class="flex items-center justify-center gap-1.5 mt-3">
+                    <div class="flex items-center justify-center gap-1.5 mt-4">
                         @foreach($heroEvents as $hi => $hero)
                             <button type="button" class="hero-dot {{ $hi === 0 ? 'active' : '' }}" @click.prevent="go({{ $hi }})"></button>
                         @endforeach
@@ -116,7 +183,7 @@
     </div>
 </div>
 
-<div class="max-w-6xl mx-auto px-4 py-8">
+<div class="events-page-body max-w-6xl mx-auto px-4 py-8">
 
     {{-- Gradient category tiles. --}}
     @if($categories->isNotEmpty() || $hasOtherCategory)
@@ -172,40 +239,40 @@
         <div class="flex flex-wrap items-center gap-2 mb-6 text-xs text-white/50">
             <span class="font-semibold text-white/40">Active filters:</span>
             @if($q)
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:rgba(255,255,255,0.06);">
+                <span class="chip-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full">
                     "{{ $q }}"
-                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['q', 'page'])) }}" class="text-white/30 hover:text-white">&times;</a>
+                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['q', 'page'])) }}" class="chip-close">&times;</a>
                 </span>
             @endif
             @if($category)
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:rgba(255,255,255,0.06);">
+                <span class="chip-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full">
                     @if($category === $otherCategory)
                         <i class="fas fa-ellipsis"></i> Other
                     @else
                         <i class="fas {{ $categoryIcons[$category] ?? 'fa-calendar-star' }}"></i> {{ $categoryLabels[$category] ?? \App\Modules\User\Support\EventCategories::label($category) }}
                     @endif
-                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['category', 'page'])) }}" class="text-white/30 hover:text-white">&times;</a>
+                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['category', 'page'])) }}" class="chip-close">&times;</a>
                 </span>
             @endif
             @if($tag)
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:rgba(255,255,255,0.06);">
+                <span class="chip-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full">
                     #{{ $tag }}
-                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['tag', 'page'])) }}" class="text-white/30 hover:text-white">&times;</a>
+                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['tag', 'page'])) }}" class="chip-close">&times;</a>
                 </span>
             @endif
             @if($online)
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:rgba(255,255,255,0.06);">
+                <span class="chip-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full">
                     <i class="fas fa-video"></i> Online
-                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['online', 'page'])) }}" class="text-white/30 hover:text-white">&times;</a>
+                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['online', 'page'])) }}" class="chip-close">&times;</a>
                 </span>
             @endif
             @if($nearMe)
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background:rgba(255,255,255,0.06);">
+                <span class="chip-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full">
                     <i class="fas fa-location-arrow"></i> Within {{ $radiusKm }}km
-                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['lat', 'lng', 'page'])) }}" class="text-white/30 hover:text-white">&times;</a>
+                    <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['lat', 'lng', 'page'])) }}" class="chip-close">&times;</a>
                 </span>
             @endif
-            <a href="{{ route('events.index') }}" class="hover:underline font-semibold" style="color:#8fa8ff;">Clear all</a>
+            <a href="{{ route('events.index') }}" class="link-accent hover:underline font-semibold">Clear all</a>
         </div>
     @endif
 
@@ -318,18 +385,18 @@
                             <div class="flex flex-wrap gap-1 mt-2">
                                 @foreach(array_slice($ics->hashtagList(), 0, 4) as $ht)
                                     <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except(['tag', 'page']), ['tag' => $ht])) }}"
-                                       class="text-[11px] px-2 py-0.5 rounded-full text-white/50 hover:text-white" style="background:rgba(255,255,255,0.06);">#{{ $ht }}</a>
+                                       class="hashtag-pill text-[11px] px-2 py-0.5 rounded-full">#{{ $ht }}</a>
                                 @endforeach
                             </div>
                         @endif
 
                         @if($tiers->count() > 1)
                             <div class="tier-breakdown mt-3">
-                                <button type="button" class="tier-toggle inline-flex items-center gap-1.5 text-xs font-semibold hover:opacity-80" style="color:#8fa8ff;" aria-expanded="false">
+                                <button type="button" class="tier-toggle tier-toggle-link inline-flex items-center gap-1.5 text-xs font-semibold hover:opacity-80" aria-expanded="false">
                                     <i class="fas fa-tags"></i> {{ $tiers->count() }} ticket tiers
                                     <i class="fas fa-chevron-down text-[10px] transition-transform tier-chevron"></i>
                                 </button>
-                                <div class="tier-list hidden mt-2 rounded-lg divide-y divide-white/8" style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);">
+                                <div class="tier-list tier-list-box hidden mt-2">
                                     @foreach($tiers as $tier)
                                         <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs">
                                             <span class="text-white/50 truncate">{{ $tier->name }}</span>
@@ -340,18 +407,18 @@
                             </div>
                         @endif
 
-                        <div class="flex items-center justify-between mt-4 pt-3 border-t border-white/8">
+                        <div class="ev-card-footer-divider flex items-center justify-between mt-4 pt-3">
                             <div class="text-xs text-white/40 event-interest-counts" data-role="counts">
                                 <i class="fas fa-star text-amber-400 mr-1"></i><span data-role="interested-count">{{ $event->interested_count ?? 0 }}</span> interested
                             </div>
-                            <a href="{{ url('/' . $event->alias) }}" class="text-xs font-bold hover:opacity-80" style="color:#8fa8ff;">View event &rarr;</a>
+                            <a href="{{ url('/' . $event->alias) }}" class="link-accent text-xs font-bold hover:opacity-80">View event &rarr;</a>
                         </div>
 
                         <div class="flex items-center gap-2 mt-3 event-interest-widget" data-alias="{{ $event->alias }}">
                             <button type="button" class="btn-interest flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold event-interest-btn" style="border:1px solid rgba(16,185,129,0.3); color:#34d399;" data-status="interested">
                                 <i class="fas fa-star"></i> Interested
                             </button>
-                            <button type="button" class="btn-interest flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold event-interest-btn" style="border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.5);" data-status="not_interested">
+                            <button type="button" class="btn-interest btn-not-interested flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold event-interest-btn" data-status="not_interested">
                                 <i class="fas fa-xmark"></i> Not interested
                             </button>
                         </div>

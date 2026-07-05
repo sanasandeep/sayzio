@@ -1091,3 +1091,21 @@ id = "Xqmf2Nsw_zH_-GMPwUish"
 uri = "file://dist/sayzio-dialer-app.tar.gz"
 type = "unspecified"
 title = "Sayzio Dialer — standalone app source bundle"
+
+[[outputs]]
+id = "kbVbuteGhRRq74IAhpGJP"
+uri = "file://attached_assets/stock_images/events_hero_crowd_concert_1.jpg"
+type = "image"
+title = "concert crowd silhouettes with colorful stage lights at night festival"
+
+[[outputs]]
+id = "au3jVye_Q03R7AdZIErAj"
+uri = "file://attached_assets/stock_images/events_hero_crowd_concert_2.jpg"
+type = "image"
+title = "concert crowd silhouettes with colorful stage lights at night festival"
+
+[[outputs]]
+id = "9ZmR6uP4-SmWCxTSoS8KG"
+uri = "file://attached_assets/stock_images/events_hero_crowd_concert_3.jpg"
+type = "image"
+title = "concert crowd silhouettes with colorful stage lights at night festival"
