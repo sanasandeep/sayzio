@@ -42,6 +42,7 @@ const REQUIRED_SECTION_IDS: readonly string[] = [
   "ai-suite",
   "ai-marketing-strategist",
   "whatsapp-agent",
+  "ai-dashboard",
   // Remaining major sections below the AI zone.
   "workspace-team",
   "buzz",
@@ -70,6 +71,7 @@ const AI_ZONE_PARTIAL_MARKERS: readonly { readonly label: string; readonly id: s
   { label: "ai-suite", id: "ai-suite" },
   { label: "ai-marketing-strategist", id: "ai-marketing-strategist" },
   { label: "whatsapp-agent", id: "whatsapp-agent" },
+  { label: "ai-dashboard", id: "ai-dashboard" },
 ] as const;
 
 /**

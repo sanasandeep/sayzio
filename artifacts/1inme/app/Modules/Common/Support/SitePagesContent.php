@@ -155,6 +155,20 @@ class SitePagesContent
                     ['heading' => 'Build your following', 'body' => "Posting from your Link in Bio is the easiest way to keep your audience warm between launches. Visitors can follow you straight from the post and they'll see your next one in their feed."],
                 ],
             ],
+            'ai-dashboard' => [
+                'title' => 'AI Dashboard',
+                'meta_description' => 'Design a Sayzio dashboard that shows only what matters to you — start from a curated preset or describe what you want and let AI lay it out for you.',
+                'cta_label' => 'Customize my dashboard',
+                'cta_url' => '/register',
+                'sections' => [
+                    ['heading' => 'Your dashboard, laid out your way', 'body' => "The default dashboard shows everything — clicks, plan usage, recent links, traffic channels, backlinks, your AI wallet. Turn on Customize dashboard and pick exactly which of those cards you want to see, and in what order, without losing access to the rest."],
+                    ['heading' => 'Design with AI in one sentence', 'body' => "Don't want to pick tiles by hand? Tell the AI designer what you care about — \"just my growth numbers\" or \"show me what I earn\" — and it selects and arranges the right widgets from your existing dashboard for you. Nothing is invented: every tile it chooses is one you already have."],
+                    ['heading' => 'Five curated presets to start from', 'body' => "Overview, Growth & Traffic, Content & Posts, Monetization, and Audience & Followers each group the widgets that matter for that focus, so you can switch your whole view in one tap instead of rebuilding it every time your priorities change."],
+                    ['heading' => 'Switch focus in a click', 'body' => "Publishing a launch this week? Switch to Content & Posts. Watching a campaign? Jump to Growth & Traffic. Your layout choice is saved to your account and swaps back instantly whenever you need a different view."],
+                    ['heading' => 'Nothing hidden, nothing lost', 'body' => "Hiding a widget from your layout never deletes data — every metric keeps recording in the background. Add it back, switch presets, or reset to the full Overview whenever you like."],
+                    ['heading' => 'Built on your real dashboard data', 'body' => "Every preset and every AI-designed layout draws from the same widget catalog that powers your default dashboard — total clicks, plan snapshot, recent links, traffic channels, backlinks, coin balance and more — so what you see is always accurate, live and yours."],
+                ],
+            ],
         ];
     }
 

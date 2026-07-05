@@ -29,6 +29,7 @@
         [route('site.ai-widget'),          'fa-window-restore',  'AI Widget',          'Embed on any website'],
         [route('site.ai-voice-assistant'), 'fa-headset',         'AI Voice Assistant', 'Picks up calls in your voice'],
         [route('site.whatsapp-agent'),     'fa-comment-dots',    'WhatsApp Agent',     'Build links by chatting on WhatsApp'],
+        [route('site.ai-dashboard'),       'fa-gauge-high',      'AI Dashboard',       'Presets or a prompt build your layout'],
     ];
     $navProductCareer = [
         [route('site.resume-builder'), 'fa-file-lines', 'Résumé & Portfolio', 'Build a CV & portfolio link in 5 min'],

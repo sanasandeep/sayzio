@@ -3963,6 +3963,7 @@
                 <a href="#ai-suite" class="ai-zone-chip"><i class="fas fa-robot"></i> Chatbot &amp; Agent</a>
                 <a href="#ai-marketing-strategist" class="ai-zone-chip"><i class="fas fa-chart-line"></i> AI Marketing Strategist</a>
                 <a href="#whatsapp-agent" class="ai-zone-chip"><i class="fab fa-whatsapp"></i> WhatsApp Agent</a>
+                <a href="#ai-dashboard" class="ai-zone-chip"><i class="fas fa-gauge-high"></i> AI Dashboard</a>
             </div>
         </div>
     </section>
@@ -3971,6 +3972,7 @@
     @include('home.partials.ai-suite')
     @include('home.partials.ai-marketing-strategist')
     @include('home.partials.whatsapp-agent')
+    @include('home.partials.ai-dashboard')
 </div>
 
 {{-- ==================== ZONE · DEEPER FEATURE SHOWCASE ==================== --}}

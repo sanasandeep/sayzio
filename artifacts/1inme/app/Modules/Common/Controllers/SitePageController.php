@@ -148,6 +148,12 @@ class SitePageController extends Controller
         if ($slug === 'buzz') {
             return view('public.buzz', ['page' => $page]);
         }
+        if ($slug === 'ai-dashboard') {
+            return view('public.ai-dashboard', [
+                'page'    => $page,
+                'presets' => \App\Modules\User\Support\DashboardPresets::forFrontend(),
+            ]);
+        }
         if (in_array($slug, SitePagesContent::aiProductSlugs(), true)) {
             $featureKey = match ($slug) {
                 'ai-chatbot'         => 'ai_chatbot',
