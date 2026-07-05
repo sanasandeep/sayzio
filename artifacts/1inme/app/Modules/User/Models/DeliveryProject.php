@@ -71,6 +71,11 @@ class DeliveryProject extends Model
         return $this->hasMany(DeliveryProjectTask::class, 'project_id')->orderBy('position')->orderBy('id');
     }
 
+    public function comments(): HasMany
+    {
+        return $this->hasMany(DeliveryProjectComment::class, 'project_id')->orderBy('id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');

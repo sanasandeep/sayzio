@@ -164,6 +164,36 @@
         </div>
     </div>
 
+    {{-- Client conversation --}}
+    <div class="glass-card rounded-2xl p-5 mt-4" style="border:1px solid var(--border);">
+        <h3 class="font-semibold mb-1" style="color: var(--text-primary);">Conversation with client</h3>
+        <p class="text-xs mb-3" style="color: var(--text-tertiary);">Questions from your buyer show up here. Replies are emailed to them.</p>
+
+        <div class="space-y-3 mb-4">
+            @forelse($project->comments as $comment)
+                <div class="rounded-lg p-3" style="background: var(--surface-2); border:1px solid var(--border);">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-semibold" style="color: {{ $comment->isTeam() ? '#3d6bff' : 'var(--text-primary)' }};">
+                            <i class="fas fa-{{ $comment->isTeam() ? 'headset' : 'user' }} mr-1"></i>{{ $comment->displayName() }}
+                            <span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium" style="background: var(--surface); color: var(--text-tertiary);">{{ $comment->isTeam() ? 'Team' : 'Client' }}</span>
+                        </span>
+                        <span class="text-[11px]" style="color: var(--text-tertiary);">{{ optional($comment->created_at)->diffForHumans() }}</span>
+                    </div>
+                    <p class="text-sm whitespace-pre-line" style="color: var(--text-secondary);">{{ $comment->body }}</p>
+                </div>
+            @empty
+                <p class="text-sm" style="color: var(--text-tertiary);">No messages yet.</p>
+            @endforelse
+        </div>
+
+        <form method="POST" action="{{ route('user.delivery-projects.comments.store', $project) }}" class="flex gap-2">
+            @csrf
+            <input name="body" required maxlength="2000" placeholder="Reply to the client…"
+                   class="flex-1 rounded-lg px-3 py-2 text-sm" style="background: var(--surface-2); border:1px solid var(--border); color: var(--text-primary);">
+            <button class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#3d6bff,#90acff);">Send</button>
+        </form>
+    </div>
+
     {{-- Gantt timeline --}}
     <div class="glass-card rounded-2xl p-5 mt-4" style="border:1px solid var(--border);">
         <h3 class="font-semibold mb-3" style="color: var(--text-primary);">Timeline</h3>

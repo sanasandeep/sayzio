@@ -3,7 +3,9 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Common\Services\DeliveryProjectNotifier;
 use App\Modules\User\Models\DeliveryProject;
+use App\Modules\User\Models\DeliveryProjectComment;
 use App\Modules\User\Models\DeliveryProjectTask;
 use App\Modules\User\Models\FormSubmission;
 use App\Modules\User\Models\Invoice;
@@ -50,7 +52,12 @@ class DeliveryProjectController extends Controller
 
     public function show(DeliveryProject $deliveryProject)
     {
-        $deliveryProject->load(['tasks.assignee:id,name,avatar', 'creator:id,name', 'clientUser:id,name']);
+        $deliveryProject->load([
+            'tasks.assignee:id,name,avatar',
+            'creator:id,name',
+            'clientUser:id,name',
+            'comments.author:id,name,avatar',
+        ]);
         $members = $this->workspaceMembers();
 
         return view('user.delivery-projects.show', [
@@ -122,7 +129,7 @@ class DeliveryProjectController extends Controller
             ->with('success', 'Project created.');
     }
 
-    public function update(Request $request, DeliveryProject $deliveryProject)
+    public function update(Request $request, DeliveryProject $deliveryProject, DeliveryProjectNotifier $notifier)
     {
         $data = $request->validate([
             'title'                  => 'sometimes|string|max:200',
@@ -134,16 +141,24 @@ class DeliveryProjectController extends Controller
             'warranty_reminder_days' => 'sometimes|nullable|integer|min:0|max:365',
         ]);
 
+        // Detect the transition into "completed" so we email the client once.
+        $justCompleted = false;
+
         // Track the completion timestamp when the project flips to completed.
         if (array_key_exists('status', $data)) {
             if ($data['status'] === DeliveryProject::STATUS_COMPLETED && !$deliveryProject->completed_at) {
                 $deliveryProject->completed_at = now();
+                $justCompleted = true;
             } elseif ($data['status'] !== DeliveryProject::STATUS_COMPLETED) {
                 $deliveryProject->completed_at = null;
             }
         }
 
         $deliveryProject->fill($data)->save();
+
+        if ($justCompleted) {
+            $notifier->projectCompleted($deliveryProject);
+        }
 
         return back()->with('success', 'Project updated.');
     }
@@ -174,12 +189,40 @@ class DeliveryProjectController extends Controller
         $project = DeliveryProject::query()
             ->withoutGlobalScope('workspace')
             ->where('share_token', $token)
-            ->with(['tasks.assignee:id,name', 'creator:id,name'])
+            ->with(['tasks.assignee:id,name', 'creator:id,name', 'comments.author:id,name'])
             ->first();
 
         abort_unless($project, 404);
 
         return view('delivery-projects.public', compact('project'));
+    }
+
+    /**
+     * Anonymous buyer posts a comment/question from the public share page.
+     * The unguessable token is the authenticator; no auth/workspace context.
+     */
+    public function shareComment(Request $request, string $token, DeliveryProjectNotifier $notifier)
+    {
+        $project = DeliveryProject::query()
+            ->withoutGlobalScope('workspace')
+            ->where('share_token', $token)
+            ->first();
+
+        abort_unless($project, 404);
+
+        $data = $request->validate([
+            'author_name' => 'nullable|string|max:120',
+            'body'        => 'required|string|max:2000',
+        ]);
+
+        $comment = $this->createClientComment($project, [
+            'author_name'  => $data['author_name'] ?? ($project->client_name ?: null),
+            'author_email' => $project->client_email,
+        ], $data['body']);
+
+        $notifier->clientCommented($project, $comment);
+
+        return back()->with('success', 'Your comment was sent to the team.');
     }
 
     // ----- Tasks ------------------------------------------------------------
@@ -213,7 +256,7 @@ class DeliveryProjectController extends Controller
         return back();
     }
 
-    public function updateTask(Request $request, DeliveryProjectTask $task)
+    public function updateTask(Request $request, DeliveryProjectTask $task, DeliveryProjectNotifier $notifier)
     {
         $data = $request->validate([
             'title'            => 'sometimes|string|max:200',
@@ -223,6 +266,10 @@ class DeliveryProjectController extends Controller
             'start_date'       => 'sometimes|nullable|date',
             'due_date'         => 'sometimes|nullable|date',
         ]);
+
+        // Remember whether this task was already done so we only email the
+        // client on the todo/in-progress -> done transition.
+        $wasDone = $task->status === DeliveryProjectTask::STATUS_DONE;
 
         if (array_key_exists('title', $data))      $task->title = $data['title'];
         if (array_key_exists('start_date', $data)) $task->start_date = $data['start_date'];
@@ -237,6 +284,10 @@ class DeliveryProjectController extends Controller
         }
 
         $task->save();
+
+        if (!$wasDone && $task->status === DeliveryProjectTask::STATUS_DONE && $task->project) {
+            $notifier->taskCompleted($task->project, $task);
+        }
 
         return response()->json(['ok' => true, 'task' => $this->taskArray($task->fresh('assignee'))]);
     }
@@ -262,6 +313,53 @@ class DeliveryProjectController extends Controller
         });
 
         return response()->json(['ok' => true, 'updated' => count($clean)]);
+    }
+
+    // ----- Comments ---------------------------------------------------------
+
+    /** A workspace member replies to the client thread from the dashboard. */
+    public function storeComment(Request $request, DeliveryProject $deliveryProject, DeliveryProjectNotifier $notifier)
+    {
+        $data = $request->validate([
+            'body' => 'required|string|max:2000',
+        ]);
+
+        $user = $request->user();
+
+        $comment = $deliveryProject->comments()->create([
+            'workspace_id'   => $deliveryProject->workspace_id,
+            'author_role'    => DeliveryProjectComment::ROLE_TEAM,
+            'author_user_id' => $user?->id,
+            'author_name'    => $user?->name,
+            'author_email'   => $user?->email,
+            'body'           => $data['body'],
+        ]);
+
+        $notifier->teamReplied($deliveryProject, $comment);
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true, 'comment' => $this->commentArray($comment->fresh('author'))]);
+        }
+        return back()->with('success', 'Reply sent to the client.');
+    }
+
+    /**
+     * Persist a client/buyer comment (portal or public share). $identity may
+     * carry author_name / author_email captured from the portal session or the
+     * project's stored client details.
+     *
+     * @param array{author_name:?string,author_email:?string} $identity
+     */
+    private function createClientComment(DeliveryProject $project, array $identity, string $body): DeliveryProjectComment
+    {
+        return $project->comments()->create([
+            'workspace_id'   => $project->workspace_id,
+            'author_role'    => DeliveryProjectComment::ROLE_CLIENT,
+            'author_user_id' => null,
+            'author_name'    => $identity['author_name'] ?? null,
+            'author_email'   => $identity['author_email'] ?? null,
+            'body'           => $body,
+        ]);
     }
 
     // ----- Helpers ----------------------------------------------------------
@@ -396,6 +494,20 @@ class DeliveryProjectController extends Controller
             'start_date'       => optional($task->start_date)->toDateString(),
             'due_date'         => optional($task->due_date)->toDateString(),
             'position'         => (int) $task->position,
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private function commentArray(DeliveryProjectComment $comment): array
+    {
+        return [
+            'id'          => $comment->id,
+            'author_role' => $comment->author_role,
+            'author_name' => $comment->displayName(),
+            'is_team'     => $comment->isTeam(),
+            'body'        => $comment->body,
+            'created_at'  => optional($comment->created_at)->toIso8601String(),
+            'created_ago' => optional($comment->created_at)->diffForHumans(),
         ];
     }
 }

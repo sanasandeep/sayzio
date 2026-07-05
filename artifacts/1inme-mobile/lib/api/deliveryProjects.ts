@@ -124,3 +124,32 @@ export async function reorderDeliveryTasks(
   );
   return res.data.updated;
 }
+
+export type DeliveryProjectComment = {
+  id: number;
+  author_role: string;
+  is_team: boolean;
+  author_name: string;
+  body: string;
+  created_at: string | null;
+};
+
+export async function listDeliveryProjectComments(
+  projectId: number,
+): Promise<DeliveryProjectComment[]> {
+  const res = await apiFetch<{ data: { items: DeliveryProjectComment[] } }>(
+    `/delivery-projects/${projectId}/comments`,
+  );
+  return res.data.items;
+}
+
+export async function postDeliveryProjectComment(
+  projectId: number,
+  body: string,
+): Promise<DeliveryProjectComment> {
+  const res = await apiFetch<{ data: { comment: DeliveryProjectComment } }>(
+    `/delivery-projects/${projectId}/comments`,
+    { method: "POST", body: JSON.stringify({ body }) },
+  );
+  return res.data.comment;
+}

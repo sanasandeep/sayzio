@@ -275,6 +275,14 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            // Client/buyer comments on a delivery project (Task #3566).
+            'delivery_project.comment' => [
+                'label'          => 'Delivery project comments',
+                'description'    => 'When a client or buyer posts a comment or question on a delivery project you share with them.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
         ];
     }
 

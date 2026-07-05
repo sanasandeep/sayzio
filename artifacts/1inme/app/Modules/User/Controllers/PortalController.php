@@ -96,7 +96,42 @@ class PortalController extends Controller
 
         ClientPortalAction::record($this->portal(), $this->link(), 'viewed_section', 'delivery_project', $project->id);
 
+        $project->load(['comments.author:id,name']);
+
         return view('portal.delivery-project', compact('project'));
+    }
+
+    /**
+     * Task #3566 — the logged-in portal client posts a comment/question on a
+     * delivery project shared with them; the workspace team is notified.
+     */
+    public function deliveryProjectComment(Request $request, int $projectId, \App\Modules\Common\Services\DeliveryProjectNotifier $notifier)
+    {
+        $this->shareOrFail(ClientPortalShare::TYPE_DELIVERY_PROJECT, $projectId);
+
+        $project = \App\Modules\User\Models\DeliveryProject::query()->withoutGlobalScope('workspace')
+            ->where('workspace_id', $this->portal()->workspace_id)
+            ->where('id', $projectId)
+            ->firstOrFail();
+
+        $data = $request->validate([
+            'body' => 'required|string|max:2000',
+        ]);
+
+        $comment = $project->comments()->create([
+            'workspace_id'   => $project->workspace_id,
+            'author_role'    => \App\Modules\User\Models\DeliveryProjectComment::ROLE_CLIENT,
+            'author_user_id' => null,
+            'author_name'    => $this->portal()->name ?: ($project->client_name ?: null),
+            'author_email'   => $this->link()->email ?: $project->client_email,
+            'body'           => $data['body'],
+        ]);
+
+        ClientPortalAction::record($this->portal(), $this->link(), 'commented', 'delivery_project', $project->id);
+
+        $notifier->clientCommented($project, $comment);
+
+        return back()->with('success', 'Your comment was sent to the team.');
     }
 
     public function files()

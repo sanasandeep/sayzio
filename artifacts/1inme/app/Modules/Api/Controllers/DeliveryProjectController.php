@@ -3,7 +3,9 @@
 namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Modules\Common\Services\DeliveryProjectNotifier;
 use App\Modules\User\Models\DeliveryProject;
+use App\Modules\User\Models\DeliveryProjectComment;
 use App\Modules\User\Models\DeliveryProjectTask;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceMember;
@@ -21,6 +23,12 @@ use Illuminate\Support\Facades\DB;
  *   POST   /api/v1/delivery-projects/{id}/tasks/reorder    reorder tasks
  *   PATCH  /api/v1/delivery-projects/tasks/{task}          update a task
  *   DELETE /api/v1/delivery-projects/tasks/{task}          delete a task
+ *   GET    /api/v1/delivery-projects/{id}/comments         list the comment thread
+ *   POST   /api/v1/delivery-projects/{id}/comments         team posts a reply
+ *
+ * Task #3566 adds the two-way comment thread (client ↔ team) plus milestone
+ * emails: completing a task / the project emails the client, and new client
+ * comments notify the team. See {@see DeliveryProjectNotifier}.
  *
  * The Sanctum API path never runs SetActiveWorkspace, so the
  * {@see BelongsToWorkspace} global scope is inactive here; we resolve
@@ -114,7 +122,7 @@ class DeliveryProjectController extends Controller
         return $this->ok(['updated' => count($clean)]);
     }
 
-    public function updateTask(Request $request, int $task)
+    public function updateTask(Request $request, int $task, DeliveryProjectNotifier $notifier)
     {
         $model = $this->findTask($request, $task, 'tasks.edit');
         if (!$model) return $this->notFound('Task not found');
@@ -128,6 +136,8 @@ class DeliveryProjectController extends Controller
             'due_date'         => 'sometimes|nullable|date',
         ]);
 
+        $wasDone = $model->status === DeliveryProjectTask::STATUS_DONE;
+
         if (array_key_exists('title', $data))      $model->title = $data['title'];
         if (array_key_exists('start_date', $data)) $model->start_date = $data['start_date'];
         if (array_key_exists('due_date', $data))   $model->due_date = $data['due_date'];
@@ -140,7 +150,57 @@ class DeliveryProjectController extends Controller
 
         $model->save();
 
+        // Task #3566 — email the client when a task first transitions to done.
+        if (!$wasDone && $model->status === DeliveryProjectTask::STATUS_DONE && $model->project) {
+            $notifier->taskCompleted($model->project, $model);
+        }
+
         return $this->ok(['task' => $this->taskArray($model->fresh('assignee'))]);
+    }
+
+    /**
+     * Task #3566 — the comment thread on a project (client questions + team
+     * replies), oldest first.
+     */
+    public function comments(Request $request, int $id)
+    {
+        $project = $this->findProject($request, $id, 'tasks.view');
+        if (!$project) return $this->notFound('Project not found');
+
+        $comments = $project->comments()
+            ->with('author:id,name')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (DeliveryProjectComment $c) => $this->commentArray($c))
+            ->all();
+
+        return $this->ok(['items' => $comments]);
+    }
+
+    /** Task #3566 — a team member posts a reply; the client is emailed. */
+    public function storeComment(Request $request, int $id, DeliveryProjectNotifier $notifier)
+    {
+        $project = $this->findProject($request, $id, 'tasks.edit');
+        if (!$project) return $this->notFound('Project not found');
+
+        $data = $request->validate([
+            'body' => 'required|string|max:2000',
+        ]);
+
+        $user = $request->user();
+
+        $comment = $project->comments()->create([
+            'workspace_id'   => $project->workspace_id,
+            'author_role'    => DeliveryProjectComment::ROLE_TEAM,
+            'author_user_id' => $user?->id,
+            'author_name'    => $user?->name,
+            'author_email'   => $user?->email,
+            'body'           => $data['body'],
+        ]);
+
+        $notifier->teamReplied($project, $comment);
+
+        return $this->created(['comment' => $this->commentArray($comment->fresh('author'))]);
     }
 
     public function destroyTask(Request $request, int $task)
@@ -256,6 +316,19 @@ class DeliveryProjectController extends Controller
         }
 
         return $out;
+    }
+
+    /** @return array<string,mixed> */
+    private function commentArray(DeliveryProjectComment $c): array
+    {
+        return [
+            'id'          => $c->id,
+            'author_role' => $c->author_role,
+            'is_team'     => $c->isTeam(),
+            'author_name' => $c->displayName(),
+            'body'        => $c->body,
+            'created_at'  => optional($c->created_at)->toIso8601String(),
+        ];
     }
 
     /** @return array<string,mixed> */

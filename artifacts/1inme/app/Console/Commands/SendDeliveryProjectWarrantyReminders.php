@@ -87,6 +87,8 @@ class SendDeliveryProjectWarrantyReminders extends Command
                         if (!$project->warranty_expired_notified_at) {
                             $this->notify($userId, $project, 'delivery_project_warranty_expired',
                                 'Warranty expired: ' . $project->title, $expiryDate);
+                            // Task #3566 — also email the client, if we have one.
+                            $this->notifier()->warranty($project, 'expired');
                             $project->warranty_expired_notified_at = now();
                             // Suppress a now-pointless "ending soon" reminder.
                             $project->warranty_reminder_sent_at = $project->warranty_reminder_sent_at ?: now();
@@ -100,6 +102,8 @@ class SendDeliveryProjectWarrantyReminders extends Command
                     if (!$project->warranty_reminder_sent_at && $todayLocalDate >= $remindOn) {
                         $this->notify($userId, $project, 'delivery_project_warranty_ending',
                             'Warranty ending soon: ' . $project->title, $expiryDate);
+                        // Task #3566 — also email the client, if we have one.
+                        $this->notifier()->warranty($project, 'ending');
                         $project->warranty_reminder_sent_at = now();
                         $project->save();
                         $sent++;
@@ -108,6 +112,11 @@ class SendDeliveryProjectWarrantyReminders extends Command
             });
 
         return $sent;
+    }
+
+    private function notifier(): \App\Modules\Common\Services\DeliveryProjectNotifier
+    {
+        return app(\App\Modules\Common\Services\DeliveryProjectNotifier::class);
     }
 
     private function notify(int $userId, DeliveryProject $project, string $type, string $message, string $expiryDate): void

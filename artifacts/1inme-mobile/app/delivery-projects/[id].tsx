@@ -23,6 +23,8 @@ import {
   deleteDeliveryTask,
   getDeliveryProject,
   reorderDeliveryTasks,
+  listDeliveryProjectComments,
+  postDeliveryProjectComment,
   updateDeliveryTask,
   type DeliveryProjectMember,
   type DeliveryTask,
@@ -92,11 +94,28 @@ export default function DeliveryProjectDetailScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [editTask, setEditTask] = useState<DeliveryTask | null>(null);
+  const [commentBody, setCommentBody] = useState("");
 
   const q = useQuery({
     queryKey: ["delivery-project", id],
     queryFn: () => getDeliveryProject(id),
     enabled: Number.isFinite(id),
+  });
+
+  const commentsQ = useQuery({
+    queryKey: ["delivery-project-comments", id],
+    queryFn: () => listDeliveryProjectComments(id),
+    enabled: Number.isFinite(id),
+  });
+
+  const postComment = useMutation({
+    mutationFn: (body: string) => postDeliveryProjectComment(id, body),
+    onSuccess: () => {
+      setCommentBody("");
+      qc.invalidateQueries({ queryKey: ["delivery-project-comments", id] });
+    },
+    onError: (e: { message?: string }) =>
+      Alert.alert("Couldn't send", e?.message ?? "Try again."),
   });
 
   const invalidate = () => {
@@ -528,6 +547,89 @@ export default function DeliveryProjectDetailScreen() {
               </>
             );
           })()}
+
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            Questions & comments
+          </Text>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            {commentsQ.isLoading ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (commentsQ.data?.length ?? 0) === 0 ? (
+              <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+                No messages yet.
+              </Text>
+            ) : (
+              commentsQ.data!.map((c) => (
+                <View
+                  key={c.id}
+                  style={[
+                    styles.commentBubble,
+                    {
+                      backgroundColor: c.is_team
+                        ? colors.primary + "14"
+                        : colors.muted,
+                      borderRadius: colors.radius,
+                    },
+                  ]}
+                >
+                  <View style={styles.rowTop}>
+                    <Text
+                      style={[
+                        styles.commentAuthor,
+                        { color: c.is_team ? colors.primary : colors.foreground },
+                      ]}
+                    >
+                      {c.author_name} · {c.is_team ? "Team" : "Client"}
+                    </Text>
+                    {c.created_at ? (
+                      <Text
+                        style={[styles.axisTxt, { color: colors.mutedForeground }]}
+                      >
+                        {c.created_at.slice(0, 10)}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Text style={[styles.desc, { color: colors.foreground }]}>
+                    {c.body}
+                  </Text>
+                </View>
+              ))
+            )}
+            <TextInput
+              value={commentBody}
+              onChangeText={setCommentBody}
+              placeholder="Reply to the client…"
+              placeholderTextColor={colors.mutedForeground}
+              multiline
+              style={[
+                styles.input,
+                {
+                  color: colors.foreground,
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                  minHeight: 64,
+                  textAlignVertical: "top",
+                },
+              ]}
+            />
+            <Button
+              label={postComment.isPending ? "Sending…" : "Send reply"}
+              onPress={() => {
+                const b = commentBody.trim();
+                if (b) postComment.mutate(b);
+              }}
+              disabled={postComment.isPending || !commentBody.trim()}
+            />
+          </View>
         </ScrollView>
       )}
 
@@ -869,4 +971,6 @@ const styles = StyleSheet.create({
   },
   modalCard: { width: "100%", maxWidth: 420, maxHeight: "85%", padding: 20, borderWidth: 1, gap: 14 },
   input: { borderWidth: 1, padding: 12, fontFamily: "SpaceGrotesk_500Medium", fontSize: 15 },
+  commentBubble: { padding: 12, gap: 4 },
+  commentAuthor: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 },
 });

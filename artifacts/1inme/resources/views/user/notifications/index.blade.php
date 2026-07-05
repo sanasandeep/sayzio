@@ -79,6 +79,11 @@
                              style="background: rgba(59,130,246,0.12); color:#2563eb;">
                             <i class="fas fa-credit-card"></i>
                         </div>
+                    @elseif($n->type === 'delivery_project.comment')
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                             style="background: rgba(92,131,255,0.12); color:#3d6bff;">
+                            <i class="fas fa-comment-dots"></i>
+                        </div>
                     @elseif(!empty($d['follower_avatar']) || !empty($d['creator_avatar']))
                         <img src="{{ $d['follower_avatar'] ?? $d['creator_avatar'] }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
                     @else
@@ -172,6 +177,19 @@
                             @if(!empty($d['url']))
                                 <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
                                     <i class="fas fa-arrow-right"></i> View billing
+                                </a>
+                            @endif
+                        @elseif($n->type === 'delivery_project.comment')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <i class="fas fa-comment-dots mr-1" style="color:#3d6bff;"></i>
+                                {{ $d['message'] ?? 'A client commented on a delivery project' }}
+                                @if(!empty($d['snippet']))
+                                    <span class="italic">— {{ \Illuminate\Support\Str::limit($d['snippet'], 100) }}</span>
+                                @endif
+                            </p>
+                            @if(!empty($d['url']))
+                                <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
+                                    <i class="fas fa-arrow-right"></i> Open project
                                 </a>
                             @endif
                         @else

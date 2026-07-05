@@ -72,6 +72,7 @@ Route::prefix('portal')->name('portal.')->group(function () {
         Route::post('invoices/{invoice}/pay', [\App\Modules\User\Controllers\PortalController::class, 'payInvoice'])->whereNumber('invoice')->name('invoices.pay');
         Route::get ('reports/{link}',         [\App\Modules\User\Controllers\PortalController::class, 'report'])->whereNumber('link')->name('report');
         Route::get ('delivery-projects/{project}', [\App\Modules\User\Controllers\PortalController::class, 'deliveryProject'])->whereNumber('project')->name('delivery-project');
+        Route::post('delivery-projects/{project}/comments', [\App\Modules\User\Controllers\PortalController::class, 'deliveryProjectComment'])->whereNumber('project')->name('delivery-project.comment');
     });
 });
 
@@ -82,6 +83,12 @@ Route::get('dp/{token}', [\App\Modules\User\Controllers\DeliveryProjectControlle
     ->where('token', '[A-Za-z0-9]{16,}')
     ->middleware('throttle:60,1')
     ->name('delivery-project.share');
+
+// Anonymous buyer posts a comment/question from the public share page.
+Route::post('dp/{token}/comments', [\App\Modules\User\Controllers\DeliveryProjectController::class, 'shareComment'])
+    ->where('token', '[A-Za-z0-9]{16,}')
+    ->middleware('throttle:20,1')
+    ->name('delivery-project.share.comment');
 
 Route::prefix('user')->name('user.')->group(function () {
     Route::get('register', [AuthController::class, 'showRegister'])->name('register');
@@ -1647,6 +1654,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::put('{deliveryProject}',       [\App\Modules\User\Controllers\DeliveryProjectController::class, 'update'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('update');
             Route::delete('{deliveryProject}',    [\App\Modules\User\Controllers\DeliveryProjectController::class, 'destroy'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.delete')->name('destroy');
             Route::post('{deliveryProject}/share-token', [\App\Modules\User\Controllers\DeliveryProjectController::class, 'regenerateShareToken'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('share-token');
+
+            Route::post('{deliveryProject}/comments',     [\App\Modules\User\Controllers\DeliveryProjectController::class, 'storeComment'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('comments.store');
 
             Route::post('{deliveryProject}/tasks',        [\App\Modules\User\Controllers\DeliveryProjectController::class, 'storeTask'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('tasks.store');
             Route::post('{deliveryProject}/tasks/reorder',[\App\Modules\User\Controllers\DeliveryProjectController::class, 'reorderTasks'])->whereNumber('deliveryProject')->middleware('workspace.can:tasks.edit')->name('tasks.reorder');

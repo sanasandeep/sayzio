@@ -599,6 +599,8 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/delivery-projects/{id}/tasks/reorder', [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'reorderTasks'])->whereNumber('id');
         Route::patch ('/delivery-projects/tasks/{task}', [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'updateTask'])->whereNumber('task');
         Route::delete('/delivery-projects/tasks/{task}', [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'destroyTask'])->whereNumber('task');
+        Route::get   ('/delivery-projects/{id}/comments', [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'comments'])->whereNumber('id');
+        Route::post  ('/delivery-projects/{id}/comments', [\App\Modules\Api\Controllers\DeliveryProjectController::class, 'storeComment'])->whereNumber('id');
 
         // Full-page AI chat link editor (links.type = ai_chat). Mirrors
         // the web user.links.ai-chat.{editor,save} routes, reusing the AI
