@@ -34,6 +34,14 @@ export type EventItem = {
   latitude: number | null;
   longitude: number | null;
   category: string | null;
+  /**
+   * Curated category label + FontAwesome icon resolved server-side from the
+   * shared EventCategories catalogue (Task #3615 parity). Present whenever the
+   * event has a category set; render these instead of guessing from the raw
+   * slug so mobile matches the web /events directory exactly.
+   */
+  category_label: string | null;
+  category_icon: string | null;
   ticketing_enabled: boolean;
   tiers: EventTier[];
   /** Hashtags, richer page content, and the interest signal. */

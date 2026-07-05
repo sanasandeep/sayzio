@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+import { AppIcon } from "@/components/AppIcon";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import { type EventItem, listEvents } from "@/lib/api/events";
@@ -155,6 +156,20 @@ export default function EventsDirectoryScreen() {
               <Text style={[styles.cardTitle, { color: colors.foreground }]}>
                 {item.title}
               </Text>
+              {item.category_label ? (
+                <View style={styles.categoryRow}>
+                  <AppIcon
+                    name={item.category_icon ?? "calendar"}
+                    size={13}
+                    color={colors.primary}
+                  />
+                  <Text
+                    style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}
+                  >
+                    {item.category_label}
+                  </Text>
+                </View>
+              ) : null}
               {item.start_date ? (
                 <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
                   {new Date(item.start_date).toLocaleString()}
@@ -246,6 +261,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
+  },
+  categoryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 2,
   },
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
   tagChip: {

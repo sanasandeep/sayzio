@@ -7,6 +7,7 @@ use App\Modules\User\Models\EventTicket;
 use App\Modules\User\Models\EventTicketTier;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Workspace;
+use App\Modules\User\Support\EventCategories;
 use App\Services\Monetization\MonetizationCheckout;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -512,6 +513,10 @@ class EventTicketApiController extends Controller
         $ics = $link->icsData;
         $tiers = $includeAllTiers ? $link->eventTicketTiers : ($link->relationLoaded('eventTicketTiers') ? $link->eventTicketTiers : collect());
 
+        $category = ($link->settings ?? [])['event_category'] ?? null;
+        $categoryLabel = $category !== null && $category !== '' ? EventCategories::label($category) : null;
+        $categoryIcon = $category !== null && $category !== '' ? EventCategories::icon($category) : null;
+
         return [
             'id'          => $link->id,
             'alias'       => $link->alias,
@@ -522,7 +527,11 @@ class EventTicketApiController extends Controller
             'end_date'    => optional($ics?->end_date)->toIso8601String(),
             'latitude'    => $ics?->latitude,
             'longitude'   => $ics?->longitude,
-            'category'    => ($link->settings ?? [])['event_category'] ?? null,
+            'category'    => $category,
+            // Curated label + icon (Task #3615 parity) so mobile renders the same
+            // icon/name as the web /events directory instead of guessing.
+            'category_label' => $categoryLabel,
+            'category_icon'  => $categoryIcon,
             'ticketing_enabled' => (bool) (($link->settings ?? [])['ticketing_enabled'] ?? false),
             'tiers'       => $tiers->map(fn (EventTicketTier $t) => $this->tierShape($t))->values()->all(),
             // Task #3593: hashtags, richer page content, badge invites/entry.
