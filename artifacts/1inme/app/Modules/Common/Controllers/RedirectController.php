@@ -440,9 +440,10 @@ class RedirectController extends Controller
                 fn ($r) => $smartCookie && $r->withCookie($smartCookie)
             ),
             'file' => $this->handleFileDownload($link),
-            'ics' => !empty(($link->settings ?? [])['ticketing_enabled'])
-                ? $this->handleEventTicketingPage($request, $link)
-                : $this->handleIcsDownload($link),
+            // Every event link always renders the full public event page —
+            // `?ics=1` remains the direct .ics download path, handled inside
+            // handleEventTicketingPage() regardless of ticketing/RSVP state.
+            'ics' => $this->handleEventTicketingPage($request, $link),
             'vcf' => $this->handleVcfDownload($link),
             'reviews' => $this->handleReviewsPage($request, $link),
             'resume' => $this->handleResumePage($request, $link),

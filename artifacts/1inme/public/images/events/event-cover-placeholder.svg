@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500" role="img" aria-label="Event cover placeholder">
+  <defs>
+    <linearGradient id="evph-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#14204a"/>
+      <stop offset="55%" stop-color="#2342c7"/>
+      <stop offset="100%" stop-color="#3d6bff"/>
+    </linearGradient>
+    <radialGradient id="evph-glow" cx="18%" cy="12%" r="65%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#evph-bg)"/>
+  <rect width="800" height="500" fill="url(#evph-glow)"/>
+  <g opacity="0.16" fill="none" stroke="#ffffff" stroke-width="2">
+    <circle cx="700" cy="420" r="150"/>
+    <circle cx="700" cy="420" r="220"/>
+  </g>
+  <g transform="translate(400 250)" fill="#ffffff">
+    <rect x="-70" y="-64" width="140" height="128" rx="18" fill="#ffffff" fill-opacity="0.14" stroke="#ffffff" stroke-opacity="0.55" stroke-width="4"/>
+    <rect x="-70" y="-64" width="140" height="34" rx="18" fill="#ffffff" fill-opacity="0.28"/>
+    <line x1="-40" y1="-80" x2="-40" y2="-48" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-opacity="0.85"/>
+    <line x1="40" y1="-80" x2="40" y2="-48" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-opacity="0.85"/>
+    <circle cx="-32" cy="6" r="7" fill="#ffffff" fill-opacity="0.75"/>
+    <circle cx="0" cy="6" r="7" fill="#ffffff" fill-opacity="0.75"/>
+    <circle cx="32" cy="6" r="7" fill="#ffffff" fill-opacity="0.75"/>
+    <circle cx="-32" cy="34" r="7" fill="#ffffff" fill-opacity="0.75"/>
+    <circle cx="0" cy="34" r="7" fill="#ffffff" fill-opacity="0.75"/>
+  </g>
+</svg>

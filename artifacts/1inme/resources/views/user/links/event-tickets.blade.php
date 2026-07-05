@@ -40,8 +40,14 @@
             @csrf
             @method('PUT')
             <label class="flex items-center gap-2 text-sm" style="color: var(--text-secondary);">
+                <input type="hidden" name="hide_from_directory" value="0">
                 <input type="checkbox" name="hide_from_directory" value="1" @checked(!empty($settings['hide_from_directory']))>
                 Hide from /events directory
+            </label>
+            <label class="flex items-center gap-2 text-sm" style="color: var(--text-secondary);">
+                <input type="hidden" name="is_online" value="0">
+                <input type="checkbox" name="is_online" value="1" @checked(!empty($settings['is_online']))>
+                <i class="fas fa-video text-xs" style="color: var(--text-muted);"></i> Online event
             </label>
             @php
                 $currentCategory = trim((string) ($settings['event_category'] ?? ''));

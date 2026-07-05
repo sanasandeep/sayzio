@@ -103,6 +103,9 @@ class IcsLinkController extends Controller
         if ($request->has('hide_from_directory')) {
             $newSettings['hide_from_directory'] = $request->boolean('hide_from_directory');
         }
+        if ($request->has('is_online')) {
+            $newSettings['is_online'] = $request->boolean('is_online');
+        }
         if ($request->has('event_category')) {
             $category = $this->resolveEventCategory($request);
             if ($category !== null) {

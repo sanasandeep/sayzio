@@ -24,23 +24,26 @@ class EventCategories
      * is what gets stored/filtered on; the label/icon drive the directory UI.
      */
     public const CATEGORIES = [
-        'music'          => ['label' => 'Music',              'icon' => 'fa-music'],
-        'nightlife'      => ['label' => 'Nightlife & Parties', 'icon' => 'fa-champagne-glasses'],
-        'arts'           => ['label' => 'Arts & Culture',     'icon' => 'fa-palette'],
-        'film'           => ['label' => 'Film & Media',       'icon' => 'fa-film'],
-        'comedy'         => ['label' => 'Comedy',             'icon' => 'fa-face-laugh'],
-        'food_drink'     => ['label' => 'Food & Drink',       'icon' => 'fa-utensils'],
-        'technology'     => ['label' => 'Technology',         'icon' => 'fa-microchip'],
-        'business'       => ['label' => 'Business & Networking', 'icon' => 'fa-briefcase'],
-        'education'      => ['label' => 'Education & Workshops', 'icon' => 'fa-graduation-cap'],
-        'community'      => ['label' => 'Community & Meetups', 'icon' => 'fa-people-group'],
-        'sports_fitness' => ['label' => 'Sports & Fitness',   'icon' => 'fa-basketball'],
-        'health_wellness'=> ['label' => 'Health & Wellness',  'icon' => 'fa-heart-pulse'],
-        'outdoor_travel' => ['label' => 'Outdoor & Travel',   'icon' => 'fa-mountain'],
-        'gaming'         => ['label' => 'Gaming & Esports',   'icon' => 'fa-gamepad'],
-        'fashion'        => ['label' => 'Fashion & Style',    'icon' => 'fa-shirt'],
-        'charity'        => ['label' => 'Charity & Causes',   'icon' => 'fa-hand-holding-heart'],
+        'music'          => ['label' => 'Music',              'icon' => 'fa-music',              'color' => ['#3d6bff', '#5f8dff']],
+        'nightlife'      => ['label' => 'Nightlife & Parties', 'icon' => 'fa-champagne-glasses',  'color' => ['#2342c7', '#3d6bff']],
+        'arts'           => ['label' => 'Arts & Culture',     'icon' => 'fa-palette',             'color' => ['#0891b2', '#3d6bff']],
+        'film'           => ['label' => 'Film & Media',       'icon' => 'fa-film',                'color' => ['#1e293b', '#3d6bff']],
+        'comedy'         => ['label' => 'Comedy',             'icon' => 'fa-face-laugh',          'color' => ['#f59e0b', '#3d6bff']],
+        'food_drink'     => ['label' => 'Food & Drink',       'icon' => 'fa-utensils',            'color' => ['#f97316', '#3d6bff']],
+        'technology'     => ['label' => 'Technology',         'icon' => 'fa-microchip',           'color' => ['#0ea5e9', '#3d6bff']],
+        'business'       => ['label' => 'Business & Networking', 'icon' => 'fa-briefcase',        'color' => ['#334155', '#3d6bff']],
+        'education'      => ['label' => 'Education & Workshops', 'icon' => 'fa-graduation-cap',   'color' => ['#0d9488', '#3d6bff']],
+        'community'      => ['label' => 'Community & Meetups', 'icon' => 'fa-people-group',       'color' => ['#3d6bff', '#0ea5e9']],
+        'sports_fitness' => ['label' => 'Sports & Fitness',   'icon' => 'fa-basketball',           'color' => ['#16a34a', '#3d6bff']],
+        'health_wellness'=> ['label' => 'Health & Wellness',  'icon' => 'fa-heart-pulse',          'color' => ['#ef4444', '#3d6bff']],
+        'outdoor_travel' => ['label' => 'Outdoor & Travel',   'icon' => 'fa-mountain',             'color' => ['#15803d', '#0ea5e9']],
+        'gaming'         => ['label' => 'Gaming & Esports',   'icon' => 'fa-gamepad',              'color' => ['#3d6bff', '#1e293b']],
+        'fashion'        => ['label' => 'Fashion & Style',    'icon' => 'fa-shirt',                'color' => ['#db2777', '#3d6bff']],
+        'charity'        => ['label' => 'Charity & Causes',   'icon' => 'fa-hand-holding-heart',   'color' => ['#dc2626', '#3d6bff']],
     ];
+
+    /** Fallback gradient stops for legacy/unrecognized categories. */
+    private const FALLBACK_COLOR = ['#3d6bff', '#2342c7'];
 
     /**
      * Keyword fallback for legacy free-text categories so old events keep a
@@ -114,6 +117,25 @@ class EventCategories
     public static function selectOptions(): array
     {
         return array_map(fn ($c) => $c['label'], self::CATEGORIES);
+    }
+
+    /**
+     * Two-stop hex gradient for a category's directory tile. Curated
+     * categories use their assigned pair (always blue-forward, never
+     * purple, per brand guard); anything else gets the default blue pair.
+     *
+     * @return array{0:string,1:string}
+     */
+    public static function colorStops(string $category): array
+    {
+        return self::CATEGORIES[$category]['color'] ?? self::FALLBACK_COLOR;
+    }
+
+    /** CSS `linear-gradient(...)` string for a category's directory tile. */
+    public static function gradient(string $category): string
+    {
+        [$from, $to] = self::colorStops($category);
+        return "linear-gradient(135deg, {$from} 0%, {$to} 100%)";
     }
 
     /**

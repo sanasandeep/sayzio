@@ -6,6 +6,7 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\FileLink;
 use App\Modules\User\Models\IcsData;
+use App\Modules\User\Models\EventTicketTier;
 use App\Modules\User\Models\VcfData;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\ConversationAction;
@@ -201,6 +202,7 @@ class DemoContentSeeder extends Seeder
             FileLink::whereIn('link_id', $linkIds)->delete();
             IcsData::whereIn('link_id', $linkIds)->delete();
             VcfData::whereIn('link_id', $linkIds)->delete();
+            \App\Modules\User\Models\EventTicketTier::whereIn('link_id', $linkIds)->delete();
             $stats['links'] = Link::query()->withoutWorkspaceScope()->whereIn('id', $linkIds)->delete();
         }
 
@@ -547,36 +549,215 @@ class DemoContentSeeder extends Seeder
         }
     }
 
+    /**
+     * ~100 diverse demo events for the /events directory overhaul (Task
+     * #3647). Spans all 16 curated categories, a mix of online/physical,
+     * ticketed/RSVP/plain, past/upcoming, with hashtags + cover images so the
+     * hero slider, category tiles, trending row and map search all have
+     * something realistic to show. Idempotent: aliases are deterministic
+     * (`demo-evt-###`) and wipePreviousDemoContent() clears prior runs first.
+     */
     private function seedEventInvites(User $user, Workspace $ws): void
     {
-        $events = [
-            ['demo-ics-launch',  'Product Launch Party',     'Online',           '+3 days'],
-            ['demo-ics-meetup',  'SF Designers Meetup',      'San Francisco',    '+10 days'],
-            ['demo-ics-webinar', 'Q4 Strategy Webinar',      'Online (Zoom)',    '+14 days'],
-            ['demo-ics-dinner',  'Founder Dinner — Series A','New York',         '+21 days'],
-            ['demo-ics-hackday', 'Hack Day for Climate',     'Brooklyn, NY',     '+30 days'],
-            ['demo-ics-pastevent','Recap: Spring Showcase',  'Los Angeles',      '-15 days'],
+        // A handful of hand-authored "flagship" events (kept from the
+        // original seed) so existing aliases referenced elsewhere still work.
+        $flagship = [
+            ['demo-ics-launch',  'Product Launch Party',     'Online',           '+3 days',  'technology',  true,  false, ['launch', 'product', 'tech']],
+            ['demo-ics-meetup',  'SF Designers Meetup',      'San Francisco',    '+10 days', 'community',   false, false, ['design', 'meetup', 'sf']],
+            ['demo-ics-webinar', 'Q4 Strategy Webinar',      'Online (Zoom)',    '+14 days', 'business',    true,  false, ['webinar', 'strategy']],
+            ['demo-ics-dinner',  'Founder Dinner — Series A','New York',         '+21 days', 'business',    false, true,  ['founders', 'dinner']],
+            ['demo-ics-hackday', 'Hack Day for Climate',     'Brooklyn, NY',     '+30 days', 'technology',  false, false, ['climate', 'hackathon']],
+            ['demo-ics-pastevent','Recap: Spring Showcase',  'Los Angeles',      '-15 days', 'arts',        false, false, ['recap', 'showcase']],
         ];
+
+        // City pool (lat/lng) so physical events plot sensibly on the map
+        // search and "near me" filter.
+        $cities = [
+            ['San Francisco, CA', 37.7749, -122.4194],
+            ['New York, NY',       40.7128,  -74.0060],
+            ['Austin, TX',         30.2672,  -97.7431],
+            ['Chicago, IL',        41.8781,  -87.6298],
+            ['Seattle, WA',        47.6062, -122.3321],
+            ['Miami, FL',          25.7617,  -80.1918],
+            ['Denver, CO',         39.7392, -104.9903],
+            ['Boston, MA',         42.3601,  -71.0589],
+            ['London, UK',         51.5072,   -0.1276],
+            ['Berlin, Germany',    52.5200,   13.4050],
+            ['Toronto, Canada',    43.6532,  -79.3832],
+            ['Sydney, Australia', -33.8688,  151.2093],
+            ['Tokyo, Japan',       35.6762,  139.6503],
+            ['Bengaluru, India',   12.9716,   77.5946],
+            ['Lisbon, Portugal',   38.7223,   -9.1393],
+            ['Mexico City, Mexico',19.4326,  -99.1332],
+        ];
+
+        // Per-category title/hashtag templates so events read as believable
+        // real-world happenings rather than "Event #42".
+        $templates = [
+            'music'           => [['{c} Live Sessions', ['livemusic', 'gig']], ['Indie Night at {c}', ['indie', 'music']], ['{c} Jazz Evening', ['jazz', 'music']]],
+            'nightlife'       => [['{c} Rooftop Party', ['party', 'nightlife']], ['Sunset Social — {c}', ['social', 'drinks']], ['Neon Nights: {c}', ['nightlife', 'dj']]],
+            'arts'            => [['{c} Gallery Opening', ['art', 'gallery']], ['Sculpture Walk — {c}', ['sculpture', 'arts']], ['{c} Photography Exhibit', ['photography', 'exhibit']]],
+            'film'            => [['{c} Short Film Night', ['shortfilm', 'cinema']], ['Documentary Screening — {c}', ['documentary', 'film']], ['{c} Film Festival Kickoff', ['filmfest', 'movies']]],
+            'comedy'          => [['Stand-Up Night — {c}', ['standup', 'comedy']], ['{c} Improv Showcase', ['improv', 'comedy']], ['Laugh Lab: {c}', ['comedy', 'funny']]],
+            'food_drink'      => [['{c} Street Food Fair', ['streetfood', 'foodie']], ['Craft Beer Tasting — {c}', ['craftbeer', 'tasting']], ['{c} Wine & Cheese Night', ['wine', 'foodpairing']]],
+            'technology'      => [['{c} Startup Demo Day', ['startup', 'demoday']], ['AI Builders Meetup — {c}', ['ai', 'buildinpublic']], ['{c} DevOps Summit', ['devops', 'engineering']]],
+            'business'        => [['{c} Founders Breakfast', ['founders', 'networking']], ['Growth Marketing Panel — {c}', ['marketing', 'growth']], ['{c} Leadership Roundtable', ['leadership', 'business']]],
+            'education'       => [['{c} Career Workshop', ['careers', 'workshop']], ['Public Speaking Bootcamp — {c}', ['publicspeaking', 'learning']], ['{c} Coding for Beginners', ['coding', 'education']]],
+            'community'       => [['{c} Neighbors Meetup', ['community', 'meetup']], ['Volunteers Day — {c}', ['volunteer', 'giveback']], ['{c} Newcomers Social', ['newcomers', 'community']]],
+            'sports_fitness'  => [['{c} 5K Fun Run', ['5k', 'running']], ['Yoga in the Park — {c}', ['yoga', 'wellness']], ['{c} Pickup Basketball League', ['basketball', 'sports']]],
+            'health_wellness' => [['Mindfulness Retreat — {c}', ['mindfulness', 'wellness']], ['{c} Nutrition Workshop', ['nutrition', 'health']], ['Sound Bath Session — {c}', ['soundbath', 'relax']]],
+            'outdoor_travel'  => [['{c} Hiking Club Meetup', ['hiking', 'outdoors']], ['Sunrise Kayak Tour — {c}', ['kayak', 'adventure']], ['{c} Weekend Camping Trip', ['camping', 'travel']]],
+            'gaming'          => [['{c} Esports Tournament', ['esports', 'gaming']], ['Board Game Night — {c}', ['boardgames', 'gamenight']], ['{c} Retro Arcade Meetup', ['retrogaming', 'arcade']]],
+            'fashion'         => [['{c} Streetwear Pop-Up', ['streetwear', 'fashion']], ['Runway Show — {c}', ['runway', 'fashionweek']], ['{c} Vintage Swap Meet', ['vintage', 'thrift']]],
+            'charity'         => [['{c} Charity Gala', ['charity', 'gala']], ['Fundraiser 5K — {c}', ['fundraiser', 'charity']], ['{c} Food Drive Kickoff', ['fooddrive', 'giveback']]],
+        ];
+
+        $categorySlugs = array_keys($templates);
         $now = now();
-        foreach ($events as $i => [$alias, $title, $loc, $when]) {
-            $link = Link::forceCreate([
+        $created = 0;
+
+        // Skip aliases already seeded (idempotent + resumable across
+        // interrupted runs) — one bulk lookup instead of a per-alias check.
+        $existingAliases = Link::query()->withoutWorkspaceScope()
+            ->where(function ($q) {
+                $q->where('alias', 'like', 'demo-evt-%')->orWhere('alias', 'like', 'demo-ics-%');
+            })
+            ->pluck('alias')->flip()->all();
+
+        foreach ($flagship as $i => [$alias, $title, $loc, $when, $category, $online, $ticketed, $tags]) {
+            if (isset($existingAliases[$alias])) {
+                $created++;
+                continue;
+            }
+            $city = $cities[$i % count($cities)];
+            $this->makeDemoEvent($user, $ws, [
+                'alias' => $alias, 'title' => $title, 'location' => $loc,
+                'start' => Carbon::parse($when), 'category' => $category,
+                'online' => $online, 'ticketed' => $ticketed, 'rsvp' => !$ticketed,
+                'hashtags' => $tags,
+                'lat' => $online ? null : $city[1], 'lng' => $online ? null : $city[2],
+                'clicks' => 30 + $i * 9, 'idx' => $i,
+            ]);
+            $created++;
+        }
+
+        // Generate the remaining ~94 events by cycling category × city ×
+        // template combinations with a deterministic pseudo-random spread of
+        // dates (past + upcoming), online/physical, and ticketed/RSVP/plain.
+        $target = 100;
+        $n = 0;
+        while ($created < $target) {
+            $category = $categorySlugs[$n % count($categorySlugs)];
+            $city = $cities[$n % count($cities)];
+            $tplSet = $templates[$category];
+            $tpl = $tplSet[$n % count($tplSet)];
+            $cityShort = trim(explode(',', $city[0])[0]);
+            $title = str_replace('{c}', $cityShort, $tpl[0]);
+            $baseTags = $tpl[1];
+
+            // Deterministic pseudo-random spread: ~15% past, rest spread
+            // across the next 90 days; ~20% online; ~35% ticketed, ~40%
+            // plain RSVP, ~25% no RSVP (informational only).
+            $dayOffset = ($n % 10 === 0) ? -1 * (($n % 25) + 1) : (($n * 7 + 3) % 90) + 1;
+            $isOnline = ($n % 5 === 0);
+            $mode = $n % 4;
+            $ticketed = $mode === 0 || $mode === 1;
+            $rsvp = $mode === 2;
+
+            $alias = sprintf('demo-evt-%03d', $n + 1);
+            if (isset($existingAliases[$alias])) {
+                $created++;
+                $n++;
+                continue;
+            }
+            $this->makeDemoEvent($user, $ws, [
+                'alias' => $alias, 'title' => $title,
+                'location' => $isOnline ? 'Online' : ($city[0]),
+                'start' => $now->copy()->addDays($dayOffset)->setTime(9 + ($n % 10), ($n % 4) * 15),
+                'category' => $category,
+                'online' => $isOnline, 'ticketed' => $ticketed, 'rsvp' => $rsvp,
+                'hashtags' => $baseTags,
+                'lat' => $isOnline ? null : $city[1], 'lng' => $isOnline ? null : $city[2],
+                'clicks' => 15 + (($n * 13) % 220),
+                'idx' => $n,
+            ]);
+            $created++;
+            $n++;
+        }
+    }
+
+    /**
+     * Create one demo `ics` link + IcsData row (and, for ticketed events, a
+     * couple of ticket tiers) from a normalized spec. Shared by the flagship
+     * hand-authored events and the generated bulk batch so both paths stay
+     * in lockstep (settings keys, gallery/cover image, hashtags).
+     *
+     * @param  array{alias:string,title:string,location:string,start:Carbon,category:string,online:bool,ticketed:bool,rsvp:bool,hashtags:array,lat:?float,lng:?float,clicks:int,idx:int} $spec
+     */
+    private function makeDemoEvent(User $user, Workspace $ws, array $spec): void
+    {
+        $clicks = $spec['clicks'];
+        $unique = (int) max(1, round($clicks * 0.65));
+        $isPast = $spec['start']->isPast();
+
+        // updateOrCreate by alias (globally unique) rather than forceCreate,
+        // so re-running the seeder — or resuming a partially-completed run —
+        // never trips the aliases unique constraint.
+        $link = Link::query()->withoutWorkspaceScope()->updateOrCreate(
+            ['alias' => $spec['alias']],
+            [
                 'workspace_id' => $ws->id,
                 'user_id' => $user->id,
                 'created_by_user_id' => $user->id,
-                'type' => 'ics', 'alias' => $alias, 'title' => $title,
+                'type' => 'ics', 'title' => $spec['title'],
                 'is_active' => true, 'visibility' => 'public', 'is_demo' => true,
-                'total_clicks' => 30 + $i * 9,
-                'unique_clicks' => 22 + $i * 6,
-            ]);
-            IcsData::forceCreate([
-                'link_id'     => $link->id,
-                'event_name'  => $title,
-                'description' => "Demo event: $title",
-                'location'    => $loc,
-                'start_date'  => Carbon::parse($when),
-                'end_date'    => Carbon::parse($when)->addHours(2),
+                'total_clicks' => $clicks, 'unique_clicks' => $unique,
+                'settings' => [
+                    'event_category' => $spec['category'],
+                    'is_online'      => $spec['online'],
+                    'rsvp_enabled'   => $spec['rsvp'],
+                ],
+            ]
+        );
+
+        $seed = $spec['alias'];
+        IcsData::updateOrCreate(
+            ['link_id' => $link->id],
+            [
+                'event_name'  => $spec['title'],
+                'description' => "Join us for {$spec['title']}" . ($spec['online'] ? ' — streamed online, link shared after RSVP.' : " in {$spec['location']}.") . ' ' . ($isPast ? 'Thanks to everyone who came out!' : "We can't wait to see you there."),
+                'location'    => $spec['location'],
+                'organizer'   => $user->name,
+                'start_date'  => $spec['start'],
+                'end_date'    => $spec['start']->copy()->addHours(2),
                 'timezone'    => 'UTC',
-            ]);
+                'latitude'    => $spec['lat'],
+                'longitude'   => $spec['lng'],
+                'hashtags'    => $spec['hashtags'],
+                'cover_image_url' => "https://picsum.photos/seed/{$seed}/800/500",
+                'gallery'     => [
+                    "https://picsum.photos/seed/{$seed}-2/600/400",
+                    "https://picsum.photos/seed/{$seed}-3/600/400",
+                ],
+            ]
+        );
+
+        EventTicketTier::where('link_id', $link->id)->delete();
+        if ($spec['ticketed']) {
+            $tierNames = $spec['idx'] % 3 === 0
+                ? [['General Admission', 0, 200], ['VIP', 4500, 40]]
+                : [['Early Bird', 1500, 30], ['Standard', 2500, 100]];
+            foreach ($tierNames as $tIdx => [$tName, $priceCents, $capacity]) {
+                $link->eventTicketTiers()->create([
+                    'name' => $tName,
+                    'price_cents' => $priceCents,
+                    'currency' => 'usd',
+                    'capacity' => $capacity,
+                    'sold_count' => min($capacity, (int) round($capacity * (0.1 + ($spec['idx'] % 5) * 0.1))),
+                    'is_active' => true,
+                    'sort_order' => $tIdx,
+                ]);
+            }
         }
     }
 
