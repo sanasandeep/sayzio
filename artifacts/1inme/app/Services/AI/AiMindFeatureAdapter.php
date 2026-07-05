@@ -32,6 +32,8 @@ class AiMindFeatureAdapter
         // Task #3523 — grounding for AI Staff's billing & contacts domains.
         'billing'     => 'Billing & Invoices',
         'contacts'    => 'Contacts & Leads',
+        // Task #3611 — grounding in live calendar/event + ticketing data.
+        'events'      => 'Events & Calendar',
     ];
 
     /**
@@ -91,6 +93,7 @@ class AiMindFeatureAdapter
             'profile'   => $this->profile($user),
             'billing'   => $this->billing($user),
             'contacts'  => $this->contacts($user),
+            'events'    => $this->events($user),
             default     => '',
         };
     }
@@ -417,6 +420,125 @@ class AiMindFeatureAdapter
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Events & Calendar snapshot for Task #3611: a compact summary of the
+     * user's followable-calendar events ({@see CalendarEvent}, denormalized
+     * `user_id`) plus their single-invite ticketed/RSVP-able `ics` event
+     * links, so the AI can answer "what's my next event?" / "how many
+     * tickets have I sold?" from live data. Upcoming events (soonest
+     * first) are prioritized, then a few of the most recent past events
+     * fill any remaining slots. Ticket/RSVP figures reuse the existing
+     * count helpers ({@see EventCheckinProgress}) rather than
+     * reimplementing tallies, and only ever surface counts — never
+     * attendee names/emails/phones (same PII-avoidance convention as
+     * billing()/contacts()). Guarded against calendar/ticketing tables
+     * being absent on older/partial installs.
+     */
+    protected function events(User $user): string
+    {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('calendar_events')) {
+                return '';
+            }
+
+            $now = now();
+            $entries = [];
+
+            $calendarEvents = \App\Modules\User\Models\CalendarEvent::query()
+                ->where('user_id', $user->id)
+                ->get(['id', 'title', 'start_at', 'timezone', 'location']);
+
+            foreach ($calendarEvents as $e) {
+                $entries[] = [
+                    'title'     => $e->title,
+                    'start_at'  => $e->start_at,
+                    'tz'        => $e->effectiveTimezone(),
+                    'location'  => $e->location,
+                    'ticketing' => null,
+                ];
+            }
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('ics_data')) {
+                $ticketedLinks = $user->links()
+                    ->where('type', 'ics')
+                    ->with('icsData')
+                    ->get(['id', 'user_id', 'title', 'alias']);
+
+                $hasTierTable = \Illuminate\Support\Facades\Schema::hasTable('event_ticket_tiers');
+                $hasRsvpTable = \Illuminate\Support\Facades\Schema::hasTable('rsvps');
+
+                foreach ($ticketedLinks as $link) {
+                    $ics = $link->icsData;
+                    if (!$ics || !$ics->start_date) {
+                        continue;
+                    }
+
+                    $ticketing = null;
+                    if ($hasTierTable && $link->eventTicketTiers()->exists()) {
+                        $progress = \App\Services\Events\EventCheckinProgress::for($link);
+                        $capacity = (int) $link->eventTicketTiers()->sum('capacity');
+                        $ticketing = sprintf(
+                            '%d sold%s, %d checked in',
+                            $progress['totals']['sold'],
+                            $capacity > 0 ? " of {$capacity}" : '',
+                            $progress['totals']['checked_in']
+                        );
+                    } elseif ($hasRsvpTable) {
+                        $totalRsvps = $link->rsvps()->count();
+                        if ($totalRsvps > 0) {
+                            $going = $link->rsvps()
+                                ->where('response', 'yes')
+                                ->where('status', '!=', 'cancelled')
+                                ->count();
+                            $ticketing = "{$going} RSVP'd yes ({$totalRsvps} responses)";
+                        }
+                    }
+
+                    $entries[] = [
+                        'title'     => $link->title ?: ('@' . $link->alias),
+                        'start_at'  => $ics->start_date,
+                        'tz'        => \App\Support\PlatformTimezone::resolve($ics->timezone),
+                        'location'  => $ics->location,
+                        'ticketing' => $ticketing,
+                    ];
+                }
+            }
+
+            if (empty($entries)) {
+                return 'You have no events yet.';
+            }
+
+            $upcoming = collect($entries)
+                ->filter(fn ($e) => $e['start_at'] && $e['start_at']->gte($now))
+                ->sortBy('start_at')
+                ->values();
+            $recent = collect($entries)
+                ->filter(fn ($e) => !$e['start_at'] || $e['start_at']->lt($now))
+                ->sortByDesc('start_at')
+                ->values();
+
+            $selected = $upcoming->take(6);
+            $remaining = 8 - $selected->count();
+            if ($remaining > 0) {
+                $selected = $selected->concat($recent->take($remaining));
+            }
+
+            $lines = [sprintf('Events — %d total, %d upcoming:', count($entries), $upcoming->count())];
+            foreach ($selected as $e) {
+                $when = $e['start_at']
+                    ? $e['start_at']->copy()->setTimezone($e['tz'])->format('M j, Y g:ia') . ' ' . $e['tz']
+                    : 'date TBD';
+                $loc = $e['location'] ? " @ {$e['location']}" : '';
+                $ticket = $e['ticketing'] ? " — {$e['ticketing']}" : '';
+                $lines[] = "- {$e['title']}{$ticket} ({$when}{$loc})";
+            }
+
+            return implode("\n", $lines);
+        } catch (\Throwable $ex) {
+            return '';
+        }
     }
 
     protected function profile(User $user): string
