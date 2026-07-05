@@ -133,9 +133,11 @@
 @include('public.partials.header', ['useModal' => $useModal ?? false])
 
 {{-- Cross-page "Discover Events" promo band — every site-layout page shows
-     it except the events directory itself, which already has the full hero
-     it's modeled on. --}}
-@unless(request()->routeIs('events.index'))
+     it except the events directory itself (which already has the full hero
+     it's modeled on) and any page that opts out via the
+     `suppress_events_hero_band` request attribute (e.g. a single event's own
+     page, which has its own hero and would otherwise show two stacked heroes). --}}
+@unless(request()->routeIs('events.index') || request()->attributes->get('suppress_events_hero_band'))
     @include('common.partials.events-hero-band')
 @endunless
 

@@ -13,6 +13,11 @@
     $shareTitle = $link->title;
     $shareDescription = $metaDescription;
     $shareImage = $ics->cover_image_url ?? null;
+
+    // This page has its own cover-image hero — suppress the layout's
+    // cross-page "Discover Events" promo band so it doesn't stack a second,
+    // competing hero above this one (Task #3668).
+    request()->attributes->set('suppress_events_hero_band', true);
 @endphp
 
 @section('title', $link->title)
@@ -33,6 +38,7 @@
     .ev-muted { color: rgba(255,255,255,0.6); }
     .ev-muted-lite { color: rgba(255,255,255,0.4); }
     .ev-desc { color: rgba(255,255,255,0.7); }
+    .ev-price-free { color: #34d399; }
     #ev-map { height:260px; border-radius:0.9rem; }
     footer.ev-footer { color: rgba(255,255,255,0.25); }
 
@@ -46,6 +52,7 @@
     html.light-mode .ev-muted { color: rgba(15,23,42,0.6); }
     html.light-mode .ev-muted-lite { color: rgba(15,23,42,0.4); }
     html.light-mode .ev-desc { color: rgba(15,23,42,0.72); }
+    html.light-mode .ev-price-free { color: #059669; }
     html.light-mode h1.ev-title { color:#0f172a; }
     html.light-mode footer.ev-footer { color: rgba(15,23,42,0.4); }
 
@@ -85,7 +92,7 @@
 @endpush
 
 @section('content')
-<section class="relative pt-8 pb-20 lg:pt-12">
+<section class="relative pb-20">
     <div class="mesh-bg"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -183,7 +190,7 @@
                                                         @endif
                                                     </div>
                                                 </div>
-                                                <div class="font-bold text-sm whitespace-nowrap {{ $tier->isFree() ? 'text-emerald-400' : '' }}">{{ $tier->priceLabel() }}</div>
+                                                <div class="font-bold text-sm whitespace-nowrap {{ $tier->isFree() ? 'ev-price-free' : '' }}">{{ $tier->priceLabel() }}</div>
                                             </label>
                                         @endforeach
                                     </div>
