@@ -197,36 +197,6 @@
         }
         .header-glow { display: none; }
 
-        .header-search-trigger {
-            background: var(--bg-glass-input);
-            border: 1px solid var(--border-glass);
-            border-radius: 11px;
-            padding: 8px 10px 8px 12px;
-            font-size: 12px;
-            color: var(--text-faint);
-            outline: none;
-            width: 240px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .header-search-trigger:hover {
-            border-color: rgba(61,107,255,0.3);
-            box-shadow: 0 0 0 3px rgba(61,107,255,0.08);
-            background: var(--bg-glass-input-focus);
-            color: var(--text-primary);
-        }
-        .header-search-trigger i { font-size: 11px; }
-        .header-search-trigger span { flex: 1; text-align: left; }
-        .header-search-trigger kbd {
-            font-size: 10px;
-            font-weight: 700;
-            padding: 1px 6px;
-            border-radius: 6px;
-            background: var(--bg-glass-input-focus);
-            border: 1px solid var(--border-glass);
-            color: var(--text-muted);
-        }
-
         .header-icon-btn {
             width: 36px;
             height: 36px;
@@ -1310,12 +1280,10 @@
                          universal finder (contacts, people, links, followed,
                          workspaces) alongside nav shortcuts. This trigger just
                          opens it. --}}
-                    <button type="button" class="header-search-trigger hidden md:flex items-center gap-2"
+                    <button type="button" class="header-icon-btn hidden sm:flex"
                             onclick="window.dispatchEvent(new CustomEvent('open-global-search'))"
-                            title="Search (⌘K)" aria-label="Search">
+                            title="Search (⌘K)" aria-label="Search (⌘K)">
                         <i class="fas fa-search"></i>
-                        <span>Search…</span>
-                        <kbd>⌘K</kbd>
                     </button>
 
                     <div class="hidden lg:flex items-center">
