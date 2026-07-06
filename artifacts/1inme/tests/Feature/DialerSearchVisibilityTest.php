@@ -360,6 +360,37 @@ class DialerSearchVisibilityTest extends TestCase
         );
     }
 
+    public function test_api_search_reveals_a_followed_creators_registered_only_link(): void
+    {
+        // Positive "registered"-tier assertion on the surface the mobile app
+        // actually consumes. Every Dialer viewer is authenticated, so a
+        // "registered" link must surface for any authenticated searcher who can
+        // reach the creator (here, via a follow) — no follow-tier relationship
+        // (`followers`) or subscription (`subscribers`) may be required for this
+        // tier. This tier is otherwise covered only by the surface-independent
+        // canViewLink() reflection test; without this assertion a regression
+        // that accidentally treated "registered" like "followers"/"subscribers"
+        // (demanding a follow-tier or subscription) or dropped it entirely would
+        // go uncaught on the API surface. The viewer follows the creator but
+        // never subscribes, so the "Followed" pool contains the creator and
+        // canViewLink() is the sole filter.
+        $viewer  = $this->makeUser('viewer');
+        $creator = $this->makeUser('creator');
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $creator->id]);
+        // Follows but never subscribes — "registered" must pass on authentication alone.
+        $registeredLink = $this->makeLink($creator, 'registered');
+
+        $resp = $this->asUser($viewer)->getJson('/api/v1/dialer/search?q=' . self::TOKEN);
+        $resp->assertOk();
+
+        $followed = $this->groupLinkIds($resp->json('data'), 'followed');
+        $this->assertContains(
+            $registeredLink->id,
+            $followed,
+            'an authenticated follower (non-subscriber) must see a followed creator\'s registered-tier link'
+        );
+    }
+
     public function test_api_search_hides_a_creators_followers_only_link_from_a_non_follower(): void
     {
         // Negative followers-only mirror on the API surface. A non-follower must
