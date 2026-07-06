@@ -43,7 +43,7 @@
                 <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
                     <i class="fas fa-sliders text-blue-400 text-xs"></i>
                 </div>
-                <h2 class="text-sm font-bold" style="color: var(--text-primary);">Customize dashboard</h2>
+                <h2 class="text-sm font-bold" style="color: var(--text-primary);">AI Dashboard Settings</h2>
             </div>
             <button type="button" @click="close()" class="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white/5" style="color: var(--text-faint);">
                 <i class="fas fa-times text-sm"></i>
