@@ -5,7 +5,13 @@ description: Aggregates captured people across 8 capture surfaces (RSVPs, form s
 
 The `leads` table is deliberately sparse/state-only: a row is written ONLY when a lead is approved or dismissed (keyed by `source_type` + `source_id`). "Pending" is computed live — an item is pending as long as no `Lead` row exists for its key. Nothing on the 8 source tables themselves is ever mutated.
 
-`LeadAggregator` re-queries all 8 source tables on every request (no caching/denormalized index) and filters out already-handled ids in PHP. This is fine at demo scale but will not scale to large source tables — see the tech-debt follow-up filed for this.
+`LeadAggregator` re-queries all 8 source tables on every request (no denormalized index/cache) but does it entirely in SQL so it scales to tens of thousands of rows:
+- **Done-exclusion** is a correlated `whereNotExists` against the sparse `leads` table (`source_type` + `source_id`, backed by its unique index), NOT a PHP pluck of handled ids.
+- **Counts / pending badge** are one `COUNT` per source (8 total), never row loads.
+- **Cross-source pagination** fetches only the top `page * perPage` rows per active source (`orderByDesc(created_at)->limit()`), merges those in PHP, sorts, then slices — so only ~one page of candidates is ever materialised. Correct because the global top-N is always a subset of each source's top-N.
+- **Search** is pushed into SQL per source (`ilike` on real name/email/phone + source-specific columns; form payloads matched via a Postgres `data::text ILIKE` cast + `whereHas('form')`). It intentionally targets real columns, not the PHP-computed `context` string.
+- **Indexes**: `(scope, created_at)` composite indexes on the 7 source tables that lacked one (`form_submissions` already had `(form_id, created_at)`) via an idempotent `CREATE INDEX IF NOT EXISTS` migration.
+- `deep pagination` (very high page numbers) grows the per-source `limit`; acceptable since the queue is meant to be worked down, not paged into the thousands.
 
 **Cap semantics:** `LeadApprover::approve()` only enforces the plan's contact cap on the *create-new-contact* path. Deduping into an *existing* contact never counts against the cap, mirroring the manual "Add contact" flow's own dedup rule (`ContactCandidateValidator`).
 

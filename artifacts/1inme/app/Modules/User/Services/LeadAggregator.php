@@ -13,8 +13,11 @@ use App\Modules\User\Models\Rsvp;
 use App\Modules\User\Models\ServiceBookingRequest;
 use App\Modules\User\Models\StoreOrder;
 use App\Modules\User\Models\Subscriber;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Aggregates captured people across 8 capture surfaces into a single
@@ -22,6 +25,15 @@ use Illuminate\Support\Collection;
  * {@see Lead} state row exists for its (source_type, source_id) pair —
  * approving or dismissing writes that row so the item drops out of the
  * pending view without ever mutating the source record itself.
+ *
+ * Scaling note: every operation pushes filtering, "already handled"
+ * exclusion, counting and pagination down into SQL. Nothing loads a whole
+ * source table into memory. "Already handled" is excluded via a correlated
+ * `NOT EXISTS` against the (sparse) `leads` table rather than plucking every
+ * done id into PHP. Cross-source pagination fetches only the top
+ * `page * perPage` rows per active source, merges those in memory, then
+ * slices the requested page — so a business with tens of thousands of
+ * RSVPs/orders/reviews only ever materialises one page's worth of candidates.
  *
  * Scoping note: Subscriber and Form(Submission) already carry real
  * workspace_id data (via BelongsToWorkspace) so those two sources are
@@ -49,6 +61,10 @@ class LeadAggregator
         self::SOURCE_SERVICE_BOOKING, self::SOURCE_REVIEW, self::SOURCE_EVENT_INTEREST,
     ];
 
+    /** Memoised per-user link/form id sets used by the source scopes. */
+    protected ?Collection $linkIds = null;
+    protected ?Collection $formIds = null;
+
     public static function sourceLabels(): array
     {
         return [
@@ -68,20 +84,36 @@ class LeadAggregator
     /** Count of pending leads across all sources (sidebar badge). */
     public function pendingCount(): int
     {
-        return $this->collectAll(null, '')->count();
+        return array_sum($this->countsBySource());
     }
 
     public function paginate(array $filters, int $perPage = 25, int $page = 1): LengthAwarePaginator
     {
-        $sourceFilter = $filters['source'] ?? null;
-        $search       = trim((string) ($filters['q'] ?? ''));
+        $page   = max(1, $page);
+        $search = trim((string) ($filters['q'] ?? ''));
+        $sources = $this->activeSources($filters['source'] ?? null);
 
-        $all = $this->collectAll($sourceFilter, $search)
-            ->sortByDesc(fn ($i) => optional($i['created_at'])->getTimestamp() ?? 0)
-            ->values();
+        // To surface the correct page of a global created_at-desc ordering
+        // across N sources, the top (page * perPage) rows of each source are
+        // a sufficient superset — merge those, sort, then slice.
+        $limit = $page * $perPage;
 
-        $total     = $all->count();
-        $pageItems = $all->forPage($page, $perPage)->values();
+        $total = 0;
+        $rows  = collect();
+
+        foreach ($sources as $source) {
+            $base = $this->applySearch($this->sourceQuery($source), $source, $search);
+
+            $total += (clone $base)->count();
+
+            $models = (clone $base)->orderByDesc('created_at')->limit($limit)->get();
+            foreach ($models as $model) {
+                $rows->push($this->mapRow($source, $model));
+            }
+        }
+
+        $sorted    = $rows->sortByDesc(fn ($i) => optional($i['created_at'])->getTimestamp() ?? 0)->values();
+        $pageItems = $sorted->forPage($page, $perPage)->values();
 
         return new LengthAwarePaginator(
             $pageItems, $total, $perPage, $page,
@@ -92,83 +124,228 @@ class LeadAggregator
     /** Find a single pending item by source_type/source_id (for the approve/dismiss actions). */
     public function find(string $sourceType, int $sourceId): ?array
     {
-        return $this->collectAll($sourceType, '')
-            ->first(fn ($i) => $i['source_id'] === $sourceId);
+        if (!in_array($sourceType, self::SOURCES, true)) {
+            return null;
+        }
+
+        $model = $this->sourceQuery($sourceType)->whereKey($sourceId)->first();
+
+        return $model ? $this->mapRow($sourceType, $model) : null;
     }
 
-    /** Pending-lead count per source, in one pass (used for the filter chips). */
+    /** Pending-lead count per source (used for the filter chips), one COUNT query each. */
     public function countsBySource(): array
     {
         $counts = array_fill_keys(self::SOURCES, 0);
-        foreach ($this->collectAll(null, '') as $item) {
-            $counts[$item['source_type']] = ($counts[$item['source_type']] ?? 0) + 1;
+        foreach (self::SOURCES as $source) {
+            $counts[$source] = $this->sourceQuery($source)->count();
         }
         return $counts;
     }
 
-    protected function collectAll(?string $sourceFilter, string $search): Collection
+    /** @return list<string> The sources a request touches (all, or a single valid filter). */
+    protected function activeSources(?string $filter): array
     {
-        $linkIds = Link::withoutGlobalScope('workspace')
-            ->where('user_id', $this->userId)
-            ->pluck('id');
-
-        $done = $this->doneKeys();
-
-        $items = collect();
-
-        if (!$sourceFilter || $sourceFilter === self::SOURCE_RSVP) {
-            $items = $items->concat($this->rsvps($linkIds, $done));
+        if ($filter && in_array($filter, self::SOURCES, true)) {
+            return [$filter];
         }
-        if (!$sourceFilter || $sourceFilter === self::SOURCE_FORM) {
-            $items = $items->concat($this->formSubmissions($done));
-        }
-        if (!$sourceFilter || $sourceFilter === self::SOURCE_SUBSCRIBER) {
-            $items = $items->concat($this->subscribers($done));
-        }
-        if (!$sourceFilter || $sourceFilter === self::SOURCE_STORE_ORDER) {
-            $items = $items->concat($this->storeOrders($linkIds, $done));
-        }
-        if (!$sourceFilter || $sourceFilter === self::SOURCE_RESTAURANT_ORDER) {
-            $items = $items->concat($this->restaurantOrders($linkIds, $done));
-        }
-        if (!$sourceFilter || $sourceFilter === self::SOURCE_SERVICE_BOOKING) {
-            $items = $items->concat($this->serviceBookings($linkIds, $done));
-        }
-        if (!$sourceFilter || $sourceFilter === self::SOURCE_REVIEW) {
-            $items = $items->concat($this->reviews($done));
-        }
-        if (!$sourceFilter || $sourceFilter === self::SOURCE_EVENT_INTEREST) {
-            $items = $items->concat($this->eventInterests($linkIds, $done));
-        }
-
-        if ($search !== '') {
-            $needle = mb_strtolower($search);
-            $items = $items->filter(function ($i) use ($needle) {
-                foreach ([$i['name'], $i['email'], $i['phone'], $i['context']] as $f) {
-                    if ($f && str_contains(mb_strtolower((string) $f), $needle)) return true;
-                }
-                return false;
-            });
-        }
-
-        return $items->values();
+        return self::SOURCES;
     }
 
-    /** @return array<string,true> keyed "{source_type}:{source_id}" for already-acted-on leads. */
-    protected function doneKeys(): array
+    /**
+     * Base pending query for a source: owner/workspace scoping + a
+     * correlated NOT EXISTS that drops anything already approved/dismissed,
+     * all resolved in SQL. Eager loads are attached here but only fire on get().
+     */
+    protected function sourceQuery(string $source): Builder
     {
-        return Lead::withoutGlobalScope('workspace')
-            ->where('user_id', $this->userId)
-            ->get(['source_type', 'source_id'])
-            ->reduce(function (array $acc, Lead $l) {
-                $acc[$l->source_type . ':' . $l->source_id] = true;
-                return $acc;
-            }, []);
+        $query = match ($source) {
+            self::SOURCE_RSVP => Rsvp::query()
+                ->whereIn('link_id', $this->linkIds())
+                ->with('link:id,alias,title'),
+
+            self::SOURCE_FORM => FormSubmission::query()
+                ->whereIn('form_id', $this->formIds())
+                ->where('is_spam', false)
+                ->completed()
+                ->with('form:id,title'),
+
+            self::SOURCE_SUBSCRIBER => Subscriber::query()
+                ->where('user_id', $this->userId)
+                ->where('is_spam', false),
+
+            self::SOURCE_STORE_ORDER => StoreOrder::query()
+                ->whereIn('link_id', $this->linkIds()),
+
+            self::SOURCE_RESTAURANT_ORDER => RestaurantOrder::query()
+                ->whereIn('link_id', $this->linkIds()),
+
+            self::SOURCE_SERVICE_BOOKING => ServiceBookingRequest::query()
+                ->whereIn('link_id', $this->linkIds()),
+
+            self::SOURCE_REVIEW => Review::query()
+                ->where('user_id', $this->userId)
+                ->where('is_spam', false),
+
+            self::SOURCE_EVENT_INTEREST => EventInterest::query()
+                ->whereIn('link_id', $this->linkIds())
+                ->where('status', EventInterest::INTERESTED)
+                ->with('user:id,name,email'),
+        };
+
+        return $this->excludeDone($query, $source);
     }
 
-    protected function isDone(array $done, string $type, int $id): bool
+    /** Drop rows that already have a Lead state row, via a correlated NOT EXISTS (no PHP pluck). */
+    protected function excludeDone(Builder $query, string $source): Builder
     {
-        return isset($done[$type . ':' . $id]);
+        $table = $query->getModel()->getTable();
+
+        return $query->whereNotExists(function ($sub) use ($source, $table) {
+            $sub->select(DB::raw(1))
+                ->from('leads')
+                ->whereColumn('leads.source_id', "{$table}.id")
+                ->where('leads.source_type', $source)
+                ->where('leads.user_id', $this->userId);
+        });
+    }
+
+    /**
+     * Push the free-text search down into SQL against each source's real
+     * columns (name/email/phone plus source-specific text). Form payloads
+     * live in JSON, so those match on a `data::text` cast (Postgres).
+     */
+    protected function applySearch(Builder $query, string $source, string $search): Builder
+    {
+        $needle = trim($search);
+        if ($needle === '') {
+            return $query;
+        }
+
+        $like = '%' . addcslashes($needle, '%_\\') . '%';
+
+        return $query->where(function (Builder $w) use ($source, $like) {
+            switch ($source) {
+                case self::SOURCE_RSVP:
+                    $w->where('name', 'ilike', $like)
+                        ->orWhere('email', 'ilike', $like)
+                        ->orWhere('phone', 'ilike', $like)
+                        ->orWhere('response', 'ilike', $like);
+                    break;
+
+                case self::SOURCE_FORM:
+                    $w->whereRaw('data::text ILIKE ?', [$like])
+                        ->orWhereHas('form', fn (Builder $f) => $f->where('title', 'ilike', $like));
+                    break;
+
+                case self::SOURCE_SUBSCRIBER:
+                    $w->where('name', 'ilike', $like)
+                        ->orWhere('email', 'ilike', $like)
+                        ->orWhere('phone', 'ilike', $like)
+                        ->orWhere('type', 'ilike', $like);
+                    break;
+
+                case self::SOURCE_STORE_ORDER:
+                    $w->where('customer_name', 'ilike', $like)
+                        ->orWhere('customer_contact', 'ilike', $like)
+                        ->orWhere('status', 'ilike', $like);
+                    break;
+
+                case self::SOURCE_RESTAURANT_ORDER:
+                    $w->where('customer_name', 'ilike', $like)
+                        ->orWhere('status', 'ilike', $like);
+                    break;
+
+                case self::SOURCE_SERVICE_BOOKING:
+                    $w->where('customer_name', 'ilike', $like)
+                        ->orWhere('customer_email', 'ilike', $like)
+                        ->orWhere('customer_phone', 'ilike', $like)
+                        ->orWhere('status', 'ilike', $like);
+                    break;
+
+                case self::SOURCE_REVIEW:
+                    $w->where('author_name', 'ilike', $like)
+                        ->orWhere('author_email', 'ilike', $like);
+                    break;
+
+                case self::SOURCE_EVENT_INTEREST:
+                    $w->where('guest_email', 'ilike', $like)
+                        ->orWhereHas('user', fn (Builder $u) => $u
+                            ->where('name', 'ilike', $like)
+                            ->orWhere('email', 'ilike', $like));
+                    break;
+            }
+        });
+    }
+
+    /** Turn a fetched source model into the normalised lead row shape. */
+    protected function mapRow(string $source, Model $model): array
+    {
+        switch ($source) {
+            case self::SOURCE_RSVP:
+                return $this->row(
+                    self::SOURCE_RSVP, $model->id, $model->name, $model->email, $model->phone,
+                    trim(($model->response ? ucfirst($model->response) : '') . ($model->link?->alias ? ' · /' . $model->link->alias : '')) ?: null,
+                    $model->created_at
+                );
+
+            case self::SOURCE_FORM:
+                [$name, $email, $phone, $organization] = $this->extractIdentity((array) ($model->data ?? []));
+                return $this->row(
+                    self::SOURCE_FORM, $model->id, $name, $email, $phone,
+                    $model->form?->title,
+                    $model->created_at,
+                    $organization
+                );
+
+            case self::SOURCE_SUBSCRIBER:
+                return $this->row(
+                    self::SOURCE_SUBSCRIBER, $model->id, $model->name, $model->email, $model->phone,
+                    $model->type ? ucfirst(str_replace('_', ' ', $model->type)) : null,
+                    $model->subscribed_at ?? $model->created_at
+                );
+
+            case self::SOURCE_STORE_ORDER:
+                $contact = trim((string) $model->customer_contact);
+                $email   = filter_var($contact, FILTER_VALIDATE_EMAIL) ? $contact : null;
+                $phone   = ($contact !== '' && !$email) ? $contact : null;
+                return $this->row(
+                    self::SOURCE_STORE_ORDER, $model->id, $model->customer_name, $email, $phone,
+                    'Order #' . $model->id . ' · ' . ($model->status_label ?? $model->status),
+                    $model->created_at
+                );
+
+            case self::SOURCE_RESTAURANT_ORDER:
+                return $this->row(
+                    self::SOURCE_RESTAURANT_ORDER, $model->id, $model->customer_name, null, null,
+                    'Order #' . $model->id . ($model->table_label ? ' · Table ' . $model->table_label : ''),
+                    $model->created_at
+                );
+
+            case self::SOURCE_SERVICE_BOOKING:
+                return $this->row(
+                    self::SOURCE_SERVICE_BOOKING, $model->id, $model->customer_name, $model->customer_email, $model->customer_phone,
+                    $model->status_label ?? $model->status,
+                    $model->created_at
+                );
+
+            case self::SOURCE_REVIEW:
+                return $this->row(
+                    self::SOURCE_REVIEW, $model->id, $model->author_name, $model->author_email, null,
+                    $model->rating ? $model->rating . '★ review' : 'Review',
+                    $model->created_at
+                );
+
+            case self::SOURCE_EVENT_INTEREST:
+                return $this->row(
+                    self::SOURCE_EVENT_INTEREST, $model->id,
+                    $model->user?->name, $model->user?->email ?: $model->guest_email, null,
+                    'Interested in event',
+                    $model->created_at
+                );
+        }
+
+        return $this->row($source, $model->id, null, null, null, null, $model->created_at ?? null);
     }
 
     protected function row(string $type, int $id, ?string $name, ?string $email, ?string $phone, ?string $context, $createdAt, ?string $organization = null): array
@@ -186,40 +363,16 @@ class LeadAggregator
         ];
     }
 
-    protected function rsvps(Collection $linkIds, array $done): Collection
+    protected function linkIds(): Collection
     {
-        return Rsvp::whereIn('link_id', $linkIds)
-            ->with('link:id,alias,title')
-            ->orderByDesc('created_at')
-            ->get()
-            ->filter(fn ($r) => !$this->isDone($done, self::SOURCE_RSVP, $r->id))
-            ->map(fn ($r) => $this->row(
-                self::SOURCE_RSVP, $r->id, $r->name, $r->email, $r->phone,
-                trim(($r->response ? ucfirst($r->response) : '') . ($r->link?->alias ? ' · /' . $r->link->alias : '')) ?: null,
-                $r->created_at
-            ));
+        return $this->linkIds ??= Link::withoutGlobalScope('workspace')
+            ->where('user_id', $this->userId)
+            ->pluck('id');
     }
 
-    protected function formSubmissions(array $done): Collection
+    protected function formIds(): Collection
     {
-        $formIds = Form::where('user_id', $this->userId)->pluck('id');
-
-        return FormSubmission::whereIn('form_id', $formIds)
-            ->where('is_spam', false)
-            ->completed()
-            ->with('form:id,title')
-            ->orderByDesc('created_at')
-            ->get()
-            ->filter(fn ($f) => !$this->isDone($done, self::SOURCE_FORM, $f->id))
-            ->map(function ($f) {
-                [$name, $email, $phone, $organization] = $this->extractIdentity((array) ($f->data ?? []));
-                return $this->row(
-                    self::SOURCE_FORM, $f->id, $name, $email, $phone,
-                    $f->form?->title,
-                    $f->created_at,
-                    $organization
-                );
-            });
+        return $this->formIds ??= Form::where('user_id', $this->userId)->pluck('id');
     }
 
     /**
@@ -268,93 +421,5 @@ class LeadAggregator
         }
 
         return [$name, $email, $phone, $organization];
-    }
-
-    protected function subscribers(array $done): Collection
-    {
-        return Subscriber::where('user_id', $this->userId)
-            ->where('is_spam', false)
-            ->orderByDesc('created_at')
-            ->get()
-            ->filter(fn ($s) => !$this->isDone($done, self::SOURCE_SUBSCRIBER, $s->id))
-            ->map(fn ($s) => $this->row(
-                self::SOURCE_SUBSCRIBER, $s->id, $s->name, $s->email, $s->phone,
-                $s->type ? ucfirst(str_replace('_', ' ', $s->type)) : null,
-                $s->subscribed_at ?? $s->created_at
-            ));
-    }
-
-    protected function storeOrders(Collection $linkIds, array $done): Collection
-    {
-        return StoreOrder::whereIn('link_id', $linkIds)
-            ->orderByDesc('created_at')
-            ->get()
-            ->filter(fn ($o) => !$this->isDone($done, self::SOURCE_STORE_ORDER, $o->id))
-            ->map(function ($o) {
-                $contact = trim((string) $o->customer_contact);
-                $email   = filter_var($contact, FILTER_VALIDATE_EMAIL) ? $contact : null;
-                $phone   = ($contact !== '' && !$email) ? $contact : null;
-                return $this->row(
-                    self::SOURCE_STORE_ORDER, $o->id, $o->customer_name, $email, $phone,
-                    'Order #' . $o->id . ' · ' . ($o->status_label ?? $o->status),
-                    $o->created_at
-                );
-            });
-    }
-
-    protected function restaurantOrders(Collection $linkIds, array $done): Collection
-    {
-        return RestaurantOrder::whereIn('link_id', $linkIds)
-            ->orderByDesc('created_at')
-            ->get()
-            ->filter(fn ($o) => !$this->isDone($done, self::SOURCE_RESTAURANT_ORDER, $o->id))
-            ->map(fn ($o) => $this->row(
-                self::SOURCE_RESTAURANT_ORDER, $o->id, $o->customer_name, null, null,
-                'Order #' . $o->id . ($o->table_label ? ' · Table ' . $o->table_label : ''),
-                $o->created_at
-            ));
-    }
-
-    protected function serviceBookings(Collection $linkIds, array $done): Collection
-    {
-        return ServiceBookingRequest::whereIn('link_id', $linkIds)
-            ->orderByDesc('created_at')
-            ->get()
-            ->filter(fn ($b) => !$this->isDone($done, self::SOURCE_SERVICE_BOOKING, $b->id))
-            ->map(fn ($b) => $this->row(
-                self::SOURCE_SERVICE_BOOKING, $b->id, $b->customer_name, $b->customer_email, $b->customer_phone,
-                $b->status_label ?? $b->status,
-                $b->created_at
-            ));
-    }
-
-    protected function reviews(array $done): Collection
-    {
-        return Review::where('user_id', $this->userId)
-            ->where('is_spam', false)
-            ->orderByDesc('created_at')
-            ->get()
-            ->filter(fn ($r) => !$this->isDone($done, self::SOURCE_REVIEW, $r->id))
-            ->map(fn ($r) => $this->row(
-                self::SOURCE_REVIEW, $r->id, $r->author_name, $r->author_email, null,
-                $r->rating ? $r->rating . '★ review' : 'Review',
-                $r->created_at
-            ));
-    }
-
-    protected function eventInterests(Collection $linkIds, array $done): Collection
-    {
-        return EventInterest::whereIn('link_id', $linkIds)
-            ->where('status', EventInterest::INTERESTED)
-            ->with('user:id,name,email')
-            ->orderByDesc('created_at')
-            ->get()
-            ->filter(fn ($e) => !$this->isDone($done, self::SOURCE_EVENT_INTEREST, $e->id))
-            ->map(fn ($e) => $this->row(
-                self::SOURCE_EVENT_INTEREST, $e->id,
-                $e->user?->name, $e->user?->email ?: $e->guest_email, null,
-                'Interested in event',
-                $e->created_at
-            ));
     }
 }
