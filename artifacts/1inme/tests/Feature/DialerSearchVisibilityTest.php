@@ -330,6 +330,58 @@ class DialerSearchVisibilityTest extends TestCase
         $this->assertContains($subsLink->id, $followed);
     }
 
+    public function test_api_search_reveals_a_followed_creators_followers_only_link(): void
+    {
+        // Positive followers-only mirror of the subscribers-only API test above,
+        // on the surface the mobile app actually consumes. The followed-links
+        // query in DialerSearch opts out of the BelongsToWorkspace global scope
+        // and the Sanctum path binds no workspace, so canViewLink() is the sole
+        // filter. A follower who does NOT subscribe must still see a followed
+        // creator's followers-only link — following is enough for that tier, and
+        // no subscription may be required. Without this assertion a regression
+        // that accidentally demanded a subscription for the `followers` tier, or
+        // dropped a followed creator's followers-only link, would go uncaught on
+        // the API surface (only the surface-independent canViewLink() reflection
+        // test and the web endpoint cover it today).
+        $viewer  = $this->makeUser('viewer');
+        $creator = $this->makeUser('creator');
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $creator->id]);
+        // Follows but never subscribes — following alone must suffice.
+        $followersLink = $this->makeLink($creator, 'followers');
+
+        $resp = $this->asUser($viewer)->getJson('/api/v1/dialer/search?q=' . self::TOKEN);
+        $resp->assertOk();
+
+        $followed = $this->groupLinkIds($resp->json('data'), 'followed');
+        $this->assertContains(
+            $followersLink->id,
+            $followed,
+            'a follower (non-subscriber) must see a followed creator\'s followers-only link'
+        );
+    }
+
+    public function test_api_search_hides_a_creators_followers_only_link_from_a_non_follower(): void
+    {
+        // Negative followers-only mirror on the API surface. A non-follower must
+        // never see a creator's followers-only link anywhere in the payload. The
+        // creator here is neither followed nor saved as a contact, so their
+        // records are not even in the searchable universe — but we assert the
+        // absence explicitly so a future regression that widened the followed
+        // pool (or relaxed the followers gate) is caught on the mobile surface.
+        $viewer  = $this->makeUser('viewer');
+        $creator = $this->makeUser('creator');
+        $followersLink = $this->makeLink($creator, 'followers');
+
+        $resp = $this->asUser($viewer)->getJson('/api/v1/dialer/search?q=' . self::TOKEN);
+        $resp->assertOk();
+
+        $this->assertNotContains(
+            $followersLink->id,
+            $this->linkIds($resp->json('data')),
+            'a non-follower must never see a creator\'s followers-only link'
+        );
+    }
+
     public function test_api_search_owner_sees_their_own_subscribers_only_link(): void
     {
         $owner = $this->makeUser('owner');
