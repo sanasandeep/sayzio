@@ -276,7 +276,73 @@ for (const type of EXPECTED_PAIRING_TYPES) {
 }
 
 // ---------------------------------------------------------------------------
-// 7. Sanity: an unknown pairing type still falls back to the generic Create
+// 7. Parity: the mobile proactive gated set must not silently drift from the
+//    web authoritative gating map (which link types are gated). Every link
+//    type the web gates (LinkController::enforceLinkTypeQuota) that mobile can
+//    also create must be present in mobile's GATED_LINK_TYPES — otherwise a
+//    plan that disables the module or sets the cap to 0 only bounces the user
+//    at submit (a server 402) instead of showing a proactive lock. And vice
+//    versa: mobile must not gate a type the web doesn't (that would falsely
+//    lock it). This complements the free-plan reachability check above.
+// ---------------------------------------------------------------------------
+// Parse the shipped mobile gated set (apiType strings) from source.
+const mobileGated = new Set(
+  [...gatedSetSrc.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]),
+);
+assert.ok(mobileGated.size > 0, "failed to parse GATED_LINK_TYPES entries");
+
+// Web-gated types the mobile uniform-cap gate CANNOT express: their web
+// module_/max_ keys aren't the uniform `<type>` form AND the mobile apiType
+// differs from the web type, so both `module_<apiType>` and `max_<apiType>`
+// mismatch and the gate would fail open anyway. These are intentionally left
+// out of the mobile set (see the "Mobile per-type link lock cap-key" note).
+// `calendar` (web type) maps to mobile apiType `event`, cap key `max_calendars`.
+const MOBILE_GATE_UNEXPRESSIBLE = new Set(["calendar"]);
+
+// Forward: every web-gated, mobile-creatable type must be gated on mobile.
+for (const [webType, gate] of Object.entries(gatingMap)) {
+  if (MOBILE_GATE_UNEXPRESSIBLE.has(webType)) continue;
+  const apiType = kindToApiType[webType];
+  if (!apiType) continue; // web-gated but not a mobile create option
+  assert.ok(
+    mobileGated.has(apiType),
+    `web gates link type '${webType}' (module '${gate.module}', cap '${gate.cap}') ` +
+      `and mobile can create it (apiType '${apiType}'), but it is missing from ` +
+      `GATED_LINK_TYPES in usePlanFeatures.ts — mobile would only bounce the user ` +
+      `at submit instead of proactively locking it. Add '${apiType}' to the set.`,
+  );
+}
+
+// Reverse: mobile must not gate a type the web doesn't gate. Every mobile
+// gated apiType equals its web type name (the one exception, calendar->event,
+// is unexpressible and excluded above), so a direct gating-map lookup holds.
+for (const apiType of mobileGated) {
+  assert.ok(
+    gatingMap[apiType],
+    `mobile GATED_LINK_TYPES includes '${apiType}' but the web gating map ` +
+      `(LinkController::enforceLinkTypeQuota) does not gate it — this would ` +
+      `falsely lock the type on mobile. Remove it or add web gating.`,
+  );
+}
+
+// Store pages (`store_menu`) are newly gated but must stay reachable on the
+// free plan (seeder grants max_store_menu=1 with no disabling module toggle) —
+// assert the shipped gate does not falsely lock a fresh free account. This is
+// the direct free-plan reachability guard for a gated type that isn't a
+// "Perfect pairings" catalog item (so the loop above doesn't cover it).
+assert.ok(
+  mobileGated.has("store_menu"),
+  "store_menu is expected to be in mobile GATED_LINK_TYPES",
+);
+assert.equal(
+  isLinkTypeLocked("store_menu"),
+  false,
+  "mobile isLinkTypeLocked('store_menu') is TRUE on the free plan — Store " +
+    "pages would be falsely locked for a fresh free account",
+);
+
+// ---------------------------------------------------------------------------
+// 8. Sanity: an unknown pairing type still falls back to the generic Create
 //    tab (defensive default, mirrors the shipped switch).
 // ---------------------------------------------------------------------------
 assert.equal(
