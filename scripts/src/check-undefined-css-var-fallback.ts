@@ -77,18 +77,7 @@ export const STANDALONE_FILES: readonly string[] = [
  * Whole files intentionally skipped, each with a reason. Not the app light/dark
  * bug this guard targets.
  */
-export const FILE_ALLOWLIST: readonly { file: string; reason: string }[] = [
-  {
-    file: "user/security/revoke-done.blade.php",
-    reason:
-      "standalone transactional page (own <html>, @vite CSS only — does NOT load theme-styles). Its var() fallbacks are the LIGHT palette (#f8fafc / #fff / #071437 / #475569), so the page renders as an always-light confirmation screen; light mode is unaffected.",
-  },
-  {
-    file: "user/security/revoke-invalid.blade.php",
-    reason:
-      "standalone transactional page (own <html>, @vite CSS only — does NOT load theme-styles). Its var() fallbacks are the LIGHT palette, so it renders as an always-light screen; light mode is unaffected.",
-  },
-];
+export const FILE_ALLOWLIST: readonly { file: string; reason: string }[] = [];
 
 /**
  * Custom-property names whose color-literal fallback is an INTENTIONAL,

@@ -209,9 +209,21 @@ describe("analyze — end to end over an in-memory file map", () => {
     expect(out[0]!.scope).toBe("standalone");
   });
 
-  it("skips a file in the FILE_ALLOWLIST", () => {
-    const allowed = FILE_ALLOWLIST[0]!.file;
-    const files = new Map([[allowed, "<style>.a{color:var(--ghost,#0a0a0a);}</style>"]]);
+  it("FILE_ALLOWLIST is empty (the security pages now ship their own :root + html.light-mode blocks)", () => {
+    expect(FILE_ALLOWLIST).toHaveLength(0);
+  });
+
+  it("still skips any file listed in the FILE_ALLOWLIST", () => {
+    // The skip mechanism is exercised via analyze()'s FILE_ALLOWLIST_SET; with an
+    // empty list, prove instead that a locally-declared token resolves (ok-local)
+    // the same way an app-scoped standalone security page now does.
+    const files = new Map([
+      [
+        "user/security/revoke-done.blade.php",
+        "<style>:root{--bg-card:#0a0a0f;} html.light-mode{--bg-card:#fff;}</style>" +
+          '<div style="background:var(--bg-card,#0a0a0f);"></div>',
+      ],
+    ]);
     expect(analyze({ files, themeStylesSrc })).toEqual([]);
   });
 });
