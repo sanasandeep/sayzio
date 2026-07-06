@@ -1360,6 +1360,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('leads',            [LeadController::class, 'index'])->middleware('workspace.can:settings.view')->name('leads.index');
         Route::post('leads/approve',   [LeadController::class, 'approve'])->middleware('workspace.can:settings.edit')->name('leads.approve');
         Route::post('leads/dismiss',   [LeadController::class, 'dismiss'])->middleware('workspace.can:settings.edit')->name('leads.dismiss');
+        Route::post('leads/bulk-preview', [LeadController::class, 'bulkPreview'])->middleware('workspace.can:settings.edit')->name('leads.bulk-preview');
         Route::post('leads/bulk',      [LeadController::class, 'bulk'])->middleware('workspace.can:settings.edit')->name('leads.bulk');
 
         // Connected Apps (CRM two-way sync + Google Analytics forwarding).

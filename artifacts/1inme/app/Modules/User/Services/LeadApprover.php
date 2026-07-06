@@ -95,6 +95,94 @@ class LeadApprover
     }
 
     /**
+     * Dry-run a batch of {source_type, source_id} rows and classify what
+     * each would do on approve — WITHOUT persisting anything — so the UI
+     * can warn the creator before they blow past their plan's contact cap.
+     *
+     * Classification mirrors {@see approve()}: an item that dedupes into an
+     * existing contact "merges" (never counts against the cap); everything
+     * else "creates" (consumes one cap slot). We simulate the same
+     * sequential ordering the real bulk loop uses, so a later item that
+     * matches a contact an earlier item in the batch would have created is
+     * also counted as a merge — otherwise the preview would over-count
+     * creates and warn about blocks that won't actually happen.
+     *
+     * @param  array<int, array{source_type: string, source_id: int}>  $items
+     * @return array{
+     *   total:int, created:int, merged:int, blocked:int, gone:int,
+     *   approvable:int, cap:int, existing:int, remaining:int
+     * }
+     */
+    public function planBatch(User $owner, array $items): array
+    {
+        $aggregator = new LeadAggregator($owner->id);
+
+        $cap      = ContactController::planContactsCap($owner);
+        $existing = Contact::where('user_id', $owner->id)->count();
+        $capacity = $cap === -1 ? PHP_INT_MAX : max(0, $cap - $existing);
+
+        $created = 0;
+        $merged  = 0;
+        $blocked = 0;
+        $gone    = 0;
+
+        // Emails/phones of contacts this batch would create earlier on, so a
+        // later duplicate within the same batch merges instead of creating.
+        $pendingEmails = [];
+        $pendingPhones = [];
+
+        foreach ($items as $row) {
+            $item = $aggregator->find((string) ($row['source_type'] ?? ''), (int) ($row['source_id'] ?? 0));
+            if (!$item) {
+                $gone++;
+                continue;
+            }
+
+            $candidate = new ContactCandidateValidator($owner->id);
+            $candidate->validate([
+                'display_name' => $item['name'] ?? null,
+                'emails'       => !empty($item['email']) ? [['label' => 'Other', 'value' => $item['email']]] : [],
+                'phones'       => !empty($item['phone']) ? [['label' => 'Other', 'value' => $item['phone']]] : [],
+                'source_url'   => null,
+            ]);
+
+            $email = $candidate->normalized['emails'][0]['value'] ?? null;
+            $phone = $candidate->normalized['phones'][0]['value_e164'] ?? null;
+
+            $mergesIntoExisting = (bool) $candidate->duplicateOf;
+            $mergesIntoBatch    = (!$mergesIntoExisting)
+                && (($email !== null && isset($pendingEmails[$email]))
+                    || ($phone !== null && isset($pendingPhones[$phone])));
+
+            if ($mergesIntoExisting || $mergesIntoBatch) {
+                $merged++;
+                continue;
+            }
+
+            if ($capacity > 0) {
+                $created++;
+                $capacity--;
+                if ($email !== null) $pendingEmails[$email] = true;
+                if ($phone !== null) $pendingPhones[$phone] = true;
+            } else {
+                $blocked++;
+            }
+        }
+
+        return [
+            'total'      => count($items),
+            'created'    => $created,
+            'merged'     => $merged,
+            'blocked'    => $blocked,
+            'gone'       => $gone,
+            'approvable' => $created + $merged,
+            'cap'        => $cap,
+            'existing'   => $existing,
+            'remaining'  => $cap === -1 ? -1 : max(0, $cap - $existing),
+        ];
+    }
+
+    /**
      * Add any newly-captured email/phone that the existing contact doesn't
      * already have, comparing by normalized value (not just "has none at
      * all") so a second matching lead can still contribute a new work email

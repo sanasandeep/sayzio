@@ -117,6 +117,17 @@ function leadsQueue() {
             setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, contactUrl ? 8000 : 4000);
         },
         init() {
+            // Surface a toast stashed just before a bulk reload, so the
+            // creator sees the outcome once the refreshed list loads.
+            try {
+                const stashed = sessionStorage.getItem('leadsBulkToast');
+                if (stashed) {
+                    sessionStorage.removeItem('leadsBulkToast');
+                    const t = JSON.parse(stashed);
+                    this.pushToast(!!t.ok, t.message || 'Done.');
+                }
+            } catch (e) { /* ignore */ }
+
             document.addEventListener('change', (e) => {
                 if (e.target.id === 'leads-select-all') {
                     const boxes = document.querySelectorAll('.lead-checkbox');
@@ -163,12 +174,57 @@ function leadsQueue() {
             })
             .catch(() => { this.pushToast(false, 'Network error. Please try again.'); if (btn) btn.disabled = false; });
         },
-        bulkAct(action) {
-            if (!this.selected.length) return;
-            const items = this.selected.map(v => {
+        bulkItems() {
+            return this.selected.map(v => {
                 const [source_type, source_id] = v.split(':');
                 return { source_type, source_id: parseInt(source_id, 10) };
             });
+        },
+        // Ask the server how many of the selected leads can actually be
+        // approved under the plan's contact cap, and warn if some would be
+        // blocked, before committing anything.
+        async previewApprove(items) {
+            const res = await fetch(`{{ url('/user/leads/bulk-preview') }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': this.csrf(),
+                },
+                body: JSON.stringify({ items }),
+            }).then(r => r.json());
+
+            if (res.blocked > 0) {
+                const capText = res.cap === -1
+                    ? ''
+                    : ` Your plan allows ${res.cap} contact(s) and you already have ${res.existing}.`;
+                const parts = [];
+                if (res.created) parts.push(`${res.created} new`);
+                if (res.merged) parts.push(`${res.merged} merged into existing contacts`);
+                const breakdown = parts.length ? ` (${parts.join(', ')})` : '';
+                const msg =
+                    `${res.approvable} of ${res.total} selected lead(s) will be approved${breakdown}.\n\n` +
+                    `${res.blocked} can't be approved because you've reached your plan's contact limit.` +
+                    `${capText}\n\nUpgrade your plan to approve the rest.\n\n` +
+                    `Approve the ${res.approvable} that fit now?`;
+                return window.confirm(msg);
+            }
+            return true;
+        },
+        async bulkAct(action) {
+            if (!this.selected.length) return;
+            const items = this.bulkItems();
+
+            if (action === 'approve') {
+                try {
+                    const proceed = await this.previewApprove(items);
+                    if (!proceed) return;
+                } catch (e) {
+                    alert('Could not check your plan limit. Please try again.');
+                    return;
+                }
+            }
+
             fetch(`{{ url('/user/leads/bulk') }}`, {
                 method: 'POST',
                 headers: {
@@ -179,7 +235,15 @@ function leadsQueue() {
                 body: JSON.stringify({ action, items }),
             })
             .then(r => r.json())
-            .then(() => window.location.reload())
+            .then(res => {
+                try {
+                    sessionStorage.setItem('leadsBulkToast', JSON.stringify({
+                        ok: !!res.success,
+                        message: res.message || 'Done.',
+                    }));
+                } catch (e) { /* ignore */ }
+                window.location.reload();
+            })
             .catch(() => alert('Network error. Please try again.'));
         },
     };
