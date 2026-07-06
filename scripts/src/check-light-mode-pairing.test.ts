@@ -11,6 +11,9 @@ import {
   findMissingPairs,
   checkSource,
   checkTarget,
+  countInlineThemedDecls,
+  countLightOverrides,
+  checkPartial,
 } from "./check-light-mode-pairing.js";
 
 /**
@@ -215,13 +218,124 @@ describe("the live configured TARGETS", () => {
   });
 
   it.each(TARGETS.map((t) => [t.label, t] as const))(
-    "%s currently has every base color rule paired (or allowlisted)",
+    "%s currently has every base color rule paired (or allowlisted) and every inline-styled partial covered",
     (_label, target) => {
       const abs = path.join(REPO_ROOT, target.page);
       expect(fs.existsSync(abs), `${target.page} should exist`).toBe(true);
       const result = checkTarget(target);
       expect(result.error).toBeUndefined();
       expect(result.missing).toEqual([]);
+      expect(result.partialMismatches).toEqual([]);
     },
   );
+});
+
+/**
+ * Inline-styled partial coverage (structural count proxy).
+ *
+ * Some partials a page includes bake their dark colors as inline
+ * `style="…color:{{ $var }}…"` attributes, so there is no base rule for
+ * findMissingPairs to catch. The count check pins that every themed inline
+ * color/border has a paired `html.light-mode` override, and that adding/removing
+ * one without its pair (the historical washed-out regression on the event
+ * page's tips/pairings sections) trips the guard.
+ */
+describe("countInlineThemedDecls", () => {
+  it("counts a themed inline color but ignores literal (inherit) values", () => {
+    const src = `<a style="color:{{ $c }}; background:{{ $bg }};"><i style="color:inherit;"></i></a>`;
+    expect(countInlineThemedDecls(src)).toEqual({ color: 1, "border-color": 0 });
+  });
+
+  it("buckets border shorthand and border-color together, only when themed", () => {
+    const src = [
+      `<div style="border:1px solid {{ $b }};"></div>`,
+      `<div style="border-color:{{ $b2 }};"></div>`,
+      `<div style="border:1px solid #fff;"></div>`, // literal — not themed
+    ].join("");
+    expect(countInlineThemedDecls(src)).toEqual({ color: 0, "border-color": 2 });
+  });
+
+  it("does not scan the partial's own <style> block (hover/transition rules)", () => {
+    const src = [
+      `<span style="color:{{ $c }};">x</span>`,
+      `<style>.card:hover { border-color: {{ $accent }}; color: {{ $c }}; }</style>`,
+    ].join("");
+    // Only the inline attribute counts; the <style> block is ignored.
+    expect(countInlineThemedDecls(src)).toEqual({ color: 1, "border-color": 0 });
+  });
+
+  it("supports single-quoted style attributes", () => {
+    expect(countInlineThemedDecls(`<span style='color:{{ $c }};'>x</span>`)).toEqual({
+      color: 1,
+      "border-color": 0,
+    });
+  });
+});
+
+describe("countLightOverrides", () => {
+  it("counts light-mode color/border-color overrides for the given scope classes", () => {
+    const rules = parseRules(
+      [
+        "html.light-mode .ev-connection-tips { color:#111827; }",
+        "html.light-mode .ev-connection-tip-card { border-color:rgba(61,107,255,.16); background:#fff; }",
+        "html.light-mode .ev-connection-tip-card > span:last-child { color:#3d6bff; }",
+      ].join("\n"),
+    );
+    expect(countLightOverrides(rules, ["ev-connection-tips", "ev-connection-tip-card"])).toEqual({
+      color: 2,
+      "border-color": 1,
+    });
+  });
+
+  it("ignores base (non-light-mode) rules and out-of-scope selectors", () => {
+    const rules = parseRules(
+      [
+        ".ev-connection-tips { color:#f4f4f8; }", // base, not light — ignored
+        "html.light-mode .ltp-pairings { color:#111827; }", // different scope
+      ].join("\n"),
+    );
+    expect(countLightOverrides(rules, ["ev-connection-tips"])).toEqual({ color: 0, "border-color": 0 });
+  });
+});
+
+describe("checkPartial — count parity between inline colors and light overrides", () => {
+  const spec = { name: "demo", file: "x", scopeClasses: ["demo-card"] };
+
+  it("passes when every themed inline color has exactly one light override", () => {
+    const partial = `<div class="demo-card" style="color:{{ $t }}; border:1px solid {{ $b }};"></div>`;
+    const page = [
+      "<style>",
+      "html.light-mode .demo-card { color:#111; border-color:#ccc; }",
+      "</style>",
+    ].join("\n");
+    expect(checkPartial(partial, page, spec)).toEqual([]);
+  });
+
+  it("flags a themed inline color added without a light override (the washout regression)", () => {
+    const partial = `<div class="demo-card" style="color:{{ $t }};"></div>`;
+    const page = "<style></style>"; // forgot the override
+    expect(checkPartial(partial, page, spec)).toEqual([
+      { partial: "demo", property: "color", inline: 1, overrides: 0, expected: 1 },
+    ]);
+  });
+
+  it("flags an orphan light override with no themed inline peer", () => {
+    const partial = `<div class="demo-card"></div>`; // no themed inline color
+    const page = "<style>html.light-mode .demo-card { color:#111; }</style>";
+    expect(checkPartial(partial, page, spec)).toEqual([
+      { partial: "demo", property: "color", inline: 0, overrides: 1, expected: 0 },
+    ]);
+  });
+
+  it("respects a partial allowlist entry that intentionally needs no override", () => {
+    const partial = `<div class="demo-card" style="color:{{ $t }};"></div>`;
+    const page = "<style></style>";
+    const allowed = {
+      name: "demo",
+      file: "x",
+      scopeClasses: ["demo-card"],
+      allowlist: [{ property: "color" as const, inlineWithoutOverride: 1, reason: "theme-neutral" }],
+    };
+    expect(checkPartial(partial, page, allowed)).toEqual([]);
+  });
 });

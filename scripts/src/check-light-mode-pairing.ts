@@ -62,6 +62,41 @@ export type ColorProp = (typeof COLOR_PROPS)[number];
 /** A selector+property that intentionally has no light-mode counterpart. */
 export type AllowEntry = { selector: string; property: ColorProp; reason: string };
 
+/**
+ * An intentional imbalance between a partial's themed inline colors and its
+ * light overrides: `inlineWithoutOverride` themed inline declarations of
+ * `property` legitimately need NO `html.light-mode` counterpart (a theme-neutral
+ * value, or one override intentionally covering several elements).
+ */
+export type PartialAllowEntry = {
+  property: ColorProp;
+  inlineWithoutOverride: number;
+  reason: string;
+};
+
+/**
+ * An inline-styled partial a page `@include`s whose dark colors are baked as
+ * `style="…{{ $var }}…"` attributes rather than base `<style>` rules — so there
+ * is nothing for `findMissingPairs` to selector-pair against (only the light
+ * overrides live in the page). Coverage is instead verified by a STRUCTURAL
+ * COUNT (see `checkPartial`): every themed inline `color`/`border` in the
+ * partial must have exactly one paired `html.light-mode` override targeting the
+ * partial's scope classes.
+ */
+export interface PartialSpec {
+  /** Human name used in messages. */
+  name: string;
+  /** Partial path relative to repo root. */
+  file: string;
+  /**
+   * Class tokens (no leading dot) the partial's themed elements carry and that
+   * the page's `html.light-mode` overrides target.
+   */
+  scopeClasses: string[];
+  /** Intentional inline-vs-override count imbalances, each with a reason. */
+  allowlist?: PartialAllowEntry[];
+}
+
 export interface Target {
   /** Repo-relative path to the blade page. */
   page: string;
@@ -74,6 +109,13 @@ export interface Target {
   scopes?: string[];
   /** Intentionally un-paired selector+property rules, each with a reason. */
   allowlist: AllowEntry[];
+  /**
+   * Inline-styled partials this page includes whose dark colors are baked as
+   * `style="…"` attributes (no base `<style>` rule to pair against). Each is
+   * verified by a structural inline-vs-override count instead of selector
+   * pairing (see `checkPartial`).
+   */
+  partials?: PartialSpec[];
 }
 
 /**
@@ -91,6 +133,23 @@ export const TARGETS: Target[] = [
         property: "border-color",
         reason:
           "blue focus-ring accent (#3d6bff) — the brand accent reads clearly on both the dark and the white input surface, so the focus border is intentionally theme-neutral.",
+      },
+    ],
+    // The event page's right-column tips/pairings partials bake their dark
+    // colors as inline style="…{{ $var }}…" attributes (no base <style> rule to
+    // selector-pair against), so they are verified by a structural inline-vs-
+    // override count instead — see checkPartial. Both regressed by hand before
+    // (their light overrides were missing), which is what motivated this guard.
+    partials: [
+      {
+        name: "event-connection-tips",
+        file: "artifacts/1inme/resources/views/common/partials/event-connection-tips.blade.php",
+        scopeClasses: ["ev-connection-tips", "ev-connection-tip-card"],
+      },
+      {
+        name: "link-type-pairings",
+        file: "artifacts/1inme/resources/views/common/partials/link-type-pairings.blade.php",
+        scopeClasses: ["ltp-pairings"],
       },
     ],
   },
@@ -465,9 +524,124 @@ export function checkSource(src: string, options: FindOptions = {}): MissingPair
   return findMissingPairs(parseRules(extractStyleBlocks(src)), options);
 }
 
+/* -------------------------------------------------------------------------- *
+ * Inline-styled partial coverage (structural count proxy)
+ * -------------------------------------------------------------------------- *
+ * Some partials a page includes bake their dark theme colors as INLINE
+ * `style="…color:{{ $var }}…"` attributes (the `$theme` prop resolves them to
+ * dark values), so `findMissingPairs` has no base rule to pair against — only
+ * their `html.light-mode` overrides live in the page's `<style>` block. A
+ * structural proxy is used instead: every element carrying a THEMED inline
+ * `color` (or `border`) must have exactly one paired `html.light-mode` override
+ * targeting that partial's scope classes. Adding a themed inline color without
+ * its override (or leaving an orphan override) trips the per-property count.
+ */
+
+/** The two color buckets compared between a partial and its light overrides. */
+export interface Coverage {
+  color: number;
+  "border-color": number;
+}
+
+/**
+ * A blade interpolation marks an inline value as THEME-driven (dark on the host
+ * page). A literal value (e.g. `inherit`) reads the same in both themes and
+ * needs no override, so it is skipped.
+ */
+const BLADE_INTERP = /\{\{[\s\S]*?\}\}/;
+
+/**
+ * Count the THEMED inline `color` and `border`/`border-color` declarations in a
+ * partial's `style="…"` attributes. `border` shorthand and `border-color` both
+ * fall in the `border-color` bucket. Only theme-variable values are counted —
+ * literal values read the same in both themes. The partial's own `<style>`
+ * block (hover/transition rules) is deliberately NOT scanned; only inline
+ * attributes, which is where the dark colors are baked.
+ */
+export function countInlineThemedDecls(src: string): Coverage {
+  const attrRe = /\bstyle\s*=\s*"([^"]*)"|\bstyle\s*=\s*'([^']*)'/gi;
+  const out: Coverage = { color: 0, "border-color": 0 };
+  let m: RegExpExecArray | null;
+  while ((m = attrRe.exec(src)) !== null) {
+    const body = m[1] ?? m[2] ?? "";
+    for (const decl of body.split(";")) {
+      const colon = decl.indexOf(":");
+      if (colon === -1) continue;
+      const prop = decl.slice(0, colon).trim().toLowerCase();
+      const value = decl.slice(colon + 1);
+      if (!BLADE_INTERP.test(value)) continue;
+      if (prop === "color") out.color++;
+      else if (prop === "border" || prop === "border-color") out["border-color"]++;
+    }
+  }
+  return out;
+}
+
+/**
+ * Count the `html.light-mode` override rules in a page's parsed rules that
+ * target a partial's scope classes and set `color` / `border-color`.
+ */
+export function countLightOverrides(rules: CssRule[], scopeClasses: string[]): Coverage {
+  const out: Coverage = { color: 0, "border-color": 0 };
+  for (const rule of rules) {
+    for (const sel of rule.selectors) {
+      if (!sel.startsWith(LIGHT_PREFIX)) continue;
+      const stripped = sel.slice(LIGHT_PREFIX.length);
+      if (!scopeClasses.some((c) => stripped.includes("." + c))) continue;
+      if (rule.props.has("color")) out.color++;
+      if (rule.props.has("border-color")) out["border-color"]++;
+    }
+  }
+  return out;
+}
+
+function partialAllowedFor(spec: PartialSpec, property: ColorProp): number {
+  return (spec.allowlist ?? [])
+    .filter((e) => e.property === property)
+    .reduce((n, e) => n + e.inlineWithoutOverride, 0);
+}
+
+export interface PartialMismatch {
+  partial: string;
+  property: ColorProp;
+  inline: number;
+  overrides: number;
+  expected: number;
+}
+
+/**
+ * Compare one partial's themed inline colors against its `html.light-mode`
+ * overrides in the host page. Returns a mismatch per property whose paired
+ * override count does not equal the themed inline count (less any allow-listed
+ * exceptions).
+ */
+export function checkPartial(
+  partialSrc: string,
+  pageSrc: string,
+  spec: PartialSpec,
+): PartialMismatch[] {
+  const inline = countInlineThemedDecls(partialSrc);
+  const overrides = countLightOverrides(parseRules(extractStyleBlocks(pageSrc)), spec.scopeClasses);
+  const out: PartialMismatch[] = [];
+  for (const property of COLOR_PROPS) {
+    const expected = inline[property] - partialAllowedFor(spec, property);
+    if (overrides[property] !== expected) {
+      out.push({
+        partial: spec.name,
+        property,
+        inline: inline[property],
+        overrides: overrides[property],
+        expected,
+      });
+    }
+  }
+  return out;
+}
+
 export interface TargetResult {
   target: Target;
   missing: MissingPair[];
+  partialMismatches: PartialMismatch[];
   error?: string;
 }
 
@@ -478,13 +652,23 @@ export function checkTarget(target: Target): TargetResult {
   try {
     src = fs.readFileSync(abs, "utf8");
   } catch (e) {
-    return { target, missing: [], error: (e as Error).message };
+    return { target, missing: [], partialMismatches: [], error: (e as Error).message };
   }
   const missing = checkSource(src, {
     scopes: target.scopes,
     isAllowed: makeIsAllowed(target.allowlist),
   });
-  return { target, missing };
+  const partialMismatches: PartialMismatch[] = [];
+  for (const spec of target.partials ?? []) {
+    let partialSrc: string;
+    try {
+      partialSrc = fs.readFileSync(path.join(REPO_ROOT, spec.file), "utf8");
+    } catch (e) {
+      return { target, missing, partialMismatches, error: `${spec.file}: ${(e as Error).message}` };
+    }
+    partialMismatches.push(...checkPartial(partialSrc, src, spec));
+  }
+  return { target, missing, partialMismatches };
 }
 
 function describeMode(t: Target): string {
@@ -505,10 +689,22 @@ function printExplain(): void {
     for (const a of t.allowlist) {
       console.log(`      allow: ${a.selector} { ${a.property} } — ${a.reason}`);
     }
+    for (const p of t.partials ?? []) {
+      console.log(
+        `      inline-styled partial: ${p.name} → scope ${p.scopeClasses.map((c) => "." + c).join(", ")}`,
+      );
+      for (const e of p.allowlist ?? []) {
+        console.log(`          allow: ${e.property} −${e.inlineWithoutOverride} — ${e.reason}`);
+      }
+    }
   }
+  console.log("\nInline-styled partials bake dark colors as style=\"…\" attributes (no base");
+  console.log("  rule to pair against), so each themed inline color/border must have exactly");
+  console.log("  one paired html.light-mode override for that scope (a structural count).");
   console.log("\nAdd a page: append a { page, label, allowlist } entry to TARGETS in");
   console.log("  scripts/src/check-light-mode-pairing.ts (add `scopes` if the page also");
-  console.log("  has intentional always-dark islands outside the re-themed region).");
+  console.log("  has intentional always-dark islands outside the re-themed region, or");
+  console.log("  `partials` if it includes inline-styled partials).");
 }
 
 function main(): void {
@@ -526,28 +722,46 @@ function main(): void {
     process.exit(2);
   }
 
-  const failed = results.filter((r) => r.missing.length > 0);
+  const failed = results.filter((r) => r.missing.length > 0 || r.partialMismatches.length > 0);
   if (failed.length === 0) {
     console.log(
-      `✓ light-mode-pairing guard passed — every base color rule across ${TARGETS.length} checked page(s) has its paired "${LIGHT_PREFIX}" override.`,
+      `✓ light-mode-pairing guard passed — every base color rule across ${TARGETS.length} checked page(s) has its paired "${LIGHT_PREFIX}" override, and every themed inline color in the inline-styled partials has its light override.`,
     );
     process.exit(0);
   }
 
-  console.error("✗ light-mode-pairing guard FAILED — base color rule(s) missing a light-mode override:\n");
+  console.error("✗ light-mode-pairing guard FAILED — washed-out light-mode gap(s) detected:\n");
   for (const r of failed) {
     console.error(`  ${r.target.label} (${r.target.page}):`);
     for (const m of r.missing) {
       console.error(`    ${m.selector} { ${m.property} }`);
       console.error(`        add:  ${LIGHT_PREFIX}${m.selector} { ${m.property}: <light value>; }`);
     }
+    for (const m of r.partialMismatches) {
+      const spec = (r.target.partials ?? []).find((p) => p.name === m.partial);
+      const scopes = spec ? spec.scopeClasses.map((c) => "." + c).join(" / ") : m.partial;
+      console.error(
+        `    partial ${m.partial} { ${m.property} }: ${m.inline} themed inline decl(s), ` +
+          `${m.overrides} html.light-mode override(s) for ${scopes} (expected ${m.expected}).`,
+      );
+      if (m.overrides < m.expected) {
+        console.error(
+          `        a themed inline ${m.property} was added without a paired html.light-mode override — it washes out on the white light-mode card.`,
+        );
+      } else {
+        console.error(
+          `        an orphan html.light-mode ${m.property} override has no themed inline peer — remove it or restore the inline color.`,
+        );
+      }
+    }
   }
   console.error(
-    `\nThe rule(s) above set a dark-theme ${COLOR_PROPS.join("/")} with no paired ` +
-      `"${LIGHT_PREFIX}" override — they will wash out on the white light-mode card.`,
+    `\nEach flagged base rule sets a dark-theme ${COLOR_PROPS.join("/")} with no paired ` +
+      `"${LIGHT_PREFIX}" override, and each flagged partial has a themed-inline-vs-override count ` +
+      "mismatch — both wash out on the white light-mode card.",
   );
   console.error(
-    "Add the matching html.light-mode override, or (if genuinely theme-neutral) add the selector+property to that page's `allowlist` in scripts/src/check-light-mode-pairing.ts with a reason.",
+    "Add the matching html.light-mode override, or (if genuinely theme-neutral) add the selector+property to that page's `allowlist` — or, for a partial, an { property, inlineWithoutOverride, reason } entry to that partial's `allowlist` — in scripts/src/check-light-mode-pairing.ts with a reason.",
   );
   console.error("Run `pnpm --filter @workspace/scripts run check:light-mode-pairing -- --explain` for details.");
   process.exit(1);

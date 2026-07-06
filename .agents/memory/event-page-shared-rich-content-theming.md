@@ -48,14 +48,31 @@ wrapper via
 `scopes: [".wrapper"]` when the page also has intentional always-dark islands
 (e.g. a hero over a dark image); `@keyframes` blocks are stripped before parsing
 so animation percentage steps are never mistaken for color-carrying selectors.
-Known guard limitation: the event right-column inline-styled partials
-(`event-connection-tips`, `link-type-pairings`) bake dark colors as INLINE styles
-inside the partials, so there's no base rule in the `<style>` block to pair
-against (only their light overrides live here) — base→light pairing can't cover
-them. Historical misses that motivated the guard: the tips/pairings light
-overrides, then `.btn-outline-success` (Interested widget's green `#34d399` →
-`#059669`/`#047857` in light, matching `ev-price-free`). Intentional un-paired
-rules go in that target's `allowlist` (selector+property+reason), not by weakening
-the parser (e.g. `.ev-input:focus` blue focus ring; FAQs blue accent borders).
-Regression tests in `check-light-mode-pairing.test.ts` (run by the `scripts-tests`
-gate).
+Intentional un-paired rules go in that target's `allowlist`
+(selector+property+reason), not by weakening the parser (e.g. `.ev-input:focus`
+blue focus ring; FAQs blue accent borders).
+
+**Inline-styled partials are ALSO covered on the event page** (via a target's
+optional `partials` array): the event right-column `event-connection-tips`
+(`.ev-connection-tips`/`.ev-connection-tip-card`) and `link-type-pairings`
+(`.ltp-pairings`) partials bake dark colors as INLINE `style="…color:{{ $var }}…"`
+attributes, so there's no base `<style>`-block rule to selector-pair against —
+only their `html.light-mode` overrides live in the page. base→light pairing can't
+reach them, so the guard falls back to a STRUCTURAL COUNT proxy (`checkPartial`):
+it counts THEMED inline `color` + `border`/`border-color` declarations (values
+containing a `{{ }}` blade interpolation; literal values like `inherit` are
+skipped, and the partial's own `<style>` hover/transition block is NOT scanned)
+in each partial and requires exactly one paired `html.light-mode` override
+targeting that partial's scope classes per property. Add/remove a themed inline
+color without its override (or leave an orphan override) and the per-property
+count trips. **Why a count instead of pairing here:** inline styles have no CSS
+selector to key an override to, so 1:1 selector-pairing is impossible; count
+parity is the cheapest structural signal that every dark inline color got a light
+counterpart. Intentional deltas go in that partial's own `allowlist`
+(`{ property, inlineWithoutOverride, reason }`), distinct from the page-level
+selector `allowlist`.
+
+Historical misses that motivated the guard: the tips/pairings light overrides
+themselves, then `.btn-outline-success` (Interested widget's green `#34d399` →
+`#059669`/`#047857` in light, matching `ev-price-free`). Regression tests in
+`check-light-mode-pairing.test.ts` (run by the `scripts-tests` gate).
