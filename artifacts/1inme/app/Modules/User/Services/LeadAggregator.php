@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -84,6 +85,49 @@ class LeadAggregator
     public function pendingCount(): int
     {
         return array_sum($this->countsBySource());
+    }
+
+    /**
+     * Short TTL (seconds) for the cached sidebar pending count. The badge
+     * renders on every page that extends the user layout, so serving it from
+     * a short-lived cache removes 8 COUNT queries per page view for a number
+     * that changes rarely. Approving/dismissing a lead invalidates the key
+     * (see {@see forgetPendingCount()}); this TTL is only the safety net that
+     * clears any stale entry a cross-workspace write couldn't target.
+     */
+    public const PENDING_COUNT_TTL = 60;
+
+    /**
+     * Sidebar-friendly pending count served from a short-lived cache keyed
+     * per owner + active workspace. Two sources (Subscriber / Form) are
+     * workspace-scoped via BelongsToWorkspace, so the total genuinely differs
+     * between an owner's workspaces — hence the workspace id in the key.
+     */
+    public function cachedPendingCount(): int
+    {
+        return (int) Cache::remember(
+            self::pendingCountCacheKey($this->userId, self::currentWorkspaceId()),
+            self::PENDING_COUNT_TTL,
+            fn () => $this->pendingCount()
+        );
+    }
+
+    /** Cache key for the sidebar pending count of a given owner + workspace. */
+    public static function pendingCountCacheKey(int $userId, ?int $workspaceId = null): string
+    {
+        return 'leads:pending_count:' . $userId . ':' . ($workspaceId ?? 'none');
+    }
+
+    /** Drop the cached pending count so the badge re-counts on next render. */
+    public static function forgetPendingCount(int $userId, ?int $workspaceId = null): void
+    {
+        Cache::forget(self::pendingCountCacheKey($userId, $workspaceId));
+    }
+
+    /** Id of the workspace bound to the current request, or null (CLI/public). */
+    public static function currentWorkspaceId(): ?int
+    {
+        return app()->bound('current_workspace') ? app('current_workspace')?->id : null;
     }
 
     public function paginate(array $filters, int $perPage = 25, int $page = 1): LengthAwarePaginator

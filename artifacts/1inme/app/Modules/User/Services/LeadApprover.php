@@ -48,7 +48,7 @@ class LeadApprover
             }
         }
 
-        return DB::transaction(function () use ($owner, $item, $normalized, $duplicateOf, $actorUserId) {
+        $outcome = DB::transaction(function () use ($owner, $item, $normalized, $duplicateOf, $actorUserId) {
             if ($duplicateOf) {
                 $contact = Contact::find($duplicateOf);
                 $enriched = $this->fillMissingFields($contact, $item);
@@ -87,11 +87,20 @@ class LeadApprover
 
             return ['result' => $result, 'contact' => $contact];
         });
+
+        // Drop the sidebar's cached pending count so the badge reflects this
+        // approval immediately. Done after commit so a concurrent read can't
+        // repopulate the cache with the pre-write count mid-transaction.
+        LeadAggregator::forgetPendingCount($owner->id, LeadAggregator::currentWorkspaceId());
+
+        return $outcome;
     }
 
     public function dismiss(User $owner, array $item, ?int $actorUserId = null): void
     {
         $this->writeLead($owner, $item, Lead::STATUS_DISMISSED, null, $actorUserId);
+
+        LeadAggregator::forgetPendingCount($owner->id, LeadAggregator::currentWorkspaceId());
     }
 
     /**

@@ -28,6 +28,6 @@ class LeadsBadgeComposer
             return 0;
         }
 
-        return (new LeadAggregator($owner->id))->pendingCount();
+        return (new LeadAggregator($owner->id))->cachedPendingCount();
     }
 }
