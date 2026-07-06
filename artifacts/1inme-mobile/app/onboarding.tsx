@@ -1,3 +1,4 @@
+import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -10,6 +11,7 @@ import {
   FlatList,
   ImageBackground,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -19,11 +21,16 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AiDashboardDemo } from "@/components/AiDashboardDemo";
 import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { onboarding as onboardingApi, type OnboardingSlide } from "@/lib/api";
+import {
+  getDashboardLayout,
+  type DashboardPreset,
+} from "@/lib/api/dashboard";
 import { setOnboardingComplete } from "@/lib/secure";
 
 // Bundled fallbacks. Used only if the slides endpoint is unreachable
@@ -95,6 +102,23 @@ const INFO_LINKS: { href: InfoHref; label: string }[] = [
   { href: "/info/privacy", label: "Privacy" },
   { href: "/info/terms", label: "Terms" },
 ];
+
+// Sentinel slug for the extra "AI designs your dashboard" slide we append
+// to the end of the intro carousel. It reuses the OnboardingSlide shape so
+// it can live in the same FlatList, but `renderItem` renders a dedicated
+// component (not the image gallery) when it sees this slug.
+const AI_DASHBOARD_SLUG = "ai-dashboard";
+
+const AI_DASHBOARD_SLIDE: OnboardingSlide = {
+  id: -1000,
+  slug: AI_DASHBOARD_SLUG,
+  category: "AI dashboard",
+  title: "Let AI arrange your dashboard",
+  body: "Describe what you want to keep an eye on and Sayzio picks the right widgets for you — no manual setup.",
+  image_url: null,
+  image_urls: [],
+  sort_order: 10000,
+};
 
 const { width, height } = Dimensions.get("window");
 
@@ -297,14 +321,102 @@ function SlideContent({
   );
 }
 
+/**
+ * The final onboarding slide: introduces the AI dashboard designer. When the
+ * user already has a session (returning user who reset the intro), we fetch
+ * the same real presets the "Customize dashboard" screen uses and render the
+ * live looping demo (`AiDashboardDemo`, which respects reduce-motion). Before
+ * sign-in there are no presets to show, so we fall back to a static teaser.
+ * Either way a clear CTA lets the user jump straight to the AI designer.
+ */
+function AiDashboardSlide({
+  loading,
+  presets,
+  onOpenDesigner,
+  paddingTop,
+  paddingBottom,
+}: {
+  loading: boolean;
+  presets: DashboardPreset[] | null;
+  onOpenDesigner: () => void;
+  paddingTop: number;
+  paddingBottom: number;
+}) {
+  const colors = useColors();
+  const hasPresets = !!presets && presets.length > 0;
+
+  return (
+    <View style={[styles.slide, { width, height }]}>
+      <LinearGradient
+        colors={["#1a0d2e", "#0a0a0f"]}
+        style={StyleSheet.absoluteFill}
+      />
+      <ScrollView
+        contentContainerStyle={[
+          styles.aiScroll,
+          { paddingTop, paddingBottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.categoryChip}>
+          <Text style={styles.categoryText}>{AI_DASHBOARD_SLIDE.category}</Text>
+        </View>
+        <Text style={styles.title}>{AI_DASHBOARD_SLIDE.title}</Text>
+        {AI_DASHBOARD_SLIDE.body ? (
+          <Text style={[styles.body, { marginBottom: 20 }]}>
+            {AI_DASHBOARD_SLIDE.body}
+          </Text>
+        ) : null}
+
+        {hasPresets ? (
+          <AiDashboardDemo presets={presets!} />
+        ) : loading ? (
+          <View style={styles.aiTeaser}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : (
+          <View style={styles.aiTeaser}>
+            <View
+              style={[
+                styles.aiTeaserIcon,
+                { backgroundColor: colors.primary + "22" },
+              ]}
+            >
+              <Feather name="zap" size={22} color={colors.primary} />
+            </View>
+            <Text style={styles.aiTeaserText}>
+              Once you&apos;re in, describe your goal and the AI designer builds
+              a dashboard around the metrics that matter to you.
+            </Text>
+          </View>
+        )}
+
+        <Button
+          label={hasPresets ? "Open the AI designer" : "Set up my dashboard"}
+          onPress={onOpenDesigner}
+          leading={
+            <Feather name="zap" size={16} color={colors.primaryForeground} />
+          }
+          style={{ marginTop: 20 }}
+        />
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function Onboarding() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const listRef = useRef<FlatList<OnboardingSlide>>(null);
   const [index, setIndex] = useState(0);
   const [slides, setSlides] = useState<OnboardingSlide[] | null>(null);
+  // Real dashboard presets for the AI demo slide. Only fetched when a
+  // session exists (the /dashboard/layout endpoint is auth-only); null
+  // means "not loaded yet", [] means "loaded but none / unavailable".
+  const [presets, setPresets] = useState<DashboardPreset[] | null>(null);
+  const [presetsLoading, setPresetsLoading] = useState(false);
 
   // Fetch slides from the admin-managed endpoint. If the request
   // fails for any reason we fall back to the bundled set so the
@@ -326,9 +438,45 @@ export default function Onboarding() {
     };
   }, []);
 
+  // Best-effort: pull the real dashboard presets so the AI demo slide can
+  // show the same live "describe → arrange → tiles" loop as the customize
+  // screen. Skipped entirely before sign-in (no token → 401), where the
+  // slide gracefully falls back to a static teaser + CTA.
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    setPresetsLoading(true);
+    (async () => {
+      try {
+        const layout = await getDashboardLayout();
+        if (!cancelled) setPresets(layout.presets ?? []);
+      } catch {
+        if (!cancelled) setPresets([]);
+      } finally {
+        if (!cancelled) setPresetsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
   const finish = async () => {
     await setOnboardingComplete(true);
     router.replace(user ? "/(tabs)" : "/(auth)");
+  };
+
+  // Jump straight to the AI dashboard designer. Signed-in users land on the
+  // customize screen (on top of their tabs); everyone else finishes into the
+  // auth flow, since the designer requires an account.
+  const openDesigner = async () => {
+    await setOnboardingComplete(true);
+    if (user) {
+      router.replace("/(tabs)");
+      router.push("/dashboard-customize");
+    } else {
+      router.replace("/(auth)");
+    }
   };
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -336,8 +484,11 @@ export default function Onboarding() {
     if (i !== index) setIndex(i);
   };
 
+  // The intro photos plus the appended AI-dashboard designer slide.
+  const pages = slides ? [...slides, AI_DASHBOARD_SLIDE] : null;
+
   const next = async () => {
-    const total = slides?.length ?? 0;
+    const total = pages?.length ?? 0;
     if (index < total - 1) {
       listRef.current?.scrollToIndex({ index: index + 1, animated: true });
       return;
@@ -356,7 +507,7 @@ export default function Onboarding() {
 
   // Loading state — keeps the gradient background visible so there's
   // no white flash before slides arrive.
-  if (slides === null) {
+  if (pages === null) {
     return (
       <View style={[styles.root, { backgroundColor: "#0a0a0f" }]}>
         <LinearGradient
@@ -370,30 +521,40 @@ export default function Onboarding() {
     );
   }
 
-  const total = slides.length;
+  const total = pages.length;
 
   return (
     <View style={[styles.root, { backgroundColor: "#0a0a0f" }]}>
       <FlatList
         ref={listRef}
-        data={slides}
+        data={pages}
         keyExtractor={(s) => String(s.id) + ":" + s.slug}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        renderItem={({ item, index: i }) => (
-          <SlideContent
-            images={resolveImages(item)}
-            active={i === index}
-            category={item.category}
-            title={item.title}
-            body={item.body}
-            paddingBottom={insets.bottom + 200 + webBottom}
-            primaryColor={colors.primary}
-          />
-        )}
+        renderItem={({ item, index: i }) =>
+          item.slug === AI_DASHBOARD_SLUG ? (
+            <AiDashboardSlide
+              loading={presetsLoading}
+              presets={presets}
+              onOpenDesigner={openDesigner}
+              paddingTop={insets.top + 72 + webTop}
+              paddingBottom={insets.bottom + 200 + webBottom}
+            />
+          ) : (
+            <SlideContent
+              images={resolveImages(item)}
+              active={i === index}
+              category={item.category}
+              title={item.title}
+              body={item.body}
+              paddingBottom={insets.bottom + 200 + webBottom}
+              primaryColor={colors.primary}
+            />
+          )
+        }
       />
 
       {/* Top brand bar floats above the carousel */}
@@ -422,7 +583,7 @@ export default function Onboarding() {
         ]}
       >
         <View style={styles.dots}>
-          {slides.map((_, i) => (
+          {pages.map((_, i) => (
             <View
               key={i}
               style={[
@@ -465,6 +626,36 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   loader: { flex: 1, alignItems: "center", justifyContent: "center" },
   slide: { flex: 1 },
+  aiScroll: {
+    paddingHorizontal: 24,
+    justifyContent: "center",
+    flexGrow: 1,
+  },
+  aiTeaser: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+    backgroundColor: "rgba(20,16,32,0.5)",
+    padding: 20,
+    alignItems: "center",
+    gap: 14,
+    minHeight: 120,
+    justifyContent: "center",
+  },
+  aiTeaserIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  aiTeaserText: {
+    color: "rgba(255,255,255,0.85)",
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+  },
   copyWrap: {
     position: "absolute",
     left: 0,
