@@ -18,7 +18,6 @@ use App\Services\AI\MarketingStrategistService;
 use App\Services\AI\MarketingSuggestionApplier;
 use App\Services\AI\SuggestionNotPendingException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Mockery;
 use Tests\TestCase;
@@ -92,17 +91,10 @@ class MarketingStrategistTest extends TestCase
 
     private function makeUser(?Plan $plan = null): User
     {
-        $plan ??= $this->plan();
-        $user = User::create([
-            'name'     => 'Mktg ' . Str::random(4),
-            'email'    => 'mktg-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'role'     => 'user',
-            'plan_id'  => $plan->id,
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create([
+            'role' => 'user',
+            'plan_id' => $plan->id,
+        ])->fresh();
     }
 
     private function wsId(User $user): ?int

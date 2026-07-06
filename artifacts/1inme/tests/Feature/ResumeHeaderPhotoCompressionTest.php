@@ -7,7 +7,6 @@ use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -31,11 +30,7 @@ class ResumeHeaderPhotoCompressionTest extends TestCase
 
     private function makeUser(): User
     {
-        $user = User::create([
-            'name'     => 'U ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
+        $user = User::factory()->create([
             'handle'   => 'h' . Str::random(6),
         ]);
         // Bind the workspace so models with the BelongsToWorkspace

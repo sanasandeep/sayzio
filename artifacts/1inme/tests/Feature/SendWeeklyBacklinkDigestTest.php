@@ -29,14 +29,11 @@ class SendWeeklyBacklinkDigestTest extends TestCase
 
     private function makeUser(string $tz, int $weekday, int $hour): User
     {
-        return User::create([
-            'name'                              => 'Creator '.Str::random(4),
-            'email'                             => 'c'.Str::random(8).'@e.com',
-            'password'                          => bcrypt('secret'),
-            'email_verified_at'                 => now()->subMonth(),
-            'timezone'                          => $tz,
+        return User::factory()->create([
+            'email_verified_at' => now()->subMonth(),
+            'timezone' => $tz,
             'backlink_digest_preferred_weekday' => $weekday,
-            'backlink_digest_preferred_hour'    => $hour,
+            'backlink_digest_preferred_hour' => $hour,
         ]);
     }
 

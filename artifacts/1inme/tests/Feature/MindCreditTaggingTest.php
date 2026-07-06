@@ -50,12 +50,8 @@ class MindCreditTaggingTest extends TestCase
 
     protected function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Mind Tag User '.Str::random(4),
-            'email'    => 'tag'.Str::random(6).'@example.com',
-            'password' => bcrypt('secret'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'role' => 'user',
         ]);
     }
 

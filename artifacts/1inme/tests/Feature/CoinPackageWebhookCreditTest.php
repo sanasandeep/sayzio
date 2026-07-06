@@ -34,12 +34,8 @@ class CoinPackageWebhookCreditTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Coin Buyer '.Str::random(4),
-            'email'    => 'coins'.Str::random(6).'@example.test',
-            'password' => bcrypt('secret'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'role' => 'user',
         ]);
     }
 

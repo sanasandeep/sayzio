@@ -6,7 +6,6 @@ use App\Modules\User\Models\CreatorSubscription;
 use App\Modules\User\Models\SubscriptionTier;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -27,12 +26,7 @@ class FanSubscriptionCancelResumeApiTest extends TestCase
 
     private function makeUser(array $attrs = []): User
     {
-        return User::create(array_merge([
-            'name'     => 'Test ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ], $attrs));
+        return User::factory()->create($attrs);
     }
 
     private function token(User $user): string

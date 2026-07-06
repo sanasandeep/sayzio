@@ -9,7 +9,6 @@ use App\Modules\User\Models\BillingAddress;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -19,12 +18,8 @@ class SubscriptionActivationInvoiceTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Buyer ' . Str::random(4),
-            'email'    => 'b' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'country'  => 'IN',
+        return User::factory()->create([
+            'country' => 'IN',
         ]);
     }
 

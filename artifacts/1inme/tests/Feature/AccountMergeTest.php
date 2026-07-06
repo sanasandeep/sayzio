@@ -8,9 +8,7 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Services\AccountMergeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class AccountMergeTest extends TestCase
@@ -19,12 +17,7 @@ class AccountMergeTest extends TestCase
 
     private function makeUser(array $attrs = []): User
     {
-        return User::create(array_merge([
-            'name'     => 'Test ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ], $attrs));
+        return User::factory()->create($attrs);
     }
 
     public function test_backfill_creates_linked_identifier_for_existing_user(): void

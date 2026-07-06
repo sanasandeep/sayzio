@@ -7,9 +7,7 @@ use App\Modules\Admin\Models\Role;
 use App\Modules\User\Models\User;
 use App\Services\Integrations\MailSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -30,14 +28,7 @@ class MobileMailSettingsApiTest extends TestCase
 
     private function makeUser(): User
     {
-        $user = User::create([
-            'name'     => 'MS ' . Str::random(4),
-            'email'    => 'ms-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create()->fresh();
     }
 
     /** A user holding the web-guard `settings.manage` permission (super admin). */

@@ -7,7 +7,6 @@ use App\Modules\User\Models\Domain;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -42,14 +41,7 @@ class CrossDomainAliasResolutionTest extends TestCase
 
     private function makeUser(): User
     {
-        $user = User::create([
-            'name'     => 'Owner ' . Str::random(4),
-            'email'    => 'own' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create()->fresh();
     }
 
     /** An admin-global (no owning user), verified+active brand domain row. */

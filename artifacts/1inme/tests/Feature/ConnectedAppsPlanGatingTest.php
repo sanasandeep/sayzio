@@ -8,7 +8,6 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\ConnectedApp;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -47,16 +46,9 @@ class ConnectedAppsPlanGatingTest extends TestCase
             'features'           => ['connected_apps' => $entitled],
         ]);
 
-        $user = User::create([
-            'name'     => 'U ' . Str::random(4),
-            'email'    => 'u' . Str::lower(Str::random(8)) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
+        return User::factory()->create([
             'plan_id'  => $plan->id,
-        ]);
-        $user->ensureDefaultWorkspace();
-
-        return $user->fresh();
+        ])->fresh();
     }
 
     private function crm(User $user): ConnectedApp

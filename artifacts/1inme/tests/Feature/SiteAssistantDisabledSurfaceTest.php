@@ -86,12 +86,9 @@ class SiteAssistantDisabledSurfaceTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Disabled Surface Tester',
-            'email'    => 'disabled-' . Str::random(6) . '@example.com',
-            'password' => bcrypt('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => 'Disabled Surface Tester',
+            'role' => 'user',
         ]);
     }
 

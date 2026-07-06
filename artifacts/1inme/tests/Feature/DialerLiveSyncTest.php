@@ -11,7 +11,6 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Modules\User\Support\DialerData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -42,11 +41,9 @@ class DialerLiveSyncTest extends TestCase
 
     private function makeUser(string $prefix = 'u'): User
     {
-        return User::create([
-            'name'     => $prefix . Str::random(4),
-            'email'    => $prefix . '-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
+        return User::factory()->create([
+            'name' => $prefix . Str::random(4),
+            'email' => $prefix . '-' . Str::random(8) . '@example.com',
         ]);
     }
 

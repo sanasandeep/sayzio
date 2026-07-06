@@ -6,9 +6,7 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -60,11 +58,8 @@ class MobileSocialAuthRoundTripTest extends TestCase
     /** Helper: build a user with a known email. */
     private function makeUser(string $email): User
     {
-        return User::create([
-            'name'     => 'Existing ' . Str::random(4),
-            'email'    => strtolower($email),
-            'password' => Hash::make('x'),
-            'status'   => 'active',
+        return User::factory()->create([
+            'email' => strtolower($email),
         ]);
     }
 

@@ -9,7 +9,6 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\PersonaCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -52,16 +51,10 @@ class PageTemplateApiTest extends TestCase
 
     private function makeUser(?Plan $plan = null, ?string $persona = null): User
     {
-        $user = User::create([
-            'name'     => 'PT ' . Str::random(4),
-            'email'    => 'pt-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'plan_id'  => $plan?->id,
-            'persona'  => $persona,
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create([
+            'plan_id' => $plan?->id,
+            'persona' => $persona,
+        ])->fresh();
     }
 
     private function makeLink(User $user, string $type = 'biolink'): Link

@@ -23,14 +23,7 @@ class MaintenanceAdminLockdownTest extends TestCase
 
     private function makeUser(): User
     {
-        $user = User::create([
-            'name'     => 'U ' . Str::random(4),
-            'email'    => 'u-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create()->fresh();
     }
 
     /** A web-guard user holding a platform (guard=web) admin role. */

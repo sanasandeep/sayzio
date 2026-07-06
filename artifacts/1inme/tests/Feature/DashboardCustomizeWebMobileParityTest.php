@@ -6,8 +6,6 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Support\DashboardPresets;
 use App\Modules\User\Support\DashboardWidgetCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -39,18 +37,9 @@ class DashboardCustomizeWebMobileParityTest extends TestCase
 
     private function makeUser(array $attrs = []): User
     {
-        $user = User::create(array_merge([
-            'name'         => 'U ' . Str::random(4),
-            'email'        => 'u' . Str::random(8) . '@ex.com',
-            'password'     => Hash::make('x'),
-            'status'       => 'active',
-            // Past the first-run onboarding gate so the web dashboard renders
-            // instead of redirecting (matches DashboardCustomizeStepRegressionTest).
+        return User::factory()->create(array_merge([
             'onboarded_at' => now()->subMonth(),
-        ], $attrs));
-        $user->ensureDefaultWorkspace();
-
-        return $user->fresh();
+        ], $attrs))->fresh();
     }
 
     /**

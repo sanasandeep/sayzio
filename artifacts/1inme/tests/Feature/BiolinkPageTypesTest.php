@@ -12,7 +12,6 @@ use App\Modules\User\Models\LinkSlideDeck;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use ReflectionMethod;
 use Tests\TestCase;
@@ -39,12 +38,7 @@ class BiolinkPageTypesTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Owner ' . Str::random(4),
-            'email'    => 'pt' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
+        return User::factory()->create();
     }
 
     private function makeLink(User $user, string $type = 'biolink', array $settings = []): Link

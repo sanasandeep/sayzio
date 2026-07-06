@@ -13,7 +13,6 @@ use App\Services\AI\OpenAiService;
 use App\Services\Resume\ResumeImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Mockery;
 use PhpOffice\PhpWord\IOFactory;
@@ -67,11 +66,9 @@ class ResumeImportTest extends TestCase
 
     private function makeUser(string $tag = 'r'): User
     {
-        return User::create([
-            'name'     => $tag . ' ' . Str::random(4),
-            'email'    => $tag . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
+        return User::factory()->create([
+            'name' => $tag . ' ' . Str::random(4),
+            'email' => $tag . Str::random(8) . '@example.com',
         ]);
     }
 

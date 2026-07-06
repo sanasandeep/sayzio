@@ -25,12 +25,7 @@ class UserRoleAuditPageTest extends TestCase
 
     private function makeUser(array $attrs = []): User
     {
-        return User::create(array_merge([
-            'name'     => 'U ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ], $attrs));
+        return User::factory()->create($attrs);
     }
 
     private function userAdminRole(): Role

@@ -9,7 +9,6 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Services\BiolinkPageRecipes;
 use App\Modules\User\Services\BiolinkWizardQuestions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -100,12 +99,7 @@ class BiolinkWizardAllPageTypesTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Wiz ' . Str::random(4),
-            'email'    => 'wiz-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
+        return User::factory()->create();
     }
 
     /**

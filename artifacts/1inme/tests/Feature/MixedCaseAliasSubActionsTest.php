@@ -13,7 +13,6 @@ use App\Modules\User\Models\RestaurantMenuItem;
 use App\Modules\User\Models\Rsvp;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -45,12 +44,7 @@ class MixedCaseAliasSubActionsTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Owner ' . Str::random(4),
-            'email'    => 'own' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
+        return User::factory()->create();
     }
 
     /**

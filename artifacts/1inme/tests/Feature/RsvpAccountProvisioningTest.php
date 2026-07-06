@@ -24,11 +24,8 @@ class RsvpAccountProvisioningTest extends TestCase
 
     private function makeUser(string $name = 'Ada Organizer'): User
     {
-        $u = User::create([
+        $u = User::factory()->create([
             'name'     => $name,
-            'email'    => 'o' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
         ]);
         $ws = app(WorkspaceContext::class)->resolve($u);
         app()->instance('current_workspace', $ws);

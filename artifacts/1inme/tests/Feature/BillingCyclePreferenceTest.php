@@ -7,7 +7,6 @@ use App\Modules\User\Models\User;
 use App\Services\BillingCyclePreference;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -30,11 +29,7 @@ class BillingCyclePreferenceTest extends TestCase
 
     protected function makeUser(array $attrs = []): User
     {
-        return User::create(array_merge([
-            'name'     => 'Test '.Str::random(4),
-            'email'    => 't'.Str::random(8).'@e.com',
-            'password' => bcrypt('secret'),
-        ], $attrs));
+        return User::factory()->create($attrs);
     }
 
     // ────────────────────────── Service unit-ish tests ──────────────────────────

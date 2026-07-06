@@ -7,7 +7,6 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\User;
 use App\Services\PricingResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -31,12 +30,7 @@ class RevenueCatBillingPlansIntroTest extends TestCase
 
     private function makeUser(array $attrs = []): User
     {
-        return User::create(array_merge([
-            'name'     => 'Test ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ], $attrs));
+        return User::factory()->create($attrs);
     }
 
     private function token(User $user): string

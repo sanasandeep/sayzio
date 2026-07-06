@@ -9,9 +9,7 @@ use App\Modules\User\Models\LinkSlideViewEvent;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -43,12 +41,7 @@ class SlidesModeEndToEndTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Slides Owner ' . Str::random(4),
-            'email'    => 'sl' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
+        return User::factory()->create();
     }
 
     private function makeBiolink(User $user): Link

@@ -6,9 +6,7 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -54,14 +52,7 @@ class GoogleOAuthLoginMergeOfferTest extends TestCase
 
     private function makeUser(array $attrs = []): User
     {
-        $user = User::create(array_merge([
-            'name'     => 'Test ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ], $attrs));
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create($attrs)->fresh();
     }
 
     /**

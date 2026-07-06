@@ -9,7 +9,6 @@ use App\Services\AI\Voice\VoiceToolRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Mockery;
 use Tests\TestCase;
@@ -64,12 +63,10 @@ class VoiceToolHandlersTest extends TestCase
 
     private function makeUser(string $tag = 'h'): User
     {
-        return User::create([
-            'name'     => 'Voice ' . $tag,
-            'email'    => $tag . '-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => 'Voice ' . $tag,
+            'email' => $tag . '-' . Str::random(8) . '@example.com',
+            'role' => 'user',
         ]);
     }
 

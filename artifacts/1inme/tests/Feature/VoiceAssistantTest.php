@@ -11,7 +11,6 @@ use App\Services\AI\OpenAiService;
 use App\Services\AI\WhisperService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Mockery;
 use Tests\TestCase;
@@ -81,12 +80,10 @@ class VoiceAssistantTest extends TestCase
 
     private function makeUser(string $tag = 'v'): User
     {
-        return User::create([
-            'name'     => 'Voice ' . $tag,
-            'email'    => $tag . '-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => 'Voice ' . $tag,
+            'email' => $tag . '-' . Str::random(8) . '@example.com',
+            'role' => 'user',
         ]);
     }
 

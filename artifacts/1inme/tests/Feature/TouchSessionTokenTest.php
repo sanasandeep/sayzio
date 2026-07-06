@@ -7,8 +7,6 @@ use App\Modules\Common\Services\GeoIpService;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 use Mockery;
 use Symfony\Component\HttpFoundation\Response;
@@ -33,12 +31,7 @@ class TouchSessionTokenTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'TS ' . Str::random(4),
-            'email'    => 'ts-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ])->fresh();
+        return User::factory()->create();
     }
 
     public function test_authed_request_stamps_last_ip_ua_and_country_on_the_token(): void

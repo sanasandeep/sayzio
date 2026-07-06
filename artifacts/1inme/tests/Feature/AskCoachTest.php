@@ -93,13 +93,11 @@ class AskCoachTest extends TestCase
 
     protected function makeUser(string $tag = 'u', ?int $planId = null): User
     {
-        return User::create([
-            'name'     => "Test $tag",
-            'email'    => $tag . '-' . Str::random(8) . '@example.com',
-            'password' => bcrypt('x'),
-            'status'   => 'active',
-            'role'     => 'user',
-            'plan_id'  => $planId,
+        return User::factory()->create([
+            'name' => "Test $tag",
+            'email' => $tag . '-' . Str::random(8) . '@example.com',
+            'role' => 'user',
+            'plan_id' => $planId,
         ]);
     }
 

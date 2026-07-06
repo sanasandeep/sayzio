@@ -64,11 +64,8 @@ class SiteAssistantLowBalanceTest extends TestCase
 
     private function makeUserWithBalance(int $balance): User
     {
-        $user = User::create([
+        $user = User::factory()->create([
             'name'     => 'Low Balance Tester',
-            'email'    => 'low-' . Str::random(6) . '@example.test',
-            'password' => bcrypt('x'),
-            'status'   => 'active',
             'role'     => 'user',
         ]);
         if ($balance > 0) {

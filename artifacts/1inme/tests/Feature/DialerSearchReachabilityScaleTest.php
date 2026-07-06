@@ -9,7 +9,6 @@ use App\Modules\User\Models\UserBlock;
 use App\Modules\User\Support\DialerSearch;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use ReflectionMethod;
 use Tests\TestCase;
@@ -48,12 +47,11 @@ class DialerSearchReachabilityScaleTest extends TestCase
 
     private function makeUser(string $prefix = 'u', string $status = 'active'): User
     {
-        return User::create([
-            'name'     => $prefix . Str::random(4),
-            'email'    => $prefix . '-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => $status,
-            'handle'   => strtolower($prefix) . substr(Str::random(8), 0, 8),
+        return User::factory()->create([
+            'name' => $prefix . Str::random(4),
+            'email' => $prefix . '-' . Str::random(8) . '@example.com',
+            'status' => $status,
+            'handle' => strtolower($prefix) . substr(Str::random(8), 0, 8),
         ]);
     }
 

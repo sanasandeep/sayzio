@@ -9,7 +9,6 @@ use App\Modules\User\Models\Domain;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -32,10 +31,9 @@ class DomainHealthCheckerTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Owner',
-            'email'    => 'owner@example.com',
-            'password' => Hash::make('password123'),
+        return User::factory()->create([
+            'name' => 'Owner',
+            'email' => 'owner@example.com',
         ]);
     }
 

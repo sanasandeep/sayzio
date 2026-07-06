@@ -32,15 +32,7 @@ class DashboardSwitchTest extends TestCase
 
     private function makeUser(array $attrs = []): User
     {
-        $user = User::create(array_merge([
-            'name'     => 'U ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ], $attrs));
-        $user->ensureDefaultWorkspace();
-
-        return $user->fresh();
+        return User::factory()->create($attrs)->fresh();
     }
 
     /** A fresh admin-guard role that can be assigned to a promoted user. */

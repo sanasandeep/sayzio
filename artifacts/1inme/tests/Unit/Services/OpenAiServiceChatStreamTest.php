@@ -9,7 +9,6 @@ use App\Services\AI\AiEngineSettings;
 use App\Services\AI\OpenAiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -48,12 +47,9 @@ class OpenAiServiceChatStreamTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Streamer',
-            'email'    => 'streamer-' . Str::random(6) . '@example.com',
-            'password' => bcrypt('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => 'Streamer',
+            'role' => 'user',
         ]);
     }
 

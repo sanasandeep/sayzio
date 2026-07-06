@@ -33,12 +33,7 @@ class SmartEventInvitesTest extends TestCase
 
     private function makeUser(): User
     {
-        $u = User::create([
-            'name'     => 'Owner ' . Str::random(4),
-            'email'    => 'o' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
+        $u = User::factory()->create();
         $ws = app(WorkspaceContext::class)->resolve($u);
         app()->instance('current_workspace', $ws);
         app()->instance('workspace_owner', $u);

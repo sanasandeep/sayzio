@@ -56,12 +56,9 @@ class SiteAssistantAuthGateTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Gate Tester',
-            'email'    => 'gate-' . Str::random(6) . '@example.com',
-            'password' => bcrypt('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => 'Gate Tester',
+            'role' => 'user',
         ]);
     }
 

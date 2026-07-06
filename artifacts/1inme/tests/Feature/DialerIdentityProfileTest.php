@@ -10,7 +10,6 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Support\DialerIdentity;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -40,11 +39,9 @@ class DialerIdentityProfileTest extends TestCase
 
     private function makeUser(string $prefix = 'u'): User
     {
-        return User::create([
-            'name'     => $prefix . Str::random(4),
-            'email'    => $prefix . '-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
+        return User::factory()->create([
+            'name' => $prefix . Str::random(4),
+            'email' => $prefix . '-' . Str::random(8) . '@example.com',
         ]);
     }
 

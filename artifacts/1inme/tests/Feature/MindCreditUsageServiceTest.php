@@ -32,11 +32,7 @@ class MindCreditUsageServiceTest extends TestCase
 
     protected function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Mind User '.Str::random(4),
-            'email'    => 'mind'.Str::random(6).'@example.com',
-            'password' => bcrypt('secret'),
-        ]);
+        return User::factory()->create();
     }
 
     protected function makeMind(User $user, string $name = 'Mind'): AiMind

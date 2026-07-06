@@ -17,10 +17,9 @@ class ProductOrderRefundTest extends TestCase
 
     protected function makeUser(string $prefix): User
     {
-        return User::create([
-            'name'     => $prefix.' '.Str::random(4),
-            'email'    => strtolower($prefix).Str::random(6).'@e.com',
-            'password' => bcrypt('secret'),
+        return User::factory()->create([
+            'name' => $prefix.' '.Str::random(4),
+            'email' => strtolower($prefix).Str::random(6).'@e.com',
         ]);
     }
 

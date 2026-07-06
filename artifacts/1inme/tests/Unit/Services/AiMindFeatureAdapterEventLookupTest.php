@@ -29,11 +29,8 @@ class AiMindFeatureAdapterEventLookupTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Lookup Tester',
-            'email'    => 'lookup-' . bin2hex(random_bytes(4)) . '@example.test',
-            'password' => bcrypt('pw'),
-            'status'   => 'active',
+        return User::factory()->create([
+            'name' => 'Lookup Tester',
             'timezone' => 'UTC',
             'language' => 'en',
         ]);

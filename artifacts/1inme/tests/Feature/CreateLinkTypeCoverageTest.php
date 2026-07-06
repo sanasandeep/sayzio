@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Modules\User\Models\User;
 use App\Modules\User\Support\LinkTypeCategories;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -36,17 +35,7 @@ class CreateLinkTypeCoverageTest extends TestCase
 
     private function makeUser(): User
     {
-        $user = User::create([
-            'name'     => 'U ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
-        // Owns a personal workspace so `workspace.can:links.create` passes
-        // (owner status implicitly grants every workspace permission).
-        $user->ensureDefaultWorkspace();
-
-        return $user->fresh();
+        return User::factory()->create()->fresh();
     }
 
     public function test_create_view_surfaces_a_card_for_every_catalog_type(): void

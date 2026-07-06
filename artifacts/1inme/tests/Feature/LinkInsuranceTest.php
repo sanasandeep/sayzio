@@ -8,7 +8,6 @@ use App\Modules\User\Models\LinkBackup;
 use App\Modules\User\Models\LinkHealthCheck;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -24,12 +23,7 @@ class LinkInsuranceTest extends TestCase
 
     protected function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Test '.Str::random(4),
-            'email'    => 'u'.Str::random(8).'@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
+        return User::factory()->create();
     }
 
     protected function makeInsuredLink(array $overrides = []): Link

@@ -12,7 +12,6 @@ use App\Modules\User\Models\WorkspaceMember;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Modules\User\Services\WorkspaceEncryption;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -23,11 +22,9 @@ class VaultTest extends TestCase
 
     private function makeUser(string $tag = 'u'): User
     {
-        return User::create([
-            'name'     => $tag . ' ' . Str::random(4),
-            'email'    => $tag . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
+        return User::factory()->create([
+            'name' => $tag . ' ' . Str::random(4),
+            'email' => $tag . Str::random(8) . '@ex.com',
         ]);
     }
 

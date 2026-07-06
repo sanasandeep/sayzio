@@ -7,7 +7,6 @@ use App\Services\AI\AiUsageCharger;
 use App\Services\Billing\WalletService;
 use App\Services\AI\AiEngineSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -42,12 +41,10 @@ class VoiceAssistantCapabilitiesTest extends TestCase
 
     private function makeUser(string $tag = 'c', array $overrides = []): User
     {
-        return User::create(array_merge([
-            'name'     => 'Voice ' . $tag,
-            'email'    => $tag . '-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create(array_merge([
+            'name' => 'Voice ' . $tag,
+            'email' => $tag . '-' . Str::random(8) . '@example.com',
+            'role' => 'user',
         ], $overrides));
     }
 

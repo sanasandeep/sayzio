@@ -18,11 +18,8 @@ abstract class AnalyticsTestCase extends TestCase
 
     protected function makeUser(array $overrides = []): User
     {
-        return User::create(array_merge([
+        return User::factory()->create(array_merge([
             'name' => 'Analytics User',
-            'email' => 'user-' . bin2hex(random_bytes(4)) . '@example.test',
-            'password' => bcrypt('password'),
-            'status' => 'active',
             'timezone' => 'UTC',
             'language' => 'en',
         ], $overrides));

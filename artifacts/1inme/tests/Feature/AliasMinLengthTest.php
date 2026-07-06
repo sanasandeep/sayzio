@@ -7,7 +7,6 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Support\AliasAvailability;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -52,16 +51,7 @@ class AliasMinLengthTest extends TestCase
 
     private function makeUser(array $attrs = []): User
     {
-        $user = User::create(array_merge([
-            'name'     => 'U ' . Str::random(4),
-            'email'    => 'u' . Str::lower(Str::random(8)) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ], $attrs));
-        // Owns a personal workspace so `workspace.can:links.*` passes (owner
-        // status implicitly grants every workspace permission).
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create($attrs)->fresh();
     }
 
     /**

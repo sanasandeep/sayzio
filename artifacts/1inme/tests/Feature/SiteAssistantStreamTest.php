@@ -56,12 +56,9 @@ class SiteAssistantStreamTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Stream Tester',
-            'email'    => 'stream-' . Str::random(6) . '@example.com',
-            'password' => bcrypt('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => 'Stream Tester',
+            'role' => 'user',
         ]);
     }
 

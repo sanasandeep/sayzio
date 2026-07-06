@@ -22,7 +22,6 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Services\LeadAggregator;
 use App\Modules\User\Services\LeadApprover;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -53,12 +52,9 @@ class LeadsReviewQueueTest extends TestCase
 
     private function makeUser(array $overrides = []): User
     {
-        return User::create(array_merge([
-            'name'     => 'Owner',
-            'email'    => 'owner-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create(array_merge([
+            'name' => 'Owner',
+            'role' => 'user',
         ], $overrides));
     }
 

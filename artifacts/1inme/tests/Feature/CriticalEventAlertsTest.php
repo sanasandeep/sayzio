@@ -45,12 +45,8 @@ class CriticalEventAlertsTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Alert User '.Str::random(4),
-            'email'    => 'alert'.Str::random(6).'@example.test',
-            'password' => bcrypt('secret'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'role' => 'user',
         ]);
     }
 

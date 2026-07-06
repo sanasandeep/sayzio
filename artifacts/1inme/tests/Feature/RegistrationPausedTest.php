@@ -7,8 +7,6 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -45,11 +43,8 @@ class RegistrationPausedTest extends TestCase
 
     private function makeUser(string $email): User
     {
-        return User::create([
-            'name'     => 'Existing ' . Str::random(4),
-            'email'    => $email,
-            'password' => Hash::make('secret-pass'),
-            'status'   => 'active',
+        return User::factory()->create([
+            'email' => $email,
         ]);
     }
 

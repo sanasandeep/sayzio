@@ -11,9 +11,7 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -39,12 +37,7 @@ class ConversationFlowTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Conv ' . Str::random(4),
-            'email'    => 'conv' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
+        return User::factory()->create();
     }
 
     private function makeLink(User $user): Link

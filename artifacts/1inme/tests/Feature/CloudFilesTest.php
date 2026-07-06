@@ -9,7 +9,6 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -21,11 +20,9 @@ class CloudFilesTest extends TestCase
 
     private function makeUser(string $tag = 'u'): User
     {
-        return User::create([
-            'name'     => $tag . ' ' . Str::random(4),
-            'email'    => $tag . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
+        return User::factory()->create([
+            'name' => $tag . ' ' . Str::random(4),
+            'email' => $tag . Str::random(8) . '@ex.com',
         ]);
     }
 

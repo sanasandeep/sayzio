@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -27,12 +26,7 @@ class QrStudioLinkPrefillTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Owner ' . Str::random(4),
-            'email'    => 'qp' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
+        return User::factory()->create();
     }
 
     private function makeLink(User $user, array $attrs = []): Link

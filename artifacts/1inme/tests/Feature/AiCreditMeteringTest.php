@@ -58,12 +58,10 @@ class AiCreditMeteringTest extends TestCase
 
     private function makeUser(string $prefix = 'ai'): User
     {
-        return User::create([
-            'name'     => Str::title($prefix).' User '.Str::random(4),
-            'email'    => $prefix.Str::random(6).'@example.test',
-            'password' => bcrypt('secret'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => Str::title($prefix).' User '.Str::random(4),
+            'email' => $prefix.Str::random(6).'@example.test',
+            'role' => 'user',
         ]);
     }
 

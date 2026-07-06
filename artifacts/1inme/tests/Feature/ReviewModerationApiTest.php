@@ -6,8 +6,6 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Review;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -31,12 +29,7 @@ class ReviewModerationApiTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Owner ' . Str::random(4),
-            'email'    => 'own-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
+        return User::factory()->create();
     }
 
     private function makeReviewsLink(User $user): Link

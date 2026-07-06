@@ -37,11 +37,7 @@ class BackfillImageReoptimizationTest extends TestCase
 
     private function makeUser(): User
     {
-        $user = User::create([
-            'name'     => 'U ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
+        $user = User::factory()->create([
             'handle'   => 'h' . Str::random(6),
         ]);
         $ws = app(WorkspaceContext::class)->resolve($user);

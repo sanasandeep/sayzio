@@ -50,12 +50,9 @@ class PushDeepLinkTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Dev',
-            'email'    => 'dev-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => 'Dev',
+            'role' => 'user',
         ]);
     }
 

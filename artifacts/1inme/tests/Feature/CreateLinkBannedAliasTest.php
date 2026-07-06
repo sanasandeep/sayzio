@@ -7,7 +7,6 @@ use App\Modules\Admin\Services\BannedNameChecker;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -44,16 +43,7 @@ class CreateLinkBannedAliasTest extends TestCase
 
     private function makeUser(array $attrs = []): User
     {
-        $user = User::create(array_merge([
-            'name'     => 'U ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ], $attrs));
-        // Owns a personal workspace so `workspace.can:links.create` passes
-        // (owner status implicitly grants every workspace permission).
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create($attrs)->fresh();
     }
 
     private function seedBannedAlias(string $name = self::BANNED_ALIAS): void

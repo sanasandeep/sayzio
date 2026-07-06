@@ -8,7 +8,6 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserBlock;
 use App\Modules\User\Services\Contacts\BiolinkAttachResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -33,12 +32,11 @@ class ContactAttachmentReconcileTest extends TestCase
 
     private function makeUser(string $prefix = 'u', string $status = 'active'): User
     {
-        return User::create([
-            'name'     => $prefix . Str::random(4),
-            'email'    => $prefix . '-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => $status,
-            'handle'   => strtolower($prefix) . substr(Str::random(8), 0, 8),
+        return User::factory()->create([
+            'name' => $prefix . Str::random(4),
+            'email' => $prefix . '-' . Str::random(8) . '@example.com',
+            'status' => $status,
+            'handle' => strtolower($prefix) . substr(Str::random(8), 0, 8),
         ]);
     }
 

@@ -29,9 +29,8 @@ class LifecycleTest extends TestCase
 
     protected function makeUser(): User
     {
-        $u = User::create([
-            'name' => 'B'.Str::random(4), 'email' => 'b'.Str::random(6).'@e.com',
-            'password' => bcrypt('x'), 'country' => 'IN', 'status' => 'active',
+        $u = User::factory()->create([
+            'country' => 'IN',
         ]);
         BillingAddress::create([
             'user_id' => $u->id, 'country' => 'IN', 'region' => 'MH',

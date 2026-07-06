@@ -9,7 +9,6 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -28,15 +27,9 @@ class DomainBadgeGatingTest extends TestCase
 
     private function makeUser(?int $planId = null): User
     {
-        $user = User::create([
-            'name'     => 'DG ' . Str::random(4),
-            'email'    => 'dg-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'plan_id'  => $planId,
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create([
+            'plan_id' => $planId,
+        ])->fresh();
     }
 
     private function planWith(array $features): Plan

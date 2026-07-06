@@ -27,11 +27,8 @@ class AiMindFeatureAdapterEventsTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Events Tester',
-            'email'    => 'events-' . bin2hex(random_bytes(4)) . '@example.test',
-            'password' => bcrypt('pw'),
-            'status'   => 'active',
+        return User::factory()->create([
+            'name' => 'Events Tester',
             'timezone' => 'UTC',
             'language' => 'en',
         ]);

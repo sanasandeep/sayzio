@@ -5,8 +5,6 @@ namespace Tests\Feature;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -27,12 +25,9 @@ class NotificationTargetUrlTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Dev',
-            'email'    => 'dev-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => 'Dev',
+            'role' => 'user',
         ]);
     }
 

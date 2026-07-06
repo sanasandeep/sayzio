@@ -14,7 +14,6 @@ use App\Modules\User\Services\WorkspaceContext;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\OpenAiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use Mockery;
 use Tests\TestCase;
 
@@ -69,12 +68,9 @@ class AiChatThreadCitationLinkTest extends TestCase
 
     protected function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Cite Chat Tester',
-            'email'    => 'cc-' . Str::random(8) . '@example.com',
-            'password' => bcrypt('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => 'Cite Chat Tester',
+            'role' => 'user',
         ]);
     }
 

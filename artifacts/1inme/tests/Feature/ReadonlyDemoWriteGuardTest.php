@@ -6,8 +6,6 @@ use App\Modules\Common\Services\OtpService;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -53,20 +51,9 @@ class ReadonlyDemoWriteGuardTest extends TestCase
 
     private function makeUser(bool $readonlyDemo): User
     {
-        $user = User::create([
-            'name'              => 'U ' . Str::random(4),
-            'email'             => 'u' . Str::random(8) . '@ex.com',
-            'password'          => Hash::make('secret-pass'),
-            'status'            => 'active',
-            'email_verified_at' => now(),
-            'onboarded_at'      => now(),
-            'is_readonly_demo'  => $readonlyDemo,
-        ]);
-        // Owns a personal workspace so `workspace.can:links.create` passes for
-        // the non-demo control path (owner status grants every permission).
-        $user->ensureDefaultWorkspace();
-
-        return $user->fresh();
+        return User::factory()->create([
+            'is_readonly_demo' => $readonlyDemo,
+        ])->fresh();
     }
 
     /**

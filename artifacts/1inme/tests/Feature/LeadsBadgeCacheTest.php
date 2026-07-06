@@ -10,7 +10,6 @@ use App\Modules\User\Services\LeadAggregator;
 use App\Modules\User\Services\LeadApprover;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -39,16 +38,9 @@ class LeadsBadgeCacheTest extends TestCase
             'features'           => [],
         ]);
 
-        $user = User::create([
-            'name'     => 'U ' . Str::random(4),
-            'email'    => 'u' . Str::lower(Str::random(8)) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
+        return User::factory()->create([
             'plan_id'  => $plan->id,
-        ]);
-        $user->ensureDefaultWorkspace();
-
-        return $user->fresh();
+        ])->fresh();
     }
 
     private function pendingReview(User $user): Review

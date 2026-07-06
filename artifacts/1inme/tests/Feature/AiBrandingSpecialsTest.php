@@ -15,7 +15,6 @@ use App\Services\Biolink\AiBiolinkBuilderService;
 use App\Services\Brand\AiBrandKitService;
 use App\Services\Brand\BrandConsistencyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Mockery;
 use Tests\TestCase;
@@ -64,16 +63,10 @@ class AiBrandingSpecialsTest extends TestCase
 
     private function makeUser(): User
     {
-        $user = User::create([
-            'name'     => 'Brand ' . Str::random(4),
-            'email'    => 'brand-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'role'     => 'user',
-            'plan_id'  => $this->plan()->id,
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create([
+            'role' => 'user',
+            'plan_id' => $this->plan()->id,
+        ])->fresh();
     }
 
     private function biolink(User $user): Link

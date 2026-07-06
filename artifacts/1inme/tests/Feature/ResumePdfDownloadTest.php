@@ -8,7 +8,6 @@ use App\Modules\User\Services\ResumeColorThemeRegistry;
 use App\Modules\User\Services\ResumePdfRenderer;
 use App\Modules\User\Services\ResumeTemplateRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -26,11 +25,9 @@ class ResumePdfDownloadTest extends TestCase
 
     private function makeUser(string $tag = 'u', ?string $handle = null): User
     {
-        $u = User::create([
+        $u = User::factory()->create([
             'name'     => $tag.' '.Str::random(4),
             'email'    => $tag.Str::random(8).'@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
             'handle'   => $handle ?? ($tag.Str::random(6)),
         ]);
         // Make sure the resume row exists so the renderer has something

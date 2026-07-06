@@ -13,7 +13,6 @@ use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiResourceShareService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\Feature\Concerns\AiResourceShareScenarioMatrix;
 use Tests\TestCase;
@@ -53,14 +52,7 @@ class MobileAiResourceShareApiTest extends TestCase
 
     private function makeUser(): User
     {
-        $user = User::create([
-            'name'     => 'RS ' . Str::random(4),
-            'email'    => 'rs-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create()->fresh();
     }
 
     private function asUser(User $user): self

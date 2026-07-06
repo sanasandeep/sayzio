@@ -9,7 +9,6 @@ use App\Modules\User\Models\WorkspaceRolePermission;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Services\AI\AiEngineSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -44,14 +43,7 @@ class UserSidebarMemberRoleGatingTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'         => 'u' . Str::random(4),
-            'email'        => 'u' . Str::random(8) . '@ex.com',
-            'password'     => Hash::make('x'),
-            'status'       => 'active',
-            // Skip the onboarding redirect so the dashboard actually renders.
-            'onboarded_at' => now(),
-        ]);
+        return User::factory()->create();
     }
 
     /** A workspace owned by $owner. */

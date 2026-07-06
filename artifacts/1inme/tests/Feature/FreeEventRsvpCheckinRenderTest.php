@@ -9,7 +9,6 @@ use App\Modules\User\Models\Rsvp;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -36,11 +35,8 @@ class FreeEventRsvpCheckinRenderTest extends TestCase
 
     private function makeUser(string $name = 'Ada Organizer'): User
     {
-        $u = User::create([
+        $u = User::factory()->create([
             'name'     => $name,
-            'email'    => 'o' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
         ]);
         $ws = app(WorkspaceContext::class)->resolve($u);
         app()->instance('current_workspace', $ws);

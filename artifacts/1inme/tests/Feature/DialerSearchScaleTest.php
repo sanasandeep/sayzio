@@ -12,7 +12,6 @@ use App\Modules\User\Support\DialerSearch;
 use App\Modules\User\Support\DialerT9;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -38,11 +37,9 @@ class DialerSearchScaleTest extends TestCase
 
     private function makeUser(string $prefix = 'u', ?string $name = null): User
     {
-        return User::create([
-            'name'     => $name ?? ($prefix . Str::random(4)),
-            'email'    => $prefix . '-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
+        return User::factory()->create([
+            'name' => $name ?? ($prefix . Str::random(4)),
+            'email' => $prefix . '-' . Str::random(8) . '@example.com',
         ]);
     }
 

@@ -24,12 +24,7 @@ class UserRoleAuditExportLedgerTest extends TestCase
 
     private function makeUser(array $attrs = []): User
     {
-        return User::create(array_merge([
-            'name'     => 'Test ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ], $attrs));
+        return User::factory()->create($attrs);
     }
 
     private function makeRole(string $slug, string $guard = 'web'): Role

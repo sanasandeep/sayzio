@@ -8,7 +8,6 @@ use App\Modules\User\Models\AiPersonaAgentVersion;
 use App\Modules\User\Models\User;
 use App\Services\AI\AiEngineSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -64,16 +63,10 @@ class AiPersonaUpdateApiTest extends TestCase
 
     private function makeUser(?Plan $plan = null): User
     {
-        $user = User::create([
-            'name'     => 'Persona ' . Str::random(4),
-            'email'    => 'persona-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'role'     => 'user',
-            'plan_id'  => ($plan ?? $this->plan())->id,
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create([
+            'role' => 'user',
+            'plan_id' => ($plan ?? $this->plan())->id,
+        ])->fresh();
     }
 
     private function persona(User $user, bool $useBrandKit): AiPersonaAgent

@@ -10,7 +10,6 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -62,15 +61,9 @@ class BiolinkWizardStartingDesignTest extends TestCase
 
     private function makeUser(?Plan $plan = null): User
     {
-        $user = User::create([
-            'name'     => 'Wiz ' . Str::random(4),
-            'email'    => 'wiz-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-            'plan_id'  => $plan?->id,
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create([
+            'plan_id' => $plan?->id,
+        ])->fresh();
     }
 
     private function token(User $user): string

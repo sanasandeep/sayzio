@@ -5,8 +5,6 @@ namespace Tests\Feature;
 use App\Modules\User\Models\User;
 use App\Modules\User\Support\DashboardPresets;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -33,20 +31,9 @@ class DashboardCustomizeStepRegressionTest extends TestCase
 
     private function makeUser(array $attrs = []): User
     {
-        $user = User::create(array_merge([
-            'name'        => 'U ' . Str::random(4),
-            'email'       => 'u' . Str::random(8) . '@ex.com',
-            'password'    => Hash::make('x'),
-            'status'      => 'active',
-            // Past the first-run onboarding gate so the dashboard renders
-            // instead of redirecting. Dated well outside the 14-day
-            // recency window so the one-time WhatsApp/privacy onboarding
-            // nudges (RedirectToOnboarding) don't fire either.
+        return User::factory()->create(array_merge([
             'onboarded_at' => now()->subMonth(),
-        ], $attrs));
-        $user->ensureDefaultWorkspace();
-
-        return $user->fresh();
+        ], $attrs))->fresh();
     }
 
     /**

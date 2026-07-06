@@ -34,12 +34,7 @@ class CreateLinkAiBuilderNudgeTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'User ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
+        return User::factory()->create();
     }
 
     /**

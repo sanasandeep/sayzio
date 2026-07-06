@@ -7,7 +7,6 @@ use App\Modules\User\Models\ApiUsageCounter;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -47,11 +46,8 @@ class ApiUsageWarningTest extends TestCase
             ],
         ]);
 
-        $user = User::create([
+        $user = User::factory()->create([
             'name'     => 'Dev',
-            'email'    => 'dev-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
             'role'     => 'user',
             'plan_id'  => $plan->id,
         ]);

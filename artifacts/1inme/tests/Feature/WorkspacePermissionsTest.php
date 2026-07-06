@@ -10,7 +10,6 @@ use App\Modules\User\Models\WorkspaceMember;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Modules\User\Services\WorkspacePermissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -20,14 +19,7 @@ class WorkspacePermissionsTest extends TestCase
 
     private function makeUser(array $attrs = []): User
     {
-        $user = User::create(array_merge([
-            'name'     => 'Test ' . Str::random(4),
-            'email'    => 'u' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ], $attrs));
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create($attrs)->fresh();
     }
 
     /** Stamp a member with a role; the permissions blob is now informational only. */

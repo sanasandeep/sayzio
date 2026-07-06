@@ -8,7 +8,6 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceMember;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -27,14 +26,10 @@ class DeliveryProjectApiTest extends TestCase
 
     private function makeUser(string $tag = 'u'): User
     {
-        $user = User::create([
-            'name'     => $tag . ' ' . Str::random(4),
-            'email'    => $tag . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create([
+            'name' => $tag . ' ' . Str::random(4),
+            'email' => $tag . Str::random(8) . '@ex.com',
+        ])->fresh();
     }
 
     private function token(User $user): string

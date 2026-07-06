@@ -7,7 +7,6 @@ use App\Modules\User\Models\ResumeSectionItem;
 use App\Modules\User\Models\User;
 use App\Modules\User\Services\ResumeAtsChecker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -20,11 +19,7 @@ class ResumeAtsCheckTest extends TestCase
 
     private function makeUser(): User
     {
-        $u = User::create([
-            'name'     => 'A '.Str::random(4),
-            'email'    => 'a'.Str::random(8).'@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
+        $u = User::factory()->create([
             'handle'   => 'h'.Str::random(6),
         ]);
         $u->ensureResume();

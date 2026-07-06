@@ -105,12 +105,10 @@ class AiPersonaCoachMindSelectionTest extends TestCase
 
     protected function makeUser(string $tag = 'u'): User
     {
-        return User::create([
-            'name'     => "Test $tag",
-            'email'    => $tag . '-' . Str::random(8) . '@example.com',
-            'password' => bcrypt('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => "Test $tag",
+            'email' => $tag . '-' . Str::random(8) . '@example.com',
+            'role' => 'user',
         ]);
     }
 

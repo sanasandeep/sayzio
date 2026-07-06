@@ -61,12 +61,9 @@ class MindCitationLinkTest extends TestCase
 
     protected function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Cite Tester',
-            'email'    => 'cite-' . Str::random(8) . '@example.com',
-            'password' => bcrypt('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => 'Cite Tester',
+            'role' => 'user',
         ]);
     }
 

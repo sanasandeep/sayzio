@@ -8,8 +8,6 @@ use App\Modules\User\Support\ContactPrivacy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
@@ -45,16 +43,7 @@ class DashboardOnboardingGateRegressionTest extends TestCase
      */
     private function makeUser(array $attrs = []): User
     {
-        $user = User::create(array_merge([
-            'name'         => 'U ' . Str::random(4),
-            'email'        => 'u' . Str::random(8) . '@ex.com',
-            'password'     => Hash::make('x'),
-            'status'       => 'active',
-            'onboarded_at' => now(),
-        ], $attrs));
-        $user->ensureDefaultWorkspace();
-
-        return $user->fresh();
+        return User::factory()->create($attrs)->fresh();
     }
 
     /** Stamp the one-time WhatsApp step as already shown, as the step handlers do. */

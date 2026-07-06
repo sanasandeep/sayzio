@@ -7,8 +7,6 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Services\WorkspaceContext;
 use App\Modules\User\Support\LinkTypeCategories;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -26,14 +24,7 @@ class BiolinkWizardGoalPrefillTest extends TestCase
 
     private function makeUser(): User
     {
-        $user = User::create([
-            'name'     => 'Wiz ' . Str::random(4),
-            'email'    => 'wiz-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create()->fresh();
     }
 
     private function activeWorkspaceId(User $user): ?int

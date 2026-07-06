@@ -11,8 +11,6 @@ use App\Modules\User\Models\WorkspaceMember;
 use App\Modules\User\Services\BiolinkPageRecipes;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -26,12 +24,7 @@ class BiolinkWizardIntegrationTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Wizard ' . Str::random(4),
-            'email'    => 'wiz' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
+        return User::factory()->create();
     }
 
     /**

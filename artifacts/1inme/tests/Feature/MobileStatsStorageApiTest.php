@@ -9,8 +9,6 @@ use App\Modules\Common\Support\StatsRetentionPolicy;
 use App\Modules\Common\Support\StatsStorageHealth;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -40,14 +38,7 @@ class MobileStatsStorageApiTest extends TestCase
 
     private function makeUser(): User
     {
-        $user = User::create([
-            'name'     => 'SS ' . Str::random(4),
-            'email'    => 'ss-' . Str::random(8) . '@example.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
-        $user->ensureDefaultWorkspace();
-        return $user->fresh();
+        return User::factory()->create()->fresh();
     }
 
     /** A user holding the web-guard `settings.manage` permission. */

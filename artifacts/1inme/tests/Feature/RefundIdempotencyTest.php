@@ -11,7 +11,6 @@ use App\Modules\User\Services\WorkspaceContext;
 use App\Services\Billing\ClientInvoiceService;
 use App\Services\InvoiceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -34,12 +33,7 @@ class RefundIdempotencyTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'inv ' . Str::random(4),
-            'email'    => 'inv' . Str::random(8) . '@ex.com',
-            'password' => Hash::make('x'),
-            'status'   => 'active',
-        ]);
+        return User::factory()->create();
     }
 
     private function bind(User $u): Workspace

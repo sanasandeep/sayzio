@@ -9,7 +9,6 @@ use App\Modules\User\Models\LoginEvent;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Mockery;
 use Tests\TestCase;
@@ -26,11 +25,8 @@ class SuspiciousLoginAlertTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
-            'name'     => 'Sec User',
-            'email'    => 'sec-' . bin2hex(random_bytes(4)) . '@example.test',
-            'password' => Hash::make('password'),
-            'status'   => 'active',
+        return User::factory()->create([
+            'name' => 'Sec User',
         ]);
     }
 

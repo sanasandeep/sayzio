@@ -54,12 +54,10 @@ class SiteAssistantInChatLoginTest extends TestCase
 
     private function makeUser(string $email): User
     {
-        return User::create([
-            'name'     => 'Existing Member',
-            'email'    => strtolower($email),
-            'password' => bcrypt('x'),
-            'status'   => 'active',
-            'role'     => 'user',
+        return User::factory()->create([
+            'name' => 'Existing Member',
+            'email' => strtolower($email),
+            'role' => 'user',
         ]);
     }
 
