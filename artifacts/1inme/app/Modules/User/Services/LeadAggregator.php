@@ -61,8 +61,7 @@ class LeadAggregator
         self::SOURCE_SERVICE_BOOKING, self::SOURCE_REVIEW, self::SOURCE_EVENT_INTEREST,
     ];
 
-    /** Memoised per-user link/form id sets used by the source scopes. */
-    protected ?Collection $linkIds = null;
+    /** Memoised per-user form id set used by the form-submission source scope. */
     protected ?Collection $formIds = null;
 
     public static function sourceLabels(): array
@@ -161,7 +160,7 @@ class LeadAggregator
     {
         $query = match ($source) {
             self::SOURCE_RSVP => Rsvp::query()
-                ->whereIn('link_id', $this->linkIds())
+                ->whereIn('link_id', $this->linkIdsSubquery())
                 ->with('link:id,alias,title'),
 
             self::SOURCE_FORM => FormSubmission::query()
@@ -175,20 +174,20 @@ class LeadAggregator
                 ->where('is_spam', false),
 
             self::SOURCE_STORE_ORDER => StoreOrder::query()
-                ->whereIn('link_id', $this->linkIds()),
+                ->whereIn('link_id', $this->linkIdsSubquery()),
 
             self::SOURCE_RESTAURANT_ORDER => RestaurantOrder::query()
-                ->whereIn('link_id', $this->linkIds()),
+                ->whereIn('link_id', $this->linkIdsSubquery()),
 
             self::SOURCE_SERVICE_BOOKING => ServiceBookingRequest::query()
-                ->whereIn('link_id', $this->linkIds()),
+                ->whereIn('link_id', $this->linkIdsSubquery()),
 
             self::SOURCE_REVIEW => Review::query()
                 ->where('user_id', $this->userId)
                 ->where('is_spam', false),
 
             self::SOURCE_EVENT_INTEREST => EventInterest::query()
-                ->whereIn('link_id', $this->linkIds())
+                ->whereIn('link_id', $this->linkIdsSubquery())
                 ->where('status', EventInterest::INTERESTED)
                 ->with('user:id,name,email'),
         };
@@ -363,11 +362,17 @@ class LeadAggregator
         ];
     }
 
-    protected function linkIds(): Collection
+    /**
+     * Owner's link ids as a correlated SQL subquery rather than a PHP-side
+     * pluck. Passing this to whereIn keeps the whole scope server-side, so an
+     * account with tens of thousands of links never materialises the id set in
+     * PHP nor ships it back as a giant IN (...) list.
+     */
+    protected function linkIdsSubquery(): Builder
     {
-        return $this->linkIds ??= Link::withoutGlobalScope('workspace')
+        return Link::withoutGlobalScope('workspace')
             ->where('user_id', $this->userId)
-            ->pluck('id');
+            ->select('id');
     }
 
     protected function formIds(): Collection
