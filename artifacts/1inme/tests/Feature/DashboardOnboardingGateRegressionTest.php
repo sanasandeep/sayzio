@@ -2,11 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Modules\User\Middleware\RedirectToOnboarding;
 use App\Modules\User\Models\User;
 use App\Modules\User\Support\ContactPrivacy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
 /**
@@ -132,5 +136,67 @@ class DashboardOnboardingGateRegressionTest extends TestCase
         $this->actingAs($user->fresh())
             ->get(route('user.dashboard'))
             ->assertOk();
+    }
+
+    /**
+     * Task #3832 — the gate must never hijack a non-GET request.
+     *
+     * `RedirectToOnboarding` guards its redirects behind `$request->isMethod('GET')`
+     * so it can't 302 a destructive POST or an API call mid-action when a user's
+     * onboarding state is incomplete. That safety property is only spelled out in a
+     * comment; nothing enforced it. This drives the middleware directly with a POST
+     * from a user who WOULD be redirected on a GET (freshly onboarded, no WhatsApp
+     * number, privacy not configured) and asserts it passes straight through to the
+     * next handler instead of redirecting.
+     */
+    public function test_non_get_request_is_never_redirected_by_the_gate(): void
+    {
+        // The exact profile that a GET would bounce to the WhatsApp step.
+        $user = $this->makeUser();
+        $this->assertFalse($user->hasWhatsappNumber());
+        $this->assertNull(ContactPrivacy::forUser($user->fresh())['configured_at']);
+
+        Auth::setUser($user->fresh());
+
+        foreach (['POST', 'PUT', 'PATCH', 'DELETE'] as $method) {
+            $request  = Request::create('/user/dashboard', $method);
+            $sentinel = new Response('passed-through', 204);
+            $passed   = false;
+
+            $response = (new RedirectToOnboarding())->handle($request, function ($req) use (&$passed, $sentinel) {
+                $passed = true;
+
+                return $sentinel;
+            });
+
+            // The gate handed off to $next and did not synthesize a redirect.
+            $this->assertTrue($passed, "Gate short-circuited a {$method} request instead of passing it through.");
+            $this->assertSame($sentinel, $response);
+            $this->assertFalse($response->isRedirection(), "Gate 302'd a {$method} request.");
+        }
+    }
+
+    /**
+     * A GET from the same profile IS redirected — this proves the pass-through
+     * above is due to the HTTP method and not some unrelated reason the user
+     * failed to match the redirect predicates.
+     */
+    public function test_get_request_from_the_same_profile_is_still_redirected(): void
+    {
+        $user = $this->makeUser();
+        Auth::setUser($user->fresh());
+
+        $request  = Request::create('/user/dashboard', 'GET');
+        $passed   = false;
+
+        $response = (new RedirectToOnboarding())->handle($request, function ($req) use (&$passed) {
+            $passed = true;
+
+            return new Response('should-not-reach', 204);
+        });
+
+        $this->assertFalse($passed, 'Gate should have short-circuited the GET before reaching $next.');
+        $this->assertTrue($response->isRedirection(), 'Gate should redirect a matching GET.');
+        $this->assertSame(route('user.onboarding.whatsapp'), $response->headers->get('Location'));
     }
 }
