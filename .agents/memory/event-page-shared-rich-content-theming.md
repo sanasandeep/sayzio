@@ -22,22 +22,30 @@ flexbox reimplementation of `.row.g-2 > .col-6/.col-4`, and `.ev-rich .h-100 { h
 in the consuming page's own `<style>` block instead. Never restyle the shared
 partial itself for one consumer's theme.
 
-**Light-mode completeness rule:** every base `.ev-rich <x>` color rule MUST have a
-paired `html.light-mode .ev-rich <x>` counterpart, or that element stays its
-dark-theme color on the white light-mode card and washes out. This is now
-AUTOMATED: validation gate `event-light-mode`
-(`scripts/src/check-event-page-light-mode.ts`, `pnpm --filter @workspace/scripts
-run check:event-light-mode`, `--explain` for details) parses the page's `<style>`
-block and fails if any base `.ev-rich <sel>` rule setting `color`/`border-color`
-lacks its `html.light-mode .ev-rich <sel>` peer for the SAME property. Matching is
-property-level and per-individual-selector (grouped comma selectors split), so a
-missed `color` still fails even if `border-color` is paired. Scope is `.ev-rich`
-only — the other inline-styled partials (`event-connection-tips`,
-`link-type-pairings`) bake dark colors as inline styles inside the partials, so
-there's no base rule in the `<style>` block to pair against (only their light
-overrides live here) and they're intentionally out of guard scope. Historical
-misses that motivated the guard: the tips/pairings light overrides, then
-`.btn-outline-success` (Interested widget's green `#34d399` → `#059669`/`#047857`
-in light, matching `ev-price-free`). Intentional un-paired rules go in the script's
-`ALLOWLIST` (selector+property+reason), not by weakening the parser. Regression
-tests in `check-event-page-light-mode.test.ts` (run by the `scripts-tests` gate).
+**Light-mode completeness rule:** every base color rule MUST have a paired
+`html.light-mode <same-selector>` counterpart, or that element stays its
+dark-theme color on the white light-mode card and washes out. This is AUTOMATED
+and GENERALIZED: validation gate `light-mode-pairing`
+(`scripts/src/check-light-mode-pairing.ts`, `pnpm --filter @workspace/scripts run
+check:light-mode-pairing`, `--explain` for details) checks a CONFIGURED SET of
+pages via a `TARGETS` array — currently the event page and the FAQs page — not
+just the event page. Adding a page is a one-entry append to `TARGETS`. It parses
+each page's `<style>` block(s) and fails if any base rule setting
+`color`/`border-color` lacks its `html.light-mode <sel>` peer for the SAME
+property. Matching is property-level and per-individual-selector (grouped comma
+selectors split), so a missed `color` still fails even if `border-color` is
+paired. Each target runs whole-page by default, or scoped to a wrapper via
+`scopes: [".wrapper"]` when the page also has intentional always-dark islands
+(e.g. a hero over a dark image); `@keyframes` blocks are stripped before parsing
+so animation percentage steps are never mistaken for color-carrying selectors.
+Known guard limitation: the event right-column inline-styled partials
+(`event-connection-tips`, `link-type-pairings`) bake dark colors as INLINE styles
+inside the partials, so there's no base rule in the `<style>` block to pair
+against (only their light overrides live here) — base→light pairing can't cover
+them. Historical misses that motivated the guard: the tips/pairings light
+overrides, then `.btn-outline-success` (Interested widget's green `#34d399` →
+`#059669`/`#047857` in light, matching `ev-price-free`). Intentional un-paired
+rules go in that target's `allowlist` (selector+property+reason), not by weakening
+the parser (e.g. `.ev-input:focus` blue focus ring; FAQs blue accent borders).
+Regression tests in `check-light-mode-pairing.test.ts` (run by the `scripts-tests`
+gate).

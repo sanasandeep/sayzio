@@ -8,7 +8,7 @@
     "check:brand-color": "tsx ./src/check-brand-color.ts",
     "check:brand-color-build": "tsx ./src/check-brand-color-build.ts",
     "check:ai-tool-names": "tsx ./src/check-ai-tool-names.ts",
-    "check:event-light-mode": "tsx ./src/check-event-page-light-mode.ts",
+    "check:light-mode-pairing": "tsx ./src/check-light-mode-pairing.ts",
     "check:home-preview-blocks": "tsx ./src/check-home-preview-blocks.ts",
     "check:ci-passthrough-names": "tsx ./src/check-ci-passthrough-names.ts",
     "check:dialer-sync": "tsx ./src/check-dialer-standalone-sync.ts",
