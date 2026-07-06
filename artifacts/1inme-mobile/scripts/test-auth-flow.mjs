@@ -437,8 +437,8 @@ assert.ok(
   "the verify screen must submit the code via verifyOtp",
 );
 assert.ok(
-  /router\.replace\("\/\(tabs\)"\)/.test(verifySrc),
-  "a successful verify must land the user in the signed-in tabs",
+  /await redirectAfterAuth\(router\)/.test(verifySrc),
+  "a successful verify must hand off to redirectAfterAuth (stashed create screen, else the signed-in tabs)",
 );
 assert.ok(
   /await sendOtp\(\{ channel, identifier \}\)/.test(verifySrc),
