@@ -193,13 +193,32 @@ const truthySrc = extractFn(planSrc, "function truthy", "usePlanFeatures.ts")
 const lockedSrc = extractFn(planSrc, "function isLinkTypeLocked", "usePlanFeatures.ts")
   .replace("function isLinkTypeLocked(apiType: string): boolean", "function isLinkTypeLocked(apiType)");
 
+// Non-uniform plan-key override maps (module/cap keys that don't follow the
+// uniform `module_<apiType>` / `max_<apiType>` convention). Parse them from the
+// shipped source so the gate we evaluate below uses the real overrides.
+function extractRecord(src, name) {
+  const re = new RegExp(
+    `const ${name}: Record<string, string> = \\{[\\s\\S]*?\\};`,
+  );
+  const block = (src.match(re) || [])[0];
+  assert.ok(block, `${name} not found in usePlanFeatures.ts`);
+  const map = {};
+  for (const m of block.matchAll(/(\w+):\s*"([^"]+)"/g)) map[m[1]] = m[2];
+  return { block, map };
+}
+const moduleKeyByType = extractRecord(planSrc, "MODULE_KEY_BY_TYPE");
+const capKeyByType = extractRecord(planSrc, "CAP_KEY_BY_TYPE");
+
 // Build the real isLinkTypeLocked with `ready`/`featureMap` injected from the
 // closure so we exercise the shipped logic verbatim.
 // eslint-disable-next-line no-new-func
 const makeIsLinkTypeLocked = new Function(
   "ready",
   "featureMap",
-  `${gatedSetSrc.replace("new Set<string>", "new Set")}\n${truthySrc}\n${lockedSrc}\n return isLinkTypeLocked;`,
+  `${gatedSetSrc.replace("new Set<string>", "new Set")}\n` +
+    `${moduleKeyByType.block.replace(": Record<string, string>", "")}\n` +
+    `${capKeyByType.block.replace(": Record<string, string>", "")}\n` +
+    `${truthySrc}\n${lockedSrc}\n return isLinkTypeLocked;`,
 );
 // A brand-new account is on the default (free) plan, and plan data is resolved.
 const isLinkTypeLocked = makeIsLinkTypeLocked(true, freeFeatures);
@@ -291,13 +310,22 @@ const mobileGated = new Set(
 );
 assert.ok(mobileGated.size > 0, "failed to parse GATED_LINK_TYPES entries");
 
-// Web-gated types the mobile uniform-cap gate CANNOT express: their web
-// module_/max_ keys aren't the uniform `<type>` form AND the mobile apiType
-// differs from the web type, so both `module_<apiType>` and `max_<apiType>`
-// mismatch and the gate would fail open anyway. These are intentionally left
-// out of the mobile set (see the "Mobile per-type link lock cap-key" note).
-// `calendar` (web type) maps to mobile apiType `event`, cap key `max_calendars`.
-const MOBILE_GATE_UNEXPRESSIBLE = new Set(["calendar"]);
+// Web-gated types the mobile gate CANNOT express: their web module_/max_ keys
+// aren't the uniform `<type>` form AND the mobile apiType differs from the web
+// type, so a plain `module_<apiType>`/`max_<apiType>` derivation would mismatch.
+// Such a type must supply a MODULE_KEY_BY_TYPE / CAP_KEY_BY_TYPE override (keyed
+// by mobile apiType) so the gate resolves the real web key. Nothing is currently
+// unexpressible: `calendar` (mobile apiType `event`) is now expressed via the
+// override maps below.
+const MOBILE_GATE_UNEXPRESSIBLE = new Set([]);
+
+// Mobile apiType -> web link-type name (the gatingMap key). Kind names in
+// LINK_KINDS equal the web type names, so invert kind->apiType. One divergence:
+// kind `calendar` maps to apiType `event`, whose web type is `calendar`.
+const apiTypeToWebType = {};
+for (const [kind, apiType] of Object.entries(kindToApiType)) {
+  if (gatingMap[kind]) apiTypeToWebType[apiType] = kind;
+}
 
 // Forward: every web-gated, mobile-creatable type must be gated on mobile.
 for (const [webType, gate] of Object.entries(gatingMap)) {
@@ -313,17 +341,72 @@ for (const [webType, gate] of Object.entries(gatingMap)) {
   );
 }
 
-// Reverse: mobile must not gate a type the web doesn't gate. Every mobile
-// gated apiType equals its web type name (the one exception, calendar->event,
-// is unexpressible and excluded above), so a direct gating-map lookup holds.
+// Reverse: mobile must not gate a type the web doesn't gate. Resolve each mobile
+// apiType back to its web type name (handles calendar->event) before lookup.
 for (const apiType of mobileGated) {
+  const webType = apiTypeToWebType[apiType] ?? apiType;
   assert.ok(
-    gatingMap[apiType],
+    gatingMap[webType],
     `mobile GATED_LINK_TYPES includes '${apiType}' but the web gating map ` +
       `(LinkController::enforceLinkTypeQuota) does not gate it — this would ` +
       `falsely lock the type on mobile. Remove it or add web gating.`,
   );
 }
+
+// Parity: the non-uniform override maps must name the REAL web module/cap keys
+// (LinkController::enforceLinkTypeQuota). Each override keyed by mobile apiType
+// must equal the gating map's module/cap for that apiType's web type — otherwise
+// the proactive lock reads the wrong (usually non-existent) plan key and silently
+// fails open on an exhausted/disabled paid allowance.
+for (const [apiType, moduleKey] of Object.entries(moduleKeyByType.map)) {
+  const webType = apiTypeToWebType[apiType] ?? apiType;
+  const gate = gatingMap[webType];
+  assert.ok(gate, `MODULE_KEY_BY_TYPE gates apiType '${apiType}' the web doesn't`);
+  assert.equal(
+    moduleKey, gate.module,
+    `MODULE_KEY_BY_TYPE['${apiType}'] = '${moduleKey}' but the web module key ` +
+      `for '${webType}' is '${gate.module}' — the proactive module lock reads the ` +
+      `wrong plan key. Match LinkController::enforceLinkTypeQuota.`,
+  );
+}
+for (const [apiType, capKey] of Object.entries(capKeyByType.map)) {
+  const webType = apiTypeToWebType[apiType] ?? apiType;
+  const gate = gatingMap[webType];
+  assert.ok(gate, `CAP_KEY_BY_TYPE gates apiType '${apiType}' the web doesn't`);
+  assert.equal(
+    capKey, gate.cap,
+    `CAP_KEY_BY_TYPE['${apiType}'] = '${capKey}' but the web cap key for ` +
+      `'${webType}' is '${gate.cap}' — the proactive cap lock reads the wrong ` +
+      `plan key. Match LinkController::enforceLinkTypeQuota.`,
+  );
+}
+
+// Calendar (mobile apiType `event`) must be reachable on the free plan
+// (seeder grants max_calendars=1, module_calendar not disabled)...
+assert.ok(mobileGated.has("event"), "calendar apiType 'event' expected in GATED_LINK_TYPES");
+assert.equal(
+  isLinkTypeLocked("event"),
+  false,
+  "mobile isLinkTypeLocked('event') is TRUE on the free plan — Calendar pages " +
+    "would be falsely locked for a fresh free account (max_calendars=1)",
+);
+// ...but proactively locked when a paid plan disables the module or exhausts the cap.
+assert.equal(
+  makeIsLinkTypeLocked(true, { module_calendar: false })("event"),
+  true,
+  "mobile isLinkTypeLocked('event') should be TRUE when module_calendar is off",
+);
+assert.equal(
+  makeIsLinkTypeLocked(true, { max_calendars: 0 })("event"),
+  true,
+  "mobile isLinkTypeLocked('event') should be TRUE when max_calendars cap is 0",
+);
+// Brand Kit's non-uniform cap key must also lock at 0 (its module is uniform).
+assert.equal(
+  makeIsLinkTypeLocked(true, { max_brand_kit_pages: 0 })("brand_kit"),
+  true,
+  "mobile isLinkTypeLocked('brand_kit') should be TRUE when max_brand_kit_pages cap is 0",
+);
 
 // Store pages (`store_menu`) are newly gated but must stay reachable on the
 // free plan (seeder grants max_store_menu=1 with no disabling module toggle) —

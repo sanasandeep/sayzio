@@ -22,6 +22,8 @@ import { billing, type Plan, type PremiumFeature } from "@/lib/api/billing";
 // Page/link types the web gates via the `module_<type>` toggle and the
 // `max_<type>` numeric cap (see LinkController::enforceLinkTypeQuota).
 // Absent toggle = enabled; explicit `false` = locked. Cap of 0 = locked.
+// NOTE: these are mobile apiType strings — `event` is the mobile apiType for
+// the web `calendar` link type (see LINK_KINDS: kind `calendar` -> `event`).
 const GATED_LINK_TYPES = new Set<string>([
   "restaurant_menu",
   "store_menu",
@@ -33,7 +35,23 @@ const GATED_LINK_TYPES = new Set<string>([
   "conversational",
   "slides",
   "ai_chat",
+  "event",
 ]);
+
+// Most gated types follow the uniform `module_<apiType>` / `max_<apiType>`
+// convention, but a few web keys don't (see LinkController::enforceLinkTypeQuota):
+//   - calendar (mobile apiType `event`) uses `module_calendar` / `max_calendars`
+//   - brand_kit's cap is `max_brand_kit_pages` (its module IS uniform)
+// Map the mobile apiType to the REAL web key so the proactive lock matches the
+// server gate; without these the derived key wouldn't exist and the gate would
+// silently fail OPEN on an exhausted/disabled paid allowance.
+const MODULE_KEY_BY_TYPE: Record<string, string> = {
+  event: "module_calendar",
+};
+const CAP_KEY_BY_TYPE: Record<string, string> = {
+  event: "max_calendars",
+  brand_kit: "max_brand_kit_pages",
+};
 
 function truthy(v: unknown): boolean {
   return v === true || v === 1 || v === "1" || v === "true";
@@ -103,9 +121,11 @@ export function usePlanFeatures(): PlanGate {
   function isLinkTypeLocked(apiType: string): boolean {
     if (!ready) return false;
     if (!GATED_LINK_TYPES.has(apiType)) return false;
-    const moduleVal = featureMap[`module_${apiType}`];
+    const moduleKey = MODULE_KEY_BY_TYPE[apiType] ?? `module_${apiType}`;
+    const capKey = CAP_KEY_BY_TYPE[apiType] ?? `max_${apiType}`;
+    const moduleVal = featureMap[moduleKey];
     if (moduleVal !== undefined && !truthy(moduleVal)) return true;
-    const capVal = featureMap[`max_${apiType}`];
+    const capVal = featureMap[capKey];
     if (capVal !== undefined && Number(capVal) === 0) return true;
     return false;
   }
