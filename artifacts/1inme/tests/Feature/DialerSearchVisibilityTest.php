@@ -673,6 +673,43 @@ class DialerSearchVisibilityTest extends TestCase
         );
     }
 
+    public function test_web_search_reveals_registered_only_link_to_a_follower(): void
+    {
+        // Positive web mirror of
+        // test_api_search_reveals_a_followed_creators_registered_only_link, and of
+        // the canViewLink() registered-tier branch, exercised end-to-end on the
+        // web endpoint. Every Dialer viewer is authenticated, so a "registered"
+        // link must surface for any authenticated searcher who can reach the
+        // creator (here, via a follow) — no follow-tier relationship (`followers`)
+        // or subscription (`subscribers`) may be required. The web dialer runs
+        // under `workspace.scope`, which binds the searcher's active workspace; a
+        // followed creator's registered-tier link lives in the CREATOR's
+        // workspace, so unless the followed-links query opts out of the
+        // BelongsToWorkspace global scope it would be silently HIDDEN on the web
+        // surface — while the surface-independent canViewLink() reflection test
+        // and the (workspace-less) API path still passed. This viewer follows but
+        // does NOT subscribe, so "registered" must pass on authentication alone;
+        // without this test a regression that treated "registered" like
+        // "followers"/"subscribers" (demanding a follow-tier or subscription), or
+        // a re-scoping regression on the followed-links query, would go uncaught
+        // on web.
+        $viewer  = $this->makeUser('viewer');
+        $creator = $this->makeUser('creator');
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $creator->id]);
+        // Follows but never subscribes — "registered" must pass on authentication alone.
+        $registeredLink = $this->makeLink($creator, 'registered');
+
+        $resp = $this->actingAsWeb($viewer)->getJson(route('user.dialer.search', ['q' => self::TOKEN]));
+        $resp->assertOk();
+
+        $followed = $this->groupLinkIds($resp->json('data'), 'followed');
+        $this->assertContains(
+            $registeredLink->id,
+            $followed,
+            'an authenticated follower (non-subscriber) must see a followed creator\'s registered-tier link on the web dialer surface'
+        );
+    }
+
     public function test_web_search_requires_authentication(): void
     {
         $this->get(route('user.dialer.search', ['q' => self::TOKEN]))->assertRedirect('/user/login');
