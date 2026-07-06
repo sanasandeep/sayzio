@@ -350,10 +350,22 @@ class DialerSearch
      */
     private static function reachableUserIds(User $user): Collection
     {
+        // Follows and contacts are account-level relationships, not
+        // workspace-scoped. Both models use BelongsToWorkspace, so on the web
+        // surface (which runs under `workspace.scope`) their global scope would
+        // narrow these ID-set queries to the searcher's ACTIVE workspace only —
+        // dropping follows/contacts created in another workspace and leaving the
+        // reachable set (People / Social groups) silently empty. The Sanctum/
+        // mobile surface binds no workspace and returns them all; opt out of the
+        // workspace scope here so web matches API/mobile. The follower_id/user_id
+        // predicates still scope this to the searcher, so it never widens reach.
         $ids = collect([$user->id]);
-        $ids = $ids->merge(Follow::where('follower_id', $user->id)->pluck('creator_id'));
         $ids = $ids->merge(
-            Contact::where('user_id', $user->id)->whereNotNull('biolink_user_id')->pluck('biolink_user_id')
+            Follow::withoutGlobalScope('workspace')->where('follower_id', $user->id)->pluck('creator_id')
+        );
+        $ids = $ids->merge(
+            Contact::withoutGlobalScope('workspace')
+                ->where('user_id', $user->id)->whereNotNull('biolink_user_id')->pluck('biolink_user_id')
         );
         $ids = $ids->filter()->unique()->values();
 
@@ -402,7 +414,13 @@ class DialerSearch
     /** @return array<int,array<string,mixed>> */
     private static function followedLinkItems(User $user, string $q, bool $onlyVerified): array
     {
-        $creatorIds = Follow::where('follower_id', $user->id)->pluck('creator_id')->unique();
+        // Follow is account-level but uses BelongsToWorkspace; opt out of the
+        // workspace global scope so the web surface (under `workspace.scope`)
+        // resolves EVERY creator the searcher follows, not just those followed
+        // while the active workspace was bound — matching the Sanctum/mobile
+        // surface (no workspace binding). follower_id still scopes to the searcher.
+        $creatorIds = Follow::withoutGlobalScope('workspace')
+            ->where('follower_id', $user->id)->pluck('creator_id')->unique();
         if ($creatorIds->isEmpty()) {
             return [];
         }
@@ -667,7 +685,14 @@ class DialerSearch
             return collect();
         }
 
-        return Subscriber::whereIn('user_id', $links->pluck('user_id')->unique()->all())
+        // Subscriber uses BelongsToWorkspace, but a subscription is an
+        // account-level relationship between the viewer's email and a creator;
+        // opt out of the workspace scope so the web surface (under
+        // `workspace.scope`) doesn't miss a real subscription created outside
+        // the active workspace and wrongly hide a subscribers-only link. The
+        // user_id + email predicates still scope this precisely.
+        return Subscriber::withoutGlobalScope('workspace')
+            ->whereIn('user_id', $links->pluck('user_id')->unique()->all())
             ->where('status', 'active')
             ->where('email', $viewer->email)
             ->pluck('user_id')
@@ -711,14 +736,16 @@ class DialerSearch
             if ($subscribedCreatorIds !== null) {
                 return true;
             }
-            return Follow::where('follower_id', $viewer->id)
+            return Follow::withoutGlobalScope('workspace')
+                ->where('follower_id', $viewer->id)
                 ->where('creator_id', $link->user_id)->exists();
         }
         if ($vis === 'subscribers') {
             if ($subscribedCreatorIds !== null) {
                 return $subscribedCreatorIds->contains((int) $link->user_id);
             }
-            return Subscriber::where('user_id', $link->user_id)
+            return Subscriber::withoutGlobalScope('workspace')
+                ->where('user_id', $link->user_id)
                 ->where('status', 'active')
                 ->where('email', $viewer->email)
                 ->exists();
