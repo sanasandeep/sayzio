@@ -75,7 +75,7 @@
             <div class="{{ $m->sender_type === 'owner' ? 'flex justify-end' : 'flex justify-start' }}">
                 <div class="max-w-[78%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap break-words
                             {{ $m->sender_type === 'owner' ? 'bg-indigo-500/30 text-indigo-50' : 'bg-white/10 text-white' }}">
-                    {{ $m->body }}
+                    {!! \App\Modules\Common\Services\LinkReferenceRenderer::renderApp($m->body, $conversation->owner_user_id) !!}
                     <div class="text-[10px] opacity-60 mt-1 text-right">{{ $m->created_at?->diffForHumans() }}</div>
                 </div>
             </div>

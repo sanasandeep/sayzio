@@ -62,8 +62,10 @@ class InboxReplyDispatcher
         $fromAddress = $subSettings['email_from_address'] ?? config('mail.from.address', 'noreply@1inme.com');
         $replyTo     = $subSettings['email_reply_to']     ?? null;
 
+        $htmlBody = \App\Modules\Common\Services\LinkReferenceRenderer::renderEmail($body, $thread->user_id);
+
         try {
-            Mail::html(nl2br(e($body)), function ($m) use ($to, $thread, $fromName, $fromAddress, $replyTo) {
+            Mail::html($htmlBody, function ($m) use ($to, $thread, $fromName, $fromAddress, $replyTo) {
                 $m->to($to)->subject('Re: ' . ($thread->subject ?: 'Your message'))->from($fromAddress, $fromName);
                 if ($replyTo) $m->replyTo($replyTo);
             });

@@ -13,6 +13,26 @@
         showSnippets: false,
         aiDrafting: false,
         aiError: '',
+        showLinkPicker: false,
+        linkQuery: '',
+        linkResults: [],
+        linkSearching: false,
+        async searchLinks() {
+            this.linkSearching = true;
+            try {
+                const res = await fetch(@js(route('user.links.picker-search')) + '?q=' + encodeURIComponent(this.linkQuery), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                });
+                const data = await res.json();
+                this.linkResults = (data.data || []);
+            } catch (e) { this.linkResults = []; }
+            finally { this.linkSearching = false; }
+        },
+        insertLink(link) {
+            const token = '@{{link:' + link.id + '}}';
+            this.replyText = (this.replyText ? this.replyText.replace(/\s+$/, '') + '\n' : '') + token + ' ';
+            this.showLinkPicker = false;
+        },
         async draftWithAi() {
             this.aiDrafting = true; this.aiError = '';
             try {
@@ -101,7 +121,7 @@
                             <span>{{ optional($m->sent_at)->diffForHumans() }}</span>
                             @if($m->direction === 'out')<span class="ml-auto text-[10px] uppercase tracking-wider" style="color: var(--text-faint);">Sent</span>@endif
                         </div>
-                        <div class="text-sm whitespace-pre-wrap" style="color: var(--text-primary);">{{ $m->body }}</div>
+                        <div class="text-sm whitespace-pre-wrap" style="color: var(--text-primary);">{!! \App\Modules\Common\Services\LinkReferenceRenderer::renderApp($m->body, $thread->user_id) !!}</div>
                     </div>
                 @endforeach
             </div>
@@ -168,12 +188,56 @@
             <form method="POST" action="{{ route('user.inbox.unified.reply', $thread->id) }}" class="card-premium p-5 space-y-3">@csrf
                 <div class="flex items-center justify-between gap-2">
                     <div class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-faint);">Reply via {{ $thread->channelLabel() }}</div>
-                    <button type="button" @click="draftWithAi()" :disabled="aiDrafting"
-                            class="px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5"
-                            style="background: rgba(92,131,255,0.15); color: #bccfff; border: 1px solid rgba(92,131,255,0.3);">
-                        <i class="fas" :class="aiDrafting ? 'fa-spinner fa-spin' : 'fa-robot'"></i>
-                        <span x-text="aiDrafting ? 'Drafting…' : (replyText ? 'Regenerate with AI' : 'Draft with AI')"></span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="showLinkPicker = true; linkQuery = ''; linkResults = []; searchLinks(); $nextTick(() => $refs.linkPickerInput && $refs.linkPickerInput.focus())"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5"
+                                style="background: rgba(92,131,255,0.15); color: #bccfff; border: 1px solid rgba(92,131,255,0.3);">
+                            <i class="fas fa-link"></i>
+                            <span>Attach a link</span>
+                        </button>
+                        <button type="button" @click="draftWithAi()" :disabled="aiDrafting"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center gap-1.5"
+                                style="background: rgba(92,131,255,0.15); color: #bccfff; border: 1px solid rgba(92,131,255,0.3);">
+                            <i class="fas" :class="aiDrafting ? 'fa-spinner fa-spin' : 'fa-robot'"></i>
+                            <span x-text="aiDrafting ? 'Drafting…' : (replyText ? 'Regenerate with AI' : 'Draft with AI')"></span>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Link picker modal --}}
+                <div x-show="showLinkPicker" x-cloak
+                     class="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4"
+                     style="background: rgba(0,0,0,0.55);"
+                     @click.self="showLinkPicker = false" @keydown.escape.window="showLinkPicker = false">
+                    <div class="w-full max-w-md rounded-xl p-4 space-y-3" style="background: var(--bg-card, #161a2e); border: 1px solid var(--border-glass);" @click.stop>
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm font-bold" style="color: var(--text-primary);">Attach one of your links</div>
+                            <button type="button" @click="showLinkPicker = false" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
+                        </div>
+                        <input type="text" x-ref="linkPickerInput" x-model="linkQuery" @input.debounce.300ms="searchLinks()"
+                               placeholder="Search your links by title, alias, or URL…"
+                               class="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                               style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                        <div class="max-h-72 overflow-y-auto space-y-1.5">
+                            <template x-if="linkSearching">
+                                <div class="text-xs py-3 text-center" style="color: var(--text-faint);"><i class="fas fa-spinner fa-spin mr-1"></i>Searching…</div>
+                            </template>
+                            <template x-if="!linkSearching && linkResults.length === 0">
+                                <div class="text-xs py-3 text-center" style="color: var(--text-faint);">No links found.</div>
+                            </template>
+                            <template x-for="link in linkResults" :key="link.id">
+                                <button type="button" @click="insertLink(link)"
+                                        class="w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5"
+                                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                    <i class="fas fa-link flex-shrink-0" style="color: #93c5fd;"></i>
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block text-xs font-semibold truncate" style="color: var(--text-primary);" x-text="link.title"></span>
+                                        <span class="block text-[11px] truncate" style="color: var(--text-faint);" x-text="link.type_label + ' · ' + link.short_url"></span>
+                                    </span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
                 </div>
 
                 @if($thread->needsReview())

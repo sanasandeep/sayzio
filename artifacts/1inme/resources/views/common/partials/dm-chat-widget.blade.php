@@ -103,7 +103,7 @@
                              :class="m.side === 'viewer'
                                 ? 'bg-white/10 text-white'
                                 : 'bg-indigo-500/30 text-indigo-50'"
-                             x-text="m.body"></div>
+                             x-html="m.body_html"></div>
                     </div>
                 </template>
             </div>

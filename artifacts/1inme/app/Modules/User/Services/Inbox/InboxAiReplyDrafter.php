@@ -2,7 +2,9 @@
 
 namespace App\Modules\User\Services\Inbox;
 
+use App\Modules\Common\Services\LinkReferenceRenderer;
 use App\Modules\User\Models\InboxThread;
+use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
 use App\Services\AI\AiEngineSettings;
@@ -72,6 +74,8 @@ class InboxAiReplyDrafter
             ? "\n\nAbout the creator you are writing as (voice & context):\n{$persona}"
             : '';
 
+        $linksBlock = $this->linksContextBlock($thread->user_id);
+
         $system = <<<PROMPT
 You are the reply assistant for a creator's unified message inbox. Write a
 single, ready-to-send reply to the most recent inbound message in the
@@ -82,9 +86,13 @@ Rules:
 - Be concise, warm and genuinely helpful. Address what the sender actually asked.
 - Never invent facts, prices, dates, links or commitments you cannot support.
   If something needs the creator's input, ask a brief clarifying question.
+- If (and only if) it is genuinely relevant to point the sender to one of the
+  creator's own links/pages listed below, reference it by writing its exact
+  token, e.g. {{link:123}}, inline in the reply text. Never write out a URL
+  yourself and never invent a link, id, or token that is not in the list.
 - Do not add a subject line, greeting placeholders like "[Name]", or a sign-off
   signature block — a signature is appended separately.
-- Output only the reply body text, no quotes or commentary.{$personaBlock}
+- Output only the reply body text, no quotes or commentary.{$personaBlock}{$linksBlock}
 PROMPT;
 
         $messages = [['role' => 'system', 'content' => $system]];
@@ -119,6 +127,31 @@ PROMPT;
         }
 
         return $messages;
+    }
+
+    /**
+     * A short catalogue of the creator's own links (id/title/type/short URL)
+     * so the model can reference a real destination via a {{link:ID}} token
+     * instead of fabricating one. Empty when the creator has no links yet.
+     */
+    protected function linksContextBlock(int $ownerUserId): string
+    {
+        $links = Link::where('user_id', $ownerUserId)
+            ->where('is_active', true)
+            ->orderByDesc('updated_at')
+            ->limit(15)
+            ->get(['id', 'title', 'alias', 'type']);
+
+        if ($links->isEmpty()) {
+            return '';
+        }
+
+        $lines = $links->map(function (Link $l) {
+            $title = $l->title ?: ($l->alias ?: 'Untitled');
+            return "- {{link:{$l->id}}} — \"{$title}\" ({$l->type_label})";
+        })->implode("\n");
+
+        return "\n\nThe creator's own links/pages you may reference (token — title — type):\n{$lines}";
     }
 
     protected function withSignature(string $draft, string $signature): string

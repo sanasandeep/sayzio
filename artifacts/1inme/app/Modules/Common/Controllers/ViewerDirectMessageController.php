@@ -89,10 +89,11 @@ class ViewerDirectMessageController
                 'throttled'      => (bool) ($conv?->viewerIsThrottled() ?? false),
             ],
             'messages'  => $messages->map(fn ($m) => [
-                'id'        => $m->id,
-                'side'      => $m->sender_type,
-                'body'      => $m->body,
-                'sent_at'   => optional($m->created_at)->toIso8601String(),
+                'id'         => $m->id,
+                'side'       => $m->sender_type,
+                'body'       => $m->body,
+                'body_html'  => \App\Modules\Common\Services\LinkReferenceRenderer::renderDm($m->body, (int) $link->user_id),
+                'sent_at'    => optional($m->created_at)->toIso8601String(),
             ])->values(),
         ]);
     }

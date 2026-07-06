@@ -159,6 +159,40 @@ class LinkController extends Controller
         ]);
     }
 
+    /**
+     * JSON search endpoint powering the "Attach a link" picker in the
+     * unified inbox reply composer. Scoped strictly to the workspace
+     * owner's own links (never other users') so an inbox reply can only
+     * ever reference something the account actually owns.
+     */
+    public function pickerSearch(Request $request)
+    {
+        $q = trim((string) $request->get('q', ''));
+
+        $query = workspace_owner()->links()->where('is_active', true);
+        if ($q !== '') {
+            $needle = '%' . $q . '%';
+            $query->where(function ($w) use ($needle) {
+                $w->where('title', 'ilike', $needle)
+                  ->orWhere('alias', 'ilike', $needle)
+                  ->orWhere('long_url', 'ilike', $needle);
+            });
+        }
+
+        $links = $query->orderByDesc('updated_at')->limit(20)->get();
+
+        return response()->json([
+            'data' => $links->map(fn ($l) => [
+                'id'         => $l->id,
+                'title'      => $l->title ?: ($l->alias ?: 'Untitled link'),
+                'type'       => $l->type,
+                'type_label' => $l->type_label,
+                'short_url'  => $l->getShortUrl(),
+                'alias'      => $l->alias,
+            ])->values(),
+        ]);
+    }
+
     public function create(Request $request)
     {
         // Step 1 of the create-link flow: choose a name + type. The user

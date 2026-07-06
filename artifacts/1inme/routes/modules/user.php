@@ -710,6 +710,9 @@ Route::prefix('user')->name('user.')->group(function () {
         // a literal path and not as the `links/{link}` show-route.
         Route::get('links/export', [LinkController::class, 'export'])->middleware('workspace.can:links.view')->name('links.export');
 
+        // JSON "attach a link" picker used by the unified inbox reply composer.
+        Route::get('links/picker-search', [LinkController::class, 'pickerSearch'])->middleware('workspace.can:links.view')->name('links.picker-search');
+
         Route::resource('links', LinkController::class)->except(['store', 'update', 'destroy'])->middleware('workspace.can:links.view');
         Route::put('links/{link}',  [LinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.update');
         Route::patch('links/{link}',[LinkController::class, 'update'])->middleware('workspace.can:links.edit');
