@@ -45,6 +45,25 @@ class ProtectedAccountApiGuardTest extends TestCase
         );
     }
 
+    /**
+     * Build a web User the way the rest of the suite does — the canonical
+     * {@see User} model has no HasFactory trait, so {@see User::factory()}
+     * throws. Mirrors OnboardingStatusStepLockstepTest::makeUser().
+     */
+    private function makeUser(array $attrs = []): User
+    {
+        $user = User::create(array_merge([
+            'name'         => 'U ' . Str::random(4),
+            'email'        => 'u' . Str::random(8) . '@ex.com',
+            'password'     => Hash::make('x'),
+            'status'       => 'active',
+            'onboarded_at' => now(),
+        ], $attrs));
+        $user->ensureDefaultWorkspace();
+
+        return $user->fresh();
+    }
+
     /** A web User bridged (by email) to an active super-admin back-office Admin. */
     private function makeOperator(): User
     {
@@ -56,7 +75,7 @@ class ProtectedAccountApiGuardTest extends TestCase
             'role_id'  => $this->superAdminRole()->id,
             'status'   => 'active',
         ]);
-        return User::factory()->create(['email' => $email]);
+        return $this->makeUser(['email' => $email]);
     }
 
     /**
@@ -73,7 +92,7 @@ class ProtectedAccountApiGuardTest extends TestCase
             'role_id'  => $this->superAdminRole()->id,
             'status'   => 'active',
         ]);
-        $user = User::factory()->create(['email' => $email]);
+        $user = $this->makeUser(['email' => $email]);
 
         if ($protected) {
             ProtectedAccount::create([
@@ -147,7 +166,7 @@ class ProtectedAccountApiGuardTest extends TestCase
             'role_id'  => $this->superAdminRole()->id,
             'status'   => 'active',
         ]);
-        $target = User::factory()->create(['email' => 'CaseApi@Example.COM']);
+        $target = $this->makeUser(['email' => 'CaseApi@Example.COM']);
 
         $this->withToken($this->token($operator))
             ->deleteJson("/api/v1/admin/users/{$target->id}/admin-access")
