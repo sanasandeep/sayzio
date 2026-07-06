@@ -166,6 +166,12 @@ Route::prefix('v1')->group(function () {
         // Unified creator Stats home (mobile parity for web /user/stats).
         Route::get('/stats', [\App\Modules\Api\Controllers\CreatorStatsApiController::class, 'index']);
 
+        // Account-wide Visitors (mobile parity for web /user/visitors —
+        // Task #3816). Totals + new/returning + daily trend + a
+        // visitors-by-link-type breakdown + a source breakdown, filterable
+        // by link type and date range (presets + custom).
+        Route::get('/me/visitors', [\App\Modules\Api\Controllers\VisitorAnalyticsApiController::class, 'account']);
+
         // In-page Product storefront (Task #1763). The cart lives in the app
         // (no session on the Sanctum path) and is posted as line items.
         Route::post('/store/{alias}/buy',      [\App\Modules\Api\Controllers\BiolinkStoreApiController::class, 'buy'])->middleware('throttle:30,1');
@@ -636,6 +642,11 @@ Route::prefix('v1')->group(function () {
         Route::put ('/links/{id}/conversational', [\App\Modules\Api\Controllers\ConversationFlowController::class, 'save'])->whereNumber('id');
         Route::get   ('/links/{id}/analytics', [LinkController::class, 'analytics'])->whereNumber('id');
         Route::get   ('/links/{id}/analytics/blocks/{blockId}', [LinkController::class, 'blockAnalytics'])->whereNumber('id')->whereNumber('blockId');
+
+        // Per-link Visitor Insights (mobile parity for the web
+        // /user/links/{link}/visitors page — Task #3816). Totals + new/
+        // returning split + daily trend + identified visitors + NFC/AR.
+        Route::get   ('/links/{id}/visitors', [\App\Modules\Api\Controllers\VisitorAnalyticsApiController::class, 'link'])->whereNumber('id');
 
         // Geographic click heatmap (parity with web /links/{link}/heatmap).
         // `heatmap` returns aggregated coordinate points for the window;

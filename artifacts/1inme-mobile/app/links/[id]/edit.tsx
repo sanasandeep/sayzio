@@ -375,6 +375,11 @@ export default function EditLinkScreen() {
             label="Analytics"
             onPress={() => router.push(`/links/${id}/analytics` as any)}
           />
+          <ActionTile
+            icon="users"
+            label="Visitor Insights"
+            onPress={() => router.push(`/links/${id}/visitors` as any)}
+          />
           {meta.kind === "biolink" ? (
             <ActionTile
               icon="grid"
