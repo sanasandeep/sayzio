@@ -173,12 +173,12 @@
                                 </div>
                             </div>
                             {{-- Featured --}}
-                            <div class="relative overflow-hidden rounded-xl border border-blue-400/30 bg-white/5 bg-gradient-to-br from-blue-600/20 via-fuchsia-500/10 to-transparent p-5 flex flex-col">
+                            <div class="mega-featured-card relative overflow-hidden rounded-xl border border-blue-400/30 bg-white/5 bg-gradient-to-br from-blue-600/20 via-fuchsia-500/10 to-transparent p-5 flex flex-col">
                                 <span aria-hidden class="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-blue-500/25 blur-2xl"></span>
                                 <span class="relative inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-300">
                                     <i class="fas fa-sparkles"></i> What you can create
                                 </span>
-                                <span class="relative mt-2 block text-base font-bold leading-tight text-white">Everything in one link</span>
+                                <span class="mega-featured-title relative mt-2 block text-base font-bold leading-tight text-white">Everything in one link</span>
                                 <span class="relative mt-1.5 block flex-1 text-xs leading-snug text-gray-400">Links, Link in Bio pages, QR codes, résumés and AI pages — all fully branded.</span>
                                 <a href="{{ route('site.features') }}" class="relative mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-[#3d6bff] px-4 py-2 text-xs font-bold text-white hover:bg-[#2342c7] transition-colors">
                                     Explore features <i class="fas fa-arrow-right text-[10px]"></i>
@@ -232,12 +232,12 @@
                                 </div>
                             </div>
                             {{-- Featured --}}
-                            <div class="relative overflow-hidden rounded-xl border border-pink-400/30 bg-white/5 bg-gradient-to-br from-pink-600/20 via-fuchsia-500/10 to-transparent p-5 flex flex-col">
+                            <div class="mega-featured-card relative overflow-hidden rounded-xl border border-pink-400/30 bg-white/5 bg-gradient-to-br from-pink-600/20 via-fuchsia-500/10 to-transparent p-5 flex flex-col">
                                 <span aria-hidden class="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-pink-500/25 blur-2xl"></span>
                                 <span class="relative inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-pink-300">
                                     <i class="fas fa-compass"></i> Not sure where to start?
                                 </span>
-                                <span class="relative mt-2 block text-base font-bold leading-tight text-white">One link for every goal</span>
+                                <span class="mega-featured-title relative mt-2 block text-base font-bold leading-tight text-white">One link for every goal</span>
                                 <span class="relative mt-1.5 block flex-1 text-xs leading-snug text-gray-400">Built for creators, brands, agencies, coaches and local business.</span>
                                 <a href="{{ route('site.services') }}" class="relative mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-[#3d6bff] px-4 py-2 text-xs font-bold text-white hover:bg-[#2342c7] transition-colors">
                                     See use cases <i class="fas fa-arrow-right text-[10px]"></i>

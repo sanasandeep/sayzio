@@ -377,6 +377,14 @@ html.light-mode [class*="bg-gradient"] .text-white {
     color: #ffffff !important;
 }
 
+/* Mega-menu Featured card heading: translucent gradient tint reads near-white
+   in light mode, so the heading must darken instead of following the
+   gradient-preserves-white rule above. Scoped to the heading only — the
+   card's CTA button (bg-[#3d6bff] text-white) must stay white. */
+html.light-mode .mega-featured-card .mega-featured-title.text-white {
+    color: #1f2937 !important;
+}
+
 /* Hero phone screen has its own dark wallpaper (--phone-bg) — keep white text */
 html.light-mode .hero-phone-screen,
 html.light-mode .hero-phone-screen .text-white,
