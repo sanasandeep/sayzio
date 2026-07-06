@@ -38,9 +38,21 @@ even though you passed a fresh token — so assertions "stick" at the first
 request's values (the classic symptom: post-mutation reads look unchanged, and
 the payload exactly matches the earlier user's state).
 
-**Fix:** call `$this->app['auth']->forgetGuards();` immediately before each
-request (right after minting the token). Production is unaffected — every real
-HTTP request is a fresh process with an empty guard cache.
+**Fix (now centralized):** `Tests\TestCase::call()` is overridden to call
+`$this->app['auth']->forgetGuards();` before dispatching ANY request whose
+`HTTP_AUTHORIZATION` server var is a `Bearer ...` token (populated by
+`withToken()` / `withHeaders()`). So new bearer-token API tests need NO manual
+call — every bearer request re-resolves its token cleanly, mirroring production
+(each real HTTP request is a fresh process with an empty guard cache). The
+override is deliberately scoped to bearer requests only: session/`actingAs`
+tests carry no Authorization header and set the user directly on the guard, so
+forgetting it would drop the acting user and break them. A couple of older tests
+still call `forgetGuards()` manually — harmless (idempotent), not required.
+
+**Why not blanket-forget before every request:** `actingAs()`/`be()` sets the
+user on the guard instance; a blanket `forgetGuards()` in `call()` would discard
+it and every session test would 401/redirect. The `Bearer`-header gate avoids
+that.
 
 **Debugging tip:** if a request's `$u->fresh()->settings` reads stale/null while
 a direct `$model->fresh()` in the test process sees the write, suspect this

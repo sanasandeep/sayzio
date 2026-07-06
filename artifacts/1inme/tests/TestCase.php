@@ -102,6 +102,40 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+     * Clear resolved auth guards before any bearer-token test request.
+     *
+     * Sanctum's guard memoizes the FIRST user it resolves within a PHP process.
+     * When a single test method fires two or more bearer-token requests (e.g.
+     * mint a token → request → mutate state or switch users → request again),
+     * every later request silently re-authenticates the *previous* request's
+     * user and reads ITS state, even though a fresh token was passed. The
+     * classic symptom is assertions that "stick" at an earlier request's
+     * values, which can make a test pass — or fail — for the wrong reason and
+     * hide real regressions in authenticated /api/v1 behavior.
+     *
+     * Every real HTTP request is a fresh process with an empty guard cache, so
+     * we mirror that here: before dispatching a request that carries a bearer
+     * token, forget the resolved guards so the token is re-resolved cleanly.
+     *
+     * This is intentionally scoped to requests with an `Authorization: Bearer`
+     * header (populated by `withToken()` / `withHeaders()` and surfaced as the
+     * `HTTP_AUTHORIZATION` server var). Session-based tests that authenticate
+     * via `actingAs()`/`be()` carry no such header and set the user directly on
+     * the guard, so they are left untouched — forgetting their guard would drop
+     * the acting user and break them.
+     */
+    public function call($method, $uri, $parameters = [], $cookies = [], $files = [], $server = [], $content = null)
+    {
+        $authorization = $server['HTTP_AUTHORIZATION'] ?? null;
+
+        if (is_string($authorization) && str_starts_with(strtolower(ltrim($authorization)), 'bearer ')) {
+            $this->app['auth']->forgetGuards();
+        }
+
+        return parent::call($method, $uri, $parameters, $cookies, $files, $server, $content);
+    }
+
+    /**
      * The Feature suite runs every test in one long-lived PHP process, and
      * each test boots a fresh Laravel app (~1.4k lines of routes). That builds
      * up large cyclic object graphs (container bindings, the HTTP request /
