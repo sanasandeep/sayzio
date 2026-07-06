@@ -214,14 +214,14 @@
                 {{-- Task #3617 — active-layout badge: makes it unambiguous which
                      preset/custom layout is applied, and doubles as a shortcut
                      into the picker. --}}
-                <button type="button" @click="$dispatch('open-dashboard-customize')"
+                <button type="button" @click="$dispatch('open-dashboard-customize', { step: 'quick' })"
                         class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-all hover:opacity-80"
                         style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.18); color: var(--accent-light, #90acff);"
                         title="Click to switch layouts">
                     <i class="fas {{ $dashboardIsCustom ? 'fa-wand-magic-sparkles' : 'fa-table-cells-large' }} text-[10px]"></i>
                     Layout: {{ $dashboardLayoutLabel }}
                 </button>
-                <button type="button" @click="$dispatch('open-dashboard-customize')" class="btn-ghost text-xs py-2">
+                <button type="button" @click="$dispatch('open-dashboard-customize', { step: 'picker' })" class="btn-ghost text-xs py-2">
                     <i class="fas fa-sliders text-[10px]"></i> Customize dashboard
                 </button>
             </div>

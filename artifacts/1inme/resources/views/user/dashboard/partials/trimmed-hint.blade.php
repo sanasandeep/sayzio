@@ -7,7 +7,7 @@
         <i class="fas fa-circle-info text-[11px]" style="color: var(--accent-light, #90acff);"></i>
         Some tiles are hidden by your current layout.
     </span>
-    <button type="button" @click="$dispatch('open-dashboard-customize')"
+    <button type="button" @click="$dispatch('open-dashboard-customize', { step: 'quick' })"
             class="text-[11px] font-semibold whitespace-nowrap flex-shrink-0 transition-all hover:gap-2 inline-flex items-center gap-1"
             style="color: var(--accent-light, #90acff);">
         Switch layout <i class="fas fa-arrow-right text-[9px]"></i>
