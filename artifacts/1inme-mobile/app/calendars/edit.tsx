@@ -21,6 +21,7 @@ import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import {
   createCalendar,
   getCalendar,
+  listCalendars,
   updateCalendar,
   type CalendarInput,
 } from "@/lib/api/calendars";
@@ -63,13 +64,32 @@ export default function CalendarEditScreen() {
   // like the web module/cap gate), and fresh free accounts (max_calendars=1)
   // still fall through to build their first calendar. Fails open until plan
   // data resolves.
-  const createLocked = !isEdit && plan.isLinkTypeLocked("event");
+  const typeLocked = !isEdit && plan.isLinkTypeLocked("event");
 
   const existingQ = useQuery({
     queryKey: ["calendar", id, true],
     queryFn: () => getCalendar(id as number, { past: true }),
     enabled: isEdit,
   });
+
+  // Also proactively lock when the plan ALLOWS calendars but the creator has
+  // already used their full `max_calendars` quota (e.g. cap of 2 and they own
+  // 2). Without this they'd see the empty builder and only get bounced by the
+  // server 402 at submit. Count only OWNED calendars (followed ones don't count
+  // against the cap). Fails OPEN until BOTH the plan data and the owned count
+  // resolve, so first-time/free creators are never falsely blocked. Create-only.
+  const calendarsQ = useQuery({
+    queryKey: ["calendars"],
+    queryFn: listCalendars,
+    enabled: !isEdit,
+  });
+  const ownedCount = (calendarsQ.data ?? []).filter((c) => c.is_owner).length;
+  const quotaLocked =
+    !isEdit &&
+    calendarsQ.isSuccess &&
+    plan.isQuotaReached("max_calendars", ownedCount);
+
+  const createLocked = typeLocked || quotaLocked;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -142,8 +162,12 @@ export default function CalendarEditScreen() {
   }
 
   if (createLocked) {
-    const message =
-      "Calendars aren't available on your current plan. Upgrade to unlock followable calendars.";
+    const message = quotaLocked
+      ? "You've used all the calendars included in your current plan. Upgrade to create more."
+      : "Calendars aren't available on your current plan. Upgrade to unlock followable calendars.";
+    const cardTitle = quotaLocked
+      ? "You've reached your calendar limit"
+      : "Calendars are a plan feature";
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <Stack.Screen options={{ title: "New calendar", headerBackTitle: "Back" }} />
@@ -170,7 +194,7 @@ export default function CalendarEditScreen() {
               <UpgradeLockBadge />
             </View>
             <Text style={[styles.lockTitle, { color: colors.foreground }]}>
-              Calendars are a plan feature
+              {cardTitle}
             </Text>
             <Text style={[styles.lockBody, { color: colors.mutedForeground }]}>
               {message}
