@@ -678,41 +678,9 @@
     html:not(.light-mode) select option { background-color: #1e1b2e !important; color: #f1f5f9 !important; }
     html.light-mode select option { background-color: #ffffff !important; color: #0f172a !important; }
 
-    .theme-toggle-btn {
-        position: relative;
-        width: 2.75rem;
-        height: 1.5rem;
-        border-radius: 9999px;
-        background: var(--bg-glass-input);
-        border: 1px solid var(--border-glass);
-        cursor: pointer;
-        transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
-        display: flex;
-        align-items: center;
-        padding: 0 0.1875rem;
-    }
-    .theme-toggle-btn:hover {
-        border-color: rgba(61,107,255,0.3);
-        box-shadow: 0 0 16px rgba(61,107,255,0.1);
-    }
-    .theme-toggle-btn .toggle-knob {
-        width: 1.125rem;
-        height: 1.125rem;
-        border-radius: 9999px;
-        background: linear-gradient(135deg, #7d9bff, #9c92ff);
-        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.55rem;
-        color: white;
-        box-shadow: 0 0 12px rgba(61,107,255,0.50);
-    }
-    html.light-mode .theme-toggle-btn .toggle-knob {
-        transform: translateX(1.25rem);
-        background: linear-gradient(135deg, #f59e0b, #f97316);
-        box-shadow: 0 2px 10px rgba(245,158,11,0.4);
-    }
+    /* Theme toggle is now rendered as a standard .header-icon-btn (see
+       user/layouts/app.blade.php) so it matches the search/notification
+       buttons. The pill/track/knob rules below are intentionally removed. */
 
     .gradient-text {
         color: var(--text-primary);
