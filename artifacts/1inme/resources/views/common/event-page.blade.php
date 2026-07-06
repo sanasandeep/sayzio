@@ -156,51 +156,58 @@
         @endif
 
         <div class="ev-card overflow-hidden">
-            <div class="relative">
-                @if($ics && $ics->cover_image_url)
-                    <img src="{{ $ics->cover_image_url }}" alt="{{ $link->title }}" class="w-full h-64 sm:h-80 lg:h-[26rem] object-cover">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
-                @else
-                    <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $link->title }}" class="w-full h-48 sm:h-56 object-cover">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
-                @endif
-
-                <div class="absolute top-4 left-4 flex flex-wrap gap-2">
-                    @if($eventCategory)
-                        <span class="ev-chip text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur">
-                            <i class="fas {{ \App\Modules\User\Support\EventCategories::icon($eventCategory) }} mr-1"></i>
-                            {{ \App\Modules\User\Support\EventCategories::label($eventCategory) }}
-                        </span>
-                    @endif
-                    @if($isOnline)
-                        <span class="text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur text-white" style="background: rgba(16,185,129,0.25); border:1px solid rgba(16,185,129,0.4);">
-                            <i class="fas fa-video mr-1"></i> Online
-                        </span>
-                    @endif
-                </div>
-            </div>
-
             <div class="p-6 sm:p-8 lg:p-10">
                 <div class="grid lg:grid-cols-3 gap-8 lg:gap-10">
                     {{-- Main content column --}}
                     <div class="lg:col-span-2">
-                        <h1 class="ev-title text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-tight">{{ $link->title }}</h1>
+                        {{-- Task #3800: cover image + core event details (title/date/
+                             location/description) sit side-by-side in this inner grid,
+                             stacking on small screens. --}}
+                        <div class="grid sm:grid-cols-2 gap-5 sm:gap-6 items-start">
+                            <div class="relative rounded-2xl overflow-hidden">
+                                @if($ics && $ics->cover_image_url)
+                                    <img src="{{ $ics->cover_image_url }}" alt="{{ $link->title }}" class="w-full h-56 sm:h-full sm:min-h-[16rem] object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+                                @else
+                                    <img src="{{ asset('images/events/event-cover-placeholder.svg') }}" alt="{{ $link->title }}" class="w-full h-48 sm:h-full sm:min-h-[16rem] object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+                                @endif
 
-                        @if($ics && $ics->start_date)
-                            <div class="mt-3 flex items-center gap-2 text-sm ev-muted">
-                                <i class="far fa-clock ev-accent-text"></i>
-                                {{ $ics->start_date->setTimezone(new \DateTimeZone($ics->timezone ?: 'UTC'))->format('D, M j Y · g:i A') }}
+                                <div class="absolute top-4 left-4 flex flex-wrap gap-2">
+                                    @if($eventCategory)
+                                        <span class="ev-chip text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur">
+                                            <i class="fas {{ \App\Modules\User\Support\EventCategories::icon($eventCategory) }} mr-1"></i>
+                                            {{ \App\Modules\User\Support\EventCategories::label($eventCategory) }}
+                                        </span>
+                                    @endif
+                                    @if($isOnline)
+                                        <span class="text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur text-white" style="background: rgba(16,185,129,0.25); border:1px solid rgba(16,185,129,0.4);">
+                                            <i class="fas fa-video mr-1"></i> Online
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
-                        @endif
-                        @if($ics && $ics->location)
-                            <div class="mt-1.5 flex items-center gap-2 text-sm ev-muted">
-                                <i class="fas fa-location-dot ev-accent-text"></i> {{ $ics->location }}
-                            </div>
-                        @endif
 
-                        @if($ics && $ics->description)
-                            <p class="mt-4 text-sm ev-desc whitespace-pre-line leading-relaxed">{{ $ics->description }}</p>
-                        @endif
+                            <div>
+                                <h1 class="ev-title text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-tight">{{ $link->title }}</h1>
+
+                                @if($ics && $ics->start_date)
+                                    <div class="mt-3 flex items-center gap-2 text-sm ev-muted">
+                                        <i class="far fa-clock ev-accent-text"></i>
+                                        {{ $ics->start_date->setTimezone(new \DateTimeZone($ics->timezone ?: 'UTC'))->format('D, M j Y · g:i A') }}
+                                    </div>
+                                @endif
+                                @if($ics && $ics->location)
+                                    <div class="mt-1.5 flex items-center gap-2 text-sm ev-muted">
+                                        <i class="fas fa-location-dot ev-accent-text"></i> {{ $ics->location }}
+                                    </div>
+                                @endif
+
+                                @if($ics && $ics->description)
+                                    <p class="mt-4 text-sm ev-desc whitespace-pre-line leading-relaxed">{{ $ics->description }}</p>
+                                @endif
+                            </div>
+                        </div>
 
                         {{-- Cover/gallery/info sections, hashtags, Interested widget, similar/host events.
                              The host/organizer card is rendered separately in the right column
