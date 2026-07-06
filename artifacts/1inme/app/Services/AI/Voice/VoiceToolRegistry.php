@@ -480,7 +480,7 @@ class VoiceToolRegistry
         $count = DB::table('link_clicks')
             ->join('links', 'links.id', '=', 'link_clicks.link_id')
             ->where('links.user_id', $user->id)
-            ->where('link_clicks.created_at', '>=', Carbon::today())
+            ->where('link_clicks.clicked_at', '>=', Carbon::today())
             ->count();
         return [
             'summary' => "Your links got {$count} clicks today.",
@@ -511,7 +511,7 @@ class VoiceToolRegistry
             ? DB::table('link_clicks')
                 ->join('links', 'links.id', '=', 'link_clicks.link_id')
                 ->where('links.user_id', $user->id)
-                ->where('link_clicks.created_at', '>=', $since)
+                ->where('link_clicks.clicked_at', '>=', $since)
                 ->count()
             : 0;
         $links = Schema::hasTable('links')

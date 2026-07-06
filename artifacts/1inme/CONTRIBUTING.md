@@ -210,3 +210,107 @@ to `1inme_testing` (separate from the `1inme` dev database in
 > values that already exist in the process environment, so the explicit
 > `DB_*` env vars set by `.github/workflows/laravel-tests.yml` continue to
 > win there.
+
+### Zero-setup local runner: `composer test:local` (ephemeral throwaway Postgres)
+
+If you don't already have a reachable `1inme_testing` database — or you're on a
+Replit task environment whose process env points `DB_*` at the shared
+cross-region RDS — the manual setup above is fragile: a stray exported
+`DB_DATABASE` can aim `RefreshDatabase` at the wrong database, and the RDS is
+slow enough that a full `migrate:fresh` takes tens of minutes.
+
+[`scripts/test-local.sh`](scripts/test-local.sh) (aliased as
+`composer test:local`) removes all of that. It:
+
+1. `initdb`s a **private, throwaway** PostgreSQL 16 cluster under `/tmp` (the
+   same `postgresql` nix binaries CI uses),
+2. starts it on a private port, creates `1inme_testing`,
+3. exports the `DB_*` overrides itself (host/port/user + blanked `DB_URL` /
+   `DATABASE_URL` + `DB_SSLMODE=disable`) so nothing points at RDS,
+4. runs the suite (sharded by default), and
+5. **tears the whole cluster down on exit** (via a `trap`), even on failure.
+
+```bash
+cd artifacts/1inme
+composer test:local                                  # full suite, sharded (default 4)
+bash scripts/test-local.sh --filter=PaidPageTest     # forward args to the runner
+TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=SomeTest   # single class
+TEST_LOCAL_SHARDS=6 bash scripts/test-local.sh       # override shard count
+TEST_LOCAL_KEEP=1 bash scripts/test-local.sh --filter=X   # leave the cluster up to poke at
+```
+
+**Why this is drift-free.** The database is built by replaying *every* migration
+from an empty schema (`RefreshDatabase`'s `migrate:fresh`), so it matches the
+migration files exactly — there is no chance of the
+`link_clicks.clicked_at` / `created_at`-style column drift you get from a
+long-lived, partially-migrated dedicated test DB. Nothing it does can touch the
+shared dev/live RDS, so there is no wipe risk either.
+
+**Cost.** The first shard pays the one-time `migrate:fresh` (~14s locally); each
+test after that is ~0.2s. A single class finishes in ~20–35s including that
+migration; the full suite is several minutes.
+
+**Gotchas** (already handled by the script, noted here so you don't reintroduce
+them if you hack on it):
+
+- A backgrounded `pg_ctl start` is reaped between separate shell invocations, so
+  the cluster is started **and** used **and** stopped inside one process — never
+  split start and run across turns.
+- `initdb`'s default unix-socket dir (`/run/postgresql`) doesn't exist in the
+  container; the script starts Postgres with `-k /tmp`.
+- Batching many test classes into a single ephemeral run can OOM-kill Postgres
+  mid-run (surfacing as a flood of identical `Connection refused` cascades); the
+  sharded runner bounds per-shard memory, and for one-off spot checks use
+  `TEST_LOCAL_MODE=artisan` with a single `--filter` class.
+
+### Running AI-dependent tests without an OpenAI key
+
+**No OpenAI (or ElevenLabs/Whisper) API key is required to run the suite.** The
+AI feature tests (e.g. `MarketingStrategistTest`, `ResumeImportTest`,
+`MindCitationLinkTest`) do **not** call a live model. They:
+
+- self-enable the AI engine for the test via
+  `AiEngineSettings::setEnabled(true)` (the engine defaults **off** so a stray
+  `php artisan test` never bills a real provider), and
+- Mockery-mock `App\Services\AI\OpenAiService` (`->shouldReceive('chat')…`) so
+  the "model" response is a fixture, and the metering/refund/citation logic
+  under test runs against that fixture deterministically.
+
+So you should **not** set `OPENAI_API_KEY` for tests, and you should not "skip"
+these tests — they pass offline as-is. If a future AI test is added that hits a
+real endpoint instead of mocking the service, that is the bug to fix (mock the
+service); do not paper over it with a live key or an environment skip.
+
+### PHP version: CI runs 8.3, deprecations are checked on 8.4
+
+The main test job in [`.github/workflows/laravel-tests.yml`](../../.github/workflows/laravel-tests.yml)
+runs on **PHP 8.3** against `postgres:16`. A *separate* job pins **PHP 8.4** and
+runs `composer lint:deprecations` (a compile-time deprecation scan — see
+[`scripts/check-php-deprecations.php`](scripts/check-php-deprecations.php)),
+because 8.4 introduced a wave of new deprecation notices the 8.3 job wouldn't
+see.
+
+If your local PHP is **8.4** (as on Replit) and the 8.3 suite is what you want to
+mirror, be aware of these deltas — none of which change the suite's pass/fail
+outcome versus 8.3, but they're worth knowing when triaging:
+
+- **Runtime behavior is the same for the suite.** Runtime-error semantics that
+  the tests exercise are unchanged between 8.3 and 8.4. For example, reading a
+  property on `null` (`$x->id` where `$x === null`) is an `E_WARNING` on **both**
+  8.3 and 8.4 — Laravel's error handler converts that warning to an
+  `ErrorException` in the `testing` environment identically on both versions. So
+  a test that trips such a warning fails the same way on 8.3 and 8.4; that is a
+  genuine code/test bug, **not** a version delta.
+- **Compile-time deprecations are the real 8.4 surface.** New 8.4 deprecations
+  (e.g. implicitly-nullable parameters like `function f(Foo $x = null)`) are what
+  the dedicated 8.4 CI job catches via `composer lint:deprecations`. Run that
+  locally on 8.4 before pushing PHP changes:
+
+  ```bash
+  cd artifacts/1inme
+  composer lint:deprecations
+  ```
+
+- If you need to exactly reproduce the 8.3 job, install PHP 8.3 and point the
+  suite at it; otherwise 8.4 is fine for day-to-day runs, with the deprecation
+  linter as the version-specific guard.

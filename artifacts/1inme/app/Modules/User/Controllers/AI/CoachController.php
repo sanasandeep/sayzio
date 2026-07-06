@@ -163,7 +163,7 @@ class CoachController extends Controller
             'destination' => $link->long_url,
             'type'        => $link->type,
             'clicks_30d'  => (int) $link->clicks()
-                ->where('created_at', '>=', now()->subDays(30))->count(),
+                ->where('clicked_at', '>=', now()->subDays(30))->count(),
         ];
 
         $goal = $data['goal'] ?? 'increase engagement';
