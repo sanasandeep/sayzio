@@ -21,3 +21,13 @@ CSS overrides (`.ev-rich .badge`, `.ev-rich .text-dark`, `.ev-rich .border`, a
 flexbox reimplementation of `.row.g-2 > .col-6/.col-4`, and `.ev-rich .h-100 { height:auto !important }`)
 in the consuming page's own `<style>` block instead. Never restyle the shared
 partial itself for one consumer's theme.
+
+**Light-mode completeness rule:** every base `.ev-rich <x>` color rule MUST have a
+paired `html.light-mode .ev-rich <x>` counterpart, or that element stays its
+dark-theme color on the white light-mode card and washes out. Audit by listing the
+base color rules and diffing against the `html.light-mode` block — the
+`.btn-outline-success` (the Interested widget's green button, `#34d399`) was the one
+missed in the original theming pass; it now maps to `#059669`/`#047857` in light mode,
+matching `ev-price-free`. Same rule applies to the other inline-styled included
+partials (`event-connection-tips`, `link-type-pairings`) whose light overrides live
+in `event-page.blade.php`.

@@ -94,6 +94,8 @@
     html.light-mode .ev-rich a.border:hover { background: rgba(15,23,42,0.05); border-color: rgba(61,107,255,0.4) !important; }
     html.light-mode .ev-rich .btn-outline-secondary { color: rgba(15,23,42,0.65); border-color: rgba(15,23,42,0.18); }
     html.light-mode .ev-rich .btn-outline-secondary:hover { background: rgba(15,23,42,0.06); color:#111827; }
+    html.light-mode .ev-rich .btn-outline-success { color:#059669; border-color: rgba(5,150,105,0.5); }
+    html.light-mode .ev-rich .btn-outline-success:hover { background: rgba(5,150,105,0.1); color:#047857; }
 
     /* Light-mode overrides for the "10x your connections" tips and the
        "Perfect pairings" cross-promo — both partials bake their colors as
