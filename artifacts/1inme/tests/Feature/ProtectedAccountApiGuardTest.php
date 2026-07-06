@@ -46,22 +46,14 @@ class ProtectedAccountApiGuardTest extends TestCase
     }
 
     /**
-     * Build a web User the way the rest of the suite does — the canonical
-     * {@see User} model has no HasFactory trait, so {@see User::factory()}
-     * throws. Mirrors OnboardingStatusStepLockstepTest::makeUser().
+     * Build a fully-provisioned web User (active, onboarded, personal
+     * workspace). The canonical {@see User} model now ships a factory
+     * ({@see \Database\Factories\UserDatabaseFactory}) that provisions the
+     * default workspace, so this just delegates to it.
      */
     private function makeUser(array $attrs = []): User
     {
-        $user = User::create(array_merge([
-            'name'         => 'U ' . Str::random(4),
-            'email'        => 'u' . Str::random(8) . '@ex.com',
-            'password'     => Hash::make('x'),
-            'status'       => 'active',
-            'onboarded_at' => now(),
-        ], $attrs));
-        $user->ensureDefaultWorkspace();
-
-        return $user->fresh();
+        return User::factory()->create($attrs)->fresh();
     }
 
     /** A web User bridged (by email) to an active super-admin back-office Admin. */

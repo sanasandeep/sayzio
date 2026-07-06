@@ -3,13 +3,31 @@
 namespace App\Modules\User\Models;
 
 use App\Modules\Admin\Models\Plan;
+use Database\Factories\UserDatabaseFactory;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
+
+    /**
+     * Point the standard {@see HasFactory::factory()} entry point at the
+     * factory in {@see \Database\Factories\UserDatabaseFactory}. This is
+     * required because Laravel's default factory-name resolver derives
+     * `Database\Factories\Modules\User\Models\UserFactory` from this model's
+     * module namespace — which does not exist. Without this override,
+     * `User::factory()` throws BadMethodCallException in test setUp before a
+     * single assertion runs, silently erroring every test that reaches for
+     * the idiomatic factory helper.
+     */
+    protected static function newFactory(): Factory
+    {
+        return UserDatabaseFactory::new();
+    }
 
     /** Per-instance memo of plan features merged with active subscription addons. */
     protected ?array $effectivePlanFeaturesCache = null;
