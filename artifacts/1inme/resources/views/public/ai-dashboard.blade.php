@@ -47,15 +47,6 @@
         padding:.2rem .55rem; border-radius:999px; margin:.15rem .25rem .15rem 0;
     }
 
-    .aid-flow-step {
-        display:flex; gap:1rem; align-items:flex-start;
-    }
-    .aid-flow-num {
-        flex:none; width:2.25rem; height:2.25rem; border-radius:999px;
-        display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.85rem;
-        background: rgba(61,107,255,.14); color:#90acff; border:1px solid rgba(61,107,255,.3);
-    }
-
     @media (prefers-reduced-motion: reduce) {
         .aid-dot { animation:none !important; }
         .aid-preset-card { transition:none !important; }
@@ -95,28 +86,8 @@
                 No drag-and-drop required — just tell the dashboard designer what you care about most.
             </p>
         </div>
-        <div class="grid sm:grid-cols-3 gap-8">
-            <div class="reveal rd-1 aid-flow-step">
-                <div class="aid-flow-num">1</div>
-                <div>
-                    <h3 class="text-base font-bold mb-1">Say what you want</h3>
-                    <p class="text-sm text-gray-400 leading-relaxed">Type a sentence like "just my growth numbers" or "show me what I'm earning" into the AI designer.</p>
-                </div>
-            </div>
-            <div class="reveal rd-2 aid-flow-step">
-                <div class="aid-flow-num">2</div>
-                <div>
-                    <h3 class="text-base font-bold mb-1">AI picks the right widgets</h3>
-                    <p class="text-sm text-gray-400 leading-relaxed">It selects and orders tiles from your existing dashboard catalog — nothing is invented, everything is real data you already have.</p>
-                </div>
-            </div>
-            <div class="reveal rd-3 aid-flow-step">
-                <div class="aid-flow-num">3</div>
-                <div>
-                    <h3 class="text-base font-bold mb-1">Save, switch, repeat</h3>
-                    <p class="text-sm text-gray-400 leading-relaxed">Your layout is saved to your account. Change your mind anytime — swap presets or ask the AI designer for a new arrangement.</p>
-                </div>
-            </div>
+        <div class="reveal rd-3">
+            @include('common.partials.ai-dashboard-demo', ['presets' => $presets, 'variant' => 'rich'])
         </div>
     </div>
 </section>

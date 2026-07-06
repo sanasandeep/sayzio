@@ -15,6 +15,10 @@
             </p>
         </div>
 
+        <div class="reveal rd-3 mb-10">
+            @include('common.partials.ai-dashboard-demo', ['presets' => $__aidPresets, 'variant' => 'compact'])
+        </div>
+
         <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
             @foreach($__aidPresets as $i => $preset)
                 <div class="reveal rd-{{ min($i + 1, 6) }} glass rounded-2xl p-5 lift">
