@@ -583,11 +583,10 @@ class EventTicketApiController extends Controller
             'not_interested_count'  => $link->eventInterests()->where('status', 'not_interested')->count(),
             // Task #3674: organizer card — shown regardless of whether the
             // host has a public handle (profile link omitted when absent).
-            'organizer' => $host ? [
-                'name'   => $host->name,
-                'avatar' => $host->avatar,
-                'handle' => $host->handle,
-            ] : null,
+            // Task #3736: extended with the reusable organizer profile
+            // (logo/description/website/contact/address/socials) so mobile
+            // renders the same rich host card the web event page shows.
+            'organizer' => $host ? $this->organizerShape($host) : null,
             // Task #3674: same "more from this host" list the web event page
             // shows, regardless of whether the host has a public handle.
             'same_host_events' => \App\Modules\Common\Controllers\RedirectController::sameHostEvents($link)
@@ -596,6 +595,44 @@ class EventTicketApiController extends Controller
                     'title'      => $l->title,
                     'start_date' => optional($l->icsData?->start_date)->toIso8601String(),
                 ])->values()->all(),
+        ];
+    }
+
+    /**
+     * Organizer/host card payload (Task #3736). Mirrors the web
+     * event-host-card partial: when the host filled in a reusable organizer
+     * profile (User::organizerProfile()) we expose the richer fields
+     * (logo/description/website/contact/address/socials); otherwise every
+     * field falls back to the host account, field-by-field, so the simple
+     * "Hosted by" avatar+name card still renders. Emptiness is decided once
+     * by organizerProfile()['filled'] — mobile branches on that flag rather
+     * than re-deriving it, exactly like the web partial.
+     */
+    protected function organizerShape(\App\Modules\User\Models\User $host): array
+    {
+        $profile = $host->organizerProfile();
+
+        $orNull = static fn (string $v): ?string => $v !== '' ? $v : null;
+
+        return [
+            // Display identity — resolved field-by-field with a host-account
+            // fallback (name -> account name, logo -> account avatar) so the
+            // existing simple card keeps working when no profile is set.
+            'name'   => $profile['name'] !== '' ? $profile['name'] : $host->name,
+            'avatar' => $profile['logo'] !== '' ? $profile['logo'] : $host->avatar,
+            'handle' => $host->handle,
+            // Extended reusable-profile fields. `filled` drives whether mobile
+            // renders the rich card or the plain avatar+name fallback.
+            'filled'        => (bool) $profile['filled'],
+            'logo'          => $orNull($profile['logo']),
+            'description'   => $orNull($profile['description']),
+            'website'       => $orNull($profile['website']),
+            'contact_name'  => $orNull($profile['contact_name']),
+            'contact_phone' => $orNull($profile['contact_phone']),
+            'contact_email' => $orNull($profile['contact_email']),
+            'address'       => $orNull($profile['address']),
+            // Assoc {platform => value}; empty object when none set.
+            'socials'       => (object) ($profile['socials'] ?? []),
         ];
     }
 

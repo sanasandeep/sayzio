@@ -17,6 +17,7 @@ import {
 import { EmbedModal } from "@/components/EmbedModal";
 import { EventConnectionTips } from "@/components/EventConnectionTips";
 import { LinkTypePairings } from "@/components/LinkTypePairings";
+import { MapPreview } from "@/components/MapPreview";
 import { useColors } from "@/hooks/useColors";
 import {
   buyEventTicket,
@@ -154,33 +155,130 @@ export default function EventDetailScreen() {
         <Text style={{ color: colors.mutedForeground, marginTop: 2 }}>📍 {event.location}</Text>
       ) : null}
 
-      {event.organizer ? (
+      {/* Task #3736: map thumbnail when the event has geocoded coordinates.
+          Tapping opens the location in the device's Maps app. */}
+      {event.latitude != null && event.longitude != null ? (
         <Pressable
-          disabled={!event.organizer.handle}
           onPress={() => {
-            if (event.organizer?.handle) {
-              router.push(`/profile/${event.organizer.handle}` as never);
-            }
+            const q =
+              event.location != null && event.location !== ""
+                ? encodeURIComponent(event.location)
+                : `${event.latitude},${event.longitude}`;
+            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${q}`);
           }}
-          style={[styles.organizerRow, { borderColor: colors.border }]}
+          style={styles.mapWrap}
         >
-          {event.organizer.avatar ? (
-            <Image source={{ uri: event.organizer.avatar }} style={styles.organizerAvatar} contentFit="cover" />
-          ) : (
-            <View style={[styles.organizerAvatar, styles.organizerAvatarFallback, { backgroundColor: colors.card }]}>
-              <Feather name="user" size={16} color={colors.mutedForeground} />
-            </View>
-          )}
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Hosted by</Text>
-            <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }}>
-              {event.organizer.name ?? "Organizer"}
-            </Text>
-          </View>
-          {event.organizer.handle ? (
-            <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-          ) : null}
+          <MapPreview lat={event.latitude} lng={event.longitude} height={150} />
         </Pressable>
+      ) : null}
+
+      {event.organizer ? (
+        <View style={[styles.organizerCard, { borderColor: colors.border }]}>
+          <Pressable
+            disabled={!event.organizer.handle}
+            onPress={() => {
+              if (event.organizer?.handle) {
+                router.push(`/profile/${event.organizer.handle}` as never);
+              }
+            }}
+            style={styles.organizerHead}
+          >
+            {event.organizer.avatar ? (
+              <Image source={{ uri: event.organizer.avatar }} style={styles.organizerAvatar} contentFit="cover" />
+            ) : (
+              <View style={[styles.organizerAvatar, styles.organizerAvatarFallback, { backgroundColor: colors.card }]}>
+                <Feather name="user" size={16} color={colors.mutedForeground} />
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Hosted by</Text>
+              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }}>
+                {event.organizer.name ?? "Organizer"}
+              </Text>
+            </View>
+            {event.organizer.handle ? (
+              <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+            ) : null}
+          </Pressable>
+
+          {/* Task #3736: rich host details from the reusable organizer
+              profile. `filled` is the single source of truth for whether the
+              extra rows render — mirrors the web event-host-card partial. */}
+          {event.organizer.filled ? (
+            <View style={styles.organizerDetails}>
+              {event.organizer.description ? (
+                <Text style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 18 }}>
+                  {event.organizer.description}
+                </Text>
+              ) : null}
+              {event.organizer.website ? (
+                <Pressable
+                  onPress={() => Linking.openURL(event.organizer!.website!)}
+                  style={styles.organizerDetailRow}
+                >
+                  <Feather name="globe" size={13} color={colors.primary} />
+                  <Text style={{ color: colors.primary, fontSize: 13 }} numberOfLines={1}>
+                    {event.organizer.website}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {event.organizer.contact_email ? (
+                <Pressable
+                  onPress={() => Linking.openURL(`mailto:${event.organizer!.contact_email!}`)}
+                  style={styles.organizerDetailRow}
+                >
+                  <Feather name="mail" size={13} color={colors.primary} />
+                  <Text style={{ color: colors.primary, fontSize: 13 }} numberOfLines={1}>
+                    {event.organizer.contact_name ?? event.organizer.contact_email}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {event.organizer.contact_phone ? (
+                <Pressable
+                  onPress={() => Linking.openURL(`tel:${event.organizer!.contact_phone!}`)}
+                  style={styles.organizerDetailRow}
+                >
+                  <Feather name="phone" size={13} color={colors.primary} />
+                  <Text style={{ color: colors.primary, fontSize: 13 }}>
+                    {event.organizer.contact_phone}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {event.organizer.address ? (
+                <View style={styles.organizerDetailRow}>
+                  <Feather name="map-pin" size={13} color={colors.mutedForeground} />
+                  <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
+                    {event.organizer.address}
+                  </Text>
+                </View>
+              ) : null}
+              {Object.keys(event.organizer.socials).length > 0 ? (
+                <View style={styles.socialRow}>
+                  {Object.entries(event.organizer.socials).map(([platform, value]) => (
+                    <Pressable
+                      key={platform}
+                      onPress={() => {
+                        const isEmail = platform === "email";
+                        const isUrl = value.startsWith("http://") || value.startsWith("https://");
+                        const href = isEmail
+                          ? `mailto:${value}`
+                          : isUrl
+                            ? value
+                            : `https://${value.replace(/^@/, "")}`;
+                        Linking.openURL(href);
+                      }}
+                      style={[styles.socialChip, { borderColor: colors.border }]}
+                    >
+                      <Text style={{ color: colors.foreground, fontSize: 12 }}>
+                        {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
       ) : null}
 
       {event.hashtags.length > 0 ? (
@@ -404,14 +502,26 @@ const styles = StyleSheet.create({
   cover: { width: "100%", height: 180, borderRadius: 14, marginBottom: 14 },
   title: { fontSize: 22, fontWeight: "800" },
   section: { fontSize: 16, fontWeight: "700" },
-  organizerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+  mapWrap: { marginTop: 12, borderRadius: 12, overflow: "hidden" },
+  organizerCard: {
     marginTop: 12,
     padding: 10,
     borderWidth: 1,
     borderRadius: 12,
+  },
+  organizerHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  organizerDetails: { marginTop: 10, gap: 6 },
+  organizerDetailRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  socialRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 2 },
+  socialChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
   },
   organizerAvatar: { width: 36, height: 36, borderRadius: 18 },
   organizerAvatarFallback: { alignItems: "center", justifyContent: "center" },

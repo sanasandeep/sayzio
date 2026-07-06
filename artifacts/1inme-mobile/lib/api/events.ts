@@ -33,6 +33,22 @@ export type EventOrganizer = {
   name: string | null;
   avatar: string | null;
   handle: string | null;
+  /**
+   * Task #3736: the reusable organizer profile (User::organizerProfile()).
+   * `filled` decides whether to render the rich host card (description,
+   * website, contact, address, socials) or the plain avatar+name fallback —
+   * branch on this flag, don't re-derive emptiness from the fields.
+   */
+  filled: boolean;
+  logo: string | null;
+  description: string | null;
+  website: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  address: string | null;
+  /** Assoc { platform: value }; empty object when none set. */
+  socials: Record<string, string>;
 };
 
 /**
