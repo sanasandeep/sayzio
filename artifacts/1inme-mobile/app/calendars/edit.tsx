@@ -15,14 +15,16 @@ import {
 
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
+import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
 import { useColors } from "@/hooks/useColors";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import {
   createCalendar,
   getCalendar,
   updateCalendar,
   type CalendarInput,
 } from "@/lib/api/calendars";
-import { handlePlanLockedError } from "@/lib/upgradePrompt";
+import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
 
 const ACCENT_SWATCHES = [
   "#3d6bff",
@@ -48,9 +50,20 @@ function deviceTimezone(): string {
 export default function CalendarEditScreen() {
   const colors = useColors();
   const qc = useQueryClient();
+  const plan = usePlanFeatures();
   const params = useLocalSearchParams<{ id?: string }>();
   const id = params.id ? Number(params.id) : null;
   const isEdit = id != null && Number.isFinite(id);
+
+  // Proactively lock NEW calendar creation when the current plan doesn't allow
+  // the Calendar page type (module_calendar off / max_calendars cap of 0) —
+  // mirroring the Create tab's gate so the "Perfect pairings" deep-link into
+  // this builder shows an upgrade affordance instead of an empty form that only
+  // bounces at submit. Editing an existing calendar is never gated (create-only,
+  // like the web module/cap gate), and fresh free accounts (max_calendars=1)
+  // still fall through to build their first calendar. Fails open until plan
+  // data resolves.
+  const createLocked = !isEdit && plan.isLinkTypeLocked("event");
 
   const existingQ = useQuery({
     queryKey: ["calendar", id, true],
@@ -124,6 +137,50 @@ export default function CalendarEditScreen() {
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ title: "Edit calendar" }} />
         <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (createLocked) {
+    const message =
+      "Calendars aren't available on your current plan. Upgrade to unlock followable calendars.";
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <Stack.Screen options={{ title: "New calendar", headerBackTitle: "Back" }} />
+        <ScrollView
+          contentContainerStyle={{ padding: 20, gap: 18 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View
+            style={[
+              styles.lockCard,
+              {
+                backgroundColor: colors.primary + "12",
+                borderColor: colors.primary + "44",
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <View style={styles.lockHead}>
+              <View
+                style={[styles.lockIcon, { backgroundColor: colors.primary + "26" }]}
+              >
+                <Feather name="calendar" size={20} color={colors.primary} />
+              </View>
+              <UpgradeLockBadge />
+            </View>
+            <Text style={[styles.lockTitle, { color: colors.foreground }]}>
+              Calendars are a plan feature
+            </Text>
+            <Text style={[styles.lockBody, { color: colors.mutedForeground }]}>
+              {message}
+            </Text>
+            <Button
+              label="See plans"
+              onPress={() => showUpgradePrompt({ message })}
+            />
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -253,4 +310,19 @@ const styles = StyleSheet.create({
   },
   toggleTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
   toggleHint: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, lineHeight: 17 },
+  lockCard: { gap: 12, padding: 18, borderWidth: 1 },
+  lockHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  lockIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lockTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 18 },
+  lockBody: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13, lineHeight: 19 },
 });
