@@ -112,6 +112,10 @@ args = "blade-comment-echo"
 task = "workflow.run"
 args = "undefined-css-var"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "factory-columns"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -372,6 +376,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:undefined-css-var"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "factory-columns"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:factory-columns"
 
 [workflows.workflow.metadata]
 isValidation = true

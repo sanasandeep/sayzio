@@ -29,6 +29,23 @@ class UserDatabaseFactory extends Factory
     protected $model = User::class;
 
     /**
+     * Attribute keys that used to be real `users` columns but were dropped or
+     * moved and are therefore silently discarded before persist (see
+     * {@see self::configure()}). The old `User::create()` mass-assignment path
+     * dropped these automatically; the factory forces every passed attribute
+     * into the INSERT, so they are stripped here to reproduce that behavior.
+     *
+     * This list is the single source of truth shared with the
+     * `scripts/check-factory-columns.php` regression guard, which fails CI if a
+     * `User::factory(...)` call site forwards a key that is neither a real
+     * `users` column nor listed here — so genuine typos / re-added dead columns
+     * error loudly instead of being silently swallowed.
+     *
+     * @var array<int,string>
+     */
+    public const DROPPED_LEGACY_ATTRIBUTES = ['role'];
+
+    /**
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -59,8 +76,10 @@ class UserDatabaseFactory extends Factory
     public function configure(): static
     {
         return $this->afterMaking(function (User $user): void {
-            if (array_key_exists('role', $user->getAttributes())) {
-                $user->offsetUnset('role');
+            foreach (self::DROPPED_LEGACY_ATTRIBUTES as $dead) {
+                if (array_key_exists($dead, $user->getAttributes())) {
+                    $user->offsetUnset($dead);
+                }
             }
         })->afterCreating(function (User $user): void {
             $user->ensureDefaultWorkspace();

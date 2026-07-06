@@ -12,6 +12,8 @@ Replacing `makeUser()` helpers that did `User::create([...])` with `User::factor
 
 **How to find them all:** static-scan every `User::factory(...)` call site for the keys it forwards and diff against the live `users` column list. Any forwarded key that isn't a real column is a regression. `role` was the ONLY one suite-wide.
 
+**Now guarded automatically:** `scripts/check-factory-columns.php` (composer `check:factory-columns`, validation `factory-columns`) token-scans every `User::factory(...)` chain's inline-array keys and fails if any key is neither a real `users` column (derived DB-free via `SchemaManifest::build()`, replays migrations) nor an intentionally-stripped key. The strip list is the single source of truth `UserDatabaseFactory::DROPPED_LEGACY_ATTRIBUTES` (currently `['role']`), consumed by BOTH the factory's `afterMaking` strip and the guard's allowlist. **When you drop/rename another `users` column that test call sites still pass, add it to that const** (or the guard fails). Variable/spread args (`->create($attrs)`) are reported as "unresolved" but never fail — their keys live at the caller, out of a per-call-site scan's scope.
+
 ## 2. Default-value drift (nullable-no-DB-default columns)
 `users.email_verified_at` and `onboarded_at` are nullable with NO DB default (→ null). Most old helpers never set them, so old test users were **unverified + not-onboarded**. A factory that defaults them to `now()` makes new users **verified + onboarded** — a real behavioral drift toward the "happy" state.
 
