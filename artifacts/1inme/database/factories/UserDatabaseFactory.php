@@ -46,10 +46,23 @@ class UserDatabaseFactory extends Factory
     /**
      * Provision the personal workspace after the row is created, matching the
      * manual `makeUser()` helpers this factory replaces.
+     *
+     * Also drops the legacy `role` attribute before persisting: the `role`
+     * column was removed from `users` (roles now live in the `user_roles`
+     * pivot — see the `create_user_roles_pivot_seed_user_admin` migration).
+     * Many `makeUser()` helpers still pass a cosmetic `role => 'user'`; the
+     * old `User::create()` path silently discarded it via mass-assignment
+     * protection (`role` is not `$fillable`), but a factory runs unguarded and
+     * would otherwise force the dropped column into the INSERT. Stripping it in
+     * `afterMaking` reproduces the original silent-drop before the row is saved.
      */
     public function configure(): static
     {
-        return $this->afterCreating(function (User $user): void {
+        return $this->afterMaking(function (User $user): void {
+            if (array_key_exists('role', $user->getAttributes())) {
+                $user->offsetUnset('role');
+            }
+        })->afterCreating(function (User $user): void {
             $user->ensureDefaultWorkspace();
         });
     }
