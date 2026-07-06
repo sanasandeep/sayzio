@@ -1772,6 +1772,30 @@ class RedirectController extends Controller
             logger()->warning('Inbox forwarder (rsvp) failed: ' . $e->getMessage());
         }
 
+        // Silently provision a lightweight free Sayzio account for the
+        // attendee, mirroring the paid-ticket guest flow. Only for
+        // not-signed-in visitors who provided an email; an existing
+        // account with that email is reused untouched. Best-effort —
+        // never let account creation fail or block the RSVP itself.
+        try {
+            if (!empty($rsvp->email) && !$request->user()) {
+                $attendee = \App\Modules\User\Models\User::firstOrCreate(
+                    ['email' => $rsvp->email],
+                    [
+                        'name'     => $rsvp->name,
+                        'password' => Hash::make(\Illuminate\Support\Str::random(24)),
+                        'plan_id'  => \App\Modules\Admin\Models\Plan::defaultPlan()?->id,
+                        'status'   => 'active',
+                    ],
+                );
+                if ($attendee->wasRecentlyCreated) {
+                    $attendee->ensureDefaultWorkspace();
+                }
+            }
+        } catch (\Throwable $e) {
+            logger()->warning('RSVP account provisioning failed: ' . $e->getMessage());
+        }
+
         // Task #3606: confirmed "yes" RSVPs get a tier-less QR check-in
         // ticket, same as paid tier buyers. Waitlisted/maybe/not-going
         // RSVPs get none (see RsvpTicketService::sync()).
