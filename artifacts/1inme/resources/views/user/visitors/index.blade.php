@@ -66,6 +66,11 @@
     $heroActions = [
         ['label' => 'Back to Overview', 'url' => route('user.links.show', $link), 'icon' => 'fa-arrow-left', 'class' => 'btn-ghost'],
     ];
+    if (workspace_owner()?->getPlanFeature('analytics_export', true)) {
+        $heroActions[] = ['label' => 'Export CSV', 'url' => route('user.links.visitors.export', array_merge(['link' => $link], request()->query())), 'icon' => 'fa-download', 'class' => 'btn-primary'];
+    } else {
+        $heroActions[] = ['label' => 'Export CSV', 'url' => route('user.upgrade'), 'icon' => 'fa-lock', 'class' => 'btn-ghost', 'title' => 'Exporting visitor data is a paid feature. Upgrade your plan to download CSV exports.'];
+    }
     if ($link->type === 'biolink') {
         $heroActions[] = ['label' => 'Edit Blocks', 'url' => route('user.links.blocks.editor', $link), 'icon' => 'fa-th-large', 'class' => 'btn-primary'];
     }

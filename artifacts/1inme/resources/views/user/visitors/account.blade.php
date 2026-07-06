@@ -69,6 +69,9 @@
         ['icon' => 'fa-filter', 'text' => $typeFilter === 'all' ? 'All link types' : \App\Modules\User\Models\Link::typeLabel($typeFilter)],
     ],
     'actions'  => [
+        workspace_owner()?->getPlanFeature('analytics_export', true)
+            ? ['label' => 'Export CSV', 'url' => route('user.visitors.export', request()->query()), 'icon' => 'fa-download', 'class' => 'btn-primary']
+            : ['label' => 'Export CSV', 'url' => route('user.upgrade'), 'icon' => 'fa-lock', 'class' => 'btn-ghost', 'title' => 'Exporting visitor data is a paid feature. Upgrade your plan to download CSV exports.'],
         ['label' => 'Stats home', 'url' => route('user.stats.index'), 'icon' => 'fa-chart-line', 'class' => 'btn-ghost'],
     ],
 ])

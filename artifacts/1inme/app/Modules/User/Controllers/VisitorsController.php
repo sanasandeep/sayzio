@@ -24,6 +24,79 @@ class VisitorsController extends Controller
 {
     public function index(Request $request)
     {
+        $data = $this->compute($request);
+
+        return view('user.visitors.account', $data);
+    }
+
+    /**
+     * CSV export of the same totals + breakdowns the page shows — respects the
+     * currently selected link-type filter and date range, gated behind the
+     * shared `analytics_export` plan feature (see stats-csv-export-gating memory
+     * topic). One file with clearly-labelled sections (totals, daily trend,
+     * by link type, by source) so it drops straight into a spreadsheet.
+     */
+    public function export(Request $request)
+    {
+        if (!workspace_owner()?->getPlanFeature('analytics_export', true)) {
+            return back()->with('error', 'Exporting visitor data is a paid feature. Upgrade your plan to download CSV exports.');
+        }
+
+        $data = $this->compute($request);
+
+        $typeSlug = $data['typeFilter'] === 'all' ? 'all-types' : $data['typeFilter'];
+        $filename = sprintf(
+            '1inme-visitors-%s-%s_%s.csv',
+            $typeSlug,
+            $data['startDate']->format('Y-m-d'),
+            $data['endDate']->format('Y-m-d')
+        );
+
+        return response()->streamDownload(function () use ($data) {
+            $out = fopen('php://output', 'w');
+
+            fputcsv($out, ['Visitors export']);
+            fputcsv($out, ['Range', $data['startDate']->format('Y-m-d') . ' to ' . $data['endDate']->format('Y-m-d')]);
+            fputcsv($out, ['Link type', $data['typeFilter'] === 'all' ? 'All types' : Link::typeLabel($data['typeFilter'])]);
+            fputcsv($out, []);
+
+            fputcsv($out, ['Totals']);
+            fputcsv($out, ['Metric', 'Visitors']);
+            fputcsv($out, ['Total visitors', $data['totalVisitors']]);
+            fputcsv($out, ['New', $data['newCount']]);
+            fputcsv($out, ['Returning', $data['returningCount']]);
+            fputcsv($out, []);
+
+            fputcsv($out, ['Daily trend']);
+            fputcsv($out, ['Date', 'Visitors', 'New', 'Returning']);
+            foreach ($data['dailySeries'] as $row) {
+                fputcsv($out, [$row->d, $row->visitors, $row->new, $row->returning]);
+            }
+            fputcsv($out, []);
+
+            fputcsv($out, ['Visitors by link type']);
+            fputcsv($out, ['Link type', 'Visitors']);
+            foreach ($data['typeBreakdown'] as $row) {
+                fputcsv($out, [$row->label, $row->n]);
+            }
+            fputcsv($out, []);
+
+            fputcsv($out, ['Visitors by source']);
+            fputcsv($out, ['Source', 'Clicks']);
+            foreach ($data['sourceBreakdown'] as $row) {
+                fputcsv($out, [$row->src, $row->n]);
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    /**
+     * Shared computation for the page and the CSV export so both stay in
+     * lockstep. Returns the full view-data array (empty-state safe).
+     */
+    protected function compute(Request $request): array
+    {
         $owner = workspace_owner();
 
         [$startDate, $endDate, $period] = AnalyticsRangeResolver::resolve(
@@ -47,7 +120,7 @@ class VisitorsController extends Controller
         $linkIds = $linksQuery->pluck('id');
 
         if ($linkIds->isEmpty()) {
-            return view('user.visitors.account', [
+            return [
                 'period'          => $period,
                 'startDate'       => $startDate,
                 'endDate'         => $endDate,
@@ -60,7 +133,7 @@ class VisitorsController extends Controller
                 'typeBreakdown'   => collect(),
                 'sourceBreakdown' => collect(),
                 'hasLinks'        => Link::where('user_id', $owner->id)->exists(),
-            ]);
+            ];
         }
 
         $inRangeIps = DB::table('link_clicks')
@@ -159,7 +232,7 @@ class VisitorsController extends Controller
             ->limit(8)
             ->get();
 
-        return view('user.visitors.account', [
+        return [
             'period'          => $period,
             'startDate'       => $startDate,
             'endDate'         => $endDate,
@@ -172,6 +245,6 @@ class VisitorsController extends Controller
             'typeBreakdown'   => $typeBreakdown,
             'sourceBreakdown' => $sourceBreakdown,
             'hasLinks'        => true,
-        ]);
+        ];
     }
 }

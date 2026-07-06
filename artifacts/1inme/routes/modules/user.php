@@ -419,8 +419,10 @@ Route::prefix('user')->name('user.')->group(function () {
         // creator's links, filterable by link type, with the same date-range
         // controls (presets + custom) as the per-link Visitor Insights page.
         Route::get('visitors', [\App\Modules\User\Controllers\VisitorsController::class, 'index'])->middleware('workspace.can:stats.view')->name('visitors.index');
+        Route::get('visitors/export', [\App\Modules\User\Controllers\VisitorsController::class, 'export'])->middleware('workspace.can:stats.view')->name('visitors.export');
 
         Route::get('links/{link}/visitors', [\App\Modules\User\Controllers\VisitorAnalyticsController::class, 'index'])->middleware('workspace.can:stats.view')->name('links.visitors');
+        Route::get('links/{link}/visitors/export', [\App\Modules\User\Controllers\VisitorAnalyticsController::class, 'export'])->middleware('workspace.can:stats.view')->name('links.visitors.export');
         Route::get('links/{link}/nfc-writes', [\App\Modules\User\Controllers\VisitorAnalyticsController::class, 'nfcHistory'])->middleware('workspace.can:stats.view')->name('links.nfc-writes');
         Route::get('links/{link}/followers', [\App\Modules\User\Controllers\LinkController::class, 'followers'])->middleware('workspace.can:followers.view')->name('links.followers');
         Route::get('links/{link}/followers/export', [\App\Modules\User\Controllers\LinkController::class, 'followersExport'])->middleware('workspace.can:followers.view')->name('links.followers.export');

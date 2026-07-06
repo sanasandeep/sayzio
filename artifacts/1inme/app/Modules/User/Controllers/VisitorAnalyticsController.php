@@ -18,6 +18,85 @@ class VisitorAnalyticsController extends Controller
     {
         abort_unless($link->user_id === auth()->id() || auth()->user()->hasPermission('user.analytics.view_any'), 403);
 
+        return view('user.visitors.index', $this->compute($request, $link));
+    }
+
+    /**
+     * CSV export of the per-link visitor totals + breakdowns — respects the
+     * currently selected date range, gated behind the shared `analytics_export`
+     * plan feature (see stats-csv-export-gating memory topic). One file with
+     * clearly-labelled sections (totals, daily trend, by source, identified
+     * visitors) so it drops straight into a spreadsheet.
+     */
+    public function export(Request $request, Link $link)
+    {
+        abort_unless($link->user_id === auth()->id() || auth()->user()->hasPermission('user.analytics.view_any'), 403);
+
+        if (!workspace_owner()?->getPlanFeature('analytics_export', true)) {
+            return back()->with('error', 'Exporting visitor data is a paid feature. Upgrade your plan to download CSV exports.');
+        }
+
+        $data = $this->compute($request, $link);
+
+        $filename = sprintf(
+            '1inme-visitors-%s-%s_%s.csv',
+            $link->alias ?: $link->id,
+            $data['startDate']->format('Y-m-d'),
+            $data['endDate']->format('Y-m-d')
+        );
+
+        return response()->streamDownload(function () use ($data, $link) {
+            $out = fopen('php://output', 'w');
+
+            fputcsv($out, ['Visitor Insights export']);
+            fputcsv($out, ['Link', $link->title ?: $link->alias]);
+            fputcsv($out, ['Range', $data['startDate']->format('Y-m-d') . ' to ' . $data['endDate']->format('Y-m-d')]);
+            fputcsv($out, []);
+
+            fputcsv($out, ['Totals']);
+            fputcsv($out, ['Metric', 'Visitors']);
+            fputcsv($out, ['Unique visitors', $data['totalVisitors']]);
+            fputcsv($out, ['New', $data['newCount']]);
+            fputcsv($out, ['Returning', $data['returningCount']]);
+            fputcsv($out, []);
+
+            fputcsv($out, ['Daily trend']);
+            fputcsv($out, ['Date', 'Unique visitors', 'Returning', 'Returning %']);
+            foreach ($data['dailySeries'] as $row) {
+                fputcsv($out, [$row->d, $row->visitors, $row->returning, $row->returning_pct]);
+            }
+            fputcsv($out, []);
+
+            fputcsv($out, ['Visitors by source']);
+            fputcsv($out, ['Source', 'Clicks']);
+            foreach ($data['sourceBreakdown'] as $row) {
+                fputcsv($out, [$row->src, $row->n]);
+            }
+            fputcsv($out, []);
+
+            fputcsv($out, ['Identified visitors']);
+            fputcsv($out, ['Name', 'Email', 'Visits', 'First seen', 'Last seen', 'Follower']);
+            foreach ($data['identified'] as $row) {
+                fputcsv($out, [
+                    $row->name,
+                    $row->email,
+                    $row->visit_count,
+                    $row->first_seen,
+                    $row->last_seen,
+                    $data['followerSet']->has($row->id) ? 'Yes' : 'No',
+                ]);
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    /**
+     * Shared computation for the page and the CSV export so both stay in
+     * lockstep.
+     */
+    protected function compute(Request $request, Link $link): array
+    {
         // Mirror the same period pills the Overview / Followers tabs use so all
         // three views share one date-window control instead of a bespoke
         // 7/30/90 "days" dropdown.
@@ -154,7 +233,7 @@ class VisitorAnalyticsController extends Controller
             ->limit(8)
             ->get();
 
-        return view('user.visitors.index', [
+        return [
             'link'             => $link,
             'period'           => $period,
             'startDate'        => $startDate,
@@ -170,7 +249,7 @@ class VisitorAnalyticsController extends Controller
             'arSessions'       => $arSessions,
             'arClicks'         => $arClicks,
             'sourceBreakdown'  => $sourceBreakdown,
-        ]);
+        ];
     }
 
     /**
