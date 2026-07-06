@@ -37,7 +37,16 @@ query to the searcher, so opting out never widens WHO is reachable — it only
 stops the active-workspace filter from hiding rows the searcher legitimately
 owns/follows/subscribes to.
 
-**Deliberately NOT changed:** `contactsAdvanced()` (the Contacts *group* / web
-address-book path) stays workspace-scoped — it's shared with other web
-surfaces where per-workspace address books are intended, and no test covers a
-cross-workspace Contacts-group parity requirement.
+**Also opted out — `contactsAdvanced()` (the Contacts *group*):** address books
+are account-wide. `contactsAdvanced()` is NOT actually shared with the web
+contacts index page (that builds its own inline `Contact::where('user_id')`
+query); its only real caller is the dialer Contacts group (`contactItems()`)
+plus a scale test. So it now calls `withoutGlobalScope('workspace')` too, so the
+web dialer Contacts group returns the searcher's FULL address book (contacts
+saved while any workspace was bound), matching the Sanctum/mobile surface. The
+`user_id` predicate still scopes to the searcher. Covered by
+`test_web_search_returns_a_contact_saved_in_a_non_active_workspace`.
+
+Note: the standalone web contacts index page (`ContactController::index`) is a
+SEPARATE query and remains workspace-scoped by design (CRM data gated by
+`workspace.can:settings.view`); only the dialer finder is account-wide.

@@ -106,7 +106,18 @@ class DialerSearch
         $needle = '%' . $q . '%';
         $phoneNeedle = '%' . ContactPhone::normalize($q) . '%';
 
-        $query = Contact::where('user_id', $userId)->with(['phones', 'emails', 'biolinkUser']);
+        // The Dialer "Contacts" group is an account-wide address-book finder,
+        // mirroring the other dialer groups (My links / People / Followed /
+        // Subscribers) which all resolve account-level records. `Contact` uses
+        // BelongsToWorkspace, so on the web surface (under `workspace.scope`)
+        // the global scope would narrow this to the searcher's ACTIVE workspace
+        // only — hiding contacts they saved while a different workspace was
+        // bound. The Sanctum/mobile surface binds no workspace and already
+        // returns the searcher's full address book. Opt out of the workspace
+        // scope so the web dialer matches API/mobile; the user_id predicate
+        // still scopes this to the searcher, so it never widens WHO is visible.
+        $query = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $userId)->with(['phones', 'emails', 'biolinkUser']);
 
         if ($q !== '') {
             // T9 smart-dial (keypad-spelled names) is folded into the same SQL

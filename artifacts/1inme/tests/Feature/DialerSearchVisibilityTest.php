@@ -465,6 +465,57 @@ class DialerSearchVisibilityTest extends TestCase
         );
     }
 
+    public function test_web_search_returns_a_contact_saved_in_a_non_active_workspace(): void
+    {
+        // Regression: the web dialer runs under `workspace.scope`, which binds
+        // the searcher's active workspace. The "Contacts" group (contactsAdvanced)
+        // resolves the searcher's OWN address book, which is account-wide — a user
+        // saves contacts across every workspace they work in. Without opting the
+        // contacts query out of the BelongsToWorkspace global scope, contacts the
+        // same user saved while a DIFFERENT (non-active) workspace was bound are
+        // silently filtered out on web, while the API/Sanctum surface (no
+        // workspace binding) returns the full address book. This locks web/API
+        // parity for the "Contacts" group (mirrors the "My links" case above).
+        $owner = $this->makeUser('owner');
+
+        // Resolve the user's personal workspace (this becomes the active one).
+        $activeWs = app(WorkspaceContext::class)->resolve($owner);
+
+        // A second workspace owned by the same user, where a contact will live.
+        $otherWs = \App\Modules\User\Models\Workspace::create([
+            'owner_user_id' => $owner->id,
+            'name'          => 'Other WS ' . Str::random(4),
+            'is_personal'   => false,
+        ]);
+
+        // A contact the user saved that lives in the OTHER (non-active) workspace.
+        // workspace_id isn't mass-assignable on Contact, so set it via forceFill.
+        $otherContact = new Contact();
+        $otherContact->forceFill([
+            'user_id'      => $owner->id,
+            'workspace_id' => $otherWs->id,
+            'display_name' => self::TOKEN . ' other-workspace contact',
+        ])->save();
+
+        $resp = $this->actingAs($owner)
+            ->withSession([WorkspaceContext::SESSION_KEY => $activeWs->id])
+            ->getJson(route('user.dialer.search', ['q' => self::TOKEN]));
+        $resp->assertOk();
+
+        $contactIds = [];
+        foreach ($resp->json('data')['groups'] as $g) {
+            if ($g['key'] === 'contacts') {
+                $contactIds = array_map(fn ($i) => $i['id'], $g['items']);
+            }
+        }
+
+        $this->assertContains(
+            $otherContact->id,
+            $contactIds,
+            'the searcher\'s own contact saved in a non-active workspace must surface in "Contacts" on the web dialer'
+        );
+    }
+
     public function test_web_search_never_leaks_a_followed_creators_subscribers_only_link(): void
     {
         $viewer  = $this->makeUser('viewer');
