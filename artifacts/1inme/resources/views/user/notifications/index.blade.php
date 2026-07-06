@@ -44,53 +44,7 @@
                         <a href="{{ route('user.notifications.open', $n->id) }}"
                            class="absolute inset-0 z-0" aria-label="Open notification"></a>
                     @endif
-                    @if($n->type === 'social_connection_broken')
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
-                             style="background: rgba(239,68,68,0.12); color:#ef4444;">
-                            <i class="fas fa-triangle-exclamation"></i>
-                        </div>
-                    @elseif($n->type === 'workspace_access_request')
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
-                             style="background: rgba(92,131,255,0.12); color:#3d6bff;">
-                            <i class="fas fa-user-shield"></i>
-                        </div>
-                    @elseif($n->type === 'task_assigned')
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
-                             style="background: rgba(34,197,94,0.12); color:#16a34a;">
-                            <i class="fas fa-list-check"></i>
-                        </div>
-                    @elseif($n->type === 'task_mention')
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
-                             style="background: rgba(59,130,246,0.12); color:#2563eb;">
-                            <i class="fas fa-at"></i>
-                        </div>
-                    @elseif($n->type === 'task_due')
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
-                             style="background: rgba(234,179,8,0.12); color:#ca8a04;">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                    @elseif($n->type === 'task_overdue')
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
-                             style="background: rgba(239,68,68,0.12); color:#dc2626;">
-                            <i class="fas fa-fire"></i>
-                        </div>
-                    @elseif($n->type === 'billing.subscription_update')
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
-                             style="background: rgba(59,130,246,0.12); color:#2563eb;">
-                            <i class="fas fa-credit-card"></i>
-                        </div>
-                    @elseif($n->type === 'delivery_project.comment')
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
-                             style="background: rgba(92,131,255,0.12); color:#3d6bff;">
-                            <i class="fas fa-comment-dots"></i>
-                        </div>
-                    @elseif(!empty($d['follower_avatar']) || !empty($d['creator_avatar']))
-                        <img src="{{ $d['follower_avatar'] ?? $d['creator_avatar'] }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
-                    @else
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">
-                            {{ strtoupper(substr($d['follower_name'] ?? $d['creator_name'] ?? '?', 0, 1)) }}
-                        </div>
-                    @endif
+                    @include('user.notifications._icon', ['n' => $n, 'd' => $d])
                     <div class="flex-1">
                         @if($n->type === 'new_follower')
                             <p class="text-sm" style="color: var(--text-primary);"><span class="font-semibold">{{ $d['follower_name'] ?? 'Someone' }}</span> started following you.</p>

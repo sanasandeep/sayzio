@@ -4,6 +4,7 @@ namespace App\Modules\User\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class UserNotification extends Model
 {
@@ -63,5 +64,48 @@ class UserNotification extends Model
         }
 
         return null;
+    }
+
+    /**
+     * Short, plain-text preview of what this notification is about — no
+     * markup or action links, just the same per-type copy shown on the
+     * full notifications page condensed to a single line. Powers the
+     * header bell dropdown; the full index view keeps its own richer
+     * per-type markup (bold names, quoted snippets, action buttons).
+     */
+    public function previewText(): string
+    {
+        return self::resolvePreviewText($this->data ?? [], $this->type);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public static function resolvePreviewText(array $data, ?string $type = null): string
+    {
+        switch ($type) {
+            case 'new_follower':
+                return ($data['follower_name'] ?? 'Someone') . ' started following you.';
+            case 'follower_update':
+                return ($data['creator_name'] ?? 'A creator') . ' ' . ($data['message'] ?? 'has new activity');
+            case 'social_connection_broken':
+                return $data['message'] ?? 'A social connection needs your attention.';
+            case 'workspace_access_request':
+                return ($data['requester_name'] ?? 'A teammate') . ' is asking for access to ' . ($data['workspace_name'] ?? 'a workspace') . '.';
+            case 'task_assigned':
+                return ($data['assigner'] ?? 'Someone') . ' assigned you to a task in ' . ($data['board_name'] ?? 'a board') . ': ' . Str::limit($data['message'] ?? '', 80);
+            case 'task_mention':
+                return ($data['mentioner'] ?? 'Someone') . ' mentioned you in ' . ($data['board_name'] ?? 'a board') . ': ' . Str::limit($data['snippet'] ?? $data['message'] ?? '', 100);
+            case 'task_due':
+                return 'A card you\'re assigned to is due today in ' . ($data['board_name'] ?? 'a board') . ': ' . Str::limit($data['message'] ?? '', 80);
+            case 'task_overdue':
+                return 'Overdue: a card you\'re assigned to in ' . ($data['board_name'] ?? 'a board') . ' — ' . Str::limit($data['message'] ?? '', 80);
+            case 'billing.subscription_update':
+                return $data['message'] ?? 'Your subscription has changed.';
+            case 'delivery_project.comment':
+                return $data['message'] ?? 'A client commented on a delivery project';
+            default:
+                return $data['message'] ?? ($type ?? 'Notification');
+        }
     }
 }

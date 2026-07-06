@@ -1295,11 +1295,53 @@
                         </div>
                     </div>
 
-                    @php $__headerUnread = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count(); @endphp
-                    <a href="{{ route('user.notifications.index') }}" class="header-icon-btn hidden sm:flex {{ request()->routeIs('user.notifications.*') ? 'active' : '' }}" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        @if($__headerUnread)<span class="badge-dot"></span>@endif
-                    </a>
+                    @php
+                        $__headerUnread = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count();
+                        $__hdrNotifications = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())
+                            ->orderByDesc('created_at')
+                            ->limit(5)
+                            ->get();
+                    @endphp
+                    <div x-data="{ open: false }" class="relative">
+                        <button type="button"
+                                @click="open = !open"
+                                class="header-icon-btn relative hidden sm:flex {{ request()->routeIs('user.notifications.*') ? 'active' : '' }}"
+                                title="Notifications"
+                                aria-label="Notifications">
+                            <i class="fas fa-bell"></i>
+                            @if($__headerUnread)<span class="badge-dot"></span>@endif
+                        </button>
+                        <div x-show="open" @click.away="open = false" x-cloak x-transition
+                             class="absolute right-0 mt-2 w-80 rounded-xl py-2 z-50" style="background: var(--bg-sidebar); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
+                            <div class="px-3.5 pb-2 flex items-center justify-between" style="border-bottom: 1px solid var(--border-subtle);">
+                                <span class="text-xs font-semibold" style="color: var(--text-primary);">Notifications</span>
+                                @if($__headerUnread)<span class="text-xs" style="color: var(--text-muted);">{{ $__headerUnread }} unread</span>@endif
+                            </div>
+                            @if($__hdrNotifications->isEmpty())
+                                <p class="px-3.5 py-3 text-xs" style="color: var(--text-muted);">No notifications yet.</p>
+                            @else
+                                <div class="max-h-80 overflow-y-auto">
+                                    @foreach($__hdrNotifications as $__hdrN)
+                                        @php $__hdrD = $__hdrN->data ?? []; @endphp
+                                        <a href="{{ route('user.notifications.open', $__hdrN->id) }}"
+                                           class="px-3.5 py-2 flex items-start gap-2.5 transition-colors hover:bg-blue-500/5 {{ $__hdrN->read_at ? '' : 'bg-blue-50/30' }}">
+                                            @include('user.notifications._icon', ['n' => $__hdrN, 'd' => $__hdrD, 'size' => 'w-8 h-8'])
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-xs {{ $__hdrN->read_at ? '' : 'font-semibold' }}" style="color: var(--text-primary);">{{ \Illuminate\Support\Str::limit($__hdrN->previewText(), 90) }}</p>
+                                                <p class="text-[10px] mt-0.5" style="color: var(--text-muted);">{{ $__hdrN->created_at->diffForHumans() }}</p>
+                                            </div>
+                                            @if(!$__hdrN->read_at)
+                                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></span>
+                                            @endif
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @endif
+                            <div class="px-3.5 pt-2 mt-1" style="border-top: 1px solid var(--border-subtle);">
+                                <a href="{{ route('user.notifications.index') }}" class="text-xs font-medium text-blue-400 hover:underline">View all notifications &rarr;</a>
+                            </div>
+                        </div>
+                    </div>
 
                     <a href="{{ route('user.links.create') }}" class="btn-primary hidden sm:inline-flex items-center gap-1.5 text-xs px-3.5 py-2 whitespace-nowrap">
                         <i class="fas fa-plus" style="font-size: 9px;"></i>
