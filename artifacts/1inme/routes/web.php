@@ -703,6 +703,10 @@ Route::get('/{alias}/download', [RedirectController::class, 'rawFileDownload'])-
 Route::get('/{alias}/rsvp',  [RedirectController::class, 'rsvpForm'])->name('redirect.rsvp.form')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
 Route::post('/{alias}/rsvp', [RedirectController::class, 'rsvpSubmit'])->name('redirect.rsvp.submit')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:10,1');
 Route::post('/{alias}/interest', [\App\Modules\Common\Controllers\EventInterestController::class, 'toggle'])->name('events.interest.toggle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:30,1');
+// Task #3769: lazily-fetched "similar events" / "more from this host"
+// recommendation fragment for the RSVP + ticketed event pages — kept off
+// the main page render path so its slow queries can never blank the page.
+Route::get('/{alias}/event-extras', [RedirectController::class, 'eventPageExtrasFragment'])->name('events.extras.fragment')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:30,1');
 Route::get ('/{alias}/rsvp/manage/{token}',  [\App\Modules\Common\Controllers\RsvpManageController::class, 'show'])->name('redirect.rsvp.manage')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
 Route::post('/{alias}/rsvp/manage/{token}',  [\App\Modules\Common\Controllers\RsvpManageController::class, 'update'])->name('redirect.rsvp.manage.update')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');
 Route::post('/{alias}/rsvp/manage/{token}/cancel', [\App\Modules\Common\Controllers\RsvpManageController::class, 'cancel'])->name('redirect.rsvp.manage.cancel')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$')->middleware('throttle:20,1');

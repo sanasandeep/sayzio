@@ -16,7 +16,9 @@ use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Services\BiolinkExperimentService;
 use App\Modules\User\Services\SpamChecker;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class RedirectController extends Controller
@@ -1102,8 +1104,144 @@ class RedirectController extends Controller
      * Similar events match on shared hashtags; same-host events list the
      * organizer's other upcoming public events. Both exclude the current
      * event and cap at 4 results.
+     *
+     * Task #3769: the recommendation lookups (a `LIKE`-on-settings scan plus
+     * several joined aggregate queries) are optional "nice to have" widgets,
+     * not core to the RSVP/event page, and they must NEVER be able to delay
+     * or blank the page — including on a cold cache, where a synchronous
+     * compute-then-cache would still make the *first* request in every TTL
+     * window pay the full slow-query cost inline. So this method never
+     * computes them itself: it only ever does a cheap cache read. On a hit
+     * it returns the cached recommendations; on a miss it returns them empty
+     * immediately (`extrasPending = true`) and the view lazy-fetches the
+     * real data client-side, off the render path, via
+     * eventPageExtrasFragment()/GET /{alias}/event-extras below (which does
+     * the actual lock-guarded, failure-safe computation + caching).
+     *
+     * Interest counts are a single cheap COUNT per status on this one link,
+     * so they're computed inline here rather than deferred.
      */
     protected function eventPageExtras(Link $link): array
+    {
+        $default = [
+            'similarEvents' => collect(),
+            'sameHostEvents' => collect(),
+            'interestCounts' => ['interested' => 0, 'not_interested' => 0],
+            'extrasPending' => false,
+        ];
+
+        try {
+            $default['interestCounts'] = [
+                'interested'     => $link->eventInterests()->where('status', \App\Modules\User\Models\EventInterest::INTERESTED)->count(),
+                'not_interested' => $link->eventInterests()->where('status', \App\Modules\User\Models\EventInterest::NOT_INTERESTED)->count(),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('Event interest counts failed; degrading gracefully', [
+                'link_id' => $link->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            $ids = Cache::get("event_page_extras_ids:{$link->id}");
+            if ($ids !== null) {
+                return [
+                    'similarEvents' => $this->hydrateLinksPreservingOrder($ids['similar_ids'] ?? []),
+                    'sameHostEvents' => $this->hydrateLinksPreservingOrder($ids['same_host_ids'] ?? []),
+                    'interestCounts' => $default['interestCounts'],
+                    'extrasPending' => false,
+                ];
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Event page recommendation cache read failed; degrading gracefully', [
+                'link_id' => $link->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Cache miss (or cache read failure): render instantly without the
+        // recommendation widgets. The view will fetch them asynchronously.
+        $default['extrasPending'] = true;
+        return $default;
+    }
+
+    /**
+     * Off-render-path counterpart to eventPageExtras(): actually computes
+     * (and caches, 60s TTL) the similar/same-host recommendation ids, then
+     * returns just the recommendations HTML fragment. Called client-side by
+     * event-page-recommendations.blade.php AFTER the core page has already
+     * rendered, so this is the only place the slow queries can ever run —
+     * never inline on the page request itself. Still lock-guarded (10s) so
+     * concurrent lazy-fetches for the same event don't pile onto the same
+     * slow queries; a request that loses the lock race just returns
+     * whatever is (or isn't yet) cached rather than waiting.
+     */
+    public function eventPageExtrasFragment(Request $request, string $alias)
+    {
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if (!$link || $link->type !== 'ics') abort(404);
+
+        $result = ['similarEvents' => collect(), 'sameHostEvents' => collect()];
+
+        try {
+            $cacheKey = "event_page_extras_ids:{$link->id}";
+            $ids = Cache::get($cacheKey);
+
+            if ($ids === null) {
+                $lock = Cache::lock($cacheKey . ':lock', 10);
+                if ($lock->get()) {
+                    try {
+                        $ids = $this->computeEventPageExtraIds($link);
+                        Cache::put($cacheKey, $ids, 60);
+                    } finally {
+                        $lock->release();
+                    }
+                } else {
+                    // Another request is already computing this — don't
+                    // pile onto the same slow queries; the next lazy-fetch
+                    // (or page load) will find it cached.
+                    $ids = null;
+                }
+            }
+
+            if ($ids !== null) {
+                $result = [
+                    'similarEvents' => $this->hydrateLinksPreservingOrder($ids['similar_ids'] ?? []),
+                    'sameHostEvents' => $this->hydrateLinksPreservingOrder($ids['same_host_ids'] ?? []),
+                ];
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Event page recommendation extras failed; degrading gracefully', [
+                'link_id' => $link->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return response()->view('common.partials.event-page-recommendations', array_merge(['link' => $link], $result));
+    }
+
+    /**
+     * Re-fetch links by id, preserving the given order. Only plain scalar
+     * ids are cached (never Eloquent collections/models) — a known footgun
+     * with the file cache driver under multiple workers is that cached
+     * Eloquent structures can deserialize as `__PHP_Incomplete_Class`.
+     */
+    protected function hydrateLinksPreservingOrder(array $ids): \Illuminate\Support\Collection
+    {
+        if (empty($ids)) {
+            return collect();
+        }
+
+        $links = Link::whereIn('id', $ids)->where('is_active', true)->with('icsData')->get()->keyBy('id');
+
+        return collect($ids)->map(fn ($id) => $links->get($id))->filter()->values();
+    }
+
+    /**
+     * Computes the raw ids/counts behind eventPageExtras(). Kept separate so
+     * the cache/lock/fallback wrapper above only ever caches plain arrays.
+     */
+    protected function computeEventPageExtraIds(Link $link): array
     {
         $ics = $link->icsData;
         $hashtags = $ics ? $ics->hashtagList() : [];
@@ -1159,7 +1297,11 @@ class RedirectController extends Controller
             'not_interested' => $link->eventInterests()->where('status', \App\Modules\User\Models\EventInterest::NOT_INTERESTED)->count(),
         ];
 
-        return compact('similarEvents', 'sameHostEvents', 'interestCounts');
+        return [
+            'similar_ids' => $similarEvents->pluck('id')->all(),
+            'same_host_ids' => $sameHostEvents->pluck('id')->all(),
+            'interest_counts' => $interestCounts,
+        ];
     }
 
     protected function handleIcsDownload(Link $link)

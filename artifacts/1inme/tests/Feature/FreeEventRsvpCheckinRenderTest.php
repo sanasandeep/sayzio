@@ -115,6 +115,14 @@ class FreeEventRsvpCheckinRenderTest extends TestCase
         $resp->assertSee('Rosa Host');
     }
 
+    /**
+     * Task #3769: "More from this host" is a recommendation widget backed by
+     * a short-TTL cache. On a cache miss the page itself renders instantly
+     * WITHOUT it (a pending placeholder + `data-pending="1"` instead), and
+     * the browser lazy-fetches the real content off the render path via
+     * `GET /{alias}/event-extras`. So the first page load must NOT block on
+     * it, and the separate fragment endpoint is what actually surfaces it.
+     */
     public function test_more_from_this_host_lists_other_public_events(): void
     {
         $host = $this->makeUser('Mars Host');
@@ -127,8 +135,57 @@ class FreeEventRsvpCheckinRenderTest extends TestCase
 
         $resp = $this->get('/' . $link->alias);
         $resp->assertOk();
+        $resp->assertDontSee('Side Show');
+        $resp->assertSee('id="event-recommendations"', false);
+        $resp->assertSee('data-pending="1"', false);
+
+        $fragment = $this->get('/' . $link->alias . '/event-extras');
+        $fragment->assertOk();
+        $fragment->assertSee('More from this host');
+        $fragment->assertSee('Side Show');
+    }
+
+    /**
+     * Task #3769: once the recommendation extras are cached (e.g. after the
+     * lazy fragment fetch above populates them), a subsequent page load
+     * renders "More from this host" inline immediately — no second
+     * client-side fetch needed.
+     */
+    public function test_more_from_this_host_renders_inline_once_cached(): void
+    {
+        $host = $this->makeUser('Nova Host');
+        $link = $this->makeFreeEvent($host, [], 'Main Gig');
+        $this->makeIcsData($link);
+        $other = $this->makeFreeEvent($host, [], 'Encore Show');
+        $this->makeIcsData($other, ['event_name' => 'Encore Show']);
+
+        // Warm the per-link recommendation cache the same way the browser's
+        // lazy fetch would.
+        $this->get('/' . $link->alias . '/event-extras')->assertOk();
+
+        $resp = $this->get('/' . $link->alias);
+        $resp->assertOk();
+        $resp->assertSee('data-pending="0"', false);
         $resp->assertSee('More from this host');
-        $resp->assertSee('Side Show');
+        $resp->assertSee('Encore Show');
+    }
+
+    /**
+     * Task #3769 regression guard: even when the recommendation cache is
+     * completely cold, the core RSVP page must render fast and complete
+     * (never a blank/502 page) — the whole point of deferring the
+     * recommendation lookups off the render path.
+     */
+    public function test_rsvp_page_renders_fully_on_cold_recommendation_cache(): void
+    {
+        $host = $this->makeUser('Cold Cache Host');
+        $link = $this->makeFreeEvent($host, [], 'Cold Start Party');
+        $this->makeIcsData($link);
+
+        $resp = $this->get('/' . $link->alias . '/rsvp');
+        $resp->assertOk();
+        $resp->assertSee('Hosted by');
+        $resp->assertSee('data-pending="1"', false);
     }
 
     public function test_guest_rsvp_mints_checkin_ticket_and_owner_can_check_in(): void
