@@ -2,6 +2,9 @@
     $ics = $link->icsData;
     $isOnline = !empty(($link->settings ?? [])['is_online']);
     $hasPin = !$isOnline && $ics && $ics->latitude !== null && $ics->longitude !== null;
+    $directionsUrl = $hasPin
+        ? 'https://www.google.com/maps/dir/?api=1&destination=' . rawurlencode($ics->latitude . ',' . $ics->longitude)
+        : null;
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -60,6 +63,10 @@
             <div class="mb-3">
                 <div id="ev-map" data-lat="{{ $ics->latitude }}" data-lng="{{ $ics->longitude }}" data-label="{{ $link->title }}"
                      style="height:220px;border-radius:12px;border:1px solid #e5e7eb;"></div>
+                <a href="{{ $directionsUrl }}" target="_blank" rel="noopener"
+                   class="btn btn-outline-primary btn-sm w-100 mt-2 d-inline-flex align-items-center justify-content-center gap-2">
+                    <i class="fas fa-diamond-turn-right"></i> Get directions
+                </a>
             </div>
         @endif
 

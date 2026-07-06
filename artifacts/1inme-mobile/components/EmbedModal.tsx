@@ -119,6 +119,25 @@ export function EmbedModal({ visible, url, title, sandboxed, onClose }: EmbedMod
               originWhitelist={["http://*", "https://*"]}
               setSupportMultipleWindows={false}
               allowsBackForwardNavigationGestures
+              // Multiple windows are disabled, so target="_blank" links (e.g.
+              // the "Get directions" button on the RSVP page) load in this
+              // webview and fire this hook. Hand off maps + app-scheme links
+              // (tel/mailto/geo) to the system so the native maps app / dialer
+              // opens instead of navigating away from the embedded page. All
+              // other same-flow navigations continue in the webview.
+              onShouldStartLoadWithRequest={(req) => {
+                const u = req.url || "";
+                if (
+                  /^(tel:|mailto:|geo:|maps:)/i.test(u) ||
+                  /^https?:\/\/((www|maps)\.)?(google\.[^/]+\/maps|maps\.apple\.com)/i.test(
+                    u,
+                  )
+                ) {
+                  void Linking.openURL(u);
+                  return false;
+                }
+                return true;
+              }}
             />
           ) : null}
           {loading ? (

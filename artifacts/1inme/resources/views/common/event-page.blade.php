@@ -8,6 +8,9 @@
     $hasTicketTiers = isset($tiers) && $tiers->isNotEmpty();
     $categoryGradient = \App\Modules\User\Support\EventCategories::gradient($eventCategory ?: '');
     $hasPin = !$isOnline && $ics && $ics->latitude !== null && $ics->longitude !== null;
+    $directionsUrl = $hasPin
+        ? 'https://www.google.com/maps/dir/?api=1&destination=' . rawurlencode($ics->latitude . ',' . $ics->longitude)
+        : null;
     $metaDescription = \Illuminate\Support\Str::limit($ics->description ?? $link->title, 180);
 
     // Host/organizer card is rendered in the right column below (Task #3731);
@@ -281,6 +284,10 @@
                             @if($hasPin)
                                 <div class="ev-card p-2 mt-4">
                                     <div id="ev-map" data-lat="{{ $ics->latitude }}" data-lng="{{ $ics->longitude }}" data-label="{{ $link->title }}"></div>
+                                    <a href="{{ $directionsUrl }}" target="_blank" rel="noopener"
+                                       class="mt-2 inline-flex items-center justify-center gap-2 w-full ev-chip px-4 py-2.5 rounded-xl hover:opacity-80 font-medium">
+                                        <i class="fas fa-diamond-turn-right ev-accent-text"></i> Get directions
+                                    </a>
                                 </div>
                             @endif
                         </div>
