@@ -166,6 +166,10 @@ export default function CreateLinkScreen() {
           phone: vcPhone || null,
         };
       } else if (meta.kind === "calendar") {
+        // The event name is required — it becomes the public event page's
+        // title (persisted as ics_data.event_name server-side), so a blank
+        // one would render an "Event" placeholder page.
+        if (!title.trim()) throw new Error("Please enter an event name");
         if (!evStart) throw new Error("Please enter a start time");
         settings.event = {
           start: evStart,
@@ -246,10 +250,14 @@ export default function CreateLinkScreen() {
         ) : null}
 
         <TextField
-          label="Title"
+          label={meta.kind === "calendar" ? "Event name" : "Title"}
           value={title}
           onChangeText={setTitle}
-          placeholder="Optional internal label"
+          placeholder={
+            meta.kind === "calendar"
+              ? "e.g. Summer Launch Party"
+              : "Optional internal label"
+          }
           trailing={<DictationMic onText={dictateInto(setTitle)} />}
         />
         <TextField

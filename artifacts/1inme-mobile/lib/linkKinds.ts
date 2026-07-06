@@ -195,6 +195,16 @@ export const KINDS_BY_API: Record<string, LinkKindMeta> = LINK_KINDS.reduce(
   {} as Record<string, LinkKindMeta>,
 );
 
+// The REST create path stores events under the canonical `ics` link type
+// (with a companion IcsData row), even though the mobile create flow posts
+// apiType "event". Alias `ics` to the calendar meta so a created/duplicated
+// event resolves to the Event-invite UI (icon, label, Ticketing action) on
+// the edit screen and in link lists instead of falling back to "Short link".
+const calendarMeta = LINK_KINDS.find((m) => m.kind === "calendar");
+if (calendarMeta) {
+  KINDS_BY_API["ics"] = calendarMeta;
+}
+
 export function metaForApiType(t: string | null | undefined): LinkKindMeta {
   if (t && KINDS_BY_API[t]) return KINDS_BY_API[t];
   return LINK_KINDS[0];

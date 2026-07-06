@@ -163,7 +163,7 @@ class LinkController extends Controller
         // land on the same floor as the web form and live checker.
         $aliasLimits = $request->user()->getAliasLengthLimits();
         $data = $request->validate([
-            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit'])],
+            'type'       => ['required', Rule::in(['short', 'biolink', 'file', 'qr', 'event', 'ics', 'vcard', 'social', 'sms', 'wifi', 'pdf', 'conversational', 'slides', 'ai_chat', 'resume', 'paid_page', 'brand_kit'])],
             // The admin banned/reserved-names list is enforced on the mobile
             // create submit too (privileged `user.banned_names.bypass` holders
             // skip it), mirroring the web chooseType() rule and the live
@@ -196,6 +196,30 @@ class LinkController extends Controller
             // pixels stay direct 302s with zero perf cost).
             'auto_pixel'   => ['nullable', 'boolean'],
         ]);
+
+        // The mobile "Event invite" create flow posts type "event" with a
+        // loose settings.event blob. The canonical event link type is "ics"
+        // with a companion IcsData row that the public event page + RSVP flow
+        // (RedirectController) render from — a bare "event" link renders
+        // nothing. Map it to "ics" here and build the IcsData row below so a
+        // mobile-created event resolves to the same page as a web-created one
+        // (Task #3680). We also accept "ics" directly so duplicating an event
+        // (which re-posts the stored type) keeps working. The web
+        // IcsLinkController create path is unchanged.
+        $isEvent = in_array($data['type'], ['event', 'ics'], true);
+        if ($isEvent) {
+            $data['type'] = 'ics';
+            // A fresh event create (type "event") must carry a name + start;
+            // a duplicate (type "ics") simply reuses the copied settings.event
+            // blob and falls back to sensible defaults below.
+            if ($request->input('type') === 'event') {
+                $request->validate([
+                    'title'                => ['required', 'string', 'max:200'],
+                    'settings.event.start' => ['required', 'date'],
+                    'settings.event.end'   => ['nullable', 'date'],
+                ]);
+            }
+        }
 
         $alias = $data['alias'] ?? Str::lower(Str::random(7));
         while (Link::where('alias', $alias)->exists()) {
@@ -249,6 +273,14 @@ class LinkController extends Controller
             $link->workspace_id = (int) $workspaceId;
         }
         $link->save();
+
+        // Companion IcsData row for event links so the public event page +
+        // RSVP flow render from the canonical source (`ics_data`) rather than
+        // the loose settings.event blob — matching a web-created event
+        // (Task #3680).
+        if ($isEvent) {
+            $this->createEventData($link, (array) ($settingsPayload['event'] ?? []));
+        }
 
         // Resume / Portfolio links bridge to the user's standalone resume
         // builder record. Associate the owner's default resume so the public
@@ -414,6 +446,53 @@ class LinkController extends Controller
         return $this->ok([
             'rate_limit' => app(\App\Modules\Common\Services\VisitorRateLimiter::class)
                 ->configFor($link->fresh()),
+        ]);
+    }
+
+    /**
+     * Build the companion IcsData row for an event created via the REST
+     * create path (the mobile "Event invite"). Mirrors the canonical shape
+     * the web IcsLinkController persists so the public event page + RSVP flow
+     * (RedirectController) render identically. The mobile client posts
+     * ISO-8601 UTC timestamps in settings.event; `end` defaults to one hour
+     * after `start` when omitted or invalid (the web form requires an
+     * explicit end, but mobile keeps it optional), `timezone` defaults to UTC,
+     * and `event_name` falls back to the link title. All three of
+     * `event_name`/`start_date`/`end_date` are NOT NULL, so every branch here
+     * resolves a concrete value.
+     */
+    protected function createEventData(Link $link, array $event): void
+    {
+        $tz = (is_string($event['timezone'] ?? null) && $event['timezone'] !== '')
+            ? $event['timezone']
+            : 'UTC';
+
+        try {
+            $startDt = new \DateTime((string) ($event['start'] ?? 'now'));
+        } catch (\Throwable $e) {
+            $startDt = new \DateTime();
+        }
+
+        $endDt = null;
+        if (!empty($event['end'])) {
+            try {
+                $endDt = new \DateTime((string) $event['end']);
+            } catch (\Throwable $e) {
+                $endDt = null;
+            }
+        }
+        if (!$endDt || $endDt < $startDt) {
+            $endDt = (clone $startDt)->modify('+1 hour');
+        }
+
+        \App\Modules\User\Models\IcsData::create([
+            'link_id'    => $link->id,
+            'event_name' => $link->title ?: 'Event',
+            'location'   => (is_string($event['location'] ?? null) && $event['location'] !== '')
+                ? $event['location'] : null,
+            'start_date' => $startDt->format('Y-m-d H:i:s'),
+            'end_date'   => $endDt->format('Y-m-d H:i:s'),
+            'timezone'   => $tz,
         ]);
     }
 
