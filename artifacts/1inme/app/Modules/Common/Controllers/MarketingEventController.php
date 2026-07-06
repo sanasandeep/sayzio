@@ -36,6 +36,23 @@ class MarketingEventController extends Controller
             'how_it_works',
             'final_cta',
         ],
+        // "10x your connections" tip cards shown alongside events. The
+        // surface (events directory vs a public event page) is encoded in
+        // the source; the target is the suggested link `type` from
+        // SitePagesContent::eventConnectionTips() — keep these two lists in
+        // lockstep when a new tip type is added there (Task #3684).
+        'event_tips_directory' => [
+            'biolink',
+            'vcf',
+            'calendar',
+            'reviews',
+        ],
+        'event_tips_event' => [
+            'biolink',
+            'vcf',
+            'calendar',
+            'reviews',
+        ],
     ];
 
     public function track(Request $request): JsonResponse

@@ -10,6 +10,10 @@
       $theme (string) — 'dark' (default), 'light', or 'biolink'.
       $fontColor (string|null) — hex color, required when $theme is
         'biolink'; ignored otherwise.
+      $surface (string) — where the tips are shown: 'directory' (events
+        directory) or 'event' (public event page). Drives click tracking
+        so the product team can see which tip converts on which surface
+        (default 'directory').
 
     Each card deep-links into the create flow for its suggested link type,
     same audience-aware logic as link-type-pairings (logged-in creators go
@@ -19,6 +23,8 @@
 @php
     $__ectTips = \App\Modules\Common\Support\SitePagesContent::eventConnectionTips();
     $__ectCompact = $compact ?? false;
+    $__ectSurface = ($surface ?? 'directory') === 'event' ? 'event' : 'directory';
+    $__ectTrackSource = 'event_tips_' . $__ectSurface;
     if ($__ectCompact) {
         $__ectTips = array_slice($__ectTips, 0, 2);
     }
@@ -58,7 +64,7 @@
 
         $__ectLoggedIn = auth('web')->check();
     @endphp
-    <section class="ev-connection-tips" aria-label="Tips to grow your connections" style="max-width:{{ $__ectCompact ? '880px' : '960px' }}; margin:{{ $__ectCompact ? '28px' : '40px' }} auto 0; padding:0 16px 8px; color:{{ $__ectText }};">
+    <section class="ev-connection-tips" data-ect-source="{{ $__ectTrackSource }}" aria-label="Tips to grow your connections" style="max-width:{{ $__ectCompact ? '880px' : '960px' }}; margin:{{ $__ectCompact ? '28px' : '40px' }} auto 0; padding:0 16px 8px; color:{{ $__ectText }};">
         <div style="text-align:center; margin-bottom:16px;">
             <span style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:{{ $__ectAccent }};">
                 <i class="fas fa-bolt"></i> 10x your connections
@@ -81,7 +87,7 @@
                         ? $__ectCreateUrl
                         : (route('user.register') . '?redirect=' . urlencode($__ectCreateUrl));
                 @endphp
-                <a href="{{ $__ectItemHref }}" class="ev-connection-tip-card" style="display:flex; flex-direction:column; gap:8px; padding:16px; border-radius:16px; background:{{ $__ectCardBg }}; border:1px solid {{ $__ectCardBorder }}; text-decoration:none; color:inherit;">
+                <a href="{{ $__ectItemHref }}" class="ev-connection-tip-card" data-ect-tip="{{ $__ectItem['type'] }}" style="display:flex; flex-direction:column; gap:8px; padding:16px; border-radius:16px; background:{{ $__ectCardBg }}; border:1px solid {{ $__ectCardBorder }}; text-decoration:none; color:inherit;">
                     <span style="flex:0 0 auto; width:36px; height:36px; border-radius:10px; background:{{ $__ectIconBg }}; display:flex; align-items:center; justify-content:center;">
                         <i class="fas {{ $__ectItem['icon'] }}" style="font-size:14px; color:{{ $__ectIconColor }};"></i>
                     </span>
@@ -103,4 +109,33 @@
             .ev-connection-tip-card:hover { transform: none; }
         }
     </style>
+
+    {{-- Fire-and-forget click tracking so the product team can see which
+         tip (and on which surface) actually drives creators into the create
+         flow. Reuses the anonymous, allow-listed marketing-events pipeline;
+         source = event_tips_{surface}, target = tip link type. --}}
+    <script>
+    (function () {
+        if (window.__E2E__) return;
+        var url = @json(route('marketing-events.track'));
+        document.querySelectorAll('.ev-connection-tips[data-ect-source] .ev-connection-tip-card[data-ect-tip]').forEach(function (card) {
+            card.addEventListener('click', function () {
+                try {
+                    var section = card.closest('.ev-connection-tips');
+                    var source = section && section.getAttribute('data-ect-source');
+                    var target = card.getAttribute('data-ect-tip');
+                    if (!source || !target) return;
+                    var data = new FormData();
+                    data.append('source', source);
+                    data.append('target', target);
+                    if (navigator.sendBeacon) {
+                        navigator.sendBeacon(url, data);
+                    } else {
+                        fetch(url, { method: 'POST', body: data, keepalive: true, credentials: 'same-origin' });
+                    }
+                } catch (e) { /* fire-and-forget */ }
+            });
+        });
+    })();
+    </script>
 @endif

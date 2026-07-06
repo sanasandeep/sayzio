@@ -35,11 +35,25 @@ class MarketingEventStatsController extends Controller
             'how_it_works' => 'How it works — "Start free — no card"',
             'final_cta'    => 'Closing section — "Sign up free"',
         ],
+        'event_tips_directory' => [
+            'biolink'  => 'Link-in-bio tip',
+            'vcf'      => 'Contact card (vCard) tip',
+            'calendar' => 'Follow calendar tip',
+            'reviews'  => 'Collect reviews tip',
+        ],
+        'event_tips_event' => [
+            'biolink'  => 'Link-in-bio tip',
+            'vcf'      => 'Contact card (vCard) tip',
+            'calendar' => 'Follow calendar tip',
+            'reviews'  => 'Collect reviews tip',
+        ],
     ];
 
     private const SOURCE_LABELS = [
         'landing_pricing_teaser' => 'Landing pricing teaser',
         'landing_home_cta'       => 'Landing home CTAs',
+        'event_tips_directory'   => 'Connection tips — Events directory',
+        'event_tips_event'       => 'Connection tips — Event page',
     ];
 
     public function index(Request $request)

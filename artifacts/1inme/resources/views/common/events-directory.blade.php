@@ -594,7 +594,7 @@
         <div class="mt-8">{{ $events->links() }}</div>
     @endif
 
-    @include('common.partials.event-connection-tips', ['theme' => 'dark'])
+    @include('common.partials.event-connection-tips', ['theme' => 'dark', 'surface' => 'directory'])
 
     <div class="text-center mt-10">
         <a href="{{ auth('web')->check() ? route('user.links.create') : (route('user.login') . '?redirect=' . urlencode(route('user.links.create'))) }}"

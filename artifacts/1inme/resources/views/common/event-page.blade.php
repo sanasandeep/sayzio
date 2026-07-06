@@ -249,7 +249,7 @@
             </div>
         </div>
 
-        @include('common.partials.event-connection-tips', ['compact' => true, 'theme' => 'dark'])
+        @include('common.partials.event-connection-tips', ['compact' => true, 'theme' => 'dark', 'surface' => 'event'])
 
         @include('common.partials.link-type-pairings', ['pairingType' => 'ics', 'theme' => 'dark'])
 
