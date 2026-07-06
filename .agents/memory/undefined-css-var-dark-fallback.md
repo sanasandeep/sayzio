@@ -81,3 +81,21 @@ the app scope — `--border`/`--text` are declared only in standalone
 they were genuinely undefined on app pages despite showing up in a naive
 codebase-wide definitions grep. Cross-check definitions per rendering scope,
 not codebase-wide.
+
+## Now enforced by a CI guard
+
+`scripts/src/check-undefined-css-var-fallback.ts` (npm `check:undefined-css-var`,
+registered validation `undefined-css-var`) makes this invariant enforceable: it
+scans every non-vendor blade under `artifacts/1inme/resources/views`, finds each
+`var(--name, <#hex|rgb|rgba|hsl literal>)` reference, and per RENDER SCOPE
+(app / standalone / excluded — mirrors the three-theming-systems split above)
+resolves whether `--name` is declared (theme-styles for the app shell, the
+page's own `:root` for standalone, an inline `style="--x:"` component var, or
+the intentional neutral-accent allowlist). **When it fails, DON'T weaken the
+parser** — either declare the token in the right scope (the alias-once trick),
+or, if the frozen literal is genuinely theme-neutral (blue/red accent, low-alpha
+tint over a theme-flipping bg) or an intentional single-theme standalone page,
+add it to `NEUTRAL_ACCENT_VARS` / `FILE_ALLOWLIST` WITH A REASON. Component-var
+families (`--tile-*`, `--sc-*`, `--rbp-c`, …) are auto-recognised only if some
+instance sets them inline; a member that no instance overrides (e.g.
+`--tile-bg-from`/`--tile-border`) falls through to the neutral-accent allowlist.

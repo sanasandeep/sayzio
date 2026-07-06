@@ -108,6 +108,10 @@ args = "light-mode-pairing"
 task = "workflow.run"
 args = "blade-comment-echo"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "undefined-css-var"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -357,6 +361,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:blade-comment-echo"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "undefined-css-var"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:undefined-css-var"
 
 [workflows.workflow.metadata]
 isValidation = true
