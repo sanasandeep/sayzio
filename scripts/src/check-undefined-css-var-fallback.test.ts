@@ -434,7 +434,11 @@ describe("analyze — end to end over an in-memory file map", () => {
 });
 
 describe("the live repo", () => {
+  // Whole-tree disk scan; memoized in blade-theme-scope so it walks once, but the
+  // first read is still I/O-bound and can contend with the pairing guard's scan
+  // when vitest runs both files in parallel — give it a generous timeout so it
+  // never trips the 5s default and flakes CI (see task: theme-safety flake).
   it("currently passes the guard (every color-var reference resolves in scope)", () => {
     expect(scanRepo()).toEqual([]);
-  });
+  }, 30_000);
 });

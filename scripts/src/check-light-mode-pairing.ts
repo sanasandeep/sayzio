@@ -57,7 +57,7 @@ import {
   VIEWS_REL,
   declaresOwnDocument,
   includesThemeStyles,
-  listBladeFiles,
+  readViewsFileMap as readViewsFileMapShared,
   stripComments as stripBladeComments,
 } from "./lib/blade-theme-scope.js";
 
@@ -706,13 +706,7 @@ export interface TargetResult {
  * to decide whether it loads the shared theme system.
  */
 export function readViewsFileMap(): Map<string, string> {
-  const viewsAbs = path.join(REPO_ROOT, VIEWS_REL);
-  const files = new Map<string, string>();
-  for (const abs of listBladeFiles(viewsAbs)) {
-    const rel = path.relative(viewsAbs, abs).split(path.sep).join("/");
-    files.set(rel, fs.readFileSync(abs, "utf8"));
-  }
-  return files;
+  return readViewsFileMapShared();
 }
 
 /**

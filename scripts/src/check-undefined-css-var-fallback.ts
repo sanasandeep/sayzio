@@ -62,6 +62,7 @@ import {
   parseComponents,
   includesThemeStyles,
   listBladeFiles,
+  readViewsFileMap,
 } from "./lib/blade-theme-scope.js";
 
 // Re-export the shared theme-scope detection so this guard's public surface (and
@@ -78,6 +79,7 @@ export {
   parseComponents,
   includesThemeStyles,
   listBladeFiles,
+  readViewsFileMap,
 };
 
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -341,13 +343,10 @@ export function analyze(input: ScanInput): Violation[] {
 
 /** Read the whole views tree (minus vendor) and analyze it. */
 export function scanRepo(): Violation[] {
-  const viewsAbs = path.join(REPO_ROOT, VIEWS_REL);
-  const files = new Map<string, string>();
-  for (const abs of listBladeFiles(viewsAbs)) {
-    const rel = path.relative(viewsAbs, abs).split(path.sep).join("/");
-    files.set(rel, fs.readFileSync(abs, "utf8"));
-  }
-  const themeStylesSrc = fs.readFileSync(path.join(REPO_ROOT, THEME_STYLES_REL), "utf8");
+  const files = readViewsFileMap();
+  const themeStylesSrc =
+    files.get(THEME_STYLES_VIEW_REL) ??
+    fs.readFileSync(path.join(REPO_ROOT, THEME_STYLES_REL), "utf8");
   return analyze({ files, themeStylesSrc });
 }
 

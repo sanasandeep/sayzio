@@ -26,6 +26,10 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+/** Workspace root, resolved from this module's location (scripts/src/lib). */
+export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
 /** Blade views root both guards scan (repo-relative). */
 export const VIEWS_REL = "artifacts/1inme/resources/views";
@@ -192,4 +196,30 @@ export function listBladeFiles(dir: string): string[] {
   };
   walk(dir);
   return out;
+}
+
+/**
+ * Memoized read of every non-vendor `*.blade.php` under VIEWS_REL into a map
+ * keyed by path relative to VIEWS_REL (`common/partials/theme-styles.blade.php`).
+ *
+ * Both theme guards (and their live-repo tests) scan the SAME whole views tree.
+ * Walking + reading it is the single most expensive step, and the pairing guard
+ * previously re-walked it once per configured target. Memoizing here means each
+ * process walks and reads the tree at most once: the views are a static build
+ * input during any single run (CLI one-shot or a test file's process), so the
+ * cache is always valid, it removes the redundant per-target re-walks, and it
+ * shrinks the disk-contention window when vitest runs both guard test files in
+ * parallel — which is what made the live-repo scans intermittently time out.
+ */
+let viewsFileMapCache: Map<string, string> | null = null;
+export function readViewsFileMap(): Map<string, string> {
+  if (viewsFileMapCache) return viewsFileMapCache;
+  const viewsAbs = path.join(REPO_ROOT, VIEWS_REL);
+  const files = new Map<string, string>();
+  for (const abs of listBladeFiles(viewsAbs)) {
+    const rel = path.relative(viewsAbs, abs).split(path.sep).join("/");
+    files.set(rel, fs.readFileSync(abs, "utf8"));
+  }
+  viewsFileMapCache = files;
+  return files;
 }

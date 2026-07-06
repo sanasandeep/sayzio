@@ -232,6 +232,10 @@ describe("the live configured TARGETS", () => {
       expect(result.missing).toEqual([]);
       expect(result.partialMismatches).toEqual([]);
     },
+    // Whole-tree disk scan (memoized in blade-theme-scope, walks once per run);
+    // generous timeout so parallel contention with the undefined-css-var guard's
+    // live scan never trips the 5s default and flakes CI.
+    30_000,
   );
 
   it("every configured target participates in the app theme (loads theme-styles, not self-contained)", () => {
@@ -244,7 +248,7 @@ describe("the live configured TARGETS", () => {
         `${target.page} must load theme-styles (extend a themed layout), or the html.light-mode pairing check is meaningless`,
       ).toBe(false);
     }
-  });
+  }, 30_000);
 });
 
 /**
