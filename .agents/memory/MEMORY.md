@@ -156,3 +156,4 @@
 - [Mobile event→ics bridge](mobile-event-type-ics-bridge.md) — mobile posts type "event" but canonical is "ics"+IcsData row; bridge in Api\LinkController::store (build row, accept both) AND mobile KINDS_BY_API['ics'] alias, or events render as bare/short links.
 - [RSVP silent account provisioning](rsvp-account-provisioning.md) — free RSVP mirrors paid-ticket guest account creation (firstOrCreate, default plan+workspace on new only); RSVP form is web-guard not sanctum, "signed in" test = actingAs('web').
 - [Event organizer profile](event-organizer-profile.md) — account-wide organizer profile (JSON on users, resolved via `organizerProfile()`) shown on event detail + `/@handle/events`; no per-event override.
+- [Mobile per-type link lock cap-key](mobile-linktype-lock-cap-key.md) — mobile's proactive per-type gate assumes uniform `max_<type>` cap keys but web's aren't uniform, so it silently fails-open for a few types; guarded by test-pairing-create-open.mjs.
