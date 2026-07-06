@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+import { EmbedModal } from "@/components/EmbedModal";
 import { useColors } from "@/hooks/useColors";
 import {
   buyEventTicket,
@@ -23,7 +24,7 @@ import {
   getEvent,
   setEventInterest,
 } from "@/lib/api/events";
-import { errorStatus } from "@/lib/api";
+import { errorStatus, getBaseUrl } from "@/lib/api";
 import { getProfile } from "@/lib/api/profile";
 
 export default function EventDetailScreen() {
@@ -38,6 +39,16 @@ export default function EventDetailScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [myInterest, setMyInterest] = useState<EventInterestStatus | null>(null);
   const [interestBusy, setInterestBusy] = useState(false);
+  const [rsvpModalUrl, setRsvpModalUrl] = useState<string | null>(null);
+
+  // Task #3674: free events have no RSVP JSON API (session/CSRF form only),
+  // so mobile embeds the existing public RSVP page in a WebView rather than
+  // duplicating its business rules (capacity, waitlist, custom questions).
+  const rsvpUrl = useMemo(() => {
+    if (!event) return null;
+    const webBase = getBaseUrl().replace(/\/?api\/?$/, "").replace(/\/+$/, "");
+    return `${webBase}/${event.alias}/rsvp`;
+  }, [event]);
 
   useEffect(() => {
     if (!alias) return;
@@ -141,6 +152,35 @@ export default function EventDetailScreen() {
         <Text style={{ color: colors.mutedForeground, marginTop: 2 }}>📍 {event.location}</Text>
       ) : null}
 
+      {event.organizer ? (
+        <Pressable
+          disabled={!event.organizer.handle}
+          onPress={() => {
+            if (event.organizer?.handle) {
+              router.push(`/profile/${event.organizer.handle}` as never);
+            }
+          }}
+          style={[styles.organizerRow, { borderColor: colors.border }]}
+        >
+          {event.organizer.avatar ? (
+            <Image source={{ uri: event.organizer.avatar }} style={styles.organizerAvatar} contentFit="cover" />
+          ) : (
+            <View style={[styles.organizerAvatar, styles.organizerAvatarFallback, { backgroundColor: colors.card }]}>
+              <Feather name="user" size={16} color={colors.mutedForeground} />
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Hosted by</Text>
+            <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 14 }}>
+              {event.organizer.name ?? "Organizer"}
+            </Text>
+          </View>
+          {event.organizer.handle ? (
+            <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+          ) : null}
+        </Pressable>
+      ) : null}
+
       {event.hashtags.length > 0 ? (
         <View style={styles.tagRow}>
           {event.hashtags.map((tag) => (
@@ -231,6 +271,30 @@ export default function EventDetailScreen() {
         </View>
       ) : null}
 
+      {event.same_host_events.length > 0 ? (
+        <View style={{ marginTop: 20 }}>
+          <Text style={[styles.section, { color: colors.foreground }]}>More from this host</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
+            {event.same_host_events.map((rec) => (
+              <Pressable
+                key={rec.alias}
+                onPress={() => router.push(`/events/${rec.alias}` as never)}
+                style={[styles.hostEventCard, { borderColor: colors.border, backgroundColor: colors.card }]}
+              >
+                <Text numberOfLines={2} style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}>
+                  {rec.title}
+                </Text>
+                {rec.start_date ? (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 6 }}>
+                    {new Date(rec.start_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </Text>
+                ) : null}
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
       {event.gallery.length > 0 ? (
         <View style={{ marginTop: 20 }}>
           <Text style={[styles.section, { color: colors.foreground }]}>Gallery</Text>
@@ -305,11 +369,27 @@ export default function EventDetailScreen() {
             </Text>
           </Pressable>
         </View>
+      ) : event.rsvp_available && rsvpUrl ? (
+        <View style={{ marginTop: 20 }}>
+          <Pressable
+            onPress={() => setRsvpModalUrl(rsvpUrl)}
+            style={[styles.buyBtn, { backgroundColor: colors.primary }]}
+          >
+            <Text style={{ color: colors.primaryForeground, fontWeight: "700" }}>RSVP now</Text>
+          </Pressable>
+        </View>
       ) : (
         <Text style={{ color: colors.mutedForeground, marginTop: 20 }}>
-          This event doesn't sell tickets — open the page on the web to RSVP.
+          RSVPs are closed for this event.
         </Text>
       )}
+
+      <EmbedModal
+        visible={!!rsvpModalUrl}
+        url={rsvpModalUrl}
+        title="RSVP"
+        onClose={() => setRsvpModalUrl(null)}
+      />
     </ScrollView>
   );
 }
@@ -320,6 +400,17 @@ const styles = StyleSheet.create({
   cover: { width: "100%", height: 180, borderRadius: 14, marginBottom: 14 },
   title: { fontSize: 22, fontWeight: "800" },
   section: { fontSize: 16, fontWeight: "700" },
+  organizerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  organizerAvatar: { width: 36, height: 36, borderRadius: 18 },
+  organizerAvatarFallback: { alignItems: "center", justifyContent: "center" },
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
   tagChip: {
     borderWidth: 1,
@@ -338,6 +429,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   galleryImg: { width: 220, height: 140, borderRadius: 12, marginRight: 10 },
+  hostEventCard: {
+    width: 160,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginRight: 10,
+  },
   tierRow: {
     flexDirection: "row",
     alignItems: "center",

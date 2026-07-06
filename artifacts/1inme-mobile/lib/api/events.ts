@@ -23,6 +23,28 @@ export type EventInfoSection = {
   body?: string | null;
 };
 
+/**
+ * Organizer card (Task #3674) — always present when the event has a host,
+ * regardless of whether that host has claimed a public handle. `handle` is
+ * null when there's no public profile to link to.
+ */
+export type EventOrganizer = {
+  name: string | null;
+  avatar: string | null;
+  handle: string | null;
+};
+
+/**
+ * "More from this host" preview (Task #3674) — mirrors the web event page's
+ * same-host-events list, including its past-event backfill so hosts without
+ * a handle still show something. Capped at 4 by the server.
+ */
+export type EventHostEvent = {
+  alias: string;
+  title: string;
+  start_date: string | null;
+};
+
 export type EventItem = {
   id: number;
   alias: string;
@@ -43,6 +65,11 @@ export type EventItem = {
   category_label: string | null;
   category_icon: string | null;
   ticketing_enabled: boolean;
+  /**
+   * Task #3674: true for any free (non-ticketed) event unless the organizer
+   * explicitly opted out — RSVP is on by default now, not opt-in.
+   */
+  rsvp_available: boolean;
   tiers: EventTier[];
   /** Hashtags, richer page content, and the interest signal. */
   hashtags: string[];
@@ -53,6 +80,8 @@ export type EventItem = {
   award_badge_id: number | null;
   interested_count: number;
   not_interested_count: number;
+  organizer: EventOrganizer | null;
+  same_host_events: EventHostEvent[];
 };
 
 export type EventTicket = {

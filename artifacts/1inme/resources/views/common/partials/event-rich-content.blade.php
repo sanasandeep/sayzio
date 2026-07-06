@@ -7,7 +7,30 @@
     $gallery = $ics ? (array) $ics->gallery : [];
     $infoSections = $ics ? (array) $ics->info_sections : [];
     $hashtagList = $ics ? $ics->hashtagList() : [];
+    $host = $link->relationLoaded('user') ? $link->user : $link->user()->first();
 @endphp
+
+{{-- Organizer card (Task #3674): always shows the host's avatar + name;
+     links to their public profile only when they actually have a handle. --}}
+@if($host)
+    <div class="d-flex align-items-center gap-2 mb-3 p-2 border rounded-3">
+        @if($host->avatar)
+            <img src="{{ $host->avatar }}" alt="" class="rounded-circle" style="width:40px;height:40px;object-fit:cover;">
+        @else
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-light text-muted" style="width:40px;height:40px;">
+                <i class="fas fa-user"></i>
+            </div>
+        @endif
+        <div>
+            <div class="text-muted" style="font-size:11px;">Hosted by</div>
+            @if($host->handle)
+                <a href="{{ route('creator-profile.show', $host->handle) }}" class="fw-semibold text-dark text-decoration-none small">{{ $host->name }}</a>
+            @else
+                <div class="fw-semibold text-dark small">{{ $host->name }}</div>
+            @endif
+        </div>
+    </div>
+@endif
 
 @if($ics && $ics->cover_image_url)
     <div class="mb-3">

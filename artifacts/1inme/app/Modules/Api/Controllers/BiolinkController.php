@@ -680,7 +680,7 @@ class BiolinkController extends Controller
         }
 
         // Mirror the web partial: event link must belong to the same user
-        // and be an active ICS link with rsvp_enabled, otherwise refuse so
+        // and be an active ICS link with RSVP available, otherwise refuse so
         // creators can't be DM-spammed via cross-account block edits.
         $link = Link::where('id', $eventLinkId)
             ->where('user_id', $biolink->user_id)
@@ -689,10 +689,13 @@ class BiolinkController extends Controller
         if (!$link || !$link->is_active) return $this->notFound('Event not found');
         if (!$link->isAccessible()) return $this->notFound('Event not available');
 
-        $settings = $link->settings ?? [];
-        if (empty($settings['rsvp_enabled'])) {
+        // Task #3674: RSVP is available by default for any free event unless
+        // the organizer explicitly opted out (mirrors RedirectController).
+        if (!\App\Modules\Common\Controllers\RedirectController::isRsvpAvailable($link)) {
             return $this->fail('RSVPs are disabled for this event', 404, 'rsvp_disabled');
         }
+
+        $settings = $link->settings ?? [];
 
         $allowPlusOnes = !empty($settings['rsvp_allow_plus_ones']);
         $collectPhone  = !empty($settings['rsvp_collect_phone']);

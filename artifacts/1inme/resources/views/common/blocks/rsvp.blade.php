@@ -9,7 +9,7 @@
     <div class="mb-4 glass-block rounded-xl p-4 text-left" style="background:#fff; color:#111;">
         @if(!$eventLink)
             <div class="text-xs text-center text-white/60 py-2">RSVP block not configured.</div>
-        @elseif(empty(($eventLink->settings ?? [])['rsvp_enabled']))
+        @elseif(!\App\Modules\Common\Controllers\RedirectController::isRsvpAvailable($eventLink))
             <div class="text-xs text-center text-white/60 py-2">RSVP collection is disabled for this event.</div>
         @else
             <div class="mb-3">

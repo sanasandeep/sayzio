@@ -45,7 +45,7 @@ class EventTicketApiController extends Controller
             ->where('type', 'ics')
             ->where('is_active', true)
             ->where('visibility', 'public')
-            ->with(['icsData', 'eventTicketTiers' => fn ($t) => $t->where('is_active', true)])
+            ->with(['icsData', 'user', 'eventTicketTiers' => fn ($t) => $t->where('is_active', true)])
             ->whereHas('icsData', fn ($w) => $w->where('start_date', '>=', now()->subDay()));
 
         if ($q !== '') {
@@ -107,7 +107,7 @@ class EventTicketApiController extends Controller
 
     public function show(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->where('type', 'ics')->with(['icsData', 'eventTicketTiers'])->first();
+        $link = Link::where('alias', $alias)->where('type', 'ics')->with(['icsData', 'user', 'eventTicketTiers'])->first();
         if (!$link) return $this->notFound('Event not found.');
 
         return $this->ok($this->eventShape($link, includeAllTiers: true));
@@ -535,6 +535,11 @@ class EventTicketApiController extends Controller
         $categoryLabel = $category !== null && $category !== '' ? EventCategories::label($category) : null;
         $categoryIcon = $category !== null && $category !== '' ? EventCategories::icon($category) : null;
 
+        // Task #3674: free events accept RSVPs by default; mobile mirrors
+        // the same isRsvpAvailable() gate the public event page uses.
+        $activeTiers = $link->eventTicketTiers()->where('is_active', true)->get();
+        $host = $link->relationLoaded('user') ? $link->user : $link->user()->first();
+
         return [
             'id'          => $link->id,
             'alias'       => $link->alias,
@@ -551,6 +556,9 @@ class EventTicketApiController extends Controller
             'category_label' => $categoryLabel,
             'category_icon'  => $categoryIcon,
             'ticketing_enabled' => (bool) (($link->settings ?? [])['ticketing_enabled'] ?? false),
+            // Task #3674: RSVP is now available by default for any free
+            // (non-ticketed) event unless the organizer explicitly opted out.
+            'rsvp_available' => \App\Modules\Common\Controllers\RedirectController::isRsvpAvailable($link, $activeTiers),
             'tiers'       => $tiers->map(fn (EventTicketTier $t) => $this->tierShape($t))->values()->all(),
             // Task #3593: hashtags, richer page content, badge invites/entry.
             'hashtags'          => $ics?->hashtagList() ?? [],
@@ -561,6 +569,21 @@ class EventTicketApiController extends Controller
             'award_badge_id'    => $ics?->award_badge_id,
             'interested_count'      => $link->eventInterests()->where('status', 'interested')->count(),
             'not_interested_count'  => $link->eventInterests()->where('status', 'not_interested')->count(),
+            // Task #3674: organizer card — shown regardless of whether the
+            // host has a public handle (profile link omitted when absent).
+            'organizer' => $host ? [
+                'name'   => $host->name,
+                'avatar' => $host->avatar,
+                'handle' => $host->handle,
+            ] : null,
+            // Task #3674: same "more from this host" list the web event page
+            // shows, regardless of whether the host has a public handle.
+            'same_host_events' => \App\Modules\Common\Controllers\RedirectController::sameHostEvents($link)
+                ->map(fn (Link $l) => [
+                    'alias'      => $l->alias,
+                    'title'      => $l->title,
+                    'start_date' => optional($l->icsData?->start_date)->toIso8601String(),
+                ])->values()->all(),
         ];
     }
 

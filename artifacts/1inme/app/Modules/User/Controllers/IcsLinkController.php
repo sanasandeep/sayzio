@@ -86,6 +86,10 @@ class IcsLinkController extends Controller
         $newSettings = array_merge((array) $link->settings, [
             'show_preview_page'    => $request->boolean('show_preview_page'),
             'rsvp_enabled'         => $request->boolean('rsvp_enabled'),
+            // Task #3674: RSVP is available by default for every free event;
+            // `rsvp_disabled` is the sole explicit organizer opt-out (separate
+            // from `rsvp_enabled`, which only toggles the customization panel).
+            'rsvp_disabled'        => $request->boolean('rsvp_disabled'),
             'rsvp_allow_plus_ones' => $request->boolean('rsvp_allow_plus_ones'),
             'rsvp_collect_phone'   => $request->boolean('rsvp_collect_phone'),
             'rsvp_settings'        => $this->parseRsvpSettings($request),

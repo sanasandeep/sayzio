@@ -1034,11 +1034,66 @@ class RedirectController extends Controller
             return $this->handleIcsDownload($link);
         }
 
-        $link->load('icsData');
+        $link->load(['icsData', 'user']);
         $tiers = $link->eventTicketTiers()->where('is_active', true)->get();
+        $rsvpAvailable = self::isRsvpAvailable($link, $tiers);
         $extras = $this->eventPageExtras($link);
 
-        return response()->view('common.event-page', array_merge(compact('link', 'tiers'), $extras));
+        return response()->view('common.event-page', array_merge(compact('link', 'tiers', 'rsvpAvailable'), $extras));
+    }
+
+    /**
+     * Task #3674: free (non-ticketed) events accept RSVPs by default —
+     * organizers no longer have to flip a separate "enable RSVP" switch.
+     * Paid-ticket events keep their existing buy flow untouched, and an
+     * explicit `rsvp_disabled` opt-out (if an organizer ever sets one) is
+     * still honored.
+     */
+    public static function isRsvpAvailable(Link $link, ?\Illuminate\Support\Collection $tiers = null): bool
+    {
+        $s = (array) ($link->settings ?? []);
+        if (!empty($s['ticketing_enabled'])) return false;
+
+        $tiers ??= $link->eventTicketTiers()->where('is_active', true)->get();
+        if ($tiers->isNotEmpty()) return false;
+
+        return empty($s['rsvp_disabled']);
+    }
+
+    /**
+     * The organizer's other public events (upcoming first, backfilled with
+     * recent past events so the section isn't empty once everything else has
+     * happened). Shared by the web event pages and the mobile API shape so
+     * both surfaces list the same events regardless of whether the host has
+     * a public handle.
+     */
+    public static function sameHostEvents(Link $link, int $limit = 4): \Illuminate\Support\Collection
+    {
+        $sameHostBase = fn () => Link::where('type', 'ics')
+            ->where('id', '!=', $link->id)
+            ->where('user_id', $link->user_id)
+            ->where('is_active', true)
+            ->where('visibility', 'public')
+            ->with('icsData');
+
+        $sameHostEvents = $sameHostBase()
+            ->whereHas('icsData', fn ($w) => $w->where('start_date', '>=', now()->subDay()))
+            ->get()
+            ->sortBy(fn ($l) => $l->icsData?->start_date)
+            ->values();
+
+        if ($sameHostEvents->count() < $limit) {
+            $excludeIds = $sameHostEvents->pluck('id')->push($link->id)->all();
+            $pastEvents = $sameHostBase()
+                ->whereNotIn('id', $excludeIds)
+                ->get()
+                ->sortByDesc(fn ($l) => $l->icsData?->start_date)
+                ->values()
+                ->take($limit - $sameHostEvents->count());
+            $sameHostEvents = $sameHostEvents->concat($pastEvents);
+        }
+
+        return $sameHostEvents->take($limit)->values();
     }
 
     /**
@@ -1094,15 +1149,10 @@ class RedirectController extends Controller
             }
         }
 
-        $sameHostEvents = Link::where('type', 'ics')
-            ->where('id', '!=', $link->id)
-            ->where('user_id', $link->user_id)
-            ->where('is_active', true)
-            ->where('visibility', 'public')
-            ->with('icsData')
-            ->whereHas('icsData', fn ($w) => $w->where('start_date', '>=', now()->subDay()))
-            ->limit(4)
-            ->get();
+        // Organizer's other events must show up regardless of whether the
+        // host has a public handle — see sameHostEvents() for the
+        // upcoming-first, past-event-backfill logic (shared with mobile).
+        $sameHostEvents = self::sameHostEvents($link);
 
         $interestCounts = [
             'interested'     => $link->eventInterests()->where('status', \App\Modules\User\Models\EventInterest::INTERESTED)->count(),
@@ -1578,8 +1628,8 @@ class RedirectController extends Controller
     {
         $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link || $link->type !== 'ics') abort(404);
-        if (empty(($link->settings ?? [])['rsvp_enabled'])) abort(404);
-        $link->load('icsData');
+        if (!self::isRsvpAvailable($link)) abort(404);
+        $link->load(['icsData', 'user']);
         $submitted = (bool) $request->session()->get('rsvp_submitted_' . $link->id);
         $extras = $this->eventPageExtras($link);
         return view('common.rsvp-form', array_merge(compact('link', 'submitted'), $extras));
@@ -1590,7 +1640,7 @@ class RedirectController extends Controller
         $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link || $link->type !== 'ics') abort(404);
         $s = (array) ($link->settings ?? []);
-        if (empty($s['rsvp_enabled'])) abort(404);
+        if (!self::isRsvpAvailable($link)) abort(404);
 
         // Badge-gated events (Task #3593): RSVPing requires the signed-in
         // account to already hold the event's `required_badge_id`. Guests

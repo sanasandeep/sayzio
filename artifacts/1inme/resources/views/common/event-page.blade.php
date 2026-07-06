@@ -4,7 +4,7 @@
     $ics = $link->icsData;
     $eventCategory = ($link->settings ?? [])['event_category'] ?? '';
     $isOnline = !empty(($link->settings ?? [])['is_online']);
-    $rsvpEnabled = !empty(($link->settings ?? [])['rsvp_enabled']);
+    $rsvpEnabled = $rsvpAvailable ?? !empty(($link->settings ?? [])['rsvp_enabled']);
     $hasTicketTiers = isset($tiers) && $tiers->isNotEmpty();
     $categoryGradient = \App\Modules\User\Support\EventCategories::gradient($eventCategory ?: '');
     $hasPin = !$isOnline && $ics && $ics->latitude !== null && $ics->longitude !== null;
@@ -230,7 +230,7 @@
                                 </div>
                             @else
                                 <div class="ev-card p-5 text-center">
-                                    <p class="text-sm ev-muted-lite py-2">This event doesn't require a ticket or RSVP.</p>
+                                    <p class="text-sm ev-muted-lite py-2">RSVPs are closed for this event.</p>
                                 </div>
                             @endif
 

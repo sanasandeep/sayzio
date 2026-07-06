@@ -108,6 +108,7 @@
                 endMode: @json($endModeVal),
                 slots: @json($slotsJs),
                 rsvpEnabled: @json((bool) ($s['rsvp_enabled'] ?? false)),
+                rsvpDisabled: @json((bool) ($s['rsvp_disabled'] ?? false)),
                 syncMode: @json($syncMode),
                 questions: @json(array_values($questionsJs)),
                 hasDay: function (d) { return this.byday.indexOf(d) >= 0; },
@@ -432,8 +433,29 @@
             <div class="ics-tile mt-4 p-4">
                 <div class="flex items-start justify-between gap-3 mb-3">
                     <div>
-                        <div class="text-sm font-semibold" style="color: var(--text-primary);"><i class="fas fa-calendar-check mr-1.5" style="color: var(--c-primary);"></i>Collect RSVPs</div>
-                        <p class="text-xs mt-0.5" style="color: var(--text-muted);">Show an RSVP form on the event page so guests can confirm attendance.</p>
+                        <div class="text-sm font-semibold" style="color: var(--text-primary);"><i class="fas fa-calendar-check mr-1.5" style="color: var(--c-primary);"></i>RSVPs</div>
+                        <p class="text-xs mt-0.5" style="color: var(--text-muted);">
+                            @if(!empty($s['ticketing_enabled']))
+                                Not applicable — this event sells tickets instead of collecting RSVPs.
+                            @else
+                                Free events accept RSVPs by default. Turn this off if you don't want guests to be able to RSVP.
+                            @endif
+                        </p>
+                    </div>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="hidden" name="rsvp_disabled" value="0">
+                        <input type="checkbox" name="rsvp_disabled" value="1" class="sr-only peer" x-model="rsvpDisabled">
+                        <div class="w-10 h-6 rounded-full relative transition peer-checked:bg-red-500" style="background: var(--bg-glass-input-focus);">
+                            <span class="absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full peer-checked:translate-x-4 transition"></span>
+                        </div>
+                    </label>
+                </div>
+                <p class="text-xs mb-3" style="color: var(--text-muted);" x-cloak x-show="rsvpDisabled">RSVPs are turned off for this event.</p>
+
+                <div class="flex items-start justify-between gap-3 mb-3" x-show="!rsvpDisabled" x-cloak>
+                    <div>
+                        <div class="text-sm font-medium" style="color: var(--text-primary);">Customize RSVP form</div>
+                        <p class="text-xs mt-0.5" style="color: var(--text-muted);">Set a capacity, deadline, custom questions, and more.</p>
                     </div>
                     <label class="inline-flex items-center cursor-pointer">
                         <input type="hidden" name="rsvp_enabled" value="0">
@@ -444,7 +466,7 @@
                     </label>
                 </div>
 
-                <div x-show="rsvpEnabled" x-cloak class="space-y-4">
+                <div x-show="rsvpEnabled && !rsvpDisabled" x-cloak class="space-y-4">
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs" style="color: var(--text-secondary);">
                         <label class="flex items-center gap-2"><input type="hidden" name="rsvp_allow_plus_ones" value="0"><input type="checkbox" name="rsvp_allow_plus_ones" value="1" {{ old('rsvp_allow_plus_ones', !empty($s['rsvp_allow_plus_ones'])) ? 'checked':'' }}> Allow +1s</label>
                         <label class="flex items-center gap-2"><input type="hidden" name="rsvp_collect_phone" value="0"><input type="checkbox" name="rsvp_collect_phone" value="1" {{ old('rsvp_collect_phone', !empty($s['rsvp_collect_phone'])) ? 'checked':'' }}> Ask for phone</label>
@@ -505,13 +527,13 @@
                             </template>
                         </div>
                     </div>
-
-                    @if(!empty($s['rsvp_enabled']))
-                        <a href="{{ route('user.links.rsvps.index', $link) }}" class="inline-block text-xs text-blue-500 hover:text-blue-400">
-                            <i class="fas fa-list mr-1"></i> View guest list →
-                        </a>
-                    @endif
                 </div>
+
+                @if(\App\Modules\Common\Controllers\RedirectController::isRsvpAvailable($link))
+                    <a href="{{ route('user.links.rsvps.index', $link) }}" x-show="!rsvpDisabled" x-cloak class="inline-block text-xs text-blue-500 hover:text-blue-400 mt-3">
+                        <i class="fas fa-list mr-1"></i> View guest list →
+                    </a>
+                @endif
             </div>
 
             {{-- ===== Calendar sync mode ===== --}}

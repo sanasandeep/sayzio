@@ -38,7 +38,9 @@ class SendEventRsvpReminders extends Command
 
         foreach ($links as $link) {
             $s = (array) ($link->settings ?? []);
-            if (empty($s['rsvp_enabled'])) continue;
+            // Task #3674: RSVP is available by default now, so reminders must
+            // key off the same isRsvpAvailable() gate, not the legacy toggle.
+            if (!\App\Modules\Common\Controllers\RedirectController::isRsvpAvailable($link)) continue;
 
             $rs = (array) ($s['rsvp_settings'] ?? []);
             $hours = isset($rs['reminder_hours_before']) ? (int) $rs['reminder_hours_before'] : 24;
