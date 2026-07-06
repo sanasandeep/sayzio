@@ -303,12 +303,14 @@
         content: ""; position: absolute; top: 0; bottom: .75rem; width: 2.5rem;
         pointer-events: none; z-index: 5; opacity: 0; transition: opacity .3s ease;
     }
-    .plans-rail::before { left: 0; background: linear-gradient(90deg, var(--page-bg, #0b0a14), transparent); }
-    .plans-rail::after  { right: 0; background: linear-gradient(270deg, var(--page-bg, #0b0a14), transparent); }
+    /* Wire the edge-fade to the site layout's real, theme-aware background
+       token (`--bg`: #0a0a14 dark / #f8fafc light, declared in
+       public.layouts.site). The old `--page-bg` was never defined, so its
+       dark fallback literal always won — smearing dark over the light page. */
+    .plans-rail::before { left: 0; background: linear-gradient(90deg, var(--bg, #0a0a14), transparent); }
+    .plans-rail::after  { right: 0; background: linear-gradient(270deg, var(--bg, #0a0a14), transparent); }
     .plans-rail.can-scroll-left::before  { opacity: 1; }
     .plans-rail.can-scroll-right::after { opacity: 1; }
-    html.light-mode .plans-rail::before { background: linear-gradient(90deg, #f7f7fb, transparent); }
-    html.light-mode .plans-rail::after  { background: linear-gradient(270deg, #f7f7fb, transparent); }
     .plans-scroll {
         overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
         scroll-snap-type: x proximity;
