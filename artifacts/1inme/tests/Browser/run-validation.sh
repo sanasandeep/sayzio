@@ -119,7 +119,7 @@ warm() {
   echo "==> Warming app server at $base (priming shared caches; one-time cold cost)"
   local route code
   # Public routes the marketing / consent / home specs navigate to.
-  for route in /up / /pricing /contact /user/login; do
+  for route in /up / /ai-dashboard /pricing /contact /user/login; do
     code=$(curl -fsS -o /dev/null -w "%{http_code} %{time_total}s" --max-time 90 \
       "${base}${route}" 2>/dev/null || echo "down")
     echo "    warm ${route} -> ${code}"

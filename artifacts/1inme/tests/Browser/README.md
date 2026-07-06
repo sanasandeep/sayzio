@@ -64,7 +64,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   dashboard-mobile-account.spec.ts \
   header-desktop-logged-out-cta.spec.ts \
   dialer-live-sync.spec.ts \
-  store-coming-soon-modal.spec.ts
+  store-coming-soon-modal.spec.ts \
+  ai-dashboard-demo-perf.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -393,6 +394,23 @@ The gate covers the specs that run reliably as an unattended check here:
   visible, effectively opaque (opacity > 0.95), fully inside the viewport, and
   hit-testable at its center; the footer test also re-opens via the App Store
   badge and checks the headline switches. Close-button click must dismiss it.
+- `ai-dashboard-demo-perf.spec.ts` — gated, no login/seeding. Guards the
+  animated AI Dashboard demo partial
+  (`resources/views/common/partials/ai-dashboard-demo.blade.php`) against
+  performance / cleanup / a11y regressions over a long session. Loads BOTH the
+  home page (`/`, compact variant inside `#ai-dashboard`) and the standalone
+  `/ai-dashboard` page (rich variant). A `setInterval`/`clearInterval` wrapper
+  armed via `addInitScript` (keyed on the partial's own 22ms typewriter and
+  6200ms scene-cycle delays) tracks how many timers of each kind are live: after
+  waiting through more than one full scene cycle it asserts at most ONE of each
+  is active at any time (no per-cycle leak) while confirming each kind actually
+  ran (guards against the demo silently going inert). Also asserts the scene
+  actually advances (more than one preset index observed), that the live region
+  stays `aria-live="off"` (the typewriter must not spam assistive tech), and that
+  no console errors / failed same-origin requests occur. A second `describe`
+  forces `reducedMotion:"reduce"` and asserts the static fallback: zero demo
+  timers are created, the tiles render at full opacity, and the typewriter caret
+  is hidden.
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
