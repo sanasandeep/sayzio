@@ -3,16 +3,39 @@
      dashboard.layout.* / dashboard.ai.* JSON endpoints; on success we
      just reload so every server-rendered tab/widget picks up the new
      layout — no client-side re-render of the whole page. --}}
+{{-- Light-mode legibility: the backdrop + card previously used a hardcoded
+     dark color (and a `--bg-glass-card` variable that is never actually
+     defined anywhere, so its fallback #14162a always won) while every text
+     element inside used the theme's `--text-*` variables, which flip to
+     dark values in light mode — dark text on a dark card. `.dcm-backdrop` /
+     `.dcm-card` keep the original dark look by default and pick up a proper
+     light surface under `html.light-mode`, mirroring the same pattern used
+     for the global search modal (`.gsm-backdrop` / `.gsm-panel` in
+     theme-styles.blade.php). This is a plain inline `<style>` tag rather than
+     `@push('styles')` because this partial is included mid-body, after
+     `app.blade.php` has already flushed the head's `@stack('styles')`. --}}
+<style>
+    .dcm-backdrop { background: rgba(8,10,20,0.72); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+    html.light-mode .dcm-backdrop { background: var(--overlay-bg); }
+
+    .dcm-card {
+        background: linear-gradient(180deg, rgba(20,20,32,0.96), rgba(13,13,20,0.98));
+        box-shadow: 0 24px 64px -12px rgba(0,0,0,0.55);
+    }
+    html.light-mode .dcm-card {
+        background: var(--bg-card);
+        box-shadow: var(--card-shadow-hover);
+    }
+</style>
 <div x-data="dashboardCustomizer()"
      x-show="open"
      x-cloak
      @open-dashboard-customize.window="openModal()"
      @keydown.escape.window="close()"
-     class="fixed inset-0 z-[999] flex items-center justify-center p-4"
-     style="background: rgba(8,10,20,0.72); backdrop-filter: blur(4px);">
+     class="dcm-backdrop fixed inset-0 z-[999] flex items-center justify-center p-4">
     <div @click.outside="close()"
-         class="w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl"
-         style="background: var(--bg-glass-card, #14162a); border: 1px solid var(--border-glass); box-shadow: 0 24px 64px -12px rgba(0,0,0,0.55);">
+         class="dcm-card w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl"
+         style="border: 1px solid var(--border-glass);">
 
         {{-- Header --}}
         <div class="flex items-center justify-between px-6 py-4" style="border-bottom: 1px solid var(--border-subtle);">
@@ -114,6 +137,36 @@
                         </template>
                     </div>
 
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-[11px] font-semibold" style="color: var(--text-muted);">Must-have widgets (optional)</label>
+                        <span class="text-[10px]" style="color: var(--text-faint);" x-show="answers.selected_widgets.length" x-text="answers.selected_widgets.length + ' selected'"></span>
+                    </div>
+                    <p class="text-[10px] mb-2" style="color: var(--text-faint);">Pick specific widgets to guarantee they're included — the AI still designs the rest of the layout around your goal.</p>
+                    <div class="rounded-xl mb-4 overflow-hidden" style="border: 1px solid var(--border-subtle);">
+                        <template x-for="group in groupedCatalog" :key="group.tab">
+                            <div style="border-top: 1px solid var(--border-subtle);" class="first:border-t-0">
+                                <div class="px-3 pt-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wide" style="color: var(--text-faint);" x-text="group.label"></div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 px-3 pb-2.5">
+                                    <template x-for="widget in group.widgets" :key="widget.key">
+                                        <label class="flex items-start gap-1.5 text-[11px] rounded-lg px-2 py-1.5 cursor-pointer transition-all"
+                                               :style="answers.selected_widgets.includes(widget.key) ? 'background: rgba(61,107,255,0.14); border: 1px solid rgba(61,107,255,0.4); color: var(--text-primary);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-subtle); color: var(--text-muted);'">
+                                            <input type="checkbox" class="sr-only"
+                                                   :checked="answers.selected_widgets.includes(widget.key)"
+                                                   @change="toggleWidget(widget.key)">
+                                            <i class="fas text-[10px] w-3.5 text-center mt-0.5"
+                                               :class="answers.selected_widgets.includes(widget.key) ? 'fa-square-check' : ('fa-square ' + widget.icon)"
+                                               :style="answers.selected_widgets.includes(widget.key) ? 'color: #5c83ff;' : ''"></i>
+                                            <span class="min-w-0">
+                                                <span class="block font-semibold truncate" x-text="widget.label"></span>
+                                                <span class="block text-[10px] leading-snug" style="color: var(--text-faint);" x-text="widget.description"></span>
+                                            </span>
+                                        </label>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
                     <p x-show="errorMsg" x-text="errorMsg" class="text-[11px] text-red-400 mb-3"></p>
 
                     <button type="button" @click="estimate()" :disabled="busy || answers.goal.trim().length < 5"
@@ -173,7 +226,17 @@
             estimatedCredits: 0,
             balance: 0,
             priorityInput: '',
-            answers: { goal: '', priorities: [], density: 'balanced', notes: '' },
+            answers: { goal: '', priorities: [], density: 'balanced', notes: '', selected_widgets: [] },
+            groupedCatalog: @json($dashboardGroupedCatalog),
+
+            toggleWidget(key) {
+                const i = this.answers.selected_widgets.indexOf(key);
+                if (i === -1) {
+                    this.answers.selected_widgets.push(key);
+                } else {
+                    this.answers.selected_widgets.splice(i, 1);
+                }
+            },
 
             openModal() {
                 this.open = true;

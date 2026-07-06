@@ -126,6 +126,9 @@ class DashboardController extends Controller
         $dashboardCurrentPreset = $layout['preset'];
         $dashboardIsCustom = $layout['is_custom'];
         $dashboardCatalog = DashboardWidgetCatalog::forFrontend();
+        // Task #3803 — same catalog, grouped by tab, for the "Design with
+        // AI" widget picker.
+        $dashboardGroupedCatalog = DashboardWidgetCatalog::groupedForFrontend();
         $dashboardPresets = DashboardPresets::forFrontend();
         $dashboardAiAllowed = AiPlanAccess::featureAllowed($user, DashboardAiDesignerService::FEATURE);
         // Task #3617 — active-layout badge label + per-tab "tiles are hidden"
@@ -142,7 +145,7 @@ class DashboardController extends Controller
             'channelStats', 'channelFilter', 'backlinksThisWeek',
             'showWhatsappPrompt', 'whatsappChannelUrl', 'deliveryProjects',
             'dashboardWidgets', 'dashboardTabs', 'dashboardCurrentPreset',
-            'dashboardIsCustom', 'dashboardCatalog', 'dashboardPresets',
+            'dashboardIsCustom', 'dashboardCatalog', 'dashboardGroupedCatalog', 'dashboardPresets',
             'dashboardAiAllowed', 'dashboardLayoutLabel', 'dashboardTrimmedTabs'
         ));
     }

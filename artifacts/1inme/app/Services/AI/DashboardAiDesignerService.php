@@ -30,7 +30,7 @@ class DashboardAiDesignerService
     ) {}
 
     /**
-     * @param  array{goal?:string, priorities?:list<string>, density?:string, notes?:string}  $answers
+     * @param  array{goal?:string, priorities?:list<string>, density?:string, notes?:string, selected_widgets?:list<string>}  $answers
      * @return list<array{role:string,content:string}>
      */
     public function buildMessages(array $answers): array
@@ -51,6 +51,8 @@ class DashboardAiDesignerService
 
         $notes = trim((string) ($answers['notes'] ?? ''));
         $notes = mb_substr($notes, 0, self::MAX_TEXT_LEN);
+
+        $selectedWidgets = DashboardWidgetCatalog::sanitize(is_array($answers['selected_widgets'] ?? null) ? $answers['selected_widgets'] : []);
 
         $catalogLines = [];
         foreach (DashboardWidgetCatalog::WIDGETS as $key => $meta) {
@@ -81,6 +83,11 @@ class DashboardAiDesignerService
         if ($notes !== '') {
             $userParts[] = "ADDITIONAL NOTES:\n{$notes}";
         }
+        if ($selectedWidgets) {
+            $userParts[] = "REQUIRED WIDGETS (the user explicitly picked these — they MUST all appear "
+                . "somewhere in `widgets`; use the goal and density to choose and order the rest around them):\n"
+                . "- " . implode("\n- ", $selectedWidgets);
+        }
 
         return [
             ['role' => 'system', 'content' => $system],
@@ -101,7 +108,7 @@ class DashboardAiDesignerService
      * widgets. Auto-refunds the exact charge if the model's reply can't be
      * parsed into at least one valid widget.
      *
-     * @param  array{goal?:string, priorities?:list<string>, density?:string, notes?:string}  $answers
+     * @param  array{goal?:string, priorities?:list<string>, density?:string, notes?:string, selected_widgets?:list<string>}  $answers
      * @return array{credits_spent:int, widgets:list<string>, model:string}
      */
     public function generate(User $user, array $answers): array
@@ -132,6 +139,16 @@ class DashboardAiDesignerService
             $widgets = DashboardWidgetCatalog::sanitize(is_array($parsed['widgets'] ?? null) ? $parsed['widgets'] : []);
             if (empty($widgets)) {
                 throw new RuntimeException('The assistant could not design a dashboard from that description. Add more detail and try again.');
+            }
+
+            // The prompt asks the model to include every explicitly-selected
+            // widget, but the model's reply is untrusted free text — enforce
+            // the guarantee server-side by re-splicing any selection it
+            // dropped back in (kept in front, since the user picked them on
+            // purpose) rather than trusting compliance alone.
+            $selectedWidgets = DashboardWidgetCatalog::sanitize(is_array($answers['selected_widgets'] ?? null) ? $answers['selected_widgets'] : []);
+            if ($selectedWidgets) {
+                $widgets = array_values(array_unique(array_merge($selectedWidgets, $widgets)));
             }
 
             DashboardPresets::applyCustom($user, $widgets, 'ai');

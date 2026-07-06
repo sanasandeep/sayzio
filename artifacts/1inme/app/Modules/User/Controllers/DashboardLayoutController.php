@@ -104,23 +104,29 @@ class DashboardLayoutController extends Controller
     }
 
     /**
-     * @return array{goal:string,priorities:list<string>,density:string,notes:string}
+     * @return array{goal:string,priorities:list<string>,density:string,notes:string,selected_widgets:list<string>}
      */
     private function validateAnswers(Request $request): array
     {
         $data = $request->validate([
-            'goal'          => ['required', 'string', 'min:5', 'max:800'],
-            'priorities'    => ['nullable', 'array', 'max:10'],
-            'priorities.*'  => ['string', 'max:120'],
-            'density'       => ['nullable', 'string', 'in:minimal,balanced,detailed'],
-            'notes'         => ['nullable', 'string', 'max:800'],
+            'goal'                => ['required', 'string', 'min:5', 'max:800'],
+            'priorities'          => ['nullable', 'array', 'max:10'],
+            'priorities.*'        => ['string', 'max:120'],
+            'density'             => ['nullable', 'string', 'in:minimal,balanced,detailed'],
+            'notes'               => ['nullable', 'string', 'max:800'],
+            'selected_widgets'    => ['nullable', 'array', 'max:' . count(DashboardWidgetCatalog::WIDGETS)],
+            'selected_widgets.*'  => ['string'],
         ]);
 
         return [
-            'goal'       => $data['goal'],
-            'priorities' => array_values($data['priorities'] ?? []),
-            'density'    => $data['density'] ?? 'balanced',
-            'notes'      => $data['notes'] ?? '',
+            'goal'             => $data['goal'],
+            'priorities'       => array_values($data['priorities'] ?? []),
+            'density'          => $data['density'] ?? 'balanced',
+            'notes'            => $data['notes'] ?? '',
+            // Sanitized here (not just inside the service) so the estimate
+            // step prices the exact same widget set the generate step later
+            // enforces — never trust the raw client array beyond this line.
+            'selected_widgets' => DashboardWidgetCatalog::sanitize($data['selected_widgets'] ?? []),
         ];
     }
 }

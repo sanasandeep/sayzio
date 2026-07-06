@@ -18,6 +18,18 @@ class DashboardWidgetCatalog
     public const TAB_GROWTH = 'growth';
 
     /**
+     * Display labels for the tabs above, used by the "Design with AI" widget
+     * picker to group the catalog the same way the dashboard nav does.
+     *
+     * @var array<string, string>
+     */
+    public const TAB_LABELS = [
+        self::TAB_OVERVIEW => 'Overview',
+        self::TAB_TRAFFIC  => 'Traffic',
+        self::TAB_GROWTH   => 'Growth',
+    ];
+
+    /**
      * @var array<string, array{label:string, description:string, icon:string, tab:string}>
      */
     public const WIDGETS = [
@@ -188,5 +200,25 @@ class DashboardWidgetCatalog
             $out[] = array_merge(['key' => $key], $meta);
         }
         return $out;
+    }
+
+    /**
+     * The same frontend payload as {@see forFrontend()}, grouped by tab in
+     * `TAB_LABELS` order — what the "Design with AI" widget picker renders.
+     *
+     * @return list<array{tab:string, label:string, widgets:list<array{key:string,label:string,description:string,icon:string,tab:string}>}>
+     */
+    public static function groupedForFrontend(): array
+    {
+        $groups = [];
+        foreach (self::TAB_LABELS as $tab => $label) {
+            $groups[$tab] = ['tab' => $tab, 'label' => $label, 'widgets' => []];
+        }
+        foreach (self::forFrontend() as $widget) {
+            if (isset($groups[$widget['tab']])) {
+                $groups[$widget['tab']]['widgets'][] = $widget;
+            }
+        }
+        return array_values(array_filter($groups, fn ($g) => !empty($g['widgets'])));
     }
 }
