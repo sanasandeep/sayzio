@@ -209,6 +209,7 @@ class IntegrationsController extends Controller
             'endpoint'      => PlatformServiceSettings::s3Endpoint(),
             'usePathStyle'  => PlatformServiceSettings::s3UsePathStyle(),
             'configured'    => PlatformServiceSettings::s3Configured(),
+            'missing'       => PlatformServiceSettings::s3MissingPieces(),
         ]);
     }
 
@@ -262,6 +263,15 @@ class IntegrationsController extends Controller
         PlatformServiceSettings::setS3Url($data['s3_url'] ?? null);
         PlatformServiceSettings::setS3Endpoint($data['s3_endpoint'] ?? null);
         PlatformServiceSettings::setS3UsePathStyle($request->boolean('s3_use_path_style'));
+
+        // If this save closed an open "storage misconfigured" alert episode,
+        // send the all-clear immediately instead of waiting for the hourly
+        // storage:check-s3-config sweep. Best-effort — never block the save.
+        try {
+            \App\Services\Integrations\StorageHealthAlerts::check();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('storage-health post-save check failed: ' . $e->getMessage());
+        }
 
         return redirect()->route('admin.integrations.storage.edit')
             ->with('success', 'Storage settings saved.');

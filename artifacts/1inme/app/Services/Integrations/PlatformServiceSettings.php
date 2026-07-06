@@ -318,6 +318,22 @@ class PlatformServiceSettings
             && self::s3Region() !== null;
     }
 
+    /**
+     * Human-readable names of the required S3 pieces that are missing from
+     * the effective (admin-or-env) config. Empty array ⇒ fully configured.
+     *
+     * @return array<int,string>
+     */
+    public static function s3MissingPieces(): array
+    {
+        $missing = [];
+        if (self::s3Key() === null)    $missing[] = 'access key';
+        if (self::s3Secret() === null) $missing[] = 'secret key';
+        if (self::s3Bucket() === null) $missing[] = 'bucket';
+        if (self::s3Region() === null) $missing[] = 'region';
+        return $missing;
+    }
+
     public static function s3Status(): array
     {
         if (!self::s3Configured()) {
@@ -537,6 +553,12 @@ class PlatformServiceSettings
                 'S3 user-content storage is not fully configured (missing key/secret/bucket/region). '
                 . 'User file uploads will fail loudly until an admin fixes this in Integrations > Storage.'
             );
+
+            // Proactively alert ops admins (in-app + email, cooldown-guarded
+            // so it isn't spammy). Best-effort and web-boot-only — console
+            // boots are covered by the hourly storage:check-s3-config
+            // command, which also sends the recovery all-clear.
+            StorageHealthAlerts::alertFromBoot();
         }
     }
 

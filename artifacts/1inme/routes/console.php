@@ -391,6 +391,17 @@ Schedule::command('db:check-pending-migrations')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: detect a misconfigured S3 user-content storage backend and alert
+// ops admins (in-app + email) before users pile up failed uploads. User
+// content is S3-only (no local-disk fallback), so an incomplete config means
+// every upload fails loudly. Cooldown-guarded (state in app_settings under
+// `storage_health`) so a per-hour cadence won't spam admins; also sends the
+// all-clear once an admin fixes the configuration.
+Schedule::command('storage:check-s3-config')
+    ->hourlyAt(15)
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Hourly: probe the live DB for workspace-scoping columns (workspace_id /
 // created_by_user_id) that are MISSING despite their migration being recorded
 // as ran — the half-applied/interrupted-migration failure class that

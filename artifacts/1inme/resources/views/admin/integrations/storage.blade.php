@@ -20,6 +20,22 @@
         <i class="fas fa-arrow-left"></i> Back to Integrations
     </a>
 
+    @if(!$configured)
+        <div class="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-red-400 mt-0.5"></i>
+            <div class="space-y-1">
+                <p class="text-sm font-semibold text-red-300">S3 storage is misconfigured — user uploads are failing</p>
+                <p class="text-xs text-red-300/80">
+                    Missing: <span class="font-medium">{{ implode(', ', $missing) }}</span>.
+                    User content is S3-only with no local-disk fallback, so every file upload fails with an error
+                    until this is fixed. Fill in the missing values below (or set the corresponding
+                    <span class="font-mono">AWS_*</span> environment variables). Ops admins are alerted
+                    automatically (in-app + email) while this remains broken.
+                </p>
+            </div>
+        </div>
+    @endif
+
     <p class="text-sm text-white/50">
         User uploads and public assets are always stored on S3 &mdash; the user-content disks (public, user files and
         admin assets) are permanently backed by your S3 bucket and cannot be switched back to local disk. The access
