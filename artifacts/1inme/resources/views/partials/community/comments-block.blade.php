@@ -1,8 +1,15 @@
 {{-- Inline comments thread for a block. Visibility (public/members/followers)
-     is enforced server-side via the block's `comments_visibility` setting. --}}
-<div class="community-comments-block rounded-2xl p-4 my-4" data-link-id="{{ $link->id }}" data-block-id="{{ $block->id }}" style="background: var(--card-bg, rgba(255,255,255,0.05)); border:1px solid var(--card-border, rgba(255,255,255,0.1));">
+     is enforced server-side via the block's `comments_visibility` setting.
+     Themed from the biolink's own theme tokens ($fontColor / $btnColor). --}}
+@php
+    $__cFg = $fontColor ?? '#ffffff';
+    $__cAccent = $btnColor ?? '#3d6bff';
+    $__cBg = $__cFg . '0d';      // ~5% tint of the theme text color
+    $__cBorder = $__cFg . '1a';  // ~10% tint of the theme text color
+@endphp
+<div class="community-comments-block rounded-2xl p-4 my-4" data-link-id="{{ $link->id }}" data-block-id="{{ $block->id }}" style="background: {{ $__cBg }}; border:1px solid {{ $__cBorder }}; color: {{ $__cFg }};">
     <div class="flex items-center justify-between mb-3">
-        <h4 class="font-semibold text-sm" style="color: var(--card-fg, #fff);"><i class="far fa-comments mr-1.5"></i>Comments</h4>
+        <h4 class="font-semibold text-sm" style="color: {{ $__cFg }};"><i class="far fa-comments mr-1.5"></i>Comments</h4>
         <div class="reactions text-xs opacity-80">
             @foreach(\App\Modules\User\Models\BlockReaction::EMOJIS as $e)
             <button type="button" class="react-btn px-1" data-emoji="{{ $e }}" data-action="{{ route('community.reactions.toggle', [$link->id, $block->id]) }}">{{ $e }}</button>
@@ -16,10 +23,10 @@
 
     <form class="comment-form" data-action="{{ route('community.comments.post', [$link->id, $block->id]) }}">
         @csrf
-        <textarea name="body" required rows="2" placeholder="Add a comment…" class="w-full px-3 py-2 rounded-lg bg-black/20 border border-white/10 text-white placeholder-white/50 text-sm"></textarea>
+        <textarea name="body" required rows="2" placeholder="Add a comment…" class="w-full px-3 py-2 rounded-lg text-sm" style="background: {{ $__cFg }}12; border: 1px solid {{ $__cBorder }}; color: {{ $__cFg }};"></textarea>
         <div class="flex items-center gap-2 mt-2">
-            <input type="text" name="author_name" placeholder="Name (optional)" class="flex-1 px-3 py-1.5 rounded-lg bg-black/20 border border-white/10 text-white placeholder-white/50 text-sm">
-            <button class="px-3 py-1.5 rounded-lg text-sm" style="background: var(--accent, #3d6bff); color:#fff;">Post</button>
+            <input type="text" name="author_name" placeholder="Name (optional)" class="flex-1 px-3 py-1.5 rounded-lg text-sm" style="background: {{ $__cFg }}12; border: 1px solid {{ $__cBorder }}; color: {{ $__cFg }};">
+            <button class="px-3 py-1.5 rounded-lg text-sm" style="background: {{ $__cAccent }}; color:#fff;">Post</button>
         </div>
     </form>
 </div>

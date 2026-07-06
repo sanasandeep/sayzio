@@ -61,6 +61,20 @@ theme-styles fix. Also skip theme-neutral accent fallbacks (`--sa-accent`,
 themes); "undefined var" alone isn't a bug unless the frozen literal is
 wrong-theme for a bg/text/border surface.
 
+**Biolink-system fix pattern (the community-block variant).** The biolink
+theming system exposes NO CSS custom properties — the public page
+(`common/biolink.blade.php`) resolves theme colors into PHP vars that are in
+scope for every block partial rendered through `biolink-block-render`:
+`$fontColor` (theme text hex, `#ffffff` or `#212529`), `$btnColor` (accent),
+`$bgColor` (page background). So the fix for undefined `var(--card-fg/--card-bg/
+--card-border/--accent/--bg-color, ...)` in `partials/community/*` +
+`common/blocks/verified-avatar.blade.php` is NOT a `:root` alias — it's to echo
+those PHP vars inline, deriving translucent surfaces by hex-alpha concat
+(`{{ $fontColor }}0d` = ~5% tint, `1a` = ~10%, `33` = ~20%), exactly as the
+rest of `biolink.blade.php` already does (`{{ $fontColor }}cc` etc.). Set
+`color: {{ $fontColor }}` on each block's ROOT container so AJAX-injected rows
+(`public/js/community-public.js`, no explicit color) inherit a legible color.
+
 **Grep caveat:** a var appearing "defined" globally can still be undefined in
 the app scope — `--border`/`--text` are declared only in standalone
 `common/embed/card.blade.php` + `common/splash.blade.php` (own `:root`), so
