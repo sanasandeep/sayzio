@@ -1,14 +1,11 @@
 import { describe, it, expect } from "vitest";
-import fs from "node:fs";
-import path from "node:path";
 import {
-  REPO_ROOT,
-  SCAN_ROOTS,
   scanSource,
   blankSafeSpans,
   findBlockComments,
   commentSpans,
 } from "./check-blade-comment-echo.js";
+import { VIEWS_REL, readViewsFileMap } from "./lib/blade-theme-scope.js";
 
 /**
  * Regression suite for the blade-comment-echo guard.
@@ -140,38 +137,21 @@ describe("commentSpans — no double counting across kinds", () => {
 });
 
 describe("live repo", () => {
-  it("passes on all real blade files under the scan roots", () => {
-    for (const root of SCAN_ROOTS) {
-      const abs = path.join(REPO_ROOT, root);
-      const files = collectBladeFiles(abs);
-      for (const f of files) {
-        const rel = path.relative(REPO_ROOT, f);
-        const offenders = scanSource(rel, fs.readFileSync(f, "utf8"));
-        expect(offenders, `${rel} has stray {{ }}/{!! !!} in a plain comment`).toEqual([]);
+  // Reuses the shared, MEMOIZED whole-tree read (`readViewsFileMap`) rather than
+  // re-walking the blade views tree with its own scan. The guard's SCAN_ROOTS is
+  // exactly `[VIEWS_REL]`, so this covers the same files, while sharing the single
+  // cached walk with the theme guards. A generous explicit timeout is kept as a
+  // belt-and-suspenders against residual cross-file disk contention under vitest
+  // parallelism (see .agents/memory/parallel-disk-scan-vitest-flake.md).
+  it(
+    "passes on all real blade files under the scan roots",
+    () => {
+      for (const [rel, src] of readViewsFileMap()) {
+        const relFromRepo = `${VIEWS_REL}/${rel}`;
+        const offenders = scanSource(relFromRepo, src);
+        expect(offenders, `${relFromRepo} has stray {{ }}/{!! !!} in a plain comment`).toEqual([]);
       }
-    }
-  });
+    },
+    30_000,
+  );
 });
-
-function collectBladeFiles(dir: string): string[] {
-  const out: string[] = [];
-  const walk = (d: string) => {
-    let entries: fs.Dirent[];
-    try {
-      entries = fs.readdirSync(d, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const e of entries) {
-      const full = path.join(d, e.name);
-      if (e.isDirectory()) {
-        if (e.name === "vendor" || e.name === "node_modules") continue;
-        walk(full);
-      } else if (e.name.endsWith(".blade.php")) {
-        out.push(full);
-      }
-    }
-  };
-  walk(dir);
-  return out;
-}
