@@ -45,6 +45,16 @@
     @media (prefers-reduced-motion: reduce) {
         .dash-tab, .dash-row { transition: none; }
     }
+
+    /* Task #3848 — 7-day trend sparkline accent under a stats tile's big
+       number. Purely decorative (no axes/legend/tooltip), so it's kept
+       short and full-width instead of fighting the tile's own layout. */
+    .dash-sparkline {
+        display: block;
+        width: 100%;
+        margin-top: 8px;
+        max-height: 32px;
+    }
 </style>
 {{-- The bento tile system (grid, glass tiles, live-pulse hero) lives in a
      shared partial so other user surfaces reuse the exact same look. --}}
@@ -53,10 +63,14 @@
 
 @section('content')
 @php
-    $hour = now()->hour;
+    // Task #3848 — greet in the user's resolved timezone (personal
+    // preference, else the platform default Asia/Kolkata) instead of the
+    // server/app clock, so "Good afternoon" doesn't show up at 8:41 PM IST.
+    $__nowLocal = now(\App\Support\PlatformTimezone::forUser($user));
+    $hour = $__nowLocal->hour;
     $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
     $heroIcon = $hour < 12 ? 'fa-sun' : ($hour < 17 ? 'fa-cloud-sun' : 'fa-moon');
-    $heroDay = now()->format('l');
+    $heroDay = $__nowLocal->format('l');
 
     $channelLabelMap = \App\Modules\Common\Services\ChannelClassifier::LABELS;
     $channelTotal    = (int) ($channelStats->sum('count') ?? 0);
@@ -236,6 +250,7 @@
                             <i class="fas fa-bolt text-amber-400 text-[10px] mr-1"></i>{{ number_format($clicksToday) }} today
                         </p>
                     </div>
+                    <canvas data-sparkline='@json($clicksSparkline)' data-sparkline-color="#3b82f6" class="dash-sparkline" height="28"></canvas>
                 </div>
                 @endif
 
@@ -250,6 +265,7 @@
                         </div>
                     </div>
                     <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ number_format($clicksToday) }}</p>
+                    <canvas data-sparkline='@json($clicksSparkline)' data-sparkline-color="#f59e0b" class="dash-sparkline" height="24"></canvas>
                 </div>
                 @endif
 
@@ -283,6 +299,7 @@
                         </div>
                     </div>
                     <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ $totalLinks }}</p>
+                    <canvas data-sparkline='@json($linksSparkline)' data-sparkline-color="#10b981" class="dash-sparkline" height="24"></canvas>
                 </div>
                 @endif
 
@@ -297,6 +314,7 @@
                         </div>
                     </div>
                     <p class="text-2xl font-bold mt-2" style="color: var(--text-primary);">{{ $totalProjects }}</p>
+                    <canvas data-sparkline='@json($projectsSparkline)' data-sparkline-color="#22d3ee" class="dash-sparkline" height="24"></canvas>
                 </div>
                 @endif
             </div>
@@ -746,4 +764,56 @@
      correct) but rendered in-flow far down the page instead of as a
      fullscreen overlay, which is why the button looked unclickable. --}}
 @include('user.dashboard.customize-modal')
+
+{{-- Task #3848 — 7-day trend sparklines on the stats tiles, drawn with the
+     app's already-vendored Chart.js (no scales/legend/tooltip/points so it
+     reads as a small accent, not a full chart). --}}
+<script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
+<script>
+(function () {
+    function initDashSparklines() {
+        if (!window.Chart) return;
+        document.querySelectorAll('canvas[data-sparkline]').forEach(function (canvas) {
+            if (canvas.dataset.sparklineInit) return;
+            canvas.dataset.sparklineInit = '1';
+            var data;
+            try { data = JSON.parse(canvas.dataset.sparkline); } catch (e) { data = []; }
+            var color = canvas.dataset.sparklineColor || '#5c83ff';
+            new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: data.map(function (_, i) { return i; }),
+                    datasets: [{
+                        data: data,
+                        borderColor: color,
+                        backgroundColor: color + '26',
+                        borderWidth: 1.5,
+                        tension: 0.35,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 0,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    interaction: { intersect: false },
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false, beginAtZero: true },
+                    },
+                    elements: { line: { borderJoinStyle: 'round' } },
+                },
+            });
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDashSparklines);
+    } else {
+        initDashSparklines();
+    }
+})();
+</script>
 @endsection

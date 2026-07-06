@@ -59,10 +59,14 @@ class WalletController extends Controller
         if (!WalletService::isEnabled()) {
             return response()->json(['enabled' => false]);
         }
-        $coins = $this->wallets->getBalance($request->user());
+        $wallet = $this->wallets->walletFor($request->user());
+        $coins = (int) $wallet->balance;
+        $threshold = (int) ($wallet->low_balance_threshold ?? 100);
         return response()->json([
             'enabled'   => true,
             'balance'   => $coins,
+            'threshold' => $threshold,
+            'low'       => $threshold > 0 && $coins < $threshold,
             'display'   => $coins >= 1000 ? round($coins / 1000, 1) . 'k' : (string) $coins,
             'formatted' => number_format($coins),
         ]);

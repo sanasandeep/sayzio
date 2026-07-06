@@ -89,6 +89,42 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Task #3848 — compact "last 7 days" trend series for the stats
+        // tile sparklines. Each series is zero-filled so a day with no
+        // activity still renders as a point, not a gap. Computed with
+        // calendar-day buckets on the server clock (the sparklines are a
+        // lightweight trend accent, not a timezone-sensitive figure —
+        // unlike the greeting, which does need the user's timezone).
+        $sparklineSince = now()->subDays(6)->startOfDay();
+        $zeroFillSeries = function (\Illuminate\Support\Collection $byDay) use ($sparklineSince) {
+            $out = [];
+            for ($i = 0; $i < 7; $i++) {
+                $d = $sparklineSince->copy()->addDays($i)->format('Y-m-d');
+                $out[] = (int) ($byDay[$d] ?? 0);
+            }
+            return $out;
+        };
+
+        $clicksByDay = LinkClick::whereIn('link_id', $linkIdSub)
+            ->where('clicked_at', '>=', $sparklineSince)
+            ->selectRaw('DATE(clicked_at) as d, COUNT(*) as c')
+            ->groupBy('d')
+            ->pluck('c', 'd');
+        $linksByDay = $user->links()
+            ->where('created_at', '>=', $sparklineSince)
+            ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
+            ->groupBy('d')
+            ->pluck('c', 'd');
+        $projectsByDay = $user->projects()
+            ->where('created_at', '>=', $sparklineSince)
+            ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
+            ->groupBy('d')
+            ->pluck('c', 'd');
+
+        $clicksSparkline = $zeroFillSeries($clicksByDay);
+        $linksSparkline = $zeroFillSeries($linksByDay);
+        $projectsSparkline = $zeroFillSeries($projectsByDay);
+
         // Backlink radar at-a-glance — count of new backlinks the
         // browser extension has captured in the last 7 days. Cheap
         // single-row count; deep view lives at user.backlinks.index.
@@ -146,7 +182,8 @@ class DashboardController extends Controller
             'showWhatsappPrompt', 'whatsappChannelUrl', 'deliveryProjects',
             'dashboardWidgets', 'dashboardTabs', 'dashboardCurrentPreset',
             'dashboardIsCustom', 'dashboardCatalog', 'dashboardGroupedCatalog', 'dashboardPresets',
-            'dashboardAiAllowed', 'dashboardLayoutLabel', 'dashboardTrimmedTabs'
+            'dashboardAiAllowed', 'dashboardLayoutLabel', 'dashboardTrimmedTabs',
+            'clicksSparkline', 'linksSparkline', 'projectsSparkline'
         ));
     }
 }

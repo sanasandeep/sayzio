@@ -575,18 +575,9 @@
                     <span class="sidebar-tooltip">Visitors</span>
                 </a>
                 @endif
-                <a href="{{ route('user.wallet.show') }}"
-                   class="sidebar-link {{ request()->routeIs('user.wallet.*') ? 'active' : '' }}"
-                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-wallet"></i></div>
-                    <span class="nav-label">Wallet
-                        @if(\App\Services\Billing\WalletService::isEnabled())
-                        @php $__coins = (int) (auth()->user()->wallet?->balance ?? 0); @endphp
-                        <span data-wallet-badge class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-amber-500 text-white" title="{{ number_format($__coins) }} coins">{{ $__coins >= 1000 ? round($__coins / 1000, 1) . 'k' : $__coins }}</span>
-                        @endif
-                    </span>
-                    <span class="sidebar-tooltip">Wallet — coin balance &amp; transactions</span>
-                </a>
+                {{-- Task #3848 — the Wallet nav item moved to a compact icon +
+                     balance badge in the top header (see the header markup
+                     below); it no longer has its own sidebar entry. --}}
 
                 {{-- ========== LINKS & PAGES (collapsible) ========== --}}
                 @if($__can['links_view'] || $__can['inbox_view'] || $__can['files_view'])
@@ -1118,10 +1109,11 @@
                  Hidden in the icons-collapsed mode (like the upgrade card /
                  profile block) since the content is text, not icon links. --}}
             @php
-                $__acctWalletEnabled = \App\Services\Billing\WalletService::isEnabled();
-                $__acctCoins   = (int) (auth()->user()->wallet?->balance ?? 0);
+                // Task #3848 — the coin balance moved to the header icon+badge,
+                // so this section is now badges-only (no more duplicate coin
+                // surface here).
                 $__acctBadges  = auth()->user()->accountBadges;
-                $__showAccount = $__acctWalletEnabled || $__acctBadges->isNotEmpty();
+                $__showAccount = $__acctBadges->isNotEmpty();
             @endphp
             @if($__showAccount)
             <div class="px-3 pb-2" x-show="sidebarMode !== 'icons'" x-cloak x-data="{
@@ -1142,22 +1134,6 @@
                     <i class="fas fa-chevron-down grp-chevron"></i>
                 </button>
                 <div x-show="open" x-cloak class="space-y-2 pt-1">
-                    @if($__acctWalletEnabled)
-                    <a href="{{ route('user.wallet.show') }}"
-                       class="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all hover:opacity-90"
-                       style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);"
-                       title="Coin balance &amp; transactions">
-                        <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(245,158,11,0.15);">
-                            <i class="fas fa-coins text-amber-400 text-[11px]"></i>
-                        </div>
-                        <div class="min-w-0">
-                            <p class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Available coins</p>
-                            <p class="text-xs font-bold" style="color: var(--text-primary);">
-                                <span data-wallet-amount>{{ number_format($__acctCoins) }}</span> coins
-                            </p>
-                        </div>
-                    </a>
-                    @endif
                     @if($__acctBadges->isNotEmpty())
                     <div class="px-1">
                         <p class="text-[9px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Your badges</p>
@@ -1252,6 +1228,36 @@
                         @include('common.partials.theme-toggle')
                     </div>
 
+                    {{-- Task #3848 — compact coin-wallet icon + balance badge,
+                         replacing the old sidebar Wallet nav item. Badge is
+                         red below the wallet's low-balance threshold, green
+                         at/above it; shows 0 (and reads red) when the Wallet
+                         feature is disabled by the admin. Kept live via the
+                         [data-wallet-badge] refresh script further down this
+                         file (dispatch `wallet:refresh`/`wallet:balance` after
+                         any coin-changing action). --}}
+                    @php
+                        $__hdrWalletEnabled = \App\Services\Billing\WalletService::isEnabled();
+                        $__hdrCoins = 0;
+                        $__hdrThreshold = 100;
+                        if ($__hdrWalletEnabled) {
+                            $__hdrWallet = app(\App\Services\Billing\WalletService::class)->walletFor(auth()->user());
+                            $__hdrCoins = (int) $__hdrWallet->balance;
+                            $__hdrThreshold = (int) ($__hdrWallet->low_balance_threshold ?? 100);
+                        }
+                        $__hdrLow = !$__hdrWalletEnabled || ($__hdrThreshold > 0 && $__hdrCoins < $__hdrThreshold);
+                    @endphp
+                    <a href="{{ route('user.wallet.show') }}"
+                       class="header-icon-btn relative"
+                       data-wallet-threshold="{{ $__hdrThreshold }}"
+                       title="Coin balance: {{ number_format($__hdrCoins) }}{{ $__hdrWalletEnabled ? '' : ' (wallet disabled)' }}"
+                       aria-label="Coin wallet balance">
+                        <i class="fas fa-coins" style="font-size: 12px;"></i>
+                        <span data-wallet-badge
+                              class="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] px-1 inline-flex items-center justify-center rounded-full text-[9px] font-bold leading-none text-white {{ $__hdrLow ? 'bg-red-500' : 'bg-emerald-500' }}"
+                              title="{{ number_format($__hdrCoins) }} coins">{{ $__hdrCoins >= 1000 ? round($__hdrCoins / 1000, 1) . 'k' : $__hdrCoins }}</span>
+                    </a>
+
                     @php $__headerUnread = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count(); @endphp
                     <a href="{{ route('user.notifications.index') }}" class="header-icon-btn hidden sm:flex {{ request()->routeIs('user.notifications.*') ? 'active' : '' }}" title="Notifications">
                         <i class="fas fa-bell"></i>
@@ -1326,12 +1332,7 @@
                         @if($__can['stats_view'])
                         <a href="{{ route('user.visitors.index') }}" class="sidebar-link {{ request()->routeIs('user.visitors.index') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div> <span>Visitors</span></a>
                         @endif
-                        <a href="{{ route('user.wallet.show') }}" class="sidebar-link {{ request()->routeIs('user.wallet.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wallet"></i></div> <span>Wallet
-                            @if(\App\Services\Billing\WalletService::isEnabled())
-                            @php $__mCoins = (int) (auth()->user()->wallet?->balance ?? 0); @endphp
-                            <span data-wallet-badge class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-amber-500 text-white" title="{{ number_format($__mCoins) }} coins">{{ $__mCoins >= 1000 ? round($__mCoins / 1000, 1) . 'k' : $__mCoins }}</span>
-                            @endif
-                        </span></a>
+                        {{-- Task #3848 — Wallet nav item moved to the header icon+badge (mobile drawer's header mirrors the desktop one). --}}
 
                         {{-- ========== LINKS & PAGES (collapsible) ========== --}}
                         @if($__can['links_view'] || $__can['inbox_view'] || $__can['files_view'])
@@ -1550,10 +1551,9 @@
                          Mirror of the desktop section so the mobile drawer shows the
                          same wallet balance + account badges. Kept in lockstep. --}}
                     @php
-                        $__mAcctWalletEnabled = \App\Services\Billing\WalletService::isEnabled();
-                        $__mAcctCoins   = (int) (auth()->user()->wallet?->balance ?? 0);
+                        // Task #3848 — coin balance moved to the header icon+badge.
                         $__mAcctBadges  = auth()->user()->accountBadges;
-                        $__mShowAccount = $__mAcctWalletEnabled || $__mAcctBadges->isNotEmpty();
+                        $__mShowAccount = $__mAcctBadges->isNotEmpty();
                     @endphp
                     @if($__mShowAccount)
                     <div class="px-3 pt-2" x-data="{
@@ -1574,22 +1574,6 @@
                             <i class="fas fa-chevron-down grp-chevron"></i>
                         </button>
                         <div x-show="open" x-cloak class="space-y-2 pt-1">
-                            @if($__mAcctWalletEnabled)
-                            <a href="{{ route('user.wallet.show') }}"
-                               class="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all hover:opacity-90"
-                               style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);"
-                               title="Coin balance &amp; transactions">
-                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(245,158,11,0.15);">
-                                    <i class="fas fa-coins text-amber-400 text-[11px]"></i>
-                                </div>
-                                <div class="min-w-0">
-                                    <p class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Available coins</p>
-                                    <p class="text-xs font-bold" style="color: var(--text-primary);">
-                                        <span data-wallet-amount>{{ number_format($__mAcctCoins) }}</span> coins
-                                    </p>
-                                </div>
-                            </a>
-                            @endif
                             @if($__mAcctBadges->isNotEmpty())
                             <div class="px-1">
                                 <p class="text-[9px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Your badges</p>
@@ -1725,11 +1709,22 @@
     (function(){
         var URL = @json(route('user.wallet.balance'));
         function fmt(n){ return n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : String(n); }
-        function paint(coins){
+        // Task #3848 — badge is red when below the wallet's low-balance
+        // threshold, green at/above it. `low` (when supplied by the JSON
+        // response) wins; otherwise fall back to each badge's own
+        // data-wallet-threshold so a plain balance push still recolors it.
+        function paint(coins, low){
             var c = Number(coins) || 0;
             document.querySelectorAll('[data-wallet-badge]').forEach(function(el){
                 el.textContent = fmt(c);
                 el.setAttribute('title', c.toLocaleString('en-US') + ' coins');
+                var isLow = low;
+                if (typeof isLow === 'undefined') {
+                    var threshold = Number(el.closest('[data-wallet-threshold]')?.getAttribute('data-wallet-threshold')) || 0;
+                    isLow = threshold > 0 && c < threshold;
+                }
+                el.classList.toggle('bg-red-500', !!isLow);
+                el.classList.toggle('bg-emerald-500', !isLow);
             });
             // Full, comma-formatted balance shown in the sidebar Account section.
             document.querySelectorAll('[data-wallet-amount]').forEach(function(el){
@@ -1742,14 +1737,14 @@
             inFlight = true;
             fetch(URL, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
                 .then(function(r){ return r.ok ? r.json() : null; })
-                .then(function(d){ if (d && d.enabled && typeof d.balance !== 'undefined') paint(d.balance); })
+                .then(function(d){ if (d && d.enabled && typeof d.balance !== 'undefined') paint(d.balance, d.low); })
                 .catch(function(){})
                 .finally(function(){ inFlight = false; });
         }
         window.refreshWalletBadge = refresh;
         window.addEventListener('wallet:refresh', refresh);
         window.addEventListener('wallet:balance', function(e){
-            if (e && e.detail && typeof e.detail.balance !== 'undefined') paint(e.detail.balance);
+            if (e && e.detail && typeof e.detail.balance !== 'undefined') paint(e.detail.balance, e.detail.low);
             else refresh();
         });
     })();
