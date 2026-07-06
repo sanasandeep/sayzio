@@ -2,11 +2,12 @@
 //
 // setup.tsx is the mobile mirror of the web onboarding wizard: the same
 // discrete, visibly-stepped stages (Welcome → Persona → Template → WhatsApp
-// optional → Done) that a brand-new user walks exactly once, gated on the
-// server's `onboarded_at` being null. The single most costly failure here is a
-// flow that STRANDS a first-time user — a stage that never advances, or a
-// "finish"/"skip" that doesn't actually mark onboarding complete server-side,
-// which would loop the user straight back into setup on their next launch.
+// optional → Privacy optional → Done) that a brand-new user walks exactly once,
+// gated on the server's `onboarded_at` being null. The single most costly
+// failure here is a flow that STRANDS a first-time user — a stage that never
+// advances, or a "finish"/"skip" that doesn't actually mark onboarding complete
+// server-side, which would loop the user straight back into setup on their next
+// launch.
 //
 // Like test-auth-flow.mjs, this is a source-driven test (NOT a headless
 // browser click-through): it lifts the REAL logic out of the source and runs
@@ -14,8 +15,12 @@
 // re-implementation, and it stays in lockstep with the file as it evolves.
 // It proves:
 //   1. The stage machine's ordered stages are correct and the optional
-//      WhatsApp stage only appears when a number isn't already verified
-//      (the same "Step X of Y" honesty as the web stepper).
+//      WhatsApp + Privacy stages appear ONLY when the server's onboarding-status
+//      flags (`whatsapp_pending` / `privacy_pending`) say so — a list DERIVED
+//      from those flags, never hardcoded (the same "Step X of Y" honesty as the
+//      web stepper, which the flags are pinned to by the Laravel
+//      OnboardingStatusStepLockstepTest). This is the drift guard: mobile can't
+//      promise a stage the API won't ask for, nor hide one it does.
 //   2. `stepIndex` is derived from the stage's position in that ordered list.
 //   3. Finishing the core setup (`finishCoreSetup`) calls
 //      `completeOnboarding()` and then advances — and stays resilient (still
@@ -70,16 +75,32 @@ function grabFn(name, sig) {
   return m[0];
 }
 
+// Grab a simple (non-async) `const NAME = ... ;` arrow whose body has no inner
+// semicolons — used for the tiny afterCoreStage / afterWhatsappStage helpers
+// that finishCoreSetup + the WhatsApp stage rely on to pick the next stage.
+function grabConst(name) {
+  const re = new RegExp(`const ${name} = [\\s\\S]*?;`, "m");
+  const m = setupSrc.match(re);
+  if (!m) throw new Error(`could not find ${name} in app/setup.tsx`);
+  return m[0];
+}
+
 function loadSetupFns(env) {
   const js = [
+    // The next-stage helpers are defined alongside finishCoreSetup and encode
+    // the WhatsApp-before-privacy order the real flow uses; include them so
+    // finishCoreSetup exercises the REAL branching, not a stub.
+    grabConst("afterCoreStage"),
+    grabConst("afterWhatsappStage"),
     grabFn("finishCoreSetup", ""),
     grabFn("applyDesign", "design: WizardStartingDesign"),
     grabFn("skipTemplate", ""),
   ]
     .join("\n\n")
-    // Drop the one param type annotation and the `as ApiError` cast so it runs
-    // as plain JS.
+    // Drop the param type annotation, the StageKey return annotations, and the
+    // `as ApiError` cast so it runs as plain JS.
     .replace(/\(design: WizardStartingDesign\) =>/, "(design) =>")
+    .replace(/: StageKey/g, "")
     .replace(/ as ApiError/g, "");
 
   const names = [
@@ -87,6 +108,7 @@ function loadSetupFns(env) {
     "refresh",
     "goStage",
     "whatsappNeeded",
+    "privacyNeeded",
     "generateWizardPage",
     "persona",
     "busy",
@@ -106,6 +128,10 @@ function loadSetupFns(env) {
     setBusy: () => {},
     setError: () => {},
     setCreatedLinkId: () => {},
+    // Optional-stage flags default off so a caller that only cares about the
+    // core finish path gets the simple "advance to Done" behaviour.
+    whatsappNeeded: false,
+    privacyNeeded: false,
   };
   const merged = { ...defaults, ...env };
   // eslint-disable-next-line no-new-func
@@ -129,20 +155,39 @@ function loadStages() {
   if (!m) throw new Error("could not find the stages useMemo in setup.tsx");
   const factory = m[1].replace(/ as StageKey\[\]/g, "");
   // eslint-disable-next-line no-new-func
-  return new Function("whatsappNeeded", `return (${factory})();`);
+  return new Function(
+    "whatsappNeeded",
+    "privacyNeeded",
+    `return (${factory})();`,
+  );
 }
 
 {
   const stagesFor = loadStages();
+  // The visible steps are DERIVED from the two server flags across all four
+  // combinations — never a fixed list. Both optional stages, in order:
   assert.deepEqual(
-    stagesFor(true),
-    ["welcome", "persona", "template", "whatsapp", "done"],
-    "when WhatsApp is needed the stages include it, in order",
+    stagesFor(true, true),
+    ["welcome", "persona", "template", "whatsapp", "privacy", "done"],
+    "when both WhatsApp and privacy are pending, both stages appear in order",
   );
+  // WhatsApp only:
   assert.deepEqual(
-    stagesFor(false),
+    stagesFor(true, false),
+    ["welcome", "persona", "template", "whatsapp", "done"],
+    "when only WhatsApp is pending, the privacy stage is omitted",
+  );
+  // Privacy only (number already verified):
+  assert.deepEqual(
+    stagesFor(false, true),
+    ["welcome", "persona", "template", "privacy", "done"],
+    "when only privacy is pending, the WhatsApp stage is omitted",
+  );
+  // Neither optional stage:
+  assert.deepEqual(
+    stagesFor(false, false),
     ["welcome", "persona", "template", "done"],
-    "when a number is already verified the WhatsApp stage is omitted",
+    "when nothing is pending, both optional stages are omitted",
   );
 
   // stepIndex is the stage's position in the ordered list (clamped at 0), so
@@ -151,11 +196,12 @@ function loadStages() {
     /const stepIndex = Math\.max\(0, stages\.indexOf\(stage\)\);/.test(setupSrc),
     "stepIndex must be Math.max(0, stages.indexOf(stage))",
   );
-  const stages = stagesFor(true);
+  const stages = stagesFor(true, true);
   const stepIndexOf = (stage) => Math.max(0, stages.indexOf(stage));
   assert.equal(stepIndexOf("welcome"), 0, "welcome is step 0");
   assert.equal(stepIndexOf("template"), 2, "template is step 2");
-  assert.equal(stepIndexOf("done"), 4, "done is the last step");
+  assert.equal(stepIndexOf("privacy"), 4, "privacy is step 4 when both optional stages show");
+  assert.equal(stepIndexOf("done"), 5, "done is the last step");
   assert.equal(
     stepIndexOf("nonexistent"),
     0,
@@ -169,21 +215,34 @@ function loadStages() {
     "the Stepper must be driven by the derived stepIndex",
   );
 }
-ok("stages are correctly ordered, WhatsApp is optional, and stepIndex tracks the stage");
+ok("stages are derived from both flags (all 4 combos), and stepIndex tracks the stage");
 
 {
-  // The optional WhatsApp stage is honestly gated: present only when no number
-  // is verified, and defaulting to 'needed' before the status query resolves.
+  // The optional stages are honestly gated on the server's onboarding-status
+  // flags — the SAME flags the Laravel OnboardingStatusStepLockstepTest pins to
+  // the web stepper/gate predicates — and both default to 'pending' before the
+  // status query resolves (so a slow network can't hide a step the user owes).
   assert.ok(
-    /!whatsappStatus\.data\.has_whatsapp_number/.test(setupSrc),
-    "whatsappNeeded must key off has_whatsapp_number",
+    /whatsappNeeded = onboardingStatus\.data\s*\?[\s\S]*?whatsapp_pending[\s\S]*?:\s*true;/.test(
+      setupSrc,
+    ),
+    "whatsappNeeded must be derived from onboardingStatus.data.whatsapp_pending, defaulting to true",
   );
   assert.ok(
-    /whatsappStatus\.data\s*\?[\s\S]*?:\s*true;/.test(setupSrc),
-    "whatsappNeeded must default to true until the status query resolves",
+    /privacyNeeded = onboardingStatus\.data\s*\?[\s\S]*?privacy_pending[\s\S]*?:\s*true;/.test(
+      setupSrc,
+    ),
+    "privacyNeeded must be derived from onboardingStatus.data.privacy_pending, defaulting to true",
+  );
+  // Drift guard: the stages must NOT be gated on a stale client-only signal
+  // (e.g. the old has_whatsapp_number probe) — that would let mobile diverge
+  // from the server's authoritative flags.
+  assert.ok(
+    !/whatsappNeeded[\s\S]{0,80}has_whatsapp_number/.test(setupSrc),
+    "whatsappNeeded must not be gated on the old client-only has_whatsapp_number probe",
   );
 }
-ok("the WhatsApp stage is gated on the verified-number status");
+ok("both optional stages are gated on the server onboarding-status flags");
 
 // ===========================================================================
 // 3. finishCoreSetup calls completeOnboarding() and then advances — and is
@@ -191,7 +250,11 @@ ok("the WhatsApp stage is gated on the verified-number status");
 // ===========================================================================
 console.log("[test-onboarding-setup] finishCoreSetup");
 
-async function runFinish({ whatsappNeeded, throwOnComplete = false }) {
+async function runFinish({
+  whatsappNeeded,
+  privacyNeeded = false,
+  throwOnComplete = false,
+}) {
   const state = { completeCalls: 0, refreshCalls: 0, goStage: [] };
   const { finishCoreSetup } = loadSetupFns({
     completeOnboarding: async () => {
@@ -203,6 +266,7 @@ async function runFinish({ whatsappNeeded, throwOnComplete = false }) {
     },
     goStage: (key) => state.goStage.push(key),
     whatsappNeeded,
+    privacyNeeded,
     generateWizardPage: async () => ({}),
     persona: { slug: "creator", category: "personal", page_type: "biolink" },
     busy: false,
@@ -214,26 +278,42 @@ async function runFinish({ whatsappNeeded, throwOnComplete = false }) {
 }
 
 {
-  const s = await runFinish({ whatsappNeeded: true });
+  // WhatsApp comes first, so it wins whenever it's pending (even if privacy is
+  // too) — the real afterCoreStage ordering.
+  const s = await runFinish({ whatsappNeeded: true, privacyNeeded: true });
   assert.equal(s.completeCalls, 1, "finishCoreSetup must call completeOnboarding once");
   assert.deepEqual(
     s.goStage,
     ["whatsapp"],
-    "with WhatsApp needed, finishing advances to the WhatsApp stage",
+    "with WhatsApp pending, finishing advances to the WhatsApp stage first",
   );
 }
 {
-  const s = await runFinish({ whatsappNeeded: false });
+  // No WhatsApp but privacy pending ⇒ straight to the privacy stage.
+  const s = await runFinish({ whatsappNeeded: false, privacyNeeded: true });
+  assert.equal(s.completeCalls, 1, "finishCoreSetup must call completeOnboarding once");
+  assert.deepEqual(
+    s.goStage,
+    ["privacy"],
+    "with only privacy pending, finishing advances to the privacy stage",
+  );
+}
+{
+  const s = await runFinish({ whatsappNeeded: false, privacyNeeded: false });
   assert.equal(s.completeCalls, 1, "finishCoreSetup must call completeOnboarding once");
   assert.deepEqual(
     s.goStage,
     ["done"],
-    "with no WhatsApp stage, finishing advances straight to Done",
+    "with no optional stages, finishing advances straight to Done",
   );
 }
 {
   // A failed completeOnboarding must NOT trap the user on the current stage.
-  const s = await runFinish({ whatsappNeeded: false, throwOnComplete: true });
+  const s = await runFinish({
+    whatsappNeeded: false,
+    privacyNeeded: false,
+    throwOnComplete: true,
+  });
   assert.equal(s.completeCalls, 1, "completeOnboarding is still attempted");
   assert.deepEqual(
     s.goStage,
@@ -404,7 +484,9 @@ console.log("[test-onboarding-setup] completeOnboarding endpoint");
 
 {
   assert.ok(
-    /import \{ completeOnboarding \} from "@\/lib\/api\/profile";/.test(setupSrc),
+    /import \{[^}]*\bcompleteOnboarding\b[^}]*\} from "@\/lib\/api\/profile";/.test(
+      setupSrc,
+    ),
     "setup.tsx must import completeOnboarding from the profile API module",
   );
 

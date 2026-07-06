@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -20,7 +20,12 @@ import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import type { ApiError } from "@/lib/api";
-import { completeOnboarding } from "@/lib/api/profile";
+import {
+  getContactPrivacy,
+  updateContactPrivacy,
+  type ContactPrivacyPrefs,
+} from "@/lib/api/contactPrivacy";
+import { completeOnboarding, getOnboardingStatus } from "@/lib/api/profile";
 import {
   generateWizardPage,
   getWizardStartingDesigns,
@@ -28,25 +33,75 @@ import {
   type WizardPersona,
   type WizardStartingDesign,
 } from "@/lib/api/wizard";
-import {
-  getWhatsappStatus,
-  sendWhatsappCode,
-  verifyWhatsappCode,
-} from "@/lib/api/whatsapp";
+import { sendWhatsappCode, verifyWhatsappCode } from "@/lib/api/whatsapp";
 
 /**
  * Post-sign-in first-run setup — the mobile mirror of the web onboarding
  * wizard. Same discrete, quick stages with a visible progress indicator:
  * Welcome → Pick persona → Choose template → Connect WhatsApp (optional) →
- * Done. The pre-auth intro slides (app/onboarding.tsx) are untouched; this
- * runs once, gated on the server's `onboarded_at` being null.
+ * Contact privacy (optional) → Done. The pre-auth intro slides
+ * (app/onboarding.tsx) are untouched; this runs once, gated on the server's
+ * `onboarded_at` being null.
+ *
+ * The two OPTIONAL stages are NOT a hardcoded list: their presence is derived
+ * from the REST onboarding-status flags (`whatsapp_pending`, `privacy_pending`)
+ * which the server computes from the SAME predicates the web stepper + redirect
+ * gate use. That keeps the visible "Step X of Y" in lockstep with web — it can
+ * never promise a stage the API won't ask for, nor hide one it does. See
+ * OnboardingStatusStepLockstepTest (server) + test-onboarding-setup.mjs
+ * (mobile).
  *
  * Outcomes mirror the web flow: the chosen persona filters the starting
  * designs, applying a design creates the first biolink, and finishing (apply
  * or skip) stamps onboarding complete so the gate never pulls the user back.
  */
 
-type StageKey = "welcome" | "persona" | "template" | "whatsapp" | "done";
+type StageKey =
+  | "welcome"
+  | "persona"
+  | "template"
+  | "whatsapp"
+  | "privacy"
+  | "done";
+
+type PrivacyField =
+  | "share_phone"
+  | "share_email"
+  | "share_location"
+  | "share_socials";
+
+// The four contact-privacy categories, mirroring the web onboarding privacy
+// step (user/onboarding/privacy.blade.php) and the full Contact privacy screen.
+const PRIVACY_FIELDS: { key: PrivacyField; label: string; desc: string }[] = [
+  {
+    key: "share_phone",
+    label: "Phone number",
+    desc: "Your number, plus call / text / WhatsApp-by-number shortcuts.",
+  },
+  {
+    key: "share_email",
+    label: "Email address",
+    desc: "Your email, when available on a lookup.",
+  },
+  {
+    key: "share_location",
+    label: "Exact location",
+    desc: "Precise map location(s) you've shared on your biolink.",
+  },
+  {
+    key: "share_socials",
+    label: "Socials & other channels",
+    desc: "Instagram, WhatsApp, Telegram and other links from your biolink.",
+  },
+];
+
+// Tri-state, matching the web radios: null = shown (default), true = always,
+// false = hidden from strangers.
+const PRIVACY_OPTIONS: { value: boolean | null; label: string }[] = [
+  { value: null, label: "Shown" },
+  { value: true, label: "Always" },
+  { value: false, label: "Hidden" },
+];
 
 export default function Setup() {
   const colors = useColors();
@@ -70,14 +125,22 @@ export default function Setup() {
   const [code, setCode] = useState("");
   const [demoReveal, setDemoReveal] = useState<string | null>(null);
 
+  // Contact-privacy stage state, loaded lazily when that stage is reached.
+  const [privacyPrefs, setPrivacyPrefs] = useState<ContactPrivacyPrefs | null>(
+    null,
+  );
+
   const taxonomy = useQuery({
     queryKey: ["wizard-taxonomy"],
     queryFn: getWizardTaxonomy,
   });
 
-  const whatsappStatus = useQuery({
-    queryKey: ["whatsapp-status"],
-    queryFn: getWhatsappStatus,
+  // The single source of truth for which OPTIONAL stages appear: the server
+  // derives these flags from the same predicates the web stepper + gate use,
+  // so the visible step list can't drift from what web actually shows.
+  const onboardingStatus = useQuery({
+    queryKey: ["onboarding-status"],
+    queryFn: getOnboardingStatus,
   });
 
   const designs = useQuery({
@@ -86,10 +149,26 @@ export default function Setup() {
     enabled: !!persona && stage === "template",
   });
 
-  // The WhatsApp stage is only part of the flow when a number isn't already
-  // verified — mirrors the web stepper honesty about "Step X of Y".
-  const whatsappNeeded = whatsappStatus.data
-    ? !whatsappStatus.data.has_whatsapp_number
+  // Current contact-privacy choices, fetched only once the user reaches the
+  // privacy stage (mirrors the web onboarding privacy step + Settings tab).
+  const contactPrivacy = useQuery({
+    queryKey: ["contact-privacy"],
+    queryFn: getContactPrivacy,
+    enabled: stage === "privacy",
+  });
+  useEffect(() => {
+    if (contactPrivacy.data) setPrivacyPrefs(contactPrivacy.data.prefs);
+  }, [contactPrivacy.data]);
+
+  // The WhatsApp / privacy stages are only part of the flow when the server
+  // still reports them pending — never a hardcoded list. While the status is
+  // loading we assume both are needed (the common fresh-user case), matching
+  // the web stepper's honesty about "Step X of Y".
+  const whatsappNeeded = onboardingStatus.data
+    ? onboardingStatus.data.whatsapp_pending
+    : true;
+  const privacyNeeded = onboardingStatus.data
+    ? onboardingStatus.data.privacy_pending
     : true;
 
   const stages: StageKey[] = useMemo(
@@ -98,15 +177,17 @@ export default function Setup() {
       "persona",
       "template",
       ...(whatsappNeeded ? (["whatsapp"] as StageKey[]) : []),
+      ...(privacyNeeded ? (["privacy"] as StageKey[]) : []),
       "done",
     ],
-    [whatsappNeeded],
+    [whatsappNeeded, privacyNeeded],
   );
   const stageLabels: Record<StageKey, string> = {
     welcome: "Welcome",
     persona: "Persona",
     template: "Template",
     whatsapp: "WhatsApp",
+    privacy: "Privacy",
     done: "Done",
   };
   const stepIndex = Math.max(0, stages.indexOf(stage));
@@ -116,9 +197,17 @@ export default function Setup() {
     setStage(key);
   };
 
+  // The next optional stage after the core wizard, honouring the same
+  // WhatsApp-before-privacy order the web redirect gate uses.
+  const afterCoreStage = (): StageKey =>
+    whatsappNeeded ? "whatsapp" : privacyNeeded ? "privacy" : "done";
+  // The stage after WhatsApp (verify or skip) — privacy if still pending.
+  const afterWhatsappStage = (): StageKey => (privacyNeeded ? "privacy" : "done");
+
   // Mark onboarding finished server-side (idempotent) then advance to the
-  // WhatsApp stage or straight to Done. Called after applying a template or
-  // skipping — mirrors the web applyTemplate/goToDashboard onboarded stamp.
+  // first pending optional stage (WhatsApp → privacy) or straight to Done.
+  // Called after applying a template or skipping — mirrors the web
+  // applyTemplate/goToDashboard onboarded stamp.
   const finishCoreSetup = async () => {
     try {
       await completeOnboarding();
@@ -126,7 +215,7 @@ export default function Setup() {
     } catch {
       /* non-fatal: the gate re-checks; don't trap the user here */
     }
-    goStage(whatsappNeeded ? "whatsapp" : "done");
+    goStage(afterCoreStage());
   };
 
   const applyDesign = async (design: WizardStartingDesign) => {
@@ -189,12 +278,55 @@ export default function Setup() {
     try {
       await verifyWhatsappCode(mobile.trim(), code.trim());
       void refresh();
-      goStage("done");
+      goStage(afterWhatsappStage());
     } catch (e) {
       setError((e as ApiError)?.message ?? "That code didn't match. Try again.");
     } finally {
       setBusy(false);
     }
+  };
+
+  const setPrivacyField = (
+    field: "share_phone" | "share_email" | "share_location" | "share_socials",
+    value: boolean | null,
+  ) => setPrivacyPrefs((p) => (p ? { ...p, [field]: value } : p));
+
+  // Save the explicit contact-privacy choices and continue. The PUT also marks
+  // the prefs "configured" server-side, so privacy_pending flips false.
+  const savePrivacy = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await updateContactPrivacy({
+        share_phone: privacyPrefs?.share_phone ?? null,
+        share_email: privacyPrefs?.share_email ?? null,
+        share_location: privacyPrefs?.share_location ?? null,
+        share_socials: privacyPrefs?.share_socials ?? null,
+      });
+      goStage("done");
+    } catch (e) {
+      setError(
+        (e as ApiError)?.message ??
+          "Couldn't save your privacy choices. You can set them later in Settings.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Skip the privacy step: defaults stay "shown", but an empty PUT still marks
+  // the prefs configured so the nudge doesn't reappear (mirrors web privacySkip).
+  const skipPrivacy = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await updateContactPrivacy({});
+    } catch {
+      /* non-fatal: the user can revisit Settings > Contact privacy */
+    }
+    setBusy(false);
+    goStage("done");
   };
 
   const finishToApp = () => {
@@ -488,7 +620,88 @@ export default function Setup() {
               </>
             )}
             <View style={{ height: 8 }} />
-            <Button label="Skip for now" variant="ghost" onPress={() => goStage("done")} disabled={busy} />
+            <Button
+              label="Skip for now"
+              variant="ghost"
+              onPress={() => goStage(afterWhatsappStage())}
+              disabled={busy}
+            />
+          </View>
+        ) : null}
+
+        {/* ── Contact privacy ── */}
+        {stage === "privacy" ? (
+          <View style={styles.section}>
+            <View style={[styles.heroIcon, { backgroundColor: colors.primary + "22" }]}>
+              <Feather name="shield" size={24} color={colors.primary} />
+            </View>
+            <Text style={[styles.h2, { color: colors.foreground }]}>
+              Who can see your contact info?
+            </Text>
+            <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+              By default everything stays visible when a stranger looks you up.
+              People who've already saved you (and you) always see everything.
+              Optional — you can change this anytime in Settings.
+            </Text>
+            <View style={{ height: 16 }} />
+            {contactPrivacy.isLoading || !privacyPrefs ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <>
+                {PRIVACY_FIELDS.map((f) => (
+                  <View
+                    key={f.key}
+                    style={[
+                      styles.privacyCard,
+                      { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+                    ]}
+                  >
+                    <Text style={[styles.privacyLabel, { color: colors.foreground }]}>
+                      {f.label}
+                    </Text>
+                    <Text style={[styles.privacyDesc, { color: colors.mutedForeground }]}>
+                      {f.desc}
+                    </Text>
+                    <View style={styles.triRow}>
+                      {PRIVACY_OPTIONS.map((opt) => {
+                        const active = privacyPrefs[f.key] === opt.value;
+                        return (
+                          <Pressable
+                            key={String(opt.value)}
+                            onPress={() => setPrivacyField(f.key, opt.value)}
+                            style={[
+                              styles.triOption,
+                              {
+                                backgroundColor: active ? colors.primary : "transparent",
+                                borderColor: active ? colors.primary : colors.border,
+                              },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.triOptionText,
+                                { color: active ? "#fff" : colors.mutedForeground },
+                              ]}
+                            >
+                              {opt.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))}
+                <View style={{ height: 8 }} />
+                <Button label="Save & continue" onPress={savePrivacy} loading={busy} />
+              </>
+            )}
+            <View style={{ height: 8 }} />
+            <Button
+              label="Skip for now"
+              variant="ghost"
+              onPress={skipPrivacy}
+              disabled={busy}
+            />
           </View>
         ) : null}
 
@@ -617,6 +830,24 @@ const styles = StyleSheet.create({
   h1: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 26, letterSpacing: -0.4 },
   h2: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 22, letterSpacing: -0.3 },
   sub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 15, lineHeight: 22 },
+  privacyCard: { borderWidth: 1, padding: 14, marginBottom: 12 },
+  privacyLabel: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 15 },
+  privacyDesc: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 10,
+    lineHeight: 16,
+  },
+  triRow: { flexDirection: "row", gap: 8 },
+  triOption: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  triOptionText: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 12 },
   bulletRow: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 12 },
   bulletNum: {
     width: 26,

@@ -90,6 +90,13 @@ export type OnboardingStatus = {
   email_verified: boolean;
   has_links: boolean;
   has_biolink: boolean;
+  // Which of the two OPTIONAL first-run stages the server still wants shown,
+  // derived from the SAME predicates the web onboarding stepper + redirect
+  // gate use. The setup flow (app/setup.tsx) builds its visible "Step X of Y"
+  // list from these flags so it can never promise (or hide) a stage that
+  // disagrees with web.
+  whatsapp_pending: boolean;
+  privacy_pending: boolean;
 };
 
 export async function getOnboardingStatus(): Promise<OnboardingStatus> {

@@ -27,3 +27,28 @@ fine. Using a real token also exercises the genuine auth + token-touch path.
 pre-existing API tests (e.g. `PendingThanksApiTest`) still use
 `Sanctum::actingAs` and 500 under this middleware — they are not a reliable
 baseline.
+
+## Guard memoization across multiple in-process requests
+
+When a single feature test fires **more than one** bearer-token request in the
+same process (e.g. mint a token → request → mutate state → mint a new token →
+request again), the auth manager memoizes the first resolved user. The second
+request silently re-authenticates the **previous** user and reads *its* state,
+even though you passed a fresh token — so assertions "stick" at the first
+request's values (the classic symptom: post-mutation reads look unchanged, and
+the payload exactly matches the earlier user's state).
+
+**Fix:** call `$this->app['auth']->forgetGuards();` immediately before each
+request (right after minting the token). Production is unaffected — every real
+HTTP request is a fresh process with an empty guard cache.
+
+**Debugging tip:** if a request's `$u->fresh()->settings` reads stale/null while
+a direct `$model->fresh()` in the test process sees the write, suspect this
+(wrong user resolved) before suspecting DB transaction/connection isolation —
+`DB_PERSISTENT` and read/write splitting are red herrings here.
+
+## Globally-unique phone identifiers
+
+`LinkedIdentifier` phone rows are globally unique — reusing one phone string
+across the several users a suite creates trips a unique-constraint violation on
+the second insert. Derive a distinct number per user (e.g. from `$user->id`).
