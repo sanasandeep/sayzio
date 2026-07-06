@@ -10,6 +10,8 @@ import {
   classifyScope,
   declaresOwnDocument,
   parseIncludes,
+  parseExtends,
+  parseComponents,
   includesThemeStyles,
   resolveReference,
   analyze,
@@ -161,6 +163,44 @@ describe("parseIncludes", () => {
   });
 });
 
+describe("parseExtends", () => {
+  it("resolves an @extends dot-view-name to a file-map key", () => {
+    expect(parseExtends("@extends('user.layouts.app')")).toEqual(["user/layouts/app.blade.php"]);
+  });
+
+  it("skips dynamic and namespaced layout names", () => {
+    expect(parseExtends("@extends($layout) @extends('pkg::layout')")).toEqual([]);
+  });
+
+  it("returns [] when there is no @extends", () => {
+    expect(parseExtends("@include('common.partials.theme-styles')")).toEqual([]);
+  });
+});
+
+describe("parseComponents", () => {
+  it("resolves an @component directive to a file-map key", () => {
+    expect(parseComponents("@component('components.card')")).toEqual(["components/card.blade.php"]);
+  });
+
+  it("resolves an <x-...> tag to the components/ directory", () => {
+    expect(parseComponents("<x-app-layout>")).toEqual(["components/app-layout.blade.php"]);
+  });
+
+  it("nests <x-forms.input> dots into sub-directories and keeps hyphens", () => {
+    expect(parseComponents("<x-forms.text-input :value='x' />")).toEqual([
+      "components/forms/text-input.blade.php",
+    ]);
+  });
+
+  it("skips namespaced package components", () => {
+    expect(parseComponents("<x-pkg::foo />")).toEqual([]);
+  });
+
+  it("skips <x-dynamic-component> (runtime :component target, not a static file)", () => {
+    expect(parseComponents("<x-dynamic-component :component=\"$name\" />")).toEqual([]);
+  });
+});
+
 describe("includesThemeStyles", () => {
   it("finds a direct @include of theme-styles", () => {
     const files = new Map([["user/auth/login.blade.php", "@include('common.partials.theme-styles')"]]);
@@ -176,10 +216,46 @@ describe("includesThemeStyles", () => {
     expect(includesThemeStyles("user/page.blade.php", files)).toBe(true);
   });
 
+  it("finds theme-styles reached through an @extends layout chain", () => {
+    const files = new Map([
+      ["user/page.blade.php", "@extends('user.layouts.app') @section('content')<div></div>@endsection"],
+      ["user/layouts/app.blade.php", "<head>@include('common.partials.theme-styles')</head>"],
+      [THEME_STYLES_VIEW_REL, ":root{--surface:#111;}"],
+    ]);
+    expect(includesThemeStyles("user/page.blade.php", files)).toBe(true);
+  });
+
+  it("finds theme-styles reached through a <x-...> component chain", () => {
+    const files = new Map([
+      ["user/page.blade.php", "<x-app-shell><div></div></x-app-shell>"],
+      ["components/app-shell.blade.php", "<head>@include('common.partials.theme-styles')</head>{{ $slot }}"],
+      [THEME_STYLES_VIEW_REL, ":root{--surface:#111;}"],
+    ]);
+    expect(includesThemeStyles("user/page.blade.php", files)).toBe(true);
+  });
+
+  it("finds theme-styles reached through an @component directive chain", () => {
+    const files = new Map([
+      ["user/page.blade.php", "@component('components.shell')@endcomponent"],
+      ["components/shell.blade.php", "@include('common.partials.theme-styles')"],
+      [THEME_STYLES_VIEW_REL, ":root{--surface:#111;}"],
+    ]);
+    expect(includesThemeStyles("user/page.blade.php", files)).toBe(true);
+  });
+
   it("is false when the page never includes theme-styles, and survives include cycles", () => {
     const files = new Map([
       ["user/a.blade.php", "@include('user.b')"],
       ["user/b.blade.php", "@include('user.a')"],
+    ]);
+    expect(includesThemeStyles("user/a.blade.php", files)).toBe(false);
+  });
+
+  it("survives @extends/component cycles without infinite recursion", () => {
+    const files = new Map([
+      ["user/a.blade.php", "@extends('user.b')"],
+      ["user/b.blade.php", "<x-a-comp />"],
+      ["components/a-comp.blade.php", "@extends('user.a')"],
     ]);
     expect(includesThemeStyles("user/a.blade.php", files)).toBe(false);
   });
@@ -284,6 +360,44 @@ describe("analyze — end to end over an in-memory file map", () => {
         "user/auth/login.blade.php",
         "<!DOCTYPE html><html><head>@include('common.partials.theme-styles')" +
           "<style>.a{color:var(--surface,#101014);}</style></head></html>",
+      ],
+      [THEME_STYLES_VIEW_REL, themeStylesSrc],
+    ]);
+    expect(analyze({ files, themeStylesSrc })).toEqual([]);
+  });
+
+  it("does NOT flag an app page that reaches theme-styles through an @extends layout chain", () => {
+    // The page ships its own <html> but does not @include theme-styles directly;
+    // it @extends a layout whose <head> pulls theme-styles in. Following the
+    // layout chain proves the token IS declared at render time.
+    const files = new Map([
+      [
+        "user/dashboard.blade.php",
+        "@extends('user.layouts.shell') @section('content')" +
+          "<div style='color:var(--surface,#101014);'></div>@endsection",
+      ],
+      [
+        "user/layouts/shell.blade.php",
+        "<!DOCTYPE html><html><head>@include('common.partials.theme-styles')</head>@yield('content')</html>",
+      ],
+      [THEME_STYLES_VIEW_REL, themeStylesSrc],
+    ]);
+    expect(analyze({ files, themeStylesSrc })).toEqual([]);
+  });
+
+  it("does NOT flag an app page that reaches theme-styles through a <x-...> component chain", () => {
+    // The page ships its own <html> and never @includes theme-styles; it wraps
+    // its body in a component whose <head> pulls theme-styles in. Following the
+    // component chain proves the token IS declared at render time.
+    const files = new Map([
+      [
+        "user/report.blade.php",
+        "<!DOCTYPE html><html><x-app-shell>" +
+          "<div style='color:var(--surface,#101014);'></div></x-app-shell></html>",
+      ],
+      [
+        "components/app-shell.blade.php",
+        "<head>@include('common.partials.theme-styles')</head>{{ $slot }}",
       ],
       [THEME_STYLES_VIEW_REL, themeStylesSrc],
     ]);

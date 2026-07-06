@@ -251,10 +251,80 @@ export function parseIncludes(src: string): string[] {
 }
 
 /**
- * Does `rel` pull in the theme-styles partial DIRECTLY or TRANSITIVELY through
- * its `@include` chain (following partials it includes)? Guards against include
- * cycles via `seen`. Missing include targets (dynamic/external) are simply not
- * followed.
+ * The Blade layout pulled in by an `@extends(...)` directive, returned as a
+ * file-map key (path relative to VIEWS_REL, `.blade.php` suffix):
+ * `@extends('user.layouts.app')` → `user/layouts/app.blade.php`. A page has at
+ * most one real layout, but the parser returns all string arguments it sees and
+ * skips dynamic (`$var`) / namespaced (`pkg::view`) names. Comments assumed
+ * stripped.
+ */
+export function parseExtends(src: string): string[] {
+  const out: string[] = [];
+  const re = /@extends\s*\(([^)]*)\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(src)) !== null) {
+    const args = m[1] as string;
+    const strRe = /['"]([^'"]+)['"]/g;
+    let s: RegExpExecArray | null;
+    while ((s = strRe.exec(args)) !== null) {
+      const view = (s[1] as string).trim();
+      if (!view || view.includes("$") || view.includes("::")) continue;
+      out.push(`${view.replace(/\./g, "/")}.blade.php`);
+    }
+  }
+  return out;
+}
+
+/**
+ * Every Blade COMPONENT target, returned as file-map keys (path relative to
+ * VIEWS_REL, `.blade.php` suffix). Two syntaxes:
+ *
+ *   - directive form `@component('components.card')` → `components/card.blade.php`
+ *     (dot-view-name, resolved exactly like `@include`).
+ *   - tag form `<x-app-layout>` → `components/app-layout.blade.php` and
+ *     `<x-forms.input>` → `components/forms/input.blade.php` (anonymous/class
+ *     components live under `resources/views/components/`; dots nest into
+ *     sub-directories, hyphens are kept).
+ *
+ * Namespaced package components (`<x-pkg::foo>`), Blade's `<x-dynamic-component>`
+ * (the target is a runtime `:component` expression, not a static file) and
+ * dynamic component names are skipped (not resolvable to a local file).
+ * Structural tags like `<x-slot>` map to a `components/slot.blade.php` key that
+ * simply isn't in the file map and so is never followed. Comments assumed
+ * stripped.
+ */
+export function parseComponents(src: string): string[] {
+  const out: string[] = [];
+
+  const dirRe = /@component\s*\(([^)]*)\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = dirRe.exec(src)) !== null) {
+    const args = m[1] as string;
+    const strRe = /['"]([^'"]+)['"]/g;
+    let s: RegExpExecArray | null;
+    while ((s = strRe.exec(args)) !== null) {
+      const view = (s[1] as string).trim();
+      if (!view || view.includes("$") || view.includes("::")) continue;
+      out.push(`${view.replace(/\./g, "/")}.blade.php`);
+    }
+  }
+
+  const tagRe = /<x-([A-Za-z0-9._:-]+)/g;
+  while ((m = tagRe.exec(src)) !== null) {
+    const name = m[1] as string;
+    if (!name || name.includes("::") || name === "dynamic-component") continue;
+    out.push(`components/${name.replace(/\./g, "/")}.blade.php`);
+  }
+
+  return out;
+}
+
+/**
+ * Does `rel` pull in the theme-styles partial DIRECTLY or TRANSITIVELY? Follows
+ * every layout/component composition edge a Blade page can use to reach a shared
+ * `<head>`: the `@include`-family chain, the `@extends` layout chain, and the
+ * `@component` / `<x-...>` component chains. Guards against cycles via `seen`.
+ * Missing targets (dynamic/external/namespaced) are simply not followed.
  */
 export function includesThemeStyles(
   rel: string,
@@ -265,10 +335,11 @@ export function includesThemeStyles(
   seen.add(rel);
   const raw = files.get(rel);
   if (raw === undefined) return false;
-  const includes = parseIncludes(stripComments(raw));
-  for (const inc of includes) {
-    if (inc === THEME_STYLES_VIEW_REL) return true;
-    if (includesThemeStyles(inc, files, seen)) return true;
+  const src = stripComments(raw);
+  const targets = [...parseIncludes(src), ...parseExtends(src), ...parseComponents(src)];
+  for (const t of targets) {
+    if (t === THEME_STYLES_VIEW_REL) return true;
+    if (includesThemeStyles(t, files, seen)) return true;
   }
   return false;
 }
