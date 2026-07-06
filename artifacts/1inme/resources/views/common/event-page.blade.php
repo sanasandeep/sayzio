@@ -249,6 +249,8 @@
             </div>
         </div>
 
+        @include('common.partials.event-connection-tips', ['compact' => true, 'theme' => 'dark'])
+
         @include('common.partials.link-type-pairings', ['pairingType' => 'ics', 'theme' => 'dark'])
 
         <footer class="ev-footer text-center mt-8 text-xs">

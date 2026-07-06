@@ -1404,6 +1404,49 @@ class SitePagesContent
     }
 
     /**
+     * "10x your connections" advice tips shown alongside events (marketing
+     * directory + public event page). Distinct from linkTypePairingsCatalog:
+     * pairings are factual cross-promo cards ("Add a Reviews Page"), these
+     * are encouraging, benefit-led coaching copy aimed at turning one-time
+     * attendees into lasting followers/contacts. Headline tips (link-in-bio,
+     * vCard) come first; keep to 2-4 cards so it never crowds event details.
+     * `type` maps through linkTypePairingCreateRoute() for the CTA link.
+     */
+    public static function eventConnectionTips(): array
+    {
+        return [
+            [
+                'type' => 'biolink',
+                'icon' => 'fa-square-share-nodes',
+                'title' => 'Drop your link-in-bio on the event',
+                'tip' => 'Guests who tap through leave following all your socials, not just having shown up once. One link, every channel.',
+                'cta' => 'Build your link-in-bio',
+            ],
+            [
+                'type' => 'vcf',
+                'icon' => 'fa-address-card',
+                'title' => 'Hand out a tap-to-save contact card',
+                'tip' => 'A vCard at check-in or the door turns a handshake into a saved contact — no typing, no lost business cards.',
+                'cta' => 'Create a contact card',
+            ],
+            [
+                'type' => 'calendar',
+                'icon' => 'fa-calendar-days',
+                'title' => 'Let people follow your whole calendar',
+                'tip' => 'Attendees who liked this event can subscribe to every future one you host, so you never have to re-market to them.',
+                'cta' => 'Set up your calendar',
+            ],
+            [
+                'type' => 'reviews',
+                'icon' => 'fa-star',
+                'title' => 'Collect reviews while it\'s fresh',
+                'tip' => 'The days right after an event are when guests are most excited to talk about it — capture that as public social proof.',
+                'cta' => 'Start a reviews page',
+            ],
+        ];
+    }
+
+    /**
      * Sanitise an admin-submitted home link-types list into the canonical
      * shape the public home page renders. Drops blank rows (no name and
      * no description), falls back to a safe icon/accent when missing, and
