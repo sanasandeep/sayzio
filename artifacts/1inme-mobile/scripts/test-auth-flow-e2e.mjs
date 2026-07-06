@@ -876,6 +876,285 @@ async function runGooglePairingHandoff(browser, googleBaseUrl) {
   }
 }
 
+// Prove the guest "Perfect pairings" -> signup handoff ALSO survives the email +
+// OTP sign-up. runGooglePairingHandoff proves it for the Google OAuth round-trip,
+// but email + OTP is the MORE COMMON mobile signup path (there is no separate
+// register screen — the OTP path is login+signup) AND a DIFFERENT login-
+// completion branch. A regression in redirectAfterAuth on the OTP verify path
+// would silently drop the brand-new creator in the generic signed-in tabs
+// instead of the type-specific create screen — quietly killing the guest->
+// creator conversion — and nothing catches it today.
+//
+// A guest on a public link-type page (here the restaurant menu) taps a biolink
+// pairing card, which stashes a short-lived, type-specific create path via
+// lib/authNext.ts and routes into /(auth). After the mocked email + OTP sign-in
+// completes, the OTP verify completion path must call redirectAfterAuth, landing
+// the new creator on /links/create/biolink — NOT the signed-in tabs.
+//
+// Runs on a FRESH guest context on the SAME already-booted main-flow
+// browser/server (the plain CORE variant — no Google bundle needed), so it costs
+// no extra Expo boot.
+async function runOtpPairingHandoff(browser, baseUrl) {
+  const context = await browser.newContext({
+    viewport: { width: 400, height: 720 },
+  });
+  try {
+    // Mark onboarding complete + ensure signed out before any page script runs,
+    // so the intro splash doesn't sit between the /(auth) push and the login
+    // screen and the card renders its guest "Sign up to create" CTA (proving
+    // we're signed out and looking at the conversion surface).
+    await context.addInitScript(() => {
+      try {
+        window.localStorage.setItem("1inme.onboarding.complete", "1");
+        window.localStorage.removeItem("1inme.auth.token");
+        window.localStorage.removeItem("1inme.auth.user");
+      } catch {}
+    });
+
+    const page = await context.newPage();
+    let pageError = null;
+    page.on("pageerror", (e) => {
+      pageError = e.message;
+      log("OTP pairing pageerror:", e.message);
+    });
+    page.setDefaultTimeout(STEP_TIMEOUT_MS);
+    page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+
+    const sendReq = { req: null };
+    const verifyReq = { req: null };
+
+    // Fulfill the OTP send so no real code is dispatched and production is
+    // never hit.
+    await context.route("**/api/v1/auth/otp/send", async (route) => {
+      const req = route.request();
+      sendReq.req = {
+        url: req.url(),
+        method: req.method(),
+        body: req.postData(),
+      };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: { sent: true } }),
+      });
+    });
+
+    // Fulfill the OTP verify with a {data:{token,user}} envelope so the sign-in
+    // completes with no backend, exactly as the main flow's OTP step does.
+    await context.route("**/api/v1/auth/otp/verify", async (route) => {
+      const req = route.request();
+      verifyReq.req = {
+        url: req.url(),
+        method: req.method(),
+        body: req.postData(),
+      };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            token: MOCK_TOKEN,
+            user: {
+              id: 87,
+              display_name: "OTP Pairing Guest",
+              email: EMAIL,
+            },
+          },
+        }),
+      });
+    });
+
+    // Serve the public restaurant page's data WITH a single biolink "Perfect
+    // pairings" card, so the guest has a real card to tap (mirrors
+    // runGooglePairingHandoff).
+    await context.route("**/api/v1/restaurant/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            menu: {
+              mode: "display",
+              currency: "USD",
+              accent_color: null,
+              order_enabled: false,
+              tax: { enabled: false, rate: 0, inclusive: false, label: "" },
+            },
+            link: { alias: "pairing-otp-e2e", title: "Pairing OTP E2E Menu" },
+            table: null,
+            categories: [],
+            pairings: [
+              {
+                name: "Biolink page",
+                type: "biolink",
+                icon: "fa-grid",
+                benefit: "Turn one scan into your whole world.",
+              },
+            ],
+          },
+        }),
+      });
+    });
+
+    // Catch-all: benign {data:[]} for everything else so post-nav React Query
+    // calls settle. Defer the specific handlers above (Playwright runs route
+    // handlers most-recently-registered first, so this catch-all — added last —
+    // sees each request first and falls back for the paths it owns).
+    await context.route("**/api/**", (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (
+        /\/api\/v1\/auth\/otp\/(send|verify)$/.test(path) ||
+        /\/api\/v1\/restaurant\//.test(path)
+      ) {
+        return route.fallback();
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: [] }),
+      });
+    });
+
+    // Navigate to the public restaurant page. Nav hardening mirrors the other
+    // flows: on a shared box a transient connection error means Metro couldn't
+    // stay serveable → best-effort SKIP (exit 0), never a hard fail. The server
+    // already served the main flow, so a NON-transient error here is a real
+    // regression and propagates.
+    const url = `${baseUrl.replace(/\/$/, "")}/restaurant/pairing-otp-e2e`;
+    const TRANSIENT_NAV =
+      /ERR_CONNECTION_RESET|ERR_EMPTY_RESPONSE|ERR_CONNECTION_REFUSED|ERR_CONNECTION_CLOSED|ERR_NETWORK_CHANGED|Timeout \d+ms exceeded/;
+    const NAV_ATTEMPTS = 4;
+    let navErr;
+    for (let attempt = 1; attempt <= NAV_ATTEMPTS; attempt++) {
+      try {
+        await page.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: NAV_TIMEOUT_MS,
+        });
+        await page.waitForFunction(
+          () => document.body && document.body.innerText.trim().length > 0,
+          null,
+          { timeout: NAV_TIMEOUT_MS },
+        );
+        navErr = undefined;
+        break;
+      } catch (e) {
+        navErr = e;
+        if (TRANSIENT_NAV.test(e?.message ?? "") && attempt < NAV_ATTEMPTS) {
+          log(
+            `OTP pairing: nav attempt ${attempt}/${NAV_ATTEMPTS} hit a ` +
+              `transient connection error (${e?.message ?? "unknown"}); retrying`,
+          );
+          await new Promise((r) => setTimeout(r, 3000));
+          continue;
+        }
+        break;
+      }
+    }
+    if (navErr) {
+      if (TRANSIENT_NAV.test(navErr?.message ?? "")) {
+        await context.close().catch(() => {});
+        skip(
+          `OTP pairing: could not reach ${url} ` +
+            `(${navErr?.message ?? "unknown error"}). Is it running?`,
+        );
+        return;
+      }
+      throw navErr;
+    }
+
+    // The guest's biolink pairing card must render and be tappable. Its
+    // accessibility label is the guest CTA ("Sign up to create ..."), which
+    // proves we're signed out and looking at the conversion surface.
+    const card = page
+      .locator('[aria-label="Sign up to create Biolink page"]')
+      .first();
+    await card.waitFor({ timeout: STEP_TIMEOUT_MS });
+    log("OTP pairing: guest sees the biolink 'Perfect pairings' card");
+    await card.click();
+
+    // Tapping stashes the post-auth create path and routes into /(auth); the
+    // email field being present proves we reached the login screen.
+    const emailField = page.getByPlaceholder("you@example.com");
+    await emailField.waitFor({ timeout: STEP_TIMEOUT_MS });
+    log("OTP pairing: card tap routed the guest into /(auth)");
+
+    if (pageError) {
+      fail(`OTP pairing: the page reported a runtime error: ${pageError}`);
+    }
+
+    // Drive the email + OTP sign-in for real (round-trip mocked).
+    await emailField.fill(EMAIL);
+    const sendBtn = page.getByText("Send code", { exact: true });
+    await sendBtn.waitFor({ timeout: STEP_TIMEOUT_MS });
+    await sendBtn.click();
+    log('OTP pairing: typed email and clicked "Send code"');
+
+    await page
+      .getByText("Check your inbox", { exact: false })
+      .waitFor({ timeout: STEP_TIMEOUT_MS });
+
+    const codeField = page.getByPlaceholder("123456");
+    await codeField.waitFor({ timeout: STEP_TIMEOUT_MS });
+    await codeField.fill(CODE);
+    const verifyBtn = page.getByText("Verify and sign in", { exact: true });
+    await verifyBtn.waitFor({ timeout: STEP_TIMEOUT_MS });
+    await verifyBtn.click();
+    log('OTP pairing: typed code and clicked "Verify and sign in"');
+
+    // THE PROOF: after the OTP sign-in, redirectAfterAuth must land on the
+    // stashed type-specific create screen, not the signed-in tabs. Assert both
+    // the URL and the create screen's own copy so a header-only match can't
+    // fool us (identical proof to runGooglePairingHandoff, different auth path).
+    await page.waitForFunction(
+      () => location.pathname.includes("/links/create/biolink"),
+      null,
+      { timeout: STEP_TIMEOUT_MS },
+    );
+    await page
+      .getByText("A multi-block landing page for your bio.", { exact: false })
+      .waitFor({ timeout: STEP_TIMEOUT_MS });
+
+    // The sign-in must actually have round-tripped through OTP send + verify
+    // (not a stale/leftover session): assert the intercepted requests fired and
+    // the verify body carried the identifier/type/code the app should send.
+    if (!sendReq.req) {
+      fail("OTP pairing: sign-in never POSTed to /api/v1/auth/otp/send");
+    }
+    if (!verifyReq.req) {
+      fail("OTP pairing: sign-in never POSTed to /api/v1/auth/otp/verify");
+    }
+    let vbody;
+    try {
+      vbody = JSON.parse(verifyReq.req.body ?? "null");
+    } catch {
+      fail(
+        `OTP pairing: otp/verify body was not valid JSON: ${verifyReq.req.body}`,
+      );
+    }
+    if (
+      vbody?.identifier !== EMAIL ||
+      vbody?.type !== "email" ||
+      vbody?.code !== CODE
+    ) {
+      fail(
+        "OTP pairing: otp/verify body must be " +
+          `{ identifier:"${EMAIL}", type:"email", code:"${CODE}" }, ` +
+          `got ${JSON.stringify(vbody)}`,
+      );
+    }
+
+    log(
+      "OTP pairing PASS: a guest tapped a 'Perfect pairings' card, was stashed " +
+        "a post-auth path and routed into /(auth), completed the mocked email + " +
+        "OTP sign-in, and landed on /links/create/biolink — the pairing-to-" +
+        "signup handoff survives the email OTP sign-up path too.",
+    );
+  } finally {
+    await context.close().catch(() => {});
+  }
+}
+
 // Drive the Google-enabled variant against an already-acquired server (booted
 // in parallel by the orchestrator, or reused via GOOGLE_APP_URL). The server's
 // bundle must have EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID baked in for the Google
@@ -2079,11 +2358,20 @@ async function main(server) {
       await runWebProviderErrorPath(page, social, webOauth, id, label, failureMode);
     }
 
+    // -----------------------------------------------------------------
+    // Step 9: the guest "Perfect pairings" -> signup handoff must ALSO
+    // survive the email + OTP sign-up (the more common mobile signup
+    // path, and a different login-completion branch than Google OAuth).
+    // Runs on a FRESH guest context on this same already-booted server,
+    // so it needs no Google bundle and no extra Expo boot.
+    // -----------------------------------------------------------------
+    await runOtpPairingHandoff(browser, appBaseUrl);
+
     log(
       "PASS: social buttons, demo logins, OTP sign-in, the OAuth deep-link " +
         "return (browser + native-SDK legs), every web-browser provider's " +
-        "full sign-in, and every web-browser provider's failure path all " +
-        "behave correctly.",
+        "full sign-in, every web-browser provider's failure path, and the " +
+        "guest pairing -> email-OTP signup handoff all behave correctly.",
     );
   } finally {
     await browser.close();
