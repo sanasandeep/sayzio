@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Leads')
+@section('title', 'Subscribers')
 
 @push('styles')
     {{-- Reuse the exact bento command-center look from the Dashboard. --}}
@@ -34,8 +34,8 @@
                     <span class="hero-chip"><i class="fas fa-circle text-emerald-400" style="font-size:6px;"></i> {{ number_format($stats['active']) }} active</span>
                     @if($__wa)<span class="hero-chip"><i class="fab fa-whatsapp"></i> {{ number_format($__wa) }} WhatsApp</span>@endif
                 </div>
-                <h1 class="hero-title gradient-text truncate" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">Leads</h1>
-                <p class="hero-subtitle">Manage your email &amp; WhatsApp leads.</p>
+                <h1 class="hero-title gradient-text truncate" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">Subscribers</h1>
+                <p class="hero-subtitle">Manage your email &amp; WhatsApp subscribers.</p>
                 <div class="flex items-center gap-2 flex-wrap mt-4">
                     @if($__canCreate)
                     <a href="{{ route('user.subscribers.compose') }}" class="btn-primary text-xs py-2">

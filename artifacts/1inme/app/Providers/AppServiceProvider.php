@@ -134,6 +134,14 @@ class AppServiceProvider extends ServiceProvider
             \App\Modules\Common\Services\ContactsFollowUpsBadgeComposer::class
         );
 
+        // Share the pending-lead count with the sidebar Leads nav entry so
+        // the badge reflects the review queue without every controller
+        // wiring it up (Task #3728).
+        \Illuminate\Support\Facades\View::composer(
+            \App\Modules\Common\Services\LeadsBadgeComposer::VIEWS,
+            \App\Modules\Common\Services\LeadsBadgeComposer::class
+        );
+
         // Feed 2-3 featured upcoming events to the reusable events-hero promo
         // band included from the marketing site layout, so pages showing the
         // band always have fresh data without each controller wiring it up.

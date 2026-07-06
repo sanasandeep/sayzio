@@ -24,19 +24,25 @@ class PushLeadToCrmJob implements ShouldQueue
     public int $timeout = 60;
 
     /**
-     * Defer dispatch until the surrounding DB transaction commits so a
-     * contact-based push always reloads a fully-persisted record (its
-     * emails/phones are written after the Contact row in every capture path).
-     */
-    public bool $afterCommit = true;
-
-    /**
      * @param array<string,mixed> $lead normalized lead payload (used directly
      *   for subscriber/form captures). When $contactId is given the lead is
      *   built lazily from the fresh Contact + its emails/phones in handle().
      */
     public function __construct(private int $userId, private array $lead = [], private ?int $contactId = null)
     {
+        // Defer dispatch until the surrounding DB transaction commits so a
+        // contact-based push always reloads a fully-persisted record (its
+        // emails/phones are written after the Contact row in every capture
+        // path). Set via the trait's own setter rather than redeclaring the
+        // $afterCommit property here: {@see \Illuminate\Bus\Queueable}
+        // declares it with NO default value, and re-declaring it with a
+        // different default (`= true`) is a fatal "incompatible property
+        // definition" error under PHP 8.3+'s stricter trait-property
+        // composition checks — that crashed every Contact/Subscriber/form
+        // capture path dispatching this job (pre-existing bug, not
+        // introduced by the Leads feature, but it blocked Leads' own
+        // approve-into-Contact flow).
+        $this->afterCommit();
     }
 
     public function handle(CrmSyncService $sync): void

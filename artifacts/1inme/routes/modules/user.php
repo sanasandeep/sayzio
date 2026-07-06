@@ -23,6 +23,7 @@ use App\Modules\User\Controllers\PlanManagementController;
 use App\Modules\User\Controllers\SubscriberController;
 use App\Modules\User\Controllers\InboxController;
 use App\Modules\User\Controllers\ContactController;
+use App\Modules\User\Controllers\LeadController;
 use App\Modules\User\Controllers\GoogleContactsAccountController;
 use App\Modules\User\Controllers\DialerController;
 use App\Modules\User\Controllers\VerificationController;
@@ -1347,6 +1348,19 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('contacts/google/callback',              [GoogleContactsAccountController::class, 'callback'])->middleware('workspace.can:settings.edit')->name('contacts.google.callback');
         Route::post('contacts/google/{account}/sync',       [GoogleContactsAccountController::class, 'syncNow'])->middleware('workspace.can:settings.edit')->name('contacts.google.sync');
         Route::delete('contacts/google/{account}',          [GoogleContactsAccountController::class, 'destroy'])->middleware('workspace.can:settings.edit')->name('contacts.google.destroy');
+
+        // ===== Leads review queue (Task #3728) =====
+        // Aggregates captured people from RSVPs/forms/subscribers/orders/
+        // bookings/reviews/event-interest into a workspace-scoped queue the
+        // owner reviews and approves into Contacts (or dismisses). Approve
+        // is plan-cap-gated the same as manual contact creation — enforced
+        // inside LeadApprover (not via CheckPlanLimit here) because a lead
+        // that dedupes into an *existing* contact must not be blocked by
+        // the cap the way a brand-new contact would be.
+        Route::get('leads',            [LeadController::class, 'index'])->middleware('workspace.can:settings.view')->name('leads.index');
+        Route::post('leads/approve',   [LeadController::class, 'approve'])->middleware('workspace.can:settings.edit')->name('leads.approve');
+        Route::post('leads/dismiss',   [LeadController::class, 'dismiss'])->middleware('workspace.can:settings.edit')->name('leads.dismiss');
+        Route::post('leads/bulk',      [LeadController::class, 'bulk'])->middleware('workspace.can:settings.edit')->name('leads.bulk');
 
         // Connected Apps (CRM two-way sync + Google Analytics forwarding).
         // Plan-gated on the `connected_apps` feature key; the public OAuth

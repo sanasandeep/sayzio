@@ -22,11 +22,11 @@
     <div class="grid grid-cols-2 gap-3 mb-6">
         <div class="glass rounded-2xl p-4 text-center">
             <div class="text-2xl font-bold text-blue-400">{{ number_format($stats['email']) }}</div>
-            <div class="text-xs mt-1" style="color: var(--text-muted);">Email Leads</div>
+            <div class="text-xs mt-1" style="color: var(--text-muted);">Email Subscribers</div>
         </div>
         <div class="glass rounded-2xl p-4 text-center">
             <div class="text-2xl font-bold" style="color: #25D366;">{{ number_format($stats['whatsapp_number']) }}</div>
-            <div class="text-xs mt-1" style="color: var(--text-muted);">WhatsApp Leads</div>
+            <div class="text-xs mt-1" style="color: var(--text-muted);">WhatsApp Subscribers</div>
         </div>
     </div>
 
