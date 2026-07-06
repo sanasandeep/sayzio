@@ -1246,16 +1246,54 @@
                         }
                         $__hdrLow = !$__hdrWalletEnabled || ($__hdrThreshold > 0 && $__hdrCoins < $__hdrThreshold);
                     @endphp
-                    <a href="{{ route('user.wallet.show') }}"
-                       class="header-icon-btn relative"
-                       data-wallet-threshold="{{ $__hdrThreshold }}"
-                       title="Coin balance: {{ number_format($__hdrCoins) }}{{ $__hdrWalletEnabled ? '' : ' (wallet disabled)' }}"
-                       aria-label="Coin wallet balance">
-                        <i class="fas fa-coins" style="font-size: 12px;"></i>
-                        <span data-wallet-badge
-                              class="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] px-1 inline-flex items-center justify-center rounded-full text-[9px] font-bold leading-none text-white {{ $__hdrLow ? 'bg-red-500' : 'bg-emerald-500' }}"
-                              title="{{ number_format($__hdrCoins) }} coins">{{ $__hdrCoins >= 1000 ? round($__hdrCoins / 1000, 1) . 'k' : $__hdrCoins }}</span>
-                    </a>
+                    @php
+                        $__hdrTransactions = collect();
+                        if ($__hdrWalletEnabled) {
+                            $__hdrTransactions = $__hdrWallet->transactions()->limit(5)->get();
+                        }
+                    @endphp
+                    <div x-data="{ open: false }" class="relative">
+                        <button type="button"
+                                @click="open = !open"
+                                class="header-icon-btn relative flex"
+                                data-wallet-threshold="{{ $__hdrThreshold }}"
+                                title="Coin balance: {{ number_format($__hdrCoins) }}{{ $__hdrWalletEnabled ? '' : ' (wallet disabled)' }}"
+                                aria-label="Coin wallet balance">
+                            <i class="fas fa-coins" style="font-size: 12px;"></i>
+                            <span data-wallet-badge
+                                  class="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] px-1 inline-flex items-center justify-center rounded-full text-[9px] font-bold leading-none text-white {{ $__hdrLow ? 'bg-red-500' : 'bg-emerald-500' }}"
+                                  title="{{ number_format($__hdrCoins) }} coins">{{ $__hdrCoins >= 1000 ? round($__hdrCoins / 1000, 1) . 'k' : $__hdrCoins }}</span>
+                        </button>
+                        <div x-show="open" @click.away="open = false" x-cloak x-transition
+                             class="absolute right-0 mt-2 w-72 rounded-xl py-2 z-50" style="background: var(--bg-sidebar); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
+                            <div class="px-3.5 pb-2 flex items-center justify-between" style="border-bottom: 1px solid var(--border-subtle);">
+                                <span class="text-xs font-semibold" style="color: var(--text-primary);">Coin activity</span>
+                                <span class="text-xs" style="color: var(--text-muted);">{{ number_format($__hdrCoins) }} coins</span>
+                            </div>
+                            @if(!$__hdrWalletEnabled)
+                                <p class="px-3.5 py-3 text-xs" style="color: var(--text-muted);">Wallet is currently disabled by your admin.</p>
+                            @elseif($__hdrTransactions->isEmpty())
+                                <p class="px-3.5 py-3 text-xs" style="color: var(--text-muted);">No transactions yet.</p>
+                            @else
+                                <div class="max-h-64 overflow-y-auto">
+                                    @foreach($__hdrTransactions as $__hdrTx)
+                                        <div class="px-3.5 py-2 flex items-start justify-between gap-2">
+                                            <div class="min-w-0">
+                                                <p class="text-xs truncate" style="color: var(--text-primary);">{{ $__hdrTx->reason ?? ucfirst($__hdrTx->type) }}</p>
+                                                <p class="text-[10px]" style="color: var(--text-muted);">{{ $__hdrTx->created_at->diffForHumans() }}</p>
+                                            </div>
+                                            <span class="text-xs font-semibold whitespace-nowrap {{ $__hdrTx->delta_coins >= 0 ? 'text-emerald-400' : 'text-red-400' }}">
+                                                {{ $__hdrTx->delta_coins >= 0 ? '+' : '' }}{{ number_format($__hdrTx->delta_coins) }}
+                                            </span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                            <div class="px-3.5 pt-2 mt-1" style="border-top: 1px solid var(--border-subtle);">
+                                <a href="{{ route('user.wallet.show') }}" class="text-xs font-medium text-blue-400 hover:underline">View wallet &rarr;</a>
+                            </div>
+                        </div>
+                    </div>
 
                     @php $__headerUnread = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count(); @endphp
                     <a href="{{ route('user.notifications.index') }}" class="header-icon-btn hidden sm:flex {{ request()->routeIs('user.notifications.*') ? 'active' : '' }}" title="Notifications">
