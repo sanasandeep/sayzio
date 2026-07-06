@@ -89,7 +89,7 @@ $schemaTables = $manifest['tables'];
  *    ]
  * ----------------------------------------------------------------------------
  */
-$registry = buildFactoryRegistry($root, $schemaTables);
+$registry = buildFactoryRegistry(factoryScanDirs($root), $schemaTables);
 
 if ($registry === []) {
     fwrite(STDERR, "No usable model factories found under database/factories/.\n"
@@ -255,83 +255,137 @@ exit(1);
  * a model that overrides `$table` is honoured. The intentionally-dropped keys
  * are read from an optional `DROPPED_LEGACY_ATTRIBUTES` class constant.
  *
+ * @param array<int,string> $factoryDirs directories to scan for factories
  * @param array<string,array<int,string>> $schemaTables table => columns
  * @return array<string,array{model:string,factory:string,table:?string,allowed:array<string,true>,columns:int,dropped:array<int,string>}>
  */
-function buildFactoryRegistry(string $root, array $schemaTables): array
+function buildFactoryRegistry(array $factoryDirs, array $schemaTables): array
 {
-    $dir = $root . '/database/factories';
-    if (! is_dir($dir)) {
-        return [];
-    }
-
     $registry = [];
 
-    $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
-    );
-
-    foreach ($iterator as $file) {
-        if (! $file->isFile() || strtolower($file->getExtension()) !== 'php') {
+    foreach ($factoryDirs as $dir) {
+        if (! is_dir($dir)) {
             continue;
         }
 
-        $class = factoryClassFromFile($file->getPathname());
-        if ($class === null || ! class_exists($class)) {
-            continue;
-        }
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
+        );
 
-        $ref = new ReflectionClass($class);
-        if ($ref->isAbstract() || ! $ref->isSubclassOf(\Illuminate\Database\Eloquent\Factories\Factory::class)) {
-            continue;
-        }
-
-        // Resolve the model FQCN from the factory's $model default.
-        $modelClass = factoryModelClass($ref);
-        if ($modelClass === null || ! class_exists($modelClass)) {
-            continue;
-        }
-
-        $short = classBasename($modelClass);
-
-        // Resolve the real table + columns for the model, DB-free.
-        $table   = resolveModelTable($modelClass);
-        $columns = ($table !== null && isset($schemaTables[$table])) ? $schemaTables[$table] : [];
-
-        // Read the factory's intentionally-dropped legacy attribute allowlist.
-        $dropped = [];
-        if ($ref->hasConstant('DROPPED_LEGACY_ATTRIBUTES')) {
-            $value = $ref->getConstant('DROPPED_LEGACY_ATTRIBUTES');
-            if (is_array($value)) {
-                foreach ($value as $key) {
-                    if (is_string($key) && $key !== '') {
-                        $dropped[] = $key;
-                    }
-                }
+        foreach ($iterator as $file) {
+            if (! $file->isFile() || strtolower($file->getExtension()) !== 'php') {
+                continue;
             }
+
+            registerFactoryFromFile($file->getPathname(), $schemaTables, $registry);
         }
-
-        $allowed = array_fill_keys($columns, true) + array_fill_keys($dropped, true);
-
-        // If two factories map to the same short name (unusual), keep the one
-        // that resolved a table so the guard never silently loses coverage.
-        if (isset($registry[$short]) && $registry[$short]['table'] !== null && $table === null) {
-            continue;
-        }
-
-        $registry[$short] = [
-            'model'   => $modelClass,
-            'factory' => $class,
-            'table'   => $columns === [] ? $table : $table, // keep for reporting either way
-            'allowed' => $allowed,
-            'columns' => count($columns),
-            'dropped' => $dropped,
-        ];
     }
 
     ksort($registry);
 
     return $registry;
+}
+
+/**
+ * Resolve the list of directories to scan for factories.
+ *
+ * Always includes the canonical `database/factories/`. Additional directories
+ * may be appended via the `CHECK_FACTORY_COLUMNS_EXTRA_FACTORY_DIRS` env var
+ * (`:`- or `,`-separated absolute paths). This is the seam the guard's own
+ * regression test uses to feed it a throwaway fixture factory and prove the
+ * discovery path is not hard-coded to `User` — nothing in normal CI sets it.
+ *
+ * @return array<int,string>
+ */
+function factoryScanDirs(string $root): array
+{
+    $dirs = [$root . '/database/factories'];
+
+    $extra = getenv('CHECK_FACTORY_COLUMNS_EXTRA_FACTORY_DIRS');
+    if (is_string($extra) && $extra !== '') {
+        foreach (preg_split('/[:,]/', $extra) as $dir) {
+            $dir = trim((string) $dir);
+            if ($dir !== '') {
+                $dirs[] = $dir;
+            }
+        }
+    }
+
+    return $dirs;
+}
+
+/**
+ * Parse a single factory file and, if it is a concrete Eloquent factory whose
+ * model resolves, add/refresh its entry in $registry (keyed by model short
+ * name). Factories in the canonical directory autoload; fixture factories fed
+ * via {@see factoryScanDirs()} live outside the PSR-4 root, so the file is
+ * required on demand before reflecting on the class.
+ *
+ * @param array<string,array<int,string>> $schemaTables table => columns
+ * @param array<string,array{model:string,factory:string,table:?string,allowed:array<string,true>,columns:int,dropped:array<int,string>}> $registry
+ */
+function registerFactoryFromFile(string $path, array $schemaTables, array &$registry): void
+{
+    $class = factoryClassFromFile($path);
+    if ($class === null) {
+        return;
+    }
+
+    // Canonical factories autoload; a fixture factory outside the PSR-4 root
+    // does not, so require it on demand before reflecting.
+    if (! class_exists($class)) {
+        require_once $path;
+    }
+    if (! class_exists($class, false)) {
+        return;
+    }
+
+    $ref = new ReflectionClass($class);
+    if ($ref->isAbstract() || ! $ref->isSubclassOf(\Illuminate\Database\Eloquent\Factories\Factory::class)) {
+        return;
+    }
+
+    // Resolve the model FQCN from the factory's $model default.
+    $modelClass = factoryModelClass($ref);
+    if ($modelClass === null || ! class_exists($modelClass)) {
+        return;
+    }
+
+    $short = classBasename($modelClass);
+
+    // Resolve the real table + columns for the model, DB-free.
+    $table   = resolveModelTable($modelClass);
+    $columns = ($table !== null && isset($schemaTables[$table])) ? $schemaTables[$table] : [];
+
+    // Read the factory's intentionally-dropped legacy attribute allowlist.
+    $dropped = [];
+    if ($ref->hasConstant('DROPPED_LEGACY_ATTRIBUTES')) {
+        $value = $ref->getConstant('DROPPED_LEGACY_ATTRIBUTES');
+        if (is_array($value)) {
+            foreach ($value as $key) {
+                if (is_string($key) && $key !== '') {
+                    $dropped[] = $key;
+                }
+            }
+        }
+    }
+
+    $allowed = array_fill_keys($columns, true) + array_fill_keys($dropped, true);
+
+    // If two factories map to the same short name (unusual), keep the one
+    // that resolved a table so the guard never silently loses coverage.
+    if (isset($registry[$short]) && $registry[$short]['table'] !== null && $table === null) {
+        return;
+    }
+
+    $registry[$short] = [
+        'model'   => $modelClass,
+        'factory' => $class,
+        'table'   => $table, // real table name (null only when unresolved)
+        'allowed' => $allowed,
+        'columns' => count($columns),
+        'dropped' => $dropped,
+    ];
 }
 
 /**
