@@ -1,5 +1,5 @@
 <div x-data="themeToggle()" class="flex items-center">
-    <button @click="toggle()" type="button" class="header-icon-btn" :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'" :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'">
+    <button @click="toggle()" type="button" class="header-icon-btn flex" :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'" :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'">
         <i :class="isDark ? 'fas fa-moon' : 'fas fa-sun'"></i>
     </button>
 </div>

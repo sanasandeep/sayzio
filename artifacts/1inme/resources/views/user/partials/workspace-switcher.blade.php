@@ -13,12 +13,12 @@
             style="color: var(--text-primary);"
             :class="sidebarMode === 'icons' ? 'justify-center' : ''">
         <div class="flex items-center gap-2 min-w-0">
-            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-semibold"
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold flex-shrink-0"
                  style="background:{{ $currentWs->iconColor() }}; color:#fff;"
-                 title="{{ $currentWs->is_personal ? 'Personal workspace' : 'Team workspace' }}">
-                <i class="fas {{ $currentWs->iconSymbol() }} text-[10px]"></i>
+                 title="{{ $currentWs->is_personal ? 'Personal workspace' : 'Team workspace' }} — {{ $currentWs->name }}">
+                <i class="fas {{ $currentWs->iconSymbol() }} text-[11px]"></i>
             </div>
-            <div class="user-info min-w-0 text-left">
+            <div class="user-info min-w-0 text-left" x-show="sidebarMode !== 'icons'" x-cloak>
                 <div class="truncate text-sm font-semibold flex items-center gap-1.5">
                     <span class="truncate">{{ $currentWs->name }}</span>
                     <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex-shrink-0"
@@ -35,7 +35,7 @@
                 </div>
             </div>
         </div>
-        <i class="fas fa-chevron-down text-xs opacity-60 user-info"></i>
+        <i class="fas fa-chevron-down text-xs opacity-60 user-info" x-show="sidebarMode !== 'icons'" x-cloak></i>
     </button>
 
     <div x-show="open" @click.outside="open=false" x-cloak

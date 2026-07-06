@@ -201,7 +201,6 @@
             width: 36px;
             height: 36px;
             border-radius: 11px;
-            display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.25s ease;
@@ -1183,7 +1182,7 @@
                 <div class="header-glow"></div>
 
                 <div class="flex items-center gap-3 min-w-0">
-                    <button @click="mobileMenu = !mobileMenu" class="lg:hidden header-icon-btn flex-shrink-0" style="width: 34px; height: 34px;">
+                    <button @click="mobileMenu = !mobileMenu" class="flex lg:hidden header-icon-btn flex-shrink-0" style="width: 34px; height: 34px;">
                         <i class="fas fa-bars" style="font-size: 13px;"></i>
                     </button>
 
@@ -1270,7 +1269,7 @@
                     </a>
 
                     <div x-data="{ open: false }" class="relative lg:hidden">
-                        <button @click="open = !open" class="header-icon-btn">
+                        <button @click="open = !open" class="header-icon-btn flex">
                             <i class="fas fa-ellipsis-v text-xs"></i>
                         </button>
                         <div x-show="open" @click.away="open = false" x-cloak x-transition
