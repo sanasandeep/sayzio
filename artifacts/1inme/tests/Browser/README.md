@@ -65,7 +65,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   header-desktop-logged-out-cta.spec.ts \
   dialer-live-sync.spec.ts \
   store-coming-soon-modal.spec.ts \
-  ai-dashboard-demo-perf.spec.ts
+  ai-dashboard-demo-perf.spec.ts \
+  event-rsvp-light-readability.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -117,7 +118,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these twenty-six specs are gated (and not the whole suite)
+### Why these twenty-eight specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -411,6 +412,24 @@ The gate covers the specs that run reliably as an unattended check here:
   forces `reducedMotion:"reduce"` and asserts the static fallback: zero demo
   timers are created, the tiles render at full opacity, and the typewriter caret
   is hidden.
+- `event-rsvp-light-readability.spec.ts` — self-bootstrapping: seeds a demo host
+  (with a filled organizer profile) plus three RSVP-available `ics` events via
+  `php artisan tinker` so both recommendation sections populate. Guards the two
+  PUBLIC event surfaces that share the same Blade partials on OPPOSITE themes —
+  the light Bootstrap RSVP page (`common/rsvp-form.blade.php`) and the dark-glass
+  event page (`common/event-page.blade.php`, `.ev-rich` override wrapper,
+  toggleable into light mode). Both include `event-rich-content` (hashtags /
+  Interested widget / Similar-events / More-from-this-host) and `event-host-card`
+  ("Hosted by"). For each surface it first asserts those key text surfaces are
+  PRESENT, then runs an in-page WCAG-contrast scan: for every visible element
+  that owns direct text it composites the text colour over its real, walked-up
+  background (skipping elements sitting on a gradient/image, which can't reduce
+  to one colour) and fails if any ratio drops below a "not near-invisible" floor
+  (2.0). It covers the RSVP page (light Bootstrap), the event page in its default
+  dark mode, AND the event page after flipping the `html.light-mode` class — so a
+  colour fix for one theme can't silently wash text out on the other. This is the
+  rendered-contrast complement to the static `event-light-mode` gate (which only
+  checks that each base `.ev-rich` rule HAS a light-mode pair).
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
