@@ -15,6 +15,7 @@ import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useCooldown } from "@/hooks/useCooldown";
+import { redirectAfterAuth } from "@/lib/authNext";
 import type { ApiError } from "@/lib/api";
 import { verifyBackupCode } from "@/lib/api/security";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
@@ -86,7 +87,7 @@ export default function Verify() {
       } else {
         await verifyOtp({ channel, identifier, code: code.trim() });
       }
-      router.replace("/(tabs)");
+      await redirectAfterAuth(router);
       maybeOfferBiometricEnrollment(auth);
     } catch (e) {
       const err = e as ApiError;

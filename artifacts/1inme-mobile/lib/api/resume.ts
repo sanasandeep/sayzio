@@ -1,5 +1,6 @@
 import { apiFetch, getBaseUrl, MOBILE_USER_AGENT } from "@/lib/api";
 import { getToken } from "@/lib/secure";
+import { type LinkTypePairing } from "@/lib/linkPairings";
 
 export type ResumeSectionType =
   | "experience"
@@ -133,6 +134,8 @@ export type ResumeBundle = {
     templates: ResumeTemplate[];
     color_themes: ResumeColorTheme[];
   };
+  /** Cross-promo "Perfect pairings" cards from the shared SitePagesContent catalog. */
+  pairings?: LinkTypePairing[];
 };
 
 /**

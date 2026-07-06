@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 
+import { LinkTypePairings } from "@/components/LinkTypePairings";
 import { useColors } from "@/hooks/useColors";
 import {
   getReviews,
@@ -635,6 +636,7 @@ export function ReviewsWall({
               ))}
             </View>
           )}
+          <LinkTypePairings pairings={q.data.pairings} theme="dark" />
         </>
       ) : null}
 

@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Common\Services\LinkTrackingService;
+use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
@@ -166,6 +167,7 @@ class BiolinkController extends Controller
             'blocks' => $blocks,
             'slides' => $slidesPayload,
             'ab_test' => $abInfo,
+            'pairings' => SitePagesContent::linkTypePairingsFor('biolink'),
         ]);
     }
 

@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Common\Services\StoreOrderService;
+use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\StoreCategory;
@@ -76,6 +77,7 @@ class StoreController extends Controller
                 'alias' => $link->alias,
                 'title' => $link->title,
             ],
+            'pairings' => SitePagesContent::linkTypePairingsFor('store_menu'),
             'categories' => $menu->categories->map(fn ($c) => [
                 'id'          => $c->id,
                 'name'        => $c->name,

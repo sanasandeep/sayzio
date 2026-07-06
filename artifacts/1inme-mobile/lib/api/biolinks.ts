@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { apiFetch } from "@/lib/api";
+import { type LinkTypePairing } from "@/lib/linkPairings";
 
 export type BiolinkFormMeta = {
   id: number;
@@ -95,6 +96,8 @@ export type BiolinkPayload = {
   // but it can use it to show a "you're seeing variant B" badge in the
   // owner's preview.
   ab_test?: BiolinkAbTestInfo | null;
+  /** Cross-promo "Perfect pairings" cards from the shared SitePagesContent catalog. */
+  pairings?: LinkTypePairing[];
 };
 
 // Best-effort slide-view ping. Mirrors the web's /sl/{alias}/view ping

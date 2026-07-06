@@ -28,6 +28,7 @@ import Animated, {
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { LinkTypePairings } from "@/components/LinkTypePairings";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
@@ -544,6 +545,8 @@ function ResumeEditor({
       <Text style={[styles.hint, { color: colors.mutedForeground }]}>
         Custom sections are still managed on the web editor.
       </Text>
+
+      <LinkTypePairings pairings={bundle.pairings} theme="light" />
 
       <PublishSheet
         visible={showPublish}

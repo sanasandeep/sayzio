@@ -6,6 +6,7 @@ use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeSectionItem;
 use App\Modules\User\Models\UserFile;
+use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\User\Services\ResumeColorThemeRegistry;
 use App\Modules\User\Services\ResumePresenter;
 use App\Modules\User\Services\ResumeTemplateRegistry;
@@ -46,6 +47,7 @@ class ResumeController extends Controller
                 'templates'    => ResumeTemplateRegistry::availableFor($user),
                 'color_themes' => ResumeColorThemeRegistry::all(),
             ],
+            'pairings' => SitePagesContent::linkTypePairingsFor('resume'),
         ]);
     }
 

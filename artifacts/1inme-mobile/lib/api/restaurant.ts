@@ -1,5 +1,6 @@
 import { apiFetch, getBaseUrl, MOBILE_USER_AGENT } from "@/lib/api";
 import { getToken } from "@/lib/secure";
+import { type LinkTypePairing } from "@/lib/linkPairings";
 
 export type RestaurantMenuItem = {
   id: number;
@@ -35,6 +36,8 @@ export type RestaurantMenu = {
   link: { alias: string; title: string | null };
   table: { code: string; label: string } | null;
   categories: RestaurantMenuCategory[];
+  /** Cross-promo "Perfect pairings" cards from the shared SitePagesContent catalog. */
+  pairings?: LinkTypePairing[];
 };
 
 /** Itemised estimated-bill breakdown shared by quote + order snapshots. */

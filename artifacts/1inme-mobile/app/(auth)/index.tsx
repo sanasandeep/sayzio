@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 // required by expo-auth-session for the Google provider on Android.
 WebBrowser.maybeCompleteAuthSession();
 import { useColors } from "@/hooks/useColors";
+import { redirectAfterAuth } from "@/lib/authNext";
 import { getBaseUrl, getConfiguredBaseUrl } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
 import { getAuthConfig, isAllowedCountryCode } from "@/lib/api/authConfig";
@@ -132,8 +133,8 @@ export default function AuthLanding() {
     const idToken = googleResponse.params?.id_token;
     if (!idToken) return;
     socialLogin({ provider: "google", id_token: idToken })
-      .then(() => {
-        router.replace("/(tabs)");
+      .then(async () => {
+        await redirectAfterAuth(router);
         maybeOfferBiometricEnrollment(auth);
       })
       .catch((e: ApiError) => {
@@ -262,7 +263,7 @@ export default function AuthLanding() {
     setError(null);
     try {
       await demoLogin(role === "user" ? "user" : "super_admin");
-      router.replace("/(tabs)");
+      await redirectAfterAuth(router);
       maybeOfferBiometricEnrollment(auth);
     } catch (e) {
       setError((e as ApiError)?.message ?? "Demo unavailable");

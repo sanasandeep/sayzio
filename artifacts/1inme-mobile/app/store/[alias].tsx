@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LinkTypePairings } from "@/components/LinkTypePairings";
 import { useColors } from "@/hooks/useColors";
 import {
   getStore,
@@ -265,6 +266,8 @@ export default function StoreScreen() {
             </View>
           </View>
         ) : null}
+
+        <LinkTypePairings pairings={menu?.pairings} theme="light" />
       </ScrollView>
 
       {canOrder && cartCount > 0 ? (

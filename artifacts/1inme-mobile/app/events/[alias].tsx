@@ -15,6 +15,7 @@ import {
 } from "react-native";
 
 import { EmbedModal } from "@/components/EmbedModal";
+import { LinkTypePairings } from "@/components/LinkTypePairings";
 import { useColors } from "@/hooks/useColors";
 import {
   buyEventTicket,
@@ -390,6 +391,7 @@ export default function EventDetailScreen() {
         title="RSVP"
         onClose={() => setRsvpModalUrl(null)}
       />
+      <LinkTypePairings pairings={event?.pairings} theme="dark" />
     </ScrollView>
   );
 }

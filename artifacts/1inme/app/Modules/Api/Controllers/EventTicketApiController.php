@@ -7,6 +7,7 @@ use App\Modules\User\Models\EventTicket;
 use App\Modules\User\Models\EventTicketTier;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Workspace;
+use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\User\Support\EventCategories;
 use App\Services\Monetization\MonetizationCheckout;
 use Illuminate\Http\Request;
@@ -110,7 +111,9 @@ class EventTicketApiController extends Controller
         $link = Link::where('alias', $alias)->where('type', 'ics')->with(['icsData', 'user', 'eventTicketTiers'])->first();
         if (!$link) return $this->notFound('Event not found.');
 
-        return $this->ok($this->eventShape($link, includeAllTiers: true));
+        return $this->ok($this->eventShape($link, includeAllTiers: true) + [
+            'pairings' => SitePagesContent::linkTypePairingsFor('ics'),
+        ]);
     }
 
     // ─── Buy + ticket lookup ───────────────────────────────────────

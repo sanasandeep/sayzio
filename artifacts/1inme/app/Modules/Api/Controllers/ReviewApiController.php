@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Common\Controllers\ReviewSubmissionController;
+use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\User\Controllers\ReviewsController;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
@@ -168,6 +169,7 @@ class ReviewApiController extends Controller
         return $this->ok([
             'reviews' => $items,
             'summary' => app(ReviewSummaryService::class)->summary((int) $link->user_id, (int) $link->id, $source, (array) ($settings['providers'] ?? [])),
+            'pairings' => SitePagesContent::linkTypePairingsFor('reviews'),
         ]);
     }
 

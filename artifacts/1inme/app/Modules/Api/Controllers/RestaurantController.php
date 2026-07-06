@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Common\Services\RestaurantOrderService;
+use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\RestaurantMenu;
@@ -81,6 +82,7 @@ class RestaurantController extends Controller
                 'title' => $link->title,
             ],
             'table' => $table ? ['code' => $table->code, 'label' => $table->label] : null,
+            'pairings' => SitePagesContent::linkTypePairingsFor('restaurant_menu'),
             'categories' => $menu->categories->map(fn ($c) => [
                 'id'          => $c->id,
                 'name'        => $c->name,

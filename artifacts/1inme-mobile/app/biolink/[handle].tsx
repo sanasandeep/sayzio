@@ -44,6 +44,7 @@ import {
 } from "@/components/BlockListPreview";
 import { BrandWordmark } from "@/components/Brand";
 import { EmbedModal } from "@/components/EmbedModal";
+import { LinkTypePairings } from "@/components/LinkTypePairings";
 import { ReviewsWall } from "@/components/ReviewsWall";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -3178,6 +3179,11 @@ export default function BiolinkViewer() {
                 <BlockView key={b.id} block={b} alias={alias} allBlocks={q.data.blocks} openEmbed={openEmbed} />
               ))}
           </View>
+          <LinkTypePairings
+            pairings={q.data.pairings}
+            theme="biolink"
+            fontColor={colors.foreground}
+          />
         </ScrollView>
       )}
 

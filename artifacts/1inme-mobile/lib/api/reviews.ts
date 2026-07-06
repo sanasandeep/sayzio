@@ -1,5 +1,6 @@
 import { apiFetch, getBaseUrl, MOBILE_USER_AGENT, type ApiError } from "@/lib/api";
 import { getToken } from "@/lib/secure";
+import { type LinkTypePairing } from "@/lib/linkPairings";
 
 // Mirrors the public reviews REST surface documented in
 // artifacts/1inme/docs/api.md (Reviews section):
@@ -48,6 +49,8 @@ export type ReviewSummary = {
 export type ReviewFeed = {
   reviews: Review[];
   summary: ReviewSummary;
+  /** Cross-promo "Perfect pairings" cards from the shared SitePagesContent catalog. */
+  pairings?: LinkTypePairing[];
 };
 
 export type ReviewSource = "native" | "external" | "both";

@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { apiFetch } from "@/lib/api";
+import { type LinkTypePairing } from "@/lib/linkPairings";
 
 export type EventTier = {
   id: number;
@@ -82,6 +83,8 @@ export type EventItem = {
   not_interested_count: number;
   organizer: EventOrganizer | null;
   same_host_events: EventHostEvent[];
+  /** Cross-promo "Perfect pairings" cards from the shared SitePagesContent catalog. */
+  pairings?: LinkTypePairing[];
 };
 
 export type EventTicket = {
