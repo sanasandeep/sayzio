@@ -10,6 +10,12 @@
     $hasPin = !$isOnline && $ics && $ics->latitude !== null && $ics->longitude !== null;
     $metaDescription = \Illuminate\Support\Str::limit($ics->description ?? $link->title, 180);
 
+    // Host/organizer card is rendered in the right column below (Task #3731);
+    // compute it here so it's available outside event-rich-content, which is
+    // told to skip its own copy via `hideHostCard`.
+    $host = $link->relationLoaded('user') ? $link->user : $link->user()->first();
+    $organizer = $host ? $host->organizerProfile() : null;
+
     $shareTitle = $link->title;
     $shareDescription = $metaDescription;
     $shareImage = $ics->cover_image_url ?? null;
@@ -88,6 +94,30 @@
     html.light-mode .ev-rich a.border:hover { background: rgba(15,23,42,0.05); border-color: rgba(61,107,255,0.4) !important; }
     html.light-mode .ev-rich .btn-outline-secondary { color: rgba(15,23,42,0.65); border-color: rgba(15,23,42,0.18); }
     html.light-mode .ev-rich .btn-outline-secondary:hover { background: rgba(15,23,42,0.06); color:#111827; }
+
+    /* Light-mode overrides for the "10x your connections" tips and the
+       "Perfect pairings" cross-promo — both partials bake their colors as
+       inline styles for the dark theme they're included with here, so
+       override with !important instead of restyling the shared partials
+       (which are also reused elsewhere with their own theme prop). This
+       mirrors the .ev-rich pattern above and also applies live when the
+       theme is toggled client-side without a reload (Task #3731). */
+    html.light-mode .ev-connection-tips { color: #111827 !important; }
+    html.light-mode .ev-connection-tips > div:first-child > span:first-child { color: #3d6bff !important; }
+    html.light-mode .ev-connection-tips > div:first-child > p { color: rgba(17,24,39,.62) !important; }
+    html.light-mode .ev-connection-tip-card { background: linear-gradient(180deg, rgba(61,107,255,.05), rgba(255,255,255,0)) !important; border-color: rgba(61,107,255,.16) !important; }
+    html.light-mode .ev-connection-tip-card > span:first-child { background: rgba(61,107,255,.1) !important; }
+    html.light-mode .ev-connection-tip-card > span:first-child i { color: #3d6bff !important; }
+    html.light-mode .ev-connection-tip-card > span:nth-child(3) { color: rgba(17,24,39,.62) !important; }
+    html.light-mode .ev-connection-tip-card > span:last-child { color: #3d6bff !important; }
+
+    html.light-mode .ltp-pairings { color: #111827 !important; }
+    html.light-mode .ltp-pairings > div > a { background: #ffffff !important; border-color: rgba(0,0,0,.08) !important; }
+    html.light-mode .ltp-pairings > div > a > span:first-child { background: rgba(61,107,255,.1) !important; }
+    html.light-mode .ltp-pairings > div > a > span:first-child i { color: #3d6bff !important; }
+    html.light-mode .ltp-pairings > div > a > span:last-child > span:nth-child(2) { color: rgba(17,24,39,.62) !important; }
+    html.light-mode .ltp-pairings > div > a > span:last-child > span:nth-child(3) { color: #3d6bff !important; }
+    html.light-mode .ltp-pairings > p { color: rgba(17,24,39,.62) !important; }
 </style>
 @endpush
 
@@ -154,16 +184,12 @@
                             <p class="mt-4 text-sm ev-desc whitespace-pre-line leading-relaxed">{{ $ics->description }}</p>
                         @endif
 
-                        {{-- Cover/gallery/info sections, hashtags, Interested widget, similar/host events --}}
+                        {{-- Cover/gallery/info sections, hashtags, Interested widget, similar/host events.
+                             The host/organizer card is rendered separately in the right column
+                             below, so it isn't duplicated here (Task #3731). --}}
                         <div class="ev-rich mt-5">
-                            @include('common.partials.event-rich-content', ['link' => $link, 'similarEvents' => $similarEvents ?? collect(), 'sameHostEvents' => $sameHostEvents ?? collect(), 'interestCounts' => $interestCounts ?? []])
+                            @include('common.partials.event-rich-content', ['link' => $link, 'similarEvents' => $similarEvents ?? collect(), 'sameHostEvents' => $sameHostEvents ?? collect(), 'interestCounts' => $interestCounts ?? [], 'hideHostCard' => true])
                         </div>
-
-                        @if($hasPin)
-                            <div class="mt-6">
-                                <div id="ev-map" data-lat="{{ $ics->latitude }}" data-lng="{{ $ics->longitude }}" data-label="{{ $link->title }}"></div>
-                            </div>
-                        @endif
                     </div>
 
                     {{-- Sticky CTA column --}}
@@ -243,6 +269,18 @@
                                     <i class="fas fa-plus"></i> Create your own event
                                 </a>
                             </div>
+
+                            @if($host)
+                                <div class="ev-rich ev-card p-4 mt-4">
+                                    @include('common.partials.event-host-card', ['host' => $host, 'organizer' => $organizer])
+                                </div>
+                            @endif
+
+                            @if($hasPin)
+                                <div class="ev-card p-2 mt-4">
+                                    <div id="ev-map" data-lat="{{ $ics->latitude }}" data-lng="{{ $ics->longitude }}" data-label="{{ $link->title }}"></div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
