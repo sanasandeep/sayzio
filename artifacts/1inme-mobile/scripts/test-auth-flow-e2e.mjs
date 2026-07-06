@@ -565,6 +565,317 @@ async function runGoogleSuccessPath(page, social, googleAuth) {
   );
 }
 
+// Prove the guest "Perfect pairings" -> signup handoff survives the full Google
+// OAuth round-trip end to end. A guest on a public link-type page (here the
+// restaurant menu) taps a pairing card, which stashes a short-lived, type-
+// specific create path via lib/authNext.ts and routes into /(auth). After the
+// mocked Google sign-in completes, app/(auth)/index.tsx's googleResponse effect
+// must call redirectAfterAuth, landing the brand-new creator on that exact
+// create screen (/links/create/biolink) — NOT the generic signed-in tabs the
+// runGoogleSuccessPath test above proves. A regression in the stash, the
+// consume, or any completion path silently drops the new user in the wrong
+// place and quietly kills the guest->creator conversion.
+//
+// test-auth-next.mjs already pins this handoff's LOGIC by source-replay; this is
+// the one place the whole chain (real card tap -> real AsyncStorage stash ->
+// real Google hook -> real redirectAfterAuth) runs against the actual app.
+//
+// Runs on a FRESH guest context on the SAME already-booted Google-enabled
+// browser/server as runGoogleVariant, so it costs no extra Expo boot.
+async function runGooglePairingHandoff(browser, googleBaseUrl) {
+  const context = await browser.newContext({
+    viewport: { width: 400, height: 720 },
+  });
+  try {
+    // Guests haven't onboarded, but the intro splash must not sit between the
+    // /(auth) push and the login screen. Mark onboarding complete before any
+    // page script runs (this also keeps us signed OUT — no token seeded — so
+    // the card renders its guest "Sign up to create" CTA, not the logged-in one).
+    await context.addInitScript(() => {
+      try {
+        window.localStorage.setItem("1inme.onboarding.complete", "1");
+        window.localStorage.removeItem("1inme.auth.token");
+        window.localStorage.removeItem("1inme.auth.user");
+      } catch {}
+    });
+
+    const page = await context.newPage();
+    let pageError = null;
+    page.on("pageerror", (e) => {
+      pageError = e.message;
+      log("Google pairing pageerror:", e.message);
+    });
+    page.setDefaultTimeout(STEP_TIMEOUT_MS);
+    page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+
+    const social = { req: null };
+    const googleAuth = { req: null };
+
+    // Fulfill the social-login POST so the Google sign-in completes with no
+    // backend, exactly as in runGoogleVariant.
+    await context.route("**/api/v1/auth/social", async (route) => {
+      const req = route.request();
+      social.req = {
+        url: req.url(),
+        method: req.method(),
+        body: req.postData(),
+      };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            token: MOCK_TOKEN,
+            user: {
+              id: 88,
+              display_name: "Pairing Guest",
+              email: "pairing@example.com",
+            },
+          },
+        }),
+      });
+    });
+
+    // Serve the public restaurant page's data WITH a single biolink "Perfect
+    // pairings" card, so the guest has a real card to tap. The payload mirrors
+    // the RestaurantMenu shape (lib/api/restaurant.ts); categories are empty
+    // (the page still renders the pairings module below them).
+    await context.route("**/api/v1/restaurant/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            menu: {
+              mode: "display",
+              currency: "USD",
+              accent_color: null,
+              order_enabled: false,
+              tax: { enabled: false, rate: 0, inclusive: false, label: "" },
+            },
+            link: { alias: "pairing-e2e", title: "Pairing E2E Menu" },
+            table: null,
+            categories: [],
+            pairings: [
+              {
+                name: "Biolink page",
+                type: "biolink",
+                icon: "fa-grid",
+                benefit: "Turn one scan into your whole world.",
+              },
+            ],
+          },
+        }),
+      });
+    });
+
+    // Catch-all: benign {data:[]} for everything else so post-nav React Query
+    // calls settle. Defer the two specific handlers above (Playwright runs
+    // route handlers most-recently-registered first, so this catch-all — added
+    // last — sees each request first and falls back for the paths it owns).
+    await context.route("**/api/**", (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (
+        /\/api\/v1\/auth\/social$/.test(path) ||
+        /\/api\/v1\/restaurant\//.test(path)
+      ) {
+        return route.fallback();
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: [] }),
+      });
+    });
+
+    // Mock Google's authorization endpoint (identical to runGoogleVariant):
+    // record the request, then bounce the popup back to redirect_uri carrying a
+    // mock id_token + the original state.
+    await context.route(
+      /accounts\.google\.com\/o\/oauth2\/v2\/auth/,
+      async (route) => {
+        const u = new URL(route.request().url());
+        googleAuth.req = {
+          clientId: u.searchParams.get("client_id"),
+          responseType: u.searchParams.get("response_type"),
+          redirectUri: u.searchParams.get("redirect_uri"),
+          state: u.searchParams.get("state"),
+        };
+        const dest =
+          `${googleAuth.req.redirectUri}` +
+          `#id_token=${encodeURIComponent(MOCK_ID_TOKEN)}` +
+          `&state=${encodeURIComponent(googleAuth.req.state ?? "")}`;
+        await route.fulfill({
+          status: 200,
+          contentType: "text/html",
+          body:
+            `<!doctype html><meta charset="utf-8">` +
+            `<script>location.replace(${JSON.stringify(dest)})</script>`,
+        });
+      },
+    );
+
+    // Same-origin popup completion shim (identical to runGoogleVariant): post
+    // the redirect result back to the opener like expo-web-browser does.
+    page.on("popup", (popup) => {
+      popup
+        .route("**/*", async (route) => {
+          const req = route.request();
+          const u = req.url();
+          if (/accounts\.google\.com/.test(u)) return route.fallback();
+          if (req.resourceType() !== "document") return route.abort();
+          await route.fulfill({
+            status: 200,
+            contentType: "text/html",
+            body:
+              `<!doctype html><meta charset="utf-8"><script>` +
+              `try{` +
+              `var h=window.localStorage.getItem('ExpoWebBrowserRedirectHandle');` +
+              `if(window.opener)window.opener.postMessage(` +
+              `{url:window.location.href,expoSender:h},window.location.origin);` +
+              `}catch(e){}` +
+              `</script>`,
+          });
+        })
+        .catch((e) =>
+          log("Google pairing: popup route wiring failed:", e?.message ?? e),
+        );
+    });
+
+    // Navigate to the public restaurant page. Nav hardening mirrors the main
+    // flows: on a shared box a transient connection error means Metro couldn't
+    // stay serveable → best-effort SKIP (exit 0), never a hard fail. The server
+    // already served the main variant, so a NON-transient error here is a real
+    // regression and propagates.
+    const url = `${googleBaseUrl.replace(/\/$/, "")}/restaurant/pairing-e2e`;
+    const TRANSIENT_NAV =
+      /ERR_CONNECTION_RESET|ERR_EMPTY_RESPONSE|ERR_CONNECTION_REFUSED|ERR_CONNECTION_CLOSED|ERR_NETWORK_CHANGED|Timeout \d+ms exceeded/;
+    const NAV_ATTEMPTS = 4;
+    let navErr;
+    for (let attempt = 1; attempt <= NAV_ATTEMPTS; attempt++) {
+      try {
+        await page.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: NAV_TIMEOUT_MS,
+        });
+        await page.waitForFunction(
+          () => document.body && document.body.innerText.trim().length > 0,
+          null,
+          { timeout: NAV_TIMEOUT_MS },
+        );
+        navErr = undefined;
+        break;
+      } catch (e) {
+        navErr = e;
+        if (TRANSIENT_NAV.test(e?.message ?? "") && attempt < NAV_ATTEMPTS) {
+          log(
+            `Google pairing: nav attempt ${attempt}/${NAV_ATTEMPTS} hit a ` +
+              `transient connection error (${e?.message ?? "unknown"}); retrying`,
+          );
+          await new Promise((r) => setTimeout(r, 3000));
+          continue;
+        }
+        break;
+      }
+    }
+    if (navErr) {
+      if (TRANSIENT_NAV.test(navErr?.message ?? "")) {
+        await context.close().catch(() => {});
+        skip(
+          `Google pairing: could not reach ${url} ` +
+            `(${navErr?.message ?? "unknown error"}). Is it running?`,
+        );
+        return;
+      }
+      throw navErr;
+    }
+
+    // The guest's biolink pairing card must render and be tappable. Its
+    // accessibility label is the guest CTA ("Sign up to create ..."), which
+    // proves we're signed out and looking at the conversion surface.
+    const card = page
+      .locator('[aria-label="Sign up to create Biolink page"]')
+      .first();
+    await card.waitFor({ timeout: STEP_TIMEOUT_MS });
+    log("Google pairing: guest sees the biolink 'Perfect pairings' card");
+    await card.click();
+
+    // Tapping stashes the post-auth create path and routes into /(auth); the
+    // Google button being present there proves we reached the login screen.
+    const gbtn = page.locator('[aria-label="Continue with Google"]').first();
+    await gbtn.waitFor({ timeout: STEP_TIMEOUT_MS });
+    log(
+      "Google pairing: card tap routed the guest into /(auth) with Google enabled",
+    );
+
+    if (pageError) {
+      fail(`Google pairing: the page reported a runtime error: ${pageError}`);
+    }
+
+    // Drive the Google sign-in for real (round-trip mocked).
+    const [popup] = await Promise.all([
+      page.waitForEvent("popup", { timeout: STEP_TIMEOUT_MS }),
+      gbtn.click(),
+    ]);
+    log("Google pairing: tapped the Google button; OAuth popup opened");
+
+    // THE PROOF: after sign-in, redirectAfterAuth must land on the stashed
+    // type-specific create screen, not the signed-in tabs. Assert both the URL
+    // and the create screen's own copy so a header-only match can't fool us.
+    await page.waitForFunction(
+      () => location.pathname.includes("/links/create/biolink"),
+      null,
+      { timeout: STEP_TIMEOUT_MS },
+    );
+    await page
+      .getByText("A multi-block landing page for your bio.", { exact: false })
+      .waitFor({ timeout: STEP_TIMEOUT_MS });
+
+    // Close the popup now that it has handed the result back.
+    await popup.close().catch(() => {});
+
+    // The sign-in must actually have round-tripped through Google + /auth/social
+    // (not a stale/leftover session): assert the intercepted requests' shapes,
+    // mirroring runGoogleSuccessPath.
+    if (!googleAuth.req) {
+      fail("Google pairing: the Google authorization endpoint was never hit");
+    }
+    if (googleAuth.req.clientId !== GOOGLE_VARIANT_WEB_CLIENT_ID) {
+      fail(
+        "Google pairing: the auth request used the wrong client_id " +
+          `(${googleAuth.req.clientId})`,
+      );
+    }
+    if (!social.req) {
+      fail("Google pairing: sign-in never POSTed to /api/v1/auth/social");
+    }
+    let body;
+    try {
+      body = JSON.parse(social.req.body ?? "null");
+    } catch {
+      fail(
+        `Google pairing: auth/social body was not valid JSON: ${social.req.body}`,
+      );
+    }
+    if (body?.provider !== "google" || body?.id_token !== MOCK_ID_TOKEN) {
+      fail(
+        "Google pairing: auth/social body must be " +
+          `{ provider:"google", id_token:"${MOCK_ID_TOKEN}" }, ` +
+          `got ${JSON.stringify(body)}`,
+      );
+    }
+
+    log(
+      "Google pairing PASS: a guest tapped a 'Perfect pairings' card, was " +
+        "stashed a post-auth path and routed into /(auth), completed the mocked " +
+        "Google sign-in, and landed on /links/create/biolink — the pairing-to-" +
+        "signup handoff survives the full OAuth round-trip.",
+    );
+  } finally {
+    await context.close().catch(() => {});
+  }
+}
+
 // Drive the Google-enabled variant against an already-acquired server (booted
 // in parallel by the orchestrator, or reused via GOOGLE_APP_URL). The server's
 // bundle must have EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID baked in for the Google
@@ -784,6 +1095,10 @@ async function runGoogleVariant(server) {
           "login screen mounts, and the full Google sign-in completes through " +
           "POST /api/v1/auth/social into the signed-in tabs.",
       );
+
+      // Reuse this booted Google-enabled server/browser to prove the guest
+      // "Perfect pairings" -> signup handoff survives the same OAuth round-trip.
+      await runGooglePairingHandoff(browser, googleBaseUrl);
     } finally {
       await browser.close();
     }
