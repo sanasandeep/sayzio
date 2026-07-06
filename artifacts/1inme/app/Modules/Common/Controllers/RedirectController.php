@@ -1074,7 +1074,7 @@ class RedirectController extends Controller
             ->where('user_id', $link->user_id)
             ->where('is_active', true)
             ->where('visibility', 'public')
-            ->with('icsData');
+            ->with(['icsData', 'eventTicketTiers' => fn ($q) => $q->where('is_active', true)]);
 
         $sameHostEvents = $sameHostBase()
             ->whereHas('icsData', fn ($w) => $w->where('start_date', '>=', now()->subDay()))
@@ -1115,7 +1115,7 @@ class RedirectController extends Controller
                 ->where('id', '!=', $link->id)
                 ->where('is_active', true)
                 ->where('visibility', 'public')
-                ->with('icsData')
+                ->with(['icsData', 'eventTicketTiers' => fn ($q) => $q->where('is_active', true)])
                 ->whereHas('icsData', function ($w) use ($likes) {
                     $w->where(function ($or) use ($likes) {
                         foreach ($likes as $like) {
@@ -1138,7 +1138,7 @@ class RedirectController extends Controller
                     ->where('id', '!=', $link->id)
                     ->where('is_active', true)
                     ->where('visibility', 'public')
-                    ->with('icsData')
+                    ->with(['icsData', 'eventTicketTiers' => fn ($q) => $q->where('is_active', true)])
                     ->where(function ($or) use ($category, $location) {
                         if ($category) $or->orWhereRaw("settings->>'event_category' = ?", [$category]);
                         if ($location) $or->orWhereHas('icsData', fn ($w) => $w->where('location', $location));

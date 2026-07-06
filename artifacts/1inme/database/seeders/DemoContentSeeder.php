@@ -58,6 +58,29 @@ class DemoContentSeeder extends Seeder
             $user->forceFill(['is_demo' => true])->save();
         }
 
+        // Task #3768 — populate a rich organizer profile so demo event
+        // pages render the full "Hosted by" card (logo/bio/website/contact/
+        // socials) instead of the bare avatar+name fallback. Idempotent:
+        // only writes when the profile isn't already filled in, so a
+        // real admin edit to the demo account's organizer profile sticks.
+        if (! ($user->organizerProfile()['filled'] ?? false)) {
+            $user->organizer_profile = [
+                'logo'          => 'https://picsum.photos/seed/demo-organizer/200/200',
+                'name'          => 'Demo Events Co.',
+                'description'   => 'We host community meetups, workshops, and pop-up experiences around the city — come say hi!',
+                'website'       => 'https://1in.me',
+                'contact_name'  => 'Demo User',
+                'contact_email' => 'demo@1inme.com',
+                'contact_phone' => '+1 (555) 010-0100',
+                'address'       => 'San Francisco, CA',
+                'socials'       => [
+                    'instagram' => '@demoeventsco',
+                    'twitter'   => '@demoeventsco',
+                ],
+            ];
+            $user->save();
+        }
+
         $this->wipePreviousDemoContent();
 
         $personalWs = $user->ensureDefaultWorkspace();
