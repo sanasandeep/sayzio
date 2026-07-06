@@ -16,7 +16,9 @@ import {
 import { Button } from "@/components/Button";
 import { MapPickerModal, type PickedPoint } from "@/components/MapPickerModal";
 import { TextField } from "@/components/TextField";
+import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
 import { useColors } from "@/hooks/useColors";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import {
   createCalendarEvent,
   deleteCalendarEvent,
@@ -25,7 +27,7 @@ import {
   type CalendarEventInput,
   type CalendarEventItem,
 } from "@/lib/api/calendars";
-import { handlePlanLockedError } from "@/lib/upgradePrompt";
+import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -70,6 +72,7 @@ function splitIso(iso: string | null, tz: string): { date: string; time: string 
 export default function CalendarEventScreen() {
   const colors = useColors();
   const qc = useQueryClient();
+  const plan = usePlanFeatures();
   const params = useLocalSearchParams<{ calendar?: string; id?: string }>();
   const calendarId = params.calendar ? Number(params.calendar) : NaN;
   const eventId = params.id ? Number(params.id) : null;
@@ -81,6 +84,20 @@ export default function CalendarEventScreen() {
     queryFn: () => getCalendar(calendarId, { past: true }),
     enabled: Number.isFinite(calendarId),
   });
+
+  // Proactively lock NEW event creation when this calendar has exhausted the
+  // current plan's per-calendar event allowance (`max_calendar_events`), so an
+  // owner sees an upgrade affordance instead of filling in the whole form and
+  // only getting bounced by the server 402. The server counts events per
+  // calendar (`$cal->events()->count() >= $cap`), so we compare the cap against
+  // THIS calendar's `events_count`. Editing an existing event is never gated
+  // (it adds nothing), and everything fails OPEN — the count defaults to 0
+  // until the calendar loads and `isQuotaReached` returns false until plan data
+  // resolves, so we never block an owner who still has room.
+  const eventsUsed = calQ.data?.calendar.events_count ?? 0;
+  const createLocked =
+    !isEdit && plan.isQuotaReached("max_calendar_events", eventsUsed);
+  const eventCap = plan.numericLimit("max_calendar_events");
 
   const existing: CalendarEventItem | undefined = useMemo(
     () =>
@@ -246,6 +263,49 @@ export default function CalendarEventScreen() {
           </Text>
           <Button label="Go back" variant="outline" onPress={() => router.back()} />
         </View>
+      </View>
+    );
+  }
+
+  if (createLocked) {
+    const message =
+      eventCap != null && eventCap >= 0
+        ? `You've reached the ${eventCap}-event limit for this calendar on your current plan. Upgrade to add more events.`
+        : "You've reached this calendar's event limit on your current plan. Upgrade to add more events.";
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <Stack.Screen options={{ title: "New event", headerBackTitle: "Back" }} />
+        <ScrollView
+          contentContainerStyle={{ padding: 20, gap: 18 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View
+            style={[
+              styles.lockCard,
+              {
+                backgroundColor: colors.primary + "12",
+                borderColor: colors.primary + "44",
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <View style={styles.lockHead}>
+              <View
+                style={[styles.lockIcon, { backgroundColor: colors.primary + "26" }]}
+              >
+                <Feather name="calendar" size={20} color={colors.primary} />
+              </View>
+              <UpgradeLockBadge />
+            </View>
+            <Text style={[styles.lockTitle, { color: colors.foreground }]}>
+              Event limit reached
+            </Text>
+            <Text style={[styles.lockBody, { color: colors.mutedForeground }]}>
+              {message}
+            </Text>
+            <Button label="See plans" onPress={() => showUpgradePrompt({ message })} />
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -456,4 +516,19 @@ const styles = StyleSheet.create({
   mapBtnText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
   clearPin: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 2 },
   clearPinText: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12 },
+  lockCard: { gap: 12, padding: 18, borderWidth: 1 },
+  lockHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  lockIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lockTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 18 },
+  lockBody: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13, lineHeight: 19 },
 });
