@@ -16,6 +16,7 @@ import {
 
 import { EmbedModal } from "@/components/EmbedModal";
 import { EventConnectionTips } from "@/components/EventConnectionTips";
+import { HostAvatarPlaceholder } from "@/components/HostAvatarPlaceholder";
 import { LinkTypePairings } from "@/components/LinkTypePairings";
 import { MapPreview } from "@/components/MapPreview";
 import { useColors } from "@/hooks/useColors";
@@ -186,8 +187,8 @@ export default function EventDetailScreen() {
             {event.organizer.avatar ? (
               <Image source={{ uri: event.organizer.avatar }} style={styles.organizerAvatar} contentFit="cover" />
             ) : (
-              <View style={[styles.organizerAvatar, styles.organizerAvatarFallback, { backgroundColor: colors.card }]}>
-                <Feather name="user" size={16} color={colors.mutedForeground} />
+              <View style={[styles.organizerAvatar, styles.organizerAvatarFallback]}>
+                <HostAvatarPlaceholder size={36} />
               </View>
             )}
             <View style={{ flex: 1 }}>
@@ -524,7 +525,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   organizerAvatar: { width: 36, height: 36, borderRadius: 18 },
-  organizerAvatarFallback: { alignItems: "center", justifyContent: "center" },
+  organizerAvatarFallback: { alignItems: "center", justifyContent: "center", overflow: "hidden" },
   tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
   tagChip: {
     borderWidth: 1,
