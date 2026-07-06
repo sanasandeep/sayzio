@@ -204,6 +204,67 @@
         .lift { transition: transform .35s cubic-bezier(.16,1,.3,1), box-shadow .35s; }
         .lift:hover { transform: translateY(-8px); }
 
+        /* ============ Showcase grid ("what you can create" cards) ============
+           Scoped entirely to .showcase-card so it never touches the shared
+           .reveal/.lift utilities used elsewhere. Entrance stays gated on the
+           existing IntersectionObserver (.reveal.visible); the continuous
+           "alive" drift/glow only starts once .visible is added, so nothing
+           animates on page load. */
+        .showcase-card {
+            --sc-color: #1bd4d9;
+            --sc-x: 50%;
+            --sc-y: 40%;
+            transition: transform .45s cubic-bezier(.16,1,.3,1), box-shadow .45s cubic-bezier(.16,1,.3,1);
+        }
+        @media (min-width: 1024px) {
+            /* Stay fully hidden pre-intersection so nothing fires on load;
+               only .visible (added by the IntersectionObserver once the
+               grid scrolls into view) triggers the entrance keyframe. */
+            .showcase-card.reveal:not(.visible) { opacity: 0; transform: translateY(46px) scale(.92) rotate(-1.2deg); filter: blur(5px); }
+            .showcase-card.reveal.visible { animation: showcaseReveal .85s cubic-bezier(.19,1,.22,1) both; }
+            @keyframes showcaseReveal {
+                0%   { opacity: 0; transform: translateY(46px) scale(.92) rotate(-1.2deg); filter: blur(5px); }
+                65%  { filter: blur(0); }
+                100% { opacity: 1; transform: none; filter: none; }
+            }
+        }
+        .showcase-card::before {
+            content: "";
+            position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+            background: radial-gradient(240px circle at var(--sc-x) var(--sc-y), color-mix(in srgb, var(--sc-color) 25%, transparent), transparent 72%);
+            opacity: 0; transition: opacity .35s ease;
+        }
+        .showcase-card:hover::before { opacity: 1; }
+        .showcase-card::after {
+            content: "";
+            position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 0%, transparent), 0 0 0px color-mix(in srgb, var(--sc-color) 0%, transparent);
+            opacity: 0;
+        }
+        .showcase-card.visible::after {
+            animation: showcaseGlowPulse 6.4s ease-in-out infinite;
+            animation-delay: var(--sc-delay, 0s);
+        }
+        @keyframes showcaseGlowPulse {
+            0%, 100% { opacity: 0; box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 0%, transparent), 0 0 0px color-mix(in srgb, var(--sc-color) 0%, transparent); }
+            50%      { opacity: .55; box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 22%, transparent), 0 0 20px -2px color-mix(in srgb, var(--sc-color) 40%, transparent); }
+        }
+        .showcase-card:hover {
+            transform: translateY(-8px) scale(1.015);
+            box-shadow: 0 24px 46px -22px color-mix(in srgb, var(--sc-color) 55%, transparent);
+        }
+        .showcase-blob { transition: opacity .4s ease; }
+        .showcase-card.visible .showcase-blob {
+            animation: showcaseBlobDrift 9s ease-in-out infinite;
+            animation-delay: var(--sc-delay, 0s);
+        }
+        @keyframes showcaseBlobDrift {
+            0%, 100% { transform: translate(0,0) scale(1); opacity: .2; }
+            50%      { transform: translate(-8px,6px) scale(1.18); opacity: .32; }
+        }
+        .showcase-icon-wrap { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+        .showcase-card:hover .showcase-icon-wrap { transform: scale(1.14) rotate(-6deg); }
+
         /* ============ Marquee ============ */
         .marquee { animation: marquee 40s linear infinite; }
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
@@ -467,6 +528,15 @@
             .pp-in-view .pp-qr-wrap::after { animation: none !important; opacity: 0 !important; }
             .pp-coach-arc { stroke-dashoffset: 12.66 !important; animation: none !important; }
             .draw-line { stroke-dashoffset: 0 !important; }
+
+            /* Showcase grid: kill continuous/cursor motion, keep plain hover only */
+            .showcase-card, .showcase-card::before, .showcase-card::after,
+            .showcase-blob, .showcase-icon-wrap {
+                animation: none !important; transition: none !important;
+            }
+            .showcase-card::before, .showcase-card::after { opacity: 0 !important; }
+            .showcase-card:hover { transform: translateY(-4px) !important; box-shadow: none !important; }
+            .showcase-card:hover .showcase-icon-wrap { transform: none !important; }
         }
 
         /* Make <picture> transparent to layout so existing img selectors / flex / grid rules still apply. */
@@ -3864,12 +3934,12 @@
 
         <div class="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-3 sm:gap-4">
             @foreach($__linkTypes as $i => $lt)
-                <article class="reveal rd-{{ ($i % 5) + 1 }} glass rounded-xl p-4 lift relative overflow-hidden mb-3 sm:mb-4 break-inside-avoid inline-block w-full align-top">
-                    <div class="absolute -top-8 -right-8 w-20 h-20 rounded-full opacity-20" style="background:{{ $lt['color'] }};"></div>
+                <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card glass rounded-xl p-4 relative overflow-hidden mb-3 sm:mb-4 break-inside-avoid inline-block w-full align-top" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s;">
+                    <div class="absolute -top-8 -right-8 w-20 h-20 rounded-full opacity-20 showcase-blob" style="background:{{ $lt['color'] }};"></div>
                     @if($lt['new'])
                         <span class="absolute top-2.5 right-2.5 inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style="background:rgba(255,255,255,.08); color:{{ $lt['color'] }}; border:1px solid {{ $lt['color'] }}40;">New</span>
                     @endif
-                    <div class="relative w-9 h-9 rounded-lg flex items-center justify-center mb-3" style="background:{{ $lt['color'] }}; box-shadow:0 10px 22px -10px {{ $lt['color'] }};">
+                    <div class="relative w-9 h-9 rounded-lg flex items-center justify-center mb-3 showcase-icon-wrap" style="background:{{ $lt['color'] }}; box-shadow:0 10px 22px -10px {{ $lt['color'] }};">
                         <i class="fas {{ $lt['icon'] }} text-white text-sm"></i>
                     </div>
                     <h3 class="relative text-sm font-bold mb-1">{{ $lt['name'] }}</h3>
@@ -4694,7 +4764,13 @@
                 });
             }, { threshold: 0.05, rootMargin: '0px 0px -10px 0px' });
             reveals.forEach(el => observer.observe(el));
-            setTimeout(() => reveals.forEach(el => el.classList.add('visible')), 250);
+            // Safety net for elements the observer might miss — but NEVER
+            // force showcase cards visible on load; they must stay gated on
+            // real intersection so their entrance/alive motion only fires
+            // once the grid scrolls into view.
+            setTimeout(() => reveals.forEach(el => {
+                if (!el.classList.contains('showcase-card')) el.classList.add('visible');
+            }), 250);
         } else {
             reveals.forEach(el => el.classList.add('visible'));
         }
@@ -4739,6 +4815,20 @@
         // (Hero phone parallax is gated by IntersectionObserver in
         // resources/views/home/partials/hero.blade.php so it only runs while
         // the hero is on screen.)
+
+        // Showcase grid ("what you can create"): cursor-following spotlight
+        // per card, isolated to the hovered card. Skipped entirely under
+        // prefers-reduced-motion so no cursor-driven motion runs.
+        const showcaseReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!showcaseReducedMotion) {
+            document.querySelectorAll('.showcase-card').forEach(card => {
+                card.addEventListener('pointermove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    card.style.setProperty('--sc-x', ((e.clientX - rect.left) / rect.width * 100) + '%');
+                    card.style.setProperty('--sc-y', ((e.clientY - rect.top) / rect.height * 100) + '%');
+                });
+            });
+        }
     });
 </script>
 @include('common.partials.cookie-consent', ['surface' => 'site'])
