@@ -11,6 +11,7 @@
     "check:light-mode-pairing": "tsx ./src/check-light-mode-pairing.ts",
     "check:home-preview-blocks": "tsx ./src/check-home-preview-blocks.ts",
     "check:ci-passthrough-names": "tsx ./src/check-ci-passthrough-names.ts",
+    "check:blade-comment-echo": "tsx ./src/check-blade-comment-echo.ts",
     "check:dialer-sync": "tsx ./src/check-dialer-standalone-sync.ts",
     "check:dialer-sync:accept": "tsx ./src/check-dialer-standalone-sync.ts --accept",
     "test": "vitest run",
