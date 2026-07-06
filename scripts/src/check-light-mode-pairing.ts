@@ -223,6 +223,18 @@ export const TARGETS: Target[] = [
           "blue accent hover border (rgba(61,107,255,.4)) — the brand accent reads clearly on both the dark and the white card, so it is intentionally theme-neutral.",
       },
     ],
+    // The events directory also includes the same event-connection-tips
+    // partial (dark colors baked as inline style="…{{ $var }}…" attributes),
+    // so it needs the same structural inline-vs-override count check as the
+    // event page — this regressed by hand (the page shipped with none of the
+    // tips overrides), which is what motivated adding this entry.
+    partials: [
+      {
+        name: "event-connection-tips",
+        file: "artifacts/1inme/resources/views/common/partials/event-connection-tips.blade.php",
+        scopeClasses: ["ev-connection-tips", "ev-connection-tip-card"],
+      },
+    ],
   },
   {
     page: "artifacts/1inme/resources/views/common/creator-events.blade.php",

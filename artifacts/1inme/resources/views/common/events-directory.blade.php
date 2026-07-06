@@ -163,6 +163,22 @@
     html.light-mode .events-page-body .ev-card-date-chip .text-white,
     html.light-mode .events-page-body .ev-price-badge.text-white { color:#fff !important; }
 
+    /* Light-mode overrides for the "10x your connections" tips partial —
+       it bakes its dark colors as inline style attributes for
+       the dark theme this page includes it with, so override with
+       !important instead of restyling the shared partial (also reused on
+       the event page with its own theme prop, and covered there by the same
+       overrides). Covered by the light-mode-pairing guard's inline-vs-
+       override structural count proxy. */
+    html.light-mode .events-page-body .ev-connection-tips { color: #111827 !important; }
+    html.light-mode .events-page-body .ev-connection-tips > div:first-child > span:first-child { color: #3d6bff !important; }
+    html.light-mode .events-page-body .ev-connection-tips > div:first-child > p { color: rgba(17,24,39,.62) !important; }
+    html.light-mode .events-page-body .ev-connection-tip-card { background: linear-gradient(180deg, rgba(61,107,255,.05), rgba(255,255,255,0)) !important; border-color: rgba(61,107,255,.16) !important; }
+    html.light-mode .events-page-body .ev-connection-tip-card > span:first-child { background: rgba(61,107,255,.1) !important; }
+    html.light-mode .events-page-body .ev-connection-tip-card > span:first-child i { color: #3d6bff !important; }
+    html.light-mode .events-page-body .ev-connection-tip-card > span:nth-child(3) { color: rgba(17,24,39,.62) !important; }
+    html.light-mode .events-page-body .ev-connection-tip-card > span:last-child { color: #3d6bff !important; }
+
     /* Custom date-range panel. */
     .ev-date-range-box { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); }
     .ev-date-range-label { color:rgba(255,255,255,0.4); }
