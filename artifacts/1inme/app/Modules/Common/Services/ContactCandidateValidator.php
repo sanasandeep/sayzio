@@ -239,7 +239,7 @@ class ContactCandidateValidator
      */
     protected function toE164(string $raw, ?string $country): ?string
     {
-        $cleaned = preg_replace('/[\s\-\(\)\.\u{00A0}]+/u', '', $raw);
+        $cleaned = preg_replace('/[\s\-\(\)\.\x{00A0}]+/u', '', $raw);
         if ($cleaned === null || $cleaned === '') return null;
 
         if (str_starts_with($cleaned, '+')) {
