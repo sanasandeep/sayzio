@@ -149,8 +149,9 @@ class CreatorProfilePublicController extends Controller
         $events = static::upcomingEventsQuery($creator)->paginate(24)->withQueryString();
 
         return view('common.creator-events', [
-            'creator' => $creator,
-            'events'  => $events,
+            'creator'   => $creator,
+            'events'    => $events,
+            'organizer' => $creator->organizerProfile(),
         ]);
     }
 

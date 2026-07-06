@@ -64,6 +64,8 @@ class User extends Authenticatable
         // hold/suspend + comp/time-limited plan window.
         'suspended_at', 'suspension_reason', 'suspended_by', 'reactivate_at',
         'comp_plan_expires_at', 'comp_plan_granted_by',
+        // Reusable event organizer profile (Task #3699).
+        'organizer_profile',
     ];
 
     protected $hidden = ['password', 'remember_token', 'my_calendar_feed_token'];
@@ -174,7 +176,52 @@ class User extends Authenticatable
             'comp_plan_expires_at'          => 'datetime',
             'suspended_by'                  => 'integer',
             'comp_plan_granted_by'          => 'integer',
+            // Reusable event organizer profile (Task #3699).
+            'organizer_profile'             => 'array',
         ];
+    }
+
+    /**
+     * Field keys that make up the reusable event organizer profile. Set
+     * once per account (Creator Profile editor) and shown on all of the
+     * creator's events — never a per-event override (explicitly out of
+     * scope, see Task #3699).
+     */
+    public const ORGANIZER_PROFILE_FIELDS = [
+        'logo', 'name', 'description', 'website',
+        'contact_name', 'contact_phone', 'contact_email', 'address',
+    ];
+
+    /**
+     * The resolved organizer profile, normalized to always contain every
+     * key (blank string when unset) plus a `socials` array and a `filled`
+     * flag. Display surfaces (event detail page, /@handle/events) should
+     * use `filled` to decide between the rich organizer card and today's
+     * simple "Hosted by" fallback, instead of re-deriving emptiness
+     * themselves.
+     */
+    public function organizerProfile(): array
+    {
+        $stored = is_array($this->organizer_profile) ? $this->organizer_profile : [];
+
+        $profile = [];
+        foreach (self::ORGANIZER_PROFILE_FIELDS as $key) {
+            $value = $stored[$key] ?? null;
+            $profile[$key] = is_string($value) ? trim($value) : '';
+        }
+        $socials = is_array($stored['socials'] ?? null) ? $stored['socials'] : [];
+        $profile['socials'] = array_filter(array_map(
+            static fn ($v) => is_string($v) ? trim($v) : '',
+            $socials
+        ));
+
+        $hasCore = collect($profile)
+            ->except('socials')
+            ->filter(fn ($v) => $v !== '')
+            ->isNotEmpty();
+        $profile['filled'] = $hasCore || !empty($profile['socials']);
+
+        return $profile;
     }
 
     /**

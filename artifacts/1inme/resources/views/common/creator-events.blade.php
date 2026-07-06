@@ -51,6 +51,68 @@
         </div>
     </div>
 
+    {{-- Organizer header (Task #3699) — account-wide organizer profile,
+         same details shown on the public event detail page. Only renders
+         when the creator has actually filled it in. --}}
+    @if($organizer['filled'])
+        <div class="ev-card p-4 sm:p-5 mb-6">
+            <div class="flex items-start gap-3">
+                @if($organizer['logo'])
+                    <img src="{{ $organizer['logo'] }}" alt="" class="w-14 h-14 rounded-xl object-cover flex-shrink-0">
+                @else
+                    <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-extrabold text-sm flex-shrink-0">
+                        {{ $creator->getInitials() }}
+                    </div>
+                @endif
+                <div class="min-w-0">
+                    <p class="text-white/40 text-[11px] uppercase tracking-wider font-semibold">Organizer</p>
+                    <p class="text-white font-bold">{{ $organizer['name'] ?: $creator->name }}</p>
+                    @if($organizer['description'])
+                        <p class="text-white/60 text-sm mt-1">{{ $organizer['description'] }}</p>
+                    @endif
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm text-white/70">
+                @if($organizer['website'])
+                    <a href="{{ $organizer['website'] }}" target="_blank" rel="noopener" class="link-accent hover:underline">
+                        <i class="fas fa-globe mr-1"></i>Website
+                    </a>
+                @endif
+                @if($organizer['contact_email'])
+                    <a href="mailto:{{ $organizer['contact_email'] }}" class="link-accent hover:underline">
+                        <i class="fas fa-envelope mr-1"></i>{{ $organizer['contact_name'] ?: $organizer['contact_email'] }}
+                    </a>
+                @elseif($organizer['contact_name'])
+                    <span><i class="fas fa-user-tie mr-1"></i>{{ $organizer['contact_name'] }}</span>
+                @endif
+                @if($organizer['contact_phone'])
+                    <a href="tel:{{ $organizer['contact_phone'] }}" class="link-accent hover:underline">
+                        <i class="fas fa-phone mr-1"></i>{{ $organizer['contact_phone'] }}
+                    </a>
+                @endif
+                @if($organizer['address'])
+                    <span><i class="fas fa-location-dot mr-1"></i>{{ $organizer['address'] }}</span>
+                @endif
+            </div>
+
+            @if(!empty($organizer['socials']))
+                <div class="flex flex-wrap gap-2 mt-3">
+                    @foreach($organizer['socials'] as $platform => $value)
+                        @php
+                            $isUrl = str_starts_with($value, 'http://') || str_starts_with($value, 'https://');
+                            $isEmail = $platform === 'email';
+                            $href = $isEmail ? ('mailto:' . $value) : ($isUrl ? $value : ('https://' . ltrim($value, '@')));
+                        @endphp
+                        <a href="{{ $href }}" target="_blank" rel="noopener" class="hashtag-pill text-xs px-2.5 py-1 rounded-full">
+                            {{ ucfirst($platform) }}
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    @endif
+
     @if($events->count() === 0)
         <div class="text-center py-20 ev-card">
             <i class="fas fa-calendar-xmark text-4xl text-white/20 mb-4"></i>

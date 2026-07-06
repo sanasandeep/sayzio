@@ -164,6 +164,88 @@
             </div>
         </fieldset>
 
+        {{-- Organizer profile (Task #3699) — account-wide event organizer
+             details shown on the public event detail page and on
+             /@handle/events. Not per-event; there is one profile per
+             account. --}}
+        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+            <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Organizer profile</legend>
+            <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Shown on all of your events — the public event page and your events listing. Everything here is optional; blank fields simply don't render.</p>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Organizer logo</label>
+                    @if($organizer['logo'])
+                        <div class="mb-2 relative inline-block">
+                            <img src="{{ $organizer['logo'] }}" class="w-16 h-16 object-cover rounded-lg border" style="border-color: var(--border-soft);">
+                            <label class="absolute -top-2 -right-2 text-[11px] px-2 py-0.5 rounded bg-white/90 text-slate-700 cursor-pointer">
+                                <input type="checkbox" name="organizer_logo_remove" value="1" class="mr-1"> Remove
+                            </label>
+                        </div>
+                    @endif
+                    <input type="file" name="organizer_logo" accept="image/*" class="text-xs block">
+                    <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">Or paste a URL:</p>
+                    <input type="url" name="organizer_logo_url" placeholder="https://…" maxlength="1024"
+                           class="w-full px-3 py-2 rounded-lg text-sm mt-1" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Organizer / business name</label>
+                        <input type="text" name="organizer_name" value="{{ old('organizer_name', $organizer['name']) }}" maxlength="150" placeholder="e.g. Acme Events Co."
+                               class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Website</label>
+                        <input type="url" name="organizer_website" value="{{ old('organizer_website', $organizer['website']) }}" maxlength="1024" placeholder="https://…"
+                               class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Short description</label>
+                    <textarea name="organizer_description" rows="2" maxlength="1000" placeholder="A line or two about who's hosting."
+                              class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">{{ old('organizer_description', $organizer['description']) }}</textarea>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Contact person</label>
+                        <input type="text" name="organizer_contact_name" value="{{ old('organizer_contact_name', $organizer['contact_name']) }}" maxlength="150" placeholder="Name"
+                               class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Contact phone</label>
+                        <input type="text" name="organizer_contact_phone" value="{{ old('organizer_contact_phone', $organizer['contact_phone']) }}" maxlength="40" placeholder="+1 555 123 4567"
+                               class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Contact email</label>
+                        <input type="email" name="organizer_contact_email" value="{{ old('organizer_contact_email', $organizer['contact_email']) }}" maxlength="255" placeholder="events@yourdomain.com"
+                               class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Address</label>
+                    <input type="text" name="organizer_address" value="{{ old('organizer_address', $organizer['address']) }}" maxlength="500" placeholder="Street, City, Country"
+                           class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold mb-2 block" style="color: var(--text-dimmed);">Organizer socials</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        @foreach($platforms as $key => $p)
+                            <div>
+                                <label class="text-xs font-semibold mb-1 flex items-center gap-1" style="color: var(--text-dimmed);">
+                                    <i class="{{ $p['icon'] }}"></i> {{ $p['label'] }}
+                                </label>
+                                <input type="text" name="organizer_socials[{{ $key }}]"
+                                       value="{{ old('organizer_socials.' . $key, $organizer['socials'][$key] ?? '') }}"
+                                       placeholder="{{ $p['placeholder'] }}" maxlength="200"
+                                       class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+
         {{-- Task #1211 — Safety & moderation --}}
         @php
             $wm = is_array($user->watermark_settings) ? $user->watermark_settings : [];

@@ -53,6 +53,7 @@ class CreatorProfileController extends Controller
             'platforms'        => self::SOCIAL_PLATFORMS,
             'profileUrl'       => $user->handle ? url('/@' . $user->handle) : null,
             'sectionDefaults'  => User::PROFILE_DEFAULT_VISIBILITY,
+            'organizer'        => $user->organizerProfile(),
         ]);
     }
 
@@ -82,6 +83,19 @@ class CreatorProfileController extends Controller
             'country_block_text'      => 'nullable|string|max:1000',
             'country_allow_text'      => 'nullable|string|max:1000',
             'dmca_email'              => 'nullable|email|max:255',
+            // Reusable event organizer profile (Task #3699).
+            'organizer_logo'          => 'nullable|image|max:5120',
+            'organizer_logo_url'      => 'nullable|string|max:1024',
+            'organizer_logo_remove'   => 'nullable|in:0,1',
+            'organizer_name'          => 'nullable|string|max:150',
+            'organizer_description'   => 'nullable|string|max:1000',
+            'organizer_website'       => 'nullable|url|max:1024',
+            'organizer_contact_name'  => 'nullable|string|max:150',
+            'organizer_contact_phone' => 'nullable|string|max:40',
+            'organizer_contact_email' => 'nullable|email|max:255',
+            'organizer_address'       => 'nullable|string|max:500',
+            'organizer_socials'       => 'nullable|array',
+            'organizer_socials.*'     => 'nullable|string|max:200',
         ]);
 
         if ($request->hasFile('cover_image')) {
@@ -170,6 +184,35 @@ class CreatorProfileController extends Controller
         $user->country_block_list = $normalize($data['country_block_text'] ?? '');
         $user->country_allow_list = $normalize($data['country_allow_text'] ?? '');
         $user->dmca_email = $data['dmca_email'] ?? null;
+
+        // ── Task #3699: reusable event organizer profile ─────────────
+        $organizer = is_array($user->organizer_profile) ? $user->organizer_profile : [];
+
+        if ($request->hasFile('organizer_logo')) {
+            $organizer['logo'] = '/storage/' . $request->file('organizer_logo')->store('organizer-logos', 'public');
+        } elseif ($request->filled('organizer_logo_url')) {
+            $organizer['logo'] = $data['organizer_logo_url'];
+        } elseif ($request->boolean('organizer_logo_remove')) {
+            $organizer['logo'] = null;
+        }
+
+        $organizer['name']          = $data['organizer_name'] ?? null;
+        $organizer['description']   = $data['organizer_description'] ?? null;
+        $organizer['website']       = $data['organizer_website'] ?? null;
+        $organizer['contact_name']  = $data['organizer_contact_name'] ?? null;
+        $organizer['contact_phone'] = $data['organizer_contact_phone'] ?? null;
+        $organizer['contact_email'] = $data['organizer_contact_email'] ?? null;
+        $organizer['address']       = $data['organizer_address'] ?? null;
+
+        $organizerSocials = [];
+        foreach ((array) ($data['organizer_socials'] ?? []) as $key => $value) {
+            if (!in_array($key, $allowed, true)) continue;
+            $value = trim((string) $value);
+            if ($value !== '') $organizerSocials[$key] = $value;
+        }
+        $organizer['socials'] = $organizerSocials;
+
+        $user->organizer_profile = $organizer;
 
         $user->save();
 
