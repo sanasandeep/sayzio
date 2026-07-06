@@ -21,11 +21,11 @@
     </a>
 
     <p class="text-sm text-white/50">
-        Choose where user uploads and public assets are stored. When S3 is off, the local public disk is used.
-        When on, the user-content disks (public, user files and admin assets) are all served from your S3 bucket.
-        The access key and secret are encrypted at rest and never displayed back &mdash; leave them blank to keep the
-        stored values. Each field falls back to the corresponding <span class="font-mono">AWS_*</span> environment
-        variable until you save a value here.
+        User uploads and public assets are always stored on S3 &mdash; the user-content disks (public, user files and
+        admin assets) are permanently backed by your S3 bucket and cannot be switched back to local disk. The access
+        key and secret are encrypted at rest and never displayed back &mdash; leave them blank to keep the stored
+        values. Each field falls back to the corresponding <span class="font-mono">AWS_*</span> environment variable
+        until you save a value here.
     </p>
 
     @include('admin.partials.help-note', [
@@ -42,7 +42,7 @@
 
     @include('admin.partials.help-note', [
         'type' => 'warn',
-        'body' => '<strong>Switching storage mid-production:</strong> enabling S3 moves <em>new</em> uploads to the bucket but does not migrate existing files. Run a one-off migration of existing user files after enabling, or users may see broken image links for previously uploaded content.',
+        'body' => '<strong>S3 is mandatory:</strong> user content storage cannot be switched back to local disk. If credentials below are missing or incomplete, uploads will fail with a clear error instead of silently falling back to local storage.',
     ])
 
     @if ($errors->any())
@@ -53,8 +53,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('admin.integrations.storage.update') }}" class="space-y-6"
-          x-data="{ enabled: {{ old('s3_enabled', $enabled) ? 'true' : 'false' }} }">
+    <form method="POST" action="{{ route('admin.integrations.storage.update') }}" class="space-y-6">
         @csrf @method('PUT')
 
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-5">
@@ -63,21 +62,15 @@
                     <h3 class="font-semibold text-white flex items-center gap-2">
                         <i class="fab fa-aws text-amber-400"></i> Storage backend
                     </h3>
-                    <p class="text-xs text-white/40">Toggle S3 on to move user content off the local disk.</p>
+                    <p class="text-xs text-white/40">User content is always stored on S3 &mdash; this cannot be disabled.</p>
                 </div>
                 <span class="shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-medium {{ $toneClass($status['tone']) }}">
                     {{ $status['label'] }}
                 </span>
             </div>
-
-            <label class="flex items-center gap-3 cursor-pointer">
-                <input type="hidden" name="s3_enabled" value="0">
-                <input type="checkbox" name="s3_enabled" value="1" x-model="enabled" class="accent-blue-500 w-4 h-4">
-                <span class="text-sm text-white/80">Use S3 for user content</span>
-            </label>
         </div>
 
-        <div class="glass rounded-2xl border border-white/10 p-6 space-y-5" x-show="enabled" x-cloak>
+        <div class="glass rounded-2xl border border-white/10 p-6 space-y-5">
             <h3 class="font-semibold text-white text-sm flex items-center gap-2">
                 <i class="fas fa-key text-blue-400"></i> Credentials &amp; bucket
             </h3>

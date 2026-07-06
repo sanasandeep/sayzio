@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('FILESYSTEM_DISK', 'local'),
+    'default' => env('FILESYSTEM_DISK', 's3'),
 
     /*
     |--------------------------------------------------------------------------
@@ -42,24 +42,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | User-Content Storage Driver
+    | User-Content Storage Driver — S3-only, no local fallback
     |--------------------------------------------------------------------------
     |
-    | When USER_CONTENT_DISK=s3 the user-facing disks (`public`, `user_files`,
-    | `admin_assets`) are backed by S3 instead of the local filesystem, so
-    | uploads are durable across environment resets and public files can be
-    | served via CloudFront. The disk *names* stay the same so the hundreds of
-    | `Storage::disk('public'|'user_files'|'admin_assets')` call sites and the
-    | `disk` value stamped on records keep resolving — only the backing driver
-    | changes. Code that must choose a signed URL vs. a local file path checks
-    | the disk's *driver* (config('filesystems.disks.<name>.driver') === 's3'),
-    | never the disk name, because S3 disks have no on-disk ->path().
+    | User-facing disks (`public`, `user_files`, `admin_assets`) are ALWAYS
+    | backed by S3 — there is no local-disk mode for user content anymore.
+    | This is deliberate: user files must be durable, CDN-servable, and never
+    | silently written to ephemeral local disk. The disk *names* stay the
+    | same so the hundreds of `Storage::disk('public'|'user_files'|
+    | 'admin_assets')` call sites and the `disk` value stamped on records
+    | keep resolving — only the backing driver is S3. Code that must choose a
+    | signed URL vs. a local file path checks the disk's *driver*
+    | (config('filesystems.disks.<name>.driver') === 's3'), never the disk
+    | name, because S3 disks have no on-disk ->path().
+    |
+    | If AWS_* credentials are missing/misconfigured, the S3 disk array below
+    | still resolves (Laravel builds it lazily), but any actual write/read
+    | fails loudly with an S3 exception — UserFile::createFromUpload() also
+    | pre-flight checks credentials and throws a clear RuntimeException
+    | before ever attempting a write, so misconfiguration is obvious instead
+    | of degrading to local storage.
     |
     */
 
     'disks' => (function () {
-        $useS3 = env('USER_CONTENT_DISK', 'local') === 's3';
-
         // NOTE: no `visibility` key on the S3 disks. The `1in.me` bucket has
         // ACLs disabled (Object Ownership = bucket-owner-enforced), so any
         // PutObject that carries an x-amz-acl header is rejected with
@@ -88,41 +94,19 @@ return [
                 // `storage/{path}` (storage.local) route. It points at the
                 // private disk and would shadow our own /storage/{path}
                 // fallback that bridges legacy public-disk URLs to CloudFront.
+                // This "local" disk is used only for non-user-content
+                // framework needs (e.g. transient temp files) — it is never
+                // the backing store for public/user_files/admin_assets.
                 'serve' => false,
                 'throw' => false,
                 'report' => false,
             ],
 
-            'public' => $useS3
-                ? $s3
-                : [
-                    'driver' => 'local',
-                    'root' => storage_path('app/public'),
-                    'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
-                    'visibility' => 'public',
-                    'throw' => false,
-                    'report' => false,
-                ],
+            'public' => $s3,
 
-            'user_files' => $useS3
-                ? $s3
-                : [
-                    'driver' => 'local',
-                    'root' => storage_path('app/user-files'),
-                    'visibility' => 'private',
-                    'throw' => false,
-                    'report' => false,
-                ],
+            'user_files' => $s3,
 
-            'admin_assets' => $useS3
-                ? $s3
-                : [
-                    'driver' => 'local',
-                    'root' => storage_path('app/admin-assets'),
-                    'visibility' => 'private',
-                    'throw' => false,
-                    'report' => false,
-                ],
+            'admin_assets' => $s3,
 
             's3' => $s3,
 

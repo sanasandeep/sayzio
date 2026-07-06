@@ -199,7 +199,6 @@ class IntegrationsController extends Controller
     {
         return view('admin.integrations.storage', [
             'status'        => PlatformServiceSettings::s3Status(),
-            'enabled'       => PlatformServiceSettings::s3Enabled(),
             'hasKey'        => PlatformServiceSettings::s3Key() !== null,
             'maskedKey'     => PlatformServiceSettings::maskedS3Key(),
             'hasSecret'     => PlatformServiceSettings::s3Secret() !== null,
@@ -216,7 +215,6 @@ class IntegrationsController extends Controller
     public function updateStorage(Request $request)
     {
         $data = $request->validate([
-            's3_enabled'        => 'nullable|boolean',
             's3_key'            => 'nullable|string|max:255',
             'clear_s3_key'      => 'nullable|boolean',
             's3_secret'         => 'nullable|string|max:255',
@@ -228,12 +226,10 @@ class IntegrationsController extends Controller
             's3_use_path_style' => 'nullable|boolean',
         ]);
 
-        $enabling = $request->boolean('s3_enabled');
-
-        // Compute the effective credentials/bucket/region *after* this save so
-        // we can refuse to flip the user-content disks onto an incomplete S3
-        // config (which would break every upload). Blank secret fields keep
-        // the stored value, so factor those in.
+        // User content is always S3-backed — there is no "disable S3" option
+        // anymore. We still refuse to save a state that would leave S3
+        // *incomplete* (missing key/secret/bucket/region), since that would
+        // make every upload fail with no way to fall back.
         $effKey    = $request->boolean('clear_s3_key')
             ? null
             : (!empty($data['s3_key']) ? $data['s3_key'] : PlatformServiceSettings::s3Key());
@@ -243,13 +239,11 @@ class IntegrationsController extends Controller
         $effRegion = $data['s3_region'] ?? PlatformServiceSettings::s3Region();
         $effBucket = $data['s3_bucket'] ?? PlatformServiceSettings::s3Bucket();
 
-        if ($enabling && (!$effKey || !$effSecret || !$effBucket || !$effRegion)) {
+        if (!$effKey || !$effSecret || !$effBucket || !$effRegion) {
             return back()->withErrors([
-                's3_enabled' => 'To switch storage to S3 you must provide an access key, secret, bucket and region.',
+                's3_bucket' => 'User content storage is S3-only and cannot be disabled — provide an access key, secret, bucket and region.',
             ])->withInput();
         }
-
-        PlatformServiceSettings::setS3Enabled($enabling);
 
         if ($request->boolean('clear_s3_key')) {
             PlatformServiceSettings::setS3Key(null);

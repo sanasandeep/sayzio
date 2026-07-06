@@ -35,7 +35,7 @@ class FileLinkController extends Controller
      */
     private static function fileShareDisk(): string
     {
-        return config('filesystems.default') === 's3' ? 's3' : 'user_files';
+        return UserFile::uploadDisk();
     }
 
     public function store(Request $request)

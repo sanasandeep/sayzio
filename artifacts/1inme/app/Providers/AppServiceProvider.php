@@ -67,8 +67,9 @@ class AppServiceProvider extends ServiceProvider
                 ['WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_TEMPLATE_NAME', 'WHATSAPP_TEMPLATE_LANG', 'WHATSAPP_GRAPH_VERSION'],
                 // S3/CloudFront user-content storage. The AWS keys are Replit
                 // secrets and the rest is shared config; without forwarding them
-                // the child serves with the user-content disks falling back to
-                // local (USER_CONTENT_DISK absent) and no S3 credentials.
+                // the child serves with no S3 credentials, so uploads fail
+                // loudly (user-content disks are S3-only — there is no local
+                // fallback to silently degrade to).
                 ['USER_CONTENT_DISK', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_DEFAULT_REGION', 'AWS_BUCKET', 'AWS_URL', 'AWS_ENDPOINT', 'AWS_USE_PATH_STYLE_ENDPOINT'],
                 // SMTP mail transport. MAIL_PASSWORD (and often the rest) is a
                 // Replit secret; without forwarding it the child sends mail with

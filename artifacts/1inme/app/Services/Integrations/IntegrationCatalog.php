@@ -170,7 +170,7 @@ class IntegrationCatalog
                     [
                         'key'      => 's3',
                         'label'    => 'S3 / CloudFront storage',
-                        'desc'     => 'Durable user-content storage for uploads and public assets. Falls back to the local disk when off.',
+                        'desc'     => 'Durable user-content storage for uploads and public assets. Always S3-backed — cannot be switched to local disk.',
                         'icon'     => 'fab fa-aws',
                         'status'   => PlatformServiceSettings::s3Status(),
                         'route'    => route('admin.integrations.storage.edit'),

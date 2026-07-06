@@ -35,6 +35,10 @@ class PlatformServiceSettings
     public const KEY_GOOGLE_CONTACTS_CLIENT_SEC_ENC = 'google_contacts.client_secret_enc';
 
     // ── S3 / CloudFront user-content storage ──────────────────────
+    // KEY_S3_ENABLED is intentionally retired: S3 is now mandatory for user
+    // content, there is no admin-facing "disable S3" switch. The constant is
+    // kept (unused for writes) only so any stale historical app_settings row
+    // is harmless if still present.
     public const KEY_S3_ENABLED        = 'storage.s3_enabled';
     public const KEY_S3_KEY_ENC        = 'storage.s3_key_enc';
     public const KEY_S3_SECRET_ENC     = 'storage.s3_secret_enc';
@@ -178,18 +182,21 @@ class PlatformServiceSettings
     // S3 / CloudFront user-content storage
     // ═════════════════════════════════════════════════════════════
 
-    /** Whether the user-content disks should be backed by S3. */
+    /**
+     * User-content disks are always S3-backed — there is no local-disk mode
+     * to opt out of. Kept as a method (rather than removed outright) because
+     * a few call sites still ask "is S3 on" for status/UI purposes; it is
+     * hardcoded true and can no longer be turned off from the admin UI.
+     */
     public static function s3Enabled(): bool
     {
-        $admin = AppSetting::get(self::KEY_S3_ENABLED);
-        if ($admin !== null) return (bool) $admin;
-        return env('USER_CONTENT_DISK', 'local') === 's3';
+        return true;
     }
 
     public static function s3HasAdminValue(): bool
     {
         foreach ([
-            self::KEY_S3_ENABLED, self::KEY_S3_KEY_ENC, self::KEY_S3_SECRET_ENC,
+            self::KEY_S3_KEY_ENC, self::KEY_S3_SECRET_ENC,
             self::KEY_S3_REGION, self::KEY_S3_BUCKET, self::KEY_S3_URL,
             self::KEY_S3_ENDPOINT, self::KEY_S3_PATH_STYLE,
         ] as $key) {
@@ -264,11 +271,6 @@ class PlatformServiceSettings
         return $v !== null && $v !== '';
     }
 
-    public static function setS3Enabled(bool $on): void
-    {
-        AppSetting::put(self::KEY_S3_ENABLED, $on);
-    }
-
     public static function setS3Key(?string $v): void
     {
         self::storeSecret(self::KEY_S3_KEY_ENC, $v);
@@ -318,11 +320,8 @@ class PlatformServiceSettings
 
     public static function s3Status(): array
     {
-        if (!self::s3Enabled()) {
-            return ['key' => 'local', 'label' => 'Local disk', 'tone' => 'slate'];
-        }
         if (!self::s3Configured()) {
-            return ['key' => 'incomplete', 'label' => 'Enabled but incomplete', 'tone' => 'amber'];
+            return ['key' => 'incomplete', 'label' => 'Missing credentials — uploads will fail', 'tone' => 'red'];
         }
         if (self::s3HasAdminValue()) {
             return ['key' => 'configured', 'label' => 'S3 (configured)', 'tone' => 'green'];
@@ -514,10 +513,12 @@ class PlatformServiceSettings
         }
 
         // ── S3 user-content storage ──────────────────────────────
-        // Only override when an admin has saved storage settings AND the
-        // effective config resolves to a usable S3 disk; otherwise leave the
-        // env-driven config/filesystems.php arrangement untouched.
-        if (self::s3HasAdminValue() && self::s3Enabled() && self::s3Configured()) {
+        // User-content disks are always S3 (config/filesystems.php has no
+        // local fallback). Only override the env-driven disk arrays when an
+        // admin has saved storage settings AND the effective config resolves
+        // to a usable S3 disk; otherwise leave the env-driven arrangement
+        // untouched (it is already S3-shaped).
+        if (self::s3HasAdminValue() && self::s3Configured()) {
             $s3 = self::s3DiskArray();
             foreach (self::S3_DISK_NAMES as $name) {
                 config(["filesystems.disks.{$name}" => $s3]);
@@ -529,6 +530,13 @@ class PlatformServiceSettings
                     // best-effort
                 }
             }
+        }
+
+        if (!self::s3Configured()) {
+            \Illuminate\Support\Facades\Log::warning(
+                'S3 user-content storage is not fully configured (missing key/secret/bucket/region). '
+                . 'User file uploads will fail loudly until an admin fixes this in Integrations > Storage.'
+            );
         }
     }
 

@@ -14,7 +14,38 @@ class UserFile extends Model
 {
     
     use BelongsToWorkspace;
-protected $fillable = [
+
+    /**
+     * The disk new user-file uploads land on. User content is S3-only — this
+     * always resolves to an S3-backed disk (the `user_files` disk name, kept
+     * for the on-record `disk` column and existing call sites; its backing
+     * driver is forced to S3 in config/filesystems.php with no local mode).
+     */
+    public static function uploadDisk(): string
+    {
+        return 'user_files';
+    }
+
+    /**
+     * Fail loudly, before ever attempting a write, when S3 isn't fully
+     * configured — instead of silently degrading to local disk (which no
+     * longer exists as an option for user content).
+     */
+    protected static function assertS3Configured(): void
+    {
+        $disk = config('filesystems.disks.user_files', []);
+        if (($disk['driver'] ?? null) !== 's3') {
+            throw new RuntimeException('User file storage is misconfigured: the user_files disk is not S3-backed.');
+        }
+        if (empty($disk['key']) || empty($disk['secret']) || empty($disk['bucket']) || empty($disk['region'])) {
+            throw new RuntimeException(
+                'User file storage is not fully configured (missing S3 access key, secret, bucket, or region). '
+                . 'Ask an administrator to finish setup in Integrations > Storage before uploading files.'
+            );
+        }
+    }
+
+    protected $fillable = [
         'user_id', 'original_name', 'filename', 'mime_type',
         'size_bytes', 'type', 'disk', 'path',
         'scan_status', 'scan_reason', 'scan_meta',
@@ -173,8 +204,10 @@ protected $fillable = [
             }
         }
 
+        self::assertS3Configured();
+
         $fileType = self::detectType($mime);
-        $disk     = config('filesystems.default') === 's3' ? 's3' : 'user_files';
+        $disk     = self::uploadDisk();
         $folder   = "{$user->id}/{$fileType}s";
         $filename = (string) Str::uuid() . ($ext ? '.' . $ext : '');
 
@@ -470,8 +503,10 @@ protected $fillable = [
             }
         }
 
+        self::assertS3Configured();
+
         $fileType = self::detectType($mime);
-        $disk     = config('filesystems.default') === 's3' ? 's3' : 'user_files';
+        $disk     = self::uploadDisk();
         $folder   = "{$user->id}/{$fileType}s";
         $ext      = pathinfo($originalName, PATHINFO_EXTENSION) ?: 'bin';
         $filename = (string) Str::uuid() . '.' . strtolower($ext);
