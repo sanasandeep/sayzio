@@ -53,6 +53,7 @@ export default function DashboardCustomizeScreen() {
   const [prioritiesText, setPrioritiesText] = useState("");
   const [density, setDensity] = useState<Density>("balanced");
   const [notes, setNotes] = useState("");
+  const [selectedWidgets, setSelectedWidgets] = useState<string[]>([]);
   const [estimate, setEstimate] = useState<number | null>(null);
   const [resultWidgets, setResultWidgets] = useState<string[] | null>(null);
   const [creditsSpent, setCreditsSpent] = useState<number>(0);
@@ -71,7 +72,15 @@ export default function DashboardCustomizeScreen() {
       .slice(0, 10),
     density,
     notes: notes.trim() || undefined,
+    selected_widgets: selectedWidgets.length > 0 ? selectedWidgets : undefined,
   });
+
+  const toggleWidget = (key: string) => {
+    setEstimate(null);
+    setSelectedWidgets((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+  };
 
   const presetM = useMutation({
     mutationFn: (preset: string) => applyDashboardPreset(preset),
@@ -132,6 +141,7 @@ export default function DashboardCustomizeScreen() {
     setPrioritiesText("");
     setDensity("balanced");
     setNotes("");
+    setSelectedWidgets([]);
     setEstimate(null);
     setResultWidgets(null);
   }
@@ -378,6 +388,86 @@ export default function DashboardCustomizeScreen() {
               </View>
             </View>
 
+            {data.grouped_catalog.length > 0 ? (
+              <View style={{ gap: 8 }}>
+                <View style={styles.widgetHeaderRow}>
+                  <Text style={[styles.label, { color: colors.mutedForeground }]}>
+                    Must-have widgets (optional)
+                  </Text>
+                  {selectedWidgets.length > 0 ? (
+                    <Text
+                      style={{ color: colors.mutedForeground, fontSize: 11 }}
+                    >
+                      {selectedWidgets.length} selected
+                    </Text>
+                  ) : null}
+                </View>
+                <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                  Pick specific widgets to guarantee they're included — the AI
+                  still designs the rest of the layout around your goal.
+                </Text>
+                {data.grouped_catalog.map((group) => (
+                  <View key={group.tab} style={{ gap: 6 }}>
+                    <Text style={[styles.groupHeading, { color: colors.mutedForeground }]}>
+                      {group.label.toUpperCase()}
+                    </Text>
+                    <View style={{ gap: 6 }}>
+                      {group.widgets.map((widget) => {
+                        const active = selectedWidgets.includes(widget.key);
+                        return (
+                          <Pressable
+                            key={widget.key}
+                            onPress={() => toggleWidget(widget.key)}
+                            style={[
+                              styles.widgetRow,
+                              {
+                                borderColor: active
+                                  ? colors.primary
+                                  : colors.border,
+                                backgroundColor: active
+                                  ? colors.primary + "22"
+                                  : colors.card,
+                                borderRadius: colors.radius,
+                              },
+                            ]}
+                          >
+                            <Feather
+                              name={active ? "check-square" : "square"}
+                              size={16}
+                              color={
+                                active ? colors.primary : colors.mutedForeground
+                              }
+                              style={{ marginTop: 1 }}
+                            />
+                            <View style={{ flex: 1, gap: 2 }}>
+                              <Text
+                                style={{
+                                  color: colors.foreground,
+                                  fontSize: 13,
+                                  fontWeight: active ? "600" : "500",
+                                }}
+                              >
+                                {widget.label}
+                              </Text>
+                              <Text
+                                style={{
+                                  color: colors.mutedForeground,
+                                  fontSize: 11,
+                                  lineHeight: 15,
+                                }}
+                              >
+                                {widget.description}
+                              </Text>
+                            </View>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
             <TextField
               label="Anything else? (optional)"
               placeholder="e.g. Keep it compact, I check this on my phone."
@@ -530,6 +620,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    borderWidth: 1,
+    padding: 12,
+  },
+  widgetHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  groupHeading: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  widgetRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
     borderWidth: 1,
     padding: 12,
   },

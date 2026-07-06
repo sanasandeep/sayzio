@@ -39,8 +39,9 @@ class DashboardLayoutController extends Controller
         $layout = DashboardPresets::resolveFor($user);
 
         return $this->ok([
-            'catalog'  => DashboardWidgetCatalog::forFrontend(),
-            'presets'  => DashboardPresets::forFrontend(),
+            'catalog'          => DashboardWidgetCatalog::forFrontend(),
+            'grouped_catalog'  => DashboardWidgetCatalog::groupedForFrontend(),
+            'presets'          => DashboardPresets::forFrontend(),
             'current'  => [
                 'preset'    => $layout['preset'],
                 'is_custom' => $layout['is_custom'],
@@ -123,16 +124,18 @@ class DashboardLayoutController extends Controller
     }
 
     /**
-     * @return array{goal:string,priorities:list<string>,density:string,notes:string}
+     * @return array{goal:string,priorities:list<string>,density:string,notes:string,selected_widgets:list<string>}
      */
     private function validateAnswers(Request $request): array
     {
         $data = $request->validate([
-            'goal'          => ['required', 'string', 'min:5', 'max:800'],
-            'priorities'    => ['nullable', 'array', 'max:10'],
-            'priorities.*'  => ['string', 'max:120'],
-            'density'       => ['nullable', 'string', 'in:minimal,balanced,detailed'],
-            'notes'         => ['nullable', 'string', 'max:800'],
+            'goal'               => ['required', 'string', 'min:5', 'max:800'],
+            'priorities'         => ['nullable', 'array', 'max:10'],
+            'priorities.*'       => ['string', 'max:120'],
+            'density'            => ['nullable', 'string', 'in:minimal,balanced,detailed'],
+            'notes'              => ['nullable', 'string', 'max:800'],
+            'selected_widgets'   => ['nullable', 'array', 'max:' . count(DashboardWidgetCatalog::WIDGETS)],
+            'selected_widgets.*' => ['string'],
         ]);
 
         return [
@@ -140,6 +143,10 @@ class DashboardLayoutController extends Controller
             'priorities' => array_values($data['priorities'] ?? []),
             'density'    => $data['density'] ?? 'balanced',
             'notes'      => $data['notes'] ?? '',
+            // Sanitized here (mirrors web DashboardLayoutController) so the
+            // estimate step prices the exact widget set generate enforces —
+            // never trust the raw client array beyond this line.
+            'selected_widgets' => DashboardWidgetCatalog::sanitize($data['selected_widgets'] ?? []),
         ];
     }
 }

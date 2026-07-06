@@ -30,7 +30,14 @@ export type DashboardWidget = {
   key: string;
   label: string;
   description: string;
+  icon: string;
   tab: string;
+};
+
+export type DashboardWidgetGroup = {
+  tab: string;
+  label: string;
+  widgets: DashboardWidget[];
 };
 
 export type DashboardPreset = {
@@ -43,6 +50,7 @@ export type DashboardPreset = {
 
 export type DashboardLayoutState = {
   catalog: DashboardWidget[];
+  grouped_catalog: DashboardWidgetGroup[];
   presets: DashboardPreset[];
   current: {
     preset: string | null;
@@ -59,6 +67,7 @@ export type DashboardAiAnswers = {
   priorities?: string[];
   density?: "minimal" | "balanced" | "detailed";
   notes?: string;
+  selected_widgets?: string[];
 };
 
 export type DashboardAiEstimate = {
