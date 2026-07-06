@@ -59,7 +59,7 @@ import {
   includesThemeStyles,
   listBladeFiles,
   stripComments as stripBladeComments,
-} from "./check-undefined-css-var-fallback.js";
+} from "./lib/blade-theme-scope.js";
 
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 

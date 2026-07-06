@@ -18,7 +18,7 @@ import {
   targetViewRel,
   pageIsSelfContained,
 } from "./check-light-mode-pairing.js";
-import { VIEWS_REL } from "./check-undefined-css-var-fallback.js";
+import { VIEWS_REL } from "./lib/blade-theme-scope.js";
 
 /**
  * Regression suite for the generalized light-mode pairing guard.
