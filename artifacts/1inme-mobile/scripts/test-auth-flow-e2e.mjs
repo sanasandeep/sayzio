@@ -76,6 +76,14 @@
  *      ("Instagram sign-in is having issues") and offer a one-tap "Use email
  *      instead" fallback that lands on the email sign-in field; a plain cancel
  *      offers the same fallback but blames no provider.
+ *  10. Prove the guest "Perfect pairings" -> signup handoff survives a
+ *      cancelled/rejected WEB-browser-provider sign-in plus a successful retry
+ *      (the web providers take oauth-callback's "Sign-in failed" branch, unlike
+ *      Google): a guest taps a pairing card, starts a web-provider sign-in,
+ *      hits the failure return, taps back, and retries the SAME provider — and
+ *      must STILL land on /links/create/biolink because the stash is only
+ *      consumed on success. Covers a cancelled popup (Instagram) AND a backend
+ *      422 (Facebook).
  *
  * The test no-ops gracefully (skips, exit 0) when a throwaway Expo server
  * can't be booted (expo missing, port contention, bundling too slow) — so it
@@ -1149,6 +1157,377 @@ async function runOtpPairingHandoff(browser, baseUrl) {
         "a post-auth path and routed into /(auth), completed the mocked email + " +
         "OTP sign-in, and landed on /links/create/biolink — the pairing-to-" +
         "signup handoff survives the email OTP sign-up path too.",
+    );
+  } finally {
+    await context.close().catch(() => {});
+  }
+}
+
+// Prove the guest "Perfect pairings" -> signup handoff survives a CANCELLED or
+// REJECTED web-browser-provider sign-in FOLLOWED BY a successful retry. The six
+// web providers (Instagram, Facebook, X, LinkedIn, Pinterest, TikTok) don't use
+// the Google native hook — they round-trip through the backend
+// /user/social-oauth/{provider}/login popup and return via
+// app/oauth-callback.tsx's "Sign-in failed" screen, a DIFFERENT completion
+// branch than Google. runGooglePairingCancelRetry only proves the stash survives
+// a cancelled/failed GOOGLE attempt; a regression on the web-provider return
+// path would silently drop the guest's chosen pairing on any non-Google
+// provider, quietly killing the guest->creator conversion — and nothing catches
+// it today.
+//
+// The stash lives in AsyncStorage and is consumed ONLY by redirectAfterAuth on a
+// SUCCESSFUL sign-in; oauth-callback.tsx's failure branches never touch it. So a
+// guest taps a biolink pairing card (stashing a type-specific create path via
+// lib/authNext.ts and routing into /(auth)), starts a web-provider sign-in, hits
+// the friendly failure return (cancel → ?error=access_denied, or backend 422 →
+// rejected token), taps "Back to sign in", then retries the SAME provider
+// successfully. redirectAfterAuth must STILL consume the surviving stash and land
+// the brand-new creator on /links/create/biolink — NOT the generic signed-in
+// tabs. If the failure leg wrongly cleared (or the retry couldn't reconsume) the
+// stash, the retry would dump the guest in the tabs and this fails.
+//
+// Runs on a FRESH guest context on the SAME already-booted main-flow
+// browser/server (the plain CORE variant — no Google bundle needed), so it costs
+// no extra Expo boot.
+async function runWebProviderPairingCancelRetry(
+  browser,
+  baseUrl,
+  { providerId, label, failureMode },
+) {
+  const tag = `web pairing (${providerId}/${failureMode})`;
+  const context = await browser.newContext({
+    viewport: { width: 400, height: 720 },
+  });
+  try {
+    // Mark onboarding complete + ensure signed out before any page script runs,
+    // so the intro splash doesn't sit between the /(auth) push and the login
+    // screen and the card renders its guest "Sign up to create" CTA.
+    await context.addInitScript(() => {
+      try {
+        window.localStorage.setItem("1inme.onboarding.complete", "1");
+        window.localStorage.removeItem("1inme.auth.token");
+        window.localStorage.removeItem("1inme.auth.user");
+      } catch {}
+    });
+
+    const page = await context.newPage();
+    let pageError = null;
+    page.on("pageerror", (e) => {
+      pageError = e.message;
+      log(`${tag} pageerror:`, e.message);
+    });
+    page.setDefaultTimeout(STEP_TIMEOUT_MS);
+    page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+
+    // Mutable mock state. `webOauth.mode` flips the simulated backend redirect
+    // ("cancel" → ?error=access_denied; "success" → provider+id_token). `social.mode`
+    // flips the /auth/social response ("fail" → 422; "success" → session). Both
+    // start in "success"; the failing first attempt sets whichever this run tests.
+    const social = { req: null, mode: "success" };
+    const webOauth = { req: null, mode: "success" };
+
+    // Fulfill the social-login POST: 422 in "fail" mode (the backend rejects the
+    // token), otherwise the standard {data:{token,user}} session envelope.
+    await context.route("**/api/v1/auth/social", async (route) => {
+      const req = route.request();
+      social.req = {
+        url: req.url(),
+        method: req.method(),
+        body: req.postData(),
+      };
+      if (social.mode === "fail") {
+        await route.fulfill({
+          status: 422,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: {
+              message: "We couldn't verify that sign-in. Please try again.",
+              code: "invalid_token",
+            },
+          }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            token: MOCK_SOCIAL_TOKEN,
+            user: {
+              id: 84,
+              display_name: "Web Pairing Guest",
+              email: "web-pairing@example.com",
+            },
+          },
+        }),
+      });
+    });
+
+    // Serve the public restaurant page's data WITH a single biolink "Perfect
+    // pairings" card, so the guest has a real card to tap (mirrors the other
+    // pairing handoffs).
+    await context.route("**/api/v1/restaurant/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          data: {
+            menu: {
+              mode: "display",
+              currency: "USD",
+              accent_color: null,
+              order_enabled: false,
+              tax: { enabled: false, rate: 0, inclusive: false, label: "" },
+            },
+            link: { alias: "pairing-web-e2e", title: "Pairing Web E2E Menu" },
+            table: null,
+            categories: [],
+            pairings: [
+              {
+                name: "Biolink page",
+                type: "biolink",
+                icon: "fa-grid",
+                benefit: "Turn one scan into your whole world.",
+              },
+            ],
+          },
+        }),
+      });
+    });
+
+    // Catch-all: benign {data:[]} for everything else so post-nav React Query
+    // calls settle. Defer the two specific handlers above (Playwright runs route
+    // handlers most-recently-registered first, so this catch-all — added last —
+    // sees each request first and falls back for the paths it owns).
+    await context.route("**/api/**", (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (
+        /\/api\/v1\/auth\/social$/.test(path) ||
+        /\/api\/v1\/restaurant\//.test(path)
+      ) {
+        return route.fallback();
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: [] }),
+      });
+    });
+
+    // The web-browser OAuth providers open a popup to the backend
+    // /user/social-oauth/{provider}/login URL. This context-level route (popups
+    // are separate pages) records the opened URL and stands in for the backend +
+    // OS deep-link by navigating the OPENER to /oauth-callback with the OAuth
+    // result — exactly as runWebProviderSuccessPath/ErrorPath do. `mode` flips
+    // the redirect between the cancelled and happy legs.
+    await context.route("**/user/social-oauth/**", async (route) => {
+      const req = route.request();
+      webOauth.req = { url: req.url(), method: req.method() };
+      const m = new URL(req.url()).pathname.match(/social-oauth\/([^/]+)\/login/);
+      const provider = m ? m[1] : "";
+      const dest =
+        webOauth.mode === "cancel"
+          ? `${new URL(baseUrl).origin}/oauth-callback?error=access_denied`
+          : `${new URL(baseUrl).origin}/oauth-callback` +
+            `?provider=${encodeURIComponent(provider)}` +
+            `&id_token=${encodeURIComponent(MOCK_WEB_ID_TOKEN)}`;
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body:
+          `<!doctype html><meta charset="utf-8"><script>` +
+          `try{if(window.opener){window.opener.location.href=${JSON.stringify(dest)};}}catch(e){}` +
+          `</script>`,
+      });
+    });
+
+    // Navigate to the public restaurant page. Nav hardening mirrors the other
+    // flows: a transient connection error on a shared box → best-effort SKIP
+    // (exit 0), never a hard fail; a NON-transient error is a real regression.
+    const url = `${baseUrl.replace(/\/$/, "")}/restaurant/pairing-web-e2e`;
+    const TRANSIENT_NAV =
+      /ERR_CONNECTION_RESET|ERR_EMPTY_RESPONSE|ERR_CONNECTION_REFUSED|ERR_CONNECTION_CLOSED|ERR_NETWORK_CHANGED|Timeout \d+ms exceeded/;
+    const NAV_ATTEMPTS = 4;
+    let navErr;
+    for (let attempt = 1; attempt <= NAV_ATTEMPTS; attempt++) {
+      try {
+        await page.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: NAV_TIMEOUT_MS,
+        });
+        await page.waitForFunction(
+          () => document.body && document.body.innerText.trim().length > 0,
+          null,
+          { timeout: NAV_TIMEOUT_MS },
+        );
+        navErr = undefined;
+        break;
+      } catch (e) {
+        navErr = e;
+        if (TRANSIENT_NAV.test(e?.message ?? "") && attempt < NAV_ATTEMPTS) {
+          log(
+            `${tag}: nav attempt ${attempt}/${NAV_ATTEMPTS} hit a transient ` +
+              `connection error (${e?.message ?? "unknown"}); retrying`,
+          );
+          await new Promise((r) => setTimeout(r, 3000));
+          continue;
+        }
+        break;
+      }
+    }
+    if (navErr) {
+      if (TRANSIENT_NAV.test(navErr?.message ?? "")) {
+        await context.close().catch(() => {});
+        skip(
+          `${tag}: could not reach ${url} ` +
+            `(${navErr?.message ?? "unknown error"}). Is it running?`,
+        );
+        return;
+      }
+      throw navErr;
+    }
+
+    // The guest's biolink pairing card must render and be tappable. Its
+    // accessibility label is the guest CTA ("Sign up to create ..."), which
+    // proves we're signed out and looking at the conversion surface.
+    const card = page
+      .locator('[aria-label="Sign up to create Biolink page"]')
+      .first();
+    await card.waitFor({ timeout: STEP_TIMEOUT_MS });
+    log(`${tag}: guest sees the biolink 'Perfect pairings' card`);
+    await card.click();
+
+    // Tapping stashes the post-auth create path and routes into /(auth); the
+    // provider button being present there proves we reached the login screen.
+    const btn = page.locator(`[aria-label="${label}"]`).first();
+    await btn.waitFor({ timeout: STEP_TIMEOUT_MS });
+    log(`${tag}: card tap routed the guest into /(auth)`);
+
+    if (pageError) {
+      fail(`${tag}: the page reported a runtime error: ${pageError}`);
+    }
+
+    // --- FIRST attempt: fail (cancel or backend 422). The stash must survive.
+    if (failureMode === "cancel") {
+      webOauth.mode = "cancel";
+      social.mode = "success";
+    } else {
+      webOauth.mode = "success";
+      social.mode = "fail";
+    }
+    social.req = null;
+    webOauth.req = null;
+
+    const [popup1] = await Promise.all([
+      page.waitForEvent("popup", { timeout: STEP_TIMEOUT_MS }),
+      btn.click(),
+    ]);
+    log(`${tag}: tapped ${label}; OAuth popup opened (failing attempt)`);
+
+    await page
+      .getByText("Sign-in failed", { exact: true })
+      .waitFor({ timeout: STEP_TIMEOUT_MS });
+    if (failureMode === "cancel") {
+      await page
+        .getByText("You cancelled the sign-in.", { exact: false })
+        .waitFor({ timeout: STEP_TIMEOUT_MS });
+      if (social.req) {
+        fail(
+          `${tag}: a cancelled return must NOT POST to /auth/social, but it ` +
+            `did (${social.req.url})`,
+        );
+      }
+    } else {
+      await page
+        .getByText("We couldn't verify that sign-in", { exact: false })
+        .waitFor({ timeout: STEP_TIMEOUT_MS });
+      const displayName = label.replace(/^Continue with /, "");
+      await page
+        .getByText(`${displayName} sign-in is having issues`, { exact: false })
+        .waitFor({ timeout: STEP_TIMEOUT_MS });
+    }
+
+    // The failed attempt must NOT have signed the guest in.
+    const inTabsAfterFail = await page
+      .getByText("Profile", { exact: true })
+      .first()
+      .isVisible()
+      .catch(() => false);
+    if (inTabsAfterFail) {
+      fail(`${tag}: a failed web sign-in wrongly signed the guest in`);
+    }
+    await popup1.close().catch(() => {});
+    log(`${tag}: failing attempt surfaced a friendly error, no sign-in`);
+
+    // --- RETRY: back to the sign-in screen, then the SAME provider succeeds.
+    // We deliberately do NOT reset the session/storage here — that would clear
+    // the very stash whose survival we're proving.
+    await page.getByText("Back to sign in", { exact: true }).click();
+    await btn.waitFor({ timeout: STEP_TIMEOUT_MS });
+    log(`${tag}: 'Back to sign in' returned to the login screen`);
+
+    social.mode = "success";
+    webOauth.mode = "success";
+    social.req = null;
+    webOauth.req = null;
+
+    const [popup2] = await Promise.all([
+      page.waitForEvent("popup", { timeout: STEP_TIMEOUT_MS }),
+      btn.click(),
+    ]);
+    log(`${tag}: retried ${label}; OAuth popup opened (successful attempt)`);
+
+    // THE PROOF: after the successful retry, redirectAfterAuth must consume the
+    // surviving stash and land on the type-specific create screen — NOT the
+    // signed-in tabs. Assert both the URL and the create screen's own copy so a
+    // header-only match can't fool us.
+    await page.waitForFunction(
+      () => location.pathname.includes("/links/create/biolink"),
+      null,
+      { timeout: STEP_TIMEOUT_MS },
+    );
+    await page
+      .getByText("A multi-block landing page for your bio.", { exact: false })
+      .waitFor({ timeout: STEP_TIMEOUT_MS });
+    await popup2.close().catch(() => {});
+
+    // The successful retry must actually have round-tripped through the backend
+    // login URL + /auth/social (not a stale session): assert the intercepted
+    // requests' shapes.
+    if (!webOauth.req) {
+      fail(`${tag}: the retry never opened the backend social-oauth login URL`);
+    }
+    if (
+      !new RegExp(`/user/social-oauth/${providerId}/login$`).test(
+        new URL(webOauth.req.url).pathname,
+      )
+    ) {
+      fail(
+        `${tag}: the retry opened the wrong backend URL (${webOauth.req.url})`,
+      );
+    }
+    if (!social.req) {
+      fail(`${tag}: the retry never POSTed to /api/v1/auth/social`);
+    }
+    let body;
+    try {
+      body = JSON.parse(social.req.body ?? "null");
+    } catch {
+      fail(`${tag}: auth/social body was not valid JSON: ${social.req.body}`);
+    }
+    if (body?.provider !== providerId || body?.id_token !== MOCK_WEB_ID_TOKEN) {
+      fail(
+        `${tag}: auth/social body must be { provider:"${providerId}", ` +
+          `id_token:"${MOCK_WEB_ID_TOKEN}" }, got ${JSON.stringify(body)}`,
+      );
+    }
+
+    log(
+      `${tag} PASS: a guest tapped a 'Perfect pairings' card, hit a ` +
+        `${failureMode} web-provider failure, retried the SAME provider, and ` +
+        `still landed on /links/create/biolink — the pairing stash survives a ` +
+        `cancelled/rejected non-Google sign-in.`,
     );
   } finally {
     await context.close().catch(() => {});
@@ -2367,11 +2746,33 @@ async function main(server) {
     // -----------------------------------------------------------------
     await runOtpPairingHandoff(browser, appBaseUrl);
 
+    // -----------------------------------------------------------------
+    // Step 10: the guest "Perfect pairings" -> signup handoff must ALSO
+    // survive a CANCELLED or REJECTED web-browser-provider sign-in and a
+    // subsequent successful retry. The six web providers take a different
+    // completion path than Google (oauth-callback's "Sign-in failed"
+    // screen), so a regression there would silently drop the guest's
+    // chosen pairing on any non-Google provider. Cover BOTH failure
+    // mechanisms — a cancelled popup (Instagram) and a backend 422
+    // (Facebook) — each on a fresh guest context on this same server.
+    // -----------------------------------------------------------------
+    await runWebProviderPairingCancelRetry(browser, appBaseUrl, {
+      providerId: "instagram",
+      label: "Continue with Instagram",
+      failureMode: "cancel",
+    });
+    await runWebProviderPairingCancelRetry(browser, appBaseUrl, {
+      providerId: "facebook",
+      label: "Continue with Facebook",
+      failureMode: "backend422",
+    });
+
     log(
       "PASS: social buttons, demo logins, OTP sign-in, the OAuth deep-link " +
         "return (browser + native-SDK legs), every web-browser provider's " +
-        "full sign-in, every web-browser provider's failure path, and the " +
-        "guest pairing -> email-OTP signup handoff all behave correctly.",
+        "full sign-in, every web-browser provider's failure path, the guest " +
+        "pairing -> email-OTP signup handoff, and the guest pairing -> " +
+        "web-provider cancel/reject + retry handoff all behave correctly.",
     );
   } finally {
     await browser.close();
