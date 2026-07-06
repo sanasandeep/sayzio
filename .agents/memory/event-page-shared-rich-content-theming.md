@@ -28,13 +28,23 @@ dark-theme color on the white light-mode card and washes out. This is AUTOMATED
 and GENERALIZED: validation gate `light-mode-pairing`
 (`scripts/src/check-light-mode-pairing.ts`, `pnpm --filter @workspace/scripts run
 check:light-mode-pairing`, `--explain` for details) checks a CONFIGURED SET of
-pages via a `TARGETS` array — currently the event page and the FAQs page — not
-just the event page. Adding a page is a one-entry append to `TARGETS`. It parses
-each page's `<style>` block(s) and fails if any base rule setting
-`color`/`border-color` lacks its `html.light-mode <sel>` peer for the SAME
-property. Matching is property-level and per-individual-selector (grouped comma
-selectors split), so a missed `color` still fails even if `border-color` is
-paired. Each target runs whole-page by default, or scoped to a wrapper via
+pages via a `TARGETS` array — currently the event page, the FAQs page, the events
+directory (`common/events-directory.blade.php`) and the creator events page
+(`common/creator-events.blade.php`). Adding a page is a one-entry append to
+`TARGETS`. It parses each page's `<style>` block(s) and fails if any base rule
+setting `color`/`border-color` lacks its `html.light-mode <sel>` peer for the
+SAME property. Matching is property-level and per-individual-selector (grouped
+comma selectors split), so a missed `color` still fails even if `border-color`
+is paired. A base selector counts as paired when a light rule matches it EXACTLY
+or via an ANCESTOR-PREFIXED (suffix) form — `lightSel.endsWith(" " + baseSel)`,
+i.e. the light override adds an ancestor and ends with the whole base selector
+after a boundary space. This lets pages whose base classes are bare (e.g.
+`.hashtag-pill`) pair with light overrides that add a `.events-page-body` (or
+similar) ancestor. The leading-space boundary is deliberate: it prevents false
+pairs where only a class SUFFIX coincides (`.pill` must NOT pair `.hashtag-pill`)
+or where classes are compounded without a descendant combinator (`.border` must
+NOT pair `.a.border`). Each target runs whole-page by default, or scoped to a
+wrapper via
 `scopes: [".wrapper"]` when the page also has intentional always-dark islands
 (e.g. a hero over a dark image); `@keyframes` blocks are stripped before parsing
 so animation percentage steps are never mistaken for color-carrying selectors.

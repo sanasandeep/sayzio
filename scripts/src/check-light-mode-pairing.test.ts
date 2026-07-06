@@ -128,6 +128,44 @@ describe("findMissingPairs — stays quiet on correct CSS", () => {
   });
 });
 
+describe("findMissingPairs — ancestor-prefixed (suffix) matching", () => {
+  it("pairs a bare base selector via a light override that adds an ancestor", () => {
+    const css = [
+      ".hashtag-pill { color:rgba(255,255,255,0.5); }",
+      "html.light-mode .events-page-body .hashtag-pill { color:rgba(15,23,42,0.55); }",
+    ].join("\n");
+    expect(missing(css)).toEqual([]);
+  });
+
+  it("pairs a bare base selector for grouped ancestor-prefixed light overrides", () => {
+    const css = [
+      ".link-accent, .tier-toggle-link { color:#8fa8ff; }",
+      "html.light-mode .events-page-body .link-accent, html.light-mode .events-page-body .tier-toggle-link { color:#2342c7; }",
+    ].join("\n");
+    expect(missing(css)).toEqual([]);
+  });
+
+  it("does NOT mask a genuinely-missing pair when only the class suffix coincides", () => {
+    // base `.pill` shares a suffix with `.hashtag-pill` but is a different
+    // selector — the leading-space boundary must prevent a false pair.
+    const css = [
+      ".pill { color:#fff; }",
+      "html.light-mode .events-page-body .hashtag-pill { color:rgba(15,23,42,0.55); }",
+    ].join("\n");
+    expect(missing(css)).toEqual([".pill { color }"]);
+  });
+
+  it("does NOT pair across a compound-class boundary (no descendant combinator)", () => {
+    // `.a.border` is `.a` combined with `.border` (no space) — it must not
+    // pair base `.border`.
+    const css = [
+      ".border { border-color:rgba(255,255,255,0.1); }",
+      "html.light-mode .a.border { border-color:rgba(15,23,42,0.1); }",
+    ].join("\n");
+    expect(missing(css)).toEqual([".border { border-color }"]);
+  });
+});
+
 describe("findMissingPairs — scoped mode", () => {
   it("only checks base rules under the configured wrapper", () => {
     const css = [

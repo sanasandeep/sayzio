@@ -116,6 +116,73 @@ export const TARGETS: Target[] = [
       },
     ],
   },
+  {
+    page: "artifacts/1inme/resources/views/common/events-directory.blade.php",
+    label: "events directory",
+    // Whole-page: the below-hero re-themed classes are bare custom selectors
+    // (.hashtag-pill, .ev-chip, …) that the light overrides pair with an added
+    // `.events-page-body` ancestor (handled by the ancestor-prefixed match).
+    // The photographic hero is an intentional always-dark island whose bespoke
+    // .hero-slide-* text has no light counterpart on purpose, so it is
+    // allowlisted here rather than scoped (base rules are bare, not under a
+    // wrapper selector, so `scopes` can't isolate the light surface).
+    allowlist: [
+      {
+        selector: ".hero-slide-badge",
+        property: "color",
+        reason:
+          "featured-slider badge white text sits on a blue→violet gradient over the always-dark photographic hero — intentionally white in both themes.",
+      },
+      {
+        selector: ".hero-slide-date",
+        property: "color",
+        reason:
+          "featured-slider date (rgba(255,255,255,.7)) over the always-dark cover-image scrim — intentionally light in both themes.",
+      },
+      {
+        selector: ".hero-slide-title",
+        property: "color",
+        reason:
+          "featured-slider title white text over the always-dark cover-image scrim — intentionally white in both themes.",
+      },
+      {
+        selector: ".hero-slide-location",
+        property: "color",
+        reason:
+          "featured-slider location (rgba(255,255,255,.6)) over the always-dark cover-image scrim — intentionally light in both themes.",
+      },
+      {
+        selector: ".ev-cat-pill",
+        property: "color",
+        reason:
+          "category pill white text always sits on a solid colored badge background (set inline) — theme-neutral, legible in both modes.",
+      },
+      {
+        selector: ".event-card:hover",
+        property: "border-color",
+        reason:
+          "blue accent hover border (rgba(61,107,255,.4)) — the brand accent reads clearly on both the dark and the white card, so it is intentionally theme-neutral.",
+      },
+    ],
+  },
+  {
+    page: "artifacts/1inme/resources/views/common/creator-events.blade.php",
+    label: "creator events page",
+    allowlist: [
+      {
+        selector: ".ev-cat-pill",
+        property: "color",
+        reason:
+          "category pill white text always sits on a solid colored badge background (set inline) — theme-neutral, legible in both modes.",
+      },
+      {
+        selector: ".event-card:hover",
+        property: "border-color",
+        reason:
+          "blue accent hover border (rgba(61,107,255,.4)) — the brand accent reads clearly on both the dark and the white card, so it is intentionally theme-neutral.",
+      },
+    ],
+  },
 ];
 
 function makeIsAllowed(allowlist: AllowEntry[]) {
@@ -231,13 +298,42 @@ function inScope(sel: string, scopes: string[]): boolean {
 }
 
 /**
+ * Does the light map contain an override that pairs `baseSel` for `prop`?
+ *
+ * A base selector is paired either by an EXACT stripped light selector
+ * (`html.light-mode .foo` pairs base `.foo`) or by a light selector that adds
+ * one or more ANCESTORS in front of it — an "ancestor-prefixed" / suffix match
+ * (`html.light-mode .events-page-body .foo` pairs base `.foo`). The suffix must
+ * begin at a descendant-combinator boundary (a leading space), so a genuinely
+ * different selector that merely *ends* with the same characters can never
+ * masquerade as a pair: `.hashtag-pill` does NOT pair base `.pill` (there is no
+ * space before `.pill`), and `.a.border` does NOT pair base `.border`. This
+ * keeps the parser from masking genuinely-missing pairs while allowing the
+ * common pattern of raising specificity with a body/wrapper ancestor.
+ */
+function lightHasPairFor(
+  light: Map<string, Set<ColorProp>>,
+  baseSel: string,
+  prop: ColorProp,
+): boolean {
+  const suffix = " " + baseSel;
+  for (const [lightSel, lightProps] of light) {
+    if (!lightProps.has(prop)) continue;
+    if (lightSel === baseSel || lightSel.endsWith(suffix)) return true;
+  }
+  return false;
+}
+
+/**
  * Analyze parsed rules for base color declarations that lack a paired
  * `html.light-mode <same-selector>` override of the SAME property.
  *
  * For each individual selector in each rule:
  *   - `html.light-mode …`  → record its props under the stripped key (if in scope).
  *   - non-light selector    → record its props under that key (if in scope).
- * Then every in-scope (baseSelector, property) must appear in the light map too.
+ * Then every in-scope (baseSelector, property) must be paired by a light
+ * override — either an exact stripped match or an ancestor-prefixed one (see
+ * `lightHasPairFor`).
  */
 export function findMissingPairs(rules: CssRule[], options: FindOptions = {}): MissingPair[] {
   const scopes = options.scopes ?? [];
@@ -264,11 +360,10 @@ export function findMissingPairs(rules: CssRule[], options: FindOptions = {}): M
 
   const missing: MissingPair[] = [];
   for (const [sel, props] of [...base.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-    const lightProps = light.get(sel);
     for (const prop of COLOR_PROPS) {
       if (!props.has(prop)) continue;
       if (isAllowed(sel, prop)) continue;
-      if (!lightProps || !lightProps.has(prop)) {
+      if (!lightHasPairFor(light, sel, prop)) {
         missing.push({ selector: sel, property: prop });
       }
     }
