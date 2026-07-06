@@ -36,10 +36,13 @@ class UserDatabaseFactory extends Factory
      * into the INSERT, so they are stripped here to reproduce that behavior.
      *
      * This list is the single source of truth shared with the
-     * `scripts/check-factory-columns.php` regression guard, which fails CI if a
-     * `User::factory(...)` call site forwards a key that is neither a real
-     * `users` column nor listed here — so genuine typos / re-added dead columns
-     * error loudly instead of being silently swallowed.
+     * `scripts/check-factory-columns.php` regression guard (read from it by
+     * reflection), which fails CI if a `User::factory(...)` call site forwards a
+     * key that is neither a real `users` column nor listed here — so genuine
+     * typos / re-added dead columns error loudly instead of being silently
+     * swallowed. The guard applies the same check to every other model factory
+     * it discovers, so any factory may declare its own `DROPPED_LEGACY_ATTRIBUTES`
+     * constant to opt legacy keys out of that model's check.
      *
      * @var array<int,string>
      */

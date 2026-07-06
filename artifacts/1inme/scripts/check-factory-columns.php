@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Regression guard: dead-column keys forwarded to `User::factory(...)`.
+ * Regression guard: dead-column keys forwarded to `<Model>::factory(...)`.
  *
  * Background: the makeUser refactor replaced hand-rolled `User::create([...])`
  * test helpers with `User::factory()->create([...])`. `User::create()` silently
@@ -16,20 +16,30 @@
  * renamed column key to a factory call site and reintroducing the same class of
  * failure.
  *
- * This guard statically scans every `User::factory(...)` call site in the test
+ * That exact failure class is not unique to `User`: ANY Eloquent factory (Link,
+ * Biolink, Workspace, ...) forces its passed attributes into the INSERT, so a
+ * dead key forwarded to `<Model>::factory(...)` fails the same way. This guard
+ * therefore discovers every factory under `database/factories/`, resolves each
+ * one's model + real table columns, and scans that model's `::factory(...)` call
+ * sites — not just `User`'s.
+ *
+ * For each discovered factory the guard derives, DB-free:
+ *   - the real table columns (by replaying the migration files via
+ *     {@see \App\Modules\Common\Support\SchemaManifest}, so it needs no live DB
+ *     and stays automatically in sync as columns are added/renamed/dropped), and
+ *   - the keys that factory intentionally strips, read by reflection from an
+ *     optional `DROPPED_LEGACY_ATTRIBUTES` constant on the factory class
+ *     ({@see \Database\Factories\UserDatabaseFactory::DROPPED_LEGACY_ATTRIBUTES}),
+ *     so the allowlist stays in lockstep with the factory that owns it.
+ *
+ * It then statically scans every `<Model>::factory(...)` call site in the test
  * suite (and any extra directories passed as arguments), extracts the attribute
  * keys each chain forwards to `create`/`make`/`state`/etc., and fails if any key
- * is neither:
- *   - a real `users` column (derived by replaying the migration files via
- *     {@see \App\Modules\Common\Support\SchemaManifest}, so it needs no live DB
- *     and stays automatically in sync as columns are added/renamed/dropped), nor
- *   - a key the factory intentionally strips
- *     ({@see \Database\Factories\UserDatabaseFactory::DROPPED_LEGACY_ATTRIBUTES}).
+ * is neither a real column of that model's table nor a key the factory strips.
  *
  * Real non-fillable columns (e.g. `created_at`, `email_verified_at`) are genuine
- * `users` columns, so they pass. Genuine typos and re-added dead columns fail
- * loudly here, at CI time, instead of exploding across the whole suite at run
- * time.
+ * columns, so they pass. Genuine typos and re-added dead columns fail loudly
+ * here, at CI time, instead of exploding across the whole suite at run time.
  *
  * Only inline array literals are analysable statically; a chain that forwards a
  * variable (`User::factory()->create($attrs)`) or a spread is reported as
@@ -40,8 +50,8 @@
  *   php scripts/check-factory-columns.php [dir ...]   # default: tests
  *
  * Exit codes:
- *   0  no dead-column keys forwarded to User::factory(...)
- *   1  at least one dead-column key found (or the users schema could not be derived)
+ *   0  no dead-column keys forwarded to any <Model>::factory(...)
+ *   1  at least one dead-column key found (or a factory's schema could not be derived)
  */
 
 $root = dirname(__DIR__);
@@ -49,31 +59,64 @@ require $root.'/vendor/autoload.php';
 
 /*
  * ----------------------------------------------------------------------------
- * 1. Derive the real `users` columns + the factory's intentionally-dropped keys.
+ * 1. Boot the app and derive the expected schema (table => columns), DB-free.
  * ----------------------------------------------------------------------------
  */
 $app = require $root.'/bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 $manifest = \App\Modules\Common\Support\SchemaManifest::build();
-if (! ($manifest['available'] ?? false) || empty($manifest['tables']['users'])) {
-    fwrite(STDERR, "Could not derive the `users` schema from the migration files"
+if (! ($manifest['available'] ?? false) || empty($manifest['tables'])) {
+    fwrite(STDERR, "Could not derive the expected schema from the migration files"
         . (isset($manifest['error']) ? ' (' . $manifest['error'] . ')' : '') . ".\n"
         . "This guard cannot verify factory columns without it.\n");
     exit(1);
 }
 
-/** @var array<int,string> */
-$userColumns = $manifest['tables']['users'];
-$columnSet = array_fill_keys($userColumns, true);
-
-/** @var array<int,string> Keys the factory intentionally strips before persist. */
-$droppedKeys = \Database\Factories\UserDatabaseFactory::DROPPED_LEGACY_ATTRIBUTES;
-$allowedSet = $columnSet + array_fill_keys($droppedKeys, true);
+/** @var array<string,array<int,string>> table => columns */
+$schemaTables = $manifest['tables'];
 
 /*
  * ----------------------------------------------------------------------------
- * 2. Collect the files to scan.
+ * 2. Discover every factory and build a per-model registry:
+ *    modelShortName => [
+ *      'model'    => FQCN,
+ *      'factory'  => factory FQCN,
+ *      'table'    => real table name,
+ *      'allowed'  => set of allowed keys (real columns + intentionally-dropped),
+ *      'columns'  => count of real columns,
+ *      'dropped'  => list of intentionally-dropped keys,
+ *    ]
+ * ----------------------------------------------------------------------------
+ */
+$registry = buildFactoryRegistry($root, $schemaTables);
+
+if ($registry === []) {
+    fwrite(STDERR, "No usable model factories found under database/factories/.\n"
+        . "This guard has nothing to verify.\n");
+    exit(1);
+}
+
+// Any factory whose table could not be resolved is a hard failure: it means the
+// guard would silently skip a real factory (the very blind spot this task closes).
+$unresolvedFactories = array_filter($registry, fn ($info) => $info['table'] === null || $info['columns'] === 0);
+if ($unresolvedFactories !== []) {
+    fwrite(STDERR, "Could not resolve the table/columns for the following factory model(s):\n");
+    foreach ($unresolvedFactories as $short => $info) {
+        fwrite(STDERR, "  {$info['factory']} -> {$info['model']}"
+            . ($info['table'] !== null ? " (table '{$info['table']}' not in schema manifest)" : ' (no model/table)') . "\n");
+    }
+    fwrite(STDERR, "Fix the factory's \$model, ensure the model's table is declared by a migration,\n"
+        . "or the guard cannot verify its call sites.\n");
+    exit(1);
+}
+
+// Short-name lookup used by the scanner (e.g. 'User' => registry entry).
+$modelNames = array_keys($registry);
+
+/*
+ * ----------------------------------------------------------------------------
+ * 3. Collect the files to scan.
  * ----------------------------------------------------------------------------
  */
 $dirs = array_slice($argv, 1);
@@ -105,41 +148,51 @@ if ($files === []) {
     exit(0);
 }
 
-fwrite(STDERR, 'Scanning ' . count($files) . " file(s) for dead-column keys forwarded to User::factory(...)\n");
-fwrite(STDERR, 'Comparing against ' . count($userColumns) . " real `users` column(s)"
-    . ($droppedKeys ? ' + intentionally-dropped: ' . implode(', ', $droppedKeys) : '') . "\n\n");
+fwrite(STDERR, 'Scanning ' . count($files) . ' file(s) for dead-column keys forwarded to '
+    . count($modelNames) . " model factory/factories: " . implode(', ', $modelNames) . "\n");
+foreach ($registry as $short => $info) {
+    fwrite(STDERR, "  {$short}::factory -> `{$info['table']}` ({$info['columns']} column(s)"
+        . ($info['dropped'] ? ', intentionally-dropped: ' . implode(', ', $info['dropped']) : '') . ")\n");
+}
+fwrite(STDERR, "\n");
 
 /*
  * ----------------------------------------------------------------------------
- * 3. Scan each file for User::factory(...) chains and their forwarded keys.
+ * 4. Scan each file for <Model>::factory(...) chains and their forwarded keys.
  * ----------------------------------------------------------------------------
  */
-$problems = [];   // ['file'=>, 'line'=>, 'key'=>]
-$unresolved = []; // ['file'=>, 'line'=>] chains that forward a non-literal argument
+$problems = [];   // ['file'=>, 'line'=>, 'model'=>, 'table'=>, 'key'=>]
+$unresolved = []; // ['file'=>, 'line'=>, 'model'=>] chains that forward a non-literal argument
 
 foreach ($files as $file) {
     $src = @file_get_contents($file);
     if ($src === false) {
         continue;
     }
-    if (strpos($src, 'User::factory') === false) {
+    // Cheap pre-filter: skip files that reference no factory at all.
+    if (strpos($src, '::factory') === false) {
         continue;
     }
 
-    foreach (findFactoryChains($src) as $chain) {
+    foreach (findFactoryChains($src, $modelNames) as $chain) {
+        $model = $chain['model'];
+        $info  = $registry[$model];
+
         foreach ($chain['calls'] as $call) {
             $extract = extractArrayKeys($call['tokens'], $call['method']);
 
             if ($extract['unresolved']) {
-                $unresolved[] = ['file' => $file, 'line' => $call['line']];
+                $unresolved[] = ['file' => $file, 'line' => $call['line'], 'model' => $model];
             }
 
             foreach ($extract['keys'] as $keyInfo) {
-                if (! isset($allowedSet[$keyInfo['key']])) {
+                if (! isset($info['allowed'][$keyInfo['key']])) {
                     $problems[] = [
-                        'file' => $file,
-                        'line' => $keyInfo['line'],
-                        'key'  => $keyInfo['key'],
+                        'file'  => $file,
+                        'line'  => $keyInfo['line'],
+                        'model' => $model,
+                        'table' => $info['table'],
+                        'key'   => $keyInfo['key'],
                     ];
                 }
             }
@@ -149,7 +202,7 @@ foreach ($files as $file) {
 
 /*
  * ----------------------------------------------------------------------------
- * 4. Report.
+ * 5. Report.
  * ----------------------------------------------------------------------------
  */
 $rel = function (string $path) use ($root): string {
@@ -157,33 +210,190 @@ $rel = function (string $path) use ($root): string {
 };
 
 if ($unresolved !== []) {
-    fwrite(STDERR, count($unresolved) . " User::factory(...) call site(s) forward a non-literal argument (keys live at the caller — not checked here):\n");
+    fwrite(STDERR, count($unresolved) . " <Model>::factory(...) call site(s) forward a non-literal argument (keys live at the caller — not checked here):\n");
     foreach ($unresolved as $u) {
-        fwrite(STDERR, "  {$rel($u['file'])}:{$u['line']}\n");
+        fwrite(STDERR, "  {$rel($u['file'])}:{$u['line']}  ({$u['model']}::factory)\n");
     }
     fwrite(STDERR, "\n");
 }
 
 if ($problems === []) {
-    fwrite(STDERR, 'OK: every User::factory(...) attribute key maps to a real `users` column.' . "\n");
+    fwrite(STDERR, 'OK: every <Model>::factory(...) attribute key maps to a real column of its table.' . "\n");
     exit(0);
 }
 
 usort($problems, fn ($a, $b) => [$a['file'], $a['line'], $a['key']] <=> [$b['file'], $b['line'], $b['key']]);
 
-fwrite(STDERR, 'Dead-column keys forwarded to User::factory(...) (' . count($problems) . "):\n\n");
+fwrite(STDERR, 'Dead-column keys forwarded to model factories (' . count($problems) . "):\n\n");
 foreach ($problems as $p) {
-    fwrite(STDERR, "  {$rel($p['file'])}:{$p['line']}\n    '{$p['key']}' is not a real `users` column\n");
+    fwrite(STDERR, "  {$rel($p['file'])}:{$p['line']}\n    '{$p['key']}' is not a real `{$p['table']}` column ({$p['model']}::factory)\n");
 }
-fwrite(STDERR, "\nEach key above is forced into the users INSERT by the factory but is not a\n");
+fwrite(STDERR, "\nEach key above is forced into its table's INSERT by the factory but is not a\n");
 fwrite(STDERR, "real column, so it will fail at run time with `column \"...\" does not exist`.\n");
 fwrite(STDERR, "Fix options:\n");
 fwrite(STDERR, "  - Remove the key from the factory call (it was likely cosmetic), or\n");
 fwrite(STDERR, "  - Use the correct current column name, or\n");
-fwrite(STDERR, "  - If it is a legitimately-dropped legacy key that must be tolerated, add it to\n");
-fwrite(STDERR, "    Database\\Factories\\UserDatabaseFactory::DROPPED_LEGACY_ATTRIBUTES (which strips it).\n");
+fwrite(STDERR, "  - If it is a legitimately-dropped legacy key that must be tolerated, add it to the\n");
+fwrite(STDERR, "    factory's DROPPED_LEGACY_ATTRIBUTES constant (which must also strip it before persist).\n");
 
 exit(1);
+
+/*
+ * ============================================================================
+ * Factory discovery.
+ * ============================================================================
+ */
+
+/**
+ * Discover every concrete Eloquent factory under `database/factories/` and map
+ * each one's model short name to its resolved table columns + intentionally
+ * dropped legacy keys.
+ *
+ * A factory's model is read from its `$model` property (default value via
+ * reflection). The table is resolved by instantiating the model and calling
+ * `getTable()` (no query — Eloquent computes the table name from the class), so
+ * a model that overrides `$table` is honoured. The intentionally-dropped keys
+ * are read from an optional `DROPPED_LEGACY_ATTRIBUTES` class constant.
+ *
+ * @param array<string,array<int,string>> $schemaTables table => columns
+ * @return array<string,array{model:string,factory:string,table:?string,allowed:array<string,true>,columns:int,dropped:array<int,string>}>
+ */
+function buildFactoryRegistry(string $root, array $schemaTables): array
+{
+    $dir = $root . '/database/factories';
+    if (! is_dir($dir)) {
+        return [];
+    }
+
+    $registry = [];
+
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
+    );
+
+    foreach ($iterator as $file) {
+        if (! $file->isFile() || strtolower($file->getExtension()) !== 'php') {
+            continue;
+        }
+
+        $class = factoryClassFromFile($file->getPathname());
+        if ($class === null || ! class_exists($class)) {
+            continue;
+        }
+
+        $ref = new ReflectionClass($class);
+        if ($ref->isAbstract() || ! $ref->isSubclassOf(\Illuminate\Database\Eloquent\Factories\Factory::class)) {
+            continue;
+        }
+
+        // Resolve the model FQCN from the factory's $model default.
+        $modelClass = factoryModelClass($ref);
+        if ($modelClass === null || ! class_exists($modelClass)) {
+            continue;
+        }
+
+        $short = classBasename($modelClass);
+
+        // Resolve the real table + columns for the model, DB-free.
+        $table   = resolveModelTable($modelClass);
+        $columns = ($table !== null && isset($schemaTables[$table])) ? $schemaTables[$table] : [];
+
+        // Read the factory's intentionally-dropped legacy attribute allowlist.
+        $dropped = [];
+        if ($ref->hasConstant('DROPPED_LEGACY_ATTRIBUTES')) {
+            $value = $ref->getConstant('DROPPED_LEGACY_ATTRIBUTES');
+            if (is_array($value)) {
+                foreach ($value as $key) {
+                    if (is_string($key) && $key !== '') {
+                        $dropped[] = $key;
+                    }
+                }
+            }
+        }
+
+        $allowed = array_fill_keys($columns, true) + array_fill_keys($dropped, true);
+
+        // If two factories map to the same short name (unusual), keep the one
+        // that resolved a table so the guard never silently loses coverage.
+        if (isset($registry[$short]) && $registry[$short]['table'] !== null && $table === null) {
+            continue;
+        }
+
+        $registry[$short] = [
+            'model'   => $modelClass,
+            'factory' => $class,
+            'table'   => $columns === [] ? $table : $table, // keep for reporting either way
+            'allowed' => $allowed,
+            'columns' => count($columns),
+            'dropped' => $dropped,
+        ];
+    }
+
+    ksort($registry);
+
+    return $registry;
+}
+
+/**
+ * Derive the fully-qualified factory class name from its file path. All
+ * factories in this project live in the `Database\Factories` namespace and are
+ * named after their file (PSR-4), possibly under a sub-namespace mirroring the
+ * directory tree beneath `database/factories/`.
+ */
+function factoryClassFromFile(string $path): ?string
+{
+    $src = @file_get_contents($path);
+    if ($src === false) {
+        return null;
+    }
+
+    if (! preg_match('/^\s*namespace\s+([^;]+);/m', $src, $ns)) {
+        return null;
+    }
+    if (! preg_match('/^\s*(?:final\s+|abstract\s+)*class\s+(\w+)/m', $src, $cls)) {
+        return null;
+    }
+
+    return trim($ns[1]) . '\\' . $cls[1];
+}
+
+/**
+ * Read the factory's `$model` default value via reflection without invoking any
+ * factory logic.
+ */
+function factoryModelClass(ReflectionClass $ref): ?string
+{
+    // getDefaultProperties() reads declared defaults across the hierarchy.
+    $defaults = $ref->getDefaultProperties();
+    $model = $defaults['model'] ?? null;
+
+    return (is_string($model) && $model !== '') ? $model : null;
+}
+
+/**
+ * Resolve a model's table name the same way Eloquent does at run time, without
+ * touching the database. Instantiating the model is enough: `getTable()` returns
+ * the explicit `$table` when set, else the snake-cased plural of the class name.
+ */
+function resolveModelTable(string $modelClass): ?string
+{
+    try {
+        /** @var \Illuminate\Database\Eloquent\Model $model */
+        $model = new $modelClass;
+
+        return $model->getTable();
+    } catch (\Throwable $e) {
+        return null;
+    }
+}
+
+/** class_basename without depending on the framework helper being loaded. */
+function classBasename(string $class): string
+{
+    $pos = strrpos($class, '\\');
+
+    return $pos === false ? $class : substr($class, $pos + 1);
+}
 
 /*
  * ============================================================================
@@ -192,16 +402,20 @@ exit(1);
  */
 
 /**
- * Find every `User::factory(...)` fluent chain in the source and, for each,
- * return the attribute-setting method calls in the chain along with the token
- * span of their argument list.
+ * Find every `<Model>::factory(...)` fluent chain in the source (for any model
+ * short name in $modelNames) and, for each, return which model it targets plus
+ * the attribute-setting method calls in the chain along with the token span of
+ * their argument list.
  *
- * @return array<int,array{calls:array<int,array{method:string,line:int,tokens:array<int,mixed>}>}>
+ * @param array<int,string> $modelNames model short names to match (case-sensitive)
+ * @return array<int,array{model:string,calls:array<int,array{method:string,line:int,tokens:array<int,mixed>}>}>
  */
-function findFactoryChains(string $src): array
+function findFactoryChains(string $src, array $modelNames): array
 {
     $tokens = token_get_all($src);
     $n = count($tokens);
+
+    $modelSet = array_fill_keys($modelNames, true);
 
     // Methods on a factory chain that set model attributes. Only these carry
     // the attribute arrays whose keys must be real columns.
@@ -217,11 +431,13 @@ function findFactoryChains(string $src): array
     $chains = [];
 
     for ($i = 0; $i < $n; $i++) {
-        // Match the `User :: factory` token triple (ignoring the namespace
-        // prefix — tests reference the imported short name `User`).
-        if (! isStringToken($tokens[$i], 'User')) {
+        // Match a `<Model> :: factory` token triple where <Model> is a known
+        // factory model short name (tests reference the imported short name).
+        if (! (is_array($tokens[$i]) && $tokens[$i][0] === T_STRING && isset($modelSet[$tokens[$i][1]]))) {
             continue;
         }
+        $model = $tokens[$i][1];
+
         // token_get_all yields `::` as T_DOUBLE_COLON.
         $j = nextMeaningful($tokens, $i + 1);
         if ($j === null || ! (is_array($tokens[$j]) && $tokens[$j][0] === T_DOUBLE_COLON)) {
@@ -277,7 +493,7 @@ function findFactoryChains(string $src): array
         }
 
         if ($calls !== []) {
-            $chains[] = ['calls' => $calls];
+            $chains[] = ['model' => $model, 'calls' => $calls];
         }
 
         // Continue scanning after this chain.
