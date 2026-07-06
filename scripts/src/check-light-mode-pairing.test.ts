@@ -14,7 +14,11 @@ import {
   countInlineThemedDecls,
   countLightOverrides,
   checkPartial,
+  readViewsFileMap,
+  targetViewRel,
+  pageIsSelfContained,
 } from "./check-light-mode-pairing.js";
+import { VIEWS_REL } from "./check-undefined-css-var-fallback.js";
 
 /**
  * Regression suite for the generalized light-mode pairing guard.
@@ -222,12 +226,115 @@ describe("the live configured TARGETS", () => {
     (_label, target) => {
       const abs = path.join(REPO_ROOT, target.page);
       expect(fs.existsSync(abs), `${target.page} should exist`).toBe(true);
-      const result = checkTarget(target);
+      const result = checkTarget(target, readViewsFileMap());
       expect(result.error).toBeUndefined();
+      expect(result.scopeError).toBeUndefined();
       expect(result.missing).toEqual([]);
       expect(result.partialMismatches).toEqual([]);
     },
   );
+
+  it("every configured target participates in the app theme (loads theme-styles, not self-contained)", () => {
+    const files = readViewsFileMap();
+    for (const target of TARGETS) {
+      const rel = targetViewRel(target.page);
+      expect(rel, `${target.page} should live under ${VIEWS_REL}`).not.toBeNull();
+      expect(
+        pageIsSelfContained(rel as string, files),
+        `${target.page} must load theme-styles (extend a themed layout), or the html.light-mode pairing check is meaningless`,
+      ).toBe(false);
+    }
+  });
+});
+
+/**
+ * Theme-scope blind spot (shared with the undefined-css-var guard).
+ *
+ * The pairing check only means anything for a page that actually receives the
+ * app's `html.light-mode` toggle — i.e. one that loads theme-styles through its
+ * layout. A page shipping its own `<html>`/`<head>` and never @including
+ * theme-styles never gets that class, so its overrides are dead. The guard must
+ * detect that (via the same declaresOwnDocument/includesThemeStyles helpers) and
+ * report it as a misconfiguration instead of silently "passing" a page whose
+ * light-mode overrides never fire.
+ */
+describe("theme-scope detection", () => {
+  const THEME_STYLES = "common/partials/theme-styles.blade.php";
+
+  it("targetViewRel strips the VIEWS_REL prefix, or returns null when outside the tree", () => {
+    expect(targetViewRel(`${VIEWS_REL}/common/event-page.blade.php`)).toBe(
+      "common/event-page.blade.php",
+    );
+    expect(targetViewRel("some/other/place.blade.php")).toBeNull();
+  });
+
+  it("a page that @extends a layout is NOT self-contained (no own <html>)", () => {
+    const files = new Map<string, string>([
+      ["public/some-page.blade.php", "@extends('public.layouts.site')\n@section('content')<style>.a{color:#fff}</style>@endsection"],
+    ]);
+    expect(pageIsSelfContained("public/some-page.blade.php", files)).toBe(false);
+  });
+
+  it("a page with its own <html> that transitively @includes theme-styles is NOT self-contained", () => {
+    const files = new Map<string, string>([
+      ["common/self.blade.php", "<html><head>@include('common.partials.head')</head><body></body></html>"],
+      ["common/partials/head.blade.php", "@include('common.partials.theme-styles')"],
+      [THEME_STYLES, ":root{--x:#000}"],
+    ]);
+    expect(pageIsSelfContained("common/self.blade.php", files)).toBe(false);
+  });
+
+  it("a page with its own <html> that never loads theme-styles IS self-contained", () => {
+    const files = new Map<string, string>([
+      ["common/self.blade.php", "<html><head><style>.a{color:#fff}</style></head><body></body></html>"],
+      [THEME_STYLES, ":root{--x:#000}"],
+    ]);
+    expect(pageIsSelfContained("common/self.blade.php", files)).toBe(true);
+  });
+
+  it("checkTarget flags a self-contained target with a scopeError and skips the pairing check", () => {
+    const page = `${VIEWS_REL}/common/self.blade.php`;
+    // .a sets a base color with NO html.light-mode pair — normally a `missing`,
+    // but because the page is self-contained it must short-circuit to scopeError.
+    const files = new Map<string, string>([
+      ["common/self.blade.php", "<html><head><style>.a{color:#fff}</style></head><body></body></html>"],
+      [THEME_STYLES, ":root{--x:#000}"],
+    ]);
+    const result = checkTarget({ page, label: "self-contained", allowlist: [] }, files);
+    expect(result.scopeError).toBeDefined();
+    expect(result.scopeError).toContain("theme-styles");
+    expect(result.missing).toEqual([]);
+    expect(result.partialMismatches).toEqual([]);
+  });
+
+  it("checkTarget does NOT short-circuit an in-scope (layout-extending) target — it falls through to the normal disk-read path", () => {
+    // In-scope per the map (no own <html>), but the page does not exist on disk.
+    // Because it is NOT self-contained, checkTarget must skip the scope screen and
+    // proceed to read the real file — surfacing a read `error`, not a `scopeError`.
+    const page = `${VIEWS_REL}/common/does-not-exist.blade.php`;
+    const files = new Map<string, string>([
+      ["common/does-not-exist.blade.php", "@extends('public.layouts.site')\n<style>.a{color:#fff}</style>"],
+    ]);
+    const result = checkTarget({ page, label: "in-scope", allowlist: [] }, files);
+    expect(result.scopeError).toBeUndefined();
+    expect(result.error).toBeDefined();
+  });
+
+  it("the normal pairing check still runs for a real in-scope target when a files map is passed", () => {
+    // A live TARGET is in-scope; passing the map must not disturb its clean pass.
+    const result = checkTarget(TARGETS[0]!, readViewsFileMap());
+    expect(result.scopeError).toBeUndefined();
+    expect(result.error).toBeUndefined();
+    expect(result.missing).toEqual([]);
+  });
+
+  it("without a files map, checkTarget skips the scope screen (pure-unit backward compat)", () => {
+    // Existing unit tests call checkTarget(target) with no map; the scope screen
+    // must not run (and must not throw) in that mode.
+    const realTarget = TARGETS[0]!;
+    const result = checkTarget(realTarget);
+    expect(result.scopeError).toBeUndefined();
+  });
 });
 
 /**

@@ -76,3 +76,22 @@ Historical misses that motivated the guard: the tips/pairings light overrides
 themselves, then `.btn-outline-success` (Interested widget's green `#34d399` →
 `#059669`/`#047857` in light, matching `ev-price-free`). Regression tests in
 `check-light-mode-pairing.test.ts` (run by the `scripts-tests` gate).
+
+**Theme-scope blind spot (shared with the undefined-css-var guard):** the whole
+pairing premise only holds for a page that actually receives the app's
+`html.light-mode` class — which is added by the shared theme system
+(`common/partials/theme-styles.blade.php`, loaded through the layout). A target
+that ships its OWN `<html>`/`<head>` and never `@include`s theme-styles
+(directly/transitively) never gets that class, so its `html.light-mode` overrides
+are DEAD — the guard would false-pass (accepting overrides that never fire) or
+false-fail (demanding pointless ones). `checkTarget(target, files)` now screens
+each target with `pageIsSelfContained` (reusing `declaresOwnDocument` /
+`includesThemeStyles` imported from `check-undefined-css-var-fallback.ts`, keyed
+via `readViewsFileMap`/`targetViewRel`) and short-circuits a self-contained page
+to a `scopeError` misconfiguration instead of checking pairing.
+**Why:** both theme guards must agree on "does this page load the app theme?" so
+neither validates a page whose overrides can't fire. **How to apply:** a target
+that `@extends` a layout is in-scope (its `<html>` lives in the layout, so
+`declaresOwnDocument` is false) — the common case, nothing to do. If you ever add
+a self-contained page to `TARGETS`, either make it load theme-styles or don't add
+it; the guard will refuse it loudly rather than pretend to validate it.

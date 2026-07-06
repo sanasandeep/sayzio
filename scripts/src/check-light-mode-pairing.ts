@@ -29,6 +29,16 @@
  *     intentional always-dark islands (e.g. a hero over a dark image) outside
  *     the re-themed region — scope the check to the light surface only.
  *
+ * Theme scope: the pairing premise only holds for pages that actually receive
+ * the app's `html.light-mode` toggle — i.e. pages that load the shared theme
+ * system (common/partials/theme-styles.blade.php) through their layout. A target
+ * that ships its OWN `<html>`/`<head>` and never `@include`s theme-styles is
+ * self-contained: the `html.light-mode` class is never toggled onto it, so its
+ * overrides are dead and the pairing check would give a false pass/fail. Such a
+ * target is reported as a misconfiguration, reusing the same
+ * `declaresOwnDocument` / `includesThemeStyles` detection as the sibling
+ * undefined-css-var guard so both agree on scope (see `pageIsSelfContained`).
+ *
  * `@keyframes` blocks are stripped before parsing so animation percentages
  * (`0% { … }`) are never mistaken for color-carrying selectors.
  *
@@ -43,6 +53,13 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
+import {
+  VIEWS_REL,
+  declaresOwnDocument,
+  includesThemeStyles,
+  listBladeFiles,
+  stripComments as stripBladeComments,
+} from "./check-undefined-css-var-fallback.js";
 
 export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -655,10 +672,98 @@ export interface TargetResult {
   missing: MissingPair[];
   partialMismatches: PartialMismatch[];
   error?: string;
+  /**
+   * Set when the page does not participate in the app's light/dark toggle (it
+   * ships its own `<html>`/`<head>` and never loads theme-styles), so the
+   * `html.light-mode` pairing premise this guard checks does not hold — the
+   * missing/partial results are meaningless and are skipped. See
+   * `pageIsSelfContained`.
+   */
+  scopeError?: string;
 }
 
-/** Read + check a single configured target. */
-export function checkTarget(target: Target): TargetResult {
+/* -------------------------------------------------------------------------- *
+ * Theme-scope detection (shared with the undefined-css-var guard)
+ * -------------------------------------------------------------------------- *
+ * This guard's whole premise — that every base color rule must have a paired
+ * `html.light-mode <same-selector>` override — only holds if the page actually
+ * PARTICIPATES in the app's light/dark toggle. The `html.light-mode` class is
+ * added by the shared theme system (common/partials/theme-styles.blade.php,
+ * loaded through the app/site layout). A page that ships its OWN `<html>`/`<head>`
+ * and never `@include`s theme-styles (directly or transitively) never gets that
+ * class toggled onto it, so any `html.light-mode` override the guard demands (or
+ * silently accepts) is dead code — a false fail / false pass.
+ *
+ * Pages that `@extends` a layout do NOT declare their own document (the `<html>`
+ * lives in the layout), so they are correctly treated as in-scope here. The same
+ * `declaresOwnDocument` / `includesThemeStyles` detection powers the sibling
+ * undefined-css-var guard so both agree on "does this page load the app theme?".
+ */
+
+/**
+ * Read every non-vendor blade under VIEWS_REL into a rel-keyed map (the keying
+ * `includesThemeStyles` expects) so a target's `@include` chain can be followed
+ * to decide whether it loads the shared theme system.
+ */
+export function readViewsFileMap(): Map<string, string> {
+  const viewsAbs = path.join(REPO_ROOT, VIEWS_REL);
+  const files = new Map<string, string>();
+  for (const abs of listBladeFiles(viewsAbs)) {
+    const rel = path.relative(viewsAbs, abs).split(path.sep).join("/");
+    files.set(rel, fs.readFileSync(abs, "utf8"));
+  }
+  return files;
+}
+
+/**
+ * Convert a target's repo-relative page path to a VIEWS_REL-relative map key, or
+ * `null` if the page lives outside the scanned views tree (its `@include` chain
+ * cannot be resolved, so the scope check is skipped for it).
+ */
+export function targetViewRel(page: string): string | null {
+  const prefix = VIEWS_REL + "/";
+  return page.startsWith(prefix) ? page.slice(prefix.length) : null;
+}
+
+/**
+ * Is `rel` a self-contained page — it declares its own `<html>`/`<head>` AND
+ * never pulls in common/partials/theme-styles (directly or transitively)? Such a
+ * page never receives the app's `html.light-mode` toggle, so this guard's pairing
+ * check is not applicable to it. Missing files resolve to `false` (nothing to
+ * check).
+ */
+export function pageIsSelfContained(rel: string, files: Map<string, string>): boolean {
+  const raw = files.get(rel);
+  if (raw === undefined) return false;
+  const src = stripBladeComments(raw);
+  return declaresOwnDocument(src) && !includesThemeStyles(rel, files);
+}
+
+/**
+ * Read + check a single configured target. When `files` (the VIEWS_REL-keyed map
+ * from `readViewsFileMap`) is supplied, the target is first screened for the
+ * theme-scope blind spot: a self-contained page (own `<html>`, no theme-styles)
+ * short-circuits to a `scopeError` because the pairing premise does not hold.
+ * Omitting `files` skips that screen (kept for the pure `checkSource`-style unit
+ * tests that construct a `Target` without a live views tree).
+ */
+export function checkTarget(target: Target, files?: Map<string, string>): TargetResult {
+  if (files) {
+    const rel = targetViewRel(target.page);
+    if (rel !== null && pageIsSelfContained(rel, files)) {
+      return {
+        target,
+        missing: [],
+        partialMismatches: [],
+        scopeError:
+          "page ships its own <html>/<head> and never @includes " +
+          "common/partials/theme-styles.blade.php, so the app's html.light-mode class " +
+          "is never toggled onto it — the light-mode pairing premise does not hold and " +
+          "any html.light-mode override here is dead. Make the page load theme-styles " +
+          "(extend a layout that does), or remove it from TARGETS.",
+      };
+    }
+  }
   const abs = path.join(REPO_ROOT, target.page);
   let src: string;
   try {
@@ -710,6 +815,12 @@ function printExplain(): void {
       }
     }
   }
+  console.log("\nScope:  only pages that load common/partials/theme-styles.blade.php (the");
+  console.log("  source of the html.light-mode class) are validated. A target that ships its");
+  console.log("  own <html>/<head> and never @includes theme-styles is self-contained — the");
+  console.log("  html.light-mode class never toggles onto it, so the pairing premise fails and");
+  console.log("  the guard reports it as a misconfiguration (same scope nuance as the");
+  console.log("  undefined-css-var guard). Pages that @extends a layout are in-scope.");
   console.log("\nInline-styled partials bake dark colors as style=\"…\" attributes (no base");
   console.log("  rule to pair against), so each themed inline color/border must have exactly");
   console.log("  one paired html.light-mode override for that scope (a structural count).");
@@ -725,13 +836,37 @@ function main(): void {
     process.exit(0);
   }
 
-  const results = TARGETS.map(checkTarget);
+  let files: Map<string, string>;
+  try {
+    files = readViewsFileMap();
+  } catch (e) {
+    console.error(`✗ light-mode-pairing guard FAILED — cannot scan views: ${(e as Error).message}`);
+    process.exit(2);
+    return;
+  }
+
+  const results = TARGETS.map((t) => checkTarget(t, files));
   const readErrors = results.filter((r) => r.error);
   if (readErrors.length) {
     for (const r of readErrors) {
       console.error(`✗ light-mode-pairing guard FAILED — cannot read ${r.target.page}: ${r.error}`);
     }
     process.exit(2);
+  }
+
+  const scopeErrors = results.filter((r) => r.scopeError);
+  if (scopeErrors.length) {
+    console.error(
+      "✗ light-mode-pairing guard FAILED — configured page(s) do not participate in the app light/dark toggle:\n",
+    );
+    for (const r of scopeErrors) {
+      console.error(`  ${r.target.label} (${r.target.page}):`);
+      console.error(`    ${r.scopeError}`);
+    }
+    console.error(
+      "\nThis guard only validates pages that load common/partials/theme-styles.blade.php (the source of the html.light-mode class).",
+    );
+    process.exit(1);
   }
 
   const failed = results.filter((r) => r.missing.length > 0 || r.partialMismatches.length > 0);
