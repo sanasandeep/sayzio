@@ -482,6 +482,36 @@ class DialerSearchVisibilityTest extends TestCase
         );
     }
 
+    public function test_web_search_reveals_subscribers_only_link_to_an_active_subscriber(): void
+    {
+        // Positive web mirror of
+        // test_api_search_reveals_subscribers_only_link_to_an_active_subscriber.
+        // The web dialer runs under `workspace.scope`, which binds the searcher's
+        // active workspace. An active subscription created outside that active
+        // workspace could be missed unless the subscriber query opts out of the
+        // BelongsToWorkspace global scope (Task #3845 fixed subscribedCreatorIds()
+        // and the legacy canViewLink() path to do exactly that). Without this
+        // test only the negative web case is locked, so a future re-scoping of
+        // the subscriber query would silently HIDE an entitled subscribers-only
+        // link on the web surface while the API positive test still passed.
+        $viewer  = $this->makeUser('viewer');
+        $creator = $this->makeUser('creator');
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $creator->id]);
+        $this->subscribe($creator, $viewer, 'active');
+
+        $subsLink = $this->makeLink($creator, 'subscribers');
+
+        $resp = $this->actingAsWeb($viewer)->getJson(route('user.dialer.search', ['q' => self::TOKEN]));
+        $resp->assertOk();
+
+        $followed = $this->groupLinkIds($resp->json('data'), 'followed');
+        $this->assertContains(
+            $subsLink->id,
+            $followed,
+            'an active subscriber must see a followed creator\'s subscribers-only link on the web dialer surface'
+        );
+    }
+
     public function test_web_search_requires_authentication(): void
     {
         $this->get(route('user.dialer.search', ['q' => self::TOKEN]))->assertRedirect('/user/login');
