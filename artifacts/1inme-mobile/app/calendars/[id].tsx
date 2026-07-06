@@ -15,7 +15,9 @@ import {
 
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
+import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
 import { useColors } from "@/hooks/useColors";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import {
   deleteCalendarEvent,
   getCalendar,
@@ -33,7 +35,7 @@ import {
   subscribeToIcs,
   syncEventsWithFeedback,
 } from "@/lib/deviceCalendar";
-import { handlePlanLockedError } from "@/lib/upgradePrompt";
+import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
 
 function formatEventTime(event: CalendarEventItem): string {
   if (!event.start_at) return "";
@@ -54,6 +56,7 @@ function formatEventTime(event: CalendarEventItem): string {
 export default function CalendarDetailScreen() {
   const colors = useColors();
   const qc = useQueryClient();
+  const plan = usePlanFeatures();
   const params = useLocalSearchParams<{ id: string }>();
   const id = Number(params.id);
   const [showPast, setShowPast] = useState(false);
@@ -79,6 +82,26 @@ export default function CalendarDetailScreen() {
 
   const cal = q.data?.calendar;
   const events = q.data?.events ?? [];
+
+  // Surface the per-plan event allowance (`max_calendar_events`) right here on
+  // the detail screen so an owner sees how much room is left BEFORE tapping
+  // "Add event" (Task #3730 only locked the form itself). The server counts
+  // events per calendar, so we compare the cap against THIS calendar's
+  // `events_count`. Everything fails OPEN: `events_count` defaults to 0 until
+  // the calendar loads, `numericLimit` is null until plan data resolves, and
+  // `isQuotaReached` returns false until then — so a fully-loaded finite cap is
+  // the only thing that flips the UI to a locked state. Unlimited plans
+  // (cap -1) or plans without the key show nothing.
+  const isOwner = !!cal?.is_owner;
+  const eventsUsed = cal?.events_count ?? 0;
+  const eventCap = plan.numericLimit("max_calendar_events");
+  const showEventQuota = isOwner && eventCap != null && eventCap >= 0;
+  const eventQuotaReached =
+    isOwner && plan.isQuotaReached("max_calendar_events", eventsUsed);
+  const eventLockMessage =
+    eventCap != null && eventCap >= 0
+      ? `You've reached the ${eventCap}-event limit for this calendar on your current plan. Upgrade to add more events.`
+      : "You've reached this calendar's event limit on your current plan. Upgrade to add more events.";
 
   const follow = useMutation({
     mutationFn: () => toggleCalendarFollow(id),
@@ -322,19 +345,48 @@ export default function CalendarDetailScreen() {
                   </Text>
                 ) : null}
 
+                {showEventQuota ? (
+                  <View style={styles.quotaRow}>
+                    <Feather
+                      name={eventQuotaReached ? "alert-triangle" : "bar-chart-2"}
+                      size={13}
+                      color={eventQuotaReached ? colors.primary : colors.mutedForeground}
+                    />
+                    <Text
+                      style={[
+                        styles.quotaText,
+                        {
+                          color: eventQuotaReached
+                            ? colors.primary
+                            : colors.mutedForeground,
+                        },
+                      ]}
+                    >
+                      {eventsUsed} / {eventCap} event{eventCap === 1 ? "" : "s"} used
+                    </Text>
+                    {eventQuotaReached ? <UpgradeLockBadge /> : null}
+                  </View>
+                ) : null}
+
                 {cal.is_owner ? (
                   <View style={styles.ownerActions}>
                     <Button
-                      label="Add event"
+                      label={eventQuotaReached ? "Event limit reached" : "Add event"}
                       onPress={() =>
-                        router.push({
-                          pathname: "/calendars/event",
-                          params: { calendar: String(id) },
-                        })
+                        eventQuotaReached
+                          ? showUpgradePrompt({ message: eventLockMessage })
+                          : router.push({
+                              pathname: "/calendars/event",
+                              params: { calendar: String(id) },
+                            })
                       }
                       style={{ flex: 1 }}
                       leading={
-                        <Feather name="plus" size={16} color={colors.primaryForeground} />
+                        <Feather
+                          name={eventQuotaReached ? "lock" : "plus"}
+                          size={16}
+                          color={colors.primaryForeground}
+                        />
                       }
                     />
                     <Button
@@ -648,6 +700,8 @@ const styles = StyleSheet.create({
   title: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 18 },
   meta: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 13 },
   desc: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 14, lineHeight: 20 },
+  quotaRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  quotaText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
   ownerActions: { flexDirection: "row", gap: 10 },
   eventOwnerRow: {
     flexDirection: "row",
