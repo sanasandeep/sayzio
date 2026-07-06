@@ -34,3 +34,36 @@ mid-body `@include`d partial.
 A dedicated task-follow-up sweep (grep `var(--*, #` / `var(--*, rgb` across
 `resources/views`, cross-check each var name against real definitions) is a
 cheap way to find other instances of this class of bug across the codebase.
+
+## Sweep results & scope discipline (the follow-up)
+
+The sweep found a whole second family of undefined aliases used across inner
+app pages — `--surface`, `--surface-1`, `--surface-2`, `--surface-glass`,
+`--border`, `--text`, `--bg-input`, `--bg-card-alt`, `--sidebar-bg`,
+`--color-primary-soft` (api-keys, delivery-projects, contacts, resume, dialer,
+settings layout, leads, slides/creator-profile editors). Fixed by adding them
+as `var()` aliases of existing theme tokens in the `:root` block of
+`theme-styles.blade.php`, right beside the pre-existing "legacy soft aliases"
+(`--bg-soft`/`--surface-soft`/…). **Alias-once trick:** you only declare them
+in `:root` as e.g. `--surface: var(--bg-glass)` — no `html.light-mode` copy
+needed, because `--bg-glass` is itself redefined under `html.light-mode` and
+custom-property substitution resolves lazily at use-time on each element.
+
+**Scope gotcha — three separate theming systems.** `theme-styles.blade.php`
+is loaded ONLY by the user/admin app layouts + their auth pages. It does NOT
+govern (a) the marketing site (`public.layouts.site`, its own light-mode via
+`marketing-anim.css`) or (b) public biolink pages (user-themed, no app
+light/dark toggle). So undefined-var hits like `--page-bg` (marketing pricing
+rail) and `--card-bg`/`--card-fg`/`--bg-color` (community blocks,
+verified-avatar on biolinks) are in DIFFERENT systems — leave them out of a
+theme-styles fix. Also skip theme-neutral accent fallbacks (`--sa-accent`,
+`--cc-accent`, `--danger`, `--accent-danger` → blue/red that read fine on both
+themes); "undefined var" alone isn't a bug unless the frozen literal is
+wrong-theme for a bg/text/border surface.
+
+**Grep caveat:** a var appearing "defined" globally can still be undefined in
+the app scope — `--border`/`--text` are declared only in standalone
+`common/embed/card.blade.php` + `common/splash.blade.php` (own `:root`), so
+they were genuinely undefined on app pages despite showing up in a naive
+codebase-wide definitions grep. Cross-check definitions per rendering scope,
+not codebase-wide.

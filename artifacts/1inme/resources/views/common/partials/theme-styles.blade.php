@@ -36,6 +36,23 @@
         --surface-soft: var(--bg-glass);
         --border-soft: var(--border-glass);
         --accent-soft: var(--c-primary-soft);
+        /* Second family of undefined-but-referenced aliases found on inner
+           pages (api-keys, delivery-projects, contacts, resume, dialer,
+           settings, leads, slides/creator-profile editors). Each was written
+           as `var(--x, <literal>)` where --x was never declared, so the literal
+           dark/white fallback always won regardless of theme (light-mode
+           legibility bug). Defined here as aliases of the shared tokens so they
+           flip per mode instead of freezing on the fallback. */
+        --surface: var(--bg-glass);
+        --surface-1: var(--bg-glass);
+        --surface-2: var(--bg-glass-hover);
+        --surface-glass: var(--bg-glass);
+        --border: var(--border-glass);
+        --text: var(--text-primary);
+        --bg-input: var(--bg-glass-input);
+        --bg-card-alt: var(--bg-card);
+        --sidebar-bg: var(--bg-body);
+        --color-primary-soft: var(--c-primary-soft);
         --text-primary: #ffffff;
         --text-secondary: #e2e8f0;
         --text-muted: #94a3b8;
