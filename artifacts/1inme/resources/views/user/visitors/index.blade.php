@@ -32,6 +32,33 @@
         color: #fff !important;
         box-shadow: 0 6px 18px rgba(61,107,255,0.4);
     }
+    .range-date-input {
+        background: var(--bg-glass-input, var(--bg-glass));
+        border: 1px solid var(--border-glass);
+        color: var(--text-primary);
+        border-radius: 9px;
+        padding: 6px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        color-scheme: light dark;
+    }
+    .view-toggle {
+        display: inline-flex;
+        border: 1px solid var(--border-glass);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .view-toggle button {
+        padding: 6px 11px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        background: var(--bg-glass);
+    }
+    .view-toggle button.active {
+        background: linear-gradient(135deg, #3d6bff, #5c83ff);
+        color: #fff;
+    }
 </style>
 @endpush
 
@@ -61,14 +88,7 @@
 @include('user.links.partials.analytics-tabs', ['link' => $link, 'active' => 'visitors'])
 
 {{-- ===================== PERIOD CONTROLS ===================== --}}
-<div class="period-bar mb-6">
-    <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-clock text-blue-400"></i> Period</span>
-        @foreach(['today'=>'Today','7d'=>'7d','30d'=>'30d','90d'=>'90d','year'=>'Year','all'=>'All'] as $k=>$lbl)
-            <a href="{{ $buildUrl(['period'=>$k]) }}" class="pill {{ ($period ?? '30d')===$k ? 'pill-active' : '' }}">{{ $lbl }}</a>
-        @endforeach
-    </div>
-</div>
+@include('user.partials.visitor-range-control', ['buildUrl' => $buildUrl, 'period' => $period, 'startDate' => $startDate, 'endDate' => $endDate])
 
     <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">
         <div class="flex items-center justify-between mb-3">
@@ -110,37 +130,45 @@
 
     @if($dailySeries->isNotEmpty())
         <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="font-bold" style="color: var(--text-primary);">Returning visitor rate</h2>
-                <span class="text-xs" style="color: var(--text-faint);">% of daily uniques who had visited before</span>
+            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div>
+                    <h2 class="font-bold" style="color: var(--text-primary);">Daily uniques &amp; returning rate</h2>
+                    <span class="text-xs" style="color: var(--text-faint);">% of daily uniques who had visited before</span>
+                </div>
+                <div class="view-toggle" data-chart-toggle="visitorChart">
+                    <button type="button" class="active" data-view="line">Line</button>
+                    <button type="button" data-view="bar">Bar</button>
+                    <button type="button" data-view="area">Area</button>
+                </div>
             </div>
-            @php
-                $maxV = max(1, $dailySeries->max('visitors'));
-                $w = 720; $h = 140; $n = $dailySeries->count();
-                $stepX = $n > 1 ? ($w - 24) / ($n - 1) : 0;
-                $pts = $dailySeries->values()->map(function($r,$i) use ($stepX,$h){
-                    return [12 + $i*$stepX, $h - 10 - ($r->returning_pct/100)*($h - 30)];
-                });
-                $bars = $dailySeries->values();
-            @endphp
-            <svg viewBox="0 0 {{ $w }} {{ $h }}" class="w-full" preserveAspectRatio="none">
-                @foreach($bars as $i => $r)
-                    @php $bh = ($r->visitors / $maxV) * ($h - 30); $bx = 12 + $i*$stepX - 4; @endphp
-                    <rect x="{{ $bx }}" y="{{ $h - 10 - $bh }}" width="8" height="{{ max(1,$bh) }}" fill="#bccfff" opacity="0.55" rx="2"/>
-                @endforeach
-                <polyline fill="none" stroke="#3d6bff" stroke-width="2"
-                    points="{{ $pts->map(fn($p)=>$p[0].','.$p[1])->join(' ') }}" />
-                @foreach($pts as $i => $p)
-                    <circle cx="{{ $p[0] }}" cy="{{ $p[1] }}" r="3" fill="#3d6bff">
-                        <title>{{ $bars[$i]->d }}: {{ $bars[$i]->returning_pct }}% returning ({{ $bars[$i]->returning }}/{{ $bars[$i]->visitors }})</title>
-                    </circle>
-                @endforeach
-            </svg>
-            <div class="flex items-center gap-4 mt-2 text-xs" style="color: var(--text-faint);">
-                <span><span class="inline-block w-3 h-3 rounded bg-blue-200 mr-1"></span>Daily uniques</span>
-                <span><span class="inline-block w-3 h-3 rounded-full bg-blue-600 mr-1"></span>Returning %</span>
-            </div>
+            <div style="height: 240px;"><canvas id="visitorChart"></canvas></div>
         </div>
+
+        <script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
+        <script src="{{ asset('js/analytics-charts.js') }}"></script>
+        <script>
+            (function () {
+                const labels = @json($dailySeries->pluck('d'));
+                const visitors = @json($dailySeries->pluck('visitors'));
+                const returningPct = @json($dailySeries->pluck('returning_pct'));
+
+                const chart = AnalyticsCharts.createTrendChart('visitorChart', labels, [
+                    { label: 'Daily uniques', data: visitors, color: '#3d6bff' },
+                    { label: 'Returning %', data: returningPct, color: '#f59e0b' },
+                ]);
+
+                const toggle = document.querySelector('[data-chart-toggle="visitorChart"]');
+                if (toggle && chart) {
+                    toggle.querySelectorAll('button').forEach((btn) => {
+                        btn.addEventListener('click', () => {
+                            toggle.querySelectorAll('button').forEach((b) => b.classList.remove('active'));
+                            btn.classList.add('active');
+                            AnalyticsCharts.setTrendView(chart, btn.dataset.view);
+                        });
+                    });
+                }
+            })();
+        </script>
     @endif
 
     <div class="rounded-2xl border p-5" style="background: var(--bg-card); border-color: var(--border-soft); box-shadow: var(--card-shadow);">

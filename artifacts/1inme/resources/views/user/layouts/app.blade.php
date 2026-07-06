@@ -566,6 +566,15 @@
                     <span class="sidebar-tooltip">Stats</span>
                 </a>
                 @endif
+                @if($__can['stats_view'])
+                <a href="{{ route('user.visitors.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.visitors.index') ? 'active' : '' }}"
+                   style="--nav-tint:#5cc7ff; --nav-tint-soft:rgba(92,199,255,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-users"></i></div>
+                    <span class="nav-label">Visitors</span>
+                    <span class="sidebar-tooltip">Visitors</span>
+                </a>
+                @endif
                 <a href="{{ route('user.wallet.show') }}"
                    class="sidebar-link {{ request()->routeIs('user.wallet.*') ? 'active' : '' }}"
                    style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -1313,6 +1322,9 @@
                         </span></a>
                         @if($__can['posts_view'])
                         <a href="{{ route('user.stats.index') }}" class="sidebar-link {{ request()->routeIs('user.stats.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div> <span>Stats</span></a>
+                        @endif
+                        @if($__can['stats_view'])
+                        <a href="{{ route('user.visitors.index') }}" class="sidebar-link {{ request()->routeIs('user.visitors.index') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div> <span>Visitors</span></a>
                         @endif
                         <a href="{{ route('user.wallet.show') }}" class="sidebar-link {{ request()->routeIs('user.wallet.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wallet"></i></div> <span>Wallet
                             @if(\App\Services\Billing\WalletService::isEnabled())

@@ -8,6 +8,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkClick;
 use App\Modules\User\Models\NfcWrite;
 use App\Modules\User\Models\PageSession;
+use App\Modules\User\Support\AnalyticsRangeResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -22,6 +23,7 @@ class VisitorAnalyticsController extends Controller
         // 7/30/90 "days" dropdown.
         [$startDate, $endDate, $period] = $this->resolveRange($request);
         $since = $startDate;
+        $until = $endDate;
 
         // Compute per-IP first-seen across the full history of THIS link.
         // A visitor in the selected period is "returning" iff their first-ever
@@ -31,6 +33,7 @@ class VisitorAnalyticsController extends Controller
             ->where('is_bot', false)
             ->whereNull('block_id')
             ->where('clicked_at', '>=', $since)
+            ->where('clicked_at', '<=', $until)
             ->distinct()
             ->pluck('ip_address')
             ->filter()
@@ -62,6 +65,7 @@ class VisitorAnalyticsController extends Controller
             ->where('is_bot', false)
             ->whereNull('block_id')
             ->where('clicked_at', '>=', $since)
+            ->where('clicked_at', '<=', $until)
             ->get();
 
         $bucket = [];
@@ -104,6 +108,7 @@ class VisitorAnalyticsController extends Controller
             ->where('link_clicks.is_bot', false)
             ->whereNotNull('link_clicks.viewer_user_id')
             ->where('link_clicks.clicked_at', '>=', $since)
+            ->where('link_clicks.clicked_at', '<=', $until)
             ->groupBy('users.id', 'users.name', 'users.email', 'users.avatar')
             ->orderByDesc('visit_count')
             ->limit(100)
@@ -130,16 +135,19 @@ class VisitorAnalyticsController extends Controller
         $arSessions = PageSession::where('link_id', $link->id)
             ->where('source', 'ar')
             ->where('created_at', '>=', $since)
+            ->where('created_at', '<=', $until)
             ->count();
         $arClicks = LinkClick::where('link_id', $link->id)
             ->where('source', 'ar')
             ->where('is_bot', false)
             ->whereNotNull('block_id')
             ->where('clicked_at', '>=', $since)
+            ->where('clicked_at', '<=', $until)
             ->count();
         $sourceBreakdown = LinkClick::where('link_id', $link->id)
             ->where('is_bot', false)
             ->where('clicked_at', '>=', $since)
+            ->where('clicked_at', '<=', $until)
             ->selectRaw("COALESCE(NULLIF(source, ''), 'web') as src, COUNT(*) as n")
             ->groupBy('src')
             ->orderByDesc('n')
@@ -166,35 +174,15 @@ class VisitorAnalyticsController extends Controller
     }
 
     /**
-     * Resolve the selected period pill into a [start, end, period] window,
-     * matching the pills the Overview / Followers tabs use
-     * (today/7d/30d/90d/year/all) and honouring the plan's stats retention.
+     * Resolve the selected period pill (or custom start/end range) into a
+     * [start, end, period] window, matching the pills the Overview /
+     * Followers tabs use (today/7d/30d/90d/year/all/custom) and honouring
+     * the plan's stats retention. Delegates to the shared resolver so this
+     * page and the account-wide Visitors page stay in lockstep.
      */
     private function resolveRange(Request $request): array
     {
-        $period = $request->query('period', '30d');
-
-        $end = now()->endOfDay();
-        $start = match ($period) {
-            'today' => now()->startOfDay(),
-            '7d'    => now()->subDays(7)->startOfDay(),
-            '90d'   => now()->subDays(90)->startOfDay(),
-            'year'  => now()->subYear()->startOfDay(),
-            'all'   => now()->subYears(10)->startOfDay(),
-            default => now()->subDays(30)->startOfDay(),
-        };
-
-        // Clamp the start of the range to the plan's stats-history retention so
-        // users can't query analytics older than their plan allows.
-        $retentionDays = workspace_owner()->statsRetentionDays();
-        if ($retentionDays !== -1) {
-            $earliest = now()->subDays($retentionDays)->startOfDay();
-            if ($start->lt($earliest)) {
-                $start = $earliest;
-            }
-        }
-
-        return [$start, $end, $period];
+        return AnalyticsRangeResolver::resolve($request, workspace_owner()->statsRetentionDays());
     }
 
     public function nfcHistory(Request $request, Link $link)

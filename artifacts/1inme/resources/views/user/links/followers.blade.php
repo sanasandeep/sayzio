@@ -264,7 +264,7 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     if (!window.Chart) return;

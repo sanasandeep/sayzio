@@ -415,6 +415,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('bot-blocks',                [\App\Modules\User\Controllers\BotBlockController::class, 'store'])->middleware('workspace.can:stats.view')->name('bot-blocks.store');
         Route::delete('bot-blocks/{family}',       [\App\Modules\User\Controllers\BotBlockController::class, 'destroy'])->middleware('workspace.can:stats.view')->where('family', '.+')->name('bot-blocks.destroy');
 
+        // Account-wide Visitors page (Task #3812) — totals across ALL of the
+        // creator's links, filterable by link type, with the same date-range
+        // controls (presets + custom) as the per-link Visitor Insights page.
+        Route::get('visitors', [\App\Modules\User\Controllers\VisitorsController::class, 'index'])->middleware('workspace.can:stats.view')->name('visitors.index');
+
         Route::get('links/{link}/visitors', [\App\Modules\User\Controllers\VisitorAnalyticsController::class, 'index'])->middleware('workspace.can:stats.view')->name('links.visitors');
         Route::get('links/{link}/nfc-writes', [\App\Modules\User\Controllers\VisitorAnalyticsController::class, 'nfcHistory'])->middleware('workspace.can:stats.view')->name('links.nfc-writes');
         Route::get('links/{link}/followers', [\App\Modules\User\Controllers\LinkController::class, 'followers'])->middleware('workspace.can:followers.view')->name('links.followers');
