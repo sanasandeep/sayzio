@@ -103,14 +103,30 @@ class CalendarController extends Controller
                 ->first()
             : null;
 
+        // Per-plan event allowance (`max_calendar_events`) surfaced right here on
+        // the management screen so an owner sees how much room is left BEFORE
+        // hitting "Add event" — mirroring the mobile detail screen (the server
+        // still enforces it in {@see eventCapError}). Everything fails OPEN: a
+        // negative cap (-1) is unlimited and shows nothing, and the quota only
+        // flips the "Add event" button to a locked/upgrade state once a finite
+        // cap is actually reached.
+        $eventCap          = (int) $owner->getPlanFeature('max_calendar_events', -1);
+        $eventsUsed        = $calendar->events->count();
+        $showEventQuota    = $eventCap >= 0;
+        $eventQuotaReached = $showEventQuota && $eventsUsed >= $eventCap;
+
         return view('user.calendars.editor', [
-            'link'        => $link,
-            'calendar'    => $calendar,
-            'events'      => $calendar->events,
-            'timezones'   => timezone_identifiers_list(),
-            'icsUrl'      => route('public.calendars.ics', $calendar->id),
-            'canSync'     => $canSync,
-            'syncAccount' => $syncAccount,
+            'link'              => $link,
+            'calendar'          => $calendar,
+            'events'            => $calendar->events,
+            'timezones'         => timezone_identifiers_list(),
+            'icsUrl'            => route('public.calendars.ics', $calendar->id),
+            'canSync'           => $canSync,
+            'syncAccount'       => $syncAccount,
+            'eventCap'          => $eventCap,
+            'eventsUsed'        => $eventsUsed,
+            'showEventQuota'    => $showEventQuota,
+            'eventQuotaReached' => $eventQuotaReached,
         ]);
     }
 

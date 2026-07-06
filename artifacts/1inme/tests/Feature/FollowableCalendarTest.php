@@ -438,6 +438,117 @@ class FollowableCalendarTest extends TestCase
         ]);
     }
 
+    public function test_editor_shows_locked_add_event_when_the_cap_is_reached(): void
+    {
+        $plan  = Plan::create([
+            'name'          => 'Capped',
+            'slug'          => 'capped-' . Str::random(4),
+            'monthly_price' => 0,
+            'annual_price'  => 0,
+            'trial_days'    => 0,
+            'status'        => 'active',
+            'features'      => ['max_calendar_events' => 1],
+        ]);
+        $owner = $this->makeUser(['plan_id' => $plan->id]);
+        $this->bind($owner);
+
+        $link = $this->makeCalendarLink($owner);
+        $cal  = Calendar::create([
+            'user_id'   => $owner->id,
+            'link_id'   => $link->id,
+            'title'     => 'Events',
+            'is_public' => true,
+            'timezone'  => 'UTC',
+        ]);
+        CalendarEvent::create([
+            'calendar_id' => $cal->id,
+            'user_id'     => $owner->id,
+            'title'       => 'First',
+            'start_at'    => now()->addDay(),
+            'timezone'    => 'UTC',
+        ]);
+
+        $res = $this->actingAs($owner)
+            ->get(route('user.calendars.editor', $link->id))
+            ->assertOk();
+
+        $res->assertSee('1 / 1 event used');
+        $res->assertSee('Event limit reached');
+        // The plain add-event form should NOT be routed to from a locked state.
+        $res->assertDontSee('<i class="fas fa-plus mr-1"></i> Add event', false);
+    }
+
+    public function test_editor_shows_remaining_count_when_under_the_cap(): void
+    {
+        $plan  = Plan::create([
+            'name'          => 'Roomy',
+            'slug'          => 'roomy-' . Str::random(4),
+            'monthly_price' => 0,
+            'annual_price'  => 0,
+            'trial_days'    => 0,
+            'status'        => 'active',
+            'features'      => ['max_calendar_events' => 5],
+        ]);
+        $owner = $this->makeUser(['plan_id' => $plan->id]);
+        $this->bind($owner);
+
+        $link = $this->makeCalendarLink($owner);
+        $cal  = Calendar::create([
+            'user_id'   => $owner->id,
+            'link_id'   => $link->id,
+            'title'     => 'Events',
+            'is_public' => true,
+            'timezone'  => 'UTC',
+        ]);
+        CalendarEvent::create([
+            'calendar_id' => $cal->id,
+            'user_id'     => $owner->id,
+            'title'       => 'First',
+            'start_at'    => now()->addDay(),
+            'timezone'    => 'UTC',
+        ]);
+
+        $res = $this->actingAs($owner)
+            ->get(route('user.calendars.editor', $link->id))
+            ->assertOk();
+
+        $res->assertSee('1 / 5 events used');
+        $res->assertSee('<i class="fas fa-plus mr-1"></i> Add event', false);
+        $res->assertDontSee('Event limit reached');
+    }
+
+    public function test_editor_hides_quota_for_unlimited_plans(): void
+    {
+        $plan  = Plan::create([
+            'name'          => 'Unlimited',
+            'slug'          => 'unlimited-' . Str::random(4),
+            'monthly_price' => 0,
+            'annual_price'  => 0,
+            'trial_days'    => 0,
+            'status'        => 'active',
+            'features'      => ['max_calendar_events' => -1],
+        ]);
+        $owner = $this->makeUser(['plan_id' => $plan->id]);
+        $this->bind($owner);
+
+        $link = $this->makeCalendarLink($owner);
+        Calendar::create([
+            'user_id'   => $owner->id,
+            'link_id'   => $link->id,
+            'title'     => 'Events',
+            'is_public' => true,
+            'timezone'  => 'UTC',
+        ]);
+
+        $res = $this->actingAs($owner)
+            ->get(route('user.calendars.editor', $link->id))
+            ->assertOk();
+
+        $res->assertDontSee('events used');
+        $res->assertDontSee('event used');
+        $res->assertSee('<i class="fas fa-plus mr-1"></i> Add event', false);
+    }
+
     // ── ICS feed ───────────────────────────────────────────────────────────
 
     public function test_ics_feed_is_public_for_public_calendars(): void

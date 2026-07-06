@@ -140,25 +140,47 @@
     </div>
 
     {{-- ── Add event ─────────────────────────────────────────── --}}
-    <div class="glass rounded-2xl p-6" x-data="{ open: {{ $errors->any() ? 'true' : 'false' }} }">
-        <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-white">Events</h2>
-            <button type="button" @click="open = !open" class="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white">
-                <i class="fas fa-plus mr-1"></i> Add event
-            </button>
+    <div class="glass rounded-2xl p-6" x-data="{ open: {{ $errors->any() && !$eventQuotaReached ? 'true' : 'false' }} }">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <h2 class="text-lg font-semibold text-white">Events</h2>
+                {{-- Per-plan event allowance. Finite caps only (unlimited plans pass -1 and show nothing). --}}
+                @if($showEventQuota)
+                    <span class="inline-flex items-center gap-1.5 text-xs {{ $eventQuotaReached ? 'text-amber-300' : 'text-white/40' }}">
+                        <i class="fas {{ $eventQuotaReached ? 'fa-triangle-exclamation' : 'fa-chart-simple' }}"></i>
+                        {{ $eventsUsed }} / {{ $eventCap }} event{{ $eventCap === 1 ? '' : 's' }} used
+                    </span>
+                @endif
+            </div>
+            @if($eventQuotaReached)
+                <a href="{{ route('user.upgrade') }}" class="px-4 py-2 rounded-xl text-sm font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-200 hover:bg-amber-500/25">
+                    <i class="fas fa-lock mr-1"></i> Event limit reached — Upgrade
+                </a>
+            @else
+                <button type="button" @click="open = !open" class="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white">
+                    <i class="fas fa-plus mr-1"></i> Add event
+                </button>
+            @endif
         </div>
 
-        <div x-show="open" x-cloak class="mt-4">
-            <form method="POST" action="{{ route('user.calendars.events.store', $link->id) }}"
-                  x-data="mapPinPicker({ address: '', lat: '', lng: '' })" class="space-y-4 border-t border-white/5 pt-4">
-                @csrf
-                @include('user.calendars.partials.event-fields', ['inputClass' => $inputClass, 'labelClass' => $labelClass, 'calendar' => $calendar, 'timezones' => $timezones, 'event' => null])
-                <div class="flex justify-end gap-3">
-                    <button type="button" @click="open = false" class="px-5 py-2.5 rounded-xl text-sm text-white/60 hover:text-white">Cancel</button>
-                    <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white">Add event</button>
-                </div>
-            </form>
-        </div>
+        @if($eventQuotaReached)
+            <p class="mt-3 text-xs text-white/40">
+                You've reached the {{ $eventCap }}-event limit for a calendar on your current plan.
+                <a href="{{ route('user.upgrade') }}" class="text-blue-300 hover:text-blue-200 font-medium">Upgrade</a> to add more events.
+            </p>
+        @else
+            <div x-show="open" x-cloak class="mt-4">
+                <form method="POST" action="{{ route('user.calendars.events.store', $link->id) }}"
+                      x-data="mapPinPicker({ address: '', lat: '', lng: '' })" class="space-y-4 border-t border-white/5 pt-4">
+                    @csrf
+                    @include('user.calendars.partials.event-fields', ['inputClass' => $inputClass, 'labelClass' => $labelClass, 'calendar' => $calendar, 'timezones' => $timezones, 'event' => null])
+                    <div class="flex justify-end gap-3">
+                        <button type="button" @click="open = false" class="px-5 py-2.5 rounded-xl text-sm text-white/60 hover:text-white">Cancel</button>
+                        <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white">Add event</button>
+                    </div>
+                </form>
+            </div>
+        @endif
     </div>
 
     {{-- ── Event list ────────────────────────────────────────── --}}
