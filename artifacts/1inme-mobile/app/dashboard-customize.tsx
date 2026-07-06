@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 
+import { AiDashboardDemo } from "@/components/AiDashboardDemo";
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
@@ -168,6 +169,15 @@ export default function DashboardCustomizeScreen() {
               Pick a preset layout for your dashboard, or describe what
               matters most to you and let AI design one.
             </Text>
+
+            {data.presets.length > 0 ? (
+              <View style={styles.demoSection}>
+                <Text style={[styles.demoHeading, { color: colors.foreground }]}>
+                  How it works
+                </Text>
+                <AiDashboardDemo presets={data.presets} />
+              </View>
+            ) : null}
 
             {data.current.preset || data.current.is_custom ? (
               <View
@@ -490,6 +500,8 @@ const styles = StyleSheet.create({
   },
   body: { padding: 16, gap: 16 },
   intro: { fontSize: 13, lineHeight: 18 },
+  demoSection: { gap: 10 },
+  demoHeading: { fontSize: 15, fontWeight: "700" },
   label: { fontSize: 13, fontWeight: "600" },
   currentBadge: {
     flexDirection: "row",

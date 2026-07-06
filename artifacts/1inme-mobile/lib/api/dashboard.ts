@@ -37,6 +37,7 @@ export type DashboardPreset = {
   key: string;
   label: string;
   description: string;
+  icon?: string;
   widgets: string[];
 };
 
