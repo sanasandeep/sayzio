@@ -235,10 +235,19 @@ class EventsDirectoryController extends Controller
         $categoryLabels = $categories->mapWithKeys(fn ($c) => [$c => \App\Modules\User\Support\EventCategories::label($c)]);
         $categoryColors = $categories->mapWithKeys(fn ($c) => [$c => \App\Modules\User\Support\EventCategories::gradient($c)]);
 
+        // Reverse nudge (Task #3686): a signed-in creator who owns event
+        // links that aren't currently discoverable sees a banner pointing
+        // them at those events, using the exact same eligibility rules as
+        // the query above so the nudge never contradicts what's listed.
+        $ownerHiddenEvents = collect();
+        if (auth('web')->check()) {
+            $ownerHiddenEvents = \App\Modules\User\Support\EventDirectoryEligibility::nonDiscoverableForOwner(auth('web')->id());
+        }
+
         return view('common.events-directory', compact(
             'events', 'q', 'category', 'tag', 'categories', 'categoryIcons', 'categoryLabels', 'categoryColors',
             'hasOtherCategory', 'otherCategory', 'tagRow', 'nearMe', 'lat', 'lng', 'radiusKm', 'online', 'heroEvents',
-            'priceFilter', 'dateFilter', 'dateFrom', 'dateTo'
+            'priceFilter', 'dateFilter', 'dateFrom', 'dateTo', 'ownerHiddenEvents'
         ));
     }
 

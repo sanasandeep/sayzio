@@ -463,6 +463,29 @@
         </div>
     @endif
 
+    @if(auth('web')->check() && $ownerHiddenEvents->isNotEmpty())
+        {{-- Reverse nudge (Task #3686): point creators at their own events
+             that currently aren't discoverable here. --}}
+        <div class="ev-card rounded-2xl px-5 py-4 mb-6 flex flex-wrap items-center gap-3" style="border:1px solid rgba(245,158,11,0.3); background:rgba(245,158,11,0.06);">
+            <div class="flex items-center gap-2 text-sm flex-1 min-w-[240px] text-white/85">
+                <i class="fas fa-triangle-exclamation" style="color:#f59e0b;"></i>
+                <span>
+                    You have {{ $ownerHiddenEvents->count() }} {{ Str::plural('event', $ownerHiddenEvents->count()) }}
+                    that {{ $ownerHiddenEvents->count() === 1 ? "isn't" : "aren't" }} showing up here yet:
+                    <strong>{{ $ownerHiddenEvents->pluck('title')->filter()->take(3)->implode(', ') ?: 'untitled event' }}</strong>
+                    @if($ownerHiddenEvents->count() > 3)
+                        , and {{ $ownerHiddenEvents->count() - 3 }} more
+                    @endif
+                    .
+                </span>
+            </div>
+            <a href="{{ route('user.links.show', $ownerHiddenEvents->first()) }}"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold text-white hover:opacity-90" style="background:#f59e0b;">
+                <i class="fas fa-compass"></i> Make {{ $ownerHiddenEvents->count() === 1 ? 'it' : 'them' }} discoverable
+            </a>
+        </div>
+    @endif
+
     @if($events->count() === 0)
         <div class="text-center py-20 ev-card">
             <i class="fas fa-calendar-xmark text-4xl text-white/20 mb-4"></i>

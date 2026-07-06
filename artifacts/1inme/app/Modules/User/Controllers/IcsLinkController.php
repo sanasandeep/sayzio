@@ -8,6 +8,7 @@ use App\Modules\User\Models\IcsData;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Services\Calendar\CalendarSyncService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
@@ -81,20 +82,50 @@ class IcsLinkController extends Controller
         abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($link->type !== 'ics', 404);
 
+        // Settings-only submissions (e.g. the quick "hide from directory" /
+        // "make discoverable" toggles) intentionally post only a couple of
+        // keys and omit the core event fields; backfill those from the
+        // existing record so validation doesn't force a full re-submit.
+        $isPartialSettingsUpdate = !$request->has('event_name');
+        if ($isPartialSettingsUpdate) {
+            $link->loadMissing('icsData');
+            $ics = $link->icsData;
+            $request->merge([
+                'event_name'      => $link->title,
+                'description'     => $ics->description ?? null,
+                'location'        => $ics->location ?? null,
+                'organizer'       => $ics->organizer ?? null,
+                'organizer_email' => $ics->organizer_email ?? null,
+                'start_date'      => $ics && $ics->start_date ? Carbon::parse($ics->start_date)->toDateTimeString() : null,
+                'end_date'        => $ics && $ics->end_date ? Carbon::parse($ics->end_date)->toDateTimeString() : null,
+                'timezone'        => $ics->timezone ?? 'UTC',
+                'url'             => $ics->url ?? null,
+            ]);
+        }
+
         $validated = $this->validateRequest($request, $link);
 
-        $newSettings = array_merge((array) $link->settings, [
-            'show_preview_page'    => $request->boolean('show_preview_page'),
-            'rsvp_enabled'         => $request->boolean('rsvp_enabled'),
-            // Task #3674: RSVP is available by default for every free event;
-            // `rsvp_disabled` is the sole explicit organizer opt-out (separate
-            // from `rsvp_enabled`, which only toggles the customization panel).
-            'rsvp_disabled'        => $request->boolean('rsvp_disabled'),
-            'rsvp_allow_plus_ones' => $request->boolean('rsvp_allow_plus_ones'),
-            'rsvp_collect_phone'   => $request->boolean('rsvp_collect_phone'),
-            'rsvp_settings'        => $this->parseRsvpSettings($request),
-            'calendar_sync_mode'   => $this->parseCalendarSyncMode($request),
-        ]);
+        $newSettings = (array) $link->settings;
+
+        // These keys are only present on the full edit form. A settings-only
+        // submission (see $isPartialSettingsUpdate above) must never touch
+        // them — otherwise absent checkboxes would read as `false` and
+        // silently wipe out RSVP/sync configuration that was never meant to
+        // be part of this request.
+        if (!$isPartialSettingsUpdate) {
+            $newSettings = array_merge($newSettings, [
+                'show_preview_page'    => $request->boolean('show_preview_page'),
+                'rsvp_enabled'         => $request->boolean('rsvp_enabled'),
+                // Task #3674: RSVP is available by default for every free event;
+                // `rsvp_disabled` is the sole explicit organizer opt-out (separate
+                // from `rsvp_enabled`, which only toggles the customization panel).
+                'rsvp_disabled'        => $request->boolean('rsvp_disabled'),
+                'rsvp_allow_plus_ones' => $request->boolean('rsvp_allow_plus_ones'),
+                'rsvp_collect_phone'   => $request->boolean('rsvp_collect_phone'),
+                'rsvp_settings'        => $this->parseRsvpSettings($request),
+                'calendar_sync_mode'   => $this->parseCalendarSyncMode($request),
+            ]);
+        }
 
         // Ticketing (Task #3589): free RSVP behavior is completely
         // unaffected unless the owner explicitly turns ticketing on for

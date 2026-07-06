@@ -511,6 +511,37 @@
     'actions'  => $heroActions,
 ])
 
+@if($link->type === 'ics')
+    @php
+        $eventNotDiscoverableReasons = \App\Modules\User\Support\EventDirectoryEligibility::reasons($link);
+        $eventIsDiscoverable = empty($eventNotDiscoverableReasons);
+    @endphp
+    <div class="glass rounded-2xl px-5 py-4 mb-4 flex flex-wrap items-center gap-3"
+         style="border:1px solid {{ $eventIsDiscoverable ? 'rgba(16,185,129,0.25)' : 'rgba(245,158,11,0.3)' }}; background: {{ $eventIsDiscoverable ? 'rgba(16,185,129,0.06)' : 'rgba(245,158,11,0.06)' }};">
+        @if($eventIsDiscoverable)
+            <div class="flex items-center gap-2 text-sm flex-1 min-w-[240px]" style="color: var(--text-primary);">
+                <i class="fas fa-circle-check" style="color:#10b981;"></i>
+                <span>This event is discoverable in the public <strong>Events directory</strong>.</span>
+            </div>
+            <a href="{{ route('events.index') }}" class="table-action"><i class="fas fa-compass"></i> View in Events directory</a>
+        @else
+            <div class="flex items-center gap-2 text-sm flex-1 min-w-[240px]" style="color: var(--text-primary);">
+                <i class="fas fa-triangle-exclamation" style="color:#f59e0b;"></i>
+                <span>This event won't show in the public <strong>Events directory</strong> because {{ implode(' and ', $eventNotDiscoverableReasons) }}.</span>
+            </div>
+            <form method="POST" action="{{ route('user.links.ics.update', $link) }}" class="inline">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="visibility" value="public">
+                <input type="hidden" name="hide_from_directory" value="0">
+                <button type="submit" class="table-action">
+                    <i class="fas fa-compass"></i> Make discoverable
+                </button>
+            </form>
+        @endif
+    </div>
+@endif
+
 @include('user.links.partials.analytics-tabs', ['link' => $link, 'active' => 'overview'])
 
 {{-- ===================== PERIOD CONTROLS ===================== --}}
