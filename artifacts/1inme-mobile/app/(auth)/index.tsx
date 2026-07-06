@@ -26,7 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 // required by expo-auth-session for the Google provider on Android.
 WebBrowser.maybeCompleteAuthSession();
 import { useColors } from "@/hooks/useColors";
-import { redirectAfterAuth } from "@/lib/authNext";
+import { redirectAfterAuth, touchPendingPostAuthNext } from "@/lib/authNext";
 import { getBaseUrl, getConfiguredBaseUrl } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
 import { getAuthConfig, isAllowedCountryCode } from "@/lib/api/authConfig";
@@ -175,6 +175,15 @@ export default function AuthLanding() {
   // email-only until the config loads / if it fails.
   const [mobileLoginEnabled, setMobileLoginEnabled] = useState(false);
   const [allowedCountryCodes, setAllowedCountryCodes] = useState<string[]>([]);
+
+  // A guest who tapped a "Perfect pairings" card stashed a post-auth
+  // destination before being sent here. Sliding its freshness window forward
+  // on each active landing means a slow sign-up (email verification, a
+  // distraction) isn't silently dropped once the initial 10-minute window
+  // lapses — as long as they're actively in the flow, their pairing survives.
+  useEffect(() => {
+    touchPendingPostAuthNext();
+  }, []);
 
   useEffect(() => {
     let active = true;

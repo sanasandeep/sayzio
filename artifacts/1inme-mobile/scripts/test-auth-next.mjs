@@ -41,14 +41,18 @@ const authNextJs = authNextSrc
     "async function setPendingPostAuthNext(next) {",
   )
   .replace(
+    /export async function touchPendingPostAuthNext[\s\S]*?\{/,
+    "async function touchPendingPostAuthNext() {",
+  )
+  .replace(
     /export async function consumePendingPostAuthNext[\s\S]*?\{/,
-    "async function consumePendingPostAuthNext() {",
+    "async function consumePendingPostAuthNext(maxAgeMs = MAX_AGE_MS) {",
   )
   .replace(
     /export async function redirectAfterAuth[\s\S]*?\): Promise<void> \{/,
     "async function redirectAfterAuth(router) {",
   )
-  .replace(/ as \{ next\?: string; ts\?: number \}/, "")
+  .replace(/ as \{ next\?: string; ts\?: number \}/g, "")
   .replace(/ as never/g, "");
 
 function makeFakeStorage() {
@@ -73,12 +77,13 @@ const fakeStorage = makeFakeStorage();
 const {
   sanitizeNext,
   setPendingPostAuthNext,
+  touchPendingPostAuthNext,
   consumePendingPostAuthNext,
   redirectAfterAuth,
 } = new Function(
   "AsyncStorage",
   `${authNextJs}
-   return { sanitizeNext, setPendingPostAuthNext, consumePendingPostAuthNext, redirectAfterAuth };`,
+   return { sanitizeNext, setPendingPostAuthNext, touchPendingPostAuthNext, consumePendingPostAuthNext, redirectAfterAuth };`,
 )(fakeStorage);
 
 // The AsyncStorage key the module persists under — used to seed a stale entry
@@ -176,13 +181,94 @@ assert.deepEqual(
   "after auth, the visitor is replaced onto the stashed create screen",
 );
 
-// Nothing pending (or an expired value) -> fall back to the tabs home.
+// Nothing pending -> fall back to the tabs home.
 const r2 = captureRouter();
 await redirectAfterAuth(r2);
 assert.deepEqual(
   r2.replaced,
   ["/(tabs)"],
   "with nothing pending, auth completion falls back to the tabs home",
+);
+
+// --- 4b. Graceful handling of a stash that outlived the 10-min window -----
+//        (the whole point of task #3709: don't silently lose a guest's
+//        pairing if they finish signing up more than 10 minutes later.)
+
+const TEN_MIN = 10 * 60 * 1000;
+
+// touchPendingPostAuthNext slides the freshness window forward for an
+// in-flight stash: a guest actively working through the auth flow (which
+// touches on each surface) keeps their pairing alive well past 10 minutes.
+fakeStorage.store.set(
+  KEY,
+  JSON.stringify({
+    next: "/links/create/biolink",
+    ts: Date.now() - 30 * 60 * 1000, // 30 min ago: past the 10-min window
+  }),
+);
+await touchPendingPostAuthNext();
+assert.equal(
+  await consumePendingPostAuthNext(TEN_MIN),
+  "/links/create/biolink",
+  "an active guest's stash is re-armed by touch and survives the short window",
+);
+
+// touch refuses to resurrect a genuinely abandoned stash (past the outer
+// resumable bound) — that value must not hijack an unrelated later sign-in.
+fakeStorage.store.set(
+  KEY,
+  JSON.stringify({
+    next: "/links/create/biolink",
+    ts: Date.now() - 90 * 60 * 1000, // 90 min ago: past the resumable bound
+  }),
+);
+await touchPendingPostAuthNext();
+assert.equal(
+  fakeStorage.store.has(KEY),
+  false,
+  "touch drops a stash past the outer resumable window instead of re-arming it",
+);
+
+// redirectAfterAuth runs only after a SUCCESSFUL auth, so it honours the
+// wider resumable window: a stash 20 minutes old (past the 10-min window but
+// well within the hour) still takes the guest to their pairing rather than
+// silently dropping them into the generic tabs.
+fakeStorage.store.set(
+  KEY,
+  JSON.stringify({
+    next: "/links/create/restaurant_menu",
+    ts: Date.now() - 20 * 60 * 1000, // 20 min ago: expired for silent honour
+  }),
+);
+const r3 = captureRouter();
+await redirectAfterAuth(r3);
+assert.deepEqual(
+  r3.replaced,
+  ["/links/create/restaurant_menu"],
+  "a slow sign-up (past 10 min, within the resumable window) still lands on the stashed create screen",
+);
+
+// ...but a truly stale stash (past the resumable window) is NOT honoured on
+// completion — it falls back to the tabs home so it can't hijack a much
+// later, unrelated sign-in.
+fakeStorage.store.set(
+  KEY,
+  JSON.stringify({
+    next: "/links/create/vcard",
+    ts: Date.now() - 90 * 60 * 1000, // 90 min ago: past the resumable window
+  }),
+);
+const r4 = captureRouter();
+await redirectAfterAuth(r4);
+assert.deepEqual(
+  r4.replaced,
+  ["/(tabs)"],
+  "a stash older than the resumable window falls back to the tabs home",
+);
+assert.equal(
+  fakeStorage.store.has(KEY),
+  false,
+  "the stale stash is cleared after completion so it can't leak into a later attempt",
 );
 
 // --- 5. pairingCreatePath: catalog type -> mobile create route -----------
@@ -286,6 +372,24 @@ for (const rel of [
     src,
     /await redirectAfterAuth\(router\)/,
     `${rel.join("/")} must complete auth via redirectAfterAuth so the stashed create screen is honoured`,
+  );
+}
+
+// --- 8. Active auth surfaces slide the stash's freshness window ----------
+//        The login landing and OTP verify screens must touch the stash on
+//        mount so a guest actively progressing through signup doesn't have
+//        their pairing expire out from under them past the 10-min window.
+
+for (const rel of [
+  ["app", "(auth)", "index.tsx"],
+  ["app", "(auth)", "verify.tsx"],
+]) {
+  const file = join(root, ...rel);
+  const src = readFileSync(file, "utf8");
+  assert.match(
+    src,
+    /touchPendingPostAuthNext\(\)/,
+    `${rel.join("/")} must call touchPendingPostAuthNext on mount so an in-flight pairing's window slides forward`,
   );
 }
 
