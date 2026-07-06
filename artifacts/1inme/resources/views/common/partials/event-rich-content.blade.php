@@ -72,6 +72,24 @@
     </div>
 @endif
 
+@php
+    // Task #3695 — thumbnail resolver shared by both recommendation
+    // sections: cover image first, then the first gallery image, then a
+    // neutral placeholder so cards never show a broken image icon.
+    $eventCardThumb = function ($rec) {
+        $recIcs = $rec->icsData ?? null;
+        if ($recIcs && $recIcs->cover_image_url) {
+            return $recIcs->cover_image_url;
+        }
+        $recGallery = $recIcs ? array_values((array) $recIcs->gallery) : [];
+        $first = $recGallery[0] ?? null;
+        if (!empty($first)) {
+            return $first;
+        }
+        return asset('images/events/event-cover-placeholder.svg');
+    };
+@endphp
+
 @if(!empty($similarEvents) && $similarEvents->isNotEmpty())
     <div class="mb-3">
         <div class="fw-semibold small mb-2">Similar events</div>
@@ -79,11 +97,16 @@
             @foreach($similarEvents as $rec)
                 <div class="col-6">
                     <a href="{{ url('/' . $rec->alias) }}" class="text-decoration-none">
-                        <div class="border rounded-3 p-2 h-100">
-                            <div class="small fw-semibold text-dark">{{ $rec->title }}</div>
-                            @if($rec->icsData && $rec->icsData->start_date)
-                                <div class="small text-muted">{{ $rec->icsData->start_date->format('M j') }}</div>
-                            @endif
+                        <div class="border rounded-3 overflow-hidden h-100">
+                            <div class="ratio ratio-16x9">
+                                <img src="{{ $eventCardThumb($rec) }}" alt="{{ $rec->title }}" loading="lazy" class="w-100 h-100" style="object-fit: cover;">
+                            </div>
+                            <div class="p-2">
+                                <div class="small fw-semibold text-dark">{{ $rec->title }}</div>
+                                @if($rec->icsData && $rec->icsData->start_date)
+                                    <div class="small text-muted">{{ $rec->icsData->start_date->format('M j') }}</div>
+                                @endif
+                            </div>
                         </div>
                     </a>
                 </div>
@@ -108,11 +131,16 @@
             @foreach($sameHostEvents as $rec)
                 <div class="col-6">
                     <a href="{{ url('/' . $rec->alias) }}" class="text-decoration-none">
-                        <div class="border rounded-3 p-2 h-100">
-                            <div class="small fw-semibold text-dark">{{ $rec->title }}</div>
-                            @if($rec->icsData && $rec->icsData->start_date)
-                                <div class="small text-muted">{{ $rec->icsData->start_date->format('M j') }}</div>
-                            @endif
+                        <div class="border rounded-3 overflow-hidden h-100">
+                            <div class="ratio ratio-16x9">
+                                <img src="{{ $eventCardThumb($rec) }}" alt="{{ $rec->title }}" loading="lazy" class="w-100 h-100" style="object-fit: cover;">
+                            </div>
+                            <div class="p-2">
+                                <div class="small fw-semibold text-dark">{{ $rec->title }}</div>
+                                @if($rec->icsData && $rec->icsData->start_date)
+                                    <div class="small text-muted">{{ $rec->icsData->start_date->format('M j') }}</div>
+                                @endif
+                            </div>
                         </div>
                     </a>
                 </div>
