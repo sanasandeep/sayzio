@@ -183,12 +183,19 @@ class LeadApprover
     }
 
     /**
-     * Add any newly-captured email/phone that the existing contact doesn't
-     * already have, comparing by normalized value (not just "has none at
-     * all") so a second matching lead can still contribute a new work email
-     * or alternate number instead of being silently dropped.
+     * Enrich the existing contact with anything the lead brought that the
+     * contact is missing:
+     *   - New email/phone the contact doesn't already have, compared by
+     *     normalized value (not just "has none at all") so a second matching
+     *     lead can still contribute a new work email or alternate number.
+     *   - Empty identity columns (display_name / given_name / family_name /
+     *     organization) backfilled from the lead's richer name/company, so an
+     *     approved lead fills blanks on a sparse contact.
      *
-     * @return bool true when a new email/phone was actually added, so the
+     * Never overwrites a value the user already set, so re-approving the same
+     * lead stays a no-op.
+     *
+     * @return bool true when anything was actually added or backfilled, so the
      *   caller can push the enriched contact to connected CRMs only when
      *   there's genuinely new data to sync.
      */
@@ -222,11 +229,64 @@ class LeadApprover
             }
         }
 
+        $changed = $this->backfillIdentity($contact, $item) || $changed;
+
         if ($changed) {
-            $contact->update(['locally_modified_at' => now()]);
+            $contact->locally_modified_at = now();
+            $contact->save();
         }
 
         return $changed;
+    }
+
+    /**
+     * Backfill empty identity columns on the contact from the lead's richer
+     * name/organization, without overwriting anything the user already set.
+     * Only mutates the in-memory model; the caller persists via save().
+     *
+     * @return bool true when any column was backfilled.
+     */
+    protected function backfillIdentity(Contact $contact, array $item): bool
+    {
+        $changed = false;
+
+        $name = trim((string) ($item['name'] ?? ''));
+        if ($name !== '') {
+            if (blank($contact->display_name)) {
+                $contact->display_name = $name;
+                $changed = true;
+            }
+            // Only split when the contact has neither name part, so we never
+            // clobber a half-filled name the user curated by hand.
+            if (blank($contact->given_name) && blank($contact->family_name)) {
+                [$given, $family] = $this->splitName($name);
+                if ($given !== null)  { $contact->given_name = $given;   $changed = true; }
+                if ($family !== null) { $contact->family_name = $family; $changed = true; }
+            }
+        }
+
+        $organization = trim((string) ($item['organization'] ?? ''));
+        if ($organization !== '' && blank($contact->organization)) {
+            $contact->organization = $organization;
+            $changed = true;
+        }
+
+        return $changed;
+    }
+
+    /**
+     * Split a free-form full name into a first token (given) and the rest
+     * (family). Returns [null, null] parts for anything that isn't present so
+     * the caller only backfills what actually exists.
+     *
+     * @return array{0:?string,1:?string}
+     */
+    protected function splitName(string $name): array
+    {
+        $parts = preg_split('/\s+/', trim($name), 2) ?: [];
+        $given  = isset($parts[0]) && $parts[0] !== '' ? $parts[0] : null;
+        $family = isset($parts[1]) && $parts[1] !== '' ? $parts[1] : null;
+        return [$given, $family];
     }
 
     /**

@@ -171,7 +171,7 @@ class LeadAggregator
         return isset($done[$type . ':' . $id]);
     }
 
-    protected function row(string $type, int $id, ?string $name, ?string $email, ?string $phone, ?string $context, $createdAt): array
+    protected function row(string $type, int $id, ?string $name, ?string $email, ?string $phone, ?string $context, $createdAt, ?string $organization = null): array
     {
         return [
             'source_type'  => $type,
@@ -179,6 +179,7 @@ class LeadAggregator
             'name'         => $name ?: null,
             'email'        => $email ?: null,
             'phone'        => $phone ?: null,
+            'organization' => $organization ?: null,
             'context'      => $context,
             'created_at'   => $createdAt,
             'source_label' => self::sourceLabels()[$type] ?? $type,
@@ -211,16 +212,22 @@ class LeadAggregator
             ->get()
             ->filter(fn ($f) => !$this->isDone($done, self::SOURCE_FORM, $f->id))
             ->map(function ($f) {
-                [$name, $email, $phone] = $this->extractIdentity((array) ($f->data ?? []));
+                [$name, $email, $phone, $organization] = $this->extractIdentity((array) ($f->data ?? []));
                 return $this->row(
                     self::SOURCE_FORM, $f->id, $name, $email, $phone,
                     $f->form?->title,
-                    $f->created_at
+                    $f->created_at,
+                    $organization
                 );
             });
     }
 
-    /** Best-effort name/email/phone extraction from a free-form submission payload. */
+    /**
+     * Best-effort name/email/phone/organization extraction from a free-form
+     * submission payload.
+     *
+     * @return array{0:?string,1:?string,2:?string,3:?string} [name, email, phone, organization]
+     */
     protected function extractIdentity(array $data): array
     {
         $lower = [];
@@ -255,7 +262,12 @@ class LeadAggregator
             if ($joined !== '') $name = $joined;
         }
 
-        return [$name, $email, $phone];
+        $organization = null;
+        foreach (['company', 'organization', 'organisation', 'company name', 'business', 'business name', 'employer'] as $k) {
+            if (!empty($lower[$k])) { $organization = trim((string) $lower[$k]); break; }
+        }
+
+        return [$name, $email, $phone, $organization];
     }
 
     protected function subscribers(array $done): Collection
