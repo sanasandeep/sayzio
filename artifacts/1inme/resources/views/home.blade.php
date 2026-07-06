@@ -241,7 +241,11 @@
             box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 0%, transparent), 0 0 0px color-mix(in srgb, var(--sc-color) 0%, transparent);
             opacity: 0;
         }
-        .showcase-card.visible::after {
+        /* Continuous glow/blob "alive" motion is gated on .sc-alive (toggled by
+           the IntersectionObserver on every enter/leave) rather than the
+           one-time .visible entrance class, so it pauses while the card is
+           scrolled off-screen and resumes when it re-enters. */
+        .showcase-card.sc-alive::after {
             animation: showcaseGlowPulse 6.4s ease-in-out infinite;
             animation-delay: var(--sc-delay, 0s);
         }
@@ -254,7 +258,7 @@
             box-shadow: 0 24px 46px -22px color-mix(in srgb, var(--sc-color) 55%, transparent);
         }
         .showcase-blob { transition: opacity .4s ease; }
-        .showcase-card.visible .showcase-blob {
+        .showcase-card.sc-alive .showcase-blob {
             animation: showcaseBlobDrift 9s ease-in-out infinite;
             animation-delay: var(--sc-delay, 0s);
         }
@@ -4773,6 +4777,24 @@
             }), 250);
         } else {
             reveals.forEach(el => el.classList.add('visible'));
+        }
+
+        // Toggle sc-alive on showcase cards so their continuous glow/blob
+        // animations only run while the card is on screen and pause once it
+        // scrolls out of view (saves GPU/battery on low-power devices). The
+        // one-time entrance reveal stays gated on .visible above and is never
+        // removed, so scrolling back in never re-triggers the entrance keyframe.
+        // Skipped under prefers-reduced-motion (those animations are already
+        // killed in CSS), keeping the page fully static.
+        const showcaseCards = document.querySelectorAll('.showcase-card');
+        const scReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (showcaseCards.length && !scReducedMotion && 'IntersectionObserver' in window) {
+            const scObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    entry.target.classList.toggle('sc-alive', entry.isIntersecting);
+                });
+            }, { threshold: 0.1 });
+            showcaseCards.forEach(el => scObserver.observe(el));
         }
 
         // Toggle pp-in-view on pillar preview blocks so their subtle animations
