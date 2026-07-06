@@ -1061,53 +1061,6 @@
                 </div>
                 @endif
 
-                @php
-                    $__authUser   = auth()->user();
-                    $__canPlans   = $__authUser->hasPermission('user.plans.manage');
-                    $__canVerify  = $__authUser->hasPermission('user.verifications.review');
-                    $__canRoles   = $__authUser->hasPermission('user.roles.manage');
-                    $__hasAnyAdmin = $__canPlans || $__canVerify || $__canRoles;
-                @endphp
-                @if($__hasAnyAdmin)
-                {{-- ========== ADMINISTRATION (collapsible) ========== --}}
-                @php $grpAdminActive = request()->routeIs('user.plans.*') || request()->routeIs('user.verification.admin*') || request()->routeIs('user.access.*'); @endphp
-                <div x-data="{ open: {{ $grpAdminActive ? 'true' : 'false' }} }">
-                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
-                            class="sidebar-group-toggle section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                        <span>Administration</span>
-                        <i class="fas fa-chevron-down grp-chevron"></i>
-                    </button>
-                    <div x-show="open || sidebarMode === 'icons'" x-cloak>
-                        @if($__canPlans)
-                        <a href="{{ route('user.plans.index') }}"
-                           class="sidebar-link {{ request()->routeIs('user.plans.*') ? 'active' : '' }}"
-                           style="--nav-tint:#f43f5e; --nav-tint-soft:rgba(244,63,94,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div>
-                            <span class="nav-label">Plans</span>
-                            <span class="sidebar-tooltip">Plans</span>
-                        </a>
-                        @endif
-                        @if($__canVerify)
-                        <a href="{{ route('user.verification.admin') }}"
-                           class="sidebar-link {{ request()->routeIs('user.verification.admin*') ? 'active' : '' }}"
-                           style="--nav-tint:#f97316; --nav-tint-soft:rgba(249,115,22,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-user-check"></i></div>
-                            <span class="nav-label">Verify Requests</span>
-                            <span class="sidebar-tooltip">Verify Requests</span>
-                        </a>
-                        @endif
-                        @if($__canRoles)
-                        <a href="{{ route('user.access.users.index') }}"
-                           class="sidebar-link {{ request()->routeIs('user.access.*') ? 'active' : '' }}"
-                           style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
-                            <div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div>
-                            <span class="nav-label">User access</span>
-                            <span class="sidebar-tooltip">User access</span>
-                        </a>
-                        @endif
-                    </div>
-                </div>
-                @endif
             </nav>
 
             <div class="mx-3 mb-3" x-show="sidebarMode === 'full'" x-cloak x-transition.opacity>
@@ -1580,35 +1533,6 @@
                         </div>
                         @endif
 
-                        @php
-                            $__mAuthUser  = auth()->user();
-                            $__mCanPlans  = $__mAuthUser->hasPermission('user.plans.manage');
-                            $__mCanVerify = $__mAuthUser->hasPermission('user.verifications.review');
-                            $__mCanRoles  = $__mAuthUser->hasPermission('user.roles.manage');
-                            $__mAnyAdmin  = $__mCanPlans || $__mCanVerify || $__mCanRoles;
-                        @endphp
-                        @if($__mAnyAdmin)
-                        {{-- ========== ADMINISTRATION (collapsible) ========== --}}
-                        @php $mGrpAdminActive = request()->routeIs('user.plans.*') || request()->routeIs('user.verification.admin*') || request()->routeIs('user.access.*'); @endphp
-                        <div x-data="{ open: {{ $mGrpAdminActive ? 'true' : 'false' }} }">
-                            <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
-                                    class="sidebar-group-toggle pt-4 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]">
-                                <span>Administration</span>
-                                <i class="fas fa-chevron-down grp-chevron"></i>
-                            </button>
-                            <div x-show="open" x-cloak class="space-y-0.5">
-                                @if($__mCanPlans)
-                                <a href="{{ route('user.plans.index') }}" class="sidebar-link {{ request()->routeIs('user.plans.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div> <span>Plans</span></a>
-                                @endif
-                                @if($__mCanVerify)
-                                <a href="{{ route('user.verification.admin') }}" class="sidebar-link {{ request()->routeIs('user.verification.admin*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-check"></i></div> <span>Verify Requests</span></a>
-                                @endif
-                                @if($__mCanRoles)
-                                <a href="{{ route('user.access.users.index') }}" class="sidebar-link {{ request()->routeIs('user.access.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div> <span>User access</span></a>
-                                @endif
-                            </div>
-                        </div>
-                        @endif
                     </nav>
                     {{-- ========== ACCOUNT (collapsible) — coins + assigned badges ==========
                          Mirror of the desktop section so the mobile drawer shows the
