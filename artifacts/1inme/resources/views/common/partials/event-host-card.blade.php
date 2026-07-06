@@ -17,9 +17,7 @@
             @elseif($host->avatar)
                 <img src="{{ $host->avatar }}" alt="" class="rounded-circle" style="width:52px;height:52px;object-fit:cover;">
             @else
-                <div class="rounded-circle d-flex align-items-center justify-content-center bg-light text-muted" style="width:52px;height:52px;">
-                    <i class="fas fa-user"></i>
-                </div>
+                <img src="{{ asset('images/events/host-avatar-placeholder.svg') }}" alt="" class="rounded-circle" style="width:52px;height:52px;object-fit:cover;">
             @endif
             <div class="flex-grow-1">
                 <div class="text-muted" style="font-size:11px;">Hosted by</div>
@@ -82,9 +80,7 @@
         @if($host->avatar)
             <img src="{{ $host->avatar }}" alt="" class="rounded-circle" style="width:40px;height:40px;object-fit:cover;">
         @else
-            <div class="rounded-circle d-flex align-items-center justify-content-center bg-light text-muted" style="width:40px;height:40px;">
-                <i class="fas fa-user"></i>
-            </div>
+            <img src="{{ asset('images/events/host-avatar-placeholder.svg') }}" alt="" class="rounded-circle" style="width:40px;height:40px;object-fit:cover;">
         @endif
         <div>
             <div class="text-muted" style="font-size:11px;">Hosted by</div>

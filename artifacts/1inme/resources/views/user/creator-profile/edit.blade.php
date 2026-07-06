@@ -182,6 +182,10 @@
                                 <input type="checkbox" name="organizer_logo_remove" value="1" class="mr-1"> Remove
                             </label>
                         </div>
+                    @else
+                        <div class="mb-2 inline-block">
+                            <img src="{{ asset('images/events/host-avatar-placeholder.svg') }}" alt="" class="w-16 h-16 object-cover rounded-lg border" style="border-color: var(--border-soft);">
+                        </div>
                     @endif
                     <input type="file" name="organizer_logo" accept="image/*" class="text-xs block">
                     <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">Or paste a URL:</p>
