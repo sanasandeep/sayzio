@@ -36,7 +36,11 @@ class ContactController extends Controller
         $tab  = $request->query('tab') === 'biolink' ? 'biolink' : 'all';
         $search = trim((string) $request->query('q', ''));
 
-        $query = Contact::where('user_id', $user->id)
+        // The contacts address book is account-wide (matching the dialer
+        // finder and the Sanctum/mobile API), so opt out of the workspace
+        // global scope; the user_id predicate still scopes to the owner.
+        $query = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $user->id)
             ->with(['phones', 'emails', 'biolinkUser']);
 
         if ($tab === 'biolink') $query->whereNotNull('biolink_user_id');
@@ -56,10 +60,10 @@ class ContactController extends Controller
         $contacts = $query->orderBy('display_name')->paginate(40)->withQueryString();
         $googleAccount = GoogleContactsAccount::where('user_id', $user->id)->first();
 
-        $totalContacts = Contact::where('user_id', $user->id)->count();
+        $totalContacts = Contact::withoutGlobalScope('workspace')->where('user_id', $user->id)->count();
         $stats = [
             'total'   => $totalContacts,
-            'biolink' => Contact::where('user_id', $user->id)->whereNotNull('biolink_user_id')->count(),
+            'biolink' => Contact::withoutGlobalScope('workspace')->where('user_id', $user->id)->whereNotNull('biolink_user_id')->count(),
         ];
 
         $cap = $this->planContactsCap($user);
@@ -98,7 +102,10 @@ class ContactController extends Controller
     {
         $user = $request->user();
 
-        $contacts = Contact::where('user_id', $user->id)
+        // Account-wide (see index()): follow-ups span the owner's whole
+        // address book, not just the active workspace.
+        $contacts = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $user->id)
             ->whereNotNull('follow_up_at')
             ->with(['phones', 'emails'])
             ->orderBy('follow_up_at')
@@ -317,7 +324,9 @@ class ContactController extends Controller
     public function importForm(Request $request)
     {
         $cap = $this->planContactsCap($request->user());
-        $existing = Contact::where('user_id', workspace_owner_id())->count();
+        // Account-wide count (see index()) so the plan-cap remaining figure
+        // matches the address book the user actually sees.
+        $existing = Contact::withoutGlobalScope('workspace')->where('user_id', workspace_owner_id())->count();
         return view('user.contacts.import', [
             'softCap'   => $cap === -1 ? null : $cap,
             'remaining' => $cap === -1 ? null : max(0, $cap - $existing),
@@ -386,7 +395,7 @@ class ContactController extends Controller
             ['path' => $request->url(), 'query' => $request->query()],
         );
 
-        $existingCount = Contact::where('user_id', $user->id)->count();
+        $existingCount = Contact::withoutGlobalScope('workspace')->where('user_id', $user->id)->count();
         $cap = $this->planContactsCap($user);
         $remaining = $cap === -1 ? null : max(0, $cap - $existingCount);
         $overCap = $cap === -1 ? 0 : max(0, count($rows) - ($remaining ?? 0));
@@ -531,7 +540,7 @@ class ContactController extends Controller
 
         $rows = $stash['rows'];
         $originalName = $stash['original_name'] ?? 'upload';
-        $existingCount = Contact::where('user_id', $user->id)->count();
+        $existingCount = Contact::withoutGlobalScope('workspace')->where('user_id', $user->id)->count();
         $cap = $this->planContactsCap($user);
         $remaining = $cap === -1 ? null : max(0, $cap - $existingCount);
 

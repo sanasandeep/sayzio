@@ -94,6 +94,22 @@ protected $fillable = [
         ];
     }
 
+    /**
+     * Resolve implicit route-model bindings account-wide. The Contacts page,
+     * dialer finder and API all present the owner's FULL address book (across
+     * workspaces), so opening a contact saved while a different workspace was
+     * active must not 404 under the `workspace` global scope. Ownership is
+     * still enforced by each controller action's
+     * `abort_if($contact->user_id !== workspace_owner_id(), 403)` guard.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->newQuery()
+            ->withoutGlobalScope('workspace')
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->first();
+    }
+
     public function user(): BelongsTo            { return $this->belongsTo(User::class); }
     public function biolinkUser(): BelongsTo     { return $this->belongsTo(User::class, 'biolink_user_id'); }
     public function googleAccount(): BelongsTo   { return $this->belongsTo(GoogleContactsAccount::class, 'google_contacts_account_id'); }

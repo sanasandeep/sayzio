@@ -95,7 +95,9 @@ class CheckPlanLimit
 
             case 'contacts_max':
                 $maxContacts = (int) ($features['contacts_max'] ?? 5000);
-                if ($maxContacts !== -1 && Contact::where('user_id', $user->id)->count() >= $maxContacts) {
+                // Contacts are an account-wide address book (matching the
+                // Contacts page and API), so count across all workspaces.
+                if ($maxContacts !== -1 && Contact::withoutGlobalScope('workspace')->where('user_id', $user->id)->count() >= $maxContacts) {
                     return back()->with('error', "You've reached your plan's contact limit ({$maxContacts}). Upgrade your plan to add more contacts.");
                 }
                 break;
@@ -182,7 +184,8 @@ class CheckPlanLimit
                     return back()->with('error', $this->withTarget('Leads capture is not available on your current plan.', $user, 'leads'));
                 }
                 $maxLeads = (int) ($features['max_leads'] ?? -1);
-                $cur = Contact::where('user_id', $user->id)->count();
+                // Account-wide count, consistent with contacts_max above.
+                $cur = Contact::withoutGlobalScope('workspace')->where('user_id', $user->id)->count();
                 if ($maxLeads !== -1 && $cur >= $maxLeads) {
                     return back()->with('error', $this->withTarget("You've reached your plan's lead limit ({$maxLeads}).", $user, 'max_leads', $cur));
                 }

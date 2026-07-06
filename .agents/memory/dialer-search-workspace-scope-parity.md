@@ -47,6 +47,18 @@ saved while any workspace was bound), matching the Sanctum/mobile surface. The
 `user_id` predicate still scopes to the searcher. Covered by
 `test_web_search_returns_a_contact_saved_in_a_non_active_workspace`.
 
-Note: the standalone web contacts index page (`ContactController::index`) is a
-SEPARATE query and remains workspace-scoped by design (CRM data gated by
-`workspace.can:settings.view`); only the dialer finder is account-wide.
+**The standalone web contacts page (`ContactController::index`) is ALSO
+account-wide now.** It was previously workspace-scoped, but that made the same
+creator's address book a different size on the page vs the dialer finder vs the
+Sanctum/mobile API (all account-wide). All of the page's `Contact` queries now
+call `withoutGlobalScope('workspace')` (list, `stats.total`, biolink stat,
+follow-ups, and every import existing-count path), plus the `contacts_max` /
+`leads` cap counts in `CheckPlanLimit`, the import-job existing count in
+`ProcessContactImportJob`, and a `Contact::resolveRouteBinding()` override so
+opening a contact saved in a non-active workspace doesn't 404. Ownership is
+still enforced (`user_id` predicate on lists/counts, per-action
+`abort_if($contact->user_id !== workspace_owner_id(), 403)` guard on
+show/edit/etc), and the `workspace.can:settings.view` permission gate is
+unchanged. For a single creator across their OWN workspaces `user_id` ==
+`workspace_owner_id()` so the guards pass. Covered by
+`ContactsPageWorkspaceScopeTest`.

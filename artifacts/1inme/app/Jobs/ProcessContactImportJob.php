@@ -52,7 +52,10 @@ class ProcessContactImportJob implements ShouldQueue
         // Resume support: skip rows already processed if the worker died midway.
         $alreadyDone = (int) $import->processed_rows;
 
-        $existingCount = Contact::where('user_id', $userId)->count();
+        // Account-wide count (contacts are an account-level address book) so
+        // the plan cap is enforced consistently whether the job runs on a
+        // queue worker (no workspace bound) or inline under the sync driver.
+        $existingCount = Contact::withoutGlobalScope('workspace')->where('user_id', $userId)->count();
         $googleAccount = GoogleContactsAccount::where('user_id', $userId)->where('push_enabled', true)->first();
         $cap = ContactController::planContactsCap(User::find($userId));
 
