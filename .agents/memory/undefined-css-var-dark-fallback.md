@@ -99,3 +99,15 @@ add it to `NEUTRAL_ACCENT_VARS` / `FILE_ALLOWLIST` WITH A REASON. Component-var
 families (`--tile-*`, `--sc-*`, `--rbp-c`, …) are auto-recognised only if some
 instance sets them inline; a member that no instance overrides (e.g.
 `--tile-bg-from`/`--tile-border`) falls through to the neutral-accent allowlist.
+
+**Scope ≠ path alone (the self-contained-page blind spot).** "app scope" is NOT
+just `user/**`/`admin/**`/`components/**`/`common/partials/**`. A file under those
+paths only actually loads theme-styles if it renders INSIDE the app layout. A page
+that ships its OWN `<html>`/`<head>` (e.g. the security revoke-done/revoke-invalid
+pages, PDF/print views, QR sheets) does not extend the layout, so theme-styles is
+absent unless the page `@include`s it itself. The guard now downgrades such files
+to `standalone` scope (tokens must be declared locally) when `declaresOwnDocument`
+is true AND `includesThemeStyles` (direct or transitive via the `@include` chain)
+is false — otherwise an app-path page falsely passed on a theme-styles-only token
+whose literal fallback then froze. Self-contained pages that DO `@include`
+theme-styles (auth pages, the layouts themselves) keep the app allowance.

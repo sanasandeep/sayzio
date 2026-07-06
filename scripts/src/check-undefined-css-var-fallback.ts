@@ -58,6 +58,12 @@ export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url
 export const VIEWS_REL = "artifacts/1inme/resources/views";
 /** The app shell's canonical `:root` / `html.light-mode` token source. */
 export const THEME_STYLES_REL = `${VIEWS_REL}/common/partials/theme-styles.blade.php`;
+/**
+ * The theme-styles partial keyed the SAME way as entries in the scanned file map
+ * (path relative to VIEWS_REL). Used to detect whether a self-contained page
+ * pulls it in (directly or transitively) via `@include`.
+ */
+export const THEME_STYLES_VIEW_REL = "common/partials/theme-styles.blade.php";
 
 export type Scope = "app" | "standalone" | "excluded";
 
@@ -210,6 +216,64 @@ export function findColorVarRefs(src: string): VarRef[] {
 }
 
 /**
+ * Does this source declare its OWN document shell — an `<html …>` or `<head …>`
+ * open tag? Such a page renders standalone: it does NOT extend the app layout
+ * (which is what supplies common/partials/theme-styles), so the theme-styles
+ * token allowance must only be granted if it pulls theme-styles in itself
+ * (see `includesThemeStyles`). Comments are assumed already stripped.
+ */
+export function declaresOwnDocument(src: string): boolean {
+  return /<html[\s>]/i.test(src) || /<head[\s>]/i.test(src);
+}
+
+/**
+ * All Blade view names pulled in by an `@include`-family directive
+ * (`@include`, `@includeIf`, `@includeWhen`, `@includeUnless`, `@includeFirst`),
+ * returned as file-map keys (path relative to VIEWS_REL, `.blade.php` suffix):
+ * `@include('common.partials.theme-styles')` → `common/partials/theme-styles.blade.php`.
+ * Dot-view-names are converted to slash paths. Comments are assumed stripped.
+ */
+export function parseIncludes(src: string): string[] {
+  const out: string[] = [];
+  const re = /@include(?:If|When|Unless|First)?\s*\(([^)]*)\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(src)) !== null) {
+    const args = m[1] as string;
+    const strRe = /['"]([^'"]+)['"]/g;
+    let s: RegExpExecArray | null;
+    while ((s = strRe.exec(args)) !== null) {
+      const view = (s[1] as string).trim();
+      if (!view || view.includes("$") || view.includes("::")) continue;
+      out.push(`${view.replace(/\./g, "/")}.blade.php`);
+    }
+  }
+  return out;
+}
+
+/**
+ * Does `rel` pull in the theme-styles partial DIRECTLY or TRANSITIVELY through
+ * its `@include` chain (following partials it includes)? Guards against include
+ * cycles via `seen`. Missing include targets (dynamic/external) are simply not
+ * followed.
+ */
+export function includesThemeStyles(
+  rel: string,
+  files: Map<string, string>,
+  seen: Set<string> = new Set(),
+): boolean {
+  if (seen.has(rel)) return false;
+  seen.add(rel);
+  const raw = files.get(rel);
+  if (raw === undefined) return false;
+  const includes = parseIncludes(stripComments(raw));
+  for (const inc of includes) {
+    if (inc === THEME_STYLES_VIEW_REL) return true;
+    if (includesThemeStyles(inc, files, seen)) return true;
+  }
+  return false;
+}
+
+/**
  * Which render scope a blade file belongs to (path relative to VIEWS_REL):
  *
  *   - `standalone` — an explicit page shipping its own `:root` (STANDALONE_FILES).
@@ -296,10 +360,24 @@ export function analyze(input: ScanInput): Violation[] {
   const violations: Violation[] = [];
   for (const [rel, raw] of [...input.files.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     if (FILE_ALLOWLIST_SET.has(rel)) continue;
-    const scope = classifyScope(rel);
+    let scope = classifyScope(rel);
     if (scope === "excluded") continue;
 
     const src = stripComments(raw);
+
+    // An app-scoped page that ships its OWN <html>/<head> does not render inside
+    // the app layout, so it only gets the theme-styles token allowance if it
+    // pulls common/partials/theme-styles in itself (directly or transitively).
+    // Otherwise treat it like a standalone page: its tokens must be declared
+    // locally, or the literal fallback freezes and it ignores the theme toggle.
+    if (
+      scope === "app" &&
+      declaresOwnDocument(src) &&
+      !includesThemeStyles(rel, input.files)
+    ) {
+      scope = "standalone";
+    }
+
     const refs = findColorVarRefs(src);
     if (refs.length === 0) continue;
 
@@ -357,7 +435,9 @@ function printExplain(): void {
   console.log("  else → undefined-in-scope → FAIL\n");
   console.log("Scopes:");
   console.log("  • app        — user/**, admin/**, components/**, common/partials/**");
-  console.log("                 (load theme-styles → its tokens count)");
+  console.log("                 (load theme-styles → its tokens count) — UNLESS the file");
+  console.log("                 ships its OWN <html>/<head> and never @includes theme-styles");
+  console.log("                 (directly/transitively): then it is treated as standalone.");
   console.log("  • standalone — own :root, checked against its OWN file:");
   for (const f of STANDALONE_FILES) console.log(`                 ${f}`);
   console.log("  • excluded   — home*/welcome, public/**, other common/** biolink pages,");

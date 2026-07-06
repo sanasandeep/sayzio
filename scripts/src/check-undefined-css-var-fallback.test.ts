@@ -8,9 +8,13 @@ import {
   extractInlineStyleDecls,
   findColorVarRefs,
   classifyScope,
+  declaresOwnDocument,
+  parseIncludes,
+  includesThemeStyles,
   resolveReference,
   analyze,
   scanRepo,
+  THEME_STYLES_VIEW_REL,
   type ResolveContext,
   type ScanInput,
 } from "./check-undefined-css-var-fallback.js";
@@ -133,6 +137,54 @@ describe("classifyScope", () => {
   });
 });
 
+describe("declaresOwnDocument", () => {
+  it("detects a page that ships its own <html>/<head>", () => {
+    expect(declaresOwnDocument("<!DOCTYPE html><html lang='en'><head></head></html>")).toBe(true);
+    expect(declaresOwnDocument("<head><title>x</title></head>")).toBe(true);
+  });
+
+  it("is false for a partial/content fragment with no document shell", () => {
+    expect(declaresOwnDocument("@extends('user.layouts.app') <div class='card'></div>")).toBe(false);
+  });
+});
+
+describe("parseIncludes", () => {
+  it("resolves an @include dot-view-name to a file-map key", () => {
+    expect(parseIncludes("@include('common.partials.theme-styles')")).toEqual([
+      "common/partials/theme-styles.blade.php",
+    ]);
+  });
+
+  it("handles @includeIf/@includeWhen/@includeFirst and skips dynamic names", () => {
+    const src = "@includeIf('a.b') @includeWhen($cond, 'c.d') @include($dynamic) @include('e::f')";
+    expect(parseIncludes(src)).toEqual(["a/b.blade.php", "c/d.blade.php"]);
+  });
+});
+
+describe("includesThemeStyles", () => {
+  it("finds a direct @include of theme-styles", () => {
+    const files = new Map([["user/auth/login.blade.php", "@include('common.partials.theme-styles')"]]);
+    expect(includesThemeStyles("user/auth/login.blade.php", files)).toBe(true);
+  });
+
+  it("finds theme-styles pulled in transitively through another partial", () => {
+    const files = new Map([
+      ["user/page.blade.php", "@include('common.partials.app-head')"],
+      ["common/partials/app-head.blade.php", "@include('common.partials.theme-styles')"],
+      [THEME_STYLES_VIEW_REL, ":root{--surface:#111;}"],
+    ]);
+    expect(includesThemeStyles("user/page.blade.php", files)).toBe(true);
+  });
+
+  it("is false when the page never includes theme-styles, and survives include cycles", () => {
+    const files = new Map([
+      ["user/a.blade.php", "@include('user.b')"],
+      ["user/b.blade.php", "@include('user.a')"],
+    ]);
+    expect(includesThemeStyles("user/a.blade.php", files)).toBe(false);
+  });
+});
+
 describe("resolveReference — resolution order", () => {
   it("ok-accent: a theme-neutral accent var is always allowed", () => {
     const name = NEUTRAL_ACCENT_VARS[0]!.name;
@@ -207,6 +259,45 @@ describe("analyze — end to end over an in-memory file map", () => {
     const out = analyze(input);
     expect(out).toHaveLength(1);
     expect(out[0]!.scope).toBe("standalone");
+  });
+
+  it("flags an app-scoped page that ships its own <html> and never includes theme-styles, referencing a theme-styles-only token", () => {
+    // This is the exact blind spot: the file lives under user/ (app scope) so the
+    // old guard granted it the theme-styles allowance, but it declares its OWN
+    // <html> and never @includes theme-styles — so the token is undefined at
+    // render time and the literal fallback freezes, ignoring the theme toggle.
+    const files = new Map([
+      [
+        "user/security/revoke-done.blade.php",
+        "<!DOCTYPE html><html><head><style>.a{color:var(--surface,#101014);}</style></head></html>",
+      ],
+    ]);
+    const out = analyze({ files, themeStylesSrc });
+    expect(out).toEqual([
+      { file: "user/security/revoke-done.blade.php", name: "--surface", kind: "hex", scope: "standalone" },
+    ]);
+  });
+
+  it("does NOT flag an app-scoped self-contained page that DOES @include theme-styles", () => {
+    const files = new Map([
+      [
+        "user/auth/login.blade.php",
+        "<!DOCTYPE html><html><head>@include('common.partials.theme-styles')" +
+          "<style>.a{color:var(--surface,#101014);}</style></head></html>",
+      ],
+      [THEME_STYLES_VIEW_REL, themeStylesSrc],
+    ]);
+    expect(analyze({ files, themeStylesSrc })).toEqual([]);
+  });
+
+  it("does NOT flag an app content page that has no own <html> (renders inside the layout that loads theme-styles)", () => {
+    const files = new Map([
+      [
+        "user/links/show.blade.php",
+        "@extends('user.layouts.app') @section('content')<div style='color:var(--surface,#101014);'></div>@endsection",
+      ],
+    ]);
+    expect(analyze({ files, themeStylesSrc })).toEqual([]);
   });
 
   it("FILE_ALLOWLIST is empty (the security pages now ship their own :root + html.light-mode blocks)", () => {
