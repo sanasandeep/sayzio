@@ -152,9 +152,6 @@
 - [Mobile event→ics bridge](mobile-event-type-ics-bridge.md) — mobile posts type "event" but canonical is "ics"+IcsData row; bridge in Api\LinkController::store (build row, accept both) AND mobile KINDS_BY_API['ics'] alias, or events render as bare/short links.
 - [Event organizer profile](event-organizer-profile.md) — account-wide organizer profile (JSON on users, resolved via `organizerProfile()`) shown on event detail + `/@handle/events`; no per-event override.
 - [Mobile per-type link lock cap-key](mobile-linktype-lock-cap-key.md) — mobile's proactive per-type gate assumes uniform `max_<type>` cap keys but web's aren't uniform, so it silently fails-open for a few types; guarded by test-pairing-create-open.mjs.
-<<<<<<< HEAD
 - [Event page right-column relocation](event-page-right-column-relocation.md) — host-card extraction pattern (`hideHostCard`) + `html.light-mode` override recipe for partials that only bake dark-theme colors inline.
-=======
 - [PHP 8.4 trait property redeclaration](php84-trait-property-redeclaration.md) — redeclaring a trait's property with a different type/default (e.g. Queueable's `$afterCommit`) is a fatal at class-load, not a warning; set via the trait's own setter instead.
-- [Leads review queue](leads-review-queue.md) — sparse state-only `leads` table (rows only on approve/dismiss) with a live-aggregating `LeadAggregator` across 8 capture sources; cap only gates new-contact creation, never merges.
->>>>>>> e5c5edefb (Task #3728: Leads review queue (Sayzio Laravel app))
+- [Leads review queue](leads-review-queue.md) — sparse state-only `leads` table (rows only on approve/dismiss); `LeadAggregator` across 8 sources; cap gates new-contact creation only; approve routes NEW + merged/enriched contacts through the same `Contact::queueCrmPush()`.

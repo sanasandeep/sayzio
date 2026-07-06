@@ -48,16 +48,32 @@ protected $fillable = [
     protected static function booted(): void
     {
         static::created(function (Contact $contact): void {
-            if (!$contact->user_id) {
+            $contact->queueCrmPush();
+        });
+    }
+
+    /**
+     * Fan this contact out to the owner's connected CRMs. Loop-safe: contacts
+     * imported *from* a CRM carry a `crm:` source, so they are never echoed
+     * back out. The push job builds the lead from the fresh record after
+     * commit, so emails/phones attached later are included. Cheap no-op when
+     * the user has no CRM connected (guarded inside the job's forContact()).
+     *
+     * Shared by the `created` hook (new contacts) and the Leads approve flow
+     * (leads merged/enriched into an existing contact) so both route through
+     * the exact same push path.
+     */
+    public function queueCrmPush(): void
+    {
+        if (!$this->user_id) {
+            return;
+        }
+        foreach ((array) $this->sources as $source) {
+            if (is_string($source) && str_starts_with($source, 'crm:')) {
                 return;
             }
-            foreach ((array) $contact->sources as $source) {
-                if (is_string($source) && str_starts_with($source, 'crm:')) {
-                    return;
-                }
-            }
-            \App\Jobs\PushLeadToCrmJob::forContact((int) $contact->user_id, (int) $contact->id);
-        });
+        }
+        \App\Jobs\PushLeadToCrmJob::forContact((int) $this->user_id, (int) $this->id);
     }
 
     /** @return array<string,mixed> normalized CRM lead payload. */

@@ -51,8 +51,16 @@ class LeadApprover
         return DB::transaction(function () use ($owner, $item, $normalized, $duplicateOf, $actorUserId) {
             if ($duplicateOf) {
                 $contact = Contact::find($duplicateOf);
-                $this->fillMissingFields($contact, $item);
+                $enriched = $this->fillMissingFields($contact, $item);
                 $this->addSource($contact, $item);
+                // Route merged/enriched contacts through the same CRM push a
+                // newly-created contact gets (loop-safe crm:-source skip +
+                // "only if a CRM is connected" cheap-check live in the helper).
+                // Only when new email/phone was actually added, so re-approving
+                // the same lead doesn't fire redundant CRM writes.
+                if ($enriched) {
+                    $contact->queueCrmPush();
+                }
                 $result = self::RESULT_MERGED;
             } else {
                 $contact = Contact::create([
@@ -91,8 +99,12 @@ class LeadApprover
      * already have, comparing by normalized value (not just "has none at
      * all") so a second matching lead can still contribute a new work email
      * or alternate number instead of being silently dropped.
+     *
+     * @return bool true when a new email/phone was actually added, so the
+     *   caller can push the enriched contact to connected CRMs only when
+     *   there's genuinely new data to sync.
      */
-    protected function fillMissingFields(Contact $contact, array $item): void
+    protected function fillMissingFields(Contact $contact, array $item): bool
     {
         $changed = false;
 
@@ -125,6 +137,8 @@ class LeadApprover
         if ($changed) {
             $contact->update(['locally_modified_at' => now()]);
         }
+
+        return $changed;
     }
 
     /**
