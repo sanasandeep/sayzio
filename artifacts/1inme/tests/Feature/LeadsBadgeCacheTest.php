@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\Review;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\LeadAggregator;
 use App\Modules\User\Services\LeadApprover;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -122,5 +123,88 @@ class LeadsBadgeCacheTest extends TestCase
         ]);
 
         $this->assertFalse(Cache::has($key));
+    }
+
+    /**
+     * Owner-scoped sources (RSVP / order / review / event-interest) change the
+     * pending count in EVERY one of the owner's workspaces, so handling one
+     * must clear the cached badge for all of them — not just the workspace the
+     * action happened in — otherwise a second workspace shows a stale badge
+     * until the TTL self-heals (Task #3770).
+     */
+    public function test_owner_scoped_lead_clears_every_workspace_cache(): void
+    {
+        $user = $this->makeUser();
+
+        $secondWorkspace = Workspace::create([
+            'owner_user_id' => $user->id,
+            'name'          => 'Second',
+            'slug'          => 'ws-' . Str::lower(Str::random(6)),
+            'is_personal'   => false,
+        ]);
+
+        $personalId = $user->ownedWorkspaces()
+            ->where('is_personal', true)
+            ->value('id');
+
+        $personalKey = LeadAggregator::pendingCountCacheKey($user->id, $personalId);
+        $secondKey   = LeadAggregator::pendingCountCacheKey($user->id, $secondWorkspace->id);
+        $noneKey     = LeadAggregator::pendingCountCacheKey($user->id, null);
+
+        // Prime a stale cached value for both workspaces plus the CLI/public key.
+        Cache::put($personalKey, 3, LeadAggregator::PENDING_COUNT_TTL);
+        Cache::put($secondKey, 3, LeadAggregator::PENDING_COUNT_TTL);
+        Cache::put($noneKey, 3, LeadAggregator::PENDING_COUNT_TTL);
+
+        (new LeadApprover())->dismiss($user, [
+            'name'        => 'Reviewer',
+            'email'       => null,
+            'phone'       => null,
+            'source_type' => LeadAggregator::SOURCE_REVIEW,
+            'source_id'   => 555,
+            'context'     => null,
+        ]);
+
+        $this->assertFalse(Cache::has($personalKey), 'personal workspace badge should be cleared');
+        $this->assertFalse(Cache::has($secondKey), 'second workspace badge should be cleared');
+        $this->assertFalse(Cache::has($noneKey), 'workspace-less badge should be cleared');
+    }
+
+    /**
+     * Workspace-scoped sources (Form / Subscriber) genuinely differ per
+     * workspace, so handling one only clears the current workspace's cache and
+     * leaves the other workspace's cached badge untouched.
+     */
+    public function test_workspace_scoped_lead_clears_only_the_current_workspace(): void
+    {
+        $user = $this->makeUser();
+
+        $current = $user->ownedWorkspaces()->where('is_personal', true)->first();
+        $other   = Workspace::create([
+            'owner_user_id' => $user->id,
+            'name'          => 'Other',
+            'slug'          => 'ws-' . Str::lower(Str::random(6)),
+            'is_personal'   => false,
+        ]);
+
+        app()->instance('current_workspace', $current);
+
+        $currentKey = LeadAggregator::pendingCountCacheKey($user->id, $current->id);
+        $otherKey   = LeadAggregator::pendingCountCacheKey($user->id, $other->id);
+
+        Cache::put($currentKey, 4, LeadAggregator::PENDING_COUNT_TTL);
+        Cache::put($otherKey, 4, LeadAggregator::PENDING_COUNT_TTL);
+
+        (new LeadApprover())->dismiss($user, [
+            'name'        => 'Sub',
+            'email'       => null,
+            'phone'       => null,
+            'source_type' => LeadAggregator::SOURCE_SUBSCRIBER,
+            'source_id'   => 777,
+            'context'     => null,
+        ]);
+
+        $this->assertFalse(Cache::has($currentKey), 'current workspace badge should be cleared');
+        $this->assertTrue(Cache::has($otherKey), 'other workspace badge should NOT be cleared for a workspace-scoped source');
     }
 }

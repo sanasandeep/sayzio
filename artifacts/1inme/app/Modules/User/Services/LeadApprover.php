@@ -91,7 +91,7 @@ class LeadApprover
         // Drop the sidebar's cached pending count so the badge reflects this
         // approval immediately. Done after commit so a concurrent read can't
         // repopulate the cache with the pre-write count mid-transaction.
-        LeadAggregator::forgetPendingCount($owner->id, LeadAggregator::currentWorkspaceId());
+        $this->invalidatePendingCount($owner, $item);
 
         return $outcome;
     }
@@ -100,7 +100,29 @@ class LeadApprover
     {
         $this->writeLead($owner, $item, Lead::STATUS_DISMISSED, null, $actorUserId);
 
-        LeadAggregator::forgetPendingCount($owner->id, LeadAggregator::currentWorkspaceId());
+        $this->invalidatePendingCount($owner, $item);
+    }
+
+    /**
+     * Invalidate the sidebar's cached pending count after a lead is handled.
+     *
+     * Workspace-scoped sources (Form / Subscriber) only change the count for
+     * the workspace the action happened in, so clearing the current
+     * workspace's key is enough. Owner-scoped sources (RSVP / order / review /
+     * event-interest) change the count in EVERY one of the owner's workspaces
+     * at once, so their cache must be cleared owner-wide — otherwise the badge
+     * stays stale in the owner's other workspaces until the TTL expires.
+     */
+    protected function invalidatePendingCount(User $owner, array $item): void
+    {
+        $source = (string) ($item['source_type'] ?? '');
+
+        if (LeadAggregator::isWorkspaceScopedSource($source)) {
+            LeadAggregator::forgetPendingCount($owner->id, LeadAggregator::currentWorkspaceId());
+            return;
+        }
+
+        LeadAggregator::forgetPendingCountForAllWorkspaces($owner->id);
     }
 
     /**

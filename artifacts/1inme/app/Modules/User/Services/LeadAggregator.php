@@ -13,6 +13,7 @@ use App\Modules\User\Models\Rsvp;
 use App\Modules\User\Models\ServiceBookingRequest;
 use App\Modules\User\Models\StoreOrder;
 use App\Modules\User\Models\Subscriber;
+use App\Modules\User\Models\Workspace;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -61,6 +62,28 @@ class LeadAggregator
         self::SOURCE_STORE_ORDER, self::SOURCE_RESTAURANT_ORDER,
         self::SOURCE_SERVICE_BOOKING, self::SOURCE_REVIEW, self::SOURCE_EVENT_INTEREST,
     ];
+
+    /**
+     * Sources whose pending count genuinely differs between an owner's
+     * workspaces because the underlying records carry real workspace_id data
+     * (via BelongsToWorkspace). Handling one of these only changes the count
+     * for the workspace it happened in — so its cache invalidation can stay
+     * scoped to the current workspace.
+     *
+     * Every other source (RSVP / Store / Restaurant / Service Booking /
+     * Review / Event-Interest) is scoped only by owner (`Link->user_id`), so
+     * its count is identical across ALL of the owner's workspaces and handling
+     * one must invalidate every one of the owner's cached workspace badges.
+     */
+    public const WORKSPACE_SCOPED_SOURCES = [
+        self::SOURCE_FORM, self::SOURCE_SUBSCRIBER,
+    ];
+
+    /** Whether a source's pending count varies per workspace (vs owner-wide). */
+    public static function isWorkspaceScopedSource(string $source): bool
+    {
+        return in_array($source, self::WORKSPACE_SCOPED_SOURCES, true);
+    }
 
     /** Memoised per-user form id set used by the form-submission source scope. */
     protected ?Collection $formIds = null;
@@ -122,6 +145,27 @@ class LeadAggregator
     public static function forgetPendingCount(int $userId, ?int $workspaceId = null): void
     {
         Cache::forget(self::pendingCountCacheKey($userId, $workspaceId));
+    }
+
+    /**
+     * Drop the cached pending count for EVERY workspace the owner has, plus
+     * the workspace-less key. Used after handling an owner-scoped lead
+     * (RSVP / order / review / …) whose count is identical across all of the
+     * owner's workspaces — so a single workspace-targeted forget would leave a
+     * stale badge in the owner's other workspaces until the TTL self-heals.
+     *
+     * The badge is always keyed by the workspace *owner*, so the only cache
+     * entries that can exist for this owner are their own workspaces' ids
+     * (a team workspace the owner merely belongs to is keyed by that
+     * workspace's owner instead) — hence iterating ownedWorkspaces suffices.
+     */
+    public static function forgetPendingCountForAllWorkspaces(int $userId): void
+    {
+        self::forgetPendingCount($userId, null);
+
+        Workspace::where('owner_user_id', $userId)
+            ->pluck('id')
+            ->each(fn ($id) => self::forgetPendingCount($userId, (int) $id));
     }
 
     /** Id of the workspace bound to the current request, or null (CLI/public). */
