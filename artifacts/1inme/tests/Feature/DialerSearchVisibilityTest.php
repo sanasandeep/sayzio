@@ -563,6 +563,36 @@ class DialerSearchVisibilityTest extends TestCase
         );
     }
 
+    public function test_web_search_reveals_followers_only_link_to_a_follower(): void
+    {
+        // Positive web mirror of the canViewLink() followers-only-visible-to-a-
+        // follower branch, exercised end-to-end on the web endpoint. The web
+        // dialer runs under `workspace.scope`, which binds the searcher's active
+        // workspace. A followed creator's followers-only link lives in the
+        // CREATOR's workspace, so unless the followed-links query opts out of the
+        // BelongsToWorkspace global scope it would be silently HIDDEN on the web
+        // surface — while the surface-independent canViewLink() reflection test
+        // and the (workspace-less) API path still passed. This viewer follows but
+        // does NOT subscribe, so only the `followers` tier — not `subscribers` —
+        // grants access; without this test a future re-scoping regression on the
+        // followed-links query would go uncaught on web.
+        $viewer  = $this->makeUser('viewer');
+        $creator = $this->makeUser('creator');
+        Follow::create(['follower_id' => $viewer->id, 'creator_id' => $creator->id]);
+
+        $followersLink = $this->makeLink($creator, 'followers');
+
+        $resp = $this->actingAsWeb($viewer)->getJson(route('user.dialer.search', ['q' => self::TOKEN]));
+        $resp->assertOk();
+
+        $followed = $this->groupLinkIds($resp->json('data'), 'followed');
+        $this->assertContains(
+            $followersLink->id,
+            $followed,
+            'a follower must see a followed creator\'s followers-only link on the web dialer surface'
+        );
+    }
+
     public function test_web_search_requires_authentication(): void
     {
         $this->get(route('user.dialer.search', ['q' => self::TOKEN]))->assertRedirect('/user/login');
