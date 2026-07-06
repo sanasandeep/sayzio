@@ -88,7 +88,20 @@
     .ev-rich .row.g-2 > .col-4 { width: 33.3333%; }
     .ev-rich .h-100 { height: auto !important; }
 
+    /* Task #3794 — recommendation cards (event-page-recommendations.blade.php)
+       repaint their theme-agnostic surface for this dark page. */
+    .ev-rich .ev-rec-heading { color: rgba(232,234,240,0.85); }
+    .ev-rich .ev-rec-card { background: rgba(255,255,255,0.035); border-color: rgba(255,255,255,0.10) !important; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .ev-rich a:hover > .ev-rec-card { border-color: rgba(61,107,255,0.45) !important; box-shadow: 0 18px 36px rgba(0,0,0,0.4), 0 0 0 1px rgba(61,107,255,0.25); background: rgba(255,255,255,0.05); }
+    .ev-rich .ev-rec-badge-free { background: rgba(52,211,153,0.16) !important; color: #34d399 !important; border-color: rgba(52,211,153,0.35); }
+    .ev-rich .ev-rec-badge-paid { background: rgba(255,255,255,0.12) !important; color: #e8eaf0 !important; border-color: rgba(255,255,255,0.18); }
+
     html.light-mode .ev-rich { color: #111827; }
+    html.light-mode .ev-rich .ev-rec-heading { color: rgba(15,23,42,0.75); }
+    html.light-mode .ev-rich .ev-rec-card { background: #ffffff; border-color: rgba(15,23,42,0.08) !important; box-shadow: 0 1px 3px rgba(15,23,42,0.06); }
+    html.light-mode .ev-rich a:hover > .ev-rec-card { border-color: rgba(61,107,255,0.35) !important; box-shadow: 0 16px 32px rgba(15,23,42,0.14), 0 0 0 1px rgba(61,107,255,0.15); }
+    html.light-mode .ev-rich .ev-rec-badge-free { background: rgba(5,150,105,0.1) !important; color: #059669 !important; border-color: rgba(5,150,105,0.25); }
+    html.light-mode .ev-rich .ev-rec-badge-paid { background: rgba(15,23,42,0.05) !important; color: #334155 !important; border-color: rgba(15,23,42,0.12); }
     html.light-mode .ev-rich .badge.bg-light { background: rgba(15,23,42,0.05) !important; border-color: rgba(15,23,42,0.1) !important; color: #475569 !important; }
     html.light-mode .ev-rich .text-dark { color: #111827 !important; }
     html.light-mode .ev-rich .text-muted { color: rgba(15,23,42,0.55) !important; }
