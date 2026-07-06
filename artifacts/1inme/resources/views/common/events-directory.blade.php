@@ -53,11 +53,13 @@
     html.light-mode .events-hero .text-white\/40 { color:rgba(255,255,255,0.4) !important; }
     html.light-mode .events-hero input::placeholder { color:rgba(255,255,255,0.35) !important; }
 
-    .ev-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:1rem; }
+    .ev-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:1.25rem; box-shadow:0 16px 40px -26px rgba(0,0,0,0.6); }
     .ev-chip { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10); color:rgba(255,255,255,0.7); }
     .ev-chip.active, .ev-chip:hover { background:#3d6bff; border-color:#3d6bff; color:#fff; }
     .event-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-    .event-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -14px rgba(61,107,255,0.35); border-color: rgba(61,107,255,0.4); }
+    .event-card:hover { transform: translateY(-4px); box-shadow: 0 22px 44px -14px rgba(61,107,255,0.4); border-color: rgba(61,107,255,0.4); }
+    .ev-card-date-chip { backdrop-filter: blur(6px); }
+    .ev-price-badge { backdrop-filter: blur(6px); }
     .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .tier-breakdown.tier-open .tier-chevron { transform: rotate(180deg); }
     .cat-tile-icon {

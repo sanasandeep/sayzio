@@ -33,10 +33,13 @@
 
 @push('head')
 <style>
-    .ev-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:1.25rem; }
+    .ev-card { background:rgba(255,255,255,0.045); border:1px solid rgba(255,255,255,0.09); border-radius:1.5rem; box-shadow:0 24px 60px -30px rgba(0,0,0,0.65); }
+    .ev-card-soft { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:1.1rem; }
     .ev-accent-bg { background:#3d6bff; }
     .ev-accent-text { color:#8fa8ff; }
+    .ev-accent-icon-badge { background:rgba(61,107,255,0.16); border:1px solid rgba(61,107,255,0.3); color:#8fa8ff; }
     .ev-chip { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); color:#fff; }
+    .ev-meta-chip { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.09); color:rgba(255,255,255,0.82); border-radius:0.75rem; }
     .ev-hero { background: {{ $categoryGradient }}; }
     .ev-tier { border:1.5px solid rgba(255,255,255,0.10); border-radius:0.9rem; transition:border-color .15s ease, background .15s ease; }
     .ev-tier:has(input:checked) { border-color:#3d6bff; background:rgba(61,107,255,0.10); }
@@ -44,20 +47,28 @@
     .ev-input { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:#e8eaf0; }
     .ev-input:focus { outline:none; border-color:#3d6bff; box-shadow:0 0 0 3px rgba(61,107,255,0.25); }
     .ev-label { color: rgba(255,255,255,0.5); }
+    .ev-section-label { color:#8fa8ff; }
     .ev-muted { color: rgba(255,255,255,0.6); }
     .ev-muted-lite { color: rgba(255,255,255,0.4); }
     .ev-desc { color: rgba(255,255,255,0.7); }
     .ev-price-free { color: #34d399; }
+    .ev-cta-btn { box-shadow:0 14px 30px -10px rgba(61,107,255,0.55); transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease; }
+    .ev-cta-btn:hover { transform:translateY(-1px); box-shadow:0 18px 36px -10px rgba(61,107,255,0.65); }
+    .ev-host-avatar-ring { padding:2.5px; background:linear-gradient(135deg,#3d6bff,#8fa8ff); border-radius:9999px; }
     #ev-map { height:260px; border-radius:0.9rem; }
     footer.ev-footer { color: rgba(255,255,255,0.25); }
 
-    html.light-mode .ev-card { background:#ffffff; border-color:rgba(15,23,42,0.08); box-shadow:0 1px 3px rgba(15,23,42,0.06); }
+    html.light-mode .ev-card { background:#ffffff; border-color:rgba(15,23,42,0.08); box-shadow:0 12px 36px -20px rgba(15,23,42,0.18); }
+    html.light-mode .ev-card-soft { background:#f8fafc; border-color:rgba(15,23,42,0.08); }
     html.light-mode .ev-accent-text { color:#3d6bff; }
+    html.light-mode .ev-accent-icon-badge { background:rgba(61,107,255,0.1); border-color:rgba(61,107,255,0.25); color:#3d6bff; }
     html.light-mode .ev-chip { background:rgba(15,23,42,0.05); border-color:rgba(15,23,42,0.08); color:#111827; }
+    html.light-mode .ev-meta-chip { background:#f8fafc; border-color:rgba(15,23,42,0.09); color:#334155; }
     html.light-mode .ev-tier { border-color:rgba(15,23,42,0.12); }
     html.light-mode .ev-tier:has(input:checked) { border-color:#3d6bff; background:rgba(61,107,255,0.06); }
     html.light-mode .ev-input { background:#f8fafc; border-color:rgba(15,23,42,0.14); color:#111827; }
     html.light-mode .ev-label { color: rgba(15,23,42,0.55); }
+    html.light-mode .ev-section-label { color:#3d6bff; }
     html.light-mode .ev-muted { color: rgba(15,23,42,0.6); }
     html.light-mode .ev-muted-lite { color: rgba(15,23,42,0.4); }
     html.light-mode .ev-desc { color: rgba(15,23,42,0.72); }
@@ -189,19 +200,21 @@
                             </div>
 
                             <div>
-                                <h1 class="ev-title text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-tight">{{ $link->title }}</h1>
+                                <h1 class="ev-title text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight">{{ $link->title }}</h1>
 
-                                @if($ics && $ics->start_date)
-                                    <div class="mt-3 flex items-center gap-2 text-sm ev-muted">
-                                        <i class="far fa-clock ev-accent-text"></i>
-                                        {{ $ics->start_date->setTimezone(new \DateTimeZone($ics->timezone ?: 'UTC'))->format('D, M j Y · g:i A') }}
-                                    </div>
-                                @endif
-                                @if($ics && $ics->location)
-                                    <div class="mt-1.5 flex items-center gap-2 text-sm ev-muted">
-                                        <i class="fas fa-location-dot ev-accent-text"></i> {{ $ics->location }}
-                                    </div>
-                                @endif
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                    @if($ics && $ics->start_date)
+                                        <div class="ev-meta-chip inline-flex items-center gap-2 text-sm font-medium px-3 py-1.5">
+                                            <i class="far fa-clock ev-accent-text"></i>
+                                            {{ $ics->start_date->setTimezone(new \DateTimeZone($ics->timezone ?: 'UTC'))->format('D, M j Y · g:i A') }}
+                                        </div>
+                                    @endif
+                                    @if($ics && $ics->location)
+                                        <div class="ev-meta-chip inline-flex items-center gap-2 text-sm font-medium px-3 py-1.5">
+                                            <i class="fas fa-location-dot ev-accent-text"></i> {{ $ics->location }}
+                                        </div>
+                                    @endif
+                                </div>
 
                                 @if($ics && $ics->description)
                                     <p class="mt-4 text-sm ev-desc whitespace-pre-line leading-relaxed">{{ $ics->description }}</p>
@@ -223,7 +236,10 @@
                             @if($hasTicketTiers)
                                 <form method="POST" action="{{ route('redirect.event.buy', $link->alias) }}" id="ticket-form" class="ev-card p-5">
                                     @csrf
-                                    <h2 class="text-sm font-bold uppercase tracking-wide ev-label mb-3">Get tickets</h2>
+                                    <div class="flex items-center gap-2.5 mb-4">
+                                        <span class="ev-accent-icon-badge w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-ticket-alt text-sm"></i></span>
+                                        <h2 class="text-sm font-bold uppercase tracking-wide ev-section-label">Get tickets</h2>
+                                    </div>
                                     <div class="space-y-2.5">
                                         @foreach($tiers as $tier)
                                             <label class="ev-tier flex items-start justify-between gap-3 p-3.5 cursor-pointer">
@@ -267,15 +283,18 @@
                                         <input type="text" name="phone" value="{{ old('phone') }}" class="ev-input w-full rounded-lg px-3 py-2 text-sm">
                                     </div>
 
-                                    <button type="submit" class="ev-accent-bg w-full mt-4 py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 transition">
+                                    <button type="submit" class="ev-accent-bg ev-cta-btn w-full mt-4 py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 transition">
                                         <i class="fas fa-ticket-alt mr-1.5"></i> Get tickets
                                     </button>
                                 </form>
                             @elseif($rsvpEnabled)
                                 <div class="ev-card p-5">
-                                    <h2 class="text-sm font-bold uppercase tracking-wide ev-label mb-3">Join this event</h2>
+                                    <div class="flex items-center gap-2.5 mb-4">
+                                        <span class="ev-accent-icon-badge w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-calendar-check text-sm"></i></span>
+                                        <h2 class="text-sm font-bold uppercase tracking-wide ev-section-label">Join this event</h2>
+                                    </div>
                                     <a href="{{ route('redirect.rsvp.form', $link->alias) }}"
-                                       class="ev-accent-bg w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 transition">
+                                       class="ev-accent-bg ev-cta-btn w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white hover:opacity-90 transition">
                                         <i class="fas fa-calendar-check"></i> RSVP now
                                     </a>
                                 </div>
@@ -286,26 +305,34 @@
                             @endif
 
                             <div class="flex flex-wrap items-center justify-center gap-3 mt-4 text-sm">
-                                <a href="{{ url('/' . $link->alias . '?ics=1') }}" class="inline-flex items-center gap-1.5 ev-chip px-4 py-2 rounded-xl hover:opacity-80">
+                                <a href="{{ url('/' . $link->alias . '?ics=1') }}" class="inline-flex items-center gap-1.5 ev-chip px-4 py-2 rounded-xl hover:opacity-80 transition">
                                     <i class="fas fa-calendar-plus"></i> Add to calendar
                                 </a>
                                 <a href="{{ auth('web')->check() ? route('user.links.create') : (route('user.login') . '?redirect=' . urlencode(route('user.links.create'))) }}"
-                                   class="inline-flex items-center gap-1.5 ev-chip px-4 py-2 rounded-xl hover:opacity-80">
+                                   class="inline-flex items-center gap-1.5 ev-chip px-4 py-2 rounded-xl hover:opacity-80 transition">
                                     <i class="fas fa-plus"></i> Create your own event
                                 </a>
                             </div>
 
                             @if($host)
-                                <div class="ev-rich ev-card p-4 mt-4">
+                                <div class="ev-rich mt-4">
+                                    <div class="flex items-center gap-2 mb-2 px-1">
+                                        <i class="fas fa-user-tie ev-accent-text text-xs"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide ev-section-label">Organizer</span>
+                                    </div>
                                     @include('common.partials.event-host-card', ['host' => $host, 'organizer' => $organizer])
                                 </div>
                             @endif
 
                             @if($hasPin)
-                                <div class="ev-card p-2 mt-4">
+                                <div class="ev-card p-4 mt-4">
+                                    <div class="flex items-center gap-2 mb-3 px-1">
+                                        <i class="fas fa-location-dot ev-accent-text text-xs"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide ev-section-label">Location</span>
+                                    </div>
                                     <div id="ev-map" data-lat="{{ $ics->latitude }}" data-lng="{{ $ics->longitude }}" data-label="{{ $link->title }}"></div>
                                     <a href="{{ $directionsUrl }}" target="_blank" rel="noopener"
-                                       class="mt-2 inline-flex items-center justify-center gap-2 w-full ev-chip px-4 py-2.5 rounded-xl hover:opacity-80 font-medium">
+                                       class="mt-3 inline-flex items-center justify-center gap-2 w-full ev-chip px-4 py-2.5 rounded-xl hover:opacity-80 font-medium transition">
                                         <i class="fas fa-diamond-turn-right ev-accent-text"></i> Get directions
                                     </a>
                                 </div>

@@ -13,9 +13,11 @@
      on the directory. --}}
 @push('head')
 <style>
-    .ev-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:1rem; }
+    .ev-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:1.25rem; box-shadow:0 16px 40px -26px rgba(0,0,0,0.6); }
     .event-card { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-    .event-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -14px rgba(61,107,255,0.35); border-color: rgba(61,107,255,0.4); }
+    .event-card:hover { transform: translateY(-4px); box-shadow: 0 22px 44px -14px rgba(61,107,255,0.4); border-color: rgba(61,107,255,0.4); }
+    .ev-card-date-chip { backdrop-filter: blur(6px); }
+    .ev-price-badge { backdrop-filter: blur(6px); }
     .ev-card-img { width:100%; height:100%; object-fit:cover; }
     .line-clamp-2 { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .ev-cat-pill { display:inline-flex; align-items:center; gap:.25rem; color:#fff; font-size:10px; font-weight:700; padding:.2rem .5rem; border-radius:999px; }

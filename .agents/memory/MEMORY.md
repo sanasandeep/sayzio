@@ -85,9 +85,6 @@
 - [AI Branding Specials](ai-branding-specials.md) — Brand Consistency Score is a pure transformer mirroring applyToBiolink targets (applied page=100); On-Brand AI injects BrandKit::promptDirectives into builder+persona prompts, gated by legacy-safe `brand_consistency`.
 - [AI Artistic QR decode check](ai-qr-decode-verify.md) — vendored jsQR (window.jsQR, UMD browser branch) decodes the returned artwork client-side (free, no coin); cross-origin S3-without-CORS taint degrades to status 'unknown'; artistic-strength→qr_conditioning_scale is inverse.
 - [Client invoicing (PDF/refund/tax) suite](client-invoice-pdf.md) — signed-URL PDFs shared web/API/mobile; refund is idempotent (row lock, mints Refund+CreditNote); see linked topic files.
-<<<<<<< HEAD
-- [vitest vite8 oxc JSX](vitest-vite8-oxc-jsx.md) — vitest pulls vite 8 (oxc); default oxc has no jsx cfg so .tsx tests fail import-analysis; set `oxc.jsx` in vitest.config, not plugin-react's ignored esbuild.
-=======
 - [vitest vite8 oxc JSX](vitest-vite8-oxc-jsx.md) — vitest pulls vite 8 (oxc); default oxc has no jsx cfg so .tsx tests fail import-analysis; set `oxc.jsx` in vitest.config, not plugin-react's ignored esbuild.
 - [AiMind grounding feature surfaces](aimind-grounding-feature-surfaces.md) — adding KB grounding = lockstep (service+controller+routes+picker); mobile only grounds ai-generate, owner-only; "Knowledge Bases" label is display-only, never rename model/routes/keys.
 - [Banned-name handling](handle-banned-name-surfaces.md) — NotBannedName must run on all 4 handle-setting surfaces, not just link aliases; demo@1inme.com bypasses it so e2e must assert taken+invalid, not "banned" ([bypass](e2e-demo-user-banned-bypass.md)).
@@ -153,4 +150,4 @@
 - [Event page right-column relocation](event-page-right-column-relocation.md) — host-card extraction pattern (`hideHostCard`) + `html.light-mode` override recipe for partials that only bake dark-theme colors inline.
 - [Lead-merge CRM push coverage](lead-merge-crm-push-coverage.md) — leads that merge into existing contacts now trigger `queueCrmPush()` on enrichment (loop-safe `crm:` source check); Bus::fake records afterCommit dispatch immediately, so these tests work under RefreshDatabase.
 - [Inbox link-reference tokens](inbox-link-reference-tokens.md) — `{{link:ID}}` renders per-channel rich cards via a single owner-scoped renderer (fail-closed on foreign ids); inline JS building the token in a .blade.php file needs `@{{` to avoid Blade's compiler.
->>>>>>> 8cce8ccb0 (Clean up corrupted memory file by removing duplicate entries)
+- [Event host-card dual-context box](event-host-card-dual-context-box.md) — shared partial rendered bare (RSVP) and inside a themed wrapper (event page); box uses theme-neutral inline rgba + inline box-shadow rings so no light-mode-pairing entries needed.
