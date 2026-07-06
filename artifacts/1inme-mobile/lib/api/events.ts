@@ -85,6 +85,26 @@ export type EventItem = {
   same_host_events: EventHostEvent[];
   /** Cross-promo "Perfect pairings" cards from the shared SitePagesContent catalog. */
   pairings?: LinkTypePairing[];
+  /**
+   * "10x your connections" coaching tips from SitePagesContent::eventConnectionTips().
+   * Encouraging, benefit-led guidance (distinct from the factual `pairings`
+   * cards) nudging hosts to turn attendees into lasting followers/contacts.
+   */
+  connection_tips?: EventConnectionTip[];
+};
+
+/**
+ * A single "10x your connections" coaching tip. `type` maps to the create
+ * flow (via pairingCreatePath) and a Feather glyph (via pairingIcon); `icon`
+ * is the web FontAwesome class and is ignored on mobile. Mirrors the shape
+ * returned by SitePagesContent::eventConnectionTips().
+ */
+export type EventConnectionTip = {
+  type: string;
+  icon: string;
+  title: string;
+  tip: string;
+  cta: string;
 };
 
 export type EventTicket = {
@@ -139,6 +159,12 @@ export type EventCategoryOption = {
 
 export type EventsDirectoryResponse = Paginated<EventItem> & {
   categories: EventCategoryOption[];
+  /**
+   * "10x your connections" coaching tips, returned once for the directory
+   * (not per event) — mirrors the web /events page rendering the tips once
+   * below the listing.
+   */
+  connection_tips?: EventConnectionTip[];
 };
 
 export async function listEvents(

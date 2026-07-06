@@ -98,6 +98,12 @@ class EventTicketApiController extends Controller
                     'label' => $meta['label'],
                     'icon'  => $meta['icon'],
                 ])->values()->all(),
+            // "10x your connections" coaching tips (SitePagesContent single
+            // source of truth) — the mobile mirror of the web /events
+            // directory's event-connection-tips partial. Returned once at the
+            // top level, not per event, exactly like the web renders it once
+            // below the listing.
+            'connection_tips' => SitePagesContent::eventConnectionTips(),
             'meta'  => [
                 'current_page' => $events->currentPage(),
                 'last_page'    => $events->lastPage(),
@@ -113,6 +119,9 @@ class EventTicketApiController extends Controller
 
         return $this->ok($this->eventShape($link, includeAllTiers: true) + [
             'pairings' => SitePagesContent::linkTypePairingsFor('ics'),
+            // "10x your connections" coaching tips — mobile mirror of the web
+            // public event page's (compact) event-connection-tips partial.
+            'connection_tips' => SitePagesContent::eventConnectionTips(),
         ]);
     }
 

@@ -15,6 +15,7 @@ import {
 } from "react-native";
 
 import { EmbedModal } from "@/components/EmbedModal";
+import { EventConnectionTips } from "@/components/EventConnectionTips";
 import { LinkTypePairings } from "@/components/LinkTypePairings";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -392,6 +393,7 @@ export default function EventDetailScreen() {
         onClose={() => setRsvpModalUrl(null)}
       />
       <LinkTypePairings pairings={event?.pairings} theme="dark" />
+      <EventConnectionTips tips={event?.connection_tips} compact />
     </ScrollView>
   );
 }

@@ -17,8 +17,10 @@ import {
 
 import { AppIcon } from "@/components/AppIcon";
 import { EmptyState } from "@/components/EmptyState";
+import { EventConnectionTips } from "@/components/EventConnectionTips";
 import { useColors } from "@/hooks/useColors";
 import {
+  type EventConnectionTip,
   type EventCategoryOption,
   type EventItem,
   listEvents,
@@ -30,6 +32,7 @@ export default function EventsDirectoryScreen() {
   const [nearMe, setNearMe] = useState(false);
   const [category, setCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<EventCategoryOption[]>([]);
+  const [connectionTips, setConnectionTips] = useState<EventConnectionTip[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,6 +66,10 @@ export default function EventsDirectoryScreen() {
       // The curated category catalogue is stable, so only seed it once from
       // the first response — later filtered calls return the same list.
       setCategories((prev) => (prev.length > 0 ? prev : res.categories));
+      // Same for the connection tips — static coaching copy, seed once.
+      setConnectionTips((prev) =>
+        prev.length > 0 ? prev : res.connection_tips ?? [],
+      );
     },
     [nearMe, q, category],
   );
@@ -213,6 +220,11 @@ export default function EventsDirectoryScreen() {
           contentContainerStyle={{ padding: 16, gap: 12 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListFooterComponent={
+            connectionTips.length > 0 ? (
+              <EventConnectionTips tips={connectionTips} />
+            ) : null
           }
           renderItem={({ item }) => (
             <Pressable
