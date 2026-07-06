@@ -267,6 +267,9 @@ export default function CalendarEventScreen() {
     );
   }
 
+  // Creator has already used every event their plan allows on this calendar —
+  // show the upgrade affordance instead of an empty form that only bounces at
+  // submit. Mirrors the calendar-level gate in edit.tsx.
   if (createLocked) {
     const message =
       eventCap != null && eventCap >= 0
