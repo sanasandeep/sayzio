@@ -183,6 +183,95 @@ export const TARGETS: Target[] = [
       },
     ],
   },
+  {
+    // The one genuine wash-out here (`.dcp-chchip` white label on the
+    // translucent .glass chip, which turns near-white in light mode) is FIXED
+    // with a real `html.light-mode .dcp-chchip { color }` override in the page.
+    // Everything below is theme-neutral: the animated dialer PHONE is an
+    // always-dark island (its `html.light-mode .dcp-phone` / `.dcp-face`
+    // gradients stay dark), so every `.dcp-*` text rule rendered inside the
+    // phone screen must KEEP its light color in both themes — adding a
+    // light-mode override there would bury it dark-on-dark. Outside the phone,
+    // the grid-card icon rides an always-colored tile, the hover border + stat
+    // number are the brand-blue accent, all legible on white.
+    page: "artifacts/1inme/resources/views/public/dialer-contacts.blade.php",
+    label: "Dialer & Contacts page",
+    allowlist: [
+      { selector: ".dcp-face", property: "color", reason: "phone screen face — always-dark island (kept dark in light mode via html.light-mode .dcp-phone); its white text is correct in both themes." },
+      { selector: ".dcp-status", property: "color", reason: "status bar text (#8f9bb8) on the always-dark phone screen." },
+      { selector: ".dcp-status i", property: "color", reason: "status bar icon (#8f9bb8) on the always-dark phone screen." },
+      { selector: ".dcp-match", property: "color", reason: "T9 match chip label (#dbe4ff) on the always-dark phone screen." },
+      { selector: ".dcp-match i", property: "color", reason: "T9 match chip icon (#7a9eff) on the always-dark phone screen." },
+      { selector: ".dcp-digit", property: "color", reason: "dialed digits (#fff) on the always-dark phone screen." },
+      { selector: ".dcp-key", property: "color", reason: "keypad key glyph (#fff) on the always-dark phone screen." },
+      { selector: ".dcp-key .l", property: "color", reason: "keypad key letters (rgba(255,255,255,.45)) on the always-dark phone screen." },
+      { selector: ".dcp-sim", property: "color", reason: "SIM call button label (#fff) on an always-colored green/teal gradient button inside the phone." },
+      { selector: ".dcp-sim .sb", property: "color", reason: "SIM badge glyph (#fff) on the always-colored SIM button inside the phone." },
+      { selector: ".dcp-dialchan", property: "color", reason: "quick-channel icon (#fff) on an always-colored tile inside the phone." },
+      { selector: ".dcp-dialchan-label", property: "color", reason: "quick-channel label (rgba(255,255,255,.5)) on the always-dark phone screen." },
+      { selector: ".dcp-cid-pill", property: "color", reason: "caller-ID pill label (#dbe4ff) on the always-dark phone screen." },
+      { selector: ".dcp-cid-pill i", property: "color", reason: "caller-ID pill icon (#7a9eff) on the always-dark phone screen." },
+      { selector: ".dcp-avatar-lg", property: "color", reason: "caller avatar initials (#fff) on an always-colored gradient avatar inside the phone." },
+      { selector: ".dcp-call-name", property: "color", reason: "caller name (#fff) on the always-dark phone screen." },
+      { selector: ".dcp-call-name i", property: "color", reason: "verified-badge icon (#3d6bff brand accent) on the always-dark phone screen." },
+      { selector: ".dcp-call-handle", property: "color", reason: "caller handle (#a8b3cf) on the always-dark phone screen." },
+      { selector: ".dcp-call-num", property: "color", reason: "caller number (#cbd5e1) on the always-dark phone screen." },
+      { selector: ".dcp-call-status", property: "color", reason: "in-call status (#34d399 green) on the always-dark phone screen." },
+      { selector: ".dcp-decline-btn", property: "color", reason: "decline glyph (#fff) on an always-colored red gradient button inside the phone." },
+      { selector: ".dcp-answer-btn", property: "color", reason: "answer glyph (#fff) on an always-colored green gradient button inside the phone." },
+      { selector: ".dcp-btn-label", property: "color", reason: "call-action label (rgba(255,255,255,.5)) on the always-dark phone screen." },
+      { selector: ".dcp-card-icon", property: "color", reason: "grid-card icon (#fff) on an always-colored tile (var --dcp-c) — theme-neutral." },
+      { selector: ".dcp-card:hover", property: "border-color", reason: "brand-blue hover border (rgba(61,107,255,.4)) — legible on both themes." },
+      { selector: ".dcp-stat .num", property: "color", reason: "brand-blue stat number (#3d6bff, large bold) — legible on the white light-mode surface." },
+    ],
+  },
+  {
+    // The strategist's typewriter TERMINAL (`.ms-term`) is an always-dark
+    // island: its `html.light-mode .ms-term` override keeps a dark gradient
+    // background, so every `.ms-*` text rule inside it must KEEP its light color
+    // in both themes. All rules below are inside that terminal (or its own
+    // brand-accent), hence theme-neutral.
+    page: "artifacts/1inme/resources/views/public/ai-marketing-strategist.blade.php",
+    label: "AI Marketing Strategist page",
+    allowlist: [
+      { selector: ".ms-term-title", property: "color", reason: "terminal title bar (#9ca3af) on the always-dark .ms-term terminal (kept dark in light mode)." },
+      { selector: ".ms-term-body", property: "color", reason: "terminal body text (#e5e7eb) on the always-dark .ms-term terminal." },
+      { selector: ".ms-goal-text", property: "color", reason: "goal line text (#cbd5e1) inside the always-dark .ms-term terminal." },
+      { selector: ".ms-k-head", property: "color", reason: "output heading (#fff) inside the always-dark .ms-term terminal." },
+      { selector: ".ms-k-organic", property: "color", reason: "organic-channel line (#d6e0ff) inside the always-dark .ms-term terminal." },
+      { selector: ".ms-k-paid", property: "color", reason: "paid-channel line (#ffe2c7) inside the always-dark .ms-term terminal." },
+      { selector: ".ms-k-kpi", property: "color", reason: "KPI line (#9ff0c4) inside the always-dark .ms-term terminal." },
+      { selector: ".ms-k-dim", property: "color", reason: "dimmed line (#8b93a7) inside the always-dark .ms-term terminal." },
+      { selector: ".ms-k-plain", property: "color", reason: "plain output line (#e5e7eb) inside the always-dark .ms-term terminal." },
+    ],
+  },
+  {
+    // No genuine wash-out: every custom-class color rule sits on a fixed island.
+    // The animated hero RÉSUMÉ PAPER (`.rbp-paper`) and TEMPLATE cards
+    // (`.rbp-tpl`) hardcode a white gradient background in both themes, so their
+    // dark ink is correct on white; their colored/gradient headers, the status
+    // pill (always-dark), the colored step-icon tile, the dark tag pill, and the
+    // brand-blue accents (chip / caret / stat number / step watermark) are all
+    // legible in both themes. The one light-gray label that DID wash out
+    // (`.rbp-stat .lbl`) already has its html.light-mode override in the page.
+    page: "artifacts/1inme/resources/views/public/resume-builder.blade.php",
+    label: "Resume Builder page",
+    allowlist: [
+      { selector: ".rbp-paper", property: "color", reason: "résumé paper ink (#0f172a) on the hardcoded white paper gradient (always white in both themes)." },
+      { selector: ".rbp-paper-head", property: "color", reason: "paper header text (#fff) on the always-blue gradient header." },
+      { selector: ".rbp-tpl", property: "color", reason: "template card ink (#0f172a) on the hardcoded white template gradient (always white)." },
+      { selector: ".rbp-tpl-head", property: "color", reason: "template header text (#fff) on an always-colored gradient header (set inline per template)." },
+      { selector: ".rbp-tpl-tag", property: "color", reason: "template tag label (#fff) on an always-dark pill (rgba(0,0,0,.55)) over the colored header." },
+      { selector: ".rbp-step-icon", property: "color", reason: "step icon glyph (#fff) on an always-colored tile (var --rbp-c)." },
+      { selector: ".rbp-step-num", property: "color", reason: "giant step watermark number (brand color at opacity .14) — decorative, faint in both themes." },
+      { selector: ".rbp-stat .num", property: "color", reason: "brand-blue stat number (#3d6bff, large bold) — legible on the white light-mode surface." },
+      { selector: ".rb-chip", property: "color", reason: "\"AI polished\" chip label (#2342c7 dark-blue accent) on a translucent blue tint — legible on white." },
+      { selector: ".rb-type-caret", property: "color", reason: "typing caret (#3d6bff brand accent) inside the always-white résumé paper." },
+      { selector: ".rb-status-writing", property: "color", reason: "\"AI writing…\" status label (#fff) on the always-dark status pill (rgba(15,18,28,.85))." },
+      { selector: ".rb-status-done", property: "color", reason: "\"AI polished\" status label (#fff) on the always-dark status pill." },
+      { selector: ".rb-status-done i", property: "color", reason: "status check icon (#1ed760 green) on the always-dark status pill." },
+    ],
+  },
 ];
 
 function makeIsAllowed(allowlist: AllowEntry[]) {

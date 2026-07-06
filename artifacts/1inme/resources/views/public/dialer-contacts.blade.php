@@ -311,6 +311,10 @@
 
     /* Channel chips row */
     .dcp-chchip { display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:999px; font-size:13px; font-weight:700; color:#fff; }
+    /* The chip rides on the translucent .glass surface, which turns near-white in
+       light mode — its white label would wash out, so darken it. (The icon +
+       border are per-channel brand colors, set inline, and stay legible.) */
+    html.light-mode .dcp-chchip { color:#1f2937; }
 
     /* Stat block */
     .dcp-stat { text-align:center; padding:22px 14px; }
