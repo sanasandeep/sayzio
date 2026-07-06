@@ -124,6 +124,74 @@ class LinkTypePairingsWebRedirectTest extends TestCase
     }
 
     /**
+     * The whole point of the cross-promo: a guest who taps a pairing card is
+     * carried through signup onto the type-specific create route (guarded by
+     * LinkTypePairingsWebRedirectTest::test_signup_completion_lands_on_the_stashed_create_screen
+     * and Task #3689). This pins the *next* step — that the brand-new, free-plan
+     * account can actually LOAD every one of those create screens with a usable
+     * 200, instead of being silently bounced to /user/upgrade (or the login /
+     * dashboard). If any pairing lands a just-converted free user on a paywall,
+     * the pairing promise becomes a conversion dead-end, so this fails loudly.
+     */
+    public function test_fresh_free_user_can_open_every_pairing_create_screen(): void
+    {
+        $free = Plan::where('slug', 'free')->firstOrFail();
+
+        // A brand-new account exactly as OTP signup leaves it: default (free)
+        // plan, verified, onboarded (so the onboarding gate doesn't redirect),
+        // owning its personal workspace so `workspace.can:links.create` passes.
+        $user = User::create([
+            'name'              => 'Fresh Free User',
+            'email'             => 'fresh' . Str::lower(Str::random(6)) . '@example.com',
+            'password'          => Hash::make('secret-pass'),
+            'status'            => 'active',
+            'email_verified_at' => now(),
+            'onboarded_at'      => now(),
+            'plan_id'           => $free->id,
+        ]);
+        $user->ensureDefaultWorkspace();
+        $user = $user->fresh();
+
+        $this->actingAs($user, 'web');
+
+        // Exercise the exact routes each catalog `type` deep-links to, deduped
+        // so a type shared across several pairing pages is only hit once.
+        $seenTypes = [];
+        foreach (SitePagesContent::linkTypePairingsCatalog() as $items) {
+            foreach ($items as $item) {
+                $seenTypes[$item['type']] = true;
+            }
+        }
+
+        foreach (array_keys($seenTypes) as $type) {
+            [$name, $params] = SitePagesContent::linkTypePairingCreateRoute($type);
+            $createUrl = route($name, $params);
+
+            $response = $this->get($createUrl);
+
+            // A paywall / permission bounce is a redirect (302 → /user/upgrade
+            // or /user/dashboard) or a 403 denial page, never a rendered create
+            // screen. So a plain 200 IS the guarantee the pairing promise holds:
+            // the brand-new free account actually reaches the create form. The
+            // (ever-present header/sidebar) "Upgrade" link is not a bounce, so we
+            // deliberately assert on the response *status*, not page copy.
+            $status = $response->getStatusCode();
+            $this->assertSame(
+                200,
+                $status,
+                "the '{$type}' create screen (" . $createUrl . ") must load for a fresh free "
+                . 'user, not bounce to '
+                . ($response->headers->get('Location') ?: 'a ' . $status . ' response'),
+            );
+        }
+
+        // Sanity: we actually covered a real spread of pairing create screens
+        // (the distinct catalog *item* types — note `resume`/`store_menu` are
+        // pairing page keys, not item types, so the count is < EXPECTED_ROUTES).
+        $this->assertGreaterThanOrEqual(6, count($seenTypes));
+    }
+
+    /**
      * An unknown / newly-added type with no dedicated create route degrades to
      * the generic create flow rather than throwing — mirrors the mobile
      * "unknown pairing type falls back to the generic Create tab" assertion.
