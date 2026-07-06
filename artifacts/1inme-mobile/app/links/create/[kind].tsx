@@ -10,6 +10,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -48,6 +49,12 @@ export default function CreateLinkScreen() {
   const [evStart, setEvStart] = useState("");
   const [evEnd, setEvEnd] = useState("");
   const [evLocation, setEvLocation] = useState("");
+  // Free events accept RSVPs by default (Task #3674 parity). This is the
+  // organizer opt-out mirrored from the web edit-event flow: on = RSVPs
+  // available, off = persist settings.rsvp_disabled so the public event page
+  // shows no RSVP form. Independent of rsvp_enabled (which only opens the
+  // web customization panel, so mobile leaves it untouched here).
+  const [evRsvpsOn, setEvRsvpsOn] = useState(true);
   // File
   const [fileUrl, setFileUrl] = useState("");
   const [fileName, setFileName] = useState("");
@@ -165,6 +172,11 @@ export default function CreateLinkScreen() {
           end: evEnd || null,
           location: evLocation || null,
         };
+        // Persist the RSVP opt-out at the top level of settings (matching the
+        // web edit-event flow), so the public event page's isRsvpAvailable()
+        // check hides the RSVP form when the organizer turns RSVPs off from
+        // the start. Left as false by default = RSVPs available.
+        settings.rsvp_disabled = !evRsvpsOn;
       } else if (meta.kind === "paid_page") {
         settings.paid_page = { template: paidTemplate };
       }
@@ -369,6 +381,33 @@ export default function CreateLinkScreen() {
               placeholder="123 Main St"
               trailing={<DictationMic onText={dictateInto(setEvLocation)} />}
             />
+            <View
+              style={[
+                styles.toggleRow,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={[styles.toggleLabel, { color: colors.foreground }]}>
+                  RSVPs
+                </Text>
+                <Text
+                  style={[styles.toggleHint, { color: colors.mutedForeground }]}
+                >
+                  Free events accept RSVPs by default. Turn this off if you don't
+                  want guests to be able to RSVP.
+                </Text>
+              </View>
+              <Switch
+                value={evRsvpsOn}
+                onValueChange={setEvRsvpsOn}
+                trackColor={{ true: colors.primary, false: colors.border }}
+              />
+            </View>
           </>
         ) : null}
 
@@ -447,6 +486,20 @@ const styles = StyleSheet.create({
   lockBody: {
     fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
+    lineHeight: 16,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    borderWidth: 1,
+  },
+  toggleLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  toggleHint: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 11,
+    marginTop: 4,
     lineHeight: 16,
   },
   pickLabel: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 },
