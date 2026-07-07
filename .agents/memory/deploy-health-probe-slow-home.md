@@ -33,3 +33,23 @@ should health-check a lightweight route, not the home page. NB: the Replit *dev*
 readiness probe ignores this setting and always polls `/` (hence the separate
 dev-only DevStartupProbe splash middleware) — this fix is for the *production*
 probe only.
+
+## Addendum: promote probe also hits each service's BASE PATH
+
+**Symptom (July 2026):** publish stuck at Promote for 25+ min; deployment logs
+show repeating `healthcheck failed ... /api returned status 500/404` plus slow
+(5-6s, "request aborted") `GET /api` 404s every ~2-5 min.
+
+**Root cause:** besides the configured `health.startup.path`, the promote-phase
+probe ALSO polls each service's base path (`/`, `/api`, `/mobile/` — i.e.
+`paths[0]` per service). The api-server had no handler for bare `/api`; the
+request fell through the Laravel fallthrough proxy → slow 404 → promote never
+went green (configured `/api/healthz` was passing the whole time).
+
+**Fix:** every service must answer its own base path fast — added a local
+`GET /` (→ `/api`) 200 handler in the api-server health router ahead of the
+proxy fallthrough.
+
+**How to apply:** if a publish hangs in Promote and deployment logs show
+repeated probes of a bare service prefix, make that exact path return an
+instant 2xx locally — configuring `health.startup.path` alone is NOT enough.
