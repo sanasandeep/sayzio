@@ -35,7 +35,11 @@ directory (`common/events-directory.blade.php`) and the creator events page
 setting `color`/`border-color` lacks its `html.light-mode <sel>` peer for the
 SAME property. Matching is property-level and per-individual-selector (grouped
 comma selectors split), so a missed `color` still fails even if `border-color`
-is paired. A base selector counts as paired when a light rule matches it EXACTLY
+is paired. GOTCHA: the comma split is naive — a comma INSIDE an attribute
+selector value (e.g. `[style*="background:rgba(255,255,255,0.06)"]`) is split
+into junk tokens that get treated as unpaired base rules and fail the guard.
+On target pages, don't write comma-containing attribute selectors; tag the
+element with a dedicated class in the markup and select that instead. A base selector counts as paired when a light rule matches it EXACTLY
 or via an ANCESTOR-PREFIXED (suffix) form — `lightSel.endsWith(" " + baseSel)`,
 i.e. the light override adds an ancestor and ends with the whole base selector
 after a boundary space. This lets pages whose base classes are bare (e.g.

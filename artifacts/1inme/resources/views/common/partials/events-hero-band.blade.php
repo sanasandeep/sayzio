@@ -60,12 +60,23 @@
             z-index: 1;
         }
         .ehb-band > * { position: relative; z-index: 2; }
-        /* Always-dark like the events directory hero: re-assert white text
-           over the sitewide light-mode remap with higher specificity. */
-        html.light-mode .ehb-band,
-        html.light-mode .ehb-band .text-white { color:#fff !important; }
-        html.light-mode .ehb-band .text-white\/60 { color:rgba(255,255,255,0.6) !important; }
-        html.light-mode .ehb-band .text-white\/40 { color:rgba(255,255,255,0.4) !important; }
+        /* Theme-aware band: the dark gradient above is the dark-mode look;
+           in light mode the same blurred photo sits under a LIGHT gradient
+           and the sitewide light-mode remap darkens the Tailwind text-white
+           utilities inside the band. Only labels on saturated fills (CTA,
+           price badge) re-assert white below. */
+        html.light-mode .ehb-band {
+            background-color:#eef2f9;
+            border-bottom-color: rgba(15,23,42,0.08);
+        }
+        html.light-mode .ehb-band::before { filter: blur(3px) saturate(1.02) brightness(1.08); }
+        html.light-mode .ehb-band::after {
+            background:
+                linear-gradient(180deg, rgba(244,247,252,0.86) 0%, rgba(246,249,253,0.92) 55%, rgba(248,250,252,0.985) 100%),
+                radial-gradient(1200px 400px at 15% -10%, rgba(61,107,255,0.10), transparent 60%);
+        }
+        html.light-mode .ehb-cta { color:#fff !important; }
+        html.light-mode .ehb-band .ehb-price-badge { color:#fff !important; }
 
         .ehb-slide { display:none; }
         .ehb-slide.active { display:block; animation: ehbSlideIn .5s ease; }
@@ -84,6 +95,15 @@
         .ehb-cta { background:#3d6bff; }
         .ehb-cta:hover { background:#2342c7; }
         .ehb-price-badge { box-shadow:0 6px 16px -4px rgba(0,0,0,0.35); }
+        /* Light-mode variants of the card scrim + the bespoke overlay text
+           it carries (not Tailwind utilities, so the sitewide remap can't
+           reach them): a white gradient with dark text/date. The "Featured"
+           badge keeps its white label on the blue-violet gradient pill. */
+        html.light-mode .ehb-slide-media { box-shadow:0 20px 40px -16px rgba(15,23,42,0.25); }
+        html.light-mode .ehb-slide-scrim { background:linear-gradient(180deg, rgba(248,250,252,0) 32%, rgba(248,250,252,0.66) 68%, rgba(255,255,255,0.94) 100%); }
+        html.light-mode .ehb-slide-date { color:rgba(15,23,42,0.6); }
+        html.light-mode .ehb-slide-title { color:#0f172a; text-shadow:0 2px 14px rgba(255,255,255,0.6); }
+        html.light-mode .ehb-dot { background:rgba(15,23,42,0.25); }
     </style>
 
     <div class="ehb-band text-white px-4 py-8 sm:py-10">

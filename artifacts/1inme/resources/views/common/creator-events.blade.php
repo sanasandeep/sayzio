@@ -31,8 +31,15 @@
     html.light-mode .events-page-body .hashtag-pill:hover { color:#0f172a; }
     html.light-mode .events-page-body .link-accent { color:#2342c7; }
     html.light-mode .events-page-body .ev-card-footer-divider { border-color:rgba(15,23,42,0.08); }
-    html.light-mode .events-page-body .ev-card-date-chip .text-white,
     html.light-mode .events-page-body .ev-price-badge.text-white { color:#fff !important; }
+    html.light-mode .events-page-body .ev-online-pill.text-white { color:#fff !important; }
+
+    /* Theme-aware date chip over the card cover image: the dark glass chip
+       becomes a white glass chip with dark day / deep-blue month in light
+       mode. !important beats the chip's inline dark background. */
+    html.light-mode .events-page-body .ev-card-date-chip { background:rgba(255,255,255,0.92) !important; }
+    html.light-mode .events-page-body .ev-card-date-chip [style*="color:#8fa8ff"] { color:#2342c7 !important; }
+    html.light-mode .events-page-body .ev-card-date-chip .text-white { color:#0f172a !important; }
 </style>
 @endpush
 
@@ -161,7 +168,7 @@
                             </div>
                         @endif
                         @if($eventIsOnline)
-                            <div class="absolute top-3 {{ $ics && $ics->start_date ? 'left-20' : 'left-3' }} z-10 inline-flex items-center gap-1 text-white rounded-full px-2.5 py-1 text-[10px] font-bold" style="background:rgba(16,185,129,0.85);">
+                            <div class="ev-online-pill absolute top-3 {{ $ics && $ics->start_date ? 'left-20' : 'left-3' }} z-10 inline-flex items-center gap-1 text-white rounded-full px-2.5 py-1 text-[10px] font-bold" style="background:rgba(16,185,129,0.85);">
                                 <i class="fas fa-video"></i> Online
                             </div>
                         @endif

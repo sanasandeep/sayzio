@@ -29,7 +29,7 @@
     <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=14">
+    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=15">
     <script src="{{ asset('js/marketing-anim.js') }}?v=1" defer></script>
     <script>
         // Fire-and-forget marketing-CTA tracking shared by every home-page

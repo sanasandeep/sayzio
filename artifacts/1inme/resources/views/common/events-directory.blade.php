@@ -42,16 +42,33 @@
         z-index: 1;
     }
     .events-hero > * { position: relative; z-index: 2; }
-    /* The global light-mode remap (marketing-anim.css) force-darkens
-       .text-white / text-white/NN everywhere it isn't explicitly
-       carved out — without this, hero text turns near-invisible dark
-       text over the dark photo in light mode. Re-assert white here with
-       higher selector specificity so it always wins. */
-    html.light-mode .events-hero,
-    html.light-mode .events-hero .text-white { color:#fff !important; }
-    html.light-mode .events-hero .text-white\/60 { color:rgba(255,255,255,0.6) !important; }
-    html.light-mode .events-hero .text-white\/40 { color:rgba(255,255,255,0.4) !important; }
-    html.light-mode .events-hero input::placeholder { color:rgba(255,255,255,0.35) !important; }
+    /* Theme-aware hero: the dark gradient above is the dark-mode look; in
+       light mode the same blurred photo sits under a LIGHT gradient and the
+       sitewide light-mode remap (marketing-anim.css) darkens the Tailwind
+       text-white/* utilities inside the hero. Bespoke hero-slide-* overlay
+       text gets its own light pairs below; only labels on saturated fills
+       (Search button, price badge) re-assert white. */
+    html.light-mode .events-hero { background-color:#eef2f9; border-bottom-color:rgba(15,23,42,0.08); }
+    html.light-mode .events-hero::before { filter: blur(3px) saturate(1.02) brightness(1.08); }
+    html.light-mode .events-hero::after {
+        background:
+            linear-gradient(180deg, rgba(244,247,252,0.86) 0%, rgba(246,249,253,0.94) 45%, rgba(248,250,252,1) 82%, rgba(248,250,252,1) 100%),
+            radial-gradient(1200px 400px at 15% -10%, rgba(61,107,255,0.10), transparent 60%);
+    }
+    html.light-mode .events-hero input::placeholder { color:rgba(15,23,42,0.40) !important; }
+    /* The search shell + map panel bake their translucent WHITE tints as
+       inline styles (invisible white-on-white in light mode) — retint the
+       tagged .ev-hero-shell wrappers (!important beats the inline style). */
+    html.light-mode .events-hero .ev-hero-shell {
+        background:#ffffff !important;
+        border-color:rgba(15,23,42,0.12) !important;
+        box-shadow:0 10px 30px -18px rgba(15,23,42,0.18);
+    }
+    html.light-mode .events-hero .ev-chip { background:rgba(15,23,42,0.05); border-color:rgba(15,23,42,0.12); color:rgba(15,23,42,0.65); }
+    html.light-mode .events-hero .ev-chip.active,
+    html.light-mode .events-hero .ev-chip:hover { background:#3d6bff; border-color:#3d6bff; color:#fff; }
+    html.light-mode .events-hero button[style*="background:#3d6bff"] { color:#fff !important; }
+    html.light-mode .events-hero .ev-price-badge { color:#fff !important; }
 
     .ev-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:1.25rem; box-shadow:0 16px 40px -26px rgba(0,0,0,0.6); }
     .ev-chip { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10); color:rgba(255,255,255,0.7); }
@@ -109,6 +126,16 @@
     .hero-slide-location { font-size:.75rem; color:rgba(255,255,255,0.6); }
     .hero-dot { width:7px; height:7px; border-radius:999px; background:rgba(255,255,255,0.3); transition:all .25s ease; }
     .hero-dot.active { background:linear-gradient(90deg,#3d6bff,#6e61ff); width:22px; }
+    /* Light-mode variants of the featured-slider cover scrim + its bespoke
+       overlay text (not Tailwind utilities, so the sitewide remap can't
+       reach them): a white gradient with dark text. The "Featured" badge
+       keeps its white label on the blue-violet gradient pill. */
+    html.light-mode .hero-slide-media { box-shadow:0 24px 48px -18px rgba(15,23,42,0.25); }
+    html.light-mode .hero-slide-scrim { background:linear-gradient(180deg, rgba(248,250,252,0) 32%, rgba(248,250,252,0.66) 68%, rgba(255,255,255,0.94) 100%); }
+    html.light-mode .hero-slide-date { color:rgba(15,23,42,0.6); }
+    html.light-mode .hero-slide-title { color:#0f172a; text-shadow:0 2px 14px rgba(255,255,255,0.6); }
+    html.light-mode .hero-slide-location { color:rgba(15,23,42,0.55); }
+    html.light-mode .hero-dot { background:rgba(15,23,42,0.25); }
 
     /* ── Light-mode fixes for the rest of the page ──────────────────
        Custom classes below (.ev-card, .ev-chip, chip pills, hashtag
@@ -162,8 +189,15 @@
        dark-on-blue (CTA buttons, price badges). */
     html.light-mode .events-page-body a[style*="background:#3d6bff"].text-white,
     html.light-mode .events-page-body button[style*="background:#3d6bff"].text-white,
-    html.light-mode .events-page-body .ev-card-date-chip .text-white,
     html.light-mode .events-page-body .ev-price-badge.text-white { color:#fff !important; }
+    html.light-mode .events-page-body .ev-online-pill.text-white { color:#fff !important; }
+
+    /* Theme-aware date chip over the card cover image: the dark glass chip
+       becomes a white glass chip with dark day / deep-blue month in light
+       mode. !important beats the inline dark background some renders carry. */
+    html.light-mode .events-page-body .ev-card-date-chip { background:rgba(255,255,255,0.92) !important; }
+    html.light-mode .events-page-body .ev-card-date-chip [style*="color:#8fa8ff"] { color:#2342c7 !important; }
+    html.light-mode .events-page-body .ev-card-date-chip .text-white { color:#0f172a !important; }
 
     /* Light-mode overrides for the "10x your connections" tips partial —
        it bakes its dark colors as inline style attributes for
@@ -206,7 +240,7 @@
         <p class="mt-2 text-white/60 text-sm sm:text-base max-w-xl mx-auto">Find happenings near you, from meetups to festivals — powered by {{ config('app.name') }}.</p>
 
         <form method="GET" class="mt-7 max-w-3xl mx-auto" x-data="eventSearchMap({{ $lat ? "'".$lat."'" : 'null' }}, {{ $lng ? "'".$lng."'" : 'null' }})">
-            <div class="flex flex-col sm:flex-row gap-2 rounded-2xl p-2" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);">
+            <div class="ev-hero-shell flex flex-col sm:flex-row gap-2 rounded-2xl p-2" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);">
                 <div class="flex-1 flex items-center gap-2 px-3">
                     <i class="fas fa-magnifying-glass text-white/40"></i>
                     <input type="text" name="q" value="{{ $q }}" placeholder="Search events, locations, or #hashtags"
@@ -226,7 +260,7 @@
                 </button>
             </div>
 
-            <div x-show="showMap" x-cloak x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="mt-3 p-3 rounded-2xl text-left" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);">
+            <div x-show="showMap" x-cloak x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" class="ev-hero-shell mt-3 p-3 rounded-2xl text-left" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);">
                 <p class="text-xs text-white/50 mb-2"><i class="fas fa-hand-pointer mr-1"></i> Drag the pin or click the map to search a location.</p>
                 <div id="search-map" x-ref="map"></div>
                 <div class="flex items-center justify-between mt-2 text-xs text-white/50">
@@ -552,7 +586,7 @@
                             </div>
                         @endif
                         @if($eventIsOnline)
-                            <div class="absolute top-3 {{ $ics && $ics->start_date ? 'left-20' : 'left-3' }} z-10 inline-flex items-center gap-1 text-white rounded-full px-2.5 py-1 text-[10px] font-bold" style="background:rgba(16,185,129,0.85);">
+                            <div class="ev-online-pill absolute top-3 {{ $ics && $ics->start_date ? 'left-20' : 'left-3' }} z-10 inline-flex items-center gap-1 text-white rounded-full px-2.5 py-1 text-[10px] font-bold" style="background:rgba(16,185,129,0.85);">
                                 <i class="fas fa-video"></i> Online
                             </div>
                         @endif

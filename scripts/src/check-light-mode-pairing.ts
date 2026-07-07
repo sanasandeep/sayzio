@@ -201,34 +201,16 @@ export const TARGETS: Target[] = [
     // Whole-page: the below-hero re-themed classes are bare custom selectors
     // (.hashtag-pill, .ev-chip, …) that the light overrides pair with an added
     // `.events-page-body` ancestor (handled by the ancestor-prefixed match).
-    // The photographic hero is an intentional always-dark island whose bespoke
-    // .hero-slide-* text has no light counterpart on purpose, so it is
-    // allowlisted here rather than scoped (base rules are bare, not under a
-    // wrapper selector, so `scopes` can't isolate the light surface).
+    // The photographic hero is now THEME-AWARE (dark gradient in dark mode, a
+    // light gradient + dark text under html.light-mode), so the bespoke
+    // .hero-slide-* text rules carry real light pairs in the page; only the
+    // badge label on its own gradient pill remains theme-neutral.
     allowlist: [
       {
         selector: ".hero-slide-badge",
         property: "color",
         reason:
-          "featured-slider badge white text sits on a blue→violet gradient over the always-dark photographic hero — intentionally white in both themes.",
-      },
-      {
-        selector: ".hero-slide-date",
-        property: "color",
-        reason:
-          "featured-slider date (rgba(255,255,255,.7)) over the always-dark cover-image scrim — intentionally light in both themes.",
-      },
-      {
-        selector: ".hero-slide-title",
-        property: "color",
-        reason:
-          "featured-slider title white text over the always-dark cover-image scrim — intentionally white in both themes.",
-      },
-      {
-        selector: ".hero-slide-location",
-        property: "color",
-        reason:
-          "featured-slider location (rgba(255,255,255,.6)) over the always-dark cover-image scrim — intentionally light in both themes.",
+          "featured-slider badge white text sits on a blue→violet gradient pill — intentionally white in both themes.",
       },
       {
         selector: ".ev-cat-pill",
