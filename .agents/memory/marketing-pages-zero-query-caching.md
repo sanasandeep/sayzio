@@ -33,6 +33,13 @@ pattern; profile with a kernel-handle script that counts `DB::listen` queries �
 but note listeners ACCUMULATE across passes in one process (warm-pass counts
 double unless you account for it).
 
+**Proactive warming:** the scheduled `home:warm-caches` job (HomePageCache::warm())
+also refreshes the /pricing catalogue via `PricingPageCache::warm()` (builder
+lives in `PricingPageCache`, shared with the controller's lazy fallback — never
+fork it back). Public marketing controllers must resolve the visitor via
+`$request->user('web')`, not `user()` (admin-guard session → Admin → TypeError
+in `PricingResolver::currencyForUser(?User)`).
+
 **Perf-measurement gotcha:** ad-hoc `php -S` smoke tests have NO opcache, so a
 big page (900KB /pricing) shows ~1s TTFB purely from recompiling PHP per
 request; add `-d zend_extension=opcache -d opcache.enable=1 -d opcache.enable_cli=1`

@@ -80,6 +80,8 @@ class HomePageCache
             'featured_posts' => 0,
             'ai_hero_aliases' => 0,
             'branding_hosts' => [],
+            'pricing_plans' => 0,
+            'pricing_packages' => 0,
             'errors' => [],
         ];
 
@@ -124,6 +126,20 @@ class HomePageCache
             }
         } catch (\Throwable $e) {
             $summary['errors'][] = self::reportWarmFailure('branding_hosts', $e);
+        }
+
+        // The public /pricing page (a top signup-intent landing surface)
+        // renders its full plan grid, comparison matrix and coin packages
+        // from the same-shaped catalogue cache. Refresh it alongside the
+        // home caches so anonymous /pricing hits never pay the live
+        // plan/price queries either; admin plan edits land within one
+        // warm cadence.
+        try {
+            $counts = PricingPageCache::warm(self::WARM_TTL);
+            $summary['pricing_plans'] = $counts['plans'];
+            $summary['pricing_packages'] = $counts['packages'];
+        } catch (\Throwable $e) {
+            $summary['errors'][] = self::reportWarmFailure('pricing_catalog', $e);
         }
 
         return $summary;

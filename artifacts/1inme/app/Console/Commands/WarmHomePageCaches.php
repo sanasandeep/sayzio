@@ -29,12 +29,14 @@ class WarmHomePageCaches extends Command
         $summary = HomePageCache::warm();
 
         $this->info(sprintf(
-            'Warmed home caches in %.2fs — payloads: [%s], featured posts: %d, AI-hero aliases: %d, branding hosts: [%s].',
+            'Warmed home caches in %.2fs — payloads: [%s], featured posts: %d, AI-hero aliases: %d, branding hosts: [%s], pricing catalog: %d plans / %d packages.',
             microtime(true) - $started,
             implode(', ', $summary['payload_currencies']),
             $summary['featured_posts'],
             $summary['ai_hero_aliases'],
             implode(', ', $summary['branding_hosts']),
+            $summary['pricing_plans'] ?? 0,
+            $summary['pricing_packages'] ?? 0,
         ));
 
         $errors = $summary['errors'] ?? [];

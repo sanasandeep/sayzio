@@ -2,12 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Admin\Models\Plan;
 use App\Modules\Admin\Support\ScheduledJobRegistry;
 use App\Modules\Common\Models\BlogCategory;
 use App\Modules\Common\Models\BlogPost;
 use App\Modules\Common\Support\HomePageCache;
+use App\Modules\Common\Support\PricingPageCache;
+use App\Services\PricingResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -36,6 +40,25 @@ class HomeCacheWarmerTest extends TestCase
         }
         Cache::forget(HomePageCache::FEATURED_CACHE_KEY);
         Cache::forget(HomePageCache::AI_HERO_ALIASES_KEY);
+        Cache::forget(PricingPageCache::CATALOG_CACHE_KEY);
+    }
+
+    private function makePlan(array $attrs = []): Plan
+    {
+        $plan = Plan::create(array_merge([
+            'name' => 'Pro', 'slug' => 'pro-'.Str::random(6), 'description' => 'Pro plan',
+            'monthly_price' => 20.00, 'annual_price' => 200.00, 'trial_days' => 0,
+            'status' => 'active', 'is_archived' => false, 'is_internal' => false,
+            'sort_order' => 1, 'features' => [],
+        ], $attrs));
+        PricingResolver::upsertManyFromMinor($plan, [
+            ['USD', 'monthly', 2000],
+            ['USD', 'annual', 20000],
+            ['INR', 'monthly', 40000],
+            ['INR', 'annual', 400000],
+        ]);
+
+        return $plan;
     }
 
     private function makeFeaturedPost(array $overrides = []): BlogPost
@@ -80,6 +103,43 @@ class HomeCacheWarmerTest extends TestCase
             Cache::get(HomePageCache::AI_HERO_ALIASES_KEY),
             'AI-hero demo aliases must be warmed (empty array is fine).'
         );
+    }
+
+    public function test_warm_command_populates_the_pricing_catalog_cache(): void
+    {
+        $this->forgetHomeCaches();
+        $this->makePlan(['name' => 'Warmed Catalog Plan']);
+
+        $this->artisan('home:warm-caches')->assertSuccessful();
+
+        $payload = Cache::get(PricingPageCache::CATALOG_CACHE_KEY);
+        $this->assertIsArray($payload, 'Pricing catalogue must be warmed alongside the home caches.');
+        $this->assertArrayHasKey('plans', $payload);
+        $this->assertArrayHasKey('packages', $payload);
+        $this->assertNotEmpty($payload['plans']);
+        array_walk_recursive($payload, function ($v) {
+            $this->assertFalse(is_object($v), 'Warmed pricing catalogue must contain no objects (plain attribute arrays only).');
+        });
+        $names = array_column(array_column($payload['plans'], 'attrs'), 'name');
+        $this->assertContains('Warmed Catalog Plan', $names);
+    }
+
+    public function test_post_warm_pricing_render_is_served_from_cache_without_live_plan_queries(): void
+    {
+        $this->forgetHomeCaches();
+        $plan = $this->makePlan(['name' => 'Cache Served Plan']);
+
+        $this->artisan('home:warm-caches')->assertSuccessful();
+
+        // Deleting the plan and its prices, then rendering, proves the
+        // anonymous /pricing request is answered from the warmed catalogue
+        // cache — not live plan/price queries over the distant RDS.
+        $plan->prices()->delete();
+        Plan::query()->whereKey($plan->id)->delete();
+
+        $resp = $this->get('/pricing');
+        $resp->assertOk();
+        $resp->assertSee('Cache Served Plan');
     }
 
     public function test_post_warm_render_is_served_from_caches_without_live_rebuild(): void
