@@ -66,7 +66,9 @@ PHP-FPM unit name and the FPM runtime user for the storage ACL grant
 
 - **AMI**: Ubuntu 24.04 LTS (22.04 also works) **or Amazon Linux 2023**.
 - **Size**: `t3.small` minimum; `t3.medium`+ recommended (Vite/Tailwind builds
-  and Composer are memory-hungry — add 2 GB swap on small instances).
+  and Composer are memory-hungry). On instances with less than ~4 GB RAM the
+  bootstrap scripts automatically create and enable a persistent 2 GB swapfile
+  (skipped if swap is already active) — no manual swap setup needed.
 - **Region/VPC**: **place the instance in the same VPC (and AZ region) as the
   RDS instance.** The current Replit setup pays a ~3s cross-region TLS/connect
   cost per fresh DB connection (mitigated by persistent PDO). Same-VPC

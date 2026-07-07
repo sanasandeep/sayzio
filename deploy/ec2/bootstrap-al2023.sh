@@ -36,6 +36,33 @@ if ! grep -qs 'Amazon Linux' /etc/os-release; then
   echo "WARNING: this does not look like Amazon Linux. For Ubuntu use bootstrap.sh instead." >&2
 fi
 
+echo "==> Checking memory (Vite/Tailwind + Composer are memory-hungry)..."
+# On small instances (t3.small etc.) the asset build can get OOM-killed.
+# If total RAM is below ~4 GB and no swap is active, create a 2 GB swapfile.
+SWAPFILE=/swapfile
+total_ram_kb="$(awk '/^MemTotal:/{print $2}' /proc/meminfo)"
+swap_total_kb="$(awk '/^SwapTotal:/{print $2}' /proc/meminfo)"
+if [ "${total_ram_kb:-0}" -lt 4000000 ] && [ "${swap_total_kb:-0}" -eq 0 ]; then
+  echo "==> RAM < 4 GB and no swap active — creating 2 GB swapfile at ${SWAPFILE}..."
+  if [ ! -f "$SWAPFILE" ]; then
+    fallocate -l 2G "$SWAPFILE" || dd if=/dev/zero of="$SWAPFILE" bs=1M count=2048
+  fi
+  chmod 600 "$SWAPFILE"
+  # mkswap only if the file isn't already formatted as swap.
+  if ! swaplabel "$SWAPFILE" >/dev/null 2>&1; then
+    mkswap "$SWAPFILE"
+  fi
+  swapon "$SWAPFILE"
+  # [[:space:]] instead of \s: \s is not portable in ERE (GNU/BSD grep differ).
+  if ! grep -qE "^[[:space:]]*${SWAPFILE}[[:space:]]" /etc/fstab; then
+    echo "${SWAPFILE} none swap sw 0 0" >> /etc/fstab
+  fi
+  echo "==> Swap enabled:"
+  swapon --show
+else
+  echo "==> Skipping swap setup (RAM >= 4 GB or swap already active)."
+fi
+
 echo "==> Refreshing dnf metadata and installing base packages..."
 dnf -y makecache
 # curl is preinstalled on AL2023 as curl-minimal; git/unzip/zip/acl/tar are what we add.
