@@ -10,10 +10,11 @@ use Tests\TestCase;
 /**
  * Feature coverage for the sitemap index at /sitemap_index.xml — the single
  * entry point search engines crawl, which ties together the marketing
- * (/sitemap.xml) and blog (/blogs/sitemap.xml) sitemaps.
+ * (/sitemap.xml), blog (/blogs/sitemap.xml), creators, resumes, and links
+ * sitemaps.
  *
  * Guards against a future refactor silently breaking discovery by:
- *  - dropping either sitemap entry from the index
+ *  - dropping any sitemap entry from the index
  *  - stopping robots.txt from pointing at the index
  *  - breaking the individual sitemaps the index references
  */
@@ -21,7 +22,7 @@ class SitemapIndexTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_sitemap_index_lists_both_sitemaps_as_valid_xml(): void
+    public function test_sitemap_index_lists_all_sitemaps_as_valid_xml(): void
     {
         // Seed both sources so the lastmod branches are exercised.
         SitePage::firstOrCreate(['slug' => 'about'], ['title' => 'About']);
@@ -39,12 +40,21 @@ class SitemapIndexTest extends TestCase
         $this->assertTrue($doc->loadXML($body), 'sitemap index should be valid XML');
         $this->assertSame('sitemapindex', $doc->documentElement->localName);
 
-        // Both child sitemaps are referenced.
-        $this->assertStringContainsString('<loc>' . url('/sitemap.xml') . '</loc>', $body);
-        $this->assertStringContainsString('<loc>' . url('/blogs/sitemap.xml') . '</loc>', $body);
+        // Every canonical child sitemap is referenced: marketing, blogs,
+        // creators, resumes, links.
+        $expected = [
+            url('/sitemap.xml'),
+            url('/blogs/sitemap.xml'),
+            url('/sitemap-creators.xml'),
+            url('/sitemap-resumes.xml'),
+            url('/sitemap-links.xml'),
+        ];
+        foreach ($expected as $loc) {
+            $this->assertStringContainsString('<loc>' . $loc . '</loc>', $body);
+        }
 
-        // Exactly two <sitemap> entries — no silent additions/drops.
-        $this->assertCount(2, $doc->getElementsByTagName('sitemap'));
+        // Exactly these entries — no silent additions/drops.
+        $this->assertCount(count($expected), $doc->getElementsByTagName('sitemap'));
     }
 
     public function test_robots_advertises_the_sitemap_index(): void
