@@ -7,6 +7,9 @@ import { apiFetch } from "@/lib/api";
 // admin permission; a regular token gets a 403.
 
 export type ScheduledJob = {
+  // True when an admin muted failure/recovery alerting for this job — it
+  // still runs on schedule, but ops admins are not notified when it fails.
+  alerts_muted: boolean;
   key: string;
   group: string;
   protected: boolean;
@@ -41,6 +44,14 @@ export type ScheduledJobGroup = {
   jobs: ScheduledJob[];
 };
 
+export type ScheduledJobAlertSettings = {
+  stale_after_minutes: number;
+  default_stale_after_minutes: number;
+  min_stale_after_minutes: number;
+  max_stale_after_minutes: number;
+  muted_jobs: string[];
+};
+
 export type ScheduledJobsOverview = {
   master_cron_line: string;
   scheduler: {
@@ -48,6 +59,7 @@ export type ScheduledJobsOverview = {
     last_tick: string | null;
     overdue_count: number;
   };
+  alert_settings: ScheduledJobAlertSettings;
   groups: ScheduledJobGroup[];
 };
 
@@ -98,6 +110,41 @@ export async function runScheduledJobNow(
   }>(`/admin/scheduled-jobs/${encodeURIComponent(key)}/run`, {
     method: "POST",
   });
+  return res.data;
+}
+
+export async function muteScheduledJobAlerts(
+  key: string,
+): Promise<{ job_key: string; alerts_muted: boolean }> {
+  const res = await apiFetch<{
+    data: { job_key: string; alerts_muted: boolean };
+  }>(`/admin/scheduled-jobs/${encodeURIComponent(key)}/mute-alerts`, {
+    method: "POST",
+  });
+  return res.data;
+}
+
+export async function unmuteScheduledJobAlerts(
+  key: string,
+): Promise<{ job_key: string; alerts_muted: boolean }> {
+  const res = await apiFetch<{
+    data: { job_key: string; alerts_muted: boolean };
+  }>(`/admin/scheduled-jobs/${encodeURIComponent(key)}/unmute-alerts`, {
+    method: "POST",
+  });
+  return res.data;
+}
+
+export async function updateScheduledJobAlertSettings(
+  staleAfterMinutes: number,
+): Promise<{ stale_after_minutes: number }> {
+  const res = await apiFetch<{ data: { stale_after_minutes: number } }>(
+    "/admin/scheduled-jobs/alert-settings",
+    {
+      method: "POST",
+      body: JSON.stringify({ stale_after_minutes: staleAfterMinutes }),
+    },
+  );
   return res.data;
 }
 

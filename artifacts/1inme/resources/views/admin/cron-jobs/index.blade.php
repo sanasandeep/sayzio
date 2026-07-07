@@ -102,7 +102,9 @@
                 <p class="text-xs text-white/50 mt-0.5 max-w-3xl">
                     When a job fails this many times in a row (with no success in between), ops admins get an in-app + email
                     alert. If the streak keeps growing, a reminder is sent at most once per cooldown period. Lower the threshold
-                    for platforms where frequent jobs matter most; raise it if occasional flakiness is expected.
+                    for platforms where frequent jobs matter most; raise it if occasional flakiness is expected. The scheduler
+                    itself is reported as down when no job has ticked for the "scheduler down" window below. You can also mute
+                    alerts for individual noisy or experimental jobs with the bell button on each row.
                 </p>
 
                 @if($errors->any())
@@ -135,6 +137,16 @@
                                min="{{ $alertSettings['min_cooldown_hours'] }}" max="{{ $alertSettings['max_cooldown_hours'] }}" step="1" required
                                class="w-40 px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-blue-400/50">
                         <p class="text-[11px] text-white/30 mt-1">{{ $alertSettings['min_cooldown_hours'] }}&ndash;{{ $alertSettings['max_cooldown_hours'] }} &middot; default {{ $alertSettings['default_cooldown_hours'] }}</p>
+                    </div>
+                    <div>
+                        <label for="fa-stale" class="block text-[11px] uppercase tracking-wider text-white/40 font-semibold mb-1">
+                            Scheduler down after (minutes)
+                        </label>
+                        <input type="number" id="fa-stale" name="stale_after_minutes"
+                               value="{{ old('stale_after_minutes', $alertSettings['stale_after_minutes']) }}"
+                               min="{{ $alertSettings['min_stale_after_minutes'] }}" max="{{ $alertSettings['max_stale_after_minutes'] }}" step="1" required
+                               class="w-40 px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-blue-400/50">
+                        <p class="text-[11px] text-white/30 mt-1">{{ $alertSettings['min_stale_after_minutes'] }}&ndash;{{ $alertSettings['max_stale_after_minutes'] }} &middot; default {{ $alertSettings['default_stale_after_minutes'] }}</p>
                     </div>
                     <button type="submit"
                             class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition">
@@ -183,13 +195,17 @@
                                         @if($job['paused'])
                                             <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300"><i class="fas fa-pause text-[9px] mr-0.5"></i>Paused</span>
                                         @endif
+                                        @if($job['key'] && in_array($job['key'], $mutedAlertJobs, true))
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40" title="Failure alerts for this job are muted — it still runs on schedule, but ops admins are not notified when it fails."><i class="fas fa-bell-slash text-[9px] mr-0.5"></i>Alerts muted</span>
+                                        @endif
                                         @if($job['key'])
                                             {{-- Live badge: driven by the polling loop so it appears/disappears without a reload. --}}
                                             <span x-show="isRunning('{{ $job['key'] }}')" x-cloak
                                                   class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">
                                                 <i class="fas fa-spinner fa-spin text-[9px] mr-0.5"></i>Running now
                                             </span>
-                                        @elseif($job['running_now'])
+                                        @endif
+                                        @if($job['running_now'])
                                             <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">Running now</span>
                                         @endif
                                         @if(!empty($job['failing_repeatedly']))
@@ -322,6 +338,26 @@
                                                 <span class="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/5 text-white/20 flex items-center justify-center" title="Protected — cannot be paused.">
                                                     <i class="fas fa-pause text-[11px]"></i>
                                                 </span>
+                                            @endif
+
+                                            {{-- Mute / unmute failure alerts --}}
+                                            @if(in_array($job['key'], $mutedAlertJobs, true))
+                                                <form method="POST" action="{{ route('admin.cron-jobs.unmute-alerts', ['key' => $job['key']]) }}">
+                                                    @csrf
+                                                    <button type="submit" title="Alerts are muted for this job — click to re-enable failure alerts"
+                                                            class="w-8 h-8 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/20 text-amber-300 transition flex items-center justify-center">
+                                                        <i class="fas fa-bell-slash text-[11px]"></i>
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <form method="POST" action="{{ route('admin.cron-jobs.mute-alerts', ['key' => $job['key']]) }}"
+                                                      onsubmit="return confirm('Mute failure alerts for {{ $job['key'] }}? It will keep running on schedule, but ops admins will no longer be notified when it fails.');">
+                                                    @csrf
+                                                    <button type="submit" title="Mute failure alerts for this job"
+                                                            class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 transition flex items-center justify-center">
+                                                        <i class="fas fa-bell text-[11px]"></i>
+                                                    </button>
+                                                </form>
                                             @endif
 
                                             {{-- History --}}

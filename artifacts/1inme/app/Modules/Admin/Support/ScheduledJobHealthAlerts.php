@@ -41,12 +41,95 @@ class ScheduledJobHealthAlerts
     public const STATE_KEY = 'scheduled_job_health';
 
     /**
-     * Heartbeat age beyond which the scheduler is considered dead. The panel
-     * flags "stale" after ~3 minutes (2× the shortest cadence + grace); this
-     * boot-path alert is deliberately more conservative so a briefly delayed
-     * tick never pages anyone.
+     * Admin-tunable settings, stored in `app_settings` alongside the episode
+     * state key above (mirrors CheckScheduledJobFailures::SETTINGS_KEY):
+     *   - muted_jobs           — list of job keys whose failure/recovery
+     *                            alerts are suppressed (noisy/experimental)
+     *   - stale_after_seconds  — heartbeat age before the scheduler is
+     *                            considered dead (clamped to sane bounds)
+     */
+    public const SETTINGS_KEY = 'scheduled_job_health_settings';
+
+    /**
+     * Default heartbeat age beyond which the scheduler is considered dead.
+     * The panel flags "stale" after ~3 minutes (2× the shortest cadence +
+     * grace); this boot-path alert is deliberately more conservative so a
+     * briefly delayed tick never pages anyone. Admin-tunable from the
+     * Scheduled Jobs panel — read the effective value via
+     * {@see schedulerStaleAfterSeconds()}.
      */
     public const SCHEDULER_STALE_AFTER_SECONDS = 900;
+
+    /** Sane bounds for the admin-tunable stale threshold. */
+    public const MIN_STALE_AFTER_SECONDS = 300;   // 5 minutes
+    public const MAX_STALE_AFTER_SECONDS = 86400; // 24 hours
+
+    /**
+     * Effective stale threshold (seconds): admin value from app_settings
+     * clamped to sane bounds, falling back to the class default.
+     */
+    public static function schedulerStaleAfterSeconds(): int
+    {
+        try {
+            $all   = AppSetting::get(self::SETTINGS_KEY, []);
+            $value = is_array($all) ? ($all['stale_after_seconds'] ?? null) : null;
+        } catch (\Throwable $e) {
+            $value = null;
+        }
+
+        if (! is_numeric($value)) {
+            return self::SCHEDULER_STALE_AFTER_SECONDS;
+        }
+
+        return max(self::MIN_STALE_AFTER_SECONDS, min(self::MAX_STALE_AFTER_SECONDS, (int) $value));
+    }
+
+    /** Persist the admin-tuned stale threshold (seconds, clamped). */
+    public static function setSchedulerStaleAfterSeconds(int $seconds): void
+    {
+        self::putSettings([
+            'stale_after_seconds' => max(self::MIN_STALE_AFTER_SECONDS, min(self::MAX_STALE_AFTER_SECONDS, $seconds)),
+        ]);
+    }
+
+    /**
+     * Job keys whose failure/recovery alerting is muted.
+     *
+     * @return array<int, string>
+     */
+    public static function mutedJobs(): array
+    {
+        try {
+            $all   = AppSetting::get(self::SETTINGS_KEY, []);
+            $muted = is_array($all) ? ($all['muted_jobs'] ?? []) : [];
+        } catch (\Throwable $e) {
+            $muted = [];
+        }
+
+        return is_array($muted) ? array_values(array_filter($muted, 'is_string')) : [];
+    }
+
+    public static function isJobMuted(string $jobKey): bool
+    {
+        return in_array($jobKey, self::mutedJobs(), true);
+    }
+
+    /** Mute failure/recovery alerts for one job (idempotent). */
+    public static function muteJob(string $jobKey): void
+    {
+        $muted = self::mutedJobs();
+        if (! in_array($jobKey, $muted, true)) {
+            $muted[] = $jobKey;
+        }
+        self::putSettings(['muted_jobs' => array_values($muted)]);
+    }
+
+    /** Unmute a previously muted job (idempotent). */
+    public static function unmuteJob(string $jobKey): void
+    {
+        $muted = array_values(array_filter(self::mutedJobs(), fn ($k) => $k !== $jobKey));
+        self::putSettings(['muted_jobs' => $muted]);
+    }
 
     /** Cache lock so at most one web request per window pays the check cost. */
     protected const BOOT_THROTTLE_KEY = 'scheduled_job_health:boot_check';
@@ -122,7 +205,7 @@ class ScheduledJobHealthAlerts
 
         $age = now()->getTimestamp() - $tick->getTimestamp();
 
-        if ($age <= self::SCHEDULER_STALE_AFTER_SECONDS) {
+        if ($age <= self::schedulerStaleAfterSeconds()) {
             self::maybeRecoverScheduler();
 
             return;
@@ -140,6 +223,10 @@ class ScheduledJobHealthAlerts
 
     protected static function maybeAlertJobFailure(string $jobKey, ?string $error, ?int $exitCode, string $source): void
     {
+        if (self::isJobMuted($jobKey)) {
+            return; // Admin muted alerting for this job — stay silent.
+        }
+
         $jobs = self::state('jobs', []);
         $jobs = is_array($jobs) ? $jobs : [];
 
@@ -189,6 +276,15 @@ class ScheduledJobHealthAlerts
 
         if (empty($jobs[$jobKey]['alerting'])) {
             return; // No open episode for this job.
+        }
+
+        if (self::isJobMuted($jobKey)) {
+            // Muted mid-episode: close the episode silently so a stale entry
+            // never lingers, but send no recovery noise for a muted job.
+            unset($jobs[$jobKey]);
+            self::putState(['jobs' => $jobs]);
+
+            return;
         }
 
         $url     = self::panelUrl();
@@ -368,6 +464,20 @@ class ScheduledJobHealthAlerts
             AppSetting::put(self::STATE_KEY, array_merge($all, $patch));
         } catch (\Throwable $e) {
             Log::warning('scheduled-job-health state write failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * @param array<string,mixed> $patch
+     */
+    protected static function putSettings(array $patch): void
+    {
+        try {
+            $all = AppSetting::get(self::SETTINGS_KEY, []);
+            $all = is_array($all) ? $all : [];
+            AppSetting::put(self::SETTINGS_KEY, array_merge($all, $patch));
+        } catch (\Throwable $e) {
+            Log::warning('scheduled-job-health settings write failed: ' . $e->getMessage());
         }
     }
 }

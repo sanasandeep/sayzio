@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Admin\Models\ScheduledJobRun;
 use App\Modules\Admin\Support\CronJobsInspector;
+use App\Modules\Admin\Support\ScheduledJobHealthAlerts;
 use App\Modules\Admin\Support\ScheduledJobRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -55,16 +56,21 @@ class CronJobsController extends Controller
             'status'         => $inspector->schedulerStatus($jobs),
             'appPath'        => base_path(),
             'alertSettings'  => [
-                'threshold'              => CheckScheduledJobFailures::failureThreshold(),
-                'cooldown_hours'         => CheckScheduledJobFailures::realertCooldownHours(),
-                'default_threshold'      => CheckScheduledJobFailures::FAILURE_THRESHOLD,
-                'default_cooldown_hours' => CheckScheduledJobFailures::REALERT_COOLDOWN_HOURS,
-                'min_threshold'          => CheckScheduledJobFailures::MIN_THRESHOLD,
-                'max_threshold'          => CheckScheduledJobFailures::MAX_THRESHOLD,
-                'min_cooldown_hours'     => CheckScheduledJobFailures::MIN_COOLDOWN_HOURS,
-                'max_cooldown_hours'     => CheckScheduledJobFailures::MAX_COOLDOWN_HOURS,
+                'threshold'                  => CheckScheduledJobFailures::failureThreshold(),
+                'cooldown_hours'             => CheckScheduledJobFailures::realertCooldownHours(),
+                'default_threshold'          => CheckScheduledJobFailures::FAILURE_THRESHOLD,
+                'default_cooldown_hours'     => CheckScheduledJobFailures::REALERT_COOLDOWN_HOURS,
+                'min_threshold'              => CheckScheduledJobFailures::MIN_THRESHOLD,
+                'max_threshold'              => CheckScheduledJobFailures::MAX_THRESHOLD,
+                'min_cooldown_hours'         => CheckScheduledJobFailures::MIN_COOLDOWN_HOURS,
+                'max_cooldown_hours'         => CheckScheduledJobFailures::MAX_COOLDOWN_HOURS,
+                'stale_after_minutes'        => intdiv(ScheduledJobHealthAlerts::schedulerStaleAfterSeconds(), 60),
+                'default_stale_after_minutes'=> intdiv(ScheduledJobHealthAlerts::SCHEDULER_STALE_AFTER_SECONDS, 60),
+                'min_stale_after_minutes'    => intdiv(ScheduledJobHealthAlerts::MIN_STALE_AFTER_SECONDS, 60),
+                'max_stale_after_minutes'    => intdiv(ScheduledJobHealthAlerts::MAX_STALE_AFTER_SECONDS, 60),
             ],
             'liveSeed'       => $this->liveMap($jobs),
+            'mutedAlertJobs' => ScheduledJobHealthAlerts::mutedJobs(),
         ]);
     }
 
@@ -85,6 +91,11 @@ class CronJobsController extends Controller
                 'min:' . CheckScheduledJobFailures::MIN_COOLDOWN_HOURS,
                 'max:' . CheckScheduledJobFailures::MAX_COOLDOWN_HOURS,
             ],
+            'stale_after_minutes' => [
+                'required', 'integer',
+                'min:' . intdiv(ScheduledJobHealthAlerts::MIN_STALE_AFTER_SECONDS, 60),
+                'max:' . intdiv(ScheduledJobHealthAlerts::MAX_STALE_AFTER_SECONDS, 60),
+            ],
         ]);
 
         $all = AppSetting::get(CheckScheduledJobFailures::SETTINGS_KEY, []);
@@ -95,10 +106,13 @@ class CronJobsController extends Controller
 
         AppSetting::put(CheckScheduledJobFailures::SETTINGS_KEY, $all);
 
+        ScheduledJobHealthAlerts::setSchedulerStaleAfterSeconds((int) $validated['stale_after_minutes'] * 60);
+
         return back()->with(
             'success',
-            "Failure-alert settings saved — alerts fire after {$all['threshold']} consecutive failures, "
-            . "with reminders for growing streaks at most every {$all['cooldown_hours']} hour(s)."
+            "Alert settings saved — job alerts fire after {$all['threshold']} consecutive failures "
+            . "(reminders for growing streaks at most every {$all['cooldown_hours']} hour(s)), and the scheduler "
+            . "is reported down after {$validated['stale_after_minutes']} minute(s) without a tick."
         );
     }
 
@@ -159,6 +173,32 @@ class CronJobsController extends Controller
         }
 
         return $map;
+    }
+
+    /** Mute failure/recovery alerts for one job (noisy or experimental). */
+    public function muteAlerts(string $key)
+    {
+        $error = $this->guardKey($key);
+        if ($error !== null) {
+            return back()->with('error', $error);
+        }
+
+        ScheduledJobHealthAlerts::muteJob($key);
+
+        return back()->with('success', "Alerts muted for '{$key}'. It still runs on schedule, but failures will no longer notify ops admins.");
+    }
+
+    /** Re-enable failure/recovery alerts for a muted job. */
+    public function unmuteAlerts(string $key)
+    {
+        $error = $this->guardKey($key);
+        if ($error !== null) {
+            return back()->with('error', $error);
+        }
+
+        ScheduledJobHealthAlerts::unmuteJob($key);
+
+        return back()->with('success', "Alerts re-enabled for '{$key}'. A new failure streak will notify ops admins again.");
     }
 
     /** Pause a job: the scheduler will skip it until resumed. */

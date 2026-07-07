@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Admin\Models\ScheduledJobRun;
 use App\Modules\Admin\Support\CronJobsInspector;
+use App\Modules\Admin\Support\ScheduledJobHealthAlerts;
 use App\Modules\Admin\Support\ScheduledJobRegistry;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use Illuminate\Http\Request;
@@ -19,11 +20,14 @@ use Symfony\Component\Process\Process;
  * Mobile app. Both surfaces share the SAME engine (ScheduledJobRegistry +
  * CronJobsInspector), so the two views never drift apart:
  *
- *   GET  /api/v1/admin/scheduled-jobs                (grouped list + scheduler status)
- *   POST /api/v1/admin/scheduled-jobs/{key}/pause    (persisted; protected jobs 422)
+ *   GET  /api/v1/admin/scheduled-jobs                      (grouped list + scheduler status + alert settings)
+ *   POST /api/v1/admin/scheduled-jobs/alert-settings       (stale threshold; muted jobs via the routes below)
+ *   POST /api/v1/admin/scheduled-jobs/{key}/pause          (persisted; protected jobs 422)
  *   POST /api/v1/admin/scheduled-jobs/{key}/resume
- *   POST /api/v1/admin/scheduled-jobs/{key}/run      (background run-now)
- *   GET  /api/v1/admin/scheduled-jobs/{key}/runs     (recent run history)
+ *   POST /api/v1/admin/scheduled-jobs/{key}/run            (background run-now)
+ *   GET  /api/v1/admin/scheduled-jobs/{key}/runs           (recent run history)
+ *   POST /api/v1/admin/scheduled-jobs/{key}/mute-alerts    (suppress failure/recovery alerts)
+ *   POST /api/v1/admin/scheduled-jobs/{key}/unmute-alerts
  *
  * All endpoints are gated behind the same `settings.manage` permission the
  * web routes use; a regular sanctum token is rejected with 403.
@@ -47,8 +51,10 @@ class ScheduledJobsController extends Controller
         }
         $groups['other'] = ['slug' => 'other', 'label' => 'Other', 'jobs' => []];
 
+        $muted = ScheduledJobHealthAlerts::mutedJobs();
+
         foreach ($jobs as $job) {
-            $groups[$job['group'] ?? 'other']['jobs'][] = $this->jobPayload($job);
+            $groups[$job['group'] ?? 'other']['jobs'][] = $this->jobPayload($job, $muted);
         }
 
         return $this->ok([
@@ -58,8 +64,69 @@ class ScheduledJobsController extends Controller
                 'last_tick'     => $status['last_tick']?->toIso8601String(),
                 'overdue_count' => $status['overdue_count'],
             ],
+            'alert_settings' => [
+                'stale_after_minutes'         => intdiv(ScheduledJobHealthAlerts::schedulerStaleAfterSeconds(), 60),
+                'default_stale_after_minutes' => intdiv(ScheduledJobHealthAlerts::SCHEDULER_STALE_AFTER_SECONDS, 60),
+                'min_stale_after_minutes'     => intdiv(ScheduledJobHealthAlerts::MIN_STALE_AFTER_SECONDS, 60),
+                'max_stale_after_minutes'     => intdiv(ScheduledJobHealthAlerts::MAX_STALE_AFTER_SECONDS, 60),
+                'muted_jobs'                  => $muted,
+            ],
             'groups' => array_values(array_filter($groups, fn ($g) => $g['jobs'] !== [])),
         ]);
+    }
+
+    /** Update the tunable alert settings (currently the stale threshold). */
+    public function updateAlertSettings(Request $request)
+    {
+        if ($forbidden = $this->authorizeAdmin($request)) {
+            return $forbidden;
+        }
+
+        $validated = $request->validate([
+            'stale_after_minutes' => [
+                'required', 'integer',
+                'min:' . intdiv(ScheduledJobHealthAlerts::MIN_STALE_AFTER_SECONDS, 60),
+                'max:' . intdiv(ScheduledJobHealthAlerts::MAX_STALE_AFTER_SECONDS, 60),
+            ],
+        ]);
+
+        ScheduledJobHealthAlerts::setSchedulerStaleAfterSeconds((int) $validated['stale_after_minutes'] * 60);
+
+        return $this->ok([
+            'stale_after_minutes' => intdiv(ScheduledJobHealthAlerts::schedulerStaleAfterSeconds(), 60),
+        ]);
+    }
+
+    /** Mute failure/recovery alerts for one job (noisy or experimental). */
+    public function muteAlerts(Request $request, string $key)
+    {
+        if ($forbidden = $this->authorizeAdmin($request)) {
+            return $forbidden;
+        }
+
+        if (ScheduledJobRegistry::find($key) === null) {
+            return $this->notFound("Unknown scheduled job '{$key}'.");
+        }
+
+        ScheduledJobHealthAlerts::muteJob($key);
+
+        return $this->ok(['job_key' => $key, 'alerts_muted' => true]);
+    }
+
+    /** Re-enable failure/recovery alerts for a muted job. */
+    public function unmuteAlerts(Request $request, string $key)
+    {
+        if ($forbidden = $this->authorizeAdmin($request)) {
+            return $forbidden;
+        }
+
+        if (ScheduledJobRegistry::find($key) === null) {
+            return $this->notFound("Unknown scheduled job '{$key}'.");
+        }
+
+        ScheduledJobHealthAlerts::unmuteJob($key);
+
+        return $this->ok(['job_key' => $key, 'alerts_muted' => false]);
     }
 
     public function pause(Request $request, string $key)
@@ -176,13 +243,15 @@ class ScheduledJobsController extends Controller
 
     /**
      * @param array<string, mixed> $job
+     * @param array<int, string>   $mutedJobs
      * @return array<string, mixed>
      */
-    private function jobPayload(array $job): array
+    private function jobPayload(array $job, array $mutedJobs = []): array
     {
         $iso = fn ($v) => $v instanceof Carbon ? $v->toIso8601String() : null;
 
         return [
+            'alerts_muted'        => in_array($job['key'], $mutedJobs, true),
             'key'                 => $job['key'],
             'group'               => $job['group'],
             'protected'           => (bool) $job['protected'],

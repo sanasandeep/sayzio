@@ -177,6 +177,71 @@ class ScheduledJobHealthAlertTest extends TestCase
         $this->assertSame(0, UserNotification::where('user_id', $bystander->id)->count());
     }
 
+    // ── Per-job alert muting ─────────────────────────────────────
+
+    public function test_muted_job_failure_sends_no_alert_and_opens_no_episode(): void
+    {
+        $ops = $this->makeOpsAdmin();
+
+        ScheduledJobHealthAlerts::muteJob('contacts:sync');
+        ScheduledJobHealthAlerts::jobFinished('contacts:sync', false, 'boom', 1, 'schedule');
+
+        $this->assertCount(0, $this->notes($ops, 'scheduled_job_failed'), 'muted job must not alert');
+
+        $state = AppSetting::get(ScheduledJobHealthAlerts::STATE_KEY, []);
+        $this->assertArrayNotHasKey('contacts:sync', $state['jobs'] ?? [], 'muted job must not open an episode');
+
+        // Other jobs keep alerting normally.
+        ScheduledJobHealthAlerts::jobFinished('reviews:sync', false, 'kaput', 1, 'schedule');
+        $this->assertCount(1, $this->notes($ops, 'scheduled_job_failed'));
+    }
+
+    public function test_muting_mid_episode_closes_it_silently_on_success(): void
+    {
+        $ops = $this->makeOpsAdmin();
+
+        // Open a normal episode, then mute the job before it recovers.
+        ScheduledJobHealthAlerts::jobFinished('contacts:sync', false, 'boom', 1, 'schedule');
+        $this->assertCount(1, $this->notes($ops, 'scheduled_job_failed'));
+
+        ScheduledJobHealthAlerts::muteJob('contacts:sync');
+        ScheduledJobHealthAlerts::jobFinished('contacts:sync', true, null, 0, 'schedule');
+
+        $this->assertCount(0, $this->notes($ops, 'scheduled_job_recovered'), 'no recovery noise for a muted job');
+
+        $state = AppSetting::get(ScheduledJobHealthAlerts::STATE_KEY, []);
+        $this->assertArrayNotHasKey('contacts:sync', $state['jobs'] ?? [], 'episode must still be closed');
+    }
+
+    public function test_unmuting_rearms_alerts_for_a_new_streak(): void
+    {
+        $ops = $this->makeOpsAdmin();
+
+        ScheduledJobHealthAlerts::muteJob('contacts:sync');
+        ScheduledJobHealthAlerts::jobFinished('contacts:sync', false, 'boom', 1, 'schedule');
+        $this->assertCount(0, $this->notes($ops, 'scheduled_job_failed'));
+
+        ScheduledJobHealthAlerts::unmuteJob('contacts:sync');
+        $this->assertSame([], ScheduledJobHealthAlerts::mutedJobs());
+
+        ScheduledJobHealthAlerts::jobFinished('contacts:sync', false, 'boom again', 1, 'schedule');
+        $this->assertCount(1, $this->notes($ops, 'scheduled_job_failed'), 'unmuted job must alert again');
+    }
+
+    public function test_mute_helpers_are_idempotent_and_persisted(): void
+    {
+        ScheduledJobHealthAlerts::muteJob('contacts:sync');
+        ScheduledJobHealthAlerts::muteJob('contacts:sync');
+        $this->assertSame(['contacts:sync'], ScheduledJobHealthAlerts::mutedJobs());
+        $this->assertTrue(ScheduledJobHealthAlerts::isJobMuted('contacts:sync'));
+
+        $settings = AppSetting::get(ScheduledJobHealthAlerts::SETTINGS_KEY, []);
+        $this->assertSame(['contacts:sync'], $settings['muted_jobs'] ?? null);
+
+        ScheduledJobHealthAlerts::unmuteJob('contacts:sync');
+        $this->assertFalse(ScheduledJobHealthAlerts::isJobMuted('contacts:sync'));
+    }
+
     // ── Scheduler heartbeat ──────────────────────────────────────
 
     public function test_stale_heartbeat_alerts_once_and_recovers_on_fresh_tick(): void
@@ -213,6 +278,40 @@ class ScheduledJobHealthAlertTest extends TestCase
         ScheduledJobHealthAlerts::jobFinished('contacts:sync', true, null, 0, 'schedule');
 
         $this->assertCount(1, $this->notes($ops, 'scheduler_recovered'));
+    }
+
+    public function test_custom_stale_threshold_is_honored(): void
+    {
+        $ops = $this->makeOpsAdmin();
+
+        // Raise the stale threshold to 2 hours; a 90-minute-old heartbeat
+        // (stale under the 15-minute default) must now stay quiet.
+        ScheduledJobHealthAlerts::setSchedulerStaleAfterSeconds(7200);
+        $this->assertSame(7200, ScheduledJobHealthAlerts::schedulerStaleAfterSeconds());
+
+        Cache::put(self::TICK_KEY, Carbon::now()->subMinutes(90)->getTimestamp(), now()->addDay());
+        ScheduledJobHealthAlerts::checkSchedulerStale();
+        $this->assertCount(0, $this->notes($ops, 'scheduler_stale'), '90min-old tick is fresh under a 2h threshold');
+
+        // Older than the custom threshold → alert fires.
+        Cache::put(self::TICK_KEY, Carbon::now()->subHours(3)->getTimestamp(), now()->addDay());
+        ScheduledJobHealthAlerts::checkSchedulerStale();
+        $this->assertCount(1, $this->notes($ops, 'scheduler_stale'));
+    }
+
+    public function test_stale_threshold_setter_clamps_to_bounds(): void
+    {
+        ScheduledJobHealthAlerts::setSchedulerStaleAfterSeconds(10);
+        $this->assertSame(
+            ScheduledJobHealthAlerts::MIN_STALE_AFTER_SECONDS,
+            ScheduledJobHealthAlerts::schedulerStaleAfterSeconds(),
+        );
+
+        ScheduledJobHealthAlerts::setSchedulerStaleAfterSeconds(999999);
+        $this->assertSame(
+            ScheduledJobHealthAlerts::MAX_STALE_AFTER_SECONDS,
+            ScheduledJobHealthAlerts::schedulerStaleAfterSeconds(),
+        );
     }
 
     public function test_no_stale_alert_when_heartbeat_never_recorded(): void

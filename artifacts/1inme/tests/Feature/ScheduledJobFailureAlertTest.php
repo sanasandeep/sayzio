@@ -353,13 +353,15 @@ class ScheduledJobFailureAlertTest extends TestCase
     public function test_admin_can_save_alert_settings_from_the_panel(): void
     {
         $resp = $this->actingAs($this->makeAdmin(), 'admin')->post('/admin/cron-jobs/failure-alert-settings', [
-            'threshold'      => 5,
-            'cooldown_hours' => 6,
+            'threshold'           => 5,
+            'cooldown_hours'      => 6,
+            'stale_after_minutes' => 30,
         ]);
 
         $resp->assertRedirect()->assertSessionHas('success');
         $this->assertSame(5, CheckScheduledJobFailures::failureThreshold());
         $this->assertSame(6, CheckScheduledJobFailures::realertCooldownHours());
+        $this->assertSame(30 * 60, \App\Modules\Admin\Support\ScheduledJobHealthAlerts::schedulerStaleAfterSeconds());
     }
 
     public function test_alert_settings_endpoint_enforces_bounds_and_auth(): void
@@ -367,8 +369,9 @@ class ScheduledJobFailureAlertTest extends TestCase
         // Guests can't touch the endpoint (checked first — actingAs persists
         // for the rest of the test case).
         $this->post('/admin/cron-jobs/failure-alert-settings', [
-            'threshold'      => 4,
-            'cooldown_hours' => 6,
+            'threshold'           => 4,
+            'cooldown_hours'      => 6,
+            'stale_after_minutes' => 30,
         ])->assertRedirect();
         $this->assertNull(
             AppSetting::get(CheckScheduledJobFailures::SETTINGS_KEY),
@@ -379,8 +382,9 @@ class ScheduledJobFailureAlertTest extends TestCase
         $this->actingAs($this->makeAdmin(), 'admin')
             ->from('/admin/cron-jobs')
             ->post('/admin/cron-jobs/failure-alert-settings', [
-                'threshold'      => 1,
-                'cooldown_hours' => 6,
+                'threshold'           => 1,
+                'cooldown_hours'      => 6,
+                'stale_after_minutes' => 30,
             ])
             ->assertSessionHasErrors('threshold');
 
@@ -388,10 +392,21 @@ class ScheduledJobFailureAlertTest extends TestCase
         $this->actingAs($this->makeAdmin(), 'admin')
             ->from('/admin/cron-jobs')
             ->post('/admin/cron-jobs/failure-alert-settings', [
-                'threshold'      => 3,
-                'cooldown_hours' => 9999,
+                'threshold'           => 3,
+                'cooldown_hours'      => 9999,
+                'stale_after_minutes' => 30,
             ])
             ->assertSessionHasErrors('cooldown_hours');
+
+        // Out-of-range stale threshold is rejected.
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->from('/admin/cron-jobs')
+            ->post('/admin/cron-jobs/failure-alert-settings', [
+                'threshold'           => 3,
+                'cooldown_hours'      => 6,
+                'stale_after_minutes' => 2,
+            ])
+            ->assertSessionHasErrors('stale_after_minutes');
 
         $this->assertNull(
             AppSetting::get(CheckScheduledJobFailures::SETTINGS_KEY),

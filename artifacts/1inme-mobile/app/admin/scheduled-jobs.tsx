@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 
@@ -16,9 +17,12 @@ import { useColors } from "@/hooks/useColors";
 import {
   getScheduledJobRuns,
   getScheduledJobs,
+  muteScheduledJobAlerts,
   pauseScheduledJob,
   resumeScheduledJob,
   runScheduledJobNow,
+  unmuteScheduledJobAlerts,
+  updateScheduledJobAlertSettings,
   type ScheduledJob,
 } from "@/lib/api/scheduledJobs";
 
@@ -125,6 +129,32 @@ export default function ScheduledJobsScreen() {
       setActionError(e?.message ?? "Couldn't resume this job."),
   });
 
+  const muteMut = useMutation({
+    mutationFn: (key: string) => muteScheduledJobAlerts(key),
+    onSuccess: (r) => {
+      setActionError(null);
+      setSelected((s) =>
+        s && s.key === r.job_key ? { ...s, alerts_muted: true } : s,
+      );
+      refreshAll();
+    },
+    onError: (e: any) =>
+      setActionError(e?.message ?? "Couldn't mute alerts for this job."),
+  });
+
+  const unmuteMut = useMutation({
+    mutationFn: (key: string) => unmuteScheduledJobAlerts(key),
+    onSuccess: (r) => {
+      setActionError(null);
+      setSelected((s) =>
+        s && s.key === r.job_key ? { ...s, alerts_muted: false } : s,
+      );
+      refreshAll();
+    },
+    onError: (e: any) =>
+      setActionError(e?.message ?? "Couldn't re-enable alerts for this job."),
+  });
+
   const runMut = useMutation({
     mutationFn: (key: string) => runScheduledJobNow(key),
     onSuccess: (r) => {
@@ -141,8 +171,51 @@ export default function ScheduledJobsScreen() {
       setActionError(e?.message ?? "Couldn't start this job."),
   });
 
-  const busy = pauseMut.isPending || resumeMut.isPending || runMut.isPending;
+  const busy =
+    pauseMut.isPending ||
+    resumeMut.isPending ||
+    runMut.isPending ||
+    muteMut.isPending ||
+    unmuteMut.isPending;
   const data = query.data;
+
+  // Admin-tunable scheduler stale threshold (minutes). Local draft synced
+  // from the server value; saved via the alert-settings endpoint.
+  const [staleDraft, setStaleDraft] = useState<string | null>(null);
+  const [staleNotice, setStaleNotice] = useState<string | null>(null);
+  const staleSettings = data?.alert_settings;
+  const staleValue =
+    staleDraft ?? String(staleSettings?.stale_after_minutes ?? "");
+
+  const staleMut = useMutation({
+    mutationFn: (minutes: number) => updateScheduledJobAlertSettings(minutes),
+    onSuccess: (r) => {
+      setStaleDraft(null);
+      setStaleNotice(
+        `Saved — scheduler reported down after ${r.stale_after_minutes} min without a tick.`,
+      );
+      qc.invalidateQueries({ queryKey: ["admin-scheduled-jobs"] });
+    },
+    onError: (e: any) =>
+      setStaleNotice(e?.message ?? "Couldn't save the stale threshold."),
+  });
+
+  const saveStale = () => {
+    if (!staleSettings) return;
+    const parsed = Number.parseInt(staleValue, 10);
+    if (
+      Number.isNaN(parsed) ||
+      parsed < staleSettings.min_stale_after_minutes ||
+      parsed > staleSettings.max_stale_after_minutes
+    ) {
+      setStaleNotice(
+        `Enter a value between ${staleSettings.min_stale_after_minutes} and ${staleSettings.max_stale_after_minutes} minutes.`,
+      );
+      return;
+    }
+    setStaleNotice(null);
+    staleMut.mutate(parsed);
+  };
 
   const openSheet = (job: ScheduledJob) => {
     setSelected(job);
@@ -236,6 +309,80 @@ export default function ScheduledJobsScreen() {
                   : ""}
               </Text>
             </View>
+
+            {/* Alert settings — scheduler stale threshold */}
+            {staleSettings ? (
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+                  Alert settings
+                </Text>
+                <Text style={[styles.note, { color: colors.mutedForeground }]}>
+                  Ops admins are alerted when the scheduler stops ticking for
+                  this many minutes ({staleSettings.min_stale_after_minutes}–
+                  {staleSettings.max_stale_after_minutes}, default{" "}
+                  {staleSettings.default_stale_after_minutes}).
+                </Text>
+                <View style={styles.staleRow}>
+                  <TextInput
+                    value={staleValue}
+                    onChangeText={(t) => {
+                      setStaleDraft(t.replace(/[^0-9]/g, ""));
+                      setStaleNotice(null);
+                    }}
+                    keyboardType="number-pad"
+                    style={[
+                      styles.staleInput,
+                      {
+                        color: colors.foreground,
+                        borderColor: colors.border,
+                        backgroundColor: colors.background,
+                      },
+                    ]}
+                  />
+                  <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
+                    minutes
+                  </Text>
+                  <Pressable
+                    disabled={staleMut.isPending || staleDraft === null}
+                    onPress={saveStale}
+                    style={[
+                      styles.actionBtn,
+                      {
+                        backgroundColor: colors.primary + "22",
+                        opacity:
+                          staleMut.isPending || staleDraft === null ? 0.5 : 1,
+                        marginLeft: "auto",
+                      },
+                    ]}
+                  >
+                    {staleMut.isPending ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Feather name="save" size={15} color={colors.primary} />
+                    )}
+                    <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                      Save
+                    </Text>
+                  </Pressable>
+                </View>
+                {staleNotice ? (
+                  <Text
+                    style={{
+                      color: colors.mutedForeground,
+                      fontSize: 12,
+                      marginTop: 6,
+                    }}
+                  >
+                    {staleNotice}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
 
             {/* Grouped jobs */}
             {data.groups.map((group) => (
@@ -336,6 +483,26 @@ export default function ScheduledJobsScreen() {
                                   ]}
                                 >
                                   Paused
+                                </Text>
+                              </View>
+                            ) : null}
+                            {job.alerts_muted ? (
+                              <View
+                                style={[
+                                  styles.badge,
+                                  {
+                                    backgroundColor:
+                                      colors.mutedForeground + "22",
+                                  },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.badgeText,
+                                    { color: colors.mutedForeground },
+                                  ]}
+                                >
+                                  Alerts muted
                                 </Text>
                               </View>
                             ) : null}
@@ -544,7 +711,84 @@ export default function ScheduledJobsScreen() {
                       Run now
                     </Text>
                   </Pressable>
+
+                  {selected.alerts_muted ? (
+                    <Pressable
+                      disabled={busy}
+                      onPress={() => unmuteMut.mutate(selected.key)}
+                      style={[
+                        styles.actionBtn,
+                        {
+                          backgroundColor: colors.mutedForeground + "22",
+                          opacity: busy ? 0.5 : 1,
+                        },
+                      ]}
+                    >
+                      {unmuteMut.isPending ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={colors.mutedForeground}
+                        />
+                      ) : (
+                        <Feather
+                          name="bell"
+                          size={15}
+                          color={colors.mutedForeground}
+                        />
+                      )}
+                      <Text
+                        style={{
+                          color: colors.mutedForeground,
+                          fontWeight: "600",
+                        }}
+                      >
+                        Unmute alerts
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      disabled={busy}
+                      onPress={() => muteMut.mutate(selected.key)}
+                      style={[
+                        styles.actionBtn,
+                        {
+                          backgroundColor: colors.mutedForeground + "22",
+                          opacity: busy ? 0.5 : 1,
+                        },
+                      ]}
+                    >
+                      {muteMut.isPending ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={colors.mutedForeground}
+                        />
+                      ) : (
+                        <Feather
+                          name="bell-off"
+                          size={15}
+                          color={colors.mutedForeground}
+                        />
+                      )}
+                      <Text
+                        style={{
+                          color: colors.mutedForeground,
+                          fontWeight: "600",
+                        }}
+                      >
+                        Mute alerts
+                      </Text>
+                    </Pressable>
+                  )}
                 </View>
+
+                {selected.alerts_muted ? (
+                  <Text
+                    style={{ color: colors.mutedForeground, fontSize: 12 }}
+                  >
+                    Failure alerts are muted for this job — it still runs on
+                    schedule, but ops admins are not notified when it fails.
+                  </Text>
+                ) : null}
 
                 {actionError ? (
                   <Text style={{ color: colors.destructive, fontSize: 13 }}>
@@ -712,7 +956,22 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 10,
   },
-  actionRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+  actionRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 },
+  staleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 10,
+  },
+  staleInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 15,
+    minWidth: 72,
+    textAlign: "center",
+  },
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",

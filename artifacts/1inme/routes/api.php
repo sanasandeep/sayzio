@@ -448,7 +448,10 @@ Route::prefix('v1')->group(function () {
         // "Scheduled Jobs" page). Grouped registry-driven job list with
         // pause/resume (persisted; protected jobs 422), background run-now
         // and per-job run history. Gated behind `settings.manage`.
-        Route::get ('/admin/scheduled-jobs',              [\App\Modules\Api\Controllers\ScheduledJobsController::class, 'index']);
+        Route::get ('/admin/scheduled-jobs',                     [\App\Modules\Api\Controllers\ScheduledJobsController::class, 'index']);
+        Route::post('/admin/scheduled-jobs/alert-settings',      [\App\Modules\Api\Controllers\ScheduledJobsController::class, 'updateAlertSettings']);
+        Route::post('/admin/scheduled-jobs/{key}/mute-alerts',   [\App\Modules\Api\Controllers\ScheduledJobsController::class, 'muteAlerts'])->where('key', '[A-Za-z0-9:_\-]+');
+        Route::post('/admin/scheduled-jobs/{key}/unmute-alerts', [\App\Modules\Api\Controllers\ScheduledJobsController::class, 'unmuteAlerts'])->where('key', '[A-Za-z0-9:_\-]+');
         Route::post('/admin/scheduled-jobs/{key}/pause',  [\App\Modules\Api\Controllers\ScheduledJobsController::class, 'pause'])->where('key', '[A-Za-z0-9:_\-]+');
         Route::post('/admin/scheduled-jobs/{key}/resume', [\App\Modules\Api\Controllers\ScheduledJobsController::class, 'resume'])->where('key', '[A-Za-z0-9:_\-]+');
         Route::post('/admin/scheduled-jobs/{key}/run',    [\App\Modules\Api\Controllers\ScheduledJobsController::class, 'run'])->where('key', '[A-Za-z0-9:_\-]+');

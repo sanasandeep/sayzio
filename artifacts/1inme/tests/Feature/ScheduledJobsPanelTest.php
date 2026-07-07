@@ -506,6 +506,73 @@ class ScheduledJobsPanelTest extends TestCase
         $this->assertSame(1, $resp->json('data.runs.0.exit_code'));
     }
 
+    // ── Alert settings + per-job muting (API parity) ─────────────────────
+
+    public function test_api_index_includes_alert_settings_and_muted_flags(): void
+    {
+        \App\Modules\Admin\Support\ScheduledJobHealthAlerts::muteJob('contacts:sync');
+
+        $this->asUser($this->makeApiAdmin());
+
+        $resp = $this->getJson('/api/v1/admin/scheduled-jobs');
+        $resp->assertOk();
+
+        $settings = $resp->json('data.alert_settings');
+        $this->assertIsInt($settings['stale_after_minutes']);
+        $this->assertSame(
+            intdiv(\App\Modules\Admin\Support\ScheduledJobHealthAlerts::SCHEDULER_STALE_AFTER_SECONDS, 60),
+            $settings['default_stale_after_minutes'],
+        );
+        $this->assertSame(['contacts:sync'], $settings['muted_jobs']);
+
+        $jobs = collect($resp->json('data.groups'))->flatMap(fn ($g) => $g['jobs']);
+        $this->assertTrue($jobs->firstWhere('key', 'contacts:sync')['alerts_muted']);
+        $this->assertFalse($jobs->firstWhere('key', 'reviews:sync')['alerts_muted']);
+    }
+
+    public function test_api_mute_and_unmute_round_trip(): void
+    {
+        $this->asUser($this->makeApiAdmin());
+
+        $this->postJson('/api/v1/admin/scheduled-jobs/contacts:sync/mute-alerts')
+            ->assertOk()
+            ->assertJsonPath('data.alerts_muted', true);
+        $this->assertTrue(\App\Modules\Admin\Support\ScheduledJobHealthAlerts::isJobMuted('contacts:sync'));
+
+        $this->postJson('/api/v1/admin/scheduled-jobs/contacts:sync/unmute-alerts')
+            ->assertOk()
+            ->assertJsonPath('data.alerts_muted', false);
+        $this->assertFalse(\App\Modules\Admin\Support\ScheduledJobHealthAlerts::isJobMuted('contacts:sync'));
+
+        // Unknown keys 404.
+        $this->postJson('/api/v1/admin/scheduled-jobs/nope:not-a-job/mute-alerts')->assertStatus(404);
+    }
+
+    public function test_api_alert_settings_update_validates_and_persists(): void
+    {
+        $this->asUser($this->makeApiAdmin());
+
+        $this->postJson('/api/v1/admin/scheduled-jobs/alert-settings', ['stale_after_minutes' => 45])
+            ->assertOk()
+            ->assertJsonPath('data.stale_after_minutes', 45);
+        $this->assertSame(
+            45 * 60,
+            \App\Modules\Admin\Support\ScheduledJobHealthAlerts::schedulerStaleAfterSeconds(),
+        );
+
+        // Out-of-range values are rejected with a 422 envelope.
+        $this->postJson('/api/v1/admin/scheduled-jobs/alert-settings', ['stale_after_minutes' => 2])
+            ->assertStatus(422);
+    }
+
+    public function test_api_mute_endpoints_forbidden_for_non_admin(): void
+    {
+        $this->asUser($this->makeUser());
+
+        $this->postJson('/api/v1/admin/scheduled-jobs/contacts:sync/mute-alerts')->assertStatus(403);
+        $this->postJson('/api/v1/admin/scheduled-jobs/alert-settings', ['stale_after_minutes' => 30])->assertStatus(403);
+    }
+
     // ── "Failing repeatedly" streak badge (web + API parity) ─────────────
 
     /** Seed a finished run-history row for a job. */
