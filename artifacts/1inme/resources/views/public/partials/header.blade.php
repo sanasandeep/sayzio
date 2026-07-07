@@ -4,9 +4,8 @@
     // hero/aurora treatment is preserved). Otherwise it sticks in normal flow.
     $fixed       = $fixed ?? false;
     $homeUrl     = route('home');
-    // On the home page, "Pricing" should anchor-scroll to the in-page section.
-    // On every other page, it should navigate to the dedicated /pricing page.
-    $pricingHref = request()->routeIs('home') ? '#pricing' : route('site.pricing');
+    // "Pricing" always navigates to the dedicated /pricing page.
+    $pricingHref = route('site.pricing');
 
     // Mega-menu link groups. [href, fa-icon, title, one-line description].
     // Plain `&` in titles/descriptions — echoed via {{ }} so Blade escapes them.

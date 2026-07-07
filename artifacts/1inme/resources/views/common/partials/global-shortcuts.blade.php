@@ -48,7 +48,7 @@
                 ['Features',      $__r('site.features'),        'fa-solid fa-star'],
                 ['Use cases',     $__r('site.services'),        'fa-solid fa-briefcase'],
                 ['How it works',  $__r('site.how-it-works'),    'fa-solid fa-circle-info'],
-                ['Pricing',       $__r('home', '#pricing'),     'fa-solid fa-tags'],
+                ['Pricing',       $__r('site.pricing'),         'fa-solid fa-tags'],
                 ['Discover',      $__r('site.discovery'),       'fa-solid fa-compass'],
                 ['Creators feed', $__r('site.creators-feed'),   'fa-solid fa-rss'],
                 ['Buzz',          $__r('site.buzz'),            'fa-solid fa-bolt-lightning'],
