@@ -49,13 +49,12 @@ class CreatorProfilePublicController extends Controller
 
         // Visitor 18+ age gate (Task #1208). Owners always bypass.
         // Logged-in viewers who have ever affirmed 18+ on their own
-        // account also bypass; otherwise we set a 30-day cookie via the
-        // interstitial form.
-        if (!$isOwner && $creator->isAdultProfile() && !AgeGate::passed($request, $viewer)) {
-            return response()->view('public.age-gate', [
-                'creator' => $creator,
-            ], 200);
-        }
+        // account also bypass; otherwise we render the real profile
+        // markup underneath a client-facing confirmation overlay so
+        // search/AI crawlers still see the actual profile content
+        // instead of a thin interstitial (Task #3883). The overlay
+        // still posts to the same age-gate.confirm route as before.
+        $ageGateRequired = !$isOwner && $creator->isAdultProfile() && !AgeGate::passed($request, $viewer);
 
         // Task #1211 — viewer has blocked this creator. We hide the
         // profile entirely so the block surface mirrors what a fan
@@ -106,6 +105,7 @@ class CreatorProfilePublicController extends Controller
             'isOwner'         => $isOwner,
             'relatedCreators' => $relatedCreators,
             'upcomingEvents'  => $upcomingEvents,
+            'ageGateRequired' => $ageGateRequired,
         ]));
     }
 

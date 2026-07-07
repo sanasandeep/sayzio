@@ -1,24 +1,79 @@
+@php
+    $__cpProfileUrl = route('creator-profile.show', $creator->handle);
+    $__cpTitle = $creator->name . ' (@' . $creator->handle . ') - ' . config('app.name');
+    $__cpDescription = Str::limit($creator->tagline ?: $creator->bio ?: ($creator->name . ' on Sayzio'), 180);
+    $__cpImage = $creator->cover_image ?: $creator->avatar ?: null;
+
+    // JSON-LD: identify the page as a ProfilePage whose mainEntity is the
+    // creator, so search engines get a structured understanding of who the
+    // page is about (Task #3883). Reuses the same social-link normalisation
+    // as the "Find me on" section below so sameAs stays in lockstep.
+    $__cpPlatforms = \App\Modules\User\Controllers\CreatorProfileController::SOCIAL_PLATFORMS;
+    $__cpSameAs = [];
+    if (is_array($creator->socials)) {
+        foreach ($creator->socials as $key => $value) {
+            if (!isset($__cpPlatforms[$key]) || $key === 'email' || empty($value)) continue;
+            $href = $value;
+            if ($key === 'twitter')   $href = preg_match('#^https?://#', $value) ? $value : 'https://twitter.com/'   . ltrim($value, '@');
+            if ($key === 'instagram') $href = preg_match('#^https?://#', $value) ? $value : 'https://instagram.com/' . ltrim($value, '@');
+            if ($key === 'tiktok')    $href = preg_match('#^https?://#', $value) ? $value : 'https://tiktok.com/@'   . ltrim($value, '@');
+            if ($key === 'youtube')   $href = preg_match('#^https?://#', $value) ? $value : 'https://youtube.com/@'  . ltrim($value, '@');
+            if ($key === 'github')    $href = preg_match('#^https?://#', $value) ? $value : 'https://github.com/'    . ltrim($value, '@');
+            if ($key === 'twitch')    $href = preg_match('#^https?://#', $value) ? $value : 'https://twitch.tv/'     . ltrim($value, '@');
+            $__cpSameAs[] = $href;
+        }
+    }
+    if ($primaryBiolink ?? null) {
+        $__cpSameAs[] = url('/' . $primaryBiolink->alias);
+    }
+
+    $__cpPerson = [
+        '@type'         => 'Person',
+        'name'          => $creator->name,
+        'alternateName' => '@' . $creator->handle,
+        'url'           => $__cpProfileUrl,
+        'identifier'    => $creator->handle,
+    ];
+    if ($__cpImage)                $__cpPerson['image'] = $__cpImage;
+    if ($creator->bio)             $__cpPerson['description'] = Str::limit($creator->bio, 500);
+    elseif ($creator->tagline)     $__cpPerson['description'] = $creator->tagline;
+    if ($creator->location)        $__cpPerson['address'] = ['@type' => 'PostalAddress', 'addressLocality' => $creator->location];
+    if (!empty($__cpSameAs))       $__cpPerson['sameAs'] = array_values(array_unique($__cpSameAs));
+
+    $__cpJsonLd = [
+        '@context'    => 'https://schema.org',
+        '@type'       => 'ProfilePage',
+        'url'         => $__cpProfileUrl,
+        'dateCreated' => $creator->created_at?->toIso8601String(),
+        'mainEntity'  => $__cpPerson,
+    ];
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>{{ $creator->name }} (&#64;{{ $creator->handle }}) - {{ config('app.name') }}</title>
-<meta name="description" content="{{ Str::limit($creator->tagline ?: $creator->bio ?: ($creator->name . ' on Sayzio'), 180) }}">
+<title>{{ $__cpTitle }}</title>
+<meta name="description" content="{{ $__cpDescription }}">
 <meta property="og:title" content="{{ $creator->name }} (&#64;{{ $creator->handle }})">
-<meta property="og:description" content="{{ Str::limit($creator->tagline ?: $creator->bio ?: ('Follow ' . $creator->name . ' on Sayzio'), 180) }}">
+<meta property="og:description" content="{{ $__cpDescription }}">
 <meta property="og:type" content="profile">
 {{-- Single canonical URL for the profile: always the @-prefixed form,
      so the bare /handle and /@handle entry points are treated as one
      page for SEO + sharing and never double-counted. --}}
-<link rel="canonical" href="{{ route('creator-profile.show', $creator->handle) }}">
-<meta property="og:url" content="{{ route('creator-profile.show', $creator->handle) }}">
-@if($creator->cover_image)
-    <meta property="og:image" content="{{ $creator->cover_image }}">
-@elseif($creator->avatar)
-    <meta property="og:image" content="{{ $creator->avatar }}">
+<link rel="canonical" href="{{ $__cpProfileUrl }}">
+<meta property="og:url" content="{{ $__cpProfileUrl }}">
+@if($__cpImage)
+    <meta property="og:image" content="{{ $__cpImage }}">
 @endif
+<meta name="twitter:card" content="{{ $__cpImage ? 'summary_large_image' : 'summary' }}">
+<meta name="twitter:title" content="{{ $creator->name }} (&#64;{{ $creator->handle }})">
+<meta name="twitter:description" content="{{ $__cpDescription }}">
+@if($__cpImage)
+    <meta name="twitter:image" content="{{ $__cpImage }}">
+@endif
+<script type="application/ld+json">{!! json_encode($__cpJsonLd, JSON_UNESCAPED_UNICODE) !!}</script>
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 @include('common.partials.fontawesome')
 <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
@@ -26,9 +81,15 @@
 <style>
     [x-cloak]{display:none!important}
     .cp-card{background:#fff;border:1px solid rgba(15,23,42,0.06);border-radius:1rem;}
+    @if($ageGateRequired ?? false)
+    body{overflow:hidden}
+    @endif
 </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900">
+@if($ageGateRequired ?? false)
+    @include('public.partials.age-gate-overlay', ['creator' => $creator])
+@endif
 @include('common.partials.viewer-login-modal')
 
 <div class="max-w-3xl mx-auto px-3 sm:px-4 pb-24">

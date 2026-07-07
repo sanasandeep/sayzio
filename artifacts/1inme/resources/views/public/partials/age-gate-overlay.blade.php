@@ -1,24 +1,24 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="csrf-token" content="{{ csrf_token() }}">
-<title>Age verification — {{ $creator->name }}</title>
-{{-- This full-page interstitial (still used by the Paid Page adult gate)
-     is a thin, content-free page — explicitly keep it out of search so
-     Google never indexes the gate itself in place of the real content
-     it is standing in front of (Task #3883). --}}
-<meta name="robots" content="noindex,nofollow">
-@vite(['resources/css/app.css', 'resources/js/app.js'])
-@include('common.partials.fontawesome')
-</head>
-<body class="bg-slate-950 min-h-screen text-slate-100 flex items-center justify-center px-4 py-10">
-    <div class="max-w-lg w-full bg-slate-900/80 backdrop-blur border border-white/10 rounded-2xl shadow-2xl p-8 text-center">
+{{--
+    Visitor 18+ age confirmation overlay (Task #3883, superseding the old
+    full-page interstitial from Task #1208).
+
+    Unlike the previous flow, this is rendered ON TOP of the real profile
+    markup instead of replacing it — the profile HTML is always present in
+    the document, so search/AI crawlers can read and index the actual
+    profile content. The overlay itself needs no JavaScript to appear: it
+    is a plain fixed-position element covering the viewport, blocking
+    interaction for human visitors until they confirm, while leaving the
+    underlying content in the DOM.
+
+    Posts to the same age-gate.confirm route as before, which sets the
+    30-day cookie and redirects back to this same profile URL.
+--}}
+<div class="fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-sm flex items-center justify-center px-4 py-10" role="dialog" aria-modal="true" aria-label="Age verification">
+    <div class="max-w-lg w-full bg-slate-900/90 border border-white/10 rounded-2xl shadow-2xl p-8 text-center">
         <div class="inline-flex w-14 h-14 rounded-full bg-rose-600/20 text-rose-300 items-center justify-center mb-5">
             <i class="fas fa-shield-halved text-2xl"></i>
         </div>
-        <h1 class="text-2xl font-bold text-white">This profile contains 18+ content</h1>
+        <h2 class="text-2xl font-bold text-white">This profile contains 18+ content</h2>
         <p class="text-slate-300 text-sm mt-3 leading-relaxed">
             <strong class="text-white">{{ $creator->name }}</strong>
             (<span class="text-slate-400">@{{ $creator->handle }}</span>) has marked their profile as
@@ -49,5 +49,4 @@
             law is your own responsibility.
         </p>
     </div>
-</body>
-</html>
+</div>
