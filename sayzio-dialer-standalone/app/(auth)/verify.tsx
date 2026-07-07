@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -15,6 +15,7 @@ import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useCooldown } from "@/hooks/useCooldown";
+import { redirectAfterAuth, touchPendingPostAuthNext } from "@/lib/authNext";
 import type { ApiError } from "@/lib/api";
 import { verifyBackupCode } from "@/lib/api/security";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
@@ -61,6 +62,14 @@ export default function Verify() {
   );
   const cooldown = useCooldown(30);
 
+  // Reaching the OTP entry screen is an active step of the sign-up flow, so
+  // slide any stashed post-auth pairing's freshness window forward. A guest
+  // interrupted here (waiting on the email, a distraction) then completing
+  // past the initial 10-minute window still lands where they intended.
+  useEffect(() => {
+    touchPendingPostAuthNext();
+  }, []);
+
   const verify = async () => {
     if (code.trim().length < 4) {
       setError(
@@ -86,7 +95,7 @@ export default function Verify() {
       } else {
         await verifyOtp({ channel, identifier, code: code.trim() });
       }
-      router.replace("/(tabs)/dialer");
+      await redirectAfterAuth(router);
       maybeOfferBiometricEnrollment(auth);
     } catch (e) {
       const err = e as ApiError;

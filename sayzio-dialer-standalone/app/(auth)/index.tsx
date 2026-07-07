@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 // required by expo-auth-session for the Google provider on Android.
 WebBrowser.maybeCompleteAuthSession();
 import { useColors } from "@/hooks/useColors";
+import { redirectAfterAuth, touchPendingPostAuthNext } from "@/lib/authNext";
 import { getBaseUrl, getConfiguredBaseUrl } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
 import { getAuthConfig, isAllowedCountryCode } from "@/lib/api/authConfig";
@@ -132,8 +133,8 @@ export default function AuthLanding() {
     const idToken = googleResponse.params?.id_token;
     if (!idToken) return;
     socialLogin({ provider: "google", id_token: idToken })
-      .then(() => {
-        router.replace("/(tabs)/dialer");
+      .then(async () => {
+        await redirectAfterAuth(router);
         maybeOfferBiometricEnrollment(auth);
       })
       .catch((e: ApiError) => {
@@ -174,6 +175,15 @@ export default function AuthLanding() {
   // email-only until the config loads / if it fails.
   const [mobileLoginEnabled, setMobileLoginEnabled] = useState(false);
   const [allowedCountryCodes, setAllowedCountryCodes] = useState<string[]>([]);
+
+  // A guest who tapped a "Perfect pairings" card stashed a post-auth
+  // destination before being sent here. Sliding its freshness window forward
+  // on each active landing means a slow sign-up (email verification, a
+  // distraction) isn't silently dropped once the initial 10-minute window
+  // lapses — as long as they're actively in the flow, their pairing survives.
+  useEffect(() => {
+    touchPendingPostAuthNext();
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -262,7 +272,7 @@ export default function AuthLanding() {
     setError(null);
     try {
       await demoLogin(role === "user" ? "user" : "super_admin");
-      router.replace("/(tabs)/dialer");
+      await redirectAfterAuth(router);
       maybeOfferBiometricEnrollment(auth);
     } catch (e) {
       setError((e as ApiError)?.message ?? "Demo unavailable");

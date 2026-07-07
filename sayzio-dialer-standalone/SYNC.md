@@ -33,6 +33,11 @@ pnpm --filter @workspace/scripts run check:dialer-sync          # detect drift
 pnpm --filter @workspace/scripts run check:dialer-sync:accept   # re-baseline after syncing
 ```
 
+The drift check is also registered as the `dialer-sync` validation gate
+(alongside `dialer-typecheck` and `dialer-channel-actions`), so a change to a
+mirrored main-app file fails validation until the standalone copy is synced
+and re-baselined.
+
 ## Sync procedure
 
 1. Run `check:dialer-sync`. It lists every out-of-sync file.

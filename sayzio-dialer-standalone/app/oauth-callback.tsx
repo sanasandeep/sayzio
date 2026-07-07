@@ -8,6 +8,7 @@ import { SocialMergePrompt } from "@/components/SocialMergePrompt";
 import { useAuth, type AuthUser } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import type { ApiError } from "@/lib/api";
+import { redirectAfterAuth } from "@/lib/authNext";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
 
 // Friendly display names for the providers we name in failure copy. Mirrors
@@ -92,8 +93,8 @@ export default function OAuthCallback() {
         } catch {}
       }
       applySession(token, user)
-        .then(() => {
-          router.replace("/(tabs)/dialer");
+        .then(async () => {
+          await redirectAfterAuth(router);
           maybeOfferBiometricEnrollment(auth);
         })
         .catch((e) => {
@@ -116,8 +117,8 @@ export default function OAuthCallback() {
         id_token: idToken,
         access_token: accessToken,
       })
-        .then(() => {
-          router.replace("/(tabs)/dialer");
+        .then(async () => {
+          await redirectAfterAuth(router);
           maybeOfferBiometricEnrollment(auth);
         })
         .catch((e: ApiError) => {

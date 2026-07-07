@@ -1,10 +1,32 @@
 import { Platform, View, type StyleProp, type ViewStyle } from "react-native";
 
+import { useResolvedScheme } from "@/hooks/useColors";
+
 // Lazy-require so the web bundle never tries to evaluate the native module.
 let WebView: typeof import("react-native-webview").WebView | null = null;
 if (Platform.OS !== "web") {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   WebView = require("react-native-webview").WebView;
+}
+
+// Mirrors the web event page's dark/light tile pair
+// (artifacts/1inme/resources/views/common/event-page.blade.php).
+const DARK_TILE_URL =
+  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const LIGHT_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const DARK_ATTR =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com">CARTO</a>';
+const LIGHT_ATTR =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+const DARK_BG = "#1e2330";
+const LIGHT_BG = "#e9edf3";
+
+function tileConfig(dark: boolean) {
+  return {
+    url: dark ? DARK_TILE_URL : LIGHT_TILE_URL,
+    attr: dark ? DARK_ATTR : LIGHT_ATTR,
+    bg: dark ? DARK_BG : LIGHT_BG,
+  };
 }
 
 const PIN_SVG =
@@ -15,13 +37,14 @@ const PIN_SVG =
   '<path d="M17 0C7.6 0 0 7.5 0 16.7c0 11.7 14.6 25.5 16 26.8.6.6 1.5.6 2 0 1.5-1.3 16-15.1 16-26.8C34 7.5 26.4 0 17 0z" fill="url(#g)" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>' +
   '<circle cx="17" cy="16" r="6" fill="#fff"/></svg>';
 
-function buildHtml(lat: number, lng: number): string {
+function buildHtml(lat: number, lng: number, dark: boolean): string {
+  const tiles = tileConfig(dark);
   return `<!DOCTYPE html><html><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-  html, body, #map { height: 100%; margin: 0; padding: 0; background: #1e2330; }
+  html, body, #map { height: 100%; margin: 0; padding: 0; background: ${tiles.bg}; }
   .pin { width: 30px; height: 40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
   .pin svg { width: 100%; height: 100%; display: block; }
   .leaflet-control-attribution { font-size: 8px; }
@@ -36,9 +59,9 @@ function buildHtml(lat: number, lng: number): string {
     dragging: false, touchZoom: false, scrollWheelZoom: false,
     doubleClickZoom: false, boxZoom: false, keyboard: false, tap: false
   });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('${tiles.url}', {
     maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors'
+    attribution: '${tiles.attr.replace(/'/g, "\\'")}'
   }).addTo(map);
   var icon = L.divIcon({ className: '', html: '<div class="pin">${PIN_SVG}</div>', iconSize: [30,40], iconAnchor: [15,40] });
   L.marker([${lat}, ${lng}], { icon: icon, interactive: false, keyboard: false }).addTo(map);
@@ -47,7 +70,8 @@ function buildHtml(lat: number, lng: number): string {
 </body></html>`;
 }
 
-function buildMultiHtml(markers: MapMarker[]): string {
+function buildMultiHtml(markers: MapMarker[], dark: boolean): string {
+  const tiles = tileConfig(dark);
   const pts = JSON.stringify(
     markers.map((m, i) => ({
       n: i + 1,
@@ -63,7 +87,7 @@ function buildMultiHtml(markers: MapMarker[]): string {
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-  html, body, #map { height: 100%; margin: 0; padding: 0; background: #1e2330; }
+  html, body, #map { height: 100%; margin: 0; padding: 0; background: ${tiles.bg}; }
   .pin { position: relative; width: 30px; height: 40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); cursor: pointer; }
   .pin svg { width: 100%; height: 100%; display: block; }
   .pin .badge { position: absolute; top: 5px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; line-height: 14px; text-align: center; font-size: 10px; font-weight: 700; color: #3d6bff; font-family: sans-serif; }
@@ -79,9 +103,9 @@ function buildMultiHtml(markers: MapMarker[]): string {
     dragging: false, touchZoom: false, scrollWheelZoom: false,
     doubleClickZoom: false, boxZoom: false, keyboard: false
   });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('${tiles.url}', {
     maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors'
+    attribution: '${tiles.attr.replace(/'/g, "\\'")}'
   }).addTo(map);
   var latlngs = [];
   pts.forEach(function (p) {
@@ -140,17 +164,21 @@ export function MapMarkersPreview({
   style,
   onMarkerPress,
 }: MapMarkersPreviewProps) {
+  const scheme = useResolvedScheme();
+  const dark = scheme === "dark";
+  const bg = dark ? DARK_BG : LIGHT_BG;
   const valid = markers.filter(
     (m) => isFinite(m.lat) && isFinite(m.lng),
   );
   if (!WebView || valid.length === 0) return null;
 
   return (
-    <View style={[{ height, width: "100%", backgroundColor: "#1e2330" }, style]}>
+    <View style={[{ height, width: "100%", backgroundColor: bg }, style]}>
       <WebView
+        key={scheme}
         originWhitelist={["*"]}
-        source={{ html: buildMultiHtml(valid) }}
-        style={{ flex: 1, backgroundColor: "#1e2330" }}
+        source={{ html: buildMultiHtml(valid, dark) }}
+        style={{ flex: 1, backgroundColor: bg }}
         scrollEnabled={false}
         javaScriptEnabled
         onMessage={(e) => {
@@ -172,17 +200,21 @@ export function MapMarkersPreview({
  * surrounding Pressable (which opens the location in Maps).
  */
 export function MapPreview({ lat, lng, height = 130, style }: MapPreviewProps) {
+  const scheme = useResolvedScheme();
+  const dark = scheme === "dark";
+  const bg = dark ? DARK_BG : LIGHT_BG;
   if (!WebView || !isFinite(lat) || !isFinite(lng)) return null;
 
   return (
     <View
       pointerEvents="none"
-      style={[{ height, width: "100%", backgroundColor: "#1e2330" }, style]}
+      style={[{ height, width: "100%", backgroundColor: bg }, style]}
     >
       <WebView
+        key={scheme}
         originWhitelist={["*"]}
-        source={{ html: buildHtml(lat, lng) }}
-        style={{ flex: 1, backgroundColor: "#1e2330" }}
+        source={{ html: buildHtml(lat, lng, dark) }}
+        style={{ flex: 1, backgroundColor: bg }}
         scrollEnabled={false}
         javaScriptEnabled
         pointerEvents="none"

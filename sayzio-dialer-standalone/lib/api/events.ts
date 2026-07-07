@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { apiFetch } from "@/lib/api";
+import { type LinkTypePairing } from "@/lib/linkPairings";
 
 export type EventTier = {
   id: number;
@@ -23,6 +24,44 @@ export type EventInfoSection = {
   body?: string | null;
 };
 
+/**
+ * Organizer card (Task #3674) — always present when the event has a host,
+ * regardless of whether that host has claimed a public handle. `handle` is
+ * null when there's no public profile to link to.
+ */
+export type EventOrganizer = {
+  name: string | null;
+  avatar: string | null;
+  handle: string | null;
+  /**
+   * Task #3736: the reusable organizer profile (User::organizerProfile()).
+   * `filled` decides whether to render the rich host card (description,
+   * website, contact, address, socials) or the plain avatar+name fallback —
+   * branch on this flag, don't re-derive emptiness from the fields.
+   */
+  filled: boolean;
+  logo: string | null;
+  description: string | null;
+  website: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  address: string | null;
+  /** Assoc { platform: value }; empty object when none set. */
+  socials: Record<string, string>;
+};
+
+/**
+ * "More from this host" preview (Task #3674) — mirrors the web event page's
+ * same-host-events list, including its past-event backfill so hosts without
+ * a handle still show something. Capped at 4 by the server.
+ */
+export type EventHostEvent = {
+  alias: string;
+  title: string;
+  start_date: string | null;
+};
+
 export type EventItem = {
   id: number;
   alias: string;
@@ -34,7 +73,20 @@ export type EventItem = {
   latitude: number | null;
   longitude: number | null;
   category: string | null;
+  /**
+   * Curated category label + FontAwesome icon resolved server-side from the
+   * shared EventCategories catalogue (Task #3615 parity). Present whenever the
+   * event has a category set; render these instead of guessing from the raw
+   * slug so mobile matches the web /events directory exactly.
+   */
+  category_label: string | null;
+  category_icon: string | null;
   ticketing_enabled: boolean;
+  /**
+   * Task #3674: true for any free (non-ticketed) event unless the organizer
+   * explicitly opted out — RSVP is on by default now, not opt-in.
+   */
+  rsvp_available: boolean;
   tiers: EventTier[];
   /** Hashtags, richer page content, and the interest signal. */
   hashtags: string[];
@@ -45,6 +97,30 @@ export type EventItem = {
   award_badge_id: number | null;
   interested_count: number;
   not_interested_count: number;
+  organizer: EventOrganizer | null;
+  same_host_events: EventHostEvent[];
+  /** Cross-promo "Perfect pairings" cards from the shared SitePagesContent catalog. */
+  pairings?: LinkTypePairing[];
+  /**
+   * "10x your connections" coaching tips from SitePagesContent::eventConnectionTips().
+   * Encouraging, benefit-led guidance (distinct from the factual `pairings`
+   * cards) nudging hosts to turn attendees into lasting followers/contacts.
+   */
+  connection_tips?: EventConnectionTip[];
+};
+
+/**
+ * A single "10x your connections" coaching tip. `type` maps to the create
+ * flow (via pairingCreatePath) and a Feather glyph (via pairingIcon); `icon`
+ * is the web FontAwesome class and is ignored on mobile. Mirrors the shape
+ * returned by SitePagesContent::eventConnectionTips().
+ */
+export type EventConnectionTip = {
+  type: string;
+  icon: string;
+  title: string;
+  tip: string;
+  cta: string;
 };
 
 export type EventTicket = {
@@ -57,6 +133,8 @@ export type EventTicket = {
   attendee_name: string | null;
   attendee_email: string | null;
   checked_in_at: string | null;
+  checked_in_by: string | null;
+  is_rsvp_ticket?: boolean;
   created_at: string | null;
   tier: { id: number; name: string } | null;
   event: {
@@ -83,9 +161,31 @@ export type Paginated<T> = {
   meta: { current_page: number; last_page: number; total: number };
 };
 
+/**
+ * Curated event category surfaced by the directory endpoint (mirrors
+ * EventCategories::CATEGORIES on the server). `slug` is what the `category`
+ * filter param expects; `label`/`icon` drive the tappable chip UI so mobile
+ * matches the web /events directory exactly.
+ */
+export type EventCategoryOption = {
+  slug: string;
+  label: string;
+  icon: string;
+};
+
+export type EventsDirectoryResponse = Paginated<EventItem> & {
+  categories: EventCategoryOption[];
+  /**
+   * "10x your connections" coaching tips, returned once for the directory
+   * (not per event) — mirrors the web /events page rendering the tips once
+   * below the listing.
+   */
+  connection_tips?: EventConnectionTip[];
+};
+
 export async function listEvents(
   filters: EventsDirectoryFilters = {},
-): Promise<Paginated<EventItem>> {
+): Promise<EventsDirectoryResponse> {
   const params = new URLSearchParams();
   if (filters.q) params.set("q", filters.q);
   if (filters.category) params.set("category", filters.category);
@@ -95,7 +195,7 @@ export async function listEvents(
   if (filters.radius != null) params.set("radius", String(filters.radius));
   if (filters.page) params.set("page", String(filters.page));
   const qs = params.toString();
-  const res = await apiFetch<{ data: Paginated<EventItem> }>(
+  const res = await apiFetch<{ data: EventsDirectoryResponse }>(
     `/events${qs ? `?${qs}` : ""}`,
   );
   return res.data;

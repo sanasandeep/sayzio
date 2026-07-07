@@ -16,9 +16,7 @@
     {
       "standalone": "app/(auth)/verify.tsx",
       "source": "app/(auth)/verify.tsx",
-      "relation": "adapted",
-      "note": "post-verify redirect targets /(tabs)/dialer (standalone tab group has no index screen); otherwise identical",
-      "sourceSha256": "baf60c151e892a6a88c9cedf15c6cddc047af9e7f3f09185dc07632d389bde56"
+      "relation": "identical"
     },
     {
       "standalone": "app/info/about.tsx",
@@ -77,7 +75,7 @@
       "source": "components/MapPickerModal.tsx",
       "relation": "adapted",
       "note": "webRef uses structural typing ({ injectJavaScript }) so it compiles across react-native-webview versions; otherwise identical",
-      "sourceSha256": "c446252b6c4d5066f36257cf0a97838af9f2f1666125214b9503a2aabf969c52"
+      "sourceSha256": "3f067cb58a9d1fe21977bcba24ea9cdbf7ad843360cdce554aa21eb234e860f5"
     },
     {
       "standalone": "components/MapPreview.tsx",
@@ -162,6 +160,18 @@
       "relation": "identical"
     },
     {
+      "standalone": "lib/authNext.ts",
+      "source": "lib/authNext.ts",
+      "relation": "adapted",
+      "note": "redirectAfterAuth fallback targets /(tabs)/dialer (standalone tab group has no index screen); otherwise identical",
+      "sourceSha256": "512b780f92198f6fd49e9bcc464c9132eaf9843f59605919f20ec35f9fa2dd0e"
+    },
+    {
+      "standalone": "lib/linkPairings.ts",
+      "source": "lib/linkPairings.ts",
+      "relation": "identical"
+    },
+    {
       "standalone": "lib/biometrics.ts",
       "source": "lib/biometrics.ts",
       "relation": "identical"
@@ -187,7 +197,7 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "b452164cc1b49e32b937279a391067b7a938319dd26a05e7f62400a6321fa74f",
+      "sourceSha256": "a549a7eea091394fd86ef1c838f4969fc2124cd01169feb50d1d041ca6906072",
       "note": "dev-only missing-env alert text reworded (no monorepo path); everything else must match the main app"
     },
     {
@@ -208,7 +218,7 @@
       "standalone": "app/oauth-callback.tsx",
       "source": "app/oauth-callback.tsx",
       "relation": "adapted",
-      "sourceSha256": "bf85302f7734f879d540c1ff3d13da69e047129688aa81a16bd7d407fa3283bd",
+      "sourceSha256": "ca3328da8508354197a803db846ea237bc271436915f201a03cb215316d1646b",
       "note": "Connected-Apps OAuth completion branch removed (standalone has no connected-apps screen); session handling must match"
     },
     {
