@@ -97,6 +97,38 @@ class BlogController extends Controller
     }
 
     /**
+     * Build the cacheable default /blogs index payload from the DB as
+     * plain attribute arrays. Shared by the request path
+     * ({@see cachedDefaultIndex()}) and the scheduled marketing-cache
+     * warmer (\App\Modules\Common\Support\MarketingPageCache), so both
+     * always produce the same payload shape.
+     */
+    public static function buildDefaultIndexPayload(): array
+    {
+        $paginator = BlogPost::published()->with(['category', 'author'])
+            ->orderByDesc('published_at')->orderByDesc('id')->paginate(9);
+        $categories = BlogCategory::orderBy('sort_order')->orderBy('name')->get();
+        $featured = BlogPost::published()->featured()->orderByDesc('published_at')->take(3)->get();
+        $popularTags = BlogTag::withCount(['posts' => fn ($w) => $w->where('status', 'published')])
+            ->orderByDesc('posts_count')->orderBy('name')->take(20)->get()
+            ->filter(fn ($t) => $t->posts_count > 0)->values();
+
+        return [
+            'posts' => $paginator->getCollection()->map(fn (BlogPost $p) => [
+                'post'     => $p->getAttributes(),
+                'category' => $p->category?->getAttributes(),
+                'author'   => $p->author?->getAttributes(),
+            ])->all(),
+            'total'       => $paginator->total(),
+            'categories'  => $categories->map(fn ($c) => $c->getAttributes())->all(),
+            'featured'    => $featured->map(fn ($p) => $p->getAttributes())->all(),
+            // posts_count from withCount() lives in the attributes,
+            // so it survives the round-trip.
+            'popularTags' => $popularTags->map(fn ($t) => $t->getAttributes())->all(),
+        ];
+    }
+
+    /**
      * Returns the fully-rehydrated view data for the default index page
      * from cache (building it on miss), or null when the cache layer is
      * unavailable — callers then fall through to the live-query path.
@@ -104,29 +136,11 @@ class BlogController extends Controller
     private function cachedDefaultIndex(): ?array
     {
         try {
-            $payload = \Illuminate\Support\Facades\Cache::remember(self::INDEX_CACHE_KEY, 600, function () {
-                $paginator = BlogPost::published()->with(['category', 'author'])
-                    ->orderByDesc('published_at')->orderByDesc('id')->paginate(9);
-                $categories = BlogCategory::orderBy('sort_order')->orderBy('name')->get();
-                $featured = BlogPost::published()->featured()->orderByDesc('published_at')->take(3)->get();
-                $popularTags = BlogTag::withCount(['posts' => fn ($w) => $w->where('status', 'published')])
-                    ->orderByDesc('posts_count')->orderBy('name')->take(20)->get()
-                    ->filter(fn ($t) => $t->posts_count > 0)->values();
-
-                return [
-                    'posts' => $paginator->getCollection()->map(fn (BlogPost $p) => [
-                        'post'     => $p->getAttributes(),
-                        'category' => $p->category?->getAttributes(),
-                        'author'   => $p->author?->getAttributes(),
-                    ])->all(),
-                    'total'       => $paginator->total(),
-                    'categories'  => $categories->map(fn ($c) => $c->getAttributes())->all(),
-                    'featured'    => $featured->map(fn ($p) => $p->getAttributes())->all(),
-                    // posts_count from withCount() lives in the attributes,
-                    // so it survives the round-trip.
-                    'popularTags' => $popularTags->map(fn ($t) => $t->getAttributes())->all(),
-                ];
-            });
+            $payload = \Illuminate\Support\Facades\Cache::remember(
+                self::INDEX_CACHE_KEY,
+                600,
+                fn () => self::buildDefaultIndexPayload()
+            );
         } catch (\Throwable $e) {
             return null;
         }

@@ -52,7 +52,7 @@ return [
     ],
     [
         'key'         => 'home:warm-caches',
-        'description' => 'Proactively rebuild the home-page caches (anonymous payload, featured posts, AI-hero demos, domain branding) plus the /pricing plan+coin-package catalogue so no visitor ever hits a cold render over the distant DB.',
+        'description' => 'Proactively rebuild the home-page and marketing-page caches (home payloads, pricing catalog, site pages, creators directory, demos, blogs index) so no visitor ever hits a cold render over the distant DB.',
         'cadence'     => ['everyFourMinutes'],
         'without_overlapping' => 5,
     ],

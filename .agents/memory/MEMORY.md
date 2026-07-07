@@ -152,9 +152,5 @@
 - [Large GitHub push](github-large-repo-push.md) — Git pane & background pushes die on the ~600MB history; use chunked fast-forward milestone pushes w/ PAT (repo+workflow scopes), force-push is sandbox-blocked.
 - [Scheduled jobs registry & panel](scheduled-jobs-registry-panel.md) — add jobs ONLY via routes/schedules/*.php defs (lockstep guard fails on direct console.php schedules); pause via AppSetting skip(), run-now sync in tests.
 - [Scheduled-job health alerts](scheduled-job-health-alerts.md) — streak-based episodes in AppSetting; stale-scheduler watchdog MUST run from web boots (dead scheduler can't self-report); Finished/Failed events are mutually exclusive.
-<<<<<<< HEAD
-- [Marketing pages zero-query warm path](marketing-pages-zero-query-caching.md) — all marketing surfaces cache attr-arrays + hydrate (versioned keys, default-anon variant only); php -S smoke tests need opcache flags or big pages falsely look ~1s slow; /pricing catalogue is warmed by `home:warm-caches` too.
-=======
-- [Marketing pages zero-query warm path](marketing-pages-zero-query-caching.md) — all marketing surfaces cache attr-arrays + hydrate (versioned keys, default-anon variant only); php -S smoke tests need opcache flags or big pages falsely look ~1s slow.
+- [Marketing pages zero-query warm path](marketing-pages-zero-query-caching.md) — all marketing surfaces cache attr-arrays + hydrate (versioned keys, default-anon variant only); php -S smoke tests need opcache flags or big pages falsely look ~1s slow; all marketing caches (including /pricing) warmed by `home:warm-caches`.
 - [FA loader guard](fontawesome-loader-guard.md) — public pages load Font Awesome ONLY via the shared non-blocking partial; guard pins swap link + data-fa-async safety net + noscript, and blocks raw FA <link> in public views (admin/user/portal blocking links are intentionally exempt).
->>>>>>> 5d562325e (Task: Catch icon-breaking Font Awesome loader regressions before they ship (#3998))

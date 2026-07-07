@@ -162,22 +162,11 @@ class CreatorsController extends Controller
         $payload = null;
         if ($isDefaultAnonymous) {
             try {
-                $payload = \Illuminate\Support\Facades\Cache::remember(self::DEFAULT_CACHE_KEY, 300, function () use ($query) {
-                    $paginator = $query->paginate(24);
-                    $models = $paginator->getCollection();
-                    $primary = $this->primaryBiolinks($models);
-
-                    return [
-                        'creators'    => $models->map(fn (User $u) => $u->getAttributes())->all(),
-                        'total'       => $paginator->total(),
-                        'buzz'        => $this->buildBuzzSnippets($models->pluck('id')->all(), $primary),
-                        'messageable' => $this->buildMessageableBiolinks($primary),
-                        // Blade only needs the alias for card hrefs.
-                        'primary'     => collect($primary)->map(fn (array $b) => [
-                            'id' => $b['id'], 'alias' => $b['alias'],
-                        ])->all(),
-                    ];
-                });
+                $payload = \Illuminate\Support\Facades\Cache::remember(
+                    self::DEFAULT_CACHE_KEY,
+                    300,
+                    fn () => $this->buildDefaultIndexPayload()
+                );
             } catch (\Throwable $e) {
                 $payload = null;
             }
@@ -223,6 +212,56 @@ class CreatorsController extends Controller
     }
 
     /**
+     * Build the cacheable payload for the default anonymous directory view
+     * (no search/tag/tier, trending sort, page 1, no adult flags) as plain
+     * attribute arrays. Reconstructs the exact query index() builds under
+     * those defaults, so the request path and the scheduled marketing-cache
+     * warmer (\App\Modules\Common\Support\MarketingPageCache) always cache
+     * the same payload.
+     */
+    public function buildDefaultIndexPayload(): array
+    {
+        $publishedBiolinkUserIds = Link::whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
+            ->where('is_active', true)
+            ->select('user_id')->distinct();
+
+        // Trending = followers gained in the last 7 days (default sort).
+        $trendingSub = DB::table('follows')
+            ->select('creator_id', DB::raw('COUNT(*) as gained'))
+            ->where('created_at', '>=', now()->subDays(7))
+            ->groupBy('creator_id');
+
+        $query = User::query()
+            ->where('discoverable', true)
+            ->whereIn('id', $publishedBiolinkUserIds)
+            // Default view hides adult-flagged profiles (suspended-flag rows
+            // stay visible — the moderator decision lifts the public 18+ tag).
+            ->where(function ($w) {
+                $w->where('adult_content_enabled', false)
+                  ->orWhereNotNull('adult_flag_suspended_at');
+            })
+            ->leftJoinSub($trendingSub, 't', 't.creator_id', '=', 'users.id')
+            ->orderByDesc(DB::raw('COALESCE(t.gained, 0)'))
+            ->orderByDesc('users.followers_count')
+            ->select('users.*');
+
+        $paginator = $query->paginate(24);
+        $models = $paginator->getCollection();
+        $primary = $this->primaryBiolinks($models);
+
+        return [
+            'creators'    => $models->map(fn (User $u) => $u->getAttributes())->all(),
+            'total'       => $paginator->total(),
+            'buzz'        => $this->buildBuzzSnippets($models->pluck('id')->all(), $primary),
+            'messageable' => $this->buildMessageableBiolinks($primary),
+            // Blade only needs the alias for card hrefs.
+            'primary'     => collect($primary)->map(fn (array $b) => [
+                'id' => $b['id'], 'alias' => $b['alias'],
+            ])->all(),
+        ];
+    }
+
+    /**
      * One batched lookup of each creator's "primary" biolink (their
      * most-clicked active biolink-family link — same semantics as
      * User::primaryBiolink()). Returns
@@ -262,29 +301,13 @@ class CreatorsController extends Controller
         // cache deserializes as __PHP_Incomplete_Class (500s the page).
         // We now cache PLAIN ATTRIBUTE ARRAYS and rehydrate on read; the
         // joined `gained` column survives as a plain attribute.
-        $cacheKey = "creators:trending:v2:" . ($showAdult ? '1' : '0') . ':' . ($onlyAdult ? '1' : '0');
+        $cacheKey = self::trendingCarouselCacheKey($showAdult, $onlyAdult);
         try {
-            $rows = \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($publishedBiolinkUserIds, $showAdult, $onlyAdult) {
-                $sub = DB::table('follows')
-                    ->select('creator_id', DB::raw('COUNT(*) as gained'))
-                    ->where('created_at', '>=', now()->subDays(7))
-                    ->groupBy('creator_id');
-
-                $q = User::query()
-                    ->where('discoverable', true)
-                    ->whereIn('id', $publishedBiolinkUserIds)
-                    ->joinSub($sub, 't', 't.creator_id', '=', 'users.id')
-                    ->orderByDesc('t.gained')
-                    ->select('users.*', 't.gained');
-                if ($onlyAdult) {
-                    $q->where('adult_content_enabled', true)->whereNull('adult_flag_suspended_at');
-                } elseif (!$showAdult) {
-                    $q->where(function ($w) {
-                        $w->where('adult_content_enabled', false)->orWhereNotNull('adult_flag_suspended_at');
-                    });
-                }
-                return $q->limit(8)->get()->map(fn (User $u) => $u->getAttributes())->all();
-            });
+            $rows = \Illuminate\Support\Facades\Cache::remember(
+                $cacheKey,
+                300,
+                fn () => $this->buildTrendingCarouselRows($showAdult, $onlyAdult)
+            );
         } catch (\Throwable $e) {
             $rows = [];
         }
@@ -293,30 +316,86 @@ class CreatorsController extends Controller
     }
 
     /**
+     * Cache key for the trending-carousel variant. v2: the v1 key cached
+     * serialized User models (__PHP_Incomplete_Class on the file cache).
+     */
+    public static function trendingCarouselCacheKey(bool $showAdult, bool $onlyAdult): string
+    {
+        return 'creators:trending:v2:' . ($showAdult ? '1' : '0') . ':' . ($onlyAdult ? '1' : '0');
+    }
+
+    /**
+     * Build the trending-carousel rows (top 8 creators by 7-day follower
+     * gain) as plain attribute arrays. Shared by the request path and the
+     * scheduled marketing-cache warmer.
+     */
+    public function buildTrendingCarouselRows(bool $showAdult, bool $onlyAdult): array
+    {
+        $publishedBiolinkUserIds = Link::whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
+            ->where('is_active', true)
+            ->select('user_id')->distinct();
+
+        $sub = DB::table('follows')
+            ->select('creator_id', DB::raw('COUNT(*) as gained'))
+            ->where('created_at', '>=', now()->subDays(7))
+            ->groupBy('creator_id');
+
+        $q = User::query()
+            ->where('discoverable', true)
+            ->whereIn('id', $publishedBiolinkUserIds)
+            ->joinSub($sub, 't', 't.creator_id', '=', 'users.id')
+            ->orderByDesc('t.gained')
+            ->select('users.*', 't.gained');
+        if ($onlyAdult) {
+            $q->where('adult_content_enabled', true)->whereNull('adult_flag_suspended_at');
+        } elseif (!$showAdult) {
+            $q->where(function ($w) {
+                $w->where('adult_content_enabled', false)->orWhereNotNull('adult_flag_suspended_at');
+            });
+        }
+        return $q->limit(8)->get()->map(fn (User $u) => $u->getAttributes())->all();
+    }
+
+    /**
      * Top niche tags from the directory pool. Aggregated in PHP because
      * niche_tags is JSON and DBs vary in their array unnest support.
      */
     protected function popularTags(int $limit = 24): array
     {
-        return \Illuminate\Support\Facades\Cache::remember('creators:popular_tags', 600, function () use ($limit) {
-            $rows = User::query()
-                ->where('discoverable', true)
-                ->whereNotNull('niche_tags')
-                ->limit(2000)
-                ->pluck('niche_tags')
-                ->all();
-            $counts = [];
-            foreach ($rows as $tags) {
-                if (!is_array($tags)) continue;
-                foreach ($tags as $t) {
-                    $t = mb_strtolower(trim((string) $t));
-                    if ($t === '') continue;
-                    $counts[$t] = ($counts[$t] ?? 0) + 1;
-                }
+        return \Illuminate\Support\Facades\Cache::remember(
+            self::POPULAR_TAGS_CACHE_KEY,
+            600,
+            fn () => $this->buildPopularTagCounts($limit)
+        );
+    }
+
+    /** Cache key for the directory's popular niche-tag cloud. */
+    public const POPULAR_TAGS_CACHE_KEY = 'creators:popular_tags';
+
+    /**
+     * Build the popular niche-tag counts from the DB. Shared by the
+     * request path ({@see popularTags()}) and the scheduled marketing-cache
+     * warmer.
+     */
+    public function buildPopularTagCounts(int $limit = 24): array
+    {
+        $rows = User::query()
+            ->where('discoverable', true)
+            ->whereNotNull('niche_tags')
+            ->limit(2000)
+            ->pluck('niche_tags')
+            ->all();
+        $counts = [];
+        foreach ($rows as $tags) {
+            if (!is_array($tags)) continue;
+            foreach ($tags as $t) {
+                $t = mb_strtolower(trim((string) $t));
+                if ($t === '') continue;
+                $counts[$t] = ($counts[$t] ?? 0) + 1;
             }
-            arsort($counts);
-            return array_slice($counts, 0, $limit, true);
-        });
+        }
+        arsort($counts);
+        return array_slice($counts, 0, $limit, true);
     }
 
     /**

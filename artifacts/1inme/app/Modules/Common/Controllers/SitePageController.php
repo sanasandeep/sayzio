@@ -207,6 +207,37 @@ class SitePageController extends Controller
      *  URLs are host-dependent and built at render time). */
     public const DEMOS_CACHE_KEY = 'demos:links:v1';
 
+    /**
+     * Build the cacheable /demos gallery data from the DB. Shared by the
+     * request path ({@see demos()}) and the scheduled marketing-cache
+     * warmer (\App\Modules\Common\Support\MarketingPageCache), so both
+     * always produce the same payload shape.
+     */
+    public static function buildDemosData(): array
+    {
+        return [
+            // Live explainer pages, keyed by alias so we only link
+            // real pages.
+            'links' => Link::query()
+                ->where('type', 'biolink')
+                ->where('is_active', true)
+                ->where('alias', 'like', 'demo-type-%')
+                ->get(['id', 'alias', 'title'])
+                ->mapWithKeys(fn (Link $l) => [$l->alias => ['alias' => $l->alias, 'title' => (string) $l->title]])
+                ->all(),
+            // The live, working restaurant menu (order mode + WhatsApp
+            // confirmation) seeded at /demo-restaurant. When present, we
+            // surface a "Try it live" shortcut on the restaurant
+            // explainer card so visitors can jump straight into the
+            // ordering flow without first reading the explainer.
+            'has_live_restaurant' => Link::query()
+                ->where('type', 'restaurant_menu')
+                ->where('is_active', true)
+                ->where('alias', 'demo-restaurant')
+                ->exists(),
+        ];
+    }
+
     public function demos()
     {
         // Showcase copy source (admin-editable). Passing the saved features
@@ -221,29 +252,11 @@ class SitePageController extends Controller
         // seeded demo pages virtually never change, and with production
         // DB_PERSISTENT=false each query costs a ~3s SSL reconnect.
         try {
-            $demoData = \Illuminate\Support\Facades\Cache::remember(self::DEMOS_CACHE_KEY, 300, function () {
-                return [
-                    // Live explainer pages, keyed by alias so we only link
-                    // real pages.
-                    'links' => Link::query()
-                        ->where('type', 'biolink')
-                        ->where('is_active', true)
-                        ->where('alias', 'like', 'demo-type-%')
-                        ->get(['id', 'alias', 'title'])
-                        ->mapWithKeys(fn (Link $l) => [$l->alias => ['alias' => $l->alias, 'title' => (string) $l->title]])
-                        ->all(),
-                    // The live, working restaurant menu (order mode + WhatsApp
-                    // confirmation) seeded at /demo-restaurant. When present, we
-                    // surface a "Try it live" shortcut on the restaurant
-                    // explainer card so visitors can jump straight into the
-                    // ordering flow without first reading the explainer.
-                    'has_live_restaurant' => Link::query()
-                        ->where('type', 'restaurant_menu')
-                        ->where('is_active', true)
-                        ->where('alias', 'demo-restaurant')
-                        ->exists(),
-                ];
-            });
+            $demoData = \Illuminate\Support\Facades\Cache::remember(
+                self::DEMOS_CACHE_KEY,
+                300,
+                fn () => self::buildDemosData()
+            );
         } catch (\Throwable $e) {
             $demoData = ['links' => [], 'has_live_restaurant' => false];
         }

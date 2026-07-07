@@ -48,3 +48,10 @@ before concluding a page is slow (0.06s with opcache).
 **Known stale test:** `SitemapIndexTest::test_sitemap_index_lists_both_sitemaps_as_valid_xml`
 asserts exactly 2 `<sitemap>` entries but `SitemapController::index()` has since
 grown to 5 (creators/resumes/links) — pre-existing failure, not data-dependent.
+
+**Proactive warming:** the `home:warm-caches` command (every 4 min + at boot)
+now also runs `MarketingPageCache::warm()` — pricing catalog, all SitePage
+slugs (one query), creators default index/trending(0,0)/popular tags, demos,
+blogs index — with `HomePageCache::WARM_TTL` puts. Builders live on the
+request-path controllers (`build*` methods) so warmer and lazy rebuild can't
+drift; sections are fault-isolated (log + summary error, never block serving).
