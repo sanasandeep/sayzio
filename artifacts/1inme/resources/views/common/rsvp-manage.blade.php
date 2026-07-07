@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Manage your RSVP — {{ $link->title ?: $link->alias }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
+    @include('common.partials.fontawesome')
     <style>
         body { background:#f5f3ff; min-height:100vh; padding:24px; }
         .rsvp-card { max-width:560px; margin: 0 auto; border-radius:18px; border:none; box-shadow:0 12px 40px rgba(91,33,182,0.12); overflow:hidden; }

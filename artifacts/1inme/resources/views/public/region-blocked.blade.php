@@ -3,7 +3,7 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Not available in your region — {{ config('app.name') }}</title>
 @vite(['resources/css/app.css', 'resources/js/app.js'])
-<link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
+@include('common.partials.fontawesome')
 </head>
 <body class="bg-slate-50 min-h-screen">
 <div class="max-w-md mx-auto px-4 py-20 text-center">

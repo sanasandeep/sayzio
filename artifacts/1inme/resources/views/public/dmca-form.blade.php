@@ -4,7 +4,7 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>DMCA Takedown — {{ config('app.name') }}</title>
 @vite(['resources/css/app.css', 'resources/js/app.js'])
-<link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
+@include('common.partials.fontawesome')
 </head>
 <body class="bg-slate-50 min-h-screen">
 <div class="max-w-2xl mx-auto px-4 py-10">

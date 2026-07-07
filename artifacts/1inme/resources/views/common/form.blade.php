@@ -49,7 +49,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family={{ urlencode($font) }}:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
+    @include('common.partials.fontawesome')
     <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
     <script src="{{ asset('js/vendor/alpine.min.js') }}" defer></script>
     <style>

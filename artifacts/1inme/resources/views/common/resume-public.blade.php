@@ -64,7 +64,7 @@
 
     <script type="application/ld+json">{!! json_encode($person, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 
-    <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
+    @include('common.partials.fontawesome')
     <style>
         :root { color-scheme: light; }
         * { box-sizing: border-box; }

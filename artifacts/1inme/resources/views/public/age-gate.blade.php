@@ -6,7 +6,7 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>Age verification — {{ $creator->name }}</title>
 @vite(['resources/css/app.css', 'resources/js/app.js'])
-<link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
+@include('common.partials.fontawesome')
 </head>
 <body class="bg-slate-950 min-h-screen text-slate-100 flex items-center justify-center px-4 py-10">
     <div class="max-w-lg w-full bg-slate-900/80 backdrop-blur border border-white/10 rounded-2xl shadow-2xl p-8 text-center">

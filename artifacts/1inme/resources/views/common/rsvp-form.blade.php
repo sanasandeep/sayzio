@@ -14,7 +14,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>RSVP — {{ $link->title }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
+    @include('common.partials.fontawesome')
     @if($hasPin)
         <link rel="stylesheet" href="{{ asset('css/vendor/leaflet.min.css') }}">
     @endif

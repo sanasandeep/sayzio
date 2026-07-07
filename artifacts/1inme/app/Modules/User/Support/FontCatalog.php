@@ -132,4 +132,29 @@ class FontCatalog
         return 'https://fonts.googleapis.com/css2?family=' . str_replace('%20', '+', rawurlencode($family))
             . ':wght@' . $weights . '&display=swap';
     }
+
+    /**
+     * Build a single combined Google Fonts <link> href for multiple
+     * families. The css2 endpoint accepts repeated `family=` query
+     * parameters, so requesting several families only costs one
+     * render-blocking request/connection instead of one per family.
+     * Unknown (legacy) families fall back to a broad weight request just
+     * like {@see googleHref}. Returns null if $families is empty.
+     *
+     * @param array<int, string> $families
+     */
+    public static function googleHrefCombined(array $families): ?string
+    {
+        $families = array_values(array_unique(array_filter($families)));
+        if (empty($families)) return null;
+
+        $byFamily = self::byFamily();
+        $parts = [];
+        foreach ($families as $family) {
+            $entry = $byFamily[$family] ?? null;
+            $weights = $entry ? implode(';', $entry['weights']) : '300;400;500;600;700';
+            $parts[] = 'family=' . str_replace('%20', '+', rawurlencode($family)) . ':wght@' . $weights;
+        }
+        return 'https://fonts.googleapis.com/css2?' . implode('&', $parts) . '&display=swap';
+    }
 }

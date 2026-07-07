@@ -92,7 +92,7 @@
         @endif
     @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
+    @include('common.partials.fontawesome')
     @php
         $bs = $link->settings['biolink'] ?? [];
         $fontFamily = $bs['font_family'] ?? 'Space Grotesk';
@@ -223,17 +223,17 @@
             $customFontRecords = $link->user->customFonts()
                 ->whereIn('family', $customFamilies)->get();
         }
+        // Combine every distinct family into ONE Google Fonts request
+        // (the css2 endpoint accepts repeated family= params). This avoids
+        // stacking a separate render-blocking stylesheet fetch per family,
+        // which was hurting First Paint / LCP on customized biolinks.
+        $googleFontsHref = \App\Modules\User\Support\FontCatalog::googleHrefCombined($googleFonts);
     @endphp
-    @foreach($googleFonts as $gf)
-        @php $href = \App\Modules\User\Support\FontCatalog::googleHref($gf); @endphp
-        @if($href)
-            <link href="{{ $href }}" rel="stylesheet">
-        @else
-            {{-- Unknown family (legacy data) — fall back to a broad weight
-                 request so older saved values still render. --}}
-            <link href="https://fonts.googleapis.com/css2?family={{ str_replace('%20', '+', rawurlencode($gf)) }}:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-        @endif
-    @endforeach
+    @if($googleFontsHref)
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="{{ $googleFontsHref }}" rel="stylesheet">
+    @endif
     @if($customFontRecords->isNotEmpty())
     <style>
         @foreach($customFontRecords as $cf)
