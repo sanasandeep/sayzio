@@ -25,7 +25,7 @@ class WarmHomePageCaches extends Command
 {
     protected $signature = 'home:warm-caches';
 
-    protected $description = 'Rebuild the home-page and marketing-page caches (home payloads, pricing catalog, site pages, creators directory, demos, blogs index) so no visitor hits a cold render.';
+    protected $description = 'Rebuild the anonymous marketing caches (home payloads, featured blog posts, AI-hero demo aliases, domain branding, pricing catalogue, features page, creators directory, demos gallery, blogs index) so no visitor hits a cold render.';
 
     public function handle(): int
     {
@@ -35,7 +35,7 @@ class WarmHomePageCaches extends Command
         $marketing = MarketingPageCache::warm();
 
         $this->info(sprintf(
-            'Warmed home caches in %.2fs — payloads: [%s], featured posts: %d, AI-hero aliases: %d, branding hosts: [%s], pricing catalog: %d plans / %d packages.',
+            'Warmed marketing caches in %.2fs — payloads: [%s], featured posts: %d, AI-hero aliases: %d, branding hosts: [%s], pricing catalog: %d plans / %d packages.',
             microtime(true) - $started,
             implode(', ', $summary['payload_currencies']),
             $summary['featured_posts'],
@@ -45,7 +45,7 @@ class WarmHomePageCaches extends Command
             $summary['pricing_packages'] ?? 0,
         ));
         $this->info(sprintf(
-            'Warmed marketing caches — site pages: %d, creators: [%s], demos: %s, blogs: %s.',
+            'Warmed marketing sections — site pages: %d, creators: [%s], demos: %s, blogs: %s.',
             $marketing['site_pages'],
             implode(', ', $marketing['creators']),
             $marketing['demos'] ? 'yes' : 'no',

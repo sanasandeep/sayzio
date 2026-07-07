@@ -34,9 +34,15 @@ but note listeners ACCUMULATE across passes in one process (warm-pass counts
 double unless you account for it).
 
 **Proactive warming:** the scheduled `home:warm-caches` job (HomePageCache::warm())
-also refreshes the /pricing catalogue via `PricingPageCache::warm()` (builder
-lives in `PricingPageCache`, shared with the controller's lazy fallback — never
-fork it back). Public marketing controllers must resolve the visitor via
+refreshes ALL anonymous marketing surfaces every 4 min: /pricing via
+`PricingPageCache::warm()`, /features via `SitePage::warmSlugCache('features')`,
+/creators via `CreatorsController::warmDirectoryCaches()` (directory + trending
+`0:0` variant + tag cloud), /demos via `SitePageController::warmDemosCache()`,
+/blogs via `BlogController::warmDefaultIndex()`. Rule: every warm entry point
+shares its payload builder with the request path's lazy Cache::remember — never
+fork the closure back into the controller. Sections are fault-isolated
+(try/catch + per-section summary key); warmer uses Cache::put(WARM_TTL=900)
+so it overwrites shorter request-path TTLs. Public marketing controllers must resolve the visitor via
 `$request->user('web')`, not `user()` (admin-guard session → Admin → TypeError
 in `PricingResolver::currencyForUser(?User)`).
 
