@@ -1,0 +1,12 @@
+# Fires sayzio-scheduler.service every minute (Laravel's schedule:run contract).
+
+[Unit]
+Description=Run the Sayzio Laravel scheduler every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

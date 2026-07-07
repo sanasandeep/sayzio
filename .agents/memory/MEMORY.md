@@ -154,3 +154,4 @@
 - [Multicol-item transform guard](multicol-transform-guard.md) — never transform (or will-change: transform) a direct child of a `columns-*` container, it vanishes on hover; motion goes on an inner wrapper; guard derives item classes from markup.
 - [Sticky header vs drawer scroll lock](sticky-header-drawer-scroll-lock.md) — body overflow:hidden breaks position:sticky (scrolled header+drawer snap off-viewport; pin fixed while open); autohide e2e must use stable-near landing + down-nudge, layout shifts fire up-scroll events that cancel hides.
 - [Marketing header current-page highlight](marketing-header-active-nav.md) — nav arrays carry a routeIs pattern column; Features top link & Events pill own their highlights, use-case matched by persona slug.
+- [EC2 migration kit lockstep](ec2-migration-kit-lockstep.md) — deploy/ec2/ mirrors the artifact.toml prod pipeline (view:clear→build, reconcile fallback, keep-serving); update it when the pipeline changes.

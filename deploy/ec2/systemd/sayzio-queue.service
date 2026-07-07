@@ -1,0 +1,31 @@
+# Laravel queue worker (database driver) with restart-on-failure.
+#
+# Install:
+#   sudo cp deploy/ec2/systemd/sayzio-queue.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now sayzio-queue.service
+#
+# --max-time=3600 makes the worker exit cleanly every hour so systemd restarts
+# it with fresh code/config after deploys (deploy.sh also restarts it
+# explicitly). Reads config from artifacts/1inme/.env.
+
+[Unit]
+Description=Sayzio Laravel queue worker
+After=network.target
+
+[Service]
+Type=simple
+User=sayzio
+Group=sayzio
+WorkingDirectory=/var/www/sayzio/artifacts/1inme
+ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+Restart=always
+RestartSec=5
+# Give in-flight jobs time to finish on stop/restart.
+TimeoutStopSec=60
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

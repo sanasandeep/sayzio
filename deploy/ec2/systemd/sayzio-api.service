@@ -1,0 +1,30 @@
+# Express API server (artifacts/api-server) — built bundle at dist/index.mjs.
+#
+# Install:
+#   sudo cp deploy/ec2/systemd/sayzio-api.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now sayzio-api.service
+#
+# Environment: /etc/sayzio/api-server.env (see deploy/ec2/env-checklist.md).
+# Must contain at least PORT=8080, NODE_ENV=production and the DB_* variables.
+
+[Unit]
+Description=Sayzio Express API server
+After=network.target
+
+[Service]
+Type=simple
+User=sayzio
+Group=sayzio
+WorkingDirectory=/var/www/sayzio
+EnvironmentFile=/etc/sayzio/api-server.env
+ExecStart=/usr/bin/node --enable-source-maps /var/www/sayzio/artifacts/api-server/dist/index.mjs
+Restart=always
+RestartSec=3
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

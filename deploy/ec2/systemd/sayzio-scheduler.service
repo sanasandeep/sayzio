@@ -1,0 +1,21 @@
+# One-shot unit that runs the Laravel scheduler; triggered every minute by
+# sayzio-scheduler.timer. The scheduler drives all scheduled commands
+# (contacts:sync, reviews:sync, db:check-pending-migrations, digests, ...).
+#
+# Install (together with the timer):
+#   sudo cp deploy/ec2/systemd/sayzio-scheduler.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now sayzio-scheduler.timer
+#
+# Cron alternative (pick ONE — do not run both):
+#   * * * * * cd /var/www/sayzio/artifacts/1inme && php artisan schedule:run >> /dev/null 2>&1
+
+[Unit]
+Description=Sayzio Laravel scheduler tick
+
+[Service]
+Type=oneshot
+User=sayzio
+Group=sayzio
+WorkingDirectory=/var/www/sayzio/artifacts/1inme
+ExecStart=/usr/bin/php artisan schedule:run
