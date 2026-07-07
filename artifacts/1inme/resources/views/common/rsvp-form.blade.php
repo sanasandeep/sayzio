@@ -166,18 +166,24 @@
     var lat = parseFloat(el.dataset.lat), lng = parseFloat(el.dataset.lng);
     if (!isFinite(lat) || !isFinite(lng)) return;
     var map = L.map(el, { center: [lat, lng], zoom: 15, scrollWheelZoom: false });
+    var DARK_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+    var LIGHT_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    var DARK_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com">CARTO</a>';
+    var LIGHT_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
     var isDark = !document.documentElement.classList.contains('light-mode');
-    L.tileLayer(
-        isDark
-            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {
-            maxZoom: 19,
-            attribution: isDark
-                ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com">CARTO</a>'
-                : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    var tiles = L.tileLayer(isDark ? DARK_URL : LIGHT_URL, {
+        maxZoom: 19,
+        attribution: isDark ? DARK_ATTR : LIGHT_ATTR,
+    }).addTo(map);
+    window.addEventListener('1inme:theme-change', function (e) {
+        var dark = e.detail && e.detail.theme === 'dark';
+        tiles.setUrl(dark ? DARK_URL : LIGHT_URL);
+        tiles.options.attribution = dark ? DARK_ATTR : LIGHT_ATTR;
+        if (map.attributionControl) {
+            map.attributionControl.removeAttribution(dark ? LIGHT_ATTR : DARK_ATTR);
+            map.attributionControl.addAttribution(dark ? DARK_ATTR : LIGHT_ATTR);
         }
-    ).addTo(map);
+    });
     var icon = L.divIcon({
         className: '',
         html: '<div style="width:30px;height:40px;"><svg viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="evmap-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#90acff"/><stop offset="100%" stop-color="#3d6bff"/></linearGradient></defs><path d="M17 0C7.6 0 0 7.5 0 16.7c0 11.7 14.6 25.5 16 26.8.6.6 1.5.6 2 0 1.5-1.3 16-15.1 16-26.8C34 7.5 26.4 0 17 0z" fill="url(#evmap-g)" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/></svg></div>',
