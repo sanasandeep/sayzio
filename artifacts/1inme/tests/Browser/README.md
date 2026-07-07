@@ -66,7 +66,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   dialer-live-sync.spec.ts \
   store-coming-soon-modal.spec.ts \
   ai-dashboard-demo-perf.spec.ts \
-  event-rsvp-light-readability.spec.ts
+  event-rsvp-light-readability.spec.ts \
+  header-autohide.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
@@ -247,6 +248,20 @@ The gate covers the specs that run reliably as an unattended check here:
   shared fixed `.aurora` and seam against the rest of the page — and that the
   sticky header stays pinned (its viewport-top doesn't drift) on scroll. Gating
   it stops a future page/edit from reintroducing a background seam.
+- `header-autohide.spec.ts` — no login/seeding. Guards the marketing header's
+  auto-hide-on-scroll behaviour on `/features` (long page, CSS smooth
+  scrolling — scrolls use `behavior: "instant"` and assertions poll for the
+  scroll + 300ms transform transition to settle). Asserts: visible at the top;
+  fully off-viewport after scrolling down past the 96px grace zone + 24px
+  accumulated threshold; back after a small upward scroll; and NEVER hidden
+  while a mega-menu is open — the menu is opened programmatically via Alpine
+  state (pointer hover would be re-evaluated by Chrome on scroll and fire the
+  real `@mouseleave` close), then closing it with the page scrolled-down lets
+  the pending hide apply, proving the force-show genuinely overrode an active
+  hide. A second test emulates `prefers-reduced-motion` and asserts hide/show
+  still work with the slide transition disabled. Pins the multi-statement
+  Alpine scroll expression in `public/partials/header.blade.php` that no build
+  step would ever catch a breakage of.
 - `home-section-structure.spec.ts` — no login/seeding. Renders `/` and asserts
   each contractual home section id is present EXACTLY once (missing or duplicated
   fails), and that the four AI partials (ai-hero via `#ai-hero-h`, `#ai-suite`,
