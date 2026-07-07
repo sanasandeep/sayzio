@@ -70,7 +70,11 @@ export default function BlogPost({ params }: BlogPostProps) {
   }
 
   return (
-    <PageLayout title={post.metaTitle ?? post.title} description={post.metaDescription ?? post.excerpt}>
+    <PageLayout
+      title={post.metaTitle ?? post.title}
+      description={post.metaDescription ?? post.excerpt}
+      image={post.coverImage ?? undefined}
+    >
       <section className="py-20 lg:py-32">
         <div className="container mx-auto px-6">
           <div className="max-w-2xl mx-auto">

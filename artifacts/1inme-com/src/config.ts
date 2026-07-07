@@ -16,6 +16,17 @@ const DEFAULT_PRICING_URL = "https://1in.me/pricing";
 export const LOGIN_URL: string =
   import.meta.env.VITE_LOGIN_URL ?? DEFAULT_LOGIN_URL;
 
+/**
+ * Canonical public origin of the marketing site itself (NOT the product
+ * app). Used to build absolute canonical URLs, Open Graph `og:url`/`og:image`
+ * and the sitemap. Override at build time with VITE_SITE_URL for
+ * staging/preview domains; defaults to the production marketing domain.
+ * Always stored without a trailing slash.
+ */
+export const SITE_URL: string = (
+  import.meta.env.VITE_SITE_URL ?? "https://sayzio.com"
+).replace(/\/$/, "");
+
 export const SIGNUP_URL: string =
   import.meta.env.VITE_SIGNUP_URL ?? LOGIN_URL;
 
