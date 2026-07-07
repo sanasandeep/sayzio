@@ -27,8 +27,9 @@ setup — the `.replit-artifact/artifact.toml` files stay untouched.
 deploy/ec2/
 ├── README.md                       # this guide
 ├── env-checklist.md                # complete env-var audit (Laravel + api-server)
-├── bootstrap.sh                    # Ubuntu provisioning (PHP 8.4, Composer, Node 24, pnpm, Nginx, Certbot)
-├── deploy.sh                       # repeatable deploy (mirrors the Replit production pipeline)
+├── bootstrap.sh                    # Ubuntu 22.04/24.04 provisioning (PHP 8.4, Composer, Node 24, pnpm, Nginx, Certbot)
+├── bootstrap-al2023.sh             # Amazon Linux 2023 provisioning (same stack via dnf)
+├── deploy.sh                       # repeatable deploy (mirrors the Replit production pipeline; auto-detects distro)
 ├── nginx/
 │   ├── sayzio.conf                 # single-domain path-routed site config
 │   └── marketing-subdomain.conf    # optional: marketing site on its own subdomain
@@ -41,9 +42,29 @@ deploy/ec2/
 
 ---
 
+## Supported distros at a glance
+
+Both tracks install the exact same stack; only package/service/path names differ.
+
+| | Ubuntu 22.04/24.04 | Amazon Linux 2023 |
+|---|---|---|
+| Bootstrap script | `bootstrap.sh` | `bootstrap-al2023.sh` |
+| Default SSH user | `ubuntu` | `ec2-user` |
+| PHP 8.4 source | ondrej/php PPA | AL2023 repos (release **2023.7+**; older → `dnf upgrade --releasever=latest`) |
+| PHP-FPM unit | `php8.4-fpm` | `php-fpm` |
+| PHP-FPM socket | `/run/php/php8.4-fpm.sock` | `/run/php-fpm/www.sock` |
+| FPM runtime user | `www-data` | `apache` (default pool; `nginx` is already in `listen.acl_users`) |
+| Custom PHP ini | `/etc/php/8.4/{fpm,cli}/conf.d/90-sayzio.ini` | `/etc/php.d/90-sayzio.ini` (shared CLI+FPM) |
+| Nginx site config | `sites-available/` + symlink in `sites-enabled/` | `/etc/nginx/conf.d/*.conf` (no sites-enabled) |
+| Certbot | `apt install certbot python3-certbot-nginx` | `dnf install certbot python3-certbot-nginx` (bootstrap falls back to the official pip-venv method if absent) |
+
+`deploy.sh` needs **no changes** on either distro — it auto-detects the
+PHP-FPM unit name and the FPM runtime user for the storage ACL grant
+(`PHP_FPM_SERVICE` / `PHP_FPM_USER` env overrides remain available).
+
 ## Step 1 — Provision the EC2 instance
 
-- **AMI**: Ubuntu 24.04 LTS (22.04 also works).
+- **AMI**: Ubuntu 24.04 LTS (22.04 also works) **or Amazon Linux 2023**.
 - **Size**: `t3.small` minimum; `t3.medium`+ recommended (Vite/Tailwind builds
   and Composer are memory-hungry — add 2 GB swap on small instances).
 - **Region/VPC**: **place the instance in the same VPC (and AZ region) as the
@@ -67,12 +88,17 @@ Open the RDS security group to the EC2 instance:
 ## Step 2 — Bootstrap the server
 
 ```bash
-# on the EC2 instance
-sudo bash bootstrap.sh          # (scp it up, or clone the repo first and run deploy/ec2/bootstrap.sh)
+# on the EC2 instance (scp the script up, or clone the repo first and run it from deploy/ec2/)
+sudo bash bootstrap.sh              # Ubuntu 22.04/24.04
+sudo bash bootstrap-al2023.sh       # Amazon Linux 2023
 ```
 
 Installs PHP 8.4 (FPM + CLI + extensions), Composer, Node.js 24, pnpm, Nginx,
 Certbot; creates the `sayzio` deploy user and `/etc/sayzio`. Idempotent.
+
+AL2023 note: PHP 8.4 ships in the AL2023 repos from release **2023.7**
+onward. On an older release the script stops and tells you to
+`sudo dnf upgrade -y --releasever=latest && sudo reboot` first.
 
 ## Step 3 — Clone the repo and fill in environment
 
@@ -98,18 +124,45 @@ UI instead) and which are Replit-only.
 > environment. It encrypts admin-stored secrets (SMTP password, platform
 > service keys); generating a new key makes them unreadable.
 
+> **Clone the FULL monorepo — never flatten it.** Nginx and every script in
+> this kit point *into* the repo at `artifacts/1inme/public`; the Laravel app
+> must stay at `/var/www/sayzio/artifacts/1inme`. See
+> [Recovering from a flattened clone](#recovering-from-a-flattened-clone)
+> if the app's contents were ever moved to the repo root.
+
 ## Step 4 — Install Nginx + systemd units
+
+**Ubuntu:**
 
 ```bash
 cd /var/www/sayzio
 
-# Nginx (edit server_name + paths first)
+# Nginx (edit server_name first; default socket line already matches Ubuntu)
 sudo cp deploy/ec2/nginx/sayzio.conf /etc/nginx/sites-available/sayzio.conf
 sudo ln -s /etc/nginx/sites-available/sayzio.conf /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
+```
 
-# systemd
+**Amazon Linux 2023** (no `sites-available`/`sites-enabled` — nginx loads
+`/etc/nginx/conf.d/*.conf`):
+
+```bash
+cd /var/www/sayzio
+
+sudo cp deploy/ec2/nginx/sayzio.conf /etc/nginx/conf.d/sayzio.conf
+# edit server_name AND switch the fastcgi_pass socket:
+#   comment  fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+#   enable   fastcgi_pass unix:/run/php-fpm/www.sock;
+sudo nano /etc/nginx/conf.d/sayzio.conf
+# (optional) comment out the default `server { listen 80; ... }` block in
+# /etc/nginx/nginx.conf so this vhost is the only one answering
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+**systemd units (identical on both distros):**
+
+```bash
 sudo cp deploy/ec2/systemd/sayzio-*.service deploy/ec2/systemd/sayzio-scheduler.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable sayzio-api.service sayzio-queue.service sayzio-scheduler.timer
@@ -123,11 +176,17 @@ Marketing-site options (documented in the two nginx templates):
   block from `sayzio.conf`, and deploy with `MARKETING_BASE=/ bash deploy/ec2/deploy.sh`.
 
 Give the deploy user passwordless rights for exactly the service commands
-`deploy.sh` uses:
+`deploy.sh` uses (note the PHP-FPM unit name differs per distro):
 
 ```bash
+# Ubuntu
 sudo tee /etc/sudoers.d/sayzio-deploy <<'EOF'
 sayzio ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.4-fpm, /usr/bin/systemctl restart sayzio-api.service, /usr/bin/systemctl restart sayzio-queue.service, /usr/bin/systemctl reload nginx, /usr/sbin/nginx -t
+EOF
+
+# Amazon Linux 2023
+sudo tee /etc/sudoers.d/sayzio-deploy <<'EOF'
+sayzio ALL=(root) NOPASSWD: /usr/bin/systemctl reload php-fpm, /usr/bin/systemctl restart sayzio-api.service, /usr/bin/systemctl restart sayzio-queue.service, /usr/bin/systemctl reload nginx, /usr/sbin/nginx -t
 EOF
 ```
 
@@ -167,6 +226,13 @@ admin-dashboard banner, and `GET /up/schema` (503 on drift).
 sudo certbot --nginx -d yourdomain.com          # add -d www.yourdomain.com etc.
 sudo certbot renew --dry-run                    # verify auto-renewal
 ```
+
+Certbot install differs per distro (both handled by the bootstrap scripts):
+Ubuntu uses the apt packages; AL2023 uses `dnf install certbot
+python3-certbot-nginx` when available, otherwise the bootstrap falls back to
+the official pip-venv method (`/opt/certbot`, symlinked to
+`/usr/local/bin/certbot`). With the pip method there is no distro renewal
+timer — add one: `echo "0 0,12 * * * root certbot renew -q" | sudo tee -a /etc/crontab`.
 
 For customer custom domains you'll need per-domain certs
 (`certbot --nginx -d customerdomain.com` per domain, or automate issuance).
@@ -230,6 +296,79 @@ journalctl -u sayzio-queue -f
 tail -f /var/www/sayzio/artifacts/1inme/storage/logs/laravel.log
 sudo tail -f /var/log/nginx/error.log
 
-# After editing .env
+# After editing .env  (AL2023: use `php-fpm` instead of `php8.4-fpm`)
 cd /var/www/sayzio/artifacts/1inme && php artisan config:cache && sudo systemctl reload php8.4-fpm && sudo systemctl restart sayzio-queue
 ```
+
+---
+
+## Amazon Linux 2023 quickstart (existing instance, e.g. sayzio.app)
+
+The condensed end-to-end sequence for an AL2023 instance that already has DNS
+pointing at it (nginx returning 502 just means nothing is provisioned yet):
+
+```bash
+# 0. SSH in (AL2023 default user is ec2-user)
+ssh ec2-user@<instance>
+
+# 1. Clean slate if a previous attempt left a flattened/partial clone
+sudo rm -rf /var/www/sayzio        # see "Recovering from a flattened clone" below
+
+# 2. Bootstrap (idempotent; installs PHP 8.4/Composer/Node 24/pnpm/nginx/certbot)
+sudo bash bootstrap-al2023.sh      # scp it up, or run from a temp clone's deploy/ec2/
+
+# 3. Clone the FULL monorepo as the deploy user
+sudo -u sayzio git clone <your-repo-url> /var/www/sayzio
+
+# 4. Environment (work through env-checklist.md; REUSE the existing APP_KEY)
+sudo -u sayzio cp /var/www/sayzio/artifacts/1inme/.env.example /var/www/sayzio/artifacts/1inme/.env
+sudo -u sayzio nano /var/www/sayzio/artifacts/1inme/.env
+sudo nano /etc/sayzio/api-server.env
+sudo chown root:sayzio /etc/sayzio/api-server.env && sudo chmod 640 /etc/sayzio/api-server.env
+
+# 5. Nginx (conf.d — AL2023 has no sites-available/sites-enabled)
+sudo cp /var/www/sayzio/deploy/ec2/nginx/sayzio.conf /etc/nginx/conf.d/sayzio.conf
+sudo nano /etc/nginx/conf.d/sayzio.conf   # server_name sayzio.app;
+                                          # fastcgi_pass unix:/run/php-fpm/www.sock;
+sudo nginx -t && sudo systemctl reload nginx
+
+# 6. systemd units + sudoers (use the AL2023 sudoers block from Step 4 above)
+cd /var/www/sayzio
+sudo cp deploy/ec2/systemd/sayzio-*.service deploy/ec2/systemd/sayzio-scheduler.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable sayzio-api.service sayzio-queue.service sayzio-scheduler.timer
+
+# 7. First deploy + start services (deploy.sh auto-detects php-fpm/apache)
+sudo -u sayzio bash /var/www/sayzio/deploy/ec2/deploy.sh
+sudo systemctl start sayzio-api.service sayzio-queue.service sayzio-scheduler.timer
+
+# 8. TLS for the domain
+sudo certbot --nginx -d sayzio.app
+# then set SESSION_SECURE_COOKIE=true in .env and redeploy
+
+# 9. Smoke test (see Step 8 checklist above)
+curl -fsS https://sayzio.app/up && curl -fsS https://sayzio.app/api/healthz
+```
+
+## Recovering from a flattened clone
+
+If a previous setup attempt moved the contents of `artifacts/1inme` to the
+repo root (a "flattened" layout), nothing in this kit will line up: nginx's
+`root` points at `/var/www/sayzio/artifacts/1inme/public`, `deploy.sh` cds
+into `artifacts/1inme`, and the systemd units use it as `WorkingDirectory`.
+
+Fix it by re-cloning the full monorepo — do **not** try to move files back:
+
+```bash
+# preserve the env file if one was already filled in
+cp /var/www/sayzio/.env /tmp/sayzio.env.bak 2>/dev/null || \
+  cp /var/www/sayzio/artifacts/1inme/.env /tmp/sayzio.env.bak 2>/dev/null || true
+
+sudo rm -rf /var/www/sayzio
+sudo -u sayzio git clone <your-repo-url> /var/www/sayzio
+sudo -u sayzio cp /tmp/sayzio.env.bak /var/www/sayzio/artifacts/1inme/.env 2>/dev/null || true
+```
+
+Never move `artifacts/1inme`'s contents to the repo root: the pnpm workspace
+(`pnpm-workspace.yaml`), the Vite/Tailwind build, the api-server build, and
+every path in this kit assume the monorepo layout.

@@ -9,6 +9,9 @@ grep-audited across `artifacts/1inme/config/`, `artifacts/1inme/app/`, and
 - `/etc/sayzio/api-server.env` — the Express API server (consumed via
   `EnvironmentFile=` in `sayzio-api.service`)
 
+These paths and every variable below are identical on Ubuntu and Amazon
+Linux 2023 — nothing in the env files is distro-specific.
+
 Legend:
 
 - **Secret** — treat as sensitive; never commit, restrict file perms (`chmod 640`).

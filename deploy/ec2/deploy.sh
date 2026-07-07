@@ -17,11 +17,17 @@
 # Run as the deploy user (not root); it uses sudo only for service reloads:
 #   sudo -u sayzio bash /var/www/sayzio/deploy/ec2/deploy.sh
 #
+# Works unmodified on Ubuntu 22.04/24.04 AND Amazon Linux 2023 — the PHP-FPM
+# unit name and FPM runtime user are auto-detected (overridable below).
+#
 # Overridable via environment:
 #   APP_DIR            repo root                 (default /var/www/sayzio)
 #   MARKETING_BASE     base path for the marketing site build
 #                      "/1inme-com/" for path routing, "/" for a subdomain
-#   PHP_FPM_SERVICE    php-fpm unit name         (default php8.4-fpm)
+#   PHP_FPM_SERVICE    php-fpm unit name         (auto: php8.4-fpm on Ubuntu,
+#                                                 php-fpm on Amazon Linux 2023)
+#   PHP_FPM_USER       FPM runtime user for the storage ACL grant
+#                      (auto: www-data on Ubuntu, apache on Amazon Linux 2023)
 #   SKIP_SERVICES=1    build only, no systemctl calls (useful for dry runs)
 
 set -euo pipefail
@@ -29,7 +35,30 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/var/www/sayzio}"
 LARAVEL_DIR="$APP_DIR/artifacts/1inme"
 MARKETING_BASE="${MARKETING_BASE:-/1inme-com/}"
-PHP_FPM_SERVICE="${PHP_FPM_SERVICE:-php8.4-fpm}"
+
+# --- PHP-FPM unit name: php8.4-fpm (Ubuntu/ondrej) vs php-fpm (AL2023) -----
+if [ -z "${PHP_FPM_SERVICE:-}" ]; then
+  if systemctl list-unit-files 'php8.4-fpm.service' 2>/dev/null | grep -q '^php8\.4-fpm\.service'; then
+    PHP_FPM_SERVICE=php8.4-fpm
+  elif systemctl list-unit-files 'php-fpm.service' 2>/dev/null | grep -q '^php-fpm\.service'; then
+    PHP_FPM_SERVICE=php-fpm
+  else
+    PHP_FPM_SERVICE=php8.4-fpm   # historical default; override via env if needed
+  fi
+fi
+
+# --- FPM runtime user: www-data (Ubuntu) vs apache (AL2023 default pool) ---
+if [ -z "${PHP_FPM_USER:-}" ]; then
+  if id -u www-data >/dev/null 2>&1; then
+    PHP_FPM_USER=www-data
+  elif id -u apache >/dev/null 2>&1; then
+    PHP_FPM_USER=apache
+  elif id -u nginx >/dev/null 2>&1; then
+    PHP_FPM_USER=nginx
+  else
+    PHP_FPM_USER=www-data
+  fi
+fi
 
 log() { echo "==> $*"; }
 
@@ -87,12 +116,13 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-log "Fixing storage permissions..."
+log "Fixing storage permissions (FPM user: $PHP_FPM_USER)..."
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
 chmod -R ug+rwX storage bootstrap/cache
-# Nginx/PHP-FPM run as www-data; grant it write access via ACLs.
+# Grant the PHP-FPM runtime user write access via ACLs
+# (www-data on Ubuntu, apache on Amazon Linux 2023 — auto-detected above).
 if command -v setfacl >/dev/null 2>&1; then
-  setfacl -R -m u:www-data:rwX -m d:u:www-data:rwX storage bootstrap/cache || true
+  setfacl -R -m "u:${PHP_FPM_USER}:rwX" -m "d:u:${PHP_FPM_USER}:rwX" storage bootstrap/cache || true
 fi
 
 # ---------------------------------------------------------------------------
