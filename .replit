@@ -124,6 +124,10 @@ args = "e2e-ehb-band"
 task = "workflow.run"
 args = "multicol-transform"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dialer-typecheck"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -417,6 +421,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:multicol-transform"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "dialer-typecheck"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:dialer-typecheck"
 
 [workflows.workflow.metadata]
 isValidation = true
