@@ -31,7 +31,12 @@ class HomeController extends Controller
             return redirect()->away('https://' . PlatformHosts::primaryBrandDomain() . '/', 301);
         }
 
-        $user = $request->user();
+        // Resolve the visitor via the WEB guard explicitly: this is a public
+        // web route, but when an admin-guard session is active (admin browsing
+        // the marketing site, or actingAs(admin) in tests) the default guard
+        // returns an Admin model — which PricingResolver::currencyForUser()
+        // (?User typed) rejects with a TypeError, 500ing the home page.
+        $user = $request->user('web');
         $currency = PricingResolver::currencyForUser($user);
         $currencySource = PricingResolver::currencySourceForUser($user);
 
@@ -246,20 +251,49 @@ class HomeController extends Controller
      * slots) — we surface all of them in a single small carousel/grid below the
      * fold so new content gets immediate visibility from the homepage.
      *
-     * Loaded fresh on every request (never cached): these are Eloquent models
-     * and the view relies on their relations/accessors, which do not survive the
-     * file cache (incomplete-object on unserialize).
+     * Cached for 5 minutes as PLAIN ATTRIBUTE ARRAYS (post + category + author),
+     * then rehydrated into Eloquent models on read — never as serialized models,
+     * which don't survive the file cache (incomplete-object on unserialize; same
+     * pattern as DomainBranding::currentGlobalDomain()). This matters in
+     * production: with DB_PERSISTENT=false, this was the home page's ONLY
+     * per-request query for anonymous visitors, and the fresh SSL connect to the
+     * cross-region RDS it dragged in cost ~3s of TTFB on every warm render.
+     * Writes invalidate the key immediately via BlogPost::flushPublicCaches().
      */
+    public const FEATURED_CACHE_KEY = 'home:featured_blog_posts';
+
     private function featuredBlogPosts(): \Illuminate\Support\Collection
     {
         try {
-            return \App\Modules\Common\Models\BlogPost::published()
-                ->featured()
-                ->with('category', 'author')
-                ->orderByRaw("CASE WHEN featured_slot = 'hero' THEN 0 WHEN featured_slot = 'carousel' THEN 1 ELSE 2 END")
-                ->orderByDesc('published_at')
-                ->take(3)
-                ->get();
+            $rows = Cache::remember(self::FEATURED_CACHE_KEY, 300, function () {
+                return \App\Modules\Common\Models\BlogPost::published()
+                    ->featured()
+                    ->with('category', 'author')
+                    ->orderByRaw("CASE WHEN featured_slot = 'hero' THEN 0 WHEN featured_slot = 'carousel' THEN 1 ELSE 2 END")
+                    ->orderByDesc('published_at')
+                    ->take(3)
+                    ->get()
+                    ->map(fn ($p) => [
+                        'post'     => $p->getAttributes(),
+                        'category' => $p->category?->getAttributes(),
+                        'author'   => $p->author?->getAttributes(),
+                    ])
+                    ->all();
+            });
+
+            return collect($rows)->map(function (array $row) {
+                $post = \App\Modules\Common\Models\BlogPost::query()
+                    ->hydrate([$row['post']])
+                    ->first();
+                $post->setRelation('category', !empty($row['category'])
+                    ? \App\Modules\Common\Models\BlogCategory::query()->hydrate([$row['category']])->first()
+                    : null);
+                $post->setRelation('author', !empty($row['author'])
+                    ? \App\Modules\Admin\Models\Admin::query()->hydrate([$row['author']])->first()
+                    : null);
+
+                return $post;
+            });
         } catch (\Throwable $e) {
             // Blogs migration not run yet — silently skip the carousel.
             return collect();

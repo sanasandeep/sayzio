@@ -58,6 +58,11 @@ class BlogPost extends Model
             \Illuminate\Support\Facades\Cache::forget(
                 \App\Modules\Common\Controllers\SitemapController::INDEX_CACHE_KEY
             );
+            // Home-page featured carousel caches rehydratable post arrays;
+            // flush so featuring/unfeaturing a post goes live immediately.
+            \Illuminate\Support\Facades\Cache::forget(
+                \App\Modules\Common\Controllers\HomeController::FEATURED_CACHE_KEY
+            );
         } catch (\Throwable $e) {
             // Cache flushing must never break the write path.
         }
