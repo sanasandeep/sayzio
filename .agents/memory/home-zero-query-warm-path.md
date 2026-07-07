@@ -35,6 +35,16 @@ DB; the request-path miss branch remains only as a cold-boot fallback. Builders
 live once in `HomePageCache` — never fork them back into the controller, or
 warmer and render drift.
 
+**Boot-time warm:** the scheduled cadence can't cover a fresh deploy/restart
+or an Autoscale wake-up (the container sleeps with no traffic, scheduler
+included), so both prod pipelines also run the warmer ONCE at boot, best
+effort: the Replit production run command backgrounds a subshell that waits
+for `/up` (≤30s, so it never delays the deploy health probe) then runs
+`home:warm-caches` (log marker `::1inme:: boot home:warm-caches`, output to
+scheduler.log); the EC2 kit runs it at the end of deploy.sh. Failure only
+logs — the lazy request-path rebuild stays the fallback. Keep both surfaces
+in lockstep (ec2-migration-kit-lockstep.md).
+
 **Related gotcha (fixed):** on the public home route resolve the visitor via
 `$request->user('web')`, not `$request->user()` — an active admin-guard
 session makes the default guard return an `Admin`, which the `?User`-typed

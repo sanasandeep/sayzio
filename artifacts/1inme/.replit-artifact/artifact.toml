@@ -152,6 +152,23 @@ args = ["sh", "-c", "pnpm install --frozen-lockfile && (cd artifacts/1inme && ph
 # Keep the brand-domain preference in lockstep with
 # PlatformHosts::PLATFORM_DOMAINS (sayzio.app primary, 1in.me secondary).
 #
+# BOOT-TIME HOME-CACHE WARM NOTE (Task #3990): the scheduled `home:warm-caches`
+# job keeps the home-page caches warm every 4 minutes while the app is running,
+# but on Autoscale the container (scheduler included) sleeps with no traffic and
+# a fresh deploy/restart starts with cold caches — so the very first visitor
+# after a wake-up or restart still paid the full ~4s+ rebuild over the distant
+# RDS. A second backgrounded subshell now runs the warmer ONCE at boot: it
+# first waits (up to ~30s) for the web server's instant "/up" health route to
+# answer so the warm never competes with server startup or the deploy health
+# probe, then runs `php artisan home:warm-caches` (output to
+# storage/logs/scheduler.log alongside the scheduler's). Best-effort by design:
+# success/failure is only logged (a "::1inme:: boot home:warm-caches" stderr
+# marker) and never blocks or kills the web server — on failure the request
+# path's lazy rebuild remains the fallback, exactly as before. The wait loop
+# also caps out and warms anyway if "/up" never answers (e.g. curl missing),
+# keeping it harmless in every environment. The EC2 kit mirrors this with a
+# post-deploy warm in deploy/ec2/deploy.sh (see ec2-migration-kit-lockstep.md).
+#
 # STATIC-ASSET ROUTER NOTE: the web server is PHP's built-in server pointed at
 # ../server.php (NOT public/index.php directly). We use `php -S` rather than
 # `php artisan serve` because artisan serve spawns a child php -S that strips all
@@ -165,7 +182,7 @@ args = ["sh", "-c", "pnpm install --frozen-lockfile && (cd artifacts/1inme && ph
 # under public/ as-is (correct Content-Type) and hands everything else to
 # index.php. See .agents/memory/prod-php-server-static-router.md.
 [services.production.run]
-args = ["sh", "-c", '''cd artifacts/1inme && case "${APP_URL:-}" in ""|*localhost*|*127.0.0.1*) apphost=""; for d in $(printf %s "${REPLIT_DOMAINS:-}" | tr "," " "); do case "$d" in sayzio.app|1in.me) apphost="$d"; break;; esac; done; [ -n "$apphost" ] || apphost="${REPLIT_DOMAINS%%,*}"; [ -n "$apphost" ] || apphost="sayzio.app"; export APP_URL="https://$apphost"; echo "::1inme:: APP_URL derived as $APP_URL (from REPLIT_DOMAINS=${REPLIT_DOMAINS:-<unset>})" >&2;; esac; { php artisan migrate --force; mst=$?; if [ "$mst" -ne 0 ]; then echo "::1inme:: migrate --force exited $mst — attempting self-healing reconcile of orphaned migrations..." >&2; php artisan db:reconcile-migrations --force; mst=$?; fi; if [ "$mst" -ne 0 ]; then echo "::1inme:: DEPLOY MIGRATION FAILED (exit=$mst) — database schema may be incomplete (missing tables/columns); workspace-backed and other pages may 500. Investigate immediately. Pending migrations:" >&2; php artisan migrate:status 2>&1 | grep -i pending >&2 || true; fi; } ; mkdir -p storage/logs; ( while :; do php artisan schedule:work >> storage/logs/scheduler.log 2>&1; ec=$?; echo "::1inme:: schedule:work exited (exit=$ec) — restarting in 5s" >&2; sleep 5; done ) & exec php -d variables_order=EGPCS -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M -S 0.0.0.0:5000 -t public server.php''']
+args = ["sh", "-c", '''cd artifacts/1inme && case "${APP_URL:-}" in ""|*localhost*|*127.0.0.1*) apphost=""; for d in $(printf %s "${REPLIT_DOMAINS:-}" | tr "," " "); do case "$d" in sayzio.app|1in.me) apphost="$d"; break;; esac; done; [ -n "$apphost" ] || apphost="${REPLIT_DOMAINS%%,*}"; [ -n "$apphost" ] || apphost="sayzio.app"; export APP_URL="https://$apphost"; echo "::1inme:: APP_URL derived as $APP_URL (from REPLIT_DOMAINS=${REPLIT_DOMAINS:-<unset>})" >&2;; esac; { php artisan migrate --force; mst=$?; if [ "$mst" -ne 0 ]; then echo "::1inme:: migrate --force exited $mst — attempting self-healing reconcile of orphaned migrations..." >&2; php artisan db:reconcile-migrations --force; mst=$?; fi; if [ "$mst" -ne 0 ]; then echo "::1inme:: DEPLOY MIGRATION FAILED (exit=$mst) — database schema may be incomplete (missing tables/columns); workspace-backed and other pages may 500. Investigate immediately. Pending migrations:" >&2; php artisan migrate:status 2>&1 | grep -i pending >&2 || true; fi; } ; mkdir -p storage/logs; ( while :; do php artisan schedule:work >> storage/logs/scheduler.log 2>&1; ec=$?; echo "::1inme:: schedule:work exited (exit=$ec) — restarting in 5s" >&2; sleep 5; done ) & ( i=0; until curl -fsS -m 2 http://127.0.0.1:5000/up >/dev/null 2>&1 || [ "$i" -ge 15 ]; do i=$((i+1)); sleep 2; done; if php artisan home:warm-caches >> storage/logs/scheduler.log 2>&1; then echo "::1inme:: boot home:warm-caches completed — home caches are warm" >&2; else echo "::1inme:: boot home:warm-caches failed (exit=$?) — first visitor may hit a cold home render (lazy rebuild still applies)" >&2; fi ) & exec php -d variables_order=EGPCS -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M -S 0.0.0.0:5000 -t public server.php''']
 
 [services.production.run.env]
 PORT = "5000"

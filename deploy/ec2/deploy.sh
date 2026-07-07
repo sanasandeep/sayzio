@@ -142,5 +142,20 @@ else
   sudo nginx -t && sudo systemctl reload nginx
 fi
 
+# ---------------------------------------------------------------------------
+# Boot-time home-cache warm (mirrors the Replit production run command)
+# ---------------------------------------------------------------------------
+# A fresh deploy starts with cold home-page caches, so the first visitor would
+# pay the full multi-second rebuild over the distant RDS before the scheduled
+# home:warm-caches job (every 4 min) catches up. Warm them once here, best
+# effort: a failure only logs — visitors still fall back to the lazy
+# request-path rebuild, and the deploy never fails because of it.
+log "Warming home-page caches (best effort)..."
+cd "$APP_DIR/artifacts/1inme"
+if ! php artisan home:warm-caches; then
+  echo "::1inme:: boot home:warm-caches failed — first visitor may hit a cold home render (lazy rebuild still applies)" >&2
+fi
+cd "$APP_DIR"
+
 log "Deploy complete."
 log "Smoke test: curl -fsS https://yourdomain.com/up && curl -fsS https://yourdomain.com/api/healthz"
