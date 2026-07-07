@@ -3,6 +3,9 @@
 @section('page-title', 'Dashboard')
 
 @section('content')
+{{-- Open scheduled-job failure-episode banner (mirrors the schema-health pattern) --}}
+@include('admin.partials.scheduled-job-failure-banner', ['failureEpisodes' => $failureEpisodes ?? []])
+
 @if(!empty($schemaHealth['available']) && !empty($schemaHealth['pending']))
 @php
     $pendingMigrations = $schemaHealth['pending'];

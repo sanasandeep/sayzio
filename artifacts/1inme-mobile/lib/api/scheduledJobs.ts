@@ -52,6 +52,15 @@ export type ScheduledJobAlertSettings = {
   muted_jobs: string[];
 };
 
+// An open failure episode: the job's last run failed and no success has
+// closed the streak yet. Mirrors the web panel's red "currently failing"
+// banner (same `scheduled_job_health` state the ops alerts maintain).
+export type FailureEpisode = {
+  key: string;
+  since: string | null;
+  last_error: string | null;
+};
+
 export type ScheduledJobsOverview = {
   master_cron_line: string;
   scheduler: {
@@ -61,6 +70,10 @@ export type ScheduledJobsOverview = {
   };
   alert_settings: ScheduledJobAlertSettings;
   groups: ScheduledJobGroup[];
+  failure_episodes?: {
+    jobs: FailureEpisode[];
+    scheduler: { since: string | null } | null;
+  };
 };
 
 export type ScheduledJobRun = {

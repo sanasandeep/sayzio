@@ -9,6 +9,7 @@ use App\Modules\Common\Support\SchemaHealth;
 use App\Modules\Common\Support\StatsStorageHealth;
 use App\Modules\Common\Support\TemplateGalleryHealth;
 use App\Modules\Common\Support\WorkspaceColumnHealth;
+use App\Modules\Admin\Support\ScheduledJobHealthAlerts;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\Plan;
@@ -62,7 +63,12 @@ class DashboardController extends Controller
         // nobody being told. Cached.
         $templateGalleryHealth = TemplateGalleryHealth::cached();
 
-        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage', 'contactRecipientHealth', 'templateGalleryHealth'));
+        // Proactive failing-scheduled-job warning: jobs with an open failure
+        // episode (last run failed, no success since) surfaced at a glance,
+        // mirroring the SchemaHealth banner. Cheap: one cached AppSetting read.
+        $failureEpisodes = ScheduledJobHealthAlerts::openEpisodes();
+
+        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage', 'contactRecipientHealth', 'templateGalleryHealth', 'failureEpisodes'));
     }
 
     /**

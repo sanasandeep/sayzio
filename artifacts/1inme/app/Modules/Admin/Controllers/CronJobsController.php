@@ -55,6 +55,9 @@ class CronJobsController extends Controller
             'grouped'        => $grouped,
             'status'         => $inspector->schedulerStatus($jobs),
             'appPath'        => base_path(),
+            // Open failure episodes (jobs in an active failure streak +
+            // stale-scheduler episode) for the at-a-glance red banner.
+            'failureEpisodes' => ScheduledJobHealthAlerts::openEpisodes(),
             'alertSettings'  => [
                 'threshold'                  => CheckScheduledJobFailures::failureThreshold(),
                 'cooldown_hours'             => CheckScheduledJobFailures::realertCooldownHours(),

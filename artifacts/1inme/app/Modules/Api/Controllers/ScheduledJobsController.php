@@ -72,6 +72,10 @@ class ScheduledJobsController extends Controller
                 'muted_jobs'                  => $muted,
             ],
             'groups' => array_values(array_filter($groups, fn ($g) => $g['jobs'] !== [])),
+            // Open failure episodes (same `scheduled_job_health` state the
+            // ops alerts maintain) so the mobile panel can show the same
+            // "currently failing" banner as the web page.
+            'failure_episodes' => ScheduledJobHealthAlerts::openEpisodes(),
         ]);
     }
 

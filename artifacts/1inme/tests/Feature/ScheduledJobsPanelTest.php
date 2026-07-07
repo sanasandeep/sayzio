@@ -676,4 +676,115 @@ class ScheduledJobsPanelTest extends TestCase
         $this->assertSame(3, $failing['failing_streak']);
         $this->assertTrue($failing['failing_repeatedly']);
     }
+
+    // ── Open failure-episode banner (web + dashboard + API) ─────────────
+
+    /** Seed an open failure episode in the same state the alerts maintain. */
+    private function seedOpenEpisode(string $jobKey, string $error = 'exploded'): void
+    {
+        AppSetting::put(\App\Modules\Admin\Support\ScheduledJobHealthAlerts::STATE_KEY, [
+            'jobs' => [
+                $jobKey => [
+                    'alerting'     => true,
+                    'last_sent_at' => now()->subHours(2)->toIso8601String(),
+                    'last_error'   => $error,
+                ],
+            ],
+        ]);
+    }
+
+    public function test_web_index_shows_the_failure_episode_banner(): void
+    {
+        $this->seedOpenEpisode('contacts:sync', 'connection refused');
+
+        $resp = $this->actingAs($this->makeAdmin(), 'admin')->get('/admin/cron-jobs');
+
+        $resp->assertOk();
+        $resp->assertSee('1 scheduled job is currently failing');
+        $resp->assertSee('connection refused');
+        $resp->assertSee('failing since');
+    }
+
+    public function test_web_index_hides_the_banner_when_no_episode_is_open(): void
+    {
+        $this->actingAs($this->makeAdmin(), 'admin')->get('/admin/cron-jobs')
+            ->assertOk()
+            ->assertDontSee('currently failing');
+    }
+
+    public function test_web_index_banner_includes_a_stale_scheduler_episode(): void
+    {
+        AppSetting::put(\App\Modules\Admin\Support\ScheduledJobHealthAlerts::STATE_KEY, [
+            'jobs' => [
+                'contacts:sync' => [
+                    'alerting'     => true,
+                    'last_sent_at' => now()->subHour()->toIso8601String(),
+                    'last_error'   => 'boom',
+                ],
+            ],
+            'scheduler' => [
+                'alerting'     => true,
+                'last_sent_at' => now()->subHours(3)->toIso8601String(),
+            ],
+        ]);
+
+        $resp = $this->actingAs($this->makeAdmin(), 'admin')->get('/admin/cron-jobs');
+
+        $resp->assertOk();
+        $resp->assertSee('2 scheduled jobs are currently failing');
+        $resp->assertSee('scheduler heartbeat');
+    }
+
+    public function test_web_index_banner_ignores_a_closed_scheduler_episode(): void
+    {
+        // Recovery leaves scheduler.alerting=false in place — must not count.
+        AppSetting::put(\App\Modules\Admin\Support\ScheduledJobHealthAlerts::STATE_KEY, [
+            'scheduler' => [
+                'alerting'     => false,
+                'recovered_at' => now()->toIso8601String(),
+            ],
+        ]);
+
+        $this->actingAs($this->makeAdmin(), 'admin')->get('/admin/cron-jobs')
+            ->assertOk()
+            ->assertDontSee('currently failing');
+    }
+
+    public function test_admin_dashboard_shows_the_failure_episode_banner(): void
+    {
+        $this->seedOpenEpisode('contacts:sync', 'connection refused');
+
+        $resp = $this->actingAs($this->makeAdmin(), 'admin')->get('/admin');
+
+        $resp->assertOk();
+        $resp->assertSee('1 scheduled job is currently failing');
+        $resp->assertSee('Open the Scheduled Jobs panel');
+    }
+
+    public function test_api_index_includes_open_failure_episodes(): void
+    {
+        $this->seedOpenEpisode('contacts:sync', 'connection refused');
+
+        $this->asUser($this->makeApiAdmin());
+
+        $resp = $this->getJson('/api/v1/admin/scheduled-jobs')->assertOk();
+
+        $episodes = $resp->json('data.failure_episodes');
+        $this->assertCount(1, $episodes['jobs']);
+        $this->assertSame('contacts:sync', $episodes['jobs'][0]['key']);
+        $this->assertSame('connection refused', $episodes['jobs'][0]['last_error']);
+        $this->assertNotNull($episodes['jobs'][0]['since']);
+        $this->assertNull($episodes['scheduler']);
+    }
+
+    public function test_api_index_failure_episodes_empty_when_healthy(): void
+    {
+        $this->asUser($this->makeApiAdmin());
+
+        $episodes = $this->getJson('/api/v1/admin/scheduled-jobs')->assertOk()
+            ->json('data.failure_episodes');
+
+        $this->assertSame([], $episodes['jobs']);
+        $this->assertNull($episodes['scheduler']);
+    }
 }

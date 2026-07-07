@@ -5,6 +5,9 @@
 @section('content')
 <div class="space-y-6" x-data="scheduledJobsPage()">
 
+    {{-- Open failure-episode banner: which jobs are in an active failure streak --}}
+    @include('admin.partials.scheduled-job-failure-banner', ['failureEpisodes' => $failureEpisodes])
+
     <p class="text-sm text-white/50 max-w-3xl">
         Every scheduled job the platform relies on, grouped by area and derived live from the app's
         job registry &mdash; so this list always stays in sync with the code. Jobs only run if the single

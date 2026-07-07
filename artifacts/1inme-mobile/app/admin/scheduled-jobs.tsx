@@ -310,6 +310,110 @@ export default function ScheduledJobsScreen() {
               </Text>
             </View>
 
+            {/* Open failure-episode banner: which jobs are currently in an
+                active failure streak (last run failed, no success since).
+                Mirrors the web panel's red banner; same server state as the
+                one-alert-per-streak ops notifications. */}
+            {(() => {
+              const episodes = data.failure_episodes;
+              const failingJobs = episodes?.jobs ?? [];
+              const schedulerDown = episodes?.scheduler ?? null;
+              const count = failingJobs.length + (schedulerDown ? 1 : 0);
+              if (count === 0) return null;
+              return (
+                <View
+                  style={[
+                    styles.card,
+                    {
+                      backgroundColor: colors.destructive + "14",
+                      borderColor: colors.destructive + "55",
+                      gap: 8,
+                    },
+                  ]}
+                >
+                  <View style={styles.cardHead}>
+                    <Feather
+                      name="alert-triangle"
+                      size={16}
+                      color={colors.destructive}
+                    />
+                    <Text
+                      style={[
+                        styles.cardTitle,
+                        { color: colors.destructive, flex: 1 },
+                      ]}
+                    >
+                      {count} scheduled job{count === 1 ? " is" : "s are"}{" "}
+                      currently failing
+                    </Text>
+                  </View>
+                  {schedulerDown ? (
+                    <View style={{ gap: 2 }}>
+                      <Text
+                        style={{
+                          color: colors.destructive,
+                          fontSize: 13,
+                          fontWeight: "600",
+                        }}
+                      >
+                        scheduler heartbeat
+                      </Text>
+                      <Text
+                        style={{ color: colors.mutedForeground, fontSize: 12 }}
+                      >
+                        The scheduler itself appears to be down — no jobs are
+                        firing at all.
+                        {schedulerDown.since
+                          ? ` Alerted ${formatWhen(schedulerDown.since)}.`
+                          : ""}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {failingJobs.map((ep) => (
+                    <View key={ep.key} style={{ gap: 2 }}>
+                      <Text
+                        style={{
+                          color: colors.destructive,
+                          fontSize: 13,
+                          fontWeight: "600",
+                        }}
+                      >
+                        {ep.key}
+                        {ep.since ? (
+                          <Text
+                            style={{
+                              color: colors.mutedForeground,
+                              fontWeight: "400",
+                              fontSize: 12,
+                            }}
+                          >
+                            {"  "}failing since {formatWhen(ep.since)}
+                          </Text>
+                        ) : null}
+                      </Text>
+                      {ep.last_error ? (
+                        <Text
+                          style={{
+                            color: colors.mutedForeground,
+                            fontSize: 12,
+                          }}
+                          numberOfLines={3}
+                        >
+                          {ep.last_error}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ))}
+                  <Text
+                    style={{ color: colors.mutedForeground, fontSize: 11 }}
+                  >
+                    An all-clear follows each job's next successful run. Tap a
+                    job below and use Run now to retry it immediately.
+                  </Text>
+                </View>
+              );
+            })()}
+
             {/* Alert settings — scheduler stale threshold */}
             {staleSettings ? (
               <View

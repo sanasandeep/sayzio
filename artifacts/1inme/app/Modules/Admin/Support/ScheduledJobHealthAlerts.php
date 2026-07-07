@@ -136,6 +136,48 @@ class ScheduledJobHealthAlerts
     protected const BOOT_THROTTLE_SECONDS = 180;
 
     /**
+     * Open failure episodes for at-a-glance display on the admin Scheduled
+     * Jobs panel (web + mobile) and the admin dashboard. Reads the same
+     * `scheduled_job_health` dedup state the alert dispatchers maintain, so
+     * the banner and the notifications can never disagree.
+     *
+     * @return array{jobs: list<array{key: string, since: string|null, last_error: string|null}>, scheduler: array{since: string|null}|null}
+     */
+    public static function openEpisodes(): array
+    {
+        $out = ['jobs' => [], 'scheduler' => null];
+
+        try {
+            $jobs = self::state('jobs', []);
+            foreach (is_array($jobs) ? $jobs : [] as $key => $episode) {
+                if (! is_array($episode) || empty($episode['alerting'])) {
+                    continue;
+                }
+
+                $out['jobs'][] = [
+                    'key'        => (string) $key,
+                    'since'      => isset($episode['last_sent_at']) ? (string) $episode['last_sent_at'] : null,
+                    'last_error' => isset($episode['last_error']) ? (string) $episode['last_error'] : null,
+                ];
+            }
+
+            usort($out['jobs'], fn ($a, $b) => strcmp($a['key'], $b['key']));
+
+            $scheduler = self::state('scheduler', []);
+            if (is_array($scheduler) && ! empty($scheduler['alerting'])) {
+                $out['scheduler'] = [
+                    'since' => isset($scheduler['last_sent_at']) ? (string) $scheduler['last_sent_at'] : null,
+                ];
+            }
+        } catch (\Throwable $e) {
+            // Display-only: never let a state read break the panel.
+            Log::warning('scheduled-job-health openEpisodes read failed: ' . $e->getMessage());
+        }
+
+        return $out;
+    }
+
+    /**
      * Record the outcome of a finished job run (scheduled or manual) and
      * alert / recover accordingly. One alert per failure streak: the first
      * failed run opens the episode and notifies; further failures are
