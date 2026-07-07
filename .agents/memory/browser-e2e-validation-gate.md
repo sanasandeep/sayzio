@@ -69,6 +69,19 @@ gate, re-register with
 not by editing `.replit` (except while resolving a rebase). First run in a fresh
 env pays a one-time chromium download; cached no-op after.
 
+**Cross-command shared-state race: voice-assistant-panel appears in TWO validation
+commands** (the big `e2e` gate AND a dedicated `e2e-voice-panel`), each booting its
+own :5050-family server against the SAME shared RDS. The spec's gated-user block
+mutates shared DB state via tinker (`setVoiceGated()` in beforeAll, `setVoiceAvailable()`
+restore in afterAll) — when the two commands' runs of the same spec overlap, one run's
+restore flips the flag mid-test in the other and the `.sa-mic-lock` assertion finds 0
+elements. Symptom signature: voice-panel fails in ONE command while passing in the other
+within the same validation run, and passes clean in isolation. Also: don't run
+run-validation.sh locally while a validation `e2e` command is RUNNING — both use port
+5050, and the loser's tests die with ERR_CONNECTION_REFUSED mid-suite (log ends
+abruptly at "Running N tests"; empty test-results/ after a finished run = all passed,
+since Playwright only writes dirs for failures/retries).
+
 **Stale spec: voice-assistant-bridge.spec.ts is deterministically RED (July 2026).**
 All ~6 bridge tests fail identically (waitForFunction 120s mount timeout, both
 retries, ~2-2.5m each) in the full gate AND in isolation on a fresh server.

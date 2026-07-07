@@ -232,7 +232,10 @@ class TaskBoardTest extends TestCase
 
     public function test_attachment_upload_and_size_limit(): void
     {
-        Storage::fake('public');
+        // Attachments are written to the *default* filesystem disk (now S3 in
+        // real config) — fake a local default so the test never touches S3.
+        Storage::fake('local');
+        config(['filesystems.default' => 'local']);
         $alice = $this->makeUser('alice');
         session(['active_workspace_id' => $alice->ensureDefaultWorkspace()->id]);
         $this->actingAs($alice)->post('/user/tasks/boards', ['name' => 'Att', 'scope' => 'team']);
@@ -386,7 +389,10 @@ class TaskBoardTest extends TestCase
 
     public function test_destroy_card_and_board_purge_attachments(): void
     {
+        // Uploads go to the *default* disk (S3 in real config); pin it to the
+        // faked local disk so the test stays offline and assertions hold.
         $disk = Storage::fake('local');
+        config(['filesystems.default' => 'local']);
         $alice = $this->makeUser('alice');
         session(['active_workspace_id' => $alice->ensureDefaultWorkspace()->id]);
         $this->actingAs($alice)->post('/user/tasks/boards', ['name' => 'Purge', 'scope' => 'team']);

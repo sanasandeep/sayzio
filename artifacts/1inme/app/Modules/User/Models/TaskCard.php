@@ -32,7 +32,7 @@ class TaskCard extends Model
     public function creator()    { return $this->belongsTo(User::class, 'created_by_user_id'); }
     public function subtasks()   { return $this->hasMany(TaskSubtask::class, 'card_id')->orderBy('position'); }
     public function comments()   { return $this->hasMany(TaskComment::class, 'card_id')->orderBy('created_at'); }
-    public function activities() { return $this->hasMany(TaskActivity::class, 'card_id')->orderByDesc('created_at'); }
+    public function activities() { return $this->hasMany(TaskActivity::class, 'card_id')->orderByDesc('created_at')->orderByDesc('id'); }
     public function attachments(){ return $this->hasMany(TaskAttachment::class, 'card_id')->orderByDesc('id'); }
     public function timeEntries(){ return $this->hasMany(TaskTimeEntry::class, 'card_id')->orderBy('started_at'); }
     public function clientInvoice(){ return $this->belongsTo(Invoice::class, 'client_invoice_id'); }
