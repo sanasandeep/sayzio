@@ -68,6 +68,7 @@ class ScheduledJobRunRecorder
 
             if ($id !== null && ScheduledJobRun::whereKey($id)->update($attrs) > 0) {
                 $this->maybePrune($key);
+                $this->alert($key, $ok, $error, $exitCode);
 
                 return;
             }
@@ -83,8 +84,22 @@ class ScheduledJobRunRecorder
             ]);
 
             $this->maybePrune($key);
+            $this->alert($key, $ok, $error, $exitCode);
         } catch (\Throwable $e) {
             // Swallow — see class docblock.
+        }
+    }
+
+    /**
+     * Alert ops admins on a failed run / all-clear on recovery. Streak-based
+     * dedup lives in ScheduledJobHealthAlerts; wholly best-effort.
+     */
+    protected function alert(string $key, bool $ok, ?string $error, ?int $exitCode): void
+    {
+        try {
+            ScheduledJobHealthAlerts::jobFinished($key, $ok, $error, $exitCode, 'schedule');
+        } catch (\Throwable $e) {
+            // Alerting must never break the scheduler.
         }
     }
 

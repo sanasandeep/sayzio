@@ -167,6 +167,11 @@ class AppServiceProvider extends ServiceProvider
             return $user->canInWorkspace($ws, $permission);
         });
 
+        // Watch the scheduler heartbeat from web boots: a dead scheduler
+        // cannot run a scheduled check on itself, so web traffic is the
+        // watchdog. Throttled + best-effort — see ScheduledJobHealthAlerts.
+        \App\Modules\Admin\Support\ScheduledJobHealthAlerts::checkFromBoot();
+
         $this->configureAuthRateLimiters();
         $this->bustPlanRecommenderCacheOnUsageChange();
         $this->alertOnFailedBackgroundJobs();

@@ -78,6 +78,21 @@ class RunScheduledJob extends Command
 
     protected function finish(?ScheduledJobRun $run, bool $ok, float $runtime, ?int $exitCode, ?string $error): void
     {
+        // Manual runs count toward (and close) failure-alert streaks too:
+        // a failing job an operator re-runs by hand shouldn't double-alert,
+        // and a successful manual re-run sends the all-clear immediately.
+        try {
+            \App\Modules\Admin\Support\ScheduledJobHealthAlerts::jobFinished(
+                (string) $this->argument('key'),
+                $ok,
+                $error,
+                $exitCode,
+                'manual',
+            );
+        } catch (\Throwable $e) {
+            // Alerting is best-effort.
+        }
+
         if ($run === null) {
             return;
         }
