@@ -236,6 +236,10 @@
   ],
   "standaloneOnly": [
     {
+      "path": "scripts/test-channel-actions.mjs",
+      "note": "source-driven unit test: every screen with per-number channel actions uses the shared ChannelActions component (no bespoke wa.me/t.me deep links) and resolveChannels honors dialer_channels prefs; run via npm run test:channel-actions"
+    },
+    {
       "path": "app/(tabs)/dialer.tsx",
       "note": "dialer keypad screen (with suggestions empty-state); the main app removed its app/dialer.tsx — this standalone is now the sole home of the mobile dialer surface"
     },

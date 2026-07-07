@@ -74,3 +74,11 @@ Mobile-parity notes above now apply to that standalone app, not the main app.
 In the main app `tel:` biolink blocks hand off to the OS phone app, and
 `expo-contacts` is no longer a dependency. Backend `/api/v1/dialer/*` and
 `/api/v1/contacts/*` endpoints and all web surfaces are unchanged.
+
+- **DialerData transforms return ARRAYS, not models.** `activityFor`/`transformLog`/
+  `transformFavorite` end in `->all()` / return arrays; blades must use `$r['key']`
+  array access. The profile page once had a duplicate "Recent activity" block using
+  `$r->number_e164` + `$recent->isNotEmpty()` — it 500'd on EVERY view with a number
+  because the controller logs the lookup before fetching activity (so `$recent` is
+  never empty). If a dialer blade 500s with "member function on array", check for
+  object access on these transform outputs.

@@ -700,14 +700,18 @@
         </script>
     @endif
 
-    @if(!empty($recent) && $recent->isNotEmpty())
+    {{-- $recent is a plain array (DialerData::activityFor() ends in ->all()),
+         so no Collection calls here — ->isNotEmpty() fatals as soon as any
+         activity exists (and the controller logs the lookup before fetching,
+         so it always does). --}}
+    @if(!empty($recent))
         <div class="card-premium p-5 mt-4">
             <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color:var(--text-faint);">Recent activity</h3>
             <div class="space-y-2">
                 @foreach($recent as $r)
                     <div class="flex items-center justify-between py-1.5" style="border-top: 1px solid rgba(255,255,255,.06);">
-                        <div class="text-xs font-mono" style="color:var(--text-primary);">{{ $r->number_e164 }}</div>
-                        <div class="text-[11px]" style="color:var(--text-faint);">{{ $r->looked_up_at->diffForHumans() }}</div>
+                        <div class="text-xs font-mono" style="color:var(--text-primary);">{{ $r['number_e164'] }}</div>
+                        <div class="text-[11px]" style="color:var(--text-faint);">{{ $r['at_human'] }}</div>
                     </div>
                 @endforeach
             </div>
