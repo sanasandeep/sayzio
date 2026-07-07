@@ -95,6 +95,10 @@ class DomainController extends Controller
             'dns_drift_notified_at'          => null,
             'dns_unverified_warning_sent_at' => null,
         ]);
+        // Queue automatic HTTPS issuance (EC2 deployments): reset the SSL
+        // state so the scheduled domains:issue-certificates run picks this
+        // domain up on its next tick. No-op cost when auto-issue is off.
+        \App\Modules\Common\Services\SslCertificateIssuer::markPending($domain->fresh());
         WorkspaceActivityRecorder::record(null, 'domain.verify', 'domain', $domain->id, $domain->domain, route('user.domains.index'));
         $this->recordAudit(SensitiveActionLogger::ACTION_DOMAIN_VERIFIED, $domain);
         return back()->with('success', "Domain {$domain->domain} verified — short links can now use it.");

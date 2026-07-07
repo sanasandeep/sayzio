@@ -234,9 +234,67 @@ the official pip-venv method (`/opt/certbot`, symlinked to
 `/usr/local/bin/certbot`). With the pip method there is no distro renewal
 timer — add one: `echo "0 0,12 * * * root certbot renew -q" | sudo tee -a /etc/crontab`.
 
-For customer custom domains you'll need per-domain certs
-(`certbot --nginx -d customerdomain.com` per domain, or automate issuance).
 Then set `SESSION_SECURE_COOKIE=true` in `.env` and redeploy.
+
+### Automatic HTTPS for customer custom domains
+
+Every customer custom domain (and admin global domain) needs its own
+certificate once its DNS points at this server. The kit automates this
+end-to-end — the app's scheduler issues certificates for newly verified
+domains via a sudoers-whitelisted root helper:
+
+- **`deploy/ec2/issue-domain-cert.sh`** (install as
+  `/usr/local/sbin/sayzio-issue-cert`): certbot **webroot** issuance against
+  the Laravel public dir (works before any per-domain vhost exists — unmatched
+  Hosts fall through to the main `sayzio.conf` server, which serves static
+  files first), then renders
+  `/etc/nginx/conf.d/sayzio-domain-<domain>.conf` from
+  `nginx/custom-domain.conf.template` (80 → ACME + HTTPS redirect, 443 → the
+  Laravel app; PHP-FPM socket auto-detected per distro), validates with
+  `nginx -t` (auto-rollback on failure) and reloads nginx. Idempotent.
+- **`php artisan domains:issue-certificates`** (scheduled every 10 minutes,
+  see `routes/console.php`): finds active **verified** domains without a
+  certificate — including all pre-existing ones on first enable — and runs
+  the helper for each. Per-domain retry backoff (default 1h); state on the
+  `domains` row (`ssl_status`, `ssl_attempts`, `ssl_last_error`, ...). The
+  verify buttons (user + admin) reset that state so a freshly verified domain
+  is picked up on the next tick.
+- **Failures are never silent**: every failed attempt logs a loud
+  `::1inme:: SSL ISSUANCE FAILED` marker to the Laravel log; after 3
+  consecutive failures the ops admins (`user.ops_alerts.receive`) get an
+  in-app + email alert (re-alerted at most every 24h), plus a recovery notice
+  when the certificate finally lands.
+
+Setup (once, after the main-domain certbot run above — that also creates the
+Let's Encrypt account the webroot flow reuses):
+
+```bash
+# 1. Install the root helper
+sudo install -m 0755 -o root -g root /var/www/sayzio/deploy/ec2/issue-domain-cert.sh /usr/local/sbin/sayzio-issue-cert
+
+# 2. Let the app user invoke it without a password (append to the Step 4 sudoers file)
+echo 'sayzio ALL=(root) NOPASSWD: /usr/local/sbin/sayzio-issue-cert' | sudo tee -a /etc/sudoers.d/sayzio-deploy
+
+# 3. Enable in artifacts/1inme/.env, then refresh the config cache
+#      SSL_AUTO_ISSUE=true
+#      SSL_CERTBOT_EMAIL=ops@yourdomain.com   # only if no certbot account exists yet
+cd /var/www/sayzio/artifacts/1inme && php artisan config:cache
+
+# 4. Sanity-check one domain by hand (also usable for ad-hoc issuance)
+sudo /usr/local/sbin/sayzio-issue-cert customerdomain.com
+# or through the app path (bypasses the enable flag):
+sudo -u sayzio php artisan domains:issue-certificates --force --domain=<id>
+```
+
+**Renewals** are certbot's job and cover these per-domain certs
+automatically: the packaged installs ship a systemd timer
+(`systemctl list-timers | grep certbot`); with the pip-venv fallback add the
+crontab line above. The helper registers a `--deploy-hook "systemctl reload
+nginx"` on each certificate so renewals go live without a manual reload.
+
+`SSL_AUTO_ISSUE` stays **off** everywhere except EC2 — on Replit the platform
+proxy terminates TLS and there is no certbot/nginx, so the scheduled command
+is a no-op there.
 
 ## Step 8 — Smoke-test checklist
 

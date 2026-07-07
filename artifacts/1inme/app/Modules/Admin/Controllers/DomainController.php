@@ -171,6 +171,9 @@ class DomainController extends Controller
         }
 
         $domain->update(['is_verified' => true, 'verified_at' => now()]);
+        // Queue automatic HTTPS issuance (EC2 deployments) — same hook as
+        // the user-facing verify path.
+        \App\Modules\Common\Services\SslCertificateIssuer::markPending($domain->fresh());
         return back()->with('success', "Domain {$domain->domain} verified.");
     }
 

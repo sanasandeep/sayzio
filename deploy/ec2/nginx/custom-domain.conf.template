@@ -1,0 +1,76 @@
+# Sayzio — per-customer-domain nginx vhost TEMPLATE.
+#
+# Rendered by deploy/ec2/issue-domain-cert.sh (installed as
+# /usr/local/sbin/sayzio-issue-cert) into
+# /etc/nginx/conf.d/sayzio-domain-<domain>.conf — do NOT copy this file
+# manually; the placeholders below are substituted at render time:
+#   __DOMAIN__      the customer domain (e.g. links.example.com)
+#   __APP_ROOT__    repo root (default /var/www/sayzio)
+#   __FPM_SOCKET__  distro PHP-FPM socket (auto-detected)
+#
+# Serves the Laravel app only (short links / biolinks / public pages on the
+# customer's host). The /api proxy and /1inme-com/ marketing site stay on the
+# main domain (sayzio.conf) by design.
+#
+# LOCKSTEP: the location blocks below mirror the Laravel section of
+# nginx/sayzio.conf — if you change one, change the other.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name __DOMAIN__;
+
+    # ACME HTTP-01 challenges (webroot renewals) — everything else → HTTPS.
+    location /.well-known/acme-challenge/ {
+        root __APP_ROOT__/artifacts/1inme/public;
+    }
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name __DOMAIN__;
+
+    ssl_certificate     /etc/letsencrypt/live/__DOMAIN__/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/__DOMAIN__/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SayzioSSL:10m;
+    ssl_session_timeout 1d;
+
+    root __APP_ROOT__/artifacts/1inme/public;
+    index index.php;
+    client_max_body_size 25m;
+
+    location = /up {
+        try_files /nonexistent /index.php?$query_string;
+        access_log off;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_pass __FPM_SOCKET__;
+        include fastcgi_params;
+        fastcgi_index index.php;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_read_timeout 120s;
+    }
+
+    location ~ /\.(?!well-known) {
+        deny all;
+    }
+
+    location /build/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+}

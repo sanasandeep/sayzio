@@ -141,6 +141,10 @@ them; configure them in the admin panel.
 | `SANCTUM_STATEFUL_DOMAINS` / `SANCTUM_EXPIRATION_MINUTES` / `SANCTUM_TOKEN_PREFIX` | | Defaults fine; stateful domains default derives from `APP_URL`. |
 | `PLATFORM_ROLE_ALERT_ROLES` / `PLATFORM_ROLE_ALERT_RECIPIENTS` | | Role-grant alert routing. |
 | `DOMAIN_DRIFT_GRACE_HOURS` | | Custom-domain DNS drift grace (default 168). |
+| `SSL_AUTO_ISSUE` | | **EC2-only.** `true` enables automatic Let's Encrypt issuance for verified custom/global domains via the scheduled `domains:issue-certificates` command (README Step 7). Leave unset/false on Replit. |
+| `SSL_ISSUE_COMMAND` | | Issuance helper invocation (default `sudo -n /usr/local/sbin/sayzio-issue-cert`). |
+| `SSL_CERTBOT_EMAIL` | | Optional Let's Encrypt account email, only needed if no certbot account exists on the box yet. |
+| `SSL_ISSUE_TIMEOUT` / `SSL_RETRY_HOURS` / `SSL_ALERT_AFTER_ATTEMPTS` / `SSL_ALERT_COOLDOWN_HOURS` | | Issuance tuning: per-run timeout (300s), retry backoff (1h), admin-alert threshold (3 failures) and re-alert cooldown (24h). Defaults fine. |
 | `ANDROID_PACKAGE_NAME` / `ANDROID_SHA256_FINGERPRINTS` / `APPLE_BUNDLE_ID` / `APPLE_TEAM_ID` | | Mobile deep-link association files (`assetlinks.json` / AASA). |
 | `MONETIZATION_FORCE_PREVIEW` | | Dev/test toggle — leave unset in prod. |
 | `UPLOAD_SCANNER_DISABLED` | | Dev/test toggle — leave unset in prod. |

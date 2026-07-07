@@ -127,6 +127,9 @@ protected $fillable = [
             'dns_drift_started_at'           => 'datetime',
             'dns_drift_notified_at'          => 'datetime',
             'dns_unverified_warning_sent_at' => 'datetime',
+            'ssl_last_attempted_at'          => 'datetime',
+            'ssl_issued_at'                  => 'datetime',
+            'ssl_alerted_at'                 => 'datetime',
         ];
     }
 

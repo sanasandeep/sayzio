@@ -574,3 +574,16 @@ Schedule::command('app-launch:notify-signups')
     ->hourlyAt(52)
     ->withoutOverlapping()
     ->onOneServer();
+
+// Every ten minutes: issue Let's Encrypt certificates for verified custom
+// domains (and admin global domains) that don't have one yet, by shelling
+// out to the EC2 kit's sudoers-whitelisted root helper (certbot webroot
+// issuance + per-domain nginx vhost + reload). No-op unless the EC2
+// deployment sets SSL_AUTO_ISSUE=true — on Replit the platform proxy
+// terminates TLS itself. Per-domain retry backoff and admin failure
+// alerting (in-app + email, deduped) live in SslCertificateIssuer; certbot's
+// own timer/cron handles renewals.
+Schedule::command('domains:issue-certificates')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
