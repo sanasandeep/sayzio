@@ -7,7 +7,12 @@
     $headline = trim($h['headline'] ?? '');
     $title    = $name . ($headline ? ' — '.$headline : "'s resume");
     $description = trim($resume->meta_description ?? '') ?: ($headline ?: \Illuminate\Support\Str::limit($summary, 200));
-    $publicUrl = url('/' . $user->publicHandle() . '/resume');
+    // Passed in from PublicResumeController — reflects the RESOLVED
+    // resume's own address (default vs a named `/v/{slug}` version)
+    // so canonical/og:url/JSON-LD never self-identify with the wrong
+    // version. Falls back to the default URL for any legacy caller
+    // that doesn't pass it in.
+    $publicUrl = $publicUrl ?? url('/' . $user->publicHandle() . '/resume');
     $avatar    = $user->avatar ?? null;
     $allowIndex = (bool) ($resume->allow_indexing ?? true) && (($resume->visibility ?? 'public') === 'public');
     $locked = ($resume->visibility ?? 'public') === 'password'

@@ -82,6 +82,7 @@ class PublicResumeController extends Controller
             'user'   => $user,
             'resume' => $resume,
             'isOwner' => $isOwner,
+            'publicUrl' => $this->publicUrlFor($user, $resume),
         ]);
     }
 
@@ -118,6 +119,7 @@ class PublicResumeController extends Controller
                 'resume'      => $resume,
                 'isOwner'     => false,
                 'lockedError' => "Too many attempts. Try again in {$retryAfter}s.",
+                'publicUrl'   => $this->publicUrlFor($user, $resume),
             ], 429, ['Retry-After' => (string) $retryAfter]);
         }
 
@@ -129,6 +131,7 @@ class PublicResumeController extends Controller
                 'resume'      => $resume,
                 'isOwner'     => false,
                 'lockedError' => 'Incorrect password.',
+                'publicUrl'   => $this->publicUrlFor($user, $resume),
             ], 401);
         }
 
@@ -176,6 +179,7 @@ class PublicResumeController extends Controller
                 'resume'      => $resume,
                 'isOwner'     => false,
                 'lockedError' => null,
+                'publicUrl'   => $this->publicUrlFor($user, $resume),
             ], 401);
         }
 
@@ -207,7 +211,30 @@ class PublicResumeController extends Controller
             'isOwner'      => false,
             'lockedError'  => null,
             'shareExpired' => true,
+            'publicUrl'    => $this->publicUrlFor($user, $resume),
         ], 410);
+    }
+
+    /**
+     * The canonical public URL for a resolved resume — the default
+     * version stays at `/{handle}/resume`, and any named version gets
+     * its own `/{handle}/resume/v/{slug}` address. This is derived
+     * from the RESOLVED resume's own slug (not the requested one) so
+     * canonical/og:url/JSON-LD always self-identify with the version
+     * actually being rendered, rather than always collapsing to the
+     * default resume URL.
+     */
+    protected function publicUrlFor(User $user, Resume $resume): string
+    {
+        $slug = $resume->slug;
+        if (!filled($slug) || $slug === Resume::DEFAULT_SLUG) {
+            return url('/' . $user->publicHandle() . '/resume');
+        }
+
+        return route('resume.public.show.version', [
+            'handle' => $user->publicHandle(),
+            'slug'   => $slug,
+        ]);
     }
 
     /**
