@@ -10,6 +10,9 @@ class SiteStat extends Model
 {
     protected $table = 'site_stats';
 
+    /** Cache key for the active-stats payload (shared with the warmer). */
+    public const ACTIVE_CACHE_KEY = 'home:site_stats:active';
+
     /**
      * Active stats (ordered), cached for 5 minutes. Read by both the hero
      * trust band and the stats section on the marketing home page; caching the
@@ -19,12 +22,21 @@ class SiteStat extends Model
     public static function cachedActive(int $ttl = 300): Collection
     {
         $rows = Cache::remember(
-            'home:site_stats:active',
+            self::ACTIVE_CACHE_KEY,
             $ttl,
-            fn () => static::active()->ordered()->get()->map(fn ($m) => $m->getAttributes())->all()
+            fn () => self::buildActiveRows()
         );
 
         return static::hydrate($rows);
+    }
+
+    /**
+     * Build the cacheable payload (plain attribute arrays). Shared by
+     * cachedActive() and MarketingPageCache::warm().
+     */
+    public static function buildActiveRows(): array
+    {
+        return static::active()->ordered()->get()->map(fn ($m) => $m->getAttributes())->all();
     }
 
     protected $fillable = [

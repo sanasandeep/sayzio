@@ -45,11 +45,13 @@ class WarmHomePageCaches extends Command
             $summary['pricing_packages'] ?? 0,
         ));
         $this->info(sprintf(
-            'Warmed marketing sections — site pages: %d, creators: [%s], demos: %s, blogs: %s.',
+            'Warmed marketing sections — site pages: %d, creators: [%s], demos: %s, blogs: %s, app settings: %d, layout: [%s].',
             $marketing['site_pages'],
             implode(', ', $marketing['creators']),
             $marketing['demos'] ? 'yes' : 'no',
             $marketing['blogs'] ? 'yes' : 'no',
+            $marketing['app_settings'] ?? 0,
+            implode(', ', $marketing['layout'] ?? []),
         ));
 
         $errors = array_merge($summary['errors'] ?? [], $marketing['errors'] ?? []);

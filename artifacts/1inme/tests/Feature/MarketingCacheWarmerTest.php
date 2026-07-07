@@ -2,12 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Admin\Models\SiteStat;
 use App\Modules\Common\Controllers\BlogController;
 use App\Modules\Common\Controllers\CreatorsController;
 use App\Modules\Common\Controllers\PricingPagesController;
 use App\Modules\Common\Controllers\SitePageController;
 use App\Modules\Common\Models\BlogPost;
+use App\Modules\Common\Models\SiteAssistantPageHint;
 use App\Modules\Common\Models\SitePage;
+use App\Modules\Common\Services\BlogCtaComposer;
+use App\Modules\Common\Services\EventsHeroBandComposer;
+use App\Modules\Common\Support\MarketingPageCache;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -40,6 +45,14 @@ class MarketingCacheWarmerTest extends TestCase
         Cache::forget(BlogController::INDEX_CACHE_KEY);
         foreach (SitePage::query()->pluck('slug') as $slug) {
             Cache::forget(SitePage::SLUG_CACHE_PREFIX . $slug);
+        }
+        Cache::forget(EventsHeroBandComposer::CACHE_KEY);
+        Cache::forget(BlogCtaComposer::CACHE_KEY);
+        Cache::forget(SiteStat::ACTIVE_CACHE_KEY);
+        Cache::forget(SiteAssistantPageHint::SURFACE_CACHE_PREFIX . 'marketing');
+        Cache::forget(SiteAssistantPageHint::SURFACE_CACHE_PREFIX . 'app');
+        foreach (MarketingPageCache::LAYOUT_SETTING_KEYS as $key) {
+            Cache::forget('app_setting:' . $key);
         }
     }
 
@@ -86,9 +99,38 @@ class MarketingCacheWarmerTest extends TestCase
         $this->assertIsArray($attrs, 'SitePage attribute caches must be warmed per slug.');
         $this->assertSame($features->slug, $attrs['slug'] ?? null);
 
+        // Shared-layout reads (rendered on EVERY marketing page) must be
+        // warmed too, or the first post-deploy /pricing still pays a
+        // multi-second cold rebuild despite warm page payloads.
+        $eventsBand = Cache::get(EventsHeroBandComposer::CACHE_KEY);
+        $this->assertIsArray($eventsBand, 'Events hero-band rows must be warmed (empty array is fine).');
+
+        $blogCta = Cache::get(BlogCtaComposer::CACHE_KEY);
+        $this->assertIsArray($blogCta, 'Blog CTA rows must be warmed (empty array is fine).');
+
+        $siteStats = Cache::get(SiteStat::ACTIVE_CACHE_KEY);
+        $this->assertIsArray($siteStats, 'Active site-stats rows must be warmed.');
+
+        foreach (['marketing', 'app'] as $surface) {
+            $this->assertIsArray(
+                Cache::get(SiteAssistantPageHint::SURFACE_CACHE_PREFIX . $surface),
+                "Assistant page hints for the {$surface} surface must be warmed."
+            );
+        }
+
+        // Every layout app_settings key must be cached — including UNSET
+        // keys, which get the MISSING sentinel so the first request doesn't
+        // pay one live query per absent row.
+        foreach (MarketingPageCache::LAYOUT_SETTING_KEYS as $key) {
+            $this->assertNotNull(
+                Cache::get('app_setting:' . $key),
+                "Layout app_setting '{$key}' must be warmed (value or MISSING sentinel)."
+            );
+        }
+
         // File cache deserializes cached Eloquent objects as
         // __PHP_Incomplete_Class — every warmed payload must be object-free.
-        foreach ([$catalog, $creators, $demos, $blogs, $attrs] as $payload) {
+        foreach ([$catalog, $creators, $demos, $blogs, $attrs, $eventsBand, $blogCta, $siteStats] as $payload) {
             array_walk_recursive($payload, function ($v) {
                 $this->assertFalse(is_object($v), 'Warmed marketing payloads must contain no objects.');
             });

@@ -2,10 +2,15 @@
 
 namespace App\Modules\Common\Support;
 
+use App\Modules\Admin\Models\AppSetting;
+use App\Modules\Admin\Models\SiteStat;
 use App\Modules\Common\Controllers\BlogController;
 use App\Modules\Common\Controllers\CreatorsController;
 use App\Modules\Common\Controllers\SitePageController;
+use App\Modules\Common\Models\SiteAssistantPageHint;
 use App\Modules\Common\Models\SitePage;
+use App\Modules\Common\Services\BlogCtaComposer;
+use App\Modules\Common\Services\EventsHeroBandComposer;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -37,22 +42,114 @@ use Illuminate\Support\Facades\Cache;
 class MarketingPageCache
 {
     /**
+     * AppSetting keys read on every marketing-page render (shared layout:
+     * branding, footer socials, SEO/pixels, cookie consent, assistant
+     * config, maintenance flags, announcements, blog settings, WhatsApp
+     * CTAs, wallet flag). Most installs leave many of these UNSET — no row
+     * exists — so warming only stored rows still lets the first post-deploy
+     * request pay one ~750ms cross-region query per unset key (this alone
+     * made a warmed /pricing take ~20s). Listing them here lets warmAll()
+     * cache the MISSING sentinel proactively. A stale list degrades
+     * gracefully: an unlisted key just falls back to one lazy request-path
+     * query, then sticks for the TTL.
+     */
+    public const LAYOUT_SETTING_KEYS = [
+        'blog_settings',
+        'brand_icon_url',
+        'brand_logo_dark_url',
+        'brand_logo_light_url',
+        'cookie_consent_config',
+        'maintenance_admin_only_enabled',
+        'maintenance_marketing_enabled',
+        'marketing_app_store_url',
+        'marketing_default_share_image',
+        'marketing_features_testimonials',
+        'marketing_ga4_id',
+        'marketing_meta_pixel_id',
+        'marketing_play_store_url',
+        'marketing_seo',
+        'marketing_whatsapp_channel_url',
+        'marketing_whatsapp_message',
+        'marketing_whatsapp_number',
+        'public_announcements',
+        'site_assistant.config',
+        'social_link_facebook',
+        'social_link_github',
+        'social_link_instagram',
+        'social_link_linkedin',
+        'social_link_threads',
+        'social_link_tiktok',
+        'social_link_twitter',
+        'social_link_youtube',
+        'wallet.enabled',
+    ];
+
+    /**
      * Rebuild every marketing-page cache from the database and overwrite
      * the stored copies. Returns a summary for logging.
      *
-     * @return array{site_pages:int,creators:array<int,string>,demos:bool,blogs:bool,errors:array<int,string>}
+     * @return array{site_pages:int,creators:array<int,string>,demos:bool,blogs:bool,app_settings:int,layout:array<int,string>,errors:array<int,string>}
      */
     public static function warm(): array
     {
         $ttl = HomePageCache::WARM_TTL;
 
         $summary = [
-            'site_pages' => 0,
-            'creators'   => [],
-            'demos'      => false,
-            'blogs'      => false,
-            'errors'     => [],
+            'site_pages'   => 0,
+            'creators'     => [],
+            'demos'        => false,
+            'blogs'        => false,
+            'app_settings' => 0,
+            'layout'       => [],
+            'errors'       => [],
         ];
+
+        // Shared-layout reads that hit EVERY marketing page render: the
+        // per-key app_settings cache (branding/socials/SEO/consent/...),
+        // the events hero promo band, the "Latest from blog" CTA, the
+        // site-stats trust band, and the assistant page hints. All were
+        // visitor-primed only — even with the page payload caches warm,
+        // the first post-deploy /pricing paid ~25s of these misses over
+        // the cross-region RDS.
+        try {
+            $summary['app_settings'] = AppSetting::warmAll(self::LAYOUT_SETTING_KEYS, $ttl);
+        } catch (\Throwable $e) {
+            $summary['errors'][] = self::reportWarmFailure('app_settings', $e);
+        }
+        try {
+            Cache::put(
+                EventsHeroBandComposer::CACHE_KEY,
+                (new EventsHeroBandComposer())->buildRows(),
+                $ttl
+            );
+            $summary['layout'][] = 'events_band';
+        } catch (\Throwable $e) {
+            $summary['errors'][] = self::reportWarmFailure('events_band', $e);
+        }
+        try {
+            Cache::put(BlogCtaComposer::CACHE_KEY, BlogCtaComposer::buildRows(), $ttl);
+            $summary['layout'][] = 'blog_cta';
+        } catch (\Throwable $e) {
+            $summary['errors'][] = self::reportWarmFailure('blog_cta', $e);
+        }
+        try {
+            Cache::put(SiteStat::ACTIVE_CACHE_KEY, SiteStat::buildActiveRows(), $ttl);
+            $summary['layout'][] = 'site_stats';
+        } catch (\Throwable $e) {
+            $summary['errors'][] = self::reportWarmFailure('site_stats', $e);
+        }
+        try {
+            foreach (['marketing', 'app'] as $surface) {
+                Cache::put(
+                    SiteAssistantPageHint::SURFACE_CACHE_PREFIX . $surface,
+                    SiteAssistantPageHint::buildRowsForSurface($surface),
+                    $ttl
+                );
+            }
+            $summary['layout'][] = 'assistant_hints';
+        } catch (\Throwable $e) {
+            $summary['errors'][] = self::reportWarmFailure('assistant_hints', $e);
+        }
 
         // Every SitePage-backed marketing page (/features, /about, /faqs,
         // policies, AI product pages, ...) reads through the per-slug

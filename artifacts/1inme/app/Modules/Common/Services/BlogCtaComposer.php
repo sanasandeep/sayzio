@@ -34,6 +34,21 @@ class BlogCtaComposer
      */
     public const CACHE_KEY = 'blog:latest_cta:v1';
 
+    /**
+     * Build the cacheable payload (plain attribute arrays). Shared by the
+     * request-path Cache::remember below and MarketingPageCache::warm().
+     */
+    public static function buildRows(): array
+    {
+        return BlogPost::published()->with('category')
+            ->orderByDesc('published_at')->take(3)->get()
+            ->map(fn (BlogPost $p) => [
+                'post'     => $p->getAttributes(),
+                'category' => $p->category?->getAttributes(),
+            ])
+            ->all();
+    }
+
     public function compose(View $view): void
     {
         $slug = self::VIEW_TO_SLUG[$view->getName()] ?? null;
@@ -53,15 +68,7 @@ class BlogCtaComposer
         $latest = collect();
         if ($enabled) {
             try {
-                $rows = \Illuminate\Support\Facades\Cache::remember(self::CACHE_KEY, 300, function () {
-                    return BlogPost::published()->with('category')
-                        ->orderByDesc('published_at')->take(3)->get()
-                        ->map(fn (BlogPost $p) => [
-                            'post'     => $p->getAttributes(),
-                            'category' => $p->category?->getAttributes(),
-                        ])
-                        ->all();
-                });
+                $rows = \Illuminate\Support\Facades\Cache::remember(self::CACHE_KEY, 300, fn () => self::buildRows());
                 $latest = collect($rows)->map(function (array $row) {
                     $post = BlogPost::query()->hydrate([$row['post']])->first();
                     $post->setRelation('category', !empty($row['category'])

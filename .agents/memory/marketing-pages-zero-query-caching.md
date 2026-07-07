@@ -61,3 +61,15 @@ slugs (one query), creators default index/trending(0,0)/popular tags, demos,
 blogs index — with `HomePageCache::WARM_TTL` puts. Builders live on the
 request-path controllers (`build*` methods) so warmer and lazy rebuild can't
 drift; sections are fault-isolated (log + summary error, never block serving).
+
+**Shared-layout misses defeat page-payload warming (July 2026):** even with
+every page payload warmed, the first post-deploy /pricing took ~25s — the
+shared marketing LAYOUT reads (per-key `app_settings` incl. ~27 UNSET keys at
+one live query each, events hero band, blog CTA, site stats, assistant page
+hints) were visitor-primed only. `MarketingPageCache::warm()` now warms them:
+`AppSetting::warmAll(LAYOUT_SETTING_KEYS)` bulk-loads stored rows AND caches
+the MISSING sentinel for known-unset layout keys (unset keys are the silent
+killer — they can't be warmed from existing rows alone). Warm output line now
+includes `app settings: N, layout: [...]`. To find leftover misses: clear +
+warm, then replay a kernel request with `DB::enableQueryLog()` and read the
+bindings — don't guess from code.

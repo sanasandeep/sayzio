@@ -22,6 +22,23 @@ class SiteAssistantPageHint extends Model
         ];
     }
 
+    /** Cache key prefix for the per-surface hint rows (shared with the warmer). */
+    public const SURFACE_CACHE_PREFIX = 'site_assistant:hints:';
+
+    /**
+     * Build the cacheable per-surface payload (plain attribute arrays).
+     * Shared by resolve() and MarketingPageCache::warm().
+     */
+    public static function buildRowsForSurface(string $surface): array
+    {
+        return static::where('is_active', true)
+            ->whereIn('surface', [$surface, 'any'])
+            ->orderBy('priority')
+            ->get()
+            ->map(fn ($m) => $m->getAttributes())
+            ->all();
+    }
+
     /**
      * Pick the best-matching active hint for a route name + surface.
      * route_pattern uses fnmatch-style wildcards (e.g. user.links.*).
@@ -34,14 +51,9 @@ class SiteAssistantPageHint extends Model
         // `suggested_actions` column in its raw form so the `array` cast still
         // decodes correctly after hydrate().
         $rows = Cache::remember(
-            'site_assistant:hints:' . $surface,
+            self::SURFACE_CACHE_PREFIX . $surface,
             300,
-            fn () => static::where('is_active', true)
-                ->whereIn('surface', [$surface, 'any'])
-                ->orderBy('priority')
-                ->get()
-                ->map(fn ($m) => $m->getAttributes())
-                ->all()
+            fn () => static::buildRowsForSurface($surface)
         );
         $hints = static::hydrate($rows);
 

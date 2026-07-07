@@ -78,6 +78,38 @@ class AppSetting extends Model
     }
 
     /**
+     * Proactively warm the per-key cache: one bulk query loads every stored
+     * row, and any additional $expectedKeys with no row get the MISSING
+     * sentinel cached — so the first request after a deploy/restart doesn't
+     * pay one ~750ms cross-region query per unset setting key. Invoked by
+     * MarketingPageCache::warm(). Uses the same cache keys and value shapes
+     * as get(), so the request path can never drift.
+     *
+     * Returns the number of keys warmed.
+     */
+    public static function warmAll(array $expectedKeys = [], int $ttl = 300): int
+    {
+        $warmed = 0;
+        $seen = [];
+
+        foreach (self::all() as $row) {
+            $v = $row->value;
+            Cache::put(self::cacheKey($row->key), $v === null ? self::MISSING : $v, $ttl);
+            $seen[$row->key] = true;
+            $warmed++;
+        }
+
+        foreach ($expectedKeys as $key) {
+            if (!isset($seen[$key])) {
+                Cache::put(self::cacheKey($key), self::MISSING, $ttl);
+                $warmed++;
+            }
+        }
+
+        return $warmed;
+    }
+
+    /**
      * Persist a setting and invalidate its cache entry.
      */
     public static function put(string $key, $value): void

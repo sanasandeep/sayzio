@@ -38,18 +38,26 @@ class EventsHeroBandComposer
         $view->with('heroBandEvents', $this->featuredEvents());
     }
 
+    /**
+     * Build the cacheable payload (plain attribute arrays). Shared by the
+     * request-path Cache::remember below and MarketingPageCache::warm(), so
+     * the warmer and the lazy rebuild can never drift.
+     */
+    public function buildRows(): array
+    {
+        return $this->queryFeaturedEvents()
+            ->map(fn (Link $l) => [
+                'link'  => $l->getAttributes(),
+                'ics'   => $l->icsData?->getAttributes(),
+                'tiers' => $l->eventTicketTiers->map(fn ($t) => $t->getAttributes())->all(),
+            ])
+            ->all();
+    }
+
     protected function featuredEvents()
     {
         try {
-            $rows = Cache::remember(self::CACHE_KEY, 300, function () {
-                return $this->queryFeaturedEvents()
-                    ->map(fn (Link $l) => [
-                        'link'  => $l->getAttributes(),
-                        'ics'   => $l->icsData?->getAttributes(),
-                        'tiers' => $l->eventTicketTiers->map(fn ($t) => $t->getAttributes())->all(),
-                    ])
-                    ->all();
-            });
+            $rows = Cache::remember(self::CACHE_KEY, 300, fn () => $this->buildRows());
         } catch (\Throwable $e) {
             // Events tables not migrated yet — the band simply hides.
             return collect();
