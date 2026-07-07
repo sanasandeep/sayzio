@@ -72,6 +72,16 @@ counterpart. Intentional deltas go in that partial's own `allowlist`
 (`{ property, inlineWithoutOverride, reason }`), distinct from the page-level
 selector `allowlist`.
 
+**Discovery pass (warning-only):** beyond TARGETS, the guard scans every blade
+view for UNKNOWN standalone theme-aware pages (own `<html>`/`<head>` + loads
+theme-styles or theme-bootstrap, excluding TARGETS rels and layout shells —
+views appearing as another view's `@extends` target) and warns (never fails)
+on unpaired base color rules, steering new pages into TARGETS. `<script>`
+blocks are stripped first in this pass — markup built in JS strings (e.g. an
+email-preview iframe `srcdoc`) otherwise fools both the own-document detection
+and the style parser. Warning-only because an unconfigured page has no
+allowlist, so theme-neutral accents would be false positives.
+
 Historical misses that motivated the guard: the tips/pairings light overrides
 themselves, then `.btn-outline-success` (Interested widget's green `#34d399` →
 `#059669`/`#047857` in light, matching `ev-price-free`). Regression tests in

@@ -57,6 +57,7 @@ import {
   VIEWS_REL,
   declaresOwnDocument,
   includesThemeStyles,
+  parseExtends,
   readViewsFileMap as readViewsFileMapShared,
   stripComments as stripBladeComments,
 } from "./lib/blade-theme-scope.js";
@@ -417,6 +418,60 @@ export const TARGETS: Target[] = [
         property: "color",
         reason:
           "white text on the always-present blue-to-purple gradient header — theme-neutral in both modes.",
+      },
+    ],
+  },
+  {
+    // Surfaced by the unknown-standalone-page discovery pass: a standalone
+    // page (own <html>, @includes theme-styles directly) shown while sign-ups
+    // are paused. All findings are theme-neutral — the text colors are either
+    // theme TOKENS (var(--accent) / var(--border-glass-light), which already
+    // flip with the theme) or brand-accent icon colors on tinted tiles that
+    // read clearly on both surfaces — so no html.light-mode pairs are needed.
+    page: "artifacts/1inme/resources/views/user/auth/registration-paused.blade.php",
+    label: "registration paused page",
+    allowlist: [
+      {
+        selector: ".up-hero",
+        property: "color",
+        reason:
+          "color:transparent for the background-clip gradient headline — the gradient itself starts at var(--text-primary), which already flips with the theme.",
+      },
+      {
+        selector: ".up-badge",
+        property: "color",
+        reason:
+          "color: var(--accent) — a theme token that flips with the theme, no separate light pair needed.",
+      },
+      {
+        selector: ".up-feature:hover",
+        property: "border-color",
+        reason:
+          "border-color: var(--border-glass-light) — a theme token that flips with the theme, no separate light pair needed.",
+      },
+      {
+        selector: ".up-feature:nth-child(1) .ic",
+        property: "color",
+        reason:
+          "periwinkle accent icon (#7d9bff) on its matching tinted tile — legible on both themes.",
+      },
+      {
+        selector: ".up-feature:nth-child(2) .ic",
+        property: "color",
+        reason:
+          "orchid accent icon (#e29bff) on its matching tinted tile — legible on both themes.",
+      },
+      {
+        selector: ".up-feature:nth-child(3) .ic",
+        property: "color",
+        reason:
+          "emerald accent icon (#34d399) on its matching tinted tile — legible on both themes.",
+      },
+      {
+        selector: ".up-feature:nth-child(4) .ic",
+        property: "color",
+        reason:
+          "cyan accent icon (#67e8f9) on its matching tinted tile — legible on both themes.",
       },
     ],
   },
@@ -793,6 +848,92 @@ export function pageIsSelfContained(rel: string, files: Map<string, string>): bo
   return declaresOwnDocument(src) && !includesThemeStyles(rel, files);
 }
 
+/* -------------------------------------------------------------------------- *
+ * Unknown standalone-page discovery (secondary warning pass)
+ * -------------------------------------------------------------------------- *
+ * TARGETS only protects pages someone remembered to configure. A NEW standalone
+ * page (own `<html>`/`<head>` that opts into the app theme by loading
+ * theme-styles or the theme-bootstrap partial — e.g. a future
+ * order-confirmation, waitlist, or invite page modeled on rsvp-form) could ship
+ * dark base `color:` / `border-color:` rules without their `html.light-mode`
+ * pairs and silently regress, because nothing scans it until it is added to
+ * TARGETS. This discovery pass closes that gap: it walks EVERY non-vendor blade
+ * view, keeps the ones that are standalone AND theme-aware (declaresOwnDocument
+ * + includesThemeStyles — the exact profile of the rsvp-form/event-ticket
+ * family), skips the ones already configured in TARGETS, and runs the same
+ * whole-page pairing check (with NO allowlist) over each.
+ *
+ * Findings are a WARNING, not a hard fail: an unknown page has no allowlist yet,
+ * so a theme-neutral accent (white text on a gradient header) would be a false
+ * positive if this failed the build. The warning's job is to steer the new page
+ * into TARGETS, where it gets a proper allowlist and hard-fail protection.
+ *
+ * Layout-extending pages (no own `<html>`) are out of discovery scope on
+ * purpose: nearly every app/marketing page extends a themed layout, and most
+ * re-style via the shared Tailwind/theme tokens rather than page-local dark
+ * CSS — scanning them all would drown the signal in theme-neutral false
+ * positives. They are covered by adding them to TARGETS explicitly, as today.
+ *
+ * Layout SHELLS are excluded too: a view that other views `@extends` (e.g.
+ * user/layouts/app.blade.php) declares its own `<html>` but is not a
+ * "standalone page" — it is the app chrome, whose light styling flows through
+ * the shared theme tokens/partials rather than same-file `html.light-mode`
+ * pairs, so pairing-scanning it only produces chrome noise. Exclusion is
+ * derived from usage (the union of every view's `@extends` targets), not from
+ * a `/layouts/` path convention, so an oddly-placed layout is still excluded.
+ */
+
+export interface UnknownPageFinding {
+  /** Page path relative to VIEWS_REL. */
+  rel: string;
+  /** Unpaired base color rules found by the whole-page check (no allowlist). */
+  missing: MissingPair[];
+}
+
+/**
+ * Remove `<script>…</script>` blocks so markup fragments BUILT IN JS STRINGS
+ * are never mistaken for the page's own document/styles. Real example: the
+ * admin newsletter compose page assembles an email-preview iframe `srcdoc` via
+ * string concatenation (`'<html><head><style>body{color:#111}…'`) inside a
+ * `<script>` — without stripping, `declaresOwnDocument` sees the `<html>` in
+ * the JS string and `extractStyleBlocks` parses the email CSS, producing
+ * garbage findings like `' + 'a { color }`. Discovery-only: the configured
+ * TARGETS path keeps its exact historical behavior.
+ */
+export function stripScriptBlocks(src: string): string {
+  return src.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ");
+}
+
+/**
+ * Scan every blade view for standalone theme-aware pages NOT configured in
+ * TARGETS whose `<style>` blocks set bare `color`/`border-color` without an
+ * `html.light-mode` pair. See the block comment above for scope and rationale.
+ */
+export function discoverUnknownStandalonePages(
+  files: Map<string, string>,
+  targets: Target[] = TARGETS,
+): UnknownPageFinding[] {
+  const known = new Set(
+    targets.map((t) => targetViewRel(t.page)).filter((r): r is string => r !== null),
+  );
+  // Layout shells: every view some other view `@extends`. They own an <html>
+  // but are app chrome, not standalone pages — see the block comment above.
+  const extendedBy = new Set<string>();
+  for (const raw of files.values()) {
+    for (const layout of parseExtends(stripBladeComments(raw))) extendedBy.add(layout);
+  }
+  const out: UnknownPageFinding[] = [];
+  for (const [rel, raw] of [...files.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+    if (known.has(rel) || extendedBy.has(rel)) continue;
+    const src = stripScriptBlocks(stripBladeComments(raw));
+    if (!declaresOwnDocument(src)) continue;
+    if (!includesThemeStyles(rel, files)) continue;
+    const missing = checkSource(src);
+    if (missing.length > 0) out.push({ rel, missing });
+  }
+  return out;
+}
+
 /**
  * Read + check a single configured target. When `files` (the VIEWS_REL-keyed map
  * from `readViewsFileMap`) is supplied, the target is first screened for the
@@ -878,10 +1019,47 @@ function printExplain(): void {
   console.log("\nInline-styled partials bake dark colors as style=\"…\" attributes (no base");
   console.log("  rule to pair against), so each themed inline color/border must have exactly");
   console.log("  one paired html.light-mode override for that scope (a structural count).");
+  console.log("\nDiscovery pass (warning-only): every OTHER standalone theme-aware blade page");
+  console.log("  (ships its own <html>/<head> AND loads theme-styles or theme-bootstrap) is");
+  console.log("  also scanned whole-page with no allowlist. Unpaired base color rules on such");
+  console.log("  an unknown page print a warning steering it into TARGETS — they never fail");
+  console.log("  the build, because an unconfigured page has no allowlist yet and a");
+  console.log("  theme-neutral accent would be a false positive.");
   console.log("\nAdd a page: append a { page, label, allowlist } entry to TARGETS in");
   console.log("  scripts/src/check-light-mode-pairing.ts (add `scopes` if the page also");
   console.log("  has intentional always-dark islands outside the re-themed region, or");
   console.log("  `partials` if it includes inline-styled partials).");
+}
+
+/**
+ * Print the warning-only report for unknown standalone pages with unpaired
+ * color rules. Never affects the exit code — the message's job is to steer the
+ * page into TARGETS (see the discovery block comment).
+ */
+function printUnknownPageWarnings(unknown: UnknownPageFinding[]): void {
+  if (unknown.length === 0) return;
+  console.warn(
+    `\n⚠ light-mode-pairing discovery — ${unknown.length} standalone theme-aware page(s) NOT configured in TARGETS have unpaired base color rule(s):\n`,
+  );
+  for (const u of unknown) {
+    console.warn(`  ${VIEWS_REL}/${u.rel}:`);
+    for (const m of u.missing) {
+      console.warn(`    ${m.selector} { ${m.property} } — no paired ${LIGHT_PREFIX}override`);
+    }
+  }
+  console.warn(
+    "\n  These pages load the app theme (own <html>/<head> + theme-styles/theme-bootstrap)",
+  );
+  console.warn(
+    "  but are not protected by this guard yet, so the rules above may wash out in light",
+  );
+  console.warn(
+    "  mode. Add each page to TARGETS in scripts/src/check-light-mode-pairing.ts (with an",
+  );
+  console.warn(
+    "  allowlist entry + reason for any genuinely theme-neutral rule) to get hard-fail",
+  );
+  console.warn("  protection. This is a warning only — it does not fail the build.");
 }
 
 function main(): void {
@@ -923,11 +1101,17 @@ function main(): void {
     process.exit(1);
   }
 
+  // Warning-only discovery pass over standalone theme-aware pages that are not
+  // configured in TARGETS yet — printed on both the pass and fail paths, and
+  // never part of the exit code (see discoverUnknownStandalonePages).
+  const unknown = discoverUnknownStandalonePages(files);
+
   const failed = results.filter((r) => r.missing.length > 0 || r.partialMismatches.length > 0);
   if (failed.length === 0) {
     console.log(
       `✓ light-mode-pairing guard passed — every base color rule across ${TARGETS.length} checked page(s) has its paired "${LIGHT_PREFIX}" override, and every themed inline color in the inline-styled partials has its light override.`,
     );
+    printUnknownPageWarnings(unknown);
     process.exit(0);
   }
 
@@ -965,6 +1149,7 @@ function main(): void {
     "Add the matching html.light-mode override, or (if genuinely theme-neutral) add the selector+property to that page's `allowlist` — or, for a partial, an { property, inlineWithoutOverride, reason } entry to that partial's `allowlist` — in scripts/src/check-light-mode-pairing.ts with a reason.",
   );
   console.error("Run `pnpm --filter @workspace/scripts run check:light-mode-pairing -- --explain` for details.");
+  printUnknownPageWarnings(unknown);
   process.exit(1);
 }
 

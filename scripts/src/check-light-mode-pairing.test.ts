@@ -17,6 +17,8 @@ import {
   readViewsFileMap,
   targetViewRel,
   pageIsSelfContained,
+  stripScriptBlocks,
+  discoverUnknownStandalonePages,
 } from "./check-light-mode-pairing.js";
 import { VIEWS_REL } from "./lib/blade-theme-scope.js";
 
@@ -338,6 +340,135 @@ describe("theme-scope detection", () => {
     const realTarget = TARGETS[0]!;
     const result = checkTarget(realTarget);
     expect(result.scopeError).toBeUndefined();
+  });
+});
+
+/**
+ * Unknown standalone-page discovery (secondary warning pass).
+ *
+ * TARGETS only protects configured pages; the discovery pass must flag any
+ * OTHER standalone theme-aware page (own <html>/<head> + loads theme-styles or
+ * theme-bootstrap) whose <style> sets bare color/border-color without a
+ * html.light-mode pair — as a warning steering it into TARGETS. It must NOT
+ * flag configured targets, layout shells (@extends targets), self-contained
+ * pages, layout-extending pages, fully-paired pages, or document/style markup
+ * that only exists inside a <script> JS string (the email-preview srcdoc case).
+ */
+describe("discoverUnknownStandalonePages", () => {
+  const THEME_STYLES = "common/partials/theme-styles.blade.php";
+  const THEME_BOOTSTRAP = "common/partials/theme-bootstrap.blade.php";
+  const standalone = (body: string, themeInclude = "common.partials.theme-styles") =>
+    `<html><head>@include('${themeInclude}')${body}</head><body></body></html>`;
+  const baseFiles = (extra: [string, string][]) =>
+    new Map<string, string>([
+      [THEME_STYLES, ":root{--x:#000}"],
+      [THEME_BOOTSTRAP, ":root{--x:#000}"],
+      ...extra,
+    ]);
+
+  it("flags a standalone theme-aware page with an unpaired base color rule", () => {
+    const files = baseFiles([
+      ["common/waitlist.blade.php", standalone("<style>.wl-title{color:#fff}</style>")],
+    ]);
+    const found = discoverUnknownStandalonePages(files, []);
+    expect(found).toEqual([
+      { rel: "common/waitlist.blade.php", missing: [{ selector: ".wl-title", property: "color" }] },
+    ]);
+  });
+
+  it("treats a theme-bootstrap page (rsvp-form family) as theme-aware too", () => {
+    const files = baseFiles([
+      [
+        "common/invite.blade.php",
+        standalone("<style>.inv-note{border-color:#333}</style>", "common.partials.theme-bootstrap"),
+      ],
+    ]);
+    expect(discoverUnknownStandalonePages(files, []).map((f) => f.rel)).toEqual([
+      "common/invite.blade.php",
+    ]);
+  });
+
+  it("stays quiet on a standalone page whose color rules are fully paired", () => {
+    const files = baseFiles([
+      [
+        "common/confirm.blade.php",
+        standalone(
+          "<style>.c-title{color:#fff} html.light-mode .c-title{color:#111}</style>",
+        ),
+      ],
+    ]);
+    expect(discoverUnknownStandalonePages(files, [])).toEqual([]);
+  });
+
+  it("skips pages already configured in TARGETS (they get the hard-fail path)", () => {
+    const rel = "common/known.blade.php";
+    const files = baseFiles([[rel, standalone("<style>.k{color:#fff}</style>")]]);
+    const targets = [{ page: `${VIEWS_REL}/${rel}`, label: "known", allowlist: [] }];
+    expect(discoverUnknownStandalonePages(files, targets)).toEqual([]);
+  });
+
+  it("skips layout shells — views that other views @extends", () => {
+    const files = baseFiles([
+      ["user/layouts/app.blade.php", standalone("<style>.chrome{color:#fff}</style>")],
+      ["user/some-page.blade.php", "@extends('user.layouts.app')\n<div>x</div>"],
+    ]);
+    expect(discoverUnknownStandalonePages(files, [])).toEqual([]);
+  });
+
+  it("skips self-contained pages (own <html> but no theme system — overrides would be dead)", () => {
+    const files = baseFiles([
+      [
+        "common/plain.blade.php",
+        "<html><head><style>.p{color:#fff}</style></head><body></body></html>",
+      ],
+    ]);
+    expect(discoverUnknownStandalonePages(files, [])).toEqual([]);
+  });
+
+  it("skips layout-extending pages (no own document — covered via TARGETS only)", () => {
+    const files = baseFiles([
+      [
+        "public/extending.blade.php",
+        "@extends('public.layouts.site')\n<style>.e{color:#fff}</style>",
+      ],
+      ["public/layouts/site.blade.php", standalone("")],
+    ]);
+    expect(discoverUnknownStandalonePages(files, []).map((f) => f.rel)).toEqual([]);
+  });
+
+  it("ignores document/style markup that only lives inside a <script> JS string", () => {
+    // The email-preview srcdoc case: without stripping <script> blocks, the
+    // JS-built '<html><head><style>body{color:#111}…' would make the page look
+    // standalone AND contribute garbage unpaired rules.
+    const files = baseFiles([
+      [
+        "admin/compose.blade.php",
+        "@extends('admin.layouts.app')\n<script>var d = '<html><head><style>body{color:#111}' + 'a{color:#06c}</style></head><body>';</script>",
+      ],
+    ]);
+    expect(discoverUnknownStandalonePages(files, [])).toEqual([]);
+  });
+
+  it("the live views tree currently has NO unknown standalone page with unpaired rules", () => {
+    // Every standalone theme-aware page in the repo is either configured in
+    // TARGETS or fully paired — the warning list must be empty so a future
+    // finding is guaranteed to be NEW (a page that needs a TARGETS entry).
+    expect(discoverUnknownStandalonePages(readViewsFileMap())).toEqual([]);
+  }, 30_000);
+});
+
+describe("stripScriptBlocks", () => {
+  it("removes <script> blocks including attributes and multiline bodies", () => {
+    const src = `<div>a</div><script type="module">\nvar s = '<style>.x{color:red}</style>';\n</script><p>b</p>`;
+    const out = stripScriptBlocks(src);
+    expect(out).toContain("<div>a</div>");
+    expect(out).toContain("<p>b</p>");
+    expect(out).not.toContain("color:red");
+  });
+
+  it("leaves real <style> blocks outside scripts untouched", () => {
+    const src = `<style>.y{color:blue}</style><script>var x=1;</script>`;
+    expect(stripScriptBlocks(src)).toContain(".y{color:blue}");
   });
 });
 
