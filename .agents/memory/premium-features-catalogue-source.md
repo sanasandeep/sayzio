@@ -28,7 +28,7 @@ duplicated):
   `feature_highlights` instead.
 - Mobile: `premium-features.tsx` auto-groups `premium_features`;
   `upgrade.tsx`/`plans.tsx` render `feature_highlights`.
-- Marketing (1inme-com): gateway only — `pricing.tsx` links the canonical
+- Marketing (1inme-com, REMOVED July 2026): was gateway only — linked the canonical
   page via `FEATURES_URL` in `src/config.ts`; does NOT duplicate the catalogue.
 
 **Guard:** `tests/Unit/Support/PremiumFeaturesCatalogueDriftTest.php` (plain

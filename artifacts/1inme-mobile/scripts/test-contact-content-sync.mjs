@@ -2,20 +2,17 @@
 //
 // The correct brand contact details (EEFind Private Limited, Banjara Hills,
 // hello@sayzio.app, deliberately blank phone, business hours, social links and
-// the office map) live in FOUR places that must stay identical:
+// the office map) live in THREE places that must stay identical:
 //
 //   1. the product app's PHP source (canonical) —
 //      SitePagesContent::contactExtraDefault()
 //   2. the web blade /contact page (seeded from #1)
-//   3. the marketing site's DEFAULT_CONTACT_CONTENT
-//      (artifacts/1inme-com/src/lib/contact-content.ts — guarded by
-//       contact-content.sync.test.ts there)
-//   4. the mobile DEFAULT_CONTACT_CONTENT
+//   3. the mobile DEFAULT_CONTACT_CONTENT
 //      (artifacts/1inme-mobile/lib/api/siteContent.ts — guarded HERE)
 //
-// #3 and #4 are the fallback rendered when GET /api/v1/site/contact is
-// unreachable (offline / server down). If either copy drifts from the PHP
-// source, that client silently misrepresents the company — wrong city, an old
+// #3 is the fallback rendered when GET /api/v1/site/contact is
+// unreachable (offline / server down). If the copy drifts from the PHP
+// source, the client silently misrepresents the company — wrong city, an old
 // support@ address, or (worst) a fake phone number. This test reads BOTH the
 // PHP source and the shipped mobile source at runtime (no hard-coded third
 // copy) and fails if the mobile fallback no longer matches the canonical

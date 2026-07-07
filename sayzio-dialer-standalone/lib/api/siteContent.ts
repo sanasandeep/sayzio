@@ -112,7 +112,7 @@ interface ContactResponse {
  * The correct brand contact details, used as the first-paint value and the
  * fallback when the endpoint is unreachable (offline / server down). Kept in
  * lockstep with the product app's {@see SitePagesContent::contactExtraDefault()}
- * (and the marketing site's `DEFAULT_CONTACT_CONTENT`) so a fetch failure can
+ * so a fetch failure can
  * never blank out a field or surface a fake phone number: Sayzio is a product
  * of EEFind Private Limited (Banjara Hills, Hyderabad), the public inbox is
  * hello@sayzio.app, and there is deliberately NO phone number.

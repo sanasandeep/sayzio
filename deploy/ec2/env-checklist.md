@@ -158,7 +158,6 @@ them; configure them in the admin panel.
 | `REPL_ID`, `REPLIT_*` (`REPLIT_DOMAINS`, `REPLIT_DEV_DOMAIN`, ...) | Replit platform metadata. |
 | `DATABASE_URL` | Replit's reserved built-in DB URL — only a fallback in the Node DB lib; use discrete `DB_*` instead. |
 | `PHP_CLI_SERVER_WORKERS` | Only for `php -S` / `artisan serve`; PHP-FPM manages workers itself. |
-| `BASE_PATH` | Build-time-only input to the marketing-site Vite build (deploy.sh passes it); not a runtime variable. |
 | `VITE_KEEP_OUTDIR` | Dev Tailwind watch loop only. |
 
 ---
@@ -196,9 +195,3 @@ Replit-only for the api-server: `DATABASE_URL` (fallback), `ALLOW_DESTRUCTIVE_DB
 
 Permissions: `sudo chown root:sayzio /etc/sayzio/api-server.env && sudo chmod 640 /etc/sayzio/api-server.env`.
 
----
-
-## 3. Marketing site
-
-No runtime env — it is a static build. `BASE_PATH` is consumed at **build
-time** by `deploy.sh` (`/1inme-com/` for path routing, `/` for a subdomain).

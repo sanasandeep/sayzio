@@ -4,7 +4,7 @@
  * Fails (exit 1) if the RETIRED purple brand palette is reintroduced into a
  * PRIMARY UI surface of any of the four product artifacts. The product brand
  * accent is now blue (`--color-primary-*`); the old purple ramp must not creep
- * back into the app chrome, marketing site, slide chrome, or mobile UI.
+ * back into the app chrome, slide chrome, or mobile UI.
  *
  * Banned tokens
  * -------------
@@ -17,7 +17,6 @@
  * What is scanned (primary UI surfaces)
  * -------------------------------------
  *   1inme        resources/ (blade + css), public/css, public/js
- *   1inme-com    src/
  *   1inme-deck   src/   (slide CHROME only — see exclusions)
  *   1inme-mobile app/, components/, constants/, lib/
  *
@@ -218,7 +217,6 @@ const SCAN_ROOTS: string[] = [
   "artifacts/1inme/resources",
   "artifacts/1inme/public/css",
   "artifacts/1inme/public/js",
-  "artifacts/1inme-com/src",
   "artifacts/1inme-deck/src",
   "artifacts/1inme-mobile/app",
   "artifacts/1inme-mobile/components",

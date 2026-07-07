@@ -26,7 +26,7 @@ all the built CSS dirs are gitignored. Validation step `brand-color-build`
   `tailwind-scans-compiled-views.md`). Uses the `\b`-anchored hex pattern
   (unchanged — upgrading it would newly flag the biolink categorical palette's
   alpha purple in compiled CSS).
-- `1inme-com` / `1inme-deck` (Vite): build (needs PORT/BASE_PATH env), scan
+- `1inme-deck` (Vite): build (needs PORT/BASE_PATH env), scan
   `dist/public/assets/*.css`. These use an ALPHA-AWARE hex pattern
   (`hexPatternWithAlpha`) because Tailwind v4 normalizes arbitrary
   `rgba(124,58,237,.18)` into 8-digit `#7c3aedXX`, which the `\b` pattern misses.

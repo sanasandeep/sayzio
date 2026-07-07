@@ -1,5 +1,5 @@
 /**
- * AI tool-name drift guard (admin + customer app + marketing site + mobile).
+ * AI tool-name drift guard (admin + customer app + mobile).
  *
  * The nine customer-facing AI tools now carry an "AI " prefix and are spelled
  * the SAME way everywhere they appear to a human:
@@ -18,7 +18,6 @@
  * ----------------
  *   - Laravel views  artifacts/1inme/resources/views/**\/*.blade.php
  *     (admin, user AND common modules; the do-not-touch vendor/ views excluded)
- *   - Marketing site artifacts/1inme-com/src/**\/*.{ts,tsx}
  *   - Mobile app     artifacts/1inme-mobile/{app,components,constants,lib}/**\/*.{ts,tsx}
  *
  * What is flagged
@@ -97,12 +96,6 @@ const SCAN_ROOTS: ScanRoot[] = [
     dirs: ["artifacts/1inme/resources/views"],
     globs: ["*.blade.php"],
     comments: "blade",
-  },
-  {
-    label: "Marketing site",
-    dirs: ["artifacts/1inme-com/src"],
-    globs: ["*.ts", "*.tsx"],
-    comments: "js",
   },
   {
     label: "Mobile app",
@@ -448,7 +441,7 @@ function main(): void {
 
   if (offenders.length === 0) {
     console.log(
-      "✓ ai-tool-names guard passed — AI tool names carry the 'AI ' prefix across admin, customer app, marketing site and mobile.",
+      "✓ ai-tool-names guard passed — AI tool names carry the 'AI ' prefix across admin, customer app and mobile.",
     );
     process.exit(0);
   }

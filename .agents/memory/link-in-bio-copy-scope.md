@@ -5,7 +5,7 @@ description: What counts as in-scope "visible user-facing wording" vs out-of-sco
 
 # "Link in Bio" wording standardization — scope boundary
 
-Product wording is "Link in Bio" (plurals meaning pages → "Link in Bio pages"). When asked to standardize visible copy across the 4 artifacts (Laravel `1inme`, `1inme-com`, `1inme-mobile`, `1inme-deck`), the judgment that matters is **visible copy vs identifier**.
+Product wording is "Link in Bio" (plurals meaning pages → "Link in Bio pages"). When asked to standardize visible copy across the artifacts (Laravel `1inme`, `1inme-mobile`, `1inme-deck`), the judgment that matters is **visible copy vs identifier**.
 
 **IN SCOPE (change):** flash messages (`->with('success'/'error', ...)`), API error messages returned in the `{error:{message}}` envelope (e.g. `notFound('Biolink not found')` — they surface in mobile UI; CardScan precedent), moderation/notification descriptions shown in UI, admin-UI strings, blade text nodes / `@section('title',...)` / visible attributes (title=, placeholder=, option text), marketing content classes (ComparisonContent, SitePagesContent, MarketingSeo titles+descriptions), and **display-label array keys** (e.g. ComparisonContent group-label keys that are iterated as section headings — verify nothing looks them up as a literal first).
 

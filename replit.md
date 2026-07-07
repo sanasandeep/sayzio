@@ -16,7 +16,6 @@ A pnpm workspace monorepo combining a PHP 8.4 Laravel app (Sayzio) and Node.js 2
 
 Artifacts (see registered artifacts list):
 - `artifacts/1inme` — Laravel app (the product)
-- `artifacts/1inme-com` — React/Vite marketing site
 - `artifacts/1inme-mobile` — Expo/React Native mobile app
 - `artifacts/1inme-deck` — slide deck
 - `artifacts/api-server` — Express API service
@@ -71,9 +70,6 @@ Glassmorphism design, dark/light modes, purple palette, Space Grotesk type. 3-mo
 - **Banned names / reserved handles**: admin-managed blocklist (single + bulk add, restore-defaults, export, conflict listing + force-rename of existing offenders); enforced everywhere a handle is chosen via the `NotBannedName` rule plus a live `AliasAvailability` checker that returns availability + suggested alternatives.
 - **Custom domains**: user-owned domains (added + DNS-verified per account) and admin-provided shared **global** domains (`is_global`) coexist; the create-link domain picker (`domains/available`) lists both, flagging verification state and the default host.
 - **Creator Payouts & 18+**: `/user/payouts` dashboard with 5 hosted-onboarding adapters (Stripe Connect, PayPal, Razorpay Route, CCBill, Segpay); 0% platform fee; `creator_payment_connections` per (user, provider); preview mode when keys absent. 18+ toggle at `/user/adult-content` requires three-checkbox consent + audit stamps; visitor age gate on `/@handle`; `/creators` hides 18+ unless `?show_adult=1`; admin moderation at `/admin/adult-moderation`. Mobile parity via `/api/v1/payouts` + `/api/v1/adult-content`.
-
-## Sayzio Marketing Site (`artifacts/1inme-com`)
-Standalone React + Vite + Tailwind site, separate from Laravel. A **gateway**: no auth/checkout of its own — all login/signup/pricing CTAs route to the main app via `src/config.ts`; copy mirrors Laravel `SitePagesContent`. Ships legal pages, a changelog, official social links, and a blog that reads the live Laravel DB-driven blog at runtime (CORS-open `/blogs/feed.json` + `/blogs/feed/{slug}.json`). Contact form submits via `@workspace/api-client-react` to the Laravel admin inbox (rate-limited, honeypot, `mailto:` fallback).
 
 # External Dependencies
 

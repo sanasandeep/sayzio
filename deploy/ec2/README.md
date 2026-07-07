@@ -15,7 +15,6 @@ setup — the `.replit-artifact/artifact.toml` files stay untouched.
 |---|---|---|
 | Laravel app (`artifacts/1inme`) | `php -S` + `server.php` static router | **Nginx + PHP-FPM 8.4** at `/` |
 | Express API server (`artifacts/api-server`) | Node workflow on :8080 | systemd `sayzio-api.service`, Nginx-proxied at `/api` |
-| Marketing site (`artifacts/1inme-com`) | Static serve at `/1inme-com/` | Nginx static files at `/1inme-com/` (or its own subdomain) |
 | Queue worker | (not a separate process on Replit) | systemd `sayzio-queue.service` (`queue:work`, restart-on-failure) |
 | Scheduler | (in-process) | systemd `sayzio-scheduler.timer` (every minute) or cron |
 | Database | AWS RDS PostgreSQL | unchanged |
@@ -31,8 +30,7 @@ deploy/ec2/
 ├── bootstrap-al2023.sh             # Amazon Linux 2023 provisioning (same stack via dnf)
 ├── deploy.sh                       # repeatable deploy (mirrors the Replit production pipeline; auto-detects distro)
 ├── nginx/
-│   ├── sayzio.conf                 # single-domain path-routed site config
-│   └── marketing-subdomain.conf    # optional: marketing site on its own subdomain
+│   └── sayzio.conf                 # single-domain path-routed site config
 └── systemd/
     ├── sayzio-api.service          # Express API server
     ├── sayzio-queue.service        # Laravel queue worker
@@ -170,13 +168,6 @@ sudo systemctl daemon-reload
 sudo systemctl enable sayzio-api.service sayzio-queue.service sayzio-scheduler.timer
 ```
 
-Marketing-site options (documented in the two nginx templates):
-
-- **Path-routed** (default, mirrors Replit): served at `/1inme-com/`; deploy
-  builds with `BASE_PATH=/1inme-com/`.
-- **Subdomain**: use `marketing-subdomain.conf`, remove the `/1inme-com/`
-  block from `sayzio.conf`, and deploy with `MARKETING_BASE=/ bash deploy/ec2/deploy.sh`.
-
 Give the deploy user passwordless rights for exactly the service commands
 `deploy.sh` uses (note the PHP-FPM unit name differs per distro):
 
@@ -204,7 +195,7 @@ sudo systemctl start sayzio-api.service sayzio-queue.service sayzio-scheduler.ti
 build, so Tailwind never scans stale compiled views) → Vite build →
 `composer install --no-dev --optimize-autoloader` → `migrate --force` with the
 `db:reconcile-migrations` self-healing fallback → config/route/view cache →
-api-server + marketing builds → service reloads.
+api-server build → service reloads.
 
 **Keep-serving migration policy is preserved**: if migrations fail even after
 the reconcile fallback, the deploy logs a loud `::1inme:: DEPLOY MIGRATION
@@ -306,7 +297,6 @@ curl -fsS https://yourdomain.com/up/schema        # 200 = schema in sync (503 = 
 curl -fsS https://yourdomain.com/api/healthz      # Express API server alive
 curl -fsSI https://yourdomain.com/                # home page renders (200)
 curl -fsSI https://yourdomain.com/@somehandle     # a seeded/known biolink page
-curl -fsSI https://yourdomain.com/1inme-com/      # marketing site (if path-routed)
 curl -fsSI https://yourdomain.com/build/          # 403/404, but /build/assets/*.css from page source = 200
 systemctl status sayzio-api sayzio-queue          # both active (running)
 systemctl list-timers | grep sayzio               # scheduler timer armed

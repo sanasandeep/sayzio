@@ -11,7 +11,7 @@
 #   -> php artisan migrate --force     with db:reconcile-migrations fallback;
 #                                       KEEP SERVING on failure (loud log, no exit)
 #   -> config/route/view cache
-#   -> build api-server + marketing site
+#   -> build api-server
 #   -> reload/restart services
 #
 # Run as the deploy user (not root); it uses sudo only for service reloads:
@@ -22,8 +22,6 @@
 #
 # Overridable via environment:
 #   APP_DIR            repo root                 (default /var/www/sayzio)
-#   MARKETING_BASE     base path for the marketing site build
-#                      "/1inme-com/" for path routing, "/" for a subdomain
 #   PHP_FPM_SERVICE    php-fpm unit name         (auto: php8.4-fpm on Ubuntu,
 #                                                 php-fpm on Amazon Linux 2023)
 #   PHP_FPM_USER       FPM runtime user for the storage ACL grant
@@ -34,7 +32,6 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/var/www/sayzio}"
 LARAVEL_DIR="$APP_DIR/artifacts/1inme"
-MARKETING_BASE="${MARKETING_BASE:-/1inme-com/}"
 
 # --- PHP-FPM unit name: php8.4-fpm (Ubuntu/ondrej) vs php-fpm (AL2023) -----
 if [ -z "${PHP_FPM_SERVICE:-}" ]; then
@@ -131,12 +128,6 @@ fi
 cd "$APP_DIR"
 log "Building Express API server..."
 NODE_ENV=production pnpm --filter @workspace/api-server run build
-
-# ---------------------------------------------------------------------------
-# Marketing site (artifacts/1inme-com) — static build
-# ---------------------------------------------------------------------------
-log "Building marketing site (BASE_PATH=$MARKETING_BASE)..."
-BASE_PATH="$MARKETING_BASE" NODE_ENV=production pnpm --filter @workspace/1inme-com run build
 
 # ---------------------------------------------------------------------------
 # Service reloads

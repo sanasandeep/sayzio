@@ -9,8 +9,8 @@
 #   __FPM_SOCKET__  distro PHP-FPM socket (auto-detected)
 #
 # Serves the Laravel app only (short links / biolinks / public pages on the
-# customer's host). The /api proxy and /1inme-com/ marketing site stay on the
-# main domain (sayzio.conf) by design.
+# customer's host). The /api proxy stays on the main domain (sayzio.conf) by
+# design.
 #
 # LOCKSTEP: the location blocks below mirror the Laravel section of
 # nginx/sayzio.conf — if you change one, change the other.

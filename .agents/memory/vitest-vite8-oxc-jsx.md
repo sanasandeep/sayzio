@@ -1,6 +1,6 @@
 ---
 name: vitest vite8 oxc JSX transform
-description: Why 1inme-com .tsx vitest suites fail to parse JSX and the oxc.jsx config fix
+description: Why .tsx vitest suites fail to parse JSX under vite 8/oxc and the oxc.jsx config fix
 ---
 
 # vitest + vite 8 (oxc) drops JSX transform in .tsx tests

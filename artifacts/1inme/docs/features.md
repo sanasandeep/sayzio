@@ -59,9 +59,8 @@ It complements two sibling docs and intentionally does **not** duplicate them:
 12. [Admin / back-office systems](#12-admin--back-office-systems)
 13. [REST API surface](#13-rest-api-surface)
 14. [Cross-surface artifacts](#14-cross-surface-artifacts)
-    - [14.1 Marketing site](#141-marketing-site-artifacts1inme-com)
-    - [14.2 Mobile app](#142-mobile-app-artifacts1inme-mobile)
-    - [14.3 Slide deck](#143-slide-deck-artifacts1inme-deck)
+    - [14.1 Mobile app](#141-mobile-app-artifacts1inme-mobile)
+    - [14.2 Slide deck](#142-slide-deck-artifacts1inme-deck)
 
 ---
 
@@ -1158,24 +1157,7 @@ plan allowance with coin-wallet overage (see [§8](#8-ai-engine--ai-features)).
 
 ## 14. Cross-surface artifacts
 
-### 14.1 Marketing site (`artifacts/1inme-com`)
-
-A standalone React + Vite + Tailwind site, separate from Laravel. It is a
-**gateway**: it has no auth/checkout of its own — all login/signup/pricing CTAs
-route to the main app via `src/config.ts` (`LOGIN` / `SIGNUP` / `PRICING`).
-
-- **Home** — role cycler hero ("I am a [Creator/Artist/Coach…]") with primary
-  "make it free" CTA and a feature tour; copy mirrors Laravel `SitePagesContent`.
-- **Blog** — reads the **live DB-driven Laravel blog** at runtime via CORS-open
-  `/blogs/feed.json` + `/blogs/feed/{slug}.json` (no static array).
-- **Changelog** — versioned New/Improved/Fixed timeline.
-- **Contact** — multi-field form with server-side honeypot, submitting via
-  `@workspace/api-client-react` to the Laravel admin inbox (rate-limited,
-  `mailto:` fallback).
-- **Legal** — Terms, Privacy, GDPR, Cookies, Refunds via a shared `LegalPage`
-  layout; plus official social links.
-
-### 14.2 Mobile app (`artifacts/1inme-mobile`)
+### 14.1 Mobile app (`artifacts/1inme-mobile`)
 
 A native Expo / React Native app with broad parity to the web creator features
 over `/api/v1`.
@@ -1195,7 +1177,7 @@ over `/api/v1`.
 - **Engagement** — native poll voting, RSVPs, block taps reported via API for
   analytics parity; mobile dashboard fetches visit/click trends.
 
-### 14.3 Slide deck (`artifacts/1inme-deck`)
+### 14.2 Slide deck (`artifacts/1inme-deck`)
 
 A modular React presentation organized by a manifest
 (`src/data/slides-manifest.json`).

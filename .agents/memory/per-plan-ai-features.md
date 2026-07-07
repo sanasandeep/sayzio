@@ -16,7 +16,7 @@ Surfaces that must stay in lockstep when adding/renaming an AI feature key:
 2. `PlansAndAddonsSeeder::aiFeatureLimits()` + the additive backfill migration
 3. `PremiumFeatures::catalogue()` (AI suite group) — this ONE shared class drives both the web /premium-features page AND the mobile premium-features screen + `unlocked_by` resolution, so mobile needs NO code change (usePlanFeatures + plans/upgrade screens are data-driven off `/api/v1/billing/plans` features_map + premium_features).
 4. Pricing matrix (`public/pricing/plans.blade.php` $matrixGroups 'AI features') + `user/upgrade/show.blade.php` number/bool label maps
-5. Marketing (`1inme-com/src/content/compare.ts` Growth & AI group + featureSupport rows, `pages/pricing.tsx` cards)
+5. Marketing surface removed (the standalone `1inme-com` site was deleted in July 2026)
 6. Index blade counters (`user/{minds,ai-personas,ai-companions}/index.blade.php`) must treat cap===-1 as ∞/Unlimited and always allow the create button.
 
 **Voice drift:** pricing/catalogue DISPLAY `ai_voice_assistant` per-plan, but the runtime voice gate intentionally still uses `AiEngineSettings::voiceAllowedFor()` (allow-list) to avoid regressing existing access — displayed flag and runtime gate can disagree until reconciled.

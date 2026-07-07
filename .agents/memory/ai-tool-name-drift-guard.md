@@ -12,7 +12,7 @@ prefix. Keeps the nine tool names in sync (see `knowledge-bases-display-rename.m
 
 **Scope (SCAN_ROOTS, all human-facing surfaces):** every `*.blade.php` under
 `artifacts/1inme/resources/views` (admin + user + common, vendor/ excluded),
-`artifacts/1inme-com/src` `*.{ts,tsx}`, and mobile `app|components|constants|lib`
+and mobile `app|components|constants|lib`
 `*.{ts,tsx}`. Each root declares its comment syntax (`blade` vs `js`); the
 script is the source of truth for exact phrases + exceptions (`-- --explain`).
 

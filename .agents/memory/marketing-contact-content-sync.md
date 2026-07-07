@@ -1,20 +1,20 @@
 ---
 name: Contact details brand-default sync
-description: How marketing + mobile get contact details and the THREE places the brand defaults live in lockstep.
+description: How mobile gets contact details and the places the brand defaults live in lockstep (marketing site removed July 2026).
 ---
-Both the marketing site's Contact page AND the mobile Contact screen
-(`artifacts/1inme-mobile/app/info/contact.tsx`) read contact details from the
+The mobile Contact screen
+(`artifacts/1inme-mobile/app/info/contact.tsx`) reads contact details from the
 Laravel product app at `GET /api/v1/site/contact` (served by the Api
 `SiteContentController::contact()`), exactly mirroring `/site/about` and the
 blog feed pattern.
 
 **How to apply:**
-- Both clients are plain `fetch()` (base resolved via a `VITE_*` override →
-  LOGIN_URL origin on marketing; `getBaseUrl()` on mobile). It is NOT part of
-  the OpenAPI/Orval codegen — do not add it to api-spec.
-- Brand contact defaults exist in THREE places that must stay in lockstep: the
-  PHP `contactExtraDefault()`, the marketing TS `DEFAULT_CONTACT_CONTENT`, and
-  the mobile `DEFAULT_CONTACT_CONTENT` in `lib/api/siteContent.ts`. Keep ALL
+- The client is plain `fetch()` (base via `getBaseUrl()` on mobile). It is NOT
+  part of the OpenAPI/Orval codegen — do not add it to api-spec.
+- Brand contact defaults exist in TWO places that must stay in lockstep: the
+  PHP `contactExtraDefault()` and the mobile `DEFAULT_CONTACT_CONTENT` in
+  `lib/api/siteContent.ts` (the marketing-site copy was deleted with the
+  artifact in July 2026). Keep ALL
   rendered fields identical (address, email, hours, social, map, and a
   DELIBERATELY BLANK phone — no fake number). Every phone row is guarded so a
   blank phone renders NO row.
@@ -34,8 +34,8 @@ failure).
 
 **Drift guards (TWO, both source-driven — read the canonical PHP + the shipped
 client at runtime, no hard-coded third copy):**
-- Marketing: `contact-content.sync.test.ts` (`1inme-com/src/lib`, in the
-  `test:1inme-com` vitest gate) guards email/address/phone/hours + an explicit
+- (The former marketing-site `contact-content.sync.test.ts` gate was deleted
+  with the artifact in July 2026; it guarded email/address/phone/hours + an explicit
   blank-phone assertion. Social deliberately blank there and there is NO map
   field, so both stay out of scope.
 - Mobile: `scripts/test-contact-content-sync.mjs` (`test:contact-content`,

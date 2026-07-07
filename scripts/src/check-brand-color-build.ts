@@ -7,10 +7,9 @@
  * gitignored, so a pre-sweep purple token regressing into built output would
  * ship unnoticed by the source-level scan.
  *
- * Three product artifacts ship compiled stylesheets and are all checked here:
+ * Two product artifacts ship compiled stylesheets and are both checked here:
  *
  *   1inme       (Laravel)   public/build/assets/*.css
- *   1inme-com   (Vite)      dist/public/assets/*.css
  *   1inme-deck  (Vite)      dist/public/assets/*.css
  *
  * Why the Laravel app needs a build-time check
@@ -22,7 +21,7 @@
  * We `php artisan view:clear` first to drop that cache. See
  * `.agents/memory/tailwind-scans-compiled-views.md`.
  *
- * Why the marketing site / slide deck need a build-time check
+ * Why the slide deck needs a build-time check
  * ----------------------------------------------------------
  * Their Tailwind content scan can reach files OUTSIDE the source-level guard's
  * scan roots (root `index.html`, `attached_assets`, etc.), so purple could
@@ -186,7 +185,6 @@ function checkViteArtifact(
 function main(): void {
   const results: ArtifactResult[] = [
     checkLaravel(),
-    checkViteArtifact("1inme-com", path.join(REPO_ROOT, "artifacts/1inme-com"), null),
     checkViteArtifact(
       "1inme-deck",
       path.join(REPO_ROOT, "artifacts/1inme-deck"),

@@ -6,7 +6,7 @@ description: Why the 1inme artifact intermittently "failed to run" on port 5000
 The 1inme Laravel dev server is defined ONCE canonically in
 `artifacts/1inme/.replit-artifact/artifact.toml` `[services.development].run`, and
 the artifact system runs it as the workflow named `artifacts/1inme: web` (matching
-every sibling: `artifacts/1inme-com: web`, etc.). A hand-added `[[workflows.workflow]]`
+every sibling: `artifacts/1inme-deck: web`, etc.). A hand-added `[[workflows.workflow]]`
 named `1INME` in `.replit` (also wired into the `Project` run-button task list) once
 duplicated that EXACT command — so the app was started twice on port 5000. Whichever
 started second hit `Address already in use` and the artifact workflow showed FAILED,

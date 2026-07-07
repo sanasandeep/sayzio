@@ -11,9 +11,6 @@ brand domains as platform hosts and prefers `sayzio.app` as canonical whenever
 it is one of the live serving hosts. Going live is mostly a matter of pointing
 DNS at the deployment and setting the production env values.
 
-> The `1inme.com` **marketing site** (`artifacts/1inme-com`) is intentionally
-> untouched and is not part of this checklist.
-
 ## 0. DNS — point both brand domains at the deployment
 
 On your DNS provider, create records so both apex domains (and their `www.`

@@ -48,9 +48,10 @@ they're shell-specific.
   `pendingNav`, `lastAudio`, `panelOpen`, and the in-widget `$refs.player`
   `<audio>` (see `tests/Browser/voice-assistant-bridge.spec.ts`, which drives
   Alpine internals directly and dispatches `ended`).
-- The 1inme-com source-driven blade test runs site-assistant's FIRST `<script>`
-  with voice UNAVAILABLE, so `VoiceRuntime` is never referenced there — the
-  `@include` must stay a directive OUTSIDE that first `<script>`.
+- Historical constraint (from a since-deleted marketing-site test that ran
+  site-assistant's FIRST `<script>` with voice UNAVAILABLE): `VoiceRuntime` is
+  never referenced there — the `@include` must stay a directive OUTSIDE that
+  first `<script>`.
 - `voice-assistant.blade.php` takes a `$voiceFloating` param (default true). The
   user layout includes it with `voiceFloating=false` to suppress the floating
   mic while keeping `window.__voice` + the reusable `voiceDictation()` helper
