@@ -97,3 +97,14 @@ mid-run and grep for `voiceAssistant` vs `__voice`. Fix belongs to the voice/Zio
 feature: rewrite the bridge spec to drive the panel voice agent (or drop it from
 the gate); until then every task's `e2e` gate fails on these specs regardless of
 its change.
+
+**Dev-workflow CPU contention flips the whole gate red:** with the heavy
+`artifacts/1inme: web` dev workflow running (10 php-cli workers + tailwind
+watch), validation runs of the gate fail on SCATTERED, different specs each
+round (mix of 0ms connection-refused deaths and 10s timeout clusters); with all
+workflows stopped the identical code goes green. Before triaging gate failures
+as regressions, check whether a dev workflow was running during the run — and
+stop it before retrying validation. Separately, `e2e-mobile-icons` (Expo web)
+occasionally dies with ERR_CONNECTION_REFUSED to the Expo server (boot race,
+see expo-e2e-boot-readiness.md) — retry or, if everything else is green,
+skip-with-reason; it is unrelated to Laravel-side changes.

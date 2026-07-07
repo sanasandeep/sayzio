@@ -208,40 +208,19 @@
            Scoped entirely to .showcase-* so it never touches the shared
            .reveal/.lift/.tilt utilities used elsewhere. Entrance stays gated
            on the existing IntersectionObserver (.reveal.visible). The
-           continuous "alive" float/glow/blob only starts once .sc-alive is
-           toggled by the same observer -- and JS only ever adds .sc-alive
-           when prefers-reduced-motion is off -- so a reduced-motion visitor
-           gets a fully static grid and the animation pauses whenever the
-           section scrolls off-screen. Cursor-driven field tilt + per-card
-           magnetic reaction live on separate CSS custom properties (updated
-           in rAF from JS) so they compose with, rather than fight, the
-           continuous keyframe motion living on the inner .showcase-float
-           wrapper. */
+           continuous "alive" glow/blob only starts once .sc-alive is toggled
+           by the same observer -- and JS only ever adds .sc-alive when
+           prefers-reduced-motion is off -- so a reduced-motion visitor gets a
+           fully static grid and the animation pauses whenever the section
+           scrolls off-screen. */
         .showcase-field {
-            --field-rx: 0deg;
-            --field-ry: 0deg;
             perspective: 1400px;
-        }
-        @media (min-width: 1024px) {
-            .showcase-field {
-                transform: rotateX(var(--field-rx)) rotateY(var(--field-ry));
-                transform-style: preserve-3d;
-                transition: transform .5s cubic-bezier(.16,1,.3,1);
-                will-change: transform;
-            }
         }
         .showcase-card {
             --sc-color: #1bd4d9;
             --sc-x: 50%;
             --sc-y: 40%;
-            --sc-mag: 0;
-            --sc-mx: 0px;
-            --sc-my: 0px;
-            --sc-tiltx: 0deg;
-            --sc-tilty: 0deg;
-            transform: translate3d(var(--sc-mx), var(--sc-my), 0) rotateX(var(--sc-tiltx)) rotateY(var(--sc-tilty)) scale(calc(1 + var(--sc-mag) * .035));
-            transform-style: preserve-3d;
-            transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .45s cubic-bezier(.16,1,.3,1);
+            transition: transform .45s cubic-bezier(.16,1,.3,1), box-shadow .4s cubic-bezier(.16,1,.3,1);
             will-change: transform;
         }
         @media (min-width: 1024px) {
@@ -250,14 +229,11 @@
                grid scrolls into view) triggers the entrance keyframe. */
             .showcase-card.reveal:not(.visible) { opacity: 0; transform: translateY(46px) scale(.92) rotate(-1.2deg); filter: blur(5px); }
             /* `backwards` (not `both`) on purpose: once the entrance finishes,
-               fill must NOT keep pinning transform/opacity/filter to the
-               animation's 100% frame, or it permanently overrides the
-               cursor-driven hover/magnetic transform declared above on
-               .showcase-card. The 100% frame's values (transform: none,
-               opacity: 1, filter: none) already match .showcase-card's own
-               un-animated defaults, so dropping the forwards-fill here is a
-               no-op for the resting look and just hands transform control
-               back to the live hover/magnetic/tilt CSS vars. */
+               the animation fill drops so the element returns to its own
+               un-animated styles, letting the :hover transform take over.
+               The 100% frame values (transform: none, opacity: 1, filter: none)
+               already match .showcase-card's own defaults, so this is a no-op
+               for the resting look. */
             .showcase-card.reveal.visible { animation: showcaseReveal .85s cubic-bezier(.19,1,.22,1) backwards; }
             @keyframes showcaseReveal {
                 0%   { opacity: 0; transform: translateY(46px) scale(.92) rotate(-1.2deg); filter: blur(5px); }
@@ -265,74 +241,59 @@
                 100% { opacity: 1; transform: none; filter: none; }
             }
         }
+        /* Cursor-tracked spotlight that follows the pointer inside the card. */
         .showcase-card::before {
             content: "";
             position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-            background: radial-gradient(240px circle at var(--sc-x) var(--sc-y), color-mix(in srgb, var(--sc-color) 25%, transparent), transparent 72%);
-            opacity: 0; transition: opacity .35s ease;
+            background: radial-gradient(200px circle at var(--sc-x) var(--sc-y), color-mix(in srgb, var(--sc-color) 18%, transparent), transparent 70%);
+            opacity: 0; transition: opacity .3s ease;
         }
         .showcase-card:hover::before { opacity: 1; }
+        html.light-mode .showcase-card:hover::before { opacity: .55; }
+        /* Accent ring that animates subtly at rest and intensifies on hover. */
         .showcase-card::after {
             content: "";
             position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-            box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 0%, transparent), 0 0 0px color-mix(in srgb, var(--sc-color) 0%, transparent);
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 0%, transparent);
             opacity: 0;
             transition: opacity .3s ease, box-shadow .3s ease;
         }
-        /* Continuous glow/blob "alive" motion is gated on .sc-alive (toggled by
-           the IntersectionObserver on every enter/leave) rather than the
-           one-time .visible entrance class, so it pauses while the card is
-           scrolled off-screen and resumes when it re-enters. */
+        /* Gentle ambient glow pulse gated on .sc-alive so it only runs on screen. */
         .showcase-card.sc-alive::after {
-            animation: showcaseGlowPulse 6.4s ease-in-out infinite;
+            animation: showcaseGlowPulse 7s ease-in-out infinite;
             animation-delay: var(--sc-delay, 0s);
         }
         @keyframes showcaseGlowPulse {
-            0%, 100% { opacity: 0; box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 0%, transparent), 0 0 0px color-mix(in srgb, var(--sc-color) 0%, transparent); }
-            50%      { opacity: .55; box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 22%, transparent), 0 0 20px -2px color-mix(in srgb, var(--sc-color) 40%, transparent); }
+            0%, 100% { opacity: 0; box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 0%, transparent); }
+            50%      { opacity: .35; box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 16%, transparent), 0 0 14px -2px color-mix(in srgb, var(--sc-color) 25%, transparent); }
         }
-        /* Nearest-to-cursor card gets a stronger, cursor-tracked glow on top
-           of the ambient pulse (--sc-mag ramps 0 -> 1 as the pointer nears). */
-        .showcase-card.sc-magnet::after {
-            opacity: calc(var(--sc-mag) * .85);
-            box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 45%, transparent), 0 0 34px 2px color-mix(in srgb, var(--sc-color) 55%, transparent);
-        }
+        html.light-mode .showcase-card.sc-alive::after { animation: none; opacity: 0; }
+        /* Single cohesive hover: smooth lift + color-matched shadow + ring. */
         .showcase-card:hover {
-            box-shadow: 0 24px 46px -22px color-mix(in srgb, var(--sc-color) 55%, transparent);
+            transform: translateY(-8px) scale(1.015);
+            box-shadow: 0 20px 40px -18px color-mix(in srgb, var(--sc-color) 45%, transparent);
         }
-        .showcase-card:hover {
-            transform: translate3d(var(--sc-mx), calc(var(--sc-my) - 9px), 14px) rotateX(var(--sc-tiltx)) rotateY(var(--sc-tilty)) scale(calc(1.02 + var(--sc-mag) * .035));
+        .showcase-card:hover::after {
+            opacity: 1;
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 30%, transparent), 0 0 18px -2px color-mix(in srgb, var(--sc-color) 20%, transparent);
         }
+        html.light-mode .showcase-card:hover::after {
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 40%, transparent);
+        }
+        /* Very subtle blob drift — slowed and reduced so the card feels calm. */
         .showcase-blob { transition: opacity .4s ease; }
         .showcase-card.sc-alive .showcase-blob {
-            animation: showcaseBlobDrift 9s ease-in-out infinite;
+            animation: showcaseBlobDrift 14s ease-in-out infinite;
             animation-delay: var(--sc-delay, 0s);
         }
         @keyframes showcaseBlobDrift {
-            0%, 100% { transform: translate(0,0) scale(1); opacity: .2; }
-            50%      { transform: translate(-8px,6px) scale(1.18); opacity: .32; }
+            0%, 100% { transform: translate(0,0) scale(1); opacity: .12; }
+            50%      { transform: translate(-4px,3px) scale(1.08); opacity: .2; }
         }
-        .showcase-icon-wrap { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
-        .showcase-card:hover .showcase-icon-wrap { transform: scale(1.14) rotate(-6deg); }
-        .showcase-card.sc-magnet .showcase-icon-wrap { transform: scale(calc(1 + var(--sc-mag) * .2)) rotate(calc(var(--sc-mag) * -8deg)); }
-
-        /* Continuous ambient float/bob/drift lives on an inner wrapper so it
-           composes with (rather than overwrites) the outer .showcase-card's
-           cursor-driven hover/magnetic transform above -- each element owns
-           its own `transform` so there's no fighting for the same property.
-           Per-card --sc-float-dur/-delay/-drift-*/-rot/-depth-* are seeded
-           from the loop index in the markup below so cards drift out of
-           sync and sit at varied apparent depth. */
-        .showcase-float { transform-style: preserve-3d; }
-        .showcase-card.sc-alive .showcase-float {
-            animation: showcaseFloat var(--sc-float-dur, 7s) ease-in-out infinite;
-            animation-delay: var(--sc-float-delay, 0s);
-            opacity: var(--sc-depth-op, 1);
-        }
-        @keyframes showcaseFloat {
-            0%, 100% { transform: translate3d(0, 0, var(--sc-depth-z, 0px)) rotate(0deg); }
-            50%      { transform: translate3d(var(--sc-drift-x, 6px), var(--sc-drift-y, -8px), var(--sc-depth-z, 0px)) rotate(var(--sc-rot, 1deg)); }
-        }
+        html.light-mode .showcase-card.sc-alive .showcase-blob { animation: none; opacity: 0; }
+        /* Small icon scale on hover — no rotation, no magnetic spin. */
+        .showcase-icon-wrap { transition: transform .3s cubic-bezier(.34,1.4,.64,1); }
+        .showcase-card:hover .showcase-icon-wrap { transform: scale(1.1); }
 
         /* ============ Marquee ============ */
         .marquee { animation: marquee 40s linear infinite; }
@@ -598,13 +559,13 @@
             .pp-coach-arc { stroke-dashoffset: 12.66 !important; animation: none !important; }
             .draw-line { stroke-dashoffset: 0 !important; }
 
-            /* Showcase grid: kill continuous/cursor motion, keep plain hover only */
+            /* Showcase grid: fully static — no animations, no hover motion */
             .showcase-card, .showcase-card::before, .showcase-card::after,
             .showcase-blob, .showcase-icon-wrap {
                 animation: none !important; transition: none !important;
             }
             .showcase-card::before, .showcase-card::after { opacity: 0 !important; }
-            .showcase-card:hover { transform: translateY(-4px) !important; box-shadow: none !important; }
+            .showcase-card:hover { transform: none !important; box-shadow: none !important; }
             .showcase-card:hover .showcase-icon-wrap { transform: none !important; }
         }
 
@@ -4001,24 +3962,10 @@
             </p>
         </div>
 
-        @php
-            // Small per-index lookup tables (not per-card randomness) so the
-            // constellation is deterministic across renders: drift direction
-            // alternates, and cards cycle through 3 apparent depth layers.
-            $__scDriftX = [9, -11, 7, -8];
-            $__scDriftY = [-11, -7, -13, -9];
-            $__scDepthZ = [0, -22, -42];
-            $__scDepthOp = [1, 0.94, 0.87];
-        @endphp
         <div class="showcase-field columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-3 sm:gap-4">
             @foreach($__linkTypes as $i => $lt)
-                @php
-                    $__scRot = ($i % 2 === 0 ? 1 : -1) * (0.6 + ($i % 3) * 0.35);
-                    $__scFloatDur = 6 + ($i % 5) * 0.7;
-                    $__scFloatDelay = round(($i % 7) * 0.42, 2);
-                @endphp
-                <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card glass rounded-xl p-4 relative overflow-hidden mb-3 sm:mb-4 break-inside-avoid inline-block w-full align-top" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s; --sc-drift-x:{{ $__scDriftX[$i % 4] }}px; --sc-drift-y:{{ $__scDriftY[$i % 4] }}px; --sc-rot:{{ $__scRot }}deg; --sc-depth-z:{{ $__scDepthZ[$i % 3] }}px; --sc-depth-op:{{ $__scDepthOp[$i % 3] }}; --sc-float-dur:{{ $__scFloatDur }}s; --sc-float-delay:{{ $__scFloatDelay }}s;">
-                    <div class="showcase-float relative w-full h-full">
+                <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card glass rounded-xl p-4 relative overflow-hidden mb-3 sm:mb-4 break-inside-avoid inline-block w-full align-top" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s;">
+                    <div class="relative w-full h-full">
                         <div class="absolute -top-8 -right-8 w-20 h-20 rounded-full opacity-20 showcase-blob" style="background:{{ $lt['color'] }};"></div>
                         @if($lt['new'])
                             <span class="absolute top-2.5 right-2.5 inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style="background:rgba(255,255,255,.08); color:{{ $lt['color'] }}; border:1px solid {{ $lt['color'] }}40;">New</span>
@@ -4878,86 +4825,6 @@
             showcaseCards.forEach(el => scObserver.observe(el));
         }
 
-        // Cursor-driven 3D parallax + magnetic reaction: the whole field
-        // subtly tilts toward the pointer and the single nearest card lifts
-        // toward it, tilts in 3D, and glows harder. Only wired on devices
-        // that actually have a hovering, fine (mouse/trackpad) pointer and
-        // when motion is allowed -- touch/small screens keep the lighter
-        // .sc-alive continuous float above without this layer.
-        const showcaseSection = document.getElementById('create');
-        const showcaseField = showcaseSection ? showcaseSection.querySelector('.showcase-field') : null;
-        const scFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-        if (showcaseSection && showcaseField && showcaseCards.length && !scReducedMotion && scFinePointer) {
-            const scCardsArr = Array.from(showcaseCards);
-            let scPointer = null; // {x, y} in viewport coords, or null when the pointer has left
-            let scRaf = null;
-
-            const scResetCard = (card) => {
-                card.classList.remove('sc-magnet');
-                card.style.setProperty('--sc-mag', '0');
-                card.style.setProperty('--sc-mx', '0px');
-                card.style.setProperty('--sc-my', '0px');
-                card.style.setProperty('--sc-tiltx', '0deg');
-                card.style.setProperty('--sc-tilty', '0deg');
-            };
-
-            const scRender = () => {
-                scRaf = null;
-                if (!scPointer) {
-                    showcaseField.style.setProperty('--field-rx', '0deg');
-                    showcaseField.style.setProperty('--field-ry', '0deg');
-                    scCardsArr.forEach(scResetCard);
-                    return;
-                }
-
-                const rect = showcaseField.getBoundingClientRect();
-                const cx = rect.left + rect.width / 2;
-                const cy = rect.top + rect.height / 2;
-                const nx = rect.width ? (scPointer.x - cx) / (rect.width / 2) : 0;
-                const ny = rect.height ? (scPointer.y - cy) / (rect.height / 2) : 0;
-                showcaseField.style.setProperty('--field-rx', (-ny * 4).toFixed(2) + 'deg');
-                showcaseField.style.setProperty('--field-ry', (nx * 5).toFixed(2) + 'deg');
-
-                let nearest = null;
-                let nearestDist = Infinity;
-                scCardsArr.forEach((card) => {
-                    const r = card.getBoundingClientRect();
-                    const dx = scPointer.x - (r.left + r.width / 2);
-                    const dy = scPointer.y - (r.top + r.height / 2);
-                    const dist = Math.hypot(dx, dy);
-                    if (dist < nearestDist) nearestDist = dist, nearest = { card, dx, dy, r };
-                });
-
-                const magnetRadius = 260;
-                scCardsArr.forEach((card) => {
-                    if (nearest && card === nearest.card && nearestDist < magnetRadius) {
-                        const mag = 1 - nearestDist / magnetRadius;
-                        card.classList.add('sc-magnet');
-                        card.style.setProperty('--sc-mag', mag.toFixed(2));
-                        card.style.setProperty('--sc-mx', (-nearest.dx * 0.08 * mag).toFixed(1) + 'px');
-                        card.style.setProperty('--sc-my', (-nearest.dy * 0.08 * mag).toFixed(1) + 'px');
-                        card.style.setProperty('--sc-tiltx', (nearest.dy / nearest.r.height * -10 * mag).toFixed(2) + 'deg');
-                        card.style.setProperty('--sc-tilty', (nearest.dx / nearest.r.width * 10 * mag).toFixed(2) + 'deg');
-                    } else {
-                        scResetCard(card);
-                    }
-                });
-            };
-
-            const scSchedule = () => {
-                if (scRaf === null) scRaf = requestAnimationFrame(scRender);
-            };
-
-            showcaseSection.addEventListener('pointermove', (e) => {
-                scPointer = { x: e.clientX, y: e.clientY };
-                scSchedule();
-            });
-            showcaseSection.addEventListener('pointerleave', () => {
-                scPointer = null;
-                scSchedule();
-            });
-        }
-
         // Toggle pp-in-view on pillar preview blocks so their subtle animations
         // only run while the card is on screen (and pause when scrolled away).
         const pillarPreviews = document.querySelectorAll('.pillar-preview');
@@ -5001,9 +4868,11 @@
 
         // Showcase grid ("what you can create"): cursor-following spotlight
         // per card, isolated to the hovered card. Skipped entirely under
-        // prefers-reduced-motion so no cursor-driven motion runs.
+        // prefers-reduced-motion (no cursor-driven motion) and on touch/coarse
+        // pointer devices (no hover, so no listeners doing useless work).
         const showcaseReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (!showcaseReducedMotion) {
+        const showcaseFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+        if (!showcaseReducedMotion && showcaseFinePointer) {
             document.querySelectorAll('.showcase-card').forEach(card => {
                 card.addEventListener('pointermove', (e) => {
                     const rect = card.getBoundingClientRect();
