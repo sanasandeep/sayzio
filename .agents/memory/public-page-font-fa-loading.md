@@ -35,3 +35,14 @@ partial, not a raw `<link>`, to avoid reopening the render-blocking issue.
 **How to apply:** when adding a new public/indexable page that needs icons
 or a webfont, reuse these two patterns rather than inlining a fresh
 `<link rel="stylesheet">` per font/icon-bundle.
+
+**2026-07 update (Safari still blank despite safety net):** the DOMContentLoaded
+flip alone was not enough — Safari has been seen IGNORING the media flip on an
+already-parsed cached print link, and on long pages DOMContentLoaded is late.
+The partial now also: (1) preloads fa-solid-900.woff2 + fa-brands-400.woff2
+(`as="font" crossorigin` — FA css is font-display:block, so glyphs are blank
+boxes until the woff2 arrives, and the font URLs are only discovered post-flip);
+(2) runs timed activateFa fallbacks (400ms/1500ms); (3) reinsertIfDead at 3s:
+if document.fonts.check shows no FA font, remove + re-insert the link fresh
+with media="all" (guarded by data-fa-reinserted, one-shot). Guard
+check-fontawesome-loader.ts still pins the base shape; additions are additive.
