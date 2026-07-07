@@ -76,6 +76,11 @@ return [
         'cadence'     => ['dailyAt', '04:05'],
     ],
     [
+        'key'         => 'scheduled-runs:prune',
+        'description' => 'Trim scheduled-job run history: keep the last 30 days or the newest 200 runs per job, whichever is larger, so the history drawer stays fast.',
+        'cadence'     => ['dailyAt', '04:35'],
+    ],
+    [
         'key'         => 'email-logs:prune-history',
         'description' => 'Trim the email log: null heavy stored bodies past the body-retention window, then delete whole rows past the retention window.',
         'cadence'     => ['dailyAt', '04:25'],

@@ -23,9 +23,6 @@ use Illuminate\Support\Str;
  */
 class ScheduledJobRunRecorder
 {
-    /** How many history rows to keep per job when the prune lottery fires. */
-    public const KEEP_PER_JOB = 100;
-
     /** @var array<string, int> job key => in-flight run row id */
     protected array $open = [];
 
@@ -114,8 +111,11 @@ class ScheduledJobRunRecorder
     }
 
     /**
-     * Lottery prune (~2% of finishes): keep only the newest KEEP_PER_JOB rows
-     * for this job so high-frequency jobs can't grow the table unbounded.
+     * Lottery prune (~2% of finishes): opportunistic safety valve applying
+     * the shared retention policy (ScheduledJobRunPruner — keep the last
+     * 30 days or the newest 200 rows per job, whichever is larger) so
+     * high-frequency jobs stay bounded even if the daily
+     * `scheduled-runs:prune` sweep is paused or missed.
      */
     protected function maybePrune(string $key): void
     {
@@ -124,14 +124,7 @@ class ScheduledJobRunRecorder
                 return;
             }
 
-            $cutoff = ScheduledJobRun::where('job_key', $key)
-                ->orderByDesc('id')
-                ->skip(self::KEEP_PER_JOB)
-                ->value('id');
-
-            if ($cutoff !== null) {
-                ScheduledJobRun::where('job_key', $key)->where('id', '<=', $cutoff)->delete();
-            }
+            ScheduledJobRunPruner::pruneJob($key);
         } catch (\Throwable $e) {
             // Pruning is opportunistic.
         }
