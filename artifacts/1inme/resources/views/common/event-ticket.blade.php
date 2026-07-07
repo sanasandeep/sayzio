@@ -1,18 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="{{ request()->cookie('1inme_theme') === 'light' ? 'light-mode' : '' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your ticket — {{ $link->title }}</title>
+    @include('common.partials.theme-bootstrap')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     @include('common.partials.fontawesome')
     <style>
-        body { background:#f5f3ff; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
-        .ticket-card { max-width:420px; width:100%; border-radius:18px; border:none; box-shadow:0 12px 40px rgba(61,107,255,0.12); overflow:hidden; text-align:center; }
+        /* ── Dark base (default) ── */
+        body { background:#0f0f1a; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+        .ticket-card { max-width:420px; width:100%; border-radius:18px; border:none; box-shadow:0 12px 40px rgba(0,0,0,0.55); overflow:hidden; text-align:center; }
         .ticket-header { background:linear-gradient(135deg,#3d6bff 0%,#6e61ff 100%); color:#fff; padding:24px; }
-        .ticket-body { padding:24px; background:#fff; }
-        .qr-wrap { background:#fff; padding:12px; border-radius:12px; border:1px solid #e5e7eb; display:inline-block; }
+        .ticket-body { padding:24px; background:#16171f; color:#e2e8f0; }
+        .qr-wrap { background:#fff; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); display:inline-block; }
+        .ticket-body .text-muted { color:#94a3b8 !important; }
+        .ticket-body code { color:#b9c2e0; background:rgba(255,255,255,0.06); padding:.1em .35em; border-radius:.25rem; }
         .status-badge { font-size:.8rem; }
+
+        /* ── Light-mode overrides — preserve today's light look ── */
+        html.light-mode body { background:#f5f3ff; }
+        html.light-mode .ticket-body { background:#fff; color:inherit; }
+        html.light-mode .qr-wrap { border-color:#e5e7eb; }
+        html.light-mode .ticket-body .text-muted { color:#6c757d !important; }
+        html.light-mode .ticket-body code { color:inherit; background:transparent; padding:0; }
     </style>
 </head>
 <body>

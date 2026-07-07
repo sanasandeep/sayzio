@@ -1,30 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="{{ request()->cookie('1inme_theme') === 'light' ? 'light-mode' : '' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Manage your RSVP — {{ $link->title ?: $link->alias }}</title>
+    @include('common.partials.theme-bootstrap')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     @include('common.partials.fontawesome')
     <style>
-        body { background:#f5f3ff; min-height:100vh; padding:24px; }
-        .rsvp-card { max-width:560px; margin: 0 auto; border-radius:18px; border:none; box-shadow:0 12px 40px rgba(91,33,182,0.12); overflow:hidden; }
+        /* ── Dark base (default) ── */
+        body { background:#0f0f1a; min-height:100vh; padding:24px; }
+        .rsvp-card { max-width:560px; margin: 0 auto; border-radius:18px; border:none; box-shadow:0 12px 40px rgba(0,0,0,0.55); overflow:hidden; }
         .rsvp-header { background:linear-gradient(135deg,#3d6bff 0%,#6e61ff 100%); color:#fff; padding:28px; }
-        .rsvp-body { padding:28px; background:#fff; }
-        .response-pill { cursor:pointer; border:2px solid #e5e7eb; border-radius:14px; padding:14px; text-align:center; font-weight:600; transition:all .15s; background:#fff; }
+        .rsvp-body { padding:28px; background:#16171f; }
+        .response-pill { cursor:pointer; border:2px solid rgba(255,255,255,0.12); border-radius:14px; padding:14px; text-align:center; font-weight:600; transition:all .15s; background:rgba(255,255,255,0.04); color:#e2e8f0; }
         .response-pill input { display:none; }
-        .response-pill.is-yes:has(input:checked) { border-color:#10b981; background:#ecfdf5; color:#047857; }
-        .response-pill.is-maybe:has(input:checked) { border-color:#f59e0b; background:#fffbeb; color:#b45309; }
-        .response-pill.is-no:has(input:checked) { border-color:#9ca3af; background:#f3f4f6; color:#374151; }
+        .response-pill.is-yes:has(input:checked) { border-color:#10b981; background:rgba(16,185,129,0.15); color:#34d399; }
+        .response-pill.is-maybe:has(input:checked) { border-color:#f59e0b; background:rgba(245,158,11,0.15); color:#fbbf24; }
+        .response-pill.is-no:has(input:checked) { border-color:rgba(255,255,255,0.25); background:rgba(255,255,255,0.06); color:#94a3b8; }
         .btn-purple { background:#3d6bff; color:#fff; border:none; }
         .btn-purple:hover { background:#2342c7; color:#fff; }
-        .pill { display:inline-block; padding:.25rem .6rem; border-radius:999px; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
-        .pill-confirmed { background:#dcfce7; color:#166534; }
-        .pill-waitlist { background:#fef3c7; color:#92400e; }
-        .pill-cancelled { background:#fee2e2; color:#991b1b; }
-        .ticket-box { border:1px dashed #c4b5fd; border-radius:14px; padding:16px; text-align:center; background:#faf9ff; }
-        .ticket-box .qr-wrap { background:#fff; padding:10px; border-radius:10px; border:1px solid #e5e7eb; display:inline-block; }
+        .pill { display:inline-block; padding:.25rem .6rem; border-radius:999px; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; border:1px solid transparent; }
+        .pill-confirmed { background:rgba(22,101,52,0.25); color:#34d399; border-color:rgba(52,211,153,0.3); }
+        .pill-waitlist { background:rgba(146,64,14,0.25); color:#fbbf24; border-color:rgba(251,191,36,0.3); }
+        .pill-cancelled { background:rgba(153,27,27,0.25); color:#fb7185; border-color:rgba(251,113,133,0.3); }
+        .ticket-box { border:1px dashed rgba(196,181,253,0.3); border-radius:14px; padding:16px; text-align:center; background:rgba(255,255,255,0.03); }
+        .ticket-box .qr-wrap { background:#fff; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); display:inline-block; }
+        .ticket-box .text-muted { color:#94a3b8 !important; }
+
+        /* Bootstrap form/alert overrides — scoped to .rsvp-body */
+        .rsvp-body .form-control,
+        .rsvp-body .form-select { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12); color:#e2e8f0; }
+        .rsvp-body .form-control::placeholder { color:rgba(255,255,255,0.35); }
+        .rsvp-body .form-control:focus,
+        .rsvp-body .form-select:focus { background:rgba(255,255,255,0.09); border-color:rgba(61,107,255,0.6); color:#e2e8f0; box-shadow:0 0 0 0.25rem rgba(61,107,255,0.2); }
+        .rsvp-body .form-label { color:#94a3b8; }
+        .rsvp-body .alert-success { background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.3); color:#34d399; }
+        .rsvp-body .alert-secondary { background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.12); color:#94a3b8; }
+        .rsvp-body .alert-danger { background:rgba(251,113,133,0.12); border-color:rgba(251,113,133,0.3); color:#fb7185; }
+        .rsvp-body .text-muted { color:#94a3b8 !important; }
+        .rsvp-body .btn-outline-danger { color:#fb7185; border-color:rgba(251,113,133,0.4); background:transparent; }
+        .rsvp-body .btn-outline-danger:hover { background:rgba(251,113,133,0.12); color:#fb7185; border-color:#fb7185; }
+        .ticket-box a { color:#7d9bff; }
+
+        /* ── Light-mode overrides — preserve today's light look ── */
+        html.light-mode body { background:#f5f3ff; }
+        html.light-mode .rsvp-body { background:#fff; }
+        html.light-mode .response-pill { border-color:#e5e7eb; background:#fff; color:inherit; }
+        html.light-mode .response-pill.is-yes:has(input:checked) { border-color:#10b981; background:#ecfdf5; color:#047857; }
+        html.light-mode .response-pill.is-maybe:has(input:checked) { border-color:#f59e0b; background:#fffbeb; color:#b45309; }
+        html.light-mode .response-pill.is-no:has(input:checked) { border-color:#9ca3af; background:#f3f4f6; color:#374151; }
+        html.light-mode .pill-confirmed { background:#dcfce7; color:#166534; border-color:transparent; }
+        html.light-mode .pill-waitlist { background:#fef3c7; color:#92400e; border-color:transparent; }
+        html.light-mode .pill-cancelled { background:#fee2e2; color:#991b1b; border-color:transparent; }
+        html.light-mode .ticket-box { border-color:#c4b5fd; background:#faf9ff; }
+        html.light-mode .ticket-box .qr-wrap { border-color:#e5e7eb; }
+        html.light-mode .ticket-box .text-muted { color:#6c757d !important; }
+        html.light-mode .rsvp-body .form-control,
+        html.light-mode .rsvp-body .form-select { background:#fff; border-color:#dee2e6; color:inherit; }
+        html.light-mode .rsvp-body .form-control::placeholder { color:#6c757d; }
+        html.light-mode .rsvp-body .form-control:focus,
+        html.light-mode .rsvp-body .form-select:focus { background:#fff; border-color:#86b7fe; color:inherit; box-shadow:0 0 0 0.25rem rgba(13,110,253,0.25); }
+        html.light-mode .rsvp-body .form-label { color:inherit; }
+        html.light-mode .rsvp-body .alert-success { background:#d1e7dd; border-color:#badbcc; color:#0f5132; }
+        html.light-mode .rsvp-body .alert-secondary { background:#e2e3e5; border-color:#d3d6d8; color:#383d41; }
+        html.light-mode .rsvp-body .alert-danger { background:#f8d7da; border-color:#f5c6cb; color:#721c24; }
+        html.light-mode .rsvp-body .text-muted { color:#6c757d !important; }
+        html.light-mode .rsvp-body .btn-outline-danger { color:#dc3545; border-color:#dc3545; background:transparent; }
+        html.light-mode .rsvp-body .btn-outline-danger:hover { background:#dc3545; color:#fff; border-color:#dc3545; }
+        html.light-mode .ticket-box a { color:inherit; }
     </style>
 </head>
 <body>

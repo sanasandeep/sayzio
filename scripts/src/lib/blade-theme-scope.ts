@@ -41,6 +41,14 @@ export const THEME_STYLES_REL = `${VIEWS_REL}/common/partials/theme-styles.blade
  * pulls it in (directly or transitively) via `@include`.
  */
 export const THEME_STYLES_VIEW_REL = "common/partials/theme-styles.blade.php";
+/**
+ * Lightweight theme-bootstrap partial keyed the same way. Standalone pages that
+ * cannot extend the app layout (e.g. RSVP form, ticket page) include this
+ * minimal partial instead of the full theme-styles, and it is equally sufficient
+ * to make the `html.light-mode` toggle work — so both guards treat it as an
+ * entry point into the app's theme system.
+ */
+export const THEME_BOOTSTRAP_VIEW_REL = "common/partials/theme-bootstrap.blade.php";
 
 /**
  * Strip blade `{{-- --}}`, HTML `<!-- -->` and CSS `/* *\/` comments so a
@@ -177,7 +185,7 @@ export function includesThemeStyles(
   const src = stripComments(raw);
   const targets = [...parseIncludes(src), ...parseExtends(src), ...parseComponents(src)];
   for (const t of targets) {
-    if (t === THEME_STYLES_VIEW_REL) return true;
+    if (t === THEME_STYLES_VIEW_REL || t === THEME_BOOTSTRAP_VIEW_REL) return true;
     if (includesThemeStyles(t, files, seen)) return true;
   }
   return false;

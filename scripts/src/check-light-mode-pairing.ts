@@ -360,6 +360,66 @@ export const TARGETS: Target[] = [
       { selector: ".rb-status-done i", property: "color", reason: "status check icon (#1ed760 green) on the always-dark status pill." },
     ],
   },
+  {
+    page: "artifacts/1inme/resources/views/common/rsvp-form.blade.php",
+    label: "RSVP form page",
+    allowlist: [
+      {
+        selector: ".rsvp-header",
+        property: "color",
+        reason:
+          "white text on the always-present blue-to-purple gradient header — theme-neutral in both modes.",
+      },
+      {
+        selector: ".btn-purple",
+        property: "color",
+        reason:
+          "white text on the always-blue primary action button — theme-neutral in both modes.",
+      },
+      {
+        selector: ".btn-purple:hover",
+        property: "color",
+        reason:
+          "white text on the darker-blue hovered primary button — theme-neutral in both modes.",
+      },
+    ],
+  },
+  {
+    page: "artifacts/1inme/resources/views/common/rsvp-manage.blade.php",
+    label: "RSVP manage page",
+    allowlist: [
+      {
+        selector: ".rsvp-header",
+        property: "color",
+        reason:
+          "white text on the always-present blue-to-purple gradient header — theme-neutral in both modes.",
+      },
+      {
+        selector: ".btn-purple",
+        property: "color",
+        reason:
+          "white text on the always-blue primary action button — theme-neutral in both modes.",
+      },
+      {
+        selector: ".btn-purple:hover",
+        property: "color",
+        reason:
+          "white text on the darker-blue hovered primary button — theme-neutral in both modes.",
+      },
+    ],
+  },
+  {
+    page: "artifacts/1inme/resources/views/common/event-ticket.blade.php",
+    label: "event ticket page",
+    allowlist: [
+      {
+        selector: ".ticket-header",
+        property: "color",
+        reason:
+          "white text on the always-present blue-to-purple gradient header — theme-neutral in both modes.",
+      },
+    ],
+  },
 ];
 
 function makeIsAllowed(allowlist: AllowEntry[]) {
