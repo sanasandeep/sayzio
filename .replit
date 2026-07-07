@@ -136,6 +136,10 @@ args = "dialer-channel-actions"
 task = "workflow.run"
 args = "dialer-sync"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "fontawesome-loader"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -462,6 +466,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:dialer-sync"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "fontawesome-loader"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:fontawesome-loader"
 
 [workflows.workflow.metadata]
 isValidation = true
