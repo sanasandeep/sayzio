@@ -8,6 +8,8 @@ Docs: exhaustive feature catalog in `artifacts/1inme/docs/features.md`; end-user
 
 I prefer iterative development. I want to be asked before making major changes. I do not want changes to the folder `artifacts/1inme/resources/views/vendor/`.
 
+Whenever I mention that I've published (deployed) the app, push the latest code to GitHub (`https://github.com/sanasandeep/sayzio`) right after, without me having to ask.
+
 # System Architecture
 
 A pnpm workspace monorepo combining a PHP 8.4 Laravel app (Sayzio) and Node.js 24 / Express 5 API services. PostgreSQL is the primary database (AWS RDS), accessed via Drizzle ORM (Node) and Laravel Eloquent (PHP). TypeScript 5.9 across Node components, Zod for validation, Orval for API codegen from OpenAPI, esbuild for CJS bundling.
