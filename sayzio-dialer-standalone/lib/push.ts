@@ -32,6 +32,18 @@ export function configurePushHandler(): void {
 }
 
 /**
+ * Read the permission status off a permissions response. Typed defensively
+ * because `NotificationPermissionsStatus` inherits `status` from
+ * expo-modules-core's `PermissionResponse`, which some node_modules layouts
+ * fail to resolve for type-checking (the field always exists at runtime).
+ */
+function permissionStatus(
+  response: Notifications.NotificationPermissionsStatus,
+): string | undefined {
+  return (response as { status?: string }).status;
+}
+
+/**
  * Resolve this device's Expo push token, requesting permission if needed.
  * Returns null when running on a simulator/web, when permission is denied,
  * or when no EAS projectId is configured (so the call can't succeed) —
@@ -41,10 +53,10 @@ async function resolveExpoPushToken(): Promise<string | null> {
   if (Platform.OS === "web" || !Device.isDevice) return null;
 
   const current = await Notifications.getPermissionsAsync();
-  let status = current.status;
+  let status = permissionStatus(current);
   if (status !== "granted") {
     const requested = await Notifications.requestPermissionsAsync();
-    status = requested.status;
+    status = permissionStatus(requested);
   }
   if (status !== "granted") return null;
 
