@@ -138,6 +138,20 @@ args = ["sh", "-c", "pnpm install --frozen-lockfile && (cd artifacts/1inme && ph
 # separate Scheduled Deployment running `php artisan schedule:run`) removes
 # that gap if strict cadence is ever needed.
 #
+# APP_URL NOTE (live-domain launch): the committed .env keeps the dev value
+# (http://localhost:5000). In production, absolute URLs (sitemap, OG tags,
+# emails, /blogs/feed.json URLs consumed by the marketing site) are generated
+# from APP_URL, so the run command derives it at boot when no deployment
+# secret provides one: an explicit non-localhost APP_URL env/secret always
+# wins; otherwise prefer a canonical brand domain (sayzio.app, then 1in.me)
+# that REPLIT_DOMAINS says this deployment actually serves; otherwise the
+# first REPLIT_DOMAINS entry (the *.replit.app host before custom domains are
+# attached); last resort sayzio.app. Laravel's Dotenv is immutable, so the
+# exported process env beats the committed .env value (same mechanism that
+# already makes APP_ENV=production below win over .env's APP_ENV=local).
+# Keep the brand-domain preference in lockstep with
+# PlatformHosts::PLATFORM_DOMAINS (sayzio.app primary, 1in.me secondary).
+#
 # STATIC-ASSET ROUTER NOTE: the web server is PHP's built-in server pointed at
 # ../server.php (NOT public/index.php directly). We use `php -S` rather than
 # `php artisan serve` because artisan serve spawns a child php -S that strips all
@@ -151,7 +165,7 @@ args = ["sh", "-c", "pnpm install --frozen-lockfile && (cd artifacts/1inme && ph
 # under public/ as-is (correct Content-Type) and hands everything else to
 # index.php. See .agents/memory/prod-php-server-static-router.md.
 [services.production.run]
-args = ["sh", "-c", '''cd artifacts/1inme && { php artisan migrate --force; mst=$?; if [ "$mst" -ne 0 ]; then echo "::1inme:: migrate --force exited $mst — attempting self-healing reconcile of orphaned migrations..." >&2; php artisan db:reconcile-migrations --force; mst=$?; fi; if [ "$mst" -ne 0 ]; then echo "::1inme:: DEPLOY MIGRATION FAILED (exit=$mst) — database schema may be incomplete (missing tables/columns); workspace-backed and other pages may 500. Investigate immediately. Pending migrations:" >&2; php artisan migrate:status 2>&1 | grep -i pending >&2 || true; fi; } ; mkdir -p storage/logs; ( while :; do php artisan schedule:work >> storage/logs/scheduler.log 2>&1; ec=$?; echo "::1inme:: schedule:work exited (exit=$ec) — restarting in 5s" >&2; sleep 5; done ) & exec php -d variables_order=EGPCS -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M -S 0.0.0.0:5000 -t public server.php''']
+args = ["sh", "-c", '''cd artifacts/1inme && case "${APP_URL:-}" in ""|*localhost*|*127.0.0.1*) apphost=""; for d in $(printf %s "${REPLIT_DOMAINS:-}" | tr "," " "); do case "$d" in sayzio.app|1in.me) apphost="$d"; break;; esac; done; [ -n "$apphost" ] || apphost="${REPLIT_DOMAINS%%,*}"; [ -n "$apphost" ] || apphost="sayzio.app"; export APP_URL="https://$apphost"; echo "::1inme:: APP_URL derived as $APP_URL (from REPLIT_DOMAINS=${REPLIT_DOMAINS:-<unset>})" >&2;; esac; { php artisan migrate --force; mst=$?; if [ "$mst" -ne 0 ]; then echo "::1inme:: migrate --force exited $mst — attempting self-healing reconcile of orphaned migrations..." >&2; php artisan db:reconcile-migrations --force; mst=$?; fi; if [ "$mst" -ne 0 ]; then echo "::1inme:: DEPLOY MIGRATION FAILED (exit=$mst) — database schema may be incomplete (missing tables/columns); workspace-backed and other pages may 500. Investigate immediately. Pending migrations:" >&2; php artisan migrate:status 2>&1 | grep -i pending >&2 || true; fi; } ; mkdir -p storage/logs; ( while :; do php artisan schedule:work >> storage/logs/scheduler.log 2>&1; ec=$?; echo "::1inme:: schedule:work exited (exit=$ec) — restarting in 5s" >&2; sleep 5; done ) & exec php -d variables_order=EGPCS -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M -S 0.0.0.0:5000 -t public server.php''']
 
 [services.production.run.env]
 PORT = "5000"

@@ -36,7 +36,33 @@ const templatePath = path.join(distPublic, "index.html");
 
 const SITE_URL = (process.env.VITE_SITE_URL ?? "https://sayzio.com").replace(/\/$/, "");
 const BASE_PATH = (process.env.BASE_PATH ?? "/").replace(/\/$/, "");
-const BLOG_API_BASE = (process.env.VITE_BLOG_API_BASE ?? "https://1in.me").replace(/\/$/, "");
+
+/*
+ * Blog feed base candidates, tried in order until one responds. The Laravel
+ * app serves the SAME database-driven feed on every host it's reachable at
+ * (brand domains in production, the Replit workspace domain in dev — the
+ * proxy routes "/" to the Laravel artifact), so any successful candidate is
+ * equivalent. An explicit VITE_BLOG_API_BASE always goes first; then the
+ * canonical brand domains (sayzio.app primary, 1in.me secondary — keep in
+ * lockstep with the Laravel app's PlatformHosts::PLATFORM_DOMAINS); then
+ * whatever domains the Replit env advertises, which covers deploy builds
+ * before a custom domain is attached (previous deployment still serving on
+ * *.replit.app) and dev builds (workspace preview domain).
+ */
+const BLOG_API_BASES = [
+  process.env.VITE_BLOG_API_BASE,
+  "https://sayzio.app",
+  "https://1in.me",
+  ...(process.env.REPLIT_DOMAINS ?? "")
+    .split(",")
+    .map((d) => d.trim())
+    .filter(Boolean)
+    .map((d) => `https://${d}`),
+  process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : undefined,
+]
+  .filter(Boolean)
+  .map((base) => base.replace(/\/$/, ""))
+  .filter((base, i, all) => all.indexOf(base) === i);
 const SITE_NAME = "Sayzio";
 const DEFAULT_OG_IMAGE = "/opengraph.jpg";
 
@@ -49,33 +75,50 @@ function absoluteAsset(assetPath) {
   return `${SITE_URL}${BASE_PATH}${assetPath}`;
 }
 
-async function fetchBlogRoutes() {
+async function fetchBlogFeedFrom(base) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    const res = await fetch(`${BLOG_API_BASE}/blogs/feed.json`, {
+    const res = await fetch(`${base}/blogs/feed.json`, {
       signal: controller.signal,
       headers: { Accept: "application/json" },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    const posts = Array.isArray(json?.data) ? json.data : [];
-    return posts.map((post) => ({
-      path: `/blog/${post.slug}`,
-      title: post.metaTitle ?? post.title,
-      description: post.metaDescription ?? post.excerpt ?? "",
-      priority: 0.6,
-      changeFrequency: "monthly",
-      image: post.coverImage ?? undefined,
-    }));
-  } catch (err) {
-    console.warn(
-      `[prerender] Skipping blog post prerendering — could not reach blog feed at ${BLOG_API_BASE}/blogs/feed.json (${err.message}).`,
-    );
-    return [];
+    if (!Array.isArray(json?.data)) throw new Error("unexpected feed shape (no data array)");
+    return json.data;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function fetchBlogRoutes() {
+  let posts = null;
+  for (const base of BLOG_API_BASES) {
+    try {
+      posts = await fetchBlogFeedFrom(base);
+      console.log(`[prerender] Blog feed loaded from ${base}/blogs/feed.json (${posts.length} post(s)).`);
+      break;
+    } catch (err) {
+      console.warn(
+        `[prerender] Blog feed unreachable at ${base}/blogs/feed.json (${err.message}) — trying next candidate.`,
+      );
+    }
+  }
+  if (posts === null) {
+    console.warn(
+      `[prerender] Skipping blog post prerendering — no blog feed candidate responded (tried: ${BLOG_API_BASES.join(", ")}).`,
+    );
+    return [];
+  }
+  return posts.map((post) => ({
+    path: `/blog/${post.slug}`,
+    title: post.metaTitle ?? post.title,
+    description: post.metaDescription ?? post.excerpt ?? "",
+    priority: 0.6,
+    changeFrequency: "monthly",
+    image: post.coverImage ?? undefined,
+  }));
 }
 
 function escapeHtml(value) {

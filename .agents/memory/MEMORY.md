@@ -154,3 +154,4 @@
 - [Large GitHub push](github-large-repo-push.md) — Git pane & background pushes die on the ~600MB history; use chunked fast-forward milestone pushes w/ PAT (repo+workflow scopes), force-push is sandbox-blocked.
 - [Scheduled jobs registry & panel](scheduled-jobs-registry-panel.md) — add jobs ONLY via routes/schedules/*.php defs (lockstep guard fails on direct console.php schedules); pause via AppSetting skip(), run-now sync in tests.
 - [Scheduled-job health alerts](scheduled-job-health-alerts.md) — streak-based episodes in AppSetting; stale-scheduler watchdog MUST run from web boots (dead scheduler can't self-report); Finished/Failed events are mutually exclusive.
+- [Prod APP_URL & blog-feed base](prod-app-url-live-domain.md) — .env keeps localhost forever; prod run derives APP_URL from REPLIT_DOMAINS (brand-domain preferred, secret wins); prerender tries multi-candidate feed bases.
