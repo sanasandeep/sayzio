@@ -255,6 +255,19 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function recordScheduledTaskRuns(): void
     {
+        // Singleton so the DB recorder's open-run id survives from the
+        // Starting listener to the Finished listener within one schedule:run.
+        $this->app->singleton(\App\Modules\Admin\Support\ScheduledJobRunRecorder::class);
+
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Console\Events\ScheduledTaskStarting::class,
+            function (\Illuminate\Console\Events\ScheduledTaskStarting $event): void {
+                // Durable per-run DB row (insert-on-start), completing on
+                // Finished/Failed below. Best-effort like the cache log.
+                app(\App\Modules\Admin\Support\ScheduledJobRunRecorder::class)->starting($event->task);
+            }
+        );
+
         \Illuminate\Support\Facades\Event::listen(
             \Illuminate\Console\Events\ScheduledTaskFinished::class,
             function (\Illuminate\Console\Events\ScheduledTaskFinished $event): void {
@@ -269,17 +282,35 @@ class AppServiceProvider extends ServiceProvider
                     $event->runtime ?? null,
                     $ok ? null : 'Exited with code ' . $exit,
                 );
+
+                app(\App\Modules\Admin\Support\ScheduledJobRunRecorder::class)->finished(
+                    $event->task,
+                    $ok,
+                    $event->runtime ?? null,
+                    $ok ? null : 'Exited with code ' . $exit,
+                    $exit !== null ? (int) $exit : null,
+                );
             }
         );
 
         \Illuminate\Support\Facades\Event::listen(
             \Illuminate\Console\Events\ScheduledTaskFailed::class,
             function (\Illuminate\Console\Events\ScheduledTaskFailed $event): void {
+                $message = \Illuminate\Support\Str::limit($event->exception->getMessage(), 300);
+
                 app(\App\Modules\Admin\Support\CronRunLog::class)->record(
                     $event->task,
                     false,
                     null,
-                    \Illuminate\Support\Str::limit($event->exception->getMessage(), 300),
+                    $message,
+                );
+
+                app(\App\Modules\Admin\Support\ScheduledJobRunRecorder::class)->finished(
+                    $event->task,
+                    false,
+                    null,
+                    $message,
+                    null,
                 );
             }
         );

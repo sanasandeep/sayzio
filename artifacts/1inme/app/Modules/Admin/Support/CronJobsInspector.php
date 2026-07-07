@@ -2,6 +2,7 @@
 
 namespace App\Modules\Admin\Support;
 
+use App\Modules\Admin\Models\ScheduledJobRun;
 use Cron\CronExpression;
 use Illuminate\Console\Scheduling\CallbackEvent;
 use Illuminate\Console\Scheduling\Event;
@@ -11,67 +12,30 @@ use Illuminate\Support\Facades\Artisan;
 
 /**
  * Derives the list of scheduled jobs live from Laravel's registered schedule
- * (routes/console.php) so the admin "Cron Jobs" reference page never has to be
- * maintained in a second place. For each event it extracts the artisan command,
- * the cron expression, a plain-English frequency, a short purpose, and the next
- * due time.
+ * (routes/console.php, itself driven by ScheduledJobRegistry) so the admin
+ * "Scheduled Jobs" panel never has to be maintained in a second place. For
+ * each event it extracts the registry key/group, the artisan command, the
+ * cron expression, a plain-English frequency, the purpose, pause/protected
+ * state, the next due time and last-run detail.
  *
- * Purpose text is sourced, in order of preference, from: (1) a description
- * explicitly attached to the scheduled event (->description()/->name()), then
- * (2) the registered artisan command's own description, then (3) a centralized
- * override map below for the handful of commands whose built-in description is
- * too terse to be operator-friendly.
+ * Purpose text is sourced, in order of preference, from: (1) the registry
+ * definition's description (the single source — routes/console.php attaches
+ * it to command events too), then (2) a description explicitly attached to
+ * the scheduled event, then (3) the registered artisan command's own
+ * description.
+ *
+ * Last-run detail merges two recorders: the DB run history
+ * (ScheduledJobRun — durable, covers manual run-now executions) and the
+ * cache-based CronRunLog (scheduler heartbeat + pre-migration continuity).
+ * Whichever recorded the more recent run wins.
  */
 class CronJobsInspector
 {
-    public function __construct(protected CronRunLog $runLog)
-    {
+    public function __construct(
+        protected CronRunLog $runLog,
+        protected ScheduledJobRunRecorder $recorder,
+    ) {
     }
-
-    /**
-     * Plain-English purpose overrides keyed by artisan command name. Only used
-     * when the event/command does not already carry a clearer description.
-     */
-    protected const PURPOSE_OVERRIDES = [
-        'tasks:send-due-reminders'              => 'Email task assignees about cards due today or overdue (delivered at 8 AM in each workspace\'s own timezone).',
-        'biolink:promote-experiment-winners'    => 'End any Link in Bio layout A/B test whose sample-size or end-date stop condition has been met.',
-        'coach:snapshot-scores'                 => 'Record yesterday\'s Performance Coach score for every active link, powering the 30-day trend sparkline.',
-        'calendars:sync'                        => 'Pull external calendar events for connected accounts and mirror them as Event Invite (.ics) links.',
-        'contacts:sync'                         => 'Two-way sync of Google Contacts for every connected account.',
-        'dialer:send-callback-reminders'        => 'Deliver due dialer call-back reminders (in-app + push), once each.',
-        'socials:refresh-follower-counts'       => 'Refresh cached social follower counts so Link in Bio Follow buttons show fresh numbers.',
-        'followers:send-digest'                 => 'Email opted-in followers a digest of new posts and links from creators they follow, at their chosen local hour.',
-        'backlinks:send-weekly-digest'          => 'Email opted-in creators a weekly digest of newly found backlinks pointing at their links and domains.',
-        'users:send-email-verification-reminders' => 'Gently remind users who still haven\'t verified their email (self rate-limited).',
-        'starter:send-free-window-reminders'    => 'Remind free Starter-plan users to re-confirm their plan near the end of their 1-year free window.',
-        'domains:check-health'                  => 'Probe verified custom domains for DNS drift and run the takeover-protection state machine.',
-        'queue:work --stop-when-empty --tries=1 --queue=default' => 'Drain queued background jobs (e.g. large contact imports), then exit so the next tick is clean.',
-        'inbox:check-sla'                       => 'Notify assignees about Inbox 2.0 threads whose SLA elapsed without a reply.',
-        'inbox:retry-forwards'                  => 'Retry transiently failed inbox-forward deliveries (email/webhook) with exponential backoff.',
-        'imports:prune-abandoned'               => 'Delete contact-import preview stash files older than 24h that were never confirmed.',
-        'socials:refresh-oauth-tokens'          => 'Refresh near-expiry social OAuth access tokens and flag broken connections for reconnect.',
-        'subscriptions:renew-due'               => 'Charge gateways for subscriptions renewing within 24h and expire any past their grace window.',
-        'events:send-rsvp-reminders'            => 'Email confirmed RSVP guests the configured number of hours before each event occurrence.',
-        'links:check-health'                    => 'Probe Link Insurance destinations and run failover/restore on each link\'s chosen cadence.',
-        'clicks:backfill-source'                => 'Re-tag any link_clicks rows missing a traffic source so they don\'t show as "Unknown".',
-        'cloud-connections:check'               => 'Refresh near-expiry tokens and flag cloud connections whose OAuth was revoked or expired.',
-        'minds:refresh-links'                   => 'Re-crawl AI Mind link sources whose refresh window has elapsed (capped per day).',
-        'site-assistant:check-cutoffs'          => 'Alert admins when the Site Assistant abandon rate exceeds the configured threshold.',
-        'site-assistant:prune-cutoff-alerts'    => 'Trim old Site Assistant cut-off alert rows beyond the retention window.',
-        'blogs:publish-scheduled'               => 'Flip blog posts whose scheduled time has passed from scheduled to published.',
-        'biolinks:apply-scheduled-themes'       => 'Activate due Link in Bio theme schedules and revert ones whose window has ended.',
-        'images:backfill-reoptimize'            => 'Downscale oversized images that slipped past the upload-time compression pipeline.',
-        'cv-uploads:prune-abandoned'            => 'Delete orphaned conversational-flow visitor uploads not referenced by any completed session.',
-        'reviews:sync'                          => 'Pull third-party reviews (Google, Trustpilot, …) into external_reviews for connected providers.',
-        'db:check-pending-migrations'           => 'Alert admins when the database schema is out of date (pending migrations) before users hit 500s.',
-        'db:check-workspace-columns'            => 'Probe the live DB for missing workspace-scoping columns from half-applied migrations and alert admins.',
-        'db:check-expected-columns'             => 'Probe the live DB for any code-required columns missing despite their migration being recorded as run.',
-        'templates:check-design-health'         => 'Re-validate saved page/card template snapshots and alert admins when one develops design issues.',
-        'plans:revert-expired-comps'            => 'Revert accounts whose admin-granted complimentary / time-limited plan window has elapsed.',
-        'users:reactivate-due'                  => 'Auto-lift admin temporary account holds whose scheduled reactivation date has arrived.',
-        'stats:prune-history'                   => 'Delete click and visitor-session history older than the largest stats-retention window across all active plans (no-op while any plan keeps history forever).',
-        'email-logs:prune-history'              => 'Trim the email log: null heavy stored bodies past the body-retention window, then delete whole rows past the retention window.',
-    ];
 
     /**
      * Build the structured list of scheduled jobs.
@@ -94,10 +58,19 @@ class CronJobsInspector
             $events
         ));
 
+        // Latest *finished* DB history row per job (single query). Durable and
+        // covers manual run-now executions, unlike the cache log.
+        $dbRuns = $this->latestDbRuns();
+
+        $pausedKeys = ScheduledJobRegistry::pausedKeys();
+
         $jobs = [];
 
         foreach ($events as $event) {
             $isCallback = $event instanceof CallbackEvent;
+
+            $key = $this->recorder->keyFor($event);
+            $def = $key !== null ? ScheduledJobRegistry::find($key) : null;
 
             $artisanName = $isCallback ? null : $this->artisanName($event);
             $cleanCommand = $isCallback
@@ -134,6 +107,23 @@ class CronJobsInspector
 
             $lastOk = (is_array($run) && array_key_exists('ok', $run) && is_bool($run['ok'])) ? $run['ok'] : null;
 
+            $lastError   = (is_array($run) && is_string($run['error'] ?? null)) ? $run['error'] : null;
+            $lastRuntime = (is_array($run) && is_numeric($run['runtime'] ?? null)) ? (float) $run['runtime'] : null;
+            $lastExit    = null;
+            $lastSource  = $lastRun !== null ? 'schedule' : null;
+
+            // Prefer the DB history row when it recorded a more recent run
+            // (e.g. a manual run-now, or simply post-migration operation).
+            $dbRun = $key !== null ? ($dbRuns[$key] ?? null) : null;
+            if ($dbRun !== null && ($lastRun === null || $dbRun->started_at->greaterThan($lastRun))) {
+                $lastRun = $dbRun->started_at->copy()->setTimezone(\App\Support\PlatformTimezone::platformDefault());
+                $lastOk = $dbRun->status === ScheduledJobRun::STATUS_SUCCESS;
+                $lastError = $dbRun->error;
+                $lastRuntime = $dbRun->runtime;
+                $lastExit = $dbRun->exit_code;
+                $lastSource = $dbRun->source;
+            }
+
             // Overdue = we have evidence the job ran before, but its most recent
             // recorded run is more than one whole interval older than the most
             // recent scheduled fire time — i.e. the scheduler missed at least one
@@ -141,19 +131,28 @@ class CronJobsInspector
             $overdue = $lastRun !== null && $prevRun !== null && $interval !== null && $interval > 0
                 && ($prevRun->getTimestamp() - $lastRun->getTimestamp()) > $interval;
 
+            $group = is_array($def) ? ($def['group'] ?? null) : null;
+
             $jobs[] = [
+                'key'                 => $key,
+                'group'               => $group,
+                'group_label'         => $group !== null ? (ScheduledJobRegistry::GROUPS[$group] ?? $group) : null,
+                'protected'           => is_array($def) && ! empty($def['protected']),
+                'paused'              => $key !== null && in_array($key, $pausedKeys, true),
                 'is_callback'         => $isCallback,
                 'command'             => $commandWithArgs,
                 'manual_command'      => $manualCommand,
                 'expression'          => $expression,
                 'frequency'           => $this->humanFrequency($expression),
-                'purpose'             => $this->purposeFor($event, $artisanName, $descriptions),
+                'purpose'             => $this->purposeFor($event, $artisanName, $descriptions, $def),
                 'next_run'            => $nextRun,
                 'interval_seconds'    => $interval,
                 'last_run'            => $lastRun,
                 'last_run_ok'         => $lastOk,
-                'last_run_error'      => (is_array($run) && is_string($run['error'] ?? null)) ? $run['error'] : null,
-                'last_runtime'        => (is_array($run) && is_numeric($run['runtime'] ?? null)) ? (float) $run['runtime'] : null,
+                'last_run_error'      => $lastError,
+                'last_runtime'        => $lastRuntime,
+                'last_exit_code'      => $lastExit,
+                'last_run_source'     => $lastSource,
                 'never_run'           => $lastRun === null,
                 'overdue'             => $overdue,
                 'without_overlapping' => (bool) $event->withoutOverlapping,
@@ -240,32 +239,47 @@ class CronJobsInspector
     }
 
     /**
-     * Resolve a plain-English purpose for the event.
+     * Resolve a plain-English purpose for the event. The registry definition
+     * is the single source of truth; the event/command descriptions are only
+     * fallbacks for anything scheduled outside the registry.
      */
-    protected function purposeFor(Event $event, ?string $artisanName, array $descriptions): string
+    protected function purposeFor(Event $event, ?string $artisanName, array $descriptions, ?array $def = null): string
     {
+        if (is_array($def) && ! empty($def['description'])) {
+            return $def['description'];
+        }
+
         if (! empty($event->description)) {
             return $event->description;
         }
 
-        if ($artisanName !== null) {
-            // Prefer a tailored override (full command string first, then bare name).
-            $fullCommand = trim(preg_replace('/^php\s+artisan\s+/', '', Event::normalizeCommand($event->command ?? '')));
-
-            if (isset(self::PURPOSE_OVERRIDES[$fullCommand])) {
-                return self::PURPOSE_OVERRIDES[$fullCommand];
-            }
-
-            if (isset(self::PURPOSE_OVERRIDES[$artisanName])) {
-                return self::PURPOSE_OVERRIDES[$artisanName];
-            }
-
-            if (! empty($descriptions[$artisanName])) {
-                return $descriptions[$artisanName];
-            }
+        if ($artisanName !== null && ! empty($descriptions[$artisanName])) {
+            return $descriptions[$artisanName];
         }
 
         return '—';
+    }
+
+    /**
+     * Latest finished DB run-history row per job key, in one query.
+     *
+     * @return array<string, ScheduledJobRun>
+     */
+    protected function latestDbRuns(): array
+    {
+        try {
+            return ScheduledJobRun::query()
+                ->whereIn('id', ScheduledJobRun::query()
+                    ->selectRaw('max(id)')
+                    ->whereNotNull('finished_at')
+                    ->groupBy('job_key'))
+                ->get()
+                ->keyBy('job_key')
+                ->all();
+        } catch (\Throwable $e) {
+            // Table may not exist yet (pre-migration); degrade to cache-only.
+            return [];
+        }
     }
 
     /**

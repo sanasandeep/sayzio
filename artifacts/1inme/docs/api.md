@@ -31,7 +31,7 @@ see [API usage metering](#api-usage-metering)).
 - [Wallet & coins](#wallet--coins) · [AI](#ai-credits-knowledge-bases-voice-account-assistant-chat-widgets) · [Competitor Biolink Teardown](#competitor-biolink-teardown) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
 - [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Store menu](#store-menu) · [Service booking](#service-booking) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
-- [Admin (mobile back-office)](#admin-mobile-back-office) · [Banned names / reserved handles](#banned-names--reserved-handles) · [Plan editor](#plan-editor) · [Admin mail / SMTP](#admin-mail--smtp-settings)
+- [Admin (mobile back-office)](#admin-mobile-back-office) · [Banned names / reserved handles](#banned-names--reserved-handles) · [Plan editor](#plan-editor) · [Scheduled jobs](#admin-scheduled-jobs) · [Admin mail / SMTP](#admin-mail--smtp-settings)
 - [Extension surface](#browser-extension-surface) (properties, backlinks, pixels, thank-yous) · [Pixel tracking](#pixel-tracking) · [Health](#health)
 - [Error codes](#error-codes) · [Pagination](#pagination-shape) · [API usage metering](#api-usage-metering)
 
@@ -1229,6 +1229,20 @@ Mobile parity for the back-office plan management. Unlike the public `/plans` ca
 | POST   | `/admin/plans`                             | yes  | Create a plan (accepts `is_internal`). `plans.manage`. |
 | PUT    | `/admin/plans/{plan}`                      | yes  | Update a plan (set/clear `is_internal`). `plans.manage`. |
 | POST   | `/admin/plans/{plan}/duplicate`            | yes  | Deep-copy a plan; copy is internal + inactive. `plans.manage`. |
+
+## Admin scheduled jobs
+
+Super-admin parity for the web admin "Scheduled Jobs" control panel, gated behind `settings.manage`. The job list is derived live from the app's scheduled-job registry (grouped by functional area), with per-job run history recorded in the database (start/finish, runtime, exit code, error, `schedule`/`manual` source). Pause/resume is persisted platform-wide; **protected** jobs (billing, data-integrity and platform-health critical) can never be paused and return 422 `job_protected`. Run-now executes the job immediately in the background regardless of its cadence and records a `manual` history row. Cadences are code-defined and not editable via the API.
+
+| Method | Path                                       | Auth | Description                                          |
+| ------ | ------------------------------------------ | ---- | ---------------------------------------------------- |
+| GET    | `/admin/scheduled-jobs`                    | yes  | Grouped job list (`{ master_cron_line, scheduler:{state,last_tick,overdue_count}, groups:[{slug,label,jobs:[…]}] }`). Each job: `key, group, protected, paused, command, expression, frequency, purpose, next_run, last_run, last_run_ok, last_runtime, last_exit_code, last_run_source, overdue, running_now, …`. |
+| POST   | `/admin/scheduled-jobs/{key}/pause`        | yes  | Pause a job (scheduler skips it until resumed). 422 `job_protected` for protected jobs. |
+| POST   | `/admin/scheduled-jobs/{key}/resume`       | yes  | Resume a paused job.                                 |
+| POST   | `/admin/scheduled-jobs/{key}/run`          | yes  | Run the job now, in the background, outside its cadence. |
+| GET    | `/admin/scheduled-jobs/{key}/runs`         | yes  | Recent run history (`{ job_key, runs:[{ id, job_key, source, status, started_at, finished_at, runtime, exit_code, error }] }`, newest first, max 20). |
+
+The older read-only `GET /admin/cron-jobs` reference endpoint remains available unchanged.
 
 ## Admin mail / SMTP settings
 

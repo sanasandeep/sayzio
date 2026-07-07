@@ -322,8 +322,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('/', [\App\Modules\Admin\Controllers\MaintenanceModeController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
         });
 
-        Route::prefix('cron-jobs')->name('cron-jobs.')->group(function () {
-            Route::get('/', [\App\Modules\Admin\Controllers\CronJobsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+        // Scheduled Jobs control panel (registry-driven; route names kept as
+        // admin.cron-jobs.* for continuity). {key} carries registry keys like
+        // "contacts:sync" or "clicks:backfill-source" — letters, digits, :-_.
+        Route::prefix('cron-jobs')->name('cron-jobs.')->middleware(CheckPermission::class . ':settings.manage')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\CronJobsController::class, 'index'])->name('index');
+            Route::post('{key}/pause',  [\App\Modules\Admin\Controllers\CronJobsController::class, 'pause'])->where('key', '[A-Za-z0-9:_\-]+')->name('pause');
+            Route::post('{key}/resume', [\App\Modules\Admin\Controllers\CronJobsController::class, 'resume'])->where('key', '[A-Za-z0-9:_\-]+')->name('resume');
+            Route::post('{key}/run',    [\App\Modules\Admin\Controllers\CronJobsController::class, 'run'])->where('key', '[A-Za-z0-9:_\-]+')->name('run');
+            Route::get('{key}/runs',    [\App\Modules\Admin\Controllers\CronJobsController::class, 'runs'])->where('key', '[A-Za-z0-9:_\-]+')->name('runs');
         });
 
         Route::prefix('auth-settings')->name('auth-settings.')->group(function () {

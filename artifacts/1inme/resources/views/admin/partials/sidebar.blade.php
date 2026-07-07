@@ -544,8 +544,8 @@
            class="sidebar-link {{ request()->routeIs('admin.cron-jobs.*') ? 'active' : '' }}"
            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-clock"></i></div>
-            <span class="nav-label">Cron Jobs</span>
-            <span class="sidebar-tooltip">Cron Jobs</span>
+            <span class="nav-label">Scheduled Jobs</span>
+            <span class="sidebar-tooltip">Scheduled Jobs</span>
         </a>
 
         <a href="{{ route('admin.schema.repair-audits') }}"
