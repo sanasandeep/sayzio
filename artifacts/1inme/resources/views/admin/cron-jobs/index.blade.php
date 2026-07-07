@@ -465,10 +465,17 @@
             // until it shows up (mirrors the mobile screen's watch window).
             watchUntil: {{ session('ran_job') ? '(Date.now() + 20000)' : 'null' }},
             pollTimer: null,
+            // Slow background heartbeat: while the page sits open and idle
+            // (no run in flight, fast loop stopped), re-check the scheduler
+            // health every 90s so a dead scheduler flips the banner without
+            // a reload. It never fires while the fast loop is active and
+            // skips hidden tabs, so it adds no meaningful load.
+            heartbeatTimer: null,
             init() {
                 if (this.anyRunning() || this.watchUntil !== null) {
                     this.startPolling();
                 }
+                this.startHeartbeat();
             },
             lj(key) {
                 return this.live[key] || {};
@@ -491,6 +498,21 @@
                 if (this.pollTimer !== null) {
                     clearInterval(this.pollTimer);
                     this.pollTimer = null;
+                }
+            },
+            startHeartbeat() {
+                if (this.heartbeatTimer !== null) return;
+                this.heartbeatTimer = setInterval(() => this.heartbeat(), 90000);
+            },
+            async heartbeat() {
+                // Never overlap with the fast run-polling loop, and stay
+                // silent while the tab is hidden (poll() re-checks too).
+                if (this.pollTimer !== null || document.hidden) return;
+                await this.poll();
+                // If the check spotted a run in flight, hand off to the
+                // fast loop so badges update at the usual cadence.
+                if (this.anyRunning()) {
+                    this.startPolling();
                 }
             },
             async poll() {
