@@ -285,6 +285,9 @@ export function Header() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileOpenGroup, setMobileOpenGroup] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [navHidden, setNavHidden] = useState(false);
+  const lastScrollY = useRef(0);
+  const downAccum = useRef(0);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeGroup = megaGroups.find((group) => group.label === openMenu) ?? null;
@@ -317,9 +320,29 @@ export function Header() {
     };
   }, [mobileMenuOpen]);
 
-  // Snap the floating pill solid to the top once the page scrolls.
+  // Snap the floating pill solid to the top once the page scrolls, and
+  // auto-hide the header while scrolling down (after a small accumulated
+  // threshold so tiny jitters don't trip it), bringing it back the instant
+  // the visitor scrolls up. Always visible near the very top. Mirrors the
+  // Laravel public header so both surfaces feel identical.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    lastScrollY.current = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 8);
+      const delta = y - lastScrollY.current;
+      if (y <= 96) {
+        downAccum.current = 0;
+        setNavHidden(false);
+      } else if (delta > 0) {
+        downAccum.current += delta;
+        if (downAccum.current > 24) setNavHidden(true);
+      } else if (delta < 0) {
+        downAccum.current = 0;
+        setNavHidden(false);
+      }
+      lastScrollY.current = y;
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -339,7 +362,9 @@ export function Header() {
 
   return (
     <header
-      className="fixed inset-x-0 z-50"
+      className={`fixed inset-x-0 z-50 mkt-nav-autohide ${
+        navHidden && !openMenu && !mobileMenuOpen ? "mkt-nav-hidden" : ""
+      }`}
       style={{ top: "var(--inme-anno-h, 0px)" }}
     >
       <div className={`mkt-navbar-bar ${scrolled ? "is-stuck" : ""}`}>

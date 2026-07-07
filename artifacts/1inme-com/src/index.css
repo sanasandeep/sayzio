@@ -241,6 +241,26 @@
   .mkt-navbar-bar { transition: none; }
 }
 
+/* ---------- Auto-hiding header on scroll (mirrors Laravel) ----------
+   The fixed <header> slides off-screen while scrolling down and slides back
+   the instant the visitor scrolls up. Extra 2rem + banner offset so the bar
+   and its shadow fully clear the viewport even in the floating-pill state.
+   No will-change/permanent transform here: the full-screen mobile overlay is
+   a fixed-position descendant of the header, and a persistent transform hint
+   would make the header its containing block and collapse it. The transform
+   only ever applies while hidden, which is mutually exclusive with any open
+   menu (the force-show binding strips the class first). */
+.mkt-nav-autohide {
+  transition: transform .3s ease;
+}
+.mkt-nav-autohide.mkt-nav-hidden {
+  transform: translateY(calc(-100% - var(--inme-anno-h, 0px) - 2rem));
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Still hide/show, just without the slide animation. */
+  .mkt-nav-autohide { transition: none; }
+}
+
 /* ---------- Hero mesh blobs (mirrors the Laravel .mesh-bg) ---------- */
 .mesh-bg {
   position: absolute;

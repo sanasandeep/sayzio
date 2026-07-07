@@ -232,6 +232,25 @@ html.light-mode .mkt-navbar-bar.is-stuck {
     .mkt-navbar-bar { transition: none; }
 }
 
+/* ---- Auto-hiding header on scroll ----
+   The whole <nav> slides off-screen while the visitor scrolls down and slides
+   back the instant they scroll up (state driven by Alpine in the header
+   partial). The extra 2rem + announcement-banner offset guarantees the bar and
+   its drop shadow fully clear the viewport even in the floating-pill state.
+   No will-change hint: a persistent transform containing-block on the nav
+   would trap any fixed-position descendant (see the marketing header, whose
+   mobile overlay is fixed), so the transform only exists while hidden. */
+.mkt-nav-autohide {
+    transition: transform .3s ease;
+}
+.mkt-nav-autohide.mkt-nav-hidden {
+    transform: translateY(calc(-100% - var(--inme-anno-h, 0px) - 2rem));
+}
+@media (prefers-reduced-motion: reduce) {
+    /* Still hide/show, just without the slide animation. */
+    .mkt-nav-autohide { transition: none; }
+}
+
 /* ---- Account dropdown panel chrome ----
    The header account menu needs the same translucent/blur look as the navbar
    bar, but must NOT inherit the bar's responsive width/centering rules (those

@@ -46,7 +46,7 @@
     ];
     $navUseCases = \App\Modules\Common\Support\SitePagesContent::useCaseMeta();
 @endphp
-<div x-data="{ mobileOpen:false, mobileGroup:null, openMenu:null, scrolled:false {{ $useModal ? ', authOpen:false, authTab:\'login\', authHandle:\'\'' : '' }} }"
+<div x-data="{ mobileOpen:false, mobileGroup:null, openMenu:null, scrolled:false, navHidden:false, navLastY:0, navAccum:0 {{ $useModal ? ', authOpen:false, authTab:\'login\', authHandle:\'\'' : '' }} }"
      {{-- For the in-flow sticky header (non-home pages) the Alpine wrapper must
           NOT form a containing block, or the sticky <nav> would be trapped in a
           box only as tall as itself and unstick immediately. `display:contents`
@@ -54,11 +54,17 @@
           giving it the full scrollable page to stay pinned across. The fixed
           (home) header is positioned out of flow, so it keeps a normal box. --}}
      @if(! $fixed) style="display: contents;" @endif
-     x-init="scrolled = window.scrollY > 8"
-     @scroll.window.passive="scrolled = window.scrollY > 8"
+     x-init="scrolled = window.scrollY > 8; navLastY = window.scrollY"
+     {{-- Auto-hide on scroll: slide the header away while moving down the page
+          (after a small accumulated threshold so tiny jitters don't trip it)
+          and bring it back the instant the visitor scrolls up. Always visible
+          near the very top. Open menus force-show via the :class binding. --}}
+     @scroll.window.passive="let y = window.scrollY; scrolled = y > 8; let d = y - navLastY; if (y <= 96) { navHidden = false; navAccum = 0; } else if (d > 0) { navAccum += d; if (navAccum > 24) navHidden = true; } else if (d < 0) { navAccum = 0; navHidden = false; } navLastY = y"
      x-effect="document.body.style.overflow = (mobileOpen{{ $useModal ? ' || authOpen' : '' }}) ? 'hidden' : ''"
      @keydown.escape.window="openMenu=null; mobileOpen=false; mobileGroup=null"{!! $useModal ? ' @open-auth.window="authTab = ($event.detail && $event.detail.tab) || \'register\'; authHandle = ($event.detail && $event.detail.handle) || \'\'; authOpen = true; mobileOpen = false"' : '' !!}>
-<nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }}" style="top: var(--inme-anno-h, 0px);">
+<nav class="{{ $fixed ? 'fixed' : 'sticky' }} top-0 inset-x-0 {{ $fixed ? 'z-50' : 'z-40' }} mkt-nav-autohide"
+     :class="(navHidden && openMenu === null && !mobileOpen) ? 'mkt-nav-hidden' : ''"
+     style="top: var(--inme-anno-h, 0px);">
     <div class="mkt-navbar-bar" :class="scrolled ? 'is-stuck' : ''">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="relative flex items-center justify-between h-16">
