@@ -359,6 +359,27 @@ export default function ScheduledJobsScreen() {
                                 </Text>
                               </View>
                             ) : null}
+                            {job.failing_repeatedly ? (
+                              <View
+                                style={[
+                                  styles.badge,
+                                  {
+                                    backgroundColor:
+                                      colors.destructive + "22",
+                                  },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.badgeText,
+                                    { color: colors.destructive },
+                                  ]}
+                                >
+                                  Failing repeatedly ({job.failing_streak} in a
+                                  row)
+                                </Text>
+                              </View>
+                            ) : null}
                           </View>
                         </View>
                         <Feather

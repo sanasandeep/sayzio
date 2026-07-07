@@ -73,6 +73,8 @@ class CronJobsController extends Controller
             'without_overlapping' => (bool) ($job['without_overlapping'] ?? false),
             'on_one_server'       => (bool) ($job['on_one_server'] ?? false),
             'running_now'         => (bool) ($job['running_now'] ?? false),
+            'failing_streak'      => (int) ($job['failing_streak'] ?? 0),
+            'failing_repeatedly'  => (bool) ($job['failing_repeatedly'] ?? false),
         ];
     }
 }

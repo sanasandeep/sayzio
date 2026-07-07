@@ -170,7 +170,7 @@
                     <tbody class="divide-y divide-white/5">
                         @foreach($group['jobs'] as $job)
                             @php $rowKey = $job['key'] ?? ('row-' . $groupSlug . '-' . $loop->index); @endphp
-                            <tr class="transition align-top {{ $job['overdue'] ? 'bg-rose-500/[0.06] hover:bg-rose-500/[0.1]' : ($job['paused'] ? 'bg-amber-500/[0.04] hover:bg-amber-500/[0.07]' : 'hover:bg-white/[0.02]') }}">
+                            <tr class="transition align-top {{ ($job['overdue'] || !empty($job['failing_repeatedly'])) ? 'bg-rose-500/[0.06] hover:bg-rose-500/[0.1]' : ($job['paused'] ? 'bg-amber-500/[0.04] hover:bg-amber-500/[0.07]' : 'hover:bg-white/[0.02]') }}">
                                 <td class="px-6 py-4 max-w-md">
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <code class="text-blue-200 font-mono text-[13px] break-all">{{ $job['command'] }}</code>
@@ -185,6 +185,9 @@
                                         @endif
                                         @if($job['running_now'])
                                             <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">Running now</span>
+                                        @endif
+                                        @if(!empty($job['failing_repeatedly']))
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300 font-semibold" title="Every run since this job's last success has failed. Inspect the run history and error output, then fix the cause or use Run now to retry — the badge clears once the job succeeds again."><i class="fas fa-triangle-exclamation text-[9px] mr-0.5"></i>Failing repeatedly ({{ $job['failing_streak'] }} in a row)</span>
                                         @endif
                                     </div>
                                     <p class="text-xs text-white/50 mt-1 leading-relaxed">{{ $job['purpose'] }}</p>

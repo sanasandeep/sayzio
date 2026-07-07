@@ -201,6 +201,8 @@ class ScheduledJobsController extends Controller
             'last_exit_code'      => $job['last_exit_code'],
             'last_run_source'     => $job['last_run_source'],
             'overdue'             => (bool) $job['overdue'],
+            'failing_streak'      => (int) ($job['failing_streak'] ?? 0),
+            'failing_repeatedly'  => (bool) ($job['failing_repeatedly'] ?? false),
             'without_overlapping' => (bool) $job['without_overlapping'],
             'on_one_server'       => (bool) $job['on_one_server'],
             'running_now'         => (bool) $job['running_now'],

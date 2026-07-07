@@ -151,8 +151,18 @@ function CronJobCard({
         />
       </View>
 
-      {job.without_overlapping || job.on_one_server || job.running_now ? (
+      {job.without_overlapping ||
+      job.on_one_server ||
+      job.running_now ||
+      job.failing_repeatedly ? (
         <View style={styles.flags}>
+          {job.failing_repeatedly ? (
+            <Flag
+              label={`Failing repeatedly (${job.failing_streak} in a row)`}
+              color={colors.destructive}
+              colors={colors}
+            />
+          ) : null}
           {job.running_now ? (
             <Flag label="Running now" color={colors.success} colors={colors} />
           ) : null}

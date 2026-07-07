@@ -62,6 +62,12 @@ class CronJobsInspector
         // covers manual run-now executions, unlike the cache log.
         $dbRuns = $this->latestDbRuns();
 
+        // Consecutive-failure streak per job (single query) — powers the
+        // "failing repeatedly" badge. Computed live from the run history so
+        // the badge clears the moment the job succeeds again, without waiting
+        // for the hourly watchdog to update its episode state.
+        $streaks = $this->failureStreaks();
+
         $pausedKeys = ScheduledJobRegistry::pausedKeys();
 
         $jobs = [];
@@ -133,6 +139,12 @@ class CronJobsInspector
 
             $group = is_array($def) ? ($def['group'] ?? null) : null;
 
+            // Consecutive failed runs since the job's last success. Mirrors
+            // CheckScheduledJobFailures::consecutiveFailures() (the watchdog
+            // that alerts ops admins); the badge threshold is shared so the
+            // panel and the alerts always agree on "failing repeatedly".
+            $failingStreak = $key !== null ? ($streaks[$key] ?? 0) : 0;
+
             $jobs[] = [
                 'key'                 => $key,
                 'group'               => $group,
@@ -155,6 +167,8 @@ class CronJobsInspector
                 'last_run_source'     => $lastSource,
                 'never_run'           => $lastRun === null,
                 'overdue'             => $overdue,
+                'failing_streak'      => $failingStreak,
+                'failing_repeatedly'  => $failingStreak >= \App\Console\Commands\CheckScheduledJobFailures::FAILURE_THRESHOLD,
                 'without_overlapping' => (bool) $event->withoutOverlapping,
                 'on_one_server'       => (bool) $event->onOneServer,
                 'running_now'         => $this->isRunning($event),
@@ -278,6 +292,43 @@ class CronJobsInspector
                 ->all();
         } catch (\Throwable $e) {
             // Table may not exist yet (pre-migration); degrade to cache-only.
+            return [];
+        }
+    }
+
+    /**
+     * Consecutive-failure streak per job key — the number of failed runs
+     * since each job's last successful run — in one query. Running rows are
+     * ignored (they are neither success nor failure), so an in-flight retry
+     * never masks or inflates a streak. Jobs with no streak are absent.
+     *
+     * @return array<string, int>
+     */
+    protected function failureStreaks(): array
+    {
+        try {
+            $table = (new ScheduledJobRun)->getTable();
+
+            $lastSuccess = ScheduledJobRun::query()
+                ->selectRaw('job_key, max(started_at) as last_success_at')
+                ->where('status', ScheduledJobRun::STATUS_SUCCESS)
+                ->groupBy('job_key');
+
+            return ScheduledJobRun::query()
+                ->from($table . ' as f')
+                ->leftJoinSub($lastSuccess, 's', 's.job_key', '=', 'f.job_key')
+                ->where('f.status', ScheduledJobRun::STATUS_FAILED)
+                ->where(function ($q) {
+                    $q->whereNull('s.last_success_at')
+                        ->orWhereColumn('f.started_at', '>', 's.last_success_at');
+                })
+                ->groupBy('f.job_key')
+                ->selectRaw('f.job_key as job_key, count(*) as streak')
+                ->pluck('streak', 'job_key')
+                ->map(fn ($v) => (int) $v)
+                ->all();
+        } catch (\Throwable $e) {
+            // Table may not exist yet (pre-migration); degrade gracefully.
             return [];
         }
     }

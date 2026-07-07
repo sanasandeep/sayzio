@@ -25,6 +25,11 @@ export type ScheduledJob = {
   last_exit_code: number | null;
   last_run_source: string | null;
   overdue: boolean;
+  // Consecutive failed runs since the job's last success; `failing_repeatedly`
+  // is true once the streak reaches the ops-alert threshold (3+), and clears
+  // automatically as soon as the job succeeds again.
+  failing_streak: number;
+  failing_repeatedly: boolean;
   without_overlapping: boolean;
   on_one_server: boolean;
   running_now: boolean;

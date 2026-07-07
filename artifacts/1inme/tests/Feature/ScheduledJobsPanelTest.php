@@ -423,4 +423,108 @@ class ScheduledJobsPanelTest extends TestCase
         $this->assertSame('boom', $resp->json('data.runs.0.error'));
         $this->assertSame(1, $resp->json('data.runs.0.exit_code'));
     }
+
+    // ── "Failing repeatedly" streak badge (web + API parity) ─────────────
+
+    /** Seed a finished run-history row for a job. */
+    private function seedRun(string $key, string $status, int $minutesAgo, ?string $error = null): void
+    {
+        ScheduledJobRun::create([
+            'job_key'     => $key,
+            'source'      => 'schedule',
+            'status'      => $status,
+            'started_at'  => now()->subMinutes($minutesAgo),
+            'finished_at' => now()->subMinutes($minutesAgo)->addSeconds(5),
+            'runtime'     => 5.0,
+            'exit_code'   => $status === ScheduledJobRun::STATUS_FAILED ? 1 : 0,
+            'error'       => $error,
+        ]);
+    }
+
+    public function test_web_index_shows_failing_repeatedly_badge_after_three_consecutive_failures(): void
+    {
+        // An old success followed by 3 consecutive failures ⇒ streak of 3.
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_SUCCESS, 60);
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_FAILED, 30, 'boom');
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_FAILED, 20, 'boom');
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_FAILED, 10, 'boom');
+
+        $resp = $this->actingAs($this->makeAdmin(), 'admin')->get('/admin/cron-jobs');
+
+        $resp->assertOk();
+        $resp->assertSee('Failing repeatedly (3 in a row)');
+    }
+
+    public function test_web_index_hides_the_badge_below_the_threshold_and_after_recovery(): void
+    {
+        // Two failures — below the 3-failure threshold.
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_FAILED, 30, 'boom');
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_FAILED, 20, 'boom');
+
+        $admin = $this->makeAdmin();
+        $this->actingAs($admin, 'admin')->get('/admin/cron-jobs')
+            ->assertOk()
+            ->assertDontSee('Failing repeatedly');
+
+        // A third failure crosses the threshold…
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_FAILED, 10, 'boom');
+        $this->actingAs($admin, 'admin')->get('/admin/cron-jobs')
+            ->assertOk()
+            ->assertSee('Failing repeatedly (3 in a row)');
+
+        // …and a fresh success clears the badge immediately (no watchdog run
+        // needed — the streak is computed live from the run history).
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_SUCCESS, 1);
+        $this->actingAs($admin, 'admin')->get('/admin/cron-jobs')
+            ->assertOk()
+            ->assertDontSee('Failing repeatedly');
+    }
+
+    public function test_api_index_includes_failing_streak_fields(): void
+    {
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_SUCCESS, 60);
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_FAILED, 30, 'boom');
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_FAILED, 20, 'boom');
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_FAILED, 10, 'boom');
+
+        $this->asUser($this->makeApiAdmin());
+
+        $jobs = collect($this->getJson('/api/v1/admin/scheduled-jobs')->assertOk()->json('data.groups'))
+            ->flatMap(fn ($g) => $g['jobs']);
+
+        $failing = $jobs->firstWhere('key', 'contacts:sync');
+        $this->assertNotNull($failing);
+        $this->assertSame(3, $failing['failing_streak']);
+        $this->assertTrue($failing['failing_repeatedly']);
+
+        // A healthy job carries the fields too, zeroed/false.
+        $healthy = $jobs->firstWhere('key', 'db:check-pending-migrations');
+        $this->assertNotNull($healthy);
+        $this->assertSame(0, $healthy['failing_streak']);
+        $this->assertFalse($healthy['failing_repeatedly']);
+
+        // Recovery clears the flag in the API payload as well.
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_SUCCESS, 1);
+        $jobs = collect($this->getJson('/api/v1/admin/scheduled-jobs')->json('data.groups'))
+            ->flatMap(fn ($g) => $g['jobs']);
+        $recovered = $jobs->firstWhere('key', 'contacts:sync');
+        $this->assertSame(0, $recovered['failing_streak']);
+        $this->assertFalse($recovered['failing_repeatedly']);
+    }
+
+    public function test_api_cron_jobs_reference_includes_failing_streak_fields(): void
+    {
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_FAILED, 30, 'boom');
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_FAILED, 20, 'boom');
+        $this->seedRun('contacts:sync', ScheduledJobRun::STATUS_FAILED, 10, 'boom');
+
+        $this->asUser($this->makeApiAdmin());
+
+        $jobs = collect($this->getJson('/api/v1/admin/cron-jobs')->assertOk()->json('data.jobs'));
+
+        $failing = $jobs->first(fn ($j) => str_starts_with($j['command'], 'contacts:sync'));
+        $this->assertNotNull($failing);
+        $this->assertSame(3, $failing['failing_streak']);
+        $this->assertTrue($failing['failing_repeatedly']);
+    }
 }

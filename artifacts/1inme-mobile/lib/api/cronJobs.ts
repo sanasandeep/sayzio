@@ -21,6 +21,10 @@ export type CronJob = {
   without_overlapping: boolean;
   on_one_server: boolean;
   running_now: boolean;
+  // Consecutive failed runs since the job's last success; `failing_repeatedly`
+  // is true once the streak reaches the ops-alert threshold (3+).
+  failing_streak: number;
+  failing_repeatedly: boolean;
 };
 
 export type CronJobsReference = {
