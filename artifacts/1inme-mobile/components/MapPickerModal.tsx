@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useColors } from "@/hooks/useColors";
+import { useColors, useResolvedScheme } from "@/hooks/useColors";
 
 // Lazy-require so the web bundle never tries to evaluate the native module.
 let WebView: typeof import("react-native-webview").WebView | null = null;
@@ -33,6 +33,26 @@ export type MapPickerModalProps = {
   onPick: (point: PickedPoint) => void;
 };
 
+// Mirrors the web event page's dark/light tile pair — same constants as
+// components/MapPreview.tsx.
+const DARK_TILE_URL =
+  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const LIGHT_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const DARK_ATTR =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com">CARTO</a>';
+const LIGHT_ATTR =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+const DARK_BG = "#1e2330";
+const LIGHT_BG = "#e9edf3";
+
+function tileConfig(dark: boolean) {
+  return {
+    url: dark ? DARK_TILE_URL : LIGHT_TILE_URL,
+    attr: dark ? DARK_ATTR : LIGHT_ATTR,
+    bg: dark ? DARK_BG : LIGHT_BG,
+  };
+}
+
 const PIN_SVG =
   '<svg viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
   '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">' +
@@ -43,7 +63,12 @@ const PIN_SVG =
   '<text x="17" y="19.5" text-anchor="middle" font-family="sans-serif" font-size="8" font-weight="700" fill="#3d6bff">1</text>' +
   "</svg>";
 
-function buildHtml(lat: number | null, lng: number | null): string {
+function buildHtml(
+  lat: number | null,
+  lng: number | null,
+  dark: boolean,
+): string {
+  const tiles = tileConfig(dark);
   const hasPoint = lat !== null && lng !== null;
   const initLat = hasPoint ? lat : 20;
   const initLng = hasPoint ? lng : 0;
@@ -53,7 +78,7 @@ function buildHtml(lat: number | null, lng: number | null): string {
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-  html, body, #map { height: 100%; margin: 0; padding: 0; background: #1e2330; }
+  html, body, #map { height: 100%; margin: 0; padding: 0; background: ${tiles.bg}; }
   .pin { width: 30px; height: 40px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45)); }
   .pin svg { width: 100%; height: 100%; display: block; }
   .leaflet-control-attribution { font-size: 9px; }
@@ -65,9 +90,9 @@ function buildHtml(lat: number | null, lng: number | null): string {
   function post(o){ if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(o)); }
   var hasPoint = ${hasPoint ? "true" : "false"};
   var map = L.map('map', { zoomControl: true }).setView([${initLat}, ${initLng}], ${initZoom});
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('${tiles.url}', {
     maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors'
+    attribution: '${tiles.attr.replace(/'/g, "\\'")}'
   }).addTo(map);
   var icon = L.divIcon({ className: '', html: '<div class="pin">${PIN_SVG}</div>', iconSize: [30,40], iconAnchor: [15,40] });
   var marker = L.marker([${initLat}, ${initLng}], { icon: icon, draggable: true }).addTo(map);
@@ -107,6 +132,8 @@ export function MapPickerModal({
   onPick,
 }: MapPickerModalProps) {
   const colors = useColors();
+  const scheme = useResolvedScheme();
+  const dark = scheme === "dark";
   const insets = useSafeAreaInsets();
   const webRef = useRef<import("react-native-webview").WebView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,8 +141,8 @@ export function MapPickerModal({
   const [selected, setSelected] = useState<PickedPoint | null>(null);
 
   const html = useMemo(
-    () => buildHtml(initialLat ?? null, initialLng ?? null),
-    [initialLat, initialLng],
+    () => buildHtml(initialLat ?? null, initialLng ?? null, dark),
+    [initialLat, initialLng, dark],
   );
 
   useEffect(() => {
@@ -256,6 +283,7 @@ export function MapPickerModal({
         <View style={{ flex: 1 }}>
           {WebView ? (
             <WebView
+              key={scheme}
               ref={(r) => {
                 webRef.current = r;
               }}
