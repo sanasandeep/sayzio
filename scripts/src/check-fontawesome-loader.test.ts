@@ -14,9 +14,10 @@ import {
  * Regression suite for the Font Awesome loader guard.
  *
  * Two directions are pinned:
- *   - the pure checkers flag each regression class (partial losing its swap
- *     link / safety-net script / noscript fallback; a public view rolling its
- *     own FA <link>) and stay quiet on the current healthy state;
+ *   - the pure checkers flag each regression class (partial losing its
+ *     blocking stylesheet link / font preloads, or reintroducing the
+ *     media=print swap; a public view rolling its own FA <link>) and stay
+ *     quiet on the current healthy state;
  *   - the REAL gate script, spawned as a subprocess, exits 0 on the clean tree
  *     and non-zero when poisoned (fail-closed proof — exit-code plumbing is
  *     exactly what's under test, per the gate meta-test pattern).
@@ -34,36 +35,45 @@ describe("checkPartialSource — current partial is healthy", () => {
 });
 
 describe("checkPartialSource — flags each regression class", () => {
-  it("flags removal of the media=print swap link", () => {
-    const src = healthyPartial.replace(/<link rel="stylesheet"[^>]*data-fa-async[^>]*>/i, "");
-    expect(checkPartialSource(src).join("\n")).toMatch(/swap link/i);
+  it("flags removal of the blocking stylesheet link", () => {
+    const src = healthyPartial.replace(/<link rel="stylesheet"[^>]*data-fa-stylesheet[^>]*>/i, "");
+    expect(checkPartialSource(src).join("\n")).toMatch(/blocking stylesheet link/i);
   });
 
-  it("flags a swap link that lost its data-fa-async tag", () => {
-    const src = healthyPartial.replace(/\s*data-fa-async/, "");
+  it("flags a stylesheet link that lost its data-fa-stylesheet tag", () => {
+    const src = healthyPartial.replace(/\s*data-fa-stylesheet/, "");
+    expect(checkPartialSource(src).join("\n")).toMatch(/blocking stylesheet link/i);
+  });
+
+  it("flags a stylesheet link that regained a media attribute", () => {
+    const src = healthyPartial.replace("data-fa-stylesheet", 'media="print" data-fa-stylesheet');
     const problems = checkPartialSource(src).join("\n");
-    expect(problems).toMatch(/swap link|safety-net/i);
-    expect(problems.length).toBeGreaterThan(0);
+    expect(problems).toMatch(/media attribute|forbidden/i);
   });
 
-  it("flags removal of the safety-net script", () => {
-    const src = healthyPartial.replace(/<script>[\s\S]*<\/script>/i, "");
-    expect(checkPartialSource(src).join("\n")).toMatch(/safety-net script/i);
+  it("flags removal of the fa-solid-900 font preload", () => {
+    const src = healthyPartial.replace(/<link rel="preload"[^>]*fa-solid-900[^>]*>/i, "");
+    expect(checkPartialSource(src).join("\n")).toMatch(/fa-solid-900\.woff2 font preload/i);
   });
 
-  it("flags a safety-net script missing the window load fallback", () => {
-    const src = healthyPartial.replace(/window\.addEventListener\(\s*['"]load['"][^)]*\);?/, "");
-    expect(checkPartialSource(src).join("\n")).toMatch(/safety-net script/i);
+  it("flags removal of the fa-brands-400 font preload", () => {
+    const src = healthyPartial.replace(/<link rel="preload"[^>]*fa-brands-400[^>]*>/i, "");
+    expect(checkPartialSource(src).join("\n")).toMatch(/fa-brands-400\.woff2 font preload/i);
   });
 
-  it("flags a safety-net script missing the DOMContentLoaded hook", () => {
-    const src = healthyPartial.replace(/document\.addEventListener\(\s*['"]DOMContentLoaded['"][^)]*\);?/, "");
-    expect(checkPartialSource(src).join("\n")).toMatch(/safety-net script/i);
+  it("flags a font preload that lost crossorigin", () => {
+    const src = healthyPartial.replace(
+      /(<link rel="preload"[^>]*fa-solid-900[^>]*) crossorigin([^>]*>)/i,
+      "$1$2",
+    );
+    expect(checkPartialSource(src).join("\n")).toMatch(/fa-solid-900\.woff2 font preload/i);
   });
 
-  it("flags removal of the <noscript> fallback", () => {
-    const src = healthyPartial.replace(/<noscript>[\s\S]*?<\/noscript>/i, "");
-    expect(checkPartialSource(src).join("\n")).toMatch(/noscript/i);
+  it("flags any return of the data-fa-async / media=print loader", () => {
+    const src =
+      healthyPartial +
+      `\n<link rel="stylesheet" href="/x.css" media="print" onload="this.media='all'" data-fa-async>`;
+    expect(checkPartialSource(src).join("\n")).toMatch(/forbidden/i);
   });
 });
 
@@ -173,14 +183,17 @@ describe("gate meta-test (subprocess, fail-closed)", () => {
   );
 
   it(
-    "exits non-zero when the partial loses its safety-net script",
+    "exits non-zero when the partial loses its blocking stylesheet link",
     () => {
-      fs.writeFileSync(partialAbs, healthyPartial.replace(/<script>[\s\S]*<\/script>/i, ""));
+      fs.writeFileSync(
+        partialAbs,
+        healthyPartial.replace(/<link rel="stylesheet"[^>]*data-fa-stylesheet[^>]*>/i, ""),
+      );
       try {
         const res = runGate();
         expect(res.status).not.toBeNull();
         expect(res.status).not.toBe(0);
-        expect(res.stderr).toMatch(/safety-net/i);
+        expect(res.stderr).toMatch(/blocking stylesheet link/i);
       } finally {
         fs.writeFileSync(partialAbs, healthyPartial);
       }

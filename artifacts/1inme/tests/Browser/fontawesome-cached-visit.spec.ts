@@ -2,25 +2,23 @@ import { expect, test, type Page } from "@playwright/test";
 
 // Runtime companion to the static fontawesome-loader guard
 // (scripts/src/check-fontawesome-loader.ts). The static guard pins the shape of
-// the shared non-blocking loader partial
-// (resources/views/common/partials/fontawesome.blade.php); this spec proves the
-// loader actually ACTIVATES in a real browser — including on a warm-cache
-// repeat visit, the exact scenario where Safari historically failed to fire the
-// media=print link's onload handler and left every fa-* glyph blank.
+// the shared loader partial
+// (resources/views/common/partials/fontawesome.blade.php) — now a PLAIN
+// BLOCKING stylesheet link (data-fa-stylesheet) + woff2 font preloads, after
+// the loadCSS media=print swap repeatedly blanked icons in real Safari. This
+// spec proves the stylesheet actually applies and icons genuinely render in a
+// real browser — including on a warm-cache repeat visit.
 //
 // What it asserts, on both a COLD first visit and a WARM (cached) reload:
-//   1. The async FA <link data-fa-async> has been flipped to media="all"
-//      (onload swap or the inline DOMContentLoaded/load safety net).
+//   1. The FA <link data-fa-stylesheet> is present with an applied stylesheet.
 //   2. The Font Awesome webfont is actually loaded (document.fonts.check).
 //   3. A rendered fa-* icon has a non-zero-width ::before glyph drawn with the
 //      Font Awesome font-family — i.e. the icon is genuinely visible, not a
 //      blank box.
 //
-// Chromium fires onload for cached media=print stylesheets, so this can't
-// reproduce the Safari bug byte-for-byte; what it CAN catch is any regression
-// that breaks activation in general (partial edits, safety-net removal, asset
-// path drift, font 404s) on the cache-served second visit where such breakage
-// is most likely to hide.
+// What it CAN catch: partial edits that break loading, asset path drift, font
+// 404s, or anyone reintroducing a media=print swap (the link would carry a
+// non-empty media and the stylesheet would not apply in print-less rendering).
 //
 // Runs against the Laravel app (APP_URL, default :5000) — localhost:80 hits the
 // Express api-server, not Laravel.
@@ -51,7 +49,7 @@ async function seedConsent(page: Page): Promise<void> {
 
 type FaState = {
   linkCount: number;
-  mediaValues: string[];
+  stylesheetApplied: boolean;
   fontLoaded: boolean;
   iconFound: boolean;
   iconFontFamily: string;
@@ -67,8 +65,18 @@ type FaState = {
 async function readFaState(page: Page): Promise<FaState> {
   return page.evaluate(async () => {
     const links = Array.from(
-      document.querySelectorAll<HTMLLinkElement>("link[data-fa-async]"),
+      document.querySelectorAll<HTMLLinkElement>("link[data-fa-stylesheet]"),
     );
+    // The stylesheet is "applied" when its CSSOM is reachable and it is not
+    // scoped to a non-matching media type.
+    const stylesheetApplied = links.some((l) => {
+      if (l.media && l.media !== "all" && l.media !== "screen") return false;
+      try {
+        return !!l.sheet && l.sheet.cssRules.length > 0;
+      } catch {
+        return false;
+      }
+    });
 
     // document.fonts.ready resolves once all pending font loads settle.
     try {
@@ -106,7 +114,7 @@ async function readFaState(page: Page): Promise<FaState> {
 
     return {
       linkCount: links.length,
-      mediaValues: links.map((l) => l.media),
+      stylesheetApplied,
       fontLoaded,
       iconFound,
       iconFontFamily,
@@ -117,16 +125,16 @@ async function readFaState(page: Page): Promise<FaState> {
 }
 
 async function assertIconsRender(page: Page, visit: string): Promise<void> {
-  // The inline safety net flips media on DOMContentLoaded / window load, and
-  // the font may still be downloading right after; poll until activated.
+  // The blocking stylesheet should be applied as soon as the DOM is ready;
+  // poll briefly in case the CSSOM is still settling.
   await expect
     .poll(
       async () => {
         const s = await readFaState(page);
-        return s.linkCount > 0 && s.mediaValues.every((m) => m === "all");
+        return s.linkCount > 0 && s.stylesheetApplied;
       },
       {
-        message: `${visit}: link[data-fa-async] never flipped to media="all"`,
+        message: `${visit}: link[data-fa-stylesheet] missing or stylesheet never applied`,
         timeout: 20000,
       },
     )
@@ -155,7 +163,7 @@ async function assertIconsRender(page: Page, visit: string): Promise<void> {
 }
 
 test.describe("Font Awesome loader — icons render on cold and cached visits", () => {
-  test("fa-* glyphs visible and link media=all on first visit AND warm-cache reload", async ({
+  test("fa-* glyphs visible and stylesheet applied on first visit AND warm-cache reload", async ({
     page,
   }) => {
     await seedConsent(page);
@@ -183,9 +191,9 @@ test.describe("Font Awesome loader — icons render on cold and cached visits", 
 
     // ---- Warm reload: stylesheet now served from HTTP cache ----
     // page.reload() keeps the browser cache (Playwright contexts have caching
-    // enabled by default), so the FA <link media="print"> is satisfied from
-    // cache — the exact condition under which Safari skipped onload. The
-    // partial's inline safety net must still flip media to "all".
+    // enabled by default), so the blocking FA stylesheet is satisfied from
+    // cache — historically the condition under which the old print-swap
+    // loader broke in Safari; the plain link must simply apply.
     await page.reload({ waitUntil: "domcontentloaded" });
     await assertIconsRender(page, "warm-cache reload");
 

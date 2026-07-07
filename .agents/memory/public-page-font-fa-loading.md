@@ -46,3 +46,11 @@ boxes until the woff2 arrives, and the font URLs are only discovered post-flip);
 if document.fonts.check shows no FA font, remove + re-insert the link fresh
 with media="all" (guarded by data-fa-reinserted, one-shot). Guard
 check-fontawesome-loader.ts still pins the base shape; additions are additive.
+
+**2026-07 final resolution:** even WITH timed retries + reinsert recovery,
+real Safari still blanked icons. The media=print swap was removed for good —
+the partial now emits a PLAIN blocking `<link rel="stylesheet" data-fa-stylesheet>`
+plus the two woff2 preloads. The guard now pins the new shape and FORBIDS any
+return of `media="print"` / `data-fa-async` in the partial. Lesson: don't keep
+patching the loadCSS print-swap for Safari; a plain blocking link for a small
+same-origin cached stylesheet is the reliable answer.

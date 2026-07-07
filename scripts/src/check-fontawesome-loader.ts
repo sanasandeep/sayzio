@@ -4,28 +4,30 @@
  * Icons on every public page depend on ONE shared partial:
  *   artifacts/1inme/resources/views/common/partials/fontawesome.blade.php
  *
- * That partial loads Font Awesome non-blocking via the loadCSS media="print"
- * swap, plus an inline JS safety net (flips any still-pending
- * link[data-fa-async][media="print"] to media="all" on DOMContentLoaded and
- * window load) that fixes a Safari bug where the link onload never fires for
- * cached media=print stylesheets — leaving every fa-* glyph blank. A
- * <noscript> fallback keeps icons working with JS disabled.
+ * That partial loads Font Awesome as a PLAIN BLOCKING <link rel="stylesheet">
+ * (tagged data-fa-stylesheet) plus woff2 font preloads (fa-solid-900 +
+ * fa-brands-400, as="font" crossorigin — the FA css is font-display:block, so
+ * without the preloads glyphs render as blank boxes until the fonts arrive).
+ *
+ * History: the partial previously used the loadCSS media="print" swap with an
+ * inline safety net + timed retries + re-insert recovery. Real-world Safari
+ * STILL rendered blank icons (cached print links never fire onload, and Safari
+ * was seen ignoring the media flip entirely), so the swap was removed for good.
+ * Any media="print" / data-fa-async loader in the partial is now itself a
+ * regression.
  *
  * This guard fails (exit 1) if either regression ships:
- *   1. The shared partial loses any required piece:
- *      - the media="print" + onload="this.media='all'" swap link tagged
- *        data-fa-async,
- *      - the safety-net script (data-fa-async querySelector + DOMContentLoaded
- *        + window load listeners),
- *      - the <noscript> stylesheet fallback.
+ *   1. The shared partial loses any required piece or regresses:
+ *      - the plain blocking stylesheet link tagged data-fa-stylesheet,
+ *      - the two woff2 font preloads (crossorigin),
+ *      - OR reintroduces a media="print" swap / data-fa-async loader.
  *   2. A public-facing blade view OUTSIDE the partial ships its own raw Font
  *      Awesome <link> (blocking stylesheet, preload, or a hand-rolled
  *      print-swap) instead of @include('common.partials.fontawesome').
  *
  * Scope: only PUBLIC-facing view roots are scanned for offender links.
- * Authenticated surfaces (admin/, user/, portal/) intentionally use a plain
- * blocking FA <link> — render-blocking is acceptable there and Safari's
- * print-swap bug cannot occur without the swap.
+ * Authenticated surfaces (admin/, user/, portal/) already use a plain
+ * blocking FA <link>.
  *
  * Run:  pnpm --filter @workspace/scripts run check:fontawesome-loader
  */
@@ -74,37 +76,39 @@ export type PartialProblem = string;
 export function checkPartialSource(src: string): PartialProblem[] {
   const problems: PartialProblem[] = [];
 
-  // 1. Non-blocking print-swap link tagged data-fa-async, flipping to 'all'.
-  const swapLink =
-    /<link[^>]*rel=["']stylesheet["'][^>]*media=["']print["'][^>]*onload=["']this\.media=\\?'all\\?'["'][^>]*data-fa-async/i;
-  const swapLinkAnyOrder =
-    /<link(?=[^>]*rel=["']stylesheet["'])(?=[^>]*media=["']print["'])(?=[^>]*onload=["']this\.media=\\?'all\\?';?["'])(?=[^>]*data-fa-async)[^>]*>/i;
-  if (!swapLink.test(src) && !swapLinkAnyOrder.test(src)) {
+  // 1. Plain blocking stylesheet link tagged data-fa-stylesheet, WITHOUT any
+  //    media attribute trickery.
+  const blockingLink =
+    /<link(?=[^>]*rel=["']stylesheet["'])(?=[^>]*data-fa-stylesheet)[^>]*>/i;
+  const blockingMatch = src.match(blockingLink);
+  if (!blockingMatch) {
     problems.push(
-      'missing the non-blocking swap link: <link rel="stylesheet" media="print" onload="this.media=\'all\'" data-fa-async>',
+      'missing the plain blocking stylesheet link: <link rel="stylesheet" href="..." data-fa-stylesheet>',
+    );
+  } else if (/media=/i.test(blockingMatch[0])) {
+    problems.push(
+      "the data-fa-stylesheet link must NOT carry a media attribute (no print-swap trickery)",
     );
   }
 
-  // 2. Safety-net script: queries link[data-fa-async][media="print"], flips
-  //    media, wired to DOMContentLoaded AND window load.
-  const hasScript = /<script[\s>]/i.test(src);
-  const queriesAsync = /querySelectorAll\(\s*['"]link\[data-fa-async\]\[media=\\?["']print\\?["']\]['"]\s*\)/.test(
-    src,
-  );
-  const flipsMedia = /\.media\s*=\s*['"]all['"]/.test(src);
-  const onDomReady = /addEventListener\(\s*['"]DOMContentLoaded['"]/.test(src);
-  const onWindowLoad = /window\.addEventListener\(\s*['"]load['"]/.test(src);
-  if (!hasScript || !queriesAsync || !flipsMedia || !onDomReady || !onWindowLoad) {
-    problems.push(
-      "missing the data-fa-async safety-net script (must query link[data-fa-async][media=\"print\"], " +
-        "flip .media='all', and listen on BOTH DOMContentLoaded and window load — the Safari cached-stylesheet fix)",
+  // 2. Both woff2 font preloads with crossorigin (font-display:block means
+  //    blank glyph boxes until the fonts arrive without these).
+  for (const font of ["fa-solid-900.woff2", "fa-brands-400.woff2"]) {
+    const re = new RegExp(
+      `<link(?=[^>]*rel=["']preload["'])(?=[^>]*as=["']font["'])(?=[^>]*${font.replace(/[.]/g, "\\.")})(?=[^>]*crossorigin)[^>]*>`,
+      "i",
     );
+    if (!re.test(src)) {
+      problems.push(`missing the ${font} font preload (<link rel="preload" as="font" crossorigin>)`);
+    }
   }
 
-  // 3. <noscript> fallback with a plain stylesheet link.
-  const noscriptFallback = /<noscript>\s*<link[^>]*rel=["']stylesheet["'][^>]*>\s*<\/noscript>/i;
-  if (!noscriptFallback.test(src)) {
-    problems.push("missing the <noscript><link rel=\"stylesheet\" ...></noscript> fallback (JS-disabled visitors)");
+  // 3. FORBIDDEN: any return of the media=print swap / data-fa-async loader —
+  //    the exact pattern that blanked icons in Safari.
+  if (/media=["']print["']/i.test(src) || /data-fa-async/i.test(src)) {
+    problems.push(
+      "the media=\"print\" swap / data-fa-async loader is FORBIDDEN — it repeatedly blanked all icons in Safari; keep the plain blocking stylesheet",
+    );
   }
 
   return problems;
@@ -172,8 +176,8 @@ function main(): void {
       console.error(`✗ fontawesome-loader guard FAILED — ${PARTIAL_REL} regressed:`);
       for (const p of problems) console.error(`  - ${p}`);
       console.error(
-        "\nThe partial's media=print swap + data-fa-async safety-net script + <noscript> fallback are ALL required.\n" +
-          "Without the safety net, Safari leaves cached FA stylesheets print-only and renders every icon blank.",
+        "\nThe partial must keep the plain blocking data-fa-stylesheet link + both woff2 font preloads,\n" +
+          "and must NEVER reintroduce a media=print swap — Safari repeatedly rendered blank icons with it.",
       );
       failed = true;
     }
@@ -196,7 +200,7 @@ function main(): void {
     for (const o of offenders) console.error(`  ${o.file}:${o.line}: ${o.text}`);
     console.error(
       "\nPublic pages must load Font Awesome via @include('common.partials.fontawesome') — never a raw <link>.\n" +
-        "A hand-rolled blocking or print-swap link bypasses the Safari safety net and can silently blank all icons.",
+        "A hand-rolled link drifts from the canonical loader (and a print-swap re-blanks all icons in Safari).",
     );
     failed = true;
   }
