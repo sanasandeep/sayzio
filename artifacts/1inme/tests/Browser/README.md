@@ -118,7 +118,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these twenty-eight specs are gated (and not the whole suite)
+### Why these twenty-nine specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -436,7 +436,7 @@ Run the full suite manually (when you can tolerate the slow renders) with
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the twenty-six gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the twenty-nine gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
@@ -474,6 +474,21 @@ bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
   also asserts the sticky header stays pinned (viewport-top unchanged) after
   scrolling. Guards `public/layouts/site.blade.php`'s uniform-aurora contract
   against a future page reintroducing an opaque backdrop.
+- `events-hero-band-gap.spec.ts` — gated, no login. Guards the top-gap fix
+  for the cross-page "Discover Events" promo band
+  (`common/partials/events-hero-band.blade.php`), which depends on THREE
+  coordinated CSS rules: the band's `margin-top: calc(-1 * var(--mkt-nav-h))`
+  pull-up, its compensating `padding-top`, and the `.has-ehb-band
+  .mkt-site-main { margin-top: 0 }` cancellation keyed off the body class the
+  partial adds inline. Self-bootstrapping: seeds three upcoming public `ics`
+  events via `php artisan tinker` so `EventsHeroBandComposer` renders the
+  band, then loads `/about` and asserts (in BOTH dark and light mode) that
+  the band's top edge sits at y=0 (a value near `--mkt-nav-h` means the bare
+  body-background gap is back), that the band's content clears both the
+  resolved `--mkt-nav-h` reserve and the rendered nav's actual bottom edge,
+  and that `.mkt-site-main` keeps `margin-top: 0`. Any future site-layout /
+  band-partial / `--mkt-nav-h` change that breaks the three-way coordination
+  fails immediately with a message naming which rule regressed.
 - `create-link-picker.spec.ts` — Gated. Seeds the demo user (user-admin
   role) plus a link that already owns a known alias, logs in once, and
   drives the redesigned Create Link manual picker on a desktop and a

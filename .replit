@@ -116,6 +116,10 @@ args = "undefined-css-var"
 task = "workflow.run"
 args = "factory-columns"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-ehb-band"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -387,6 +391,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && composer check:factory-columns"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-ehb-band"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh events-hero-band-gap.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
