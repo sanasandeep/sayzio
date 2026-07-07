@@ -220,31 +220,47 @@
             --sc-color: #1bd4d9;
             --sc-x: 50%;
             --sc-y: 40%;
-            transition: transform .45s cubic-bezier(.16,1,.3,1), box-shadow .4s cubic-bezier(.16,1,.3,1);
+            /* IMPORTANT: never transform (or will-change: transform) this
+               element — it is a CSS multi-column item, and transforming a
+               multicol fragment triggers a browser rendering bug that makes
+               the hovered card vanish. All motion lives on .showcase-inner. */
+            transition: box-shadow .4s cubic-bezier(.16,1,.3,1);
+        }
+        .showcase-inner {
+            transition: transform .45s cubic-bezier(.16,1,.3,1);
             will-change: transform;
         }
         @media (min-width: 1024px) {
             /* Stay fully hidden pre-intersection so nothing fires on load;
                only .visible (added by the IntersectionObserver once the
-               grid scrolls into view) triggers the entrance keyframe. */
-            .showcase-card.reveal:not(.visible) { opacity: 0; transform: translateY(46px) scale(.92) rotate(-1.2deg); filter: blur(5px); }
+               grid scrolls into view) triggers the entrance keyframe.
+               Opacity/blur stay on the card; the entrance transform runs on
+               .showcase-inner (safe inside multicol). */
+            .showcase-card.reveal:not(.visible) { opacity: 0; filter: blur(5px); }
+            .showcase-card.reveal:not(.visible) .showcase-inner { transform: translateY(46px) scale(.92) rotate(-1.2deg); }
             /* `backwards` (not `both`) on purpose: once the entrance finishes,
                the animation fill drops so the element returns to its own
-               un-animated styles, letting the :hover transform take over.
-               The 100% frame values (transform: none, opacity: 1, filter: none)
-               already match .showcase-card's own defaults, so this is a no-op
-               for the resting look.
+               un-animated styles, letting the :hover motion take over.
+               The 100% frame values already match the resting defaults, so
+               this is a no-op for the resting look.
                --sc-stagger (seeded per card from the grid index in the Blade
                loop) staggers the entrance left-to-right; `backwards` fill
                holds each card at the hidden 0% frame during its delay, so
                nothing flashes while waiting its turn. The IntersectionObserver
                gate (.visible) is unchanged — no delay counts down until the
-               grid actually scrolls into view. */
+               grid actually scrolls into view. Both the card (opacity/blur)
+               and inner (transform) keyframes share the same delay so they
+               stay in sync. */
             .showcase-card.reveal.visible { animation: showcaseReveal .85s cubic-bezier(.19,1,.22,1) backwards; animation-delay: var(--sc-stagger, 0s); }
+            .showcase-card.reveal.visible .showcase-inner { animation: showcaseRevealInner .85s cubic-bezier(.19,1,.22,1) backwards; animation-delay: var(--sc-stagger, 0s); }
             @keyframes showcaseReveal {
-                0%   { opacity: 0; transform: translateY(46px) scale(.92) rotate(-1.2deg); filter: blur(5px); }
+                0%   { opacity: 0; filter: blur(5px); }
                 65%  { filter: blur(0); }
-                100% { opacity: 1; transform: none; filter: none; }
+                100% { opacity: 1; filter: none; }
+            }
+            @keyframes showcaseRevealInner {
+                0%   { transform: translateY(46px) scale(.92) rotate(-1.2deg); }
+                100% { transform: none; }
             }
         }
         /* Cursor-tracked spotlight that follows the pointer inside the card. */
@@ -274,14 +290,19 @@
             50%      { opacity: .35; box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 16%, transparent), 0 0 14px -2px color-mix(in srgb, var(--sc-color) 25%, transparent); }
         }
         html.light-mode .showcase-card.sc-alive::after { animation: none; opacity: 0; }
-        /* Single cohesive hover: smooth lift + color-matched shadow + ring. */
+        /* New hover: calm inner lift (transform on .showcase-inner, never on
+           the multicol card box) + color-matched shadow + ring bloom. The
+           4px lift stays inside the card's 1rem padding, so nothing is
+           clipped by the card's overflow:hidden. */
         .showcase-card:hover {
-            transform: translateY(-8px) scale(1.015);
             box-shadow: 0 20px 40px -18px color-mix(in srgb, var(--sc-color) 45%, transparent);
+        }
+        .showcase-card:hover .showcase-inner {
+            transform: translateY(-4px);
         }
         .showcase-card:hover::after {
             opacity: 1;
-            box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 30%, transparent), 0 0 18px -2px color-mix(in srgb, var(--sc-color) 20%, transparent);
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 35%, transparent), 0 0 24px -2px color-mix(in srgb, var(--sc-color) 28%, transparent), inset 0 0 18px -8px color-mix(in srgb, var(--sc-color) 22%, transparent);
         }
         html.light-mode .showcase-card:hover::after {
             box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 40%, transparent);
@@ -297,9 +318,9 @@
             50%      { transform: translate(-4px,3px) scale(1.08); opacity: .2; }
         }
         html.light-mode .showcase-card.sc-alive .showcase-blob { animation: none; opacity: 0; }
-        /* Small icon scale on hover — no rotation, no magnetic spin. */
-        .showcase-icon-wrap { transition: transform .3s cubic-bezier(.34,1.4,.64,1); }
-        .showcase-card:hover .showcase-icon-wrap { transform: scale(1.1); }
+        /* Springy icon pop on hover — small scale + gentle tilt, no spin. */
+        .showcase-icon-wrap { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+        .showcase-card:hover .showcase-icon-wrap { transform: scale(1.12) rotate(-3deg); }
 
         /* ============ Marquee ============ */
         .marquee { animation: marquee 40s linear infinite; }
@@ -567,11 +588,12 @@
 
             /* Showcase grid: fully static — no animations, no hover motion */
             .showcase-card, .showcase-card::before, .showcase-card::after,
-            .showcase-blob, .showcase-icon-wrap {
+            .showcase-inner, .showcase-blob, .showcase-icon-wrap {
                 animation: none !important; transition: none !important;
             }
             .showcase-card::before, .showcase-card::after { opacity: 0 !important; }
-            .showcase-card:hover { transform: none !important; box-shadow: none !important; }
+            .showcase-card:hover { box-shadow: none !important; }
+            .showcase-card:hover .showcase-inner { transform: none !important; }
             .showcase-card:hover .showcase-icon-wrap { transform: none !important; }
         }
 
@@ -3971,7 +3993,7 @@
         <div class="showcase-field columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-3 sm:gap-4">
             @foreach($__linkTypes as $i => $lt)
                 <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card glass rounded-xl p-4 relative overflow-hidden mb-3 sm:mb-4 break-inside-avoid inline-block w-full align-top" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s; --sc-stagger:{{ round($i * 0.08, 2) }}s;">
-                    <div class="relative w-full h-full">
+                    <div class="showcase-inner relative w-full h-full">
                         <div class="absolute -top-8 -right-8 w-20 h-20 rounded-full opacity-20 showcase-blob" style="background:{{ $lt['color'] }};"></div>
                         @if($lt['new'])
                             <span class="absolute top-2.5 right-2.5 inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style="background:rgba(255,255,255,.08); color:{{ $lt['color'] }}; border:1px solid {{ $lt['color'] }}40;">New</span>
