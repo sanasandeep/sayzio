@@ -7,45 +7,86 @@
     // "Pricing" always navigates to the dedicated /pricing page.
     $pricingHref = route('site.pricing');
 
-    // Mega-menu link groups. [href, fa-icon, title, one-line description].
+    // Mega-menu link groups. [href, fa-icon, title, one-line description, route-name pattern(s)|null].
+    // The 5th element drives the "current page" highlight (matched with
+    // request()->routeIs()); null means the item never claims an active state
+    // (anchor-only entries like Referrals, or entries owned by another surface
+    // like the Events pill).
     // Plain `&` in titles/descriptions — echoed via {{ }} so Blade escapes them.
     $navProductCore = [
-        [route('site.features'),       'fa-bolt',         'Features',           'Everything Sayzio can do'],
-        [route('site.how-it-works'),   'fa-play',         'How it works',       'Step-by-step setup'],
-        [route('site.analytics'),      'fa-chart-line',   'Analytics',          'Live geo, coach & cohorts'],
-        [route('site.audience'),       'fa-users',        'Audience',           'Followers, digest emails & directory'],
-        [route('site.integrations'),   'fa-plug',         'Integrations',       'One-click social connections'],
-        [route('site.domains'),        'fa-globe',        'Domains & aliases',  'Branded domains & custom slugs'],
-        [route('site.forms'),          'fa-list-check',   'Form Builder',       '21 field types & instant alerts'],
-        [route('site.notifications'),  'fa-bell',         'Notifications',      'In-app, email & push, your way'],
-        [route('site.workspace-team'), 'fa-people-group', 'Workspace & Team',   'Roles, permissions, audit logs'],
-        [route('site.api-docs'),       'fa-code',         'API',                'Build with Sayzio'],
+        [route('site.features'),       'fa-bolt',         'Features',           'Everything Sayzio can do',              'site.features'],
+        [route('site.how-it-works'),   'fa-play',         'How it works',       'Step-by-step setup',                    'site.how-it-works'],
+        [route('site.analytics'),      'fa-chart-line',   'Analytics',          'Live geo, coach & cohorts',             'site.analytics'],
+        [route('site.audience'),       'fa-users',        'Audience',           'Followers, digest emails & directory',  'site.audience'],
+        [route('site.integrations'),   'fa-plug',         'Integrations',       'One-click social connections',          'site.integrations'],
+        [route('site.domains'),        'fa-globe',        'Domains & aliases',  'Branded domains & custom slugs',        'site.domains'],
+        [route('site.forms'),          'fa-list-check',   'Form Builder',       '21 field types & instant alerts',       'site.forms'],
+        [route('site.notifications'),  'fa-bell',         'Notifications',      'In-app, email & push, your way',        'site.notifications'],
+        [route('site.workspace-team'), 'fa-people-group', 'Workspace & Team',   'Roles, permissions, audit logs',        'site.workspace-team'],
+        [route('site.api-docs'),       'fa-code',         'API',                'Build with Sayzio',                     'site.api-docs'],
     ];
     $navProductAi = [
-        [route('site.ai-marketing-strategist'), 'fa-wand-magic-sparkles', 'AI Marketing Strategist', 'A growth plan from your own data'],
-        [route('site.ai-chatbot'),         'fa-comments',        'AI Chatbot',         '24/7 chat on your biolink'],
-        [route('site.ai-agent'),           'fa-robot',           'AI Agent',           'Runs multi-step tasks for you'],
-        [route('site.ai-widget'),          'fa-window-restore',  'AI Widget',          'Embed on any website'],
-        [route('site.ai-voice-assistant'), 'fa-headset',         'AI Voice Assistant', 'Picks up calls in your voice'],
-        [route('site.whatsapp-agent'),     'fa-comment-dots',    'WhatsApp Agent',     'Build links by chatting on WhatsApp'],
-        [route('site.ai-dashboard'),       'fa-gauge-high',      'AI Dashboard',       'Presets or a prompt build your layout'],
+        [route('site.ai-marketing-strategist'), 'fa-wand-magic-sparkles', 'AI Marketing Strategist', 'A growth plan from your own data',      'site.ai-marketing-strategist'],
+        [route('site.ai-chatbot'),         'fa-comments',        'AI Chatbot',         '24/7 chat on your biolink',             'site.ai-chatbot'],
+        [route('site.ai-agent'),           'fa-robot',           'AI Agent',           'Runs multi-step tasks for you',         'site.ai-agent'],
+        [route('site.ai-widget'),          'fa-window-restore',  'AI Widget',          'Embed on any website',                  'site.ai-widget'],
+        [route('site.ai-voice-assistant'), 'fa-headset',         'AI Voice Assistant', 'Picks up calls in your voice',          'site.ai-voice-assistant'],
+        [route('site.whatsapp-agent'),     'fa-comment-dots',    'WhatsApp Agent',     'Build links by chatting on WhatsApp',   'site.whatsapp-agent'],
+        [route('site.ai-dashboard'),       'fa-gauge-high',      'AI Dashboard',       'Presets or a prompt build your layout', 'site.ai-dashboard'],
     ];
     $navProductCareer = [
-        [route('site.resume-builder'), 'fa-file-lines', 'Résumé & Portfolio', 'Build a CV & portfolio link in 5 min'],
+        [route('site.resume-builder'), 'fa-file-lines', 'Résumé & Portfolio', 'Build a CV & portfolio link in 5 min', 'site.resume-builder'],
     ];
     $navSolutions = [
-        [route('site.services'),                    'fa-bullseye',            'Use cases',              'For creators, brands, agencies & teams'],
-        [route('site.compare.index'),               'fa-scale-balanced',      'Compare Sayzio',          'vs Linktree, Beacons, Bitly & more'],
-        [route('site.demos'),                       'fa-wand-magic-sparkles', 'See what you can build', 'Live demo of every link type'],
-        [route('site.discovery'),                   'fa-compass',             'Discover creators',      'Browse the public directory'],
-        [route('site.creators-feed'),               'fa-stream',              'Creators feed',          'What the community is shipping'],
-        [route('site.buzz'),                        'fa-bullhorn',            'Buzz',                   'News, press & love'],
-        [route('events.index'),                     'fa-calendar-day',        'Events & RSVPs',         'Run launches with one link'],
-        [route('site.features').'#cat-referrals',   'fa-gift',                'Referrals',              'Reward fans who spread the word'],
+        [route('site.services'),                    'fa-bullseye',            'Use cases',              'For creators, brands, agencies & teams', 'site.services'],
+        [route('site.compare.index'),               'fa-scale-balanced',      'Compare Sayzio',          'vs Linktree, Beacons, Bitly & more',    ['site.compare.index', 'site.compare.show']],
+        [route('site.demos'),                       'fa-wand-magic-sparkles', 'See what you can build', 'Live demo of every link type',           'site.demos'],
+        [route('site.discovery'),                   'fa-compass',             'Discover creators',      'Browse the public directory',            'site.discovery'],
+        [route('site.creators-feed'),               'fa-stream',              'Creators feed',          'What the community is shipping',         'site.creators-feed'],
+        [route('site.buzz'),                        'fa-bullhorn',            'Buzz',                   'News, press & love',                     'site.buzz'],
+        // Events entry: active state is owned by the dedicated Events pill, not the Solutions group.
+        [route('events.index'),                     'fa-calendar-day',        'Events & RSVPs',         'Run launches with one link',             null],
+        // Referrals is an anchor into the Features page — the plain Features top link owns that page's highlight.
+        [route('site.features').'#cat-referrals',   'fa-gift',                'Referrals',              'Reward fans who spread the word',        null],
     ];
     $navUseCases = \App\Modules\Common\Support\SitePagesContent::useCaseMeta();
+
+    // ---- Current-page detection (data-driven off the pattern column above) ----
+    $routeIs = function ($patterns) {
+        return $patterns !== null && request()->routeIs(...(array) $patterns);
+    };
+    // Use-case landing pages highlight the matching "Sayzio for…" item by slug.
+    $activeUseCase = request()->routeIs('site.use-case') ? (string) request()->route('persona') : null;
+    // True when any item in the given groups is the current page, ignoring
+    // patterns listed in $except (Features lives in the Product mega menu but
+    // its highlight belongs to the plain top-level Features link).
+    $anyNavActive = function (array $groups, array $except = []) use ($routeIs) {
+        foreach ($groups as $items) {
+            foreach ($items as $item) {
+                $patterns = array_values(array_diff((array) ($item[4] ?? null), $except));
+                if ($patterns !== [] && $routeIs($patterns)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    $productActive   = $anyNavActive([$navProductCore, $navProductAi, $navProductCareer], ['site.features']);
+    $solutionsActive = $anyNavActive([$navSolutions]) || $activeUseCase !== null;
+    $topActive = [
+        'features' => request()->routeIs('site.features'),
+        'pricing'  => request()->routeIs('site.pricing', 'site.pricing.*', 'site.coins'),
+        'about'    => request()->routeIs('site.about'),
+        'contact'  => request()->routeIs('site.contact'),
+        'faqs'     => request()->routeIs('site.faqs'),
+        'events'   => request()->routeIs('events.index'),
+    ];
+    $companyActive = $topActive['pricing'] || $topActive['about'] || $topActive['contact'] || $topActive['faqs'];
+    // Mobile drawer: default-open the accordion group that contains the
+    // current page so the highlighted item is visible immediately.
+    $mobileGroupDefault = $productActive ? 'm-product' : ($solutionsActive ? 'm-solutions' : ($companyActive ? 'm-company' : null));
 @endphp
-<div x-data="{ mobileOpen:false, mobileGroup:null, openMenu:null, scrolled:false, navHidden:false, navLastY:0, navAccum:0 {{ $useModal ? ', authOpen:false, authTab:\'login\', authHandle:\'\'' : '' }} }"
+<div x-data="{ mobileOpen:false, mobileGroup:{{ $mobileGroupDefault ? "'".$mobileGroupDefault."'" : 'null' }}, openMenu:null, scrolled:false, navHidden:false, navLastY:0, navAccum:0 {{ $useModal ? ', authOpen:false, authTab:\'login\', authHandle:\'\'' : '' }} }"
      {{-- For the in-flow sticky header (non-home pages) the Alpine wrapper must
           NOT form a containing block, or the sticky <nav> would be trapped in a
           box only as tall as itself and unstick immediately. `display:contents`
@@ -87,8 +128,8 @@
                         @click="openMenu === 'product' ? openMenu=null : openMenu='product'"
                         @mouseenter="openMenu='product'"
                         :aria-expanded="openMenu === 'product'"
-                        class="inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg whitespace-nowrap transition-colors"
-                        :class="openMenu === 'product' ? 'text-blue-400' : 'text-gray-300 hover:text-blue-400'">
+                        class="inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg whitespace-nowrap transition-colors {{ $productActive ? 'bg-white/5 font-semibold' : '' }}"
+                        :class="openMenu === 'product' ? 'text-blue-400' : '{{ $productActive ? 'text-blue-400' : 'text-gray-300 hover:text-blue-400' }}'">
                     Product <i class="fas fa-chevron-down text-[10px] opacity-70 transition-transform" :class="openMenu === 'product' ? 'rotate-180' : ''"></i>
                 </button>
 
@@ -97,20 +138,20 @@
                         @click="openMenu === 'solutions' ? openMenu=null : openMenu='solutions'"
                         @mouseenter="openMenu='solutions'"
                         :aria-expanded="openMenu === 'solutions'"
-                        class="inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg whitespace-nowrap transition-colors"
-                        :class="openMenu === 'solutions' ? 'text-blue-400' : 'text-gray-300 hover:text-blue-400'">
+                        class="inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg whitespace-nowrap transition-colors {{ $solutionsActive ? 'bg-white/5 font-semibold' : '' }}"
+                        :class="openMenu === 'solutions' ? 'text-blue-400' : '{{ $solutionsActive ? 'text-blue-400' : 'text-gray-300 hover:text-blue-400' }}'">
                     Solutions <i class="fas fa-chevron-down text-[10px] opacity-70 transition-transform" :class="openMenu === 'solutions' ? 'rotate-180' : ''"></i>
                 </button>
 
-                <a href="{{ route('site.features') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">Features</a>
-                <a href="{{ $pricingHref }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">Pricing</a>
-                <a href="{{ route('site.about') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">About</a>
-                <a href="{{ route('site.contact') }}" @mouseenter="openMenu=null" class="px-3 py-2 text-sm text-gray-300 hover:text-blue-400 whitespace-nowrap">Contact</a>
+                <a href="{{ route('site.features') }}" @mouseenter="openMenu=null" @if($topActive['features']) aria-current="page" @endif class="px-3 py-2 text-sm rounded-lg whitespace-nowrap {{ $topActive['features'] ? 'text-blue-400 bg-white/5 font-semibold' : 'text-gray-300 hover:text-blue-400' }}">Features</a>
+                <a href="{{ $pricingHref }}" @mouseenter="openMenu=null" @if($topActive['pricing']) aria-current="page" @endif class="px-3 py-2 text-sm rounded-lg whitespace-nowrap {{ $topActive['pricing'] ? 'text-blue-400 bg-white/5 font-semibold' : 'text-gray-300 hover:text-blue-400' }}">Pricing</a>
+                <a href="{{ route('site.about') }}" @mouseenter="openMenu=null" @if($topActive['about']) aria-current="page" @endif class="px-3 py-2 text-sm rounded-lg whitespace-nowrap {{ $topActive['about'] ? 'text-blue-400 bg-white/5 font-semibold' : 'text-gray-300 hover:text-blue-400' }}">About</a>
+                <a href="{{ route('site.contact') }}" @mouseenter="openMenu=null" @if($topActive['contact']) aria-current="page" @endif class="px-3 py-2 text-sm rounded-lg whitespace-nowrap {{ $topActive['contact'] ? 'text-blue-400 bg-white/5 font-semibold' : 'text-gray-300 hover:text-blue-400' }}">Contact</a>
 
                 {{-- Highlighted "Events" badge — visually distinct pill (vs the
                      plain text links above) to drive discovery of /events. --}}
-                <a href="{{ route('events.index') }}" @mouseenter="openMenu=null"
-                   class="ml-1 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors"
+                <a href="{{ route('events.index') }}" @mouseenter="openMenu=null" @if($topActive['events']) aria-current="page" @endif
+                   class="ml-1 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors {{ $topActive['events'] ? 'mkt-events-pill-active' : '' }}"
                    style="background:rgba(61,107,255,0.14); border:1px solid rgba(61,107,255,0.4); color:#8fa8ff;">
                     <i class="fas fa-calendar-day text-[11px]"></i> Events
                 </a>
@@ -133,13 +174,14 @@
                             <div>
                                 <div class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Core product</div>
                                 <div class="grid grid-cols-2 gap-1">
-                                    @foreach($navProductCore as [$__href, $__icon, $__title, $__desc])
-                                        <a href="{{ $__href }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
-                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300 transition-transform group-hover:scale-110">
+                                    @foreach($navProductCore as [$__href, $__icon, $__title, $__desc, $__routes])
+                                        @php $__active = $routeIs($__routes); @endphp
+                                        <a href="{{ $__href }}" @if($__active) aria-current="page" @endif class="group flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300 transition-transform group-hover:scale-110 {{ $__active ? 'ring-2 ring-blue-400/60' : '' }}">
                                                 <i class="fas {{ $__icon }} text-sm"></i>
                                             </span>
                                             <span class="min-w-0">
-                                                <span class="block text-sm font-semibold text-white">{{ $__title }}</span>
+                                                <span class="block text-sm font-semibold {{ $__active ? 'text-blue-400' : 'text-white' }}">{{ $__title }}</span>
                                                 <span class="block text-xs leading-snug text-gray-500">{{ $__desc }}</span>
                                             </span>
                                         </a>
@@ -150,13 +192,14 @@
                             <div>
                                 <div class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">AI suite</div>
                                 <div class="space-y-0.5">
-                                    @foreach($navProductAi as [$__href, $__icon, $__title, $__desc])
-                                        <a href="{{ $__href }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
-                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300 transition-transform group-hover:scale-110">
+                                    @foreach($navProductAi as [$__href, $__icon, $__title, $__desc, $__routes])
+                                        @php $__active = $routeIs($__routes); @endphp
+                                        <a href="{{ $__href }}" @if($__active) aria-current="page" @endif class="group flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300 transition-transform group-hover:scale-110 {{ $__active ? 'ring-2 ring-blue-400/60' : '' }}">
                                                 <i class="fas {{ $__icon }} text-sm"></i>
                                             </span>
                                             <span class="min-w-0">
-                                                <span class="block text-sm font-semibold text-white">{{ $__title }}</span>
+                                                <span class="block text-sm font-semibold {{ $__active ? 'text-blue-400' : 'text-white' }}">{{ $__title }}</span>
                                                 <span class="block text-xs leading-snug text-gray-500">{{ $__desc }}</span>
                                             </span>
                                         </a>
@@ -164,13 +207,14 @@
                                 </div>
                                 <div class="px-1 pt-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Career</div>
                                 <div class="space-y-0.5">
-                                    @foreach($navProductCareer as [$__href, $__icon, $__title, $__desc])
-                                        <a href="{{ $__href }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
-                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300 transition-transform group-hover:scale-110">
+                                    @foreach($navProductCareer as [$__href, $__icon, $__title, $__desc, $__routes])
+                                        @php $__active = $routeIs($__routes); @endphp
+                                        <a href="{{ $__href }}" @if($__active) aria-current="page" @endif class="group flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-300 transition-transform group-hover:scale-110 {{ $__active ? 'ring-2 ring-blue-400/60' : '' }}">
                                                 <i class="fas {{ $__icon }} text-sm"></i>
                                             </span>
                                             <span class="min-w-0">
-                                                <span class="block text-sm font-semibold text-white">{{ $__title }}</span>
+                                                <span class="block text-sm font-semibold {{ $__active ? 'text-blue-400' : 'text-white' }}">{{ $__title }}</span>
                                                 <span class="block text-xs leading-snug text-gray-500">{{ $__desc }}</span>
                                             </span>
                                         </a>
@@ -206,13 +250,14 @@
                             <div>
                                 <div class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Explore</div>
                                 <div class="grid grid-cols-2 gap-1">
-                                    @foreach($navSolutions as [$__href, $__icon, $__title, $__desc])
-                                        <a href="{{ $__href }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
-                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-500/10 text-pink-300 transition-transform group-hover:scale-110">
+                                    @foreach($navSolutions as [$__href, $__icon, $__title, $__desc, $__routes])
+                                        @php $__active = $routeIs($__routes); @endphp
+                                        <a href="{{ $__href }}" @if($__active) aria-current="page" @endif class="group flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-500/10 text-pink-300 transition-transform group-hover:scale-110 {{ $__active ? 'ring-2 ring-blue-400/60' : '' }}">
                                                 <i class="fas {{ $__icon }} text-sm"></i>
                                             </span>
                                             <span class="min-w-0">
-                                                <span class="block text-sm font-semibold text-white">{{ $__title }}</span>
+                                                <span class="block text-sm font-semibold {{ $__active ? 'text-blue-400' : 'text-white' }}">{{ $__title }}</span>
                                                 <span class="block text-xs leading-snug text-gray-500">{{ $__desc }}</span>
                                             </span>
                                         </a>
@@ -224,12 +269,13 @@
                                 <div class="px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">Sayzio for…</div>
                                 <div class="space-y-0.5">
                                     @foreach($navUseCases as $__ucSlug => $__ucMeta)
-                                        <a href="{{ route('site.use-case', $__ucSlug) }}" class="group flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors">
-                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-500/10 text-pink-300 transition-transform group-hover:scale-110">
+                                        @php $__active = ($activeUseCase === $__ucSlug); @endphp
+                                        <a href="{{ route('site.use-case', $__ucSlug) }}" @if($__active) aria-current="page" @endif class="group flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
+                                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-500/10 text-pink-300 transition-transform group-hover:scale-110 {{ $__active ? 'ring-2 ring-blue-400/60' : '' }}">
                                                 <i class="fas {{ $__ucMeta['icon'] }} text-sm"></i>
                                             </span>
                                             <span class="min-w-0">
-                                                <span class="block text-sm font-semibold text-white">{{ $__ucMeta['eyebrow'] }}</span>
+                                                <span class="block text-sm font-semibold {{ $__active ? 'text-blue-400' : 'text-white' }}">{{ $__ucMeta['eyebrow'] }}</span>
                                                 <span class="block text-xs leading-snug text-gray-500">{{ $__ucMeta['nav_desc'] ?? $__ucMeta['tagline'] }}</span>
                                             </span>
                                         </a>
@@ -318,47 +364,50 @@
              style="max-height: calc(100dvh - var(--inme-anno-h, 0px) - 5rem); -webkit-overflow-scrolling: touch;">
 
             {{-- Product --}}
-            <div class="rounded-xl border border-white/10 overflow-hidden">
+            <div class="rounded-xl border overflow-hidden {{ $productActive ? 'border-blue-400/40' : 'border-white/10' }}">
                 <button type="button"
                         @click="mobileGroup === 'm-product' ? mobileGroup=null : mobileGroup='m-product'"
                         :aria-expanded="mobileGroup === 'm-product'"
-                        class="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold"
-                        :class="mobileGroup === 'm-product' ? 'text-blue-400' : 'text-white'">
+                        class="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold {{ $productActive ? 'bg-white/5' : '' }}"
+                        :class="mobileGroup === 'm-product' ? 'text-blue-400' : '{{ $productActive ? 'text-blue-400' : 'text-white' }}'">
                     <span>Product</span>
                     <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform" :class="mobileGroup === 'm-product' ? 'rotate-180' : ''"></i>
                 </button>
                 <div x-show="mobileGroup === 'm-product'" x-collapse x-cloak class="px-2 pb-2 space-y-0.5">
-                    @foreach(array_merge($navProductCore, $navProductAi, $navProductCareer) as [$__href, $__icon, $__title, $__desc])
-                        <a href="{{ $__href }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5">
+                    @foreach(array_merge($navProductCore, $navProductAi, $navProductCareer) as [$__href, $__icon, $__title, $__desc, $__routes])
+                        @php $__active = $routeIs($__routes); @endphp
+                        <a href="{{ $__href }}" @click="mobileOpen=false" @if($__active) aria-current="page" @endif class="flex items-center gap-3 px-3 py-2 rounded-lg {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
                             <i class="fas {{ $__icon }} w-4 text-center text-blue-300 text-sm"></i>
-                            <span class="text-sm text-gray-300">{{ $__title }}</span>
+                            <span class="text-sm {{ $__active ? 'text-blue-400 font-semibold' : 'text-gray-300' }}">{{ $__title }}</span>
                         </a>
                     @endforeach
                 </div>
             </div>
 
             {{-- Solutions --}}
-            <div class="rounded-xl border border-white/10 overflow-hidden">
+            <div class="rounded-xl border overflow-hidden {{ $solutionsActive ? 'border-blue-400/40' : 'border-white/10' }}">
                 <button type="button"
                         @click="mobileGroup === 'm-solutions' ? mobileGroup=null : mobileGroup='m-solutions'"
                         :aria-expanded="mobileGroup === 'm-solutions'"
-                        class="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold"
-                        :class="mobileGroup === 'm-solutions' ? 'text-blue-400' : 'text-white'">
+                        class="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold {{ $solutionsActive ? 'bg-white/5' : '' }}"
+                        :class="mobileGroup === 'm-solutions' ? 'text-blue-400' : '{{ $solutionsActive ? 'text-blue-400' : 'text-white' }}'">
                     <span>Solutions</span>
                     <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform" :class="mobileGroup === 'm-solutions' ? 'rotate-180' : ''"></i>
                 </button>
                 <div x-show="mobileGroup === 'm-solutions'" x-collapse x-cloak class="px-2 pb-2 space-y-0.5">
-                    @foreach($navSolutions as [$__href, $__icon, $__title, $__desc])
-                        <a href="{{ $__href }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5">
+                    @foreach($navSolutions as [$__href, $__icon, $__title, $__desc, $__routes])
+                        @php $__active = $routeIs($__routes); @endphp
+                        <a href="{{ $__href }}" @click="mobileOpen=false" @if($__active) aria-current="page" @endif class="flex items-center gap-3 px-3 py-2 rounded-lg {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
                             <i class="fas {{ $__icon }} w-4 text-center text-pink-300 text-sm"></i>
-                            <span class="text-sm text-gray-300">{{ $__title }}</span>
+                            <span class="text-sm {{ $__active ? 'text-blue-400 font-semibold' : 'text-gray-300' }}">{{ $__title }}</span>
                         </a>
                     @endforeach
                     <div class="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Sayzio for…</div>
                     @foreach($navUseCases as $__ucSlug => $__ucMeta)
-                        <a href="{{ route('site.use-case', $__ucSlug) }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5">
+                        @php $__active = ($activeUseCase === $__ucSlug); @endphp
+                        <a href="{{ route('site.use-case', $__ucSlug) }}" @click="mobileOpen=false" @if($__active) aria-current="page" @endif class="flex items-center gap-3 px-3 py-2 rounded-lg {{ $__active ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}">
                             <i class="fas {{ $__ucMeta['icon'] }} w-4 text-center text-pink-300 text-sm"></i>
-                            <span class="text-sm text-gray-300">{{ $__ucMeta['eyebrow'] }}</span>
+                            <span class="text-sm {{ $__active ? 'text-blue-400 font-semibold' : 'text-gray-300' }}">{{ $__ucMeta['eyebrow'] }}</span>
                         </a>
                     @endforeach
                 </div>
@@ -367,27 +416,27 @@
             {{-- Highlighted "Events" badge (mobile) — same distinct pill
                  treatment as desktop, placed above the accordions so it
                  stays prominent. --}}
-            <a href="{{ route('events.index') }}" @click="mobileOpen=false"
-               class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold"
+            <a href="{{ route('events.index') }}" @click="mobileOpen=false" @if($topActive['events']) aria-current="page" @endif
+               class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold {{ $topActive['events'] ? 'mkt-events-pill-active' : '' }}"
                style="background:rgba(61,107,255,0.14); border:1px solid rgba(61,107,255,0.4); color:#8fa8ff;">
                 <i class="fas fa-calendar-day text-xs"></i> Events
             </a>
 
             {{-- Company --}}
-            <div class="rounded-xl border border-white/10 overflow-hidden">
+            <div class="rounded-xl border overflow-hidden {{ $companyActive ? 'border-blue-400/40' : 'border-white/10' }}">
                 <button type="button"
                         @click="mobileGroup === 'm-company' ? mobileGroup=null : mobileGroup='m-company'"
                         :aria-expanded="mobileGroup === 'm-company'"
-                        class="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold"
-                        :class="mobileGroup === 'm-company' ? 'text-blue-400' : 'text-white'">
+                        class="flex w-full items-center justify-between gap-3 px-3 py-3 text-left text-sm font-semibold {{ $companyActive ? 'bg-white/5' : '' }}"
+                        :class="mobileGroup === 'm-company' ? 'text-blue-400' : '{{ $companyActive ? 'text-blue-400' : 'text-white' }}'">
                     <span>Company</span>
                     <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform" :class="mobileGroup === 'm-company' ? 'rotate-180' : ''"></i>
                 </button>
                 <div x-show="mobileGroup === 'm-company'" x-collapse x-cloak class="px-2 pb-2 space-y-0.5">
-                    <a href="{{ $pricingHref }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-tag w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">Pricing</span></a>
-                    <a href="{{ route('site.about') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-circle-info w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">About</span></a>
-                    <a href="{{ route('site.contact') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-envelope w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">Contact</span></a>
-                    <a href="{{ route('site.faqs') }}" @click="mobileOpen=false" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"><i class="fas fa-circle-question w-4 text-center text-blue-300 text-sm"></i><span class="text-sm text-gray-300">FAQs</span></a>
+                    <a href="{{ $pricingHref }}" @click="mobileOpen=false" @if($topActive['pricing']) aria-current="page" @endif class="flex items-center gap-3 px-3 py-2 rounded-lg {{ $topActive['pricing'] ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}"><i class="fas fa-tag w-4 text-center text-blue-300 text-sm"></i><span class="text-sm {{ $topActive['pricing'] ? 'text-blue-400 font-semibold' : 'text-gray-300' }}">Pricing</span></a>
+                    <a href="{{ route('site.about') }}" @click="mobileOpen=false" @if($topActive['about']) aria-current="page" @endif class="flex items-center gap-3 px-3 py-2 rounded-lg {{ $topActive['about'] ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}"><i class="fas fa-circle-info w-4 text-center text-blue-300 text-sm"></i><span class="text-sm {{ $topActive['about'] ? 'text-blue-400 font-semibold' : 'text-gray-300' }}">About</span></a>
+                    <a href="{{ route('site.contact') }}" @click="mobileOpen=false" @if($topActive['contact']) aria-current="page" @endif class="flex items-center gap-3 px-3 py-2 rounded-lg {{ $topActive['contact'] ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}"><i class="fas fa-envelope w-4 text-center text-blue-300 text-sm"></i><span class="text-sm {{ $topActive['contact'] ? 'text-blue-400 font-semibold' : 'text-gray-300' }}">Contact</span></a>
+                    <a href="{{ route('site.faqs') }}" @click="mobileOpen=false" @if($topActive['faqs']) aria-current="page" @endif class="flex items-center gap-3 px-3 py-2 rounded-lg {{ $topActive['faqs'] ? 'bg-white/5 ring-1 ring-blue-400/30' : 'hover:bg-white/5' }}"><i class="fas fa-circle-question w-4 text-center text-blue-300 text-sm"></i><span class="text-sm {{ $topActive['faqs'] ? 'text-blue-400 font-semibold' : 'text-gray-300' }}">FAQs</span></a>
                 </div>
             </div>
 
