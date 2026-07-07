@@ -63,6 +63,11 @@ return [
         'cadence'     => ['dailyAt', '05:10'],
     ],
     [
+        'key'         => 'scheduled-jobs:check-failures',
+        'description' => 'Watchdog: alert ops admins when a scheduled job racks up 3+ consecutive failed runs, with an all-clear once it succeeds again.',
+        'cadence'     => ['hourlyAt', 35],
+    ],
+    [
         'key'         => 'templates:check-gallery',
         'description' => 'Alert ops admins when the onboarding template gallery goes empty (zero active page templates), and all-clear once restored.',
         'cadence'     => ['hourlyAt', 55],
