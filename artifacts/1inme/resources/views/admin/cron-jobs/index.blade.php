@@ -26,45 +26,52 @@
         </div>
     @endif
 
-    {{-- Scheduler health banner --}}
-    @if($status['state'] === 'stale')
-        <div class="rounded-2xl p-4 border border-rose-500/30 bg-rose-500/10 flex items-start gap-3">
-            <i class="fas fa-triangle-exclamation text-rose-300 mt-0.5"></i>
-            <div class="text-sm">
-                <p class="text-rose-100 font-semibold">The scheduler appears to have stopped.</p>
-                <p class="text-rose-200/70 mt-0.5">
-                    No scheduled job has run since
-                    <span class="font-medium text-rose-100">{{ $status['last_tick']->format('M j, H:i') }}</span>
-                    ({{ $status['last_tick']->diffForHumans() }}). Jobs are no longer firing &mdash; check that the master
-                    cron entry below is still present on the server.
-                </p>
-            </div>
+    {{-- Scheduler health banner: seeded server-side, then refreshed in place by
+         the same polling loop that updates the job badges — so the banner can't
+         contradict the live rows while a run is in flight. All three variants are
+         rendered (only the matching one visible) so the initial state shows
+         correctly even before Alpine boots. --}}
+    <div x-show="status.state === 'stale'" @if($status['state'] !== 'stale') style="display: none" @endif
+         class="rounded-2xl p-4 border border-rose-500/30 bg-rose-500/10 flex items-start gap-3">
+        <i class="fas fa-triangle-exclamation text-rose-300 mt-0.5"></i>
+        <div class="text-sm">
+            <p class="text-rose-100 font-semibold">The scheduler appears to have stopped.</p>
+            <p class="text-rose-200/70 mt-0.5">
+                No scheduled job has run since
+                <span class="font-medium text-rose-100" x-text="status.last_tick">{{ $status['state'] === 'stale' ? $status['last_tick']->format('M j, H:i') : '' }}</span>
+                (<span x-text="status.last_tick_human">{{ $status['state'] === 'stale' ? $status['last_tick']->diffForHumans() : '' }}</span>). Jobs are no longer firing &mdash; check that the master
+                cron entry below is still present on the server.
+            </p>
         </div>
-    @elseif($status['state'] === 'unknown')
-        <div class="rounded-2xl p-4 border border-amber-500/30 bg-amber-500/10 flex items-start gap-3">
-            <i class="fas fa-circle-exclamation text-amber-300 mt-0.5"></i>
-            <div class="text-sm">
-                <p class="text-amber-100 font-semibold">No scheduled job has run yet.</p>
-                <p class="text-amber-200/70 mt-0.5">
-                    If you just added the master cron line below it can take up to a minute to record the first run.
-                    If this persists, the server crontab is most likely not configured &mdash; add the line below.
-                </p>
-            </div>
+    </div>
+    <div x-show="status.state === 'unknown'" @if($status['state'] !== 'unknown') style="display: none" @endif
+         class="rounded-2xl p-4 border border-amber-500/30 bg-amber-500/10 flex items-start gap-3">
+        <i class="fas fa-circle-exclamation text-amber-300 mt-0.5"></i>
+        <div class="text-sm">
+            <p class="text-amber-100 font-semibold">No scheduled job has run yet.</p>
+            <p class="text-amber-200/70 mt-0.5">
+                If you just added the master cron line below it can take up to a minute to record the first run.
+                If this persists, the server crontab is most likely not configured &mdash; add the line below.
+            </p>
         </div>
-    @else
-        <div class="rounded-2xl p-4 border border-emerald-500/20 bg-emerald-500/[0.07] flex items-start gap-3">
-            <i class="fas fa-circle-check text-emerald-300 mt-0.5"></i>
-            <div class="text-sm">
-                <p class="text-emerald-100 font-semibold">Scheduler is active.</p>
-                <p class="text-emerald-200/70 mt-0.5">
-                    Last activity {{ $status['last_tick']->diffForHumans() }} ({{ $status['last_tick']->format('M j, H:i') }}).
-                    @if($status['overdue_count'] > 0)
-                        <span class="text-amber-200">{{ $status['overdue_count'] }} job{{ $status['overdue_count'] === 1 ? '' : 's' }} below {{ $status['overdue_count'] === 1 ? 'is' : 'are' }} overdue &mdash; see the highlighted rows.</span>
-                    @endif
-                </p>
-            </div>
+    </div>
+    <div x-show="status.state === 'healthy'" @if($status['state'] !== 'healthy') style="display: none" @endif
+         class="rounded-2xl p-4 border border-emerald-500/20 bg-emerald-500/[0.07] flex items-start gap-3">
+        <i class="fas fa-circle-check text-emerald-300 mt-0.5"></i>
+        <div class="text-sm">
+            <p class="text-emerald-100 font-semibold">Scheduler is active.</p>
+            <p class="text-emerald-200/70 mt-0.5">
+                Last activity <span x-text="status.last_tick_human">{{ $status['state'] === 'healthy' ? $status['last_tick']->diffForHumans() : '' }}</span>
+                (<span x-text="status.last_tick">{{ $status['state'] === 'healthy' ? $status['last_tick']->format('M j, H:i') : '' }}</span>).
+                <span class="text-amber-200" x-show="status.overdue_count > 0" @if(!($status['state'] === 'healthy' && $status['overdue_count'] > 0)) style="display: none" @endif>
+                    <span x-text="status.overdue_count">{{ $status['overdue_count'] }}</span>
+                    job<span x-text="status.overdue_count === 1 ? '' : 's'">{{ $status['overdue_count'] === 1 ? '' : 's' }}</span>
+                    below <span x-text="status.overdue_count === 1 ? 'is' : 'are'">{{ $status['overdue_count'] === 1 ? 'is' : 'are' }}</span>
+                    overdue &mdash; see the highlighted rows.
+                </span>
+            </p>
         </div>
-    @endif
+    </div>
 
     {{-- Master cron line --}}
     <div class="glass rounded-2xl p-6 space-y-3 border border-blue-500/20">
@@ -449,6 +456,10 @@
             // light polling loop while any run is in flight, so badges and
             // last-run details update in place without a manual page reload.
             live: @js($liveSeed),
+            // Scheduler health summary (banner), seeded server-side and
+            // refreshed by the same poll so the banner never contradicts the
+            // live rows.
+            status: @js($statusSeed),
             // Set right after "Run now": the background run's history row may
             // not exist yet on reload, so poll through a short grace window
             // until it shows up (mirrors the mobile screen's watch window).
@@ -491,6 +502,10 @@
                         const jobs = json.data && json.data.jobs;
                         if (jobs && typeof jobs === 'object') {
                             this.live = jobs;
+                            const status = json.data && json.data.status;
+                            if (status && typeof status === 'object' && typeof status.state === 'string') {
+                                this.status = status;
+                            }
                             // Keep an open history drawer fresh too, quietly.
                             if (this.historyKey !== null) {
                                 this.fetchRuns(this.historyKey, { quiet: true });

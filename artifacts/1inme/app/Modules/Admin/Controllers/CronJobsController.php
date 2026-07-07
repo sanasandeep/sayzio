@@ -32,7 +32,8 @@ class CronJobsController extends Controller
 {
     public function index(CronJobsInspector $inspector)
     {
-        $jobs = $inspector->jobs();
+        $jobs   = $inspector->jobs();
+        $status = $inspector->schedulerStatus($jobs);
 
         // Group in registry group order; anything unresolvable (scheduled
         // outside the registry) lands in a trailing "Other" bucket.
@@ -53,7 +54,8 @@ class CronJobsController extends Controller
             'masterCronLine' => $inspector->masterCronLine(),
             'jobs'           => $jobs,
             'grouped'        => $grouped,
-            'status'         => $inspector->schedulerStatus($jobs),
+            'status'         => $status,
+            'statusSeed'     => $this->statusPayload($status),
             'appPath'        => base_path(),
             // Open failure episodes (jobs in an active failure streak +
             // stale-scheduler episode) for the at-a-glance red banner.
@@ -127,7 +129,30 @@ class CronJobsController extends Controller
      */
     public function status(CronJobsInspector $inspector)
     {
-        return response()->json(['data' => ['jobs' => $this->liveMap($inspector->jobs())]]);
+        $jobs = $inspector->jobs();
+
+        return response()->json(['data' => [
+            'jobs'   => $this->liveMap($jobs),
+            'status' => $this->statusPayload($inspector->schedulerStatus($jobs)),
+        ]]);
+    }
+
+    /**
+     * JSON-safe scheduler health summary (state, last tick, overdue count),
+     * shared by the index page's banner seed and the polling status endpoint
+     * so the banner refreshes in place along with the job badges.
+     *
+     * @param  array{state:string, last_tick:?\Carbon\Carbon, overdue_count:int}  $status
+     * @return array{state:string, last_tick:?string, last_tick_human:?string, overdue_count:int}
+     */
+    protected function statusPayload(array $status): array
+    {
+        return [
+            'state'           => $status['state'],
+            'last_tick'       => $status['last_tick']?->format('M j, H:i'),
+            'last_tick_human' => $status['last_tick']?->diffForHumans(),
+            'overdue_count'   => (int) $status['overdue_count'],
+        ];
     }
 
     /**

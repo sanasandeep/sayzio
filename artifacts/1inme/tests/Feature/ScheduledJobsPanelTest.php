@@ -335,6 +335,34 @@ class ScheduledJobsPanelTest extends TestCase
         $this->assertNotNull($job['last_run_human']);
     }
 
+    public function test_web_status_endpoint_includes_scheduler_health_summary(): void
+    {
+        // No heartbeat recorded yet ⇒ the banner state is "unknown".
+        $status = $this->actingAs($this->makeAdmin(), 'admin')
+            ->getJson('/admin/cron-jobs/status')
+            ->assertOk()
+            ->json('data.status');
+
+        $this->assertIsArray($status);
+        $this->assertSame('unknown', $status['state']);
+        $this->assertNull($status['last_tick']);
+        $this->assertNull($status['last_tick_human']);
+        $this->assertIsInt($status['overdue_count']);
+
+        // A fresh heartbeat flips the summary to "healthy" with display fields
+        // populated — the polling loop swaps the banner without a reload.
+        \Illuminate\Support\Facades\Cache::put('cron_scheduler_last_tick', now()->getTimestamp());
+
+        $status = $this->actingAs($this->makeAdmin(), 'admin')
+            ->getJson('/admin/cron-jobs/status')
+            ->assertOk()
+            ->json('data.status');
+
+        $this->assertSame('healthy', $status['state']);
+        $this->assertIsString($status['last_tick']);
+        $this->assertIsString($status['last_tick_human']);
+    }
+
     public function test_web_status_endpoint_ignores_stale_orphaned_running_rows(): void
     {
         // A running row abandoned by a killed background runner must not keep
