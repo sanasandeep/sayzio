@@ -150,17 +150,20 @@ class CreatorsController extends Controller
         // filters above the grid.
         $popularTags = $this->popularTags(24);
 
-        // Warm cached path for the default anonymous view (covers ~all
-        // public traffic). Everything user- or filter-specific falls
-        // through to live queries below.
-        $isDefaultAnonymous = $q === '' && $tag === '' && $tier === ''
+        // Warm cached path for the default view (covers ~all public
+        // traffic). Signed-in visitors reuse the same cached payload —
+        // the directory contents are identical; only the tiny
+        // viewer-specific overlays (which creators I follow, which cards
+        // I can message) are computed live below, each a single cheap
+        // indexed query. Everything filter-specific falls through to
+        // live queries below.
+        $isDefaultView = $q === '' && $tag === '' && $tier === ''
             && ($sort === 'trending' || $sort === null || $sort === '')
             && !$showAdult && !$onlyAdult
-            && (int) $request->query('page', 1) <= 1
-            && !$viewer;
+            && (int) $request->query('page', 1) <= 1;
 
         $payload = null;
-        if ($isDefaultAnonymous) {
+        if ($isDefaultView) {
             try {
                 $payload = \Illuminate\Support\Facades\Cache::remember(
                     self::DEFAULT_CACHE_KEY,
@@ -180,10 +183,29 @@ class CreatorsController extends Controller
                 1,
                 ['path' => route('creators.index'), 'pageName' => 'page']
             );
-            $myFollowingIds = [];
             $buzzSnippets = $payload['buzz'];
-            $messageableBiolinks = $payload['messageable'];
             $primaryBiolinks = $payload['primary'];
+
+            // Viewer-specific overlays on the shared cached payload —
+            // each a single cheap indexed query, never the multi-second
+            // directory rebuild.
+            $myFollowingIds = [];
+            $messageableBiolinks = $payload['messageable'];
+            if ($viewer || auth()->check()) {
+                $creatorIds = array_map(
+                    fn (array $attrs) => (int) $attrs['id'],
+                    $payload['creators']
+                );
+                if (auth()->check()) {
+                    $myFollowingIds = Follow::where('follower_id', auth()->id())
+                        ->whereIn('creator_id', $creatorIds)
+                        ->pluck('creator_id')->all();
+                }
+                $messageableBiolinks = $this->filterMessageableForViewer(
+                    $messageableBiolinks,
+                    $viewer
+                );
+            }
         } else {
             $creators = $query->paginate(24)->withQueryString();
 
@@ -318,10 +340,33 @@ class CreatorsController extends Controller
     /**
      * Cache key for the trending-carousel variant. v2: the v1 key cached
      * serialized User models (__PHP_Incomplete_Class on the file cache).
+     * v3: variants are consolidated to the three query shapes that
+     * actually exist — when `only_adult` is set the query ignores
+     * `show_adult`, so (1,1) and (0,1) collapse to one 'only' key. All
+     * three variants are pre-built by the scheduled marketing-cache
+     * warmer so signed-in / age-gated visitors never cold-rebuild over
+     * the cross-region RDS.
      */
     public static function trendingCarouselCacheKey(bool $showAdult, bool $onlyAdult): string
     {
-        return 'creators:trending:v2:' . ($showAdult ? '1' : '0') . ':' . ($onlyAdult ? '1' : '0');
+        $variant = $onlyAdult ? 'only' : ($showAdult ? 'adult' : 'default');
+
+        return 'creators:trending:v3:' . $variant;
+    }
+
+    /**
+     * The (showAdult, onlyAdult) argument pairs covering every distinct
+     * trending-carousel variant — used by the scheduled warmer.
+     *
+     * @return array<string,array{0:bool,1:bool}>
+     */
+    public static function trendingCarouselVariants(): array
+    {
+        return [
+            'default' => [false, false],
+            'adult'   => [true, false],
+            'only'    => [false, true],
+        ];
     }
 
     /**
@@ -464,6 +509,31 @@ class CreatorsController extends Controller
             if (in_array($creatorId, $blockedOwnerIds, true)) continue;
             // Cannot message yourself.
             if ($viewer && (int) $viewer->id === (int) $creatorId) continue;
+            $out[$creatorId] = $linkId;
+        }
+        return $out;
+    }
+
+    /**
+     * Apply the viewer-specific exclusions to the cached anonymous
+     * messageable map (creator_id => link_id). A signed-in viewer only
+     * ever REMOVES entries from the anonymous set: creators they've
+     * DM-blocked and themselves. One cheap indexed query.
+     */
+    private function filterMessageableForViewer(array $messageable, $viewer): array
+    {
+        if (!$viewer || empty($messageable)) return $messageable;
+
+        $blockedOwnerIds = ViewerDmUserBlock::where('viewer_user_id', $viewer->id)
+            ->whereIn('owner_user_id', array_keys($messageable))
+            ->pluck('owner_user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $out = [];
+        foreach ($messageable as $creatorId => $linkId) {
+            if ((int) $viewer->id === (int) $creatorId) continue;
+            if (in_array((int) $creatorId, $blockedOwnerIds, true)) continue;
             $out[$creatorId] = $linkId;
         }
         return $out;

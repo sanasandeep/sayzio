@@ -169,8 +169,11 @@ class MarketingPageCache
             $summary['errors'][] = self::reportWarmFailure('site_pages', $e);
         }
 
-        // /creators — default anonymous directory page, the default
-        // (non-adult) trending carousel variant, and the tag cloud.
+        // /creators — default directory page (shared by anonymous AND
+        // signed-in visitors; viewer-specific bits are overlaid live),
+        // every distinct trending-carousel variant (default / show-adult
+        // / only-adult — signed-in age-gated visitors hit the non-default
+        // ones), and the tag cloud.
         $creators = new CreatorsController();
         try {
             Cache::put(
@@ -182,15 +185,17 @@ class MarketingPageCache
         } catch (\Throwable $e) {
             $summary['errors'][] = self::reportWarmFailure('creators_default_index', $e);
         }
-        try {
-            Cache::put(
-                CreatorsController::trendingCarouselCacheKey(false, false),
-                $creators->buildTrendingCarouselRows(false, false),
-                $ttl
-            );
-            $summary['creators'][] = 'trending_carousel';
-        } catch (\Throwable $e) {
-            $summary['errors'][] = self::reportWarmFailure('creators_trending', $e);
+        foreach (CreatorsController::trendingCarouselVariants() as $variant => [$showAdult, $onlyAdult]) {
+            try {
+                Cache::put(
+                    CreatorsController::trendingCarouselCacheKey($showAdult, $onlyAdult),
+                    $creators->buildTrendingCarouselRows($showAdult, $onlyAdult),
+                    $ttl
+                );
+                $summary['creators'][] = 'trending_carousel_' . $variant;
+            } catch (\Throwable $e) {
+                $summary['errors'][] = self::reportWarmFailure('creators_trending_' . $variant, $e);
+            }
         }
         try {
             Cache::put(

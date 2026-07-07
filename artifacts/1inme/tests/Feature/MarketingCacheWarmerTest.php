@@ -39,7 +39,9 @@ class MarketingCacheWarmerTest extends TestCase
     {
         Cache::forget(PricingPagesController::CATALOG_CACHE_KEY);
         Cache::forget(CreatorsController::DEFAULT_CACHE_KEY);
-        Cache::forget(CreatorsController::trendingCarouselCacheKey(false, false));
+        foreach (CreatorsController::trendingCarouselVariants() as [$showAdult, $onlyAdult]) {
+            Cache::forget(CreatorsController::trendingCarouselCacheKey($showAdult, $onlyAdult));
+        }
         Cache::forget(CreatorsController::POPULAR_TAGS_CACHE_KEY);
         Cache::forget(SitePageController::DEMOS_CACHE_KEY);
         Cache::forget(BlogController::INDEX_CACHE_KEY);
@@ -76,9 +78,17 @@ class MarketingCacheWarmerTest extends TestCase
         $this->assertArrayHasKey('creators', $creators);
         $this->assertArrayHasKey('total', $creators);
 
-        $this->assertIsArray(
-            Cache::get(CreatorsController::trendingCarouselCacheKey(false, false)),
-            'Default trending-carousel rows must be warmed (empty array is fine).'
+        foreach (CreatorsController::trendingCarouselVariants() as $variant => [$showAdult, $onlyAdult]) {
+            $this->assertIsArray(
+                Cache::get(CreatorsController::trendingCarouselCacheKey($showAdult, $onlyAdult)),
+                "Trending-carousel '{$variant}' variant rows must be warmed (empty array is fine)."
+            );
+        }
+        // only_adult ignores show_adult, so (1,1) and (0,1) share one key.
+        $this->assertSame(
+            CreatorsController::trendingCarouselCacheKey(false, true),
+            CreatorsController::trendingCarouselCacheKey(true, true),
+            'only_adult variants must collapse to a single cache key.'
         );
         $this->assertIsArray(
             Cache::get(CreatorsController::POPULAR_TAGS_CACHE_KEY),
@@ -160,6 +170,46 @@ class MarketingCacheWarmerTest extends TestCase
         $resp = $this->get('/blogs');
         $resp->assertOk();
         $resp->assertSee('Warmed Marketing Story');
+    }
+
+    public function test_signed_in_default_creators_render_is_served_from_cache(): void
+    {
+        $plan = \App\Modules\Admin\Models\Plan::firstOrCreate(
+            ['slug' => 'warm-test-' . uniqid()],
+            ['name' => 'Warm Test', 'settings' => []]
+        );
+
+        $creator = \App\Modules\User\Models\User::factory()->create([
+            'name' => 'Warmed Directory Creator',
+            'discoverable' => true,
+            'plan_id' => $plan->id,
+        ]);
+        \App\Modules\User\Models\Link::create([
+            'user_id' => $creator->id,
+            'type' => 'biolink',
+            'alias' => 'warmed-' . uniqid(),
+            'url' => '',
+            'is_active' => true,
+        ]);
+
+        $viewer = \App\Modules\User\Models\User::factory()->create([
+            'plan_id' => $plan->id,
+        ]);
+
+        $this->forgetMarketingCaches();
+        $this->artisan('home:warm-caches')->assertSuccessful();
+
+        // Removing the creator's biolink would drop them from a LIVE
+        // rebuild; the signed-in render still showing them proves the
+        // request was answered from the shared warmed cache.
+        \App\Modules\User\Models\Link::withoutEvents(function () use ($creator) {
+            \App\Modules\User\Models\Link::query()->where('user_id', $creator->id)->delete();
+        });
+
+        app()->forgetInstance('current_workspace');
+        $resp = $this->actingAs($viewer, 'web')->get('/creators');
+        $resp->assertOk();
+        $resp->assertSee('Warmed Directory Creator');
     }
 
     public function test_rewarming_overwrites_stale_marketing_content(): void
