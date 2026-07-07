@@ -17,7 +17,6 @@ A pnpm workspace monorepo combining a PHP 8.4 Laravel app (Sayzio) and Node.js 2
 Artifacts (see registered artifacts list):
 - `artifacts/1inme` — Laravel app (the product)
 - `artifacts/1inme-mobile` — Expo/React Native mobile app
-- `artifacts/1inme-deck` — slide deck
 - `artifacts/api-server` — Express API service
 - `lib/*` — shared libraries (`db`, `api-spec`, `api-zod`, `api-client-react`)
 

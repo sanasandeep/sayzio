@@ -17,14 +17,13 @@
  * What is scanned (primary UI surfaces)
  * -------------------------------------
  *   1inme        resources/ (blade + css), public/css, public/js
- *   1inme-deck   src/   (slide CHROME only — see exclusions)
  *   1inme-mobile app/, components/, constants/, lib/
  *
  * What is NOT scanned, and WHY (intentional categorical palettes)
  * --------------------------------------------------------------
  * The retired purple is legitimately allowed in places that render a
- * MULTI-COLOR categorical palette (block-style pickers, template galleries,
- * decorative pitch-deck slides) or that store palette/content DATA rather than
+ * MULTI-COLOR categorical palette (block-style pickers, template galleries)
+ * or that store palette/content DATA rather than
  * the brand accent. Re-coloring those would break the intended rainbow of
  * choices, not fix a brand regression. Each exclusion below is deliberate:
  *
@@ -68,10 +67,7 @@ export const BANNED_RGB_PATTERNS: string[] = [
 /**
  * Per-color descriptors of the retired purple ramp, used by the post-build
  * guard (`check-brand-color-build.ts`) to attribute a compiled-CSS match back
- * to one canonical color. Needed because the deck's decorative per-slide
- * palettes (`artifacts/1inme-deck/src/pages/**`) intentionally use the
- * `7c3aed` wash — that contribution must be allowed in the compiled stylesheet
- * while the SAME color leaking in from slide chrome must still fail.
+ * to one canonical color.
  */
 export const RETIRED_COLORS: { base: string; rgb: [number, number, number] }[] = [
   { base: "7c3aed", rgb: [124, 58, 237] },
@@ -217,7 +213,6 @@ const SCAN_ROOTS: string[] = [
   "artifacts/1inme/resources",
   "artifacts/1inme/public/css",
   "artifacts/1inme/public/js",
-  "artifacts/1inme-deck/src",
   "artifacts/1inme-mobile/app",
   "artifacts/1inme-mobile/components",
   "artifacts/1inme-mobile/constants",
@@ -249,12 +244,6 @@ const ALLOWLIST: AllowEntry[] = [
     kind: "file",
     reason:
       "Defensive light-mode overrides that REFERENCE violet/purple class names only to remap stray instances back to brand blue.",
-  },
-  {
-    path: "artifacts/1inme-deck/src/pages",
-    kind: "dir",
-    reason:
-      "Pitch-deck slides use intentional per-slide decorative palettes (multi-color), not the product brand accent. Slide CHROME outside pages/ is still scanned.",
   },
   {
     path: "artifacts/1inme-mobile/lib/blockVariants.ts",
@@ -335,9 +324,6 @@ function listFiles(): string[] {
     "!**/dist/**",
     "!**/.expo/**",
     "!**/vendor/**",
-    // Cut the bulk up-front: the deck's decorative slides are allow-listed
-    // (isAllowed covers them too), and would otherwise flood the file list.
-    "!artifacts/1inme-deck/src/pages/**",
   ]) {
     args.push("-g", g);
   }

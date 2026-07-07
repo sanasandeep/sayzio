@@ -27,7 +27,6 @@ Replit shared reverse proxy  ── routes by path prefix (most-specific wins)
         ├── "/"          → artifacts/1inme        (Laravel, :5000)
         ├── "/api"       → artifacts/api-server    (Express, :8080)
         ├── "/mobile/"   → artifacts/1inme-mobile  (Expo, :23680)
-        ├── "/1inme-deck/" → artifacts/1inme-deck  (Vite slides, :22245)
         └── "/__mockup"  → artifacts/mockup-sandbox (Vite canvas, :8081)
 
 artifacts/1inme  ──Eloquent──▶ Postgres (public schema)

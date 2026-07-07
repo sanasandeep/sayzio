@@ -60,7 +60,6 @@ It complements two sibling docs and intentionally does **not** duplicate them:
 13. [REST API surface](#13-rest-api-surface)
 14. [Cross-surface artifacts](#14-cross-surface-artifacts)
     - [14.1 Mobile app](#141-mobile-app-artifacts1inme-mobile)
-    - [14.2 Slide deck](#142-slide-deck-artifacts1inme-deck)
 
 ---
 
@@ -1176,18 +1175,6 @@ over `/api/v1`.
   health.
 - **Engagement** — native poll voting, RSVPs, block taps reported via API for
   analytics parity; mobile dashboard fetches visit/click trends.
-
-### 14.2 Slide deck (`artifacts/1inme-deck`)
-
-A modular React presentation organized by a manifest
-(`src/data/slides-manifest.json`).
-
-- **Sales** — Problem (fragmentation), Cost (annual-savings story), ROI, Next
-  Steps / CTAs.
-- **Product** — end-to-end journey, "What you can create" (link-type tour),
-  "Identity as the spine".
-- **Investor** — market size, business model, traction, moat, team, the ask.
-- **Persona decks** — Creators, Coaches, Sales Pros (day-in-the-life + outcomes).
 
 ---
 

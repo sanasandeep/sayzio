@@ -32,7 +32,6 @@ The monorepo contains several deployable **artifacts** plus shared **libs**:
 | **API Server** | `artifacts/api-server/` | api | Node.js 24 / Express 5 / TypeScript | `/api` |
 | **Sayzio Mobile** | `artifacts/1inme-mobile/` | mobile | Expo / React Native (expo-router) | `/mobile/` |
 | **Sayzio Extension** | `artifacts/1inme-extension/` | (build-only) | Vite browser extension (Chrome/Firefox/Edge) | n/a |
-| **Sayzio Product Deck** | `artifacts/1inme-deck/` | slides | Vite + React | `/1inme-deck/` |
 | **Canvas** | `artifacts/mockup-sandbox/` | design | Vite component preview | `/__mockup` |
 
 | Lib | Path | Purpose |
@@ -54,7 +53,7 @@ extension are clients.
                             │        (path-based routing, :80 / HTTPS)     │
                             └───────────────┬─────────────────────────────┘
             ┌───────────────────────────────┼────────────────────────────────┐
-            │ "/"                            │ "/api"                          │ "/mobile/", "/1inme-deck/", "/__mockup"
+            │ "/"                            │ "/api"                          │ "/mobile/", "/__mockup"
             ▼                                ▼                                 ▼
    ┌──────────────────┐          ┌────────────────────┐          ┌────────────────────────┐
    │  Sayzio (Laravel) │          │  API Server (Node) │          │  Mobile / Deck / Canvas │

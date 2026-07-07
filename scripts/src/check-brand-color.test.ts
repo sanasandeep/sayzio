@@ -146,10 +146,6 @@ describe("scanSource — allow-listed categorical palettes are ignored", () => {
     expect(flagged("color: #7c3aed;", "artifacts/1inme-mobile/lib/blockVariants.ts")).toBe(false);
   });
 
-  it("ignores retired purple anywhere under an allow-listed directory", () => {
-    expect(flagged("color: #7c3aed;", "artifacts/1inme-deck/src/pages/intro/Hero.tsx")).toBe(false);
-  });
-
   it("still flags retired purple in a NON-allow-listed primary UI file", () => {
     expect(flagged("color: #7c3aed;", UI_FILE)).toBe(true);
   });
@@ -158,16 +154,6 @@ describe("scanSource — allow-listed categorical palettes are ignored", () => {
 describe("isAllowed — allow-list membership", () => {
   it("matches an allow-listed file exactly", () => {
     expect(isAllowed("artifacts/1inme/resources/views/welcome.blade.php")).toBe(true);
-  });
-
-  it("matches any path under an allow-listed directory", () => {
-    expect(isAllowed("artifacts/1inme-deck/src/pages/deep/nested/Slide.tsx")).toBe(true);
-    expect(isAllowed("artifacts/1inme-deck/src/pages")).toBe(true);
-  });
-
-  it("does NOT match a directory allow-list entry as a filename prefix", () => {
-    // The dir entry is "…/src/pages"; a sibling like "…/src/pages-extra" must not match.
-    expect(isAllowed("artifacts/1inme-deck/src/pages-extra/Slide.tsx")).toBe(false);
   });
 
   it("does not match an ordinary primary UI file", () => {

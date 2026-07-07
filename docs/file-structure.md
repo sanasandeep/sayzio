@@ -170,11 +170,6 @@ artifacts/1inme-extension/
 └── package.json          # build:chrome / build:firefox / build:edge / test
 ```
 
-### `artifacts/1inme-deck/` — product slide deck
-
-Vite + React slides artifact, served at `/1inme-deck/` on port `22245`. Uses the
-`slides` integrated skill. Production builds to `dist/public` and is served as static.
-
 ### `artifacts/mockup-sandbox/` — component preview canvas
 
 Design/preview artifact ("Canvas"), served at `/__mockup` on port `8081`. Used for
