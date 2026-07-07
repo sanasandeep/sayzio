@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MapPickerModal, type PickedPoint } from "@/components/MapPickerModal";
 import { MapMarkersPreview, MapPreview } from "@/components/MapPreview";
+import { ChannelActions } from "@/components/ChannelActions";
 import { useColors } from "@/hooks/useColors";
 import {
   type ManualChannel,
@@ -522,6 +523,11 @@ export default function DialerProfileScreen() {
               <Text style={[styles.sub, { color: colors.mutedForeground }]}>
                 {number}
               </Text>
+            )}
+            {!!number && (
+              <View style={{ marginTop: 8 }}>
+                <ChannelActions number={number} size="sm" align="flex-start" />
+              </View>
             )}
             {!!profile?.contact?.organization && (
               <Text

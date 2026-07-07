@@ -10,6 +10,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { ChannelActions } from "@/components/ChannelActions";
 import { EmptyState } from "@/components/EmptyState";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
@@ -75,6 +76,15 @@ export default function CallerIdScreen() {
             <Text style={[styles.hint, { color: colors.mutedForeground }]}>
               Looking up {normalized}
             </Text>
+          ) : null}
+          {valid ? (
+            <View style={{ marginTop: 4 }}>
+              <ChannelActions
+                number={normalized}
+                size="sm"
+                align="flex-start"
+              />
+            </View>
           ) : null}
         </View>
 

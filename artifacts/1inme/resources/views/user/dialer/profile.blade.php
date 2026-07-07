@@ -40,6 +40,11 @@
                     <span id="badge-blocked" class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase @if(!$payload['is_blocked']) hidden @endif" style="background:rgba(107,114,128,.2);color:#9ca3af;">Blocked</span>
                 </h1>
                 <div class="text-sm font-mono" style="color:var(--text-muted);">{{ $number }}</div>
+                @if($number)
+                    <div class="mt-2 max-w-max">
+                        @include('user.dialer._channel_actions', ['number' => $number, 'size' => 'sm'])
+                    </div>
+                @endif
                 @if(!$contact && $matchedUser)
                     <p class="text-xs mt-1" style="color:#f472b6;"><i class="fas fa-id-badge mr-1"></i> Identified via Sayzio Link in Bio</p>
                 @elseif($contact && $contact->organization)
@@ -766,6 +771,29 @@ let selectedOutcome = null;
 function toast(msg) {
     if (window.showToast) { window.showToast(msg); return; }
     console.log(msg);
+}
+
+// Channel deep-link helpers — mirrors user/dialer/index.blade.php so the
+// _channel_actions partial's chanOpen() buttons work on this page too.
+function digitsOf(v) { return (v || '').replace(/[^0-9]/g, ''); }
+function chanUrl(mode, v) {
+    v = (v || '').trim();
+    const d = digitsOf(v);
+    switch (mode) {
+        case 'tel':    return v ? 'tel:' + v : '';
+        case 'sms':    return v ? 'sms:' + v : '';
+        case 'wa':     return d ? 'https://wa.me/' + d : '';
+        case 'tg':     return d ? 'https://t.me/+' + d : '';
+        case 'signal': return d ? 'https://signal.me/#p/+' + d : '';
+        case 'viber':  return d ? 'viber://chat?number=%2B' + d : '';
+        default:       return '';
+    }
+}
+function chanOpen(mode, v) {
+    const url = chanUrl(mode, v);
+    if (!url) return;
+    if (mode === 'tel' || mode === 'sms' || mode === 'viber') window.location.href = url;
+    else window.open(url, '_blank');
 }
 
 async function post(url, body, method = 'POST') {

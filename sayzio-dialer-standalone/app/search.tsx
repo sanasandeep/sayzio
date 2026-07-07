@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ChannelActions } from "@/components/ChannelActions";
 import { useColors } from "@/hooks/useColors";
 import {
   type DialerSearchItem,
@@ -178,6 +179,15 @@ export default function SearchScreen() {
                         {item.subtitle}
                       </Text>
                     )}
+                    {!!item.action?.number && (
+                      <View style={{ marginTop: 6 }}>
+                        <ChannelActions
+                          number={item.action.number}
+                          size="sm"
+                          align="flex-start"
+                        />
+                      </View>
+                    )}
                   </View>
                   <Text style={[styles.typeLabel, { color: colors.mutedForeground }]}>
                     {item.type_label}
@@ -233,6 +243,15 @@ export default function SearchScreen() {
                       >
                         {item.subtitle}
                       </Text>
+                    ) : null}
+                    {item.action?.number ? (
+                      <View style={{ marginTop: 6 }}>
+                        <ChannelActions
+                          number={item.action.number}
+                          size="sm"
+                          align="flex-start"
+                        />
+                      </View>
                     ) : null}
                   </View>
                   <Text style={[styles.typeLabel, { color: colors.mutedForeground }]}>

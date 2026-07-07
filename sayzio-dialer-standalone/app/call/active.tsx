@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ChannelActions } from "@/components/ChannelActions";
 import { useColors } from "@/hooks/useColors";
 
 function formatDuration(sec: number): string {
@@ -76,6 +77,11 @@ export default function ActiveCallScreen() {
         <Text style={[styles.timer, { color: colors.mutedForeground }]}>
           {formatDuration(seconds)}
         </Text>
+        {number ? (
+          <View style={{ marginTop: 12 }}>
+            <ChannelActions number={number} size="md" />
+          </View>
+        ) : null}
       </View>
 
       <View

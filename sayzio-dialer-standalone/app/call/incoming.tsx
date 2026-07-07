@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ChannelActions } from "@/components/ChannelActions";
 import { useColors } from "@/hooks/useColors";
 
 export default function IncomingCallScreen() {
@@ -65,6 +66,11 @@ export default function IncomingCallScreen() {
           <Text style={[styles.number, { color: colors.mutedForeground }]}>
             {number}
           </Text>
+        ) : null}
+        {number ? (
+          <View style={{ marginTop: 12 }}>
+            <ChannelActions number={number} size="md" />
+          </View>
         ) : null}
       </View>
 

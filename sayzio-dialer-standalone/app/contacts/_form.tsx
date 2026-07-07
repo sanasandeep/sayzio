@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { ChannelActions } from "@/components/ChannelActions";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -226,16 +227,20 @@ export default function ContactForm({
           Phones
         </Text>
         {phones.map((p, i) => (
-          <Row
-            key={`p${i}`}
-            value={p.value}
-            onChange={(v) =>
-              setPhones(phones.map((x, j) => (j === i ? { ...x, value: v } : x)))
-            }
-            onRemove={() => setPhones(phones.filter((_, j) => j !== i))}
-            keyboardType="phone-pad"
-            placeholder="+1 555 123 4567"
-          />
+          <View key={`p${i}`} style={{ gap: 6 }}>
+            <Row
+              value={p.value}
+              onChange={(v) =>
+                setPhones(phones.map((x, j) => (j === i ? { ...x, value: v } : x)))
+              }
+              onRemove={() => setPhones(phones.filter((_, j) => j !== i))}
+              keyboardType="phone-pad"
+              placeholder="+1 555 123 4567"
+            />
+            {p.value.trim() ? (
+              <ChannelActions number={p.value} size="sm" align="flex-start" />
+            ) : null}
+          </View>
         ))}
         <AddBtn
           label="Add phone"

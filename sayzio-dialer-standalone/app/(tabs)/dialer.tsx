@@ -28,9 +28,17 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import {
+  ChannelActions,
+  type ChannelPrefs,
+  chanOpen,
+  featherName,
+  publishChannelPrefs,
+  resolveChannels,
+  useChannelPrefs,
+} from "@/components/ChannelActions";
 import { useColors } from "@/hooks/useColors";
 import {
-  type DialerChannelDef,
   type DialerFavorite,
   type DialerFrequent,
   type DialerRecent,
@@ -90,110 +98,10 @@ const KEYS: { v: string; sub?: string }[] = [
 // satisfy this are eligible for the server lookup/history POST.
 const E164 = /^\+[1-9]\d{6,14}$/;
 
-// ── Direct channel actions ───────────────────────────────────────────
-// Config-independent device handoffs (no Google Contacts / integration).
-// The channel catalog + the user's preferred (enabled) channels are the single
-// source of truth shared with the web dialer via the server
-// (App\Modules\User\Support\DialerChannels), so the keypad / favourites /
-// frequent / recents rows never drift. The former "WhatsApp call" action was
-// removed — there is no public deep link for a WhatsApp call, so it only ever
-// opened the same wa.me chat, a misleading duplicate.
-function digitsOf(v: string): string {
-  return (v || "").replace(/[^0-9]/g, "");
-}
-async function openUrl(url: string): Promise<void> {
-  try {
-    await Linking.openURL(url);
-  } catch {
-    Alert.alert("Can't open", "No app is available to handle this action.");
-  }
-}
-// Build + open the deep-link for a channel `js` mode and typed value.
-function chanOpen(mode: string, v: string): void {
-  const t = (v || "").trim();
-  const d = digitsOf(v);
-  let url = "";
-  switch (mode) {
-    case "tel":    url = t ? `tel:${t}` : ""; break;
-    case "sms":    url = t ? `sms:${t}` : ""; break;
-    case "wa":     url = d ? `https://wa.me/${d}` : ""; break;
-    case "tg":     url = d ? `https://t.me/+${d}` : ""; break;
-    case "signal": url = d ? `https://signal.me/#p/+${d}` : ""; break;
-    case "viber":  url = d ? `viber://chat?number=%2B${d}` : ""; break;
-  }
-  if (url) void openUrl(url);
-}
-
-// Fallback catalog so the dialer works before the prefs fetch resolves (or
-// offline). Mirrors the server DialerChannels catalog; the live payload
-// overrides this once loaded.
-const FALLBACK_CHANNELS: DialerChannelDef[] = [
-  { key: "call", label: "Call", short: "Call", color: "#22c55e", fa: "fas fa-phone", feather: "phone", js: "tel" },
-  { key: "sms", label: "Text message", short: "Text", color: "#38bdf8", fa: "fas fa-comment-sms", feather: "message-square", js: "sms" },
-  { key: "whatsapp", label: "Chat on WhatsApp", short: "WhatsApp", color: "#25d366", fa: "fab fa-whatsapp", feather: "message-circle", js: "wa" },
-  { key: "telegram", label: "Open in Telegram", short: "Telegram", color: "#3390ec", fa: "fab fa-telegram", feather: "send", js: "tg" },
-  { key: "signal", label: "Message on Signal", short: "Signal", color: "#3a76f0", fa: "fab fa-signal-messenger", feather: "shield", js: "signal" },
-  { key: "viber", label: "Message on Viber", short: "Viber", color: "#7360f2", fa: "fab fa-viber", feather: "phone-forwarded", js: "viber" },
-];
-const FALLBACK_ENABLED = ["call", "sms", "whatsapp", "telegram"];
-
-type ChannelPrefs = {
-  catalog: DialerChannelDef[];
-  enabled: string[];
-};
-
-const ChannelPrefsContext = createContext<ChannelPrefs>({
-  catalog: FALLBACK_CHANNELS,
-  enabled: FALLBACK_ENABLED,
-});
-
-/** Resolve enabled channel keys to full catalog rows, in preference order. */
-function resolveChannels(prefs: ChannelPrefs): DialerChannelDef[] {
-  const byKey = new Map(prefs.catalog.map((c) => [c.key, c]));
-  return prefs.enabled
-    .map((k) => byKey.get(k))
-    .filter((c): c is DialerChannelDef => !!c);
-}
-
-// A Feather name for a channel — the catalog carries a `feather` field, but it
-// arrives as a plain string, so we cast to the icon-name union here.
-function featherName(c: DialerChannelDef): ComponentProps<typeof Feather>["name"] {
-  return c.feather as ComponentProps<typeof Feather>["name"];
-}
-
-// Shared direct-action cluster (mirrors web user/dialer/_channel_actions.blade.php):
-// only the channels the user picked, on every keypad/recents/favourites/frequent
-// surface, so the Dialer works with no Google Contacts connected.
-function ChannelActions({ number, size = "md" }: { number: string; size?: "sm" | "md" }) {
-  const prefs = useContext(ChannelPrefsContext);
-  const channels = resolveChannels(prefs);
-  const n = (number || "").trim();
-  if (!n || channels.length === 0) return null;
-  const d = size === "sm" ? 26 : 32;
-  const ico = size === "sm" ? 13 : 16;
-  return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
-      {channels.map((c) => (
-        <Pressable
-          key={c.key}
-          onPress={() => chanOpen(c.js, n)}
-          hitSlop={6}
-          accessibilityLabel={c.label}
-          style={{
-            width: d,
-            height: d,
-            borderRadius: d / 2,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: `${c.color}22`,
-          }}
-        >
-          <Feather name={featherName(c)} size={ico} color={c.color} />
-        </Pressable>
-      ))}
-    </View>
-  );
-}
+// Direct channel actions (chanOpen / catalog / prefs / <ChannelActions/>)
+// live in the shared @/components/ChannelActions module so every surface
+// showing a phone number (search, contacts, profile, call screens) renders
+// the exact same one-tap row.
 
 function contactName(c: Contact): string {
   return (
@@ -247,11 +155,9 @@ export default function DialerScreen() {
   const [favorites, setFavorites] = useState<DialerFavorite[]>([]);
   const [recentLoading, setRecentLoading] = useState(false);
 
-  // Preferred messaging channels (shared with the web dialer via the server).
-  const [channelPrefs, setChannelPrefs] = useState<ChannelPrefs>({
-    catalog: FALLBACK_CHANNELS,
-    enabled: FALLBACK_ENABLED,
-  });
+  // Preferred messaging channels (shared with the web dialer via the server;
+  // fetched + cached app-wide by the shared ChannelActions store).
+  const channelPrefs = useChannelPrefs();
   const [channelPickerOpen, setChannelPickerOpen] = useState(false);
 
   const [contactsQuery, setContactsQuery] = useState("");
@@ -275,14 +181,6 @@ export default function DialerScreen() {
   useEffect(() => {
     void refreshRecent();
     void refreshFavorites();
-    void (async () => {
-      try {
-        const prefs = await getDialerChannels();
-        if (prefs?.catalog?.length) setChannelPrefs(prefs);
-      } catch {
-        /* keep the fallback catalog/defaults on failure */
-      }
-    })();
     void getDialerSuggestions()
       .then((s) => setSuggestions(s.total > 0 ? s : null))
       .catch(() => { /* offline — leave null */ });
@@ -613,7 +511,6 @@ export default function DialerScreen() {
   );
 
   return (
-    <ChannelPrefsContext.Provider value={channelPrefs}>
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: "Dialer" }} />
 
@@ -1416,12 +1313,11 @@ export default function DialerScreen() {
         prefs={channelPrefs}
         onClose={() => setChannelPickerOpen(false)}
         onSaved={(prefs) => {
-          setChannelPrefs(prefs);
+          publishChannelPrefs(prefs);
           setChannelPickerOpen(false);
         }}
       />
     </View>
-    </ChannelPrefsContext.Provider>
   );
 }
 

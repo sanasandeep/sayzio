@@ -150,8 +150,5 @@
 - [Inline style after @vite beats Tailwind responsive classes](inline-style-after-vite-cascade.md) — a plain `display:flex` rule in an inline `<style>` block loaded after `@vite` can silently override `hidden`/`lg:hidden` on the same class (specificity tie, later source wins).
 - [Factory-columns guard meta-test](factory-columns-guard-meta-test.md) — a fail-when-X-regresses CI guard needs a test driving BOTH a clean fixture (exit 0) and a poisoned fixture (exit 1) through it, or it silently goes false-green; check-factory-columns boots the app + replays migrations per subprocess (~18s in phpunit) so keep runs minimal; discovery generalized via CHECK_FACTORY_COLUMNS_EXTRA_FACTORY_DIRS.
 - [Marketing SPA static prerender for SEO](marketing-spa-static-prerender-seo.md) — no-SSR route-specific <head>/sitemap via a postbuild script writing per-route index.html files; registry mirrors each page's own content source so titles can't drift.
-<<<<<<< HEAD
 - [Multicol-item transform guard](multicol-transform-guard.md) — never transform (or will-change: transform) a direct child of a `columns-*` container, it vanishes on hover; motion goes on an inner wrapper; guard derives item classes from markup.
-=======
 - [Sticky header vs drawer scroll lock](sticky-header-drawer-scroll-lock.md) — body overflow:hidden breaks position:sticky (scrolled header+drawer snap off-viewport; pin fixed while open); autohide e2e must use stable-near landing + down-nudge, layout shifts fire up-scroll events that cancel hides.
->>>>>>> 60ef34809 (Improve header behavior during scrolling and menu interactions)

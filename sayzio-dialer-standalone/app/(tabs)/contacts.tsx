@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+import { ChannelActions } from "@/components/ChannelActions";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import { getOverdueFollowUpsCount, listContacts } from "@/lib/api/contacts";
@@ -214,6 +215,10 @@ export default function ContactsScreen() {
               item.phones[0]?.value ||
               item.organization ||
               "";
+            const phone =
+              item.phones.find((p) => p.is_primary)?.value ||
+              item.phones[0]?.value ||
+              "";
             return (
               <Pressable
                 onPress={() => router.push(`/contacts/${item.id}`)}
@@ -250,6 +255,15 @@ export default function ContactsScreen() {
                     >
                       {primary}
                     </Text>
+                  ) : null}
+                  {phone ? (
+                    <View style={{ marginTop: 6 }}>
+                      <ChannelActions
+                        number={phone}
+                        size="sm"
+                        align="flex-start"
+                      />
+                    </View>
                   ) : null}
                 </View>
                 <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
