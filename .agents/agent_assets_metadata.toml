@@ -1109,3 +1109,9 @@ id = "9ZmR6uP4-SmWCxTSoS8KG"
 uri = "file://attached_assets/stock_images/events_hero_crowd_concert_3.jpg"
 type = "image"
 title = "concert crowd silhouettes with colorful stage lights at night festival"
+
+[[outputs]]
+id = "Tg9cn8VzmbrF4LFOmiTm7"
+uri = "file://.local/outputs/SAYZIO.pptx"
+type = "slides"
+title = "SAYZIO.pptx"
