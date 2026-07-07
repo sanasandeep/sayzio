@@ -56,7 +56,7 @@
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
     @endif
-    <meta property="og:url" content="{{ request()->url() }}">
+    <meta property="og:url" content="{{ \App\Modules\Common\Support\PlatformHosts::canonicalUrl() }}">
 
     <meta name="twitter:card" content="{{ $twCard }}">
     @if($twSite)

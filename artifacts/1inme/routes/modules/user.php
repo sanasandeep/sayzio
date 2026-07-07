@@ -31,7 +31,7 @@ use App\Modules\User\Middleware\CheckPlanLimit;
 use App\Modules\User\Controllers\RoleManagementController;
 use App\Modules\User\Controllers\UserAccessController;
 
-Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index'])->middleware('brand.primary')->name('home');
 
 // Public SVG placeholders generated for the biolink creation wizard.
 // Referenced as the default avatar / cover image on pages built by the

@@ -16,7 +16,7 @@
         $__schema = \App\Modules\Common\Support\MarketingSchema::forView([
             'seoKey' => 'home',
             'title'  => $__seo['title'] ?? null,
-            'url'    => request()->url(),
+            'url'    => \App\Modules\Common\Support\PlatformHosts::canonicalUrl(),
         ]);
     @endphp
     <script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>

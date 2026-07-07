@@ -61,11 +61,15 @@
 <meta property="og:type" content="profile">
 {{-- Single canonical URL for the profile: always the @-prefixed form,
      so the bare /handle and /@handle entry points are treated as one
-     page for SEO + sharing and never double-counted. --}}
-<link rel="canonical" href="{{ $__cpProfileUrl }}">
-<meta property="og:url" content="{{ $__cpProfileUrl }}">
-@if($__cpImage)
-    <meta property="og:image" content="{{ $__cpImage }}">
+     page for SEO + sharing and never double-counted. Host is normalised
+     to the primary brand domain (see PlatformHosts::canonicalUrl) so a
+     visit on any recognised brand domain advertises the same URL. --}}
+<link rel="canonical" href="{{ \App\Modules\Common\Support\PlatformHosts::canonicalUrl() }}">
+<meta property="og:url" content="{{ \App\Modules\Common\Support\PlatformHosts::canonicalUrl() }}">
+@if($creator->cover_image)
+    <meta property="og:image" content="{{ $creator->cover_image }}">
+@elseif($creator->avatar)
+    <meta property="og:image" content="{{ $creator->avatar }}">
 @endif
 <meta name="twitter:card" content="{{ $__cpImage ? 'summary_large_image' : 'summary' }}">
 <meta name="twitter:title" content="{{ $creator->name }} (&#64;{{ $creator->handle }})">

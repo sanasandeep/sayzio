@@ -239,6 +239,37 @@ class PlatformHosts
         return $app ?? 'localhost';
     }
 
+    /**
+     * The canonical URL for the current request: scheme + path + query, but
+     * with the host normalised to the primary brand domain whenever the
+     * request came in on a *recognised brand domain* (primary or
+     * non-primary). Dev/preview hosts and custom user domains are left
+     * exactly as-is (`request()->url()`/`fullUrl()` equivalent), since only
+     * the two branded marketing hosts (sayzio.app / 1in.me) are meant to
+     * consolidate onto a single canonical.
+     *
+     * Used by shared marketing partials (canonical link, og:url, JSON-LD
+     * `url`) so every brand-domain request — whichever host actually served
+     * it — always advertises the same preferred URL to crawlers and social
+     * platforms, even on routes that don't 301-redirect.
+     */
+    public static function canonicalUrl(): string
+    {
+        try {
+            $host = self::normalize(request()->getHost());
+        } catch (\Throwable) {
+            return request()->fullUrl();
+        }
+
+        $primary = self::primaryBrandDomain();
+        if ($primary === null || $host === null || !in_array($host, self::brandDomains(), true)) {
+            return request()->fullUrl();
+        }
+
+        $uri = request()->getRequestUri(); // includes leading "/" + query string
+        return request()->getScheme() . '://' . $primary . $uri;
+    }
+
     private static function isLoopback(string $host): bool
     {
         return in_array($host, ['localhost', '127.0.0.1', '0.0.0.0', '::1'], true);

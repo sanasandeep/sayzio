@@ -96,7 +96,7 @@ Route::get('/.well-known/assetlinks.json',
     ->name('well-known.assetlinks');
 
 // ---- Public Creators directory ----
-Route::get('/creators', [\App\Modules\Common\Controllers\CreatorsController::class, 'index'])->name('creators.index');
+Route::get('/creators', [\App\Modules\Common\Controllers\CreatorsController::class, 'index'])->middleware('brand.primary')->name('creators.index');
 
 // ---- Public Events directory (Task #3589) ----
 Route::get('/events', [\App\Modules\Common\Controllers\EventsDirectoryController::class, 'index'])->name('events.index');
@@ -270,7 +270,11 @@ Route::get('/ai-report/{token}', [\App\Modules\Common\Controllers\PublicMarketin
 Route::get('/login',    fn () => redirect()->route('user.login'))->name('login.page');
 Route::get('/register', fn () => redirect()->route('user.register'))->name('register.page');
 
-Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->group(function () {
+// Consolidate every marketing/legal landing page onto the primary brand
+// domain (sayzio.app): a 301 redirect when reached via a recognised
+// non-primary brand domain (1in.me) keeps search engines from indexing the
+// same page as duplicate content on two hosts.
+Route::middleware('brand.primary')->controller(\App\Modules\Common\Controllers\SitePageController::class)->group(function () {
     Route::get('/features',     fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('features'))->name('site.features');
     Route::get('/how-it-works', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('how-it-works'))->name('site.how-it-works');
     Route::get('/about',        fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('about'))->name('site.about');
@@ -348,6 +352,12 @@ Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::cla
 // URL list sourced from MarketingSeo so it stays in lockstep with per-page SEO meta.
 Route::get('/sitemap_index.xml', [\App\Modules\Common\Controllers\SitemapController::class, 'index'])->name('site.sitemap.index');
 Route::get('/sitemap.xml', [\App\Modules\Common\Controllers\SitemapController::class, 'sitemap'])->name('site.sitemap');
+// Task #3885 — additional sitemaps covering indexable public user content
+// (creator profiles, public resumes, public biolink-family pages) that the
+// marketing-only sitemap above doesn't cover. See UserContentSitemap.
+Route::get('/sitemap-creators.xml', [\App\Modules\Common\Controllers\SitemapController::class, 'sitemapCreators'])->name('site.sitemap.creators');
+Route::get('/sitemap-resumes.xml',  [\App\Modules\Common\Controllers\SitemapController::class, 'sitemapResumes'])->name('site.sitemap.resumes');
+Route::get('/sitemap-links.xml',    [\App\Modules\Common\Controllers\SitemapController::class, 'sitemapLinks'])->name('site.sitemap.links');
 Route::get('/robots.txt',  [\App\Modules\Common\Controllers\SitemapController::class, 'robots'])->name('site.robots');
 // IndexNow ownership key file (proves we own the host before search engines
 // honour our change notifications). Constrained to the 32-hex key format so it
@@ -420,10 +430,11 @@ Route::options('/branding.json', [\App\Modules\Common\Controllers\BrandingFeedCo
 
 // ---- Public Blogs (must precede the catch-all /{alias} routes) ----
 Route::prefix('blogs')->name('site.blogs.')->controller(\App\Modules\Common\Controllers\BlogController::class)->group(function () {
-    Route::get('/',                'index')->name('index');
     // Public JSON feed for the standalone marketing site (1inme.com). Must
     // precede the catch-all /{slug} show route below so 'feed.json' isn't
-    // captured as a post slug.
+    // captured as a post slug. Deliberately NOT under 'brand.primary' — a
+    // 301 would break the marketing site's CORS fetch (cross-origin
+    // redirects don't carry the preflight-approved CORS headers).
     Route::get('/feed.json',           'feed')->name('feed');
     Route::options('/feed.json',       'feedPreflight');
     Route::get('/feed/{slug}.json',    'feedShow')->name('feed.show')->where('slug', '[a-z0-9-]+');
@@ -431,9 +442,15 @@ Route::prefix('blogs')->name('site.blogs.')->controller(\App\Modules\Common\Cont
     Route::get('/rss',             'rss')->name('rss');
     Route::get('/rss.xml',         'rss')->name('rss.xml');
     Route::get('/sitemap.xml',     'sitemap')->name('sitemap');
-    Route::get('/category/{slug}', 'category')->name('category')->where('slug', '[a-z0-9-]+');
-    Route::get('/tag/{slug}',      'tag')->name('tag')->where('slug', '[a-z0-9-]+');
-    Route::get('/{slug}',          'show')->name('show')->where('slug', '[a-z0-9-]+');
+
+    // Human-facing blog pages: redirect a non-primary brand domain visit to
+    // the primary brand domain, matching the rest of the marketing surface.
+    Route::middleware('brand.primary')->group(function () {
+        Route::get('/',                'index')->name('index');
+        Route::get('/category/{slug}', 'category')->name('category')->where('slug', '[a-z0-9-]+');
+        Route::get('/tag/{slug}',      'tag')->name('tag')->where('slug', '[a-z0-9-]+');
+        Route::get('/{slug}',          'show')->name('show')->where('slug', '[a-z0-9-]+');
+    });
     Route::post('/{slug}/comments','postComment')->name('comments.store')->where('slug', '[a-z0-9-]+')->middleware('throttle:10,1');
 });
 

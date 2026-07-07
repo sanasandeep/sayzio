@@ -8,6 +8,7 @@ use App\Modules\Common\Models\BlogPost;
 use App\Modules\Common\Models\SitePage;
 use App\Modules\Common\Support\MarketingSeo;
 use App\Modules\Common\Support\MarketingSitemap;
+use App\Modules\Common\Support\UserContentSitemap;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -53,6 +54,24 @@ class SitemapController extends Controller
     }
 
     /**
+     * Invalidate the creator/resume/link sitemap caches. These lists change
+     * constantly across many users' accounts, so they otherwise rely on the
+     * 10-minute TTL; this is available for call sites that want a faster
+     * refresh after a bulk change (e.g. an admin re-seed) without waiting on
+     * the TTL.
+     */
+    public static function flushUserContentCaches(): void
+    {
+        try {
+            Cache::forget(self::INDEX_CACHE_KEY);
+        } catch (\Throwable $e) {
+            // Cache flushing must never break the write path.
+        }
+
+        UserContentSitemap::flush();
+    }
+
+    /**
      * Sitemap index that references both the marketing sitemap and the blog
      * sitemap so search engines can discover every public URL from a single
      * entry point (/sitemap_index.xml). The individual sitemaps keep working
@@ -69,6 +88,18 @@ class SitemapController extends Controller
                 [
                     'loc' => url('/blogs/sitemap.xml'),
                     'lastmod' => $this->formatLastmod($this->blogLastmod()),
+                ],
+                [
+                    'loc' => url('/sitemap-creators.xml'),
+                    'lastmod' => $this->formatLastmod(UserContentSitemap::creatorsLastmod()),
+                ],
+                [
+                    'loc' => url('/sitemap-resumes.xml'),
+                    'lastmod' => $this->formatLastmod(UserContentSitemap::resumesLastmod()),
+                ],
+                [
+                    'loc' => url('/sitemap-links.xml'),
+                    'lastmod' => $this->formatLastmod(UserContentSitemap::linksLastmod()),
                 ],
             ];
 
@@ -121,6 +152,24 @@ class SitemapController extends Controller
         $body = MarketingSitemap::render();
 
         return response($body, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+    }
+
+    /** Published Creator Profiles at /@handle — see {@see UserContentSitemap}. */
+    public function sitemapCreators()
+    {
+        return response(UserContentSitemap::renderCreators(), 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+    }
+
+    /** Public default resumes at /{handle}/resume — see {@see UserContentSitemap}. */
+    public function sitemapResumes()
+    {
+        return response(UserContentSitemap::renderResumes(), 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+    }
+
+    /** Public biolink-family pages at /{alias} — see {@see UserContentSitemap}. */
+    public function sitemapLinks()
+    {
+        return response(UserContentSitemap::renderLinks(), 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
     }
 
     /**

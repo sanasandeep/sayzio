@@ -105,6 +105,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'portal.session'    => \App\Modules\User\Middleware\ResolvePortalSession::class,
             'user.can'          => \App\Modules\User\Middleware\UserPermission::class,
             'contacts.sync-on-open' => \App\Modules\User\Middleware\SyncGoogleContactsOnOpen::class,
+            'brand.primary'     => \App\Modules\Common\Middleware\RedirectToPrimaryBrandDomain::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

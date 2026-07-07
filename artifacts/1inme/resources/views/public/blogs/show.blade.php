@@ -13,7 +13,7 @@
     $shareTitle = $post->meta_title ?: $post->title;
     $shareDescription = $post->meta_description ?: $post->excerpt;
     $shareImage = $post->og_image ?: $post->cover_image ?: ($settings['default_og_image'] ?? '');
-    $shareUrl = $post->canonical_url ?: route('site.blogs.show', $post->slug);
+    $shareUrl = $post->canonical_url ?: \App\Modules\Common\Support\PlatformHosts::canonicalUrl();
     $shareType = 'article';
 @endphp
 @extends('public.layouts.site')
@@ -32,7 +32,7 @@
             'mainEntityOfPage' => $shareUrl,
         ];
     @endphp
-    <script type="application/ld+json">{!! json_encode($jsonLd, JSON_UNESCAPED_SLASHES) !!}</script>
+    <script type="application/ld+json">{!! json_encode($jsonLd, JSON_UNESCAPED_UNICODE) !!}</script>
 @endpush
 
 @section('content')

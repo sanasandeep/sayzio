@@ -27,7 +27,12 @@
     if ($__shareImage === '') {
         $__shareImage = $__defaultShareImage;
     }
-    $__shareUrl = $shareUrl ?? request()->url();
+    // Canonicalize onto the primary brand domain (sayzio.app) whenever this
+    // request is being served on a recognised brand domain — the marketing
+    // routes group also 301s non-primary-brand requests, but this keeps the
+    // canonical/og:url correct even for any brand-domain page that redirect
+    // doesn't cover, and for local dev/preview hosts it is a no-op.
+    $__shareUrl = $shareUrl ?? \App\Modules\Common\Support\PlatformHosts::canonicalUrl();
     $__shareType = $shareType ?? 'website';
 @endphp
 <link rel="canonical" href="{{ $__shareUrl }}">

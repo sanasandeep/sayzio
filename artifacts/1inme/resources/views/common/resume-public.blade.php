@@ -7,12 +7,11 @@
     $headline = trim($h['headline'] ?? '');
     $title    = $name . ($headline ? ' — '.$headline : "'s resume");
     $description = trim($resume->meta_description ?? '') ?: ($headline ?: \Illuminate\Support\Str::limit($summary, 200));
-    // Passed in from PublicResumeController — reflects the RESOLVED
-    // resume's own address (default vs a named `/v/{slug}` version)
-    // so canonical/og:url/JSON-LD never self-identify with the wrong
-    // version. Falls back to the default URL for any legacy caller
-    // that doesn't pass it in.
-    $publicUrl = $publicUrl ?? url('/' . $user->publicHandle() . '/resume');
+    // Canonical/og:url/JSON-LD `url` use the request-derived canonical URL
+    // (host normalised to the primary brand domain) so a visit on any
+    // recognised brand domain advertises the same URL, including on
+    // versioned share URLs (/{handle}/resume/v/{slug}).
+    $canonicalUrl = \App\Modules\Common\Support\PlatformHosts::canonicalUrl();
     $avatar    = $user->avatar ?? null;
     $allowIndex = (bool) ($resume->allow_indexing ?? true) && (($resume->visibility ?? 'public') === 'public');
     $locked = ($resume->visibility ?? 'public') === 'password'
@@ -26,7 +25,7 @@
         '@context' => 'https://schema.org',
         '@type'    => 'Person',
         'name'     => $name,
-        'url'      => $publicUrl,
+        'url'      => $canonicalUrl,
     ];
     if ($headline)             $person['jobTitle']    = $headline;
     if (!empty($h['email']))   $person['email']       = $h['email'];
@@ -49,12 +48,12 @@
     @if (!$allowIndex)
         <meta name="robots" content="noindex,nofollow">
     @endif
-    <link rel="canonical" href="{{ $publicUrl }}">
+    <link rel="canonical" href="{{ $canonicalUrl }}">
 
     {{-- Open Graph + Twitter --}}
     <meta property="og:type" content="profile">
     <meta property="og:title" content="{{ $title }}">
-    <meta property="og:url" content="{{ $publicUrl }}">
+    <meta property="og:url" content="{{ $canonicalUrl }}">
     @if ($description)<meta property="og:description" content="{{ $description }}">@endif
     @if ($avatar)<meta property="og:image" content="{{ $avatar }}">@endif
     <meta name="twitter:card" content="{{ $avatar ? 'summary_large_image' : 'summary' }}">
@@ -62,7 +61,7 @@
     @if ($description)<meta name="twitter:description" content="{{ $description }}">@endif
     @if ($avatar)<meta name="twitter:image" content="{{ $avatar }}">@endif
 
-    <script type="application/ld+json">{!! json_encode($person, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+    <script type="application/ld+json">{!! json_encode($person, JSON_UNESCAPED_UNICODE) !!}</script>
 
     @include('common.partials.fontawesome')
     <style>

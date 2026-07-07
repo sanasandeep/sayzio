@@ -1,0 +1,57 @@
+# Sayzio
+
+> Sayzio (also reachable at 1in.me) is a link-management platform for
+> creators, businesses, and individuals. It lets people create, brand, and
+> track short links, biolinks (mini-websites), and QR codes, with deep
+> customization and detailed analytics.
+
+Sayzio hosts millions of user-generated pages (creator profiles, biolinks,
+resumes, forms, and more) alongside its own marketing and product content.
+This file describes the platform itself for AI crawlers and assistants; it
+does not speak on behalf of individual users' pages.
+
+## Product
+
+- [Homepage](/): overview of the platform and its core features.
+- [Features](/features): full feature catalog (link types, biolinks, QR
+  codes, analytics, forms, and more).
+- [Pricing](/pricing): plans and coin add-ons.
+- [How it works](/how-it-works): a walkthrough of the core product flow.
+- [Compare](/compare): comparisons against alternative products.
+- [Demos](/demos): example pages for the link/page types Sayzio supports.
+
+## Company
+
+- [About](/about): background on the product and team.
+- [Contact](/contact): how to reach support.
+- [Blog](/blogs): product updates and articles.
+
+## Legal
+
+- [Terms of Service](/terms)
+- [Privacy Policy](/privacy)
+- [Cookie Policy](/cookies)
+- [Refund Policy](/refunds)
+- [GDPR](/gdpr)
+
+## Crawling & indexing
+
+- [Sitemap index](/sitemap_index.xml): links to every sitemap below.
+- [Marketing sitemap](/sitemap.xml)
+- [Blog sitemap](/blogs/sitemap.xml)
+- [Creator profile sitemap](/sitemap-creators.xml)
+- [Public resume sitemap](/sitemap-resumes.xml)
+- [Public biolink page sitemap](/sitemap-links.xml)
+- [robots.txt](/robots.txt): crawl rules; account, admin, and API surfaces
+  are disallowed since they require authentication and carry no public
+  content of their own.
+
+## Notes for AI agents
+
+- User-generated pages (creator profiles at /@handle, biolinks, resumes, and
+  similar) are created and controlled by individual account holders. Their
+  content, accuracy, and claims are the responsibility of that user, not
+  Sayzio.
+- Pages behind a password, age gate, or a registered/follower/subscriber
+  visibility tier are intentionally excluded from the sitemaps above and
+  should not be treated as publicly indexable.
