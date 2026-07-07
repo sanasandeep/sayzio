@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -46,6 +46,10 @@ export default function ScheduledJobsScreen() {
   const [selected, setSelected] = useState<ScheduledJob | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [runNotice, setRunNotice] = useState<string | null>(null);
+  // When set, we expect a run to be in flight (Run now was just tapped, or the
+  // sheet was opened for a job already running). Drives a short grace window
+  // of polling until the new run row shows up in the history.
+  const [watchStartedAt, setWatchStartedAt] = useState<number | null>(null);
 
   const query = useQuery({
     queryKey: ["admin-scheduled-jobs"],
@@ -57,7 +61,36 @@ export default function ScheduledJobsScreen() {
     queryKey: ["admin-scheduled-job-runs", selected?.key],
     queryFn: () => getScheduledJobRuns(selected!.key),
     enabled: !!selected,
+    // Poll while a run is in flight so the admin sees the outcome live
+    // without closing/reopening the sheet. Stops automatically once the
+    // latest run is no longer `running` (see the effect below).
+    refetchInterval: (q) => {
+      const latest = q.state.data?.runs?.[0];
+      if (latest?.status === "running") return 3_000;
+      // Right after "Run now" the fire-and-forget run row may not exist yet;
+      // keep polling for a short grace window until it appears.
+      if (watchStartedAt !== null && Date.now() - watchStartedAt < 20_000) {
+        return 3_000;
+      }
+      return false;
+    },
   });
+
+  // Once the latest run transitions out of `running`, stop the watch window
+  // and refresh the jobs list so badges (Running…/OK/Failed) update too.
+  const latestRunStatus = runsQuery.data?.runs?.[0]?.status;
+  const prevRunStatus = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (
+      prevRunStatus.current === "running" &&
+      latestRunStatus !== undefined &&
+      latestRunStatus !== "running"
+    ) {
+      setWatchStartedAt(null);
+      qc.invalidateQueries({ queryKey: ["admin-scheduled-jobs"] });
+    }
+    prevRunStatus.current = latestRunStatus;
+  }, [latestRunStatus, qc]);
 
   const refreshAll = () => {
     qc.invalidateQueries({ queryKey: ["admin-scheduled-jobs"] });
@@ -97,8 +130,11 @@ export default function ScheduledJobsScreen() {
     onSuccess: (r) => {
       setActionError(null);
       setRunNotice(r.message);
-      // The run is fire-and-forget server-side; give it a moment before
-      // refreshing so the new run row has a chance to appear.
+      // The run is fire-and-forget server-side; start polling the run
+      // history so the outcome appears live without reopening the sheet.
+      setWatchStartedAt(Date.now());
+      // Give the new run row a moment to appear, then refresh once so the
+      // list badges pick up the "Running…" state quickly too.
       setTimeout(refreshAll, 2500);
     },
     onError: (e: any) =>
@@ -108,10 +144,17 @@ export default function ScheduledJobsScreen() {
   const busy = pauseMut.isPending || resumeMut.isPending || runMut.isPending;
   const data = query.data;
 
+  const openSheet = (job: ScheduledJob) => {
+    setSelected(job);
+    // If the job is already mid-run, poll the history until it finishes.
+    setWatchStartedAt(job.running_now ? Date.now() : null);
+  };
+
   const closeSheet = () => {
     setSelected(null);
     setActionError(null);
     setRunNotice(null);
+    setWatchStartedAt(null);
   };
 
   const schedulerBadge = (() => {
@@ -217,7 +260,7 @@ export default function ScheduledJobsScreen() {
                     return (
                       <Pressable
                         key={job.key}
-                        onPress={() => setSelected(job)}
+                        onPress={() => openSheet(job)}
                         style={({ pressed }) => [
                           styles.listItem,
                           {
