@@ -246,6 +246,20 @@ html.light-mode .mkt-navbar-bar.is-stuck {
 .mkt-nav-autohide.mkt-nav-hidden {
     transform: translateY(calc(-100% - var(--inme-anno-h, 0px) - 2rem));
 }
+/* While the mobile drawer is open the body scroll is locked via
+   body{overflow:hidden} (x-effect in the header partial). That scroll lock
+   breaks position:sticky — on a scrolled page the bar (and the drawer markup
+   inside it) snaps back to its static position at the top of the DOCUMENT,
+   i.e. off-viewport, taking the drawer's close button with it. Pin the bar to
+   the VIEWPORT for the duration instead. The `mkt-nav-drawer-open` class is
+   bound to `mobileOpen` in public/partials/header.blade.php; harmless on the
+   already-fixed home variant. */
+.mkt-nav-autohide.mkt-nav-drawer-open {
+    position: fixed;
+    top: var(--inme-anno-h, 0px);
+    left: 0;
+    right: 0;
+}
 @media (prefers-reduced-motion: reduce) {
     /* Still hide/show, just without the slide animation. */
     .mkt-nav-autohide { transition: none; }

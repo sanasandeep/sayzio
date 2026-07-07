@@ -20,7 +20,12 @@ import { expect, test, type Page } from "@playwright/test";
 //      binding force-shows while `openMenu !== null`). Closing the menu with
 //      the page still scrolled-down lets the pending hide apply — proving the
 //      force-show was genuinely overriding, not just "never hidden".
-//   5. Under prefers-reduced-motion the hide/show still happens, just without
+//   5. On a mobile viewport, while the hamburger DRAWER is open the header
+//      must never hide either: the `:class` binding force-shows while
+//      `mobileOpen` is true, and `mkt-nav-drawer-open` pins the bar to the
+//      viewport (position:fixed) because the drawer's body scroll lock breaks
+//      position:sticky on a scrolled page.
+//   6. Under prefers-reduced-motion the hide/show still happens, just without
 //      the slide animation (CSS drops the transition but keeps the transform).
 //
 // Implementation notes:
@@ -125,12 +130,50 @@ async function scrollTo(page: Page, y: number): Promise<number> {
     window.scrollTo({ top: clamped, behavior: "instant" });
     return clamped;
   }, y);
+  // Late layout shifts (lazy media settling, reduced-motion reveal
+  // differences) can move scrollY by a few px AFTER the instant scroll lands
+  // — e.g. content above the landing point shrinking 14px leaves scrollY at
+  // 886 for a 900 target, which an exact-match wait would spin on forever.
+  // Require the position to be NEAR the target (well within the 96px grace
+  // zone margin) and STABLE across consecutive polls, then return the real
+  // landing so relative follow-up scrolls stay coherent.
   await page.waitForFunction(
-    (t) => Math.abs(window.scrollY - t) <= 3,
+    (t) => {
+      const w = window as unknown as { __sc?: { y: number; n: number } };
+      const cur = window.scrollY;
+      const prev = w.__sc;
+      w.__sc =
+        prev && prev.y === cur ? { y: cur, n: prev.n + 1 } : { y: cur, n: 0 };
+      return Math.abs(cur - t) <= 48 && w.__sc.n >= 2;
+    },
     target,
-    { timeout: 5000 },
+    { timeout: 5000, polling: 100 },
   );
-  return target;
+  return page.evaluate(() => window.scrollY);
+}
+
+/**
+ * Scroll down to `y` and wait for the header to hide, defeating a late-layout
+ * -shift race: content above the landing point can settle (lazy media,
+ * reduced-motion reveal differences) AFTER the scroll lands, firing a tiny
+ * *upward* scroll event that — correctly, per the widget's "any up-delta
+ * shows" rule — cancels the pending hide. `scrollTo` already waits for a
+ * stable landing, so one guaranteed down-nudge afterwards deterministically
+ * re-arms the hide (64px > the 24px accumulator threshold; harmless if the
+ * header is already hidden). Returns the final scrollY so follow-up relative
+ * scrolls stay coherent. All targets used here are far below the page bottom,
+ * so the nudge always produces a real scroll event.
+ */
+async function scrollDownAndWaitHidden(
+  page: Page,
+  y: number,
+): Promise<number> {
+  await scrollTo(page, y);
+  await page.evaluate(() =>
+    window.scrollBy({ top: 64, behavior: "instant" }),
+  );
+  await waitHidden(page);
+  return page.evaluate(() => window.scrollY);
 }
 
 /**
@@ -191,6 +234,34 @@ async function setOpenMenu(page: Page, value: string | null): Promise<void> {
   );
 }
 
+/** Set the header's Alpine `mobileOpen` (drawer) state programmatically. */
+async function setMobileOpen(page: Page, value: boolean): Promise<void> {
+  await page.evaluate(
+    ({ sel, v }) => {
+      const w = window as unknown as {
+        Alpine: { $data: (el: Element) => { mobileOpen: boolean } };
+      };
+      const el = document.querySelector(sel) as HTMLElement;
+      w.Alpine.$data(el).mobileOpen = v;
+    },
+    { sel: WRAPPER_SEL, v: value },
+  );
+}
+
+/** Force the internal `navHidden` flag directly (bypassing scroll). */
+async function setNavHidden(page: Page, value: boolean): Promise<void> {
+  await page.evaluate(
+    ({ sel, v }) => {
+      const w = window as unknown as {
+        Alpine: { $data: (el: Element) => { navHidden: boolean } };
+      };
+      const el = document.querySelector(sel) as HTMLElement;
+      w.Alpine.$data(el).navHidden = v;
+    },
+    { sel: WRAPPER_SEL, v: value },
+  );
+}
+
 /** Read the header component's internal Alpine state. */
 async function readAlpine(
   page: Page,
@@ -227,12 +298,11 @@ test.describe("marketing header — auto-hide on scroll", () => {
 
     // ---- 2. Scroll down well past the 96px grace zone + 24px threshold:
     //         header hides, fully off-viewport. ----
-    const downLanding = await scrollTo(page, 900);
+    const downLanding = await scrollDownAndWaitHidden(page, 900);
     expect(
       downLanding,
       "page must be tall enough to scroll past the grace zone",
     ).toBeGreaterThan(200);
-    await waitHidden(page);
     const hidden = await readNav(page);
     expect(hidden.hiddenClass).toBe(true);
     expect(
@@ -260,6 +330,11 @@ test.describe("marketing header — auto-hide on scroll", () => {
     ).toBeVisible();
 
     await scrollTo(page, 1500);
+    // Re-arm the hide in case a late layout shift fired an upward scroll
+    // event after landing (same race scrollDownAndWaitHidden defeats).
+    await page.evaluate(() =>
+      window.scrollBy({ top: 64, behavior: "instant" }),
+    );
     // The scroll handler still runs and flips navHidden internally…
     await page.waitForFunction(
       (sel) => {
@@ -295,6 +370,90 @@ test.describe("marketing header — auto-hide on scroll", () => {
     expect(afterClose.openMenu).toBeNull();
   });
 
+  test("mobile: never hides while the drawer is open", async ({ page }) => {
+    // The same :class binding also force-shows the header while the MOBILE
+    // drawer is up (`!mobileOpen`): the drawer's close button lives in the
+    // header bar, so if the bar slid away the drawer would become
+    // un-dismissable. This exercises that third branch of the binding.
+    //
+    // Two cooperating mechanisms are under test here:
+    //   a. the `:class` binding must never apply `mkt-nav-hidden` while
+    //      `mobileOpen` is true, and
+    //   b. the `mkt-nav-drawer-open` class (also bound to `mobileOpen`) must
+    //      pin the bar to the VIEWPORT (`position: fixed`). Without it the
+    //      drawer's `body{overflow:hidden}` scroll lock breaks
+    //      `position:sticky` and, on a scrolled page, the bar (drawer
+    //      included) snaps back to the top of the DOCUMENT — off-viewport —
+    //      even with the hidden class correctly absent.
+    //
+    // Note: the drawer sets `document.body.style.overflow = 'hidden'` via
+    // x-effect, so real scrolling is locked while it's open. The test
+    // therefore scrolls (and hides the header) BEFORE opening the drawer,
+    // and afterwards drives `navHidden` directly to simulate a scroll-down
+    // attempt — asserting the binding keeps the header visible regardless.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedConsent(page);
+    await openFeatures(page);
+
+    // Sanity: at 390px the hamburger toggle is the visible control.
+    await expect(
+      page.locator('button[aria-label="Toggle menu"]').first(),
+    ).toBeVisible();
+
+    // ---- 1. Scroll down first (drawer closed): header hides normally. ----
+    const landed = await scrollDownAndWaitHidden(page, 900);
+    expect(
+      landed,
+      "page must be tall enough to scroll past the grace zone",
+    ).toBeGreaterThan(200);
+
+    // ---- 2. Open the drawer programmatically while navHidden is still
+    //         true: the :class binding must immediately force-show the
+    //         header (with the drawer's close button). ----
+    await setMobileOpen(page, true);
+    await expect(
+      page.locator('div[x-show="mobileOpen"]').first(),
+    ).toBeVisible();
+    // Body scroll must be locked by the drawer's x-effect.
+    await page.waitForFunction(() => document.body.style.overflow === "hidden");
+    // The scroll lock breaks position:sticky, so the bar must be pinned to
+    // the viewport (mkt-nav-drawer-open → position:fixed) to stay on-screen.
+    await page.waitForFunction((sel) => {
+      const nav = document.querySelector(sel) as HTMLElement;
+      return (
+        nav.classList.contains("mkt-nav-drawer-open") &&
+        getComputedStyle(nav).position === "fixed"
+      );
+    }, NAV_SEL);
+    await waitVisible(page);
+
+    // ---- 3. Simulate a scroll-down attempt while the drawer is open by
+    //         forcing navHidden=true directly (real scrolling is locked).
+    //         The header must NEVER gain mkt-nav-hidden. ----
+    await setNavHidden(page, true);
+    await page.waitForTimeout(450); // let any (wrong) transition start
+    const withDrawer = await readNav(page);
+    expect(
+      withDrawer.hiddenClass,
+      "header must never carry mkt-nav-hidden while the mobile drawer is open",
+    ).toBe(false);
+    expect(
+      withDrawer.bottom,
+      "header bar must stay on-viewport while the mobile drawer is open",
+    ).toBeGreaterThan(40);
+    const state = await readAlpine(page);
+    expect(state.navHidden, "internal flag stays true — the :class binding is what overrides").toBe(
+      true,
+    );
+
+    // ---- 4. Closing the drawer releases the force-show: the pending
+    //         navHidden=true now applies and the header hides — proving the
+    //         override was genuine, not a no-op. Scroll lock also lifts. ----
+    await setMobileOpen(page, false);
+    await waitHidden(page);
+    await page.waitForFunction(() => document.body.style.overflow === "");
+  });
+
   test("reduced motion: still hides and shows, without the slide animation", async ({
     page,
   }) => {
@@ -319,12 +478,11 @@ test.describe("marketing header — auto-hide on scroll", () => {
     // reveal animations are gated, so the page can be shorter than in the
     // default-motion test — scroll targets are clamped and the up-scroll is
     // relative to wherever the down-scroll actually landed.
-    const landed = await scrollTo(page, 900);
+    const landed = await scrollDownAndWaitHidden(page, 900);
     expect(
       landed,
       "page must be tall enough to scroll past the grace zone",
     ).toBeGreaterThan(200);
-    await waitHidden(page);
     await scrollTo(page, landed - 120);
     await waitVisible(page);
   });
