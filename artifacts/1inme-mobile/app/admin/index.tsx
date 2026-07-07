@@ -25,7 +25,8 @@ type Row = {
     | "mail"
     | "schema-audits"
     | "stats-storage"
-    | "banned-names";
+    | "banned-names"
+    | "scheduled-jobs";
   icon: keyof typeof Feather.glyphMap;
   label: string;
   description: string;
@@ -68,6 +69,14 @@ export default function AdminHubScreen() {
       label: "Analytics storage",
       description: "Analytics growth, retention & storage limits",
       href: "/admin/stats-storage",
+      enabled: !!can?.manage_settings,
+    },
+    {
+      key: "scheduled-jobs",
+      icon: "clock",
+      label: "Scheduled jobs",
+      description: "Background job health, pause/resume & run history",
+      href: "/admin/scheduled-jobs",
       enabled: !!can?.manage_settings,
     },
     {
