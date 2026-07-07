@@ -17,6 +17,12 @@ pages (the pages most likely to be a search-entry point).
 Font Awesome on public pages loads via `common/partials/fontawesome.blade.php`
 (the `media="print" onload="this.media='all'"` non-blocking swap + preload +
 noscript fallback), included via `@include('common.partials.fontawesome')`.
+**Safari gotcha:** Safari does not reliably fire link `onload` on
+`media="print"` stylesheets (especially when served from cache), leaving FA
+print-only forever — every `fa-*` glyph blank. The partial therefore also
+carries an inline loadCSS safety net that force-flips any pending
+`link[data-fa-async][media="print"]` to `media="all"` on DOMContentLoaded and
+again on window load. Never rely on `onload` alone for a print-swap link.
 This covers the ~20 public-facing views (home, public/*, common/biolink,
 common/calendar-page, common/creators-directory, common/event-ticket,
 common/form, common/gated, common/resume-public, common/rsvp-form,
