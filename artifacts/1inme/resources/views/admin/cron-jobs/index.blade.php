@@ -183,7 +183,13 @@
                                         @if($job['paused'])
                                             <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300"><i class="fas fa-pause text-[9px] mr-0.5"></i>Paused</span>
                                         @endif
-                                        @if($job['running_now'])
+                                        @if($job['key'])
+                                            {{-- Live badge: driven by the polling loop so it appears/disappears without a reload. --}}
+                                            <span x-show="isRunning('{{ $job['key'] }}')" x-cloak
+                                                  class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">
+                                                <i class="fas fa-spinner fa-spin text-[9px] mr-0.5"></i>Running now
+                                            </span>
+                                        @elseif($job['running_now'])
                                             <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">Running now</span>
                                         @endif
                                         @if(!empty($job['failing_repeatedly']))
@@ -205,7 +211,42 @@
                                     <code class="text-[12px] text-white/50 font-mono">{{ $job['expression'] }}</code>
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap">
-                                    @if($job['last_run'])
+                                    @if($job['key'])
+                                        {{-- Live cell: rendered from the polled per-job status map so the
+                                             outcome of a run appears in place without a manual reload. --}}
+                                        @php $jsKey = "'" . $job['key'] . "'"; @endphp
+                                        <template x-if="lj({{ $jsKey }}).last_run">
+                                            <div>
+                                                <div class="flex items-center gap-1.5">
+                                                    <i class="fas text-[11px]"
+                                                       :class="lj({{ $jsKey }}).last_run_ok === false ? 'fa-circle-xmark text-rose-400' : 'fa-circle-check text-emerald-400'"
+                                                       :title="lj({{ $jsKey }}).last_run_ok === false ? 'Last run failed' : 'Last run succeeded'"></i>
+                                                    <span class="text-white/80" x-text="lj({{ $jsKey }}).last_run"></span>
+                                                    <template x-if="lj({{ $jsKey }}).last_run_source === 'manual'">
+                                                        <span class="text-[10px] uppercase tracking-wider px-1 py-0.5 rounded bg-white/5 border border-white/10 text-white/40" title="Triggered manually with Run now">Manual</span>
+                                                    </template>
+                                                </div>
+                                                <div class="text-[11px] text-white/40 mt-0.5">
+                                                    <span x-text="lj({{ $jsKey }}).last_run_human"></span>
+                                                    <template x-if="lj({{ $jsKey }}).last_runtime !== null && lj({{ $jsKey }}).last_runtime !== undefined">
+                                                        <span>&middot; <span x-text="fmtRuntime(lj({{ $jsKey }}).last_runtime)"></span>s</span>
+                                                    </template>
+                                                    <template x-if="lj({{ $jsKey }}).last_exit_code !== null && lj({{ $jsKey }}).last_exit_code !== undefined && lj({{ $jsKey }}).last_exit_code !== 0">
+                                                        <span>&middot; exit <span x-text="lj({{ $jsKey }}).last_exit_code"></span></span>
+                                                    </template>
+                                                </div>
+                                                <template x-if="lj({{ $jsKey }}).overdue">
+                                                    <span class="inline-block mt-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300">Overdue</span>
+                                                </template>
+                                                <template x-if="lj({{ $jsKey }}).last_run_ok === false && lj({{ $jsKey }}).last_run_error">
+                                                    <div class="text-[11px] text-rose-300/70 mt-1 max-w-[16rem] truncate" :title="lj({{ $jsKey }}).last_run_error" x-text="lj({{ $jsKey }}).last_run_error"></div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <template x-if="! lj({{ $jsKey }}).last_run">
+                                            <span class="text-white/30 text-[12px]">Never</span>
+                                        </template>
+                                    @elseif($job['last_run'])
                                         <div class="flex items-center gap-1.5">
                                             @if($job['last_run_ok'] === false)
                                                 <i class="fas fa-circle-xmark text-rose-400 text-[11px]" title="Last run failed"></i>
@@ -365,6 +406,68 @@
             historyKey: null,
             historyRuns: [],
             historyLoading: false,
+            // Per-job live status map, seeded server-side and refreshed by a
+            // light polling loop while any run is in flight, so badges and
+            // last-run details update in place without a manual page reload.
+            live: @js($liveSeed),
+            // Set right after "Run now": the background run's history row may
+            // not exist yet on reload, so poll through a short grace window
+            // until it shows up (mirrors the mobile screen's watch window).
+            watchUntil: {{ session('ran_job') ? '(Date.now() + 20000)' : 'null' }},
+            pollTimer: null,
+            init() {
+                if (this.anyRunning() || this.watchUntil !== null) {
+                    this.startPolling();
+                }
+            },
+            lj(key) {
+                return this.live[key] || {};
+            },
+            isRunning(key) {
+                return !! this.lj(key).running_now;
+            },
+            anyRunning() {
+                return Object.values(this.live).some((j) => j && j.running_now);
+            },
+            fmtRuntime(v) {
+                if (v === null || v === undefined) return '';
+                return String(Math.round(v * 100) / 100);
+            },
+            startPolling() {
+                if (this.pollTimer !== null) return;
+                this.pollTimer = setInterval(() => this.poll(), 3000);
+            },
+            stopPolling() {
+                if (this.pollTimer !== null) {
+                    clearInterval(this.pollTimer);
+                    this.pollTimer = null;
+                }
+            },
+            async poll() {
+                if (document.hidden) return;
+                try {
+                    const res = await fetch('{{ route('admin.cron-jobs.status') }}', { headers: { 'Accept': 'application/json' } });
+                    if (res.ok) {
+                        const json = await res.json();
+                        const jobs = json.data && json.data.jobs;
+                        if (jobs && typeof jobs === 'object') {
+                            this.live = jobs;
+                            // Keep an open history drawer fresh too, quietly.
+                            if (this.historyKey !== null) {
+                                this.fetchRuns(this.historyKey, { quiet: true });
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Transient network error — keep polling.
+                }
+                if (this.anyRunning()) {
+                    // A run is visible now; no need for the grace window.
+                    this.watchUntil = null;
+                } else if (this.watchUntil === null || Date.now() > this.watchUntil) {
+                    this.stopPolling();
+                }
+            },
             async toggleHistory(key) {
                 if (this.historyKey === key) {
                     this.historyKey = null;
@@ -372,7 +475,10 @@
                 }
                 this.historyKey = key;
                 this.historyRuns = [];
-                this.historyLoading = true;
+                await this.fetchRuns(key);
+            },
+            async fetchRuns(key, { quiet = false } = {}) {
+                if (! quiet) this.historyLoading = true;
                 try {
                     const url = '{{ url('admin/cron-jobs') }}/' + encodeURIComponent(key) + '/runs';
                     const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
@@ -381,9 +487,9 @@
                         this.historyRuns = (json.data && json.data.runs) ? json.data.runs : [];
                     }
                 } catch (e) {
-                    if (this.historyKey === key) this.historyRuns = [];
+                    if (this.historyKey === key && ! quiet) this.historyRuns = [];
                 } finally {
-                    if (this.historyKey === key) this.historyLoading = false;
+                    if (this.historyKey === key && ! quiet) this.historyLoading = false;
                 }
             },
             formatWhen(iso) {

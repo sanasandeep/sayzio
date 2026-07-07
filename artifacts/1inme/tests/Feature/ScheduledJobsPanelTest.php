@@ -286,6 +286,88 @@ class ScheduledJobsPanelTest extends TestCase
         $this->assertSame(0, $resp->json('data.runs.0.exit_code'));
     }
 
+    public function test_web_status_endpoint_returns_live_job_map(): void
+    {
+        // An unfinished manual run row must surface as running_now so the
+        // panel's polling loop keeps going until the run finishes.
+        ScheduledJobRun::create([
+            'job_key'    => 'contacts:sync',
+            'source'     => 'manual',
+            'status'     => ScheduledJobRun::STATUS_RUNNING,
+            'started_at' => now(),
+        ]);
+
+        $resp = $this->actingAs($this->makeAdmin(), 'admin')->getJson('/admin/cron-jobs/status');
+
+        $resp->assertOk();
+        $jobs = $resp->json('data.jobs');
+        $this->assertIsArray($jobs);
+        $this->assertArrayHasKey('contacts:sync', $jobs);
+        $this->assertTrue($jobs['contacts:sync']['running_now']);
+        // A job with no in-flight run reports not running.
+        $this->assertArrayHasKey('db:check-pending-migrations', $jobs);
+        $this->assertFalse($jobs['db:check-pending-migrations']['running_now']);
+    }
+
+    public function test_web_status_endpoint_reflects_a_finished_run(): void
+    {
+        ScheduledJobRun::create([
+            'job_key'     => 'contacts:sync',
+            'source'      => 'manual',
+            'status'      => ScheduledJobRun::STATUS_FAILED,
+            'started_at'  => now()->subMinute(),
+            'finished_at' => now(),
+            'runtime'     => 2.5,
+            'exit_code'   => 1,
+            'error'       => 'boom',
+        ]);
+
+        $job = $this->actingAs($this->makeAdmin(), 'admin')
+            ->getJson('/admin/cron-jobs/status')
+            ->json('data.jobs.contacts:sync');
+
+        $this->assertFalse($job['running_now']);
+        $this->assertFalse($job['last_run_ok']);
+        $this->assertSame('manual', $job['last_run_source']);
+        $this->assertSame('boom', $job['last_run_error']);
+        $this->assertSame(1, $job['last_exit_code']);
+        $this->assertNotNull($job['last_run']);
+        $this->assertNotNull($job['last_run_human']);
+    }
+
+    public function test_web_status_endpoint_ignores_stale_orphaned_running_rows(): void
+    {
+        // A running row abandoned by a killed background runner must not keep
+        // the panel polling forever: rows older than 15 minutes are ignored.
+        ScheduledJobRun::create([
+            'job_key'    => 'contacts:sync',
+            'source'     => 'manual',
+            'status'     => ScheduledJobRun::STATUS_RUNNING,
+            'started_at' => now()->subMinutes(30),
+        ]);
+
+        $job = $this->actingAs($this->makeAdmin(), 'admin')
+            ->getJson('/admin/cron-jobs/status')
+            ->json('data.jobs.contacts:sync');
+
+        $this->assertFalse($job['running_now']);
+    }
+
+    public function test_web_status_endpoint_requires_authentication(): void
+    {
+        // Admin web routes redirect unauthenticated requests to the login
+        // page (same behavior as the index).
+        $this->getJson('/admin/cron-jobs/status')->assertRedirect();
+    }
+
+    public function test_web_run_now_flashes_the_watch_window_flag(): void
+    {
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->post('/admin/cron-jobs/db:check-pending-migrations/run')
+            ->assertRedirect()
+            ->assertSessionHas('ran_job', 'db:check-pending-migrations');
+    }
+
     public function test_web_runs_endpoint_404s_for_an_unknown_key(): void
     {
         $this->actingAs($this->makeAdmin(), 'admin')

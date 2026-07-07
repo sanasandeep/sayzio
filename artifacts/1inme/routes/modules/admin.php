@@ -328,6 +328,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('cron-jobs')->name('cron-jobs.')->middleware(CheckPermission::class . ':settings.manage')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\CronJobsController::class, 'index'])->name('index');
             Route::post('failure-alert-settings', [\App\Modules\Admin\Controllers\CronJobsController::class, 'updateFailureAlertSettings'])->name('failure-alert-settings');
+            Route::get('status', [\App\Modules\Admin\Controllers\CronJobsController::class, 'status'])->name('status');
             Route::post('{key}/pause',  [\App\Modules\Admin\Controllers\CronJobsController::class, 'pause'])->where('key', '[A-Za-z0-9:_\-]+')->name('pause');
             Route::post('{key}/resume', [\App\Modules\Admin\Controllers\CronJobsController::class, 'resume'])->where('key', '[A-Za-z0-9:_\-]+')->name('resume');
             Route::post('{key}/run',    [\App\Modules\Admin\Controllers\CronJobsController::class, 'run'])->where('key', '[A-Za-z0-9:_\-]+')->name('run');

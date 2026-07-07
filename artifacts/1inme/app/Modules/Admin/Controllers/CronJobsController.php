@@ -64,6 +64,7 @@ class CronJobsController extends Controller
                 'min_cooldown_hours'     => CheckScheduledJobFailures::MIN_COOLDOWN_HOURS,
                 'max_cooldown_hours'     => CheckScheduledJobFailures::MAX_COOLDOWN_HOURS,
             ],
+            'liveSeed'       => $this->liveMap($jobs),
         ]);
     }
 
@@ -99,6 +100,65 @@ class CronJobsController extends Controller
             "Failure-alert settings saved — alerts fire after {$all['threshold']} consecutive failures, "
             . "with reminders for growing streaks at most every {$all['cooldown_hours']} hour(s)."
         );
+    }
+
+    /**
+     * Live per-job status map (JSON). The panel polls this every few seconds
+     * while a run is in flight so status badges and last-run details update
+     * in place without a manual page reload (parity with the mobile screen's
+     * conditional polling).
+     */
+    public function status(CronJobsInspector $inspector)
+    {
+        return response()->json(['data' => ['jobs' => $this->liveMap($inspector->jobs())]]);
+    }
+
+    /**
+     * Per-key live display fields for the panel's polling loop. "Running" is
+     * the scheduler's overlap mutex OR an unfinished manual run-history row;
+     * unfinished rows older than 15 minutes are ignored so an orphaned row
+     * (e.g. a killed background runner) can't keep the panel polling forever.
+     *
+     * @param  array<int, array<string, mixed>>  $jobs  output of CronJobsInspector::jobs()
+     * @return array<string, array<string, mixed>>
+     */
+    protected function liveMap(array $jobs): array
+    {
+        $runningKeys = [];
+
+        try {
+            $runningKeys = ScheduledJobRun::query()
+                ->whereNull('finished_at')
+                ->where('status', ScheduledJobRun::STATUS_RUNNING)
+                ->where('started_at', '>=', now()->subMinutes(15))
+                ->pluck('job_key')
+                ->all();
+        } catch (\Throwable $e) {
+            // Table may not exist yet (pre-migration); mutex-only detection.
+        }
+
+        $map = [];
+
+        foreach ($jobs as $job) {
+            if (empty($job['key'])) {
+                continue;
+            }
+
+            $map[$job['key']] = [
+                'running_now'     => (bool) $job['running_now'] || in_array($job['key'], $runningKeys, true),
+                'paused'          => (bool) $job['paused'],
+                'overdue'         => (bool) $job['overdue'],
+                'last_run'        => $job['last_run']?->format('M j, H:i'),
+                'last_run_human'  => $job['last_run']?->diffForHumans(),
+                'last_run_ok'     => $job['last_run_ok'],
+                'last_runtime'    => $job['last_runtime'],
+                'last_exit_code'  => $job['last_exit_code'],
+                'last_run_error'  => $job['last_run_error'],
+                'last_run_source' => $job['last_run_source'],
+            ];
+        }
+
+        return $map;
     }
 
     /** Pause a job: the scheduler will skip it until resumed. */
@@ -142,7 +202,11 @@ class CronJobsController extends Controller
 
         $this->spawnRun($key);
 
-        return back()->with('success', "Started '{$key}' in the background. Check its run history in a moment for the result.");
+        // `ran_job` tells the reloaded page to start a short polling watch
+        // window even before the background run's history row appears.
+        return back()
+            ->with('success', "Started '{$key}' in the background. This page will update automatically when it finishes.")
+            ->with('ran_job', $key);
     }
 
     /** Recent run history for one job (JSON, feeds the history drawer). */
