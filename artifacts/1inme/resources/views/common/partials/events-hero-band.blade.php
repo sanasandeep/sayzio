@@ -10,6 +10,12 @@
     the two never collide if ever rendered on the same page.
 --}}
 @if(isset($heroBandEvents) && $heroBandEvents->isNotEmpty())
+    {{-- Synchronous body-class hook: added before any layout paint so the
+         companion CSS rule (.has-ehb-band .mkt-site-main) takes effect without
+         a flash. document.body is safe here — the opening <body> tag is already
+         in the parsed DOM by the time this partial renders. --}}
+    <script>document.body.classList.add('has-ehb-band');</script>
+
     {{-- Inlined (not @push('head')) because this partial is included after
          the layout already flushes @stack('head'); a pushed style here would
          silently never render. --}}
@@ -19,7 +25,21 @@
             background-color: #0b0e16;
             border-bottom: 1px solid rgba(255,255,255,0.06);
             overflow: hidden;
+            /* Pull the band flush with the top of the viewport so it sits
+               behind the floating nav, eliminating the body-background gap that
+               appears because this band lives outside <main> and therefore
+               misses .mkt-site-main's own pull-up.  Compensate with top
+               padding so the band's content still clears the nav. */
+            margin-top: calc(-1 * var(--mkt-nav-h));
+            padding-top: calc(var(--mkt-nav-h) + 2rem);    /* base ≈ py-8 top */
         }
+        @media (min-width: 640px) {
+            .ehb-band { padding-top: calc(var(--mkt-nav-h) + 2.5rem); } /* base ≈ py-10 top */
+        }
+        /* When the band is present it occupies the visual role that
+           .mkt-site-main's negative margin normally fills, so cancel <main>'s
+           pull-up to prevent it from sliding up into the band. */
+        .has-ehb-band .mkt-site-main { margin-top: 0; }
         .ehb-band::before {
             content: '';
             position: absolute; inset: -20px;
