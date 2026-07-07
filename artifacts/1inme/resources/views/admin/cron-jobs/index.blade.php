@@ -91,6 +91,60 @@
         <span x-ref="master" class="hidden">{{ $masterCronLine }}</span>
     </div>
 
+    {{-- Failure-alert tuning --}}
+    <div class="glass rounded-2xl p-6 border border-white/10">
+        <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-rose-300 bg-rose-500/10 border border-rose-500/20 shrink-0">
+                <i class="fas fa-bell"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+                <h2 class="text-base font-semibold text-white">Job-failure alert sensitivity</h2>
+                <p class="text-xs text-white/50 mt-0.5 max-w-3xl">
+                    When a job fails this many times in a row (with no success in between), ops admins get an in-app + email
+                    alert. If the streak keeps growing, a reminder is sent at most once per cooldown period. Lower the threshold
+                    for platforms where frequent jobs matter most; raise it if occasional flakiness is expected.
+                </p>
+
+                @if($errors->any())
+                    <div class="mt-3 rounded-xl p-3 border border-rose-500/30 bg-rose-500/10 text-xs text-rose-200">
+                        @foreach($errors->all() as $err)
+                            <p><i class="fas fa-circle-xmark mr-1"></i>{{ $err }}</p>
+                        @endforeach
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('admin.cron-jobs.failure-alert-settings') }}"
+                      class="mt-4 flex flex-wrap items-end gap-4">
+                    @csrf
+                    <div>
+                        <label for="fa-threshold" class="block text-[11px] uppercase tracking-wider text-white/40 font-semibold mb-1">
+                            Consecutive failures before alerting
+                        </label>
+                        <input type="number" id="fa-threshold" name="threshold"
+                               value="{{ old('threshold', $alertSettings['threshold']) }}"
+                               min="{{ $alertSettings['min_threshold'] }}" max="{{ $alertSettings['max_threshold'] }}" step="1" required
+                               class="w-40 px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-blue-400/50">
+                        <p class="text-[11px] text-white/30 mt-1">{{ $alertSettings['min_threshold'] }}&ndash;{{ $alertSettings['max_threshold'] }} &middot; default {{ $alertSettings['default_threshold'] }}</p>
+                    </div>
+                    <div>
+                        <label for="fa-cooldown" class="block text-[11px] uppercase tracking-wider text-white/40 font-semibold mb-1">
+                            Reminder cooldown (hours)
+                        </label>
+                        <input type="number" id="fa-cooldown" name="cooldown_hours"
+                               value="{{ old('cooldown_hours', $alertSettings['cooldown_hours']) }}"
+                               min="{{ $alertSettings['min_cooldown_hours'] }}" max="{{ $alertSettings['max_cooldown_hours'] }}" step="1" required
+                               class="w-40 px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-blue-400/50">
+                        <p class="text-[11px] text-white/30 mt-1">{{ $alertSettings['min_cooldown_hours'] }}&ndash;{{ $alertSettings['max_cooldown_hours'] }} &middot; default {{ $alertSettings['default_cooldown_hours'] }}</p>
+                    </div>
+                    <button type="submit"
+                            class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition">
+                        <i class="fas fa-floppy-disk mr-1.5"></i>Save alert settings
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {{-- Grouped job tables --}}
     @foreach($grouped as $groupSlug => $group)
         <div class="glass rounded-2xl border border-white/10 overflow-hidden">

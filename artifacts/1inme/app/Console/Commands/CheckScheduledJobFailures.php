@@ -32,30 +32,79 @@ use Illuminate\Support\Facades\Log;
  *
  * An open episode is never re-alerted for the same streak (so an hourly
  * cadence can't spam admins). If the streak KEEPS GROWING, a reminder is
- * allowed once the last alert is older than {@see REALERT_COOLDOWN_HOURS}.
+ * allowed once the last alert is older than the re-alert cooldown.
  * The episode closes — with an all-clear notification — as soon as the job
  * succeeds again, re-arming the alert for any future streak.
+ *
+ * Both the failure threshold and the re-alert cooldown are admin-tunable
+ * from the Scheduled Jobs panel (persisted in `app_settings` under
+ * {@see SETTINGS_KEY}); the class constants are only the defaults. Read the
+ * effective values via {@see failureThreshold()} / {@see realertCooldownHours()}.
  */
 class CheckScheduledJobFailures extends Command
 {
     protected $signature = 'scheduled-jobs:check-failures
                             {--force : Re-send alerts for open episodes even if already alerted}';
 
-    protected $description = 'Alert ops admins when a scheduled job has 3+ consecutive failures (in-app + email), with an all-clear once it recovers.';
+    protected $description = 'Alert ops admins when a scheduled job keeps failing consecutively (in-app + email), with an all-clear once it recovers. Threshold and cooldown are admin-tunable.';
 
-    /** Alert once a job has this many consecutive failed runs. */
+    /** Default: alert once a job has this many consecutive failed runs. */
     public const FAILURE_THRESHOLD = 3;
 
-    /** Re-alert an OPEN episode only if the streak grew AND this many hours passed. */
+    /** Default: re-alert an OPEN episode only if the streak grew AND this many hours passed. */
     public const REALERT_COOLDOWN_HOURS = 24;
+
+    /** Sane bounds for the admin-tunable values. */
+    public const MIN_THRESHOLD      = 2;
+    public const MAX_THRESHOLD      = 50;
+    public const MIN_COOLDOWN_HOURS = 1;
+    public const MAX_COOLDOWN_HOURS = 168; // one week
 
     /** AppSetting key holding all episode state. */
     public const STATE_KEY = 'scheduled_job_failure_health';
 
+    /** AppSetting key holding the admin-tunable alert settings. */
+    public const SETTINGS_KEY = 'scheduled_job_failure_alerts';
+
+    /**
+     * Effective failure threshold: admin value from app_settings clamped to
+     * sane bounds, falling back to the class default.
+     */
+    public static function failureThreshold(): int
+    {
+        return self::settingInt('threshold', self::FAILURE_THRESHOLD, self::MIN_THRESHOLD, self::MAX_THRESHOLD);
+    }
+
+    /**
+     * Effective re-alert cooldown (hours): admin value from app_settings
+     * clamped to sane bounds, falling back to the class default.
+     */
+    public static function realertCooldownHours(): int
+    {
+        return self::settingInt('cooldown_hours', self::REALERT_COOLDOWN_HOURS, self::MIN_COOLDOWN_HOURS, self::MAX_COOLDOWN_HOURS);
+    }
+
+    private static function settingInt(string $key, int $default, int $min, int $max): int
+    {
+        try {
+            $all   = AppSetting::get(self::SETTINGS_KEY, []);
+            $value = is_array($all) ? ($all[$key] ?? null) : null;
+        } catch (\Throwable $e) {
+            $value = null;
+        }
+
+        if (! is_numeric($value)) {
+            return $default;
+        }
+
+        return max($min, min($max, (int) $value));
+    }
+
     public function handle(): int
     {
-        $registry = ScheduledJobRegistry::all();
-        $state    = $this->jobsState();
+        $registry  = ScheduledJobRegistry::all();
+        $state     = $this->jobsState();
+        $threshold = self::failureThreshold();
 
         // Keys worth inspecting: registry jobs that have ever failed, plus any
         // key with an open episode (so recovery still fires even if the failed
@@ -99,7 +148,7 @@ class CheckScheduledJobFailures extends Command
                 continue;
             }
 
-            if ($streak < self::FAILURE_THRESHOLD) {
+            if ($streak < $threshold) {
                 // Below the threshold. If an episode is open (job still hasn't
                 // succeeded), keep it open without re-alerting.
                 continue;
@@ -357,7 +406,7 @@ class CheckScheduledJobFailures extends Command
             return true;
         }
         try {
-            return Carbon::parse($lastSentAt)->lessThanOrEqualTo(now()->subHours(self::REALERT_COOLDOWN_HOURS));
+            return Carbon::parse($lastSentAt)->lessThanOrEqualTo(now()->subHours(self::realertCooldownHours()));
         } catch (\Throwable $e) {
             // Malformed timestamp — treat as expired; the next write heals it.
             return true;

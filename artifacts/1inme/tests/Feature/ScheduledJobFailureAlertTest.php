@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Console\Commands\CheckScheduledJobFailures;
+use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Admin\Models\Permission;
 use App\Modules\Admin\Models\Role;
@@ -242,6 +243,172 @@ class ScheduledJobFailureAlertTest extends TestCase
         $this->artisan('scheduled-jobs:check-failures')->assertExitCode(0);
 
         $this->assertSame(0, UserNotification::where('user_id', $ops->id)->count());
+    }
+
+    // ── Admin-tunable threshold & cooldown ───────────────────────
+
+    private function makeAdmin(): Admin
+    {
+        $role = Role::firstOrCreate(
+            ['slug' => 'super-admin'],
+            ['name' => 'Super Admin', 'guard' => 'admin']
+        );
+
+        return Admin::create([
+            'name'     => 'Test Admin',
+            'email'    => 'admin' . Str::random(6) . '@example.com',
+            'password' => bcrypt('secret'),
+            'role_id'  => $role->id,
+            'status'   => 'active',
+        ]);
+    }
+
+    private function setAlertSettings(int $threshold, ?int $cooldownHours = null): void
+    {
+        $settings = ['threshold' => $threshold];
+        if ($cooldownHours !== null) {
+            $settings['cooldown_hours'] = $cooldownHours;
+        }
+        AppSetting::put(CheckScheduledJobFailures::SETTINGS_KEY, $settings);
+    }
+
+    public function test_custom_lower_threshold_alerts_earlier(): void
+    {
+        $ops = $this->makeOpsAdmin();
+        $this->setAlertSettings(2);
+        $this->seedFailureStreak(2);
+
+        $this->artisan('scheduled-jobs:check-failures')->assertExitCode(0);
+
+        $this->assertSame(
+            1,
+            UserNotification::where('user_id', $ops->id)->where('type', 'scheduled_job_failing')->count(),
+            'with an admin threshold of 2, two consecutive failures must alert'
+        );
+    }
+
+    public function test_custom_higher_threshold_delays_the_alert(): void
+    {
+        $ops = $this->makeOpsAdmin();
+        $this->setAlertSettings(5);
+        $this->seedFailureStreak(4);
+
+        $this->artisan('scheduled-jobs:check-failures')->assertExitCode(0);
+        $this->assertSame(
+            0,
+            UserNotification::where('user_id', $ops->id)->count(),
+            'four failures must stay quiet when the admin threshold is 5'
+        );
+
+        // The fifth failure crosses the custom threshold.
+        $this->recordRun(self::JOB_KEY, ScheduledJobRun::STATUS_FAILED, 10, 'Simulated failure #5');
+        $this->artisan('scheduled-jobs:check-failures')->assertExitCode(0);
+        $this->assertSame(
+            1,
+            UserNotification::where('user_id', $ops->id)->where('type', 'scheduled_job_failing')->count(),
+            'the fifth failure must alert at threshold 5'
+        );
+    }
+
+    public function test_threshold_below_the_minimum_is_clamped(): void
+    {
+        $this->setAlertSettings(1);
+        $this->assertSame(
+            CheckScheduledJobFailures::MIN_THRESHOLD,
+            CheckScheduledJobFailures::failureThreshold(),
+            'a stored threshold of 1 must clamp to the minimum of ' . CheckScheduledJobFailures::MIN_THRESHOLD
+        );
+
+        AppSetting::put(CheckScheduledJobFailures::SETTINGS_KEY, ['threshold' => 'nonsense']);
+        $this->assertSame(
+            CheckScheduledJobFailures::FAILURE_THRESHOLD,
+            CheckScheduledJobFailures::failureThreshold(),
+            'a non-numeric stored threshold must fall back to the default'
+        );
+    }
+
+    public function test_custom_cooldown_governs_growing_streak_reminders(): void
+    {
+        $ops = $this->makeOpsAdmin();
+        $this->setAlertSettings(3, 2); // re-alert reminders after only 2 hours
+        $this->seedFailureStreak(3);
+
+        $this->artisan('scheduled-jobs:check-failures')->assertExitCode(0);
+
+        // Age the episode past the CUSTOM 2h cooldown (but well under the 24h default).
+        $state = AppSetting::get(CheckScheduledJobFailures::STATE_KEY, []);
+        $state['jobs'][self::JOB_KEY]['last_sent_at'] = now()->subHours(3)->toIso8601String();
+        AppSetting::put(CheckScheduledJobFailures::STATE_KEY, $state);
+
+        $this->recordRun(self::JOB_KEY, ScheduledJobRun::STATUS_FAILED, 5, 'Simulated failure #4');
+        $this->artisan('scheduled-jobs:check-failures')->assertExitCode(0);
+
+        $this->assertSame(
+            2,
+            UserNotification::where('user_id', $ops->id)->where('type', 'scheduled_job_failing')->count(),
+            'a grown streak past the custom 2h cooldown must send a reminder'
+        );
+    }
+
+    public function test_admin_can_save_alert_settings_from_the_panel(): void
+    {
+        $resp = $this->actingAs($this->makeAdmin(), 'admin')->post('/admin/cron-jobs/failure-alert-settings', [
+            'threshold'      => 5,
+            'cooldown_hours' => 6,
+        ]);
+
+        $resp->assertRedirect()->assertSessionHas('success');
+        $this->assertSame(5, CheckScheduledJobFailures::failureThreshold());
+        $this->assertSame(6, CheckScheduledJobFailures::realertCooldownHours());
+    }
+
+    public function test_alert_settings_endpoint_enforces_bounds_and_auth(): void
+    {
+        // Guests can't touch the endpoint (checked first — actingAs persists
+        // for the rest of the test case).
+        $this->post('/admin/cron-jobs/failure-alert-settings', [
+            'threshold'      => 4,
+            'cooldown_hours' => 6,
+        ])->assertRedirect();
+        $this->assertNull(
+            AppSetting::get(CheckScheduledJobFailures::SETTINGS_KEY),
+            'a guest submission must not persist anything'
+        );
+
+        // Below the minimum threshold is rejected.
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->from('/admin/cron-jobs')
+            ->post('/admin/cron-jobs/failure-alert-settings', [
+                'threshold'      => 1,
+                'cooldown_hours' => 6,
+            ])
+            ->assertSessionHasErrors('threshold');
+
+        // Out-of-range cooldown is rejected.
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->from('/admin/cron-jobs')
+            ->post('/admin/cron-jobs/failure-alert-settings', [
+                'threshold'      => 3,
+                'cooldown_hours' => 9999,
+            ])
+            ->assertSessionHasErrors('cooldown_hours');
+
+        $this->assertNull(
+            AppSetting::get(CheckScheduledJobFailures::SETTINGS_KEY),
+            'rejected submissions must not persist anything'
+        );
+    }
+
+    public function test_panel_shows_the_current_alert_settings(): void
+    {
+        $this->setAlertSettings(7, 12);
+
+        $resp = $this->actingAs($this->makeAdmin(), 'admin')->get('/admin/cron-jobs');
+
+        $resp->assertOk()
+            ->assertSee('Job-failure alert sensitivity')
+            ->assertSee('value="7"', false)
+            ->assertSee('value="12"', false);
     }
 
     public function test_running_rows_are_ignored_when_counting_the_streak(): void

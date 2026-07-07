@@ -2,10 +2,13 @@
 
 namespace App\Modules\Admin\Controllers;
 
+use App\Console\Commands\CheckScheduledJobFailures;
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Admin\Models\ScheduledJobRun;
 use App\Modules\Admin\Support\CronJobsInspector;
 use App\Modules\Admin\Support\ScheduledJobRegistry;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Symfony\Component\Process\Process;
 
@@ -51,7 +54,51 @@ class CronJobsController extends Controller
             'grouped'        => $grouped,
             'status'         => $inspector->schedulerStatus($jobs),
             'appPath'        => base_path(),
+            'alertSettings'  => [
+                'threshold'              => CheckScheduledJobFailures::failureThreshold(),
+                'cooldown_hours'         => CheckScheduledJobFailures::realertCooldownHours(),
+                'default_threshold'      => CheckScheduledJobFailures::FAILURE_THRESHOLD,
+                'default_cooldown_hours' => CheckScheduledJobFailures::REALERT_COOLDOWN_HOURS,
+                'min_threshold'          => CheckScheduledJobFailures::MIN_THRESHOLD,
+                'max_threshold'          => CheckScheduledJobFailures::MAX_THRESHOLD,
+                'min_cooldown_hours'     => CheckScheduledJobFailures::MIN_COOLDOWN_HOURS,
+                'max_cooldown_hours'     => CheckScheduledJobFailures::MAX_COOLDOWN_HOURS,
+            ],
         ]);
+    }
+
+    /**
+     * Save the admin-tunable failure-alert settings (consecutive-failure
+     * threshold + re-alert cooldown) used by scheduled-jobs:check-failures.
+     */
+    public function updateFailureAlertSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'threshold' => [
+                'required', 'integer',
+                'min:' . CheckScheduledJobFailures::MIN_THRESHOLD,
+                'max:' . CheckScheduledJobFailures::MAX_THRESHOLD,
+            ],
+            'cooldown_hours' => [
+                'required', 'integer',
+                'min:' . CheckScheduledJobFailures::MIN_COOLDOWN_HOURS,
+                'max:' . CheckScheduledJobFailures::MAX_COOLDOWN_HOURS,
+            ],
+        ]);
+
+        $all = AppSetting::get(CheckScheduledJobFailures::SETTINGS_KEY, []);
+        $all = is_array($all) ? $all : [];
+
+        $all['threshold']      = (int) $validated['threshold'];
+        $all['cooldown_hours'] = (int) $validated['cooldown_hours'];
+
+        AppSetting::put(CheckScheduledJobFailures::SETTINGS_KEY, $all);
+
+        return back()->with(
+            'success',
+            "Failure-alert settings saved — alerts fire after {$all['threshold']} consecutive failures, "
+            . "with reminders for growing streaks at most every {$all['cooldown_hours']} hour(s)."
+        );
     }
 
     /** Pause a job: the scheduler will skip it until resumed. */
