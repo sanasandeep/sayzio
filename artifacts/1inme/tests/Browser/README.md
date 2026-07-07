@@ -119,7 +119,7 @@ card-gallery and palette-dnd describe blocks additionally keep their own
 generous per-test ceilings and explicit per-call timeouts on the slow
 editor-open / store round-trips.
 
-### Why these twenty-nine specs are gated (and not the whole suite)
+### Why these thirty specs are gated (and not the whole suite)
 
 The gate covers the specs that run reliably as an unattended check here:
 
@@ -445,13 +445,24 @@ The gate covers the specs that run reliably as an unattended check here:
   colour fix for one theme can't silently wash text out on the other. This is the
   rendered-contrast complement to the static `event-light-mode` gate (which only
   checks that each base `.ev-rich` rule HAS a light-mode pair).
+- `fontawesome-cached-visit.spec.ts` — gated, no login/seeding. Runtime
+  companion to the static `fontawesome-loader` guard
+  (`scripts/src/check-fontawesome-loader.ts`): loads `/about` (which renders
+  the shared non-blocking Font Awesome partial plus real `fa-*` icons) on a
+  cold visit, a warm-cache reload, AND a cached re-navigation — the
+  cache-served scenario where Safari historically never fired the
+  `media=print` link's onload and left every glyph blank. On each visit it
+  asserts every `link[data-fa-async]` has been flipped to `media="all"`, the
+  Font Awesome webfont is actually loaded (`document.fonts.check`), and a
+  visible `fa-*` icon renders a non-zero-width `::before` glyph in a Font
+  Awesome font-family (plus that the stylesheet request really happened).
 
 Run the full suite manually (when you can tolerate the slow renders) with
 `pnpm test:e2e`, or any subset by passing args:
 
 ```sh
 # from artifacts/1inme/
-pnpm run test:e2e:ci                 # the twenty-nine gated specs, self-bootstrapping
+pnpm run test:e2e:ci                 # the thirty gated specs, self-bootstrapping
 pnpm test:e2e                        # the whole Browser suite
 bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
 ```
