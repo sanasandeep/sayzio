@@ -42,9 +42,17 @@
  * `@keyframes` blocks are stripped before parsing so animation percentages
  * (`0% { … }`) are never mistaken for color-carrying selectors.
  *
- * Intentional un-paired rules (a theme-neutral accent that reads correctly in
- * both modes, e.g. a blue focus ring, or a white label on a colored badge) go
- * in the target's `allowlist` with a reason — never by weakening the parser.
+ * Theme-safe values are auto-accepted: a base rule whose value is purely
+ * `var(--…)` theme tokens (no literal fallback) and/or the keywords
+ * `transparent` / `inherit` / `currentColor` already flips with (or is neutral
+ * to) the theme and can never wash out, so it needs no `html.light-mode` pair
+ * and no allowlist entry (see `isThemeSafeColorValue`). This applies to both
+ * the TARGETS hard-fail path and the discovery warning pass.
+ *
+ * Other intentional un-paired rules (a theme-neutral LITERAL accent that reads
+ * correctly in both modes, e.g. a blue focus ring, or a white label on a
+ * colored badge) go in the target's `allowlist` with a reason — never by
+ * weakening the parser.
  *
  * Run:  pnpm --filter @workspace/scripts run check:light-mode-pairing
  *       (add `--explain` to print what is checked and exit 0)
@@ -184,12 +192,6 @@ export const TARGETS: Target[] = [
         selector: ".faq-card[open]",
         property: "border-color",
         reason: "blue accent open border (rgba(61,107,255,.5)) — legible on both themes.",
-      },
-      {
-        selector: ".faq-chip.is-active",
-        property: "border-color",
-        reason:
-          "active chip sits on a solid blue background with border-color:transparent — theme-neutral (the paired html.light-mode rule keeps its white text).",
       },
     ],
   },
@@ -424,31 +426,13 @@ export const TARGETS: Target[] = [
   {
     // Surfaced by the unknown-standalone-page discovery pass: a standalone
     // page (own <html>, @includes theme-styles directly) shown while sign-ups
-    // are paused. All findings are theme-neutral — the text colors are either
-    // theme TOKENS (var(--accent) / var(--border-glass-light), which already
-    // flip with the theme) or brand-accent icon colors on tinted tiles that
-    // read clearly on both surfaces — so no html.light-mode pairs are needed.
+    // are paused. Its theme-token rules (color:transparent gradient headline,
+    // var(--accent) badge, var(--border-glass-light) hover border) are
+    // auto-accepted as theme-safe by the parser; only the literal brand-accent
+    // icon colors on tinted tiles (legible on both surfaces) need entries.
     page: "artifacts/1inme/resources/views/user/auth/registration-paused.blade.php",
     label: "registration paused page",
     allowlist: [
-      {
-        selector: ".up-hero",
-        property: "color",
-        reason:
-          "color:transparent for the background-clip gradient headline — the gradient itself starts at var(--text-primary), which already flips with the theme.",
-      },
-      {
-        selector: ".up-badge",
-        property: "color",
-        reason:
-          "color: var(--accent) — a theme token that flips with the theme, no separate light pair needed.",
-      },
-      {
-        selector: ".up-feature:hover",
-        property: "border-color",
-        reason:
-          "border-color: var(--border-glass-light) — a theme token that flips with the theme, no separate light pair needed.",
-      },
       {
         selector: ".up-feature:nth-child(1) .ic",
         property: "color",
@@ -533,19 +517,95 @@ function normalizeSelector(sel: string): string {
   return sel.replace(/\s+/g, " ").trim();
 }
 
+/* -------------------------------------------------------------------------- *
+ * Theme-safe values (auto-paired)
+ * -------------------------------------------------------------------------- *
+ * A base rule whose color VALUE is purely theme tokens can never wash out on
+ * the light surface: `var(--…)` custom properties are defined by the shared
+ * theme system and already flip with `html.light-mode`, and the keywords
+ * `transparent` / `inherit` / `currentColor` carry no dark literal of their
+ * own. Such rules are treated as ALREADY PAIRED automatically (both on the
+ * TARGETS hard-fail path and the discovery warning pass), so they no longer
+ * need hand-written allowlist entries. Literal dark hex/rgb/named values stay
+ * fully guarded.
+ *
+ * One deliberate exception: a `var()` with a LITERAL fallback — e.g.
+ * `var(--x, #0b0e14)` — is NOT auto-accepted. If `--x` is never actually
+ * declared, the dark fallback always wins in both themes (the classic
+ * undefined-css-var-dark-fallback trap, see
+ * .agents/memory/undefined-css-var-dark-fallback.md), so it must keep needing
+ * an explicit pair or a reasoned allowlist entry. A fallback that is itself a
+ * theme token / safe keyword remains safe (checked recursively).
+ */
+
+const SAFE_COLOR_KEYWORD = /^(transparent|inherit|currentcolor)$/i;
+const VAR_TOKEN = /^var\(\s*--[A-Za-z0-9_-]+\s*(?:,([\s\S]*))?\)$/i;
+
+/** Split a CSS value on top-level whitespace (whitespace inside `(…)` kept). */
+function splitValueTokens(value: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let cur = "";
+  for (const ch of value) {
+    if (ch === "(") depth++;
+    else if (ch === ")") depth = Math.max(0, depth - 1);
+    if (depth === 0 && /\s/.test(ch)) {
+      if (cur) out.push(cur);
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+function isThemeSafeToken(token: string): boolean {
+  if (SAFE_COLOR_KEYWORD.test(token)) return true;
+  const m = VAR_TOKEN.exec(token);
+  if (!m) return false;
+  const fallback = m[1];
+  // Bare `var(--name)` is safe; a fallback must itself be theme-safe.
+  return fallback === undefined || isThemeSafeColorValue(fallback);
+}
+
+/**
+ * Is `value` composed ONLY of theme tokens (`var(--…)` without a literal
+ * fallback) and/or the safe keywords `transparent` / `inherit` /
+ * `currentColor`? Such a value flips with (or is neutral to) the theme, so a
+ * base rule carrying it needs no `html.light-mode` pair. See the block comment
+ * above for the fallback nuance. A blade interpolation (`{{ … }}`) or any
+ * literal color makes the value unsafe.
+ */
+export function isThemeSafeColorValue(value: string): boolean {
+  const v = value.replace(/!\s*important\s*$/i, "").trim();
+  if (!v) return false;
+  const tokens = splitValueTokens(v);
+  return tokens.length > 0 && tokens.every(isThemeSafeToken);
+}
+
 export interface CssRule {
   selectors: string[];
   /** The color-carrying properties this rule declares. */
   props: Set<ColorProp>;
+  /**
+   * The subset of `props` whose EVERY declared value in this rule is
+   * theme-safe (see `isThemeSafeColorValue`) — treated as already paired by
+   * `findMissingPairs`. Light-override counting (`countLightOverrides`) and
+   * pairing still use the full `props` set.
+   */
+  themeSafeProps: Set<ColorProp>;
 }
 
 /**
  * Parse the flat (un-nested) rules out of a CSS string into
- * `{ selectors, props }`, where `props` is the subset of COLOR_PROPS the rule
- * declares. Comments and `@keyframes` blocks are stripped first. Robust enough
- * for these hand-written `<style>` blocks (nested at-rules other than
- * `@keyframes` — e.g. a bare `@media` wrapper — leave their inner rules intact
- * and only contribute a harmless prop-less wrapper).
+ * `{ selectors, props, themeSafeProps }`, where `props` is the subset of
+ * COLOR_PROPS the rule declares and `themeSafeProps` the sub-subset whose
+ * values are purely theme tokens (auto-paired). Comments and `@keyframes`
+ * blocks are stripped first. Robust enough for these hand-written `<style>`
+ * blocks (nested at-rules other than `@keyframes` — e.g. a bare `@media`
+ * wrapper — leave their inner rules intact and only contribute a harmless
+ * prop-less wrapper).
  */
 export function parseRules(css: string): CssRule[] {
   const clean = stripKeyframes(stripCssComments(css));
@@ -558,15 +618,18 @@ export function parseRules(css: string): CssRule[] {
     const selectors = selectorList.split(",").map(normalizeSelector).filter(Boolean);
 
     const props = new Set<ColorProp>();
+    const unsafe = new Set<ColorProp>();
     for (const decl of (m[2] ?? "").split(";")) {
       const colon = decl.indexOf(":");
       if (colon === -1) continue;
       const prop = decl.slice(0, colon).trim().toLowerCase();
       if ((COLOR_PROPS as readonly string[]).includes(prop)) {
         props.add(prop as ColorProp);
+        if (!isThemeSafeColorValue(decl.slice(colon + 1))) unsafe.add(prop as ColorProp);
       }
     }
-    rules.push({ selectors, props });
+    const themeSafeProps = new Set([...props].filter((p) => !unsafe.has(p)));
+    rules.push({ selectors, props, themeSafeProps });
   }
   return rules;
 }
@@ -640,12 +703,16 @@ export function findMissingPairs(rules: CssRule[], options: FindOptions = {}): M
   };
 
   for (const rule of rules) {
+    // Theme-safe values (purely var(--…) tokens / transparent / inherit /
+    // currentColor) already flip with the theme — treat them as paired and
+    // only demand overrides for props carrying a literal (dark-capable) value.
+    const guardedProps = new Set([...rule.props].filter((p) => !rule.themeSafeProps.has(p)));
     for (const sel of rule.selectors) {
       if (sel.startsWith(LIGHT_PREFIX)) {
         const stripped = sel.slice(LIGHT_PREFIX.length).trim();
         if (inScope(stripped, scopes)) add(light, stripped, rule.props);
       } else if (inScope(sel, scopes)) {
-        add(base, sel, rule.props);
+        add(base, sel, guardedProps);
       }
     }
   }
@@ -994,7 +1061,10 @@ function printExplain(): void {
   );
   console.log(`       checked page must have a paired "${LIGHT_PREFIX}<same-selector>" rule`);
   console.log("       for the SAME property, or that element keeps its dark color and");
-  console.log("       washes out on the white light-mode card.\n");
+  console.log("       washes out on the white light-mode card.");
+  console.log("       Values that are purely theme tokens — var(--…) without a literal");
+  console.log("       fallback, transparent, inherit, currentColor — already flip with the");
+  console.log("       theme and are auto-accepted (no pair or allowlist entry needed).\n");
   console.log("Checked pages:");
   for (const t of TARGETS) {
     console.log(`  • ${t.label} — ${t.page} (${describeMode(t)})`);

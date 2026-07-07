@@ -8,6 +8,7 @@ import {
   stripCssComments,
   stripKeyframes,
   parseRules,
+  isThemeSafeColorValue,
   findMissingPairs,
   checkSource,
   checkTarget,
@@ -96,6 +97,101 @@ describe("parseRules", () => {
   it("does not treat background-color as color", () => {
     const rules = parseRules(".a { background-color:#000; }");
     expect([...rules[0].props]).toEqual([]);
+  });
+
+  it("marks props with purely theme-token values as themeSafeProps", () => {
+    const rules = parseRules(".a { color:var(--accent); border-color:#111; }");
+    expect([...rules[0].props].sort()).toEqual(["border-color", "color"]);
+    expect([...rules[0].themeSafeProps]).toEqual(["color"]);
+  });
+
+  it("an unsafe re-declaration of the same prop in the same rule wins (not theme-safe)", () => {
+    const rules = parseRules(".a { color:var(--accent); color:#111; }");
+    expect([...rules[0].themeSafeProps]).toEqual([]);
+  });
+});
+
+/**
+ * Theme-token value acceptance.
+ *
+ * A base rule whose value is purely `var(--…)` tokens / transparent / inherit /
+ * currentColor already flips with (or is neutral to) the theme — it can never
+ * wash out, so the guard auto-accepts it with no `html.light-mode` pair and no
+ * allowlist entry. Literal colors (and var() with a literal fallback, the
+ * undefined-var-dark-fallback trap) must keep failing.
+ */
+describe("isThemeSafeColorValue", () => {
+  it.each([
+    "var(--accent)",
+    " var(--border-glass-light) ",
+    "transparent",
+    "inherit",
+    "currentColor",
+    "CURRENTCOLOR",
+    "var(--a) var(--b)", // multi-value border-color
+    "var(--accent) !important",
+    "var(--a, var(--b))", // fallback that is itself a token
+    "var(--a, transparent)",
+    "var( --spaced-name )",
+  ])("accepts %s", (v) => {
+    expect(isThemeSafeColorValue(v)).toBe(true);
+  });
+
+  it.each([
+    "#111",
+    "rgba(255,255,255,.5)",
+    "white",
+    "var(--x, #0b0e14)", // literal dark fallback — undefined-var trap stays guarded
+    "var(--x, rgba(0,0,0,.5))",
+    "var(--a) #111", // mixed token + literal
+    "{{ $color }}", // blade interpolation — theme-driven literal, not a token
+    "var(x)", // not a custom property
+    "",
+    "   ",
+  ])("rejects %s", (v) => {
+    expect(isThemeSafeColorValue(v)).toBe(false);
+  });
+});
+
+describe("findMissingPairs — theme-token values are treated as already paired", () => {
+  it("passes a base color rule whose value is a bare var(--…) token", () => {
+    expect(missing(".up-badge { color:var(--accent); }")).toEqual([]);
+  });
+
+  it("passes a base border-color rule whose value is a var(--…) token", () => {
+    expect(missing(".up-feature:hover { border-color:var(--border-glass-light); }")).toEqual([]);
+  });
+
+  it("passes color:transparent (background-clip gradient headline pattern)", () => {
+    expect(missing(".up-hero { color:transparent; }")).toEqual([]);
+  });
+
+  it("passes inherit and currentColor values", () => {
+    expect(missing(".a { color:inherit; } .b { border-color:currentColor; }")).toEqual([]);
+  });
+
+  it("still flags the literal prop when the other prop is a token", () => {
+    expect(missing(".a { color:var(--accent); border-color:#111; }")).toEqual([
+      ".a { border-color }",
+    ]);
+  });
+
+  it("still flags a var() with a literal dark fallback (undefined-var trap)", () => {
+    expect(missing(".a { color:var(--maybe-missing, #0b0e14); }")).toEqual([".a { color }"]);
+  });
+
+  it("still flags plain literal colors (guard not weakened)", () => {
+    expect(missing(".btn { color:#34d399; }")).toEqual([".btn { color }"]);
+  });
+
+  it("flags a selector whose prop is token-safe in one rule but literal in another", () => {
+    const css = [".a { color:var(--accent); }", ".a { color:#111; }"].join("\n");
+    expect(missing(css)).toEqual([".a { color }"]);
+  });
+
+  it("applies to checkSource (and therefore the discovery pass) too", () => {
+    const src = wrap(".wl-title { color:var(--text-primary); }");
+    expect(checkSource(src)).toEqual([]);
   });
 });
 

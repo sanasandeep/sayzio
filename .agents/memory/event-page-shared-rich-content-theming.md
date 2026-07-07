@@ -50,7 +50,14 @@ wrapper via
 so animation percentage steps are never mistaken for color-carrying selectors.
 Intentional un-paired rules go in that target's `allowlist`
 (selector+property+reason), not by weakening the parser (e.g. `.ev-input:focus`
-blue focus ring; FAQs blue accent borders).
+blue focus ring; FAQs blue accent borders). THEME-SAFE VALUES are auto-accepted
+(no allowlist entry needed) on both the TARGETS hard-fail path and the discovery
+warning pass: a base rule whose value is purely `var(--…)` tokens and/or
+`transparent`/`inherit`/`currentColor` already flips with the theme
+(`isThemeSafeColorValue`). Deliberate exception: `var(--x, <literal>)` with a
+literal fallback is NOT auto-safe — if `--x` is undefined the dark fallback wins
+in both themes (undefined-css-var-dark-fallback trap) — only token/keyword
+fallbacks stay safe.
 
 **Inline-styled partials are ALSO covered on the event page** (via a target's
 optional `partials` array): the event right-column `event-connection-tips`
