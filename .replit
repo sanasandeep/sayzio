@@ -120,6 +120,10 @@ args = "factory-columns"
 task = "workflow.run"
 args = "e2e-ehb-band"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "multicol-transform"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -402,6 +406,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh events-hero-band-gap.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "multicol-transform"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:multicol-transform"
 
 [workflows.workflow.metadata]
 isValidation = true
