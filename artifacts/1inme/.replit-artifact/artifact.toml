@@ -117,6 +117,27 @@ args = ["sh", "-c", "pnpm install --frozen-lockfile && (cd artifacts/1inme && ph
 # dashboard shows a banner, and GET /up/schema returns 503 for external
 # monitoring.
 #
+# SCHEDULER / QUEUE NOTE (Task #3960): the Replit production run previously
+# started ONLY migrations + the web server, so NO scheduled job ever ticked on
+# the published app — no hourly db:check-pending-migrations alerts, no
+# reviews:sync/contacts:sync, and crucially no every-minute
+# `queue:work --stop-when-empty` drain, meaning queued emails/notifications
+# were never delivered from the Replit deployment (the EC2 kit handles this via
+# sayzio-scheduler.timer + sayzio-queue.service, so only Replit was affected).
+# Fix: a backgrounded supervised loop runs `php artisan schedule:work` alongside
+# the web server. schedule:work fires `schedule:run` every minute, which
+# executes every job declared in routes/schedules/*.php — including the queue
+# drain that sends queued mail. The loop restarts schedule:work if it ever
+# exits (logging a "::1inme:: schedule:work exited" marker to stderr), and its
+# normal output goes to storage/logs/scheduler.log so deployment logs stay
+# readable. The subshell survives the shell's `exec` (it stays a child of the
+# same PID), and if it somehow dies the web server keeps serving — scheduling
+# degrades, the site does not. CAVEAT: on Autoscale deployments the whole
+# container (scheduler included) suspends when there is no HTTP traffic, so
+# ticks only happen while the machine is awake; a Reserved VM deployment (or a
+# separate Scheduled Deployment running `php artisan schedule:run`) removes
+# that gap if strict cadence is ever needed.
+#
 # STATIC-ASSET ROUTER NOTE: the web server is PHP's built-in server pointed at
 # ../server.php (NOT public/index.php directly). We use `php -S` rather than
 # `php artisan serve` because artisan serve spawns a child php -S that strips all
@@ -130,7 +151,7 @@ args = ["sh", "-c", "pnpm install --frozen-lockfile && (cd artifacts/1inme && ph
 # under public/ as-is (correct Content-Type) and hands everything else to
 # index.php. See .agents/memory/prod-php-server-static-router.md.
 [services.production.run]
-args = ["sh", "-c", '''cd artifacts/1inme && { php artisan migrate --force; mst=$?; if [ "$mst" -ne 0 ]; then echo "::1inme:: migrate --force exited $mst — attempting self-healing reconcile of orphaned migrations..." >&2; php artisan db:reconcile-migrations --force; mst=$?; fi; if [ "$mst" -ne 0 ]; then echo "::1inme:: DEPLOY MIGRATION FAILED (exit=$mst) — database schema may be incomplete (missing tables/columns); workspace-backed and other pages may 500. Investigate immediately. Pending migrations:" >&2; php artisan migrate:status 2>&1 | grep -i pending >&2 || true; fi; } ; exec php -d variables_order=EGPCS -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M -S 0.0.0.0:5000 -t public server.php''']
+args = ["sh", "-c", '''cd artifacts/1inme && { php artisan migrate --force; mst=$?; if [ "$mst" -ne 0 ]; then echo "::1inme:: migrate --force exited $mst — attempting self-healing reconcile of orphaned migrations..." >&2; php artisan db:reconcile-migrations --force; mst=$?; fi; if [ "$mst" -ne 0 ]; then echo "::1inme:: DEPLOY MIGRATION FAILED (exit=$mst) — database schema may be incomplete (missing tables/columns); workspace-backed and other pages may 500. Investigate immediately. Pending migrations:" >&2; php artisan migrate:status 2>&1 | grep -i pending >&2 || true; fi; } ; mkdir -p storage/logs; ( while :; do php artisan schedule:work >> storage/logs/scheduler.log 2>&1; ec=$?; echo "::1inme:: schedule:work exited (exit=$ec) — restarting in 5s" >&2; sleep 5; done ) & exec php -d variables_order=EGPCS -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M -S 0.0.0.0:5000 -t public server.php''']
 
 [services.production.run.env]
 PORT = "5000"
