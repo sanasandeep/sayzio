@@ -233,8 +233,14 @@
                un-animated styles, letting the :hover transform take over.
                The 100% frame values (transform: none, opacity: 1, filter: none)
                already match .showcase-card's own defaults, so this is a no-op
-               for the resting look. */
-            .showcase-card.reveal.visible { animation: showcaseReveal .85s cubic-bezier(.19,1,.22,1) backwards; }
+               for the resting look.
+               --sc-stagger (seeded per card from the grid index in the Blade
+               loop) staggers the entrance left-to-right; `backwards` fill
+               holds each card at the hidden 0% frame during its delay, so
+               nothing flashes while waiting its turn. The IntersectionObserver
+               gate (.visible) is unchanged — no delay counts down until the
+               grid actually scrolls into view. */
+            .showcase-card.reveal.visible { animation: showcaseReveal .85s cubic-bezier(.19,1,.22,1) backwards; animation-delay: var(--sc-stagger, 0s); }
             @keyframes showcaseReveal {
                 0%   { opacity: 0; transform: translateY(46px) scale(.92) rotate(-1.2deg); filter: blur(5px); }
                 65%  { filter: blur(0); }
@@ -3964,7 +3970,7 @@
 
         <div class="showcase-field columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-3 sm:gap-4">
             @foreach($__linkTypes as $i => $lt)
-                <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card glass rounded-xl p-4 relative overflow-hidden mb-3 sm:mb-4 break-inside-avoid inline-block w-full align-top" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s;">
+                <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card glass rounded-xl p-4 relative overflow-hidden mb-3 sm:mb-4 break-inside-avoid inline-block w-full align-top" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s; --sc-stagger:{{ round($i * 0.08, 2) }}s;">
                     <div class="relative w-full h-full">
                         <div class="absolute -top-8 -right-8 w-20 h-20 rounded-full opacity-20 showcase-blob" style="background:{{ $lt['color'] }};"></div>
                         @if($lt['new'])
