@@ -23,7 +23,10 @@ class SitePageController extends Controller
         $request = $request ?? request();
 
         if ($slug === 'features') {
-            $page = SitePage::firstOrCreate(
+            // Warm path: cached attribute-array lookup (zero queries).
+            // Falls back to firstOrCreate on miss so a fresh install still
+            // seeds the row.
+            $page = SitePage::cachedBySlug('features') ?? SitePage::firstOrCreate(
                 ['slug' => 'features'],
                 [
                     'title' => 'Features',
@@ -56,7 +59,9 @@ class SitePageController extends Controller
             return view('public.features', ['page' => $page, 'categories' => $categories]);
         }
 
-        $page = SitePage::where('slug', $slug)->firstOrFail();
+        // Cached attribute-array lookup for the hot public pages; a miss
+        // falls back to the live query so 404 semantics are preserved.
+        $page = SitePage::cachedBySlug($slug) ?? SitePage::where('slug', $slug)->firstOrFail();
 
         if ($slug === 'faqs') {
             // Categorised structure lives in code; admin-edited Q/A in
@@ -198,32 +203,53 @@ class SitePageController extends Controller
      * same Features-page `link-types` category that powers the showcase, and
      * we only surface a card when its demo page actually exists.
      */
+    /** Cache key for the /demos gallery data (aliases + titles only —
+     *  URLs are host-dependent and built at render time). */
+    public const DEMOS_CACHE_KEY = 'demos:links:v1';
+
     public function demos()
     {
         // Showcase copy source (admin-editable). Passing the saved features
         // sections — or an empty array — lets the helper fall back to the
         // built-in 18 link types when nothing has been customised.
-        $featuresPage = SitePage::where('slug', 'features')->first();
+        // cachedBySlug keeps the warm path query-free; admin saves flush it.
+        $featuresPage = SitePage::cachedBySlug('features');
         $sections = is_array($featuresPage?->sections) ? $featuresPage->sections : [];
         $linkTypes = SitePagesContent::featuresLinkTypesFromSections($sections);
 
-        // Live explainer pages, keyed by alias so we only link real pages.
-        $demoLinks = Link::query()
-            ->where('type', 'biolink')
-            ->where('is_active', true)
-            ->where('alias', 'like', 'demo-type-%')
-            ->get(['id', 'alias', 'title'])
-            ->keyBy('alias');
+        // Demo-link lookups cached for 5 minutes as plain arrays — the
+        // seeded demo pages virtually never change, and with production
+        // DB_PERSISTENT=false each query costs a ~3s SSL reconnect.
+        try {
+            $demoData = \Illuminate\Support\Facades\Cache::remember(self::DEMOS_CACHE_KEY, 300, function () {
+                return [
+                    // Live explainer pages, keyed by alias so we only link
+                    // real pages.
+                    'links' => Link::query()
+                        ->where('type', 'biolink')
+                        ->where('is_active', true)
+                        ->where('alias', 'like', 'demo-type-%')
+                        ->get(['id', 'alias', 'title'])
+                        ->mapWithKeys(fn (Link $l) => [$l->alias => ['alias' => $l->alias, 'title' => (string) $l->title]])
+                        ->all(),
+                    // The live, working restaurant menu (order mode + WhatsApp
+                    // confirmation) seeded at /demo-restaurant. When present, we
+                    // surface a "Try it live" shortcut on the restaurant
+                    // explainer card so visitors can jump straight into the
+                    // ordering flow without first reading the explainer.
+                    'has_live_restaurant' => Link::query()
+                        ->where('type', 'restaurant_menu')
+                        ->where('is_active', true)
+                        ->where('alias', 'demo-restaurant')
+                        ->exists(),
+                ];
+            });
+        } catch (\Throwable $e) {
+            $demoData = ['links' => [], 'has_live_restaurant' => false];
+        }
 
-        // The live, working restaurant menu (order mode + WhatsApp confirmation)
-        // seeded at /demo-restaurant. When present, we surface a "Try it live"
-        // shortcut on the restaurant explainer card so visitors can jump
-        // straight into the ordering flow without first reading the explainer.
-        $hasLiveRestaurant = Link::query()
-            ->where('type', 'restaurant_menu')
-            ->where('is_active', true)
-            ->where('alias', 'demo-restaurant')
-            ->exists();
+        $demoLinks = collect($demoData['links'])->map(fn (array $row) => (object) $row);
+        $hasLiveRestaurant = (bool) $demoData['has_live_restaurant'];
         $restaurantExplainerAlias = 'demo-type-restaurant-menu';
 
         $cards = [];

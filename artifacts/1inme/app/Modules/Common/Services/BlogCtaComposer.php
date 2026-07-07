@@ -2,6 +2,7 @@
 
 namespace App\Modules\Common\Services;
 
+use App\Modules\Common\Models\BlogCategory;
 use App\Modules\Common\Models\BlogPost;
 use Illuminate\View\View;
 
@@ -23,6 +24,16 @@ class BlogCtaComposer
         'public.faqs'          => 'faqs',
     ];
 
+    /**
+     * The three latest published posts are cached for 5 minutes as PLAIN
+     * ATTRIBUTE ARRAYS (post + category) and rehydrated on read, so warm
+     * marketing pages don't pay a per-request blog query (production runs
+     * DB_PERSISTENT=false — each query re-opens a ~3s SSL connection).
+     * Never cache Eloquent models in the file cache (__PHP_Incomplete_Class).
+     * Flushed by {@see BlogPost::flushPublicCaches()} whenever a post changes.
+     */
+    public const CACHE_KEY = 'blog:latest_cta:v1';
+
     public function compose(View $view): void
     {
         $slug = self::VIEW_TO_SLUG[$view->getName()] ?? null;
@@ -42,8 +53,22 @@ class BlogCtaComposer
         $latest = collect();
         if ($enabled) {
             try {
-                $latest = BlogPost::published()->with('category')
-                    ->orderByDesc('published_at')->take(3)->get();
+                $rows = \Illuminate\Support\Facades\Cache::remember(self::CACHE_KEY, 300, function () {
+                    return BlogPost::published()->with('category')
+                        ->orderByDesc('published_at')->take(3)->get()
+                        ->map(fn (BlogPost $p) => [
+                            'post'     => $p->getAttributes(),
+                            'category' => $p->category?->getAttributes(),
+                        ])
+                        ->all();
+                });
+                $latest = collect($rows)->map(function (array $row) {
+                    $post = BlogPost::query()->hydrate([$row['post']])->first();
+                    $post->setRelation('category', !empty($row['category'])
+                        ? BlogCategory::query()->hydrate([$row['category']])->first()
+                        : null);
+                    return $post;
+                });
             } catch (\Throwable $e) {
                 $latest = collect();
             }

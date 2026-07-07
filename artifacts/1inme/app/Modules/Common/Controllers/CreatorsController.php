@@ -16,6 +16,17 @@ use Illuminate\Support\Facades\DB;
 
 class CreatorsController extends Controller
 {
+    /**
+     * Cache key for the default directory page every anonymous visitor
+     * hits (no search/tag/tier, trending sort, page 1, no adult flags).
+     * Stores PLAIN ATTRIBUTE ARRAYS rehydrated on read — never serialized
+     * Eloquent models, which the file cache turns into
+     * __PHP_Incomplete_Class. With production DB_PERSISTENT=false each
+     * query costs a ~3s SSL reconnect, so the warm path must run zero
+     * queries. 5-minute TTL keeps the directory reasonably fresh.
+     */
+    public const DEFAULT_CACHE_KEY = 'creators:index:default:v1';
+
     public function index(Request $request)
     {
         $q    = trim((string) $request->query('q', ''));
@@ -131,8 +142,6 @@ class CreatorsController extends Controller
                 break;
         }
 
-        $creators = $query->paginate(24)->withQueryString();
-
         // Trending carousel (Task #1211): up to 8 highest-velocity
         // creators. Cached for 5 minutes to keep the directory fast.
         $trendingCarousel = $this->trendingCarousel($publishedBiolinkUserIds, $showAdult, $onlyAdult);
@@ -141,20 +150,106 @@ class CreatorsController extends Controller
         // filters above the grid.
         $popularTags = $this->popularTags(24);
 
-        $myFollowingIds = [];
-        if (auth()->check()) {
-            $myFollowingIds = Follow::where('follower_id', auth()->id())
-                ->whereIn('creator_id', $creators->pluck('id'))
-                ->pluck('creator_id')->all();
+        // Warm cached path for the default anonymous view (covers ~all
+        // public traffic). Everything user- or filter-specific falls
+        // through to live queries below.
+        $isDefaultAnonymous = $q === '' && $tag === '' && $tier === ''
+            && ($sort === 'trending' || $sort === null || $sort === '')
+            && !$showAdult && !$onlyAdult
+            && (int) $request->query('page', 1) <= 1
+            && !$viewer;
+
+        $payload = null;
+        if ($isDefaultAnonymous) {
+            try {
+                $payload = \Illuminate\Support\Facades\Cache::remember(self::DEFAULT_CACHE_KEY, 300, function () use ($query) {
+                    $paginator = $query->paginate(24);
+                    $models = $paginator->getCollection();
+                    $primary = $this->primaryBiolinks($models);
+
+                    return [
+                        'creators'    => $models->map(fn (User $u) => $u->getAttributes())->all(),
+                        'total'       => $paginator->total(),
+                        'buzz'        => $this->buildBuzzSnippets($models->pluck('id')->all(), $primary),
+                        'messageable' => $this->buildMessageableBiolinks($primary),
+                        // Blade only needs the alias for card hrefs.
+                        'primary'     => collect($primary)->map(fn (array $b) => [
+                            'id' => $b['id'], 'alias' => $b['alias'],
+                        ])->all(),
+                    ];
+                });
+            } catch (\Throwable $e) {
+                $payload = null;
+            }
         }
 
-        $buzzSnippets = $this->buildBuzzSnippets($creators->pluck('id')->all());
-        $messageableBiolinks = $this->buildMessageableBiolinks($creators);
+        if ($payload !== null) {
+            $creators = new \Illuminate\Pagination\LengthAwarePaginator(
+                User::hydrate($payload['creators']),
+                (int) $payload['total'],
+                24,
+                1,
+                ['path' => route('creators.index'), 'pageName' => 'page']
+            );
+            $myFollowingIds = [];
+            $buzzSnippets = $payload['buzz'];
+            $messageableBiolinks = $payload['messageable'];
+            $primaryBiolinks = $payload['primary'];
+        } else {
+            $creators = $query->paginate(24)->withQueryString();
+
+            $myFollowingIds = [];
+            if (auth()->check()) {
+                $myFollowingIds = Follow::where('follower_id', auth()->id())
+                    ->whereIn('creator_id', $creators->pluck('id'))
+                    ->pluck('creator_id')->all();
+            }
+
+            // One batched query replaces the old per-creator
+            // primaryBiolink() lookups (blade cards + DM eligibility +
+            // visitor-count privacy all reuse it).
+            $primary = $this->primaryBiolinks($creators->getCollection());
+            $buzzSnippets = $this->buildBuzzSnippets($creators->pluck('id')->all(), $primary);
+            $messageableBiolinks = $this->buildMessageableBiolinks($primary, $viewer);
+            $primaryBiolinks = collect($primary)->map(fn (array $b) => [
+                'id' => $b['id'], 'alias' => $b['alias'],
+            ])->all();
+        }
 
         return view('common.creators-directory', compact(
             'creators', 'q', 'sort', 'tag', 'tier', 'myFollowingIds', 'buzzSnippets', 'messageableBiolinks',
-            'showAdult', 'onlyAdult', 'ageGated', 'trendingCarousel', 'popularTags'
+            'showAdult', 'onlyAdult', 'ageGated', 'trendingCarousel', 'popularTags', 'primaryBiolinks'
         ));
+    }
+
+    /**
+     * One batched lookup of each creator's "primary" biolink (their
+     * most-clicked active biolink-family link — same semantics as
+     * User::primaryBiolink()). Returns
+     * [user_id => ['id' =>, 'alias' =>, 'settings' =>]].
+     */
+    private function primaryBiolinks($creators): array
+    {
+        $ids = collect($creators)->pluck('id')->map(fn ($i) => (int) $i)->all();
+        if (empty($ids)) return [];
+
+        $rows = Link::whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
+            ->where('is_active', true)
+            ->whereIn('user_id', $ids)
+            ->orderByDesc('total_clicks')
+            ->get(['id', 'user_id', 'alias', 'settings']);
+
+        $out = [];
+        foreach ($rows as $l) {
+            $uid = (int) $l->user_id;
+            if (isset($out[$uid])) continue;
+            $out[$uid] = [
+                'id'       => (int) $l->id,
+                'alias'    => (string) $l->alias,
+                'settings' => $l->settings,
+            ];
+        }
+        return $out;
     }
 
     /**
@@ -163,28 +258,38 @@ class CreatorsController extends Controller
      */
     protected function trendingCarousel($publishedBiolinkUserIds, bool $showAdult, bool $onlyAdult): array
     {
-        $cacheKey = "creators:trending:" . ($showAdult ? '1' : '0') . ':' . ($onlyAdult ? '1' : '0');
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($publishedBiolinkUserIds, $showAdult, $onlyAdult) {
-            $sub = DB::table('follows')
-                ->select('creator_id', DB::raw('COUNT(*) as gained'))
-                ->where('created_at', '>=', now()->subDays(7))
-                ->groupBy('creator_id');
+        // v2: the v1 key cached serialized User models, which the file
+        // cache deserializes as __PHP_Incomplete_Class (500s the page).
+        // We now cache PLAIN ATTRIBUTE ARRAYS and rehydrate on read; the
+        // joined `gained` column survives as a plain attribute.
+        $cacheKey = "creators:trending:v2:" . ($showAdult ? '1' : '0') . ':' . ($onlyAdult ? '1' : '0');
+        try {
+            $rows = \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($publishedBiolinkUserIds, $showAdult, $onlyAdult) {
+                $sub = DB::table('follows')
+                    ->select('creator_id', DB::raw('COUNT(*) as gained'))
+                    ->where('created_at', '>=', now()->subDays(7))
+                    ->groupBy('creator_id');
 
-            $q = User::query()
-                ->where('discoverable', true)
-                ->whereIn('id', $publishedBiolinkUserIds)
-                ->joinSub($sub, 't', 't.creator_id', '=', 'users.id')
-                ->orderByDesc('t.gained')
-                ->select('users.*', 't.gained');
-            if ($onlyAdult) {
-                $q->where('adult_content_enabled', true)->whereNull('adult_flag_suspended_at');
-            } elseif (!$showAdult) {
-                $q->where(function ($w) {
-                    $w->where('adult_content_enabled', false)->orWhereNotNull('adult_flag_suspended_at');
-                });
-            }
-            return $q->limit(8)->get()->all();
-        });
+                $q = User::query()
+                    ->where('discoverable', true)
+                    ->whereIn('id', $publishedBiolinkUserIds)
+                    ->joinSub($sub, 't', 't.creator_id', '=', 'users.id')
+                    ->orderByDesc('t.gained')
+                    ->select('users.*', 't.gained');
+                if ($onlyAdult) {
+                    $q->where('adult_content_enabled', true)->whereNull('adult_flag_suspended_at');
+                } elseif (!$showAdult) {
+                    $q->where(function ($w) {
+                        $w->where('adult_content_enabled', false)->orWhereNotNull('adult_flag_suspended_at');
+                    });
+                }
+                return $q->limit(8)->get()->map(fn (User $u) => $u->getAttributes())->all();
+            });
+        } catch (\Throwable $e) {
+            $rows = [];
+        }
+
+        return User::hydrate(is_array($rows) ? $rows : [])->all();
     }
 
     /**
@@ -249,14 +354,11 @@ class CreatorsController extends Controller
      * current viewer (not account-blocked). Used to decide which cards
      * show the "Message" button on the directory.
      */
-    private function buildMessageableBiolinks($creators): array
+    private function buildMessageableBiolinks(array $primaryBiolinks, $viewer = null): array
     {
         $primaryBiolinkIds = []; // creator_id => link_id
-        foreach ($creators as $c) {
-            $bio = $c->primaryBiolink();
-            if ($bio) {
-                $primaryBiolinkIds[(int) $c->id] = (int) $bio->id;
-            }
+        foreach ($primaryBiolinks as $creatorId => $bio) {
+            $primaryBiolinkIds[(int) $creatorId] = (int) $bio['id'];
         }
         if (empty($primaryBiolinkIds)) return [];
 
@@ -268,7 +370,7 @@ class CreatorsController extends Controller
             ->all();
 
         $blockedOwnerIds = [];
-        $viewer = ViewerSession::user();
+        $viewer = $viewer ?? ViewerSession::user();
         if ($viewer) {
             $blockedOwnerIds = ViewerDmUserBlock::where('viewer_user_id', $viewer->id)
                 ->whereIn('owner_user_id', array_keys($primaryBiolinkIds))
@@ -292,7 +394,7 @@ class CreatorsController extends Controller
      * Batch-load eligible "lightweight social proof" Buzz campaigns for the
      * given creators and return [creator_id => ['icon' => ..., 'text' => ...]].
      */
-    private function buildBuzzSnippets(array $creatorIds): array
+    private function buildBuzzSnippets(array $creatorIds, array $primaryBiolinks = []): array
     {
         if (empty($creatorIds)) return [];
 
@@ -306,7 +408,7 @@ class CreatorsController extends Controller
         // strip the live-counter notification types from their allowed list
         // so the auto-picker falls through to a non-leaky badge (or none).
         // Mirrors the same data_get path used in social-proof.blade.php.
-        $hiddenCreatorIds = $this->creatorsHidingVisitorCounts($creatorIds);
+        $hiddenCreatorIds = $this->creatorsHidingVisitorCounts($creatorIds, $primaryBiolinks);
         $liveCounterTypes = ['visitor_count', 'conversion_count'];
         $allowedTypesPerCreator = [];
         foreach ($creatorIds as $cid) {
@@ -354,30 +456,22 @@ class CreatorsController extends Controller
      * live-visitor signals on public surfaces. Mirrors the data_get
      * path used in resources/views/common/blocks/social-proof.blade.php.
      */
-    private function creatorsHidingVisitorCounts(array $creatorIds): array
+    private function creatorsHidingVisitorCounts(array $creatorIds, array $primaryBiolinks = []): array
     {
         if (empty($creatorIds)) return [];
 
-        // Pick the same "primary biolink" each creator's directory snippet
-        // is implicitly tied to: their most-clicked active biolink.
-        $primary = Link::whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
-            ->where('is_active', true)
-            ->whereIn('user_id', $creatorIds)
-            ->orderByDesc('total_clicks')
-            ->get(['user_id', 'settings'])
-            ->groupBy('user_id');
-
+        // Reuse the already-batched primary-biolink rows (their settings
+        // came along in the same query) instead of re-querying.
         $hidden = [];
         foreach ($creatorIds as $cid) {
             $cid = (int) $cid;
-            $bios = $primary->get($cid);
-            if (!$bios || $bios->isEmpty()) {
+            $bio = $primaryBiolinks[$cid] ?? null;
+            if (!$bio) {
                 // No active biolink → privacy-first default: hide.
                 $hidden[] = $cid;
                 continue;
             }
-            $bio = $bios->first();
-            $explicit = data_get($bio->settings, 'biolink.privacy.hide_public_visitor_counts', null);
+            $explicit = data_get($bio['settings'] ?? null, 'biolink.privacy.hide_public_visitor_counts', null);
             $isHidden = $explicit === null ? true : (bool) $explicit;
             if ($isHidden) $hidden[] = $cid;
         }

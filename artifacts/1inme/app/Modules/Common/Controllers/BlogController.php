@@ -21,11 +21,42 @@ use Symfony\Component\HttpFoundation\Response;
 
 class BlogController extends Controller
 {
+    /**
+     * Cache key for the default /blogs index page (no search, no tag
+     * filter, page 1) — the page every anonymous visitor hits. Payload is
+     * PLAIN ATTRIBUTE ARRAYS rehydrated on read (never serialized Eloquent
+     * models — file cache turns those into __PHP_Incomplete_Class). With
+     * production DB_PERSISTENT=false each query pays a ~3s SSL reconnect,
+     * so the warm path must run zero queries. Invalidated immediately by
+     * {@see BlogPost::flushPublicCaches()}, plus a 10-minute TTL safety net
+     * for category/tag edits.
+     */
+    public const INDEX_CACHE_KEY = 'blogs:index:default:v1';
+
     public function index(Request $request)
     {
+        $q = trim((string) $request->query('q', ''));
+        $tagSlug = trim((string) $request->query('tag', ''));
+        $page = max(1, (int) $request->query('page', 1));
+
+        // Warm cached path for the default view (covers ~all anonymous
+        // traffic). Filtered/paginated views fall through to live queries.
+        if ($q === '' && $tagSlug === '' && $page === 1) {
+            $cached = $this->cachedDefaultIndex();
+            if ($cached !== null) {
+                return view('public.blogs.index', $cached + [
+                    'activeTag' => null,
+                    'q'         => '',
+                    'settings'  => BlogSettings::all(),
+                    'pageTitle' => 'Blog',
+                    'pageMeta'  => BlogSettings::all()['hero_heading'] ?? 'Blog',
+                ]);
+            }
+        }
+
         $query = BlogPost::published()->with(['category', 'author']);
 
-        if ($q = trim((string) $request->query('q', ''))) {
+        if ($q !== '') {
             $query->where(function ($w) use ($q) {
                 $w->where('title', 'ilike', "%{$q}%")
                   ->orWhere('excerpt', 'ilike', "%{$q}%")
@@ -36,7 +67,7 @@ class BlogController extends Controller
         // Tag filter via ?tag=slug — surfaces tag chips on the index page
         // without forcing a full /blogs/tag/{slug} navigation.
         $activeTag = null;
-        if ($tagSlug = trim((string) $request->query('tag', ''))) {
+        if ($tagSlug !== '') {
             $activeTag = BlogTag::where('slug', $tagSlug)->first();
             if ($activeTag) {
                 $tagId = $activeTag->id;
@@ -63,6 +94,68 @@ class BlogController extends Controller
             'pageTitle'   => 'Blog',
             'pageMeta'    => BlogSettings::all()['hero_heading'] ?? 'Blog',
         ]);
+    }
+
+    /**
+     * Returns the fully-rehydrated view data for the default index page
+     * from cache (building it on miss), or null when the cache layer is
+     * unavailable — callers then fall through to the live-query path.
+     */
+    private function cachedDefaultIndex(): ?array
+    {
+        try {
+            $payload = \Illuminate\Support\Facades\Cache::remember(self::INDEX_CACHE_KEY, 600, function () {
+                $paginator = BlogPost::published()->with(['category', 'author'])
+                    ->orderByDesc('published_at')->orderByDesc('id')->paginate(9);
+                $categories = BlogCategory::orderBy('sort_order')->orderBy('name')->get();
+                $featured = BlogPost::published()->featured()->orderByDesc('published_at')->take(3)->get();
+                $popularTags = BlogTag::withCount(['posts' => fn ($w) => $w->where('status', 'published')])
+                    ->orderByDesc('posts_count')->orderBy('name')->take(20)->get()
+                    ->filter(fn ($t) => $t->posts_count > 0)->values();
+
+                return [
+                    'posts' => $paginator->getCollection()->map(fn (BlogPost $p) => [
+                        'post'     => $p->getAttributes(),
+                        'category' => $p->category?->getAttributes(),
+                        'author'   => $p->author?->getAttributes(),
+                    ])->all(),
+                    'total'       => $paginator->total(),
+                    'categories'  => $categories->map(fn ($c) => $c->getAttributes())->all(),
+                    'featured'    => $featured->map(fn ($p) => $p->getAttributes())->all(),
+                    // posts_count from withCount() lives in the attributes,
+                    // so it survives the round-trip.
+                    'popularTags' => $popularTags->map(fn ($t) => $t->getAttributes())->all(),
+                ];
+            });
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        $posts = collect($payload['posts'])->map(function (array $row) {
+            $post = BlogPost::query()->hydrate([$row['post']])->first();
+            $post->setRelation('category', !empty($row['category'])
+                ? BlogCategory::query()->hydrate([$row['category']])->first()
+                : null);
+            $post->setRelation('author', !empty($row['author'])
+                ? Admin::query()->hydrate([$row['author']])->first()
+                : null);
+            return $post;
+        });
+
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $posts,
+            (int) $payload['total'],
+            9,
+            1,
+            ['path' => route('site.blogs.index'), 'pageName' => 'page']
+        );
+
+        return [
+            'posts'       => $paginator,
+            'categories'  => BlogCategory::hydrate($payload['categories']),
+            'featured'    => BlogPost::hydrate($payload['featured']),
+            'popularTags' => BlogTag::hydrate($payload['popularTags']),
+        ];
     }
 
     public function category(string $slug)

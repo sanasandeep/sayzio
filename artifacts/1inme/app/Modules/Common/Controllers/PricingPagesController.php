@@ -22,6 +22,61 @@ use Illuminate\Support\Facades\Cookie;
  */
 class PricingPagesController extends Controller
 {
+    /**
+     * Cache key for the plan + coin-package catalogue (models + their
+     * prices relation) stored as PLAIN ATTRIBUTE ARRAYS and rehydrated on
+     * read — never serialized Eloquent models, which the file cache turns
+     * into __PHP_Incomplete_Class. The catalogue is user-independent (tax
+     * is layered on top per-user), so all visitors share one entry. With
+     * production DB_PERSISTENT=false each query pays a ~3s SSL reconnect,
+     * so the warm anonymous /pricing path must run zero queries. Admin
+     * pricing edits go live within the 5-minute TTL.
+     */
+    public const CATALOG_CACHE_KEY = 'pricing:catalog:v1';
+
+    /**
+     * Returns [plans Collection, packages Collection] with the `prices`
+     * relation loaded, from cache when warm. Falls back to live queries
+     * if the cache layer is unavailable.
+     */
+    private function catalog(): array
+    {
+        $fetch = fn () => [
+            'plans' => Plan::active()->public()->with('prices')->ordered()->get()
+                ->map(fn (Plan $p) => [
+                    'attrs'  => $p->getAttributes(),
+                    'prices' => $p->prices->map(fn ($pr) => $pr->getAttributes())->all(),
+                ])->all(),
+            'packages' => CoinPackage::active()->with('prices')->ordered()->get()
+                ->map(fn (CoinPackage $p) => [
+                    'attrs'  => $p->getAttributes(),
+                    'prices' => $p->prices->map(fn ($pr) => $pr->getAttributes())->all(),
+                ])->all(),
+        ];
+
+        try {
+            $payload = \Illuminate\Support\Facades\Cache::remember(self::CATALOG_CACHE_KEY, 300, $fetch);
+        } catch (\Throwable $e) {
+            $payload = $fetch();
+        }
+
+        $hydrate = function (string $modelClass, array $rows) {
+            return collect($rows)->map(function (array $row) use ($modelClass) {
+                $model = $modelClass::query()->hydrate([$row['attrs']])->first();
+                $model->setRelation(
+                    'prices',
+                    \App\Modules\Admin\Models\Price::hydrate($row['prices'] ?? [])
+                );
+                return $model;
+            });
+        };
+
+        return [
+            $hydrate(Plan::class, $payload['plans'] ?? []),
+            $hydrate(CoinPackage::class, $payload['packages'] ?? []),
+        ];
+    }
+
     public function plans(Request $request)
     {
         $user = $request->user();
@@ -58,7 +113,7 @@ class PricingPagesController extends Controller
             );
         };
 
-        $plans = Plan::active()->public()->with('prices')->ordered()->get();
+        [$plans, $packageModels] = $this->catalog();
         $rows = $plans->map(function (Plan $p) use ($currencies, $taxFor) {
             $prices = [];
             $tax = [];
@@ -82,7 +137,7 @@ class PricingPagesController extends Controller
             ];
         });
 
-        $packages = CoinPackage::active()->with('prices')->ordered()->get()
+        $packages = $packageModels
             ->map(function (CoinPackage $p) use ($currencies) {
                 $priced = [];
                 foreach ($currencies as $cur) {

@@ -8,13 +8,73 @@ class SitePage extends Model
 {
     protected $fillable = ['slug', 'title', 'meta_description', 'meta_keywords', 'intro', 'last_updated_at', 'show_toc', 'sections', 'extra', 'cta_label', 'cta_url'];
 
+    /**
+     * Prefix for the per-slug attribute-array cache used by
+     * {@see cachedBySlug()}. Bump the version to invalidate all entries.
+     */
+    public const SLUG_CACHE_PREFIX = 'sitepage:attrs:v1:';
+
     protected static function booted(): void
     {
         // Any time a marketing page is created, updated or deleted, invalidate
         // the cached marketing sitemap + sitemap index (and best-effort ping
         // search engines) so changes go live and are recrawled promptly.
-        static::saved(fn () => \App\Modules\Common\Controllers\SitemapController::flushPublicCaches());
-        static::deleted(fn () => \App\Modules\Common\Controllers\SitemapController::flushPublicCaches());
+        // Also drop the page's own per-slug attribute cache so admin edits
+        // to marketing copy go live immediately.
+        static::saved(function (self $page) {
+            \App\Modules\Common\Controllers\SitemapController::flushPublicCaches();
+            $page->forgetSlugCache();
+        });
+        static::deleted(function (self $page) {
+            \App\Modules\Common\Controllers\SitemapController::flushPublicCaches();
+            $page->forgetSlugCache();
+        });
+    }
+
+    protected function forgetSlugCache(): void
+    {
+        try {
+            \Illuminate\Support\Facades\Cache::forget(self::SLUG_CACHE_PREFIX . $this->slug);
+            // The slug itself may have been renamed — drop the old key too.
+            if ($this->isDirty('slug') && $this->getOriginal('slug')) {
+                \Illuminate\Support\Facades\Cache::forget(self::SLUG_CACHE_PREFIX . $this->getOriginal('slug'));
+            }
+        } catch (\Throwable $e) {
+            // Cache flushing must never break the write path.
+        }
+    }
+
+    /**
+     * Cached lookup for hot public marketing pages: stores the row as a
+     * PLAIN ATTRIBUTE ARRAY (never a serialized model — the file cache
+     * turns those into __PHP_Incomplete_Class) and rehydrates on read, so
+     * warm anonymous requests skip the per-request query (production runs
+     * DB_PERSISTENT=false, making each query a ~3s SSL reconnect).
+     * Only positive hits are cached; a missing row always re-queries so
+     * firstOrCreate/firstOrFail call-sites keep their semantics.
+     */
+    public static function cachedBySlug(string $slug): ?self
+    {
+        try {
+            $attrs = \Illuminate\Support\Facades\Cache::remember(
+                self::SLUG_CACHE_PREFIX . $slug,
+                300,
+                function () use ($slug) {
+                    $row = static::where('slug', $slug)->first();
+                    // Cache::remember treats null as a miss, so a missing
+                    // row is simply never cached (and re-queried next time).
+                    return $row?->getAttributes();
+                }
+            );
+        } catch (\Throwable $e) {
+            $attrs = null;
+        }
+
+        if (!is_array($attrs) || $attrs === []) {
+            return null;
+        }
+
+        return static::query()->hydrate([$attrs])->first();
     }
 
     protected function casts(): array

@@ -2,8 +2,10 @@
 
 namespace App\Modules\Common\Services;
 
+use App\Modules\User\Models\EventTicketTier;
 use App\Modules\User\Models\IcsData;
 use App\Modules\User\Models\Link;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 /**
@@ -20,12 +22,51 @@ class EventsHeroBandComposer
      *  that @includes it gets the data, with no per-page wiring. */
     public const VIEW = 'common.partials.events-hero-band';
 
+    /**
+     * The band is included from the shared marketing layout, so its three
+     * queries (links + ics_data + ticket tiers) used to run on EVERY public
+     * marketing page render. In production (DB_PERSISTENT=false against the
+     * cross-region RDS) even one per-request query costs a fresh ~3s SSL
+     * connect, so the payload is cached for 5 minutes as PLAIN ATTRIBUTE
+     * ARRAYS and rehydrated on read — never serialized models, which don't
+     * survive the file cache (__PHP_Incomplete_Class on unserialize).
+     */
+    public const CACHE_KEY = 'events:hero_band:v1';
+
     public function compose(View $view): void
     {
         $view->with('heroBandEvents', $this->featuredEvents());
     }
 
     protected function featuredEvents()
+    {
+        try {
+            $rows = Cache::remember(self::CACHE_KEY, 300, function () {
+                return $this->queryFeaturedEvents()
+                    ->map(fn (Link $l) => [
+                        'link'  => $l->getAttributes(),
+                        'ics'   => $l->icsData?->getAttributes(),
+                        'tiers' => $l->eventTicketTiers->map(fn ($t) => $t->getAttributes())->all(),
+                    ])
+                    ->all();
+            });
+        } catch (\Throwable $e) {
+            // Events tables not migrated yet — the band simply hides.
+            return collect();
+        }
+
+        return collect($rows)->map(function (array $row) {
+            $link = Link::query()->hydrate([$row['link']])->first();
+            $link->setRelation('icsData', !empty($row['ics'])
+                ? IcsData::query()->hydrate([$row['ics']])->first()
+                : null);
+            $link->setRelation('eventTicketTiers', EventTicketTier::hydrate($row['tiers'] ?? []));
+
+            return $link;
+        });
+    }
+
+    protected function queryFeaturedEvents()
     {
         return Link::where('type', 'ics')
             ->where('is_active', true)

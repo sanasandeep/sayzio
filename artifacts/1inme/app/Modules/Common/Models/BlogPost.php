@@ -63,6 +63,15 @@ class BlogPost extends Model
             \Illuminate\Support\Facades\Cache::forget(
                 \App\Modules\Common\Controllers\HomeController::FEATURED_CACHE_KEY
             );
+            // Marketing "Latest from blog" CTA band (features/about/…).
+            \Illuminate\Support\Facades\Cache::forget(
+                \App\Modules\Common\Services\BlogCtaComposer::CACHE_KEY
+            );
+            // Public /blogs index default page (posts + categories + featured
+            // + popular tags cached as rehydratable arrays).
+            \Illuminate\Support\Facades\Cache::forget(
+                \App\Modules\Common\Controllers\BlogController::INDEX_CACHE_KEY
+            );
         } catch (\Throwable $e) {
             // Cache flushing must never break the write path.
         }

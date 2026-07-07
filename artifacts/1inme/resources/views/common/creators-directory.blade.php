@@ -125,14 +125,17 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             @foreach($creators as $creator)
                 @php
-                    $bio = $creator->primaryBiolink();
+                    // Batched in the controller (one query for the whole
+                    // page) instead of the old per-card primaryBiolink()
+                    // N+1 lookup. [user_id => ['id' =>, 'alias' =>]].
+                    $bio = ($primaryBiolinks ?? [])[(int) $creator->id] ?? null;
                     // Task #1207: cards now point to the new public Creator
                     // Profile at /@handle (when the creator has a handle and
                     // has published their profile). Falls back to the
                     // primary biolink for legacy accounts that haven't
                     // claimed a handle yet.
                     $hasProfile = !empty($creator->handle) && (bool) ($creator->profile_published ?? false);
-                    $href = $hasProfile ? url('/@' . $creator->handle) : ($bio ? url('/' . $bio->alias) : '#');
+                    $href = $hasProfile ? url('/@' . $creator->handle) : ($bio ? url('/' . $bio['alias']) : '#');
                     $isFollowing = $viewerNow ? \App\Modules\User\Models\Follow::where('follower_id', $viewerNow->id)->where('creator_id', $creator->id)->exists() : false;
                 @endphp
                 <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all">
