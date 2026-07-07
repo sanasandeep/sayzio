@@ -3,29 +3,33 @@
         'title' => $pageTitle,
         'meta_description' => $pageMeta,
     ];
+
+    // Resolve the article's canonical/social metadata BEFORE @extends so the
+    // shared site-layout partial (public.partials.marketing-share-meta),
+    // which renders before @stack('head'), emits the article's own
+    // canonical/OG/Twitter tags instead of generic website defaults. This
+    // keeps a single authoritative canonical + share tag set instead of two
+    // competing ones (shared layout defaults + a second push here).
+    $shareTitle = $post->meta_title ?: $post->title;
+    $shareDescription = $post->meta_description ?: $post->excerpt;
+    $shareImage = $post->og_image ?: $post->cover_image ?: ($settings['default_og_image'] ?? '');
+    $shareUrl = $post->canonical_url ?: route('site.blogs.show', $post->slug);
+    $shareType = 'article';
 @endphp
 @extends('public.layouts.site')
 @section('title', $pageTitle)
 
 @push('head')
-    <link rel="canonical" href="{{ $post->canonical_url ?: route('site.blogs.show', $post->slug) }}">
-    <meta property="og:title" content="{{ $post->meta_title ?: $post->title }}">
-    <meta property="og:description" content="{{ $post->meta_description ?: $post->excerpt }}">
-    <meta property="og:type" content="article">
-    @if($post->og_image ?: $post->cover_image ?: ($settings['default_og_image'] ?? null))
-        <meta property="og:image" content="{{ $post->og_image ?: $post->cover_image ?: $settings['default_og_image'] }}">
-    @endif
-    <meta name="twitter:card" content="summary_large_image">
     @php
         $jsonLd = [
             '@context'         => 'https://schema.org',
             '@type'            => 'BlogPosting',
             'headline'         => $post->title,
-            'description'      => $post->meta_description ?: $post->excerpt,
-            'image'            => $post->og_image ?: $post->cover_image,
+            'description'      => $shareDescription,
+            'image'            => $shareImage,
             'datePublished'    => optional($post->published_at)->toIso8601String(),
             'author'           => ['@type' => 'Person', 'name' => optional($post->author)->name ?: 'Sayzio'],
-            'mainEntityOfPage' => route('site.blogs.show', $post->slug),
+            'mainEntityOfPage' => $shareUrl,
         ];
     @endphp
     <script type="application/ld+json">{!! json_encode($jsonLd, JSON_UNESCAPED_SLASHES) !!}</script>
@@ -57,11 +61,21 @@
                         <span><i class="far fa-clock mr-1"></i>{{ $post->reading_time_min }} min read</span>
                     </div>
                 </div>
-                @php $shareUrl = urlencode(route('site.blogs.show', $post->slug)); $shareTitle = urlencode($post->title); @endphp
+                @php
+                    // NOTE: intentionally named differently from the
+                    // $shareUrl/$shareTitle set above (before @extends) for
+                    // the shared canonical/OG/Twitter meta — Blade forwards
+                    // ALL locally-defined variables to the extended layout
+                    // via get_defined_vars(), so reusing those names here
+                    // would silently clobber the meta values with urlencoded
+                    // ones by the time the layout renders.
+                    $shareLinkUrl = urlencode(route('site.blogs.show', $post->slug));
+                    $shareLinkTitle = urlencode($post->title);
+                @endphp
                 <div class="ml-auto hidden sm:flex items-center gap-1.5">
-                    <a href="https://twitter.com/intent/tweet?url={{ $shareUrl }}&text={{ $shareTitle }}" target="_blank" rel="noopener" aria-label="Share on Twitter" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70"><i class="fab fa-x-twitter"></i></a>
-                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl }}" target="_blank" rel="noopener" aria-label="Share on Facebook" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70"><i class="fab fa-facebook-f"></i></a>
-                    <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ $shareUrl }}" target="_blank" rel="noopener" aria-label="Share on LinkedIn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="https://twitter.com/intent/tweet?url={{ $shareLinkUrl }}&text={{ $shareLinkTitle }}" target="_blank" rel="noopener" aria-label="Share on Twitter" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70"><i class="fab fa-x-twitter"></i></a>
+                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ $shareLinkUrl }}" target="_blank" rel="noopener" aria-label="Share on Facebook" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70"><i class="fab fa-facebook-f"></i></a>
+                    <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ $shareLinkUrl }}" target="_blank" rel="noopener" aria-label="Share on LinkedIn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70"><i class="fab fa-linkedin-in"></i></a>
                     <button type="button" onclick="navigator.clipboard.writeText('{{ route('site.blogs.show', $post->slug) }}'); this.innerHTML='<i class=\'fas fa-check\'></i>';" aria-label="Copy link" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70"><i class="fas fa-link"></i></button>
                 </div>
             </div>
