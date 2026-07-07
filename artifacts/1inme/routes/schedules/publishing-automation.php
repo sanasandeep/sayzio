@@ -51,6 +51,12 @@ return [
         'cadence'     => ['hourlyAt', 52],
     ],
     [
+        'key'         => 'home:warm-caches',
+        'description' => 'Proactively rebuild the home-page caches (anonymous payload, featured posts, AI-hero demos, domain branding) so no visitor ever hits a cold render over the distant DB.',
+        'cadence'     => ['everyFourMinutes'],
+        'without_overlapping' => 5,
+    ],
+    [
         'key'         => 'domains:issue-certificates',
         'description' => 'Issue Let\'s Encrypt certificates for verified custom domains without one (EC2 kit only; no-op unless SSL_AUTO_ISSUE=true).',
         'cadence'     => ['everyTenMinutes'],

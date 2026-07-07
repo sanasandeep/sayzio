@@ -57,15 +57,7 @@ class DomainBranding
             $attrs = Cache::remember(
                 'domain_branding:current:' . $host,
                 300,
-                function () use ($host) {
-                    $m = Domain::query()
-                        ->whereNull('user_id')
-                        ->where('is_primary', false)
-                        ->where('domain', $host)
-                        ->first();
-
-                    return $m ? $m->getAttributes() : false;
-                }
+                fn () => self::lookupAttributes($host)
             );
 
             self::$domain = $attrs === false ? null : Domain::hydrate([$attrs])->first();
@@ -75,6 +67,52 @@ class DomainBranding
         }
 
         return self::$domain;
+    }
+
+    /**
+     * Proactively refresh the per-host branding cache for $host so no
+     * visitor request has to pay the (cross-region) domain lookup on a cache
+     * miss. Called by the scheduled home-cache warmer for each platform
+     * host. Returns false (and writes nothing) when the domains table isn't
+     * available, so a broken schema never poisons the cache with a bogus
+     * "no branding" sentinel.
+     */
+    public static function warmHost(string $host, int $ttl = 300): bool
+    {
+        $normalized = PlatformHosts::normalize($host);
+        if ($normalized === null) {
+            return false;
+        }
+
+        try {
+            Cache::put(
+                'domain_branding:current:' . $normalized,
+                self::lookupAttributes($normalized),
+                $ttl
+            );
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * The raw cacheable lookup: the matching non-primary global domain's
+     * attributes, or the `false` sentinel for "looked up, no match" — never
+     * null, so a miss isn't mistaken for an empty cache.
+     *
+     * @return array<string,mixed>|false
+     */
+    private static function lookupAttributes(string $host): array|false
+    {
+        $m = Domain::query()
+            ->whereNull('user_id')
+            ->where('is_primary', false)
+            ->where('domain', $host)
+            ->first();
+
+        return $m ? $m->getAttributes() : false;
     }
 
     /**

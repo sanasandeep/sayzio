@@ -25,6 +25,16 @@ Guard test: `tests/Feature/HomeFeaturedBlogPostsTest` (cache-hit test deletes
 the rows then re-renders to prove no live query). To re-check the invariant,
 profile with a kernel-handle script + `DB::listen` and confirm `queries=0`.
 
+**Proactive warming (scheduled):** the caches are no longer visitor-primed
+only — a registry-declared `home:warm-caches` job rebuilds every home cache
+(anon payload per currency, featured posts, AI-hero aliases, per-host domain
+branding) every 4 minutes via `HomePageCache::warm()`. Contract: the warmer
+writes with a TTL LONGER than its cadence (so one missed run can't open an
+expiry gap) while freshness comes from each run overwriting the keys from the
+DB; the request-path miss branch remains only as a cold-boot fallback. Builders
+live once in `HomePageCache` — never fork them back into the controller, or
+warmer and render drift.
+
 **Related gotcha (fixed):** on the public home route resolve the visitor via
 `$request->user('web')`, not `$request->user()` — an active admin-guard
 session makes the default guard return an `Admin`, which the `?User`-typed
