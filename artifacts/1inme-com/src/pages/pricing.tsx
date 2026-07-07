@@ -127,7 +127,7 @@ export default function Pricing() {
             </motion.div>
           </div>
 
-          <div id="plans" className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16 scroll-mt-24">
+          <div id="plans" className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
             {plans.map((plan, index) => (
               <motion.div
                 key={plan.name}

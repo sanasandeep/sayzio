@@ -251,6 +251,19 @@ html.light-mode .mkt-navbar-bar.is-stuck {
     .mkt-nav-autohide { transition: none; }
 }
 
+/* ---- Anchor landing offset for the auto-hiding header ----
+   The bar reappears on any upward scroll, so in-page anchor jumps (e.g. the
+   home "Pricing" link -> #pricing) must reserve room for it or the returning
+   bar covers the heading the visitor just jumped to. scroll-padding on the
+   root applies to every anchor navigation: 5rem ≈ bar height + breathing
+   room, plus the announcement-banner offset when one is showing. Pages with
+   taller sticky chrome (features category bar, api-docs) already declare
+   their own scroll-padding in page-level styles, which load after this file
+   and win the tie. */
+html {
+    scroll-padding-top: calc(5rem + var(--inme-anno-h, 0px));
+}
+
 /* ---- Account dropdown panel chrome ----
    The header account menu needs the same translucent/blur look as the navbar
    bar, but must NOT inherit the bar's responsive width/centering rules (those

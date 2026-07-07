@@ -261,6 +261,15 @@
   .mkt-nav-autohide { transition: none; }
 }
 
+/* ---- Anchor landing offset for the auto-hiding header (mirrors Laravel) ----
+   The bar reappears on any upward scroll, so in-page anchor jumps (e.g. the
+   home "Meet the AI suite" link -> #ai-suite) must reserve room for it or the
+   returning bar covers the heading. 5rem ≈ bar height + breathing room, plus
+   the announcement-banner offset when one is showing. */
+html {
+  scroll-padding-top: calc(5rem + var(--inme-anno-h, 0px));
+}
+
 /* ---------- Hero mesh blobs (mirrors the Laravel .mesh-bg) ---------- */
 .mesh-bg {
   position: absolute;
