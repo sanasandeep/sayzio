@@ -9,15 +9,28 @@
     if (empty($homeLinkTypes)) {
         $homeLinkTypes = \App\Modules\Common\Support\SitePagesContent::homeLinkTypesDefault();
     }
+    // Legacy data has no explicit `featured` flags — the public page then
+    // features the first 6 positionally. Reflect that rule in the editor by
+    // pre-checking the first 6 so the hierarchy is visible; saving converts
+    // it into explicit flags with identical rendering.
+    $homeLtHasFlags = false;
+    foreach ($homeLinkTypes as $lt) {
+        if (is_array($lt) && array_key_exists('featured', $lt)) {
+            $homeLtHasFlags = true;
+            break;
+        }
+    }
+    $homeLtCap = \App\Modules\Common\Support\SitePagesContent::HOME_LINK_TYPES_FEATURED_CAP;
     // Stable keys so x-for tracks rows across reorders/removals.
-    $homeLinkTypesForJs = array_map(function ($lt, $i) {
+    $homeLinkTypesForJs = array_map(function ($lt, $i) use ($homeLtHasFlags, $homeLtCap) {
         return [
-            '_key'  => $i,
-            'name'  => (string) ($lt['name'] ?? ''),
-            'desc'  => (string) ($lt['desc'] ?? ''),
-            'icon'  => (string) ($lt['icon'] ?? 'fa-link'),
-            'color' => (string) ($lt['color'] ?? '#3d6bff'),
-            'new'   => (bool) ($lt['new'] ?? false),
+            '_key'     => $i,
+            'name'     => (string) ($lt['name'] ?? ''),
+            'desc'     => (string) ($lt['desc'] ?? ''),
+            'icon'     => (string) ($lt['icon'] ?? 'fa-link'),
+            'color'    => (string) ($lt['color'] ?? '#3d6bff'),
+            'new'      => (bool) ($lt['new'] ?? false),
+            'featured' => $homeLtHasFlags ? (bool) ($lt['featured'] ?? false) : ($i < $homeLtCap),
         ];
     }, array_values($homeLinkTypes), array_keys(array_values($homeLinkTypes)));
 
@@ -37,8 +50,14 @@
         rows: {{ json_encode($homeLinkTypesForJs) }},
         featuresSource: {{ json_encode($featuresLinkTypesForJs) }},
         nextKey: {{ count($homeLinkTypesForJs) }},
+        featuredCap: {{ $homeLtCap }},
         dragFrom: null,
-        add(){ this.rows.push({ _key: this.nextKey++, name: '', desc: '', icon: 'fa-link', color: '#3d6bff', new: false }); },
+        featuredCount(){ return this.rows.filter(function(r){ return !!r.featured; }).length; },
+        toggleFeatured(lt){
+            if(!lt.featured && this.featuredCount() >= this.featuredCap){ return; }
+            lt.featured = !lt.featured;
+        },
+        add(){ this.rows.push({ _key: this.nextKey++, name: '', desc: '', icon: 'fa-link', color: '#3d6bff', new: false, featured: false }); },
         remove(i){ this.rows.splice(i, 1); },
         moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } },
         moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } },
@@ -69,6 +88,7 @@
                             icon: f.icon || (prev ? prev.icon : 'fa-link') || 'fa-link',
                             color: prev ? prev.color : '#3d6bff',
                             new: prev ? !!prev.new : false,
+                            featured: prev ? !!prev.featured : false,
                         };
                     });
                 },
@@ -79,6 +99,9 @@
         <div>
             <label class="text-sm font-semibold text-white">&ldquo;What you can create&rdquo; link types</label>
             <p class="text-[11px] text-white/50 mt-1">The cards in the home-page showcase. Edit each type's name, description, icon, accent colour and &ldquo;New&rdquo; badge, and drag to reorder. Leaving the whole list empty restores the built-in defaults.</p>
+            <p class="text-[11px] mt-1" :class="featuredCount() >= featuredCap ? 'text-amber-400/80' : 'text-white/50'">
+                <i class="fas fa-star mr-1 text-amber-400/80"></i><span x-text="featuredCount()"></span>/<span x-text="featuredCap"></span> featured — featured types render as the big headline cards; everything else appears in the compact &ldquo;And plenty more&rdquo; strip below them.
+            </p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
             <button type="button" @click="syncFromFeatures()" :disabled="featuresSource.length===0"
@@ -157,6 +180,17 @@
                         <input type="hidden" :name="'extra[link_types]['+i+'][new]'" value="0">
                         <input type="checkbox" :name="'extra[link_types]['+i+'][new]'" value="1" x-model="lt.new" class="rounded border-white/20 bg-white/5">
                         Show &ldquo;New&rdquo; badge
+                    </label>
+                    <label class="flex items-center gap-2 text-sm"
+                           :class="(!lt.featured && featuredCount() >= featuredCap) ? 'text-white/40 cursor-not-allowed' : 'text-white/80 cursor-pointer'"
+                           :title="(!lt.featured && featuredCount() >= featuredCap) ? 'Featured tier is full — un-feature another type first' : 'Show this type as a big featured card'">
+                        <input type="hidden" :name="'extra[link_types]['+i+'][featured]'" value="0">
+                        <input type="checkbox" :name="'extra[link_types]['+i+'][featured]'" value="1"
+                               :checked="lt.featured"
+                               @click.prevent="toggleFeatured(lt)"
+                               :disabled="!lt.featured && featuredCount() >= featuredCap"
+                               class="rounded border-white/20 bg-white/5 disabled:opacity-40">
+                        <span><i class="fas fa-star mr-1 text-[10px]" :class="lt.featured ? 'text-amber-400' : 'text-white/30'"></i>Featured (big card)</span>
                     </label>
                 </div>
             </div>

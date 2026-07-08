@@ -1295,12 +1295,12 @@ class SitePagesContent
     public static function homeLinkTypesDefault(): array
     {
         return [
-            ['name' => 'Short Link',      'icon' => 'fa-link',                'color' => '#3d6bff', 'new' => false, 'desc' => 'Clean, branded short links you can repoint anytime — with click analytics and expiry controls.'],
-            ['name' => 'Link in Bio',     'icon' => 'fa-square-share-nodes',  'color' => '#1bd4d9', 'new' => false, 'desc' => 'A drag-and-drop one-link page with a deep block library, custom themes and a guided wizard.'],
-            ['name' => 'Conversational',  'icon' => 'fa-comments',            'color' => '#34d399', 'new' => true,  'desc' => 'A chat-style page that greets visitors and guides them through your links one message at a time.'],
-            ['name' => 'Slides',          'icon' => 'fa-images',              'color' => '#fbbf24', 'new' => true,  'desc' => 'A swipeable, story-style page that presents your content as full-screen slides.'],
-            ['name' => 'AI Chatbot',      'icon' => 'fa-robot',               'color' => '#a855f7', 'new' => false, 'desc' => 'An AI page that answers visitor questions about you using your own content, around the clock.'],
-            ['name' => 'Restaurant Menu', 'icon' => 'fa-utensils',            'color' => '#fb7185', 'new' => true,  'desc' => 'A digital menu with categories, photos and prices — plus optional table-side ordering by QR.'],
+            ['name' => 'Short Link',      'icon' => 'fa-link',                'color' => '#3d6bff', 'new' => false, 'featured' => true, 'desc' => 'Clean, branded short links you can repoint anytime — with click analytics and expiry controls.'],
+            ['name' => 'Link in Bio',     'icon' => 'fa-square-share-nodes',  'color' => '#1bd4d9', 'new' => false, 'featured' => true, 'desc' => 'A drag-and-drop one-link page with a deep block library, custom themes and a guided wizard.'],
+            ['name' => 'Conversational',  'icon' => 'fa-comments',            'color' => '#34d399', 'new' => true,  'featured' => true, 'desc' => 'A chat-style page that greets visitors and guides them through your links one message at a time.'],
+            ['name' => 'Slides',          'icon' => 'fa-images',              'color' => '#fbbf24', 'new' => true,  'featured' => true, 'desc' => 'A swipeable, story-style page that presents your content as full-screen slides.'],
+            ['name' => 'AI Chatbot',      'icon' => 'fa-robot',               'color' => '#a855f7', 'new' => false, 'featured' => true, 'desc' => 'An AI page that answers visitor questions about you using your own content, around the clock.'],
+            ['name' => 'Restaurant Menu', 'icon' => 'fa-utensils',            'color' => '#fb7185', 'new' => true,  'featured' => true, 'desc' => 'A digital menu with categories, photos and prices — plus optional table-side ordering by QR.'],
             ['name' => 'Store Menu',      'icon' => 'fa-store',               'color' => '#10b981', 'new' => true,  'desc' => 'A simple online store: products by category with a no-payment order-request cart for visitors.'],
             ['name' => 'File Share',      'icon' => 'fa-file-arrow-down',     'color' => '#38bdf8', 'new' => true,  'desc' => 'Upload a file and share it through a short link that streams the download to visitors.'],
             ['name' => 'Event',           'icon' => 'fa-calendar-day',        'color' => '#f472b6', 'new' => false, 'desc' => 'A shareable calendar event visitors can add to their own calendar in a single tap.'],
@@ -1594,15 +1594,72 @@ class SitePagesContent
             if (!preg_match('/^#[0-9a-f]{3,8}$/i', $color)) {
                 $color = '#3d6bff';
             }
-            $out[] = [
+            $row = [
                 'name'  => $name,
                 'icon'  => $icon !== '' ? $icon : 'fa-link',
                 'color' => $color,
                 'new'   => $new,
                 'desc'  => $desc,
             ];
+            // Explicit "featured" flag (headline tier on the home showcase).
+            // Only persisted when the submitted row carries the key so
+            // legacy payloads (no flag anywhere) keep their stored shape and
+            // continue to rely on the positional first-N fallback.
+            if (array_key_exists('featured', $it)) {
+                $row['featured'] = filter_var($it['featured'], FILTER_VALIDATE_BOOLEAN);
+            }
+            $out[] = $row;
         }
         return $out;
+    }
+
+    /**
+     * Maximum number of link types the home "What you can create" showcase
+     * renders in the big featured tier.
+     */
+    public const HOME_LINK_TYPES_FEATURED_CAP = 6;
+
+    /**
+     * Split the home link-types list into the featured (big cards) and
+     * compact tiers. When at least one entry carries an explicit
+     * `featured` flag the split honours the flags (capped at
+     * HOME_LINK_TYPES_FEATURED_CAP, in list order); otherwise legacy data
+     * falls back to the original positional first-N rule so existing
+     * admin overrides render unchanged. Original array keys are preserved
+     * in both tiers (the public page seeds its entrance stagger from them).
+     *
+     * @return array{featured: array, more: array}
+     */
+    public static function splitHomeLinkTypesFeatured(array $items): array
+    {
+        $hasFlags = false;
+        foreach ($items as $it) {
+            if (is_array($it) && array_key_exists('featured', $it)) {
+                $hasFlags = true;
+                break;
+            }
+        }
+
+        if (!$hasFlags) {
+            return [
+                'featured' => array_slice($items, 0, self::HOME_LINK_TYPES_FEATURED_CAP, true),
+                'more'     => array_slice($items, self::HOME_LINK_TYPES_FEATURED_CAP, null, true),
+            ];
+        }
+
+        $featured = [];
+        $more     = [];
+        foreach ($items as $key => $it) {
+            $isFeatured = is_array($it)
+                && filter_var($it['featured'] ?? false, FILTER_VALIDATE_BOOLEAN)
+                && count($featured) < self::HOME_LINK_TYPES_FEATURED_CAP;
+            if ($isFeatured) {
+                $featured[$key] = $it;
+            } else {
+                $more[$key] = $it;
+            }
+        }
+        return ['featured' => $featured, 'more' => $more];
     }
 
     /**

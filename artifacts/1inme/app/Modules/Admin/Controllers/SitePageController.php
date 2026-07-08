@@ -191,6 +191,7 @@ class SitePageController extends Controller
             $rules['extra.link_types.*.icon']         = 'nullable|string|max:60';
             $rules['extra.link_types.*.color']        = 'nullable|string|max:9';
             $rules['extra.link_types.*.new']          = 'nullable|boolean';
+            $rules['extra.link_types.*.featured']     = 'nullable|boolean';
         }
         if ($slug === 'contact') {
             $rules['extra.address']            = 'nullable|string|max:1000';

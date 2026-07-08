@@ -174,6 +174,112 @@ class HomeLinkTypesEditorTest extends TestCase
         );
     }
 
+    public function test_featured_split_falls_back_to_first_six_for_legacy_data(): void
+    {
+        // Legacy data: no row carries a `featured` key at all — the split
+        // must be positional (first 6 big, rest compact), so pre-existing
+        // admin overrides render exactly as before.
+        $items = [];
+        for ($i = 1; $i <= 9; $i++) {
+            $items[] = ['name' => "Type {$i}", 'icon' => 'fa-link', 'color' => '#3d6bff', 'new' => false, 'desc' => "Desc {$i}"];
+        }
+
+        $split = SitePagesContent::splitHomeLinkTypesFeatured($items);
+        $this->assertSame(
+            ['Type 1', 'Type 2', 'Type 3', 'Type 4', 'Type 5', 'Type 6'],
+            array_column($split['featured'], 'name')
+        );
+        $this->assertSame(
+            ['Type 7', 'Type 8', 'Type 9'],
+            array_column($split['more'], 'name')
+        );
+        // Original keys are preserved (public stagger seeds from them).
+        $this->assertSame([6, 7, 8], array_keys($split['more']));
+    }
+
+    public function test_featured_split_honours_explicit_flags_with_cap(): void
+    {
+        // Explicit flags: featured rows go to the headline tier regardless
+        // of position; flags beyond the cap overflow into the compact tier.
+        $items = [];
+        for ($i = 1; $i <= 9; $i++) {
+            $items[] = [
+                'name'     => "Type {$i}",
+                'icon'     => 'fa-link',
+                'color'    => '#3d6bff',
+                'new'      => false,
+                'desc'     => "Desc {$i}",
+                // Feature types 2..9 (8 flagged, cap is 6).
+                'featured' => $i >= 2,
+            ];
+        }
+
+        $split = SitePagesContent::splitHomeLinkTypesFeatured($items);
+        $this->assertSame(
+            ['Type 2', 'Type 3', 'Type 4', 'Type 5', 'Type 6', 'Type 7'],
+            array_column($split['featured'], 'name'),
+            'Flags win over position, capped at ' . SitePagesContent::HOME_LINK_TYPES_FEATURED_CAP . ' in list order.'
+        );
+        $this->assertSame(
+            ['Type 1', 'Type 8', 'Type 9'],
+            array_column($split['more'], 'name')
+        );
+    }
+
+    public function test_admin_save_persists_featured_flags_and_public_renders_flagged_split(): void
+    {
+        $admin = $this->makeAdmin();
+        $this->makeHomePage([]);
+
+        // Seven cards; only the LAST is featured — under the old positional
+        // rule it would be a compact tile, with the flag it must be the big
+        // (and only) headline card.
+        $linkTypes = [];
+        for ($i = 1; $i <= 7; $i++) {
+            $linkTypes[] = [
+                'name'     => "Flagged Type {$i}",
+                'desc'     => "Flagged description {$i}.",
+                'icon'     => 'fa-link',
+                'color'    => '#123abc',
+                'new'      => '0',
+                'featured' => $i === 7 ? '1' : '0',
+            ];
+        }
+
+        $resp = $this->actingAs($admin, 'admin')->put('/admin/site-pages/home', [
+            'title'            => 'Home',
+            'meta_description' => 'Home page.',
+            'sections'         => [],
+            'extra'            => ['link_types' => $linkTypes],
+        ]);
+        $resp->assertSessionHasNoErrors();
+
+        $stored = SitePage::firstWhere('slug', 'home')->extra['link_types'];
+        $this->assertCount(7, $stored);
+        $this->assertFalse($stored[0]['featured']);
+        $this->assertTrue($stored[6]['featured']);
+
+        $publicResp = $this->get('/');
+        $publicResp->assertOk();
+        $html = $publicResp->getContent();
+
+        // The flagged card renders in the big tier, the unflagged first card
+        // in the compact tier.
+        $this->assertSame(
+            1,
+            substr_count($html, 'showcase-card-lg'),
+            'Exactly one big featured card should render.'
+        );
+        $lgPos = strpos($html, 'showcase-card-lg');
+        $this->assertNotFalse($lgPos);
+        $lgCardEnd = strpos($html, '</article>', $lgPos);
+        $this->assertStringContainsString(
+            'Flagged Type 7',
+            substr($html, $lgPos, $lgCardEnd - $lgPos),
+            'The explicitly-flagged type must be the big featured card.'
+        );
+    }
+
     public function test_seeder_seeds_default_link_types_only_when_missing(): void
     {
         // Fresh seed: no home page yet — the seeder creates it and seeds the

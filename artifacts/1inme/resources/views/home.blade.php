@@ -4012,14 +4012,17 @@
         </div>
 
         @php
-            // Presentation-only split: the first six types are the headline
-            // tier (bigger cards, fuller copy); the rest render as a dense,
-            // scannable strip of compact tiles. Keys are preserved so the
-            // entrance stagger (--sc-stagger, seeded from $i) keeps flowing
-            // continuously across both tiers. Admin overrides (extra.link_types)
-            // still drive every card via $__linkTypes — no data changes.
-            $__ltFeatured = array_slice($__linkTypes, 0, 6, true);
-            $__ltMore     = array_slice($__linkTypes, 6, null, true);
+            // Split into the headline tier (bigger cards, fuller copy) and a
+            // dense, scannable strip of compact tiles. Admins mark featured
+            // types explicitly (extra.link_types[*].featured, capped at 6);
+            // legacy data with no flags falls back to the original
+            // positional first-6 rule so existing overrides render
+            // unchanged. Keys are preserved so the entrance stagger
+            // (--sc-stagger, seeded from $i) keeps flowing continuously
+            // across both tiers.
+            $__ltSplit    = \App\Modules\Common\Support\SitePagesContent::splitHomeLinkTypesFeatured($__linkTypes);
+            $__ltFeatured = $__ltSplit['featured'];
+            $__ltMore     = $__ltSplit['more'];
         @endphp
         <div class="showcase-field grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             @foreach($__ltFeatured as $i => $lt)
