@@ -263,20 +263,36 @@ class HomeLinkTypesEditorTest extends TestCase
         $publicResp->assertOk();
         $html = $publicResp->getContent();
 
-        // The flagged card renders in the big tier, the unflagged first card
-        // in the compact tier.
-        $this->assertSame(
-            1,
-            substr_count($html, 'showcase-card-lg'),
-            'Exactly one big featured card should render.'
+        // The interactive spotlight replaces the old two-tier card grid.
+        // All types appear in the chip rail and info panes; the stage + rail
+        // markup is present. No more showcase-card-lg / showcase-card-sm tiers.
+        $this->assertStringContainsString(
+            'lt-rail',
+            $html,
+            'The interactive chip rail must render.'
         );
-        $lgPos = strpos($html, 'showcase-card-lg');
-        $this->assertNotFalse($lgPos);
-        $lgCardEnd = strpos($html, '</article>', $lgPos);
+        $this->assertStringContainsString(
+            'lt-stage',
+            $html,
+            'The spotlight stage must render.'
+        );
+
+        // Every type name from the stored data must appear in the rendered HTML
+        // (chips, info panes, and mock visuals all embed the type name).
+        foreach ($stored as $lt) {
+            $this->assertStringContainsString(
+                $lt['name'],
+                $html,
+                "Type \"{$lt['name']}\" must appear in the spotlight markup."
+            );
+        }
+
+        // The explicitly-flagged type (Type 7) is present — the spotlight shows
+        // all types regardless of the featured flag, which is preserved in data.
         $this->assertStringContainsString(
             'Flagged Type 7',
-            substr($html, $lgPos, $lgCardEnd - $lgPos),
-            'The explicitly-flagged type must be the big featured card.'
+            $html,
+            'The explicitly-flagged type must appear in the spotlight.'
         );
     }
 

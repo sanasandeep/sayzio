@@ -332,18 +332,25 @@ describe("live codebase", () => {
     }
   });
 
-  it("home.blade.php actually contains a multicol grid with an exclusive card class (guard is armed)", () => {
-    const src = fs.readFileSync(path.join(REPO_ROOT, SCAN_FILES[0]!), "utf8");
-    const { itemClasses, exclusiveItemClasses } = findMulticolItemClasses(src);
+  it("guard mechanism is armed: CLEAN_FIXTURE has a multicol grid with an exclusive card class", () => {
+    // The home page "What you can create" section was replaced with the
+    // interactive spotlight (chip rail + stage), which uses flex/grid layout —
+    // not CSS columns. The guard still works for any file that does use columns-*;
+    // we verify this via the self-contained CLEAN_FIXTURE, not the live file.
+    const { itemClasses, exclusiveItemClasses } = findMulticolItemClasses(CLEAN_FIXTURE);
     expect(itemClasses.has("showcase-card")).toBe(true);
     expect(exclusiveItemClasses.has("showcase-card")).toBe(true);
-    // styleBlocks must find the page CSS or the scan would be a silent no-op.
-    expect(styleBlocks(src).length).toBeGreaterThan(0);
+    // The live file must still have <style> blocks so the scanner isn't a silent no-op.
+    const liveSrc = fs.readFileSync(path.join(REPO_ROOT, SCAN_FILES[0]!), "utf8");
+    expect(styleBlocks(liveSrc).length).toBeGreaterThan(0);
   });
 
-  it("the live file poisoned with the ORIGINAL bug (hover transform on .showcase-card) fails", () => {
-    const src = fs.readFileSync(path.join(REPO_ROOT, SCAN_FILES[0]!), "utf8");
-    const poisoned = src.replace(
+  it("CLEAN_FIXTURE poisoned with the ORIGINAL bug (hover transform on .showcase-card) fails", () => {
+    // Use the self-contained fixture — the live home.blade.php no longer has a
+    // columns-* multicol layout (the spotlight uses flex/stage), so injecting
+    // the bug there would produce no offenders. The fixture preserves the exact
+    // pattern the guard was written to catch.
+    const poisoned = CLEAN_FIXTURE.replace(
       "</style>",
       `.showcase-card:hover { transform: translateY(-6px); will-change: transform; }\n</style>`,
     );
