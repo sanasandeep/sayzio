@@ -321,6 +321,27 @@
         /* Springy icon pop on hover — small scale + gentle tilt, no spin. */
         .showcase-icon-wrap { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
         .showcase-card:hover .showcase-icon-wrap { transform: scale(1.12) rotate(-3deg); }
+        /* Gentle idle icon float while the card is on screen (sc-alive is only
+           ever added by JS when prefers-reduced-motion is off). Paused on
+           hover so the springy hover pop wins cleanly. */
+        .showcase-card.sc-alive .showcase-icon-wrap {
+            animation: showcaseIconFloat 5.5s ease-in-out infinite;
+            animation-delay: var(--sc-delay, 0s);
+        }
+        .showcase-card.sc-alive:hover .showcase-icon-wrap { animation: none; }
+        @keyframes showcaseIconFloat {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-3px); }
+        }
+        /* Copy clamps for the tiered showcase layout — presentation-only
+           tightening of the admin-editable descriptions. */
+        .sc-clamp-1, .sc-clamp-2 {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .sc-clamp-1 { -webkit-line-clamp: 1; }
+        .sc-clamp-2 { -webkit-line-clamp: 2; }
 
         /* ============ Marquee ============ */
         .marquee { animation: marquee 40s linear infinite; }
@@ -3983,30 +4004,75 @@
         <div class="text-center mb-14 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">What you can create</div>
             <h2 id="create-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Eighteen kinds of link.<br><span class="grad-text">One simple dashboard.</span>
+                {{ count($__linkTypes) }} kinds of link.<br><span class="grad-text">One simple dashboard.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
                 A short link is just the start. Spin up a chat page, a slide story, a digital menu, a review wall and more — your AI helps draft each one, and every one is tracked and shareable from a single URL.
             </p>
         </div>
 
-        <div class="showcase-field columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-3 sm:gap-4">
-            @foreach($__linkTypes as $i => $lt)
-                <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card glass rounded-xl p-4 relative overflow-hidden mb-3 sm:mb-4 break-inside-avoid inline-block w-full align-top" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s; --sc-stagger:{{ round($i * 0.08, 2) }}s;">
+        @php
+            // Presentation-only split: the first six types are the headline
+            // tier (bigger cards, fuller copy); the rest render as a dense,
+            // scannable strip of compact tiles. Keys are preserved so the
+            // entrance stagger (--sc-stagger, seeded from $i) keeps flowing
+            // continuously across both tiers. Admin overrides (extra.link_types)
+            // still drive every card via $__linkTypes — no data changes.
+            $__ltFeatured = array_slice($__linkTypes, 0, 6, true);
+            $__ltMore     = array_slice($__linkTypes, 6, null, true);
+        @endphp
+        <div class="showcase-field grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            @foreach($__ltFeatured as $i => $lt)
+                <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card showcase-card-lg glass rounded-2xl p-5 relative overflow-hidden" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s; --sc-stagger:{{ round($i * 0.08, 2) }}s;">
                     <div class="showcase-inner relative w-full h-full">
-                        <div class="absolute -top-8 -right-8 w-20 h-20 rounded-full opacity-20 showcase-blob" style="background:{{ $lt['color'] }};"></div>
+                        <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-20 showcase-blob" style="background:{{ $lt['color'] }};"></div>
                         @if($lt['new'])
-                            <span class="absolute top-2.5 right-2.5 inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style="background:rgba(255,255,255,.08); color:{{ $lt['color'] }}; border:1px solid {{ $lt['color'] }}40;">New</span>
+                            <span class="absolute top-0 right-0 inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style="background:rgba(255,255,255,.08); color:{{ $lt['color'] }}; border:1px solid {{ $lt['color'] }}40;">New</span>
                         @endif
-                        <div class="relative w-9 h-9 rounded-lg flex items-center justify-center mb-3 showcase-icon-wrap" style="background:{{ $lt['color'] }}; box-shadow:0 10px 22px -10px {{ $lt['color'] }};">
-                            <i class="fas {{ $lt['icon'] }} text-white text-sm"></i>
+                        <div class="relative flex items-start gap-4">
+                            <div class="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center showcase-icon-wrap" style="background:{{ $lt['color'] }}; box-shadow:0 12px 26px -10px {{ $lt['color'] }};">
+                                <i class="fas {{ $lt['icon'] }} text-white text-base"></i>
+                            </div>
+                            <div class="min-w-0 pt-0.5">
+                                <h3 class="text-base font-bold mb-1 leading-snug">{{ $lt['name'] }}</h3>
+                                <p class="text-[13px] text-gray-400 leading-relaxed sc-clamp-2">{{ $lt['desc'] }}</p>
+                            </div>
                         </div>
-                        <h3 class="relative text-sm font-bold mb-1">{{ $lt['name'] }}</h3>
-                        <p class="relative text-xs text-gray-400 leading-relaxed">{{ $lt['desc'] }}</p>
                     </div>
                 </article>
             @endforeach
         </div>
+
+        @if(count($__ltMore))
+            <div class="reveal rd-2 mt-8 mb-3 flex items-center gap-3" aria-hidden="true">
+                <span class="h-px flex-1 bg-white/10"></span>
+                <span class="text-[10px] font-bold uppercase tracking-[.2em] text-gray-500">And plenty more</span>
+                <span class="h-px flex-1 bg-white/10"></span>
+            </div>
+            <div class="showcase-field grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                @foreach($__ltMore as $i => $lt)
+                    <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card showcase-card-sm glass rounded-xl p-3 relative overflow-hidden" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s; --sc-stagger:{{ round($i * 0.08, 2) }}s;">
+                        <div class="showcase-inner relative w-full h-full">
+                            <div class="absolute -top-8 -right-8 w-16 h-16 rounded-full opacity-20 showcase-blob" style="background:{{ $lt['color'] }};"></div>
+                            <div class="relative flex items-center gap-2.5">
+                                <div class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center showcase-icon-wrap" style="background:{{ $lt['color'] }}; box-shadow:0 8px 18px -8px {{ $lt['color'] }};">
+                                    <i class="fas {{ $lt['icon'] }} text-white text-xs"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="text-[13px] font-bold leading-tight truncate flex items-center gap-1.5">
+                                        <span class="truncate">{{ $lt['name'] }}</span>
+                                        @if($lt['new'])
+                                            <span class="shrink-0 inline-flex items-center text-[7px] font-bold uppercase tracking-wider px-1 py-px rounded-full" style="background:rgba(255,255,255,.08); color:{{ $lt['color'] }}; border:1px solid {{ $lt['color'] }}40;">New</span>
+                                        @endif
+                                    </h3>
+                                    <p class="text-[11px] text-gray-400 leading-snug sc-clamp-1">{{ $lt['desc'] }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                @endforeach
+            </div>
+        @endif
 
         <div class="reveal rd-3 mt-12 text-center">
             <a href="{{ route('site.features') }}#cat-link-types" class="inline-flex items-center gap-2 px-6 py-3 glass rounded-full text-sm font-bold lift border border-white/10 hover:border-white/20 transition">
