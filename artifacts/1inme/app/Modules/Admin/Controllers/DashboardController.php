@@ -3,6 +3,7 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Common\Support\BgTemplateHealth;
 use App\Modules\Common\Support\ContactRecipientHealth;
 use App\Modules\Common\Support\ExpectedSchemaHealth;
 use App\Modules\Common\Support\SchemaHealth;
@@ -63,12 +64,19 @@ class DashboardController extends Controller
         // nobody being told. Cached.
         $templateGalleryHealth = TemplateGalleryHealth::cached();
 
+        // Proactive empty/thin background-template-library warning: the
+        // biolink editor's Appearance → Page background → Template picker
+        // silently shows "No templates available yet" when bg_templates has
+        // no active rows. Mirrors the bg-templates:check-library watchdog on
+        // a persistent dashboard surface. Cached.
+        $bgTemplateHealth = BgTemplateHealth::cached();
+
         // Proactive failing-scheduled-job warning: jobs with an open failure
         // episode (last run failed, no success since) surfaced at a glance,
         // mirroring the SchemaHealth banner. Cheap: one cached AppSetting read.
         $failureEpisodes = ScheduledJobHealthAlerts::openEpisodes();
 
-        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage', 'contactRecipientHealth', 'templateGalleryHealth', 'failureEpisodes'));
+        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage', 'contactRecipientHealth', 'templateGalleryHealth', 'bgTemplateHealth', 'failureEpisodes'));
     }
 
     /**

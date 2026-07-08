@@ -226,6 +226,47 @@
 </div>
 @endif
 
+@if(!empty($bgTemplateHealth['available']) && !empty($bgTemplateHealth['shortage']))
+@php
+    $bgEmpty  = !empty($bgTemplateHealth['empty']);
+    $bgActive = $bgTemplateHealth['active'] ?? 0;
+    $bgFloor  = $bgTemplateHealth['floor'] ?? 50;
+@endphp
+<div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08);">
+    <div class="flex items-start gap-4">
+        <div class="w-11 h-11 shrink-0 bg-amber-500/15 rounded-xl flex items-center justify-center">
+            <i class="fas fa-image text-amber-400 text-lg"></i>
+        </div>
+        <div class="min-w-0">
+            @if($bgEmpty)
+                <h2 class="text-base font-semibold text-amber-300">The background template library is empty</h2>
+                <p class="text-sm text-white/70 mt-1">
+                    There are <span class="text-amber-200 font-semibold">no active biolink background templates</span>,
+                    so the biolink editor's Appearance &rarr; Page background &rarr; Template picker is silently
+                    showing "No templates available yet" to every user. Add or re-activate templates (or re-run the
+                    background template seeder) so the picker offers choices again.
+                </p>
+            @else
+                <h2 class="text-base font-semibold text-amber-300">The background template library is running low</h2>
+                <p class="text-sm text-white/70 mt-1">
+                    Only <span class="font-mono text-amber-200">{{ number_format($bgActive) }}</span> biolink background
+                    template{{ $bgActive === 1 ? ' is' : 's are' }} active &mdash; below the expected floor of
+                    <span class="font-mono text-amber-200">{{ number_format($bgFloor) }}</span>. This usually means a
+                    bulk wipe or deactivation. The Appearance &rarr; Page background &rarr; Template picker still works
+                    but offers users far fewer choices than intended; add or re-activate templates to restore the library.
+                </p>
+            @endif
+            <div class="mt-3">
+                <a href="{{ route('admin.bg-templates.index') }}"
+                   class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 transition">
+                    <i class="fas fa-image"></i> Manage background templates
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 @if(!empty($contactRecipientHealth['available']) && empty($contactRecipientHealth['configured']))
 <div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08);">
     <div class="flex items-start gap-4">
