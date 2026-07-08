@@ -3939,11 +3939,17 @@
             .lt-info-zone{flex:0 0 300px;max-width:300px;position:relative;border-right:1px solid rgba(255,255,255,.06);z-index:1}
             html.light-mode .lt-info-zone{border-right-color:rgba(0,0,0,.06)}
             @media(max-width:767px){.lt-info-zone{flex:none;max-width:none;width:100%;border-right:none;border-top:1px solid rgba(255,255,255,.06);order:2;min-height:248px}}
+            @media(max-width:767px){html.light-mode .lt-info-zone{border-top-color:rgba(0,0,0,.06)}}
             html.light-mode .lt-info-zone .lt-pane{color:inherit}
 
-            .lt-pane{position:absolute;inset:0;padding:28px 26px;display:flex;flex-direction:column;justify-content:center;gap:11px;opacity:0;transition:opacity .32s ease;pointer-events:none;z-index:1}
-            .lt-pane-on{opacity:1;pointer-events:auto}
-            @media(prefers-reduced-motion:reduce){.lt-pane{transition:none;opacity:0}.lt-pane-on{opacity:1}}
+            /* Sequential out-then-in: transition lives ONLY on .lt-pane-on (the active state).
+               CSS picks the NEW state's transition on a class change, so:
+               — activating (add lt-pane-on): new state has "opacity .32s ease" → smooth fade-in.
+               — deactivating (remove lt-pane-on): new state has "transition:none" → instant hide.
+               Result: outgoing pane disappears instantly; incoming pane fades in. Zero overlap. */
+            .lt-pane{position:absolute;inset:0;padding:28px 26px;display:flex;flex-direction:column;justify-content:center;gap:11px;opacity:0;visibility:hidden;transition:none;pointer-events:none;z-index:1}
+            .lt-pane-on{opacity:1;visibility:visible;transition:opacity .32s ease;pointer-events:auto}
+            @media(prefers-reduced-motion:reduce){.lt-pane{transition:none;opacity:0;visibility:hidden}.lt-pane-on{opacity:1;visibility:visible;transition:none}}
             .lt-pane-icon{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;color:#fff}
             .lt-pane-badge{display:inline-flex;align-items:center;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:9999px;background:rgba(255,255,255,.07);border:1px solid;width:fit-content;margin-top:-2px}
             html.light-mode .lt-pane-badge{background:rgba(0,0,0,.06)}
@@ -3957,11 +3963,16 @@
             @media(prefers-reduced-motion:reduce){.lt-pane-cta{transition:none}}
 
             .lt-mock-zone{flex:1;min-width:0;position:relative;overflow:hidden;background:rgba(255,255,255,.015)}
-            html.light-mode .lt-mock-zone{background:rgba(0,0,0,.02)}
+            /* The mock visuals are inline-styled with white text on translucent-white cards
+               (an always-dark "device preview" aesthetic, like the .lt-phone frames). In light
+               mode the zone therefore stays a dark island so every mock remains legible. */
+            html.light-mode .lt-mock-zone{background:linear-gradient(150deg,#171126 0%,#0d0918 70%)}
             @media(max-width:767px){.lt-mock-zone{flex:none;height:220px;order:1}}
-            .lt-mock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.97) translateY(8px);transition:opacity .35s ease,transform .35s ease;pointer-events:none}
-            .lt-mock-on{opacity:1;transform:none;pointer-events:auto}
-            @media(prefers-reduced-motion:reduce){.lt-mock{transition:none;transform:none;opacity:0}.lt-mock-on{opacity:1;transform:none}}
+            /* Same sequential out-then-in as .lt-pane: transition only on .lt-mock-on so deactivating
+               is instant (no overlap) and activating fades in cleanly. */
+            .lt-mock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transform:scale(.97) translateY(8px);transition:none;pointer-events:none}
+            .lt-mock-on{opacity:1;visibility:visible;transform:none;transition:opacity .35s ease,transform .35s ease;pointer-events:auto}
+            @media(prefers-reduced-motion:reduce){.lt-mock{transition:none;transform:none;opacity:0;visibility:hidden}.lt-mock-on{opacity:1;transform:none;visibility:visible;transition:none}}
 
             /* Phone frame for mock visuals — always-dark island, no light-mode flip needed */
             .lt-phone{width:156px;aspect-ratio:9/18;border-radius:28px;background:linear-gradient(150deg,#1c0d30 0%,#0d0516 70%);border:1.5px solid rgba(255,255,255,.13);box-shadow:0 24px 56px -18px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.05);overflow:hidden;position:relative;display:flex;flex-direction:column;padding:20px 10px 12px}
@@ -4019,6 +4030,9 @@
                 {{-- Info panel (left on desktop, bottom on mobile) --}}
                 <div class="lt-info-zone">
                     @foreach($__ltForEach as $i => $lt)
+                    {{-- object :class syntax is required: Alpine's string syntax never removes a
+                         class present in the static class attribute, so the server-rendered
+                         lt-pane-on on slide 0 would stay stuck forever (permanent overlap). --}}
                     <div class="lt-pane {{ $i === 0 ? 'lt-pane-on' : '' }}"
                          :class="{'lt-pane-on':active==={{ $i }}}">
                         <div class="lt-pane-icon" style="background:{{ $lt['color'] }};box-shadow:0 10px 28px -10px {{ $lt['color'] }}bb">
@@ -4507,7 +4521,7 @@
                     @foreach($__ltForEach as $i => $lt)
                     <button type="button"
                             class="lt-dot {{ $i === 0 ? 'lt-dot-on' : '' }}"
-                            :class="active==={{ $i }}?'lt-dot-on':''"
+                            :class="{'lt-dot-on': active==={{ $i }}}"
                             @click.stop="pick({{ $i }})" tabindex="-1"></button>
                     @endforeach
                 </div>
