@@ -3919,6 +3919,22 @@
             .lt-rail::-webkit-scrollbar{height:3px}
             .lt-rail::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px}
             html.light-mode .lt-rail::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12)}
+            /* Mobile: right-edge fade cue signalling more chips off-screen. Pure CSS —
+               static mask fallback everywhere; scroll-driven animation (where supported)
+               shrinks the fade to nothing as the rail reaches its end. Mask only, no
+               layout impact; desktop untouched. */
+            @property --lt-fade{syntax:'<length>';inherits:false;initial-value:36px}
+            @media(max-width:767px){
+                .lt-rail{
+                    --lt-fade:36px;
+                    -webkit-mask-image:linear-gradient(to right,#000 calc(100% - var(--lt-fade)),transparent 100%);
+                    mask-image:linear-gradient(to right,#000 calc(100% - var(--lt-fade)),transparent 100%);
+                }
+                @supports (animation-timeline: scroll(self x)){
+                    .lt-rail{animation:lt-rail-fade linear both;animation-timeline:scroll(self x)}
+                }
+            }
+            @keyframes lt-rail-fade{0%,85%{--lt-fade:36px}100%{--lt-fade:0px}}
             .lt-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 13px 6px 8px;border-radius:9999px;white-space:nowrap;font-size:13px;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.6);transition:color .2s,border-color .2s,background .2s;flex-shrink:0;line-height:1}
             html.light-mode .lt-chip{color:rgba(0,0,0,.55);border-color:rgba(0,0,0,.1);background:rgba(0,0,0,.03)}
             .lt-chip:hover{color:rgba(255,255,255,.9);border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.08)}
