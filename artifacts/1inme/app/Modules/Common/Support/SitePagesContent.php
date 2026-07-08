@@ -1366,8 +1366,50 @@ class SitePagesContent
     }
 
     /**
+     * app_settings key holding the admin-disabled pairing cards, stored as a
+     * map of pairing page key => list of disabled card `type` strings, e.g.
+     * ['biolink' => ['qr', 'vcf']]. Absent/empty means everything enabled
+     * (the default), so existing behavior is unchanged until an admin
+     * unchecks a card.
+     */
+    public const LINK_TYPE_PAIRINGS_DISABLED_KEY = 'link_type_pairings_disabled';
+
+    /**
+     * The admin-configured disabled-cards map, normalized to
+     * pageKey => string[] and restricted to keys/types that actually exist
+     * in the catalog (stale entries for removed cards are ignored).
+     */
+    public static function linkTypePairingsDisabledMap(): array
+    {
+        $raw = \App\Modules\Admin\Models\AppSetting::get(self::LINK_TYPE_PAIRINGS_DISABLED_KEY, []);
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $catalog = self::linkTypePairingsCatalog();
+        $map = [];
+        foreach ($raw as $pageKey => $types) {
+            if (!isset($catalog[$pageKey]) || !is_array($types)) {
+                continue;
+            }
+            $known = array_column($catalog[$pageKey], 'type');
+            $disabled = array_values(array_intersect(array_map('strval', $types), $known));
+            if ($disabled) {
+                $map[$pageKey] = $disabled;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
      * Pairings for a single page, keyed by pairing key. Unknown/blank keys
      * resolve to an empty list so the calling partial can hide gracefully.
+     * Cards the admin disabled (see LINK_TYPE_PAIRINGS_DISABLED_KEY) are
+     * filtered out here, so every consumer — the web blade partial and every
+     * API controller returning a `pairings` key — respects the toggles
+     * automatically. Disabling all cards for a page yields an empty list,
+     * which hides the whole section.
      */
     public static function linkTypePairingsFor(?string $pairingKey): array
     {
@@ -1375,7 +1417,20 @@ class SitePagesContent
             return [];
         }
 
-        return self::linkTypePairingsCatalog()[$pairingKey] ?? [];
+        $items = self::linkTypePairingsCatalog()[$pairingKey] ?? [];
+        if (!$items) {
+            return [];
+        }
+
+        $disabled = self::linkTypePairingsDisabledMap()[$pairingKey] ?? [];
+        if (!$disabled) {
+            return $items;
+        }
+
+        return array_values(array_filter(
+            $items,
+            fn ($item) => !in_array($item['type'] ?? '', $disabled, true),
+        ));
     }
 
     /**

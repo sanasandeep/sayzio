@@ -196,6 +196,7 @@
                     {{-- Marketing & Comms --}}
                     <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Marketing &amp; Comms</div>
                     <a href="{{ route('admin.marketing-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.marketing-settings.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div><span>Marketing</span></a>
+                    <a href="{{ route('admin.link-type-pairings.index') }}" class="sidebar-link {{ request()->routeIs('admin.link-type-pairings.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-object-group"></i></div><span>Perfect Pairings</span></a>
                     <a href="{{ route('admin.marketing-seo.index') }}" class="sidebar-link {{ request()->routeIs('admin.marketing-seo.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-magnifying-glass-chart"></i></div><span>Marketing SEO</span></a>
                     <a href="{{ route('admin.marketing-events.index') }}" class="sidebar-link {{ request()->routeIs('admin.marketing-events.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div><span>Marketing Events</span></a>
                     <a href="{{ route('admin.site-stats.index') }}" class="sidebar-link {{ request()->routeIs('admin.site-stats.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div><span>Marketing Stats</span></a>

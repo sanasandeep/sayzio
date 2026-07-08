@@ -398,6 +398,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\MarketingSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::put('/', [\App\Modules\Admin\Controllers\MarketingSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
         });
+        Route::prefix('link-type-pairings')->name('link-type-pairings.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\LinkTypePairingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::put('/', [\App\Modules\Admin\Controllers\LinkTypePairingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('restore-defaults', [\App\Modules\Admin\Controllers\LinkTypePairingsController::class, 'restoreDefaults'])->middleware(CheckPermission::class . ':settings.manage')->name('restore-defaults');
+        });
         Route::prefix('marketing-seo')->name('marketing-seo.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\MarketingSeoController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::put('/', [\App\Modules\Admin\Controllers\MarketingSeoController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');

@@ -391,6 +391,14 @@
             <span class="sidebar-tooltip">Marketing</span>
         </a>
 
+        <a href="{{ route('admin.link-type-pairings.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.link-type-pairings.*') ? 'active' : '' }}"
+           style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-object-group"></i></div>
+            <span class="nav-label">Perfect Pairings</span>
+            <span class="sidebar-tooltip">Perfect Pairings</span>
+        </a>
+
         <a href="{{ route('admin.marketing-seo.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.marketing-seo.*') ? 'active' : '' }}"
            style="--nav-tint:#6e61ff; --nav-tint-soft:rgba(110,97,255,0.12);">
