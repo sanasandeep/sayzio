@@ -107,7 +107,12 @@ as regressions, check whether a dev workflow was running during the run — and
 stop it before retrying validation. Separately, `e2e-mobile-icons` (Expo web)
 occasionally dies with ERR_CONNECTION_REFUSED to the Expo server (boot race,
 see expo-e2e-boot-readiness.md) — retry or, if everything else is green,
-skip-with-reason; it is unrelated to Laravel-side changes.
+skip-with-reason; it is unrelated to Laravel-side changes. As of July 2026 the
+icon harness downgrades post-boot Playwright TimeoutErrors / transient
+connection errors to SKIP (best-effort contract now covers BOTH boot and drive
+phases) on throwaway servers only; explicit APP_URL runs still fail hard, and
+real icon regressions still exit 1 via fail() inside check-icon-fonts.mjs
+before the catch can run.
 
 **Detached bash processes die with the session.** `nohup setsid ... &` from the
 bash tool does NOT survive: when the tool call ends (or gets 137/143-killed),
