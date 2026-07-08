@@ -296,6 +296,113 @@ class HomeLinkTypesEditorTest extends TestCase
         );
     }
 
+    public function test_saved_showcase_split_matches_public_home_featured_and_strip_exactly(): void
+    {
+        // End-to-end drift guard: save the editor with an overflow flag set
+        // (more flagged rows than the cap allows) and assert the public home
+        // renders EXACTLY the tiers splitHomeLinkTypesFeatured() computes —
+        // same names, same order, in the right tier. If the PHP split ever
+        // changes (cap, flag parsing, ordering) this pins the public page to
+        // the persisted data end-to-end.
+        $admin = $this->makeAdmin();
+        $this->makeHomePage([]);
+
+        // 9 rows; flag rows 2..9 (8 flagged, cap is 6) so the split must
+        // overflow rows 8 and 9 into the compact strip alongside row 1.
+        $linkTypes = [];
+        for ($i = 1; $i <= 9; $i++) {
+            $linkTypes[] = [
+                'name'     => "Split Type {$i}",
+                'desc'     => "Split description {$i}.",
+                'icon'     => 'fa-link',
+                'color'    => '#123abc',
+                'new'      => '0',
+                'featured' => $i >= 2 ? '1' : '0',
+            ];
+        }
+
+        $resp = $this->actingAs($admin, 'admin')->put('/admin/site-pages/home', [
+            'title'            => 'Home',
+            'meta_description' => 'Home page.',
+            'sections'         => [],
+            'extra'            => ['link_types' => $linkTypes],
+        ]);
+        $resp->assertSessionHasNoErrors();
+
+        // The split source of truth is the PERSISTED rows, exactly as the
+        // public blade computes it.
+        $stored = SitePage::firstWhere('slug', 'home')->extra['link_types'];
+        $split  = SitePagesContent::splitHomeLinkTypesFeatured($stored);
+        $expectedFeatured = array_column($split['featured'], 'name');
+        $expectedMore     = array_column($split['more'], 'name');
+        // Sanity: the fixture really exercises the overflow path.
+        $this->assertSame(
+            ['Split Type 2', 'Split Type 3', 'Split Type 4', 'Split Type 5', 'Split Type 6', 'Split Type 7'],
+            $expectedFeatured
+        );
+        $this->assertSame(['Split Type 1', 'Split Type 8', 'Split Type 9'], $expectedMore);
+
+        $publicResp = $this->get('/');
+        $publicResp->assertOk();
+        $html = $publicResp->getContent();
+
+        // Tier card counts match the split.
+        $this->assertSame(count($expectedFeatured), substr_count($html, 'showcase-card-lg'));
+        $this->assertSame(count($expectedMore), substr_count($html, 'showcase-card-sm'));
+
+        // The "And plenty more" divider separates the tiers: every featured
+        // name must render before it, every strip name after it.
+        $dividerPos = strpos($html, 'And plenty more');
+        $this->assertNotFalse($dividerPos, 'Compact strip divider must render when the split has overflow.');
+
+        $namesInOrder = static function (string $haystack, array $names): array {
+            $positions = [];
+            foreach ($names as $name) {
+                $pos = strpos($haystack, $name);
+                $positions[$name] = $pos;
+            }
+            return $positions;
+        };
+
+        $featuredPositions = $namesInOrder($html, $expectedFeatured);
+        foreach ($featuredPositions as $name => $pos) {
+            $this->assertNotFalse($pos, "Featured card '{$name}' must render.");
+            $this->assertLessThan($dividerPos, $pos, "Featured card '{$name}' must render in the big tier (before the strip divider).");
+        }
+        // Featured order preserved exactly as the split emits it.
+        $sorted = array_values($featuredPositions);
+        for ($i = 1; $i < count($sorted); $i++) {
+            $this->assertGreaterThan($sorted[$i - 1], $sorted[$i], 'Featured cards must render in split order.');
+        }
+
+        $morePositions = $namesInOrder($html, $expectedMore);
+        foreach ($morePositions as $name => $pos) {
+            $this->assertNotFalse($pos, "Strip tile '{$name}' must render.");
+            $this->assertGreaterThan($dividerPos, $pos, "Strip tile '{$name}' must render in the compact strip (after the divider).");
+        }
+        $sortedMore = array_values($morePositions);
+        for ($i = 1; $i < count($sortedMore); $i++) {
+            $this->assertGreaterThan($sortedMore[$i - 1], $sortedMore[$i], 'Strip tiles must render in split order.');
+        }
+    }
+
+    public function test_editor_alpine_mirror_uses_php_featured_cap(): void
+    {
+        // The editor's live preview mirrors the split client-side in Alpine.
+        // The cap it uses must be injected from the PHP constant so the two
+        // can never drift on the cap value.
+        $admin = $this->makeAdmin();
+        $this->makeHomePage(['link_types' => SitePagesContent::homeLinkTypesDefault()]);
+
+        $resp = $this->actingAs($admin, 'admin')
+            ->get(route('admin.site-pages.edit', 'home'));
+        $resp->assertOk();
+        $resp->assertSee(
+            'featuredCap: ' . SitePagesContent::HOME_LINK_TYPES_FEATURED_CAP,
+            false
+        );
+    }
+
     public function test_seeder_seeds_default_link_types_only_when_missing(): void
     {
         // Fresh seed: no home page yet — the seeder creates it and seeds the
