@@ -108,3 +108,12 @@ stop it before retrying validation. Separately, `e2e-mobile-icons` (Expo web)
 occasionally dies with ERR_CONNECTION_REFUSED to the Expo server (boot race,
 see expo-e2e-boot-readiness.md) — retry or, if everything else is green,
 skip-with-reason; it is unrelated to Laravel-side changes.
+
+**Detached bash processes die with the session.** `nohup setsid ... &` from the
+bash tool does NOT survive: when the tool call ends (or gets 137/143-killed),
+the detached playwright run is killed too, leaving a log frozen mid-test — and
+`pgrep -f "playwright test"` then self-matches your own polling command,
+faking "still running". For any e2e run longer than one bash call, register a
+throwaway workflow (`configureWorkflow` → `restart_workflow` → poll
+`getWorkflowStatus`) running `tests/Browser/run-validation.sh <spec>`; that is
+the repo's existing single-spec pattern (e.g. `e2e-ehb-band`).

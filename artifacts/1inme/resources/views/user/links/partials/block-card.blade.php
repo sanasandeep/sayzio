@@ -63,7 +63,7 @@
             </div>
 
             <div class="flex items-center gap-1 flex-shrink-0">
-                <button class="block-action-btn edit-btn" title="Edit" onclick="openEditDrawer({{ $block->id }})">
+                <button class="block-action-btn edit-btn" title="Edit" onclick="toggleEditInline({{ $block->id }})">
                     <i class="fas fa-pen"></i>
                 </button>
                 <button class="block-action-btn toggle-btn" title="{{ $block->is_active ? 'Hide' : 'Show' }}" onclick="ajaxToggleBlock(this, '{{ route('user.links.blocks.toggle', [$link, $block]) }}', {{ $block->id }})">
@@ -117,6 +117,18 @@
                     @endforeach
                 </div>
             </div>
+        </div>
+
+        {{-- Inline block editor: the settings form expands here (below the
+             card) when the creator clicks Edit. Populated/cleared by
+             openEditDrawer()/closeEditDrawerGlobal() in biolink-editor. --}}
+        <div class="inline-block-editor" data-inline-editor="{{ $block->id }}" hidden>
+            <div class="inline-editor-head">
+                <span class="text-[11px] font-bold gradient-text"><i class="fas fa-pen mr-1.5"></i>Edit Block</span>
+                <span class="inline-autosave-status text-[10px] font-medium hidden" style="color: var(--text-faint);"></span>
+                <button type="button" class="block-action-btn ml-auto" style="color: var(--text-faint);" title="Close" onclick="closeEditDrawerGlobal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="inline-editor-body" data-inline-editor-body="{{ $block->id }}"></div>
         </div>
     </div>
 </div>

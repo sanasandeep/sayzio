@@ -197,49 +197,29 @@
     .block-action-btn.toggle-btn:hover { color: #f59e0b; background: rgba(245,158,11,0.1); }
     .block-action-btn.delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
 
-    .edit-modal-overlay {
-        position: fixed; inset: 0; z-index: 60;
-        background: rgba(0,0,0,0.6);
-        backdrop-filter: blur(8px);
-        opacity: 0; pointer-events: none;
-        transition: opacity 0.3s ease;
-        display: flex; align-items: center; justify-content: center;
-        padding: 16px;
+    /* Inline block editor — the settings form expands directly below the
+       block's card (replaces the old full-screen edit modal). */
+    .inline-block-editor {
+        border-top: 1px solid var(--border-subtle);
+        background: rgba(0,0,0,0.12);
     }
-    .edit-modal-overlay.open { opacity: 1; pointer-events: auto; }
-    .edit-modal {
-        width: 100%; max-width: 1200px;
-        height: 92vh; max-height: 92vh;
-        background: var(--bg-sidebar);
-        backdrop-filter: blur(40px) saturate(1.4);
-        border: 1px solid var(--border-subtle);
-        border-radius: 1.5rem;
-        display: flex; flex-direction: column;
-        box-shadow: 0 32px 100px rgba(0,0,0,0.5);
-        transform: scale(0.95) translateY(20px);
-        transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
-        overflow: hidden;
+    .inline-block-editor.open { animation: inlineEditorIn 0.25s ease; }
+    @media (prefers-reduced-motion: reduce) {
+        .inline-block-editor.open { animation: none; }
     }
-    .edit-modal-overlay.open .edit-modal {
-        transform: scale(1) translateY(0);
+    @keyframes inlineEditorIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: none; }
     }
-    .edit-modal-body {
-        flex: 1; display: flex; overflow: hidden;
+    .inline-editor-head {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border-subtle);
     }
-    .edit-modal-preview {
-        flex: 0 0 380px;
-        display: flex; align-items: center; justify-content: center;
-        position: relative;
-        overflow: hidden;
-        border-right: 1px solid var(--border-subtle);
-        background: rgba(0,0,0,0.15);
-    }
-    .edit-modal-form {
-        flex: 1; overflow-y: auto; padding: 24px;
-    }
-    @media (max-width: 768px) {
-        .edit-modal-preview { display: none; }
-        .edit-modal { max-width: 100%; height: 100vh; max-height: 100vh; border-radius: 0; }
+    .inline-editor-body {
+        padding: 16px 14px;
+        max-height: 70vh;
+        overflow-y: auto;
     }
 
     .gallery-tabs {
@@ -955,42 +935,6 @@ $catColors = [
         </div>
     </div>
 
-    {{-- EDIT MODAL (full-screen split) --}}
-    <div class="edit-modal-overlay" :class="editingBlockId ? 'open' : ''" @click.self="closeEditDrawer()" id="editModalOverlay">
-        <div class="edit-modal" @click.stop>
-            <div class="h-[52px] flex items-center justify-between px-5 flex-shrink-0" style="border-bottom: 1px solid var(--border-subtle);">
-                <div class="flex items-center gap-3">
-                    <h3 class="text-sm font-bold gradient-text">Edit Block</h3>
-                    <span id="drawerAutoSaveStatus" class="text-[10px] font-medium hidden" style="color: var(--text-faint);"></span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="manualSaveFromModal()" class="text-[10px] font-medium px-3 py-1.5 rounded-lg transition-all" style="background: linear-gradient(135deg, #5c83ff, #3d6bff); color: white;">
-                        <i class="fas fa-save mr-1"></i>Save & Close
-                    </button>
-                    <button @click="closeEditDrawer()" class="block-action-btn" style="color: var(--text-faint);" title="Close"><i class="fas fa-times"></i></button>
-                </div>
-            </div>
-            <div class="edit-modal-body">
-                <div class="edit-modal-preview" id="editModalPreview">
-                    <div class="relative" style="width: 300px;">
-                        <div class="absolute -inset-1 rounded-[2.8rem]" style="background: linear-gradient(180deg, rgba(61,107,255,0.12), rgba(255,255,255,0.03), rgba(61,107,255,0.08)); filter: blur(1px);"></div>
-                        <div class="relative bg-black rounded-[2.2rem] p-1.5 shadow-2xl" style="border: 2px solid rgba(255,255,255,0.06); box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
-                            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-black rounded-b-2xl z-10 flex items-center justify-center">
-                                <div class="w-14 h-3 rounded-full" style="background: rgba(255,255,255,0.04);"></div>
-                            </div>
-                            <div class="rounded-[1.8rem] overflow-hidden" style="height: calc(92vh - 120px); max-height: 700px; background: var(--bg-body);">
-                                <iframe id="editPreviewFrame" src="" class="w-full h-full border-0 rounded-[1.8rem]"></iframe>
-                            </div>
-                            <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 rounded-full" style="background: rgba(255,255,255,0.06);"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="edit-modal-form" id="editDrawerContent">
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="reorder-toast" id="reorderToast"><i class="fas fa-check-circle mr-2"></i>Order saved</div>
 </div>
 
@@ -1097,7 +1041,6 @@ function biolinkEditor() {
         cardTemplatesLoading: false,
         cardTemplatesLoaded: false,
         _cardSearchTimer: null,
-        editingBlockId: null,
         openSpecialPanel(mode) {
             this.specialMode = mode || 'templates';
             this.specialOpen = true;
@@ -1184,20 +1127,6 @@ function biolinkEditor() {
         init() {
             var self = this;
             this.loadPaletteCollapsed();
-            window.addEventListener('open-edit-drawer', function(e) {
-                self.editingBlockId = e.detail.id;
-            });
-            window.addEventListener('close-edit-drawer', function(e) {
-                // Same in-app confirm guard as closeEditDrawer() so the
-                // dispatch-based close path (Cancel buttons, programmatic
-                // closes) can't silently drop a failed design change either.
-                if (!(e && e.detail && e.detail.skipDirtyCheck) && !_confirmDiscardDesignChange()) return;
-                self.editingBlockId = null;
-                var c = document.getElementById('editDrawerContent');
-                Alpine.destroyTree(c);
-                c.innerHTML = '';
-                _hideEditPreview();
-            });
             // Per-block "+" / "add to card" buttons request a pending insert
             // and (for cards) open the templates panel.
             window.addEventListener('editor-begin-insert', function(e) {
@@ -1212,24 +1141,22 @@ function biolinkEditor() {
             window.addEventListener('editor-close-special', function() {
                 self.specialOpen = false;
             });
-        },
-        closeEditDrawer() {
-            // In-app confirm so creators don't silently drop a failed
-            // design change by clicking the overlay or the close (X)
-            // button. Cancelling keeps the drawer open with the chip and
-            // the same block selected; confirming proceeds with the close.
-            if (!_confirmDiscardDesignChange()) return;
-            this.editingBlockId = null;
-            var container = document.getElementById('editDrawerContent');
-            Alpine.destroyTree(container);
-            container.innerHTML = '';
-            _hideEditPreview();
         }
     }
 }
 
+// Collapse the currently-open inline block editor. The in-app confirm guard
+// keeps a failed design change from being silently dropped (Cancel buttons,
+// the header close (X) and programmatic closes all route through here).
 function closeEditDrawerGlobal() {
-    window.dispatchEvent(new CustomEvent('close-edit-drawer'));
+    if (!_editingBlockId) return;
+    if (!_confirmDiscardDesignChange()) return;
+    var body = _activeInlineBody();
+    if (body) {
+        try { Alpine.destroyTree(body); } catch (e) {}
+        body.innerHTML = '';
+    }
+    _hideEditPreview();
 }
 
 // Returns true when the currently-open edit drawer has a `blockDesignsGallery`
@@ -1239,7 +1166,7 @@ function closeEditDrawerGlobal() {
 // the unsaved attempt. Mirrors the `beforeunload` guard added in #1031,
 // but for in-editor transitions that never trigger `beforeunload`.
 function _hasPendingDesignError() {
-    var c = document.getElementById('editDrawerContent');
+    var c = _activeInlineBody();
     if (!c) return false;
     var nodes = c.querySelectorAll('[x-data]');
     for (var i = 0; i < nodes.length; i++) {
@@ -1267,16 +1194,39 @@ var _drawerAutoSaveTimer = null;
 var _autoSaveObserver = null;
 var _injectedScripts = [];
 
+// The inline editor container/body for the block currently being edited.
+function _activeInlineWrap() {
+    return _editingBlockId ? document.querySelector('[data-inline-editor="' + _editingBlockId + '"]') : null;
+}
+function _activeInlineBody() {
+    return _editingBlockId ? document.querySelector('[data-inline-editor-body="' + _editingBlockId + '"]') : null;
+}
+
 function _hideEditPreview() {
     if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
     if (_autoSaveObserver) { _autoSaveObserver.disconnect(); _autoSaveObserver = null; }
     _injectedScripts.forEach(function(s) { if (s.parentNode) s.parentNode.removeChild(s); });
     _injectedScripts = [];
-    var pFrame = document.getElementById('editPreviewFrame');
-    if (pFrame) pFrame.src = '';
-    var status = document.getElementById('drawerAutoSaveStatus');
-    if (status) status.classList.add('hidden');
+    var wrap = _activeInlineWrap();
+    if (wrap) {
+        wrap.hidden = true;
+        wrap.classList.remove('open');
+        var status = wrap.querySelector('.inline-autosave-status');
+        if (status) status.classList.add('hidden');
+    }
     _editingBlockId = null;
+}
+
+// Edit-button entry point: clicking Edit on the open block collapses its
+// inline editor; clicking Edit on any other block opens that one (closing
+// the previous — only one inline editor is open at a time).
+function toggleEditInline(blockId) {
+    var wrap = document.querySelector('[data-inline-editor="' + blockId + '"]');
+    if (_editingBlockId && String(_editingBlockId) === String(blockId) && wrap && !wrap.hidden) {
+        closeEditDrawerGlobal();
+        return;
+    }
+    openEditDrawer(blockId);
 }
 
 function openEditDrawer(blockId) {
@@ -1288,11 +1238,21 @@ function openEditDrawer(blockId) {
     // but we also short-circuit the check to keep refreshes silent.
     if (_editingBlockId && String(blockId) !== String(_editingBlockId)) {
         if (!_confirmDiscardDesignChange()) return;
+        var prevBody = _activeInlineBody();
+        if (prevBody) {
+            try { Alpine.destroyTree(prevBody); } catch (e) {}
+            prevBody.innerHTML = '';
+        }
+        _hideEditPreview();
     }
     _editingBlockId = blockId;
-    var container = document.getElementById('editDrawerContent');
+    var wrap = _activeInlineWrap();
+    var container = _activeInlineBody();
+    if (!wrap || !container) { _editingBlockId = null; return; }
+    wrap.hidden = false;
+    wrap.classList.add('open');
     container.innerHTML = '<div class="flex items-center justify-center py-16"><i class="fas fa-spinner fa-spin text-2xl" style="color: var(--text-faint);"></i></div>';
-    window.dispatchEvent(new CustomEvent('open-edit-drawer', { detail: { id: blockId } }));
+    _scrollInlineEditorIntoView(wrap);
 
     var editFormUrl = '{{ route("user.links.blocks.editForm", [$link, "__ID__"]) }}'.replace('__ID__', blockId);
     fetch(editFormUrl, {
@@ -1333,6 +1293,11 @@ function _injectEditFormHtml(container, html, blockId) {
 
     Alpine.initTree(container);
 
+    // Bring the freshly-expanded inline editor into view (it may have opened
+    // below the fold, e.g. for a block near the bottom of the canvas).
+    var wrapEl = document.querySelector('[data-inline-editor="' + blockId + '"]');
+    if (wrapEl) _scrollInlineEditorIntoView(wrapEl);
+
     // Restore the style-tab selection captured before a refreshBlockEditor()
     // call, so applying a variant doesn't snap the user back to a default
     // tab or collapse the expanded Block Styling section.
@@ -1348,28 +1313,19 @@ function _injectEditFormHtml(container, html, blockId) {
         }, 0);
     }
 
-    var previewUrl = '{{ url("/" . $link->alias) }}' + '?_editBlock=' + blockId + '&_t=' + Date.now();
-    var pFrame = document.getElementById('editPreviewFrame');
-    if (pFrame) pFrame.src = previewUrl;
-
     _initDrawerAutoSave(container);
 }
 
-function manualSaveFromModal() {
-    var container = document.getElementById('editDrawerContent');
-    var form = container ? container.querySelector('form') : null;
-    if (form) {
-        var btn = form.querySelector('button[type="submit"]');
-        if (btn) btn.click();
-    }
+// Smooth-scroll the expanded inline editor into view (respects
+// prefers-reduced-motion). Runs after a tick so layout has settled.
+function _scrollInlineEditorIntoView(wrap) {
+    var rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(function() {
+        try { wrap.scrollIntoView({ behavior: rm ? 'auto' : 'smooth', block: 'nearest' }); } catch (e) {}
+    }, 50);
 }
 
 function _refreshEditPreview() {
-    var pFrame = document.getElementById('editPreviewFrame');
-    if (pFrame && pFrame.src) {
-        var base = '{{ url("/" . $link->alias) }}';
-        pFrame.src = base + '?_editBlock=' + (_editingBlockId || '') + '&_t=' + Date.now();
-    }
     refreshPreview();
 }
 
@@ -1383,7 +1339,7 @@ function _refreshEditPreview() {
 // card stays highlighted automatically.
 function refreshBlockEditor() {
     if (!_editingBlockId) return;
-    var container = document.getElementById('editDrawerContent');
+    var container = _activeInlineBody();
     if (!container) return;
     var styleRoot = container.querySelector('[data-style-root]');
     var saved = { tab: 'designs', show: true };
@@ -1397,7 +1353,8 @@ function refreshBlockEditor() {
 }
 
 function _showAutoSaveStatus(text, type) {
-    var el = document.getElementById('drawerAutoSaveStatus');
+    var wrap = _activeInlineWrap();
+    var el = wrap ? wrap.querySelector('.inline-autosave-status') : null;
     if (!el) return;
     el.classList.remove('hidden');
     el.style.color = type === 'saving' ? 'var(--text-faint)' : (type === 'saved' ? '#10b981' : '#ef4444');
@@ -1472,11 +1429,13 @@ function _initDrawerAutoSave(container) {
 // instantly without waiting for the debounced autosave + iframe reload. Caps
 // (6 stats, 12 badges) mirror the renderer/repeaters.
 function _postPcLive(payload) {
-    var pFrame = document.getElementById('editPreviewFrame');
-    if (!pFrame || !pFrame.contentWindow || !_editingBlockId) return;
+    if (!_editingBlockId) return;
     payload.type = '1inme-pc-live';
     payload.blockId = _editingBlockId;
-    try { pFrame.contentWindow.postMessage(payload, window.location.origin); } catch (e) {}
+    document.querySelectorAll('.preview-iframe').forEach(function(pFrame) {
+        if (!pFrame.contentWindow || !pFrame.src || pFrame.src === 'about:blank') return;
+        try { pFrame.contentWindow.postMessage(payload, window.location.origin); } catch (e) {}
+    });
 }
 function pcLivePreviewStats(statsJson) {
     var stats; try { stats = JSON.parse(statsJson); } catch (e) { return; }
@@ -1619,6 +1578,7 @@ function ajaxDeleteBlock(btn, url, blockId) {
                 headers: { 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json' }
             }).then(function(r) { return r.json(); }).then(function(data) {
                 if (data.success) {
+                    if (_editingBlockId && String(_editingBlockId) === String(blockId)) _hideEditPreview();
                     var card = document.querySelector('.block-card[data-block-id="' + blockId + '"]');
                     var wrapper = card ? (card.closest('.block-card-wrapper') || card) : null;
                     if (wrapper) { wrapper.style.transition = 'all 0.3s'; wrapper.style.opacity = '0'; wrapper.style.transform = 'translateX(-20px)'; setTimeout(function() { wrapper.remove(); }, 300); }
@@ -1980,7 +1940,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return !inner;
             }},
             draggable: '.block-card-wrapper',
-            filter: '.card-children-area, .card-child-list, .child-span-row, .grid-span-row, .insert-block-btn',
+            filter: '.card-children-area, .card-child-list, .child-span-row, .grid-span-row, .insert-block-btn, .inline-block-editor',
             onAdd: function(evt) {
                 if (handlePaletteDrop(evt, el, null)) return;
                 var blockId = parseInt(evt.item.dataset.blockId);
@@ -2028,6 +1988,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return cardPutAllows(dragEl);
             }},
             draggable: '.child-block-card, .block-card, .block-card-wrapper',
+            filter: '.inline-block-editor, .child-span-row',
             onAdd: function(evt) {
                 if (handlePaletteDrop(evt, childList, cardId)) return;
                 var blockId = parseInt(evt.item.dataset.blockId);

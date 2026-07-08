@@ -21,7 +21,7 @@
             <span class="editor-pill-badge editor-pill-badge--span text-[9px] px-1.5 py-0.5 rounded-md ml-1" style="{{ $childSpan >= 12 ? 'display:none;' : '' }}" data-child-span-badge="{{ $child->id }}">{{ $childSpan }}/12</span>
         </div>
         <div class="flex items-center gap-0.5 flex-shrink-0">
-            <button class="block-action-btn edit-btn" style="width:22px;height:22px;" title="Edit" onclick="openEditDrawer({{ $child->id }})"><i class="fas fa-pen" style="font-size:8px;"></i></button>
+            <button class="block-action-btn edit-btn" style="width:22px;height:22px;" title="Edit" onclick="toggleEditInline({{ $child->id }})"><i class="fas fa-pen" style="font-size:8px;"></i></button>
             <button class="block-action-btn toggle-btn" style="width:22px;height:22px;" title="{{ $child->is_active ? 'Hide' : 'Show' }}" onclick="ajaxToggleBlock(this, '{{ route('user.links.blocks.toggle', [$link, $child]) }}', {{ $child->id }})"><i class="fas {{ $child->is_active ? 'fa-eye' : 'fa-eye-slash' }}" style="font-size:8px;"></i></button>
             <button class="block-action-btn delete-btn" style="width:22px;height:22px;" title="Delete" onclick="ajaxDeleteBlock(this, '{{ route('user.links.blocks.destroy', [$link, $child]) }}', {{ $child->id }})"><i class="fas fa-trash" style="font-size:8px;"></i></button>
         </div>
@@ -40,5 +40,15 @@
                 @endforeach
             </div>
         </div>
+    </div>
+
+    {{-- Inline block editor for this child block (see block-card partial). --}}
+    <div class="inline-block-editor" data-inline-editor="{{ $child->id }}" hidden>
+        <div class="inline-editor-head">
+            <span class="text-[10px] font-bold gradient-text"><i class="fas fa-pen mr-1"></i>Edit Block</span>
+            <span class="inline-autosave-status text-[10px] font-medium hidden" style="color: var(--text-faint);"></span>
+            <button type="button" class="block-action-btn ml-auto" style="width:22px;height:22px;color: var(--text-faint);" title="Close" onclick="closeEditDrawerGlobal()"><i class="fas fa-times" style="font-size:9px;"></i></button>
+        </div>
+        <div class="inline-editor-body" data-inline-editor-body="{{ $child->id }}"></div>
     </div>
 </div>

@@ -140,6 +140,10 @@ args = "dialer-sync"
 task = "workflow.run"
 args = "fontawesome-loader"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-inline-edit"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -480,6 +484,17 @@ args = "pnpm --filter @workspace/scripts run check:fontawesome-loader"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-inline-edit"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-editor-inline-edit.spec.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 stack = "PNPM_WORKSPACE"
