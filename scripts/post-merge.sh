@@ -79,7 +79,15 @@ if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
     php artisan db:seed --class=Database\\\\Seeders\\\\PageTemplatePersonaSeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\ExpandedPageTemplateLibrarySeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\LinkTypeExplainerSeeder --force
-    echo \"[\$(date)] card-template + plan/addon + onboarding page-template + link-type explainer seed finished\"
+    # Biolink background template library (Appearance -> Page background ->
+    # Template picker). All three are idempotent updateOrCreate-by-slug upserts
+    # (additive-only, never destructive), so a re-run on a populated DB is a
+    # safe refresh. Without these, bg_templates is empty on freshly provisioned
+    # environments and the picker shows \"No templates available yet\".
+    php artisan db:seed --class=Database\\\\Seeders\\\\BgTemplateSeeder --force
+    php artisan db:seed --class=Database\\\\Seeders\\\\BgPatternTemplatesSeeder --force
+    php artisan db:seed --class=Database\\\\Seeders\\\\LightBgTemplatesSeeder --force
+    echo \"[\$(date)] card-template + plan/addon + onboarding page-template + link-type explainer + bg-template seed finished\"
   " >> storage/logs/post-merge-recover.log 2>&1 < /dev/null &
   disown $! 2>/dev/null || true
 
