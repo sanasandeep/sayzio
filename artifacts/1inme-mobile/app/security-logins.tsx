@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   FlatList,
   Pressable,
   RefreshControl,
@@ -78,6 +79,16 @@ export default function SecurityLoginsScreen() {
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        setNow(Date.now());
+        load();
+      }
+    });
+    return () => sub.remove();
   }, [load]);
 
   const onRefresh = useCallback(async () => {
