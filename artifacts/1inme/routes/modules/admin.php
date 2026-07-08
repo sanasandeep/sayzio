@@ -246,6 +246,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get   ('/',                 [BgTemplateController::class, 'index'])  ->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::get   ('create',            [BgTemplateController::class, 'create']) ->middleware(CheckPermission::class . ':settings.manage')->name('create');
             Route::post  ('/',                 [BgTemplateController::class, 'store'])  ->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::post  ('restore-defaults',  [BgTemplateController::class, 'restoreDefaults'])->middleware(CheckPermission::class . ':settings.manage')->name('restore-defaults');
             Route::get   ('{bgTemplate}/edit', [BgTemplateController::class, 'edit'])   ->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put   ('{bgTemplate}',      [BgTemplateController::class, 'update']) ->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::delete('{bgTemplate}',      [BgTemplateController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');

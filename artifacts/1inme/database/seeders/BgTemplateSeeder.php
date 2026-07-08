@@ -9,7 +9,18 @@ class BgTemplateSeeder extends Seeder
 {
     public function run(): void
     {
-        $templates = [
+        foreach ($this->templates() as $i => $tpl) {
+            BgTemplate::updateOrCreate(
+                ['slug' => $tpl['slug']],
+                array_merge($tpl, ['sort_order' => $i])
+            );
+        }
+    }
+
+    /** @return array<int, array<string,mixed>> */
+    public function templates(): array
+    {
+        return [
             [
                 'name' => 'Aurora Borealis',
                 'slug' => 'aurora-borealis',
@@ -315,12 +326,5 @@ class BgTemplateSeeder extends Seeder
 })();',
             ],
         ];
-
-        foreach ($templates as $i => $tpl) {
-            BgTemplate::updateOrCreate(
-                ['slug' => $tpl['slug']],
-                array_merge($tpl, ['sort_order' => $i])
-            );
-        }
     }
 }

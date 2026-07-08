@@ -15,6 +15,14 @@
                 </p>
             </div>
             <div class="flex items-center gap-2">
+                <form method="POST" action="{{ route('admin.bg-templates.restore-defaults') }}"
+                      onsubmit="return confirm('Restore the default template library? Missing defaults are recreated and hidden ones re-activated. Any edits you made to default templates are reset to the shipped versions. Custom templates are not touched.');">
+                    @csrf
+                    <button type="submit"
+                            class="px-4 py-2 rounded-xl text-sm font-medium bg-white/10 hover:bg-white/15 text-white/90 inline-flex items-center gap-2">
+                        <i class="fas fa-rotate-left text-xs"></i> Restore default templates
+                    </button>
+                </form>
                 <a href="{{ route('admin.bg-templates.create') }}"
                    class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-2">
                     <i class="fas fa-plus text-xs"></i> New template
@@ -26,6 +34,11 @@
     @if(session('success'))
         <div class="rounded-xl px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm">
             {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="rounded-xl px-4 py-3 bg-rose-500/10 border border-rose-500/30 text-rose-200 text-sm">
+            {{ session('error') }}
         </div>
     @endif
 

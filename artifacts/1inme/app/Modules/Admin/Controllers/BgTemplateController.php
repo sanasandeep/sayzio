@@ -110,6 +110,57 @@ class BgTemplateController extends Controller
         return back()->with('success', $bgTemplate->name . ' is now ' . ($bgTemplate->is_active ? 'active' : 'hidden') . '.');
     }
 
+    /**
+     * One-click restore of the default background template catalog.
+     *
+     * Re-runs the idempotent seeders (updateOrCreate by slug) so missing
+     * defaults are recreated and edited ones are reset to the shipped
+     * version, then re-activates any DEFAULT that was left hidden (matched
+     * by seeded slug). Custom (non-default-slug) templates are never
+     * touched, deleted, or re-activated.
+     */
+    public function restoreDefaults()
+    {
+        $before       = BgTemplate::count();
+        $activeBefore = BgTemplate::where('is_active', true)->count();
+
+        try {
+            $defaultSlugs = [];
+            foreach ([
+                new \Database\Seeders\BgTemplateSeeder(),
+                new \Database\Seeders\BgPatternTemplatesSeeder(),
+                new \Database\Seeders\LightBgTemplatesSeeder(),
+            ] as $seeder) {
+                $seeder->run();
+                $defaultSlugs = array_merge($defaultSlugs, array_column($seeder->templates(), 'slug'));
+            }
+            // Seeders updateOrCreate by slug; make sure every DEFAULT is
+            // visible again in case rows survived but were deactivated.
+            // Custom templates keep whatever active state the admin chose.
+            BgTemplate::where('is_active', false)
+                ->whereIn('slug', $defaultSlugs)
+                ->update(['is_active' => true]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('bg-templates restore-defaults failed: ' . $e->getMessage());
+            return redirect()
+                ->route('admin.bg-templates.index')
+                ->with('error', 'Restoring the default template library failed — see the server log for details.');
+        }
+
+        $after       = BgTemplate::count();
+        $activeAfter = BgTemplate::where('is_active', true)->count();
+        $created     = max(0, $after - $before);
+        $reactivated = max(0, ($activeAfter - $activeBefore) - $created);
+
+        \Illuminate\Support\Facades\Log::info(
+            "::1inme:: bg-templates default library restored — {$created} created, {$reactivated} re-activated, {$activeAfter} active total."
+        );
+
+        return redirect()
+            ->route('admin.bg-templates.index')
+            ->with('success', "Default template library restored — {$created} recreated, {$reactivated} re-activated, {$activeAfter} active template(s) total. The next library health check will send the all-clear.");
+    }
+
     /** @return array<string,mixed> */
     private function validateData(Request $request, ?int $ignoreId = null): array
     {

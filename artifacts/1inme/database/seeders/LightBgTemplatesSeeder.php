@@ -39,7 +39,7 @@ class LightBgTemplatesSeeder extends Seeder
     }
 
     /** @return array<int, array<string,mixed>> */
-    private function templates(): array
+    public function templates(): array
     {
         $out = [];
 
