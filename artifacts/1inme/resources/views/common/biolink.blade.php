@@ -1815,6 +1815,19 @@
                     var rows = root.querySelectorAll(':scope > div > div');
                     return n < rows.length ? rows[n] : null;
                 }
+                // Nth repeater card (.glass-block) inside faq/testimonials.
+                function glassItem(root, n) {
+                    var items = root.querySelectorAll('.glass-block');
+                    return n < items.length ? items[n] : null;
+                }
+                // Replace an element's text while keeping a leading icon <i>.
+                function setTextKeepIcon(el, v) {
+                    if (!el) return false;
+                    var icon = el.querySelector('i');
+                    while (el.lastChild && el.lastChild !== icon) el.removeChild(el.lastChild);
+                    el.appendChild(document.createTextNode(v));
+                    return true;
+                }
 
                 // Handlers keyed by block type → dotted field key (numeric
                 // segments as "*") → fn(root, value, idx) returning true when
@@ -1964,6 +1977,53 @@
                             g.style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
                             return true;
                         }
+                    },
+                    faq: {
+                        'settings.items.*.question': function (root, v, idx) {
+                            var item = glassItem(root, idx[0]); if (!item) return false;
+                            // Keep the optional leading item icon inside the span.
+                            return setTextKeepIcon(item.querySelector('button span'), v);
+                        },
+                        'settings.items.*.answer': function (root, v, idx) {
+                            var item = glassItem(root, idx[0]); if (!item) return false;
+                            return setText(item.querySelector('p'), v);
+                        }
+                    },
+                    testimonials: {
+                        'settings.items.*.name': function (root, v, idx) {
+                            var item = glassItem(root, idx[0]); if (!item) return false;
+                            return setText(item.querySelector('p.font-medium'), v);
+                        },
+                        'settings.items.*.text': function (root, v, idx) {
+                            var item = glassItem(root, idx[0]); if (!item) return false;
+                            // The quote is the item's direct-child <p>; the name
+                            // <p> is nested inside the avatar header row.
+                            return setText(item.querySelector(':scope > p'), v);
+                        }
+                    },
+                    review: {
+                        'settings.name': function (root, v) { return setText(root.querySelector('p.font-medium'), v); },
+                        'settings.text': function (root, v) { return setText(root.querySelector('.glass-block > p'), v); }
+                    },
+                    featured_pin: {
+                        // Text/description targets differ per link_layout;
+                        // plain_text mixes the label with inline nodes, so
+                        // the text handler misses it and returns false →
+                        // safe reload (description/url may still patch).
+                        'settings.text': function (root, v) {
+                            var t = root.querySelector('a p.font-bold, a div.font-semibold');
+                            return setText(t, v);
+                        },
+                        'settings.description': function (root, v) {
+                            var d = root.querySelector('a .opacity-90, a .opacity-70, a .text-white\\/80');
+                            return setText(d, v);
+                        },
+                        'settings.url': function (root, v) {
+                            var a = root.querySelector('a');
+                            if (!a) return false;
+                            a.setAttribute('href', v);
+                            return true;
+                        }
                     }
                 };
                 // Type aliases sharing a renderer / handler set.
@@ -1988,6 +2048,7 @@
                 };
                 LIVE_HANDLERS.socials_custom = LIVE_HANDLERS.socials;
                 LIVE_HANDLERS.service = LIVE_HANDLERS.product;
+                LIVE_HANDLERS.faq_v2 = LIVE_HANDLERS.faq;
 
                 // Per-block style keys we can apply live to the styled wrapper.
                 var LIVE_STYLE_KEYS = {

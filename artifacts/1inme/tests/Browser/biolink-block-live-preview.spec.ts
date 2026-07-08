@@ -67,6 +67,9 @@ function seedFixtures(): {
   socialsMultiId: number;
   progressId: number;
   listId: number;
+  faqId: number;
+  testimonialsId: number;
+  featuredPinId: number;
 } {
   const php = `
 use App\\Modules\\User\\Models\\User;
@@ -117,8 +120,11 @@ $soc = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'socials', 'sort_o
 $socMulti = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'socials_multi', 'sort_order' => 7, 'is_active' => true, 'settings' => ['groups' => [['name' => 'Work', 'platforms' => [['name' => 'twitter', 'url' => 'https://twitter.com/work-before'], ['name' => 'github', 'url' => 'https://github.com/work-before']]], ['name' => 'Fun', 'platforms' => [['name' => 'instagram', 'url' => 'https://instagram.com/fun-before']]]]]]);
 $prog = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'progress', 'sort_order' => 8, 'is_active' => true, 'settings' => ['items' => [['label' => 'Skill A', 'value' => 40], ['label' => 'Skill B', 'value' => 60]]]]);
 $list = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'list', 'sort_order' => 9, 'is_active' => true, 'settings' => ['items' => ['First item', 'Second item']]]);
+$faq = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'faq', 'sort_order' => 10, 'is_active' => true, 'settings' => ['items' => [['question' => 'Q one before', 'answer' => 'A one before'], ['question' => 'Q two before', 'answer' => 'A two before']]]]);
+$testi = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'testimonials', 'sort_order' => 11, 'is_active' => true, 'settings' => ['items' => [['name' => 'Alice Before', 'text' => 'Great before', 'rating' => 5], ['name' => 'Bob Before', 'text' => 'Nice before', 'rating' => 4]]]]);
+$pin = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'featured_pin', 'sort_order' => 12, 'is_active' => true, 'settings' => ['text' => 'Pinned Before', 'description' => 'Pin desc before', 'url' => 'https://example.com/pin-before']]);
 
-echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'badgeId' => $badge->id, 'videoId' => $video->id, 'productId' => $product->id, 'countdownId' => $cd->id, 'cardId' => $card->id, 'socialsId' => $soc->id, 'socialsMultiId' => $socMulti->id, 'progressId' => $prog->id, 'listId' => $list->id]);
+echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'badgeId' => $badge->id, 'videoId' => $video->id, 'productId' => $product->id, 'countdownId' => $cd->id, 'cardId' => $card->id, 'socialsId' => $soc->id, 'socialsMultiId' => $socMulti->id, 'progressId' => $prog->id, 'listId' => $list->id, 'faqId' => $faq->id, 'testimonialsId' => $testi->id, 'featuredPinId' => $pin->id]);
 `.trim();
 
   const out = runTinkerSeed(php);
@@ -456,6 +462,122 @@ test("list item text patches live without a reload", async ({ page }) => {
   await expectNoReload(preview);
 
   await waitForAutosave(page, ids.listId);
+  await page.waitForTimeout(2_000);
+  await expectNoReload(preview);
+});
+
+test("faq question and answer patch live without a reload", async ({
+  page,
+}) => {
+  const { preview } = await gotoEditorWithPreview(page);
+  const form = await openDrawer(page, ids.faqId);
+
+  // Arm the autosave listener BEFORE typing: the debounced POST can land
+  // while the live-patch assertions below are still polling.
+  const savePromise = page.waitForResponse(
+    (r) =>
+      r.url().includes(`/blocks/${ids.faqId}`) &&
+      r.request().method() === "POST" &&
+      r.ok(),
+    { timeout: 60_000 },
+  );
+
+  await form
+    .locator('input[name="settings[items][1][question]"]')
+    .fill("Q two edited live");
+  await form
+    .locator('textarea[name="settings[items][1][answer]"]')
+    .fill("A two edited live");
+
+  const items = preview.locator(
+    `[data-block-id="${ids.faqId}"] .glass-block`,
+  );
+  await expect(items.nth(1).locator("button span")).toContainText(
+    "Q two edited live",
+    { timeout: 10_000 },
+  );
+  // The answer body is x-cloak'd until opened; assert its text content
+  // directly instead of visibility.
+  await expect(async () => {
+    const answer = await items.nth(1).locator("p").textContent();
+    expect(answer || "").toContain("A two edited live");
+  }).toPass({ timeout: 10_000 });
+  await expectNoReload(preview);
+
+  await savePromise;
+  await page.waitForTimeout(2_000);
+  await expectNoReload(preview);
+});
+
+test("testimonial name and text patch live without a reload", async ({
+  page,
+}) => {
+  const { preview } = await gotoEditorWithPreview(page);
+  const form = await openDrawer(page, ids.testimonialsId);
+
+  const savePromise = page.waitForResponse(
+    (r) =>
+      r.url().includes(`/blocks/${ids.testimonialsId}`) &&
+      r.request().method() === "POST" &&
+      r.ok(),
+    { timeout: 60_000 },
+  );
+
+  await form
+    .locator('input[name="settings[items][0][name]"]')
+    .fill("Alice After");
+  await form
+    .locator('textarea[name="settings[items][0][text]"]')
+    .fill("Great edited live");
+
+  const item = preview
+    .locator(`[data-block-id="${ids.testimonialsId}"] .glass-block`)
+    .first();
+  await expect(item.locator("p.font-medium")).toContainText("Alice After", {
+    timeout: 10_000,
+  });
+  await expect(item).toContainText("Great edited live", { timeout: 10_000 });
+  await expectNoReload(preview);
+
+  await savePromise;
+  await page.waitForTimeout(2_000);
+  await expectNoReload(preview);
+});
+
+test("featured pin title, description and URL patch live without a reload", async ({
+  page,
+}) => {
+  const { preview } = await gotoEditorWithPreview(page);
+  const form = await openDrawer(page, ids.featuredPinId);
+
+  // Arm the autosave listener before typing (debounced POST can land while
+  // the live-patch assertions below are still polling).
+  const savePromise = page.waitForResponse(
+    (r) =>
+      r.url().includes(`/blocks/${ids.featuredPinId}`) &&
+      r.request().method() === "POST" &&
+      r.ok(),
+    { timeout: 60_000 },
+  );
+
+  await form.locator('input[name="settings[text]"]').fill("Pinned After");
+  await form
+    .locator('input[name="settings[description]"]')
+    .fill("Pin desc after");
+  await form
+    .locator('input[name="settings[url]"]')
+    .fill("https://example.com/pin-after");
+
+  const root = preview.locator(`[data-block-id="${ids.featuredPinId}"]`);
+  await expect(root).toContainText("Pinned After", { timeout: 10_000 });
+  await expect(root).toContainText("Pin desc after", { timeout: 10_000 });
+  await expect(async () => {
+    const href = (await root.locator("a").first().getAttribute("href")) || "";
+    expect(decodeURIComponent(href)).toContain("example.com/pin-after");
+  }).toPass({ timeout: 10_000 });
+  await expectNoReload(preview);
+
+  await savePromise;
   await page.waitForTimeout(2_000);
   await expectNoReload(preview);
 });
