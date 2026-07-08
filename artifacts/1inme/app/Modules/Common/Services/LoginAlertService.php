@@ -65,8 +65,13 @@ class LoginAlertService
      *   device_label?: string|null,
      *   force_alert?: bool,
      * } $opts
+     * @param \Illuminate\Support\Carbon|null $occurredAt When the login actually
+     *        happened (captured at dispatch time). When set, the login_events
+     *        row's created_at reflects the real sign-in moment rather than
+     *        the (possibly delayed) queue-worker execution time — this is the
+     *        timestamp the Recent Logins page and API render.
      */
-    public function recordRaw(User $user, string $ip, string $ua, string $channel, array $opts = []): ?LoginEvent
+    public function recordRaw(User $user, string $ip, string $ua, string $channel, array $opts = [], ?\Illuminate\Support\Carbon $occurredAt = null): ?LoginEvent
     {
         try {
             $country = null;
@@ -111,7 +116,7 @@ class LoginAlertService
             // don't email (the user just signed up).
             $isNew = $history->isNotEmpty() && (!empty($reasons) || !empty($opts['force_alert']));
 
-            $event = LoginEvent::create([
+            $event = new LoginEvent([
                 'user_id'                  => $user->id,
                 'channel'                  => $channel,
                 'ip'                       => $ip ?: null,
@@ -127,6 +132,13 @@ class LoginAlertService
                 'alert_sent'               => false,
                 'revoke_token'             => Str::random(48),
             ]);
+            if ($occurredAt) {
+                // Marking created_at dirty here stops Eloquent's automatic
+                // timestamping from overwriting it with the save() moment.
+                $event->created_at = $occurredAt;
+                $event->updated_at = $occurredAt;
+            }
+            $event->save();
 
             if ($isNew && !empty($user->email)) {
                 $this->sendAlert($user, $event, $reasons);

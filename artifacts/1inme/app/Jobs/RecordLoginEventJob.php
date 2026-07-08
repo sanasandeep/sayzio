@@ -65,6 +65,9 @@ class RecordLoginEventJob implements ShouldQueue
             }
         }
 
-        $service->recordRaw($user, $this->ip, $this->userAgent, $this->channel, $this->opts);
+        // Pass the dispatch-captured timestamp through so the login_events
+        // row's created_at (what the Recent Logins page/API render) reflects
+        // the actual sign-in moment, not delayed worker execution time.
+        $service->recordRaw($user, $this->ip, $this->userAgent, $this->channel, $this->opts, $this->loggedInAt);
     }
 }

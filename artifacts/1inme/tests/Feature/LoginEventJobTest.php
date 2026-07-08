@@ -238,6 +238,139 @@ class LoginEventJobTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Timestamp correctness: created_at = dispatch time, not execution time
+    // -----------------------------------------------------------------------
+
+    /**
+     * Simulates a delayed queue worker: the job carries a loggedInAt captured
+     * 5 minutes ago and only executes "now". The login_events row's
+     * created_at (what the Recent Logins page and API render) must be the
+     * dispatch-captured timestamp, not the job-execution time.
+     */
+    public function test_event_created_at_matches_dispatch_time_not_execution_time(): void
+    {
+        Mail::fake();
+        $this->fakeGeo('US');
+
+        $user = User::factory()->create();
+        $loggedInAt = now()->subMinutes(5)->startOfSecond();
+
+        $job = new RecordLoginEventJob(
+            userId: $user->id,
+            channel: 'web_password',
+            ip: '203.0.113.1',
+            userAgent: 'Mozilla/5.0 (Macintosh) Chrome/120',
+            opts: [],
+            updateLastLoginAt: true,
+            loggedInAt: $loggedInAt,
+        );
+        $job->handle(app(LoginAlertService::class));
+
+        $event = LoginEvent::where('user_id', $user->id)->firstOrFail();
+        $this->assertEquals(
+            $loggedInAt->toDateTimeString(),
+            $event->created_at->toDateTimeString(),
+            'login_events.created_at must be the dispatch-captured loggedInAt, not job-execution time'
+        );
+        // Sanity: execution time is minutes later, so equality above is meaningful.
+        $this->assertGreaterThanOrEqual(290, abs(now()->diffInSeconds($event->created_at)));
+    }
+
+    /**
+     * When no loggedInAt is provided (legacy dispatches), created_at falls
+     * back to the execution moment instead of erroring out.
+     */
+    public function test_event_created_at_defaults_to_now_without_logged_in_at(): void
+    {
+        Mail::fake();
+        $this->fakeGeo('US');
+
+        $user = User::factory()->create();
+
+        $job = new RecordLoginEventJob(
+            userId: $user->id,
+            channel: 'api_register',
+            ip: '203.0.113.1',
+            userAgent: 'Sayzio/1.0',
+            opts: [],
+            updateLastLoginAt: false,
+            loggedInAt: null,
+        );
+        $job->handle(app(LoginAlertService::class));
+
+        $event = LoginEvent::where('user_id', $user->id)->firstOrFail();
+        $this->assertNotNull($event->created_at);
+        $this->assertLessThanOrEqual(5, abs(now()->diffInSeconds($event->created_at)));
+    }
+
+    // -----------------------------------------------------------------------
+    // Recent Logins surfaces render the job-set timestamp
+    // -----------------------------------------------------------------------
+
+    public function test_recent_logins_page_renders_dispatch_time(): void
+    {
+        Mail::fake();
+        $this->fakeGeo('US');
+
+        $user = User::factory()->create();
+        $loggedInAt = now()->subMinutes(30)->startOfSecond();
+
+        $job = new RecordLoginEventJob(
+            userId: $user->id,
+            channel: 'web_password',
+            ip: '203.0.113.1',
+            userAgent: 'Mozilla/5.0 (Macintosh) Chrome/120',
+            opts: [],
+            updateLastLoginAt: true,
+            loggedInAt: $loggedInAt,
+        );
+        $job->handle(app(LoginAlertService::class));
+
+        $response = $this->actingAs($user, 'web')->get(route('user.security.logins'));
+        $response->assertOk();
+        // The blade renders created_at as "M j, Y g:i A".
+        $response->assertSee($loggedInAt->format('M j, Y g:i A'));
+        // The job-execution time must NOT be what's shown.
+        $this->assertNotEquals(
+            $loggedInAt->format('M j, Y g:i A'),
+            now()->format('M j, Y g:i A')
+        );
+    }
+
+    public function test_api_recent_logins_returns_dispatch_time(): void
+    {
+        Mail::fake();
+        $this->fakeGeo('US');
+
+        $user = User::factory()->create();
+        $loggedInAt = now()->subMinutes(30)->startOfSecond();
+
+        $job = new RecordLoginEventJob(
+            userId: $user->id,
+            channel: 'api_password',
+            ip: '203.0.113.1',
+            userAgent: 'TestMobileApp/1.0',
+            opts: [],
+            updateLastLoginAt: true,
+            loggedInAt: $loggedInAt,
+        );
+        $job->handle(app(LoginAlertService::class));
+
+        // Real bearer token (Sanctum::actingAs breaks TouchSessionToken).
+        $plain = $user->createToken('test')->plainTextToken;
+        $response = $this->withToken($plain)->getJson('/api/v1/security/logins');
+        $response->assertOk();
+
+        $rows = collect($response->json('data.events'))->where('channel', 'api_password');
+        $this->assertNotEmpty($rows, 'API should list the recorded login event');
+        $this->assertEquals(
+            $loggedInAt->toIso8601String(),
+            \Illuminate\Support\Carbon::parse($rows->first()['created_at'])->toIso8601String(),
+            'API created_at must be the dispatch-captured loggedInAt'
+        );
+    }
+
+    // -----------------------------------------------------------------------
     // RecordAdminLastLoginJob: updates admin last_login_at
     // -----------------------------------------------------------------------
 
