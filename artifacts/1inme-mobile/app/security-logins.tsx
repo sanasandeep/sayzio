@@ -34,6 +34,21 @@ type LoginEvent = {
 type ListResponse = { data: { events: LoginEvent[] } };
 type RevokeResponse = { data: { revoked: boolean; message: string } };
 
+function formatWhen(iso: string, now: number): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  let diff = Math.floor((now - d.getTime()) / 1000);
+  if (diff < 0) diff = 0;
+  if (diff < 45) return "Just now";
+  const mins = Math.floor(diff / 60);
+  if (mins < 60) return mins <= 1 ? "1 minute ago" : `${mins} minutes ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return days === 1 ? "1 day ago" : `${days} days ago`;
+  return d.toLocaleString();
+}
+
 export default function SecurityLoginsScreen() {
   const colors = useColors();
   const router = useRouter();
@@ -43,6 +58,12 @@ export default function SecurityLoginsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -99,7 +120,7 @@ export default function SecurityLoginsScreen() {
   );
 
   const renderItem = ({ item }: { item: LoginEvent }) => {
-    const when = new Date(item.created_at).toLocaleString();
+    const when = formatWhen(item.created_at, now);
     const badge =
       item.status === "revoked"
         ? { label: "Revoked", bg: colors.destructive + "22", fg: colors.destructive }

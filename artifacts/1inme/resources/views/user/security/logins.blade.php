@@ -78,22 +78,63 @@
 </div>
 <script>
 (function () {
-    document.querySelectorAll('time.js-local-time').forEach(function (el) {
+    function relativeLabel(d) {
+        var diff = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (diff < 0) diff = 0;
+        if (diff < 45) return 'Just now';
+        var mins = Math.floor(diff / 60);
+        if (mins < 60) return mins <= 1 ? '1 minute ago' : mins + ' minutes ago';
+        var hours = Math.floor(mins / 60);
+        if (hours < 24) return hours === 1 ? '1 hour ago' : hours + ' hours ago';
+        var days = Math.floor(hours / 24);
+        if (days < 7) return days === 1 ? '1 day ago' : days + ' days ago';
+        try {
+            return d.toLocaleString(undefined, {
+                month: 'short', day: 'numeric', year: 'numeric',
+                hour: 'numeric', minute: '2-digit'
+            });
+        } catch (e) {
+            return d.toDateString();
+        }
+    }
+
+    var els = Array.prototype.slice.call(document.querySelectorAll('time.js-local-time'));
+
+    function refresh() {
+        els.forEach(function (el) {
+            var iso = el.getAttribute('datetime');
+            if (!iso) return;
+            var d = new Date(iso);
+            if (isNaN(d.getTime())) return;
+            try {
+                el.textContent = relativeLabel(d);
+            } catch (e) { /* keep server-rendered fallback */ }
+        });
+    }
+
+    els.forEach(function (el) {
         var iso = el.getAttribute('datetime');
         if (!iso) return;
         var d = new Date(iso);
         if (isNaN(d.getTime())) return;
         try {
-            el.textContent = d.toLocaleString(undefined, {
-                month: 'short', day: 'numeric', year: 'numeric',
-                hour: 'numeric', minute: '2-digit'
-            });
             el.setAttribute('title', d.toLocaleString(undefined, {
                 month: 'short', day: 'numeric', year: 'numeric',
                 hour: 'numeric', minute: '2-digit', second: '2-digit',
                 timeZoneName: 'short'
             }));
         } catch (e) { /* keep server-rendered fallback */ }
+    });
+
+    refresh();
+    var timer = setInterval(refresh, 60000);
+
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) refresh();
+    });
+
+    window.addEventListener('pagehide', function () {
+        clearInterval(timer);
     });
 })();
 </script>
