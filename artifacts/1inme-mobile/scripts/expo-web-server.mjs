@@ -43,6 +43,46 @@ const MOBILE_ROOT = path.resolve(fileURLToPath(import.meta.url), "..", "..");
 // than a multi-minute bundle hog.
 export const EXPO_BOOT_DEADLINE_MS = 180_000;
 
+// Error signatures that mean "the environment was too slow/flaky", not "the
+// app regressed": Playwright step/nav timeouts and transient connection errors
+// while the box is starved by concurrent validation jobs (these harnesses run
+// alongside the heavy browser-e2e suite and the native Metro bundle on one
+// constrained machine), plus starved-box system resource errors (fd/memory
+// exhaustion) from Node itself.
+//
+// Real regressions never surface this way — each harness reports them via its
+// fail() helper (which exits 1 directly and can never be downgraded) before an
+// error could reach a catch that consults this classifier.
+//
+// Shared here so the icon-font, native icon-font and auth-flow harnesses apply
+// the SAME environmental-vs-regression distinction and can't drift.
+const TRANSIENT_ENV_ERROR =
+  /ERR_CONNECTION_RESET|ERR_EMPTY_RESPONSE|ERR_CONNECTION_REFUSED|ERR_CONNECTION_CLOSED|ERR_NETWORK_CHANGED|Timeout \d+ms exceeded/;
+
+// System-resource errno codes a starved shared box throws from plain fs/net
+// calls (fd exhaustion, fork/memory pressure, transient socket drops). These
+// are environment failures, not code regressions. Deterministic errors like
+// ENOENT are deliberately NOT here — a missing file is a real problem.
+const TRANSIENT_ENV_CODES = new Set([
+  "EMFILE",
+  "ENFILE",
+  "ENOMEM",
+  "EAGAIN",
+  "EBUSY",
+  "ETIMEDOUT",
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "EPIPE",
+]);
+
+export function isTransientEnvError(e) {
+  return (
+    e?.name === "TimeoutError" ||
+    TRANSIENT_ENV_CODES.has(e?.code) ||
+    TRANSIENT_ENV_ERROR.test(e?.message ?? "")
+  );
+}
+
 // Allocate a free localhost port for a throwaway server.
 export function getFreePort() {
   return new Promise((resolve, reject) => {

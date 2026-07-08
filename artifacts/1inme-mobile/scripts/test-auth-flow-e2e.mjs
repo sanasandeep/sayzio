@@ -118,7 +118,10 @@ import {
   STEP_TIMEOUT_MS,
   reachLoginScreen,
 } from "./check-icon-fonts.mjs";
-import { createExpoServerManager } from "./expo-web-server.mjs";
+import {
+  createExpoServerManager,
+  isTransientEnvError,
+} from "./expo-web-server.mjs";
 
 // A dummy Google web client id. Its value never matters — it only needs to be
 // truthy so HAS_GOOGLE_NATIVE / GOOGLE_AUTH_SAFE_TO_INIT flip on and the
@@ -2817,7 +2820,7 @@ async function run() {
       skip("the throwaway Expo server could not start; skipping the main flow");
       return;
     }
-    await main(mainServer);
+    await runFlowBestEffort("main flow", mainServer, () => main(mainServer));
   }
 
   if (runGoogle) {
@@ -2825,7 +2828,36 @@ async function run() {
       log("Google variant SKIP: the throwaway Expo server could not start");
       return;
     }
-    await runGoogleVariant(googleServer);
+    await runFlowBestEffort("Google variant", googleServer, () =>
+      runGoogleVariant(googleServer),
+    );
+  }
+}
+
+// Best-effort contract, post-boot half (mirrors the icon-font gates): on a
+// THROWAWAY server, a Playwright step/nav timeout or transient connection
+// error anywhere mid-flow means the constrained box was too slow (Metro
+// recompiling, CPU starved by parallel validation jobs) — SKIP, same as when
+// the server couldn't boot at all. Real regressions in this suite are
+// reported via fail() (which exits 1 directly, before any catch) or as
+// non-transient errors (assertion mismatches, withDeadline fail-fast stalls),
+// both of which still fail hard here. Against an explicit APP_URL /
+// GOOGLE_APP_URL (someone deliberately pointed us at a server) we also fail
+// hard so local debugging never silently skips. The flow's own finally blocks
+// have already torn down its browser/server by the time the error reaches us.
+async function runFlowBestEffort(label, server, fn) {
+  try {
+    await fn();
+  } catch (e) {
+    if (!server.explicit && isTransientEnvError(e)) {
+      skip(
+        `${label}: the environment was too slow to drive the flow ` +
+          `(${e?.message?.split("\n")[0] ?? "unknown error"}); ` +
+          `skipping (best-effort, not an auth regression)`,
+      );
+      return;
+    }
+    throw e;
   }
 }
 

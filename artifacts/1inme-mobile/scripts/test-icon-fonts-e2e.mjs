@@ -41,7 +41,10 @@ import {
   STEP_TIMEOUT_MS,
   runIconFontCheck,
 } from "./check-icon-fonts.mjs";
-import { createExpoServerManager } from "./expo-web-server.mjs";
+import {
+  createExpoServerManager,
+  isTransientEnvError,
+} from "./expo-web-server.mjs";
 
 function log(...args) {
   console.log("[test-icon-fonts-e2e]", ...args);
@@ -56,23 +59,12 @@ function skip(msg) {
 // When unset, a throwaway server is booted and tracked for teardown.
 const EXPLICIT_APP_URL = process.env.APP_URL || null;
 
-// Error signatures that mean "the environment was too slow/flaky", not "the
-// icons regressed": Playwright step/nav timeouts and transient connection
-// errors while the box is starved by concurrent validation jobs (this gate
-// runs alongside the heavy browser-e2e suite and the native Metro bundle on
-// one constrained machine). Mirrors TRANSIENT_NAV in test-auth-flow-e2e.mjs.
-//
-// Real icon regressions never surface this way — check-icon-fonts.mjs reports
-// them via fail() (missing font face, tofu glyph), which exits 1 directly and
-// can never be downgraded here.
-const TRANSIENT_ENV_ERROR =
-  /ERR_CONNECTION_RESET|ERR_EMPTY_RESPONSE|ERR_CONNECTION_REFUSED|ERR_CONNECTION_CLOSED|ERR_NETWORK_CHANGED|Timeout \d+ms exceeded/;
-
-function isTransientEnvError(e) {
-  return (
-    e?.name === "TimeoutError" || TRANSIENT_ENV_ERROR.test(e?.message ?? "")
-  );
-}
+// The environmental-vs-regression classifier (Playwright timeouts, transient
+// connection errors, starved-box resource errors) is shared from
+// expo-web-server.mjs so this gate, the native sibling and the auth-flow
+// harness can't drift. Real icon regressions never surface this way —
+// check-icon-fonts.mjs reports them via fail() (missing font face, tofu
+// glyph), which exits 1 directly and can never be downgraded here.
 
 const { acquireServer, stopExpo } = createExpoServerManager(log);
 

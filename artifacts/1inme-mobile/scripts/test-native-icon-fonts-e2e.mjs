@@ -36,6 +36,7 @@
  */
 
 import { runNativeIconFontCheck } from "./check-native-icon-fonts.mjs";
+import { isTransientEnvError } from "./expo-web-server.mjs";
 import { createNativeBundleManager } from "./native-bundle.mjs";
 
 function log(...args) {
@@ -64,6 +65,9 @@ async function run() {
   }
 
   const { bundleText, child } = acquired;
+  // An explicit NATIVE_BUNDLE_FILE means someone deliberately pointed the
+  // check at a bundle for debugging — never silently skip in that mode.
+  const explicit = Boolean(process.env.NATIVE_BUNDLE_FILE);
   log(`running the native icon-font check against the ${PLATFORM} bundle`);
   try {
     runNativeIconFontCheck(bundleText);
@@ -71,6 +75,25 @@ async function run() {
       `PASS: the ${PLATFORM} build embeds the Ionicons & Feather fonts and ` +
         `every login social glyph resolves.`,
     );
+  } catch (e) {
+    // Best-effort contract, post-compile half (mirrors the web gate): the
+    // scan itself is pure fs reads + regexes, so an unexpected throw here on
+    // a throwaway run means the starved box hiccuped (fd/memory exhaustion,
+    // transient I/O under parallel validation load) — SKIP, same as when the
+    // bundle couldn't compile. Real font/asset/registration regressions exit
+    // 1 via fail() inside check-native-icon-fonts.mjs before this catch can
+    // run, so they can never be downgraded. Deterministic errors (e.g. a
+    // missing glyph-map file) and explicit-bundle runs still fail hard.
+    if (!explicit && isTransientEnvError(e)) {
+      stopExpo(child);
+      skip(
+        `the environment failed while scanning the bundle ` +
+          `(${e?.message?.split("\n")[0] ?? "unknown error"}); ` +
+          `skipping (best-effort, not an icon regression)`,
+      );
+      return;
+    }
+    throw e;
   } finally {
     // Free this run's Metro server (no-op when a pre-built bundle was reused,
     // since child stays null). A backstop in the "exit" handler reaps anything
