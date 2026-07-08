@@ -63,6 +63,12 @@ return [
         'cadence'     => ['dailyAt', '05:10'],
     ],
     [
+        'key'         => 'queue:check-backlog',
+        'description' => 'Alert ops admins when the database queue backlog is unhealthy (stale pending jobs — worker likely down, login events/mail undelivered), with an all-clear once it drains.',
+        'cadence'     => ['everyTenMinutes'],
+        'protected'   => true,
+    ],
+    [
         'key'         => 'scheduled-jobs:check-failures',
         'description' => 'Watchdog: alert ops admins when a scheduled job racks up 3+ consecutive failed runs, with an all-clear once it succeeds again.',
         'cadence'     => ['hourlyAt', 35],
