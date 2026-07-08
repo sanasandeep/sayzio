@@ -284,16 +284,27 @@ function PricingThumbnailPreview({
   );
 }
 
-export default function EditBlockScreen() {
+// The block-settings editor, extracted so it can render both as the
+// full-screen route (default export below) and inline, expanded in place
+// beneath a block's row in the blocks list — mirroring the web editor's
+// inline/expand pattern. In inline mode the screen chrome (Stack header,
+// own ScrollView) is skipped and a successful save calls `onDone`
+// instead of popping the navigation stack.
+export function BlockSettingsEditor({
+  linkId,
+  blockId,
+  inline = false,
+  onDone,
+}: {
+  linkId: number;
+  blockId: number;
+  inline?: boolean;
+  onDone?: () => void;
+}) {
   const colors = useColors();
   const router = useRouter();
   const qc = useQueryClient();
-  const { id: idParam, blockId: blockIdParam } = useLocalSearchParams<{
-    id: string;
-    blockId: string;
-  }>();
-  const id = Number(idParam);
-  const blockId = Number(blockIdParam);
+  const id = linkId;
 
   const q = useQuery({
     queryKey: ["blocks", id],
@@ -824,7 +835,8 @@ export default function EditBlockScreen() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["blocks", id] });
-      router.back();
+      if (onDone) onDone();
+      else router.back();
     },
   });
 
@@ -853,14 +865,14 @@ export default function EditBlockScreen() {
 
   if (q.isLoading) {
     return (
-      <View style={styles.center}>
+      <View style={inline ? styles.centerInline : styles.center}>
         <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
   if (!block) {
     return (
-      <View style={styles.center}>
+      <View style={inline ? styles.centerInline : styles.center}>
         <Text style={{ color: colors.destructive }}>Block not found.</Text>
       </View>
     );
@@ -868,12 +880,8 @@ export default function EditBlockScreen() {
 
   const meta = blockKind(block.type);
 
-  return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen
-        options={{ headerShown: true, title: meta?.label || block.type }}
-      />
-      <ScrollView contentContainerStyle={styles.body}>
+  const body = (
+    <>
         {meta ? (
           <Text style={[styles.blurb, { color: colors.mutedForeground }]}>
             {meta.blurb}
@@ -2618,7 +2626,29 @@ export default function EditBlockScreen() {
           onPress={() => save.mutate()}
           loading={save.isPending}
         />
-      </ScrollView>
+    </>
+  );
+
+  return (
+    <View
+      style={
+        inline
+          ? styles.inlineWrap
+          : { flex: 1, backgroundColor: colors.background }
+      }
+    >
+      {inline ? null : (
+        <Stack.Screen
+          options={{ headerShown: true, title: meta?.label || block.type }}
+        />
+      )}
+      {inline ? (
+        // Inline mode lives inside the blocks list's own ScrollView, so a
+        // nested ScrollView would break scrolling — render a plain View.
+        <View style={styles.bodyInline}>{body}</View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.body}>{body}</ScrollView>
+      )}
 
       <IconPickerModal
         visible={iconPickerTarget !== null}
@@ -2680,9 +2710,31 @@ export default function EditBlockScreen() {
   );
 }
 
+// Full-screen route wrapper: reads the link + block ids from the route
+// params and renders the shared editor in screen mode.
+export default function EditBlockScreen() {
+  const { id: idParam, blockId: blockIdParam } = useLocalSearchParams<{
+    id: string;
+    blockId: string;
+  }>();
+  return (
+    <BlockSettingsEditor
+      linkId={Number(idParam)}
+      blockId={Number(blockIdParam)}
+    />
+  );
+}
+
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  centerInline: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24,
+  },
+  inlineWrap: {},
   body: { padding: 20, gap: 14, paddingBottom: 40 },
+  bodyInline: { gap: 14 },
   blurb: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 14, lineHeight: 20 },
   row: {
     flexDirection: "row",

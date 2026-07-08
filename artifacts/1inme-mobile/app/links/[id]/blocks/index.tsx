@@ -68,6 +68,7 @@ import {
   type PageTemplate,
 } from "@/lib/api/pageTemplates";
 import { BlockView, StoreCartProvider } from "@/app/biolink/[handle]";
+import { BlockSettingsEditor } from "@/app/links/[id]/blocks/[blockId]";
 import { PreviewBlueprint } from "@/components/PreviewBlueprint";
 import { listForms, createForm, FORM_TEMPLATES } from "@/lib/api/forms";
 import {
@@ -203,6 +204,10 @@ export default function BlocksScreen() {
   // user actually sees what was added — refresh alone leaves them at
   // the top of a long list with no feedback.
   const [highlightId, setHighlightId] = useState<number | null>(null);
+  // Which block's settings are expanded inline below its row. Mirrors the
+  // web editor's inline/expand pattern: one open at a time, tapping the
+  // row again (or saving) collapses it.
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const rowOffsets = useRef<Record<number, number>>({});
 
@@ -234,7 +239,9 @@ export default function BlocksScreen() {
       setPaletteSearch("");
       setPaletteCategory("all");
       setHighlightId(b.id);
-      router.push(`/links/${id}/blocks/${b.id}` as any);
+      // Expand the freshly-created block's settings inline (mirrors the
+      // web editor, which opens the new block's inline panel in place).
+      setExpandedId(b.id);
     },
   });
 
@@ -302,10 +309,15 @@ export default function BlocksScreen() {
 
   const remove = useMutation({
     mutationFn: (blockId: number) => deleteBlock(id, blockId),
-    onSuccess: (_res, blockId) =>
+    onSuccess: (_res, blockId) => {
       qc.setQueryData<Block[]>(["blocks", id], (old) =>
         removeBlockTree(old, blockId),
-      ),
+      );
+      // If the deleted block (or a card child inside it) had its settings
+      // expanded, collapse the inline editor so it doesn't linger showing
+      // "Block not found".
+      setExpandedId((cur) => (cur === blockId ? null : cur));
+    },
     onError: () => qc.invalidateQueries({ queryKey: ["blocks", id] }),
   });
 
@@ -420,21 +432,30 @@ export default function BlocksScreen() {
                 meta?.label ||
                 b.type;
               const isHighlight = highlightId === b.id;
+              const isExpanded = expandedId === b.id;
               return (
                 <View
                   key={b.id}
                   onLayout={(e) => {
                     rowOffsets.current[b.id] = e.nativeEvent.layout.y;
                   }}
+                  style={{ gap: 0 }}
+                >
+                <View
                   style={[
                     styles.row,
                     {
                       backgroundColor: isHighlight
                         ? colors.primary + "22"
                         : colors.card,
-                      borderColor: isHighlight ? colors.primary : colors.border,
+                      borderColor:
+                        isHighlight || isExpanded
+                          ? colors.primary
+                          : colors.border,
                       borderWidth: isHighlight ? 2 : 1,
                       borderRadius: colors.radius,
+                      borderBottomLeftRadius: isExpanded ? 0 : colors.radius,
+                      borderBottomRightRadius: isExpanded ? 0 : colors.radius,
                       opacity: b.is_active ? 1 : 0.5,
                     },
                   ]}
@@ -461,7 +482,9 @@ export default function BlocksScreen() {
                   </View>
                   <Pressable
                     style={{ flex: 1, gap: 2 }}
-                    onPress={() => router.push(`/links/${id}/blocks/${b.id}` as any)}
+                    onPress={() =>
+                      setExpandedId((cur) => (cur === b.id ? null : b.id))
+                    }
                   >
                     <Text
                       numberOfLines={1}
@@ -475,6 +498,11 @@ export default function BlocksScreen() {
                       {meta?.label || b.type}
                     </Text>
                   </Pressable>
+                  <Feather
+                    name={isExpanded ? "chevron-up" : "edit-2"}
+                    size={14}
+                    color={isExpanded ? colors.primary : colors.mutedForeground}
+                  />
                   <Switch
                     value={b.is_active}
                     onValueChange={() => toggle.mutate(b)}
@@ -494,6 +522,27 @@ export default function BlocksScreen() {
                       color={colors.destructive}
                     />
                   </Pressable>
+                </View>
+                {isExpanded ? (
+                  <View
+                    style={[
+                      styles.inlineEditor,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.primary,
+                        borderBottomLeftRadius: colors.radius,
+                        borderBottomRightRadius: colors.radius,
+                      },
+                    ]}
+                  >
+                    <BlockSettingsEditor
+                      inline
+                      linkId={id}
+                      blockId={b.id}
+                      onDone={() => setExpandedId(null)}
+                    />
+                  </View>
+                ) : null}
                 </View>
               );
             })}
@@ -3157,6 +3206,11 @@ function SpecialRow(props: {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   body: { padding: 20, gap: 14, paddingBottom: 40 },
+  inlineEditor: {
+    borderWidth: 1,
+    borderTopWidth: 0,
+    padding: 14,
+  },
   row: {
     flexDirection: "row",
     alignItems: "center",
