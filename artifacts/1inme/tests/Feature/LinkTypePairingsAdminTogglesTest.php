@@ -189,6 +189,152 @@ class LinkTypePairingsAdminTogglesTest extends TestCase
         }
     }
 
+    /** Copy overrides flow through linkTypePairingsFor() for web + API alike. */
+    public function test_copy_overrides_are_applied_to_pairings(): void
+    {
+        AppSetting::put(SitePagesContent::LINK_TYPE_PAIRINGS_COPY_KEY, [
+            'biolink' => [
+                'qr' => ['name' => 'Custom QR', 'benefit' => 'Custom benefit line.'],
+            ],
+        ]);
+
+        $items = SitePagesContent::linkTypePairingsFor('biolink');
+        $qr = collect($items)->firstWhere('type', 'qr');
+
+        $this->assertSame('Custom QR', $qr['name']);
+        $this->assertSame('Custom benefit line.', $qr['benefit']);
+        // Other cards keep default copy.
+        $vcf = collect($items)->firstWhere('type', 'vcf');
+        $this->assertSame('Contact Card', $vcf['name']);
+    }
+
+    /** Blank/stale/unknown copy entries are ignored and fall back to defaults. */
+    public function test_blank_or_stale_copy_overrides_fall_back_to_defaults(): void
+    {
+        AppSetting::put(SitePagesContent::LINK_TYPE_PAIRINGS_COPY_KEY, [
+            'biolink'          => [
+                'qr'              => ['name' => '   ', 'benefit' => ''],
+                'not_a_real_type' => ['name' => 'X'],
+            ],
+            'nonexistent_page' => ['qr' => ['name' => 'X']],
+        ]);
+
+        $this->assertSame([], SitePagesContent::linkTypePairingsCopyMap());
+        $this->assertSame(
+            SitePagesContent::linkTypePairingsCatalog()['biolink'],
+            SitePagesContent::linkTypePairingsFor('biolink'),
+        );
+    }
+
+    /**
+     * Saving the form stores only non-blank copy values that differ from the
+     * shipped defaults — submitting the defaults (or blanks) stores nothing,
+     * which is what the per-card "Reset" button relies on.
+     */
+    public function test_update_stores_only_changed_copy_and_reset_drops_overrides(): void
+    {
+        $enabled = [];
+        $copy = [];
+        foreach (SitePagesContent::linkTypePairingsCatalog() as $pageKey => $items) {
+            $enabled[$pageKey] = array_column($items, 'type');
+            foreach ($items as $item) {
+                // Submit defaults for everything (what the form does untouched).
+                $copy[$pageKey][$item['type']] = [
+                    'name'    => $item['name'],
+                    'benefit' => $item['benefit'],
+                ];
+            }
+        }
+        // Override one card's copy.
+        $copy['biolink']['qr'] = ['name' => 'Scan Me', 'benefit' => 'A better pitch.'];
+
+        $admin = $this->makeAdmin();
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.link-type-pairings.update'), ['enabled' => $enabled, 'copy' => $copy])
+            ->assertRedirect();
+
+        $this->assertSame(
+            ['biolink' => ['qr' => ['name' => 'Scan Me', 'benefit' => 'A better pitch.']]],
+            AppSetting::get(SitePagesContent::LINK_TYPE_PAIRINGS_COPY_KEY),
+        );
+        $qr = collect(SitePagesContent::linkTypePairingsFor('biolink'))->firstWhere('type', 'qr');
+        $this->assertSame('Scan Me', $qr['name']);
+
+        // "Reset": re-submit the defaults for that card — override is dropped.
+        $copy['biolink']['qr'] = [
+            'name'    => 'QR Code',
+            'benefit' => 'Turn your page into a scannable code for print and signage.',
+        ];
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.link-type-pairings.update'), ['enabled' => $enabled, 'copy' => $copy])
+            ->assertRedirect();
+
+        $this->assertSame([], AppSetting::get(SitePagesContent::LINK_TYPE_PAIRINGS_COPY_KEY));
+        $qr = collect(SitePagesContent::linkTypePairingsFor('biolink'))->firstWhere('type', 'qr');
+        $this->assertSame('QR Code', $qr['name']);
+    }
+
+    /** Restore-defaults also clears all copy overrides. */
+    public function test_restore_defaults_resets_copy_overrides(): void
+    {
+        AppSetting::put(SitePagesContent::LINK_TYPE_PAIRINGS_COPY_KEY, [
+            'biolink' => ['qr' => ['name' => 'Custom']],
+        ]);
+
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->post(route('admin.link-type-pairings.restore-defaults'))
+            ->assertRedirect();
+
+        $this->assertSame([], AppSetting::get(SitePagesContent::LINK_TYPE_PAIRINGS_COPY_KEY));
+    }
+
+    /** The web partial renders overridden copy. */
+    public function test_web_partial_renders_overridden_copy(): void
+    {
+        AppSetting::put(SitePagesContent::LINK_TYPE_PAIRINGS_COPY_KEY, [
+            'reviews' => ['biolink' => ['name' => 'One Link Hub', 'benefit' => 'All your stuff, one link.']],
+        ]);
+
+        $html = view('common.partials.link-type-pairings', [
+            'pairingType' => 'reviews',
+            'theme'       => 'dark',
+        ])->render();
+
+        $this->assertStringContainsString('One Link Hub', $html);
+        $this->assertStringContainsString('All your stuff, one link.', $html);
+        $this->assertStringNotContainsString('Link in Bio', $html);
+    }
+
+    /** API payload picks up overridden copy (mobile parity, no mobile change). */
+    public function test_api_pairings_payload_includes_overridden_copy(): void
+    {
+        $user = \App\Modules\User\Models\User::create([
+            'name'     => 'Rev Owner',
+            'email'    => 'revc' . uniqid() . '@example.com',
+            'password' => Hash::make('secret'),
+            'status'   => 'active',
+        ]);
+        $link = \App\Modules\User\Models\Link::create([
+            'user_id' => $user->id,
+            'type'    => 'reviews',
+            'alias'   => 'revcopy' . uniqid(),
+            'url'     => null,
+            'status'  => 'active',
+        ]);
+
+        AppSetting::put(SitePagesContent::LINK_TYPE_PAIRINGS_COPY_KEY, [
+            'reviews' => ['qr' => ['benefit' => 'Scan to review us in seconds.']],
+        ]);
+
+        $pairings = $this->getJson('/api/v1/reviews/' . $link->alias)
+            ->assertOk()
+            ->json('data.pairings');
+
+        $qr = collect($pairings)->firstWhere('type', 'qr');
+        $this->assertSame('Scan to review us in seconds.', $qr['benefit']);
+        $this->assertSame('QR Code', $qr['name']);
+    }
+
     /**
      * API parity: the public API `pairings` payload — the exact list the
      * mobile app renders — is filtered by the same setting, with no mobile

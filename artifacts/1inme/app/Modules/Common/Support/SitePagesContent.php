@@ -1403,13 +1403,64 @@ class SitePagesContent
     }
 
     /**
+     * app_settings key holding admin copy overrides for pairing cards,
+     * stored as pairing page key => card `type` => ['name' => ?, 'benefit' => ?].
+     * Only non-blank overridden fields are stored; anything absent/blank
+     * falls back to the shipped catalog copy, so clearing a field (or the
+     * whole map) restores the defaults.
+     */
+    public const LINK_TYPE_PAIRINGS_COPY_KEY = 'link_type_pairings_copy';
+
+    /**
+     * The admin-configured copy overrides, normalized to
+     * pageKey => type => ['name' => string, 'benefit' => string] with blank
+     * fields dropped and entries restricted to keys/types that exist in the
+     * catalog (stale entries for removed cards are ignored).
+     */
+    public static function linkTypePairingsCopyMap(): array
+    {
+        $raw = \App\Modules\Admin\Models\AppSetting::get(self::LINK_TYPE_PAIRINGS_COPY_KEY, []);
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $catalog = self::linkTypePairingsCatalog();
+        $map = [];
+        foreach ($raw as $pageKey => $cards) {
+            if (!isset($catalog[$pageKey]) || !is_array($cards)) {
+                continue;
+            }
+            $known = array_column($catalog[$pageKey], 'type');
+            foreach ($cards as $type => $fields) {
+                $type = (string) $type;
+                if (!in_array($type, $known, true) || !is_array($fields)) {
+                    continue;
+                }
+                $entry = [];
+                foreach (['name', 'benefit'] as $field) {
+                    $value = trim((string) ($fields[$field] ?? ''));
+                    if ($value !== '') {
+                        $entry[$field] = $value;
+                    }
+                }
+                if ($entry) {
+                    $map[$pageKey][$type] = $entry;
+                }
+            }
+        }
+
+        return $map;
+    }
+
+    /**
      * Pairings for a single page, keyed by pairing key. Unknown/blank keys
      * resolve to an empty list so the calling partial can hide gracefully.
      * Cards the admin disabled (see LINK_TYPE_PAIRINGS_DISABLED_KEY) are
-     * filtered out here, so every consumer — the web blade partial and every
-     * API controller returning a `pairings` key — respects the toggles
-     * automatically. Disabling all cards for a page yields an empty list,
-     * which hides the whole section.
+     * filtered out here, and admin copy overrides (see
+     * LINK_TYPE_PAIRINGS_COPY_KEY) are applied here, so every consumer —
+     * the web blade partial and every API controller returning a `pairings`
+     * key — respects the settings automatically. Disabling all cards for a
+     * page yields an empty list, which hides the whole section.
      */
     public static function linkTypePairingsFor(?string $pairingKey): array
     {
@@ -1423,14 +1474,31 @@ class SitePagesContent
         }
 
         $disabled = self::linkTypePairingsDisabledMap()[$pairingKey] ?? [];
-        if (!$disabled) {
-            return $items;
+        if ($disabled) {
+            $items = array_values(array_filter(
+                $items,
+                fn ($item) => !in_array($item['type'] ?? '', $disabled, true),
+            ));
         }
 
-        return array_values(array_filter(
-            $items,
-            fn ($item) => !in_array($item['type'] ?? '', $disabled, true),
-        ));
+        $overrides = self::linkTypePairingsCopyMap()[$pairingKey] ?? [];
+        if ($overrides) {
+            $items = array_map(function ($item) use ($overrides) {
+                $override = $overrides[$item['type'] ?? ''] ?? null;
+                if ($override) {
+                    if (isset($override['name'])) {
+                        $item['name'] = $override['name'];
+                    }
+                    if (isset($override['benefit'])) {
+                        $item['benefit'] = $override['benefit'];
+                    }
+                }
+
+                return $item;
+            }, $items);
+        }
+
+        return $items;
     }
 
     /**

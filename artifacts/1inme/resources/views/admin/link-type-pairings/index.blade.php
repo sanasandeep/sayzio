@@ -18,7 +18,8 @@
             Control the "Perfect pairings" cross-promo cards shown on public link-type pages.
             Uncheck a card to hide it on that page type — everywhere: web public pages and the
             mobile app. Unchecking every card for a page type hides the whole section there.
-            The card copy itself is code-defined and not editable here.
+            You can also edit each card's name and benefit text; leave a field blank (or use
+            the per-card reset) to fall back to the shipped default wording.
         </p>
     </div>
 
@@ -34,22 +35,54 @@
                 </div>
                 <div class="grid sm:grid-cols-2 gap-3">
                     @foreach($section['items'] as $item)
-                        @php $checked = !in_array($item['type'], $section['disabled'], true); @endphp
-                        <label class="flex gap-3 items-start p-3.5 rounded-xl border cursor-pointer transition
-                                      {{ $checked ? 'bg-white/[.05] border-white/10' : 'bg-white/[.02] border-white/5 opacity-70' }}">
-                            <input type="checkbox"
-                                   name="enabled[{{ $section['key'] }}][]"
-                                   value="{{ $item['type'] }}"
-                                   @checked($checked)
-                                   class="mt-0.5 h-4 w-4 rounded border-white/20 bg-transparent text-blue-500 focus:ring-blue-500/40">
-                            <span class="min-w-0">
-                                <span class="flex items-center gap-2">
-                                    <i class="fas {{ $item['icon'] }} text-[12px] text-white/60"></i>
-                                    <span class="block font-semibold text-sm text-white">{{ $item['name'] }}</span>
-                                </span>
-                                <span class="block text-xs text-white/50 mt-1 leading-relaxed">{{ $item['benefit'] }}</span>
-                            </span>
-                        </label>
+                        @php
+                            $checked = !in_array($item['type'], $section['disabled'], true);
+                            $customized = $item['name'] !== $item['default_name'] || $item['benefit'] !== $item['default_benefit'];
+                        @endphp
+                        <div class="p-3.5 rounded-xl border transition space-y-2.5
+                                    {{ $checked ? 'bg-white/[.05] border-white/10' : 'bg-white/[.02] border-white/5 opacity-70' }}"
+                             data-pairing-card>
+                            <div class="flex items-start justify-between gap-3">
+                                <label class="flex gap-3 items-center cursor-pointer min-w-0">
+                                    <input type="checkbox"
+                                           name="enabled[{{ $section['key'] }}][]"
+                                           value="{{ $item['type'] }}"
+                                           @checked($checked)
+                                           class="h-4 w-4 rounded border-white/20 bg-transparent text-blue-500 focus:ring-blue-500/40">
+                                    <span class="flex items-center gap-2 min-w-0">
+                                        <i class="fas {{ $item['icon'] }} text-[12px] text-white/60"></i>
+                                        <span class="block font-semibold text-sm text-white truncate">{{ $item['default_name'] }}</span>
+                                        <span data-custom-badge
+                                              class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25 whitespace-nowrap {{ $customized ? '' : 'hidden' }}">
+                                            customized
+                                        </span>
+                                    </span>
+                                </label>
+                                <button type="button"
+                                        data-reset-card
+                                        title="Reset this card's wording to the shipped default"
+                                        class="text-[11px] text-white/40 hover:text-white whitespace-nowrap transition">
+                                    <i class="fas fa-rotate-left mr-1"></i>Reset
+                                </button>
+                            </div>
+                            <div class="space-y-2">
+                                <input type="text"
+                                       name="copy[{{ $section['key'] }}][{{ $item['type'] }}][name]"
+                                       value="{{ $item['name'] }}"
+                                       maxlength="80"
+                                       placeholder="{{ $item['default_name'] }}"
+                                       data-copy-field
+                                       data-default="{{ $item['default_name'] }}"
+                                       class="w-full px-2.5 py-1.5 rounded-lg bg-white/[.04] border border-white/10 text-sm text-white placeholder-white/30 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 outline-none transition">
+                                <textarea name="copy[{{ $section['key'] }}][{{ $item['type'] }}][benefit]"
+                                          rows="2"
+                                          maxlength="220"
+                                          placeholder="{{ $item['default_benefit'] }}"
+                                          data-copy-field
+                                          data-default="{{ $item['default_benefit'] }}"
+                                          class="w-full px-2.5 py-1.5 rounded-lg bg-white/[.04] border border-white/10 text-xs text-white/80 placeholder-white/30 leading-relaxed resize-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 outline-none transition">{{ $item['benefit'] }}</textarea>
+                            </div>
+                        </div>
                     @endforeach
                 </div>
             </div>
@@ -69,4 +102,31 @@
         </button>
     </form>
 </div>
+
+<script>
+    // Per-card "Reset": restore both copy fields to the shipped defaults
+    // (kept in data-default). Saving then drops the overrides because the
+    // controller only stores values that differ from the default.
+    document.querySelectorAll('[data-pairing-card]').forEach(function (card) {
+        var resetBtn = card.querySelector('[data-reset-card]');
+        var badge = card.querySelector('[data-custom-badge]');
+        var fields = card.querySelectorAll('[data-copy-field]');
+
+        function refreshBadge() {
+            var customized = Array.prototype.some.call(fields, function (f) {
+                return f.value.trim() !== '' && f.value.trim() !== f.dataset.default;
+            });
+            if (badge) badge.classList.toggle('hidden', !customized);
+        }
+
+        fields.forEach(function (f) { f.addEventListener('input', refreshBadge); });
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function () {
+                fields.forEach(function (f) { f.value = f.dataset.default; });
+                refreshBadge();
+            });
+        }
+    });
+</script>
 @endsection
