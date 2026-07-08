@@ -77,6 +77,15 @@ $extra = is_array($page->extra) ? $page->extra : [];
 $extra['link_types'] = array_values($rows);
 $page->extra = $extra;
 $page->save();
+
+// Pin the Features page to its built-in default sections too. The home
+// editor's "Pull from Features" button reads the Features "Link types"
+// category as its sync source, so the pull tests need a deterministic
+// source list. Seeding the defaults matches what the page renders when
+// nothing is saved, so this never visibly changes the marketing site.
+$features = SitePage::firstOrCreate(['slug' => 'features'], ['title' => 'Features']);
+$features->sections = SitePagesContent::featuresCategoriesDefault();
+$features->save();
 echo 'SEEDED=' . count($rows);
 `.trim();
 
@@ -142,6 +151,60 @@ function previewNames(page: Page) {
       .map(grab);
     return { featured, more };
   });
+}
+
+/**
+ * Read the editor's Alpine `featuresSource` array (the Features "Link types"
+ * sync list the "Pull from Features" button copies in). Read from the live
+ * component so the expectations always mirror exactly what the pull uses.
+ */
+function readFeaturesSource(
+  page: Page,
+): Promise<Array<{ name: string; icon: string; desc: string }> | null> {
+  return page.evaluate(() => {
+    const root = document
+      .querySelector("[data-home-showcase-preview]")
+      ?.closest("[x-data]");
+    const alpine = (window as unknown as { Alpine?: { $data: (el: Element) => unknown } })
+      .Alpine;
+    if (!root || !alpine) return null;
+    const data = alpine.$data(root) as {
+      featuresSource?: Array<{ name: string; icon: string; desc: string }>;
+    };
+    return data.featuresSource
+      ? data.featuresSource.map((f) => ({ ...f }))
+      : null;
+  });
+}
+
+/** Ordered names currently in the editor's row inputs. */
+function editorRowNames(page: Page): Promise<string[]> {
+  return page.evaluate(() =>
+    Array.from(
+      document.querySelectorAll<HTMLInputElement>(
+        'input[name^="extra[link_types]["][name$="][name]"]',
+      ),
+    ).map((i) => i.value),
+  );
+}
+
+/** The name input of the editor row at index i (Alpine-bound name). */
+function nameInput(page: Page, i: number) {
+  return page.locator(`input[name="extra[link_types][${i}][name]"]`);
+}
+
+/** The colour input of the editor row at index i. */
+function colorInput(page: Page, i: number) {
+  return page.locator(
+    `input[type="color"][name="extra[link_types][${i}][color]"]`,
+  );
+}
+
+/** The "New badge" checkbox of the editor row at index i. */
+function newCheckbox(page: Page, i: number) {
+  return page.locator(
+    `input[type="checkbox"][name="extra[link_types][${i}][new]"]`,
+  );
 }
 
 /** The featured-star checkbox of the editor row at index i (Alpine-bound name). */
@@ -250,5 +313,75 @@ test.describe("home showcase editor — Alpine live preview", () => {
     // The strip is untouched by a swap inside the featured tier.
     const names = await previewNames(page);
     expect(names!.more[0]).toBe("Store Menu");
+  });
+
+  test("'Pull from Features' asks first, and cancelling leaves the rows untouched", async ({
+    page,
+  }) => {
+    const before = await editorRowNames(page);
+    expect(before.length).toBeGreaterThan(0);
+
+    await page.getByRole("button", { name: "Pull from Features" }).click();
+
+    // The themedConfirm dialog appears — nothing happens without consent.
+    await expect(
+      page.locator("[data-themed-confirm-title]"),
+    ).toHaveText("Pull from Features link types?");
+    await expect(page.locator("[data-themed-confirm-ok]")).toBeVisible();
+
+    await page.locator("[data-themed-confirm-cancel]").click();
+    await expect(page.locator("[data-themed-confirm-title]")).toHaveCount(0);
+
+    // Rows are exactly as they were.
+    expect(await editorRowNames(page)).toEqual(before);
+  });
+
+  test("confirming replaces rows with the Features list; matching rows keep colour/new/featured", async ({
+    page,
+  }) => {
+    const source = await readFeaturesSource(page);
+    expect(source).not.toBeNull();
+    expect(source!.length).toBeGreaterThan(0);
+
+    // Customise row 0 ("Short Link", which name-matches the Features list):
+    // distinctive accent colour + "New" badge, and it is already featured.
+    await colorInput(page, 0).fill("#ff6600");
+    await newCheckbox(page, 0).check();
+    await expect(starCheckbox(page, 0)).toBeChecked();
+
+    // Rename row 1 ("Link in Bio", also featured) so it no longer matches
+    // any Features name — its styling/flags must NOT carry over.
+    await nameInput(page, 1).fill("ZZZ Custom Row");
+
+    await page.getByRole("button", { name: "Pull from Features" }).click();
+    await page.locator("[data-themed-confirm-ok]").click();
+
+    // The rows become exactly the Features list — never blank, never partial.
+    await expect
+      .poll(async () => await editorRowNames(page))
+      .toEqual(source!.map((f) => f.name));
+    expect(source!.length).toBeGreaterThan(1);
+
+    // Row 0 still name-matches ("Short Link") → keeps colour, "New" and
+    // featured state.
+    await expect(colorInput(page, 0)).toHaveValue("#ff6600");
+    await expect(newCheckbox(page, 0)).toBeChecked();
+    await expect(starCheckbox(page, 0)).toBeChecked();
+
+    // The renamed row didn't survive; the pulled "Link in Bio" that replaced
+    // it has no matching previous row, so it falls back to defaults.
+    const namesAfter = await editorRowNames(page);
+    expect(namesAfter).not.toContain("ZZZ Custom Row");
+    const libIndex = namesAfter.indexOf("Link in Bio");
+    expect(libIndex).toBeGreaterThanOrEqual(0);
+    await expect(colorInput(page, libIndex)).toHaveValue("#3d6bff");
+    await expect(newCheckbox(page, libIndex)).not.toBeChecked();
+    await expect(starCheckbox(page, libIndex)).not.toBeChecked();
+
+    // The preview keeps rendering from the pulled rows (still-matching
+    // featured rows populate the big-card tier — no silent wipe).
+    const preview = await previewNames(page);
+    expect(preview!.featured).toContain("Short Link");
+    expect(preview!.featured).not.toContain("Link in Bio");
   });
 });
