@@ -447,8 +447,16 @@
             <div>
                 <label class="{{ $labelClass }}">Text Color</label>
                 <div class="flex gap-2">
-                    <input type="color" name="style[text_color]" value="{{ $st['text_color'] ?? '#ffffff' }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
-                    <input type="text" value="{{ $st['text_color'] ?? '' }}" placeholder="Inherit" class="{{ $inputClass }} flex-1" oninput="this.previousElementSibling.value = this.value" onchange="this.previousElementSibling.value = this.value">
+                    @php
+                        $tcVal = $st['text_color'] ?? '';
+                        $tcPicker = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $tcVal) ? $tcVal : '#ffffff';
+                    @endphp
+                    {{-- Picker is intentionally UNNAMED: input[type=color] always holds a
+                         browser-normalized solid hex, so submitting it directly would stamp
+                         a color on every save even when the user never picked one. The text
+                         input is the source of truth (supports empty = inherit). --}}
+                    <input type="color" value="{{ $tcPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value">
+                    <input type="text" name="style[text_color]" value="{{ $tcVal }}" placeholder="Inherit" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value">
                 </div>
             </div>
         </div>
@@ -476,8 +484,16 @@
             <div>
                 <label class="{{ $labelClass }}">Background Color</label>
                 <div class="flex gap-2">
-                    <input type="color" name="style[bg_color]" value="{{ $st['bg_color'] ?? '#ffffff0d' }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
-                    <input type="text" value="{{ $st['bg_color'] ?? '' }}" placeholder="Transparent" class="{{ $inputClass }} flex-1" oninput="this.previousElementSibling.value = this.value" onchange="this.previousElementSibling.value = this.value">
+                    @php
+                        $bgVal = $st['bg_color'] ?? '';
+                        $bgPicker = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $bgVal) ? $bgVal : '#ffffff';
+                    @endphp
+                    {{-- Picker is intentionally UNNAMED (see text_color note above). The
+                         old named picker seeded with '#ffffff0d' — an 8-digit hex that
+                         input[type=color] can't hold — got browser-normalized to a solid
+                         color and silently saved on every block edit (Task #4025). --}}
+                    <input type="color" value="{{ $bgPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value">
+                    <input type="text" name="style[bg_color]" value="{{ $bgVal }}" placeholder="Transparent" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value">
                 </div>
             </div>
             <input type="hidden" name="style[bg_opacity]" value="{{ $st['bg_opacity'] ?? 100 }}">
@@ -555,7 +571,15 @@
                     </div>
                     <div>
                         <label class="{{ $labelClass }}">Color</label>
-                        <input type="color" name="style[border_color]" value="{{ $st['border_color'] ?? '#ffffff15' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+                        @php
+                            $bcVal = $st['border_color'] ?? '';
+                            $bcPicker = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $bcVal) ? $bcVal : '#ffffff';
+                        @endphp
+                        {{-- Hidden input carries the submitted value; the picker is
+                             unnamed so its browser-normalized default never gets
+                             stamped into _style on unrelated saves (Task #4025). --}}
+                        <input type="hidden" name="style[border_color]" value="{{ $bcVal }}">
+                        <input type="color" value="{{ $bcPicker }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.previousElementSibling.value = this.value">
                     </div>
                 </div>
                 {{-- Shadow fine-tuning --}}
@@ -564,7 +588,14 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div class="flex items-center gap-2">
                             <span class="text-[9px] font-semibold flex-shrink-0" style="color: var(--text-dimmed);">Color</span>
-                            <input type="color" name="style[shadow_color]" value="{{ $st['shadow_color'] ?? '#000000' }}" class="w-full h-8 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+                            @php
+                                $scVal = $st['shadow_color'] ?? '';
+                                $scPicker = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $scVal) ? $scVal : '#000000';
+                            @endphp
+                            {{-- Hidden input carries the submitted value; picker is
+                                 unnamed (see border_color note, Task #4025). --}}
+                            <input type="hidden" name="style[shadow_color]" value="{{ $scVal }}">
+                            <input type="color" value="{{ $scPicker }}" class="w-full h-8 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.previousElementSibling.value = this.value">
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-[9px] font-semibold flex-shrink-0" style="color: var(--text-dimmed);">Blur</span>

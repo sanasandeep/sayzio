@@ -562,6 +562,20 @@ class BiolinkBlockController extends Controller
         $settings['_visibility'] = $this->sanitizeVisibility($validated['visibility'] ?? ($block->settings['_visibility'] ?? []));
         $existingStyle = $block->settings['_style'] ?? [];
         $incomingStyle = $validated['style'] ?? [];
+
+        // Task #4025: an explicitly-submitted empty value is a "clear this
+        // key" instruction (e.g. wiping the Background Color text field back
+        // to Transparent). sanitizeBlockStyle() skips empty values, so
+        // without this the merge below would silently keep the old value
+        // and users could never return a block to transparent/inherit.
+        if (is_array($incomingStyle)) {
+            foreach ($incomingStyle as $k => $v) {
+                if ($v === '' || $v === null) {
+                    unset($existingStyle[$k]);
+                }
+            }
+        }
+
         $sanitized = $this->sanitizeBlockStyle(array_merge($existingStyle, $incomingStyle));
 
         // Variant application now flows through the dedicated
