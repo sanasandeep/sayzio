@@ -321,6 +321,25 @@
         /* Springy icon pop on hover — small scale + gentle tilt, no spin. */
         .showcase-icon-wrap { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
         .showcase-card:hover .showcase-icon-wrap { transform: scale(1.12) rotate(-3deg); }
+        /* Whole-card demo link: keyboard focus mirrors the hover vocabulary
+           (ring bloom + inner lift) and adds a visible focus outline. */
+        .sc-link:focus-visible {
+            outline: 2px solid var(--sc-color);
+            outline-offset: 2px;
+        }
+        .showcase-card:focus-within {
+            box-shadow: 0 20px 40px -18px color-mix(in srgb, var(--sc-color) 45%, transparent);
+        }
+        .showcase-card:focus-within .showcase-inner { transform: translateY(-4px); }
+        .showcase-card:focus-within::after {
+            opacity: 1;
+            box-shadow: 0 0 0 1px color-mix(in srgb, var(--sc-color) 35%, transparent), 0 0 24px -2px color-mix(in srgb, var(--sc-color) 28%, transparent), inset 0 0 18px -8px color-mix(in srgb, var(--sc-color) 22%, transparent);
+        }
+        /* Subtle "See demo" affordance on the featured tier: arrow nudges
+           on hover/focus; always visible so touch users see it too. */
+        .sc-cta i { transition: transform .3s ease; }
+        .showcase-card:hover .sc-cta i,
+        .showcase-card:focus-within .sc-cta i { transform: translateX(3px); }
         /* Gentle idle icon float while the card is on screen (sc-alive is only
            ever added by JS when prefers-reduced-motion is off). Paused on
            hover so the springy hover pop wins cleanly. */
@@ -3998,6 +4017,36 @@
     $__linkTypes = (!empty($linkTypes) && is_array($linkTypes))
         ? $linkTypes
         : \App\Modules\Common\Support\SitePagesContent::homeLinkTypesDefault();
+
+    // Map each card to its seeded /demos explainer page (alias
+    // `demo-type-{slug(name)}`) when one is live, falling back to the
+    // Features page link-types anchor otherwise. Reuses the same cached
+    // gallery data as /demos (5-min TTL, plain arrays) so the home render
+    // stays query-free on the warm path; any failure degrades to the
+    // Features fallback for every card.
+    $__demoAliasSet = [];
+    try {
+        $__demoData = \Illuminate\Support\Facades\Cache::remember(
+            \App\Modules\Common\Controllers\SitePageController::DEMOS_CACHE_KEY,
+            300,
+            fn () => \App\Modules\Common\Controllers\SitePageController::buildDemosData()
+        );
+        $__demoAliasSet = array_fill_keys(array_keys((array) ($__demoData['links'] ?? [])), true);
+    } catch (\Throwable $e) {
+        $__demoAliasSet = [];
+    }
+    $__ltCardLink = function (array $lt) use ($__demoAliasSet): array {
+        $name = trim((string) ($lt['name'] ?? ''));
+        $alias = 'demo-type-' . \Illuminate\Support\Str::slug($name);
+        if ($name !== '' && isset($__demoAliasSet[$alias])) {
+            return ['href' => url('/' . $alias), 'label' => 'See demo', 'aria' => 'See the live ' . $name . ' demo'];
+        }
+        return [
+            'href'  => route('site.features') . '#cat-link-types',
+            'label' => 'Learn more',
+            'aria'  => ($name !== '' ? $name . ' — l' : 'L') . 'earn more on the Features page',
+        ];
+    };
 @endphp
 <section id="create" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="create-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -4026,7 +4075,9 @@
         @endphp
         <div class="showcase-field grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             @foreach($__ltFeatured as $i => $lt)
+                @php $__ltLink = $__ltCardLink($lt); @endphp
                 <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card showcase-card-lg glass rounded-2xl p-5 relative overflow-hidden" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s; --sc-stagger:{{ round($i * 0.08, 2) }}s;">
+                    <a href="{{ $__ltLink['href'] }}" class="sc-link absolute inset-0 z-10 rounded-2xl" aria-label="{{ $__ltLink['aria'] }}"></a>
                     <div class="showcase-inner relative w-full h-full">
                         <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-20 showcase-blob" style="background:{{ $lt['color'] }};"></div>
                         @if($lt['new'])
@@ -4039,6 +4090,9 @@
                             <div class="min-w-0 pt-0.5">
                                 <h3 class="text-base font-bold mb-1 leading-snug">{{ $lt['name'] }}</h3>
                                 <p class="text-[13px] text-gray-400 leading-relaxed sc-clamp-2">{{ $lt['desc'] }}</p>
+                                <span class="sc-cta mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold" style="color:{{ $lt['color'] }};" aria-hidden="true">
+                                    {{ $__ltLink['label'] }} <i class="fas fa-arrow-right text-[9px]"></i>
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -4054,7 +4108,9 @@
             </div>
             <div class="showcase-field grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
                 @foreach($__ltMore as $i => $lt)
+                    @php $__ltLink = $__ltCardLink($lt); @endphp
                     <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card showcase-card-sm glass rounded-xl p-3 relative overflow-hidden" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s; --sc-stagger:{{ round($i * 0.08, 2) }}s;">
+                        <a href="{{ $__ltLink['href'] }}" class="sc-link absolute inset-0 z-10 rounded-xl" aria-label="{{ $__ltLink['aria'] }}"></a>
                         <div class="showcase-inner relative w-full h-full">
                             <div class="absolute -top-8 -right-8 w-16 h-16 rounded-full opacity-20 showcase-blob" style="background:{{ $lt['color'] }};"></div>
                             <div class="relative flex items-center gap-2.5">
