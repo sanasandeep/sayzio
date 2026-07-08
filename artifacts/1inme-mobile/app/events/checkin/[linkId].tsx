@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import {
   checkinScan,
   type CheckinProgress,
@@ -45,6 +46,11 @@ export default function CheckinScannerScreen() {
     const timer = setInterval(loadProgress, 5000);
     return () => clearInterval(timer);
   }, [id, loadProgress]);
+
+  // Timers pause while backgrounded — refresh counts as soon as the app resumes.
+  useForegroundRefresh(() => {
+    if (id) loadProgress();
+  });
 
   const extractCode = (raw: string): string => {
     // The QR content is a full check-in lookup URL; ticket codes are

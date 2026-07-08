@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import {
   BOOKING_ACTION_LABELS,
   BOOKING_STATUS_FLOW,
@@ -78,20 +79,26 @@ export default function ServiceBookingDashboardScreen() {
     }
   }, [initial.data, merge]);
 
+  const pollNow = useCallback(async () => {
+    if (linkId.length === 0) return;
+    try {
+      const res = await pollOwnerBookings(linkId, cursor.current);
+      cursor.current = res.server_time;
+      setOpenCount(res.open_count);
+      if (res.bookings.length) merge(res.bookings);
+    } catch {
+      // ignore transient poll errors
+    }
+  }, [linkId, merge]);
+
   useEffect(() => {
     if (linkId.length === 0) return;
-    const t = setInterval(async () => {
-      try {
-        const res = await pollOwnerBookings(linkId, cursor.current);
-        cursor.current = res.server_time;
-        setOpenCount(res.open_count);
-        if (res.bookings.length) merge(res.bookings);
-      } catch {
-        // ignore transient poll errors
-      }
-    }, 6000);
+    const t = setInterval(pollNow, 6000);
     return () => clearInterval(t);
-  }, [linkId, merge]);
+  }, [linkId, pollNow]);
+
+  // Timers pause while backgrounded — catch up as soon as the app resumes.
+  useForegroundRefresh(pollNow);
 
   const setStatus = useMutation({
     mutationFn: ({

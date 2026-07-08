@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  AppState,
   FlatList,
   Pressable,
   RefreshControl,
@@ -15,6 +14,7 @@ import {
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import { apiFetch } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
 
@@ -81,15 +81,10 @@ export default function SecurityLoginsScreen() {
     load();
   }, [load]);
 
-  useEffect(() => {
-    const sub = AppState.addEventListener("change", (state) => {
-      if (state === "active") {
-        setNow(Date.now());
-        load();
-      }
-    });
-    return () => sub.remove();
-  }, [load]);
+  useForegroundRefresh(() => {
+    setNow(Date.now());
+    load();
+  });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

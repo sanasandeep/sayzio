@@ -19,6 +19,7 @@ import {
 } from "@/components/ClickHeatmap";
 import { StatTile } from "@/components/StatTile";
 import { useColors } from "@/hooks/useColors";
+import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import {
   type BlockAnalytics,
   type RateLimitConfig,
@@ -644,6 +645,7 @@ function HeatmapSection({ linkId }: { linkId: number }) {
 
   // Live polling: every 10s fetch clicks newer than the last cursor and pulse
   // them onto the map. Replaces the web SSE stream with a poll loop.
+  const pollRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!liveMode) return;
     let cancelled = false;
@@ -672,12 +674,20 @@ function HeatmapSection({ linkId }: { linkId: number }) {
     };
 
     poll();
+    pollRef.current = poll;
     const t = setInterval(poll, 10000);
     return () => {
       cancelled = true;
+      pollRef.current = null;
       clearInterval(t);
     };
   }, [liveMode, linkId]);
+
+  // Timers pause while backgrounded — pull missed clicks as soon as the app
+  // resumes (only when live mode is on; pollRef is null otherwise).
+  useForegroundRefresh(() => {
+    pollRef.current?.();
+  });
 
   const points = h.data?.points ?? [];
   const maxWeight = h.data?.meta.max_weight ?? 1;

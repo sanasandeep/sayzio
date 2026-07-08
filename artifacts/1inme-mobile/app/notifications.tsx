@@ -17,6 +17,7 @@ import {
 
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
+import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import { getBaseUrl } from "@/lib/api";
 import {
   deleteNotification,
@@ -82,6 +83,12 @@ export default function NotificationsScreen() {
   const dismissedQ = useQuery({
     queryKey: ["notifications", "dismissed"],
     queryFn: listDismissedNotifications,
+  });
+
+  // Re-fetch when the app returns to the foreground so timestamps and the
+  // list itself don't sit stale after being backgrounded.
+  useForegroundRefresh(() => {
+    qc.invalidateQueries({ queryKey: ["notifications"] });
   });
 
   const markAll = useMutation({
