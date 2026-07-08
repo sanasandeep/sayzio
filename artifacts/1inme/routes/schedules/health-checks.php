@@ -72,4 +72,9 @@ return [
         'description' => 'Alert ops admins when the onboarding template gallery goes empty (zero active page templates), and all-clear once restored.',
         'cadence'     => ['hourlyAt', 55],
     ],
+    [
+        'key'         => 'bg-templates:check-library',
+        'description' => 'Alert ops admins when the biolink background template library goes empty or drops below its expected floor, and all-clear once restored.',
+        'cadence'     => ['hourlyAt', 50],
+    ],
 ];
