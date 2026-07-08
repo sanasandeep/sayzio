@@ -53,6 +53,20 @@
         featuredCap: {{ $homeLtCap }},
         dragFrom: null,
         featuredCount(){ return this.rows.filter(function(r){ return !!r.featured; }).length; },
+        {{-- previewSplit mirrors SitePagesContent::splitHomeLinkTypesFeatured:
+             the editor state always carries explicit flags (legacy rows are
+             pre-checked positionally when seeded above), so the split is
+             flag-driven in list order, capped at featuredCap; everything else
+             falls to the compact strip. --}}
+        previewSplit(){
+            var featured = [], more = [], cap = this.featuredCap;
+            this.rows.forEach(function(r){
+                if(!!r.featured && featured.length < cap){ featured.push(r); } else { more.push(r); }
+            });
+            return { featured: featured, more: more };
+        },
+        previewFeatured(){ return this.previewSplit().featured; },
+        previewMore(){ return this.previewSplit().more; },
         toggleFeatured(lt){
             if(!lt.featured && this.featuredCount() >= this.featuredCap){ return; }
             lt.featured = !lt.featured;
@@ -115,6 +129,59 @@
         </div>
     </div>
     <p class="text-[11px] text-white/40 mb-3"><i class="fas fa-grip-vertical mr-1"></i> Drag the handle on the left of any card to reorder. Arrow buttons still work too. <span class="text-white/30">&middot;</span> <i class="fas fa-rotate mr-1"></i> &ldquo;Pull from Features&rdquo; copies the Features page list here, keeping your accent colours and &ldquo;New&rdquo; badges for matching names.</p>
+
+    {{-- Live showcase preview: mirrors the public home split (featured big
+         cards + "And plenty more" strip) and re-renders as rows are
+         reordered / toggled, so admins can arrange the tiers without
+         saving and round-tripping to the home page. --}}
+    <div x-show="rows.length > 0" class="mb-4 bg-black/20 border border-white/10 rounded-xl p-4" data-home-showcase-preview>
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-[10px] uppercase tracking-[.2em] font-bold text-white/40"><i class="fas fa-eye mr-1.5"></i>Live preview — &ldquo;What you can create&rdquo;</span>
+            <span class="text-[10px] text-white/30">Updates as you reorder &amp; toggle &middot; nothing is saved until you click Save changes</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <template x-for="lt in previewFeatured()" :key="'pf-' + lt._key">
+                <div class="relative overflow-hidden bg-white/5 border border-white/10 rounded-xl p-3">
+                    <div class="absolute -top-6 -right-6 w-16 h-16 rounded-full opacity-20" :style="'background:' + (lt.color || '#3d6bff')"></div>
+                    <span x-show="lt.new" class="absolute top-1.5 right-1.5 inline-flex items-center text-[7px] font-bold uppercase tracking-wider px-1 py-px rounded-full"
+                          :style="'background:rgba(255,255,255,.08); color:' + (lt.color || '#3d6bff') + '; border:1px solid ' + (lt.color || '#3d6bff') + '66;'">New</span>
+                    <div class="relative flex items-start gap-2.5">
+                        <div class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center"
+                             :style="'background:' + (lt.color || '#3d6bff') + '; box-shadow:0 8px 18px -8px ' + (lt.color || '#3d6bff') + ';'">
+                            <i :class="'fas ' + (lt.icon || 'fa-link') + ' text-white text-xs'"></i>
+                        </div>
+                        <div class="min-w-0 pt-0.5">
+                            <div class="text-[12px] font-bold text-white leading-snug truncate" x-text="lt.name || 'Untitled type'"></div>
+                            <div class="text-[10px] text-white/50 leading-snug line-clamp-2" x-text="lt.desc"></div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+        <div x-show="previewFeatured().length === 0" class="text-[11px] text-white/40 text-center py-2">No featured types — star up to <span x-text="featuredCap"></span> to fill the big-card tier.</div>
+        <template x-if="previewMore().length > 0">
+            <div>
+                <div class="mt-3 mb-2 flex items-center gap-2" aria-hidden="true">
+                    <span class="h-px flex-1 bg-white/10"></span>
+                    <span class="text-[9px] font-bold uppercase tracking-[.2em] text-white/30">And plenty more</span>
+                    <span class="h-px flex-1 bg-white/10"></span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
+                    <template x-for="lt in previewMore()" :key="'pm-' + lt._key">
+                        <div class="relative overflow-hidden bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 flex items-center gap-1.5 min-w-0">
+                            <div class="w-5 h-5 shrink-0 rounded flex items-center justify-center"
+                                 :style="'background:' + (lt.color || '#3d6bff')">
+                                <i :class="'fas ' + (lt.icon || 'fa-link') + ' text-white text-[8px]'"></i>
+                            </div>
+                            <span class="text-[10px] font-semibold text-white/80 truncate" x-text="lt.name || 'Untitled type'"></span>
+                            <span x-show="lt.new" class="shrink-0 inline-flex items-center text-[6px] font-bold uppercase tracking-wider px-1 py-px rounded-full"
+                                  :style="'background:rgba(255,255,255,.08); color:' + (lt.color || '#3d6bff') + '; border:1px solid ' + (lt.color || '#3d6bff') + '66;'">New</span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </div>
 
     <div class="space-y-3">
         <template x-for="(lt, i) in rows" :key="lt._key">
