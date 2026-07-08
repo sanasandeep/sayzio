@@ -425,6 +425,7 @@
 
 @section('content')
 <section
+    @inme-currency.window="currency = $event.detail.c"
     x-data="{
         cycle: '{{ $cycle }}',
         currency: '{{ $currency }}',
@@ -587,41 +588,6 @@
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-gray-300"><i class="fas fa-circle-check text-emerald-400"></i> No card to start</span>
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-gray-300"><i class="fas fa-circle-check text-emerald-400"></i> Cancel anytime</span>
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-gray-300"><i class="fas fa-circle-check text-emerald-400"></i> Secure checkout</span>
-            </div>
-            {{-- Currency switch — flips USD/INR instantly client-side (prices for
-                 both currencies are embedded in each card's Alpine payload), with a
-                 background ping to persist the choice in session + cookie + profile. --}}
-            @php
-                $curIsCountry = $currencySource === \App\Services\PricingResolver::SOURCE_USER_COUNTRY;
-                $curIsAuto    = $currencySource === \App\Services\PricingResolver::SOURCE_GEO;
-            @endphp
-            <div class="inline-flex flex-wrap items-center justify-center gap-2.5 mt-4" role="group" aria-label="Display currency">
-                @if($curIsCountry)
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] text-xs">
-                        <i class="fas fa-globe text-emerald-300" aria-hidden="true"></i>
-                        <span class="text-gray-400">Your country:</span>
-                        <span class="font-semibold text-white">{{ $currency === 'INR' ? '₹ INR' : '$ USD' }}</span>
-                    </span>
-                    <span class="text-[11px] text-gray-500">
-                        Set from your billing country (<span class="uppercase">{{ $user->country }}</span>) —
-                        <a href="{{ route('user.profile.edit') }}" class="text-blue-400 hover:underline">change</a>
-                    </span>
-                @else
-                    <span class="text-[11px] uppercase tracking-wider font-semibold text-gray-500">Currency</span>
-                    <div class="inline-flex rounded-full border border-white/10 bg-white/[0.03] p-1" role="tablist" aria-label="Choose display currency">
-                        <button type="button" role="tab" @click="switchCurrency('USD')"
-                                :aria-selected="currency === 'USD'"
-                                :class="currency === 'USD' ? 'seg-active' : 'text-gray-300 hover:text-white'"
-                                class="seg px-3.5 py-1.5 text-xs font-bold rounded-full">$ USD</button>
-                        <button type="button" role="tab" @click="switchCurrency('INR')"
-                                :aria-selected="currency === 'INR'"
-                                :class="currency === 'INR' ? 'seg-active' : 'text-gray-300 hover:text-white'"
-                                class="seg px-3.5 py-1.5 text-xs font-bold rounded-full">₹ INR</button>
-                    </div>
-                    @if($curIsAuto)
-                        <span class="text-[11px] text-gray-500">auto-detected — switch anytime</span>
-                    @endif
-                @endif
             </div>
         </div>
 

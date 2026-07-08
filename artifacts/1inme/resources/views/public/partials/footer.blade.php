@@ -58,6 +58,75 @@
         </div>
         <div class="border-t border-white/5 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
             <p class="text-sm text-gray-600">&copy; {{ date('Y') }} Sayzio. All rights reserved.</p>
+            {{-- Currency switch — footer is the single control point for public pages.
+                 Dispatches a window event so any in-page pricing section reacts
+                 instantly without a page reload. --}}
+            @php
+                [$__footerCur, $__footerSrc] = (function(){
+                    try {
+                        [$c, $s] = \App\Services\PricingResolver::resolve(auth()->user() ?: null);
+                        return [$c, $s];
+                    } catch (\Throwable $e) {
+                        return ['USD', \App\Services\PricingResolver::SOURCE_GEO];
+                    }
+                })();
+                $__footerLocked  = $__footerSrc === \App\Services\PricingResolver::SOURCE_USER_COUNTRY;
+                $__footerAutodet = $__footerSrc === \App\Services\PricingResolver::SOURCE_GEO;
+            @endphp
+            <div x-data="{ currency: '{{ $__footerCur }}' }"
+                 class="flex items-center gap-2 text-xs text-gray-600"
+                 role="group" aria-label="Display currency">
+                @if($__footerLocked)
+                    {{-- Country-locked: show fixed currency + hint to change billing country --}}
+                    <span class="text-gray-600">{{ $__footerCur === 'INR' ? '₹ INR' : '$ USD' }}</span>
+                    <span class="text-white/10">·</span>
+                    <span class="text-gray-600">
+                        Set by your billing country —
+                        <a href="{{ route('user.profile.edit') }}" class="text-gray-500 hover:text-white transition-colors">change</a>
+                    </span>
+                @else
+                    <span class="text-gray-600 hidden sm:inline">Currency:</span>
+                    <div class="inline-flex rounded-full border border-white/10 bg-white/[0.03] overflow-hidden" role="tablist" aria-label="Choose display currency">
+                        <button type="button" role="tab"
+                                :aria-selected="currency === 'USD'"
+                                :class="currency === 'USD' ? 'bg-white/15 text-gray-200' : 'text-gray-500 hover:text-gray-300'"
+                                @click="
+                                    if (currency !== 'USD') {
+                                        currency = 'USD';
+                                        window.dispatchEvent(new CustomEvent('inme-currency', { detail: { c: 'USD' } }));
+                                        try {
+                                            const fd = new FormData();
+                                            fd.append('currency', 'USD');
+                                            fd.append('_token', document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '');
+                                            fetch('{{ route('upgrade.public.switch-currency') }}', { method:'POST', body:fd, credentials:'same-origin', keepalive:true, headers:{'X-Requested-With':'XMLHttpRequest'} });
+                                        } catch(e){}
+                                    }
+                                "
+                                class="px-2.5 py-1 text-[11px] font-medium transition-colors motion-reduce:transition-none"
+                                aria-label="Show prices in US dollars">$ USD</button>
+                        <button type="button" role="tab"
+                                :aria-selected="currency === 'INR'"
+                                :class="currency === 'INR' ? 'bg-white/15 text-gray-200' : 'text-gray-500 hover:text-gray-300'"
+                                @click="
+                                    if (currency !== 'INR') {
+                                        currency = 'INR';
+                                        window.dispatchEvent(new CustomEvent('inme-currency', { detail: { c: 'INR' } }));
+                                        try {
+                                            const fd = new FormData();
+                                            fd.append('currency', 'INR');
+                                            fd.append('_token', document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '');
+                                            fetch('{{ route('upgrade.public.switch-currency') }}', { method:'POST', body:fd, credentials:'same-origin', keepalive:true, headers:{'X-Requested-With':'XMLHttpRequest'} });
+                                        } catch(e){}
+                                    }
+                                "
+                                class="px-2.5 py-1 text-[11px] font-medium transition-colors motion-reduce:transition-none"
+                                aria-label="Show prices in Indian rupees">₹ INR</button>
+                    </div>
+                    @if($__footerAutodet)
+                        <span class="text-gray-700 hidden sm:inline" aria-live="polite">auto-detected — switch anytime</span>
+                    @endif
+                @endif
+            </div>
             <div class="flex items-center gap-3 text-xs text-gray-600">
                 @php
                     $__ccCfgHome = \App\Modules\Common\Support\CookieConsentConfig::shouldRender('site')

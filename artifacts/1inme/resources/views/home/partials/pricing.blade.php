@@ -1,5 +1,6 @@
 {{-- ============================ PRICING ============================ --}}
 <section id="pricing" class="py-20 lg:py-24 relative overflow-hidden"
+    @inme-currency.window="currency = $event.detail.c"
     x-data="{
         billing: 'monthly',
         currency: '{{ $currency ?? 'USD' }}',
@@ -48,14 +49,6 @@
         </div>
 
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-            @include('public.pricing._currency_badge', [
-                'currency'       => $currency ?? 'USD',
-                'currencySource' => $currencySource ?? \App\Services\PricingResolver::SOURCE_GEO,
-                'user'           => $user ?? auth()->user(),
-                'switchRoute'    => 'upgrade.public.switch-currency',
-                'compact'        => true,
-            ])
-
             {{-- Monthly / Annual billing toggle --}}
             <div class="inline-flex items-center gap-1 p-1 rounded-full glass border border-white/10" role="tablist" aria-label="Billing cadence">
                 <button type="button" role="tab" :aria-selected="billing === 'monthly'" @click="billing = 'monthly'"
