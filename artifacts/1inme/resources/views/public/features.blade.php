@@ -214,6 +214,11 @@
                                 <div class="text-xs font-semibold uppercase tracking-wider text-blue-300/80 mb-1">Category {{ $i + 1 }}</div>
                                 <h2 class="text-2xl sm:text-3xl font-bold text-white">{{ $cat['heading'] }}</h2>
                                 <p class="mt-2 text-gray-400 leading-relaxed max-w-3xl">{{ $cat['intro'] }}</p>
+                                @if(($cat['id'] ?? '') === 'link-types' && !empty($__demoAliasSet))
+                                    {{-- One-stop pointer to the full demo gallery; only shown
+                                         when at least one demo page is actually seeded. --}}
+                                    <a href="{{ url('/demos') }}" class="mt-3 inline-flex items-center gap-1.5 text-sm text-blue-300 hover:text-blue-200 font-semibold" aria-label="Browse the full gallery of live link-type demos">Browse all demos <i class="fas fa-arrow-right text-[10px]"></i></a>
+                                @endif
                             </div>
                         </div>
                         <div class="rounded-xl border border-white/5 bg-black/10 overflow-hidden">
