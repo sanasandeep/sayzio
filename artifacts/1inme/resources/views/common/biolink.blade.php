@@ -1797,6 +1797,20 @@
                     var as = root.querySelectorAll('a');
                     return n < as.length ? as[n] : null;
                 }
+                // Rewrite the nth social anchor's destination. Live hrefs
+                // route through the click tracker with a ?to= param —
+                // rewrite just that param when present.
+                function patchSocialAnchor(root, n, v) {
+                    var a = nthAnchor(root, n);
+                    if (!a) return false;
+                    var href = a.getAttribute('href') || '';
+                    if (href.indexOf('?to=') !== -1 || href.indexOf('&to=') !== -1) {
+                        a.setAttribute('href', href.replace(/([?&]to=)[^&]*/, '$1' + encodeURIComponent(v)));
+                    } else {
+                        a.setAttribute('href', v);
+                    }
+                    return true;
+                }
                 function progressRow(root, n) {
                     var rows = root.querySelectorAll(':scope > div > div');
                     return n < rows.length ? rows[n] : null;
@@ -1882,17 +1896,7 @@
                     },
                     socials: {
                         'settings.platforms.*.url': function (root, v, idx) {
-                            var a = nthAnchor(root, idx[0]);
-                            if (!a) return false;
-                            // Live hrefs route through the click tracker with a
-                            // ?to= param — rewrite just that param when present.
-                            var href = a.getAttribute('href') || '';
-                            if (href.indexOf('?to=') !== -1 || href.indexOf('&to=') !== -1) {
-                                a.setAttribute('href', href.replace(/([?&]to=)[^&]*/, '$1' + encodeURIComponent(v)));
-                            } else {
-                                a.setAttribute('href', v);
-                            }
-                            return true;
+                            return patchSocialAnchor(root, idx[0], v);
                         }
                     },
                     product: {
@@ -1965,7 +1969,23 @@
                 // Type aliases sharing a renderer / handler set.
                 LIVE_HANDLERS.link_big = LIVE_HANDLERS.link;
                 LIVE_HANDLERS.list_numbered = LIVE_HANDLERS.list;
-                LIVE_HANDLERS.socials_multi = { }; // groups markup differs — fall back
+                // Grouped socials flatten every group's platforms into one
+                // anchor list in DOM order, so the flat anchor index is the
+                // sum of the earlier groups' platform counts (derived from the
+                // full form snapshot) plus the within-group index.
+                LIVE_HANDLERS.socials_multi = {
+                    'settings.groups.*.platforms.*.url': function (root, v, idx, fields) {
+                        if (!fields) return false;
+                        var gi = idx[0], pi = idx[1];
+                        var offset = 0;
+                        for (var g = 0; g < gi; g++) {
+                            var n = 0;
+                            while (('settings[groups][' + g + '][platforms][' + n + '][name]') in fields) n++;
+                            offset += n;
+                        }
+                        return patchSocialAnchor(root, offset + pi, v);
+                    }
+                };
                 LIVE_HANDLERS.socials_custom = LIVE_HANDLERS.socials;
                 LIVE_HANDLERS.service = LIVE_HANDLERS.product;
 
@@ -2020,10 +2040,10 @@
                             if (key.indexOf('style.') === 0) {
                                 ok = applyLiveStyle(root, key, value);
                             } else if (handlers[key]) {
-                                ok = handlers[key](root, value, []) !== false;
+                                ok = handlers[key](root, value, [], d.fields) !== false;
                             } else {
                                 var w = wild(key);
-                                if (handlers[w.key]) ok = handlers[w.key](root, value, w.idx) !== false;
+                                if (handlers[w.key]) ok = handlers[w.key](root, value, w.idx, d.fields) !== false;
                             }
                             if (!ok) handled = false;
                         });

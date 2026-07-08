@@ -57,6 +57,7 @@ function seedFixtures(): {
   countdownId: number;
   cardId: number;
   socialsId: number;
+  socialsMultiId: number;
   progressId: number;
   listId: number;
 } {
@@ -101,10 +102,11 @@ $product = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'product', 'so
 $cd = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'countdown', 'sort_order' => 4, 'is_active' => true, 'settings' => ['title' => 'Launch', 'target_date' => now()->addDays(7)->format('Y-m-d\\\\TH:i')]]);
 $card = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'card', 'sort_order' => 5, 'is_active' => true, 'settings' => ['title' => 'Card Title']]);
 $soc = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'socials', 'sort_order' => 6, 'is_active' => true, 'settings' => ['platforms' => [['name' => 'twitter', 'url' => 'https://twitter.com/before'], ['name' => 'github', 'url' => 'https://github.com/before']]]]);
-$prog = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'progress', 'sort_order' => 7, 'is_active' => true, 'settings' => ['items' => [['label' => 'Skill A', 'value' => 40], ['label' => 'Skill B', 'value' => 60]]]]);
-$list = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'list', 'sort_order' => 8, 'is_active' => true, 'settings' => ['items' => ['First item', 'Second item']]]);
+$socMulti = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'socials_multi', 'sort_order' => 7, 'is_active' => true, 'settings' => ['groups' => [['name' => 'Work', 'platforms' => [['name' => 'twitter', 'url' => 'https://twitter.com/work-before'], ['name' => 'github', 'url' => 'https://github.com/work-before']]], ['name' => 'Fun', 'platforms' => [['name' => 'instagram', 'url' => 'https://instagram.com/fun-before']]]]]]);
+$prog = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'progress', 'sort_order' => 8, 'is_active' => true, 'settings' => ['items' => [['label' => 'Skill A', 'value' => 40], ['label' => 'Skill B', 'value' => 60]]]]);
+$list = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'list', 'sort_order' => 9, 'is_active' => true, 'settings' => ['items' => ['First item', 'Second item']]]);
 
-echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'badgeId' => $badge->id, 'videoId' => $video->id, 'productId' => $product->id, 'countdownId' => $cd->id, 'cardId' => $card->id, 'socialsId' => $soc->id, 'progressId' => $prog->id, 'listId' => $list->id]);
+echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'badgeId' => $badge->id, 'videoId' => $video->id, 'productId' => $product->id, 'countdownId' => $cd->id, 'cardId' => $card->id, 'socialsId' => $soc->id, 'socialsMultiId' => $socMulti->id, 'progressId' => $prog->id, 'listId' => $list->id]);
 `.trim();
 
   const out = runTinkerSeed(php);
@@ -344,6 +346,41 @@ test("socials row URL patches the anchor live without a reload", async ({
   await expectNoReload(preview);
 
   await waitForAutosave(page, ids.socialsId);
+  await page.waitForTimeout(2_000);
+  await expectNoReload(preview);
+});
+
+test("grouped socials URL patches the flat anchor live without a reload", async ({
+  page,
+}) => {
+  const { preview } = await gotoEditorWithPreview(page);
+  const form = await openDrawer(page, ids.socialsMultiId);
+
+  // Arm the autosave listener BEFORE typing: the debounced POST fires ~800ms
+  // after the last keystroke and can otherwise land while the live-patch
+  // assertion below is still polling, making waitForAutosave miss it.
+  const savePromise = page.waitForResponse(
+    (r) =>
+      r.url().includes(`/blocks/${ids.socialsMultiId}`) &&
+      r.request().method() === "POST" &&
+      r.ok(),
+    { timeout: 60_000 },
+  );
+
+  // Edit the SECOND group's only entry: the public markup flattens both
+  // groups into one anchor list, so this is the third (index 2) anchor.
+  await form
+    .locator('input[name="settings[groups][1][platforms][0][url]"]')
+    .fill("https://instagram.com/fun-after-live");
+
+  const anchors = preview.locator(`[data-block-id="${ids.socialsMultiId}"] a`);
+  await expect(async () => {
+    const href = (await anchors.nth(2).getAttribute("href")) || "";
+    expect(decodeURIComponent(href)).toContain("instagram.com/fun-after-live");
+  }).toPass({ timeout: 10_000 });
+  await expectNoReload(preview);
+
+  await savePromise;
   await page.waitForTimeout(2_000);
   await expectNoReload(preview);
 });
