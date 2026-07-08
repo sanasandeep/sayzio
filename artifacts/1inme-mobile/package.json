@@ -26,6 +26,7 @@
     "test:setup-flow": "node scripts/test-setup-flow.mjs",
     "test:voice-bridge": "node scripts/test-voice-bridge.mjs",
     "test:auth-flow-e2e": "node scripts/test-auth-flow-e2e.mjs",
+    "test:pairings-admin-e2e": "node scripts/test-pairings-admin-e2e.mjs",
     "test:auth-flow-e2e:core": "AUTH_FLOW_ONLY=main node scripts/test-auth-flow-e2e.mjs",
     "test:auth-flow-e2e:google": "AUTH_FLOW_ONLY=google node scripts/test-auth-flow-e2e.mjs",
     "test:push-action": "node scripts/test-push-action.mjs",

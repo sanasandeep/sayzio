@@ -144,6 +144,10 @@ args = "fontawesome-loader"
 task = "workflow.run"
 args = "e2e-inline-edit"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-pairings"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -495,6 +499,17 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-editor-inli
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "e2e-mobile-pairings"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme-mobile && pnpm exec playwright install chromium-headless-shell && pnpm run test:pairings-admin-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"

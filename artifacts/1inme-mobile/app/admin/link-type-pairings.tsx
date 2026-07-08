@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -122,15 +123,22 @@ export default function LinkTypePairingsScreen() {
     });
   };
 
-  const confirmRestore = () =>
-    Alert.alert(
-      "Restore defaults?",
-      "This re-enables every Perfect Pairings card on every page type.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Restore", style: "destructive", onPress: () => restore.mutate() },
-      ],
-    );
+  // Alert.alert is a no-op on react-native-web, so the confirm falls back to
+  // window.confirm on web (same cross-platform pattern as links/[id]/edit.tsx).
+  const confirmRestore = () => {
+    const title = "Restore defaults?";
+    const msg = "This re-enables every Perfect Pairings card on every page type.";
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined" && window.confirm(`${title}\n\n${msg}`)) {
+        restore.mutate();
+      }
+      return;
+    }
+    Alert.alert(title, msg, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Restore", style: "destructive", onPress: () => restore.mutate() },
+    ]);
+  };
 
   const data = query.data;
   const card = [styles.card, { backgroundColor: colors.card, borderColor: colors.border }];
@@ -192,6 +200,7 @@ export default function LinkTypePairingsScreen() {
                         onPress={() => toggle(section.key, item.type)}
                         accessibilityRole="checkbox"
                         accessibilityState={{ checked: isChecked }}
+                        aria-checked={isChecked}
                         style={({ pressed }) => [
                           styles.row,
                           {
