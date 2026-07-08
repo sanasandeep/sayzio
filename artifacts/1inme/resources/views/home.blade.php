@@ -3999,7 +3999,7 @@
             <div class="lt-rail" role="tablist" aria-label="Link type">
                 @foreach($__ltForEach as $i => $lt)
                 <button type="button" class="lt-chip {{ $i === 0 ? 'lt-chip-on' : '' }}" role="tab"
-                        :class="active==={{ $i }}?'lt-chip-on':''"
+                        :class="{'lt-chip-on':active==={{ $i }}}"
                         :style="active==={{ $i }}?'border-color:{{ $lt['color'] }}55;background:{{ $lt['color'] }}18':''"
                         @click="pick({{ $i }})"
                         :aria-selected="active==={{ $i }}">
@@ -4020,7 +4020,7 @@
                 <div class="lt-info-zone">
                     @foreach($__ltForEach as $i => $lt)
                     <div class="lt-pane {{ $i === 0 ? 'lt-pane-on' : '' }}"
-                         :class="active==={{ $i }}?'lt-pane-on':''">
+                         :class="{'lt-pane-on':active==={{ $i }}}">
                         <div class="lt-pane-icon" style="background:{{ $lt['color'] }};box-shadow:0 10px 28px -10px {{ $lt['color'] }}bb">
                             <i class="fas {{ $lt['icon'] }}" style="color:#fff"></i>
                         </div>
@@ -4040,7 +4040,7 @@
                     @foreach($__ltForEach as $i => $lt)
                     @php $__lts = \Illuminate\Support\Str::slug($lt['name']); @endphp
                     <div class="lt-mock {{ $i === 0 ? 'lt-mock-on' : '' }}"
-                         :class="active==={{ $i }}?'lt-mock-on':''">
+                         :class="{'lt-mock-on':active==={{ $i }}}">
 
                         @switch($__lts)
 
