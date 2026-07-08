@@ -20,7 +20,14 @@ const test = base.extend({
   },
 });
 
-const ALIAS = "e2e-block-live";
+// Per-run unique alias. The RDS is SHARED across parallel task environments,
+// and a fixed alias meant two environments running this suite concurrently
+// seeded/deleted the SAME link row — the preview iframe then rendered the
+// other run's block ids and every wait timed out. A unique alias per worker
+// process (retries spawn a fresh worker, re-evaluating this module) gives
+// each run its own isolated fixture link. Old fixtures are pruned in the
+// seeder.
+const ALIAS = `e2e-block-live-${Date.now().toString(36)}${process.pid.toString(36)}`;
 
 const ARTIFACT_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -84,17 +91,22 @@ if ($rid) { $u->roles()->syncWithoutDetaching([$rid]); $u->flushPermissionCache(
 if ($u->onboarded_at === null) { $u->onboarded_at = now(); $u->save(); }
 $ws = app(WorkspaceContext::class)->resolve($u);
 
-$bio = Link::withoutGlobalScope('workspace')->where('alias', '${ALIAS}')->first();
-if (!$bio) {
-  $bio = Link::create([
-    'user_id' => $u->id, 'workspace_id' => $ws?->id, 'type' => 'biolink',
-    'alias' => '${ALIAS}', 'title' => 'E2E Block Live', 'is_active' => true,
-  ]);
-} else {
-  $bio->user_id = $u->id; $bio->workspace_id = $ws?->id; $bio->save();
+// Prune fixture links left behind by previous runs (unique per-run aliases
+// accumulate otherwise). Only prune STALE ones (>2h) so a concurrently
+// running suite in another environment is never torn down mid-run.
+$stale = Link::withoutGlobalScope('workspace')
+  ->where('alias', 'like', 'e2e-block-live-%')
+  ->where('created_at', '<', now()->subHours(2))
+  ->pluck('id');
+if ($stale->isNotEmpty()) {
+  BiolinkBlock::whereIn('link_id', $stale)->delete();
+  Link::withoutGlobalScope('workspace')->whereIn('id', $stale)->delete();
 }
 
-BiolinkBlock::where('link_id', $bio->id)->delete();
+$bio = Link::create([
+  'user_id' => $u->id, 'workspace_id' => $ws?->id, 'type' => 'biolink',
+  'alias' => '${ALIAS}', 'title' => 'E2E Block Live', 'is_active' => true,
+]);
 $h = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'heading', 'sort_order' => 0, 'is_active' => true, 'settings' => ['text' => 'Live Hello']]);
 $badge = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'badge', 'sort_order' => 1, 'is_active' => true, 'settings' => ['text' => 'Fresh Badge']]);
 $video = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'video', 'sort_order' => 2, 'is_active' => true, 'settings' => ['url' => 'https://cdn.example.com/one.mp4']]);
@@ -132,6 +144,12 @@ async function loginAsDemo(page: Page): Promise<void> {
       form.submit();
     }),
   ]);
+  // The POST response can arrive before the resulting navigation commits;
+  // navigating away immediately then races ("interrupted by another
+  // navigation to /user/demo-login"). Let the post-login page settle first.
+  await page
+    .waitForLoadState("load", { timeout: 90_000 })
+    .catch(() => undefined);
 }
 
 let ids: ReturnType<typeof seedFixtures>;
@@ -203,9 +221,20 @@ async function expectNoReload(preview: FrameLocator): Promise<void> {
 }
 
 async function openDrawer(page: Page, blockId: number) {
-  await page.click(editBtnSel(blockId));
   const form = page.locator(`${bodySel(blockId)} form`);
-  await expect(form).toBeVisible({ timeout: 20_000 });
+  // The edit-button click occasionally doesn't open the drawer within the
+  // wait budget (slow Alpine init / distant-RDS lag). Because this suite is
+  // serial, a single flaky failure retries ALL tests (~doubling the run), so
+  // retry the click here instead of failing the first pass.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await page.click(editBtnSel(blockId));
+    try {
+      await expect(form).toBeVisible({ timeout: 20_000 });
+      break;
+    } catch (err) {
+      if (attempt === 3) throw err;
+    }
+  }
   // Give _initDrawerAutoSave's 100ms baseline capture a moment to run.
   await page.waitForTimeout(400);
   return form;
