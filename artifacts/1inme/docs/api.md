@@ -1244,6 +1244,16 @@ Super-admin parity for the web admin "Scheduled Jobs" control panel, gated behin
 
 The older read-only `GET /admin/cron-jobs` reference endpoint remains available unchanged.
 
+## Admin Perfect Pairings toggles
+
+Super-admin parity for the "Perfect Pairings" cross-promo card toggles, gated behind `settings.manage`. The card catalog is code-defined on the server; admins only enable/disable individual cards per public page type (biolink, resume, reviews, restaurant menu, store, event). Every response returns the full `sections` payload (page label + cards with `enabled` flags). Saving submits `enabled` as a map of page key → list of checked card types; a page key with no entries disables all of its cards and hides the section.
+
+| Method | Path                                        | Auth | Description                                        |
+| ------ | ------------------------------------------- | ---- | -------------------------------------------------- |
+| GET    | `/admin/link-type-pairings`                  | yes  | Card catalog with per-card enabled state.           |
+| PUT    | `/admin/link-type-pairings`                  | yes  | Save the checkbox state.                            |
+| POST   | `/admin/link-type-pairings/restore-defaults` | yes  | Re-enable every card everywhere.                    |
+
 ## Admin mail / SMTP settings
 
 Super-admin parity for the mail transport editor, gated behind `settings.manage`. Saving runs a live SMTP handshake; the test action sends a real email.

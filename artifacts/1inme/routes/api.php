@@ -403,6 +403,14 @@ Route::prefix('v1')->group(function () {
         // Mail / SMTP settings (super-admin parity). Status + a live
         // "send test email" plus full editing of the transport, all mirroring
         // the web admin page and gated behind `settings.manage`.
+        // Perfect Pairings toggles (super-admin parity): read the per-page
+        // cross-promo card catalog with enabled flags, save the checkbox
+        // state, or restore defaults — mirroring the web admin screen and
+        // gated behind `settings.manage`.
+        Route::get ('/admin/link-type-pairings',                  [\App\Modules\Api\Controllers\LinkTypePairingsController::class, 'status']);
+        Route::put ('/admin/link-type-pairings',                  [\App\Modules\Api\Controllers\LinkTypePairingsController::class, 'update']);
+        Route::post('/admin/link-type-pairings/restore-defaults', [\App\Modules\Api\Controllers\LinkTypePairingsController::class, 'restoreDefaults']);
+
         Route::get ('/admin/mail-settings',      [\App\Modules\Api\Controllers\MailSettingsController::class, 'status']);
         Route::put ('/admin/mail-settings',      [\App\Modules\Api\Controllers\MailSettingsController::class, 'update']);
         Route::post('/admin/mail-settings/test', [\App\Modules\Api\Controllers\MailSettingsController::class, 'sendTest'])->middleware('throttle:10,1');

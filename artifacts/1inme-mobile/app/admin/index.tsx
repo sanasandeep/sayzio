@@ -25,6 +25,7 @@ type Row = {
     | "mail"
     | "schema-audits"
     | "stats-storage"
+    | "link-type-pairings"
     | "banned-names"
     | "scheduled-jobs";
   icon: keyof typeof Feather.glyphMap;
@@ -77,6 +78,14 @@ export default function AdminHubScreen() {
       label: "Scheduled jobs",
       description: "Background job health, pause/resume & run history",
       href: "/admin/scheduled-jobs",
+      enabled: !!can?.manage_settings,
+    },
+    {
+      key: "link-type-pairings",
+      icon: "link-2",
+      label: "Perfect Pairings",
+      description: "Cross-promo cards on public link-type pages",
+      href: "/admin/link-type-pairings",
       enabled: !!can?.manage_settings,
     },
     {
