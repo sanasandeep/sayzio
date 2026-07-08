@@ -42,6 +42,22 @@ class LinkController extends Controller
         };
     }
 
+
+    /**
+     * Default domain for a Step 2 create form: honor a ?domain_id forwarded
+     * from the Step 1 picker (only if it's actually in the user's available
+     * set), else fall back to the primary domain.
+     */
+    protected function resolveDefaultDomainId(Request $request, $domains): ?int
+    {
+        $forwarded = (int) $request->query('domain_id', 0);
+        if ($forwarded && $domains->firstWhere('id', $forwarded)) {
+            return $forwarded;
+        }
+
+        return $domains->firstWhere('is_primary', true)?->id;
+    }
+
     /**
      * Build the filtered "My Links" query shared by the index list and its
      * CSV export so both always resolve to the exact same set of links for a
@@ -215,6 +231,7 @@ class LinkController extends Controller
 
         $user           = $request->user();
         $aliasLimits    = $user->getAliasLengthLimits();
+        $domains        = \App\Modules\User\Models\Domain::availableTo($user)->get();
         $primaryDomain  = $user->domains()->where('is_verified', true)
                                ->orderBy('id')->first();
         $domainHost     = $primaryDomain->domain ?? $request->getHost();
@@ -233,6 +250,8 @@ class LinkController extends Controller
             'lastType'     => $lastType,
             'aliasLimits'  => $aliasLimits,
             'domainHost'   => $domainHost,
+            'domains'      => $domains,
+            'defaultDomainId' => $this->resolveDefaultDomainId($request, $domains),
             'aiBuilderEnabled' => \App\Services\AI\AiEngineSettings::isEnabled(),
             'aiBuilderAdminCanEnable' => $aiBuilderAdminCanEnable,
         ]);
@@ -257,10 +276,14 @@ class LinkController extends Controller
                 new \App\Modules\User\Rules\UniqueAliasCi(),
                 new \App\Modules\Admin\Rules\NotBannedName(),
             ],
+            'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
         ]);
 
         $alias  = $validated['alias'] ?? null;
         $params = $alias !== null && $alias !== '' ? ['alias' => $alias] : [];
+        if (!empty($validated['domain_id'])) {
+            $params['domain_id'] = (int) $validated['domain_id'];
+        }
 
         // Remember this type for next time so the user's most-used flow gets
         // pre-selected on their next visit to Step 1.
@@ -322,7 +345,7 @@ class LinkController extends Controller
         return view('user.links.create-paid-page', [
             'projects' => $projects,
             'domains'  => $domains,
-            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+            'defaultDomainId' => $this->resolveDefaultDomainId($request, $domains),
             'prefillAlias' => (string) $request->query('alias', ''),
             'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
             'templates' => \App\Modules\User\Support\PaidPageTemplates::all(),
@@ -349,7 +372,7 @@ class LinkController extends Controller
         return view('user.links.create-brand-kit', [
             'projects' => $projects,
             'domains'  => $domains,
-            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+            'defaultDomainId' => $this->resolveDefaultDomainId($request, $domains),
             'prefillAlias' => (string) $request->query('alias', ''),
             'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
             'kits' => $kits,
@@ -368,7 +391,7 @@ class LinkController extends Controller
         return view('user.links.create-reviews', [
             'projects' => $projects,
             'domains'  => $domains,
-            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+            'defaultDomainId' => $this->resolveDefaultDomainId($request, $domains),
             'prefillAlias' => (string) $request->query('alias', ''),
             'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
         ]);
@@ -388,7 +411,7 @@ class LinkController extends Controller
         return view('user.links.create-resume', [
             'projects' => $projects,
             'domains'  => $domains,
-            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+            'defaultDomainId' => $this->resolveDefaultDomainId($request, $domains),
             'prefillAlias' => (string) $request->query('alias', ''),
             'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
         ]);
@@ -407,7 +430,7 @@ class LinkController extends Controller
             'projects' => $projects,
             'pixels' => $pixels,
             'domains' => $domains,
-            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+            'defaultDomainId' => $this->resolveDefaultDomainId($request, $domains),
             'prefillAlias' => (string) $request->query('alias', ''),
             'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
         ]);
@@ -433,7 +456,7 @@ class LinkController extends Controller
         return view('user.links.create-biolink', [
             'projects' => $projects,
             'domains'  => $domains,
-            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+            'defaultDomainId' => $this->resolveDefaultDomainId($request, $domains),
             'prefillAlias' => (string) $request->query('alias', ''),
             'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
             'linkType'    => $type,

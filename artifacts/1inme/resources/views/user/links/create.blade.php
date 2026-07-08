@@ -168,9 +168,19 @@
                      :class="state === 'available' ? 'border-emerald-500/40 focus-within:ring-2 focus-within:ring-emerald-500/40'
                          : (isError ? 'border-red-500/40 focus-within:ring-2 focus-within:ring-red-500/40'
                          : 'border-white/15 focus-within:ring-2 focus-within:ring-blue-500/40')">
-                    <span class="flex items-center px-3 text-sm text-white/40 bg-white/[0.03] border-r border-white/10 select-none">
-                        {{ $domainHost }}/
-                    </span>
+                    @if(($domains ?? collect())->count() > 1)
+                        @php $selectedDomainId = old('domain_id', $defaultDomainId ?? ''); @endphp
+                        <select name="domain_id" aria-label="Link domain"
+                                class="bg-white/[0.03] px-2 py-2.5 text-sm text-white/60 border-r border-white/10 outline-none max-w-[180px]">
+                            @foreach($domains as $d)
+                                <option value="{{ $d->id }}" {{ (string) $selectedDomainId === (string) $d->id ? 'selected' : '' }} class="bg-[#0d0818]">{{ $d->domain }}/</option>
+                            @endforeach
+                        </select>
+                    @else
+                        <span class="flex items-center px-3 text-sm text-white/40 bg-white/[0.03] border-r border-white/10 select-none">
+                            {{ ($domains ?? collect())->first()->domain ?? $domainHost }}/
+                        </span>
+                    @endif
                     <input type="text" name="alias" id="create-link-alias"
                            value="{{ old('alias', $prefillAlias ?? '') }}"
                            placeholder="leave blank to auto-generate"
