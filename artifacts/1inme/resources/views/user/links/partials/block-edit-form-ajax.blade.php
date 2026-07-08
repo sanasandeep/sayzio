@@ -9,7 +9,7 @@
     ];
     $typeInfo = $blockTypes[$block->type] ?? ['label' => ucfirst($block->type), 'icon' => 'fa-cube', 'category' => 'basic'];
 @endphp
-<form method="POST" action="{{ route('user.links.blocks.update', [$link, $block]) }}" onsubmit="return ajaxSaveBlock(event, this)">
+<form method="POST" action="{{ route('user.links.blocks.update', [$link, $block]) }}" data-live-block-type="{{ $block->type }}" onsubmit="return ajaxSaveBlock(event, this)">
     @csrf @method('PUT')
     <div class="mb-4">
         <div class="flex items-center gap-2 mb-4">

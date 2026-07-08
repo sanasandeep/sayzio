@@ -1374,7 +1374,15 @@ function _drawerAutoSave(form) {
     }).then(function(r) { return r.json(); }).then(function(data) {
         if (data.success) {
             _showAutoSaveStatus('<i class="fas fa-check mr-1"></i>Saved', 'saved');
-            _refreshEditPreview();
+            // Instant live preview: when every field changed since the drawer
+            // opened was live-patched in the preview iframe (last ack said
+            // handled=true), the DOM already matches the saved state — skip
+            // the full iframe reload and just advance the diff baseline.
+            if (_liveAckHandled) {
+                _liveBaseline = _serializeLiveForm(form) || _liveBaseline;
+            } else {
+                _refreshEditPreview();
+            }
         } else {
             _showAutoSaveStatus('<i class="fas fa-exclamation-circle mr-1"></i>Error', 'error');
         }
@@ -1388,6 +1396,7 @@ function _initDrawerAutoSave(container) {
     if (_autoSaveObserver) { _autoSaveObserver.disconnect(); _autoSaveObserver = null; }
 
     function onFieldChange() {
+        _postBlockLive();
         if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
         _drawerAutoSaveTimer = setTimeout(function() {
             var form = container.querySelector('form');
@@ -1421,8 +1430,85 @@ function _initDrawerAutoSave(container) {
             container.querySelectorAll('input, select, textarea').forEach(bindElement);
         });
         _autoSaveObserver.observe(container, { childList: true, subtree: true });
+
+        // Capture the live-preview diff baseline NOW, while the form still
+        // holds the server-rendered values. Without this the first-keystroke
+        // diff would be empty and no live patch would ever post (everything
+        // would silently fall back to the reload path).
+        _captureLiveBaseline();
     }, 100);
 }
+
+// ── Instant block live preview channel (Task #4022 / #4034) ────────────────
+// On every keystroke in the edit drawer we post the full form state plus the
+// dotted list of fields changed since the drawer opened into the preview
+// iframe(s). The public page (in ?_editBlock mode) patches the DOM in place
+// for the block types/fields it knows (LIVE_HANDLERS) and acks back whether
+// EVERY changed field was covered. If yes, the debounced autosave skips the
+// full iframe reload; anything unknown keeps the safe reload fallback.
+var _liveBaseline = null;
+var _liveBlockType = '';
+var _liveAckHandled = false;
+
+function _serializeLiveForm(form) {
+    var out = {};
+    try {
+        var fd = new FormData(form);
+        fd.forEach(function(v, k) {
+            if (k === '_token' || k === '_method') return;
+            if (typeof File !== 'undefined' && v instanceof File) return;
+            // Checkbox pattern: hidden "0" + checkbox "1" share a name and
+            // FormData yields both; last value wins (matches PHP semantics).
+            out[k] = String(v);
+        });
+    } catch (e) { return null; }
+    return out;
+}
+
+function _captureLiveBaseline() {
+    var container = _activeInlineBody();
+    var form = container ? container.querySelector('form') : null;
+    _liveBaseline = form ? _serializeLiveForm(form) : null;
+    _liveBlockType = form ? (form.getAttribute('data-live-block-type') || '') : '';
+    _liveAckHandled = false;
+}
+
+function _postBlockLive() {
+    if (!_editingBlockId || !_liveBaseline) return;
+    var container = _activeInlineBody();
+    var form = container ? container.querySelector('form') : null;
+    if (!form) return;
+    var current = _serializeLiveForm(form);
+    if (!current) return;
+    var changed = [];
+    var seen = {};
+    Object.keys(current).forEach(function(k) { seen[k] = 1; });
+    Object.keys(_liveBaseline).forEach(function(k) { seen[k] = 1; });
+    Object.keys(seen).forEach(function(k) {
+        if ((current[k] !== undefined ? current[k] : '') !== (_liveBaseline[k] !== undefined ? _liveBaseline[k] : '')) changed.push(k);
+    });
+    if (!changed.length) return;
+    _liveAckHandled = false;
+    var payload = {
+        type: '1inme-block-live',
+        blockId: _editingBlockId,
+        blockType: _liveBlockType,
+        fields: current,
+        changed: changed
+    };
+    document.querySelectorAll('.preview-iframe').forEach(function(pFrame) {
+        if (!pFrame.contentWindow || !pFrame.src || pFrame.src === 'about:blank') return;
+        try { pFrame.contentWindow.postMessage(payload, window.location.origin); } catch (e) {}
+    });
+}
+
+window.addEventListener('message', function(e) {
+    if (e.origin !== window.location.origin) return;
+    var d = e.data;
+    if (!d || d.type !== '1inme-block-live-ack') return;
+    if (!_editingBlockId || String(d.blockId) !== String(_editingBlockId)) return;
+    _liveAckHandled = !!d.handled;
+});
 
 // Live profile-card preview: push the current stats/badges repeater state into
 // the edit-preview iframe as the owner types/reorders, so the card updates
