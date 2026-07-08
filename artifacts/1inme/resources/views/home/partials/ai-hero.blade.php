@@ -62,13 +62,13 @@
 
                 <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 justify-center lg:justify-start">
                     @guest
-                        <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','ai_hero'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap shrink-0">
+                        <button type="button" onclick="window.trackMarketingEvent && window.trackMarketingEvent('landing_home_cta','ai_hero'); window.dispatchEvent(new CustomEvent('open-auth',{detail:{tab:'register'}}))" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 btn-cta rounded-full text-base font-bold whitespace-nowrap shrink-0">
                             Build mine with AI <i class="fas fa-arrow-right text-sm"></i>
                         </button>
                     @else
                         {{-- Signed in: route straight to the dashboard instead of the
                              signup modal. --}}
-                        <a href="{{ route('user.dashboard') }}" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap shrink-0">
+                        <a href="{{ route('user.dashboard') }}" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 btn-cta rounded-full text-base font-bold whitespace-nowrap shrink-0">
                             Build mine with AI <i class="fas fa-arrow-right text-sm"></i>
                         </a>
                     @endguest

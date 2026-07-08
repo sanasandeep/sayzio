@@ -1054,7 +1054,7 @@
                                 @case('upgrade')
                                     <a :href="'{{ route('user.upgrade') }}?cycle=' + cycle"
                                        href="{{ route('user.upgrade', ['cycle' => $cycle]) }}"
-                                       class="block text-center w-full px-4 py-2.5 rounded-full font-semibold grad-bar text-white hover:opacity-95 transition">
+                                       class="block text-center w-full px-4 py-2.5 rounded-full font-semibold btn-cta hover:opacity-95 transition">
                                         Upgrade to {{ $plan->name }} <i class="fas fa-arrow-up ml-1 text-xs"></i>
                                     </a>
                                     @break
@@ -1068,13 +1068,13 @@
                                 @case('choose')
                                     <a :href="'{{ route('user.upgrade') }}?cycle=' + cycle"
                                        href="{{ route('user.upgrade', ['cycle' => $cycle]) }}"
-                                       class="block text-center w-full px-4 py-2.5 rounded-full font-semibold {{ $ctaFilled ? 'grad-bar text-white hover:opacity-95' : 'border border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.10]' }} transition">
+                                       class="block text-center w-full px-4 py-2.5 rounded-full font-semibold {{ $ctaFilled ? 'btn-cta hover:opacity-95' : 'border border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.10]' }} transition">
                                         Choose {{ $plan->name }}
                                     </a>
                                     @break
                                 @default
                                     <a href="{{ route('user.register') }}"
-                                       class="block text-center w-full px-4 py-2.5 rounded-full font-semibold {{ $ctaFilled ? 'grad-bar text-white hover:opacity-95' : 'border border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.10]' }} transition">
+                                       class="block text-center w-full px-4 py-2.5 rounded-full font-semibold {{ $ctaFilled ? 'btn-cta hover:opacity-95' : 'border border-white/15 bg-white/[0.04] text-white hover:bg-white/[0.10]' }} transition">
                                         {{ !empty($row['is_free']) ? 'Get started free' : 'Start free trial' }}
                                     </a>
                             @endswitch

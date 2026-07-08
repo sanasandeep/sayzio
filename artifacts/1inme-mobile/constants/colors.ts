@@ -14,6 +14,8 @@ const brand = {
   indigoLight: "#9c92ff",
   magenta500: "#d76dff",
   magenta400: "#e29bff",
+  cyan400: "#22d3ee",
+  cyan300: "#67e8f9",
   green500: "#22c55e",
   green400: "#4ade80",
 };
@@ -56,6 +58,9 @@ const colors = {
     // Extra brand stops the wordmark / gradient buttons can use without
     // pulling in a separate theme module.
     brandGradient: [brand.blue600, brand.indigo, brand.magenta500] as const,
+    // Highlight CTA gradient (electric blue → cyan) — mirrors the web
+    // .btn-cta class. Reserved for important primary actions only.
+    ctaGradient: [brand.blue600, brand.cyan400] as const,
   },
   dark: {
     text: "#fafafa",
@@ -92,6 +97,9 @@ const colors = {
     input: "#23232f",
 
     brandGradient: [brand.blue400, brand.indigoLight, brand.magenta400] as const,
+    // Highlight CTA gradient (electric blue → cyan) — mirrors the web
+    // .btn-cta class. Reserved for important primary actions only.
+    ctaGradient: [brand.blue400, brand.cyan300] as const,
   },
   radius: 14,
 };

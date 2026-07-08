@@ -1079,6 +1079,7 @@ export default function BiolinkWizardScreen() {
                   ) : null}
                   <Button
                     label="Generate my page"
+                    variant="cta"
                     onPress={onGenerate}
                     loading={busy}
                     disabled={aiBusy}

@@ -186,12 +186,12 @@
                     </div>
 
                     @guest
-                        <button type="button" @click="trackMarketingEvent('plan_free'); $dispatch('open-auth', { tab: 'register' })" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] grad-bar text-white">
+                        <button type="button" @click="trackMarketingEvent('plan_free'); $dispatch('open-auth', { tab: 'register' })" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] btn-cta">
                             Get started free <i class="fas fa-arrow-right text-xs ml-1"></i>
                         </button>
                     @else
                         {{-- Signed in: skip the signup modal, go to the dashboard. --}}
-                        <a href="{{ route('user.dashboard') }}" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] grad-bar text-white">
+                        <a href="{{ route('user.dashboard') }}" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] btn-cta">
                             Go to your dashboard <i class="fas fa-arrow-right text-xs ml-1"></i>
                         </a>
                     @endguest

@@ -311,7 +311,7 @@
                     <i :class="light ? 'fas fa-sun' : 'fas fa-moon'" class="text-sm"></i>
                 </button>
                 @auth
-                    <a href="{{ route('user.dashboard') }}" class="px-6 py-2.5 bg-[#3d6bff] text-white rounded-full text-sm font-bold hover:bg-[#2342c7]">Dashboard</a>
+                    <a href="{{ route('user.dashboard') }}" class="px-6 py-2.5 btn-cta rounded-full text-sm font-bold">Dashboard</a>
                     <div class="relative" x-data="{ acctOpen:false }" @keydown.escape="acctOpen=false">
                         <button type="button" @click="acctOpen=!acctOpen" :aria-expanded="acctOpen"
                                 class="mkt-theme-toggle" title="Account" aria-label="Account menu">
@@ -334,10 +334,10 @@
                 @else
                     @if($useModal)
                         <button type="button" @click="authTab='login'; authOpen=true" class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white">Login</button>
-                        <button type="button" @click="authTab='register'; authOpen=true" class="px-6 py-2.5 bg-[#3d6bff] text-white rounded-full text-sm font-bold hover:bg-[#2342c7]">Register</button>
+                        <button type="button" @click="authTab='register'; authOpen=true" class="px-6 py-2.5 btn-cta rounded-full text-sm font-bold">Register</button>
                     @else
                         <a href="{{ route('login.page') }}" class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white">Login</a>
-                        <a href="{{ route('register.page') }}" class="px-6 py-2.5 bg-[#3d6bff] text-white rounded-full text-sm font-bold hover:bg-[#2342c7]">Register</a>
+                        <a href="{{ route('register.page') }}" class="px-6 py-2.5 btn-cta rounded-full text-sm font-bold">Register</a>
                     @endif
                 @endauth
             </div>
@@ -442,7 +442,7 @@
 
             <div class="pt-3 border-t border-white/10 space-y-2">
                 @auth
-                    <a href="{{ route('user.dashboard') }}" class="block px-4 py-2.5 bg-[#3d6bff] text-white rounded-lg text-sm font-bold text-center">Dashboard</a>
+                    <a href="{{ route('user.dashboard') }}" class="block px-4 py-2.5 btn-cta rounded-lg text-sm font-bold text-center">Dashboard</a>
                     <form action="{{ route('user.logout') }}" method="POST">
                         @csrf
                         <button type="submit" class="flex w-full items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-300 border border-white/10 hover:bg-red-500/10 hover:text-red-400">
@@ -453,10 +453,10 @@
                 @else
                     @if($useModal)
                         <button type="button" @click="authTab='login'; authOpen=true; mobileOpen=false" class="w-full text-left px-4 py-2 text-sm text-gray-300">Login</button>
-                        <button type="button" @click="authTab='register'; authOpen=true; mobileOpen=false" class="block w-full px-4 py-2.5 bg-[#3d6bff] text-white rounded-lg text-sm font-bold text-center">Register</button>
+                        <button type="button" @click="authTab='register'; authOpen=true; mobileOpen=false" class="block w-full px-4 py-2.5 btn-cta rounded-lg text-sm font-bold text-center">Register</button>
                     @else
                         <a href="{{ route('login.page') }}" class="block px-4 py-2 text-sm text-gray-300">Login</a>
-                        <a href="{{ route('register.page') }}" class="block px-4 py-2.5 bg-[#3d6bff] text-white rounded-lg text-sm font-bold text-center">Register</a>
+                        <a href="{{ route('register.page') }}" class="block px-4 py-2.5 btn-cta rounded-lg text-sm font-bold text-center">Register</a>
                     @endif
                 @endauth
             </div>

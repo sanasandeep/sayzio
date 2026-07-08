@@ -449,6 +449,7 @@ export default function AuthLanding() {
         <View style={{ height: 12 }} />
         <Button
           label="Send code"
+          variant="cta"
           onPress={onSendOtp}
           loading={busy === "otp"}
           disabled={!!busy && busy !== "otp"}

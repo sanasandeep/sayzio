@@ -56,7 +56,7 @@
                                    maxlength="30" placeholder="yourname" class="zio-claim-input"
                                    aria-describedby="zio-claim-status">
                             <span class="zio-claim-mark" id="zio-claim-mark" aria-hidden="true"></span>
-                            <button type="submit" class="zio-claim-btn btn-bounce grad-bar">
+                            <button type="submit" class="zio-claim-btn btn-bounce btn-cta">
                                 Claim your link <i class="fas fa-arrow-right text-xs"></i>
                             </button>
                         </div>

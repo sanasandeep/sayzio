@@ -399,6 +399,7 @@ export default function PlansScreen() {
             <View style={{ marginTop: 12 }}>
               <Button
                 label={resume.isPending ? "Resuming…" : "Resume"}
+                variant="cta"
                 onPress={confirmResume}
                 disabled={resume.isPending}
               />
@@ -557,7 +558,7 @@ export default function PlansScreen() {
                   <Button
                     label={isCurrent ? "Current plan" : "Choose plan"}
                     onPress={() => onPurchase(plan)}
-                    variant={isCurrent ? "outline" : "primary"}
+                    variant={isCurrent ? "outline" : "cta"}
                     disabled={
                       isCurrent || sub.isPurchasing || activate.isPending
                     }
