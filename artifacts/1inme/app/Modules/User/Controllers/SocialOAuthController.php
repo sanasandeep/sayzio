@@ -211,13 +211,15 @@ class SocialOAuthController extends Controller
             // session for the in-app browser to keep around, and the
             // mobile app authenticates with the bearer token going forward.
             if ($isMobile) {
-                $user->forceFill(['last_login_at' => now()])->save();
                 $newToken = $user->createToken('mobile-social-' . $provider);
-                app(\App\Modules\Common\Services\LoginAlertService::class)->record(
-                    $user,
-                    $request,
+                \App\Jobs\RecordLoginEventJob::dispatch(
+                    $user->id,
                     'mobile_social_oauth_' . $provider,
-                    ['personal_access_token_id' => $newToken->accessToken->id ?? null]
+                    (string) ($request->ip() ?? ''),
+                    (string) ($request->userAgent() ?? ''),
+                    ['personal_access_token_id' => $newToken->accessToken->id ?? null],
+                    true,
+                    now(),
                 );
                 $token = $newToken->plainTextToken;
                 $payload = json_encode([
@@ -235,14 +237,16 @@ class SocialOAuthController extends Controller
             }
 
             Auth::login($user, true);
-            $user->update(['last_login_at' => now()]);
             $request->session()->regenerate();
 
-            app(\App\Modules\Common\Services\LoginAlertService::class)->record(
-                $user,
-                $request,
+            \App\Jobs\RecordLoginEventJob::dispatch(
+                $user->id,
                 'web_social_' . $provider,
-                ['session_id' => $request->session()->getId()]
+                (string) ($request->ip() ?? ''),
+                (string) ($request->userAgent() ?? ''),
+                ['session_id' => $request->session()->getId()],
+                true,
+                now(),
             );
 
             if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {

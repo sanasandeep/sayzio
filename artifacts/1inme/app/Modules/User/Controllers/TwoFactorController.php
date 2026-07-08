@@ -205,8 +205,17 @@ class TwoFactorController extends Controller
         $request->session()->forget('2fa_pending_user_id');
 
         Auth::login($user, $remember);
-        $user->update(['last_login_at' => now()]);
         $request->session()->regenerate();
+
+        \App\Jobs\RecordLoginEventJob::dispatch(
+            $user->id,
+            'web_totp',
+            (string) ($request->ip() ?? ''),
+            (string) ($request->userAgent() ?? ''),
+            ['session_id' => $request->session()->getId()],
+            true,
+            now(),
+        );
 
         $user->ensureDefaultWorkspace();
         AcceptInviteController::attachPendingInvite($user);

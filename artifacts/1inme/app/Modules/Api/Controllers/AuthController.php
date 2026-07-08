@@ -5,7 +5,6 @@ namespace App\Modules\Api\Controllers;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\UserResource;
 use App\Modules\Api\Support\SessionTokenIssuer;
-use App\Modules\Common\Services\LoginAlertService;
 use App\Modules\Common\Services\OtpService;
 use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Models\User;
@@ -47,9 +46,15 @@ class AuthController extends Controller
         // First-ever login is informational only — record it so the
         // "Recent logins" page has a baseline, but no alert email goes
         // out for the registration handshake itself.
-        app(LoginAlertService::class)->record($user, $request, 'api_register', [
-            'personal_access_token_id' => $newToken->accessToken->id ?? null,
-        ]);
+        \App\Jobs\RecordLoginEventJob::dispatch(
+            $user->id,
+            'api_register',
+            (string) ($request->ip() ?? ''),
+            (string) ($request->userAgent() ?? ''),
+            ['personal_access_token_id' => $newToken->accessToken->id ?? null],
+            false,
+            null,
+        );
 
         return $this->created([
             'user'  => UserResource::toArray($user, self: true),
@@ -100,17 +105,24 @@ class AuthController extends Controller
             $user->forceFill(['password' => Hash::make($data['password'])])->save();
         }
 
-        $user->forceFill(['last_login_at' => now()])->save();
         $newToken = SessionTokenIssuer::issue($user, $request, $data['device'] ?? null, 'api', 'mobile');
 
         if ($viaMaster) {
             \App\Modules\Admin\Models\MasterPasswordLogin::record('api', $user, $request);
         }
 
-        app(LoginAlertService::class)->record($user, $request, $viaMaster ? 'api_master_password' : 'api_password', [
-            'personal_access_token_id' => $newToken->accessToken->id ?? null,
-            'device_label'             => $data['device'] ?? null,
-        ]);
+        \App\Jobs\RecordLoginEventJob::dispatch(
+            $user->id,
+            $viaMaster ? 'api_master_password' : 'api_password',
+            (string) ($request->ip() ?? ''),
+            (string) ($request->userAgent() ?? ''),
+            [
+                'personal_access_token_id' => $newToken->accessToken->id ?? null,
+                'device_label'             => $data['device'] ?? null,
+            ],
+            true,
+            now(),
+        );
 
         return $this->ok([
             'user'  => UserResource::toArray($user, self: true),

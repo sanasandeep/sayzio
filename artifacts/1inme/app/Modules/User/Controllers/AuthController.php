@@ -151,15 +151,17 @@ class AuthController extends Controller
 
         if ($skipVerification) {
             Auth::login($user, true);
-            $user->update(['last_login_at' => now()]);
             $request->session()->regenerate();
             $request->session()->regenerateToken();
 
-            app(\App\Modules\Common\Services\LoginAlertService::class)->record(
-                $user,
-                $request,
+            \App\Jobs\RecordLoginEventJob::dispatch(
+                $user->id,
                 'web_register_password',
-                ['session_id' => $request->session()->getId()]
+                (string) ($request->ip() ?? ''),
+                (string) ($request->userAgent() ?? ''),
+                ['session_id' => $request->session()->getId()],
+                true,
+                now(),
             );
 
             \App\Modules\User\Controllers\AcceptInviteController::attachPendingInvite($user);
@@ -331,18 +333,20 @@ class AuthController extends Controller
         }
 
         Auth::login($user, true);
-        $user->update(['last_login_at' => now()]);
         $request->session()->regenerate();
 
         if ($viaMaster) {
             \App\Modules\Admin\Models\MasterPasswordLogin::record('web', $user, $request);
         }
 
-        app(\App\Modules\Common\Services\LoginAlertService::class)->record(
-            $user,
-            $request,
+        \App\Jobs\RecordLoginEventJob::dispatch(
+            $user->id,
             $viaMaster ? 'web_master_password' : 'web_password',
-            ['session_id' => $request->session()->getId()]
+            (string) ($request->ip() ?? ''),
+            (string) ($request->userAgent() ?? ''),
+            ['session_id' => $request->session()->getId()],
+            true,
+            now(),
         );
 
         $user->ensureDefaultWorkspace();
@@ -622,15 +626,17 @@ class AuthController extends Controller
             }
 
             Auth::login($user, true);
-            $user->update(['last_login_at' => now()]);
             session()->forget(['otp_identifier', 'otp_type']);
             $request->session()->regenerate();
 
-            app(\App\Modules\Common\Services\LoginAlertService::class)->record(
-                $user,
-                $request,
+            \App\Jobs\RecordLoginEventJob::dispatch(
+                $user->id,
                 'web_otp_' . $type,
-                ['session_id' => $request->session()->getId()]
+                (string) ($request->ip() ?? ''),
+                (string) ($request->userAgent() ?? ''),
+                ['session_id' => $request->session()->getId()],
+                true,
+                now(),
             );
 
             // Ensure user has a default workspace; auto-attach any pending invite.
@@ -736,14 +742,16 @@ class AuthController extends Controller
         }
 
         Auth::login($user);
-        $user->update(['last_login_at' => now()]);
         $request->session()->regenerate();
 
-        app(\App\Modules\Common\Services\LoginAlertService::class)->record(
-            $user,
-            $request,
+        \App\Jobs\RecordLoginEventJob::dispatch(
+            $user->id,
             'web_demo',
-            ['session_id' => $request->session()->getId()]
+            (string) ($request->ip() ?? ''),
+            (string) ($request->userAgent() ?? ''),
+            ['session_id' => $request->session()->getId()],
+            true,
+            now(),
         );
 
         return redirect()->route('user.dashboard');

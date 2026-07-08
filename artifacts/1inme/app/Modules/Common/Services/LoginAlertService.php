@@ -33,10 +33,31 @@ class LoginAlertService
     public const HISTORY_WINDOW = 10;
 
     /**
+     * Convenience wrapper: extracts IP and user-agent from a live Request
+     * then delegates to {@see recordRaw}. Kept for backward compatibility
+     * (tests, one-off calls outside the hot login path).
+     *
+     * For new login surfaces, prefer dispatching {@see \App\Jobs\RecordLoginEventJob}
+     * instead — that moves the blocking GeoIP lookup fully off-request.
+     */
+    public function record(User $user, Request $request, string $channel, array $opts = []): ?LoginEvent
+    {
+        return $this->recordRaw(
+            $user,
+            (string) ($request->ip() ?? ''),
+            (string) ($request->userAgent() ?? ''),
+            $channel,
+            $opts,
+        );
+    }
+
+    /**
      * Record a successful login and (when it looks unusual) send the
-     * suspicious-login email. Safe to call from any login site —
-     * failures are logged but never thrown to the caller, so a
-     * mailer outage cannot break sign-in.
+     * suspicious-login email. Accepts raw IP and user-agent strings so
+     * it can be called from a queued job without a live Request object.
+     *
+     * Safe to call from any login site — failures are logged but never
+     * thrown to the caller, so a mailer outage cannot break sign-in.
      *
      * @param array{
      *   personal_access_token_id?: int|null,
@@ -45,12 +66,9 @@ class LoginAlertService
      *   force_alert?: bool,
      * } $opts
      */
-    public function record(User $user, Request $request, string $channel, array $opts = []): ?LoginEvent
+    public function recordRaw(User $user, string $ip, string $ua, string $channel, array $opts = []): ?LoginEvent
     {
         try {
-            $ip = (string) ($request->ip() ?? '');
-            $ua = (string) ($request->userAgent() ?? '');
-
             $country = null;
             if ($ip !== '') {
                 try {

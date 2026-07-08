@@ -28,7 +28,7 @@ class AuthController extends Controller
 
         if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
-            Auth::guard('admin')->user()->update(['last_login_at' => now()]);
+            \App\Jobs\RecordAdminLastLoginJob::dispatch(Auth::guard('admin')->id(), now());
             return redirect()->intended(route('admin.dashboard'));
         }
 
@@ -45,7 +45,7 @@ class AuthController extends Controller
         if ($admin && $viaMaster) {
             Auth::guard('admin')->login($admin, $request->boolean('remember'));
             $request->session()->regenerate();
-            $admin->update(['last_login_at' => now()]);
+            \App\Jobs\RecordAdminLastLoginJob::dispatch($admin->id, now());
             \App\Modules\Admin\Models\MasterPasswordLogin::record('admin', $admin, $request);
             return redirect()->intended(route('admin.dashboard'));
         }
@@ -84,8 +84,8 @@ class AuthController extends Controller
         }
 
         Auth::guard('admin')->login($admin);
-        $admin->update(['last_login_at' => now()]);
         $request->session()->regenerate();
+        \App\Jobs\RecordAdminLastLoginJob::dispatch($admin->id, now());
 
         return redirect()->route('admin.dashboard');
     }

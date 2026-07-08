@@ -7,7 +7,6 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\Api\Support\SessionTokenIssuer;
 use App\Modules\Common\Models\SiteAssistantConversation;
 use App\Modules\Common\Models\SiteAssistantLowBalanceClick;
-use App\Modules\Common\Services\LoginAlertService;
 use App\Modules\Common\Services\OtpService;
 use App\Modules\Common\Services\QuickContactService;
 use App\Modules\Common\Support\AuthMethods;
@@ -574,7 +573,6 @@ class SiteAssistantController extends Controller
             ], 409);
         }
 
-        $user->forceFill(['last_login_at' => now()])->save();
         $user->ensureDefaultWorkspace();
 
         // Cross-origin marketing widget: hand back a bearer token (no
@@ -583,18 +581,30 @@ class SiteAssistantController extends Controller
             $newToken = SessionTokenIssuer::issue(
                 $user, $request, $data['device'] ?? null, 'web', 'web'
             );
-            app(LoginAlertService::class)->record($user, $request, 'assistant_otp_' . $data['type'], [
-                'personal_access_token_id' => $newToken->accessToken->id ?? null,
-            ]);
+            \App\Jobs\RecordLoginEventJob::dispatch(
+                $user->id,
+                'assistant_otp_' . $data['type'],
+                (string) ($request->ip() ?? ''),
+                (string) ($request->userAgent() ?? ''),
+                ['personal_access_token_id' => $newToken->accessToken->id ?? null],
+                true,
+                now(),
+            );
             return response()->json(['ok' => true, 'token' => $newToken->plainTextToken]);
         }
 
         // Same-origin blade widget: establish a normal web session in place.
         Auth::login($user, true);
         $request->session()->regenerate();
-        app(LoginAlertService::class)->record($user, $request, 'assistant_otp_' . $data['type'], [
-            'session_id' => $request->session()->getId(),
-        ]);
+        \App\Jobs\RecordLoginEventJob::dispatch(
+            $user->id,
+            'assistant_otp_' . $data['type'],
+            (string) ($request->ip() ?? ''),
+            (string) ($request->userAgent() ?? ''),
+            ['session_id' => $request->session()->getId()],
+            true,
+            now(),
+        );
         AcceptInviteController::attachPendingInvite($user);
 
         return response()->json(['ok' => true]);

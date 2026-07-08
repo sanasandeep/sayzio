@@ -4,7 +4,6 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\UserResource;
-use App\Modules\Common\Services\LoginAlertService;
 use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
@@ -118,14 +117,21 @@ class SocialAuthController extends Controller
             $existing->forceFill(['verified_at' => now()])->save();
         }
 
-        $user->forceFill(['last_login_at' => now()])->save();
         $newToken = \App\Modules\Api\Support\SessionTokenIssuer::issue(
             $user, $request, $data['device'] ?? null, 'mobile-social', 'mobile'
         );
-        app(LoginAlertService::class)->record($user, $request, 'mobile_social_' . $data['provider'], [
-            'personal_access_token_id' => $newToken->accessToken->id ?? null,
-            'device_label'             => $data['device'] ?? null,
-        ]);
+        \App\Jobs\RecordLoginEventJob::dispatch(
+            $user->id,
+            'mobile_social_' . $data['provider'],
+            (string) ($request->ip() ?? ''),
+            (string) ($request->userAgent() ?? ''),
+            [
+                'personal_access_token_id' => $newToken->accessToken->id ?? null,
+                'device_label'             => $data['device'] ?? null,
+            ],
+            true,
+            now(),
+        );
 
         return $this->ok([
             'user'    => UserResource::toArray($user, self: true),

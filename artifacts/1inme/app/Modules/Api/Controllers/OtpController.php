@@ -4,7 +4,6 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\UserResource;
-use App\Modules\Common\Services\LoginAlertService;
 use App\Modules\Common\Services\OtpService;
 use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Models\LinkedIdentifier;
@@ -101,14 +100,21 @@ class OtpController extends Controller
         $user = $this->resolve($data['identifier'], $data['type']);
         if (!$user) return $this->fail('No account found', 404, 'user_not_found');
 
-        $user->forceFill(['last_login_at' => now()])->save();
         $newToken = \App\Modules\Api\Support\SessionTokenIssuer::issue(
             $user, $request, $data['device'] ?? null, 'mobile', 'mobile'
         );
-        app(LoginAlertService::class)->record($user, $request, 'mobile_otp', [
-            'personal_access_token_id' => $newToken->accessToken->id ?? null,
-            'device_label'             => $data['device'] ?? null,
-        ]);
+        \App\Jobs\RecordLoginEventJob::dispatch(
+            $user->id,
+            'mobile_otp',
+            (string) ($request->ip() ?? ''),
+            (string) ($request->userAgent() ?? ''),
+            [
+                'personal_access_token_id' => $newToken->accessToken->id ?? null,
+                'device_label'             => $data['device'] ?? null,
+            ],
+            true,
+            now(),
+        );
 
         return $this->ok([
             'user'  => UserResource::toArray($user, self: true),
@@ -214,13 +220,18 @@ class OtpController extends Controller
             $user->ensureDefaultWorkspace();
         }
 
-        $user->forceFill(['last_login_at' => now()])->save();
         $newToken = \App\Modules\Api\Support\SessionTokenIssuer::issue(
             $user, $request, null, 'demo-mobile', 'mobile'
         );
-        app(LoginAlertService::class)->record($user, $request, 'mobile_demo', [
-            'personal_access_token_id' => $newToken->accessToken->id ?? null,
-        ]);
+        \App\Jobs\RecordLoginEventJob::dispatch(
+            $user->id,
+            'mobile_demo',
+            (string) ($request->ip() ?? ''),
+            (string) ($request->userAgent() ?? ''),
+            ['personal_access_token_id' => $newToken->accessToken->id ?? null],
+            true,
+            now(),
+        );
 
         return $this->ok([
             'user'  => UserResource::toArray($user, self: true),

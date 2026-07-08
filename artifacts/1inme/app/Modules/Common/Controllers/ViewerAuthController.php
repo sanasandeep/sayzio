@@ -86,7 +86,15 @@ class ViewerAuthController extends Controller
 
         // Use viewer session, not the dashboard auth guard.
         ViewerSession::login($user);
-        $user->update(['last_login_at' => now()]);
+        \App\Jobs\RecordLoginEventJob::dispatch(
+            $user->id,
+            'viewer_otp',
+            (string) ($request->ip() ?? ''),
+            (string) ($request->userAgent() ?? ''),
+            [],
+            true,
+            now(),
+        );
 
         return response()->json([
             'success' => true,
