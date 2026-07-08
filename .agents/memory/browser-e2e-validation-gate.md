@@ -122,3 +122,5 @@ faking "still running". For any e2e run longer than one bash call, register a
 throwaway workflow (`configureWorkflow` → `restart_workflow` → poll
 `getWorkflowStatus`) running `tests/Browser/run-validation.sh <spec>`; that is
 the repo's existing single-spec pattern (e.g. `e2e-ehb-band`).
+
+- Full validation runs launch many Playwright suites in parallel, each booting its own `php artisan serve`; under that contention heavy specs can die at 0ms with `net::ERR_EMPTY_RESPONSE` on the first goto plus ENOENT on `.playwright-artifacts-*/traces/*.network`. That signature = resource contention, not a code regression — re-verify with a solo run of the one workflow before debugging the spec.

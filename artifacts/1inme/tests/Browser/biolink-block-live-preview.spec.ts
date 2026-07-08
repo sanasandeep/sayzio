@@ -44,8 +44,9 @@ function runTinkerSeed(php: string): string {
 
 /**
  * Seed the demo user plus a biolink covering the live-preview block families:
- * heading (baseline), badge, video, product, countdown (fallback case) and a
- * card container. Idempotent: prior blocks on the fixture biolink are wiped.
+ * heading (baseline), badge, video, product, countdown (fallback case), a
+ * card container and the repeater family (socials rows, progress rows, list
+ * items). Idempotent: prior blocks on the fixture biolink are wiped.
  */
 function seedFixtures(): {
   linkId: number;
@@ -55,6 +56,9 @@ function seedFixtures(): {
   productId: number;
   countdownId: number;
   cardId: number;
+  socialsId: number;
+  progressId: number;
+  listId: number;
 } {
   const php = `
 use App\\Modules\\User\\Models\\User;
@@ -96,8 +100,11 @@ $video = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'video', 'sort_o
 $product = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'product', 'sort_order' => 3, 'is_active' => true, 'settings' => ['name' => 'Prod One', 'price' => '19', 'description' => 'Desc one', 'url' => 'https://example.com/buy']]);
 $cd = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'countdown', 'sort_order' => 4, 'is_active' => true, 'settings' => ['title' => 'Launch', 'target_date' => now()->addDays(7)->format('Y-m-d\\\\TH:i')]]);
 $card = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'card', 'sort_order' => 5, 'is_active' => true, 'settings' => ['title' => 'Card Title']]);
+$soc = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'socials', 'sort_order' => 6, 'is_active' => true, 'settings' => ['platforms' => [['name' => 'twitter', 'url' => 'https://twitter.com/before'], ['name' => 'github', 'url' => 'https://github.com/before']]]]);
+$prog = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'progress', 'sort_order' => 7, 'is_active' => true, 'settings' => ['items' => [['label' => 'Skill A', 'value' => 40], ['label' => 'Skill B', 'value' => 60]]]]);
+$list = BiolinkBlock::create(['link_id' => $bio->id, 'type' => 'list', 'sort_order' => 8, 'is_active' => true, 'settings' => ['items' => ['First item', 'Second item']]]);
 
-echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'badgeId' => $badge->id, 'videoId' => $video->id, 'productId' => $product->id, 'countdownId' => $cd->id, 'cardId' => $card->id]);
+echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'badgeId' => $badge->id, 'videoId' => $video->id, 'productId' => $product->id, 'countdownId' => $cd->id, 'cardId' => $card->id, 'socialsId' => $soc->id, 'progressId' => $prog->id, 'listId' => $list->id]);
 `.trim();
 
   const out = runTinkerSeed(php);
@@ -128,6 +135,9 @@ async function loginAsDemo(page: Page): Promise<void> {
 let ids: ReturnType<typeof seedFixtures>;
 
 test.beforeAll(async ({ browser }) => {
+  // Seed (tinker over distant RDS), demo-login and the public-page warm-up
+  // together can exceed the default 60s hook budget on a cold environment.
+  test.setTimeout(240_000);
   ids = seedFixtures();
   sharedContext = await browser.newContext();
   const page = await sharedContext.newPage();
@@ -205,7 +215,7 @@ async function waitForAutosave(page: Page, blockId: number) {
       r.url().includes(`/blocks/${blockId}`) &&
       r.request().method() === "POST" &&
       r.ok(),
-    { timeout: 30_000 },
+    { timeout: 60_000 },
   );
 }
 
@@ -310,6 +320,76 @@ test("card container title patches live without a reload", async ({
   ).toContainText("New Card Title", { timeout: 10_000 });
 
   await waitForAutosave(page, ids.cardId);
+  await page.waitForTimeout(2_000);
+  await expectNoReload(preview);
+});
+
+test("socials row URL patches the anchor live without a reload", async ({
+  page,
+}) => {
+  const { preview } = await gotoEditorWithPreview(page);
+  const form = await openDrawer(page, ids.socialsId);
+
+  await form
+    .locator('input[name="settings[platforms][1][url]"]')
+    .fill("https://github.com/after-live");
+
+  // Live hrefs route through the click tracker (?to=...), so assert the
+  // second anchor's href now carries the new destination either way.
+  const anchors = preview.locator(`[data-block-id="${ids.socialsId}"] a`);
+  await expect(async () => {
+    const href = (await anchors.nth(1).getAttribute("href")) || "";
+    expect(decodeURIComponent(href)).toContain("github.com/after-live");
+  }).toPass({ timeout: 10_000 });
+  await expectNoReload(preview);
+
+  await waitForAutosave(page, ids.socialsId);
+  await page.waitForTimeout(2_000);
+  await expectNoReload(preview);
+});
+
+test("progress row label and value patch live without a reload", async ({
+  page,
+}) => {
+  const { preview } = await gotoEditorWithPreview(page);
+  const form = await openDrawer(page, ids.progressId);
+
+  await form.locator('input[name="settings[items][0][label]"]').fill("Skill Z");
+  await form.locator('input[name="settings[items][0][value]"]').fill("85");
+
+  const root = preview.locator(`[data-block-id="${ids.progressId}"]`);
+  await expect(root).toContainText("Skill Z", { timeout: 10_000 });
+  await expect(root).toContainText("85%", { timeout: 10_000 });
+  // The bar width must have been patched in place too.
+  await expect(async () => {
+    const widths = await root
+      .locator("div div")
+      .evaluateAll((els) =>
+        els.map((el) => (el as HTMLElement).style.width || ""),
+      );
+    expect(widths.join(" ")).toContain("85%");
+  }).toPass({ timeout: 10_000 });
+  await expectNoReload(preview);
+
+  await waitForAutosave(page, ids.progressId);
+  await page.waitForTimeout(2_000);
+  await expectNoReload(preview);
+});
+
+test("list item text patches live without a reload", async ({ page }) => {
+  const { preview } = await gotoEditorWithPreview(page);
+  const form = await openDrawer(page, ids.listId);
+
+  await form
+    .locator('input[name="settings[items][1][text]"]')
+    .fill("Second item edited live");
+
+  await expect(
+    preview.locator(`[data-block-id="${ids.listId}"] li`).nth(1),
+  ).toContainText("Second item edited live", { timeout: 10_000 });
+  await expectNoReload(preview);
+
+  await waitForAutosave(page, ids.listId);
   await page.waitForTimeout(2_000);
   await expectNoReload(preview);
 });
