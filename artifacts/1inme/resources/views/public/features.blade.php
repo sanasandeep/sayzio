@@ -16,6 +16,30 @@
         $icon = trim((string) ($f['icon'] ?? ''));
         return $icon !== '' ? $icon : 'fa-circle-check';
     };
+    // Map each "Link types" category row to its seeded /demos explainer page
+    // (alias `demo-type-{slug(name)}`) when one is live — the same mapping the
+    // home "What you can create" showcase uses. Reuses the shared cached
+    // gallery data (5-min TTL, plain arrays) so the features render stays
+    // query-free on the warm path; any failure just leaves rows non-linked.
+    $__demoAliasSet = [];
+    try {
+        $__demoData = \Illuminate\Support\Facades\Cache::remember(
+            \App\Modules\Common\Controllers\SitePageController::DEMOS_CACHE_KEY,
+            300,
+            fn () => \App\Modules\Common\Controllers\SitePageController::buildDemosData()
+        );
+        $__demoAliasSet = array_fill_keys(array_keys((array) ($__demoData['links'] ?? [])), true);
+    } catch (\Throwable $e) {
+        $__demoAliasSet = [];
+    }
+    $linkTypeDemoUrl = function ($name) use ($__demoAliasSet): ?string {
+        $name = trim((string) $name);
+        if ($name === '') {
+            return null;
+        }
+        $alias = 'demo-type-' . \Illuminate\Support\Str::slug($name);
+        return isset($__demoAliasSet[$alias]) ? url('/' . $alias) : null;
+    };
     $showcase = [
         ['img' => asset('images/marketing/features/biolink.png'),  'label' => 'Link in Bio builder', 'desc' => 'Drag, drop, ship.'],
         ['img' => asset('images/marketing/features/qr-code.png'),  'label' => 'Dynamic QR',     'desc' => 'Scannable. Trackable.'],
@@ -194,7 +218,16 @@
                         </div>
                         <div class="rounded-xl border border-white/5 bg-black/10 overflow-hidden">
                             @foreach($cat['features'] as $feat)
-                                @php $featLink = is_array($feat) ? trim((string) ($feat['link'] ?? '')) : ''; @endphp
+                                @php
+                                    $featLink = is_array($feat) ? trim((string) ($feat['link'] ?? '')) : '';
+                                    // Link-type rows deep-link to their seeded demo page
+                                    // (same mapping as the home showcase) when no explicit
+                                    // admin link is set; rows without a seeded demo stay
+                                    // non-linked, exactly as before.
+                                    $featDemoUrl = ($featLink === '' && ($cat['id'] ?? '') === 'link-types')
+                                        ? $linkTypeDemoUrl($featureName($feat))
+                                        : null;
+                                @endphp
                                 <div class="feature-row grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-6 px-5 py-4">
                                     <div class="md:col-span-1">
                                         <div class="flex items-start gap-2">
@@ -202,6 +235,8 @@
                                             <div class="font-semibold text-white">
                                                 @if($featLink !== '')
                                                     <a href="{{ $featLink }}" class="hover:text-blue-300 underline-offset-4 hover:underline">{{ $featureName($feat) }}</a>
+                                                @elseif($featDemoUrl !== null)
+                                                    <a href="{{ $featDemoUrl }}" class="hover:text-blue-300 underline-offset-4 hover:underline" aria-label="See the live {{ $featureName($feat) }} demo">{{ $featureName($feat) }}</a>
                                                 @else
                                                     {{ $featureName($feat) }}
                                                 @endif
@@ -212,6 +247,8 @@
                                         {{ $featureDescription($feat) }}
                                         @if($featLink !== '')
                                             <a href="{{ $featLink }}" class="ml-1 text-blue-300 hover:text-blue-200 font-semibold">Learn more <i class="fas fa-arrow-right text-[10px]"></i></a>
+                                        @elseif($featDemoUrl !== null)
+                                            <a href="{{ $featDemoUrl }}" class="ml-1 text-blue-300 hover:text-blue-200 font-semibold" aria-label="See the live {{ $featureName($feat) }} demo">See demo <i class="fas fa-arrow-right text-[10px]"></i></a>
                                         @endif
                                     </div>
                                 </div>
