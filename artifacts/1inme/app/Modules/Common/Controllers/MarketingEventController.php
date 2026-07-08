@@ -55,6 +55,45 @@ class MarketingEventController extends Controller
         ],
     ];
 
+    /**
+     * Source used by the home "What you can create" showcase cards when a
+     * card links to a live demo page. Targets are dynamic (the link-type
+     * slug, i.e. the demo alias minus its `demo-type-` prefix) and are
+     * validated against the seeded demo pages instead of the static
+     * ALLOWED list — see {@see homeShowcaseDemoTargets()}.
+     */
+    public const HOME_SHOWCASE_DEMO_SOURCE = 'home_showcase_demo';
+
+    /**
+     * The currently-valid targets for the home-showcase demo source: one
+     * slug per live seeded demo page. Shares the /demos gallery cache so
+     * the warm path is query-free; a cache/DB failure fails closed (no
+     * targets accepted) rather than 500ing the beacon endpoint.
+     *
+     * @return array<int, string>
+     */
+    public static function homeShowcaseDemoTargets(): array
+    {
+        try {
+            $demoData = \Illuminate\Support\Facades\Cache::remember(
+                \App\Modules\Common\Controllers\SitePageController::DEMOS_CACHE_KEY,
+                300,
+                fn () => \App\Modules\Common\Controllers\SitePageController::buildDemosData()
+            );
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        $out = [];
+        foreach (array_keys((array) ($demoData['links'] ?? [])) as $alias) {
+            $slug = \Illuminate\Support\Str::after((string) $alias, 'demo-type-');
+            if ($slug !== '' && $slug !== (string) $alias) {
+                $out[] = $slug;
+            }
+        }
+        return $out;
+    }
+
     public function track(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -65,7 +104,11 @@ class MarketingEventController extends Controller
         $source = $data['source'];
         $target = $data['target'];
 
-        if (!isset(self::ALLOWED[$source]) || !in_array($target, self::ALLOWED[$source], true)) {
+        $allowed = $source === self::HOME_SHOWCASE_DEMO_SOURCE
+            ? in_array($target, self::homeShowcaseDemoTargets(), true)
+            : (isset(self::ALLOWED[$source]) && in_array($target, self::ALLOWED[$source], true));
+
+        if (! $allowed) {
             return response()->json(['ok' => false, 'error' => 'unknown_event'], 422);
         }
 

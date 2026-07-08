@@ -54,6 +54,7 @@ class MarketingEventStatsController extends Controller
         'landing_home_cta'       => 'Landing home CTAs',
         'event_tips_directory'   => 'Connection tips — Events directory',
         'event_tips_event'       => 'Connection tips — Event page',
+        MarketingEventController::HOME_SHOWCASE_DEMO_SOURCE => 'Home showcase — demo cards',
     ];
 
     public function index(Request $request)
@@ -80,8 +81,21 @@ class MarketingEventStatsController extends Controller
 
         // Build a stable display list from the allow-list so 0-count
         // targets still appear (useful when a CTA stops being clicked).
+        // The home-showcase demo source has dynamic targets (one per live
+        // seeded demo page), so its target list is the union of the current
+        // demo slugs and anything actually recorded in the window — a demo
+        // that was later unseeded keeps its historical counts visible.
+        $demoSource = MarketingEventController::HOME_SHOWCASE_DEMO_SOURCE;
+        $demoTargets = array_values(array_unique(array_merge(
+            MarketingEventController::homeShowcaseDemoTargets(),
+            array_keys($counts[$demoSource] ?? [])
+        )));
+
+        $allSources = MarketingEventController::ALLOWED
+            + [$demoSource => $demoTargets];
+
         $sections = [];
-        foreach (MarketingEventController::ALLOWED as $source => $targets) {
+        foreach ($allSources as $source => $targets) {
             $sourceTotal = $totalsBySource[$source] ?? 0;
             $rowsOut = [];
             foreach ($targets as $t) {

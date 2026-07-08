@@ -4039,12 +4039,21 @@
         $name = trim((string) ($lt['name'] ?? ''));
         $alias = 'demo-type-' . \Illuminate\Support\Str::slug($name);
         if ($name !== '' && isset($__demoAliasSet[$alias])) {
-            return ['href' => url('/' . $alias), 'label' => 'See demo', 'aria' => 'See the live ' . $name . ' demo'];
+            // `track` = the link-type slug recorded as a marketing event
+            // (source "home_showcase_demo") so admins can see which
+            // showcase cards actually drive demo visits.
+            return [
+                'href'  => url('/' . $alias),
+                'label' => 'See demo',
+                'aria'  => 'See the live ' . $name . ' demo',
+                'track' => \Illuminate\Support\Str::slug($name),
+            ];
         }
         return [
             'href'  => route('site.features') . '#cat-link-types',
             'label' => 'Learn more',
             'aria'  => ($name !== '' ? $name . ' — l' : 'L') . 'earn more on the Features page',
+            'track' => null,
         ];
     };
 @endphp
@@ -4077,7 +4086,7 @@
             @foreach($__ltFeatured as $i => $lt)
                 @php $__ltLink = $__ltCardLink($lt); @endphp
                 <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card showcase-card-lg glass rounded-2xl p-5 relative overflow-hidden" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s; --sc-stagger:{{ round($i * 0.08, 2) }}s;">
-                    <a href="{{ $__ltLink['href'] }}" class="sc-link absolute inset-0 z-10 rounded-2xl" aria-label="{{ $__ltLink['aria'] }}"></a>
+                    <a href="{{ $__ltLink['href'] }}" class="sc-link absolute inset-0 z-10 rounded-2xl" aria-label="{{ $__ltLink['aria'] }}"@if($__ltLink['track']) onclick="window.trackMarketingEvent && window.trackMarketingEvent('home_showcase_demo','{{ $__ltLink['track'] }}')"@endif></a>
                     <div class="showcase-inner relative w-full h-full">
                         <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-20 showcase-blob" style="background:{{ $lt['color'] }};"></div>
                         @if($lt['new'])
@@ -4110,7 +4119,7 @@
                 @foreach($__ltMore as $i => $lt)
                     @php $__ltLink = $__ltCardLink($lt); @endphp
                     <article class="reveal rd-{{ ($i % 5) + 1 }} showcase-card showcase-card-sm glass rounded-xl p-3 relative overflow-hidden" style="--sc-color:{{ $lt['color'] }}; --sc-delay:{{ round(($i % 6) * 0.35, 2) }}s; --sc-stagger:{{ round($i * 0.08, 2) }}s;">
-                        <a href="{{ $__ltLink['href'] }}" class="sc-link absolute inset-0 z-10 rounded-xl" aria-label="{{ $__ltLink['aria'] }}"></a>
+                        <a href="{{ $__ltLink['href'] }}" class="sc-link absolute inset-0 z-10 rounded-xl" aria-label="{{ $__ltLink['aria'] }}"@if($__ltLink['track']) onclick="window.trackMarketingEvent && window.trackMarketingEvent('home_showcase_demo','{{ $__ltLink['track'] }}')"@endif></a>
                         <div class="showcase-inner relative w-full h-full">
                             <div class="absolute -top-8 -right-8 w-16 h-16 rounded-full opacity-20 showcase-blob" style="background:{{ $lt['color'] }};"></div>
                             <div class="relative flex items-center gap-2.5">
