@@ -37,7 +37,9 @@
                     @foreach($events as $event)
                         <tr class="border-t" style="border-color: var(--border);">
                             <td class="px-4 py-3" style="color: var(--text);">
-                                {{ optional($event->created_at)->format('M j, Y g:i A') }}
+                                @if($event->created_at)
+                                    <time class="js-local-time" datetime="{{ $event->created_at->toIso8601String() }}" title="{{ $event->created_at->format('M j, Y g:i A T') }}">{{ $event->created_at->format('M j, Y g:i A') }}</time>
+                                @endif
                             </td>
                             <td class="px-4 py-3" style="color: var(--text);">
                                 {{ $event->device_label ?: 'Unknown device' }}
@@ -74,4 +76,25 @@
         @endif
     </div>
 </div>
+<script>
+(function () {
+    document.querySelectorAll('time.js-local-time').forEach(function (el) {
+        var iso = el.getAttribute('datetime');
+        if (!iso) return;
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return;
+        try {
+            el.textContent = d.toLocaleString(undefined, {
+                month: 'short', day: 'numeric', year: 'numeric',
+                hour: 'numeric', minute: '2-digit'
+            });
+            el.setAttribute('title', d.toLocaleString(undefined, {
+                month: 'short', day: 'numeric', year: 'numeric',
+                hour: 'numeric', minute: '2-digit', second: '2-digit',
+                timeZoneName: 'short'
+            }));
+        } catch (e) { /* keep server-rendered fallback */ }
+    });
+})();
+</script>
 @endsection
