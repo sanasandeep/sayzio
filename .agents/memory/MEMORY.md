@@ -95,3 +95,4 @@
 - [Mobile inline block editing](mobile-inline-block-edit.md) — blocks list expands the shared BlockSettingsEditor inline (no nested ScrollView; onDone vs router.back); screen+inline modes must stay in lockstep.
 - [e2e fixture aliases on shared RDS](e2e-shared-rds-fixture-aliases.md) — fixed-alias e2e fixtures collide across parallel task envs on the shared RDS; use per-run unique aliases + stale-prefix pruning.
 - [Hidden legacy form fields clobber](hidden-legacy-form-fields-clobber.md) — display:none leftover markup in a form still serializes; duplicate names let empty dead fields override live values (PHP last-wins); broke Appearance live draft preview.
+- [Facade::partialMock null $app crash](facade-partialmock-null-app.md) — partialMock on Cache/manager facades builds an instance w/ null $app ("bound() on null"); proxy-partial the real root + swap instead.
