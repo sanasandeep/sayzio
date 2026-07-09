@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { BrandWordmark } from "@/components/Brand";
+import { ZioSplash } from "@/components/ZioSplash";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { getOnboardingStatus } from "@/lib/api/profile";
@@ -16,6 +17,8 @@ export default function GateScreen() {
   // Server-side first-run setup gate (separate from the local intro-slides
   // flag above): null = not yet checked, true = needs the stepped /setup flow.
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
+  // Animated Zio splash shown once on every cold launch.
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     getOnboardingComplete().then(setOnboarded);
@@ -41,6 +44,33 @@ export default function GateScreen() {
     };
   }, [user, token]);
 
+  // appReady: true when we know exactly where the user is going.
+  // Covers every branch below — once this is true the gate can proceed
+  // the instant the minimum splash duration has elapsed.
+  const appReady =
+    ready &&
+    onboarded !== null &&
+    (
+      onboarded === false ||      // → /onboarding
+      !user || !token ||          // → /(auth)
+      (locked && biometricEnabled) || // → /lock
+      needsSetup !== null         // → /setup or /(tabs)
+    );
+
+  // While the splash is running, render it as the sole view so that
+  // <Redirect> nodes never mount — navigation must not fire during the splash.
+  if (showSplash) {
+    return (
+      <ZioSplash
+        onDone={() => setShowSplash(false)}
+        appReady={appReady}
+        minDuration={2400}
+        maxDuration={3200}
+      />
+    );
+  }
+
+  // ── Post-splash gate ──────────────────────────────────────────────────────
   if (!ready || onboarded === null) {
     return (
       <View style={[styles.splash, { backgroundColor: colors.background }]}>
