@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -324,7 +325,7 @@ function AudienceInsightsSection({
   const [freshNote, setFreshNote] = useState<string | null>(null);
 
   const estimate = useMutation({
-    mutationFn: () => runAudienceEstimate(linkId),
+    mutationFn: (force: boolean) => runAudienceEstimate(linkId, force),
     onSuccess: (res) => {
       setRows(res.estimated);
       setError(null);
@@ -489,7 +490,7 @@ function AudienceInsightsSection({
 
         <View style={{ gap: 8 }}>
           <Pressable
-            onPress={() => estimate.mutate()}
+            onPress={() => estimate.mutate(false)}
             disabled={estimate.isPending || insufficientCoins}
             accessibilityRole="button"
             accessibilityState={{
@@ -572,6 +573,56 @@ function AudienceInsightsSection({
             >
               {freshNote}
             </Text>
+          ) : null}
+          {freshNote ? (
+            <Pressable
+              testID="button-estimate-force"
+              accessibilityRole="button"
+              accessibilityLabel="Run a fresh estimate anyway"
+              disabled={estimate.isPending}
+              onPress={() =>
+                Alert.alert(
+                  "Run a fresh estimate?",
+                  estimateCoins > 0
+                    ? `This will charge up to ${estimateCoins} coin${estimateCoins === 1 ? "" : "s"} — run anyway?`
+                    : "This will charge coins for a fresh run — run anyway?",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Run anyway",
+                      style: "destructive",
+                      onPress: () => estimate.mutate(true),
+                    },
+                  ],
+                )
+              }
+              style={({ pressed }) => [
+                {
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                  borderRadius: 8,
+                  alignSelf: "flex-start",
+                  backgroundColor: "rgba(251,191,36,0.12)",
+                  borderWidth: 1,
+                  borderColor: "rgba(251,191,36,0.3)",
+                  opacity: pressed || estimate.isPending ? 0.6 : 1,
+                },
+              ]}
+            >
+              <Feather name="zap" size={12} color="#fbbf24" />
+              <Text
+                style={{
+                  color: "#fbbf24",
+                  fontFamily: "SpaceGrotesk_600SemiBold",
+                  fontSize: 12,
+                }}
+              >
+                Run fresh anyway
+              </Text>
+            </Pressable>
           ) : null}
         </View>
       </View>

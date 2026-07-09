@@ -1520,8 +1520,10 @@ class LinkController extends Controller
 
         // Cooldown: if the cached estimate is only minutes old, return it
         // without charging — protects coin wallets from accidental double runs.
+        // An explicit `force: true` (behind a confirm dialog client-side)
+        // intentionally bypasses the cooldown and pays for a fresh run.
         $cached = $link->settings['biolink']['audience_estimate'] ?? null;
-        if (\App\Services\AI\AudienceTypeEstimationService::estimateIsFresh($cached)) {
+        if (!$request->boolean('force') && \App\Services\AI\AudienceTypeEstimationService::estimateIsFresh($cached)) {
             return response()->json([
                 'estimated'     => $cached['data'],
                 'credits_spent' => 0,

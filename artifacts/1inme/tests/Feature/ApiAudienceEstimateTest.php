@@ -131,6 +131,123 @@ class ApiAudienceEstimateTest extends TestCase
         $this->assertSame(4, $cached['credits_spent']);
     }
 
+    public function test_force_flag_bypasses_fresh_cooldown_and_charges(): void
+    {
+        $user = $this->makeUser(['audience_type_estimation' => true]);
+        $link = $this->makeLink($user);
+
+        // Fresh cached estimate (well inside the cooldown window).
+        $link->update([
+            'settings' => [
+                'biolink' => [
+                    'audience_estimate' => [
+                        'data'          => [['type' => 'creator', 'label' => 'Creator / Artist', 'pct' => 100]],
+                        'generated_at'  => now()->subMinutes(2)->toIso8601String(),
+                        'credits_spent' => 4,
+                    ],
+                ],
+            ],
+        ]);
+        $token = $user->createToken('test')->plainTextToken;
+
+        $estimated = [
+            ['type' => 'business', 'label' => 'Business Owner', 'pct' => 100],
+        ];
+        $mock = \Mockery::mock(AudienceTypeEstimationService::class);
+        $mock->shouldReceive('estimate')->once()->andReturn([
+            'estimated'     => $estimated,
+            'tokens_in'     => 10,
+            'tokens_out'    => 5,
+            'credits_spent' => 6,
+        ]);
+        $this->app->instance(AudienceTypeEstimationService::class, $mock);
+
+        $res = $this->withToken($token)
+            ->postJson("/api/v1/links/{$link->id}/audience-estimate", ['force' => true]);
+
+        $res->assertOk();
+        $this->assertNull($res->json('data.cached'));
+        $this->assertSame($estimated, $res->json('data.estimated'));
+        $this->assertSame(6, $res->json('data.credits_spent'));
+
+        // Cached settings replaced with the forced run.
+        $cached = $link->fresh()->settings['biolink']['audience_estimate'];
+        $this->assertEquals($estimated, $cached['data']);
+        $this->assertSame(6, $cached['credits_spent']);
+    }
+
+    public function test_force_false_still_short_circuits_on_fresh_estimate(): void
+    {
+        $user = $this->makeUser(['audience_type_estimation' => true]);
+        $link = $this->makeLink($user);
+
+        $cachedRows = [
+            ['type' => 'student', 'label' => 'Student', 'pct' => 100],
+        ];
+        $link->update([
+            'settings' => [
+                'biolink' => [
+                    'audience_estimate' => [
+                        'data'          => $cachedRows,
+                        'generated_at'  => now()->subMinutes(1)->toIso8601String(),
+                        'credits_spent' => 2,
+                    ],
+                ],
+            ],
+        ]);
+        $token = $user->createToken('test')->plainTextToken;
+
+        $mock = \Mockery::mock(AudienceTypeEstimationService::class);
+        $mock->shouldNotReceive('estimate');
+        $this->app->instance(AudienceTypeEstimationService::class, $mock);
+
+        $res = $this->withToken($token)
+            ->postJson("/api/v1/links/{$link->id}/audience-estimate", ['force' => false]);
+
+        $res->assertOk();
+        $this->assertTrue($res->json('data.cached'));
+        $this->assertSame(0, $res->json('data.credits_spent'));
+        $this->assertEquals($cachedRows, $res->json('data.estimated'));
+    }
+
+    public function test_web_route_force_flag_bypasses_fresh_cooldown(): void
+    {
+        $user = $this->makeUser(['audience_type_estimation' => true]);
+        $link = $this->makeLink($user);
+
+        $link->update([
+            'settings' => [
+                'biolink' => [
+                    'audience_estimate' => [
+                        'data'          => [['type' => 'business', 'label' => 'Business Owner', 'pct' => 100]],
+                        'generated_at'  => now()->subMinutes(2)->toIso8601String(),
+                        'credits_spent' => 5,
+                    ],
+                ],
+            ],
+        ]);
+
+        $estimated = [
+            ['type' => 'professional', 'label' => 'Professional / Employee', 'pct' => 100],
+        ];
+        $mock = \Mockery::mock(AudienceTypeEstimationService::class);
+        $mock->shouldReceive('estimate')->once()->andReturn([
+            'estimated'     => $estimated,
+            'tokens_in'     => 10,
+            'tokens_out'    => 5,
+            'credits_spent' => 7,
+        ]);
+        $this->app->instance(AudienceTypeEstimationService::class, $mock);
+
+        $res = $this->actingAs($user, 'web')
+            ->postJson(route('user.links.audience.estimate', $link), ['force' => true]);
+
+        $res->assertOk();
+        $this->assertNull($res->json('cached'));
+        $this->assertSame($estimated, $res->json('estimated'));
+        $this->assertSame(7, $res->json('credits_spent'));
+    }
+
     public function test_stale_cached_estimate_runs_a_new_estimation(): void
     {
         $user = $this->makeUser(['audience_type_estimation' => true]);

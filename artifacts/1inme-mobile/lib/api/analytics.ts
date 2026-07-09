@@ -119,8 +119,14 @@ export async function getBlockAnalytics(
  * the server short-circuits and returns the cached rows without charging:
  * `cached: true` + the original `generated_at` so the UI can surface a
  * gentle "estimate is fresh" note instead of silently re-charging.
+ *
+ * Pass `force: true` (after a user-confirmed dialog) to intentionally bypass
+ * the cooldown and pay for a fresh run even when a fresh estimate exists.
  */
-export async function runAudienceEstimate(linkId: number): Promise<{
+export async function runAudienceEstimate(
+  linkId: number,
+  force = false,
+): Promise<{
   estimated: AudienceEstimateRow[];
   credits_spent: number;
   cached?: boolean;
@@ -133,7 +139,10 @@ export async function runAudienceEstimate(linkId: number): Promise<{
       cached?: boolean;
       generated_at?: string | null;
     };
-  }>(`/links/${linkId}/audience-estimate`, { method: "POST" });
+  }>(`/links/${linkId}/audience-estimate`, {
+    method: "POST",
+    body: JSON.stringify({ force }),
+  });
   return res.data;
 }
 
