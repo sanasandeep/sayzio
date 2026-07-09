@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\AI\AiActionCooldown;
 use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
@@ -69,6 +70,30 @@ class ResumeTailorController extends Controller
         $resume = $request->user()->ensureResume();
         $resume->load('items');
 
+        // Double-charge guard: re-running the same JD against the same resume
+        // within minutes returns the cached suggestions without charging; a
+        // concurrent identical request 429s instead of double-charging.
+        $cooldownKey = AiActionCooldown::key('resume_tailor', $request->user()->id, [
+            'resume' => $resume->id,
+            'jd'     => $data['job_description'],
+        ]);
+        if ($hit = AiActionCooldown::fresh($cooldownKey)) {
+            return response()->json([
+                'suggestions'   => $hit['result']['suggestions'],
+                'credits_spent' => 0,
+                'balance'       => $this->credits->getBalance($request->user()),
+                'history'       => $this->tailor->recentRuns($request->user(), 10),
+                'cached'        => true,
+                'generated_at'  => $hit['generated_at'],
+            ]);
+        }
+        if (!AiActionCooldown::begin($cooldownKey)) {
+            return response()->json([
+                'message' => 'This tailoring run is already in progress — give it a moment.',
+                'code'    => 'in_progress',
+            ], 429);
+        }
+
         try {
             $result = $this->tailor->run($request->user(), $resume, $data['job_description']);
         } catch (InsufficientCoinsForAiException $e) {
@@ -79,7 +104,11 @@ class ResumeTailorController extends Controller
             ], 402);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        } finally {
+            AiActionCooldown::end($cooldownKey);
         }
+
+        AiActionCooldown::remember($cooldownKey, ['suggestions' => $result['suggestions']]);
 
         return response()->json([
             'suggestions'   => $result['suggestions'],

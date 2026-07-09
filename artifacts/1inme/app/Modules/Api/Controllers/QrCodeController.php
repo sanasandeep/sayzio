@@ -9,6 +9,7 @@ use App\Modules\User\Models\Project;
 use App\Modules\User\Support\QrCodeCatalog;
 use App\Modules\User\Support\QrCodeDesignSanitizer;
 use App\Modules\User\Support\QrCodeTypeRegistry;
+use App\Services\AI\AiActionCooldown;
 use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\InsufficientCoinsForAiException;
@@ -229,6 +230,31 @@ class QrCodeController extends Controller
             return $this->fail('Add your QR content first.', 422, 'missing_data');
         }
 
+        // Double-charge guard (shared key with the web surface): an identical
+        // regeneration inside the cooldown re-serves the stored artwork
+        // without a new coin charge; a concurrent identical request 429s.
+        $cooldownKey = AiActionCooldown::key('qr_art', $user->id, [
+            'data'            => $data,
+            'prompt'          => $validated['prompt'],
+            'negative_prompt' => $validated['negative_prompt'] ?? null,
+            'strength'        => null,
+        ]);
+        if ($hit = AiActionCooldown::fresh($cooldownKey)) {
+            return $this->ok([
+                'image_url'    => $hit['result']['image_url'] ?? null,
+                'file_id'      => $hit['result']['file_id'] ?? null,
+                'cost'         => 0,
+                'balance'      => app(AiUsageCharger::class)->getBalance($user),
+                'style'        => $validated['style'] ?? null,
+                'encoded'      => $data,
+                'cached'       => true,
+                'generated_at' => $hit['generated_at'],
+            ]);
+        }
+        if (!AiActionCooldown::begin($cooldownKey)) {
+            return $this->fail('This artwork is already generating — give it a moment.', 429, 'in_progress');
+        }
+
         try {
             $result = $art->generate($user, $data, $validated['prompt'], [
                 'negative_prompt' => $validated['negative_prompt'] ?? null,
@@ -246,7 +272,14 @@ class QrCodeController extends Controller
             return $this->fail($e->getMessage(), 422, 'invalid');
         } catch (QrArtGenerationException $e) {
             return $this->fail($e->getMessage(), 422, 'failed');
+        } finally {
+            AiActionCooldown::end($cooldownKey);
         }
+
+        AiActionCooldown::remember($cooldownKey, [
+            'image_url' => $result['image_url'] ?? null,
+            'file_id'   => $result['file_id'] ?? null,
+        ]);
 
         return $this->ok([
             'image_url' => $result['image_url'] ?? null,

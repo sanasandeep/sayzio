@@ -19,12 +19,12 @@ The 1inme Feature suite is effectively un-runnable in isolated task envs / dev b
 
 **Better local recipe (works, used to get PaidPageTest green in ~7s):** point DB_* at the **local `helium`** Postgres `1inme_testing` DB (not the dev DB, not RDS) and skip migration:
 ```
-HELIUM_PW=$(grep '^DB_PASSWORD=' .env | cut -d= -f2-)
 DB_HOST=helium DB_PORT=5432 DB_DATABASE=1inme_testing DB_USERNAME=postgres \
-DB_PASSWORD="$HELIUM_PW" DB_SSLMODE=disable DB_URL= DATABASE_URL= \
+DB_PASSWORD=password DB_SSLMODE=disable DB_URL= DATABASE_URL= \
 SHARDED_TEST_SKIP_MIGRATION=1 php artisan test --filter=YourTest
 ```
 - The isolated-env **process env** sets `DB_HOST=...rds.amazonaws.com DB_DATABASE=postgres DB_SSLMODE=require` (un-migrated RDS), which overrides phpunit's non-forced `<env>` — that's why a naive `php artisan test` hits RDS `postgres` and 500s on missing tables. Override DB_* explicitly on the command line.
+- The helium password is the literal `password` (same as `PGPASSWORD` / the `DATABASE_URL` cred in the process env). `.env` no longer contains a `DB_PASSWORD=` line, so the old `HELIUM_PW=$(grep '^DB_PASSWORD=' .env ...)` extraction yields EMPTY and phpunit fails with "fe_sendauth: no password supplied".
 - `helium` `1inme_testing` is a real, mostly-migrated dedicated test DB (sslmode=disable). SKIP_MIGRATION reuses its schema and rolls back each test in a transaction, so it never wipes anything. It's stale vs the full migration set, so a test needing a brand-new column may still need CI.
 
 **Public-page Feature test pitfall (workspace scope):** the catch-all `/{alias}` (and `/@handle`) routes have NO SetActiveWorkspace middleware, so a real visitor request carries no bound `current_workspace` and Link's `workspace` global scope is skipped. Test setup helpers that bind `current_workspace` (needed so created models get a workspace_id) leak that binding; the **last** user built wins, so a guest/visitor GET wrongly scopes `resolveByAlias` to that workspace and 404s the owner's link. Fix: `app()->forgetInstance('current_workspace')` (+ `workspace_owner`) right before the public GET. Also: creator-page renders need `$creator->handle` set or `branded-reactions.blade.php`'s `route('creator-profile.react', ['handle'=>...])` throws a UrlGenerationException.

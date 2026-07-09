@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\BrandKit;
 use App\Modules\User\Models\Link;
+use App\Services\AI\AiActionCooldown;
 use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
@@ -89,6 +90,27 @@ class AiBiolinkBuilderController extends Controller
 
         $data = $this->validatePayload($request);
 
+        // Double-charge guard: identical re-runs within the cooldown window
+        // are served from cache without charging; a concurrent identical
+        // request is rejected instead of starting a second paid build.
+        $cooldownKey = AiActionCooldown::key('biolink_builder', $request->user()->id, ['link' => $link->id] + $data);
+        if ($hit = AiActionCooldown::fresh($cooldownKey)) {
+            return response()->json([
+                'blocks'        => $hit['result']['blocks'],
+                'credits_spent' => 0,
+                'balance'       => $this->credits->getBalance($request->user()),
+                'redirect'      => route('user.links.blocks.editor', $link),
+                'cached'        => true,
+                'generated_at'  => $hit['generated_at'],
+            ]);
+        }
+        if (!AiActionCooldown::begin($cooldownKey)) {
+            return response()->json([
+                'message' => 'This build is already running — give it a moment.',
+                'code'    => 'in_progress',
+            ], 429);
+        }
+
         try {
             $result = $this->builder->generate(
                 $request->user(),
@@ -109,7 +131,11 @@ class AiBiolinkBuilderController extends Controller
             ], 402);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        } finally {
+            AiActionCooldown::end($cooldownKey);
         }
+
+        AiActionCooldown::remember($cooldownKey, ['blocks' => $result['blocks']]);
 
         return response()->json([
             'blocks'        => $result['blocks'],

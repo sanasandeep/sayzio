@@ -6,6 +6,7 @@ use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\LinkResource;
 use App\Modules\User\Models\BrandKit;
 use App\Modules\User\Models\Link;
+use App\Services\AI\AiActionCooldown;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
@@ -121,6 +122,24 @@ class AiBiolinkBuilderController extends Controller
 
         $data = $this->validatePayload($request);
 
+        // Double-charge guard (shared key with the web surface): identical
+        // re-runs inside the cooldown are served from cache without charging;
+        // a concurrent identical request 429s instead of double-charging.
+        $cooldownKey = AiActionCooldown::key('biolink_builder', $request->user()->id, ['link' => $link->id] + $data);
+        if ($hit = AiActionCooldown::fresh($cooldownKey)) {
+            return $this->ok([
+                'blocks'        => $hit['result']['blocks'],
+                'credits_spent' => 0,
+                'balance'       => $this->credits->getBalance($request->user()),
+                'link'          => LinkResource::toArray($link->fresh()),
+                'cached'        => true,
+                'generated_at'  => $hit['generated_at'],
+            ]);
+        }
+        if (!AiActionCooldown::begin($cooldownKey)) {
+            return $this->fail('This build is already running — give it a moment.', 429, 'in_progress');
+        }
+
         try {
             $result = $this->builder->generate(
                 $request->user(),
@@ -140,7 +159,11 @@ class AiBiolinkBuilderController extends Controller
             ]);
         } catch (\RuntimeException $e) {
             return $this->fail($e->getMessage(), 422, 'generation_failed');
+        } finally {
+            AiActionCooldown::end($cooldownKey);
         }
+
+        AiActionCooldown::remember($cooldownKey, ['blocks' => $result['blocks']]);
 
         return $this->ok([
             'blocks'        => $result['blocks'],

@@ -9,6 +9,7 @@ use App\Modules\User\Models\UserFile;
 use App\Modules\User\Support\QrCodeCatalog;
 use App\Modules\User\Support\QrCodeDesignSanitizer;
 use App\Modules\User\Support\QrCodeTypeRegistry;
+use App\Services\AI\AiActionCooldown;
 use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\InsufficientCoinsForAiException;
@@ -207,6 +208,30 @@ class QrCodeController extends Controller
             'strength'        => 'nullable|integer|min:0|max:100',
         ]);
 
+        // Double-charge guard: an identical regeneration inside the cooldown
+        // window re-serves the stored artwork without a new coin charge; a
+        // concurrent identical request 429s instead of double-charging.
+        $cooldownKey = AiActionCooldown::key('qr_art', $user->id, [
+            'data'            => $validated['data'],
+            'prompt'          => $validated['prompt'],
+            'negative_prompt' => $validated['negative_prompt'] ?? null,
+            'strength'        => $validated['strength'] ?? null,
+        ]);
+        if ($hit = AiActionCooldown::fresh($cooldownKey)) {
+            return response()->json($hit['result'] + [
+                'cost'         => 0,
+                'balance'      => app(\App\Services\AI\AiUsageCharger::class)->getBalance($user),
+                'cached'       => true,
+                'generated_at' => $hit['generated_at'],
+            ]);
+        }
+        if (!AiActionCooldown::begin($cooldownKey)) {
+            return response()->json([
+                'error' => 'This artwork is already generating — give it a moment.',
+                'code'  => 'in_progress',
+            ], 429);
+        }
+
         try {
             $result = $art->generate($user, $validated['data'], $validated['prompt'], [
                 'negative_prompt' => $validated['negative_prompt'] ?? null,
@@ -225,7 +250,14 @@ class QrCodeController extends Controller
             return response()->json(['error' => $e->getMessage(), 'code' => 'invalid'], 422);
         } catch (QrArtGenerationException $e) {
             return response()->json(['error' => $e->getMessage(), 'code' => 'failed'], 422);
+        } finally {
+            AiActionCooldown::end($cooldownKey);
         }
+
+        AiActionCooldown::remember($cooldownKey, [
+            'image_url' => $result['image_url'],
+            'file_id'   => $result['file_id'],
+        ]);
 
         return response()->json($result);
     }
