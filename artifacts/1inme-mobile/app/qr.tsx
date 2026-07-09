@@ -18,6 +18,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { CoinCostHint, insufficientCoins } from "@/components/CoinCostHint";
 import { EmptyState } from "@/components/EmptyState";
 import { TextField } from "@/components/TextField";
 import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
@@ -429,14 +430,12 @@ export default function QrScreen() {
                     </ScrollView>
                   ) : null}
 
-                  <View style={styles.balanceRow}>
-                    <Text style={[styles.meta, { color: colors.mutedForeground }]}>
-                      Balance: {artAvail.data.balance} coins
-                    </Text>
-                    <Text style={[styles.meta, { color: colors.foreground }]}>
-                      Cost: {artAvail.data.cost} coin{artAvail.data.cost === 1 ? "" : "s"}
-                    </Text>
-                  </View>
+                  <CoinCostHint
+                    cost={artAvail.data.cost}
+                    balance={artAvail.data.balance}
+                    actionLabel="this artwork"
+                    verb="generate"
+                  />
 
                   {art?.image_url ? (
                     <View style={{ gap: 8 }}>
@@ -463,7 +462,12 @@ export default function QrScreen() {
                     label={art ? "Regenerate artwork" : "Generate artwork"}
                     variant="outline"
                     loading={generateArt.isPending}
-                    disabled={!value.trim() || !artPrompt.trim() || generateArt.isPending}
+                    disabled={
+                      !value.trim() ||
+                      !artPrompt.trim() ||
+                      generateArt.isPending ||
+                      insufficientCoins(artAvail.data.cost, artAvail.data.balance)
+                    }
                     onPress={() => generateArt.mutate()}
                   />
                   {art ? (

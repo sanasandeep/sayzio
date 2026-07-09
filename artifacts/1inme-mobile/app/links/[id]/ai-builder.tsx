@@ -16,6 +16,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { CoinCostHint, insufficientCoins } from "@/components/CoinCostHint";
 import { DictationMic } from "@/components/DictationMic";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
@@ -215,6 +216,12 @@ export default function AiBuilderScreen() {
   }
 
   const busy = generateM.isPending;
+  // Prefer the input-specific estimate once the user asked for one;
+  // otherwise fall back to the intake's baseline worst-case cost.
+  const shortOnCoins = insufficientCoins(
+    estimate ?? intake.estimated_cost,
+    intake.balance,
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -325,6 +332,12 @@ export default function AiBuilderScreen() {
           </Text>
         ) : null}
 
+        <CoinCostHint
+          cost={estimate ?? intake.estimated_cost}
+          balance={intake.balance}
+          actionLabel="this build"
+        />
+
         <View style={{ gap: 8, marginTop: 4 }}>
           <Button
             label={estimateM.isPending ? "Estimating…" : "Estimate cost"}
@@ -336,7 +349,7 @@ export default function AiBuilderScreen() {
           <Button
             label={busy ? "Building your page…" : "Build my page with AI"}
             loading={busy}
-            disabled={descTooShort || uploading}
+            disabled={descTooShort || uploading || shortOnCoins}
             onPress={() => generateM.mutate()}
           />
           {descTooShort ? (

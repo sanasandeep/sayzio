@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiDisabledNotice } from "@/components/AiDisabledNotice";
 import { Button } from "@/components/Button";
+import { CoinCostHint, insufficientCoins } from "@/components/CoinCostHint";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { errorStatus } from "@/lib/api";
@@ -226,6 +227,14 @@ export default function NewMarketingStrategy() {
     .map(([k]) => k);
 
   const canSubmit = goal.trim().length > 0 && activeSources.length > 0;
+  // Shared pre-run affordability check (Task #4178): once the creator has
+  // an estimate, block Generate when the wallet can't cover it instead of
+  // letting the run fail with an insufficient-credits error.
+  const balance =
+    typeof indexQuery.data?.balance === "number"
+      ? indexQuery.data.balance
+      : null;
+  const shortOnCoins = insufficientCoins(estimate, balance);
 
   const buildInput = () => ({
     goal: goal.trim(),
@@ -740,6 +749,13 @@ export default function NewMarketingStrategy() {
           </View>
         ) : null}
 
+        <CoinCostHint
+          cost={estimate}
+          balance={balance}
+          actionLabel="this strategy"
+          verb="generate"
+        />
+
         <View style={{ gap: 10 }}>
           <Button
             label={estimating ? "Estimating…" : "Estimate cost"}
@@ -751,7 +767,7 @@ export default function NewMarketingStrategy() {
           <Button
             label="Generate strategy"
             onPress={onGenerate}
-            disabled={!canSubmit || submitting}
+            disabled={!canSubmit || submitting || shortOnCoins}
             loading={submitting}
           />
         </View>

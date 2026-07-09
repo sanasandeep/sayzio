@@ -10,6 +10,9 @@ import type { Link } from "@/lib/api/links";
 // On-Brand AI `use_brand_kit` opt-in all live server-side.
 
 export type AiBuilderIntake = {
+  // Baseline worst-case build cost for the pre-run affordability hint;
+  // the /estimate endpoint remains the input-specific quote.
+  estimated_cost?: number;
   ai_enabled: boolean;
   balance: number;
   allowed_types: string[];

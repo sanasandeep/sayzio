@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiDisabledNotice } from "@/components/AiDisabledNotice";
+import { CoinCostHint, insufficientCoins } from "@/components/CoinCostHint";
 import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
@@ -50,6 +51,11 @@ export default function AskCoachScreen() {
   // plan (403), we render the same friendly explainer the web shows
   // instead of bouncing the user back with an alert.
   const [disabled, setDisabled] = useState<"engine" | "plan" | null>(null);
+  // Shared pre-run affordability hint (Task #4178): worst-case coins per
+  // turn + wallet balance from the threads loader; Send is disabled when
+  // the wallet can't cover a turn instead of failing after the tap.
+  const [coinCost, setCoinCost] = useState(0);
+  const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   // Tell the floating Voice Assistant that voice turns started from
@@ -78,6 +84,10 @@ export default function AskCoachScreen() {
         return;
       }
       setDisabled(null);
+      setCoinCost(typeof list.coin_cost === "number" ? list.coin_cost : 0);
+      setCoinBalance(
+        typeof list.coin_balance === "number" ? list.coin_balance : null,
+      );
       let id = list.threads[0]?.id ?? null;
       if (!id) {
         const created = await askCoach.create();
@@ -108,9 +118,11 @@ export default function AskCoachScreen() {
     ensureThread();
   }, [ensureThread]);
 
+  const shortOnCoins = insufficientCoins(coinCost, coinBalance);
+
   const send = useCallback(async () => {
     const text = draft.trim();
-    if (!text || !threadId || sending) return;
+    if (!text || !threadId || sending || shortOnCoins) return;
     setSending(true);
     setDraft("");
 
@@ -136,10 +148,11 @@ export default function AskCoachScreen() {
           );
           requestAnimationFrame(() => scrollRef.current?.scrollToEnd());
         },
-        onDone: ({ message }) => {
+        onDone: ({ message, balance }) => {
           setHistory((h) =>
             h.map((m) => (m.id === assistantTempId ? message : m)),
           );
+          if (typeof balance === "number") setCoinBalance(balance);
         },
         onError: (err) => {
           // Drop the placeholder and surface the failure.
@@ -154,7 +167,7 @@ export default function AskCoachScreen() {
       setSending(false);
       requestAnimationFrame(() => scrollRef.current?.scrollToEnd());
     }
-  }, [draft, sending, threadId]);
+  }, [draft, sending, threadId, shortOnCoins]);
 
   const sendFeedback = useCallback(
     async (msg: CoachMessage, kind: "up" | "down" | "clear") => {
@@ -207,6 +220,14 @@ export default function AskCoachScreen() {
             )}
           </ScrollView>
 
+          <View style={{ paddingHorizontal: 12, paddingTop: 6 }}>
+            <CoinCostHint
+              cost={coinCost}
+              balance={coinBalance}
+              actionLabel="a Coach reply"
+              verb="send"
+            />
+          </View>
           <View
             style={[
               styles.inputRow,
@@ -254,11 +275,17 @@ export default function AskCoachScreen() {
             </Pressable>
             <Pressable
               onPress={send}
-              disabled={sending || !draft.trim()}
+              disabled={sending || !draft.trim() || shortOnCoins}
+              accessibilityState={{
+                disabled: sending || !draft.trim() || shortOnCoins,
+              }}
               style={[
                 styles.sendBtn,
                 {
-                  backgroundColor: sending || !draft.trim() ? colors.mutedForeground : "#3d6bff",
+                  backgroundColor:
+                    sending || !draft.trim() || shortOnCoins
+                      ? colors.mutedForeground
+                      : "#3d6bff",
                 },
               ]}
             >

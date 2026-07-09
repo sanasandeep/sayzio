@@ -18,6 +18,7 @@ import {
   ClickHeatmap,
   type ClickHeatmapHandle,
 } from "@/components/ClickHeatmap";
+import { CoinCostHint, insufficientCoins } from "@/components/CoinCostHint";
 import { StatTile } from "@/components/StatTile";
 import { useColors } from "@/hooks/useColors";
 import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
@@ -377,8 +378,7 @@ function AudienceInsightsSection({
   const hasEstimate = rows.length > 0;
   // Pre-run affordability check: only meaningful when both the cost hint
   // and the wallet balance came back from the analytics payload.
-  const insufficientCoins =
-    estimateCoins > 0 && coinBalance !== null && coinBalance < estimateCoins;
+  const shortOnCoins = insufficientCoins(estimateCoins, coinBalance);
 
   return (
     <Section
@@ -491,10 +491,10 @@ function AudienceInsightsSection({
         <View style={{ gap: 8 }}>
           <Pressable
             onPress={() => estimate.mutate(false)}
-            disabled={estimate.isPending || insufficientCoins}
+            disabled={estimate.isPending || shortOnCoins}
             accessibilityRole="button"
             accessibilityState={{
-              disabled: estimate.isPending || insufficientCoins,
+              disabled: estimate.isPending || shortOnCoins,
             }}
             accessibilityLabel={
               hasEstimate ? "Re-estimate with AI" : "Get AI Estimate"
@@ -514,7 +514,7 @@ function AudienceInsightsSection({
                 borderWidth: 1,
                 borderColor: "rgba(99,102,241,0.3)",
                 opacity:
-                  pressed || estimate.isPending || insufficientCoins ? 0.5 : 1,
+                  pressed || estimate.isPending || shortOnCoins ? 0.5 : 1,
               },
             ]}
           >
@@ -538,24 +538,11 @@ function AudienceInsightsSection({
             </Text>
           </Pressable>
 
-          {estimateCoins > 0 ? (
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-              Uses up to {estimateCoins} coin{estimateCoins === 1 ? "" : "s"}{" "}
-              per run
-              {coinBalance !== null
-                ? ` · Balance: ${coinBalance} coin${coinBalance === 1 ? "" : "s"}`
-                : ""}
-            </Text>
-          ) : null}
-          {insufficientCoins ? (
-            <Text
-              style={{ color: "#fbbf24", fontSize: 12 }}
-              testID="text-insufficient-coins"
-            >
-              You don't have enough coins for this estimate. Top up coins in
-              your wallet to run it.
-            </Text>
-          ) : null}
+          <CoinCostHint
+            cost={estimateCoins}
+            balance={coinBalance}
+            actionLabel="this estimate"
+          />
           {upgradeMsg ? (
             <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
               {upgradeMsg}

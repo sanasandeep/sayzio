@@ -61,9 +61,31 @@ class AiBiolinkBuilderController extends Controller
         $onBrandAllowed = AiPlanAccess::featureAllowed($user, 'brand_consistency');
         $kit = $onBrandAllowed ? BrandKit::defaultFor($user->id) : null;
 
+        // Baseline worst-case build cost (empty prompt, no attachments) so
+        // the mobile screen can render the shared "Uses up to N coins ·
+        // Balance: X" affordability hint before the creator even types —
+        // the input-specific /estimate endpoint stays the accurate quote.
+        // (estimateCredits rejects an empty description, so quote a short
+        // representative prompt; token math is local — no model call.)
+        $baselineCost = 0;
+        if ($aiEnabled) {
+            try {
+                $baselineCost = (int) $this->builder->estimateCredits(
+                    $user,
+                    'A simple page with a short bio and a few of my links.',
+                    [],
+                    [],
+                    [],
+                );
+            } catch (\Throwable $e) {
+                $baselineCost = 0;
+            }
+        }
+
         return $this->ok([
             'ai_enabled'      => $aiEnabled,
             'balance'         => $aiEnabled ? $this->credits->getBalance($user) : 0,
+            'estimated_cost'  => $baselineCost,
             'allowed_types'   => $this->builder->allowedTypesFor($user),
             'max_links'       => 25,
             'max_images'      => 25,

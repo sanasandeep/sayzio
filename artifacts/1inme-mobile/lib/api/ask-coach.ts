@@ -56,9 +56,14 @@ export type CoachMessage = {
 
 export const askCoach = {
   threads: () =>
-    apiFetch<{ threads: CoachThread[]; ai_enabled?: boolean }>(
-      "/ai/ask-coach/threads",
-    ),
+    apiFetch<{
+      threads: CoachThread[];
+      ai_enabled?: boolean;
+      // Worst-case coins one turn may spend + wallet balance, for the
+      // shared pre-run affordability hint (Task #4178).
+      coin_cost?: number;
+      coin_balance?: number;
+    }>("/ai/ask-coach/threads"),
   create: () =>
     apiFetch<{ thread: CoachThread }>("/ai/ask-coach/threads", {
       method: "POST",

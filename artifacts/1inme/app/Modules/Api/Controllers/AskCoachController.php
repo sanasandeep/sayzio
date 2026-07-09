@@ -48,7 +48,25 @@ class AskCoachController extends Controller
             ->orderByDesc('id')
             ->limit(50)
             ->get(['id', 'title', 'last_message_at']);
-        return response()->json(['threads' => $items, 'ai_enabled' => true]);
+
+        // Worst-case per-turn coin cost + wallet balance so the mobile screen
+        // can show the shared "Uses up to N coins · Balance: X" hint and
+        // disable Send BEFORE a turn the wallet can't cover (same pattern as
+        // the analytics payload's audience_estimate_coins + coin_balance).
+        $coinCost = 0;
+        try {
+            $coinCost = (int) (app(\App\Services\AI\AiCostEstimator::class)
+                ->estimate($request->user(), 'ask_coach', '')['coins'] ?? 0);
+        } catch (\Throwable $e) {
+            $coinCost = 0;
+        }
+
+        return response()->json([
+            'threads'      => $items,
+            'ai_enabled'   => true,
+            'coin_cost'    => $coinCost,
+            'coin_balance' => $this->credits->getBalance($request->user()),
+        ]);
     }
 
     public function createThread(Request $request): JsonResponse
