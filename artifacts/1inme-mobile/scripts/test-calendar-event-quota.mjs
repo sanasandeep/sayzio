@@ -29,6 +29,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { runExtractedStatements } from "./lib/extract.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -115,14 +116,17 @@ assert.match(
 );
 
 // Rebuild the shipped gate: inject `calQ`, `plan`, `isEdit` and run the exact
-// two source statements so we exercise the real expression, not a copy.
-// eslint-disable-next-line no-new-func
-const computeCreateLocked = new Function(
-  "calQ",
-  "plan",
-  "isEdit",
-  `${eventsUsedLine}\n${createLockedExpr}\n return createLocked;`,
-);
+// two source statements so we exercise the real expression, not a copy —
+// via the shared resilient helper (scripts/lib/extract.mjs) so a NEW free
+// variable warns actionably instead of hard-crashing with a ReferenceError.
+const computeCreateLocked = (calQ, plan, isEdit) =>
+  runExtractedStatements(
+    `${eventsUsedLine}\n${createLockedExpr}`,
+    "createLocked",
+    { calQ, plan, isEdit },
+    "createLocked",
+    { test: "test-calendar-event-quota" },
+  );
 
 // Helper: build the `calQ` shape the screen sees for a calendar with `n` events.
 const calQFor = (n) => ({ data: { calendar: { events_count: n } } });

@@ -37,6 +37,7 @@ import { readFileSync } from "node:fs";
 import http from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { runExtractedCall as runExtractedCallShared } from "./lib/extract.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -97,58 +98,13 @@ function extractCallArgs(src, name, file, from = 0) {
 }
 
 // ---------------------------------------------------------------------------
-// Resilient evaluation of an extracted call expression.
-//
-// The screen's call expressions reference free variables from component scope
-// (url, evTitle, ...). Historically the test hard-listed them as Function
-// parameters, so any NEW variable added to the screen (e.g. evLocation once)
-// threw a raw ReferenceError and broke the whole mobile-unit chain — looking
-// like a test bug instead of a product change.
-//
-// runExtractedCall evaluates the expression inside `with (proxy)`: known
-// variables come from the provided scope, real globals (JSON, Date, ...) fall
-// through to globalThis, and any UNKNOWN identifier defaults to null while
-// being recorded. Unknowns produce a loud, actionable warning naming the new
-// variable(s); if evaluation still throws, the error message says exactly
-// which new screen variables to add to the test instead of a bare
-// ReferenceError.
+// Resilient evaluation of extracted call expressions: the shared helper in
+// scripts/lib/extract.mjs (originally written here) defaults unknown screen
+// variables to null and prints an actionable "new variable X — extend the
+// test" message instead of a raw ReferenceError.
 // ---------------------------------------------------------------------------
-function runExtractedCall(expr, scope, label) {
-  const unknowns = new Set();
-  const proxy = new Proxy(Object.create(null), {
-    has: () => true, // shadow everything so `get` decides resolution
-    get: (_t, key) => {
-      if (key === Symbol.unscopables) return undefined;
-      if (typeof key !== "string") return undefined;
-      if (Object.prototype.hasOwnProperty.call(scope, key)) return scope[key];
-      if (key in globalThis) return globalThis[key];
-      unknowns.add(key);
-      return null;
-    },
-  });
-  const advise = () =>
-    `new variable(s) [${[...unknowns].join(", ")}] appeared in the screen's ` +
-    `${label} call — extend the scope passed to the test (scripts/test-import-url.mjs) ` +
-    `to pin their payload contract`;
-  let result;
-  try {
-    // eslint-disable-next-line no-new-func
-    result = new Function(
-      "__scope__",
-      `with (__scope__) { return (${expr}); }`,
-    )(proxy);
-  } catch (e) {
-    const hint = unknowns.size ? ` — likely cause: ${advise()}` : "";
-    throw new Error(
-      `[test-import-url] evaluating the screen's ${label} call failed: ${e.message}${hint}`,
-      { cause: e },
-    );
-  }
-  if (unknowns.size) {
-    console.warn(`[test-import-url] WARNING: ${advise()} (defaulted to null)`);
-  }
-  return result;
-}
+const runExtractedCall = (expr, scope, label) =>
+  runExtractedCallShared(expr, scope, label, { test: "test-import-url" });
 
 // ===========================================================================
 // 1. Deep-link param parsing: the REAL normalizeUrl / hostOf.

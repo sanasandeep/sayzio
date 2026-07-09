@@ -28,6 +28,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { runExtractedCall } from "./lib/extract.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(
@@ -62,16 +63,21 @@ function loadFocusCallback() {
     // `(res.data ?? []) as SubscriptionState[]` → drop the cast
     .replace(/ as SubscriptionState\[\]/g, "");
 
-  // eslint-disable-next-line no-new-func
-  const make = new Function(
-    "didMount",
-    "latestData",
-    "refetch",
-    "showToast",
-    `return (${body});`,
-  );
+  // Evaluated via the shared resilient helper (scripts/lib/extract.mjs) so a
+  // NEW free variable in the focus callback warns actionably instead of
+  // hard-crashing the mobile-unit chain with a raw ReferenceError.
   return (deps) =>
-    make(deps.didMount, deps.latestData, deps.refetch, deps.showToast);
+    runExtractedCall(
+      `(${body})`,
+      {
+        didMount: deps.didMount,
+        latestData: deps.latestData,
+        refetch: deps.refetch,
+        showToast: deps.showToast,
+      },
+      "useFocusEffect",
+      { test: "test-tier-switch-toast" },
+    );
 }
 
 const makeCallback = loadFocusCallback();

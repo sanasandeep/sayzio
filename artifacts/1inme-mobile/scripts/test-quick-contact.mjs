@@ -26,6 +26,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { runExtractedCall } from "./lib/extract.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -113,13 +114,16 @@ function extractCanSubmit(src) {
 
 const canSubmitExpr = extractCanSubmit(screenSrc);
 
-// eslint-disable-next-line no-new-func
-const canSubmit = new Function(
-  "channel",
-  "email",
-  "phone",
-  `return ${canSubmitExpr};`,
-);
+// Evaluated via the shared resilient helper so a NEW free variable in the
+// screen's canSubmit expression warns actionably instead of hard-crashing
+// the mobile-unit chain with a raw ReferenceError.
+const canSubmit = (channel, email, phone) =>
+  runExtractedCall(
+    canSubmitExpr,
+    { channel, email, phone },
+    "canSubmit",
+    { test: "test-quick-contact" },
+  );
 
 // callback: needs a phone, ignores email.
 assert.equal(

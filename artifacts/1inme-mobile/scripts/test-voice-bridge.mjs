@@ -37,6 +37,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { runExtractedStatements } from "./lib/extract.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -161,45 +162,33 @@ function loadVoiceBridge({ turn, runTurnImpl } = {}) {
   const js =
     `${extractBusBlock()}\n\n` +
     `${extractMapNavTarget()}\n\n` +
-    `${extractSendClip()}\n` +
-    `return { sendClip, mapNavTarget, onVoiceAction, setVoiceSurface, getSurface: () => activeVoiceSurface };`;
+    `${extractSendClip()}`;
 
-  // eslint-disable-next-line no-new-func
-  const make = new Function(
-    "useCallback",
-    "runTurn",
-    "history",
-    "setPhase",
-    "setError",
-    "setTranscript",
-    "setReply",
-    "setPending",
-    "pendingRef",
-    "setLastCredits",
-    "setBalance",
-    "setHistory",
-    "setNfcReq",
-    "router",
-    "playBase64",
+  // Evaluated via the shared resilient helper (scripts/lib/extract.mjs) so a
+  // NEW free variable in the lifted bridge (e.g. another state setter) warns
+  // actionably instead of hard-crashing with a raw ReferenceError.
+  const bridge = runExtractedStatements(
     js,
-  );
-
-  const bridge = make(
-    (fn) => fn,
-    runTurn,
-    [],
-    (v) => (state.phase = v),
-    (v) => (state.error = v),
-    (v) => (state.transcript = v),
-    (v) => (state.reply = v),
-    (v) => (state.pending = v),
-    pendingRef,
-    (v) => (state.credits = v),
-    (v) => (state.balance = v),
-    (v) => (state.history = v),
-    (v) => (state.nfcReq = v),
-    { push: (t) => pushed.push(t) },
-    async (b64) => playedAudio.push(b64),
+    "{ sendClip, mapNavTarget, onVoiceAction, setVoiceSurface, getSurface: () => activeVoiceSurface }",
+    {
+      useCallback: (fn) => fn,
+      runTurn,
+      history: [],
+      setPhase: (v) => (state.phase = v),
+      setError: (v) => (state.error = v),
+      setTranscript: (v) => (state.transcript = v),
+      setReply: (v) => (state.reply = v),
+      setPending: (v) => (state.pending = v),
+      pendingRef,
+      setLastCredits: (v) => (state.credits = v),
+      setBalance: (v) => (state.balance = v),
+      setHistory: (v) => (state.history = v),
+      setNfcReq: (v) => (state.nfcReq = v),
+      router: { push: (t) => pushed.push(t) },
+      playBase64: async (b64) => playedAudio.push(b64),
+    },
+    "voice bridge",
+    { test: "test-voice-bridge" },
   );
 
   return { bridge, state, pushed, playedAudio, runTurnArgs, pendingRef };

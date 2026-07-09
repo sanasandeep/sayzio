@@ -39,6 +39,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { runExtractedCall, runExtractedStatements } from "./lib/extract.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -103,25 +104,14 @@ function loadSetupFns(env) {
     .replace(/: StageKey/g, "")
     .replace(/ as ApiError/g, "");
 
-  const names = [
-    "completeOnboarding",
-    "refresh",
-    "goStage",
-    "whatsappNeeded",
-    "privacyNeeded",
-    "generateWizardPage",
-    "persona",
-    "busy",
-    "setBusy",
-    "setError",
-    "setCreatedLinkId",
-  ];
   // The extracted functions also close over React state setters (setBusy,
   // setError, setCreatedLinkId, ...) whose effects don't matter to what we're
   // asserting. Default any unspecified setter to a no-op so a caller only has
-  // to inject the dependencies it actually cares about — and so a newly-added
-  // setter in setup.tsx can't turn into a stray ReferenceError that silently
-  // diverts the flow (e.g. into applyDesign's catch, skipping completeOnboarding).
+  // to inject the dependencies it actually cares about — and evaluate via the
+  // shared resilient helper (scripts/lib/extract.mjs) so a newly-added setter
+  // in setup.tsx warns actionably (defaulted to null) instead of turning into
+  // a stray ReferenceError that silently diverts the flow (e.g. into
+  // applyDesign's catch, skipping completeOnboarding).
   const defaults = {
     refresh: () => {},
     goStage: () => {},
@@ -132,13 +122,18 @@ function loadSetupFns(env) {
     // core finish path gets the simple "advance to Done" behaviour.
     whatsappNeeded: false,
     privacyNeeded: false,
+    completeOnboarding: undefined,
+    generateWizardPage: undefined,
+    persona: undefined,
+    busy: undefined,
   };
-  const merged = { ...defaults, ...env };
-  // eslint-disable-next-line no-new-func
-  return new Function(
-    ...names,
-    `${js}\n return { finishCoreSetup, applyDesign, skipTemplate };`,
-  )(...names.map((n) => merged[n]));
+  return runExtractedStatements(
+    js,
+    "{ finishCoreSetup, applyDesign, skipTemplate }",
+    { ...defaults, ...env },
+    "setup functions",
+    { test: "test-onboarding-setup" },
+  );
 }
 
 // ===========================================================================
@@ -154,12 +149,13 @@ function loadStages() {
   );
   if (!m) throw new Error("could not find the stages useMemo in setup.tsx");
   const factory = m[1].replace(/ as StageKey\[\]/g, "");
-  // eslint-disable-next-line no-new-func
-  return new Function(
-    "whatsappNeeded",
-    "privacyNeeded",
-    `return (${factory})();`,
-  );
+  return (whatsappNeeded, privacyNeeded) =>
+    runExtractedCall(
+      `(${factory})()`,
+      { whatsappNeeded, privacyNeeded },
+      "stages useMemo",
+      { test: "test-onboarding-setup" },
+    );
 }
 
 {

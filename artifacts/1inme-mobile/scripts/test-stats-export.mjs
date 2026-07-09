@@ -30,6 +30,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { runExtractedCall } from "./lib/extract.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(__dirname, "..", "app", "stats.tsx"), "utf8");
@@ -62,8 +63,12 @@ assert.ok(
 );
 ok("canExport reads capabilities.analytics_export (stats → profile) with a `?? true` fallback");
 
-// eslint-disable-next-line no-new-func
-const computeCanExport = new Function("q", "profileQ", `return ${gateExpr};`);
+// Evaluated via the shared resilient helper (scripts/lib/extract.mjs) so a
+// NEW free variable in the gate warns actionably instead of hard-crashing.
+const computeCanExport = (q, profileQ) =>
+  runExtractedCall(gateExpr, { q, profileQ }, "canExport", {
+    test: "test-stats-export",
+  });
 
 // ---------------------------------------------------------------------------
 // 2. Drive the gate through the states the screen must handle. The first

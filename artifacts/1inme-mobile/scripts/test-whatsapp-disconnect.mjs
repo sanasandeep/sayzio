@@ -34,6 +34,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { runExtractedCall, runExtractedStatements } from "./lib/extract.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -111,11 +112,8 @@ function loadInvalidateDependents(qc) {
     /const invalidateDependents = \(\) => \{[\s\S]*?\n  \};/m,
   );
   assert.ok(m, "could not find invalidateDependents in whatsapp-verify.tsx");
-  // eslint-disable-next-line no-new-func
-  return new Function(
-    "qc",
-    `${m[0]}\n return invalidateDependents;`,
-  )(qc);
+  return runExtractedStatements(m[0], "invalidateDependents", { qc },
+    "invalidateDependents", { test: "test-whatsapp-disconnect" });
 }
 
 {
@@ -214,11 +212,10 @@ console.log("[test-whatsapp-disconnect] remove handler steers to add flow");
     Alert: { alert: () => events.push(["Alert.alert"]) },
   };
 
-  // eslint-disable-next-line no-new-func
-  const onPress = new Function(
-    ...Object.keys(env),
-    `return (async () => {${body}});`,
-  )(...Object.values(env));
+  // Shared resilient helper: a NEW free variable in the onPress body warns
+  // actionably instead of hard-crashing with a raw ReferenceError.
+  const onPress = runExtractedCall(`(async () => {${body}})`, env,
+    "Remove onPress", { test: "test-whatsapp-disconnect" });
 
   await onPress();
 
@@ -263,8 +260,9 @@ function loadSteerEffect() {
         nextSteered = b;
       },
     };
-    // eslint-disable-next-line no-new-func
-    new Function(...Object.keys(env), body)(...Object.values(env));
+    runExtractedStatements(body, "undefined", env, "steering effect", {
+      test: "test-whatsapp-disconnect",
+    });
     return { step, steered: nextSteered };
   };
 }
@@ -322,17 +320,18 @@ function extractExpr(re, label) {
     "manage row condition",
   );
 
-  // eslint-disable-next-line no-new-func
-  const gate = new Function(
-    "waq",
-    "waMutation",
-    `return {
-       value: !!(${valueExpr}),
-       disabled: !!(${disabledExpr}),
-       showVerify: !!(${verifyExpr}),
-       showManage: !!(${manageExpr}),
-     };`,
-  );
+  const gate = (waq, waMutation) =>
+    runExtractedCall(
+      `{
+         value: !!(${valueExpr}),
+         disabled: !!(${disabledExpr}),
+         showVerify: !!(${verifyExpr}),
+         showManage: !!(${manageExpr}),
+       }`,
+      { waq, waMutation },
+      "notification-preferences gating",
+      { test: "test-whatsapp-disconnect" },
+    );
 
   // Connected: alerts ON, switch enabled, manage row shown, no verify CTA.
   const connected = gate(

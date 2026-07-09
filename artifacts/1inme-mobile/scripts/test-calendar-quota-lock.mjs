@@ -30,6 +30,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { runExtractedStatements } from "./lib/extract.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -146,13 +147,17 @@ assert.match(
   "quotaLocked must gate on isQuotaReached('max_calendars', ownedCount)",
 );
 
-// eslint-disable-next-line no-new-func
-const computeEdit = new Function(
-  "isEdit",
-  "calendarsQ",
-  "plan",
-  `${ownedCountStmt}\n${quotaLockedStmt}\n return { ownedCount, quotaLocked };`,
-);
+// Evaluated via the shared resilient helper (scripts/lib/extract.mjs) so a
+// NEW free variable in the derivation warns actionably instead of
+// hard-crashing the mobile-unit chain with a raw ReferenceError.
+const computeEdit = (isEdit, calendarsQ, plan) =>
+  runExtractedStatements(
+    `${ownedCountStmt}\n${quotaLockedStmt}`,
+    "{ ownedCount, quotaLocked }",
+    { isEdit, calendarsQ, plan },
+    "ownedCount/quotaLocked",
+    { test: "test-calendar-quota-lock" },
+  );
 
 // A finite cap of 2, plan data resolved.
 const planFull = { isQuotaReached: makeIsQuotaReached(true, { max_calendars: 2 }) };
