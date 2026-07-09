@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../lib/api";
+import { setSettings } from "../lib/storage";
 
 export interface NotifItem {
   id: number;
@@ -68,6 +69,11 @@ export function NotificationsView({ onUnreadChange, showToast }: Props) {
       setItems(resp.items ?? []);
       const unread = (resp.items ?? []).filter((n: NotifItem) => !n.read_at).length;
       onUnreadChange(unread);
+      // Reconcile the freshly fetched count with storage so the cached
+      // badge value can't lag behind reality (e.g. after the MV3 service
+      // worker slept through background polls). Also stamp the poll time
+      // so the background stale-guard sees this as a successful poll.
+      setSettings({ notifUnreadCount: unread, notifLastPolledAt: Date.now() }).catch(() => undefined);
     } catch (e: any) {
       if (!mountedRef.current) return;
       showToast({ kind: "error", text: e instanceof ApiError ? e.message : "Could not load notifications" });

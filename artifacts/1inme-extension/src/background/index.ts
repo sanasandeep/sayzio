@@ -377,16 +377,34 @@ function notifLabel(item: { type: string; data: Record<string, unknown>; message
   return item.type.replace(/_/g, " ");
 }
 
+// Gap beyond which the stored count is considered stale: the MV3 service
+// worker slept through at least one alarm tick, so the cached badge value
+// may lag reality. 2× the poll period gives one full missed cycle of slack.
+const NOTIF_STALE_MS = NOTIF_PERIOD_MIN * 60_000 * 2;
+
 async function syncNotifications() {
   const settings = await getSettings();
   if (!settings.token) return;
+  const prevCount = settings.notifUnreadCount ?? 0;
+  const lastPolled = settings.notifLastPolledAt ?? 0;
+  const nowAtStart = Date.now();
+
+  // Stale-if-sleep guard: if the SW slept past the alarm cadence, clear the
+  // badge up front rather than letting a potentially stale count linger
+  // (e.g. if the fetch below fails). The successful fetch repaints it fresh.
+  const stale = lastPolled > 0 && nowAtStart - lastPolled > NOTIF_STALE_MS;
+  if (stale) {
+    try {
+      await (browser.action as any).setBadgeText?.({ text: "" });
+    } catch { /* badge updates are best-effort */ }
+    await setSettings({ notifUnreadCount: 0 });
+  }
+
   try {
     const resp = await api.getNotifications({ perPage: 20 });
     const items = resp.items ?? [];
     const unread = items.filter((n) => !n.read_at);
     const newCount = unread.length;
-    const prevCount = settings.notifUnreadCount ?? 0;
-    const lastPolled = settings.notifLastPolledAt ?? 0;
     const now = Date.now();
 
     // Persist updated count + poll timestamp.
@@ -403,7 +421,11 @@ async function syncNotifications() {
     } catch { /* badge updates are best-effort */ }
 
     // Fire native notifications only for genuinely new high-signal items.
-    if (newCount > prevCount && lastPolled > 0) {
+    // When the SW slept (stale), the stored prevCount can lag reality and
+    // would wrongly suppress alerts; treat it as 0 so anything unread that
+    // arrived after the last poll still fires.
+    const effectivePrev = stale ? 0 : prevCount;
+    if (newCount > effectivePrev && lastPolled > 0) {
       const newItems = unread.filter((n) => {
         if (!HIGH_SIGNAL_TYPES.has(n.type)) return false;
         // Only items newer than the previous poll.

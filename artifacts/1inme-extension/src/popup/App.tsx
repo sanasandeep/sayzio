@@ -461,9 +461,9 @@ export function App() {
           tabTitle={tabTitle}
           workspaceId={settings.workspaceId ?? null}
           onCancel={() => setView("main")}
-          onAdded={() => {
+          onDone={(msg) => {
             setView("main");
-            showToast({ kind: "success", text: "Added to your bio-link!" });
+            showToast({ kind: "success", text: msg });
           }}
           showToast={showToast}
         />
@@ -472,13 +472,15 @@ export function App() {
         <QuickQrView
           tabUrl={tabUrl}
           tabTitle={tabTitle}
+          workspaceId={settings.workspaceId ?? null}
+          webBaseUrl={settings.webBaseUrl}
           onCancel={() => setView("main")}
-          onCreated={(shortUrl) => {
+          onCreated={(qr) => {
             setView("main");
             showToast({
               kind: "success",
               text: "QR code created!",
-              link: shortUrl ? { href: shortUrl, label: "Open" } : undefined,
+              link: qr.short_url ? { href: qr.short_url, label: "Open" } : undefined,
             });
           }}
           showToast={showToast}
