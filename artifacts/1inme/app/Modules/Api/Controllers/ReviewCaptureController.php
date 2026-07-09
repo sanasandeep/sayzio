@@ -32,7 +32,13 @@ class ReviewCaptureController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        $isPreview = ! ReviewProviderRegistry::exists($data['provider']);
+        // Honest preview signal: the capture is only "connected" when the
+        // provider is registered AND its platform API keys are actually
+        // configured (adapter-level check). Otherwise the queued sync would
+        // downgrade the row to preview shortly after, so reflect that
+        // immediately instead of briefly showing a misleading "connected".
+        $isPreview = ! ReviewProviderRegistry::exists($data['provider'])
+            || ! ReviewProviderRegistry::adapter($data['provider'])->credentialsConfigured();
 
         $connection = ReviewProvider::updateOrCreate(
             [

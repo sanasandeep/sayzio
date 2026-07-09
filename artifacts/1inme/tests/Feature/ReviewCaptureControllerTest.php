@@ -13,10 +13,11 @@ use Tests\TestCase;
  *   POST /api/v1/me/reviews/capture-source
  *
  * The controller registers (or re-activates) a review_providers row and
- * queues a sync via the adapter registry. With no platform API keys
- * configured (the test environment), the registry reports the provider
- * as absent so the connection lands in preview mode — identical to the
- * scheduled reviews:sync behaviour.
+ * queues a sync via the adapter registry. Both providers exist in the
+ * registry, but with no platform API keys configured (the test
+ * environment) the adapter's credentialsConfigured() check reports
+ * false, so the connection lands in preview mode immediately —
+ * identical to the scheduled reviews:sync behaviour.
  *
  * We use a real Bearer token (not Sanctum::actingAs) because the API
  * path runs the TouchSessionToken middleware.
@@ -52,15 +53,12 @@ class ReviewCaptureControllerTest extends TestCase
         $this->assertSame('ChIJN1t_tDeuEmsRUsoyG83frY4', $connection->external_ref);
         $this->assertSame('Test Business', $connection->settings['name'] ?? null);
 
-        // Both providers are registered in the registry, so the immediate
-        // response reports a connected (non-preview) capture; the queued
-        // adapter sync then downgrades to preview mode when platform keys
-        // are absent (as in the test environment).
-        $this->assertFalse($res->json('data.preview'));
-        $this->assertContains($connection->status, [
-            ReviewProvider::STATUS_CONNECTED,
-            ReviewProvider::STATUS_PREVIEW,
-        ]);
+        // No platform API keys are configured in the test environment, so
+        // the immediate response must honestly report a preview capture
+        // (rather than a "connected" state the queued sync would downgrade).
+        $this->assertTrue($res->json('data.preview'));
+        $this->assertSame(ReviewProvider::STATUS_PREVIEW, $res->json('data.status'));
+        $this->assertSame(ReviewProvider::STATUS_PREVIEW, $connection->status);
     }
 
     public function test_valid_trustpilot_capture_returns_200(): void
