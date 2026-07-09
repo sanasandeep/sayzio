@@ -8,6 +8,7 @@ import {
   Animated,
   Easing,
   FlatList,
+  Image,
   ImageBackground,
   Platform,
   ScrollView,
@@ -147,6 +148,33 @@ function resolveImages(slide: OnboardingSlide): SlideImage[] {
   return [bundled];
 }
 
+// The bundled asset that should sit UNDER a slide's remote images so
+// the background is never dark/blank while a photo is still
+// downloading (slow networks, prefetch cache eviction). Returns null
+// when the slide already renders a bundled asset (nothing to layer).
+function resolveUnderlay(slide: OnboardingSlide): SlideImage | null {
+  const hasRemote =
+    (slide.image_urls && slide.image_urls.length > 0) || !!slide.image_url;
+  if (!hasRemote) return null;
+  return FALLBACK_IMAGES[slide.slug] ?? FALLBACK_IMAGES.creators;
+}
+
+// Warm the image cache for every remote slide photo so the swap from
+// bundled → admin slides never shows a blank background. Best-effort:
+// failures (offline, bad URL) are ignored — the bundled underlay still
+// covers those slides.
+async function prefetchSlideImages(items: OnboardingSlide[]): Promise<void> {
+  const urls = items.flatMap((s) =>
+    s.image_urls && s.image_urls.length > 0
+      ? s.image_urls
+      : s.image_url
+        ? [s.image_url]
+        : [],
+  );
+  if (urls.length === 0) return;
+  await Promise.allSettled(urls.map((u) => Image.prefetch(u)));
+}
+
 /**
  * Auto-rotating image gallery for one onboarding slide. True
  * crossfade: the current image stays visible while the next one
@@ -158,10 +186,12 @@ function resolveImages(slide: OnboardingSlide): SlideImage[] {
  */
 function SlideGallery({
   images,
+  underlay,
   active,
   onIndexChange,
 }: {
   images: SlideImage[];
+  underlay?: SlideImage | null;
   active: boolean;
   onIndexChange?: (i: number) => void;
 }) {
@@ -206,6 +236,15 @@ function SlideGallery({
 
   return (
     <View style={StyleSheet.absoluteFill}>
+      {/* Bundled asset pinned beneath remote photos so the background
+          never flashes dark/blank while a download is in flight. */}
+      {underlay ? (
+        <ImageBackground
+          source={underlay}
+          resizeMode="cover"
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
       <ImageBackground
         source={images[current]}
         resizeMode="cover"
@@ -231,6 +270,7 @@ function SlideGallery({
  */
 function SlideContent({
   images,
+  underlay,
   active,
   category,
   title,
@@ -241,6 +281,7 @@ function SlideContent({
   height,
 }: {
   images: SlideImage[];
+  underlay?: SlideImage | null;
   active: boolean;
   category: string;
   title: string;
@@ -259,6 +300,7 @@ function SlideContent({
     <View style={[styles.slide, { width, height }]}>
       <SlideGallery
         images={images}
+        underlay={underlay}
         active={active}
         onIndexChange={handleIndexChange}
       />
@@ -455,6 +497,10 @@ export default function Onboarding() {
         if (cancelled) return;
         const items = (res.items ?? []).filter((s) => !!s);
         if (items.length === 0) return;
+        // Warm the image cache before swapping so the new slides never
+        // show a blank background while their photos download.
+        await prefetchSlideImages(items);
+        if (cancelled) return;
         if (indexRef.current === 0) {
           setSlides(items);
         } else {
@@ -621,6 +667,7 @@ export default function Onboarding() {
           ) : (
             <SlideContent
               images={resolveImages(item)}
+              underlay={resolveUnderlay(item)}
               active={i === index}
               category={item.category}
               title={item.title}
