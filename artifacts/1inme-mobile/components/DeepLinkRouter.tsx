@@ -28,7 +28,7 @@ const APP_RESERVED = new Set<string>([
   "workspace-team", "buzz", "docs", "newsletter",
   "pricing", "plans", "blog", "help", "support",
   "sitemap", "robots.txt", "manifest.json", "favicon.ico",
-  "biolink", "oauth-callback", "info", "dialer", "links", "call",
+  "biolink", "oauth-callback", "info", "dialer", "links", "call", "import-url",
 ]);
 
 type Parsed = { host: string | null; alias: string | null };

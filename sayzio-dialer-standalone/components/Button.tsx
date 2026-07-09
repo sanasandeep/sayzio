@@ -12,7 +12,10 @@ import {
 
 import { useColors } from "@/hooks/useColors";
 
-type Variant = "primary" | "secondary" | "ghost" | "outline";
+// "cta" is the highlight variant (electric blue → cyan gradient) reserved for
+// the handful of high-intent actions (sign-in, plan upgrade, claim handle).
+// Everyday primary buttons keep the standard brand gradient.
+type Variant = "primary" | "cta" | "secondary" | "ghost" | "outline";
 
 export function Button({
   label,
@@ -53,7 +56,7 @@ export function Button({
   };
 
   const labelColor =
-    variant === "primary"
+    variant === "primary" || variant === "cta"
       ? colors.primaryForeground
       : variant === "secondary"
         ? colors.secondaryForeground
@@ -79,7 +82,7 @@ export function Button({
     </View>
   );
 
-  if (variant === "primary") {
+  if (variant === "primary" || variant === "cta") {
     return (
       <Pressable
         onPress={handlePress}
@@ -92,7 +95,7 @@ export function Button({
         testID={testID}
       >
         <LinearGradient
-          colors={[colors.primary, colors.accent]}
+          colors={variant === "cta" ? colors.ctaGradient : [colors.primary, colors.accent]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[StyleSheet.absoluteFill, { borderRadius: colors.radius }]}

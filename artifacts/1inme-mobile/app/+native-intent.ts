@@ -12,6 +12,7 @@ const RESERVED = new Set([
   "call",
   "auth",
   "cancel-change",
+  "import-url",
   "security",
   "tabs",
   "_sitemap",
