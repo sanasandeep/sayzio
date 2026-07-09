@@ -418,8 +418,12 @@ export default function Onboarding() {
   const { user, token } = useAuth();
   const listRef = useRef<FlatList<OnboardingSlide>>(null);
   const [index, setIndex] = useState(0);
+  // Render the bundled slides immediately so the intro is never blank
+  // while the admin-managed set loads over the network.
+  const [slides, setSlides] = useState<OnboardingSlide[]>(FALLBACK_SLIDES);
   // Mirror of `index` for effects/handlers that must read the latest value
-  // without re-subscribing (rotation re-snap, resync guard below).
+  // without re-subscribing (slides-fetch position check, rotation re-snap,
+  // resync guard below).
   const indexRef = useRef(0);
   useEffect(() => {
     indexRef.current = index;
@@ -428,16 +432,21 @@ export default function Onboarding() {
   // (rotation / keyboard resize) and ignore intermediate scroll events, which
   // would otherwise compute a bogus index from a stale offset/width pair.
   const resyncing = useRef(false);
-  const [slides, setSlides] = useState<OnboardingSlide[] | null>(null);
+  // Admin slides that arrived after the user already swiped past slide 0;
+  // swapping mid-carousel would yank them back, so we hold them here.
+  const deferredSlidesRef = useRef<OnboardingSlide[] | null>(null);
   // Real dashboard presets for the AI demo slide. Only fetched when a
   // session exists (the /dashboard/layout endpoint is auth-only); null
   // means "not loaded yet", [] means "loaded but none / unavailable".
   const [presets, setPresets] = useState<DashboardPreset[] | null>(null);
   const [presetsLoading, setPresetsLoading] = useState(false);
 
-  // Fetch slides from the admin-managed endpoint. If the request
-  // fails for any reason we fall back to the bundled set so the
-  // splash always renders something.
+  // Fetch slides from the admin-managed endpoint in the background while
+  // the bundled set is already on screen. If the request fails we simply
+  // keep showing the bundled slides. If it succeeds while the user is
+  // still on slide 0 we swap seamlessly; if they've already swiped ahead
+  // we defer the swap (applied if they ever swipe back to slide 0) so the
+  // carousel never resets under them.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -445,15 +454,29 @@ export default function Onboarding() {
         const res = await onboardingApi.slides();
         if (cancelled) return;
         const items = (res.items ?? []).filter((s) => !!s);
-        setSlides(items.length > 0 ? items : FALLBACK_SLIDES);
+        if (items.length === 0) return;
+        if (indexRef.current === 0) {
+          setSlides(items);
+        } else {
+          deferredSlidesRef.current = items;
+        }
       } catch {
-        if (!cancelled) setSlides(FALLBACK_SLIDES);
+        // Keep the bundled slides already on screen.
       }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // Apply any deferred admin slides once the user is back on slide 0,
+  // where a content swap isn't disorienting.
+  useEffect(() => {
+    if (index === 0 && deferredSlidesRef.current) {
+      setSlides(deferredSlidesRef.current);
+      deferredSlidesRef.current = null;
+    }
+  }, [index]);
 
   // Best-effort: pull the real dashboard presets so the AI demo slide can
   // show the same live "describe → arrange → tiles" loop as the customize
@@ -497,8 +520,8 @@ export default function Onboarding() {
   };
 
   // The intro photos plus the appended AI-dashboard designer slide.
-  const pages = slides ? [...slides, AI_DASHBOARD_SLIDE] : null;
-  const pageCount = pages?.length ?? 0;
+  const pages = [...slides, AI_DASHBOARD_SLIDE];
+  const pageCount = pages.length;
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     // Ignore events fired while we're re-snapping after a rotation /
@@ -545,7 +568,7 @@ export default function Onboarding() {
   }, [width]);
 
   const next = async () => {
-    const total = pages?.length ?? 0;
+    const total = pageCount;
     if (index < total - 1) {
       listRef.current?.scrollToIndex({ index: index + 1, animated: true });
       return;
@@ -561,22 +584,6 @@ export default function Onboarding() {
   // the chrome clear of the platform's surrounding browser bars.
   const webTop = Platform.OS === "web" ? 67 : 0;
   const webBottom = Platform.OS === "web" ? 34 : 0;
-
-  // Loading state — keeps the gradient background visible so there's
-  // no white flash before slides arrive.
-  if (pages === null) {
-    return (
-      <View style={[styles.root, { backgroundColor: "#0a0a0f" }]}>
-        <LinearGradient
-          colors={["#1a0d2e", "#0a0a0f"]}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={styles.loader}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      </View>
-    );
-  }
 
   const total = pages.length;
 
