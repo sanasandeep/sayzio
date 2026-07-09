@@ -22,6 +22,8 @@ import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
 import { SoonBadge } from "@/components/SoonBadge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDrawer } from "@/contexts/DrawerContext";
+import { useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
 import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { useFeatureStates } from "@/hooks/useFeatureStates";
@@ -199,6 +201,9 @@ export default function Profile() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { openDrawer } = useDrawer();
+  const { reportScroll } = useTabBar();
+  const tabBarBottomInset = useTabBarBottomInset();
   const {
     user,
     signOut,
@@ -422,12 +427,17 @@ export default function Profile() {
       <ScrollView
         contentContainerStyle={{
           paddingTop: insets.top + 16 + webTop,
-          paddingBottom: 32,
+          paddingBottom: tabBarBottomInset,
           paddingHorizontal: 24,
           gap: 24,
         }}
+        scrollEventThrottle={16}
+        onScroll={(e) => reportScroll(e.nativeEvent.contentOffset.y)}
       >
         <View style={styles.headerRow}>
+          <Pressable onPress={openDrawer} hitSlop={8} accessibilityLabel="Open menu">
+            <Feather name="menu" size={22} color={colors.foreground} />
+          </Pressable>
           <BrandWordmark size={26} />
         </View>
 

@@ -20,6 +20,8 @@ import { LinkRow } from "@/components/LinkRow";
 import { StatTile } from "@/components/StatTile";
 import { VerifyEmailReminder } from "@/components/VerifyEmailReminder";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDrawer } from "@/contexts/DrawerContext";
+import { useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
 import { useColors } from "@/hooks/useColors";
 import { getDashboard } from "@/lib/api/dashboard";
 
@@ -28,6 +30,9 @@ export default function Home() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { openDrawer } = useDrawer();
+  const { reportScroll } = useTabBar();
+  const tabBarBottomInset = useTabBarBottomInset();
   const webTop = Platform.OS === "web" ? 67 : 0;
 
   const q = useQuery({ queryKey: ["dashboard"], queryFn: getDashboard });
@@ -44,10 +49,12 @@ export default function Home() {
       <ScrollView
         contentContainerStyle={{
           paddingTop: insets.top + 16 + webTop,
-          paddingBottom: 32,
+          paddingBottom: tabBarBottomInset,
           paddingHorizontal: 20,
           gap: 20,
         }}
+        scrollEventThrottle={16}
+        onScroll={(e) => reportScroll(e.nativeEvent.contentOffset.y)}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -57,6 +64,10 @@ export default function Home() {
         }
       >
         <View style={styles.headerRow}>
+          {/* Hamburger menu opens the drawer sidebar */}
+          <Pressable onPress={openDrawer} hitSlop={8} accessibilityLabel="Open menu">
+            <Feather name="menu" size={22} color={colors.foreground} />
+          </Pressable>
           <BrandWordmark size={26} />
           <Pressable
             onPress={() => router.push("/notifications")}

@@ -20,6 +20,8 @@ import { DictationMic } from "@/components/DictationMic";
 import { EmptyState } from "@/components/EmptyState";
 import { LinkRow } from "@/components/LinkRow";
 import { onVoiceAction, setVoiceSurface } from "@/components/VoiceAssistant";
+import { useDrawer } from "@/contexts/DrawerContext";
+import { useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
 import { useColors } from "@/hooks/useColors";
 import type { VoiceClientAction } from "@/lib/api/voice";
 import { exportLinksCsv, listLinks } from "@/lib/api/links";
@@ -34,6 +36,9 @@ export default function LinksTab() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { openDrawer } = useDrawer();
+  const { reportScroll } = useTabBar();
+  const tabBarBottomInset = useTabBarBottomInset();
   const [type, setType] = useState<string>("");
   const [q, setQ] = useState<string>("");
   const webTop = Platform.OS === "web" ? 67 : 0;
@@ -94,9 +99,14 @@ export default function LinksTab() {
         }}
       >
         <View style={styles.headerRow}>
-          <Text style={[styles.title, { color: colors.foreground }]}>
-            Links
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Pressable onPress={openDrawer} hitSlop={8} accessibilityLabel="Open menu">
+              <Feather name="menu" size={22} color={colors.foreground} />
+            </Pressable>
+            <Text style={[styles.title, { color: colors.foreground }]}>
+              Links
+            </Text>
+          </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Pressable
               onPress={onExport}
@@ -228,9 +238,11 @@ export default function LinksTab() {
           keyExtractor={(l) => String(l.id)}
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: 32,
+            paddingBottom: tabBarBottomInset,
             gap: 10,
           }}
+          onScroll={(e) => reportScroll(e.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={16}
           ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
           renderItem={({ item }) => <LinkRow link={item} />}
           ListEmptyComponent={

@@ -225,7 +225,7 @@
       "standalone": "app/(tabs)/_layout.tsx",
       "source": "app/(tabs)/_layout.tsx",
       "relation": "adapted",
-      "sourceSha256": "620a5adace405e22ff6d5bd125fce0f34c4ef96db498b72f6c38bf5d7561f397",
+      "sourceSha256": "ed41d4088e57a05b3c813e0e1ed7fb73f3574039840865d223677c1949b348e7",
       "note": "different tab set: Dialer / Contacts / Caller ID / Events (+ header search button + nearby-event badge) instead of the main-app tabs"
     },
     {

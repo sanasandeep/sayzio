@@ -15,6 +15,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/EmptyState";
+import { useDrawer } from "@/contexts/DrawerContext";
+import { useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
 import { useColors } from "@/hooks/useColors";
 import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import { listConversations } from "@/lib/api/inbox";
@@ -33,6 +35,9 @@ export default function InboxTab() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { openDrawer } = useDrawer();
+  const tabBarBottomInset = useTabBarBottomInset();
+  const { reportScroll } = useTabBar();
   const webTop = Platform.OS === "web" ? 67 : 0;
   const [tab, setTab] = useState<"open" | "archived">("open");
   const [assigneeTab, setAssigneeTab] = useState<"all" | "me">("all");
@@ -59,7 +64,12 @@ export default function InboxTab() {
           justifyContent: "space-between",
         }}
       >
-        <Text style={[styles.title, { color: colors.foreground }]}>Inbox</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Pressable onPress={openDrawer} hitSlop={8} accessibilityLabel="Open menu">
+            <Feather name="menu" size={22} color={colors.foreground} />
+          </Pressable>
+          <Text style={[styles.title, { color: colors.foreground }]}>Inbox</Text>
+        </View>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Pressable
             onPress={() => router.push("/inbox/spam-settings")}
@@ -185,9 +195,11 @@ export default function InboxTab() {
         <FlatList
           data={q.data?.items ?? []}
           keyExtractor={(c) => String(c.id)}
+          onScroll={(e) => reportScroll(e.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={16}
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: 32,
+            paddingBottom: tabBarBottomInset,
             paddingTop: 12,
             gap: 8,
           }}

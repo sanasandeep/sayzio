@@ -18,6 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinkTypeArt } from "@/components/LinkTypeArt";
 import { UpgradeLockBadge } from "@/components/UpgradeLockBadge";
 import { onVoiceAction, setVoiceSurface } from "@/components/VoiceAssistant";
+import { useDrawer } from "@/contexts/DrawerContext";
+import { useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
 import { useColors } from "@/hooks/useColors";
 import { usePlanFeatures } from "@/hooks/usePlanFeatures";
 import type { VoiceClientAction } from "@/lib/api/voice";
@@ -34,6 +36,9 @@ export default function CreateTab() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { openDrawer } = useDrawer();
+  const { reportScroll } = useTabBar();
+  const tabBarBottomInset = useTabBarBottomInset();
   const plan = usePlanFeatures();
   const webTop = Platform.OS === "web" ? 67 : 0;
 
@@ -128,11 +133,18 @@ export default function CreateTab() {
       style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={{
         paddingTop: insets.top + 16 + webTop,
-        paddingBottom: 32,
+        paddingBottom: tabBarBottomInset,
         paddingHorizontal: 20,
         gap: 24,
       }}
+      scrollEventThrottle={16}
+      onScroll={(e) => reportScroll(e.nativeEvent.contentOffset.y)}
     >
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Pressable onPress={openDrawer} hitSlop={8} accessibilityLabel="Open menu">
+          <Feather name="menu" size={22} color={colors.foreground} />
+        </Pressable>
+      </View>
       <View>
         <Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>
           Pick a kind
