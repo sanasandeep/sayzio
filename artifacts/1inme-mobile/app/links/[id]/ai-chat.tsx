@@ -17,6 +17,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { CoinCostHint } from "@/components/CoinCostHint";
 import { DictationMic } from "@/components/DictationMic";
 import { TextField } from "@/components/TextField";
 import { setVoiceSurface } from "@/components/VoiceAssistant";
@@ -257,6 +258,16 @@ export default function AiChatEditorScreen() {
           </View>
           <Feather name="external-link" size={18} color={colors.primary} />
         </Pressable>
+
+        {/* Every visitor turn is charged to YOUR wallet — surface the shared
+            coin-cost + balance hint so an empty wallet is never a surprise. */}
+        <CoinCostHint
+          cost={q.data.coin_cost}
+          balance={q.data.coin_balance ?? null}
+          actionLabel="visitor chats"
+          verb="visitor turn"
+          testID="ai-chat-coins"
+        />
 
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>

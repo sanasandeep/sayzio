@@ -287,10 +287,9 @@ class BiolinkPageTypesTest extends TestCase
 
     private function ensureCompanion(Link $link, User $user): AiCompanion
     {
-        $controller = app(AiChatController::class);
-        $m = new ReflectionMethod($controller, 'ensureCompanion');
-        $m->setAccessible(true);
-        return $m->invoke($controller, $link, $user);
+        // Companion resolution moved from the controller into the shared
+        // AiChatPageManager (web + mobile use the same code path).
+        return app(\App\Services\AI\AiChatPageManager::class)->ensureCompanion($link);
     }
 
     private function bindCompanion(Link $link, User $user, bool $disabled = false): AiCompanion

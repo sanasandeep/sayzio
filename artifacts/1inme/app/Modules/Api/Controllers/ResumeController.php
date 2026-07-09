@@ -48,7 +48,33 @@ class ResumeController extends Controller
                 'color_themes' => ResumeColorThemeRegistry::all(),
             ],
             'pairings' => SitePagesContent::linkTypePairingsFor('resume'),
+            // Worst-case coin costs for the resume AI actions + the caller's
+            // wallet balance, following the shared coin_cost + coin_balance
+            // affordability pattern (AskCoachController::threads) so clients
+            // can show the "Uses up to N coins · Balance: X" hint and disable
+            // triggers the wallet can't cover.
+            'ai' => [
+                'coin_costs'   => $this->aiCoinCosts($user),
+                'coin_balance' => app(\App\Services\AI\AiUsageCharger::class)->getBalance($user),
+            ],
         ]);
+    }
+
+    /**
+     * @return array{tailor:int, cover_letter:int, import:int}
+     */
+    protected function aiCoinCosts($user): array
+    {
+        $costs = ['tailor' => 0, 'cover_letter' => 0, 'import' => 0];
+        try {
+            $estimator = app(\App\Services\AI\AiCostEstimator::class);
+            $costs['tailor']       = (int) ($estimator->estimate($user, 'resume_tailor', '')['coins'] ?? 0);
+            $costs['cover_letter'] = (int) ($estimator->estimate($user, 'resume_cover_letter', '')['coins'] ?? 0);
+            $costs['import']       = (int) ($estimator->estimate($user, 'resume_import', '')['coins'] ?? 0);
+        } catch (\Throwable $e) {
+            return ['tailor' => 0, 'cover_letter' => 0, 'import' => 0];
+        }
+        return $costs;
     }
 
     // ── Version management ─────────────────────────────────────────

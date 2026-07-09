@@ -48,6 +48,10 @@ export type AiChatPage = {
 export type AiChatEditor = {
   ai_chat: AiChatPage;
   personas: AiChatPersona[];
+  /** Worst-case coins one visitor turn may debit from the owner's wallet. */
+  coin_cost?: number;
+  /** Owner's wallet balance (shared coin_cost + coin_balance pattern). */
+  coin_balance?: number;
 };
 
 export async function getAiChat(id: number): Promise<AiChatEditor> {

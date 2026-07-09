@@ -29,6 +29,13 @@ class AiCostEstimator
         'ask_coach'           => ['ask_coach', 600, 1400],
         'resume_import'       => ['resume_import', 1200, 400],
         'resume_cover_letter' => ['resume_cover_letter', 1400, 700],
+        // Tailor-to-job: the run() prompt carries the whole resume plus the
+        // pasted JD; for a loader-time "up to" hint we fold both into a
+        // generous fixed overhead with the rewrite's output ceiling.
+        'resume_tailor'       => ['resume_tailor', 1600, 2500],
+        // One AI companion / ai_chat page turn: mirrors companionPerDay()'s
+        // no-usage fallback (grounded system prompt + a default-length reply).
+        'companion'           => ['companion', 700, 600],
         // Audience type estimation: aggregate-signal prompt (~600 tokens of
         // JSON counts + system prompt) with a 400-token JSON output ceiling —
         // mirrors AudienceTypeEstimationService's chat() call.
@@ -78,6 +85,11 @@ class AiCostEstimator
 
             case 'voice':
                 return ['coins' => $this->voiceTurnCoins($user), 'mode' => 'fixed'];
+
+            case 'voice_dictation':
+                // STT-only flow (DictationMic / voiceDictation): ~1 minute of
+                // speech through Whisper, no LLM/TTS stages.
+                return ['coins' => $this->dictationCoins($user), 'mode' => 'fixed'];
 
             case 'minds':
                 return ['coins' => $this->mindsPerThousandWords($user), 'mode' => 'fixed'];
@@ -158,6 +170,16 @@ class AiCostEstimator
         $tts = (int) ceil(600 / 1000 * AiEngineSettings::voiceTtsCoinsPer1kChars() * $elevenLabsMlt);
 
         return max(1, $stt + $reason + $tts);
+    }
+
+    private function dictationCoins(User $user): int
+    {
+        if (!AiEngineSettings::isEnabled()) {
+            return 0;
+        }
+        $openaiMult = AiPlanAccess::coinMultiplier($user, 'openai');
+
+        return max(1, (int) ceil(1.0 * AiEngineSettings::voiceSttCoinsPerMinute() * $openaiMult));
     }
 
     private function mindsPerThousandWords(User $user): int

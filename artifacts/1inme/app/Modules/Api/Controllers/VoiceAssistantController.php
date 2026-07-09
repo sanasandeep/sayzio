@@ -211,9 +211,28 @@ class VoiceAssistantController extends Controller
             $grouped[$spec['category']][] = ['name' => $name] + $spec;
         }
 
+        // Worst-case coin costs so the mobile mic triggers can show the shared
+        // "Uses up to N coins · Balance: X" hint and disable BEFORE a turn the
+        // wallet can't cover (same pattern as AskCoachController::threads()).
+        $turnCoins      = 0;
+        $dictationCoins = 0;
+        try {
+            $estimator      = app(\App\Services\AI\AiCostEstimator::class);
+            $turnCoins      = (int) ($estimator->estimate($user, 'voice', '')['coins'] ?? 0);
+            $dictationCoins = (int) ($estimator->estimate($user, 'voice_dictation', '')['coins'] ?? 0);
+        } catch (\Throwable $e) {
+            $turnCoins      = 0;
+            $dictationCoins = 0;
+        }
+
         return response()->json([
             'enabled'     => AiEngineSettings::voiceAllowedFor($user),
             'balance'     => $this->credits->getBalance($user),
+            // coin_cost/coin_balance mirror the shared affordability contract;
+            // `balance` above predates it and is kept for older clients.
+            'coin_cost'            => $turnCoins,
+            'dictation_coin_cost'  => $dictationCoins,
+            'coin_balance'         => $this->credits->getBalance($user),
             'rate_limit'  => AiEngineSettings::voiceTurnsPerMinute(),
             'pricing'     => [
                 'stt_coins_per_minute'   => AiEngineSettings::voiceSttCoinsPerMinute(),

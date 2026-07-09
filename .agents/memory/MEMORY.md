@@ -98,4 +98,5 @@
 - [Facade::partialMock null $app crash](facade-partialmock-null-app.md) — partialMock on Cache/manager facades builds an instance w/ null $app ("bound() on null"); proxy-partial the real root + swap instead.
 - [JS-set plain cookies nulled by EncryptCookies](js-set-cookie-encryptcookies-null.md) — document.cookie values need the prefix-aware EncryptCookies subclass or $request->cookie() is always null; postJson tests need withCredentials.
 - [Mobile source-driven test extraction helper](mobile-test-extract-helper.md) — lifted screen expressions run via scripts/lib/extract.mjs (with-proxy); new free vars warn+null, never raw ReferenceError.
+- [Voice capabilities lives in TWO controllers](voice-capabilities-dual-controllers.md) — web + API capabilities payloads must change in lockstep; the feature test hits web while mobile reads API.
 - [Blade @json in double-quoted attrs](blade-json-in-double-quoted-attr.md) — @json emits literal quotes that truncate x-data/@click attributes, silently killing Alpine; use @js. Sweep: grep '="[a-zA-Z]*(@json'.

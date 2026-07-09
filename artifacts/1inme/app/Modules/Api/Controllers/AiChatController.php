@@ -89,7 +89,26 @@ class AiChatController extends Controller
                 'ai_enabled' => AiEngineSettings::isEnabled(),
             ],
             'personas' => $personas,
+            // Worst-case coins one visitor turn may debit from THIS owner's
+            // wallet + their balance, following the shared coin_cost +
+            // coin_balance affordability pattern (AskCoachController::threads).
+            'coin_cost'    => $this->companionTurnCoins($request->user()),
+            'coin_balance' => app(\App\Services\AI\AiUsageCharger::class)->getBalance($request->user()),
         ]);
+    }
+
+    /**
+     * Worst-case coins one companion turn may cost the page owner. Never
+     * fails the loader — a broken estimate just hides the hint (0).
+     */
+    protected function companionTurnCoins($user): int
+    {
+        try {
+            return (int) (app(\App\Services\AI\AiCostEstimator::class)
+                ->estimate($user, 'companion', str_repeat('x', 400))['coins'] ?? 0);
+        } catch (\Throwable $e) {
+            return 0;
+        }
     }
 
     /**

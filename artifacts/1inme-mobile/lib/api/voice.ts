@@ -72,6 +72,12 @@ export type VoiceCapabilityTool = {
 export type VoiceCapabilities = {
   enabled: boolean;
   balance: number;
+  /** Worst-case coins one full voice turn (STT + LLM + TTS) may spend. */
+  coin_cost?: number;
+  /** Worst-case coins one STT-only dictation clip (~1 min) may spend. */
+  dictation_coin_cost?: number;
+  /** Wallet balance following the shared coin_cost + coin_balance pattern. */
+  coin_balance?: number;
   rate_limit: number;
   pricing: {
     stt_coins_per_minute: number;

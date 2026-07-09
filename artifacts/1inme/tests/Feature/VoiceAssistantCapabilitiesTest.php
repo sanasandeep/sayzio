@@ -34,6 +34,10 @@ class VoiceAssistantCapabilitiesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Engine ON so the coin_cost estimates are non-zero (they read the
+        // voice pricing knobs through AiCostEstimator, which returns 0 when
+        // the engine is globally disabled).
+        AiEngineSettings::setEnabled(true);
         AiEngineSettings::setVoiceEnabled(true);
         // Empty allow-list = every plan is allowed by default.
         AiEngineSettings::setVoiceEnabledPlans([]);
@@ -54,8 +58,8 @@ class VoiceAssistantCapabilitiesTest extends TestCase
     {
         // Pin pricing + rate limit so this test is independent of any
         // future change to the AppSetting defaults.
-        AiEngineSettings::setVoiceSttCreditsPerMinute(30);
-        AiEngineSettings::setVoiceTtsCreditsPer1kChars(50);
+        AiEngineSettings::setVoiceSttCoinsPerMinute(30);
+        AiEngineSettings::setVoiceTtsCoinsPer1kChars(50);
         AiEngineSettings::setVoiceTurnsPerMinute(12);
 
         $user = $this->makeUser('shape');
@@ -67,8 +71,20 @@ class VoiceAssistantCapabilitiesTest extends TestCase
         $resp->assertJsonPath('enabled', true);
         $resp->assertJsonPath('balance', 250);
         $resp->assertJsonPath('rate_limit', 12);
-        $resp->assertJsonPath('pricing.stt_credits_per_minute', 30);
-        $resp->assertJsonPath('pricing.tts_credits_per_1k_chars', 50);
+        $resp->assertJsonPath('pricing.stt_coins_per_minute', 30);
+        $resp->assertJsonPath('pricing.tts_coins_per_1k_chars', 50);
+
+        // Shared affordability contract for the mobile mic triggers:
+        // worst-case per-turn / per-dictation-clip coins + wallet balance.
+        $resp->assertJsonPath('coin_balance', 250);
+        $this->assertGreaterThan(0, $resp->json('coin_cost'));
+        $this->assertGreaterThan(0, $resp->json('dictation_coin_cost'));
+        // A dictation clip (STT only) can never cost more than a full
+        // STT + LLM + TTS voice turn.
+        $this->assertLessThanOrEqual(
+            $resp->json('coin_cost'),
+            $resp->json('dictation_coin_cost'),
+        );
 
         // The grouped tool catalogue must be an object (categories are
         // keys) and contain at least one category for the panel to

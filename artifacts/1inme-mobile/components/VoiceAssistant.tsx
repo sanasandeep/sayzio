@@ -33,6 +33,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiDisabledNotice } from "@/components/AiDisabledNotice";
 import { Button } from "@/components/Button";
+import { CoinCostHint, insufficientCoins } from "@/components/CoinCostHint";
 import { NfcWriteSheet } from "@/components/NfcWriteSheet";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -746,6 +747,8 @@ export function VoiceAssistant() {
                   pending={pending}
                   lastCredits={lastCredits}
                   balance={balance}
+                  coinCost={capabilities?.coin_cost ?? null}
+                  coinBalance={balance ?? capabilities?.coin_balance ?? null}
                   levels={levels}
                   currentLevel={currentLevel}
                   onMicTap={onMicTap}
@@ -793,6 +796,10 @@ function SessionView(props: {
   pending: VoicePendingConfirmation[];
   lastCredits: VoiceTurnResponse["credits"] | null;
   balance: number | null;
+  /** Worst-case coins one full voice turn may spend (server estimate). */
+  coinCost: number | null;
+  /** Freshest known wallet balance (post-turn balance, else loader's). */
+  coinBalance: number | null;
   levels: number[];
   currentLevel: number;
   onMicTap: () => void;
@@ -811,6 +818,8 @@ function SessionView(props: {
     pending,
     lastCredits,
     balance,
+    coinCost,
+    coinBalance,
     levels,
     currentLevel,
     onMicTap,
@@ -820,10 +829,17 @@ function SessionView(props: {
     onDecline,
   } = props;
 
+  // Block STARTING a new turn when the wallet can't cover the worst case;
+  // never block stopping/sending a turn that is already in flight.
+  const short = insufficientCoins(coinCost, coinBalance);
+  const micDisabled = short && phase === "idle";
+
   const micColor =
     phase === "listening"
       ? "#dc2626"
       : phase === "processing"
+      ? colors.mutedForeground
+      : micDisabled
       ? colors.mutedForeground
       : colors.primary;
 
@@ -832,6 +848,8 @@ function SessionView(props: {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Talk"
+        accessibilityState={{ disabled: micDisabled }}
+        disabled={micDisabled}
         onPress={onMicTap}
         onLongPress={onMicLongPressIn}
         onPressOut={() => {
@@ -870,6 +888,16 @@ function SessionView(props: {
       <Text style={[styles.phase, { color: colors.mutedForeground }]}>
         {phaseLabel}
       </Text>
+
+      <View style={{ alignItems: "center" }}>
+        <CoinCostHint
+          cost={coinCost}
+          balance={coinBalance}
+          actionLabel="a voice turn"
+          verb="voice turn"
+          testID="voice-assistant-coins"
+        />
+      </View>
 
       {phase === "listening" ? (
         <Text
