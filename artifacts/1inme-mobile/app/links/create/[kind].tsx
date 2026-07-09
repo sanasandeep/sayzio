@@ -467,6 +467,7 @@ export default function CreateLinkScreen() {
               ? "Create & open editor"
               : "Create link"
           }
+          variant="cta"
           onPress={onSubmit}
           loading={busy}
         />

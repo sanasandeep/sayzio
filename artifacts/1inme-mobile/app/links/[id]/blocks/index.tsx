@@ -402,6 +402,7 @@ export default function BlocksScreen() {
               <View style={{ gap: 8 }}>
                 <Button
                   label="Build with AI"
+                  variant="cta"
                   onPress={() => router.push(`/links/${id}/ai-builder` as any)}
                 />
                 <Button
@@ -546,7 +547,11 @@ export default function BlocksScreen() {
                 </View>
               );
             })}
-            <Button label="Add a block" onPress={() => setPicker(true)} />
+            <Button
+              label="Add a block"
+              variant="cta"
+              onPress={() => setPicker(true)}
+            />
             <Button
               label="Build with AI"
               variant="ghost"

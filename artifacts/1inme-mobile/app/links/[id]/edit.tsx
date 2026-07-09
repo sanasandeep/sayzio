@@ -888,6 +888,7 @@ export default function EditLinkScreen() {
 
         <Button
           label="Save changes"
+          variant="cta"
           onPress={() => save.mutate()}
           loading={save.isPending}
         />
