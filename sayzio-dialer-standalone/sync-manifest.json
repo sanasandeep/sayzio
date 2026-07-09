@@ -204,7 +204,7 @@
       "standalone": "app/index.tsx",
       "source": "app/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "eda4409631b8b799b5389333caefecb979a95b9988d6d22bf91407b952257706",
+      "sourceSha256": "5f29a85bd2caddf22f63d809b4d41b94949dc14223dc57a1e73329b827f4d96d",
       "note": "launch gate simplified: no onboarding/biometric-lock routing; signed-in users go straight to the Dialer tab"
     },
     {

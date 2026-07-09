@@ -10,6 +10,12 @@ import { useColors } from "@/hooks/useColors";
 import { getOnboardingStatus } from "@/lib/api/profile";
 import { getOnboardingComplete } from "@/lib/secure";
 
+// Module-scope session flag: survives GateScreen re-mounts (e.g. the OS
+// destroying and restoring the React tree when the app returns from the
+// background) but resets on a true cold launch, since a fresh process
+// re-evaluates this module. Ensures the splash plays once per process.
+let splashShownThisSession = false;
+
 export default function GateScreen() {
   const colors = useColors();
   const { ready, user, locked, biometricEnabled, token } = useAuth();
@@ -17,8 +23,10 @@ export default function GateScreen() {
   // Server-side first-run setup gate (separate from the local intro-slides
   // flag above): null = not yet checked, true = needs the stepped /setup flow.
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
-  // Animated Zio splash shown once on every cold launch.
-  const [showSplash, setShowSplash] = useState(true);
+  // Animated Zio splash shown once on every cold launch. Warm resumes that
+  // re-mount this screen (background/foreground cycles) skip it via the
+  // module-scope session flag.
+  const [showSplash, setShowSplash] = useState(() => !splashShownThisSession);
 
   useEffect(() => {
     getOnboardingComplete().then(setOnboarded);
@@ -62,7 +70,10 @@ export default function GateScreen() {
   if (showSplash) {
     return (
       <ZioSplash
-        onDone={() => setShowSplash(false)}
+        onDone={() => {
+          splashShownThisSession = true;
+          setShowSplash(false);
+        }}
         appReady={appReady}
         minDuration={2400}
         maxDuration={3200}
