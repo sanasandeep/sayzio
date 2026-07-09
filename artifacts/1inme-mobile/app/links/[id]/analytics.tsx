@@ -233,6 +233,7 @@ export default function LinkAnalyticsScreen() {
           selfIdentified={data.by_visitor_type ?? []}
           cachedEstimate={data.audience_estimate ?? null}
           estimateCoins={data.audience_estimate_coins ?? 0}
+          coinBalance={data.coin_balance ?? null}
         />
 
         {(data.audience_estimate?.data ?? []).length > 0 ? (
@@ -305,11 +306,13 @@ function AudienceInsightsSection({
   selfIdentified,
   cachedEstimate,
   estimateCoins,
+  coinBalance,
 }: {
   linkId: number;
   selfIdentified: { type: string; count: number; pct: number }[];
   cachedEstimate: AudienceEstimate | null;
   estimateCoins: number;
+  coinBalance: number | null;
 }) {
   const colors = useColors();
   const qc = useQueryClient();
@@ -342,6 +345,16 @@ function AudienceInsightsSection({
       qc.invalidateQueries({ queryKey: ["analytics", linkId] });
     },
     onError: (e) => {
+      // Check insufficient coins FIRST: handlePlanLockedError treats all
+      // plan-lock codes (including insufficient_credits) as upgrade prompts,
+      // but running out of coins is a wallet top-up problem, not a plan one.
+      if ((e as { code?: string })?.code === "insufficient_credits") {
+        setError(
+          "Not enough coins to run this estimate. Top up your wallet and try again.",
+        );
+        qc.invalidateQueries({ queryKey: ["analytics", linkId] });
+        return;
+      }
       if (handlePlanLockedError(e)) {
         // Also keep an inline hint so the section explains the lock after
         // the alert is dismissed (free plans; 402 plan_upgrade_required).
@@ -361,6 +374,10 @@ function AudienceInsightsSection({
   });
 
   const hasEstimate = rows.length > 0;
+  // Pre-run affordability check: only meaningful when both the cost hint
+  // and the wallet balance came back from the analytics payload.
+  const insufficientCoins =
+    estimateCoins > 0 && coinBalance !== null && coinBalance < estimateCoins;
 
   return (
     <Section
@@ -473,11 +490,15 @@ function AudienceInsightsSection({
         <View style={{ gap: 8 }}>
           <Pressable
             onPress={() => estimate.mutate()}
-            disabled={estimate.isPending}
+            disabled={estimate.isPending || insufficientCoins}
             accessibilityRole="button"
+            accessibilityState={{
+              disabled: estimate.isPending || insufficientCoins,
+            }}
             accessibilityLabel={
               hasEstimate ? "Re-estimate with AI" : "Get AI Estimate"
             }
+            testID="button-run-audience-estimate"
             style={({ pressed }) => [
               {
                 flexDirection: "row",
@@ -491,7 +512,8 @@ function AudienceInsightsSection({
                 backgroundColor: "rgba(99,102,241,0.15)",
                 borderWidth: 1,
                 borderColor: "rgba(99,102,241,0.3)",
-                opacity: pressed || estimate.isPending ? 0.6 : 1,
+                opacity:
+                  pressed || estimate.isPending || insufficientCoins ? 0.5 : 1,
               },
             ]}
           >
@@ -519,6 +541,18 @@ function AudienceInsightsSection({
             <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
               Uses up to {estimateCoins} coin{estimateCoins === 1 ? "" : "s"}{" "}
               per run
+              {coinBalance !== null
+                ? ` · Balance: ${coinBalance} coin${coinBalance === 1 ? "" : "s"}`
+                : ""}
+            </Text>
+          ) : null}
+          {insufficientCoins ? (
+            <Text
+              style={{ color: "#fbbf24", fontSize: 12 }}
+              testID="text-insufficient-coins"
+            >
+              You don't have enough coins for this estimate. Top up coins in
+              your wallet to run it.
             </Text>
           ) : null}
           {upgradeMsg ? (

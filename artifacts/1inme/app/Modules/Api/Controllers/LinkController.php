@@ -609,6 +609,11 @@ class LinkController extends Controller
         }
         $payload['audience_estimate_coins'] = $estimateCoins;
 
+        // Caller's coin-wallet balance so the mobile app can warn (and
+        // disable the estimate button) BEFORE a run that the wallet can't
+        // cover, instead of a dead-end tap + generic failure.
+        $payload['coin_balance'] = app(\App\Services\Billing\WalletService::class)->getBalance($request->user());
+
         // A/B variant breakdown — populated when the link was created via
         // the browser extension's "Shorten as A/B test" flow. The popup
         // (and dashboard) renders the per-variant counts and surfaces the
@@ -1300,6 +1305,13 @@ class LinkController extends Controller
         try {
             $result = app(\App\Services\AI\AudienceTypeEstimationService::class)
                 ->estimate($user, $link, now()->subDays(30), now());
+        } catch (\App\Services\AI\InsufficientCoinsForAiException $e) {
+            return $this->fail(
+                'Not enough coins to run this estimate. Top up your wallet and try again.',
+                402,
+                'insufficient_credits',
+                ['required' => $e->required, 'balance' => $e->balance]
+            );
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Audience estimation failed (API)', ['link_id' => $link->id, 'error' => $e->getMessage()]);
             return $this->fail('Estimation failed. Please try again.', 500, 'estimation_failed');

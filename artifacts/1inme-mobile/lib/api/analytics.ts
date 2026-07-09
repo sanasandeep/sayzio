@@ -41,6 +41,7 @@ export type Analytics = {
   by_visitor_type?: { type: string; count: number; pct: number }[];
   audience_estimate?: AudienceEstimate | null;
   audience_estimate_coins?: number;
+  coin_balance?: number;
   by_block?: BlockSummary[];
   blocked_total?: number;
   blocked_this_week?: number;

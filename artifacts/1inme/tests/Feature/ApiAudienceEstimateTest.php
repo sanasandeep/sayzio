@@ -229,6 +229,46 @@ class ApiAudienceEstimateTest extends TestCase
         $this->assertIsArray($estimate);
         $this->assertSame('student', $estimate['data'][0]['type']);
         $this->assertIsInt($res->json('data.analytics.audience_estimate_coins'));
+        $this->assertIsInt($res->json('data.analytics.coin_balance'));
+    }
+
+    public function test_analytics_payload_exposes_wallet_coin_balance(): void
+    {
+        $user = $this->makeUser(['audience_type_estimation' => true]);
+        $link = $this->makeLink($user);
+        \App\Modules\User\Models\Wallet::updateOrCreate(
+            ['user_id' => $user->id],
+            ['balance' => 42],
+        );
+        $token = $user->createToken('test')->plainTextToken;
+
+        $res = $this->withToken($token)
+            ->getJson("/api/v1/links/{$link->id}/analytics");
+
+        $res->assertOk();
+        $this->assertSame(42, $res->json('data.analytics.coin_balance'));
+    }
+
+    public function test_insufficient_coins_maps_to_friendly_402(): void
+    {
+        $user = $this->makeUser(['audience_type_estimation' => true]);
+        $link = $this->makeLink($user);
+        $token = $user->createToken('test')->plainTextToken;
+
+        $mock = \Mockery::mock(AudienceTypeEstimationService::class);
+        $mock->shouldReceive('estimate')->once()->andThrow(
+            new \App\Services\AI\InsufficientCoinsForAiException(5, 1)
+        );
+        $this->app->instance(AudienceTypeEstimationService::class, $mock);
+
+        $res = $this->withToken($token)
+            ->postJson("/api/v1/links/{$link->id}/audience-estimate");
+
+        $res->assertStatus(402);
+        $this->assertSame('insufficient_credits', $res->json('error.code'));
+        $this->assertStringContainsString('Top up', $res->json('error.message'));
+        $this->assertSame(5, $res->json('error.details.required'));
+        $this->assertSame(1, $res->json('error.details.balance'));
     }
 
     public function test_analytics_coin_cost_is_zero_on_free_plan(): void
