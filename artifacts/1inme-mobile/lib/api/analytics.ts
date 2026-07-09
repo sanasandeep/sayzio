@@ -26,6 +26,7 @@ export type Analytics = {
   by_referrer: { referrer_host: string | null; clicks: number }[];
   by_device: { device_type: string | null; clicks: number }[];
   by_source: { source: string | null; clicks: number }[];
+  by_visitor_type?: { type: string; count: number; pct: number }[];
   by_block?: BlockSummary[];
   blocked_total?: number;
   blocked_this_week?: number;

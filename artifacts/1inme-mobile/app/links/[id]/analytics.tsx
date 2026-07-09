@@ -40,6 +40,13 @@ const VISITOR_LABEL: Record<VisitorType, string> = {
   subscriber: "Subscribers",
 };
 
+function personaLabel(type: string): string {
+  return type
+    .split(/[_-]/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+
 export default function LinkAnalyticsScreen() {
   const colors = useColors();
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
@@ -194,6 +201,39 @@ export default function LinkAnalyticsScreen() {
             }))}
           />
         </Section>
+
+        {(data.by_visitor_type ?? []).length > 0 ? (
+          <Section
+            title="Audience insights"
+            subtitle="Self-identified visitor personas"
+          >
+            <View style={{ gap: 8 }}>
+              {(data.by_visitor_type ?? []).map((r) => (
+                <View key={r.type} style={styles.barRow}>
+                  <Text
+                    style={[styles.barLabel, { color: colors.mutedForeground }]}
+                    numberOfLines={1}
+                  >
+                    {personaLabel(r.type)}
+                  </Text>
+                  <View style={styles.barTrack}>
+                    <View
+                      style={{
+                        height: 8,
+                        width: `${Math.max(2, Math.min(100, r.pct))}%`,
+                        backgroundColor: colors.primary,
+                        borderRadius: 4,
+                      }}
+                    />
+                  </View>
+                  <Text style={[styles.barValue, { color: colors.foreground }]}>
+                    {r.count} · {r.pct}%
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </Section>
+        ) : null}
 
         <Section title="Mobile app vs web">
           <Breakdown
