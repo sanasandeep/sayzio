@@ -1255,6 +1255,45 @@ class LinkController extends Controller
     }
 
     /**
+     * Run the AI Audience Type Estimation for a link the caller owns —
+     * mobile parity for the web POST /user/links/{link}/audience/estimate.
+     * Same paid-plan gate, same 30-day window, and the result is cached
+     * into link.settings['biolink']['audience_estimate'] so both the web
+     * analytics panel and the mobile analytics payload pick it up.
+     */
+    public function estimateAudience(Request $request, int $id)
+    {
+        $user = $request->user();
+        $link = Link::where('user_id', $user->id)->find($id);
+        if (!$link) return $this->notFound('Link not found');
+
+        if (!\App\Services\AI\AiPlanAccess::featureAllowed($user, \App\Services\AI\AudienceTypeEstimationService::FEATURE_KEY)) {
+            return $this->planGate('AI Audience Estimation is available on paid plans.', \App\Services\AI\AudienceTypeEstimationService::FEATURE_KEY, $user);
+        }
+
+        try {
+            $result = app(\App\Services\AI\AudienceTypeEstimationService::class)
+                ->estimate($user, $link, now()->subDays(30), now());
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Audience estimation failed (API)', ['link_id' => $link->id, 'error' => $e->getMessage()]);
+            return $this->fail('Estimation failed. Please try again.', 500, 'estimation_failed');
+        }
+
+        $settings = is_array($link->settings) ? $link->settings : [];
+        $settings['biolink']['audience_estimate'] = [
+            'data'          => $result['estimated'],
+            'generated_at'  => now()->toIso8601String(),
+            'credits_spent' => $result['credits_spent'],
+        ];
+        $link->update(['settings' => $settings]);
+
+        return $this->ok([
+            'estimated'     => $result['estimated'],
+            'credits_spent' => $result['credits_spent'],
+        ]);
+    }
+
+    /**
      * Per-variant counts + the current leader (by clicks). Returns an
      * empty array for non-AB links so callers can use a single shape.
      *

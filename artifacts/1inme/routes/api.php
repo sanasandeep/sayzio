@@ -663,6 +663,10 @@ Route::prefix('v1')->group(function () {
         Route::get ('/links/{id}/conversational', [\App\Modules\Api\Controllers\ConversationFlowController::class, 'show'])->whereNumber('id');
         Route::put ('/links/{id}/conversational', [\App\Modules\Api\Controllers\ConversationFlowController::class, 'save'])->whereNumber('id');
         Route::get   ('/links/{id}/analytics', [LinkController::class, 'analytics'])->whereNumber('id');
+        // On-demand AI audience estimation (parity for web POST
+        // /user/links/{link}/audience/estimate). Charges AI credits, so
+        // throttled; result cached on link.settings for both surfaces.
+        Route::post  ('/links/{id}/audience-estimate', [LinkController::class, 'estimateAudience'])->whereNumber('id')->middleware('throttle:10,1');
         Route::get   ('/links/{id}/analytics/blocks/{blockId}', [LinkController::class, 'blockAnalytics'])->whereNumber('id')->whereNumber('blockId');
 
         // Per-link Visitor Insights (mobile parity for the web

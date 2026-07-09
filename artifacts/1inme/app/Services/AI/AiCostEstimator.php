@@ -29,6 +29,10 @@ class AiCostEstimator
         'ask_coach'           => ['ask_coach', 600, 1400],
         'resume_import'       => ['resume_import', 1200, 400],
         'resume_cover_letter' => ['resume_cover_letter', 1400, 700],
+        // Audience type estimation: aggregate-signal prompt (~600 tokens of
+        // JSON counts + system prompt) with a 400-token JSON output ceiling —
+        // mirrors AudienceTypeEstimationService's chat() call.
+        'audience_type_estimation' => ['audience_type_estimation', 400, 600],
     ];
 
     public function __construct(private OpenAiService $openai)

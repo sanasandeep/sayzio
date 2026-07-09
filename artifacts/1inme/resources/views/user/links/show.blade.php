@@ -1286,7 +1286,30 @@
 
         {{-- Get AI Estimate button --}}
         @if($link->isBiolinkFamily())
+        @php
+            $audienceAiOwner   = workspace_owner();
+            $audienceAiAllowed = \App\Services\AI\AiPlanAccess::featureAllowed($audienceAiOwner, \App\Services\AI\AudienceTypeEstimationService::FEATURE_KEY);
+            $audienceAiCoins   = 0;
+            if ($audienceAiAllowed) {
+                try {
+                    $audienceAiCoins = (int) (app(\App\Services\AI\AiCostEstimator::class)
+                        ->estimate($audienceAiOwner, \App\Services\AI\AudienceTypeEstimationService::FEATURE_KEY, '')['coins'] ?? 0);
+                } catch (\Throwable $e) {
+                    $audienceAiCoins = 0;
+                }
+            }
+        @endphp
+        @if(!$audienceAiAllowed)
         <div class="flex items-center gap-3 mt-2">
+            <a href="{{ route('user.upgrade') }}"
+               class="btn btn-xs inline-flex items-center"
+               style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;">
+                <i class="fas fa-lock mr-1.5 text-[11px]"></i> Upgrade to unlock AI Estimate
+            </a>
+            <span class="text-xs" style="color: var(--text-dimmed);">AI Audience Estimation is available on paid plans.</span>
+        </div>
+        @else
+        <div class="flex items-center gap-3 mt-2 flex-wrap">
             <button type="button" @click="runEstimate()"
                     :disabled="estimating"
                     class="btn btn-xs"
@@ -1297,7 +1320,13 @@
                 <span x-show="estimating"> &nbsp;<i class="fas fa-spinner fa-spin text-[10px]"></i></span>
             </button>
             <span x-show="estimateError" x-text="estimateError" class="text-xs text-red-400" x-cloak></span>
+            @if($audienceAiCoins > 0)
+            <span class="text-xs inline-flex items-center gap-1" style="color: var(--text-dimmed);" title="Charged from your coin wallet when the estimate runs.">
+                <i class="fas fa-coins text-[10px]" style="color:#fbbf24;"></i> Uses up to {{ number_format($audienceAiCoins) }} {{ Str::plural('coin', $audienceAiCoins) }} per run
+            </span>
+            @endif
         </div>
+        @endif
         @endif
     </div>
 </div>
