@@ -48,14 +48,27 @@ class DialerSearch
     /** Per-group hard cap so a broad query can never balloon the payload. */
     private const GROUP_LIMIT = 12;
 
+    /** Absolute ceiling for $perGroup to prevent runaway payloads. */
+    private const MAX_PER_GROUP = 60;
+
     /**
      * Run the universal search and return the grouped result contract.
      *
+     * Pagination is page-based (0-indexed). Passing $page=1 with $perGroup=12
+     * skips the first 12 results per group and returns the next 12. Each group
+     * in the response carries a `has_more` flag so the caller knows whether a
+     * subsequent page exists without fetching it.
+     *
      * @param array{filter?:string,tag?:string,scope?:string} $filters
-     * @return array{q:string,filter:?string,total:int,groups:array<int,array{key:string,label:string,items:array<int,array<string,mixed>>}>}
+     * @param int $page     0-indexed page (default 0 = first page)
+     * @param int $perGroup results per group per page (default GROUP_LIMIT)
+     * @return array{q:string,filter:?string,total:int,page:int,per_group:int,groups:array<int,array{key:string,label:string,has_more:bool,items:array<int,array<string,mixed>>}>}
      */
-    public static function universal(User $user, string $q, array $filters = []): array
+    public static function universal(User $user, string $q, array $filters = [], int $page = 0, int $perGroup = self::GROUP_LIMIT): array
     {
+        $page     = max(0, $page);
+        $perGroup = max(1, min($perGroup, self::MAX_PER_GROUP));
+
         $q = trim($q);
         $filter = isset($filters['filter']) ? (string) $filters['filter'] : null;
         $onlyVerified = $filter === 'verified';
@@ -71,23 +84,27 @@ class DialerSearch
         $groups = [];
 
         if ($q !== '' || $onlyVerified) {
-            $groups[] = self::group('contacts', 'Contacts', self::contactItems($user, $q, $filters, $onlyVerified));
-            $groups[] = self::group('people', 'People', self::peopleItems($user, $q, $onlyVerified));
-            $groups[] = self::group('social', 'Social', self::socialItems($user, $q, $onlyVerified));
-            $groups[] = self::group('my_links', 'My links', self::myLinkItems($user, $q, $onlyVerified));
-            $groups[] = self::group('followed', 'Followed', self::followedLinkItems($user, $q, $onlyVerified));
-            $groups[] = self::group('workspaces', 'Workspaces', self::workspaceItems($user, $q, $onlyVerified));
-            $groups[] = self::group('events', 'Events', self::eventItems($user, $q, $filters, $onlyVerified));
+            $groups[] = self::groupWithPage('contacts', 'Contacts', self::contactItems($user, $q, $filters, $onlyVerified, $page, $perGroup), $page, $perGroup);
+            $groups[] = self::groupWithPage('people', 'People', self::peopleItems($user, $q, $onlyVerified, $page, $perGroup), $page, $perGroup);
+            $groups[] = self::groupWithPage('social', 'Social', self::socialItems($user, $q, $onlyVerified, $page, $perGroup), $page, $perGroup);
+            $groups[] = self::groupWithPage('my_links', 'My links', self::myLinkItems($user, $q, $onlyVerified, $page, $perGroup), $page, $perGroup);
+            $groups[] = self::groupWithPage('followed', 'Followed', self::followedLinkItems($user, $q, $onlyVerified, $page, $perGroup), $page, $perGroup);
+            $groups[] = self::groupWithPage('workspaces', 'Workspaces', self::workspaceItems($user, $q, $onlyVerified, $page, $perGroup), $page, $perGroup);
+            $groups[] = self::groupWithPage('events', 'Events', self::eventItems($user, $q, $filters, $onlyVerified, $page, $perGroup), $page, $perGroup);
         }
 
-        $groups = array_values(array_filter($groups, fn ($g) => count($g['items']) > 0));
+        // Keep a group when it has items on this page OR more results remain
+        // (has_more), so paginating clients never lose a group mid-stream.
+        $groups = array_values(array_filter($groups, fn ($g) => count($g['items']) > 0 || $g['has_more']));
         $total = array_sum(array_map(fn ($g) => count($g['items']), $groups));
 
         return [
-            'q'      => $q,
-            'filter' => $onlyVerified ? 'verified' : null,
-            'total'  => $total,
-            'groups' => $groups,
+            'q'         => $q,
+            'filter'    => $onlyVerified ? 'verified' : null,
+            'total'     => $total,
+            'page'      => $page,
+            'per_group' => $perGroup,
+            'groups'    => $groups,
         ];
     }
 
@@ -165,13 +182,15 @@ class DialerSearch
 
     // ── Category builders ────────────────────────────────────────────────
 
-    /** @return array<int,array<string,mixed>> */
-    private static function contactItems(User $user, string $q, array $filters, bool $onlyVerified): array
+    /**
+     * @return array{items:array<int,array<string,mixed>>,has_more:bool}
+     */
+    private static function contactItems(User $user, string $q, array $filters, bool $onlyVerified, int $page = 0, int $perGroup = self::GROUP_LIMIT): array
     {
         // Contacts carry no verification badge, so a verified-only filter with
         // no search term yields nothing here.
         if ($onlyVerified && $q === '') {
-            return [];
+            return ['items' => [], 'has_more' => false];
         }
 
         $advFilters = [
@@ -179,9 +198,11 @@ class DialerSearch
             'has_biolink' => !empty($filters['has_biolink']),
         ];
 
-        $rows = self::contactsAdvanced($user->id, $q, $advFilters)->take(self::GROUP_LIMIT);
+        $rows = self::contactsAdvanced($user->id, $q, $advFilters);
 
-        return $rows->map(function (Contact $c) {
+        $slice = $rows->skip($page * $perGroup)->take($perGroup + 1);
+        $has_more = $slice->count() > $perGroup;
+        $items = $slice->take($perGroup)->map(function (Contact $c) {
             $first = $c->phones->first();
             $e164 = $first?->value_e164 ?: $first?->value;
             $isBiolink = (bool) $c->biolink_user_id;
@@ -204,10 +225,14 @@ class DialerSearch
                 'action'         => $action,
             ];
         })->values()->all();
+
+        return ['items' => $items, 'has_more' => $has_more];
     }
 
-    /** @return array<int,array<string,mixed>> */
-    private static function peopleItems(User $user, string $q, bool $onlyVerified): array
+    /**
+     * @return array{items:array<int,array<string,mixed>>,has_more:bool}
+     */
+    private static function peopleItems(User $user, string $q, bool $onlyVerified, int $page = 0, int $perGroup = self::GROUP_LIMIT): array
     {
         // Reachable people = self + accounts the user follows + accounts linked
         // from the user's own contacts (owned + followed only — never a global
@@ -216,7 +241,7 @@ class DialerSearch
         $ids = self::reachableUserIds($user);
 
         if ($ids->isEmpty()) {
-            return [];
+            return ['items' => [], 'has_more' => false];
         }
 
         $query = User::whereIn('id', $ids);
@@ -236,7 +261,8 @@ class DialerSearch
                 }
             });
         }
-        $candidates = $query->orderBy('name')->limit(60)->get();
+        $fetchLimit = min(($page + 1) * $perGroup * 2 + 2, 200);
+        $candidates = $query->orderBy('name')->limit($fetchLimit)->get();
 
         // Which of these accounts carry a verification badge (a verified link)?
         // A person's verified link may live in ANY of their workspaces. On the
@@ -257,7 +283,9 @@ class DialerSearch
             $candidates = $candidates->filter(fn ($u) => $verifiedIds->contains($u->id))->values();
         }
 
-        return $candidates->take(self::GROUP_LIMIT)->map(function (User $u) use ($user, $verifiedIds) {
+        $slice = $candidates->skip($page * $perGroup)->take($perGroup + 1);
+        $has_more = $slice->count() > $perGroup;
+        $items = $slice->take($perGroup)->map(function (User $u) use ($user, $verifiedIds) {
             $bio = $u->primaryBiolink();
             $isVerified = $verifiedIds->contains($u->id);
             $isSelf = $u->id === $user->id;
@@ -281,6 +309,8 @@ class DialerSearch
                 ],
             ];
         })->values()->all();
+
+        return ['items' => $items, 'has_more' => $has_more];
     }
 
     /**
@@ -289,20 +319,21 @@ class DialerSearch
      * public". Mirrors the reachability gate in {@see peopleItems()} — the
      * shared {@see reachableUserIds()} helper keeps the two from drifting.
      *
-     * @return array<int,array<string,mixed>>
+     * @return array{items:array<int,array<string,mixed>>,has_more:bool}
      */
-    private static function socialItems(User $user, string $q, bool $onlyVerified): array
+    private static function socialItems(User $user, string $q, bool $onlyVerified, int $page = 0, int $perGroup = self::GROUP_LIMIT): array
     {
         if ($q === '') {
-            return [];
+            return ['items' => [], 'has_more' => false];
         }
 
         $ids = self::reachableUserIds($user);
         if ($ids->isEmpty()) {
-            return [];
+            return ['items' => [], 'has_more' => false];
         }
 
         $needle = '%' . $q . '%';
+        $fetchLimit = min(($page + 1) * $perGroup * 2 + 2, 200);
         $rows = SocialAccountConnection::whereIn('user_id', $ids)
             ->searchable()
             ->where(function ($w) use ($needle, $q) {
@@ -315,7 +346,7 @@ class DialerSearch
             })
             ->with('user')
             ->orderBy('platform')
-            ->limit(self::GROUP_LIMIT * 2)
+            ->limit($fetchLimit)
             ->get();
 
         if ($onlyVerified) {
@@ -326,7 +357,9 @@ class DialerSearch
             $rows = $rows->filter(fn ($c) => $verifiedIds->contains($c->user_id));
         }
 
-        return $rows->take(self::GROUP_LIMIT)->map(function (SocialAccountConnection $c) use ($user) {
+        $slice = $rows->skip($page * $perGroup)->take($perGroup + 1);
+        $has_more = $slice->count() > $perGroup;
+        $items = $slice->take($perGroup)->map(function (SocialAccountConnection $c) use ($user) {
             $owner = $c->user;
             $isSelf = $owner && $owner->id === $user->id;
 
@@ -350,6 +383,8 @@ class DialerSearch
                 ],
             ];
         })->values()->all();
+
+        return ['items' => $items, 'has_more' => $has_more];
     }
 
     /**
@@ -398,8 +433,10 @@ class DialerSearch
             ->pluck('id')->map(fn ($id) => (int) $id)->values();
     }
 
-    /** @return array<int,array<string,mixed>> */
-    private static function myLinkItems(User $user, string $q, bool $onlyVerified): array
+    /**
+     * @return array{items:array<int,array<string,mixed>>,has_more:bool}
+     */
+    private static function myLinkItems(User $user, string $q, bool $onlyVerified, int $page = 0, int $perGroup = self::GROUP_LIMIT): array
     {
         // "My links" means every link the searcher OWNS, regardless of which
         // workspace it lives in. On the web surface the `workspace.scope`
@@ -415,15 +452,22 @@ class DialerSearch
         if ($onlyVerified) {
             $query->where('is_verified', true);
         }
-        $links = $query->orderByDesc('total_clicks')->limit(self::GROUP_LIMIT * 2)->get();
+        $fetchLimit = min(($page + 1) * $perGroup * 2 + 2, 200);
+        $links = $query->orderByDesc('total_clicks')->limit($fetchLimit)->get();
 
-        return $links->take(self::GROUP_LIMIT)
+        $slice = $links->skip($page * $perGroup)->take($perGroup + 1);
+        $has_more = $slice->count() > $perGroup;
+        $items = $slice->take($perGroup)
             ->map(fn (Link $l) => self::linkItem($l, 'my_links', true))
             ->values()->all();
+
+        return ['items' => $items, 'has_more' => $has_more];
     }
 
-    /** @return array<int,array<string,mixed>> */
-    private static function followedLinkItems(User $user, string $q, bool $onlyVerified): array
+    /**
+     * @return array{items:array<int,array<string,mixed>>,has_more:bool}
+     */
+    private static function followedLinkItems(User $user, string $q, bool $onlyVerified, int $page = 0, int $perGroup = self::GROUP_LIMIT): array
     {
         // Follow is account-level but uses BelongsToWorkspace; opt out of the
         // workspace global scope so the web surface (under `workspace.scope`)
@@ -433,7 +477,7 @@ class DialerSearch
         $creatorIds = Follow::withoutGlobalScope('workspace')
             ->where('follower_id', $user->id)->pluck('creator_id')->unique();
         if ($creatorIds->isEmpty()) {
-            return [];
+            return ['items' => [], 'has_more' => false];
         }
 
         // Even for a creator the searcher follows, never surface links from an
@@ -457,7 +501,7 @@ class DialerSearch
             ->pluck('id')->map(fn ($id) => (int) $id)->unique();
 
         if ($creatorIds->isEmpty()) {
-            return [];
+            return ['items' => [], 'has_more' => false];
         }
 
         // Followed creators' links live in THEIR workspaces, not the searcher's.
@@ -472,7 +516,8 @@ class DialerSearch
         if ($onlyVerified) {
             $query->where('is_verified', true);
         }
-        $links = $query->orderByDesc('total_clicks')->limit(self::GROUP_LIMIT * 4)->get();
+        $fetchLimit = min(($page + 1) * $perGroup * 4 + 4, 300);
+        $links = $query->orderByDesc('total_clicks')->limit($fetchLimit)->get();
 
         // Batch-resolve visibility instead of an N+1 follow/subscriber check per
         // link. Every creator here is already followed by the viewer, so
@@ -480,30 +525,37 @@ class DialerSearch
         // membership check, which we pre-fetch once for the whole result set.
         $subscribedCreatorIds = self::subscribedCreatorIds($user, $links);
 
-        $visible = $links
-            ->filter(fn (Link $l) => self::canViewLink($user, $l, $subscribedCreatorIds))
-            ->take(self::GROUP_LIMIT);
+        $visible = $links->filter(fn (Link $l) => self::canViewLink($user, $l, $subscribedCreatorIds));
 
-        return $visible->map(fn (Link $l) => self::linkItem($l, 'followed', false))->values()->all();
+        $slice = $visible->skip($page * $perGroup)->take($perGroup + 1);
+        $has_more = $slice->count() > $perGroup;
+        $items = $slice->take($perGroup)->map(fn (Link $l) => self::linkItem($l, 'followed', false))->values()->all();
+
+        return ['items' => $items, 'has_more' => $has_more];
     }
 
-    /** @return array<int,array<string,mixed>> */
-    private static function workspaceItems(User $user, string $q, bool $onlyVerified): array
+    /**
+     * @return array{items:array<int,array<string,mixed>>,has_more:bool}
+     */
+    private static function workspaceItems(User $user, string $q, bool $onlyVerified, int $page = 0, int $perGroup = self::GROUP_LIMIT): array
     {
         // Workspaces carry no verification badge.
         if ($onlyVerified) {
-            return [];
+            return ['items' => [], 'has_more' => false];
         }
         if ($q === '') {
-            return [];
+            return ['items' => [], 'has_more' => false];
         }
 
         $needle = mb_strtolower($q);
-        $items = $user->accessibleWorkspaces()
-            ->filter(fn (Workspace $w) => str_contains(mb_strtolower((string) $w->name), $needle))
-            ->take(self::GROUP_LIMIT);
+        $all = $user->accessibleWorkspaces()
+            ->filter(fn (Workspace $w) => str_contains(mb_strtolower((string) $w->name), $needle));
 
-        return $items->map(function (Workspace $w) use ($user) {
+        $slice = $all->skip($page * $perGroup)->take($perGroup + 1);
+        $has_more = $slice->count() > $perGroup;
+        $items = $slice->take($perGroup);
+
+        $itemsArray = $items->map(function (Workspace $w) use ($user) {
             $owned = (int) $w->owner_user_id === (int) $user->id;
             return [
                 'type'           => 'workspace',
@@ -524,6 +576,8 @@ class DialerSearch
                 ],
             ];
         })->values()->all();
+
+        return ['items' => $itemsArray, 'has_more' => $has_more];
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
@@ -535,16 +589,16 @@ class DialerSearch
      * visibility gate the other groups enforce.
      *
      * @param array{tag?:string} $filters
-     * @return array<int,array<string,mixed>>
+     * @return array{items:array<int,array<string,mixed>>,has_more:bool}
      */
-    private static function eventItems(User $user, string $q, array $filters, bool $onlyVerified): array
+    private static function eventItems(User $user, string $q, array $filters, bool $onlyVerified, int $page = 0, int $perGroup = self::GROUP_LIMIT): array
     {
         if ($onlyVerified) {
-            return [];
+            return ['items' => [], 'has_more' => false];
         }
         $tag = isset($filters['tag']) ? mb_strtolower(ltrim(trim((string) $filters['tag']), '#')) : '';
         if ($q === '' && $tag === '') {
-            return [];
+            return ['items' => [], 'has_more' => false];
         }
 
         $query = Link::withoutGlobalScope('workspace')
@@ -570,14 +624,17 @@ class DialerSearch
             });
         }
 
-        $links = $query->with('icsData')->orderByDesc('total_clicks')->limit(self::GROUP_LIMIT * 3)->get();
+        $fetchLimit = min(($page + 1) * $perGroup * 3 + 3, 200);
+        $links = $query->with('icsData')->orderByDesc('total_clicks')->limit($fetchLimit)->get();
 
         $subscribedCreatorIds = self::subscribedCreatorIds($user, $links);
-        $visible = $links
-            ->filter(fn (Link $l) => self::canViewLink($user, $l, $subscribedCreatorIds))
-            ->take(self::GROUP_LIMIT);
+        $visible = $links->filter(fn (Link $l) => self::canViewLink($user, $l, $subscribedCreatorIds));
 
-        return $visible->map(fn (Link $l) => self::eventItem($l))->values()->all();
+        $slice = $visible->skip($page * $perGroup)->take($perGroup + 1);
+        $has_more = $slice->count() > $perGroup;
+        $items = $slice->take($perGroup)->map(fn (Link $l) => self::eventItem($l))->values()->all();
+
+        return ['items' => $items, 'has_more' => $has_more];
     }
 
     /** Build a normalized event item from an `ics` link. */
@@ -776,6 +833,22 @@ class DialerSearch
     /** @return array{key:string,label:string,items:array<int,array<string,mixed>>} */
     private static function group(string $key, string $label, array $items): array
     {
-        return ['key' => $key, 'label' => $label, 'items' => $items];
+        return ['key' => $key, 'label' => $label, 'has_more' => false, 'items' => $items];
+    }
+
+    /**
+     * Build a group from a paginated builder result `{items, has_more}`.
+     *
+     * @param array{items:array<int,array<string,mixed>>,has_more:bool} $result
+     * @return array{key:string,label:string,has_more:bool,items:array<int,array<string,mixed>>}
+     */
+    private static function groupWithPage(string $key, string $label, array $result): array
+    {
+        return [
+            'key'      => $key,
+            'label'    => $label,
+            'has_more' => $result['has_more'],
+            'items'    => $result['items'],
+        ];
     }
 }

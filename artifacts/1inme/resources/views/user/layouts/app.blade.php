@@ -1217,9 +1217,14 @@
                          universal finder (contacts, people, links, followed,
                          workspaces) alongside nav shortcuts. This trigger just
                          opens it. --}}
-                    <button type="button" class="header-icon-btn hidden sm:flex"
-                            onclick="window.dispatchEvent(new CustomEvent('open-global-search'))"
-                            title="Search (⌘K)" aria-label="Search (⌘K)">
+                    {{-- Full-screen search overlay trigger.
+                         Fires `open-full-search` which is handled by
+                         user.partials.global-search-overlay (included at
+                         end of this layout). Shown on ALL screen sizes since
+                         the mobile drawer also has its own search button. --}}
+                    <button type="button" class="header-icon-btn flex"
+                            onclick="window.dispatchEvent(new CustomEvent('open-full-search'))"
+                            title="Search" aria-label="Search">
                         <i class="fas fa-search"></i>
                     </button>
 
@@ -1384,6 +1389,14 @@
                         @include('user.partials.workspace-switcher')
                     @endauth
                     <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto overscroll-contain" style="-webkit-overflow-scrolling: touch;">
+                        {{-- Search button (opens full-screen overlay) --}}
+                        <button type="button"
+                                @click="mobileMenu = false; $nextTick(() => window.dispatchEvent(new CustomEvent('open-full-search')))"
+                                class="sidebar-link w-full text-left mb-1"
+                                style="color: var(--text-muted);">
+                            <div class="nav-icon-wrap"><i class="fas fa-search"></i></div>
+                            <span>Search</span>
+                        </button>
                         {{-- ========== TOP LEVEL — mirrors desktop most-used destinations ========== --}}
                         <a href="{{ route('user.dashboard') }}" class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-house"></i></div> <span>Dashboard</span></a>
                         @if($__can['links_view'])
@@ -1832,6 +1845,7 @@
 
     @include('common.partials.site-assistant', ['surface' => 'app'])
 
+    @include('user.partials.global-search-overlay')
     @include('common.partials.global-shortcuts')
     {{-- Voice agent: the full mic + agent now lives inside the Zio chat panel
          (common.partials.site-assistant) so there is ONE launcher on the

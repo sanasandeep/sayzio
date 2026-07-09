@@ -366,8 +366,11 @@ class DialerController extends Controller
             'has_biolink' => $request->boolean('has_biolink'),
         ];
 
+        $page     = max(0, (int) $request->query('page', 0));
+        $perGroup = max(1, min((int) $request->query('per_group', 12), 60));
+
         return response()->json([
-            'data' => \App\Modules\User\Support\DialerSearch::universal($user, $q, $filters),
+            'data' => \App\Modules\User\Support\DialerSearch::universal($user, $q, $filters, $page, $perGroup),
         ]);
     }
 
