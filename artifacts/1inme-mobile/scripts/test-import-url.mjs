@@ -262,6 +262,7 @@ const stripBang = (s) => s.replace(/\burl!/g, "url").replace(/\bselectedCalendar
     "url",
     "evDate",
     "evTime",
+    "evLocation",
     `return createCalendarEvent(${evArgs});`,
   );
   let gotId = null;
@@ -275,6 +276,7 @@ const stripBang = (s) => s.replace(/\burl!/g, "url").replace(/\bselectedCalendar
     "https://example.com/post",
     "2026-07-09",
     "09:30",
+    "  Cafe Central  ",
   );
   assert.equal(gotId, 42, "event goes to the selected calendar");
   assert.equal(gotBody.title, "My article", "shared title wins as event title");
@@ -284,9 +286,15 @@ const stripBang = (s) => s.replace(/\burl!/g, "url").replace(/\bselectedCalendar
     "the shared URL must travel in the event description",
   );
   assert.equal(gotBody.start_at, "2026-07-09T09:30", "start_at is DATE T TIME");
-  // No title → host fallback.
-  runEv((id, body) => (gotBody = body), 42, null, "", "example.com", "https://example.com/", "2026-07-09", "09:30");
+  assert.equal(
+    gotBody.location,
+    "Cafe Central",
+    "detected/typed location is trimmed into the event payload",
+  );
+  // No title → host fallback; no location → null.
+  runEv((id, body) => (gotBody = body), 42, null, "", "example.com", "https://example.com/", "2026-07-09", "09:30", null);
   assert.equal(gotBody.title, "example.com");
+  assert.equal(gotBody.location, null, "no location → null, never ''");
   ok("calendar flow posts URL-in-description with YYYY-MM-DDTHH:MM start");
 
   // And the screen's own validators guard the formats it sends.
