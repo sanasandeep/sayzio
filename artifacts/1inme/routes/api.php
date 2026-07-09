@@ -283,6 +283,11 @@ Route::prefix('v1')->group(function () {
     // Mobile splash slider — admin-managed onboarding slides.
     Route::get('/onboarding/slides', [OnboardingSlideController::class, 'index']);
 
+    // Browser-extension store install links — same source of truth
+    // (ExtensionStoreLinks over app_settings) as the web Settings card, so
+    // the mobile info page swaps to direct listings once published.
+    Route::get('/extension/stores', [\App\Modules\Api\Controllers\ExtensionStoreController::class, 'index']);
+
     // Multi-channel quick-contact (Call back / WhatsApp call / Email) — mobile
     // parity for the web standalone widget. Reuses the SAME contract +
     // QuickContactService as POST /assistant/quick-contact (web), so a request

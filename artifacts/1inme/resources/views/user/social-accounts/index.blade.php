@@ -144,11 +144,20 @@
         } catch (\Throwable $e) {
             $__extSignedIn = false;
         }
-        $__extStores = [
-            ['label' => 'Chrome Web Store', 'icon' => 'fab fa-chrome',  'url' => 'https://chromewebstore.google.com/search/Sayzio'],
-            ['label' => 'Edge Add-ons',     'icon' => 'fab fa-edge',    'url' => 'https://microsoftedge.microsoft.com/addons/Search/Sayzio'],
-            ['label' => 'Firefox Add-ons',  'icon' => 'fab fa-firefox-browser', 'url' => 'https://addons.mozilla.org/en-US/firefox/search/?q=Sayzio'],
+        // Store URLs resolve through ExtensionStoreLinks: admin-configured
+        // direct listing URLs (Admin → Marketing settings) with a pre-publish
+        // fallback to store search pages. Mobile reads the same source via
+        // GET /api/v1/extension/stores.
+        $__extIcons = [
+            'chrome'  => 'fab fa-chrome',
+            'edge'    => 'fab fa-edge',
+            'firefox' => 'fab fa-firefox-browser',
         ];
+        $__extStores = array_map(
+            fn ($s) => $s + ['icon' => $__extIcons[$s['key']] ?? 'fas fa-puzzle-piece'],
+            \App\Modules\Common\Support\ExtensionStoreLinks::stores()
+        );
+        $__extAnyListing = collect($__extStores)->contains(fn ($s) => $s['is_listing']);
     @endphp
     <div class="card-premium p-4 mb-4" id="browser-extension">
         <div class="flex items-start gap-3">
@@ -175,8 +184,13 @@
                 </div>
                 <div class="text-[11px] mt-0.5" style="color: var(--text-muted);">
                     Shorten links, capture reviews, save events, and get notification badges right from your browser.
-                    Search for <span class="font-semibold">"Sayzio"</span> in your browser's store, then click the
-                    extension icon and choose <span class="font-semibold">Sign in with Sayzio</span>.
+                    @if($__extAnyListing)
+                        Install it from your browser's store below, then click the
+                        extension icon and choose <span class="font-semibold">Sign in with Sayzio</span>.
+                    @else
+                        Search for <span class="font-semibold">"Sayzio"</span> in your browser's store, then click the
+                        extension icon and choose <span class="font-semibold">Sign in with Sayzio</span>.
+                    @endif
                     @if($__extSignedIn)
                         You can revoke the extension's access any time from
                         <a href="{{ route('user.settings.sessions.index') }}" class="underline" style="color:#3d6bff;">Devices &amp; sessions</a>.

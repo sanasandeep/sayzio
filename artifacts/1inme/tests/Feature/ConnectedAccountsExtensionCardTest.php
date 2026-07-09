@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -43,6 +44,38 @@ class ConnectedAccountsExtensionCardTest extends TestCase
         $response->assertSee('https://chromewebstore.google.com/search/Sayzio');
         $response->assertSee('https://microsoftedge.microsoft.com/addons/Search/Sayzio');
         $response->assertSee('https://addons.mozilla.org/en-US/firefox/search/?q=Sayzio', false);
+    }
+
+    public function test_extension_card_uses_admin_configured_listing_urls(): void
+    {
+        AppSetting::put('extension_chrome_store_url', 'https://chromewebstore.google.com/detail/sayzio/abcdef');
+        AppSetting::put('extension_firefox_store_url', 'https://addons.mozilla.org/en-US/firefox/addon/sayzio/');
+
+        $user = $this->makeUser();
+
+        $response = $this->actingAs($user)->get(route('user.social-accounts.index'));
+
+        $response->assertOk();
+        $response->assertSee('https://chromewebstore.google.com/detail/sayzio/abcdef');
+        $response->assertSee('https://addons.mozilla.org/en-US/firefox/addon/sayzio/', false);
+        $response->assertDontSee('https://chromewebstore.google.com/search/Sayzio');
+        // Edge is still unpublished, so its button keeps the search fallback.
+        $response->assertSee('https://microsoftedge.microsoft.com/addons/Search/Sayzio');
+    }
+
+    public function test_public_api_returns_shared_store_links(): void
+    {
+        AppSetting::put('extension_edge_store_url', 'https://microsoftedge.microsoft.com/addons/detail/sayzio/xyz');
+
+        $response = $this->getJson('/api/v1/extension/stores');
+
+        $response->assertOk();
+        $stores = collect($response->json('data.stores'))->keyBy('key');
+        $this->assertSame('https://microsoftedge.microsoft.com/addons/detail/sayzio/xyz', $stores['edge']['url']);
+        $this->assertTrue($stores['edge']['is_listing']);
+        $this->assertSame('https://chromewebstore.google.com/search/Sayzio', $stores['chrome']['url']);
+        $this->assertFalse($stores['chrome']['is_listing']);
+        $this->assertFalse($stores['firefox']['is_listing']);
     }
 
     public function test_extension_card_shows_signed_in_when_handshake_token_exists(): void

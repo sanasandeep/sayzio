@@ -102,6 +102,37 @@
             </div>
         </div>
 
+        {{-- Browser extension store links --}}
+        <div class="glass rounded-2xl p-6 space-y-5">
+            <div>
+                <h2 class="text-lg font-semibold text-white">Browser extension store links</h2>
+                <p class="text-xs text-white/50">Direct listing URLs for the Sayzio browser extension. Power the install buttons on Settings → Connected Accounts &amp; Apps (web) and the mobile Browser extension page. Leave a field blank and its button falls back to a store search for "Sayzio" (pre-publish state).</p>
+            </div>
+            <div class="grid sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Chrome Web Store URL</label>
+                    <input type="url" name="extension_chrome_url" value="{{ old('extension_chrome_url', $extension_chrome_url) }}"
+                           placeholder="https://chromewebstore.google.com/detail/..."
+                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extension_chrome_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Edge Add-ons URL</label>
+                    <input type="url" name="extension_edge_url" value="{{ old('extension_edge_url', $extension_edge_url) }}"
+                           placeholder="https://microsoftedge.microsoft.com/addons/detail/..."
+                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extension_edge_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Firefox Add-ons URL</label>
+                    <input type="url" name="extension_firefox_url" value="{{ old('extension_firefox_url', $extension_firefox_url) }}"
+                           placeholder="https://addons.mozilla.org/en-US/firefox/addon/..."
+                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extension_firefox_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+            </div>
+        </div>
+
         {{-- Subscribe block — WhatsApp settings --}}
         <div class="glass rounded-2xl p-6 space-y-5">
             <div>

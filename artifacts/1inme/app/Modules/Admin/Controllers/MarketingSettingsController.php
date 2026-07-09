@@ -25,6 +25,9 @@ class MarketingSettingsController extends Controller
             'whatsapp_message'         => (string) AppSetting::get('marketing_whatsapp_message', ''),
             'play_store_url'           => (string) AppSetting::get('marketing_play_store_url', ''),
             'app_store_url'            => (string) AppSetting::get('marketing_app_store_url', ''),
+            'extension_chrome_url'     => (string) AppSetting::get('extension_chrome_store_url', ''),
+            'extension_edge_url'       => (string) AppSetting::get('extension_edge_store_url', ''),
+            'extension_firefox_url'    => (string) AppSetting::get('extension_firefox_store_url', ''),
             'trust_strip'              => SitePagesContent::normalizeTrustStrip(
                 (array) AppSetting::get('marketing_trust_strip', [])
             ),
@@ -57,6 +60,12 @@ class MarketingSettingsController extends Controller
             // the public footer. When empty the badge opens a "coming soon" modal.
             'play_store_url'                  => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'app_store_url'                   => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
+            // Browser-extension store listing URLs. When empty, the web card
+            // and mobile info page fall back to store search pages for
+            // "Sayzio" (pre-publish state). See ExtensionStoreLinks.
+            'extension_chrome_url'            => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
+            'extension_edge_url'              => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
+            'extension_firefox_url'           => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'trust_strip'                     => 'nullable|array|max:6',
             'trust_strip.*.value'             => 'nullable|string|max:60',
             'trust_strip.*.label'             => 'nullable|string|max:120',
@@ -96,6 +105,10 @@ class MarketingSettingsController extends Controller
         if (!$wasLaunched && AppLaunchNotifier::isLaunched()) {
             AppLaunchNotifier::notifyIfLaunched();
         }
+
+        AppSetting::put('extension_chrome_store_url', trim((string) ($data['extension_chrome_url'] ?? '')));
+        AppSetting::put('extension_edge_store_url', trim((string) ($data['extension_edge_url'] ?? '')));
+        AppSetting::put('extension_firefox_store_url', trim((string) ($data['extension_firefox_url'] ?? '')));
 
         AppSetting::put('marketing_trust_strip',
             SitePagesContent::normalizeTrustStrip((array) ($data['trust_strip'] ?? []))

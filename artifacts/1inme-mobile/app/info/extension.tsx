@@ -3,6 +3,7 @@
 // (the knowledge base points users there for the extension install links).
 import { Feather } from "@expo/vector-icons";
 import { Stack } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Linking,
   Pressable,
@@ -14,24 +15,20 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+import {
+  DEFAULT_EXTENSION_STORES,
+  getExtensionStores,
+  type ExtensionStore,
+} from "@/lib/api/extensionStores";
 
-const STORES: { label: string; url: string; icon: keyof typeof Feather.glyphMap }[] = [
-  {
-    label: "Chrome Web Store",
-    url: "https://chromewebstore.google.com/search/Sayzio",
-    icon: "chrome",
-  },
-  {
-    label: "Edge Add-ons",
-    url: "https://microsoftedge.microsoft.com/addons/Search/Sayzio",
-    icon: "globe",
-  },
-  {
-    label: "Firefox Add-ons",
-    url: "https://addons.mozilla.org/en-US/firefox/search/?q=Sayzio",
-    icon: "globe",
-  },
-];
+// Store URLs come from the shared server source of truth (admin-configurable
+// app_settings, same as the web Settings card). Until a listing is published
+// they fall back to store search pages for "Sayzio".
+const STORE_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
+  chrome: "chrome",
+  edge: "globe",
+  firefox: "globe",
+};
 
 const SECTIONS: { heading: string; body: string }[] = [
   {
@@ -51,6 +48,19 @@ const SECTIONS: { heading: string; body: string }[] = [
 export default function BrowserExtensionInfo() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const [stores, setStores] = useState<ExtensionStore[]>(
+    DEFAULT_EXTENSION_STORES,
+  );
+
+  useEffect(() => {
+    let alive = true;
+    getExtensionStores().then((s) => {
+      if (alive && s.length > 0) setStores(s);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -94,16 +104,20 @@ export default function BrowserExtensionInfo() {
           <Text style={[styles.h2, { color: colors.foreground }]}>
             Get the extension
           </Text>
-          {STORES.map((store) => (
+          {stores.map((store) => (
             <Pressable
-              key={store.label}
+              key={store.key || store.label}
               onPress={() => Linking.openURL(store.url)}
               style={[
                 styles.storeButton,
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
             >
-              <Feather name={store.icon} size={18} color={colors.primary} />
+              <Feather
+                name={STORE_ICONS[store.key] ?? "globe"}
+                size={18}
+                color={colors.primary}
+              />
               <Text style={[styles.storeLabel, { color: colors.foreground }]}>
                 {store.label}
               </Text>

@@ -259,6 +259,8 @@ Each store needs slightly different supporting material; the build output is the
 
 The extension already ships icons sized 16/32/48/128 (under `public/icons/`) — replace these with higher-res master assets before submitting.
 
+Once a listing is live, paste its direct URL into **Admin → Marketing settings → Browser extension store links**. The web install card (Settings → Connected Accounts & Apps) and the mobile Browser extension page both read those settings (via `ExtensionStoreLinks` / `GET /api/v1/extension/stores`), so they switch from store *search* links to the real listing without a code deploy.
+
 ## Troubleshooting
 
 - **"Not signed in" toast** — open the popup and sign in. The 401 path also clears the stored token automatically.
