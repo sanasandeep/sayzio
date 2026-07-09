@@ -244,7 +244,7 @@ export default function LinksTab() {
           onScroll={(e) => reportScroll(e.nativeEvent.contentOffset.y)}
           scrollEventThrottle={16}
           ItemSeparatorComponent={() => <View style={{ height: 4 }} />}
-          renderItem={({ item }) => <LinkRow link={item} />}
+          renderItem={({ item }) => <LinkRow link={item} showNfcButton />}
           ListEmptyComponent={
             <EmptyState
               icon="link"

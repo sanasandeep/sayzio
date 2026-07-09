@@ -113,11 +113,19 @@ export default function Home() {
               />
             </View>
             <View style={styles.tileRow}>
-              <StatTile
-                label="NFC writes"
-                value={q.data?.totals?.nfc_writes ?? 0}
-                icon="wifi"
-              />
+              <Pressable
+                onPress={() => router.push("/(tabs)/links")}
+                style={{ flex: 1 }}
+                accessibilityRole="button"
+                accessibilityLabel="NFC writes — tap to write a tag"
+              >
+                <StatTile
+                  label="NFC writes"
+                  value={q.data?.totals?.nfc_writes ?? 0}
+                  icon="wifi"
+                  hint="Tap to write a tag"
+                />
+              </Pressable>
               <StatTile
                 label="Followers"
                 value={q.data?.totals?.followers ?? 0}

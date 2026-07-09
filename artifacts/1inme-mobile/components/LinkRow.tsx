@@ -2,11 +2,18 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppIcon } from "@/components/AppIcon";
+import { NfcWriteTrigger } from "@/components/NfcWriteTrigger";
 import { useColors } from "@/hooks/useColors";
 import type { Link } from "@/lib/api/links";
 import { metaForApiType } from "@/lib/linkKinds";
 
-export function LinkRow({ link }: { link: Link }) {
+export function LinkRow({
+  link,
+  showNfcButton,
+}: {
+  link: Link;
+  showNfcButton?: boolean;
+}) {
   const colors = useColors();
   const router = useRouter();
   const meta = metaForApiType(link.type);
@@ -65,6 +72,13 @@ export function LinkRow({ link }: { link: Link }) {
           clicks
         </Text>
       </View>
+      {showNfcButton && link.short_url ? (
+        <NfcWriteTrigger
+          linkId={link.id}
+          url={link.short_url}
+          variant="icon"
+        />
+      ) : null}
       {!link.is_active ? (
         <View
           style={[

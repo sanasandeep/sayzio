@@ -19,6 +19,7 @@ import {
   type ClickHeatmapHandle,
 } from "@/components/ClickHeatmap";
 import { CoinCostHint, insufficientCoins } from "@/components/CoinCostHint";
+import { NfcWriteTrigger } from "@/components/NfcWriteTrigger";
 import { StatTile } from "@/components/StatTile";
 import { useColors } from "@/hooks/useColors";
 import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
@@ -37,6 +38,7 @@ import {
   runAudienceEstimate,
   updateRateLimit,
 } from "@/lib/api/analytics";
+import { getLink } from "@/lib/api/links";
 import {
   handlePlanLockedError,
   upgradeHintFromError,
@@ -90,6 +92,11 @@ export default function LinkAnalyticsScreen() {
     queryFn: () => getNfcCount(id),
     enabled: Number.isFinite(id),
   });
+  const linkQ = useQuery({
+    queryKey: ["link", id],
+    queryFn: () => getLink(id),
+    enabled: Number.isFinite(id),
+  });
 
   if (a.isLoading) {
     return (
@@ -138,6 +145,18 @@ export default function LinkAnalyticsScreen() {
             hint="Excluded from totals"
           />
         </View>
+        {linkQ.data?.short_url ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <NfcWriteTrigger
+              linkId={id}
+              url={linkQ.data.short_url}
+              variant="button"
+              onWritten={() => {
+                void n.refetch();
+              }}
+            />
+          </View>
+        ) : null}
 
         <HeatmapSection linkId={id} />
 

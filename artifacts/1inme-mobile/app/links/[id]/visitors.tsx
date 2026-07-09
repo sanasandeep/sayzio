@@ -14,6 +14,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { NfcWriteTrigger } from "@/components/NfcWriteTrigger";
 import { StatTile } from "@/components/StatTile";
 import { VisitorTrendChart } from "@/components/VisitorTrendChart";
 import { useColors } from "@/hooks/useColors";
@@ -148,10 +149,17 @@ export default function LinkVisitorsScreen() {
 
             {data.nfc_count > 0 ? (
               <Section title="NFC writes" colors={colors} icon="wifi">
-                <Text style={{ color: colors.foreground, fontSize: 13 }}>
-                  {data.nfc_count.toLocaleString()} tag
-                  {data.nfc_count === 1 ? "" : "s"} programmed with this link.
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                  <Text style={{ color: colors.foreground, fontSize: 13, flex: 1 }}>
+                    {data.nfc_count.toLocaleString()} tag
+                    {data.nfc_count === 1 ? "" : "s"} programmed with this link.
+                  </Text>
+                  <NfcWriteTrigger
+                    linkId={id}
+                    url={`${getBaseUrl().replace(/\/api\/?$/, "")}/${data.link.alias}`}
+                    variant="button"
+                  />
+                </View>
                 {data.nfc_recent.length > 0 ? (
                   <View style={{ gap: 4, marginTop: 4 }}>
                     {data.nfc_recent.map((w) => (
