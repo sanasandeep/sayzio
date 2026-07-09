@@ -266,21 +266,51 @@ function isCachedSlideLike(s: unknown): s is CachedSlideLike {
 }
 
 // Returns the cached slide list, or null when nothing valid is stored
-// (never throws — a corrupt entry is treated as a cache miss).
+// (never throws — a corrupt entry is treated as a cache miss). Corrupt or
+// structurally invalid entries are proactively deleted so they can't be
+// re-parsed on every launch; individual malformed slides are filtered out
+// while the remaining valid ones are still served.
 export const getCachedOnboardingSlides = async <
   T extends CachedSlideLike = CachedSlideLike,
 >(): Promise<T[] | null> => {
   try {
     const raw = await AsyncStorage.getItem(ONBOARDING_SLIDES_CACHE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed) || parsed.length === 0) return null;
-    if (!parsed.every(isCachedSlideLike)) return null;
-    return parsed as T[];
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      // Corrupt JSON — clear it so future launches skip the parse attempt.
+      await clearCorruptOnboardingSlidesCache();
+      return null;
+    }
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      // Wrong shape (object/string/…) or a useless empty array — clear it.
+      await clearCorruptOnboardingSlidesCache();
+      return null;
+    }
+    const valid = parsed.filter(isCachedSlideLike);
+    if (valid.length === 0) {
+      // Every entry is malformed — treat like a corrupt cache and clear.
+      await clearCorruptOnboardingSlidesCache();
+      return null;
+    }
+    return valid as T[];
   } catch {
+    // Storage read failure — never let caching break the intro flow.
     return null;
   }
 };
+
+// Best-effort removal of a corrupt cache entry; failures are swallowed so
+// a broken storage layer can never turn a cache miss into a crash.
+async function clearCorruptOnboardingSlidesCache(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(ONBOARDING_SLIDES_CACHE_KEY);
+  } catch {
+    // noop
+  }
+}
 
 // Persist the latest successfully fetched slides. Passing null/[] clears
 // the cache. Best-effort: storage failures are swallowed so caching can
