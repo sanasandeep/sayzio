@@ -24,6 +24,9 @@ export default defineConfig({
         "content-extract-contact": resolve(__dirname, "src/content/extract-contact.ts"),
         "content-handshake": resolve(__dirname, "src/content/handshake.ts"),
         "content-radar": resolve(__dirname, "src/content/radar.ts"),
+        "content-dial": resolve(__dirname, "src/content/dial.ts"),
+        "content-event-extract": resolve(__dirname, "src/content/event-extract.ts"),
+        "content-review-detect": resolve(__dirname, "src/content/review-detect.ts"),
       },
       output: {
         entryFileNames: (chunk) => {
@@ -32,6 +35,9 @@ export default defineConfig({
           if (chunk.name === "content-extract-contact") return "content-extract-contact.js";
           if (chunk.name === "content-handshake") return "content-handshake.js";
           if (chunk.name === "content-radar") return "content-radar.js";
+          if (chunk.name === "content-dial") return "content-dial.js";
+          if (chunk.name === "content-event-extract") return "content-event-extract.js";
+          if (chunk.name === "content-review-detect") return "content-review-detect.js";
           return "assets/[name]-[hash].js";
         },
         chunkFileNames: "assets/[name]-[hash].js",

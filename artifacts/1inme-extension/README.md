@@ -11,12 +11,26 @@ Primary actions on any page you visit:
 3. **Save contact** — extracts the page author/business contact (vCard `.vcf`, hCard microformats, JSON-LD `Person`/`Organization`, or a heuristic email/phone scrape) and saves it to your Sayzio address book in one click (`POST /api/v1/contacts`). Default tags and the active workspace for saves are configurable in **Settings**.
 4. **Backlink radar** (opt-in) — quietly notices when a page you're browsing links **to you** (one of your short links, your bio-link username path, or any of your verified custom domains) and surfaces a "This page links to you" card in the popup with one-click **Save**, **Open**, and **Thank** actions. A **Backlinks** tab keeps a filterable history with CSV export.
 
+New in this release:
+
+5. **Notifications** — a 🔔 tab in the popup polls `/api/v1/notifications` every 30 s and shows an unread badge. High-signal events (new subscriber, form submission, restaurant/store order, payment received, review received) also fire a native browser notification. Mark-all-read is one click.
+6. **Click-to-dial** (opt-in) — when turned on in Settings, a content script scans pages for phone numbers and adds a hover overlay that shows the matching Sayzio contact, bio-link, and recent activity. The lookup is relayed to the background service worker so the API token stays safe.
+7. **Capture reviews** — detect the Google Maps or Trustpilot business on the current page and pull reviews into your Sayzio Reviews wall in one click (`POST /api/v1/me/reviews/capture-source`).
+8. **Add to existing bio-link** — pick any of your bio-links from a dropdown and append the current page as a new link block, without leaving the browser tab.
+9. **Quick QR** — choose a preset style and generate a QR code for the current URL directly from the popup (`POST /api/v1/qr-codes`).
+10. **Add to calendar** — auto-extracts JSON-LD / Microdata event data from the page and pre-fills a form to add the event to any of your Sayzio calendars.
+11. **Dual-mode page → bio-link** — the "Turn into bio-link page" button now opens a mode picker: **Quick** (instant, no AI credits) or **AI-powered** (uses the AI Biolink Builder from your wallet).
+
 A **right-click context menu** mirrors these actions:
 
 - **Shorten this page with Sayzio** (right-click anywhere on a page)
 - **Shorten link with Sayzio** (right-click on any link)
 - **Turn page into Sayzio bio-link** (right-click anywhere on a page)
 - **Save contact with Sayzio** (right-click anywhere on a page)
+- **Add this page to a bio-link** (right-click anywhere on a page)
+- **Design QR for this page / this link** (right-click anywhere or on a link)
+- **Add page event to Sayzio calendar** (right-click anywhere on a page)
+- **Capture reviews for this business** (right-click anywhere on a page)
 
 ## Permissions
 
@@ -25,8 +39,9 @@ From `src/manifest.chrome.json` / `src/manifest.firefox.json` (both MV3):
 - `permissions`: `activeTab`, `storage`, `contextMenus`, `scripting`, `notifications`, `tabs`, `alarms`.
 - `host_permissions`: `<all_urls>` (Chrome/Edge also declare `optional_host_permissions` for `http(s)://*/*`).
 - **Static content script**: `content-handshake.js`, matched against `https://sayzio.app/extension/handshake*`.
-- **Dynamically registered content scripts** (via the `scripting` API): the backlink **radar** against `http(s)://*/*` (minus muted hosts) and a **handshake** script against your configured `webBaseUrl` when it differs from the default.
-- **Background**: a module service worker (`background.js`) on Chrome/Edge; Firefox uses a non-service-worker background `scripts` entry (`browser_specific_settings.gecko`, `strict_min_version` 115). The worker manages context menus, orchestrates auth handshakes, coordinates radar scans, performs clipboard writes via injected scripting, and runs an `alarms`-driven periodic sync (~30s) for the pending-thanks queue.
+- **Dynamically registered content scripts** (via the `scripting` API): the backlink **radar** against `http(s)://*/*` (minus muted hosts); the **click-to-dial** detector (opt-in via Settings) against `http(s)://*/*`; and a **handshake** script against your configured `webBaseUrl` when it differs from the default.
+- **Injected-on-demand content scripts** (via `executeScript` inside popup flows): `content-event-extract.js` (JSON-LD/Microdata event detection for Add-to-calendar) and `content-review-detect.js` (Google Maps / Trustpilot business detection for Capture reviews). These run only when the relevant popup view is opened, never passively.
+- **Background**: a module service worker (`background.js`) on Chrome/Edge; Firefox uses a non-service-worker background `scripts` entry (`browser_specific_settings.gecko`, `strict_min_version` 115). The worker manages context menus, orchestrates auth handshakes, coordinates radar scans, performs clipboard writes via injected scripting, and runs two `alarms`-driven periodic syncs (~30 s each): the pending-thanks queue and the notifications unread count (which also sets the extension badge).
 
 ## Build
 

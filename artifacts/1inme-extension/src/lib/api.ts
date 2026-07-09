@@ -304,6 +304,114 @@ export const api = {
       body: { rules },
     }),
 
+  // ── Notifications ─────────────────────────────────────────────────
+  getNotifications: (opts: { perPage?: number; page?: number } = {}) => {
+    const q = new URLSearchParams();
+    if (opts.perPage) q.set("per_page", String(opts.perPage));
+    if (opts.page) q.set("page", String(opts.page));
+    return request<{ items: NotificationItem[]; meta: { total: number; unread: number } }>(
+      `/notifications${q.toString() ? `?${q}` : ""}`,
+    );
+  },
+
+  markNotificationRead: (id: number) =>
+    request<null>(`/notifications/${id}/read`, { method: "POST" }),
+
+  markAllNotificationsRead: () =>
+    request<null>("/notifications/read-all", { method: "POST" }),
+
+  // ── Dialer ────────────────────────────────────────────────────────
+  dialerLookup: (numberE164: string) =>
+    request<{
+      contact: { id: number; name: string; organization?: string | null } | null;
+      biolink: { alias: string; short_url?: string } | null;
+      activity: unknown[];
+      is_spam: boolean;
+      is_blocked: boolean;
+      is_favorite: boolean;
+    }>("/dialer/lookup", { method: "POST", body: { number_e164: numberE164 } }),
+
+  // ── Biolinks (for the "Add to existing bio-link" picker) ──────────
+  getBiolinks: (perPage = 30) =>
+    request<{ items: Array<{ id: number; alias: string; title?: string | null; short_url?: string }> }>(
+      `/links?type=biolink&per_page=${perPage}`,
+    ),
+
+  // ── QR Studio ─────────────────────────────────────────────────────
+  getQrCatalog: () =>
+    request<{
+      presets: Array<{ id: string; name: string; design: Record<string, unknown> }>;
+      dots: unknown[];
+      outer_eyes: unknown[];
+      inner_eyes: unknown[];
+      frames: unknown[];
+      fonts: unknown[];
+      types: unknown[];
+      default_design: Record<string, unknown>;
+    }>("/qr-codes/catalog"),
+
+  createQrCode: (
+    name: string,
+    type: string,
+    payload?: Record<string, unknown>,
+    linkId?: number,
+    design?: Record<string, unknown>,
+  ) =>
+    request<{ qr_code: { id: number; name: string; encoded?: string; svg?: string; short_url?: string } }>("/qr-codes", {
+      method: "POST",
+      body: {
+        name,
+        type,
+        payload: payload ?? undefined,
+        link_id: linkId ?? undefined,
+        design: design ?? undefined,
+      },
+    }),
+
+  // ── Calendars ─────────────────────────────────────────────────────
+  getCalendars: () =>
+    request<{ items: Array<{ id: number; name: string; color?: string | null; is_default?: boolean }> }>("/calendars"),
+
+  createCalendarEvent: (calendarId: number, event: {
+    title: string;
+    description?: string;
+    location?: string;
+    start_date?: string;
+    end_date?: string;
+    url?: string;
+  }) =>
+    request<{ event: { id: number; title: string; start_date?: string } }>(
+      `/calendars/${calendarId}/events`,
+      { method: "POST", body: event },
+    ),
+
+  // ── AI Biolink Builder ────────────────────────────────────────────
+  aiBiolinkIntake: (linkId: number) =>
+    request<{ intake: Record<string, unknown>; credit_cost: number; plan_allowed: boolean }>(
+      `/links/${linkId}/ai-builder`,
+    ),
+
+  aiBiolinkGenerate: (linkId: number, body: {
+    prompt?: string;
+    context_url?: string;
+    images?: string[];
+  }) =>
+    request<{ link: { id: number; alias: string } }>(
+      `/links/${linkId}/ai-builder/generate`,
+      { method: "POST", body },
+    ),
+
+  // ── Review capture (extension endpoint) ──────────────────────────
+  captureReviewSource: (
+    provider: "google" | "trustpilot",
+    externalRef: string,
+    name?: string,
+  ) =>
+    request<{ connection_id: number; provider: string; status: string; preview: boolean }>(
+      "/me/reviews/capture-source",
+      { method: "POST", body: { provider, external_ref: externalRef, name: name ?? undefined } },
+    ),
+
   // ── Pending thank-yous queue (synced per workspace) ───────────────
   getPendingThanks: (workspaceId?: number | null) =>
     request<PendingThanksPayload>(
@@ -331,6 +439,15 @@ export const api = {
       { method: "PUT", body: { items, updated_at_ms: updatedAtMs } },
     ),
 };
+
+export interface NotificationItem {
+  id: number;
+  type: string;
+  data: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+  message?: string | null;
+}
 
 export interface PendingThanksPayload {
   workspace_id: number;

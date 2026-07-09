@@ -38,6 +38,18 @@ export interface ExtSettings {
   // Per-domain opt-out: hosts the user has explicitly disabled.
   radarDisabledHosts: string[];
 
+  // Notifications — cached unread count from the last background poll.
+  // The popup uses this to render a badge on the Notifications tab
+  // without a network round-trip on every popup open.
+  notifUnreadCount: number;
+  // Epoch ms of the last successful notification poll. Used to limit
+  // the frequency of browser.notifications.create() calls so we only
+  // fire a native notification for items newer than the last check.
+  notifLastPolledAt: number | null;
+
+  // Click-to-dial — opt-in phone-number detection content script.
+  dialEnabled: boolean;
+
   // Saved thank-you templates (max 3) used by the radar's "Thank" action.
   // Placeholders supported in subject/body: {pageUrl}, {matchedUrl}, {anchor}.
   thankTemplates: ThankTemplate[];
@@ -175,6 +187,9 @@ export const defaultSettings: ExtSettings = {
   radarEnabled: false,
   radarOnboarded: false,
   radarDisabledHosts: [],
+  notifUnreadCount: 0,
+  notifLastPolledAt: null,
+  dialEnabled: false,
   thankTemplates: defaultThankTemplates(),
   thankTemplatesUpdatedAtMs: null,
   thankTemplatesLastServerTs: null,

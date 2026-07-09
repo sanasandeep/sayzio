@@ -170,7 +170,59 @@ async function setupContextMenus() {
       title: "Save contact with Sayzio",
       contexts: ["page", "selection"],
     });
+    browser.contextMenus.create({
+      id: "1inme-separator-1",
+      type: "separator",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-add-to-biolink",
+      title: "Add this page to a bio-link",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-quick-qr",
+      title: "Design QR for this page",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-quick-qr-link",
+      title: "Design QR for this link",
+      contexts: ["link"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-add-to-calendar",
+      title: "Add page event to Sayzio calendar",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-capture-reviews",
+      title: "Capture reviews for this business",
+      contexts: ["page"],
+    });
   } catch { /* context menus permission missing */ }
+}
+
+// ── Dial content-script registration ─────────────────────────────────
+const DIAL_SCRIPT_ID = "1inme-dial";
+
+async function refreshDialRegistration() {
+  if (!browser.scripting?.registerContentScripts) return;
+  try { await browser.scripting.unregisterContentScripts({ ids: [DIAL_SCRIPT_ID] }); } catch { /* not registered */ }
+  const settings = await getSettings();
+  if (!settings.dialEnabled || !settings.token) return;
+  try {
+    await browser.scripting.registerContentScripts([
+      {
+        id: DIAL_SCRIPT_ID,
+        matches: ["http://*/*", "https://*/*"],
+        js: ["content-dial.js"],
+        runAt: "document_idle",
+        persistAcrossSessions: true,
+        allFrames: false,
+      },
+    ]);
+  } catch { /* host permission may be missing */ }
 }
 
 async function extractContactCandidate(tabId: number): Promise<{ ok: true; candidate: any } | { ok: false; error: string }> {
@@ -282,6 +334,105 @@ async function refreshHandshakeMatches() {
 // also the documented minimum. Service-worker alarms are far cheaper
 // than a setInterval (which wouldn't survive SW shutdown anyway) and
 // only fire while the browser is awake, so this stays power-friendly.
+// ── Notification polling alarm ────────────────────────────────────────
+// Polls /notifications every 30 s while signed in. Stores the unread
+// count in storage so the popup's tab badge stays in sync without a
+// network round-trip. Fires native browser.notifications for high-signal
+// event types that arrive since the last check.
+
+const NOTIF_ALARM = "1inme-notif-poll";
+const NOTIF_PERIOD_MIN = 0.5;
+
+// Notification types that warrant a native browser notification when
+// they arrive in the background (unread_count increases).
+const HIGH_SIGNAL_TYPES = new Set([
+  "new_subscriber",
+  "new_follower",
+  "form_submission",
+  "restaurant_order",
+  "store_order",
+  "payment_received",
+  "review_received",
+  "dialer_callback_due",
+]);
+
+function notifIcon(type: string): string {
+  if (type.includes("subscriber")) return "👤";
+  if (type.includes("follower"))   return "➕";
+  if (type.includes("form"))       return "📝";
+  if (type.includes("restaurant")) return "🍽️";
+  if (type.includes("store_order")) return "🛒";
+  if (type.includes("payment"))    return "💰";
+  if (type.includes("review"))     return "⭐";
+  if (type.includes("callback"))   return "📞";
+  return "🔔";
+}
+
+function notifLabel(item: { type: string; data: Record<string, unknown>; message?: string | null }): string {
+  if (item.message) return item.message;
+  const d = item.data;
+  if (typeof d.message === "string") return d.message;
+  if (typeof d.body === "string")    return d.body;
+  if (typeof d.title === "string")   return d.title;
+  return item.type.replace(/_/g, " ");
+}
+
+async function syncNotifications() {
+  const settings = await getSettings();
+  if (!settings.token) return;
+  try {
+    const resp = await api.getNotifications({ perPage: 20 });
+    const items = resp.items ?? [];
+    const unread = items.filter((n) => !n.read_at);
+    const newCount = unread.length;
+    const prevCount = settings.notifUnreadCount ?? 0;
+    const lastPolled = settings.notifLastPolledAt ?? 0;
+    const now = Date.now();
+
+    // Persist updated count + poll timestamp.
+    await setSettings({ notifUnreadCount: newCount, notifLastPolledAt: now });
+
+    // Update the global extension badge (tab-specific radar badges override
+    // this per-tab, but the global badge shows when no tab override is set).
+    try {
+      const badgeText = newCount > 0 ? String(newCount > 99 ? "99+" : newCount) : "";
+      await (browser.action as any).setBadgeText?.({ text: badgeText });
+      if (newCount > 0) {
+        await (browser.action as any).setBadgeBackgroundColor?.({ color: "#ef4444" });
+      }
+    } catch { /* badge updates are best-effort */ }
+
+    // Fire native notifications only for genuinely new high-signal items.
+    if (newCount > prevCount && lastPolled > 0) {
+      const newItems = unread.filter((n) => {
+        if (!HIGH_SIGNAL_TYPES.has(n.type)) return false;
+        // Only items newer than the previous poll.
+        try { return new Date(n.created_at).getTime() > lastPolled; } catch { return false; }
+      });
+      for (const item of newItems.slice(0, 3)) {
+        notify(`Sayzio ${notifIcon(item.type)}`, notifLabel(item));
+      }
+    }
+  } catch { /* offline — retry on next alarm */ }
+}
+
+async function ensureNotifAlarm() {
+  if (!browser.alarms?.create) return;
+  const settings = await getSettings();
+  if (!settings.token) {
+    try { await browser.alarms.clear(NOTIF_ALARM); } catch { /* not set */ }
+    return;
+  }
+  try {
+    const existing = await browser.alarms.get(NOTIF_ALARM);
+    if (existing && existing.periodInMinutes === NOTIF_PERIOD_MIN) return;
+    await browser.alarms.create(NOTIF_ALARM, {
+      periodInMinutes: NOTIF_PERIOD_MIN,
+      delayInMinutes: NOTIF_PERIOD_MIN,
+    });
+  } catch { /* alarms permission may be missing in older builds */ }
+}
+
 const PENDING_THANKS_ALARM = "1inme-pending-thanks-poll";
 const PENDING_THANKS_PERIOD_MIN = 0.5;
 
@@ -306,34 +457,46 @@ async function ensurePendingThanksAlarm() {
 }
 
 browser.alarms?.onAlarm.addListener((alarm: any) => {
-  if (alarm?.name !== PENDING_THANKS_ALARM) return;
-  syncPendingThanks().catch(() => undefined);
+  if (alarm?.name === PENDING_THANKS_ALARM) {
+    syncPendingThanks().catch(() => undefined);
+  } else if (alarm?.name === NOTIF_ALARM) {
+    syncNotifications().catch(() => undefined);
+  }
 });
 
 browser.runtime.onInstalled.addListener(() => {
   setupContextMenus();
   refreshHandshakeMatches();
   refreshRadarRegistration();
+  refreshDialRegistration();
   ensurePendingThanksAlarm();
+  ensureNotifAlarm();
 });
 browser.runtime.onStartup?.addListener?.(() => {
   setupContextMenus();
   refreshHandshakeMatches();
   refreshRadarRegistration();
+  refreshDialRegistration();
   ensurePendingThanksAlarm();
+  ensureNotifAlarm();
   // One immediate reconcile on browser launch so a queue change made
   // while this profile was closed shows up before the first alarm tick.
   syncPendingThanks().catch(() => undefined);
+  syncNotifications().catch(() => undefined);
 });
 browser.storage.onChanged.addListener((changes: any, area: string) => {
   if (area !== "local") return;
   if (changes.webBaseUrl) refreshHandshakeMatches();
   if (changes.radarEnabled || changes.radarDisabledHosts || changes.token) refreshRadarRegistration();
+  if (changes.dialEnabled || changes.token) refreshDialRegistration();
   if (changes.token) clearCachedProperties().catch(() => undefined);
   // Re-arm (or tear down) the pending-thanks alarm when the auth or
   // active workspace changes so we don't poll without a token and we
   // pick up the right workspace's queue right after a switch.
-  if (changes.token || changes.workspaceId) ensurePendingThanksAlarm();
+  if (changes.token || changes.workspaceId) {
+    ensurePendingThanksAlarm();
+    ensureNotifAlarm();
+  }
 });
 
 // Drop per-tab match cache + badge when a tab navigates away or closes.
@@ -345,6 +508,29 @@ browser.tabs.onUpdated.addListener((tabId: number, info: any) => {
   }
 });
 
+// Store a pending action payload that the popup reads on open. Used for
+// context-menu-initiated flows (add-to-biolink, QR, calendar, reviews)
+// where the action requires user interaction inside the popup.
+async function stashPendingAction(action: {
+  type: string;
+  url: string;
+  title: string;
+  linkUrl?: string;
+}) {
+  await browser.storage.local.set({
+    pendingAction: { ...action, at: Date.now() },
+  });
+  try {
+    if ((browser.action as any)?.openPopup) {
+      await (browser.action as any).openPopup();
+    } else {
+      notify("Sayzio", "Open the Sayzio extension to continue.");
+    }
+  } catch {
+    notify("Sayzio", "Open the Sayzio extension to continue.");
+  }
+}
+
 browser.contextMenus?.onClicked.addListener(async (info, tab) => {
   if (!tab?.id) return;
   if (info.menuItemId === "1inme-shorten-page") {
@@ -355,16 +541,52 @@ browser.contextMenus?.onClicked.addListener(async (info, tab) => {
     const result = await shortenAndCopy(url, undefined, tab.id);
     if (!result.ok) notify("Sayzio — error", result.error);
   } else if (info.menuItemId === "1inme-page-to-biolink") {
-    const result = await pageToBiolink(tab.id);
-    if (!result.ok) notify("Sayzio — error", result.error);
+    // Open popup with the biolink mode picker so user can choose Quick vs AI.
+    await stashPendingAction({ type: "PAGE_TO_BIOLINK_MODE", url: tab.url || "", title: tab.title || "" });
   } else if (info.menuItemId === "1inme-save-contact") {
     await stashContactCandidateAndOpenPopup(tab.id);
+  } else if (info.menuItemId === "1inme-add-to-biolink") {
+    await stashPendingAction({ type: "ADD_TO_BIOLINK", url: tab.url || "", title: tab.title || "" });
+  } else if (info.menuItemId === "1inme-quick-qr") {
+    await stashPendingAction({ type: "QUICK_QR", url: tab.url || "", title: tab.title || "" });
+  } else if (info.menuItemId === "1inme-quick-qr-link") {
+    await stashPendingAction({ type: "QUICK_QR", url: info.linkUrl || tab.url || "", title: info.linkUrl || "" });
+  } else if (info.menuItemId === "1inme-add-to-calendar") {
+    await stashPendingAction({ type: "ADD_TO_CALENDAR", url: tab.url || "", title: tab.title || "" });
+  } else if (info.menuItemId === "1inme-capture-reviews") {
+    await stashPendingAction({ type: "CAPTURE_REVIEWS", url: tab.url || "", title: tab.title || "" });
   }
 });
 
 browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
   if (!msg || typeof msg !== "object") return;
   switch (msg.type) {
+    case "DIAL_LOOKUP": {
+      // Forwarded from the dial content script (cannot call the API directly
+      // because of CORS / auth; the background SW has the token).
+      const settings = await getSettings();
+      if (!settings.token) return { ok: false, error: "Not signed in" };
+      try {
+        const data = await api.dialerLookup(msg.number);
+        return { ok: true, data };
+      } catch (e: any) {
+        return { ok: false, error: e?.message || "Lookup failed" };
+      }
+    }
+    case "PAGE_TO_BIOLINK_AI": {
+      // AI-powered biolink builder path. Creates the biolink with the standard
+      // Quick path first, then triggers the AI builder on it.
+      const tabId = msg.tabId ?? sender.tab?.id;
+      if (!tabId) return { ok: false, error: "No active tab" };
+      const settings = await getSettings();
+      if (!settings.token) return { ok: false, error: "Not signed in" };
+      // Step 1: Quick extraction + biolink creation.
+      const quickResult = await pageToBiolink(tabId);
+      if (!quickResult.ok) return quickResult;
+      // The popup will open the editor — user can run AI builder from there.
+      notify("Sayzio — AI builder", "Bio-link draft created. Use the AI Builder in the editor to enhance it.");
+      return quickResult;
+    }
     case "SHORTEN_URL": {
       const tabId = sender.tab?.id;
       let activeTabId = tabId;

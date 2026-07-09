@@ -349,6 +349,7 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/me/reviews/{review}/pin',     [\App\Modules\Api\Controllers\ReviewApiController::class, 'pin'])->whereNumber('review');
         Route::post  ('/me/reviews/{review}/reply',   [\App\Modules\Api\Controllers\ReviewApiController::class, 'reply'])->whereNumber('review');
         Route::delete('/me/reviews/{review}',         [\App\Modules\Api\Controllers\ReviewApiController::class, 'destroy'])->whereNumber('review');
+        Route::post  ('/me/reviews/capture-source',  [\App\Modules\Api\Controllers\ReviewCaptureController::class, 'capture']);
 
         // ── Roadmap triage (owner-scoped) ────────────────────────────
         // Bearer-token parity for the web /user/links/{link}/roadmap

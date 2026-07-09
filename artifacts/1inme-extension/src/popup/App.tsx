@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { browser } from "../lib/browser";
-import { ApiError, api, AbVariantsPayload, BacklinkRow, LinkSummary, SmartRule, WorkspacePixels } from "../lib/api";
+import { ApiError, api, AbVariantsPayload, BacklinkRow, LinkSummary, SmartRule, WorkspacePixels, NotificationItem } from "../lib/api";
+import { NotificationsView } from "./NotificationsView";
+import { AddToBiolinkView } from "./AddToBiolinkView";
+import { QuickQrView } from "./QuickQrView";
+import { AddToCalendarView } from "./AddToCalendarView";
+import { ReviewCaptureView } from "./ReviewCaptureView";
+import { BiolinkModeView } from "./BiolinkModeView";
 import {
   AuthorBookEntry,
   AuthorContacts,
@@ -70,7 +76,20 @@ function buildComposerUrl(t: {
 }
 
 type Toast = { kind: "success" | "error" | "info"; text: string; link?: { href: string; label: string } } | null;
-type View = "main" | "login" | "settings" | "backlinks" | "onboarding" | "ab" | "contact-preview";
+type View =
+  | "main"
+  | "login"
+  | "settings"
+  | "backlinks"
+  | "onboarding"
+  | "ab"
+  | "contact-preview"
+  | "notifications"
+  | "add-biolink"
+  | "quick-qr"
+  | "add-calendar"
+  | "review-capture"
+  | "biolink-mode";
 
 type AbTestItem = { link: { id: number; alias: string; short_url?: string; title?: string }; variants: AbVariantsPayload };
 
@@ -115,6 +134,8 @@ export function App() {
   // thanks were auto-pruned on popup open. Cleared once the creator
   // dismisses it so it doesn't keep nagging.
   const [prunedThanks, setPrunedThanks] = useState<number>(0);
+  // Unread notification count, seeded from storage on popup open.
+  const [notifUnreadCount, setNotifUnreadCount] = useState<number>(0);
 
   const loadAbTests = useCallback(async () => {
     setAbLoading(true);
@@ -144,8 +165,14 @@ export function App() {
       setPrunedThanks((p) => p + pruned);
     }
     setLocalSettings(s);
+    setNotifUnreadCount(s.notifUnreadCount ?? 0);
     setView((v) => {
-      if (v === "contact-preview") return v;
+      // Preserve all sub-views that shouldn't be reset on a storage-change refresh.
+      const preservedViews: View[] = [
+        "contact-preview", "ab", "notifications", "add-biolink",
+        "quick-qr", "add-calendar", "review-capture", "biolink-mode",
+      ];
+      if (preservedViews.includes(v)) return v;
       if (!s.token) return "login";
       if (!s.radarOnboarded) return "onboarding";
       if (v === "login" || v === "onboarding") return "main";
@@ -180,12 +207,27 @@ export function App() {
     };
     browser.storage.onChanged.addListener(listener);
     // Pending candidate handed off from the context-menu flow.
-    browser.storage.local.get("pendingContactCandidate").then((res: any) => {
+    browser.storage.local.get(["pendingContactCandidate", "pendingAction"]).then((res: any) => {
       const pending = res?.pendingContactCandidate;
       if (pending && pending.candidate) {
         setCandidate(pending.candidate);
         setView("contact-preview");
         browser.storage.local.remove("pendingContactCandidate");
+        return; // contact-preview takes precedence
+      }
+      // Context-menu actions (Add to bio-link, QR, Calendar, Reviews, Bio-link mode picker).
+      const action = res?.pendingAction;
+      if (action && action.at && Date.now() - action.at < 60_000) {
+        browser.storage.local.remove("pendingAction");
+        const typeToView: Record<string, View> = {
+          ADD_TO_BIOLINK: "add-biolink",
+          QUICK_QR: "quick-qr",
+          ADD_TO_CALENDAR: "add-calendar",
+          CAPTURE_REVIEWS: "review-capture",
+          PAGE_TO_BIOLINK_MODE: "biolink-mode",
+        };
+        const nextView = typeToView[action.type];
+        if (nextView) setView(nextView);
       }
     });
     return () => browser.storage.onChanged.removeListener(listener);
@@ -355,6 +397,7 @@ export function App() {
         view={view}
         onTabChange={setView}
         unreadPendingThanks={unreadPendingThanksCount(settings.pendingThanks || [], settings.pendingThanksSeenIds || [])}
+        notifUnreadCount={notifUnreadCount}
       />
       {view === "login" && <LoginView settings={settings} onAuthed={refresh} showToast={showToast} />}
       {view === "onboarding" && <OnboardingView onDone={refresh} />}
@@ -401,6 +444,94 @@ export function App() {
           showToast={showToast}
           prunedThanks={prunedThanks}
           onDismissPruned={() => setPrunedThanks(0)}
+        />
+      )}
+      {view === "notifications" && (
+        <NotificationsView
+          onUnreadChange={(n) => setNotifUnreadCount(n)}
+          showToast={showToast}
+        />
+      )}
+      {view === "add-biolink" && settings.token && (
+        <AddToBiolinkView
+          tabUrl={tabUrl}
+          tabTitle={tabTitle}
+          workspaceId={settings.workspaceId ?? null}
+          onCancel={() => setView("main")}
+          onAdded={() => {
+            setView("main");
+            showToast({ kind: "success", text: "Added to your bio-link!" });
+          }}
+          showToast={showToast}
+        />
+      )}
+      {view === "quick-qr" && settings.token && (
+        <QuickQrView
+          tabUrl={tabUrl}
+          tabTitle={tabTitle}
+          onCancel={() => setView("main")}
+          onCreated={(shortUrl) => {
+            setView("main");
+            showToast({
+              kind: "success",
+              text: "QR code created!",
+              link: shortUrl ? { href: shortUrl, label: "Open" } : undefined,
+            });
+          }}
+          showToast={showToast}
+        />
+      )}
+      {view === "add-calendar" && settings.token && (
+        <AddToCalendarView
+          tabUrl={tabUrl}
+          tabTitle={tabTitle}
+          workspaceId={settings.workspaceId ?? null}
+          onCancel={() => setView("main")}
+          onCreated={() => {
+            setView("main");
+            showToast({ kind: "success", text: "Event added to your calendar!" });
+          }}
+          showToast={showToast}
+        />
+      )}
+      {view === "review-capture" && settings.token && (
+        <ReviewCaptureView
+          onCancel={() => setView("main")}
+          onCaptured={() => setView("main")}
+          showToast={showToast}
+        />
+      )}
+      {view === "biolink-mode" && settings.token && (
+        <BiolinkModeView
+          tabUrl={tabUrl}
+          tabTitle={tabTitle}
+          onCancel={() => setView("main")}
+          onQuick={async () => {
+            setView("main");
+            if (!tabId) { showToast({ kind: "error", text: "No active tab" }); return; }
+            setBusy("biolink");
+            try {
+              const resp: any = await browser.runtime.sendMessage({ type: "PAGE_TO_BIOLINK", tabId });
+              if (resp?.ok) {
+                showToast({ kind: "success", text: "Bio-link draft created — opening editor…" });
+              } else {
+                showToast({ kind: "error", text: resp?.error || "Could not create bio-link" });
+              }
+            } finally { setBusy(null); }
+          }}
+          onAi={async () => {
+            setView("main");
+            if (!tabId) { showToast({ kind: "error", text: "No active tab" }); return; }
+            setBusy("biolink");
+            try {
+              const resp: any = await browser.runtime.sendMessage({ type: "PAGE_TO_BIOLINK_AI", tabId });
+              if (resp?.ok) {
+                showToast({ kind: "success", text: "Bio-link draft created — open the editor to finish with AI Builder" });
+              } else {
+                showToast({ kind: "error", text: resp?.error || "Could not create bio-link" });
+              }
+            } finally { setBusy(null); }
+          }}
         />
       )}
       {view === "main" && (
@@ -466,9 +597,51 @@ export function App() {
           <button className="btn-primary" disabled={!tabUrl || busy !== null} onClick={handleShorten}>
             {busy === "shorten" && <span className="spinner" />}Shorten &amp; copy
           </button>
-          <button className="btn-secondary" disabled={!tabId || busy !== null} onClick={handleBiolink}>
-            {busy === "biolink" && <span className="spinner" />}Turn into bio-link page
+          <button className="btn-secondary" disabled={!tabId || busy !== null} onClick={() => setView("biolink-mode")}>
+            Turn into bio-link page…
           </button>
+
+          <div className="divider" />
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button
+              className="btn-secondary"
+              style={{ flex: "1 1 auto", fontSize: 12, padding: "5px 8px" }}
+              disabled={!tabUrl || busy !== null}
+              onClick={() => setView("add-biolink")}
+              title="Add this page as a block on one of your existing bio-link pages"
+            >
+              ➕ Add to bio-link
+            </button>
+            <button
+              className="btn-secondary"
+              style={{ flex: "1 1 auto", fontSize: 12, padding: "5px 8px" }}
+              disabled={!tabUrl || busy !== null}
+              onClick={() => setView("quick-qr")}
+              title="Design a QR code for this page"
+            >
+              ◼ Quick QR
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button
+              className="btn-secondary"
+              style={{ flex: "1 1 auto", fontSize: 12, padding: "5px 8px" }}
+              disabled={!tabUrl || busy !== null}
+              onClick={() => setView("add-calendar")}
+              title="Add an event from this page to a Sayzio calendar"
+            >
+              📅 Add to calendar
+            </button>
+            <button
+              className="btn-secondary"
+              style={{ flex: "1 1 auto", fontSize: 12, padding: "5px 8px" }}
+              disabled={!tabUrl || busy !== null}
+              onClick={() => setView("review-capture")}
+              title="Pull reviews from this business into Sayzio"
+            >
+              ⭐ Capture reviews
+            </button>
+          </div>
 
           <div className="divider" />
           <SmartLinkSection
@@ -531,17 +704,18 @@ function buildPayload(c: ContactCandidate, settings: ExtSettings | null): Record
 }
 
 function Header({
-  settings, view, onTabChange, unreadPendingThanks,
+  settings, view, onTabChange, unreadPendingThanks, notifUnreadCount,
 }: {
   settings: ExtSettings;
   view: View;
   onTabChange: (v: View) => void;
   unreadPendingThanks: number;
+  notifUnreadCount: number;
 }) {
   const showTabs = !!settings.token && view !== "login" && view !== "onboarding";
   // Cap the displayed count so a long-stale queue can't blow out the
   // tab width. Anything over 99 collapses to "99+".
-  const badgeText = unreadPendingThanks > 99 ? "99+" : String(unreadPendingThanks);
+  const badgeText = (n: number) => n > 99 ? "99+" : String(n);
   return (
     <>
       <div className="header">
@@ -562,7 +736,35 @@ function Header({
                 aria-label={`${unreadPendingThanks} new pending thank-${unreadPendingThanks === 1 ? "you" : "yous"}`}
                 title={`${unreadPendingThanks} new pending thank-${unreadPendingThanks === 1 ? "you" : "yous"} synced from another browser`}
               >
-                {badgeText}
+                {badgeText(unreadPendingThanks)}
+              </span>
+            )}
+          </button>
+          <button
+            className={view === "notifications" ? "active" : ""}
+            onClick={() => onTabChange("notifications")}
+            style={{ position: "relative" }}
+            title="Notifications"
+          >
+            🔔
+            {notifUnreadCount > 0 && (
+              <span
+                className="tab-badge"
+                style={{
+                  background: "#ef4444",
+                  borderRadius: 8,
+                  fontSize: 9,
+                  padding: "1px 4px",
+                  marginLeft: 3,
+                  verticalAlign: "middle",
+                  lineHeight: 1.4,
+                  display: "inline-block",
+                  minWidth: 14,
+                  textAlign: "center",
+                }}
+                aria-label={`${notifUnreadCount} unread notification${notifUnreadCount === 1 ? "" : "s"}`}
+              >
+                {badgeText(notifUnreadCount)}
               </span>
             )}
           </button>
@@ -2467,6 +2669,12 @@ function SettingsView({
     onSaved();
   };
 
+  const toggleDial = async (v: boolean) => {
+    await setSettings({ dialEnabled: v });
+    onSaved();
+    showToast({ kind: v ? "success" : "info", text: v ? "Click-to-dial enabled — phone numbers will show an overlay" : "Click-to-dial disabled" });
+  };
+
   const addMute = async () => {
     let host = muteHost.trim().toLowerCase();
     if (!host) return;
@@ -2535,6 +2743,13 @@ function SettingsView({
         <span>Scan pages I visit for links to my Sayzio properties</span>
       </label>
       <div className="muted">Page content never leaves your browser. Only matched URLs you choose to save are sent.</div>
+
+      <h3 className="section-h" style={{ marginTop: 14 }}>Click-to-dial</h3>
+      <label className="toggle-row">
+        <input type="checkbox" checked={!!settings.dialEnabled} onChange={(e) => toggleDial(e.target.checked)} />
+        <span>Detect phone numbers on pages and show a Sayzio dialer overlay</span>
+      </label>
+      <div className="muted">Hovering a detected number shows a pop-up with the contact, biolink, and activity from your Sayzio dialer.</div>
 
       <ThankTemplatesEditor settings={settings} onSaved={onSaved} showToast={showToast} />
 

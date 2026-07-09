@@ -373,6 +373,7 @@ numeric review id.
 | POST   | `/me/reviews/{review}/pin`    | yes  | Toggle the pinned flag.                                                                            |
 | POST   | `/me/reviews/{review}/reply`  | yes  | Set the public owner reply. Body: `reply` (string?, ≤2000). Empty/absent clears the reply.         |
 | DELETE | `/me/reviews/{review}`        | yes  | Permanently delete a review.                                                                       |
+| POST   | `/me/reviews/capture-source`  | yes  | Connect an external review source (Google Maps / Trustpilot) for sync. Body: `provider` (`google`\|`trustpilot`), `external_ref` (Place ID / domain), `name?` (string). Returns `{connection_id, provider, status, preview}` — `preview: true` means keys are absent and no live sync will occur. |
 
 **`mine` response** (`GET /me/reviews`):
 
