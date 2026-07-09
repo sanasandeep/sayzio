@@ -43,11 +43,13 @@ export default function ConversationScreen() {
   const q = useQuery({
     queryKey: ["inbox", "conversation", id],
     queryFn: () => getConversation(id),
+    refetchInterval: 7000,
     enabled: !!id,
   });
 
-  // Re-fetch the conversation when the app returns to the foreground
-  // so messages received while backgrounded show up immediately.
+  // JS timers (and the refetchInterval above) pause while the app is
+  // backgrounded, so pull the conversation immediately on resume so
+  // messages received while backgrounded show up right away.
   useForegroundRefresh(() => {
     if (id) q.refetch();
   });
