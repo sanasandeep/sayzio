@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -37,6 +38,7 @@ type NavItem = {
   label: string;
   icon: keyof typeof Feather.glyphMap;
   href: string;
+  soon?: boolean;
 };
 
 type NavGroup = {
@@ -52,56 +54,88 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Links", icon: "link", href: "/links" },
       { label: "Create", icon: "plus-circle", href: "/create" },
       { label: "Inbox", icon: "message-circle", href: "/inbox" },
-    ],
-  },
-  {
-    title: "Analytics & QR",
-    items: [
+      { label: "Notifications", icon: "bell", href: "/notifications" },
+      { label: "Stats", icon: "bar-chart-2", href: "/stats" },
       { label: "Visitors", icon: "users", href: "/visitors" },
-      { label: "QR Studio", icon: "grid", href: "/qr-studio" },
-      { label: "QR Codes", icon: "grid", href: "/qr" },
-      { label: "Backlinks", icon: "link-2", href: "/backlinks" },
     ],
   },
   {
-    title: "Content",
+    title: "Links & Pages",
     items: [
-      { label: "Posts", icon: "message-square", href: "/posts" },
+      { label: "QR Codes", icon: "grid", href: "/qr" },
+      { label: "QR Studio", icon: "maximize", href: "/qr-studio" },
       { label: "Forms", icon: "file-text", href: "/forms" },
-      { label: "Events", icon: "map-pin", href: "/events" },
-      { label: "My Tickets", icon: "credit-card", href: "/events/my-tickets" },
-      { label: "Resume Builder", icon: "file-text", href: "/resume" },
-      { label: "My Calendar", icon: "calendar", href: "/calendars" },
-      { label: "Calendar Sync", icon: "refresh-cw", href: "/calendar" },
-      { label: "Splash Pages", icon: "layout", href: "/splash" },
-      { label: "Conversational", icon: "message-circle", href: "/links/conversational" },
+      { label: "Backlinks", icon: "crosshair", href: "/backlinks" },
+      { label: "Intros", icon: "layout", href: "/splash" },
+      { label: "AI Resume / Portfolio", icon: "file", href: "/resume" },
+      { label: "Projects", icon: "folder", href: "/projects" },
+      { label: "Cloud Files", icon: "cloud", href: "/cloud-files" },
     ],
   },
   {
-    title: "Audience",
+    title: "Audience & Community",
     items: [
       { label: "Subscribers", icon: "user-plus", href: "/subscribers" },
       { label: "Followers", icon: "user-check", href: "/followers" },
+      { label: "Feed", icon: "activity", href: "/feed", soon: true },
+      { label: "My Posts", icon: "edit-2", href: "/posts" },
+      { label: "Leads", icon: "target", href: "/leads" },
       { label: "Social Accounts", icon: "share-2", href: "/social" },
       { label: "Leaderboard", icon: "award", href: "/leaderboard" },
     ],
   },
   {
-    title: "Business",
+    title: "Monetization",
     items: [
+      { label: "Earnings & Payouts", icon: "dollar-sign", href: "/payouts", soon: true },
+      { label: "Monetization", icon: "trending-up", href: "/monetization", soon: true },
       { label: "Orders", icon: "shopping-bag", href: "/orders" },
-      { label: "Client Portals", icon: "briefcase", href: "/client-portals" },
-      { label: "Invoices", icon: "file-text", href: "/invoices" },
-      { label: "Projects", icon: "folder", href: "/projects" },
-      { label: "Delivery Projects", icon: "clipboard", href: "/delivery-projects" },
-      { label: "Team & Staff", icon: "users", href: "/team" },
     ],
   },
   {
-    title: "Billing & CRM",
+    title: "Growth & Marketing",
     items: [
+      { label: "Buzz", icon: "bell", href: "/social-proofs", soon: true },
+      { label: "Pixel", icon: "crosshair", href: "/pixels", soon: true },
+      { label: "Referrals", icon: "gift", href: "/insider" },
+    ],
+  },
+  {
+    title: "AI",
+    items: [
+      { label: "AI Note Summarizer", icon: "cpu", href: "/ai-mind", soon: true },
+      { label: "AI Knowledge Bases", icon: "database", href: "/ai-minds", soon: true },
+      { label: "AI Persona Generator", icon: "user", href: "/ai-persona" },
+      { label: "AI Agents", icon: "zap", href: "/ai-agents", soon: true },
+      { label: "AI Chat", icon: "message-square", href: "/ai-coach" },
+      { label: "Chat Widgets", icon: "message-circle", href: "/ai-companions", soon: true },
+      { label: "AI Brand Kit", icon: "feather", href: "/brand-kits" },
+      { label: "AI Growth Coach", icon: "trending-up", href: "/ai-growth-coach", soon: true },
+      { label: "AI Coach", icon: "compass", href: "/ask-coach" },
+      { label: "AI Marketing Strategist", icon: "bar-chart", href: "/marketing-strategist" },
+      { label: "AI Staff", icon: "users", href: "/ai-staff", soon: true },
+    ],
+  },
+  {
+    title: "Workspace & Tools",
+    items: [
+      { label: "Tasks", icon: "check-square", href: "/tasks", soon: true },
+      { label: "Delivery Projects", icon: "clipboard", href: "/delivery-projects" },
+      { label: "Vault", icon: "lock", href: "/vault" },
+      { label: "Vault Audit", icon: "shield", href: "/vault-audit" },
+      { label: "Events", icon: "calendar", href: "/events" },
+      { label: "My Calendar", icon: "calendar", href: "/calendars" },
+      { label: "Calendar Sync", icon: "refresh-cw", href: "/calendar" },
+      { label: "AI Competitor Teardown", icon: "search", href: "/teardown" },
+      { label: "AI Performer Specialist", icon: "target", href: "/marketing-strategist" },
+    ],
+  },
+  {
+    title: "Billing & Accounting",
+    items: [
+      { label: "Invoices", icon: "file-text", href: "/invoices" },
+      { label: "Client Portals", icon: "briefcase", href: "/client-portals" },
       { label: "Recurring", icon: "repeat", href: "/billing/recurring" },
-      { label: "Companies", icon: "briefcase", href: "/billing/companies" },
       { label: "Expenses", icon: "dollar-sign", href: "/billing/expenses" },
       { label: "Catalog", icon: "book", href: "/billing/catalog" },
       { label: "Tax Rules", icon: "percent", href: "/billing/tax-rules" },
@@ -111,31 +145,19 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Tools",
+    title: "Account",
     items: [
-      { label: "Cloud Files", icon: "cloud", href: "/cloud-files" },
-      { label: "AI Brand Kit", icon: "feather", href: "/brand-kits" },
-      { label: "Performer Specialist", icon: "target", href: "/marketing-strategist" },
-      { label: "Competitor Teardown", icon: "crosshair", href: "/teardown" },
-      { label: "Vault", icon: "lock", href: "/vault" },
-      { label: "Vault Audit", icon: "shield", href: "/vault-audit" },
-      { label: "Insider & Referrals", icon: "award", href: "/insider" },
-    ],
-  },
-  {
-    title: "Settings",
-    items: [
-      { label: "Edit Profile", icon: "edit-3", href: "/profile-edit" },
+      { label: "Settings", icon: "sliders", href: "/profile-edit" },
       { label: "Security", icon: "shield", href: "/security" },
       { label: "Devices & Sessions", icon: "monitor", href: "/account-sessions" },
       { label: "Linked IDs", icon: "at-sign", href: "/identifiers" },
       { label: "Connected Apps", icon: "zap", href: "/connected-apps" },
       { label: "Integrations", icon: "link", href: "/integrations" },
       { label: "Custom Domains", icon: "globe", href: "/domains" },
-      { label: "Notifications", icon: "bell", href: "/notifications" },
       { label: "Contact Privacy", icon: "eye-off", href: "/contact-privacy" },
       { label: "Verification", icon: "award", href: "/verification" },
       { label: "Workspaces", icon: "briefcase", href: "/workspaces" },
+      { label: "Team & Staff", icon: "users", href: "/team" },
     ],
   },
 ];
@@ -461,6 +483,10 @@ export function DrawerSidebar() {
     return pathname.startsWith(href);
   };
 
+  const avatarInitial = (user?.display_name || user?.email || "M")
+    .charAt(0)
+    .toUpperCase();
+
   return (
     <Animated.View
       style={[
@@ -533,37 +559,19 @@ export function DrawerSidebar() {
 
         {/* Content */}
         <View style={styles.panelContent}>
-          {/* Header */}
+
+          {/* ── Header: brand wordmark + close ───────────────────────── */}
           <View
             style={[
-              styles.identity,
+              styles.headerTopRow,
               {
                 borderBottomColor: isDark
-                  ? "rgba(255,255,255,0.08)"
-                  : "rgba(0,0,0,0.08)",
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(0,0,0,0.06)",
               },
             ]}
           >
-            <View style={{ flex: 1 }}>
-              <BrandWordmark size={22} />
-              <Text
-                style={[styles.identityName, { color: colors.foreground }]}
-                numberOfLines={1}
-              >
-                {user?.display_name || user?.email || "Member"}
-              </Text>
-              {user?.role ? (
-                <Text
-                  style={[
-                    styles.identityRole,
-                    { color: colors.mutedForeground },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {user.role}
-                </Text>
-              ) : null}
-            </View>
+            <BrandWordmark size={20} />
             <Pressable
               onPress={closeDrawer}
               hitSlop={8}
@@ -580,6 +588,65 @@ export function DrawerSidebar() {
             >
               <Feather name="x" size={18} color={colors.mutedForeground} />
             </Pressable>
+          </View>
+
+          {/* ── User identity: avatar + name + email ─────────────────── */}
+          <View
+            style={[
+              styles.identityRow,
+              {
+                borderBottomColor: isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.08)",
+              },
+            ]}
+          >
+            {/* Avatar */}
+            {user?.avatar_url ? (
+              <Image
+                source={{ uri: user.avatar_url }}
+                style={[
+                  styles.avatar,
+                  { borderColor: colors.primary + "55" },
+                ]}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.avatar,
+                  styles.avatarFallback,
+                  {
+                    backgroundColor: colors.primary + "30",
+                    borderColor: colors.primary + "55",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.avatarInitial,
+                    { color: colors.primary },
+                  ]}
+                >
+                  {avatarInitial}
+                </Text>
+              </View>
+            )}
+
+            {/* Name + email */}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                style={[styles.identityName, { color: colors.foreground }]}
+                numberOfLines={1}
+              >
+                {user?.display_name || "Member"}
+              </Text>
+              <Text
+                style={[styles.identityEmail, { color: colors.mutedForeground }]}
+                numberOfLines={1}
+              >
+                {user?.email ?? ""}
+              </Text>
+            </View>
           </View>
 
           {/* Workspace switcher */}
@@ -616,20 +683,21 @@ export function DrawerSidebar() {
                   </Text>
                 </View>
                 {group.items.map((item) => {
-                  const active = isActive(item.href);
+                  const active = !item.soon && isActive(item.href);
                   return (
                     <Pressable
-                      key={item.href}
-                      onPress={() => navigate(item.href)}
+                      key={item.label}
+                      onPress={() => !item.soon && navigate(item.href)}
                       style={({ pressed }) => [
                         styles.navItem,
                         {
                           backgroundColor: active
                             ? colors.primary + "20"
-                            : pressed
+                            : pressed && !item.soon
                               ? colors.primary + "12"
                               : "transparent",
                           borderRadius: 10,
+                          opacity: item.soon ? 0.6 : 1,
                         },
                       ]}
                       accessibilityRole="menuitem"
@@ -668,7 +736,27 @@ export function DrawerSidebar() {
                       >
                         {item.label}
                       </Text>
-                      {active ? (
+                      {item.soon ? (
+                        <View
+                          style={[
+                            styles.soonBadge,
+                            {
+                              backgroundColor: isDark
+                                ? "rgba(255,255,255,0.10)"
+                                : "rgba(0,0,0,0.07)",
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.soonBadgeText,
+                              { color: colors.mutedForeground },
+                            ]}
+                          >
+                            Soon
+                          </Text>
+                        </View>
+                      ) : active ? (
                         <View
                           style={[
                             styles.activeIndicator,
@@ -711,32 +799,54 @@ const styles = StyleSheet.create({
     flex: 1,
     zIndex: 1,
   },
-  identity: {
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  closeBtn: {
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  identityRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    flexShrink: 0,
+  },
+  avatarFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarInitial: {
+    fontFamily: "SpaceGrotesk_700Bold",
+    fontSize: 18,
   },
   identityName: {
     fontFamily: "SpaceGrotesk_600SemiBold",
-    fontSize: 15,
-    marginTop: 8,
+    fontSize: 14,
+    marginBottom: 2,
   },
-  identityRole: {
-    fontFamily: "SpaceGrotesk_500Medium",
+  identityEmail: {
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
-    marginTop: 2,
-    textTransform: "capitalize",
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
   },
   wsSwitcher: {
     paddingHorizontal: 12,
@@ -865,5 +975,17 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     flexShrink: 0,
+  },
+  soonBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    flexShrink: 0,
+  },
+  soonBadgeText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 9,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
   },
 });

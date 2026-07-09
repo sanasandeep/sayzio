@@ -162,7 +162,7 @@ export function FloatingTabBar() {
             width: CIRCLE_SIZE,
             height: CIRCLE_SIZE,
             borderRadius: CIRCLE_SIZE / 2,
-            top: 0,
+            top: CIRCLE_OVERFLOW + (TAB_BAR_H - CIRCLE_SIZE) / 2,
           },
           circleStyle,
         ]}

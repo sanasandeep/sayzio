@@ -200,7 +200,7 @@ class OtpController extends Controller
         }
 
         $user = User::firstOrCreate(
-            ['email' => 'demo@1inme.com'],
+            ['email' => 'sazioapp@gmail.com'],
             [
                 'name'              => 'Demo User',
                 'password'          => Hash::make('password'),

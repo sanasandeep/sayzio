@@ -709,7 +709,7 @@ class AuthController extends Controller
         // demo tour. Owner-approved despite the security exposure of a
         // publicly reachable shared account.
 
-        $user = User::where('email', 'demo@1inme.com')->first();
+        $user = User::where('email', 'sazioapp@gmail.com')->first();
 
         if (!$user) {
             $freePlan = Plan::defaultPlan();
@@ -720,14 +720,14 @@ class AuthController extends Controller
                 // converge on the single demo account instead of 500ing.
                 $user = User::create([
                     'name' => 'Demo User',
-                    'email' => 'demo@1inme.com',
+                    'email' => 'sazioapp@gmail.com',
                     'password' => Hash::make('password'),
                     'plan_id' => $freePlan?->id,
                     'status' => 'active',
                     'email_verified_at' => now(),
                 ]);
             } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-                $user = User::where('email', 'demo@1inme.com')->firstOrFail();
+                $user = User::where('email', 'sazioapp@gmail.com')->firstOrFail();
             }
         }
 
