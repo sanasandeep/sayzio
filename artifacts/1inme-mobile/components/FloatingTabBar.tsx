@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, {
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
@@ -50,6 +51,7 @@ export function FloatingTabBar() {
   const router = useRouter();
   const pathname = usePathname();
   const { openDrawer } = useDrawer();
+  const reducedMotion = useReducedMotion();
 
   const barWidth = width - TAB_SIDE_MARGIN * 2;
   const numTabs = TABS.length;
@@ -58,6 +60,7 @@ export function FloatingTabBar() {
   const activeIndex = getActiveIndex(pathname);
 
   const circleX = useSharedValue(activeIndex * tabW + (tabW - CIRCLE_SIZE) / 2);
+  const circleScale = useSharedValue(1);
 
   useEffect(() => {
     circleX.value = withSpring(activeIndex * tabW + (tabW - CIRCLE_SIZE) / 2, {
@@ -65,7 +68,16 @@ export function FloatingTabBar() {
       stiffness: 220,
       mass: 0.8,
     });
-  }, [activeIndex, tabW, circleX]);
+    if (!reducedMotion) {
+      circleScale.value = withSpring(
+        1.12,
+        { damping: 8, stiffness: 400, mass: 0.4 },
+        () => {
+          circleScale.value = withSpring(1, { damping: 14, stiffness: 220 });
+        },
+      );
+    }
+  }, [activeIndex, tabW, circleX, circleScale, reducedMotion]);
 
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
@@ -73,6 +85,7 @@ export function FloatingTabBar() {
 
   const circleStyle = useAnimatedStyle(() => ({
     left: circleX.value,
+    transform: [{ scale: circleScale.value }],
   }));
 
   const isDark = scheme === "dark";
@@ -92,35 +105,21 @@ export function FloatingTabBar() {
           bottom: insets.bottom + TAB_BOTTOM_MARGIN,
           left: TAB_SIDE_MARGIN,
           right: TAB_SIDE_MARGIN,
+          height: TAB_BAR_H + CIRCLE_OVERFLOW,
           pointerEvents: "box-none",
         },
         containerStyle,
       ]}
     >
-      {/* Active indicator circle — rendered first so it sits behind icons */}
-      <Animated.View
-        style={[
-          styles.circle,
-          {
-            backgroundColor: colors.primary,
-            width: CIRCLE_SIZE,
-            height: CIRCLE_SIZE,
-            borderRadius: CIRCLE_SIZE / 2,
-            top: -CIRCLE_OVERFLOW,
-          },
-          circleStyle,
-        ]}
-      />
-
-      {/* Glass bar */}
+      {/* ── Layer 1 (bottom): glass bar background ─────────────────────── */}
+      {/* Rendered first so the BlurView sits below the circle.
+          overflow:hidden here is safe because it only clips its own
+          BlurView/border children — the circle is a sibling, not a child. */}
       <View
         style={[
-          styles.bar,
+          styles.barBackground,
           {
-            height: TAB_BAR_H,
             borderColor: colors.border,
-            borderRadius: 32,
-            overflow: "hidden",
           },
         ]}
       >
@@ -136,13 +135,11 @@ export function FloatingTabBar() {
           />
         )}
 
-        {/* Subtle border overlay for glass look */}
         <View
           style={[
             StyleSheet.absoluteFill,
+            styles.barBorder,
             {
-              borderRadius: 32,
-              borderWidth: 1,
               borderColor: isDark
                 ? "rgba(255,255,255,0.08)"
                 : "rgba(0,0,0,0.06)",
@@ -150,44 +147,65 @@ export function FloatingTabBar() {
           ]}
           pointerEvents="none"
         />
+      </View>
 
-        {/* Tab row */}
-        <View style={styles.tabRow}>
-          {TABS.map((tab, index) => {
-            const focused = index === activeIndex;
-            const iconColor = focused ? colors.primaryForeground : colors.mutedForeground;
-            const iconSize = tab.name === "create" ? 26 : 21;
+      {/* ── Layer 2 (middle): active indicator circle ───────────────────── */}
+      {/* Positioned absolutely at top:0 within the taller wrapper so it
+          rises CIRCLE_OVERFLOW pixels above the bar background.  Painted
+          after the bar background so it always sits on top of the blur —
+          no distortion. zIndex:2 ensures it stays above the bar layer. */}
+      <Animated.View
+        style={[
+          styles.circle,
+          {
+            backgroundColor: colors.primary,
+            width: CIRCLE_SIZE,
+            height: CIRCLE_SIZE,
+            borderRadius: CIRCLE_SIZE / 2,
+            top: 0,
+          },
+          circleStyle,
+        ]}
+      />
 
-            return (
-              <Pressable
-                key={tab.name}
-                onPress={() => {
-                  if (focused) return;
-                  router.navigate(tab.pathname as never);
-                }}
-                onLongPress={openDrawer}
-                style={styles.tab}
-                accessibilityRole="button"
-                accessibilityLabel={tab.label}
-                accessibilityState={{ selected: focused }}
-                hitSlop={4}
-              >
-                <Feather name={tab.icon} size={iconSize} color={iconColor} />
-                {tab.name !== "create" && (
-                  <Text
-                    style={[
-                      styles.label,
-                      { color: iconColor },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {tab.label}
-                  </Text>
-                )}
-              </Pressable>
-            );
-          })}
-        </View>
+      {/* ── Layer 3 (top): tab icon row ─────────────────────────────────── */}
+      {/* Absolutely positioned to fill the bar area (bottom:0).
+          zIndex:3 keeps icons readable above the circle at all positions. */}
+      <View style={[styles.tabRow, { height: TAB_BAR_H }]}>
+        {TABS.map((tab, index) => {
+          const focused = index === activeIndex;
+          const iconColor = focused ? colors.primaryForeground : colors.mutedForeground;
+          const iconSize = tab.name === "create" ? 26 : 21;
+
+          return (
+            <Pressable
+              key={tab.name}
+              onPress={() => {
+                if (focused) return;
+                router.navigate(tab.pathname as never);
+              }}
+              onLongPress={openDrawer}
+              style={styles.tab}
+              accessibilityRole="button"
+              accessibilityLabel={tab.label}
+              accessibilityState={{ selected: focused }}
+              hitSlop={4}
+            >
+              <Feather name={tab.icon} size={iconSize} color={iconColor} />
+              {tab.name !== "create" && (
+                <Text
+                  style={[
+                    styles.label,
+                    { color: iconColor },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {tab.label}
+                </Text>
+              )}
+            </Pressable>
+          );
+        })}
       </View>
     </Animated.View>
   );
@@ -199,23 +217,45 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
-  circle: {
+  // ── Layer 1: bar background (blur + border) ────────────────────────────
+  // Sits at the bottom of the wrapper (height TAB_BAR_H), CIRCLE_OVERFLOW
+  // below the wrapper top.  overflow:hidden clips the blur/border inside
+  // the rounded pill without affecting the circle sibling.
+  barBackground: {
     position: "absolute",
-    zIndex: 1,
-  },
-  bar: {
-    width: "100%",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: TAB_BAR_H,
+    borderRadius: 32,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 12,
   },
+  barBorder: {
+    borderRadius: 32,
+    borderWidth: 1,
+  },
+  // ── Layer 2: circle ───────────────────────────────────────────────────
+  // top:0 = flush with wrapper top = CIRCLE_OVERFLOW above bar background.
+  circle: {
+    position: "absolute",
+    zIndex: 2,
+  },
+  // ── Layer 3: tab row ──────────────────────────────────────────────────
+  // Fills the bar area (bottom:0, height:TAB_BAR_H). zIndex:3 keeps
+  // icons above the circle.
   tabRow: {
-    flex: 1,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: "row",
     alignItems: "center",
-    zIndex: 2,
+    zIndex: 3,
   },
   tab: {
     flex: 1,

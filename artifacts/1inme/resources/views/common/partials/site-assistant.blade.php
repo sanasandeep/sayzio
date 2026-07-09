@@ -625,8 +625,25 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     if(open){
       unread=0; badge.style.display='none';
       hideTooltip();
-      if(!bootstrapped){ bootstrap(); }
-      setTimeout(function(){ ta.focus(); }, 50);
+      if(!bootstrapped){
+        // Show an immediate typing-indicator placeholder so the panel
+        // body is never visually empty while the two sequential async
+        // calls (bootstrap → session) complete.  The session handler
+        // clears it via body.innerHTML='' before rendering the greeting.
+        if(!body.children.length){
+          var initLoader=el('div',{class:'sa-typing',id:'sa-init-loader'},CHROME.typing_indicator||'Loading…');
+          body.appendChild(initLoader);
+        }
+        bootstrap();
+      }
+      // Focus the textarea only when it is still the active composer
+      // (i.e. the login gate hasn't replaced it yet).  AUTH_REQUIRED is
+      // false here on first open (set server-side in __SA_CHROME) so the
+      // focus fires correctly; after the gate renders its own idInput
+      // focus takes over.
+      setTimeout(function(){
+        if(!AUTH_REQUIRED && document.contains(ta)){ ta.focus(); }
+      }, 80);
     }
   }
   function setUnread(n){ unread=n; if(n>0){ badge.textContent=String(n); badge.style.display='flex'; } else { badge.style.display='none'; } }
@@ -667,8 +684,16 @@ window.__SA_LOGIN_URL = @json(url('/login'));
         return jpost(ds.sessionUrl,{ visitor_token: token, page: pageMeta() });
       })
       .then(function(s){
+        // Always clear the initial loading placeholder regardless of
+        // whether the session succeeds — a failed session should show
+        // an error state, not a stuck "typing…" loader.
+        var initL=document.getElementById('sa-init-loader');
+        if(initL) initL.remove();
         if(!s||!s.ok){
           if(s && s.visitor_token){ token=s.visitor_token; localStorage.setItem(TOKEN_KEY, token); }
+          // Session failed but bootstrap told us auth is required: show
+          // the login gate so the panel is still usable.
+          if(AUTH_REQUIRED){ renderSuggested([]); showLoginGate(); }
           return;
         }
         token=s.visitor_token; localStorage.setItem(TOKEN_KEY, token);
