@@ -4,7 +4,6 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-rou
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   FlatList,
   Image,
@@ -24,6 +23,7 @@ import {
   resumeMySubscription,
   type SubscriptionState,
 } from "@/lib/api/monetization";
+import { showAlert } from "@/lib/webAlert";
 
 /**
  * Native manage / cancel subscription screen (Task #3019). The
@@ -124,14 +124,14 @@ export default function ManageSubscriptionScreen() {
     mutationFn: (h: string) => cancelMySubscription(h),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-subscriptions"] }),
     onError: (e: Error) =>
-      Alert.alert("Couldn't cancel", e.message || "Please try again."),
+      showAlert("Couldn't cancel", e.message || "Please try again."),
   });
 
   const resume = useMutation({
     mutationFn: (h: string) => resumeMySubscription(h),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-subscriptions"] }),
     onError: (e: Error) =>
-      Alert.alert("Couldn't resume", e.message || "Please try again."),
+      showAlert("Couldn't resume", e.message || "Please try again."),
   });
 
   const confirmCancel = (sub: SubscriptionState) => {
@@ -142,7 +142,7 @@ export default function ManageSubscriptionScreen() {
     if (Platform.OS === "web") {
       if (confirm(`Cancel your subscription to ${name}?`)) go();
     } else {
-      Alert.alert(
+      showAlert(
         "Cancel subscription?",
         `You'll keep access to ${name} until the current period ends.`,
         [

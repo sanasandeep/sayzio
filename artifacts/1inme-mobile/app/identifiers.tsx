@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -28,6 +27,7 @@ import {
   verifyIdentifierCode,
   type LinkedIdentifier,
 } from "@/lib/api/identifiers";
+import { showAlert } from "@/lib/webAlert";
 
 type AddKind = "email" | "phone";
 type Step = "list" | "enter" | "verify" | "done";
@@ -139,7 +139,7 @@ export default function Identifiers() {
   };
 
   const onPromote = (row: LinkedIdentifier) => {
-    Alert.alert(
+    showAlert(
       "Make primary?",
       `${row.value} will become your primary ${row.kind === "email" ? "email" : "phone"} — it's what shows on your account and receives key notifications.`,
       [
@@ -152,7 +152,7 @@ export default function Identifiers() {
               await promoteIdentifier(row.id);
               afterChange();
             } catch (e) {
-              Alert.alert("Couldn't update", (e as ApiError)?.message ?? "Please try again.");
+              showAlert("Couldn't update", (e as ApiError)?.message ?? "Please try again.");
             } finally {
               setActingId(null);
             }
@@ -163,7 +163,7 @@ export default function Identifiers() {
   };
 
   const onRemove = (row: LinkedIdentifier) => {
-    Alert.alert(
+    showAlert(
       "Remove identifier?",
       `${row.value} will be unlinked from your account. You'll no longer be able to sign in with it.`,
       [
@@ -177,7 +177,7 @@ export default function Identifiers() {
               await removeIdentifier(row.id);
               afterChange();
             } catch (e) {
-              Alert.alert("Couldn't remove", (e as ApiError)?.message ?? "Please try again.");
+              showAlert("Couldn't remove", (e as ApiError)?.message ?? "Please try again.");
             } finally {
               setActingId(null);
             }

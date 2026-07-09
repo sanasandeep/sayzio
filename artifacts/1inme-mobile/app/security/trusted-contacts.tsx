@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -29,6 +28,7 @@ import {
   type TrustedContact,
   type TrustedContactInvitation,
 } from "@/lib/api/security";
+import { showAlert } from "@/lib/webAlert";
 
 const STATUS_LABEL: Record<TrustedContact["status"], string> = {
   pending: "Waiting to accept",
@@ -120,7 +120,7 @@ export default function TrustedContactsScreen() {
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["security", "recovery-requests"] }),
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't submit", e?.message ?? "Try again shortly."),
+      showAlert("Couldn't submit", e?.message ?? "Try again shortly."),
   });
 
   const loading =

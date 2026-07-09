@@ -10,7 +10,6 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Linking,
   Pressable,
@@ -25,6 +24,7 @@ import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { creatorProfile } from "@/lib/api/creatorProfile";
 import { follow, unfollow } from "@/lib/api/follows";
+import { showAlert } from "@/lib/webAlert";
 
 export default function CreatorProfileScreen() {
   const { handle: rawHandle } = useLocalSearchParams<{ handle: string }>();
@@ -61,7 +61,7 @@ export default function CreatorProfileScreen() {
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["creator-profile", handle] }),
     onError: (e: Error) =>
-      Alert.alert("Couldn't update follow", e.message || "Try again."),
+      showAlert("Couldn't update follow", e.message || "Try again."),
   });
 
   if (profileQ.isLoading) {

@@ -2,11 +2,12 @@ import { useMutation } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { dmTip } from "@/lib/api/dm";
+import { showAlert } from "@/lib/webAlert";
 
 const SUGGESTED = [3, 5, 10, 20, 50, 100];
 
@@ -35,7 +36,7 @@ export default function DmTipScreen() {
         router.back();
       }
     },
-    onError: (e: Error) => Alert.alert("Couldn't send tip", e.message || "Try again"),
+    onError: (e: Error) => showAlert("Couldn't send tip", e.message || "Try again"),
   });
 
   return (

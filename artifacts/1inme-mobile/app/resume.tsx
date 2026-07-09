@@ -62,6 +62,7 @@ import {
   type ResumeVisibility,
   type ResumeViewLogEntry,
 } from "@/lib/api/resume";
+import { showAlert } from "@/lib/webAlert";
 
 const VISIBILITY_OPTIONS: { value: ResumeVisibility; label: string; hint: string }[] = [
   { value: "public",      label: "Public",       hint: "Anyone with the link" },
@@ -189,7 +190,7 @@ function ResumeEditor({
       }),
     onSuccess: (r) => qc.setQueryData(["resume"], { ...bundle, resume: r }),
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't save header", e?.message ?? "Try again."),
+      showAlert("Couldn't save header", e?.message ?? "Try again."),
   });
 
   const summaryMut = useMutation({
@@ -216,7 +217,7 @@ function ResumeEditor({
     mutationFn: (id: number) => deleteResumeItem(id),
     onSuccess: refresh,
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't delete", e?.message ?? "Try again."),
+      showAlert("Couldn't delete", e?.message ?? "Try again."),
   });
 
   const itemReorder = useMutation({
@@ -230,7 +231,7 @@ function ResumeEditor({
     onSuccess: (r) => qc.setQueryData(["resume"], { ...bundle, resume: r }),
     onError: (e: { message?: string }) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Template locked", e?.message ?? "Upgrade to use this template.");
+      showAlert("Template locked", e?.message ?? "Upgrade to use this template.");
     },
   });
 
@@ -244,20 +245,20 @@ function ResumeEditor({
       uploadResumeHeaderPhoto(a),
     onSuccess: (r) => qc.setQueryData(["resume"], { ...bundle, resume: r }),
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't upload photo", e?.message ?? "Try again."),
+      showAlert("Couldn't upload photo", e?.message ?? "Try again."),
   });
 
   const photoRemoveMut = useMutation({
     mutationFn: () => removeResumeHeaderPhoto(),
     onSuccess: (r) => qc.setQueryData(["resume"], { ...bundle, resume: r }),
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't remove photo", e?.message ?? "Try again."),
+      showAlert("Couldn't remove photo", e?.message ?? "Try again."),
   });
 
   const pickFromLibrary = useCallback(async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      showAlert(
         "Photos access needed",
         "Allow access to your photo library in Settings to pick a header photo.",
       );
@@ -281,7 +282,7 @@ function ResumeEditor({
   const takePhoto = useCallback(async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      showAlert(
         "Camera access needed",
         "Allow camera access in Settings to take a header photo.",
       );
@@ -305,7 +306,7 @@ function ResumeEditor({
   const openSourceMenu = useCallback(() => {
     // Stays at 3 buttons so Android's Alert (which truncates beyond 3)
     // renders cleanly on every platform.
-    Alert.alert("Header photo", undefined, [
+    showAlert("Header photo", undefined, [
       { text: "Choose from library", onPress: pickFromLibrary },
       { text: "Take photo", onPress: takePhoto },
       { text: "Cancel", style: "cancel" },
@@ -321,13 +322,13 @@ function ResumeEditor({
     // Existing photo: offer replace/remove. Replace opens a second
     // 3-button source menu so the top-level alert stays at 3 actions
     // (Android's Alert silently drops anything past 3).
-    Alert.alert("Header photo", undefined, [
+    showAlert("Header photo", undefined, [
       { text: "Replace photo", onPress: openSourceMenu },
       {
         text: "Remove photo",
         style: "destructive",
         onPress: () =>
-          Alert.alert("Remove header photo?", undefined, [
+          showAlert("Remove header photo?", undefined, [
             { text: "Cancel", style: "cancel" },
             {
               text: "Remove",
@@ -356,7 +357,7 @@ function ResumeEditor({
       const detail = e.errors
         ? Object.values(e.errors).flat().join("\n")
         : e.message ?? "Try again.";
-      Alert.alert("Couldn't update sharing", detail);
+      showAlert("Couldn't update sharing", detail);
     },
   });
 
@@ -364,7 +365,7 @@ function ResumeEditor({
     mutationFn: (v: boolean) => updateResumePublicPdf(v),
     onSuccess: (r) => qc.setQueryData(["resume"], { ...bundle, resume: r }),
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't update PDF sharing", e?.message ?? "Try again."),
+      showAlert("Couldn't update PDF sharing", e?.message ?? "Try again."),
   });
 
   return (
@@ -721,10 +722,10 @@ function PublishSheet({
       qc.setQueryData<ResumeBundle | undefined>(["resume"], (prev) =>
         prev ? { ...prev, resume: r } : prev,
       );
-      Alert.alert("Share revoked", "Anyone who already typed the password will be prompted again next time.");
+      showAlert("Share revoked", "Anyone who already typed the password will be prompted again next time.");
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't revoke share", e?.message ?? "Try again."),
+      showAlert("Couldn't revoke share", e?.message ?? "Try again."),
   });
 
   const submit = () => {
@@ -746,7 +747,7 @@ function PublishSheet({
   };
 
   const confirmRevoke = () => {
-    Alert.alert(
+    showAlert(
       "Revoke active sessions?",
       "Everyone who already typed the password will be prompted again on their next visit. The link itself does not change.",
       [
@@ -1033,7 +1034,7 @@ function VersionSheet({
           (typeof e === "object" && e && "message" in e
             ? String((e as { message?: unknown }).message ?? "")
             : "") || `Could not ${label}.`;
-        Alert.alert(`Couldn't ${label}`, msg);
+        showAlert(`Couldn't ${label}`, msg);
       } finally {
         setBusy(false);
       }
@@ -1160,7 +1161,7 @@ function VersionSheet({
                     <Pressable
                       style={[styles.versionAction, { borderColor: colors.border }]}
                       onPress={() =>
-                        Alert.alert(
+                        showAlert(
                           `Delete "${v.name}"?`,
                           "Items inside this version will be removed. This cannot be undone.",
                           [
@@ -1647,7 +1648,7 @@ function SectionEditor({
       const detail = err.errors
         ? Object.values(err.errors).flat().join("\n")
         : err.message ?? "Try again.";
-      Alert.alert("Couldn't save", detail);
+      showAlert("Couldn't save", detail);
     } finally {
       setBusy(false);
     }
@@ -1712,7 +1713,7 @@ function SectionEditor({
             <Pressable
               hitSlop={6}
               onPress={() =>
-                Alert.alert("Delete entry?", def.summarize(it.data), [
+                showAlert("Delete entry?", def.summarize(it.data), [
                   { text: "Cancel", style: "cancel" },
                   { text: "Delete", style: "destructive", onPress: () => onDelete(it.id) },
                 ])

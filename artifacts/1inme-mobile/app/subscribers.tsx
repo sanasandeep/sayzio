@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Platform,
   Pressable,
@@ -22,6 +21,7 @@ import {
   unsubscribe,
   type Subscriber,
 } from "@/lib/api/subscribers";
+import { showAlert } from "@/lib/webAlert";
 
 export default function SubscribersScreen() {
   const colors = useColors();
@@ -44,7 +44,7 @@ export default function SubscribersScreen() {
     if (Platform.OS === "web") {
       if (confirm(`Unsubscribe ${label}?`)) go();
     } else {
-      Alert.alert("Unsubscribe?", `${label} will stop receiving messages.`, [
+      showAlert("Unsubscribe?", `${label} will stop receiving messages.`, [
         { text: "Cancel", style: "cancel" },
         { text: "Unsubscribe", style: "destructive", onPress: go },
       ]);

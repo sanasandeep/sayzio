@@ -1,4 +1,5 @@
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
+import { showAlert } from "@/lib/webAlert";
 
 type AuthLike = {
   shouldOfferBiometricEnrollment: () => Promise<boolean>;
@@ -21,7 +22,7 @@ export async function maybeOfferBiometricEnrollment(auth: AuthLike) {
   const cap = await auth.refreshBiometricCapability();
   if (!cap.supported) return;
   const label = cap.label || "biometric unlock";
-  Alert.alert(
+  showAlert(
     `Unlock with ${label}?`,
     `Use ${label} next time so you don't need to sign in again.`,
     [
@@ -38,7 +39,7 @@ export async function maybeOfferBiometricEnrollment(auth: AuthLike) {
         onPress: async () => {
           const res = await auth.enableBiometricUnlock();
           if (!res.ok && res.reason !== "cancel") {
-            Alert.alert(
+            showAlert(
               "Couldn't enable",
               res.message ?? "Please try again from Settings.",
             );

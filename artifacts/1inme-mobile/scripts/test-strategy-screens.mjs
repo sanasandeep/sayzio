@@ -291,7 +291,7 @@ console.log("[test-strategy-screens] apply-confirm + refresh wiring");
 {
   assert.match(
     detailSrc,
-    /Alert\.alert\(\s*"Apply suggestion\?"/,
+    /showAlert\(\s*"Apply suggestion\?"/,
     "applying a suggestion must prompt for confirmation first",
   );
   assert.match(

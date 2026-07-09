@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -19,6 +18,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
 import { getProfile } from "@/lib/api/profile";
+import { showAlert } from "@/lib/webAlert";
 
 export default function InsiderScreen() {
   const colors = useColors();
@@ -49,7 +49,7 @@ export default function InsiderScreen() {
       setTimeout(() => setCopied(false), 2000);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not copy";
-      Alert.alert("Couldn't copy", msg);
+      showAlert("Couldn't copy", msg);
     }
   };
 

@@ -8,7 +8,6 @@ import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -32,6 +31,7 @@ import {
   listCompanies,
   updateCompany,
 } from "@/lib/api/accounting";
+import { showAlert } from "@/lib/webAlert";
 
 type Draft = {
   name: string;
@@ -152,14 +152,14 @@ export default function BillingCompaniesScreen() {
       setOpen(false);
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't save", e?.message ?? "Try again."),
+      showAlert("Couldn't save", e?.message ?? "Try again."),
   });
 
   const remove = useMutation({
     mutationFn: (id: number) => deleteCompany(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["billing-companies"] }),
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't delete", e?.message ?? "Try again."),
+      showAlert("Couldn't delete", e?.message ?? "Try again."),
   });
 
   const openCreate = () => {
@@ -357,7 +357,7 @@ export default function BillingCompaniesScreen() {
             <Pressable
               onPress={() => openEdit(item)}
               onLongPress={() =>
-                Alert.alert("Delete company?", item.name, [
+                showAlert("Delete company?", item.name, [
                   { text: "Cancel", style: "cancel" },
                   {
                     text: "Delete",

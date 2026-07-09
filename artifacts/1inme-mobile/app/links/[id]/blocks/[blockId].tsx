@@ -10,7 +10,6 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -216,6 +215,7 @@ import {
 } from "@/lib/api/blocks";
 import { variantsForType, findVariant } from "@/lib/blockVariants";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
+import { showAlert } from "@/lib/webAlert";
 
 // Mirrors the catalog-version constant on the PHP side. Bumped whenever a
 // variant payload changes in a way clients should re-apply. Stored
@@ -647,7 +647,7 @@ export function BlockSettingsEditor({
     },
     onSuccess: (count) => {
       qc.invalidateQueries({ queryKey: ["blocks", id] });
-      Alert.alert("Applied", `Design applied to ${count} block(s).`);
+      showAlert("Applied", `Design applied to ${count} block(s).`);
     },
   });
 
@@ -669,7 +669,7 @@ export function BlockSettingsEditor({
 
   const handleApplyToAll = useCallback(() => {
     if (!variantKey || !block) return;
-    Alert.alert(
+    showAlert(
       "Apply to all",
       `Apply this design to every ${block.type} block on this page?`,
       [

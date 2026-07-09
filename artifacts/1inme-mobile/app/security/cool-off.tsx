@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +24,7 @@ import {
   type PendingSensitiveChange,
   type SecuritySettings,
 } from "@/lib/api/security";
+import { showAlert } from "@/lib/webAlert";
 
 const COOL_OFF_PRESETS_HOURS = [0, 1, 24, 72] as const;
 
@@ -74,7 +74,7 @@ export default function CoolOffScreen() {
       qc.invalidateQueries({ queryKey: ["security", "settings"] });
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't save", e?.message ?? "Try again."),
+      showAlert("Couldn't save", e?.message ?? "Try again."),
   });
 
   const cancel = useMutation({
@@ -83,12 +83,12 @@ export default function CoolOffScreen() {
       qc.invalidateQueries({ queryKey: ["security", "pending-changes"] }),
     onError: (e: { status?: number; message?: string }) => {
       if (e?.status === 410) {
-        Alert.alert(
+        showAlert(
           "Too late",
           "The cool-off period has already elapsed. The change is now in effect.",
         );
       } else {
-        Alert.alert("Couldn't cancel", e?.message ?? "Try again.");
+        showAlert("Couldn't cancel", e?.message ?? "Try again.");
       }
       qc.invalidateQueries({ queryKey: ["security", "pending-changes"] });
     },

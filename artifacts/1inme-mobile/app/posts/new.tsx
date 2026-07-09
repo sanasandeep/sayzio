@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,6 +15,7 @@ import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { createPost, type PostMedia, type PostType } from "@/lib/api/posts";
+import { showAlert } from "@/lib/webAlert";
 
 const TYPE_OPTIONS: { key: PostType; label: string; emoji: string }[] = [
   { key: "text",    label: "Text",    emoji: "✍️" },
@@ -90,7 +90,7 @@ export default function NewPostScreen() {
       qc.invalidateQueries({ queryKey: ["posts"] });
       router.back();
     },
-    onError: (e: any) => Alert.alert("Failed", e?.message ?? "Try again"),
+    onError: (e: any) => showAlert("Failed", e?.message ?? "Try again"),
   });
 
   return (

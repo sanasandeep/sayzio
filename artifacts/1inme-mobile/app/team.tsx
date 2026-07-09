@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   RefreshControl,
@@ -25,6 +24,7 @@ import {
   revokeTeamInvite,
   type TeamRole,
 } from "@/lib/api/team";
+import { showAlert } from "@/lib/webAlert";
 
 const ROLES: { value: TeamRole; label: string; blurb: string }[] = [
   { value: "admin", label: "Admin", blurb: "Manage teammates + workspace settings" },
@@ -51,21 +51,21 @@ export default function TeamScreen() {
       qc.invalidateQueries({ queryKey: ["team"] });
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't invite teammate", e?.message ?? "Try again."),
+      showAlert("Couldn't invite teammate", e?.message ?? "Try again."),
   });
 
   const revoke = useMutation({
     mutationFn: (id: number) => revokeTeamInvite(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["team"] }),
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't revoke invite", e?.message ?? "Try again."),
+      showAlert("Couldn't revoke invite", e?.message ?? "Try again."),
   });
 
   const remove = useMutation({
     mutationFn: (id: number) => removeTeamMember(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["team"] }),
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't remove member", e?.message ?? "Try again."),
+      showAlert("Couldn't remove member", e?.message ?? "Try again."),
   });
 
   const data = q.data;
@@ -168,7 +168,7 @@ export default function TeamScreen() {
                     <Pressable
                       hitSlop={10}
                       onPress={() =>
-                        Alert.alert(
+                        showAlert(
                           "Remove teammate?",
                           `${m.name || m.email || "This member"} will lose access to ${data.workspace.name}.`,
                           [
@@ -223,7 +223,7 @@ export default function TeamScreen() {
                     <Pressable
                       hitSlop={10}
                       onPress={() =>
-                        Alert.alert("Revoke invite?", `Revoke ${i.email}?`, [
+                        showAlert("Revoke invite?", `Revoke ${i.email}?`, [
                           { text: "Cancel", style: "cancel" },
                           {
                             text: "Revoke",

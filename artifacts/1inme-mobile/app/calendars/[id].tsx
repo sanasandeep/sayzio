@@ -4,7 +4,6 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -36,6 +35,7 @@ import {
   syncEventsWithFeedback,
 } from "@/lib/deviceCalendar";
 import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
+import { showAlert } from "@/lib/webAlert";
 
 function formatEventTime(event: CalendarEventItem): string {
   if (!event.start_at) return "";
@@ -139,14 +139,14 @@ export default function CalendarDetailScreen() {
       qc.invalidateQueries({ queryKey: ["my-calendar-today"] });
     },
     onError: (e) =>
-      Alert.alert(
+      showAlert(
         "Couldn't delete event",
         (e as { message?: string })?.message ?? "Please try again.",
       ),
   });
 
   const confirmDeleteEvent = (event: CalendarEventItem) => {
-    Alert.alert("Delete event?", `"${event.title}" will be removed. This can't be undone.`, [
+    showAlert("Delete event?", `"${event.title}" will be removed. This can't be undone.`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
@@ -218,7 +218,7 @@ export default function CalendarDetailScreen() {
       if (result.status === "granted") {
         await refreshSavedState();
       } else if (result.status === "denied" && result.openedSettings) {
-        Alert.alert(
+        showAlert(
           "Calendar access needed",
           "Enable calendar access for this app in Settings, then return here to see which events you've already saved.",
         );
@@ -283,7 +283,7 @@ export default function CalendarDetailScreen() {
 
   const confirmRemoveAll = () => {
     if (syncable.length === 0) return;
-    Alert.alert(
+    showAlert(
       "Remove all from my calendar?",
       "This deletes every copy of this calendar's events that was added to your device calendar. Your followed calendar stays intact.",
       [

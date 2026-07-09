@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -15,6 +14,7 @@ import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { getProfile, updateProfile, type ProfilePayload } from "@/lib/api/profile";
+import { showAlert } from "@/lib/webAlert";
 
 export default function ProfileEdit() {
   const colors = useColors();
@@ -54,7 +54,7 @@ export default function ProfileEdit() {
       if (Platform.OS === "web") {
         router.back();
       } else {
-        Alert.alert("Saved", "Profile updated.", [
+        showAlert("Saved", "Profile updated.", [
           { text: "OK", onPress: () => router.back() },
         ]);
       }
@@ -67,7 +67,7 @@ export default function ProfileEdit() {
         });
         setErrors(flat);
       } else {
-        Alert.alert("Could not save", e?.message ?? "Unknown error");
+        showAlert("Could not save", e?.message ?? "Unknown error");
       }
     },
   });

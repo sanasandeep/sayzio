@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Platform,
@@ -25,6 +24,7 @@ import {
   listProjects,
   type Project,
 } from "@/lib/api/projects";
+import { showAlert } from "@/lib/webAlert";
 
 const SWATCHES = ["#7c3aed", "#06b6d4", "#22c55e", "#f59e0b", "#ec4899", "#3b82f6"];
 
@@ -56,7 +56,7 @@ export default function ProjectsScreen() {
         });
         setErrors(flat);
       } else {
-        Alert.alert("Could not create", e?.message ?? "Unknown error");
+        showAlert("Could not create", e?.message ?? "Unknown error");
       }
     },
   });
@@ -71,7 +71,7 @@ export default function ProjectsScreen() {
     if (Platform.OS === "web") {
       if (confirm(`Delete project “${p.name}”?`)) go();
     } else {
-      Alert.alert("Delete project?", `“${p.name}” will be removed.`, [
+      showAlert("Delete project?", `“${p.name}” will be removed.`, [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", style: "destructive", onPress: go },
       ]);

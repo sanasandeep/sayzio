@@ -3,7 +3,6 @@ import { Stack, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -17,6 +16,7 @@ import { useColors } from "@/hooks/useColors";
 import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import { apiFetch } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
+import { showAlert } from "@/lib/webAlert";
 
 type LoginEvent = {
   id: number;
@@ -94,7 +94,7 @@ export default function SecurityLoginsScreen() {
 
   const onRevoke = useCallback(
     (event: LoginEvent) => {
-      Alert.alert(
+      showAlert(
         "This wasn't me?",
         "We'll sign every device out and clear your password so only you can set a new one.",
         [
@@ -113,7 +113,7 @@ export default function SecurityLoginsScreen() {
                 router.replace("/(auth)");
               } catch (err) {
                 const e = err as ApiError;
-                Alert.alert("Could not revoke", e.message ?? "Please try again.");
+                showAlert("Could not revoke", e.message ?? "Please try again.");
               } finally {
                 setRevokingId(null);
               }

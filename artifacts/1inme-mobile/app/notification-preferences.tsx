@@ -4,7 +4,6 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -21,6 +20,7 @@ import {
   updateWhatsappPaymentAlerts,
   type NotificationPreference,
 } from "@/lib/api/notifications";
+import { showAlert } from "@/lib/webAlert";
 
 type LocalState = Record<
   string,
@@ -48,7 +48,7 @@ export default function NotificationPreferencesScreen() {
       qc.setQueryData(["whatsapp-payment-alerts"], data);
     },
     onError: (e: any) => {
-      Alert.alert("Couldn't save", e?.message ?? "Try again");
+      showAlert("Couldn't save", e?.message ?? "Try again");
     },
   });
 

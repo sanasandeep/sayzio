@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -22,6 +21,7 @@ import {
   marketingStrategist,
   type StrategySummary,
 } from "@/lib/api/marketingStrategist";
+import { showAlert } from "@/lib/webAlert";
 
 const FEATURE_LABEL = "Performer Specialist";
 
@@ -48,12 +48,12 @@ export default function MarketingStrategistList() {
       });
     },
     onError: () => {
-      Alert.alert("Couldn't delete", "Please try again in a moment.");
+      showAlert("Couldn't delete", "Please try again in a moment.");
     },
   });
 
   const confirmDelete = (strategy: StrategySummary) => {
-    Alert.alert(
+    showAlert(
       "Delete strategy",
       `Delete "${strategy.title}"? This can't be undone.`,
       [

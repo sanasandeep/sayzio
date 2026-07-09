@@ -4,7 +4,6 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,6 +27,7 @@ import {
   type CalendarEventItem,
 } from "@/lib/api/calendars";
 import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
+import { showAlert } from "@/lib/webAlert";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -206,7 +206,7 @@ export default function CalendarEventScreen() {
     },
     onError: (e) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert(
+      showAlert(
         "Couldn't save event",
         (e as { message?: string })?.message ?? "Please try again.",
       );
@@ -220,14 +220,14 @@ export default function CalendarEventScreen() {
       router.back();
     },
     onError: (e) =>
-      Alert.alert(
+      showAlert(
         "Couldn't delete event",
         (e as { message?: string })?.message ?? "Please try again.",
       ),
   });
 
   const confirmDelete = () => {
-    Alert.alert("Delete event?", "This can't be undone.", [
+    showAlert("Delete event?", "This can't be undone.", [
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: "destructive", onPress: () => remove.mutate() },
     ]);

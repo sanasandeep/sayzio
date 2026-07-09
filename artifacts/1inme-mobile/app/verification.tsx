@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -25,6 +24,7 @@ import {
   type VerificationCategory,
   type VerificationRequest,
 } from "@/lib/api/verification";
+import { showAlert } from "@/lib/webAlert";
 
 const statusColorMap = (
   colors: ReturnType<typeof useColors>,
@@ -93,7 +93,7 @@ export default function VerificationScreen() {
         });
         setErrors(flat);
       } else {
-        Alert.alert("Could not submit", e?.message ?? "Unknown error");
+        showAlert("Could not submit", e?.message ?? "Unknown error");
       }
     },
   });

@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Modal,
@@ -31,6 +30,7 @@ import {
   type OwnerReviewCounts,
   type ReviewStatus,
 } from "@/lib/api/reviews";
+import { showAlert } from "@/lib/webAlert";
 
 type Colors = ReturnType<typeof useColors>;
 
@@ -356,7 +356,7 @@ export default function ManageReviewsScreen() {
           ? String((e as { message: unknown }).message)
           : "Something went wrong";
       if (Platform.OS === "web") alert(msg);
-      else Alert.alert("Couldn't update review", msg);
+      else showAlert("Couldn't update review", msg);
     },
   });
 
@@ -373,7 +373,7 @@ export default function ManageReviewsScreen() {
           ? String((e as { message: unknown }).message)
           : "Could not save reply";
       if (Platform.OS === "web") alert(msg);
-      else Alert.alert("Couldn't save reply", msg);
+      else showAlert("Couldn't save reply", msg);
     },
   });
 
@@ -383,7 +383,7 @@ export default function ManageReviewsScreen() {
     if (Platform.OS === "web") {
       if (confirm(`Delete ${label}? This cannot be undone.`)) go();
     } else {
-      Alert.alert(
+      showAlert(
         "Delete review?",
         "This permanently removes the review and cannot be undone.",
         [

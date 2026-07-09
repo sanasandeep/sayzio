@@ -3,7 +3,6 @@ import { Stack, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -19,6 +18,7 @@ import {
   type WalletTransaction,
   wallet as walletApi,
 } from "@/lib/api";
+import { showAlert } from "@/lib/webAlert";
 
 export default function WalletScreen() {
   const colors = useColors();
@@ -42,10 +42,10 @@ export default function WalletScreen() {
     } catch (e: unknown) {
       const err = e as { status?: number; message?: string } | undefined;
       if (err?.status === 404) {
-        Alert.alert("Wallet unavailable", "The wallet feature is currently disabled.");
+        showAlert("Wallet unavailable", "The wallet feature is currently disabled.");
         router.back();
       } else {
-        Alert.alert("Couldn't load wallet", err?.message ?? "Try again in a moment.");
+        showAlert("Couldn't load wallet", err?.message ?? "Try again in a moment.");
       }
     } finally {
       setLoading(false);

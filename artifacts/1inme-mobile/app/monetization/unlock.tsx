@@ -2,11 +2,12 @@ import { useMutation } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect } from "react";
-import { ActivityIndicator, Alert, Linking, Text, View } from "react-native";
+import { ActivityIndicator, Linking, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { startUnlockPost } from "@/lib/api/monetization";
+import { showAlert } from "@/lib/webAlert";
 
 /**
  * Stub screen that immediately fires the per-post unlock checkout.
@@ -32,14 +33,14 @@ export default function UnlockScreen() {
           Linking.openURL(r.checkout_url);
         }
       } else if (r.already) {
-        Alert.alert("Already unlocked", "You already own this post — enjoy!");
+        showAlert("Already unlocked", "You already own this post — enjoy!");
       } else {
-        Alert.alert("Unlocked", "Enjoy the post!");
+        showAlert("Unlocked", "Enjoy the post!");
       }
       router.back();
     },
     onError: (e: Error) => {
-      Alert.alert("Couldn't unlock", e.message || "Try again");
+      showAlert("Couldn't unlock", e.message || "Try again");
       router.back();
     },
   });

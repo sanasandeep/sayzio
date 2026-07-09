@@ -5,7 +5,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -43,6 +42,7 @@ import {
   setVoiceWakeWordEnabled,
   type ThemePref,
 } from "@/lib/secure";
+import { showAlert } from "@/lib/webAlert";
 
 const IDLE_TIMEOUT_OPTIONS: { value: number; label: string }[] =
   IDLE_TIMEOUT_PRESETS_MS.map((ms) => ({
@@ -367,7 +367,7 @@ export default function Profile() {
       await setVoiceWakeWordEnabled(next);
       setWakeWordEnabledState(next);
     } catch (e) {
-      Alert.alert(
+      showAlert(
         "Couldn't save",
         e instanceof Error ? e.message : "Please try again.",
       );
@@ -385,7 +385,7 @@ export default function Profile() {
       } else {
         const res = await enableBiometricUnlock();
         if (!res.ok && res.reason !== "cancel") {
-          Alert.alert(
+          showAlert(
             "Couldn't enable",
             res.message ?? "Please try again.",
           );

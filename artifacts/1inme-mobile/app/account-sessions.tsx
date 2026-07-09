@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   Pressable,
   RefreshControl,
@@ -20,6 +19,7 @@ import {
   revokeSession,
   type SessionInfo,
 } from "@/lib/api/sessions";
+import { showAlert } from "@/lib/webAlert";
 
 function platformIcon(platform: string | null, kind: string): keyof typeof Feather.glyphMap {
   if (kind === "web") return "globe";
@@ -45,7 +45,7 @@ function confirm(title: string, message: string, onYes: () => void) {
     if (typeof window !== "undefined" && window.confirm(`${title}\n\n${message}`)) onYes();
     return;
   }
-  Alert.alert(title, message, [
+  showAlert(title, message, [
     { text: "Cancel", style: "cancel" },
     { text: "Confirm", style: "destructive", onPress: onYes },
   ]);
@@ -61,14 +61,14 @@ export default function AccountSessions() {
     mutationFn: (id: string) => revokeSession(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["sessions"] }),
     onError: (e: any) =>
-      Alert.alert("Could not revoke", e?.message ?? "Unknown error"),
+      showAlert("Could not revoke", e?.message ?? "Unknown error"),
   });
 
   const revokeOthers = useMutation({
     mutationFn: () => revokeOtherSessions(),
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["sessions"] });
-      Alert.alert(
+      showAlert(
         "Done",
         `Signed out ${r.revoked_tokens + r.revoked_sessions} other session${
           r.revoked_tokens + r.revoked_sessions === 1 ? "" : "s"
@@ -76,7 +76,7 @@ export default function AccountSessions() {
       );
     },
     onError: (e: any) =>
-      Alert.alert("Could not sign out", e?.message ?? "Unknown error"),
+      showAlert("Could not sign out", e?.message ?? "Unknown error"),
   });
 
   return (

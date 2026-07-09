@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,6 +22,7 @@ import {
   updateSpamSettings,
   type SpamPayload,
 } from "@/lib/api/inbox";
+import { showAlert } from "@/lib/webAlert";
 
 // Mobile parity for the web Inbox "Spam settings" page. Manage default
 // keyword protections (toggle them off/on), custom blocked keywords, and a
@@ -69,7 +69,7 @@ export default function SpamSettingsScreen() {
     }) => updateSpamSettings(next),
     onSuccess: apply,
     onError: (e: any) =>
-      Alert.alert("Couldn't save", e?.message ?? "Try again."),
+      showAlert("Couldn't save", e?.message ?? "Try again."),
   });
 
   const persist = (overrides?: {
@@ -95,7 +95,7 @@ export default function SpamSettingsScreen() {
       qc.invalidateQueries({ queryKey: ["inbox", "spam-settings"] });
     },
     onError: (e: any) =>
-      Alert.alert("Couldn't update keyword", e?.message ?? "Try again."),
+      showAlert("Couldn't update keyword", e?.message ?? "Try again."),
   });
 
   const addKeyword = () => {
@@ -158,13 +158,13 @@ export default function SpamSettingsScreen() {
       setEmails(out.spam.trusted_emails ?? []);
       setPhones(out.spam.trusted_phones ?? []);
       qc.invalidateQueries({ queryKey: ["inbox", "spam-settings"] });
-      Alert.alert(
+      showAlert(
         "Import complete",
         `Added ${out.stats.emails_added} email(s) and ${out.stats.phones_added} phone(s). ` +
           `${out.stats.duplicates} duplicate(s) skipped.`,
       );
     } catch (e: any) {
-      Alert.alert("Couldn't import", e?.message ?? "Try a CSV file.");
+      showAlert("Couldn't import", e?.message ?? "Try a CSV file.");
     } finally {
       setBusy(false);
     }

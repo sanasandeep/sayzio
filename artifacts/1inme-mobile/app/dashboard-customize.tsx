@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +24,7 @@ import {
   type DashboardAiAnswers,
   type DashboardLayoutState,
 } from "@/lib/api/dashboard";
+import { showAlert } from "@/lib/webAlert";
 
 type Density = "minimal" | "balanced" | "detailed";
 
@@ -86,14 +86,14 @@ export default function DashboardCustomizeScreen() {
     mutationFn: (preset: string) => applyDashboardPreset(preset),
     onSuccess: async (res) => {
       await qc.invalidateQueries({ queryKey: ["dashboard-layout"] });
-      Alert.alert(
+      showAlert(
         "Dashboard updated",
         `Switched to the "${res.preset}" layout.`,
       );
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert(
+      showAlert(
         "Couldn't apply preset",
         e?.message ?? "Please try again in a moment.",
       );
@@ -108,7 +108,7 @@ export default function DashboardCustomizeScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert(
+      showAlert(
         "Couldn't estimate",
         e?.message ?? "Please try again in a moment.",
       );
@@ -125,7 +125,7 @@ export default function DashboardCustomizeScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert(
+      showAlert(
         "Couldn't design a dashboard",
         e?.message ??
           "The assistant couldn't build a layout from that. Add more detail and try again.",

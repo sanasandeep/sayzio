@@ -4,7 +4,6 @@ import { Stack, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -18,6 +17,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import { apiFetch } from "@/lib/api";
 import { listCreditNotes, type CreditNote } from "@/lib/api/creditNotes";
+import { showAlert } from "@/lib/webAlert";
 
 type Invoice = {
   id: number | string;
@@ -82,7 +82,7 @@ export default function InvoicesScreen() {
 
   const openPdf = async (url: string | null) => {
     if (!url) {
-      Alert.alert("PDF unavailable", "Couldn't get a download link. Try again later.");
+      showAlert("PDF unavailable", "Couldn't get a download link. Try again later.");
       return;
     }
     try {
@@ -91,7 +91,7 @@ export default function InvoicesScreen() {
         controlsColor: colors.primary,
       });
     } catch (e) {
-      Alert.alert(
+      showAlert(
         "Couldn't open PDF",
         e instanceof Error ? e.message : "Try again later.",
       );

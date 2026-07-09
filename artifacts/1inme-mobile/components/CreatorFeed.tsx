@@ -10,7 +10,6 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -28,6 +27,7 @@ import {
   type ProfileComment,
   type ReactionKey,
 } from "@/lib/api/creatorProfile";
+import { showAlert } from "@/lib/webAlert";
 
 // Strongly-typed shape of one infinite-query page returned by
 // `creatorProfile.feed`, derived from the function so it stays in sync.
@@ -552,7 +552,7 @@ function CommentsThread({
       qc.invalidateQueries({ queryKey: feedQueryKey });
     },
     onError: (e: Error) =>
-      Alert.alert("Couldn't post comment", e.message || "Try again."),
+      showAlert("Couldn't post comment", e.message || "Try again."),
   });
 
   const flat = useMemo(() => q.data ?? [], [q.data]);

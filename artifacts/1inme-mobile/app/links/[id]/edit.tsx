@@ -10,7 +10,6 @@ import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -48,6 +47,7 @@ import {
   PAID_PAGE_TEMPLATES,
   paidPageTemplateId,
 } from "@/lib/paidPage";
+import { showAlert } from "@/lib/webAlert";
 
 const VISIBILITIES: Link["visibility"][] = [
   "public",
@@ -63,7 +63,7 @@ function confirm(title: string, msg: string, onYes: () => void) {
     }
     return;
   }
-  Alert.alert(title, msg, [
+  showAlert(title, msg, [
     { text: "Cancel", style: "cancel" },
     { text: "OK", style: "destructive", onPress: onYes },
   ]);

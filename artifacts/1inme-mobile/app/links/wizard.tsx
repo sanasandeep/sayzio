@@ -10,7 +10,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -51,6 +50,7 @@ import {
   type WizardStartingDesign,
   type WizardVaultFile,
 } from "@/lib/api/wizard";
+import { showAlert } from "@/lib/webAlert";
 
 // The five-step guided flow, mirroring the web wizard (PersonaCatalog taxonomy):
 //   persona group → persona (+ optional inline niche) → starting design →
@@ -1588,7 +1588,7 @@ function ImageQuestionField({
       });
       onChange(url);
     } catch (e: any) {
-      Alert.alert(
+      showAlert(
         "Couldn't upload image",
         e?.message ?? "Please try again, or paste an image URL instead.",
       );
@@ -1600,7 +1600,7 @@ function ImageQuestionField({
   async function pickFromLibrary() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      showAlert(
         "Photos access needed",
         "Allow access to your photo library in Settings to pick an image.",
       );
@@ -1619,7 +1619,7 @@ function ImageQuestionField({
   async function takePhoto() {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      showAlert(
         "Camera access needed",
         "Allow camera access in Settings to take a photo.",
       );
@@ -1636,7 +1636,7 @@ function ImageQuestionField({
   }
 
   function openSourceMenu() {
-    Alert.alert(label, undefined, [
+    showAlert(label, undefined, [
       { text: "Choose from library", onPress: pickFromLibrary },
       { text: "Take photo", onPress: takePhoto },
       { text: "Cancel", style: "cancel" },

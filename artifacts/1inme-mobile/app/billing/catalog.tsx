@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -26,6 +25,7 @@ import {
   getCatalog,
   updateItem,
 } from "@/lib/api/accounting";
+import { showAlert } from "@/lib/webAlert";
 
 type Draft = {
   name: string;
@@ -74,7 +74,7 @@ export default function CatalogScreen() {
       setOpen(false);
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't save", e?.message ?? "Try again."),
+      showAlert("Couldn't save", e?.message ?? "Try again."),
   });
 
   const remove = useMutation({
@@ -126,7 +126,7 @@ export default function CatalogScreen() {
             <Pressable
               onPress={() => openEdit(item)}
               onLongPress={() =>
-                Alert.alert("Delete item?", item.name, [
+                showAlert("Delete item?", item.name, [
                   { text: "Cancel", style: "cancel" },
                   { text: "Delete", style: "destructive", onPress: () => remove.mutate(item.id) },
                 ])

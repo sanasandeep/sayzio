@@ -3,7 +3,6 @@ import { Stack, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -31,6 +30,7 @@ import {
   isRevenueCatConfigured,
   useSubscription,
 } from "@/lib/revenuecat";
+import { showAlert } from "@/lib/webAlert";
 
 type Cycle = "monthly" | "annual";
 
@@ -82,10 +82,10 @@ export default function PlansScreen() {
         qc.invalidateQueries({ queryKey: ["billing", "plans"] }),
         qc.invalidateQueries({ queryKey: ["billing", "subscription"] }),
       ]);
-      Alert.alert("Downgrade cancelled", res.data.message);
+      showAlert("Downgrade cancelled", res.data.message);
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't cancel", e?.message ?? "Please try again."),
+      showAlert("Couldn't cancel", e?.message ?? "Please try again."),
   });
 
   // Surfaces the cancel-at-period-end state so a mobile user who scheduled a
@@ -103,10 +103,10 @@ export default function PlansScreen() {
         qc.invalidateQueries({ queryKey: ["billing", "plans"] }),
         qc.invalidateQueries({ queryKey: ["billing", "downgrade"] }),
       ]);
-      Alert.alert("Plan resumed", res.data.message);
+      showAlert("Plan resumed", res.data.message);
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't resume", e?.message ?? "Please try again."),
+      showAlert("Couldn't resume", e?.message ?? "Please try again."),
   });
 
   // Start a cancel-at-period-end. Mirrors web BillingController::cancel() so a
@@ -119,10 +119,10 @@ export default function PlansScreen() {
         qc.invalidateQueries({ queryKey: ["billing", "plans"] }),
         qc.invalidateQueries({ queryKey: ["billing", "downgrade"] }),
       ]);
-      Alert.alert("Cancellation scheduled", res.data.message);
+      showAlert("Cancellation scheduled", res.data.message);
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't cancel", e?.message ?? "Please try again."),
+      showAlert("Couldn't cancel", e?.message ?? "Please try again."),
   });
 
   // Seed the currency from the backend-resolved default (geo / profile /
@@ -191,10 +191,10 @@ export default function PlansScreen() {
         qc.invalidateQueries({ queryKey: ["billing", "plans"] }),
         refreshAuth?.(),
       ]);
-      Alert.alert("Restore complete", "We re-checked your purchases.");
+      showAlert("Restore complete", "We re-checked your purchases.");
     },
     onError: (e: any) =>
-      Alert.alert("Restore failed", e?.message ?? "Please try again."),
+      showAlert("Restore failed", e?.message ?? "Please try again."),
   });
 
   const offering: PurchasesOffering | null = sub.currentOffering;
@@ -218,7 +218,7 @@ export default function PlansScreen() {
 
   const onPurchase = (plan: Plan) => {
     if (!isRevenueCatConfigured()) {
-      Alert.alert(
+      showAlert(
         "Billing not available",
         "In-app purchases haven't been configured for this build yet.",
       );
@@ -226,7 +226,7 @@ export default function PlansScreen() {
     }
     const pkg = findPackage(plan);
     if (!pkg) {
-      Alert.alert(
+      showAlert(
         "Plan unavailable",
         `No matching ${cycle} package found for ${plan.name}.`,
       );
@@ -246,10 +246,10 @@ export default function PlansScreen() {
         cycle,
         entitlement: plan.slug,
       });
-      Alert.alert("All set", `${plan.name} is now active.`);
+      showAlert("All set", `${plan.name} is now active.`);
     } catch (e: any) {
       if (e?.userCancelled) return;
-      Alert.alert(
+      showAlert(
         "Purchase failed",
         e?.message ?? "Something went wrong. Please try again.",
       );
@@ -265,7 +265,7 @@ export default function PlansScreen() {
   const cancelAtPeriodEnd = subscription?.cancel_at_period_end === true;
 
   const confirmResume = () => {
-    Alert.alert(
+    showAlert(
       "Resume subscription?",
       "Your plan will continue renewing and won't cancel at the end of your cycle.",
       [
@@ -276,7 +276,7 @@ export default function PlansScreen() {
   };
 
   const confirmCancel = () => {
-    Alert.alert(
+    showAlert(
       "Stop renewing at period end?",
       "You will keep paid features until the current period ends.",
       [
@@ -291,7 +291,7 @@ export default function PlansScreen() {
   };
 
   const confirmCancelDowngrade = () => {
-    Alert.alert(
+    showAlert(
       "Cancel scheduled downgrade?",
       "You'll stay on your current plan and nothing will change at the end of your cycle.",
       [

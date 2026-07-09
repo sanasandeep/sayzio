@@ -5,7 +5,6 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -27,6 +26,7 @@ import {
   type BackupCodeStatus,
   type TwoFactorSetup,
 } from "@/lib/api/security";
+import { showAlert } from "@/lib/webAlert";
 
 type Mode = "idle" | "enrolling" | "disabling";
 
@@ -167,13 +167,13 @@ export default function TwoFactorScreen() {
   const copySecret = async () => {
     if (!setup) return;
     await Clipboard.setStringAsync(setup.secret);
-    if (Platform.OS !== "web") Alert.alert("Copied", "Secret copied.");
+    if (Platform.OS !== "web") showAlert("Copied", "Secret copied.");
   };
 
   const copyCodes = async () => {
     if (!freshCodes) return;
     await Clipboard.setStringAsync(freshCodes.join("\n"));
-    if (Platform.OS !== "web") Alert.alert("Copied", "Codes copied.");
+    if (Platform.OS !== "web") showAlert("Copied", "Codes copied.");
   };
 
   const shareCodes = async () => {

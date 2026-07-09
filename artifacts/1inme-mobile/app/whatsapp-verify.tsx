@@ -4,7 +4,6 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -25,6 +24,7 @@ import {
   sendWhatsappCode,
   verifyWhatsappCode,
 } from "@/lib/api/whatsapp";
+import { showAlert } from "@/lib/webAlert";
 
 type Step = "manage" | "enter" | "verify" | "done";
 
@@ -136,7 +136,7 @@ export default function WhatsappVerify() {
   };
 
   const removeNumber = () => {
-    Alert.alert(
+    showAlert(
       "Remove WhatsApp number?",
       "Your WhatsApp alerts will be turned off until you connect a new number.",
       [
@@ -160,7 +160,7 @@ export default function WhatsappVerify() {
               setError(null);
               setStep("enter");
             } catch (e) {
-              Alert.alert(
+              showAlert(
                 "Couldn't remove",
                 (e as ApiError)?.message ?? "Please try again.",
               );

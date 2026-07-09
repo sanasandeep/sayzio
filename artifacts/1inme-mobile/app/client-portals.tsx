@@ -4,7 +4,6 @@ import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -23,6 +22,7 @@ import {
   listClientPortals,
   type ClientPortal,
 } from "@/lib/api/client-portals";
+import { showAlert } from "@/lib/webAlert";
 
 export default function ClientPortalsScreen() {
   const colors = useColors();
@@ -45,7 +45,7 @@ export default function ClientPortalsScreen() {
       router.push(`/client-portals/${portal.id}` as never);
     },
     onError: (e: { message?: string }) => {
-      Alert.alert("Couldn't create portal", e?.message ?? "Try again.");
+      showAlert("Couldn't create portal", e?.message ?? "Try again.");
     },
   });
 

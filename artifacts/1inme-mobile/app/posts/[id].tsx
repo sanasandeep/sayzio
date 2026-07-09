@@ -3,7 +3,6 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,6 +14,7 @@ import { CloudAttachSection } from "@/components/CloudAttachSection";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { listPosts, updatePost } from "@/lib/api/posts";
+import { showAlert } from "@/lib/webAlert";
 
 export default function EditPostScreen() {
   const colors = useColors();
@@ -43,7 +43,7 @@ export default function EditPostScreen() {
       qc.invalidateQueries({ queryKey: ["posts"] });
       router.back();
     },
-    onError: (e: any) => Alert.alert("Failed", e?.message ?? "Try again"),
+    onError: (e: any) => showAlert("Failed", e?.message ?? "Try again"),
   });
 
   if (!post) {

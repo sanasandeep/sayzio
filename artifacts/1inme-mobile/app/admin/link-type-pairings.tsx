@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -21,6 +20,7 @@ import {
   updateLinkTypePairings,
   type PairingsStatus,
 } from "@/lib/api/linkTypePairings";
+import { showAlert } from "@/lib/webAlert";
 
 // Mobile parity for the web admin "Perfect Pairings" toggles page. Each
 // public link-type page (biolink, resume, reviews, restaurant menu, store,
@@ -85,10 +85,10 @@ export default function LinkTypePairingsScreen() {
     mutationFn: () => updateLinkTypePairings({ enabled: toEnabledPayload(checks ?? {}) }),
     onSuccess: (data) => {
       applyResult(data);
-      Alert.alert("Saved", "Perfect Pairings settings updated.");
+      showAlert("Saved", "Perfect Pairings settings updated.");
     },
     onError: (e: any) =>
-      Alert.alert(
+      showAlert(
         "Couldn't save",
         e?.status === 403
           ? "You don't have permission to change these settings."
@@ -100,10 +100,10 @@ export default function LinkTypePairingsScreen() {
     mutationFn: restoreLinkTypePairingDefaults,
     onSuccess: (data) => {
       applyResult(data);
-      Alert.alert("Restored", "All Perfect Pairings cards re-enabled.");
+      showAlert("Restored", "All Perfect Pairings cards re-enabled.");
     },
     onError: (e: any) =>
-      Alert.alert(
+      showAlert(
         "Couldn't restore",
         e?.status === 403
           ? "You don't have permission to change these settings."
@@ -134,7 +134,7 @@ export default function LinkTypePairingsScreen() {
       }
       return;
     }
-    Alert.alert(title, msg, [
+    showAlert(title, msg, [
       { text: "Cancel", style: "cancel" },
       { text: "Restore", style: "destructive", onPress: () => restore.mutate() },
     ]);

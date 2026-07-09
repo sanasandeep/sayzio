@@ -20,7 +20,6 @@ import {
 } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Modal,
   Platform,
@@ -85,6 +84,7 @@ import {
   updateAiPersona,
 } from "@/lib/api/aiCompanions";
 import { getProfile } from "@/lib/api/profile";
+import { showAlert } from "@/lib/webAlert";
 
 // The design preview renders blocks read-only; embed taps are inert there
 // (no WebView modal), so a stable no-op satisfies BlockView's openEmbed prop
@@ -103,7 +103,7 @@ function confirm(title: string, msg: string, onYes: () => void) {
     }
     return;
   }
-  Alert.alert(title, msg, [
+  showAlert(title, msg, [
     { text: "Cancel", style: "cancel" },
     { text: "OK", style: "destructive", onPress: onYes },
   ]);
@@ -1333,7 +1333,7 @@ function SpecialPanel(props: SpecialPanelProps) {
     onError: (err: unknown, vars) => {
       const e = err as { status?: number; message?: string };
       if (e?.status === 409 && !vars.confirm) {
-        Alert.alert(
+        showAlert(
           "Replace your page?",
           "Applying this design will remove your current blocks and replace them with the template. This can't be undone.",
           [
@@ -1348,7 +1348,7 @@ function SpecialPanel(props: SpecialPanelProps) {
         );
         return;
       }
-      Alert.alert(
+      showAlert(
         "Couldn't apply design",
         e?.message || "Something went wrong. Please try again.",
       );

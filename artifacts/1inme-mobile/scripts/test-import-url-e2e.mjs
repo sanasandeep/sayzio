@@ -27,9 +27,10 @@
  *      shared page TITLE and the shared URL (host) rendered in the URL card.
  *   2. The url param was parsed as a share (no manual "URL" entry field,
  *      which only renders when the param is missing/lost).
- *   3. All three actions (Create QR / Add to calendar / Shorten link) are
- *      tappable — i.e. the screen recognises the URL as valid, not the
- *      disabled no-URL state.
+ *   3. The share-sheet action surface is intact: shortening is handled
+ *      automatically, and the "Other options" disclosure expands to reveal
+ *      tappable Create QR / Add to calendar actions — i.e. the screen
+ *      recognises the URL as valid, not the disabled no-URL state.
  *   4. The auth/launch gate did NOT redirect away: after a settle window we
  *      are still on /import-url (not the tabs, not "Welcome back"), so the
  *      params were never lost to a bounce through the gate.
@@ -194,9 +195,21 @@ async function runColdStartCheck(page, appUrl) {
     );
   }
 
-  // 3. All three actions are tappable — they render disabled (opacity’d,
-  //    aria-disabled) when the screen has no valid URL.
-  for (const label of ["Create QR", "Add to calendar", "Shorten link"]) {
+  // 3. The share-sheet path shortens automatically and tucks the remaining
+  //    actions behind the "Other options" disclosure — expand it, then check
+  //    that Create QR / Add to calendar are tappable (they render disabled
+  //    — opacity'd, aria-disabled — when the screen has no valid URL).
+  const otherOptionsToggle = page
+    .locator('[aria-label="Show other options"]')
+    .first();
+  if ((await otherOptionsToggle.count()) === 0) {
+    fail(
+      'the "Other options" disclosure toggle is missing from the Import ' +
+        "screen's shared-URL path",
+    );
+  }
+  await otherOptionsToggle.click();
+  for (const label of ["Create QR", "Add to calendar"]) {
     const btn = page.locator(`[aria-label="${label}"]`).first();
     if ((await btn.count()) === 0) {
       fail(`action button "${label}" is missing from the Import screen`);

@@ -5,7 +5,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -31,6 +30,7 @@ import { getBaseUrl, getConfiguredBaseUrl } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
 import { getAuthConfig, isAllowedCountryCode } from "@/lib/api/authConfig";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
+import { showAlert } from "@/lib/webAlert";
 
 type Channel = "email" | "mobile";
 
@@ -128,7 +128,7 @@ export default function AuthLanding() {
         }
         const msg = e?.message ?? "Google sign-in failed";
         if (Platform.OS === "web") setError(msg);
-        else Alert.alert("Sign in", msg);
+        else showAlert("Sign in", msg);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [googleResponse]);
@@ -267,7 +267,7 @@ export default function AuthLanding() {
         const msg =
           "Google sign-in isn't configured for this build. Add EXPO_PUBLIC_GOOGLE_CLIENT_ID (or platform-specific EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID / EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID) to enable it.";
         if (Platform.OS === "web") setError(msg);
-        else Alert.alert("Sign in", msg);
+        else showAlert("Sign in", msg);
         return;
       }
       setBusy("social-google");
@@ -283,7 +283,7 @@ export default function AuthLanding() {
       const msg =
         "API base URL isn't set. Add EXPO_PUBLIC_API_BASE_URL to artifacts/1inme-mobile/.env so OAuth doesn't redirect through production.";
       if (Platform.OS === "web") setError(msg);
-      else Alert.alert("Sign in", msg);
+      else showAlert("Sign in", msg);
       return;
     }
     setBusy(`social-${provider}`);
@@ -319,7 +319,7 @@ export default function AuthLanding() {
           ? e.message
           : `${provider} sign-in is not configured for this build`;
       if (Platform.OS === "web") setError(msg);
-      else Alert.alert("Sign in", msg);
+      else showAlert("Sign in", msg);
     } finally {
       setBusy(null);
     }

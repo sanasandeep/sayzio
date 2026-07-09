@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -27,6 +26,7 @@ import {
   runRecurring,
   updateRecurring,
 } from "@/lib/api/accounting";
+import { showAlert } from "@/lib/webAlert";
 
 type LineDraft = { label: string; amount_major: string; quantity: string };
 type Draft = {
@@ -94,7 +94,7 @@ export default function RecurringScreen() {
       setOpen(false);
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't save", e?.message ?? "Try again."),
+      showAlert("Couldn't save", e?.message ?? "Try again."),
   });
 
   const remove = useMutation({
@@ -107,10 +107,10 @@ export default function RecurringScreen() {
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["billing-recurring"] });
       qc.invalidateQueries({ queryKey: ["billing-invoices"] });
-      Alert.alert("Invoice generated", res.number);
+      showAlert("Invoice generated", res.number);
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't generate", e?.message ?? "Try again."),
+      showAlert("Couldn't generate", e?.message ?? "Try again."),
   });
 
   const openCreate = () => {
@@ -185,7 +185,7 @@ export default function RecurringScreen() {
                   variant="ghost"
                   style={{ flex: 1 }}
                   onPress={() =>
-                    Alert.alert("Delete template?", item.title ?? "Recurring invoice", [
+                    showAlert("Delete template?", item.title ?? "Recurring invoice", [
                       { text: "Cancel", style: "cancel" },
                       { text: "Delete", style: "destructive", onPress: () => remove.mutate(item.id) },
                     ])

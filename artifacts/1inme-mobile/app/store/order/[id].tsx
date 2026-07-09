@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Linking,
   ScrollView,
@@ -16,6 +15,7 @@ import {
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { getOrder, type ProductOrder } from "@/lib/api/store";
+import { showAlert } from "@/lib/webAlert";
 
 function fmtMoney(cents: number, currency: string): string {
   const amount = (cents / 100).toFixed(cents % 100 ? 2 : 0);
@@ -210,7 +210,7 @@ export default function OrderScreen() {
                 variant="outline"
                 onPress={() => {
                   q.refetch().catch(() =>
-                    Alert.alert("Couldn't refresh", "Please try again in a moment."),
+                    showAlert("Couldn't refresh", "Please try again in a moment."),
                   );
                 }}
               />

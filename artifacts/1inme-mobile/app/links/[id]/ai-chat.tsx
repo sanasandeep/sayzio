@@ -6,7 +6,6 @@ import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -30,6 +29,7 @@ import {
   type AiAvatarUpload,
   type AiChatTheme,
 } from "@/lib/api/aiChat";
+import { showAlert } from "@/lib/webAlert";
 
 const THEMES: AiChatTheme[] = ["auto", "light", "dark"];
 const STARTER_SLOTS = 6;
@@ -128,7 +128,7 @@ export default function AiChatEditorScreen() {
         ? await ImagePicker.requestCameraPermissionsAsync()
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      showAlert(
         source === "camera" ? "Camera access needed" : "Photos access needed",
         `Allow ${
           source === "camera" ? "camera" : "photo library"
@@ -160,7 +160,7 @@ export default function AiChatEditorScreen() {
     };
     const problem = validateAiAvatar(picked);
     if (problem) {
-      Alert.alert("Can't use that image", problem);
+      showAlert("Can't use that image", problem);
       return;
     }
     setAvatarUpload(picked);

@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Platform,
   Pressable,
@@ -20,6 +19,7 @@ import {
   listSplashPages,
   type SplashPage,
 } from "@/lib/api/splash";
+import { showAlert } from "@/lib/webAlert";
 
 export default function SplashPagesScreen() {
   const colors = useColors();
@@ -37,7 +37,7 @@ export default function SplashPagesScreen() {
     if (Platform.OS === "web") {
       if (confirm(`Delete splash page “${s.name}”?`)) go();
     } else {
-      Alert.alert("Delete splash page?", s.name, [
+      showAlert("Delete splash page?", s.name, [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", style: "destructive", onPress: go },
       ]);

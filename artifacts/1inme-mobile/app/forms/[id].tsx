@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Platform,
   Pressable,
@@ -26,6 +25,7 @@ import {
   listSubmissions,
   updateFormWhatsappAlert,
 } from "@/lib/api/forms";
+import { showAlert } from "@/lib/webAlert";
 
 export default function FormDetailScreen() {
   const colors = useColors();
@@ -57,7 +57,7 @@ export default function FormDetailScreen() {
       qc.setQueryData(["form", id, "whatsapp-alert"], data);
     },
     onError: (e: any) => {
-      Alert.alert("Couldn't save", e?.message ?? "Try again");
+      showAlert("Couldn't save", e?.message ?? "Try again");
     },
   });
 
@@ -88,7 +88,7 @@ export default function FormDetailScreen() {
         });
       }
     } catch (e: any) {
-      Alert.alert("Export failed", e?.message ?? "Try again");
+      showAlert("Export failed", e?.message ?? "Try again");
     } finally {
       setExporting(false);
     }

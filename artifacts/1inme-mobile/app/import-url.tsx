@@ -5,7 +5,6 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Share,
@@ -30,6 +29,7 @@ import {
   setAutoShortenEnabled,
 } from "@/lib/secure";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
+import { showAlert } from "@/lib/webAlert";
 
 // "Import from URL" shortcut screen (mirrors the browser extension's Quick
 // QR / Add to Calendar / Shorten flows). Reached via deep link —
@@ -170,14 +170,14 @@ export default function ImportUrlScreen() {
         payload: { url: url! },
       }),
     onSuccess: () => {
-      Alert.alert("QR code created", "Find it in your QR Codes.", [
+      showAlert("QR code created", "Find it in your QR Codes.", [
         { text: "View QR codes", onPress: () => router.replace("/qr") },
         { text: "Done", onPress: () => router.back() },
       ]);
     },
     onError: (e) => {
       if (!handlePlanLockedError(e)) {
-        Alert.alert("Couldn't create QR code", messageOf(e));
+        showAlert("Couldn't create QR code", messageOf(e));
       }
     },
   });
@@ -240,7 +240,7 @@ export default function ImportUrlScreen() {
         location: evLocation?.trim() || null,
       }),
     onSuccess: (ev) => {
-      Alert.alert("Event added", `"${ev.title}" was added to your calendar.`, [
+      showAlert("Event added", `"${ev.title}" was added to your calendar.`, [
         {
           text: "View calendar",
           onPress: () => router.replace(`/calendars/${ev.calendar_id}`),
@@ -250,7 +250,7 @@ export default function ImportUrlScreen() {
     },
     onError: (e) => {
       if (!handlePlanLockedError(e)) {
-        Alert.alert("Couldn't add event", messageOf(e));
+        showAlert("Couldn't add event", messageOf(e));
       }
     },
   });
@@ -288,7 +288,7 @@ export default function ImportUrlScreen() {
         // Error is surfaced inline in the shared-URL path; no Alert needed.
         // (Manual path still sees the panel's error state.)
         if (!sharedUrl) {
-          Alert.alert("Couldn't shorten link", messageOf(e));
+          showAlert("Couldn't shorten link", messageOf(e));
         }
       }
     },

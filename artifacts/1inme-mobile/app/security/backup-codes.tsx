@@ -4,7 +4,6 @@ import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Platform,
   ScrollView,
   Share,
@@ -20,6 +19,7 @@ import {
   getBackupCodeStatus,
   type BackupCodeStatus,
 } from "@/lib/api/security";
+import { showAlert } from "@/lib/webAlert";
 
 export default function BackupCodesScreen() {
   const colors = useColors();
@@ -93,7 +93,7 @@ export default function BackupCodesScreen() {
   const copyAll = async () => {
     if (!freshCodes) return;
     await Clipboard.setStringAsync(freshCodes.join("\n"));
-    if (Platform.OS !== "web") Alert.alert("Copied", "Codes copied to clipboard.");
+    if (Platform.OS !== "web") showAlert("Copied", "Codes copied to clipboard.");
   };
 
   const shareAll = async () => {

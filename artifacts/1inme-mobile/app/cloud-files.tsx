@@ -5,7 +5,6 @@ import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Linking,
   Modal,
@@ -33,6 +32,7 @@ import {
   type CloudProviderInfo,
   type CloudRemoteFile,
 } from "@/lib/api/cloudFiles";
+import { showAlert } from "@/lib/webAlert";
 
 const PROVIDER_ICON: Record<string, keyof typeof Feather.glyphMap> = {
   google_drive: "hard-drive",
@@ -72,7 +72,7 @@ export default function CloudFilesScreen() {
         if (result.type === "success" && result.url) {
           const q = parseQuery(result.url);
           if (q.error) {
-            Alert.alert("Connect failed", friendlyError(q.error));
+            showAlert("Connect failed", friendlyError(q.error));
           } else if (q.status === "connected") {
             qc.invalidateQueries({ queryKey: ["cloud-connections"] });
           }
@@ -84,7 +84,7 @@ export default function CloudFilesScreen() {
       }
     },
     onError: (e: any) =>
-      Alert.alert("Connect failed", e?.message ?? "Unknown error"),
+      showAlert("Connect failed", e?.message ?? "Unknown error"),
   });
 
   const disconnect = useMutation({
@@ -108,7 +108,7 @@ export default function CloudFilesScreen() {
     if (Platform.OS === "web") {
       if (confirm(`Disconnect ${c.provider_label}?`)) go();
     } else {
-      Alert.alert("Disconnect?", c.provider_label, [
+      showAlert("Disconnect?", c.provider_label, [
         { text: "Cancel", style: "cancel" },
         { text: "Disconnect", style: "destructive", onPress: go },
       ]);
@@ -120,7 +120,7 @@ export default function CloudFilesScreen() {
     if (Platform.OS === "web") {
       if (confirm(`Remove ${name} from the library?`)) go();
     } else {
-      Alert.alert("Remove from library?", name, [
+      showAlert("Remove from library?", name, [
         { text: "Cancel", style: "cancel" },
         { text: "Remove", style: "destructive", onPress: go },
       ]);
@@ -366,13 +366,13 @@ function BrowseModal({
     onSuccess: (r) => {
       onSaved();
       setSelected({});
-      Alert.alert(
+      showAlert(
         "Saved",
         `${r.added} file${r.added === 1 ? "" : "s"} added to the library.`,
       );
     },
     onError: (e: any) =>
-      Alert.alert("Could not save", e?.message ?? "Unknown error"),
+      showAlert("Could not save", e?.message ?? "Unknown error"),
   });
 
   const selectedCount = Object.keys(selected).length;

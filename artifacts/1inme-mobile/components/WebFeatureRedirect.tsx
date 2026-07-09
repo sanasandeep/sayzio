@@ -2,11 +2,12 @@ import { Feather } from "@expo/vector-icons";
 import { Stack } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
+import { showAlert } from "@/lib/webAlert";
 
 export type WebFeatureRedirectProps = {
   title: string;
@@ -50,7 +51,7 @@ export function WebFeatureRedirect({
         // On web, just navigate the tab directly.
         window.location.href = `${getBaseUrl()}${webPath}`;
       } else {
-        Alert.alert("Couldn't open", msg);
+        showAlert("Couldn't open", msg);
       }
     } finally {
       setBusy(false);

@@ -3,7 +3,6 @@ import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -29,6 +28,7 @@ import {
   citationHref,
   citationLabel,
 } from "@/lib/api/ask-coach";
+import { showAlert } from "@/lib/webAlert";
 
 /**
  * Ask Coach (mobile) — minimal multi-turn chat against
@@ -103,7 +103,7 @@ export default function AskCoachScreen() {
       } else if (status === 403) {
         setDisabled("plan");
       } else {
-        Alert.alert(
+        showAlert(
           "AI Coach unavailable",
           e?.message || "Could not load AI Coach.",
         );
@@ -157,12 +157,12 @@ export default function AskCoachScreen() {
         onError: (err) => {
           // Drop the placeholder and surface the failure.
           setHistory((h) => h.filter((m) => m.id !== assistantTempId));
-          Alert.alert("Send failed", err.message || "AI Coach could not reply.");
+          showAlert("Send failed", err.message || "AI Coach could not reply.");
         },
       });
     } catch (e: any) {
       setHistory((h) => h.filter((m) => m.id !== assistantTempId));
-      Alert.alert("Send failed", e?.message || "AI Coach could not reply.");
+      showAlert("Send failed", e?.message || "AI Coach could not reply.");
     } finally {
       setSending(false);
       requestAnimationFrame(() => scrollRef.current?.scrollToEnd());
@@ -177,7 +177,7 @@ export default function AskCoachScreen() {
           h.map((m) => (m.id === msg.id ? out.message : m)),
         );
       } catch (e: any) {
-        Alert.alert("Could not save feedback", e?.message || "");
+        showAlert("Could not save feedback", e?.message || "");
       }
     },
     [],

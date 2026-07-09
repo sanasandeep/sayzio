@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Linking,
   Modal,
@@ -24,6 +23,7 @@ import {
   getCloudLibrary,
   type CloudAttachTargetType,
 } from "@/lib/api/cloudFiles";
+import { showAlert } from "@/lib/webAlert";
 
 /**
  * Reusable "Cloud files" attach section for composers (post / task_card /
@@ -54,7 +54,7 @@ export function CloudAttachSection({
   const detach = useMutation({
     mutationFn: (attachmentId: number) => detachCloudFile(attachmentId),
     onSuccess: () => qc.invalidateQueries({ queryKey: key }),
-    onError: (e: any) => Alert.alert("Could not detach", e?.message ?? "Try again"),
+    onError: (e: any) => showAlert("Could not detach", e?.message ?? "Try again"),
   });
 
   const confirmDetach = (id: number, name: string) => {
@@ -62,7 +62,7 @@ export function CloudAttachSection({
     if (Platform.OS === "web") {
       if (confirm(`Detach ${name}?`)) go();
     } else {
-      Alert.alert("Detach file?", name, [
+      showAlert("Detach file?", name, [
         { text: "Cancel", style: "cancel" },
         { text: "Detach", style: "destructive", onPress: go },
       ]);
@@ -175,7 +175,7 @@ function LibraryPicker({
       onAttached();
       onClose();
     },
-    onError: (e: any) => Alert.alert("Could not attach", e?.message ?? "Try again"),
+    onError: (e: any) => showAlert("Could not attach", e?.message ?? "Try again"),
   });
 
   const toggle = (id: number) =>

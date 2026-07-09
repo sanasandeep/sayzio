@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Platform,
   Pressable,
@@ -20,6 +19,7 @@ import {
   listIntegrations,
   type Integration,
 } from "@/lib/api/integrations";
+import { showAlert } from "@/lib/webAlert";
 
 const ICON: Record<string, keyof typeof Feather.glyphMap> = {
   email: "mail",
@@ -47,7 +47,7 @@ export default function IntegrationsScreen() {
     if (Platform.OS === "web") {
       if (confirm(`Disconnect ${label}?`)) go();
     } else {
-      Alert.alert("Disconnect?", label, [
+      showAlert("Disconnect?", label, [
         { text: "Cancel", style: "cancel" },
         { text: "Disconnect", style: "destructive", onPress: go },
       ]);

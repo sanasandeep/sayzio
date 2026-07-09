@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -43,6 +42,7 @@ import {
   handlePlanLockedError,
   upgradeHintFromError,
 } from "@/lib/upgradePrompt";
+import { showAlert } from "@/lib/webAlert";
 
 const VISITOR_LABEL: Record<VisitorType, string> = {
   anonymous: "Anonymous",
@@ -587,7 +587,7 @@ function AudienceInsightsSection({
               accessibilityLabel="Run a fresh estimate anyway"
               disabled={estimate.isPending}
               onPress={() =>
-                Alert.alert(
+                showAlert(
                   "Run a fresh estimate?",
                   estimateCoins > 0
                     ? `This will charge up to ${estimateCoins} coin${estimateCoins === 1 ? "" : "s"} — run anyway?`

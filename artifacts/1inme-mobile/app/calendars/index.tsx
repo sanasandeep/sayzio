@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
-  Alert,
   FlatList,
   Platform,
   Pressable,
@@ -35,6 +34,7 @@ import {
   removeEventWithFeedback,
 } from "@/lib/deviceCalendar";
 import { showUpgradePrompt } from "@/lib/upgradePrompt";
+import { showAlert } from "@/lib/webAlert";
 
 type Tab = "agenda" | "today" | "browse";
 
@@ -161,7 +161,7 @@ export default function CalendarsScreen() {
           // eslint-disable-next-line no-alert
           alert(message);
         } else {
-          Alert.alert("Export failed", message);
+          showAlert("Export failed", message);
         }
       } finally {
         setExporting(false);
@@ -192,7 +192,7 @@ export default function CalendarsScreen() {
       );
       void runExport(csv ? "csv" : "ics");
     } else {
-      Alert.alert("Export calendar", "Choose a format", [
+      showAlert("Export calendar", "Choose a format", [
         { text: "Cancel", style: "cancel" },
         { text: "Calendar file (.ics)", onPress: () => void runExport("ics") },
         { text: "Spreadsheet (.csv)", onPress: () => void runExport("csv") },

@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   RefreshControl,
@@ -31,6 +30,7 @@ import {
   type DeliveryTaskStatus,
   type DeliveryTaskUpdate,
 } from "@/lib/api/deliveryProjects";
+import { showAlert } from "@/lib/webAlert";
 
 const STATUS_ORDER: DeliveryTaskStatus[] = ["todo", "in_progress", "done"];
 
@@ -118,7 +118,7 @@ export default function DeliveryProjectDetailScreen() {
       invalidate();
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't send", e?.message ?? "Try again."),
+      showAlert("Couldn't send", e?.message ?? "Try again."),
   });
 
   const invalidate = () => {
@@ -148,7 +148,7 @@ export default function DeliveryProjectDetailScreen() {
       invalidate();
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't add task", e?.message ?? "Try again."),
+      showAlert("Couldn't add task", e?.message ?? "Try again."),
   });
 
   const cycle = useMutation({
@@ -156,7 +156,7 @@ export default function DeliveryProjectDetailScreen() {
       updateDeliveryTask(task.id, { status: nextStatus(task.status) }),
     onSuccess: invalidate,
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't update", e?.message ?? "Try again."),
+      showAlert("Couldn't update", e?.message ?? "Try again."),
   });
 
   const edit = useMutation({
@@ -167,7 +167,7 @@ export default function DeliveryProjectDetailScreen() {
       invalidate();
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't save task", e?.message ?? "Try again."),
+      showAlert("Couldn't save task", e?.message ?? "Try again."),
   });
 
   const reorder = useMutation({
@@ -175,7 +175,7 @@ export default function DeliveryProjectDetailScreen() {
     onSuccess: invalidate,
     onError: (e: { message?: string }) => {
       invalidate();
-      Alert.alert("Couldn't reorder", e?.message ?? "Try again.");
+      showAlert("Couldn't reorder", e?.message ?? "Try again.");
     },
   });
 
@@ -202,18 +202,18 @@ export default function DeliveryProjectDetailScreen() {
       updateDeliveryTask(taskId, { progress }),
     onSuccess: invalidate,
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't update", e?.message ?? "Try again."),
+      showAlert("Couldn't update", e?.message ?? "Try again."),
   });
 
   const remove = useMutation({
     mutationFn: (taskId: number) => deleteDeliveryTask(taskId),
     onSuccess: invalidate,
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't remove", e?.message ?? "Try again."),
+      showAlert("Couldn't remove", e?.message ?? "Try again."),
   });
 
   const confirmRemove = (task: DeliveryTask) =>
-    Alert.alert("Remove task", `Remove "${task.title}"?`, [
+    showAlert("Remove task", `Remove "${task.title}"?`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Remove",

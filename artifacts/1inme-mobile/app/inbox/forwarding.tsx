@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +25,7 @@ import {
   type ForwardDestination,
   type ForwardInput,
 } from "@/lib/api/inbox";
+import { showAlert } from "@/lib/webAlert";
 
 // Mobile parity for the web Inbox "Forwarding" page. Creators fan inbox
 // events out to an email address or a webhook, with a delivery log and a
@@ -95,39 +95,39 @@ export default function InboxForwardingScreen() {
       reset();
     },
     onError: (e: any) =>
-      Alert.alert("Couldn't save rule", e?.message ?? "Check the details."),
+      showAlert("Couldn't save rule", e?.message ?? "Check the details."),
   });
 
   const toggle = useMutation({
     mutationFn: (id: number) => toggleForward(id),
     onSuccess: invalidate,
-    onError: (e: any) => Alert.alert("Error", e?.message ?? "Try again."),
+    onError: (e: any) => showAlert("Error", e?.message ?? "Try again."),
   });
 
   const remove = useMutation({
     mutationFn: (id: number) => deleteForward(id),
     onSuccess: invalidate,
-    onError: (e: any) => Alert.alert("Error", e?.message ?? "Try again."),
+    onError: (e: any) => showAlert("Error", e?.message ?? "Try again."),
   });
 
   const test = useMutation({
     mutationFn: (id: number) => testForward(id),
     onSuccess: (res) => {
       invalidate();
-      Alert.alert(res.sent ? "Test sent" : "Test attempted", res.message);
+      showAlert(res.sent ? "Test sent" : "Test attempted", res.message);
     },
     onError: (e: any) =>
-      Alert.alert("Couldn't send test", e?.message ?? "Try again."),
+      showAlert("Couldn't send test", e?.message ?? "Try again."),
   });
 
   const retry = useMutation({
     mutationFn: (id: number) => retryForwardDelivery(id),
     onSuccess: invalidate,
-    onError: (e: any) => Alert.alert("Error", e?.message ?? "Try again."),
+    onError: (e: any) => showAlert("Error", e?.message ?? "Try again."),
   });
 
   const confirmDelete = (d: ForwardDestination) =>
-    Alert.alert("Delete rule?", `"${d.label}" will stop forwarding.`, [
+    showAlert("Delete rule?", `"${d.label}" will stop forwarding.`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",

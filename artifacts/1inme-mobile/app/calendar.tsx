@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Platform,
   Pressable,
@@ -20,6 +19,7 @@ import {
   listCalendarAccounts,
   type CalendarAccount,
 } from "@/lib/api/calendar";
+import { showAlert } from "@/lib/webAlert";
 
 export default function CalendarScreen() {
   const colors = useColors();
@@ -38,7 +38,7 @@ export default function CalendarScreen() {
     if (Platform.OS === "web") {
       if (confirm(`Disconnect ${label}?`)) go();
     } else {
-      Alert.alert("Disconnect calendar?", label, [
+      showAlert("Disconnect calendar?", label, [
         { text: "Cancel", style: "cancel" },
         { text: "Disconnect", style: "destructive", onPress: go },
       ]);

@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   RefreshControl,
@@ -29,6 +28,7 @@ import {
   updateProof,
   updateSearchable,
 } from "@/lib/api/social";
+import { showAlert } from "@/lib/webAlert";
 
 export default function SocialScreen() {
   const colors = useColors();
@@ -131,7 +131,7 @@ export default function SocialScreen() {
                 </Pressable>
                 <Pressable
                   onPress={() =>
-                    Alert.alert("Disconnect?", `Remove @${c.handle}?`, [
+                    showAlert("Disconnect?", `Remove @${c.handle}?`, [
                       { text: "Cancel", style: "cancel" },
                       {
                         text: "Remove",
@@ -212,7 +212,7 @@ export default function SocialScreen() {
               />
               <Pressable
                 onPress={() =>
-                  Alert.alert("Delete?", `Remove "${p.name}"?`, [
+                  showAlert("Delete?", `Remove "${p.name}"?`, [
                     { text: "Cancel", style: "cancel" },
                     {
                       text: "Delete",
@@ -352,7 +352,7 @@ function ConnectModal({
                   setPlatform("");
                   onClose();
                 } catch (e: any) {
-                  Alert.alert("Failed", e?.message ?? "Try again");
+                  showAlert("Failed", e?.message ?? "Try again");
                 } finally {
                   setBusy(false);
                 }
@@ -425,7 +425,7 @@ function ProofModal({
                   setType("");
                   onClose();
                 } catch (e: any) {
-                  Alert.alert("Failed", e?.message ?? "Try again");
+                  showAlert("Failed", e?.message ?? "Try again");
                 } finally {
                   setBusy(false);
                 }

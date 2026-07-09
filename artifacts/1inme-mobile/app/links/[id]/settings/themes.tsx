@@ -2,7 +2,6 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +21,7 @@ import {
   scheduleBiolinkTheme,
   updateBiolinkThemeSchedule,
 } from "@/lib/api/biolinkThemes";
+import { showAlert } from "@/lib/webAlert";
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -69,7 +69,7 @@ export default function BiolinkThemesScreen() {
       const d = await listBiolinkThemes(linkId);
       setData(d);
     } catch (e: unknown) {
-      Alert.alert("Failed to load themes", (e as Error).message);
+      showAlert("Failed to load themes", (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export default function BiolinkThemesScreen() {
       setName("");
       await load();
     } catch (e: unknown) {
-      Alert.alert("Couldn't save theme", (e as Error).message);
+      showAlert("Couldn't save theme", (e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -106,7 +106,7 @@ export default function BiolinkThemesScreen() {
     // the prev_settings snapshot is locked in and re-timing it would
     // race the cron's revert pass.
     if (s.status !== "pending") {
-      Alert.alert(
+      showAlert(
         "Can't edit this schedule",
         "Only upcoming (not-yet-started) schedules can be re-timed. Cancel and create a new one instead.",
       );
@@ -120,7 +120,7 @@ export default function BiolinkThemesScreen() {
 
   const onSchedule = async () => {
     if (new Date(ends) <= new Date(starts)) {
-      Alert.alert("Invalid window", "End must be after start.");
+      showAlert("Invalid window", "End must be after start.");
       return;
     }
     try {
@@ -144,12 +144,12 @@ export default function BiolinkThemesScreen() {
       }
       await load();
     } catch (e: unknown) {
-      Alert.alert("Couldn't save schedule", (e as Error).message);
+      showAlert("Couldn't save schedule", (e as Error).message);
     }
   };
 
   const onCancel = async (s: BiolinkThemeSchedule) => {
-    Alert.alert(
+    showAlert(
       s.is_live ? "End this scheduled theme now?" : "Cancel scheduled theme?",
       s.is_live
         ? "The page will revert to its previous look."
@@ -164,7 +164,7 @@ export default function BiolinkThemesScreen() {
               await cancelBiolinkThemeSchedule(linkId, s.id);
               await load();
             } catch (e: unknown) {
-              Alert.alert("Failed", (e as Error).message);
+              showAlert("Failed", (e as Error).message);
             }
           },
         },
@@ -173,7 +173,7 @@ export default function BiolinkThemesScreen() {
   };
 
   const onDelete = async (t: BiolinkSavedTheme) => {
-    Alert.alert(
+    showAlert(
       "Delete theme?",
       `"${t.name}" will be removed. Active schedules will be cancelled.`,
       [
@@ -186,7 +186,7 @@ export default function BiolinkThemesScreen() {
               await deleteBiolinkTheme(linkId, t.id);
               await load();
             } catch (e: unknown) {
-              Alert.alert("Failed", (e as Error).message);
+              showAlert("Failed", (e as Error).message);
             }
           },
         },

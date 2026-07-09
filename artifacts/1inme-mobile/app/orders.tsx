@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -20,6 +19,7 @@ import {
   getOwnerOrders,
   type OwnerOrder,
 } from "@/lib/api/store";
+import { showAlert } from "@/lib/webAlert";
 
 function fmtMoney(cents: number, currency: string): string {
   const amount = (cents / 100).toFixed(cents % 100 ? 2 : 0);
@@ -57,7 +57,7 @@ export default function OrdersScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["owner-orders"] });
     },
-    onError: (e: Error) => Alert.alert("Couldn't update", e.message || "Try again"),
+    onError: (e: Error) => showAlert("Couldn't update", e.message || "Try again"),
   });
 
   const orders = q.data?.items ?? [];

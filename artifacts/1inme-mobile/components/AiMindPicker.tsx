@@ -3,7 +3,6 @@ import { Stack } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -20,6 +19,7 @@ import {
   type AiMindList,
   aiMinds as aiMindsApi,
 } from "@/lib/api";
+import { showAlert } from "@/lib/webAlert";
 
 type Props = {
   feature: AiMindFeature;
@@ -87,7 +87,7 @@ export function AiMindPickerScreen({
       } else if (err?.status === 403) {
         setDisabled("plan");
       } else {
-        Alert.alert("Couldn't load AI Knowledge Bases", err?.message ?? "Try again in a moment.");
+        showAlert("Couldn't load AI Knowledge Bases", err?.message ?? "Try again in a moment.");
       }
     } finally {
       setLoading(false);
@@ -141,13 +141,13 @@ export function AiMindPickerScreen({
       // Reflect the server's constrained selection (it strips stale ids).
       setSelected(new Set(r.mind_ids));
       setIncludePlatform(r.include_platform);
-      Alert.alert(
+      showAlert(
         "Default saved",
         "This selection will be pre-filled next time you open this form.",
       );
     } catch (e: unknown) {
       const err = e as { message?: string } | undefined;
-      Alert.alert("Couldn't save default", err?.message ?? "Try again.");
+      showAlert("Couldn't save default", err?.message ?? "Try again.");
     } finally {
       setSaving(false);
     }
@@ -159,10 +159,10 @@ export function AiMindPickerScreen({
       await aiMindsApi.clearDefaults(feature);
       setHasDefault(false);
       setSavedSelection(null);
-      Alert.alert("Default cleared", "We won't pre-fill the picker for you anymore.");
+      showAlert("Default cleared", "We won't pre-fill the picker for you anymore.");
     } catch (e: unknown) {
       const err = e as { message?: string } | undefined;
-      Alert.alert("Couldn't clear default", err?.message ?? "Try again.");
+      showAlert("Couldn't clear default", err?.message ?? "Try again.");
     } finally {
       setClearing(false);
     }

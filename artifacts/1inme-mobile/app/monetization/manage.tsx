@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +11,7 @@ import {
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { cancelMySubscription, getMySubscription } from "@/lib/api/monetization";
+import { showAlert } from "@/lib/webAlert";
 
 /**
  * Mobile parity for /@handle/manage-subscription. Lets a fan see
@@ -32,7 +32,7 @@ export default function ManageSubscriptionScreen() {
   const cancel = useMutation({
     mutationFn: () => cancelMySubscription(handle),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-subscription", handle] }),
-    onError: (e: Error) => Alert.alert("Couldn't cancel", e.message || "Try again"),
+    onError: (e: Error) => showAlert("Couldn't cancel", e.message || "Try again"),
   });
 
   return (
@@ -90,7 +90,7 @@ export default function ManageSubscriptionScreen() {
                   label="Cancel at period end"
                   variant="ghost"
                   onPress={() =>
-                    Alert.alert(
+                    showAlert(
                       "Cancel subscription?",
                       "You'll keep access until the period ends.",
                       [

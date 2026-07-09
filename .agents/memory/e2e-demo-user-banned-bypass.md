@@ -29,3 +29,18 @@ own workspace ⇒ passes `workspace.can:links.create` with no bypass — seed a
 live check and the submit. Add a bypass contrast by syncing the seeded
 `user-admin` web role. Roles/permissions ARE seeded in the RefreshDatabase
 test DB, so the role-sync trick works there.
+
+## Demo-login account vs spec seed email mismatch (July 2026)
+
+`demoLogin` (web `/user/demo-login` + API OTP demo path) now signs in
+**sazioapp@gmail.com**, while most browser e2e specs still seed fixtures under
+**demo@1inme.com**. Specs that only need "any logged-in user" (voice panel,
+nav/menus) still pass; any spec that opens a *seeded* resource as its owner
+(biolink block editor etc.) hits the controller's
+`$link->user_id !== workspace_owner_id()` guard and 403s deterministically
+(generic "No access" page, `.block-card` never renders).
+
+**How to apply:** when a browser e2e spec 403s on an owner-scoped page right
+after demo-login, first diff the email in the spec's tinker seed against the
+one in `AuthController::demoLogin` — keep them identical (best: read the login
+email from a single shared constant/helper rather than hardcoding it per spec).

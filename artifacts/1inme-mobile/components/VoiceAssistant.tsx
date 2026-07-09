@@ -19,7 +19,6 @@ import {
 } from "react";
 import {
   ActivityIndicator,
-  Alert,
   AppState,
   FlatList,
   Image,
@@ -66,6 +65,7 @@ import {
   getVoiceWakeWordEnabled,
   onVoiceWakeWordEnabledChange,
 } from "@/lib/secure";
+import { showAlert } from "@/lib/webAlert";
 
 type Phase = "idle" | "listening" | "processing" | "speaking";
 type View_ = "chat" | "voice" | "help";
@@ -310,7 +310,7 @@ export function VoiceAssistant() {
           },
         ]);
       } catch {
-        Alert.alert("Couldn't submit", "Please try again.");
+        showAlert("Couldn't submit", "Please try again.");
       } finally {
         setChatTyping(false);
         setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);

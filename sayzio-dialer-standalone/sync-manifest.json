@@ -75,7 +75,7 @@
       "source": "components/MapPickerModal.tsx",
       "relation": "adapted",
       "note": "webRef uses structural typing ({ injectJavaScript }) so it compiles across react-native-webview versions; otherwise identical",
-      "sourceSha256": "3f067cb58a9d1fe21977bcba24ea9cdbf7ad843360cdce554aa21eb234e860f5"
+      "sourceSha256": "5e98b95fdbafdf979b27fc9c05bdcaf0b3789e9e47d7355fb37d3df65ef5f60e"
     },
     {
       "standalone": "components/MapPreview.tsx",
@@ -182,6 +182,11 @@
       "relation": "identical"
     },
     {
+      "standalone": "lib/webAlert.ts",
+      "source": "lib/webAlert.ts",
+      "relation": "identical"
+    },
+    {
       "standalone": "lib/push.ts",
       "source": "lib/push.ts",
       "relation": "adapted",
@@ -197,7 +202,7 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "e7737896cc0c7a78612646f6dc63bc40cda6306b90599a065db9ad8d4d7fab11",
+      "sourceSha256": "a913832d04d9a2411a315298b99fd7edb79b0a8b4565cbea3bd0ef1673dab2f8",
       "note": "dev-only missing-env alert text reworded (no monorepo path); everything else must match the main app"
     },
     {

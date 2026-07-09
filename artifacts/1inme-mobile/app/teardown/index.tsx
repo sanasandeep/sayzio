@@ -4,7 +4,6 @@ import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -19,6 +18,7 @@ import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
 import { teardown, type Teardown } from "@/lib/api/teardown";
+import { showAlert } from "@/lib/webAlert";
 
 /**
  * "Competitor Biolink Teardown" — mobile parity for the web
@@ -46,7 +46,7 @@ export default function TeardownIndexScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert(
+      showAlert(
         "Couldn't analyze that page",
         e?.message ?? "Double-check the URL and try again.",
       );

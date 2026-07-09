@@ -5,7 +5,6 @@ import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   RefreshControl,
@@ -29,6 +28,7 @@ import {
   refundInvoice,
   sendInvoice,
 } from "@/lib/api/invoices";
+import { showAlert } from "@/lib/webAlert";
 
 const statusTint = (
   colors: ReturnType<typeof useColors>,
@@ -72,7 +72,7 @@ export default function InvoiceDetailScreen() {
       setRecipient("");
       qc.invalidateQueries({ queryKey: ["billing-invoice", id] });
       qc.invalidateQueries({ queryKey: ["billing-invoices"] });
-      Alert.alert(
+      showAlert(
         "Invoice sent",
         `Pay link emailed to ${res.invoice.number ?? `#${res.invoice.id}`}.\n\n${res.pay_url}`,
       );
@@ -82,7 +82,7 @@ export default function InvoiceDetailScreen() {
       // invoice to surface the persistent "last send failed" banner right away.
       qc.invalidateQueries({ queryKey: ["billing-invoice", id] });
       qc.invalidateQueries({ queryKey: ["billing-invoices"] });
-      Alert.alert("Couldn't send invoice", e?.message ?? "Try again.");
+      showAlert("Couldn't send invoice", e?.message ?? "Try again.");
     },
   });
 
@@ -93,7 +93,7 @@ export default function InvoiceDetailScreen() {
       router.back();
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't delete invoice", e?.message ?? "Try again."),
+      showAlert("Couldn't delete invoice", e?.message ?? "Try again."),
   });
 
   const markPaid = useMutation({
@@ -108,10 +108,10 @@ export default function InvoiceDetailScreen() {
       setPayRef("");
       qc.invalidateQueries({ queryKey: ["billing-invoice", id] });
       qc.invalidateQueries({ queryKey: ["billing-invoices"] });
-      Alert.alert("Marked as paid", "A receipt has been recorded for this invoice.");
+      showAlert("Marked as paid", "A receipt has been recorded for this invoice.");
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't mark paid", e?.message ?? "Try again."),
+      showAlert("Couldn't mark paid", e?.message ?? "Try again."),
   });
 
   const refund = useMutation({
@@ -119,10 +119,10 @@ export default function InvoiceDetailScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["billing-invoice", id] });
       qc.invalidateQueries({ queryKey: ["billing-invoices"] });
-      Alert.alert("Refunded", "This invoice has been marked as refunded.");
+      showAlert("Refunded", "This invoice has been marked as refunded.");
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't refund", e?.message ?? "Try again."),
+      showAlert("Couldn't refund", e?.message ?? "Try again."),
   });
 
   const viewReceipt = useMutation({
@@ -137,7 +137,7 @@ export default function InvoiceDetailScreen() {
         ]
           .filter(Boolean)
           .join("\n") || "Receipt recorded.";
-      Alert.alert(
+      showAlert(
         `Receipt ${r.number ?? `#${r.id}`}`,
         body,
         [
@@ -149,7 +149,7 @@ export default function InvoiceDetailScreen() {
       );
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("No receipt", e?.message ?? "No receipt found for this invoice."),
+      showAlert("No receipt", e?.message ?? "No receipt found for this invoice."),
   });
 
   const inv = q.data;
@@ -165,7 +165,7 @@ export default function InvoiceDetailScreen() {
         controlsColor: colors.primary,
       });
     } catch (e) {
-      Alert.alert(
+      showAlert(
         "Couldn't open PDF",
         e instanceof Error ? e.message : "Try again later.",
       );
@@ -180,7 +180,7 @@ export default function InvoiceDetailScreen() {
         url: inv.pay_url,
       });
     } catch (e) {
-      Alert.alert(
+      showAlert(
         "Couldn't share link",
         e instanceof Error ? e.message : "Try again later.",
       );
@@ -200,7 +200,7 @@ export default function InvoiceDetailScreen() {
             inv && canManage ? (
               <Pressable
                 onPress={() =>
-                  Alert.alert(
+                  showAlert(
                     "Delete invoice?",
                     "This draft invoice will be removed permanently.",
                     [
@@ -416,7 +416,7 @@ export default function InvoiceDetailScreen() {
               label="Refund invoice"
               variant="ghost"
               onPress={() =>
-                Alert.alert(
+                showAlert(
                   "Refund invoice?",
                   "This marks the invoice as refunded and records a refund receipt.",
                   [

@@ -4,7 +4,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Platform,
   Pressable,
@@ -26,6 +25,7 @@ import { useColors } from "@/hooks/useColors";
 import type { VoiceClientAction } from "@/lib/api/voice";
 import { exportLinksCsv, listLinks } from "@/lib/api/links";
 import { LINK_KINDS } from "@/lib/linkKinds";
+import { showAlert } from "@/lib/webAlert";
 
 const FILTERS: { key: string; label: string }[] = [
   { key: "", label: "All" },
@@ -79,7 +79,7 @@ export default function LinksTab() {
     try {
       await exportLinksCsv({ type: type || undefined, q: q || undefined });
     } catch (e) {
-      Alert.alert(
+      showAlert(
         "Export failed",
         e instanceof Error ? e.message : "Could not export your links.",
       );

@@ -210,6 +210,9 @@ console.log("[test-whatsapp-disconnect] remove handler steers to add flow");
       step = s;
     },
     Alert: { alert: () => events.push(["Alert.alert"]) },
+    // The screen now routes alerts through the web-safe showAlert shim
+    // (lib/webAlert.ts) instead of the react-native Alert directly.
+    showAlert: () => events.push(["Alert.alert"]),
   };
 
   // Shared resilient helper: a NEW free variable in the onPress body warns

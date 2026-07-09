@@ -3,7 +3,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +24,7 @@ import {
   refundEventTicket,
   updateTier,
 } from "@/lib/api/events";
+import { showAlert } from "@/lib/webAlert";
 
 function money(cents: number): string {
   return (cents / 100).toFixed(2);
@@ -56,7 +56,7 @@ export default function OwnerTiersScreen() {
 
   const refundTicket = useCallback(
     (ticket: EventTicket) => {
-      Alert.alert(
+      showAlert(
         "Refund ticket",
         `Refund ${ticket.attendee_name ?? "this attendee"}'s ticket? This frees the seat and notifies them by email. This can't be undone.`,
         [
@@ -70,7 +70,7 @@ export default function OwnerTiersScreen() {
                 await refundEventTicket(id, ticket.id);
                 await load();
               } catch (err) {
-                Alert.alert(
+                showAlert(
                   "Could not refund",
                   (err as Error)?.message ?? "Try again.",
                 );
@@ -92,7 +92,7 @@ export default function OwnerTiersScreen() {
 
   const addTier = useCallback(async () => {
     if (!name.trim() || !price.trim()) {
-      Alert.alert("Missing info", "Enter a name and price.");
+      showAlert("Missing info", "Enter a name and price.");
       return;
     }
     setSaving(true);
@@ -107,7 +107,7 @@ export default function OwnerTiersScreen() {
       setCapacity("");
       await load();
     } catch (err) {
-      Alert.alert("Could not add tier", (err as Error)?.message ?? "Try again.");
+      showAlert("Could not add tier", (err as Error)?.message ?? "Try again.");
     } finally {
       setSaving(false);
     }
@@ -124,7 +124,7 @@ export default function OwnerTiersScreen() {
         });
         await load();
       } catch (err) {
-        Alert.alert("Could not update tier", (err as Error)?.message ?? "Try again.");
+        showAlert("Could not update tier", (err as Error)?.message ?? "Try again.");
       }
     },
     [id, load],
@@ -132,7 +132,7 @@ export default function OwnerTiersScreen() {
 
   const removeTier = useCallback(
     (tier: EventTier) => {
-      Alert.alert("Delete tier", `Delete "${tier.name}"?`, [
+      showAlert("Delete tier", `Delete "${tier.name}"?`, [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
@@ -142,7 +142,7 @@ export default function OwnerTiersScreen() {
               await deleteTier(id, tier.id);
               await load();
             } catch (err) {
-              Alert.alert("Could not delete", (err as Error)?.message ?? "Try again.");
+              showAlert("Could not delete", (err as Error)?.message ?? "Try again.");
             }
           },
         },

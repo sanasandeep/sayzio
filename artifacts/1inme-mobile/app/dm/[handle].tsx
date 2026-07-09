@@ -6,7 +6,6 @@ import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Linking,
@@ -27,6 +26,7 @@ import {
   type DmAttachment,
   type DmMessage,
 } from "@/lib/api/dm";
+import { showAlert } from "@/lib/webAlert";
 
 /**
  * Profile-scoped DM screen (Task #1210). Mirrors the Alpine widget on
@@ -74,13 +74,13 @@ export default function ProfileDmScreen() {
         setDraft("");
         qc.invalidateQueries({ queryKey: ["dm-thread", handle] });
       } else {
-        Alert.alert("Couldn't send", r.reason || "Try again");
+        showAlert("Couldn't send", r.reason || "Try again");
       }
     },
     onError: async (e: any) => {
       const url = e?.body?.checkout_url;
       if (url) { await openCheckout(url); return; }
-      Alert.alert("Couldn't send", e?.message || "Try again");
+      showAlert("Couldn't send", e?.message || "Try again");
     },
   });
 
@@ -90,7 +90,7 @@ export default function ProfileDmScreen() {
       if (r.checkout_url) await openCheckout(r.checkout_url);
       else qc.invalidateQueries({ queryKey: ["dm-thread", handle] });
     },
-    onError: (e: Error) => Alert.alert("Couldn't unlock", e.message || "Try again"),
+    onError: (e: Error) => showAlert("Couldn't unlock", e.message || "Try again"),
   });
 
   if (threadQ.isLoading) {

@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -30,6 +29,7 @@ import {
 } from "@/lib/api/events";
 import { errorStatus, getBaseUrl } from "@/lib/api";
 import { getProfile } from "@/lib/api/profile";
+import { showAlert } from "@/lib/webAlert";
 
 export default function EventDetailScreen() {
   const { alias } = useLocalSearchParams<{ alias: string }>();
@@ -61,7 +61,7 @@ export default function EventDetailScreen() {
         setEvent(e);
         setTier(e.tiers.find((t) => t.is_active && !t.is_sold_out) ?? e.tiers[0] ?? null);
       })
-      .catch(() => Alert.alert("Not found", "This event could not be loaded."))
+      .catch(() => showAlert("Not found", "This event could not be loaded."))
       .finally(() => setLoading(false));
     getProfile()
       .then((p) => {
@@ -90,11 +90,11 @@ export default function EventDetailScreen() {
         );
       } catch (err) {
         if (errorStatus(err) === 401) {
-          Alert.alert("Sign in required", "Please sign in to mark your interest.", [
+          showAlert("Sign in required", "Please sign in to mark your interest.", [
             { text: "OK", onPress: () => router.push("/(auth)") },
           ]);
         } else {
-          Alert.alert("Could not update", (err as Error)?.message ?? "Try again.");
+          showAlert("Could not update", (err as Error)?.message ?? "Try again.");
         }
       } finally {
         setInterestBusy(false);
@@ -106,7 +106,7 @@ export default function EventDetailScreen() {
   const buy = useCallback(async () => {
     if (!event || !tier) return;
     if (!name.trim() || !email.trim()) {
-      Alert.alert("Missing info", "Please enter your name and email.");
+      showAlert("Missing info", "Please enter your name and email.");
       return;
     }
     setSubmitting(true);
@@ -120,11 +120,11 @@ export default function EventDetailScreen() {
       await Linking.openURL(res.checkout_url);
     } catch (err) {
       if (errorStatus(err) === 401) {
-        Alert.alert("Sign in required", "Please sign in to buy a ticket.", [
+        showAlert("Sign in required", "Please sign in to buy a ticket.", [
           { text: "OK", onPress: () => router.push("/(auth)") },
         ]);
       } else {
-        Alert.alert("Could not start checkout", (err as Error)?.message ?? "Try again.");
+        showAlert("Could not start checkout", (err as Error)?.message ?? "Try again.");
       }
     } finally {
       setSubmitting(false);

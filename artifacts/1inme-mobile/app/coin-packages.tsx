@@ -4,7 +4,6 @@ import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -16,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
 import { type CoinPackage, wallet as walletApi } from "@/lib/api";
+import { showAlert } from "@/lib/webAlert";
 
 const GATEWAYS: { slug: string; label: string }[] = [
   { slug: "stripe", label: "Card (Stripe)" },
@@ -41,10 +41,10 @@ export default function CoinPackagesScreen() {
     } catch (e: unknown) {
       const err = e as { status?: number; message?: string } | undefined;
       if (err?.status === 404) {
-        Alert.alert("Coins unavailable", "The wallet feature is currently disabled.");
+        showAlert("Coins unavailable", "The wallet feature is currently disabled.");
         router.back();
       } else {
-        Alert.alert("Couldn't load coin packages", err?.message ?? "Try again in a moment.");
+        showAlert("Couldn't load coin packages", err?.message ?? "Try again in a moment.");
       }
     } finally {
       setLoading(false);
@@ -72,18 +72,18 @@ export default function CoinPackagesScreen() {
         await WebBrowser.openBrowserAsync(handoff.url);
         await load();
       } else {
-        Alert.alert("Almost there", "Continue checkout in your web browser to complete payment.");
+        showAlert("Almost there", "Continue checkout in your web browser to complete payment.");
       }
     } catch (e: unknown) {
       const err = e as { message?: string } | undefined;
-      Alert.alert("Purchase failed", err?.message ?? "Please try again.");
+      showAlert("Purchase failed", err?.message ?? "Please try again.");
     } finally {
       setBusyPkgId(null);
     }
   };
 
   const promptGateway = (pkg: CoinPackage) => {
-    Alert.alert("Pay with", pkg.name, [
+    showAlert("Pay with", pkg.name, [
       ...GATEWAYS.map((g) => ({ text: g.label, onPress: () => buy(pkg, g.slug) })),
       { text: "Cancel", style: "cancel" as const },
     ]);

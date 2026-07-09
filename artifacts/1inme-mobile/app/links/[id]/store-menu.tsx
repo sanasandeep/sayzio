@@ -5,7 +5,6 @@ import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -38,6 +37,7 @@ import {
   type OwnerStoreCategory,
   type OwnerStoreProduct,
 } from "@/lib/api/storeMenu";
+import { showAlert } from "@/lib/webAlert";
 
 function confirm(title: string, msg: string, onYes: () => void) {
   if (Platform.OS === "web") {
@@ -46,7 +46,7 @@ function confirm(title: string, msg: string, onYes: () => void) {
     }
     return;
   }
-  Alert.alert(title, msg, [
+  showAlert(title, msg, [
     { text: "Cancel", style: "cancel" },
     { text: "Delete", style: "destructive", onPress: onYes },
   ]);
@@ -112,7 +112,7 @@ export default function StoreMenuBuilderScreen() {
     onSuccess: (menu) => qc.setQueryData(["store-owner-menu", linkId], menu),
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Couldn't save settings", e?.message ?? "Try again.");
+      showAlert("Couldn't save settings", e?.message ?? "Try again.");
     },
   });
 
@@ -135,7 +135,7 @@ export default function StoreMenuBuilderScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Couldn't save category", e?.message ?? "Try again.");
+      showAlert("Couldn't save category", e?.message ?? "Try again.");
     },
   });
   const delCatMut = useMutation({
@@ -166,7 +166,7 @@ export default function StoreMenuBuilderScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Couldn't save product", e?.message ?? "Try again.");
+      showAlert("Couldn't save product", e?.message ?? "Try again.");
     },
   });
   const delProductMut = useMutation({
@@ -178,7 +178,7 @@ export default function StoreMenuBuilderScreen() {
     if (!productModal) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      showAlert(
         "Photos access needed",
         "Allow access to your photo library in Settings to add a product photo.",
       );
@@ -202,7 +202,7 @@ export default function StoreMenuBuilderScreen() {
       setProductModal((prev) => (prev ? { ...prev, photo_url: url } : prev));
     } catch (e: any) {
       if (!handlePlanLockedError(e)) {
-        Alert.alert("Upload failed", e?.message ?? "Try again.");
+        showAlert("Upload failed", e?.message ?? "Try again.");
       }
     } finally {
       setPhotoUploading(false);

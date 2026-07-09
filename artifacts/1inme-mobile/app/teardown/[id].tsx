@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
 import { teardown } from "@/lib/api/teardown";
+import { showAlert } from "@/lib/webAlert";
 
 function Bullets({
   items,
@@ -62,7 +62,7 @@ export default function TeardownDetailScreen() {
     mutationFn: () => teardown.build(teardownId),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["teardown", "index"] });
-      Alert.alert("Page built", `Created @${res.alias}.`, [
+      showAlert("Page built", `Created @${res.alias}.`, [
         {
           text: "Open editor",
           onPress: () => router.replace(`/links/${res.link_id}/blocks` as any),
@@ -72,7 +72,7 @@ export default function TeardownDetailScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert(
+      showAlert(
         "Couldn't build the page",
         e?.message ?? "Please try again in a moment.",
       );

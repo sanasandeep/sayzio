@@ -3,7 +3,6 @@ import * as Location from "expo-location";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Platform,
   Pressable,
@@ -15,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors, useResolvedScheme } from "@/hooks/useColors";
+import { showAlert } from "@/lib/webAlert";
 
 // Lazy-require so the web bundle never tries to evaluate the native module.
 let WebView: typeof import("react-native-webview").WebView | null = null;
@@ -169,7 +169,7 @@ export function MapPickerModal({
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
+        showAlert(
           "Permission needed",
           "Allow location access to center the map on where you are.",
         );
@@ -180,13 +180,13 @@ export function MapPickerModal({
         `window.__locate(${pos.coords.latitude}, ${pos.coords.longitude}); true;`,
       );
     } catch {
-      Alert.alert("Error", "Could not get your current location.");
+      showAlert("Error", "Could not get your current location.");
     }
   };
 
   const confirm = () => {
     if (!selected) {
-      Alert.alert("Pick a spot", "Tap the map to drop a pin first.");
+      showAlert("Pick a spot", "Tap the map to drop a pin first.");
       return;
     }
     onPick(selected);
@@ -210,7 +210,7 @@ export function MapPickerModal({
       ) {
         setSelected({ lat: msg.lat, lng: msg.lng, address: msg.address ?? "" });
       } else if (msg.type === "noresult") {
-        Alert.alert("No match", "We couldn't find that place.");
+        showAlert("No match", "We couldn't find that place.");
       }
     } catch {
       /* ignore malformed messages */

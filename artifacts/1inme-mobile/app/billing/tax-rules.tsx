@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -26,6 +25,7 @@ import {
   listTaxRules,
   updateTaxRule,
 } from "@/lib/api/accounting";
+import { showAlert } from "@/lib/webAlert";
 
 type Draft = {
   name: string;
@@ -71,7 +71,7 @@ export default function TaxRulesScreen() {
       setOpen(false);
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't save", e?.message ?? "Try again."),
+      showAlert("Couldn't save", e?.message ?? "Try again."),
   });
 
   const remove = useMutation({
@@ -132,7 +132,7 @@ export default function TaxRulesScreen() {
             <Pressable
               onPress={() => openEdit(item)}
               onLongPress={() =>
-                Alert.alert("Delete tax rule?", item.name, [
+                showAlert("Delete tax rule?", item.name, [
                   { text: "Cancel", style: "cancel" },
                   { text: "Delete", style: "destructive", onPress: () => remove.mutate(item.id) },
                 ])

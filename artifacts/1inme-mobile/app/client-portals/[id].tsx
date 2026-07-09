@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   RefreshControl,
@@ -25,6 +24,7 @@ import {
   sendClientPortalLink,
   updateClientPortal,
 } from "@/lib/api/client-portals";
+import { showAlert } from "@/lib/webAlert";
 
 export default function ClientPortalDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -49,7 +49,7 @@ export default function ClientPortalDetailScreen() {
       qc.invalidateQueries({ queryKey: ["client-portals"] });
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't update", e?.message ?? "Try again."),
+      showAlert("Couldn't update", e?.message ?? "Try again."),
   });
 
   const remove = useMutation({
@@ -59,7 +59,7 @@ export default function ClientPortalDetailScreen() {
       router.back();
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't delete", e?.message ?? "Try again."),
+      showAlert("Couldn't delete", e?.message ?? "Try again."),
   });
 
   const sendLink = useMutation({
@@ -68,13 +68,13 @@ export default function ClientPortalDetailScreen() {
       setSendOpen(false);
       setEmail("");
       qc.invalidateQueries({ queryKey: ["client-portal", id] });
-      Alert.alert(
+      showAlert(
         "Link sent",
         `Magic link emailed to ${link.email}.\n\n${link.url}`,
       );
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't send link", e?.message ?? "Try again."),
+      showAlert("Couldn't send link", e?.message ?? "Try again."),
   });
 
   const portal = q.data;
@@ -88,7 +88,7 @@ export default function ClientPortalDetailScreen() {
             portal ? (
               <Pressable
                 onPress={() =>
-                  Alert.alert(
+                  showAlert(
                     "Delete portal?",
                     "Shares, magic links and the activity log will be removed.",
                     [

@@ -6,7 +6,6 @@ import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -45,6 +44,7 @@ import {
   type OwnerMenuCoupon,
   type OwnerMenuItem,
 } from "@/lib/api/restaurant";
+import { showAlert } from "@/lib/webAlert";
 
 function confirm(title: string, msg: string, onYes: () => void) {
   if (Platform.OS === "web") {
@@ -53,7 +53,7 @@ function confirm(title: string, msg: string, onYes: () => void) {
     }
     return;
   }
-  Alert.alert(title, msg, [
+  showAlert(title, msg, [
     { text: "Cancel", style: "cancel" },
     { text: "Delete", style: "destructive", onPress: onYes },
   ]);
@@ -137,7 +137,7 @@ export default function RestaurantMenuBuilderScreen() {
     onSuccess: (menu) => qc.setQueryData(["restaurant-owner-menu", linkId], menu),
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Couldn't save settings", e?.message ?? "Try again.");
+      showAlert("Couldn't save settings", e?.message ?? "Try again.");
     },
   });
 
@@ -160,7 +160,7 @@ export default function RestaurantMenuBuilderScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Couldn't save category", e?.message ?? "Try again.");
+      showAlert("Couldn't save category", e?.message ?? "Try again.");
     },
   });
   const delCatMut = useMutation({
@@ -191,7 +191,7 @@ export default function RestaurantMenuBuilderScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Couldn't save item", e?.message ?? "Try again.");
+      showAlert("Couldn't save item", e?.message ?? "Try again.");
     },
   });
   const delItemMut = useMutation({
@@ -209,7 +209,7 @@ export default function RestaurantMenuBuilderScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Couldn't add table", e?.message ?? "Try again.");
+      showAlert("Couldn't add table", e?.message ?? "Try again.");
     },
   });
   const delTableMut = useMutation({
@@ -238,7 +238,7 @@ export default function RestaurantMenuBuilderScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Couldn't save coupon", e?.message ?? "Try again.");
+      showAlert("Couldn't save coupon", e?.message ?? "Try again.");
     },
   });
   const delCouponMut = useMutation({
@@ -250,7 +250,7 @@ export default function RestaurantMenuBuilderScreen() {
     if (!itemModal) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      showAlert(
         "Photos access needed",
         "Allow access to your photo library in Settings to add an item photo.",
       );
@@ -274,7 +274,7 @@ export default function RestaurantMenuBuilderScreen() {
       setItemModal((prev) => (prev ? { ...prev, photo_url: url } : prev));
     } catch (e: any) {
       if (!handlePlanLockedError(e)) {
-        Alert.alert("Upload failed", e?.message ?? "Try again.");
+        showAlert("Upload failed", e?.message ?? "Try again.");
       }
     } finally {
       setPhotoUploading(false);
@@ -698,7 +698,7 @@ export default function RestaurantMenuBuilderScreen() {
                     onPress={async () => {
                       await Clipboard.setStringAsync(t.order_url);
                       if (Platform.OS === "android")
-                        Alert.alert("Copied", "Order link copied.");
+                        showAlert("Copied", "Order link copied.");
                     }}
                     hitSlop={8}
                     style={styles.iconBtn}

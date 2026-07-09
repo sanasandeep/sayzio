@@ -16,7 +16,6 @@ import {
 } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
   FlatList,
@@ -143,6 +142,7 @@ import {
   trackBiolinkVisit,
   trackSlideView,
 } from "@/lib/api/biolinks";
+import { showAlert } from "@/lib/webAlert";
 
 function pickNum(s: Record<string, unknown> | null, ...keys: string[]): number | null {
   if (!s) return null;
@@ -819,7 +819,7 @@ function NativeProductBlock({
 
   const ensureAuthed = (): boolean => {
     if (user) return true;
-    Alert.alert(
+    showAlert(
       "Sign in to buy",
       "Create a free account or sign in to complete your purchase.",
       [
@@ -849,7 +849,7 @@ function NativeProductBlock({
       if (err.status === 401) {
         ensureAuthed();
       } else {
-        Alert.alert("Couldn't start checkout", err.message || "Please try again.");
+        showAlert("Couldn't start checkout", err.message || "Please try again.");
       }
     } finally {
       setBusy(false);
@@ -2792,7 +2792,7 @@ export function StoreCartProvider({ alias, children }: { alias: string; children
       // Single-currency cart: ignore items in a different currency than
       // what's already there (mirrors the server's single-currency order).
       if (prev.length > 0 && prev[0].currency !== line.currency) {
-        Alert.alert(
+        showAlert(
           "Different currency",
           "Your cart already has items in another currency. Check out first, then start a new cart.",
         );
@@ -2829,7 +2829,7 @@ export function StoreCartProvider({ alias, children }: { alias: string; children
   const handleCheckout = async () => {
     if (busy || lines.length === 0) return;
     if (!user) {
-      Alert.alert(
+      showAlert(
         "Sign in to check out",
         "Create a free account or sign in to complete your purchase.",
         [
@@ -2857,7 +2857,7 @@ export function StoreCartProvider({ alias, children }: { alias: string; children
       router.push(`/store/order/${res.order.id}` as any);
     } catch (e) {
       const err = e as { message?: string };
-      Alert.alert("Couldn't check out", err.message || "Please try again.");
+      showAlert("Couldn't check out", err.message || "Please try again.");
     } finally {
       setBusy(false);
     }

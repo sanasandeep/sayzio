@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Platform,
@@ -27,6 +26,7 @@ import {
   makePrimaryDomain,
   type Domain,
 } from "@/lib/api/domains";
+import { showAlert } from "@/lib/webAlert";
 
 export default function DomainsScreen() {
   const colors = useColors();
@@ -45,7 +45,7 @@ export default function DomainsScreen() {
     mutationFn: (id: number) => makePrimaryDomain(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["domains-available"] }),
     onError: (e: any) =>
-      Alert.alert("Couldn't update", e?.message ?? "Please try again."),
+      showAlert("Couldn't update", e?.message ?? "Please try again."),
   });
 
   const globalDomains = (availQ.data?.items ?? []).filter((d) => d.is_global);
@@ -77,7 +77,7 @@ export default function DomainsScreen() {
     if (Platform.OS === "web") {
       if (confirm(`Remove ${d.domain}?`)) go();
     } else {
-      Alert.alert("Remove domain?", d.domain, [
+      showAlert("Remove domain?", d.domain, [
         { text: "Cancel", style: "cancel" },
         { text: "Remove", style: "destructive", onPress: go },
       ]);

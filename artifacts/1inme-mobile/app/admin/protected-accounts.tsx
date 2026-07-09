@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +21,7 @@ import {
   type ProtectedAccount,
   type ProtectedAccountsList,
 } from "@/lib/api/admin";
+import { showAlert } from "@/lib/webAlert";
 
 // Mobile parity for the web back-office "Protected accounts" page: the
 // canonical never-delete/suspend list. Staff with `users.view` may read it;
@@ -51,14 +51,14 @@ export default function ProtectedAccountsScreen() {
       setLabel("");
     },
     onError: (e: any) =>
-      Alert.alert("Couldn't add account", e?.message ?? "Try again."),
+      showAlert("Couldn't add account", e?.message ?? "Try again."),
   });
 
   const remove = useMutation({
     mutationFn: (id: number) => removeProtectedAccount(id),
     onSuccess: apply,
     onError: (e: any) =>
-      Alert.alert("Couldn't remove account", e?.message ?? "Try again."),
+      showAlert("Couldn't remove account", e?.message ?? "Try again."),
   });
 
   const data = query.data;
@@ -68,7 +68,7 @@ export default function ProtectedAccountsScreen() {
   const emailValid = /\S+@\S+\.\S+/.test(email.trim());
 
   const confirmRemove = (account: ProtectedAccount) =>
-    Alert.alert(
+    showAlert(
       "Remove protection?",
       `${account.email} will no longer be protected from deletion or suspension.`,
       [

@@ -4,7 +4,6 @@ import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -22,6 +21,7 @@ import {
   startSubscribe,
   type SubscriptionTier,
 } from "@/lib/api/monetization";
+import { showAlert } from "@/lib/webAlert";
 
 /**
  * Mobile parity for the public /@handle/subscribe page (Task #1209).
@@ -60,11 +60,11 @@ export default function SubscribeScreen() {
           Linking.openURL(r.checkout_url);
         }
       } else {
-        Alert.alert("Done", r.free ? "You're following for free." : "You're subscribed.");
+        showAlert("Done", r.free ? "You're following for free." : "You're subscribed.");
         router.back();
       }
     },
-    onError: (e: Error) => Alert.alert("Couldn't start checkout", e.message || "Try again"),
+    onError: (e: Error) => showAlert("Couldn't start checkout", e.message || "Try again"),
   });
 
   return (

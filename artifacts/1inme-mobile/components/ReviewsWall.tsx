@@ -5,7 +5,6 @@ import * as Linking from "expo-linking";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Modal,
   Platform,
@@ -29,6 +28,7 @@ import {
   type ReviewSort,
   type ReviewSummary,
 } from "@/lib/api/reviews";
+import { showAlert } from "@/lib/webAlert";
 
 const MAX_MEDIA = 6;
 
@@ -272,7 +272,7 @@ function SubmitModal({
     if (media.length >= MAX_MEDIA) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      showAlert(
         "Photos access needed",
         "Allow access to your photo library in Settings to attach photos or videos.",
       );
@@ -292,7 +292,7 @@ function SubmitModal({
     if (media.length >= MAX_MEDIA) return;
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      showAlert(
         "Camera access needed",
         "Allow camera access in Settings to take a photo or video for your review.",
       );
@@ -308,7 +308,7 @@ function SubmitModal({
 
   const addMedia = () => {
     if (media.length >= MAX_MEDIA) return;
-    Alert.alert("Add media", undefined, [
+    showAlert("Add media", undefined, [
       { text: "Choose from library", onPress: pickFromLibrary },
       { text: "Take photo or video", onPress: takePhoto },
       { text: "Cancel", style: "cancel" },

@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -31,6 +30,7 @@ import {
   type PayoutConnection,
   type PayoutProvider,
 } from "@/lib/api/payouts";
+import { showAlert } from "@/lib/webAlert";
 
 /**
  * Mobile parity for the "Earnings & Payouts" dashboard (Task #1208).
@@ -68,7 +68,7 @@ export default function PayoutsScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Connect failed", e?.message ?? "Unknown error");
+      showAlert("Connect failed", e?.message ?? "Unknown error");
     },
   });
 
@@ -79,7 +79,7 @@ export default function PayoutsScreen() {
   const makeDefault = useMutation({
     mutationFn: (id: number) => setDefaultConnection(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["payouts"] }),
-    onError: (e: any) => Alert.alert("Could not set default", e?.message ?? "Unknown error"),
+    onError: (e: any) => showAlert("Could not set default", e?.message ?? "Unknown error"),
   });
   const remove = useMutation({
     mutationFn: (id: number) => removeConnection(id),
@@ -230,7 +230,7 @@ export default function PayoutsScreen() {
                       label="Remove"
                       variant="ghost"
                       onPress={() =>
-                        Alert.alert("Disconnect", `Disconnect ${p.name}?`, [
+                        showAlert("Disconnect", `Disconnect ${p.name}?`, [
                           { text: "Cancel", style: "cancel" },
                           {
                             text: "Disconnect",
@@ -311,13 +311,13 @@ function AdultToggle({
       qc.invalidateQueries({ queryKey: ["payouts"] });
       setOpen(false);
       if (r.enabled && r.needs_adult_provider) {
-        Alert.alert(
+        showAlert(
           "Connect an adult-friendly processor",
           "Your previous default isn't adult-friendly. Connect CCBill or Segpay to receive payouts.",
         );
       }
     },
-    onError: (e: any) => Alert.alert("Could not save", e?.message ?? "Unknown error"),
+    onError: (e: any) => showAlert("Could not save", e?.message ?? "Unknown error"),
   });
 
   return (

@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -28,6 +27,7 @@ import {
   type StrategySuggestion,
 } from "@/lib/api/marketingStrategist";
 import { isPlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
+import { showAlert } from "@/lib/webAlert";
 
 const FEATURE_LABEL = "Performer Specialist";
 
@@ -101,7 +101,7 @@ export default function MarketingStrategyDetail() {
     setExporting(true);
     exportStrategy(id, format, strategy.title)
       .catch((e) =>
-        Alert.alert(
+        showAlert(
           "Export failed",
           e instanceof Error ? e.message : "Could not export the strategy.",
         ),
@@ -110,7 +110,7 @@ export default function MarketingStrategyDetail() {
   };
 
   const promptExport = () => {
-    Alert.alert("Export strategy", "Choose a format to share or save.", [
+    showAlert("Export strategy", "Choose a format to share or save.", [
       { text: "Markdown (.md)", onPress: () => onExport("md") },
       { text: "PDF", onPress: () => onExport("pdf") },
       { text: "Cancel", style: "cancel" },
@@ -118,7 +118,7 @@ export default function MarketingStrategyDetail() {
   };
 
   const onDelete = () => {
-    Alert.alert(
+    showAlert(
       "Delete strategy",
       `Delete "${strategy.title}"? This can't be undone.`,
       [
@@ -137,7 +137,7 @@ export default function MarketingStrategyDetail() {
               });
               router.back();
             } catch (e) {
-              Alert.alert(
+              showAlert(
                 "Couldn't delete",
                 e instanceof Error ? e.message : "Please try again.",
               );
@@ -149,7 +149,7 @@ export default function MarketingStrategyDetail() {
   };
 
   const onApply = (s: StrategySuggestion) => {
-    Alert.alert(
+    showAlert(
       "Apply suggestion?",
       `“${s.title}” will make a change to your account.`,
       [
@@ -163,7 +163,7 @@ export default function MarketingStrategyDetail() {
             } catch (e) {
               if (isPlanLockedError(e)) showUpgradePrompt(e);
               else
-                Alert.alert(
+                showAlert(
                   "Couldn't apply",
                   e instanceof Error ? e.message : "Please try again.",
                 );
@@ -179,7 +179,7 @@ export default function MarketingStrategyDetail() {
       await marketingStrategist.dismissSuggestion(s.id);
       refreshShow();
     } catch (e) {
-      Alert.alert(
+      showAlert(
         "Couldn't dismiss",
         e instanceof Error ? e.message : "Please try again.",
       );

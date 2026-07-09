@@ -5,7 +5,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -29,6 +28,7 @@ import {
   type AiBuilderPayload,
 } from "@/lib/api/aiBuilder";
 import { uploadWizardImage } from "@/lib/api/wizard";
+import { showAlert } from "@/lib/webAlert";
 
 /**
  * "Build my Link in Bio with AI" — mobile parity for the web
@@ -93,7 +93,7 @@ export default function AiBuilderScreen() {
     onSuccess: (res) => setEstimate(res.estimated_credits),
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert(
+      showAlert(
         "Couldn't estimate",
         e?.message ?? "Please try again in a moment.",
       );
@@ -103,7 +103,7 @@ export default function AiBuilderScreen() {
   const generateM = useMutation({
     mutationFn: () => generateAiBuilder(linkId, buildPayload()),
     onSuccess: (res) => {
-      Alert.alert(
+      showAlert(
         "Page built",
         `Created ${res.blocks} block${res.blocks === 1 ? "" : "s"}.${
           res.credits_spent > 0 ? ` Used ${res.credits_spent} credits.` : ""
@@ -115,7 +115,7 @@ export default function AiBuilderScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert(
+      showAlert(
         "Couldn't build the page",
         e?.message ??
           "The assistant couldn't build a page from that. Add more detail and try again.",
@@ -125,12 +125,12 @@ export default function AiBuilderScreen() {
 
   async function addImage() {
     if ((images.length ?? 0) >= (intake?.max_images ?? 25)) {
-      Alert.alert("Limit reached", "You've added the maximum number of images.");
+      showAlert("Limit reached", "You've added the maximum number of images.");
       return;
     }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      showAlert(
         "Photos access needed",
         "Allow access to your photo library in Settings to add an image.",
       );
@@ -152,7 +152,7 @@ export default function AiBuilderScreen() {
       setImages((prev) => [...prev, url]);
       setEstimate(null);
     } catch (e: any) {
-      Alert.alert(
+      showAlert(
         "Couldn't upload image",
         e?.message ?? "Please try again.",
       );

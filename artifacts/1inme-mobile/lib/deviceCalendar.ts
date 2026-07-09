@@ -1,6 +1,7 @@
 import { Alert, Linking, Platform } from "react-native";
 
 import type { CalendarEventItem } from "@/lib/api/calendars";
+import { showAlert } from "@/lib/webAlert";
 
 // One-tap "Add to my calendar" for events from followed calendars.
 //
@@ -679,11 +680,11 @@ export async function addEventWithFeedback(event: CalendarEventItem): Promise<bo
   const result = await addEventToDeviceCalendar(event);
   switch (result.status) {
     case "added":
-      Alert.alert("Added to calendar", `"${event.title}" is now on your device calendar.`);
+      showAlert("Added to calendar", `"${event.title}" is now on your device calendar.`);
       return true;
     case "duplicate":
       // Already on the calendar — offer to refresh it rather than duplicating.
-      Alert.alert(
+      showAlert(
         "Already on your calendar",
         `"${event.title}" is already on your device calendar.`,
         [
@@ -698,25 +699,25 @@ export async function addEventWithFeedback(event: CalendarEventItem): Promise<bo
       );
       return true;
     case "updated":
-      Alert.alert("Updated", `"${event.title}" was updated on your device calendar.`);
+      showAlert("Updated", `"${event.title}" was updated on your device calendar.`);
       return true;
     case "web-download":
       // The browser handles the downloaded .ics; no alert needed.
       return true;
     case "denied":
-      Alert.alert(
+      showAlert(
         "Permission needed",
         "Allow calendar access in Settings to add events to your device calendar.",
       );
       return false;
     case "unavailable":
-      Alert.alert(
+      showAlert(
         "Not available",
         "Adding to the device calendar isn't available on this build.",
       );
       return false;
     default:
-      Alert.alert("Couldn't add event", result.message);
+      showAlert("Couldn't add event", result.message);
       return false;
   }
 }
@@ -726,22 +727,22 @@ export async function updateEventWithFeedback(event: CalendarEventItem): Promise
   const result = await updateEventInDeviceCalendar(event);
   switch (result.status) {
     case "updated":
-      Alert.alert("Updated", `"${event.title}" was updated on your device calendar.`);
+      showAlert("Updated", `"${event.title}" was updated on your device calendar.`);
       return true;
     case "added":
-      Alert.alert("Added to calendar", `"${event.title}" is now on your device calendar.`);
+      showAlert("Added to calendar", `"${event.title}" is now on your device calendar.`);
       return true;
     case "web-download":
       // The browser handles the downloaded .ics; no alert needed.
       return true;
     case "denied":
-      Alert.alert(
+      showAlert(
         "Permission needed",
         "Allow calendar access in Settings to update events on your device calendar.",
       );
       return false;
     case "unavailable":
-      Alert.alert(
+      showAlert(
         "Not available",
         "Updating the device calendar isn't available on this build.",
       );
@@ -750,7 +751,7 @@ export async function updateEventWithFeedback(event: CalendarEventItem): Promise
       // Not expected from an update, but treat as a no-op success.
       return true;
     default:
-      Alert.alert("Couldn't update event", result.message);
+      showAlert("Couldn't update event", result.message);
       return false;
   }
 }
@@ -760,37 +761,37 @@ export async function removeEventWithFeedback(event: CalendarEventItem): Promise
   const result = await removeEventFromDeviceCalendar(event);
   switch (result.status) {
     case "removed":
-      Alert.alert(
+      showAlert(
         "Removed from calendar",
         `"${event.title}" was removed from your device calendar.`,
       );
       return true;
     case "not-found":
-      Alert.alert(
+      showAlert(
         "Not on your calendar",
         `"${event.title}" wasn't found on your device calendar — it may have already been removed.`,
       );
       return false;
     case "web-unsupported":
-      Alert.alert(
+      showAlert(
         "Not available here",
         "Removing from the device calendar isn't supported on the web. Delete it from your calendar app instead.",
       );
       return false;
     case "denied":
-      Alert.alert(
+      showAlert(
         "Permission needed",
         "Allow calendar access in Settings to remove events from your device calendar.",
       );
       return false;
     case "unavailable":
-      Alert.alert(
+      showAlert(
         "Not available",
         "Removing from the device calendar isn't available on this build.",
       );
       return false;
     default:
-      Alert.alert("Couldn't remove event", result.message);
+      showAlert("Couldn't remove event", result.message);
       return false;
   }
 }
@@ -801,7 +802,7 @@ export async function addEventsWithFeedback(events: CalendarEventItem[]): Promis
   switch (result.status) {
     case "done": {
       if (result.added === 0 && result.skipped > 0 && result.failed === 0) {
-        Alert.alert(
+        showAlert(
           "Already up to date",
           `All ${result.skipped} event${result.skipped === 1 ? "" : "s"} are already on your calendar.`,
         );
@@ -810,26 +811,26 @@ export async function addEventsWithFeedback(events: CalendarEventItem[]): Promis
       const parts = [`Added ${result.added}`];
       if (result.skipped) parts.push(`skipped ${result.skipped} already present`);
       if (result.failed) parts.push(`${result.failed} couldn't be added`);
-      Alert.alert("Calendar updated", `${parts.join(", ")}.`);
+      showAlert("Calendar updated", `${parts.join(", ")}.`);
       return result.added > 0;
     }
     case "web-download":
       // The browser handles the downloaded .ics; no alert needed.
       return true;
     case "denied":
-      Alert.alert(
+      showAlert(
         "Permission needed",
         "Allow calendar access in Settings to add events to your device calendar.",
       );
       return false;
     case "unavailable":
-      Alert.alert(
+      showAlert(
         "Not available",
         "Adding to the device calendar isn't available on this build.",
       );
       return false;
     default:
-      Alert.alert("Couldn't add events", result.message);
+      showAlert("Couldn't add events", result.message);
       return false;
   }
 }
@@ -843,7 +844,7 @@ export async function syncEventsWithFeedback(events: CalendarEventItem[]): Promi
   switch (result.status) {
     case "done": {
       if (result.updated === 0) {
-        Alert.alert(
+        showAlert(
           "Nothing to refresh",
           "None of these events are on your device calendar yet. Add them first to keep them in sync.",
         );
@@ -852,26 +853,26 @@ export async function syncEventsWithFeedback(events: CalendarEventItem[]): Promi
       const parts = [`Refreshed ${result.updated}`];
       if (result.missing) parts.push(`${result.missing} not added yet`);
       if (result.failed) parts.push(`${result.failed} couldn't be updated`);
-      Alert.alert("Calendar up to date", `${parts.join(", ")} on your device calendar.`);
+      showAlert("Calendar up to date", `${parts.join(", ")} on your device calendar.`);
       return true;
     }
     case "web-download":
       // The browser handles the downloaded .ics; no alert needed.
       return true;
     case "denied":
-      Alert.alert(
+      showAlert(
         "Permission needed",
         "Allow calendar access in Settings to refresh events on your device calendar.",
       );
       return false;
     case "unavailable":
-      Alert.alert(
+      showAlert(
         "Not available",
         "Updating the device calendar isn't available on this build.",
       );
       return false;
     default:
-      Alert.alert("Couldn't refresh events", result.message);
+      showAlert("Couldn't refresh events", result.message);
       return false;
   }
 }
@@ -885,7 +886,7 @@ export async function removeEventsWithFeedback(events: CalendarEventItem[]): Pro
   switch (result.status) {
     case "done": {
       if (result.removed === 0) {
-        Alert.alert(
+        showAlert(
           "Nothing to remove",
           "None of these events were on your device calendar.",
         );
@@ -894,29 +895,29 @@ export async function removeEventsWithFeedback(events: CalendarEventItem[]): Pro
       const parts = [`Removed ${result.removed}`];
       if (result.notFound) parts.push(`${result.notFound} weren't on your calendar`);
       if (result.failed) parts.push(`${result.failed} couldn't be removed`);
-      Alert.alert("Calendar updated", `${parts.join(", ")}.`);
+      showAlert("Calendar updated", `${parts.join(", ")}.`);
       return true;
     }
     case "web-unsupported":
-      Alert.alert(
+      showAlert(
         "Not available here",
         "Removing from the device calendar isn't supported on the web. Delete them from your calendar app instead.",
       );
       return false;
     case "denied":
-      Alert.alert(
+      showAlert(
         "Permission needed",
         "Allow calendar access in Settings to remove events from your device calendar.",
       );
       return false;
     case "unavailable":
-      Alert.alert(
+      showAlert(
         "Not available",
         "Removing from the device calendar isn't available on this build.",
       );
       return false;
     default:
-      Alert.alert("Couldn't remove events", result.message);
+      showAlert("Couldn't remove events", result.message);
       return false;
   }
 }
@@ -934,6 +935,6 @@ export async function subscribeToIcs(icsUrl: string): Promise<void> {
   try {
     await Linking.openURL(canWebcal ? webcal : icsUrl);
   } catch {
-    Alert.alert("Couldn't open", "We couldn't open the subscription link.");
+    showAlert("Couldn't open", "We couldn't open the subscription link.");
   }
 }

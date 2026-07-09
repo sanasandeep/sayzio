@@ -4,7 +4,6 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +25,7 @@ import {
   type CalendarInput,
 } from "@/lib/api/calendars";
 import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
+import { showAlert } from "@/lib/webAlert";
 
 const ACCENT_SWATCHES = [
   "#3d6bff",
@@ -145,7 +145,7 @@ export default function CalendarEditScreen() {
     },
     onError: (e) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert(
+      showAlert(
         isEdit ? "Couldn't save calendar" : "Couldn't create calendar",
         (e as { message?: string })?.message ?? "Please try again.",
       );

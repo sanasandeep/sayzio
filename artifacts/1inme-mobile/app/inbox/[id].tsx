@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -27,6 +26,7 @@ import {
   setConversationStatus,
   type Message,
 } from "@/lib/api/inbox";
+import { showAlert } from "@/lib/webAlert";
 
 export default function ConversationScreen() {
   const colors = useColors();
@@ -61,7 +61,7 @@ export default function ConversationScreen() {
       qc.invalidateQueries({ queryKey: ["inbox", "conversation", id] });
       qc.invalidateQueries({ queryKey: ["inbox", "conversations"] });
     },
-    onError: (e: any) => Alert.alert("Reply failed", e?.message ?? "Try again"),
+    onError: (e: any) => showAlert("Reply failed", e?.message ?? "Try again"),
   });
 
   const setStatus = useMutation({
@@ -96,7 +96,7 @@ export default function ConversationScreen() {
       qc.invalidateQueries({ queryKey: ["inbox", "conversations"] });
     },
     onError: (e: any) =>
-      Alert.alert("Assignment failed", e?.message ?? "Try again"),
+      showAlert("Assignment failed", e?.message ?? "Try again"),
   });
 
   const conv = q.data?.conversation;
@@ -133,7 +133,7 @@ export default function ConversationScreen() {
               )}
               <Pressable
                 onPress={() =>
-                  Alert.alert("Delete conversation?", "This cannot be undone.", [
+                  showAlert("Delete conversation?", "This cannot be undone.", [
                     { text: "Cancel", style: "cancel" },
                     { text: "Delete", style: "destructive", onPress: () => del.mutate() },
                   ])

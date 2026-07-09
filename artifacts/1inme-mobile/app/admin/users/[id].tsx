@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,6 +23,7 @@ import {
   updateUserRoles,
   type UserRolesPanel,
 } from "@/lib/api/admin";
+import { showAlert } from "@/lib/webAlert";
 
 // Per-user role + admin-access assignment, mirroring the web back-office
 // roles panel: toggle the web-guard roles (with the feature permissions each
@@ -101,19 +101,19 @@ export default function UserRolesScreen() {
   const saveRoles = useMutation({
     mutationFn: () => updateUserRoles(userId, selected ?? []),
     onSuccess: applyPanel,
-    onError: (e: any) => Alert.alert("Couldn't save roles", e?.message ?? "Try again."),
+    onError: (e: any) => showAlert("Couldn't save roles", e?.message ?? "Try again."),
   });
 
   const grant = useMutation({
     mutationFn: () => grantAdminAccess(userId, pickedAdminRole as number),
     onSuccess: applyPanel,
-    onError: (e: any) => Alert.alert("Couldn't grant access", e?.message ?? "Try again."),
+    onError: (e: any) => showAlert("Couldn't grant access", e?.message ?? "Try again."),
   });
 
   const revoke = useMutation({
     mutationFn: () => revokeAdminAccess(userId),
     onSuccess: applyPanel,
-    onError: (e: any) => Alert.alert("Couldn't revoke access", e?.message ?? "Try again."),
+    onError: (e: any) => showAlert("Couldn't revoke access", e?.message ?? "Try again."),
   });
 
   const impersonate = useMutation({
@@ -122,7 +122,7 @@ export default function UserRolesScreen() {
       await auth.impersonate(grantRes.token, grantRes.user as AuthUser);
       router.replace("/(tabs)" as never);
     },
-    onError: (e: any) => Alert.alert("Couldn't impersonate", e?.message ?? "Try again."),
+    onError: (e: any) => showAlert("Couldn't impersonate", e?.message ?? "Try again."),
   });
 
   const data = query.data;
@@ -143,7 +143,7 @@ export default function UserRolesScreen() {
     });
 
   const confirmRevoke = () =>
-    Alert.alert(
+    showAlert(
       "Revoke admin access?",
       "This deletes the back-office admin record. The user account is untouched.",
       [
@@ -153,7 +153,7 @@ export default function UserRolesScreen() {
     );
 
   const confirmImpersonate = () =>
-    Alert.alert(
+    showAlert(
       "Impersonate this user?",
       `You'll view the app as ${data?.user.name ?? "this user"} until you stop. Your own session is restored when you stop impersonating.`,
       [

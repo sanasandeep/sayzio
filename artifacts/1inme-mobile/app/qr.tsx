@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Modal,
@@ -36,6 +35,7 @@ import {
   type QrCode,
   type QrPreset,
 } from "@/lib/api/qr";
+import { showAlert } from "@/lib/webAlert";
 
 const TYPES = [
   { value: "url", label: "URL", placeholder: "https://example.com" },
@@ -139,7 +139,7 @@ export default function QrScreen() {
         });
         setErrors(flat);
       } else {
-        Alert.alert("Could not create", e?.message ?? "Unknown error");
+        showAlert("Could not create", e?.message ?? "Unknown error");
       }
     },
   });
@@ -154,7 +154,7 @@ export default function QrScreen() {
     if (Platform.OS === "web") {
       if (confirm(`Delete QR “${item.name}”?`)) go();
     } else {
-      Alert.alert("Delete QR code?", item.name, [
+      showAlert("Delete QR code?", item.name, [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", style: "destructive", onPress: go },
       ]);

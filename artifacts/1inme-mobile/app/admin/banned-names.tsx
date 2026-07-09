@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Share,
@@ -29,6 +28,7 @@ import {
   type BannedName,
   type BannedNameConflictRow,
 } from "@/lib/api/admin";
+import { showAlert } from "@/lib/webAlert";
 
 // Mobile parity for the web back-office "Banned names / reserved handles"
 // page. Each entry blocks one exact name (case-insensitive) from being used
@@ -65,13 +65,13 @@ export default function BannedNamesScreen() {
       setForceRename(false);
     },
     onError: (e: any) =>
-      Alert.alert("Couldn't add name", e?.message ?? "Try again."),
+      showAlert("Couldn't add name", e?.message ?? "Try again."),
   });
 
   const toggleForce = useMutation({
     mutationFn: (id: number) => toggleBannedNameForceRename(id),
     onSuccess: () => invalidate(),
-    onError: (e: any) => Alert.alert("Error", e?.message ?? "Try again."),
+    onError: (e: any) => showAlert("Error", e?.message ?? "Try again."),
   });
 
   const bulkAdd = useMutation({
@@ -80,34 +80,34 @@ export default function BannedNamesScreen() {
       invalidate();
       setBulk("");
       setShowBulk(false);
-      Alert.alert(
+      showAlert(
         "Bulk import complete",
         `Added ${res.stats.imported}, skipped ${res.stats.duplicates} duplicate(s), rejected ${res.stats.rejected}.`,
       );
     },
     onError: (e: any) =>
-      Alert.alert("Couldn't import", e?.message ?? "Try again."),
+      showAlert("Couldn't import", e?.message ?? "Try again."),
   });
 
   const remove = useMutation({
     mutationFn: (id: number) => deleteBannedName(id),
     onSuccess: invalidate,
-    onError: (e: any) => Alert.alert("Error", e?.message ?? "Try again."),
+    onError: (e: any) => showAlert("Error", e?.message ?? "Try again."),
   });
 
   const restore = useMutation({
     mutationFn: () => restoreBannedNameDefaults(),
     onSuccess: (res) => {
       invalidate();
-      Alert.alert("Defaults restored", res.message);
+      showAlert("Defaults restored", res.message);
     },
-    onError: (e: any) => Alert.alert("Error", e?.message ?? "Try again."),
+    onError: (e: any) => showAlert("Error", e?.message ?? "Try again."),
   });
 
   const loadConflicts = useMutation({
     mutationFn: (id: number) => getBannedNameConflicts(id),
     onSuccess: (res) => setConflictsFor(res),
-    onError: (e: any) => Alert.alert("Error", e?.message ?? "Try again."),
+    onError: (e: any) => showAlert("Error", e?.message ?? "Try again."),
   });
 
   const doExport = useMutation({
@@ -119,14 +119,14 @@ export default function BannedNamesScreen() {
           message: res.csv,
         });
       } catch {
-        Alert.alert("Export", `${res.count} name(s) ready but sharing failed.`);
+        showAlert("Export", `${res.count} name(s) ready but sharing failed.`);
       }
     },
-    onError: (e: any) => Alert.alert("Couldn't export", e?.message ?? "Try again."),
+    onError: (e: any) => showAlert("Couldn't export", e?.message ?? "Try again."),
   });
 
   const confirmRemove = (item: BannedName) =>
-    Alert.alert(
+    showAlert(
       "Remove reserved name?",
       `"${item.name}" will become available again.`,
       [

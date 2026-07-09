@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Platform,
@@ -27,6 +26,7 @@ import {
   type RoadmapItem,
   type RoadmapStatus,
 } from "@/lib/api/roadmap";
+import { showAlert } from "@/lib/webAlert";
 
 type Colors = ReturnType<typeof useColors>;
 
@@ -47,7 +47,7 @@ function confirm(title: string, msg: string, onYes: () => void) {
     }
     return;
   }
-  Alert.alert(title, msg, [
+  showAlert(title, msg, [
     { text: "Cancel", style: "cancel" },
     { text: "OK", style: "destructive", onPress: onYes },
   ]);
@@ -109,19 +109,19 @@ export default function RoadmapTriageScreen() {
         if (Platform.OS === "web") {
           // silent on web; query refresh reflects the change
         } else {
-          Alert.alert("Roadmap", res.message);
+          showAlert("Roadmap", res.message);
         }
       }
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't update", e?.message ?? "Please try again."),
+      showAlert("Couldn't update", e?.message ?? "Please try again."),
   });
 
   const delMut = useMutation({
     mutationFn: (itemId: number) => deleteRoadmapItem(id, itemId),
     onSuccess: invalidate,
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't delete", e?.message ?? "Please try again."),
+      showAlert("Couldn't delete", e?.message ?? "Please try again."),
   });
 
   const mergeMut = useMutation({
@@ -130,10 +130,10 @@ export default function RoadmapTriageScreen() {
     onSuccess: (res) => {
       invalidate();
       setMergeItem(null);
-      if (Platform.OS !== "web") Alert.alert("Roadmap", res.message);
+      if (Platform.OS !== "web") showAlert("Roadmap", res.message);
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't merge", e?.message ?? "Please try again."),
+      showAlert("Couldn't merge", e?.message ?? "Please try again."),
   });
 
   if (!Number.isFinite(id)) return null;

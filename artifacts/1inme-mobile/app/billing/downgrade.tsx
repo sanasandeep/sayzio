@@ -3,7 +3,6 @@ import { Stack, useRouter } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,7 @@ import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import { billing, type DowngradePlan } from "@/lib/api/billing";
+import { showAlert } from "@/lib/webAlert";
 
 function formatApplies(iso: string | null): string {
   if (!iso) return "the end of your current cycle";
@@ -51,20 +51,20 @@ export default function DowngradeScreen() {
     mutationFn: (planId: number) => billing.scheduleDowngrade(planId),
     onSuccess: async (res) => {
       await invalidate();
-      Alert.alert("Downgrade scheduled", res.data.message);
+      showAlert("Downgrade scheduled", res.data.message);
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't schedule", e?.message ?? "Please try again."),
+      showAlert("Couldn't schedule", e?.message ?? "Please try again."),
   });
 
   const cancel = useMutation({
     mutationFn: () => billing.cancelDowngrade(),
     onSuccess: async (res) => {
       await invalidate();
-      Alert.alert("Downgrade cancelled", res.data.message);
+      showAlert("Downgrade cancelled", res.data.message);
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't cancel", e?.message ?? "Please try again."),
+      showAlert("Couldn't cancel", e?.message ?? "Please try again."),
   });
 
   const data = q.data?.data;
@@ -78,7 +78,7 @@ export default function DowngradeScreen() {
       plan.lost_addons.length > 0
         ? `\n\nYou'll lose these add-ons: ${plan.lost_addons.join(", ")}.`
         : "";
-    Alert.alert(
+    showAlert(
       `Downgrade to ${plan.name}?`,
       `Your plan changes to ${plan.name} on ${when}. You keep your current plan until then and can cancel anytime before it applies.${lostLine}`,
       [
@@ -93,7 +93,7 @@ export default function DowngradeScreen() {
   };
 
   const confirmCancel = () => {
-    Alert.alert(
+    showAlert(
       "Cancel scheduled downgrade?",
       "You'll stay on your current plan and nothing will change at the end of your cycle.",
       [

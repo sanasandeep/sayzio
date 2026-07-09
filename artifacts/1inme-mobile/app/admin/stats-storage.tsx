@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -20,6 +19,7 @@ import {
   updateStatsStorage,
   type StatsStorageStatus,
 } from "@/lib/api/statsStorage";
+import { showAlert } from "@/lib/webAlert";
 
 // Mobile parity for the web admin "Analytics Storage" panel. Read the growth
 // of the high-volume analytics tables, the retention window the nightly sweep
@@ -72,10 +72,10 @@ export default function StatsStorageScreen() {
       setThreshold("");
       setClearHardMax(false);
       setClearThreshold(false);
-      Alert.alert("Saved", "Analytics storage settings updated.");
+      showAlert("Saved", "Analytics storage settings updated.");
     },
     onError: (e: any) =>
-      Alert.alert(
+      showAlert(
         "Couldn't save",
         e?.status === 403
           ? "You don't have permission to change these settings."

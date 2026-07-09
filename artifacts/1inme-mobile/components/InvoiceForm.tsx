@@ -5,7 +5,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Modal,
   Pressable,
@@ -28,6 +27,7 @@ import {
   type InvoiceLineInput,
   type LetterheadInput,
 } from "@/lib/api/invoices";
+import { showAlert } from "@/lib/webAlert";
 
 type DocType = "invoice" | "receipt";
 
@@ -237,18 +237,18 @@ export default function InvoiceForm(props: Props) {
       qc.invalidateQueries({ queryKey: ["billing-invoices"] });
       if (isEdit) {
         qc.invalidateQueries({ queryKey: ["billing-invoice", props.invoiceId] });
-        Alert.alert("Changes saved", `${inv.number ?? `#${inv.id}`} has been updated.`);
+        showAlert("Changes saved", `${inv.number ?? `#${inv.id}`} has been updated.`);
         router.back();
         return;
       }
-      Alert.alert(
+      showAlert(
         docType === "receipt" ? "Receipt created" : "Invoice created",
         `${inv.number ?? `#${inv.id}`} is ready.`,
       );
       router.replace(`/invoices/${inv.id}` as never);
     },
     onError: (e: { message?: string }) =>
-      Alert.alert("Couldn't save", e?.message ?? "Please check the details and try again."),
+      showAlert("Couldn't save", e?.message ?? "Please check the details and try again."),
   });
 
   const canSubmit = () => {
@@ -262,7 +262,7 @@ export default function InvoiceForm(props: Props) {
 
   const submit = () => {
     if (!canSubmit()) {
-      Alert.alert(
+      showAlert(
         "Missing details",
         "Add at least one line item with an amount, and pick a recipient (contact, client, or enter a name/email).",
       );
@@ -299,7 +299,7 @@ export default function InvoiceForm(props: Props) {
   const pickLetterhead = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      showAlert(
         "Photos access needed",
         "Allow access to your photo library in Settings to attach a letterhead.",
       );

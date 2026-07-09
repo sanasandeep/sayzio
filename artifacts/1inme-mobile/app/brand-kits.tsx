@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -31,6 +30,7 @@ import {
   type BrandKit,
   type BrandKitsIndex,
 } from "@/lib/api/brandKits";
+import { showAlert } from "@/lib/webAlert";
 
 /**
  * Mobile parity for the web "AI Brand Kit" feature
@@ -90,7 +90,7 @@ export default function BrandKitsScreen() {
     onSuccess: (r) => setEstimate(r.estimated_credits),
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Couldn't estimate", e?.message ?? "Please try again.");
+      showAlert("Couldn't estimate", e?.message ?? "Please try again.");
     },
   });
 
@@ -107,7 +107,7 @@ export default function BrandKitsScreen() {
       setLogo("");
       setEstimate(null);
       invalidate();
-      Alert.alert(
+      showAlert(
         "Brand kit created",
         r.credits_spent > 0
           ? `“${r.kit.name}” is ready. ${r.credits_spent} credit${r.credits_spent === 1 ? "" : "s"} used.`
@@ -116,7 +116,7 @@ export default function BrandKitsScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Couldn't generate", e?.message ?? "Please try again.");
+      showAlert("Couldn't generate", e?.message ?? "Please try again.");
     },
   });
 
@@ -124,7 +124,7 @@ export default function BrandKitsScreen() {
     mutationFn: (id: number) => deleteBrandKit(id),
     onSuccess: invalidate,
     onError: (e: any) =>
-      Alert.alert("Couldn't delete", e?.message ?? "Please try again."),
+      showAlert("Couldn't delete", e?.message ?? "Please try again."),
   });
 
   const applyMut = useMutation({
@@ -143,11 +143,11 @@ export default function BrandKitsScreen() {
       setApplyKit(null);
       setApplyKind(null);
       qc.invalidateQueries({ queryKey: ["brand-consistency"] });
-      Alert.alert("Brand kit applied", "Your changes have been saved.");
+      showAlert("Brand kit applied", "Your changes have been saved.");
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Couldn't apply", e?.message ?? "Please try again.");
+      showAlert("Couldn't apply", e?.message ?? "Please try again.");
     },
   });
 
@@ -161,12 +161,12 @@ export default function BrandKitsScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Couldn't apply fix", e?.message ?? "Please try again.");
+      showAlert("Couldn't apply fix", e?.message ?? "Please try again.");
     },
   });
 
   const confirmDelete = (kit: BrandKit) => {
-    Alert.alert("Delete brand kit?", `“${kit.name}” will be removed.`, [
+    showAlert("Delete brand kit?", `“${kit.name}” will be removed.`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",

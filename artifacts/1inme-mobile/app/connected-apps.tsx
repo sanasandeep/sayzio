@@ -4,7 +4,6 @@ import * as WebBrowser from "expo-web-browser";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   ScrollView,
   StyleSheet,
@@ -24,6 +23,7 @@ import {
   connectedApps,
   type ConnectedAppProvider,
 } from "@/lib/api/connectedApps";
+import { showAlert } from "@/lib/webAlert";
 
 /**
  * Mobile parity for the web "/user/connected-apps" area (Task #3163).
@@ -62,7 +62,7 @@ export default function ConnectedAppsScreen() {
       ? params.oauth_message[0]
       : params.oauth_message;
     qc.invalidateQueries({ queryKey: ["connected-apps"] });
-    Alert.alert(
+    showAlert(
       status === "ok" ? "Connected" : "Connection failed",
       message || (status === "ok" ? "The app is now connected." : "Something went wrong."),
     );
@@ -85,7 +85,7 @@ export default function ConnectedAppsScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      Alert.alert("Connect failed", e?.message ?? "Unknown error");
+      showAlert("Connect failed", e?.message ?? "Unknown error");
     },
   });
 
@@ -100,26 +100,26 @@ export default function ConnectedAppsScreen() {
       };
     }) => connectedApps.update(v.id, v.body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["connected-apps"] }),
-    onError: (e: any) => Alert.alert("Update failed", e?.message ?? "Unknown error"),
+    onError: (e: any) => showAlert("Update failed", e?.message ?? "Unknown error"),
   });
 
   const pull = useMutation({
     mutationFn: (id: number) => connectedApps.syncNow(id),
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ["connected-apps"] });
-      Alert.alert("Sync complete", `${r.imported} contact(s) imported.`);
+      showAlert("Sync complete", `${r.imported} contact(s) imported.`);
     },
-    onError: (e: any) => Alert.alert("Sync failed", e?.message ?? "Unknown error"),
+    onError: (e: any) => showAlert("Sync failed", e?.message ?? "Unknown error"),
   });
 
   const remove = useMutation({
     mutationFn: (id: number) => connectedApps.disconnect(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["connected-apps"] }),
-    onError: (e: any) => Alert.alert("Disconnect failed", e?.message ?? "Unknown error"),
+    onError: (e: any) => showAlert("Disconnect failed", e?.message ?? "Unknown error"),
   });
 
   const confirmRemove = (id: number, label: string) =>
-    Alert.alert("Disconnect", `Disconnect ${label}? Synced data is kept.`, [
+    showAlert("Disconnect", `Disconnect ${label}? Synced data is kept.`, [
       { text: "Cancel", style: "cancel" },
       { text: "Disconnect", style: "destructive", onPress: () => remove.mutate(id) },
     ]);
@@ -174,10 +174,10 @@ export default function ConnectedAppsScreen() {
                 try {
                   await connectedApps.saveGoogleAnalytics(mid, secret);
                   qc.invalidateQueries({ queryKey: ["connected-apps"] });
-                  Alert.alert("Saved", "Google Analytics connected.");
+                  showAlert("Saved", "Google Analytics connected.");
                 } catch (e: any) {
                   if (!handlePlanLockedError(e)) {
-                    Alert.alert("Save failed", e?.message ?? "Unknown error");
+                    showAlert("Save failed", e?.message ?? "Unknown error");
                   }
                 }
               }}
@@ -193,7 +193,7 @@ export default function ConnectedAppsScreen() {
               onSaveMappings={(m) => {
                 if (!p.connection) return;
                 patch.mutate({ id: p.connection.id, body: { field_mappings: m } });
-                Alert.alert("Saved", "Field mapping updated.");
+                showAlert("Saved", "Field mapping updated.");
               }}
               onPull={() => p.connection && pull.mutate(p.connection.id)}
               onDisconnect={() =>

@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -21,6 +20,7 @@ import {
   unpinPost,
   type Post,
 } from "@/lib/api/posts";
+import { showAlert } from "@/lib/webAlert";
 
 export default function PostsScreen() {
   const colors = useColors();
@@ -32,7 +32,7 @@ export default function PostsScreen() {
   const togglePin = useMutation({
     mutationFn: (p: Post) => (p.is_pinned ? unpinPost(p.id) : pinPost(p.id)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["posts"] }),
-    onError: (e: any) => Alert.alert("Failed", e?.message ?? "Try again"),
+    onError: (e: any) => showAlert("Failed", e?.message ?? "Try again"),
   });
 
   const remove = useMutation({
@@ -125,7 +125,7 @@ export default function PostsScreen() {
                   label="Delete"
                   danger
                   onPress={() =>
-                    Alert.alert("Delete post?", "This cannot be undone.", [
+                    showAlert("Delete post?", "This cannot be undone.", [
                       { text: "Cancel", style: "cancel" },
                       {
                         text: "Delete",
