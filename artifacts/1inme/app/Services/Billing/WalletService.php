@@ -73,9 +73,10 @@ class WalletService
         return Wallet::create(['user_id' => $user->id, 'balance' => 0]);
     }
 
+    /** Read-only balance lookup — never creates a wallet row. */
     public function getBalance(User $user): int
     {
-        return (int) ($this->walletFor($user)->balance ?? 0);
+        return (int) (Wallet::where('user_id', $user->id)->value('balance') ?? 0);
     }
 
     /** Add coins. Idempotent on `idempotency_key` if provided. */

@@ -343,8 +343,14 @@ class ReadonlyDemoAllowlistApiPersistenceTest extends TestCase
             'currency' => 'USD',
             'settings' => ['tax' => ['enabled' => true, 'rate' => 10, 'inclusive' => false]],
         ]);
-        $item = RestaurantMenuItem::create([
+        $category = \App\Modules\User\Models\RestaurantMenuCategory::create([
             'menu_id'   => $menu->id,
+            'name'      => 'Drinks',
+            'is_active' => true,
+        ]);
+        $item = RestaurantMenuItem::create([
+            'menu_id'     => $menu->id,
+            'category_id' => $category->id,
             'name'      => 'Espresso',
             'price'     => 4.50,
             'is_active' => true,
