@@ -21,6 +21,7 @@ import {
   ActivityIndicator,
   Alert,
   AppState,
+  Image,
   Modal,
   Platform,
   Pressable,
@@ -647,7 +648,7 @@ export function VoiceAssistant() {
 
   return (
     <>
-      {/* ── Floating mic button ────────────────────────────────── */}
+      {/* ── Floating Zio mascot button ─────────────────────────── */}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Open AI Voice Assistant"
@@ -655,14 +656,17 @@ export function VoiceAssistant() {
         style={({ pressed }) => [
           styles.fab,
           {
-            backgroundColor: colors.primary,
             bottom: insets.bottom + 84,
-            opacity: pressed ? 0.85 : 1,
-            shadowColor: colors.foreground,
+            opacity: pressed ? 0.75 : 1,
           },
         ]}
       >
-        <Feather name="mic" size={22} color={colors.primaryForeground} />
+        <Image
+          source={require("../assets/images/zio-bot.png")}
+          style={styles.fabMascot}
+          resizeMode="contain"
+          accessibilityElementsHidden
+        />
         {aiEnabled === false ? (
           <View
             style={[
@@ -695,6 +699,12 @@ export function VoiceAssistant() {
             ]}
           >
             <View style={styles.header}>
+              <Image
+                source={require("../assets/images/zio-bot-peek.png")}
+                style={styles.headerMascot}
+                resizeMode="contain"
+                accessibilityElementsHidden
+              />
               <Text style={[styles.title, { color: colors.foreground }]}>
                 AI Voice Assistant
               </Text>
@@ -1137,28 +1147,31 @@ function prettyCategory(c: string): string {
 const styles = StyleSheet.create({
   fab: {
     position: "absolute",
-    right: 18,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    right: 14,
+    width: 64,
+    height: 64,
     alignItems: "center",
     justifyContent: "center",
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 6,
     zIndex: 999,
+  },
+  fabMascot: {
+    width: 64,
+    height: 64,
   },
   fabOffBadge: {
     position: "absolute",
-    top: -2,
-    right: -2,
+    top: 0,
+    right: 0,
     width: 18,
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
+  },
+  headerMascot: {
+    width: 28,
+    height: 28,
   },
   backdrop: {
     flex: 1,
