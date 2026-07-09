@@ -3,13 +3,12 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Image as ExpoImage } from "expo-image";
 import {
   ActivityIndicator,
   Animated,
   Easing,
   FlatList,
-  Image,
-  ImageBackground,
   Platform,
   ScrollView,
   StyleSheet,
@@ -163,10 +162,12 @@ function resolveUnderlay(slide: OnboardingSlide): SlideImage | null {
   return FALLBACK_IMAGES[slide.slug] ?? FALLBACK_IMAGES.creators;
 }
 
-// Warm the image cache for every remote slide photo so the swap from
-// bundled → admin slides never shows a blank background. Best-effort:
-// failures (offline, bad URL) are ignored — the bundled underlay still
-// covers those slides.
+// Warm the on-device image cache for every remote slide photo so the swap
+// from bundled → admin slides never shows a blank background, AND so an
+// offline relaunch can render the cached slides with their photos.
+// expo-image's disk cache persists across launches (unlike RN's
+// Image.prefetch memory/URL cache). Best-effort: failures (offline, bad
+// URL) are ignored — the bundled underlay still covers those slides.
 async function prefetchSlideImages(items: OnboardingSlide[]): Promise<void> {
   const urls = items.flatMap((s) =>
     s.image_urls && s.image_urls.length > 0
@@ -176,7 +177,11 @@ async function prefetchSlideImages(items: OnboardingSlide[]): Promise<void> {
         : [],
   );
   if (urls.length === 0) return;
-  await Promise.allSettled(urls.map((u) => Image.prefetch(u)));
+  try {
+    await ExpoImage.prefetch(urls, { cachePolicy: "disk" });
+  } catch {
+    // Ignore — underlay covers any photo that isn't cached yet.
+  }
 }
 
 /**
@@ -243,22 +248,25 @@ function SlideGallery({
       {/* Bundled asset pinned beneath remote photos so the background
           never flashes dark/blank while a download is in flight. */}
       {underlay ? (
-        <ImageBackground
+        <ExpoImage
           source={underlay}
-          resizeMode="cover"
+          contentFit="cover"
+          cachePolicy="disk"
           style={StyleSheet.absoluteFill}
         />
       ) : null}
-      <ImageBackground
+      <ExpoImage
         source={images[current]}
-        resizeMode="cover"
+        contentFit="cover"
+        cachePolicy="disk"
         style={StyleSheet.absoluteFill}
       />
       {incoming !== null && incoming !== current ? (
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
-          <ImageBackground
+          <ExpoImage
             source={images[incoming]}
-            resizeMode="cover"
+            contentFit="cover"
+            cachePolicy="disk"
             style={StyleSheet.absoluteFill}
           />
         </Animated.View>
