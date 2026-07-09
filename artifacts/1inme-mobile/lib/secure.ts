@@ -15,6 +15,7 @@ const BIOMETRIC_PROMPT_DISMISSED_KEY = "1inme.auth.biometric.prompt.dismissed";
 const IDLE_TIMEOUT_MS_KEY = "1inme.auth.idle.timeout.ms";
 const LAST_CUSTOM_IDLE_TIMEOUT_MS_KEY = "1inme.auth.idle.timeout.lastCustom.ms";
 const LOCK_WARNING_LEAD_MS_KEY = "1inme.auth.lock.warning.lead.ms";
+const AUTO_SHORTEN_ENABLED_KEY = "1inme.import.autoShorten";
 
 // Default idle re-lock window when biometric unlock is on. 5 minutes feels
 // like a reasonable middle-ground between security and convenience.
@@ -220,3 +221,14 @@ export const setLockWarningLeadMs = (ms: number) =>
     LOCK_WARNING_LEAD_MS_KEY,
     String(Math.max(1000, Math.floor(ms))),
   );
+
+// Whether the Import screen should auto-shorten a shared URL immediately
+// on arrival (on by default). The user can toggle this from the Import
+// screen; the preference is remembered per-device.
+export const getAutoShortenEnabled = async (): Promise<boolean> => {
+  const v = await getItem(AUTO_SHORTEN_ENABLED_KEY);
+  // Default true — opted out only when explicitly stored as "0".
+  return v !== "0";
+};
+export const setAutoShortenEnabled = (v: boolean) =>
+  setItem(AUTO_SHORTEN_ENABLED_KEY, v ? null : "0");

@@ -280,6 +280,7 @@ const stripBang = (s) => s.replace(/\burl!/g, "url").replace(/\bselectedCalendar
   );
   assert.equal(gotId, 42, "event goes to the selected calendar");
   assert.equal(gotBody.title, "My article", "shared title wins as event title");
+  assert.equal(gotBody.location, "Cafe Central", "location is trimmed onto the event");
   assert.equal(
     gotBody.description,
     "https://example.com/post",
