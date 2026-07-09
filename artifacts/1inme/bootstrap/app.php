@@ -100,6 +100,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // API-guard (Sanctum) counterpart of the read-only demo write-guard
         // above — covers the mobile app / REST API path.
+        // LogSlowRequests is prepended so it wraps the full request lifecycle
+        // (including auth, metering, and controller execution) for an accurate
+        // end-to-end duration and query count.
+        $middleware->api(prepend: [
+            \App\Modules\Api\Middleware\LogSlowRequests::class,
+        ]);
         $middleware->api(append: [
             \App\Modules\Common\Middleware\BlockReadonlyDemoWrites::class,
         ]);

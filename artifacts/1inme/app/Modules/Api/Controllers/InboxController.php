@@ -22,10 +22,32 @@ use Illuminate\Support\Facades\DB;
  * The web inbox UI (`User\InboxController`) is the source of truth for
  * the underlying schema; this exposes a JSON-friendly view used by the
  * mobile app.
+ *
+ * Performance notes:
+ * - accessibleOwnerIds() is memoised per request (keyed by caller user-id)
+ *   since it resolves the workspace graph with 4 queries, and some actions
+ *   (assign, setStatus) call it multiple times within one request.
+ * - workspaceIdForOwner() is similarly memoised.
  */
 class InboxController extends Controller
 {
     use ApiResponses;
+
+    /**
+     * Per-request memoisation cache for accessibleOwnerIds().
+     * Key = calling user_id (int), value = int[].
+     *
+     * @var array<int, int[]>
+     */
+    private array $ownerIdCache = [];
+
+    /**
+     * Per-request memoisation cache for workspaceIdForOwner().
+     * Key = owner user_id (int), value = workspace_id (int, 0 if none).
+     *
+     * @var array<int, int>
+     */
+    private array $workspaceIdCache = [];
 
     /**
      * Legacy summary endpoint kept for older mobile clients.
@@ -365,14 +387,25 @@ class InboxController extends Controller
         return $this->ok(['items' => $rows]);
     }
 
+    /**
+     * Resolve the primary workspace ID for a given owner user.
+     * Memoised per request to avoid repeated Workspace queries when
+     * threadFor() or assign() is invoked more than once per request.
+     */
     protected function workspaceIdForOwner(int $userId): int
     {
+        if (array_key_exists($userId, $this->workspaceIdCache)) {
+            return $this->workspaceIdCache[$userId];
+        }
+
         $ws = Workspace::where('owner_user_id', $userId)->first();
-        if ($ws) return (int) $ws->id;
+        if ($ws) {
+            return $this->workspaceIdCache[$userId] = (int) $ws->id;
+        }
         // Fall back to the first workspace the user is a member of so
         // non-owner teammates can still create the linked thread row.
         $member = WorkspaceMember::where('user_id', $userId)->first();
-        return $member ? (int) $member->workspace_id : 0;
+        return $this->workspaceIdCache[$userId] = $member ? (int) $member->workspace_id : 0;
     }
 
     /**
@@ -381,17 +414,25 @@ class InboxController extends Controller
      * caller belongs to (owned + member): every owner of those
      * workspaces and every member of those workspaces. The caller is
      * always included so legacy single-user setups keep working.
+     *
+     * Memoised per request (keyed by caller user-id) because some
+     * actions (assign, setStatus) call this method multiple times
+     * within one request cycle.
      */
     protected function accessibleOwnerIds(int $userId): array
     {
+        if (array_key_exists($userId, $this->ownerIdCache)) {
+            return $this->ownerIdCache[$userId];
+        }
+
         $ids = [$userId];
 
-        $ownedWorkspaceIds = Workspace::where('owner_user_id', $userId)->pluck('id');
+        $ownedWorkspaceIds  = Workspace::where('owner_user_id', $userId)->pluck('id');
         $memberWorkspaceIds = WorkspaceMember::where('user_id', $userId)->pluck('workspace_id');
         $workspaceIds = $ownedWorkspaceIds->merge($memberWorkspaceIds)->unique();
 
         if ($workspaceIds->isNotEmpty()) {
-            $owners = Workspace::whereIn('id', $workspaceIds)->pluck('owner_user_id');
+            $owners  = Workspace::whereIn('id', $workspaceIds)->pluck('owner_user_id');
             $members = WorkspaceMember::whereIn('workspace_id', $workspaceIds)->pluck('user_id');
             $ids = array_values(array_unique(array_filter(array_merge(
                 $ids,
@@ -400,7 +441,7 @@ class InboxController extends Controller
             ))));
         }
 
-        return $ids;
+        return $this->ownerIdCache[$userId] = $ids;
     }
 
     protected function teammateExists(int $workspaceId, int $userId): bool

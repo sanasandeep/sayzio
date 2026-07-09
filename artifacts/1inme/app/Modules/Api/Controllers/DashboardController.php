@@ -17,15 +17,51 @@ use Illuminate\Support\Facades\DB;
  * clicks, NFC writes, follower count, recent links, and the top link
  * (by total_clicks). Designed to keep the home screen to a single
  * round-trip on cold launch.
+ *
+ * Performance notes:
+ * - Four separate count/sum queries collapsed into one aggregate SELECT.
+ * - Pixel-fires for the recent + top links are batch-preloaded via
+ *   LinkResource::preload() to eliminate the per-link N+1.
+ * - The bulk of the payload (aggregates, by_type, recent/top links) is
+ *   cached for 30 seconds with the plain-array convention to avoid the
+ *   file-cache __PHP_Incomplete_Class hazard.
+ * - unread_notifs is deliberately excluded from the cache so the
+ *   notification badge stays accurate on every poll.
  */
 class DashboardController extends Controller
 {
     use ApiResponses;
 
+    private const CACHE_TTL = 30;
+
     public function index(Request $request)
     {
         $user   = $request->user();
         $userId = $user->id;
+
+        $cacheKey = "api.dashboard.v1.{$userId}";
+
+        $cached = cache()->get($cacheKey);
+        if ($cached !== null && is_array($cached)) {
+            // Unread notification count is always live — never cached —
+            // so the in-app badge reflects the real state every poll.
+            $cached['totals']['unread_notifs'] = (int) UserNotification::where('user_id', $userId)
+                ->whereNull('read_at')
+                ->count();
+            $cached['totals']['followers'] = (int) ($user->followers_count ?? 0);
+            return $this->ok($cached);
+        }
+
+        // Single aggregate query replaces four separate count/sum queries.
+        $agg = DB::table('links')
+            ->where('user_id', $userId)
+            ->selectRaw(
+                'count(*) as total_links,'
+                . ' sum(case when is_active then 1 else 0 end) as active_links,'
+                . ' sum(coalesce(total_clicks, 0)) as total_clicks,'
+                . ' sum(coalesce(unique_clicks, 0)) as total_unique'
+            )
+            ->first();
 
         $byType = Link::where('user_id', $userId)
             ->selectRaw('type, count(*) as c, sum(coalesce(total_clicks,0)) as clicks')
@@ -33,31 +69,39 @@ class DashboardController extends Controller
             ->get()
             ->keyBy('type');
 
-        $totalLinks  = (int) Link::where('user_id', $userId)->count();
-        $activeLinks = (int) Link::where('user_id', $userId)->where('is_active', true)->count();
-        $totalClicks = (int) Link::where('user_id', $userId)->sum('total_clicks');
-        $totalUnique = (int) Link::where('user_id', $userId)->sum('unique_clicks');
         $nfcCount    = (int) NfcWrite::where('user_id', $userId)->count();
         $unreadNotif = (int) UserNotification::where('user_id', $userId)->whereNull('read_at')->count();
 
-        $recent = Link::where('user_id', $userId)
+        // Eager-load the `domain` relation so LinkResource::toArray() doesn't
+        // trigger a per-link lazy load when reading `$l->domain?->domain`.
+        $recentLinks = Link::where('user_id', $userId)
+            ->with('domain')
             ->orderByDesc('id')
             ->limit(5)
-            ->get()
-            ->map(fn ($l) => LinkResource::toArray($l))
-            ->all();
+            ->get();
 
-        $top = Link::where('user_id', $userId)
+        $topLink = Link::where('user_id', $userId)
+            ->with('domain')
             ->orderByDesc('total_clicks')
             ->limit(1)
             ->first();
 
-        return $this->ok([
+        // Batch-preload pixel-fire data for all links that will be serialised
+        // through LinkResource, eliminating up to 12 per-link queries.
+        $allLinks = $topLink
+            ? $recentLinks->concat([$topLink])->all()
+            : $recentLinks->all();
+        LinkResource::preload($allLinks);
+
+        $recent = $recentLinks->map(fn ($l) => LinkResource::toArray($l))->all();
+        $top    = $topLink ? LinkResource::toArray($topLink) : null;
+
+        $payload = [
             'totals' => [
-                'links'          => $totalLinks,
-                'active_links'   => $activeLinks,
-                'total_clicks'   => $totalClicks,
-                'unique_clicks'  => $totalUnique,
+                'links'          => (int) ($agg->total_links ?? 0),
+                'active_links'   => (int) ($agg->active_links ?? 0),
+                'total_clicks'   => (int) ($agg->total_clicks ?? 0),
+                'unique_clicks'  => (int) ($agg->total_unique ?? 0),
                 'nfc_writes'     => $nfcCount,
                 'followers'      => (int) ($user->followers_count ?? 0),
                 'unread_notifs'  => $unreadNotif,
@@ -68,7 +112,16 @@ class DashboardController extends Controller
                 'clicks' => (int) $r->clicks,
             ])->values()->all(),
             'recent_links' => $recent,
-            'top_link'     => $top ? LinkResource::toArray($top) : null,
-        ]);
+            'top_link'     => $top,
+        ];
+
+        // Cache the plain-array payload. Exclude live fields (unread_notifs,
+        // followers) — they are re-attached from the DB / model on every hit.
+        $toCache = $payload;
+        $toCache['totals']['unread_notifs'] = 0;
+        $toCache['totals']['followers']     = 0;
+        cache()->put($cacheKey, $toCache, self::CACHE_TTL);
+
+        return $this->ok($payload);
     }
 }
