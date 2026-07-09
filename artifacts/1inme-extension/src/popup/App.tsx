@@ -33,6 +33,7 @@ import {
   resolveThankTemplatesConflict,
   saveThankTemplatesLocallyAndPush,
   setSettings,
+  DialHistoryEntry,
   syncPendingThanks,
   syncThankTemplates,
   unreadPendingThanksCount,
@@ -686,6 +687,13 @@ export function App() {
             </button>
           )}
           <RecentAbTests items={abTests} loading={abLoading} onChanged={loadAbTests} showToast={showToast} />
+
+          {(settings.dialHistory || []).length > 0 && (
+            <>
+              <div className="divider" />
+              <RecentCalls settings={settings} />
+            </>
+          )}
 
           <div className="divider" />
           <RecentLinks settings={settings} pixels={pixels} showToast={showToast} />
@@ -2157,6 +2165,71 @@ function newRule(type: SmartRule["type"], url = ""): SmartRule {
 // Recent links list — shows a Smart badge on smart links and lets the user
 // edit the rules inline (loads the current rule list lazily on expand).
 // ---------------------------------------------------------------------------
+
+// ─── Recent calls (click-to-dial history) ─────────────────────────
+// Collapsed by default; shows the newest 5 dial-overlay interactions
+// persisted by the background's DIAL_LOOKUP handler. Matched numbers
+// deep-link to the contact in the Sayzio dashboard.
+
+function timeAgo(ms: number): string {
+  const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
+function RecentCalls({ settings }: { settings: ExtSettings }) {
+  const [open, setOpen] = useState(false);
+  const items = (settings.dialHistory || []).slice(0, 5);
+  if (items.length === 0) return null;
+  return (
+    <div className="field">
+      <button
+        className="btn-link"
+        style={{ padding: 0, fontSize: 12, textAlign: "left" }}
+        onClick={() => setOpen((v) => !v)}
+        title="Phone numbers you dialed via the Sayzio overlay"
+      >
+        {open ? "▾" : "▸"} 📞 Recent calls ({items.length})
+      </button>
+      {open && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+          {items.map((it: DialHistoryEntry, i: number) => (
+            <div key={`${it.number}-${it.at}-${i}`} className="url-card" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {it.contactName || it.number}
+                </div>
+                <div className="muted" style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {it.contactName ? `${it.number} · ` : ""}
+                  {it.pageHost ? `${it.pageHost} · ` : ""}
+                  {timeAgo(it.at)}
+                </div>
+              </div>
+              {it.contactId ? (
+                <a
+                  className="btn-link"
+                  style={{ fontSize: 11, whiteSpace: "nowrap" }}
+                  href={`${settings.webBaseUrl}/dashboard/contacts/${it.contactId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open contact
+                </a>
+              ) : (
+                <span className="muted" style={{ fontSize: 11, whiteSpace: "nowrap" }}>No match</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function RecentLinks({ settings, pixels, showToast }: { settings: ExtSettings; pixels: WorkspacePixels | null; showToast: (t: Toast) => void }) {
   const [items, setItems] = useState<LinkSummary[] | null>(null);

@@ -78,6 +78,22 @@ function ensureStyles() {
       cursor: pointer;
     }
     .inme-dial-popup-row a:hover { background: rgba(255,255,255,.08); }
+    .inme-dial-popup-save {
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(59,130,246,0.5);
+      background: rgba(59,130,246,0.12);
+      color: #93c5fd;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      text-align: center;
+    }
+    .inme-dial-popup-save:hover { background: rgba(59,130,246,0.22); }
+    .inme-dial-popup-save[disabled] { opacity: .5; cursor: default; }
     .inme-dial-popup-close {
       position: absolute; top: 8px; right: 10px;
       cursor: pointer; opacity: .5; font-size: 15px; background: none; border: none;
@@ -133,18 +149,46 @@ async function openDialPopup(number: string, anchor: HTMLElement) {
 
   (el.querySelector(".inme-dial-popup-close") as HTMLElement)?.addEventListener("click", closePopup);
 
+  let matched = false;
   try {
     const resp = await chrome.runtime.sendMessage({ type: "DIAL_LOOKUP", number: e164 });
+    const nameEl = el.querySelector("#inme-cn");
     if (resp?.ok && resp.data?.contact?.name) {
-      const nameEl = el.querySelector("#inme-cn");
+      matched = true;
       if (nameEl) nameEl.textContent = resp.data.contact.name;
-    } else {
-      const nameEl = el.querySelector("#inme-cn");
-      if (nameEl) nameEl.textContent = "Unknown caller";
+    } else if (nameEl) {
+      nameEl.textContent = "Unknown caller";
     }
   } catch {
     const nameEl = el.querySelector("#inme-cn");
     if (nameEl) nameEl.textContent = "Unknown caller";
+  }
+
+  // No Sayzio match → offer to capture the number as a new contact.
+  // Clicking hands off to the background, which seeds the popup's
+  // ContactPreview view with a phone-only candidate.
+  if (!matched && popup === el) {
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "inme-dial-popup-save";
+    save.textContent = "💾 Save contact in Sayzio";
+    save.addEventListener("click", async () => {
+      save.disabled = true;
+      save.textContent = "Opening Sayzio…";
+      try {
+        const r = await chrome.runtime.sendMessage({ type: "DIAL_SAVE_CONTACT", number: e164 });
+        if (r?.ok) {
+          closePopup();
+        } else {
+          save.disabled = false;
+          save.textContent = r?.error === "Not signed in" ? "Sign in to Sayzio first" : "💾 Save contact in Sayzio";
+        }
+      } catch {
+        save.disabled = false;
+        save.textContent = "💾 Save contact in Sayzio";
+      }
+    });
+    el.appendChild(save);
   }
 }
 

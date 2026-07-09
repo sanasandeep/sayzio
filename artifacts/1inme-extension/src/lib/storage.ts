@@ -75,6 +75,11 @@ export interface ExtSettings {
   // creator switches workspace we re-hydrate from the server.
   pendingThanksWorkspaceId: number | null;
   pendingThanksSeenIds: string[];
+  // Click-to-dial history: the last DIAL_HISTORY_MAX dial-overlay
+  // interactions (newest first). Written by the background's
+  // DIAL_LOOKUP handler; the popup shows the newest 5 in a collapsed
+  // "Recent calls" section.
+  dialHistory: DialHistoryEntry[];
   // Per-domain "author book": cached author contacts (email / X handle /
   // LinkedIn URL) keyed by host, or by "host|path" for page-scoped
   // overrides. The Thank composer prefers the cached entry over a fresh
@@ -198,8 +203,45 @@ export const defaultSettings: ExtSettings = {
   pendingThanksUpdatedAtMs: null,
   pendingThanksWorkspaceId: null,
   pendingThanksSeenIds: [],
+  dialHistory: [],
   authorBook: {},
 };
+
+// ── Click-to-dial history ─────────────────────────────────────────────
+
+// Cap so extension storage stays bounded; the popup only shows the
+// newest 5, but keeping 20 lets a future "see all" view exist without
+// a storage migration.
+export const DIAL_HISTORY_MAX = 20;
+
+export interface DialHistoryEntry {
+  // E.164-ish number the overlay looked up.
+  number: string;
+  // Matched Sayzio contact (null when the number is unknown).
+  contactId: number | null;
+  contactName: string | null;
+  // Host of the page where the dial affordance was clicked.
+  pageHost: string | null;
+  // ms epoch of the interaction.
+  at: number;
+}
+
+// Prepend an entry, de-duping consecutive lookups of the same number
+// (a re-click within the same minute just refreshes the timestamp
+// instead of flooding the list) and enforcing the cap. Pure — caller
+// persists via setSettings.
+export function appendDialHistory(
+  history: DialHistoryEntry[],
+  entry: DialHistoryEntry,
+): DialHistoryEntry[] {
+  const prev = Array.isArray(history) ? history : [];
+  const head = prev[0];
+  const rest =
+    head && head.number === entry.number && entry.at - head.at < 60_000
+      ? prev.slice(1)
+      : prev;
+  return [entry, ...rest].slice(0, DIAL_HISTORY_MAX);
+}
 
 // Normalise a URL into the (host, path) we use as author-book keys.
 // Returns null for non-http(s) URLs so we never try to remember the

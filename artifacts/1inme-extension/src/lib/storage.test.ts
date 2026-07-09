@@ -221,3 +221,55 @@ describe("markPendingThanksSeen", () => {
     assert.deepEqual(result.seenIds, []);
   });
 });
+
+// ── appendDialHistory ────────────────────────────────────────────────
+
+import { appendDialHistory, DIAL_HISTORY_MAX, type DialHistoryEntry } from "./storage";
+
+function makeCall(overrides: Partial<DialHistoryEntry> = {}): DialHistoryEntry {
+  return {
+    number: overrides.number ?? "+15551234567",
+    contactId: overrides.contactId ?? null,
+    contactName: overrides.contactName ?? null,
+    pageHost: overrides.pageHost ?? "example.com",
+    at: overrides.at ?? 1_000_000,
+  };
+}
+
+describe("appendDialHistory", () => {
+  it("prepends the new entry (newest first)", () => {
+    const h = appendDialHistory([makeCall({ number: "+1111111111", at: 1000 })], makeCall({ number: "+2222222222", at: 2000 }));
+    assert.equal(h.length, 2);
+    assert.equal(h[0].number, "+2222222222");
+  });
+
+  it("caps the history at DIAL_HISTORY_MAX", () => {
+    let h: DialHistoryEntry[] = [];
+    for (let i = 0; i < DIAL_HISTORY_MAX + 5; i++) {
+      h = appendDialHistory(h, makeCall({ number: `+1000000${i}`, at: i * 120_000 }));
+    }
+    assert.equal(h.length, DIAL_HISTORY_MAX);
+    assert.equal(h[0].number, `+1000000${DIAL_HISTORY_MAX + 4}`);
+  });
+
+  it("collapses a re-click of the same number within a minute", () => {
+    const first = makeCall({ at: 1_000_000, contactId: null });
+    const again = makeCall({ at: 1_030_000, contactId: 7, contactName: "Ada" });
+    const h = appendDialHistory([first], again);
+    assert.equal(h.length, 1);
+    assert.equal(h[0].contactId, 7);
+    assert.equal(h[0].at, 1_030_000);
+  });
+
+  it("keeps separate entries when the same number is dialed later", () => {
+    const first = makeCall({ at: 1_000_000 });
+    const later = makeCall({ at: 1_000_000 + 120_000 });
+    const h = appendDialHistory([first], later);
+    assert.equal(h.length, 2);
+  });
+
+  it("tolerates a non-array stored value", () => {
+    const h = appendDialHistory(undefined as unknown as DialHistoryEntry[], makeCall());
+    assert.equal(h.length, 1);
+  });
+});

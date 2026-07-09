@@ -1,6 +1,6 @@
 import { browser } from "../lib/browser";
 import { api, ApiError } from "../lib/api";
-import { clearAuth, clearCachedProperties, getSettings, setSettings, syncPendingThanks } from "../lib/storage";
+import { appendDialHistory, clearAuth, clearCachedProperties, getSettings, setSettings, syncPendingThanks } from "../lib/storage";
 import {
   ensureProperties,
   matchHrefs,
@@ -566,12 +566,81 @@ browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
       // because of CORS / auth; the background SW has the token).
       const settings = await getSettings();
       if (!settings.token) return { ok: false, error: "Not signed in" };
+      let pageHost: string | null = null;
+      try { pageHost = sender?.tab?.url ? new URL(sender.tab.url).hostname : null; } catch { /* ignore */ }
       try {
         const data = await api.dialerLookup(msg.number);
+        // Persist the interaction so the popup's "Recent calls" section
+        // can show it. Best-effort — a storage failure must not break
+        // the overlay.
+        try {
+          await setSettings({
+            dialHistory: appendDialHistory(settings.dialHistory, {
+              number: String(msg.number),
+              contactId: data?.contact?.id ?? null,
+              contactName: data?.contact?.name ?? null,
+              pageHost,
+              at: Date.now(),
+            }),
+          });
+        } catch { /* best-effort */ }
         return { ok: true, data };
       } catch (e: any) {
+        // Record the interaction even when the lookup fails (offline /
+        // API error) so the creator still sees what they dialed.
+        try {
+          await setSettings({
+            dialHistory: appendDialHistory(settings.dialHistory, {
+              number: String(msg.number),
+              contactId: null,
+              contactName: null,
+              pageHost,
+              at: Date.now(),
+            }),
+          });
+        } catch { /* best-effort */ }
         return { ok: false, error: e?.message || "Lookup failed" };
       }
+    }
+    case "DIAL_SAVE_CONTACT": {
+      // "Save contact" from the dial overlay when the number has no
+      // Sayzio match. Seeds a phone-only candidate and opens the popup's
+      // existing ContactPreview view for review + save.
+      const number = String(msg.number || "").trim();
+      if (!number) return { ok: false, error: "No number" };
+      const settings = await getSettings();
+      if (!settings.token) return { ok: false, error: "Not signed in" };
+      const pageUrl = sender?.tab?.url || "";
+      const pageTitle = sender?.tab?.title || "";
+      const candidate = {
+        display_name: null,
+        given_name: null,
+        family_name: null,
+        organization: null,
+        job_title: null,
+        website: null,
+        notes: pageUrl ? `Found via click-to-dial on ${pageUrl}` : "Found via click-to-dial",
+        emails: [],
+        phones: [{ value: number, source: "manual" }],
+        socials: {},
+        source_url: pageUrl,
+        source_title: pageTitle,
+        provenance: { phones: "manual" },
+        structured: false,
+      };
+      await browser.storage.local.set({
+        pendingContactCandidate: { candidate, at: Date.now() },
+      });
+      try {
+        if ((browser.action as any)?.openPopup) {
+          await (browser.action as any).openPopup();
+        } else {
+          notify("Sayzio", "Open the Sayzio extension popup to save the contact.");
+        }
+      } catch {
+        notify("Sayzio", "Open the Sayzio extension popup to save the contact.");
+      }
+      return { ok: true };
     }
     case "PAGE_TO_BIOLINK_AI": {
       // AI-powered biolink builder path. Creates the biolink with the standard
