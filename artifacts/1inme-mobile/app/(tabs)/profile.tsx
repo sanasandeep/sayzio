@@ -221,7 +221,7 @@ export default function Profile() {
   } = useAuth();
   const { pref, setPref } = useThemeControls();
   const featureStatesGate = useFeatureStates();
-  const webTop = Platform.OS === "web" ? 67 : 0;
+  const webTop = Platform.OS === "web" ? 0 : 0;
 
   // Whether this account is linked to an active back-office admin record.
   // Drives the Admin section + "Switch to admin dashboard" entry. The same

@@ -3022,7 +3022,7 @@ export default function BiolinkViewer() {
   const { handle, t } = useLocalSearchParams<{ handle: string; t?: string }>();
   const alias = String(handle ?? "");
   const tableCode = t ? String(t) : "";
-  const webTop = Platform.OS === "web" ? 67 : 0;
+  const webTop = Platform.OS === "web" ? 0 : 0;
 
   const [embed, setEmbed] = useState<{ url: string; title?: string; sandboxed?: boolean } | null>(null);
   const openEmbed = useCallback<OpenEmbed>((opts) => {

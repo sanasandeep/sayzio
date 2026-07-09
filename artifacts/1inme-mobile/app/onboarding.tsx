@@ -707,7 +707,7 @@ export default function Onboarding() {
 
   // Web preview is rendered inside a fixed-height frame; padding keeps
   // the chrome clear of the platform's surrounding browser bars.
-  const webTop = Platform.OS === "web" ? 67 : 0;
+  const webTop = Platform.OS === "web" ? 0 : 0;
   const webBottom = Platform.OS === "web" ? 34 : 0;
 
   const total = pages.length;

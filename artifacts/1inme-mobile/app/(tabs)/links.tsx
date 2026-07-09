@@ -41,7 +41,7 @@ export default function LinksTab() {
   const tabBarBottomInset = useTabBarBottomInset();
   const [type, setType] = useState<string>("");
   const [q, setQ] = useState<string>("");
-  const webTop = Platform.OS === "web" ? 67 : 0;
+  const webTop = Platform.OS === "web" ? 0 : 0;
 
   // ── Voice control ──────────────────────────────────────────────
   // Spoken "find my … link" runs the search_app tool, which returns a

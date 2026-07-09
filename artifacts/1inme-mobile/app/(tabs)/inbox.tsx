@@ -38,7 +38,7 @@ export default function InboxTab() {
   const { openDrawer } = useDrawer();
   const tabBarBottomInset = useTabBarBottomInset();
   const { reportScroll } = useTabBar();
-  const webTop = Platform.OS === "web" ? 67 : 0;
+  const webTop = Platform.OS === "web" ? 0 : 0;
   const [tab, setTab] = useState<"open" | "archived">("open");
   const [assigneeTab, setAssigneeTab] = useState<"all" | "me">("all");
 

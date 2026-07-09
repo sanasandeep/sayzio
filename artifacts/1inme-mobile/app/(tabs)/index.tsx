@@ -33,7 +33,7 @@ export default function Home() {
   const { openDrawer } = useDrawer();
   const { reportScroll } = useTabBar();
   const tabBarBottomInset = useTabBarBottomInset();
-  const webTop = Platform.OS === "web" ? 67 : 0;
+  const webTop = Platform.OS === "web" ? 0 : 0;
 
   const q = useQuery({ queryKey: ["dashboard"], queryFn: getDashboard });
   const refreshing = q.isFetching && !q.isLoading;

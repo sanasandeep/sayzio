@@ -40,7 +40,7 @@ export default function CreateTab() {
   const { reportScroll } = useTabBar();
   const tabBarBottomInset = useTabBarBottomInset();
   const plan = usePlanFeatures();
-  const webTop = Platform.OS === "web" ? 67 : 0;
+  const webTop = Platform.OS === "web" ? 0 : 0;
 
   // Navigate to a kind's creation flow, gating locked types behind the
   // upgrade prompt. Shared by both tap and voice selection.

@@ -75,7 +75,7 @@ export function RegistrationPausedNotice({
     ]).start();
   }, [reduceMotion, fade, rise]);
 
-  const webTop = Platform.OS === "web" ? 67 : 0;
+  const webTop = Platform.OS === "web" ? 0 : 0;
 
   return (
     <View
