@@ -106,7 +106,7 @@ class SendNewEventAlerts extends Command
             ->where('created_at', '>=', now()->subDays(self::LOOKBACK_DAYS))
             ->whereNotIn('id', $alreadySentIds)
             ->whereRaw("(settings->>'hide_from_directory') IS DISTINCT FROM 'true'")
-            ->with(['icsData', 'user:id,name,username,adult_content_enabled,adult_flag_suspended_at'])
+            ->with(['icsData', 'user:id,name,handle,adult_content_enabled,adult_flag_suspended_at'])
             ->whereHas('icsData', function ($w) use ($lat, $lng, $radiusKm) {
                 $w->where('start_date', '>=', now())
                   ->whereNotNull('latitude')->whereNotNull('longitude')
