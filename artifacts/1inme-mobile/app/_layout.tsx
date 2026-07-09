@@ -22,6 +22,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { DeepLinkRouter } from "@/components/DeepLinkRouter";
+import { ShareIntentHandler } from "@/components/ShareIntentHandler";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IdleLockWarning } from "@/components/IdleLockWarning";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
@@ -224,6 +225,7 @@ export default function RootLayout() {
                 <GestureHandlerRootView>
                   <KeyboardProvider>
                     <DeepLinkRouter />
+                    <ShareIntentHandler />
                     <ActivityWatcher>
                       <RootLayoutNav />
                       <ImpersonationBanner />

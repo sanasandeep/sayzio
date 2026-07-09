@@ -212,7 +212,7 @@
       "source": "app/_layout.tsx",
       "relation": "adapted",
       "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) — new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
-      "sourceSha256": "d8bf1e45af03b26ec3da5a9e1e9e372e1e78c6823ebbc9537b81eec49f454dcf"
+      "sourceSha256": "d9d40acb00f09dca14f72b5ceb1bedb8f5401187c307dbbb8f84482c160763c7"
     },
     {
       "standalone": "app/oauth-callback.tsx",

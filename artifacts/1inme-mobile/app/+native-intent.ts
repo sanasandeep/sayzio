@@ -37,6 +37,13 @@ export function redirectSystemPath({
 }): string {
   void initial;
   try {
+    // Native share-sheet launches (expo-share-intent) arrive as
+    // sayzio://dataUrl=<key>. That's not a real route — send the user to
+    // the import picker; ShareIntentHandler reads the shared payload from
+    // the native module and fills in the url/title params.
+    if (path.includes("dataUrl=")) {
+      return "/import-url";
+    }
     const url = new URL(path, "https://sayzio.app");
     const segments = url.pathname.split("/").filter(Boolean);
     const first = segments[0];
