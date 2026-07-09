@@ -27,7 +27,10 @@
 @endphp
 <div id="audience-prompt-wrap"
      style="width:100%;max-width:480px;margin:0 auto 16px;padding:0 12px;"
-     x-data="audiencePrompt(@json($apUrl), @json($apConsent), @json($link->id))">
+     {{-- @js (Js::from) escapes for HTML-attribute context; a raw @json here
+          would emit literal double quotes that truncate this double-quoted
+          attribute, leaving Alpine uninitialised and the prompt invisible. --}}
+     x-data="audiencePrompt(@js($apUrl), @js($apConsent), @js($link->id))">
 
     <template x-if="!dismissed">
         <div class="audience-prompt-card" x-transition:enter="transition ease-out duration-300"
@@ -42,9 +45,9 @@
             <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
                 @foreach($apChoices as $choice)
                 <button type="button"
-                        @click="pick(@json($choice['key']))"
+                        @click="pick(@js($choice['key']))"
                         style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);transition:all .18s;"
-                        :style="chosen === @json($choice['key']) ? 'background:rgba(92,131,255,0.35);border-color:rgba(92,131,255,0.6);' : ''"
+                        :style="chosen === @js($choice['key']) ? 'background:rgba(92,131,255,0.35);border-color:rgba(92,131,255,0.6);' : ''"
                         onmouseover="this.style.background='rgba(255,255,255,0.13)'"
                         onmouseout="if(this.getAttribute('data-chosen')!=='1') this.style.background='rgba(255,255,255,0.08)'">
                     <span>{{ $choice['icon'] ?? '' }}</span>

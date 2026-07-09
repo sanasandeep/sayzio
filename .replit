@@ -160,6 +160,10 @@ args = "e2e-mobile-import-url"
 task = "workflow.run"
 args = "mobile-unit"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-audience-prompt"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -555,6 +559,17 @@ args = "pnpm --filter @workspace/1inme-mobile run test:unit:strict"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-audience-prompt"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh audience-prompt-flow.spec.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 stack = "PNPM_WORKSPACE"

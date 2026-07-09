@@ -541,6 +541,17 @@ bash tests/Browser/run-validation.sh cookie-consent-footer-gap.spec.ts
   rejected inside a Card Container; and that `prefers-reduced-motion`
   disables the drop animation. All tests share one logged-in browser
   context because the `demo-login` route is rate-limited.
+- `audience-prompt-flow.spec.ts` — runs via its own `e2e-audience-prompt`
+  workflow. Self-bootstrapping (tinker-seeds a demo-user biolink with
+  `settings.biolink.audience_prompt.enabled=true`, consent banner off,
+  per-run unique `e2e-audp-*` alias with stale-prefix pruning). Asserts
+  the public audience prompt renders, tapping "Student" collapses the
+  card to "Thanks for letting us know!", the `ap_type_{linkId}` cookie +
+  localStorage mirror persist (incl. on revisit), the
+  `POST /{alias}/track/identify` returns `ok:true` after the async
+  `startSession` populates `window.__SESSION_ID__`, and the owner's
+  `/user/links/{id}` analytics page shows the persona under the
+  "Audience Insights" card with a "1 self-identified" pill.
 - `home-auth-modal-mobile.spec.ts` — gated. On a mobile viewport, opens
   the home-page sign-in popup, asserts the correct tab is active, the
   close button clears the tabs, background scroll is locked, and the X /

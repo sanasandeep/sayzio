@@ -1199,7 +1199,7 @@
                  this.estimating = true;
                  this.estimateError = '';
                  try {
-                     const res = await fetch('{{ route('links.audience.estimate', $link) }}', {
+                     const res = await fetch('{{ route('user.links.audience.estimate', $link) }}', {
                          method: 'POST',
                          headers: {
                              'Content-Type': 'application/json',
