@@ -9,7 +9,7 @@ import {
 } from "expo-audio";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import {
   useCallback,
   useEffect,
@@ -21,13 +21,16 @@ import {
   ActivityIndicator,
   Alert,
   AppState,
+  FlatList,
   Image,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -36,7 +39,19 @@ import { AiDisabledNotice } from "@/components/AiDisabledNotice";
 import { Button } from "@/components/Button";
 import { CoinCostHint, insufficientCoins } from "@/components/CoinCostHint";
 import { NfcWriteSheet } from "@/components/NfcWriteSheet";
+import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import {
+  type AssistantBlock,
+  type AssistantBootstrap,
+  type AssistantTurnResponse,
+  type QuickContactChannel,
+  assistantBootstrap,
+  assistantChoice,
+  assistantHandoff,
+  assistantMessage,
+  assistantSession,
+} from "@/lib/api/assistant";
 import {
   type VoiceCapabilities,
   type VoiceClientAction,
@@ -53,7 +68,14 @@ import {
 } from "@/lib/secure";
 
 type Phase = "idle" | "listening" | "processing" | "speaking";
-type View_ = "session" | "help";
+type View_ = "chat" | "voice" | "help";
+
+type ChatBubble = {
+  id: string;
+  role: "user" | "assistant" | "error";
+  text: string;
+  blocks?: AssistantBlock[];
+};
 
 type NfcRequest = { linkId: number; url: string } | null;
 
@@ -142,10 +164,163 @@ export function VoiceAssistant() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const pathname = usePathname() ?? "";
+  const { user } = useAuth();
+
+  // ── Chat state ────────────────────────────────────────────────────
+  const [chatMessages, setChatMessages] = useState<ChatBubble[]>([]);
+  const [chatToken, setChatToken] = useState<string | null>(null);
+  const [chatInput, setChatInput] = useState("");
+  const [chatTyping, setChatTyping] = useState(false);
+  const [chatBootstrap, setChatBootstrap] = useState<AssistantBootstrap | null>(null);
+  const [chatBootstrapping, setChatBootstrapping] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [handoffOpen, setHandoffOpen] = useState(false);
+  const chatScrollRef = useRef<ScrollView>(null);
+
+  /** Current page context sent with every assistant request. */
+  const pageContext = useMemo(
+    () => ({ path: pathname }),
+    [pathname],
+  );
+
+  /**
+   * Initialise the chat session (bootstrap + session) the first time the
+   * panel opens on the chat tab. Safe to call multiple times — bails early
+   * when already bootstrapped.
+   */
+  const initChat = useCallback(async () => {
+    if (chatToken || chatBootstrapping) return;
+    setChatBootstrapping(true);
+    setChatError(null);
+    try {
+      const [boot, sess] = await Promise.all([
+        assistantBootstrap(),
+        assistantSession({ page: pageContext }),
+      ]);
+      setChatBootstrap(boot);
+      setChatToken(sess.visitor_token);
+      // Show the greeting as the first assistant bubble.
+      if (boot.greeting) {
+        setChatMessages([
+          {
+            id: "greeting",
+            role: "assistant",
+            text: boot.greeting,
+          },
+        ]);
+      }
+    } catch {
+      setChatError("Couldn't connect to Zio. Please try again.");
+    } finally {
+      setChatBootstrapping(false);
+    }
+  }, [chatToken, chatBootstrapping, pageContext]);
+
+  const sendChatMessage = useCallback(
+    async (text: string) => {
+      if (!chatToken || !text.trim()) return;
+      const userBubble: ChatBubble = {
+        id: `u-${Date.now()}`,
+        role: "user",
+        text: text.trim(),
+      };
+      setChatMessages((prev) => [...prev, userBubble]);
+      setChatInput("");
+      setChatTyping(true);
+      Keyboard.dismiss();
+      try {
+        const res = await assistantMessage({
+          visitorToken: chatToken,
+          message: text.trim(),
+          page: pageContext,
+        });
+        const asBubble = turnToBubble(res);
+        setChatMessages((prev) => [...prev, asBubble]);
+        if (res.handoff_open) setHandoffOpen(true);
+      } catch {
+        setChatMessages((prev) => [
+          ...prev,
+          { id: `err-${Date.now()}`, role: "error", text: "Something went wrong. Please try again." },
+        ]);
+      } finally {
+        setChatTyping(false);
+        setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
+      }
+    },
+    [chatToken, pageContext],
+  );
+
+  const sendChatChoice = useCallback(
+    async (choice: { label?: string; value?: string; template?: string }) => {
+      if (!chatToken) return;
+      const label = choice.label ?? choice.value ?? "Selected";
+      const userBubble: ChatBubble = {
+        id: `u-${Date.now()}`,
+        role: "user",
+        text: label,
+      };
+      setChatMessages((prev) => [...prev, userBubble]);
+      setChatTyping(true);
+      try {
+        const res = await assistantChoice({
+          visitorToken: chatToken,
+          choice,
+          page: pageContext,
+        });
+        const asBubble = turnToBubble(res);
+        setChatMessages((prev) => [...prev, asBubble]);
+        if (res.handoff_open) setHandoffOpen(true);
+      } catch {
+        setChatMessages((prev) => [
+          ...prev,
+          { id: `err-${Date.now()}`, role: "error", text: "Something went wrong. Please try again." },
+        ]);
+      } finally {
+        setChatTyping(false);
+        setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
+      }
+    },
+    [chatToken, pageContext],
+  );
+
+  const sendChatHandoff = useCallback(
+    async (params: {
+      channel: QuickContactChannel;
+      name?: string;
+      email?: string;
+      phone?: string;
+      message?: string;
+    }) => {
+      if (!chatToken) return;
+      setChatTyping(true);
+      try {
+        const res = await assistantHandoff({
+          visitorToken: chatToken,
+          ...params,
+          page: pageContext,
+        });
+        setHandoffOpen(false);
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: `ha-${Date.now()}`,
+            role: "assistant",
+            text: res.reply ?? "Got it! Our team will be in touch soon.",
+          },
+        ]);
+      } catch {
+        Alert.alert("Couldn't submit", "Please try again.");
+      } finally {
+        setChatTyping(false);
+        setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
+      }
+    },
+    [chatToken, pageContext],
+  );
 
   const [open, setOpen] = useState(false);
-  // Hands-free: after each spoken reply finishes, automatically start
-  // listening again (unless there's a pending confirmation to resolve).
+  // Chat is the default view; voice and help are additional tabs.
   const [handsFree, setHandsFree] = useState(false);
   const handsFreeRef = useRef(false);
   useEffect(() => {
@@ -155,7 +330,7 @@ export function VoiceAssistant() {
   // Holds the latest startListening callback so the audio-finished
   // handler can chain into it without a use-before-declaration cycle.
   const startListeningRef = useRef<(() => void) | null>(null);
-  const [view, setView] = useState<View_>("session");
+  const [view, setView] = useState<View_>("chat");
   const [phase, setPhase] = useState<Phase>("idle");
   const [transcript, setTranscript] = useState<string>("");
   const [reply, setReply] = useState<string>("");
@@ -309,7 +484,7 @@ export function VoiceAssistant() {
 
   const closeSheet = useCallback(() => {
     setOpen(false);
-    setView("session");
+    setView("chat");
     try {
       player.pause();
     } catch {
@@ -558,7 +733,7 @@ export function VoiceAssistant() {
             // sheet here would otherwise tear down this effect and
             // cancel any inline startListening() call.
             pendingAutoStartRef.current = true;
-            setView("session");
+            setView("voice");
             setOpen(true);
             break;
           }
@@ -651,8 +826,11 @@ export function VoiceAssistant() {
       {/* ── Floating Zio mascot button ─────────────────────────── */}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Open AI Voice Assistant"
-        onPress={() => setOpen(true)}
+        accessibilityLabel="Open Zio Assistant"
+        onPress={() => {
+          setOpen(true);
+          void initChat();
+        }}
         style={({ pressed }) => [
           styles.fab,
           {
@@ -680,7 +858,7 @@ export function VoiceAssistant() {
         ) : null}
       </Pressable>
 
-      {/* ── Voice sheet ────────────────────────────────────────── */}
+      {/* ── Zio assistant sheet ────────────────────────────────── */}
       <Modal
         visible={open}
         transparent
@@ -698,18 +876,22 @@ export function VoiceAssistant() {
               },
             ]}
           >
+            {/* Header row */}
             <View style={styles.header}>
-              <Image
-                source={require("../assets/images/zio-bot-peek.png")}
-                style={styles.headerMascot}
-                resizeMode="contain"
-                accessibilityElementsHidden
-              />
-              <Text style={[styles.title, { color: colors.foreground }]}>
-                AI Voice Assistant
-              </Text>
+              <View style={styles.headerLeft}>
+                <Image
+                  source={require("../assets/images/zio-bot-peek.png")}
+                  style={styles.headerMascot}
+                  resizeMode="contain"
+                  accessibilityElementsHidden
+                />
+                <Text style={[styles.title, { color: colors.foreground }]}>
+                  Ask Zio
+                </Text>
+              </View>
               <View style={styles.headerActions}>
-                {view === "session" && aiEnabled !== false ? (
+                {/* Hands-free toggle shown only on the voice tab */}
+                {view === "voice" && aiEnabled !== false ? (
                   <Pressable
                     onPress={() => setHandsFree((v) => !v)}
                     hitSlop={12}
@@ -724,11 +906,14 @@ export function VoiceAssistant() {
                     />
                   </Pressable>
                 ) : null}
+                {/* Help icon: toggles help view, returns to prior tab */}
                 <Pressable
-                  onPress={() => (view === "help" ? setView("session") : openHelp())}
+                  onPress={() =>
+                    view === "help" ? setView("chat") : openHelp()
+                  }
                   hitSlop={12}
                   accessibilityLabel={
-                    view === "help" ? "Back to session" : "What can I do?"
+                    view === "help" ? "Back" : "What can Zio do?"
                   }
                 >
                   <Feather
@@ -743,7 +928,94 @@ export function VoiceAssistant() {
               </View>
             </View>
 
-            {view === "session" ? (
+            {/* Chat / Voice tab pills */}
+            {view !== "help" ? (
+              <View style={styles.tabRow}>
+                <Pressable
+                  style={[
+                    styles.tabPill,
+                    {
+                      backgroundColor:
+                        view === "chat" ? colors.primary : colors.muted,
+                    },
+                  ]}
+                  onPress={() => {
+                    setView("chat");
+                    void initChat();
+                  }}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: view === "chat" }}
+                >
+                  <Feather
+                    name="message-circle"
+                    size={13}
+                    color={view === "chat" ? "#fff" : colors.mutedForeground}
+                  />
+                  <Text
+                    style={[
+                      styles.tabLabel,
+                      {
+                        color:
+                          view === "chat" ? "#fff" : colors.mutedForeground,
+                      },
+                    ]}
+                  >
+                    Chat
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.tabPill,
+                    {
+                      backgroundColor:
+                        view === "voice" ? colors.primary : colors.muted,
+                    },
+                  ]}
+                  onPress={() => setView("voice")}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: view === "voice" }}
+                >
+                  <Feather
+                    name="mic"
+                    size={13}
+                    color={view === "voice" ? "#fff" : colors.mutedForeground}
+                  />
+                  <Text
+                    style={[
+                      styles.tabLabel,
+                      {
+                        color:
+                          view === "voice" ? "#fff" : colors.mutedForeground,
+                      },
+                    ]}
+                  >
+                    Voice
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {/* Active view */}
+            {view === "chat" ? (
+              <ChatView
+                colors={colors}
+                messages={chatMessages}
+                typing={chatTyping}
+                bootstrapping={chatBootstrapping}
+                bootstrapError={chatError}
+                bootstrap={chatBootstrap}
+                input={chatInput}
+                onChangeInput={setChatInput}
+                onSend={() => void sendChatMessage(chatInput)}
+                onChoice={sendChatChoice}
+                handoffOpen={handoffOpen}
+                handoffEnabled={chatBootstrap?.handoff_enabled ?? false}
+                onOpenHandoff={() => setHandoffOpen(true)}
+                onCloseHandoff={() => setHandoffOpen(false)}
+                onSubmitHandoff={sendChatHandoff}
+                scrollRef={chatScrollRef}
+              />
+            ) : view === "voice" ? (
               aiEnabled === false ? (
                 <AiDisabledNotice feature="Voice" compact />
               ) : (
@@ -1142,6 +1414,473 @@ function prettyCategory(c: string): string {
   }
 }
 
+/* ── Helpers ────────────────────────────────────────────────────── */
+
+/** Convert a raw assistant turn response into a local ChatBubble. */
+function turnToBubble(res: AssistantTurnResponse): ChatBubble {
+  if (!res.ok) {
+    return {
+      id: `err-${Date.now()}`,
+      role: "error",
+      text: res.error ?? "Something went wrong. Please try again.",
+    };
+  }
+  return {
+    id: `a-${Date.now()}`,
+    role: "assistant",
+    text: res.reply ?? "",
+    blocks: res.blocks?.length ? res.blocks : undefined,
+  };
+}
+
+/* ── ChatView ────────────────────────────────────────────────────── */
+
+type ChatViewProps = {
+  colors: ColorsT;
+  messages: ChatBubble[];
+  typing: boolean;
+  bootstrapping: boolean;
+  bootstrapError: string | null;
+  bootstrap: AssistantBootstrap | null;
+  input: string;
+  onChangeInput: (t: string) => void;
+  onSend: () => void;
+  onChoice: (choice: { label?: string; value?: string; template?: string }) => void;
+  handoffOpen: boolean;
+  handoffEnabled: boolean;
+  onOpenHandoff: () => void;
+  onCloseHandoff: () => void;
+  onSubmitHandoff: (params: {
+    channel: QuickContactChannel;
+    name?: string;
+    email?: string;
+    phone?: string;
+    message?: string;
+  }) => void;
+  scrollRef: React.RefObject<ScrollView | null>;
+};
+
+function ChatView(props: ChatViewProps) {
+  const {
+    colors,
+    messages,
+    typing,
+    bootstrapping,
+    bootstrapError,
+    bootstrap,
+    input,
+    onChangeInput,
+    onSend,
+    onChoice,
+    handoffOpen,
+    handoffEnabled,
+    onOpenHandoff,
+    onCloseHandoff,
+    onSubmitHandoff,
+    scrollRef,
+  } = props;
+
+  const starterPrompts = bootstrap?.starter_prompts ?? [];
+
+  if (bootstrapping) {
+    return (
+      <View style={{ alignItems: "center", paddingVertical: 40 }}>
+        <ActivityIndicator color={colors.primary} />
+        <Text
+          style={[
+            styles.chatBubbleText,
+            { color: colors.mutedForeground, marginTop: 10 },
+          ]}
+        >
+          Connecting to Zio…
+        </Text>
+      </View>
+    );
+  }
+
+  if (bootstrapError) {
+    return (
+      <View style={{ alignItems: "center", paddingVertical: 24, gap: 10 }}>
+        <Text style={[styles.chatBubbleText, { color: colors.destructive }]}>
+          {bootstrapError}
+        </Text>
+      </View>
+    );
+  }
+
+  const lastMsg = messages[messages.length - 1];
+  const choiceBlock =
+    lastMsg?.role === "assistant" && lastMsg.blocks
+      ? (lastMsg.blocks.find((b) => b.type === "buttons") as
+          | { type: "buttons"; items: { label: string; value: string; template?: string }[] }
+          | undefined)
+      : undefined;
+
+  return (
+    <View style={styles.chatContainer}>
+      {/* Message list */}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.chatScroll}
+        contentContainerStyle={styles.chatScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() =>
+          scrollRef.current?.scrollToEnd({ animated: true })
+        }
+      >
+        {messages.map((msg) => {
+          if (msg.role === "user") {
+            return (
+              <View
+                key={msg.id}
+                style={[
+                  styles.chatBubbleUser,
+                  { backgroundColor: colors.primary },
+                ]}
+              >
+                <Text style={[styles.chatBubbleText, { color: "#fff" }]}>
+                  {msg.text}
+                </Text>
+              </View>
+            );
+          }
+          if (msg.role === "error") {
+            return (
+              <View
+                key={msg.id}
+                style={[
+                  styles.chatBubbleError,
+                  { backgroundColor: colors.muted },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.chatBubbleText,
+                    { color: colors.destructive, fontSize: 13 },
+                  ]}
+                >
+                  {msg.text}
+                </Text>
+              </View>
+            );
+          }
+          // assistant bubble
+          return (
+            <View
+              key={msg.id}
+              style={[
+                styles.chatBubbleAssistant,
+                {
+                  backgroundColor: colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              {msg.text ? (
+                <Text style={[styles.chatBubbleText, { color: colors.foreground }]}>
+                  {msg.text}
+                </Text>
+              ) : null}
+            </View>
+          );
+        })}
+
+        {/* Typing indicator */}
+        {typing ? (
+          <View
+            style={[
+              styles.chatBubbleAssistant,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.chatTypingDots, { color: colors.mutedForeground }]}>
+              · · ·
+            </Text>
+          </View>
+        ) : null}
+      </ScrollView>
+
+      {/* Choice buttons from last assistant block */}
+      {choiceBlock && !typing ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          {choiceBlock.items.map((item) => (
+            <Pressable
+              key={item.value}
+              style={({ pressed }) => [
+                styles.chatChoiceBtn,
+                {
+                  borderColor: colors.primary,
+                  backgroundColor: pressed
+                    ? colors.primary
+                    : colors.background,
+                },
+              ]}
+              onPress={() =>
+                onChoice({
+                  label: item.label,
+                  value: item.value,
+                  template: item.template,
+                })
+              }
+            >
+              <Text
+                style={[styles.chatChoiceBtnText, { color: colors.primary }]}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
+      {/* Starter prompts — shown only when there are no messages yet */}
+      {messages.length === 0 && starterPrompts.length > 0 ? (
+        <View style={styles.chatHintsRow}>
+          {starterPrompts.slice(0, 4).map((p, i) => (
+            <Pressable
+              key={i}
+              style={[
+                styles.chatHint,
+                { borderColor: colors.border, backgroundColor: colors.muted },
+              ]}
+              onPress={() => onChoice({ value: p, label: p })}
+            >
+              <Text style={[styles.chatHintText, { color: colors.foreground }]}>
+                {p}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
+      {/* Handoff form */}
+      {handoffOpen ? (
+        <HandoffView
+          colors={colors}
+          note={bootstrap?.handoff_note}
+          onSubmit={onSubmitHandoff}
+          onCancel={onCloseHandoff}
+        />
+      ) : null}
+
+      {/* Input row */}
+      {!handoffOpen ? (
+        <View
+          style={[
+            styles.chatInputRow,
+            { borderTopColor: colors.border },
+          ]}
+        >
+          <TextInput
+            style={[
+              styles.chatInput,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.muted,
+                color: colors.foreground,
+              },
+            ]}
+            value={input}
+            onChangeText={onChangeInput}
+            placeholder={bootstrap?.input_placeholder ?? "Ask anything…"}
+            placeholderTextColor={colors.mutedForeground}
+            multiline
+            returnKeyType="send"
+            onSubmitEditing={onSend}
+            blurOnSubmit
+            editable={!typing}
+            accessibilityLabel="Message input"
+          />
+          <Pressable
+            style={[
+              styles.chatSendBtn,
+              {
+                backgroundColor:
+                  input.trim() && !typing ? colors.primary : colors.muted,
+              },
+            ]}
+            onPress={onSend}
+            disabled={!input.trim() || typing}
+            accessibilityLabel="Send message"
+          >
+            <Feather
+              name="send"
+              size={16}
+              color={input.trim() && !typing ? "#fff" : colors.mutedForeground}
+            />
+          </Pressable>
+          {handoffEnabled ? (
+            <Pressable
+              style={[
+                styles.chatSendBtn,
+                { backgroundColor: colors.muted },
+              ]}
+              onPress={onOpenHandoff}
+              accessibilityLabel="Contact support"
+            >
+              <Feather name="phone" size={16} color={colors.mutedForeground} />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/* ── HandoffView ──────────────────────────────────────────────────── */
+
+type HandoffViewProps = {
+  colors: ColorsT;
+  note?: string;
+  onSubmit: (params: {
+    channel: QuickContactChannel;
+    name?: string;
+    email?: string;
+    phone?: string;
+    message?: string;
+  }) => void;
+  onCancel: () => void;
+};
+
+const HANDOFF_CHANNELS: { value: QuickContactChannel; label: string }[] = [
+  { value: "email", label: "Email" },
+  { value: "callback", label: "Call back" },
+  { value: "whatsapp", label: "WhatsApp" },
+];
+
+function HandoffView({ colors, note, onSubmit, onCancel }: HandoffViewProps) {
+  const [channel, setChannel] = useState<QuickContactChannel>("email");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("");
+
+  const valid =
+    name.trim().length > 0 &&
+    (channel === "email" ? email.trim().length > 0 : phone.trim().length > 0);
+
+  return (
+    <View
+      style={[
+        styles.handoffContainer,
+        { borderColor: colors.border, backgroundColor: colors.muted },
+      ]}
+    >
+      <Text style={[styles.handoffTitle, { color: colors.foreground }]}>
+        Get in touch
+      </Text>
+      {note ? (
+        <Text style={[styles.handoffNote, { color: colors.mutedForeground }]}>
+          {note}
+        </Text>
+      ) : null}
+
+      {/* Channel selector */}
+      <View style={styles.handoffChannelRow}>
+        {HANDOFF_CHANNELS.map((ch) => (
+          <Pressable
+            key={ch.value}
+            style={[
+              styles.handoffChannelPill,
+              {
+                borderColor:
+                  channel === ch.value ? colors.primary : colors.border,
+                backgroundColor:
+                  channel === ch.value ? colors.primary : colors.background,
+              },
+            ]}
+            onPress={() => setChannel(ch.value)}
+          >
+            <Text
+              style={[
+                styles.handoffChannelLabel,
+                { color: channel === ch.value ? "#fff" : colors.foreground },
+              ]}
+            >
+              {ch.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <TextInput
+        style={[
+          styles.handoffInput,
+          { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background },
+        ]}
+        value={name}
+        onChangeText={setName}
+        placeholder="Your name"
+        placeholderTextColor={colors.mutedForeground}
+      />
+      {channel === "email" ? (
+        <TextInput
+          style={[
+            styles.handoffInput,
+            { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background },
+          ]}
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Email address"
+          placeholderTextColor={colors.mutedForeground}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+      ) : (
+        <TextInput
+          style={[
+            styles.handoffInput,
+            { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background },
+          ]}
+          value={phone}
+          onChangeText={setPhone}
+          placeholder={
+            channel === "whatsapp"
+              ? "Phone with country code (+91…)"
+              : "10-digit mobile number"
+          }
+          placeholderTextColor={colors.mutedForeground}
+          keyboardType="phone-pad"
+        />
+      )}
+      <TextInput
+        style={[
+          styles.handoffInput,
+          { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.background },
+        ]}
+        value={message}
+        onChangeText={setMessage}
+        placeholder="Message (optional)"
+        placeholderTextColor={colors.mutedForeground}
+        multiline
+        numberOfLines={2}
+      />
+
+      <View style={styles.handoffActions}>
+        <Button
+          label="Submit"
+          onPress={() => {
+            if (!valid) return;
+            onSubmit({
+              channel,
+              name: name.trim(),
+              email: channel === "email" ? email.trim() : undefined,
+              phone:
+                channel !== "email" ? phone.trim() : undefined,
+              message: message.trim() || undefined,
+            });
+          }}
+        />
+        <Button label="Cancel" variant="outline" onPress={onCancel} />
+      </View>
+    </View>
+  );
+}
+
 /* ── styles ────────────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
@@ -1191,7 +1930,172 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 16 },
+  tabRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  tabPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+  },
+  tabLabel: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 13,
+  },
+  /* ── Chat view styles ──────────────────────────────────────── */
+  chatContainer: {
+    flex: 1,
+    gap: 8,
+  },
+  chatScroll: {
+    flex: 1,
+    minHeight: 220,
+  },
+  chatScrollContent: {
+    gap: 10,
+    paddingVertical: 4,
+  },
+  chatBubbleUser: {
+    alignSelf: "flex-end",
+    borderRadius: 16,
+    borderBottomRightRadius: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    maxWidth: "82%",
+  },
+  chatBubbleAssistant: {
+    alignSelf: "flex-start",
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    maxWidth: "86%",
+    gap: 8,
+  },
+  chatBubbleError: {
+    alignSelf: "center",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    maxWidth: "90%",
+  },
+  chatBubbleText: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  chatTypingDots: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 18,
+    letterSpacing: 4,
+  },
+  chatInputRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+    borderTopWidth: 1,
+    paddingTop: 10,
+    marginTop: 4,
+  },
+  chatInput: {
+    flex: 1,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 14,
+    lineHeight: 18,
+    maxHeight: 96,
+  },
+  chatSendBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chatHintsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 4,
+  },
+  chatHint: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+  },
+  chatHintText: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 12,
+  },
+  chatChoiceBtn: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  chatChoiceBtnText: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 13,
+  },
+  /* ── Handoff form styles ─────────────────────────────────── */
+  handoffContainer: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    gap: 10,
+    marginTop: 4,
+  },
+  handoffTitle: {
+    fontFamily: "SpaceGrotesk_700Bold",
+    fontSize: 14,
+  },
+  handoffNote: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  handoffChannelRow: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  handoffChannelPill: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  handoffChannelLabel: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 12,
+  },
+  handoffInput: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 14,
+  },
+  handoffActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 2,
+  },
   title: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 18 },
   bigMic: {
     alignSelf: "center",

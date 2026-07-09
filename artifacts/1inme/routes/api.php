@@ -298,6 +298,22 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['api.optional_auth', 'throttle:10,1'])
         ->post('/assistant/quick-contact', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'quickContact']);
 
+    // ── Ask Zio chat (mobile parity) ────────────────────────────────
+    // Bearer-token mirror of the web /assistant/* widget so the mobile
+    // app can open the same AI chat panel from the floating Zio launcher.
+    // Mobile users are already signed in so no in-chat OTP login is
+    // needed; the auth gate inside the controller simply passes when a
+    // valid Sanctum token is present. The runtime handles its own AI-
+    // credit billing, so MeterApiUsage is intentionally omitted here.
+    Route::prefix('assistant')->middleware(['auth:sanctum', \App\Modules\Api\Middleware\TouchSessionToken::class])->group(function () {
+        Route::get ('bootstrap',         [\App\Modules\Common\Controllers\SiteAssistantController::class, 'bootstrap'])->middleware('throttle:60,1');
+        Route::post('session',           [\App\Modules\Common\Controllers\SiteAssistantController::class, 'session'])->middleware('throttle:60,1');
+        Route::post('message',           [\App\Modules\Common\Controllers\SiteAssistantController::class, 'message'])->middleware('throttle:60,1');
+        Route::post('choice',            [\App\Modules\Common\Controllers\SiteAssistantController::class, 'choice'])->middleware('throttle:60,1');
+        Route::post('handoff',           [\App\Modules\Common\Controllers\SiteAssistantController::class, 'handoff'])->middleware('throttle:10,1');
+        Route::post('low-balance-click', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'lowBalanceClick'])->middleware('throttle:60,1');
+    });
+
     // ── Authenticated ───────────────────────────────────────────────
     Route::middleware(['auth:sanctum', \App\Modules\Api\Middleware\TouchSessionToken::class, \App\Modules\Api\Middleware\MeterApiUsage::class])->group(function () {
         Route::get('/auth/me',     [AuthController::class, 'me']);
