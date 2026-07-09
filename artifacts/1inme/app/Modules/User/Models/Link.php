@@ -11,6 +11,22 @@ class Link extends Model
 {
     
     use BelongsToWorkspace;
+
+    protected static function booted(): void
+    {
+        // Keep the mobile dashboard summary fresh: bust the per-user cache
+        // whenever a link is created or deleted so the 30s TTL in
+        // DashboardController is only a safety net, not the freshness source.
+        $forget = function (self $link): void {
+            if ($link->user_id) {
+                cache()->forget("api.dashboard.v1.{$link->user_id}");
+            }
+        };
+
+        static::created($forget);
+        static::deleted($forget);
+    }
+
 protected $fillable = [
         'user_id', 'project_id', 'domain_id', 'resume_id', 'type', 'alias', 'title',
         'long_url', 'redirect_type', 'is_active', 'is_verified', 'verified_name', 'verified_logo',
