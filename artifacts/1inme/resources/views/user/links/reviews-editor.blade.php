@@ -253,10 +253,11 @@
         <div class="glass rounded-2xl p-5">
             <div class="flex items-center gap-3 mb-2">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white" style="background: {{ $p['tint'] }}22; color: {{ $p['tint'] }}"><i class="{{ $p['icon'] }} text-lg"></i></div>
-                <div><div class="font-semibold text-white">{{ $p['name'] }}</div>@if($conn)<div class="text-[11px] {{ $conn->status === 'connected' ? 'text-emerald-300' : 'text-amber-300' }} capitalize">{{ $conn->status }}@if($conn->last_synced_at) · synced {{ $conn->last_synced_at->diffForHumans() }}@endif</div>@endif</div>
+                <div><div class="font-semibold text-white">{{ $p['name'] }}</div>@if($conn)<div class="text-[11px] {{ $conn->status === 'connected' ? 'text-emerald-300' : 'text-amber-300' }}">@if($conn->status === 'preview')<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-semibold uppercase tracking-wide text-[10px]">Preview mode</span> <span class="text-amber-300/90">— sample reviews</span>@else<span class="capitalize">{{ $conn->status }}</span>@endif @if($conn->last_synced_at)· synced {{ $conn->last_synced_at->diffForHumans() }}@endif</div>@endif</div>
             </div>
             <p class="text-sm text-white/50 mb-3">{{ $p['short'] }}</p>
-            @if($conn && $conn->status_reason)<p class="text-[11px] text-amber-300/80 mb-3">{{ $conn->status_reason }}</p>@endif
+            @if($conn && $conn->status_reason)<p class="text-[11px] text-amber-300/80 mb-3">{{ $conn->status_reason }}</p>
+            @elseif($conn && $conn->status === 'preview')<p class="text-[11px] text-amber-300/80 mb-3">Sample reviews are shown because the {{ $p['name'] }} platform API keys aren't configured yet. Live reviews will sync once an admin adds them.</p>@endif
             <form method="POST" action="{{ route('user.links.reviews.providers.connect', $slug) }}" class="space-y-2">@csrf
                 <input type="text" name="external_ref" value="{{ $conn->external_ref ?? '' }}" placeholder="{{ $p['ref_label'] }}" class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
                 <div class="flex gap-2">

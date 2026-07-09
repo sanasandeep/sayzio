@@ -15,6 +15,7 @@ export function ReviewCaptureView({ onCancel, onCaptured, showToast }: Props) {
   const [externalRef, setExternalRef] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [previewCaptured, setPreviewCaptured] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -46,19 +47,51 @@ export function ReviewCaptureView({ onCancel, onCaptured, showToast }: Props) {
     setBusy(true);
     try {
       const resp = await api.captureReviewSource(provider, externalRef.trim(), name.trim() || undefined);
-      const preview = resp.preview;
-      if (preview) {
-        showToast({ kind: "info", text: "Connected in preview mode — reviews will populate once your admin adds the API keys." });
+      if (resp.preview) {
+        // Keep the view open with an explicit preview-mode notice instead of
+        // silently closing — a toast alone is too easy to miss.
+        setPreviewCaptured(true);
       } else {
         showToast({ kind: "success", text: "Reviews are syncing in the background!" });
+        onCaptured();
       }
-      onCaptured();
     } catch (e: any) {
       showToast({ kind: "error", text: e instanceof ApiError ? e.message : "Could not capture reviews" });
     } finally {
       setBusy(false);
     }
   };
+
+  if (previewCaptured) {
+    return (
+      <div className="body">
+        <h3 className="section-h" style={{ marginBottom: 4 }}>Capture business reviews</h3>
+        <div
+          data-testid="review-preview-notice"
+          style={{
+            padding: "10px 12px", marginBottom: 12, borderRadius: 8,
+            background: "rgba(245,158,11,.10)", border: "1px solid rgba(245,158,11,.35)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+            <span style={{
+              fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em",
+              padding: "2px 6px", borderRadius: 999,
+              background: "rgba(245,158,11,.2)", color: "#f59e0b",
+            }}>Preview mode</span>
+            <span style={{ fontWeight: 600, fontSize: 13 }}>Sample reviews only</span>
+          </div>
+          <p className="muted" style={{ fontSize: 12, margin: 0 }}>
+            This source was connected, but the platform API keys
+            ({provider === "google" ? "Google Places" : "Trustpilot"}) aren't configured yet,
+            so sample reviews are shown instead of live ones. Real reviews will sync
+            automatically once an admin adds the keys in the platform settings.
+          </p>
+        </div>
+        <button className="btn-primary" onClick={onCaptured}>Got it</button>
+      </div>
+    );
+  }
 
   return (
     <div className="body">
