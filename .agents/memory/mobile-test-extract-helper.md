@@ -14,5 +14,6 @@ wrapped so lazily-invoked callbacks still warn; only ReferenceErrors are re-wrap
 deliberate throws (ApiError etc.) keep their shape for assertions.
 
 **How to apply:** in new tests, pass a scope object of the vars you pin; lexical bindings
-inside the lifted body correctly shadow the proxy. Strict/failing mode is a proposed
-follow-up (env-var gate in extract.mjs).
+inside the lifted body correctly shadow the proxy. `EXTRACT_STRICT=1` turns the warning
+into a hard failure (`test:unit:strict`, which the `mobile-unit` workflow runs); plain
+local `test:unit` stays warn-only.

@@ -54,10 +54,6 @@ args = "mobile-strategy"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "mobile-unit"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "e2e-mobile-icons"
 
 [[workflows.workflow.tasks]]
@@ -160,6 +156,10 @@ args = "e2e-home-showcase"
 task = "workflow.run"
 args = "e2e-mobile-import-url"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "mobile-unit"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -255,17 +255,6 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:strategy-stream && pnpm --filter @workspace/1inme-mobile run test:strategy-screens"
-
-[workflows.workflow.metadata]
-isValidation = true
-
-[[workflows.workflow]]
-name = "mobile-unit"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/1inme-mobile run test:unit"
 
 [workflows.workflow.metadata]
 isValidation = true
@@ -552,6 +541,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:import-url-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "mobile-unit"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:unit:strict"
 
 [workflows.workflow.metadata]
 isValidation = true

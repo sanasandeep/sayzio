@@ -20,6 +20,13 @@
 // detection and the actionable hint also cover those later invocations —
 // including rejected promises from async bodies. Non-ReferenceError failures
 // (e.g. an ApiError a test asserts on) pass through untouched.
+//
+// STRICT MODE: set EXTRACT_STRICT=1 (also accepts "true") to turn the
+// unknown-variable warning into a hard failure. Local runs stay warn-only;
+// the CI-style `mobile-unit` chain runs strict via `test:unit:strict` so new
+// screen variables get triaged instead of silently defaulting to null.
+
+const STRICT = /^(1|true)$/i.test(process.env.EXTRACT_STRICT ?? "");
 
 /**
  * Evaluate a lifted call expression, e.g. `createQrCode(<real args>)`.
@@ -73,11 +80,17 @@ function evaluate(body, scope, label, opts) {
     `to pin their contract`;
 
   // Warn once per newly-seen unknown (fresh ones can appear on each lazy
-  // invocation of a lifted callback).
+  // invocation of a lifted callback). In strict mode (EXTRACT_STRICT=1) the
+  // warning becomes a hard failure so new screen variables get triaged.
   const flushWarnings = () => {
     const fresh = [...unknowns].filter((k) => !warned.has(k));
     if (!fresh.length) return;
     fresh.forEach((k) => warned.add(k));
+    if (STRICT) {
+      throw new Error(
+        `[${test}] EXTRACT_STRICT: ${advise(fresh)} (would have been defaulted to null)`,
+      );
+    }
     console.warn(`[${test}] WARNING: ${advise(fresh)} (defaulted to null)`);
   };
 
