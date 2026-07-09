@@ -32,7 +32,11 @@ import {
   getDashboardLayout,
   type DashboardPreset,
 } from "@/lib/api/dashboard";
-import { setOnboardingComplete } from "@/lib/secure";
+import {
+  getCachedOnboardingSlides,
+  setCachedOnboardingSlides,
+  setOnboardingComplete,
+} from "@/lib/secure";
 
 // Bundled fallbacks. Used only if the slides endpoint is unreachable
 // (offline, fresh install with no network) so the splash never breaks.
@@ -483,12 +487,39 @@ export default function Onboarding() {
   const [presets, setPresets] = useState<DashboardPreset[] | null>(null);
   const [presetsLoading, setPresetsLoading] = useState(false);
 
+  // Set once fresh API slides have been applied (or deferred); the cached
+  // set must never overwrite fresher content if the async cache read loses
+  // the race against a fast network response.
+  const freshSlidesRef = useRef(false);
+
+  // Hydrate from the on-device cache of the last successfully fetched
+  // slides so returning users see the real admin content instantly (even
+  // offline) instead of the bundled fallback set. Skipped if fresh API
+  // slides already arrived or the user has swiped past slide 0.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const cached = await getCachedOnboardingSlides<OnboardingSlide>();
+      if (cancelled || !cached || cached.length === 0) return;
+      if (freshSlidesRef.current) return;
+      if (indexRef.current === 0) {
+        setSlides(cached);
+      } else if (!deferredSlidesRef.current) {
+        deferredSlidesRef.current = cached;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Fetch slides from the admin-managed endpoint in the background while
-  // the bundled set is already on screen. If the request fails we simply
-  // keep showing the bundled slides. If it succeeds while the user is
+  // the bundled/cached set is already on screen. If the request fails we
+  // simply keep showing what's there. If it succeeds while the user is
   // still on slide 0 we swap seamlessly; if they've already swiped ahead
   // we defer the swap (applied if they ever swipe back to slide 0) so the
-  // carousel never resets under them.
+  // carousel never resets under them. Successful results also refresh the
+  // on-device cache for the next launch.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -497,6 +528,11 @@ export default function Onboarding() {
         if (cancelled) return;
         const items = (res.items ?? []).filter((s) => !!s);
         if (items.length === 0) return;
+        // Mark fresh content as arrived before the prefetch await so a
+        // slow cache read can't overwrite it in the meantime.
+        freshSlidesRef.current = true;
+        // Persist for instant rendering on future launches (best-effort).
+        void setCachedOnboardingSlides(items);
         // Warm the image cache before swapping so the new slides never
         // show a blank background while their photos download.
         await prefetchSlideImages(items);
@@ -507,7 +543,7 @@ export default function Onboarding() {
           deferredSlidesRef.current = items;
         }
       } catch {
-        // Keep the bundled slides already on screen.
+        // Keep the slides already on screen.
       }
     })();
     return () => {

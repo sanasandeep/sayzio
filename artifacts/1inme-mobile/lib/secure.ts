@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
@@ -232,3 +233,71 @@ export const getAutoShortenEnabled = async (): Promise<boolean> => {
 };
 export const setAutoShortenEnabled = (v: boolean) =>
   setItem(AUTO_SHORTEN_ENABLED_KEY, v ? null : "0");
+
+// ---------------------------------------------------------------------------
+// Onboarding intro-slide cache.
+//
+// The last successfully fetched admin-managed slides are persisted so repeat
+// launches (e.g. after the user resets the intro) render the real content
+// instantly — even offline — instead of the bundled fallback set. Stored in
+// AsyncStorage (not SecureStore): the payload is non-sensitive JSON that can
+// exceed SecureStore's small per-item size limits on native.
+// ---------------------------------------------------------------------------
+const ONBOARDING_SLIDES_CACHE_KEY = "1inme.onboarding.slides.cache.v1";
+
+// Minimal structural shape we validate before trusting a cached entry, kept
+// intentionally loose so additive API fields never invalidate the cache.
+type CachedSlideLike = {
+  id: number;
+  slug: string;
+  category: string;
+  title: string;
+};
+
+function isCachedSlideLike(s: unknown): s is CachedSlideLike {
+  if (!s || typeof s !== "object") return false;
+  const o = s as Record<string, unknown>;
+  return (
+    typeof o.id === "number" &&
+    typeof o.slug === "string" &&
+    typeof o.category === "string" &&
+    typeof o.title === "string"
+  );
+}
+
+// Returns the cached slide list, or null when nothing valid is stored
+// (never throws — a corrupt entry is treated as a cache miss).
+export const getCachedOnboardingSlides = async <
+  T extends CachedSlideLike = CachedSlideLike,
+>(): Promise<T[] | null> => {
+  try {
+    const raw = await AsyncStorage.getItem(ONBOARDING_SLIDES_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    if (!parsed.every(isCachedSlideLike)) return null;
+    return parsed as T[];
+  } catch {
+    return null;
+  }
+};
+
+// Persist the latest successfully fetched slides. Passing null/[] clears
+// the cache. Best-effort: storage failures are swallowed so caching can
+// never break the intro flow.
+export const setCachedOnboardingSlides = async (
+  slides: readonly CachedSlideLike[] | null,
+): Promise<void> => {
+  try {
+    if (!slides || slides.length === 0) {
+      await AsyncStorage.removeItem(ONBOARDING_SLIDES_CACHE_KEY);
+      return;
+    }
+    await AsyncStorage.setItem(
+      ONBOARDING_SLIDES_CACHE_KEY,
+      JSON.stringify(slides),
+    );
+  } catch {
+    // noop — cache is an optimization only.
+  }
+};
