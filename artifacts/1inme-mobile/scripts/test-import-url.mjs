@@ -96,6 +96,60 @@ function extractCallArgs(src, name, file, from = 0) {
   return src.slice(open + 1, end);
 }
 
+// ---------------------------------------------------------------------------
+// Resilient evaluation of an extracted call expression.
+//
+// The screen's call expressions reference free variables from component scope
+// (url, evTitle, ...). Historically the test hard-listed them as Function
+// parameters, so any NEW variable added to the screen (e.g. evLocation once)
+// threw a raw ReferenceError and broke the whole mobile-unit chain — looking
+// like a test bug instead of a product change.
+//
+// runExtractedCall evaluates the expression inside `with (proxy)`: known
+// variables come from the provided scope, real globals (JSON, Date, ...) fall
+// through to globalThis, and any UNKNOWN identifier defaults to null while
+// being recorded. Unknowns produce a loud, actionable warning naming the new
+// variable(s); if evaluation still throws, the error message says exactly
+// which new screen variables to add to the test instead of a bare
+// ReferenceError.
+// ---------------------------------------------------------------------------
+function runExtractedCall(expr, scope, label) {
+  const unknowns = new Set();
+  const proxy = new Proxy(Object.create(null), {
+    has: () => true, // shadow everything so `get` decides resolution
+    get: (_t, key) => {
+      if (key === Symbol.unscopables) return undefined;
+      if (typeof key !== "string") return undefined;
+      if (Object.prototype.hasOwnProperty.call(scope, key)) return scope[key];
+      if (key in globalThis) return globalThis[key];
+      unknowns.add(key);
+      return null;
+    },
+  });
+  const advise = () =>
+    `new variable(s) [${[...unknowns].join(", ")}] appeared in the screen's ` +
+    `${label} call — extend the scope passed to the test (scripts/test-import-url.mjs) ` +
+    `to pin their payload contract`;
+  let result;
+  try {
+    // eslint-disable-next-line no-new-func
+    result = new Function(
+      "__scope__",
+      `with (__scope__) { return (${expr}); }`,
+    )(proxy);
+  } catch (e) {
+    const hint = unknowns.size ? ` — likely cause: ${advise()}` : "";
+    throw new Error(
+      `[test-import-url] evaluating the screen's ${label} call failed: ${e.message}${hint}`,
+      { cause: e },
+    );
+  }
+  if (unknowns.size) {
+    console.warn(`[test-import-url] WARNING: ${advise()} (defaulted to null)`);
+  }
+  return result;
+}
+
 // ===========================================================================
 // 1. Deep-link param parsing: the REAL normalizeUrl / hostOf.
 // ===========================================================================
@@ -221,19 +275,20 @@ console.log("[test-import-url] action picker");
 // ===========================================================================
 console.log("[test-import-url] mutation payload contracts");
 
-const stripBang = (s) => s.replace(/\burl!/g, "url").replace(/\bselectedCalendarId!/g, "selectedCalendarId");
+// Strip TS non-null assertions (`foo!`) from any identifier, so a new `bar!`
+// in the screen doesn't leak invalid syntax into the evaluated expression.
+// The negative lookahead keeps `!=` / `!==` comparisons intact.
+const stripBang = (s) => s.replace(/([A-Za-z_$][\w$]*)!(?!=)/g, "$1");
 
 {
   // Quick QR: createQrCode({ name, type: "url", payload: { url } })
   const qrArgs = stripBang(extractCallArgs(screenSrc, "createQrCode", "import-url.tsx"));
-  // eslint-disable-next-line no-new-func
-  const runQr = new Function(
-    "createQrCode",
-    "qrName",
-    "defaultName",
-    "url",
-    `return createQrCode(${qrArgs});`,
-  );
+  const runQr = (createQrCode, qrName, defaultName, url) =>
+    runExtractedCall(
+      `createQrCode(${qrArgs})`,
+      { createQrCode, qrName, defaultName, url },
+      "createQrCode",
+    );
   let got = null;
   runQr((p) => (got = p), null, "example.com", "https://example.com/");
   assert.deepEqual(got, {
@@ -252,19 +307,32 @@ const stripBang = (s) => s.replace(/\burl!/g, "url").replace(/\bselectedCalendar
   const evArgs = stripBang(
     extractCallArgs(screenSrc, "createCalendarEvent", "import-url.tsx"),
   );
-  // eslint-disable-next-line no-new-func
-  const runEv = new Function(
-    "createCalendarEvent",
-    "selectedCalendarId",
-    "evTitle",
-    "sharedTitle",
-    "host",
-    "url",
-    "evDate",
-    "evTime",
-    "evLocation",
-    `return createCalendarEvent(${evArgs});`,
-  );
+  const runEv = (
+    createCalendarEvent,
+    selectedCalendarId,
+    evTitle,
+    sharedTitle,
+    host,
+    url,
+    evDate,
+    evTime,
+    evLocation,
+  ) =>
+    runExtractedCall(
+      `createCalendarEvent(${evArgs})`,
+      {
+        createCalendarEvent,
+        selectedCalendarId,
+        evTitle,
+        sharedTitle,
+        host,
+        url,
+        evDate,
+        evTime,
+        evLocation,
+      },
+      "createCalendarEvent",
+    );
   let gotId = null;
   let gotBody = null;
   runEv(
@@ -314,13 +382,12 @@ const stripBang = (s) => s.replace(/\burl!/g, "url").replace(/\bselectedCalendar
 const shortenArgs = stripBang(
   extractCallArgs(screenSrc, "createLink", "import-url.tsx"),
 );
-// eslint-disable-next-line no-new-func
-const runShorten = new Function(
-  "createLink",
-  "url",
-  "sharedTitle",
-  `return createLink(${shortenArgs});`,
-);
+const runShorten = (createLink, url, sharedTitle) =>
+  runExtractedCall(
+    `createLink(${shortenArgs})`,
+    { createLink, url, sharedTitle },
+    "createLink",
+  );
 
 {
   let got = null;
