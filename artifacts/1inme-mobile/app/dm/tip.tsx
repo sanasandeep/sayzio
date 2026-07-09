@@ -110,7 +110,7 @@ export default function DmTipScreen() {
           />
         </View>
 
-        <Button label="Send tip" variant="primary" onPress={() => tipM.mutate()} loading={tipM.isPending} />
+        <Button label="Send tip" variant="cta" onPress={() => tipM.mutate()} loading={tipM.isPending} />
       </ScrollView>
     </View>
   );

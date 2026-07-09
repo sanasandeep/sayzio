@@ -208,6 +208,7 @@ export default function Verify() {
         <View style={{ height: 16 }} />
         <Button
           label="Verify and sign in"
+          variant="cta"
           onPress={verify}
           loading={busy === "verify"}
           disabled={!!busy && busy !== "verify"}

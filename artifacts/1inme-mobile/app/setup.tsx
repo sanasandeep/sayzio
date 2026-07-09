@@ -421,7 +421,7 @@ export default function Setup() {
               </View>
             ))}
             <View style={{ height: 24 }} />
-            <Button label="Let's go" onPress={() => goStage("persona")} />
+            <Button label="Let's go" variant="cta" onPress={() => goStage("persona")} />
           </View>
         ) : null}
 
@@ -589,7 +589,7 @@ export default function Setup() {
                   onChangeText={setMobile}
                 />
                 <View style={{ height: 16 }} />
-                <Button label="Send verification code" onPress={sendCode} loading={busy} />
+                <Button label="Send verification code" variant="cta" onPress={sendCode} loading={busy} />
               </>
             ) : (
               <>
@@ -606,7 +606,7 @@ export default function Setup() {
                   onChangeText={setCode}
                 />
                 <View style={{ height: 16 }} />
-                <Button label="Verify & connect" onPress={verifyCode} loading={busy} />
+                <Button label="Verify & connect" variant="cta" onPress={verifyCode} loading={busy} />
                 <Button
                   label="Use a different number"
                   variant="ghost"
@@ -692,7 +692,7 @@ export default function Setup() {
                   </View>
                 ))}
                 <View style={{ height: 8 }} />
-                <Button label="Save & continue" onPress={savePrivacy} loading={busy} />
+                <Button label="Save & continue" variant="cta" onPress={savePrivacy} loading={busy} />
               </>
             )}
             <View style={{ height: 8 }} />
@@ -721,6 +721,7 @@ export default function Setup() {
             <View style={{ alignSelf: "stretch" }}>
               <Button
                 label={createdLinkId != null ? "Start editing my page" : "Go to my dashboard"}
+                variant="cta"
                 onPress={finishToApp}
               />
             </View>

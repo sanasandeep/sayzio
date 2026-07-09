@@ -197,7 +197,7 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "45bd1b14a6c61ea57436b738c3abba5ce415ce085270468671e4dfb9da420223",
+      "sourceSha256": "e7737896cc0c7a78612646f6dc63bc40cda6306b90599a065db9ad8d4d7fab11",
       "note": "dev-only missing-env alert text reworded (no monorepo path); everything else must match the main app"
     },
     {

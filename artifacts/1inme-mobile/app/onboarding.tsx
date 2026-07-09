@@ -463,6 +463,7 @@ function AiDashboardSlide({
 
         <Button
           label={hasPresets ? "Open the AI designer" : "Set up my dashboard"}
+          variant="cta"
           onPress={onOpenDesigner}
           leading={
             <Feather name="zap" size={16} color={colors.primaryForeground} />
@@ -802,6 +803,7 @@ export default function Onboarding() {
         </View>
         <Button
           label={index === total - 1 ? "Get started" : "Continue"}
+          variant="cta"
           onPress={next}
         />
         <View style={styles.infoLinks}>

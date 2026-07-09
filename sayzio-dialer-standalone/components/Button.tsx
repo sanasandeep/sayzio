@@ -83,12 +83,23 @@ export function Button({
   );
 
   if (variant === "primary" || variant === "cta") {
+    const ctaGlow: ViewStyle =
+      variant === "cta"
+        ? {
+            shadowColor: "#22d3ee",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: isDisabled ? 0 : 0.35,
+            shadowRadius: 12,
+            elevation: isDisabled ? 0 : 6,
+          }
+        : {};
     return (
       <Pressable
         onPress={handlePress}
         disabled={isDisabled}
         style={({ pressed }) => [
           base,
+          ctaGlow,
           { opacity: pressed ? 0.92 : 1 },
           style,
         ]}

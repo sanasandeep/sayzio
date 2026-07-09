@@ -9,6 +9,8 @@ import {
   Text,
   View,
 } from "react-native";
+
+import { Button } from "@/components/Button";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
@@ -243,25 +245,12 @@ export default function UpgradeScreen() {
                     </Text>
                   </View>
                 ))}
-                <Pressable
+                <Button
+                  label={emphasised ? `Choose ${plan.name}` : "Stay on Free"}
+                  variant={emphasised ? "cta" : "outline"}
                   onPress={() => router.push("/plans" as never)}
-                  style={[
-                    styles.cta,
-                    {
-                      backgroundColor: emphasised ? colors.primary : "transparent",
-                      borderColor: colors.primary,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      color: emphasised ? colors.primaryForeground : colors.primary,
-                      fontFamily: "SpaceGrotesk_700Bold",
-                    }}
-                  >
-                    {emphasised ? `Choose ${plan.name}` : "Stay on Free"}
-                  </Text>
-                </Pressable>
+                  style={{ marginTop: 14 }}
+                />
               </View>
             );
           })
@@ -319,13 +308,6 @@ const styles = StyleSheet.create({
   price: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 28, marginTop: 4 },
   desc: { marginTop: 4, fontFamily: "SpaceGrotesk_400Regular" },
   featureRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },
-  cta: {
-    marginTop: 14,
-    paddingVertical: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    alignItems: "center",
-  },
   linksHeader: { fontSize: 12, textTransform: "uppercase", letterSpacing: 1, marginTop: 12 },
   linkCard: {
     flexDirection: "row",

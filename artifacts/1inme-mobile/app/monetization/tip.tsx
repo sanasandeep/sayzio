@@ -133,7 +133,7 @@ export default function TipScreen() {
           />
         </View>
 
-        <Button label="Send tip" variant="primary" onPress={() => tip.mutate()} loading={tip.isPending} />
+        <Button label="Send tip" variant="cta" onPress={() => tip.mutate()} loading={tip.isPending} />
       </ScrollView>
     </View>
   );

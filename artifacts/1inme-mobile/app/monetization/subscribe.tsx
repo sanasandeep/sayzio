@@ -226,7 +226,7 @@ function TierCard({
           label={tier.is_free ? "Follow for free" : "Subscribe"}
           onPress={onSubscribe}
           loading={loading}
-          variant="primary"
+          variant="cta"
         />
       </View>
     </View>

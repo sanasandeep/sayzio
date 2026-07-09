@@ -723,7 +723,7 @@ export default function PlansScreen() {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Button label="Buy" onPress={confirmPurchase} />
+                <Button label="Buy" variant="cta" onPress={confirmPurchase} />
               </View>
             </View>
           </View>
