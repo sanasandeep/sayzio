@@ -19,6 +19,7 @@ import {
 } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import {
   dmSend,
   dmThread,
@@ -46,6 +47,12 @@ export default function ProfileDmScreen() {
     queryFn: () => dmThread(handle),
     refetchInterval: 7000,
     enabled: !!handle,
+  });
+
+  // JS timers (and the refetchInterval above) pause while the app is
+  // backgrounded, so pull the thread immediately on resume.
+  useForegroundRefresh(() => {
+    if (handle) threadQ.refetch();
   });
 
   const sendM = useMutation({

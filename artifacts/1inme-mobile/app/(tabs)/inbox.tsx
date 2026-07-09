@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
+import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import { listConversations } from "@/lib/api/inbox";
 
 const TABS: { key: "open" | "archived"; label: string }[] = [

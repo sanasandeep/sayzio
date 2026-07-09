@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import {
   assignConversation,
   deleteConversation,
@@ -43,6 +44,12 @@ export default function ConversationScreen() {
     queryKey: ["inbox", "conversation", id],
     queryFn: () => getConversation(id),
     enabled: !!id,
+  });
+
+  // Re-fetch the conversation when the app returns to the foreground
+  // so messages received while backgrounded show up immediately.
+  useForegroundRefresh(() => {
+    if (id) q.refetch();
   });
 
   const reply = useMutation({
