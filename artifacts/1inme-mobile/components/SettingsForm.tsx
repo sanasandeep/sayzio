@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { Feather } from "@expo/vector-icons";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -43,19 +44,44 @@ export function SettingsForm({
   });
 
   const [values, setValues] = useState<Record<string, any>>({});
+  const [baseline, setBaseline] = useState<Record<string, any>>({});
+  const [applied, setApplied] = useState(false);
+  const appliedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!q.data) return;
     const sub = ((q.data.settings as Record<string, any>) ?? {})[group] ?? {};
     setValues(sub);
+    setBaseline(sub);
   }, [q.data, group]);
+
+  useEffect(
+    () => () => {
+      if (appliedTimer.current) clearTimeout(appliedTimer.current);
+    },
+    [],
+  );
+
+  const dirty = JSON.stringify(values) !== JSON.stringify(baseline);
 
   const save = useMutation({
     mutationFn: () =>
       updateLink(linkId, {
         settings: { [group]: values } as any,
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["link", linkId] }),
+    onSuccess: () => {
+      setBaseline(values);
+      setApplied(true);
+      if (appliedTimer.current) clearTimeout(appliedTimer.current);
+      appliedTimer.current = setTimeout(() => setApplied(false), 3000);
+      qc.invalidateQueries({ queryKey: ["link", linkId] });
+    },
   });
+
+  const setValue = (key: string, v: any) => {
+    setApplied(false);
+    setValues((p) => ({ ...p, [key]: v }));
+  };
 
   if (q.isLoading) {
     return (
@@ -66,61 +92,22 @@ export function SettingsForm({
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.body}>
-      {blurb ? (
-        <Text style={[styles.blurb, { color: colors.mutedForeground }]}>
-          {blurb}
-        </Text>
-      ) : null}
+    <View style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.body}>
+        {blurb ? (
+          <Text style={[styles.blurb, { color: colors.mutedForeground }]}>
+            {blurb}
+          </Text>
+        ) : null}
 
-      {fields.map((f) => {
-        const v = values[f.key];
-        if (f.kind === "switch") {
-          return (
-            <View
-              key={f.key}
-              style={[
-                styles.row,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderRadius: colors.radius,
-                },
-              ]}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.rowLabel, { color: colors.foreground }]}>
-                  {f.label}
-                </Text>
-                {f.hint ? (
-                  <Text
-                    style={[styles.rowHint, { color: colors.mutedForeground }]}
-                  >
-                    {f.hint}
-                  </Text>
-                ) : null}
-              </View>
-              <Switch
-                value={!!v}
-                onValueChange={(nv) =>
-                  setValues((p) => ({ ...p, [f.key]: nv }))
-                }
-                trackColor={{ true: colors.primary, false: colors.border }}
-              />
-            </View>
-          );
-        }
-        if (f.kind === "choice" && f.options) {
-          return (
-            <View key={f.key} style={{ gap: 8 }}>
-              <Text
-                style={[styles.choiceLabel, { color: colors.mutedForeground }]}
-              >
-                {f.label}
-              </Text>
+        {fields.map((f) => {
+          const v = values[f.key];
+          if (f.kind === "switch") {
+            return (
               <View
+                key={f.key}
                 style={[
-                  styles.segment,
+                  styles.row,
                   {
                     backgroundColor: colors.card,
                     borderColor: colors.border,
@@ -128,72 +115,138 @@ export function SettingsForm({
                   },
                 ]}
               >
-                {f.options.map((opt) => {
-                  const on = v === opt;
-                  return (
-                    <Pressable
-                      key={opt}
-                      onPress={() =>
-                        setValues((p) => ({ ...p, [f.key]: opt }))
-                      }
-                      style={[
-                        styles.segmentItem,
-                        {
-                          backgroundColor: on
-                            ? colors.background
-                            : "transparent",
-                          borderRadius: colors.radius - 4,
-                        },
-                      ]}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                    {f.label}
+                  </Text>
+                  {f.hint ? (
+                    <Text
+                      style={[styles.rowHint, { color: colors.mutedForeground }]}
                     >
-                      <Text
+                      {f.hint}
+                    </Text>
+                  ) : null}
+                </View>
+                <Switch
+                  value={!!v}
+                  onValueChange={(nv) => setValue(f.key, nv)}
+                  trackColor={{ true: colors.primary, false: colors.border }}
+                />
+              </View>
+            );
+          }
+          if (f.kind === "choice" && f.options) {
+            return (
+              <View key={f.key} style={{ gap: 8 }}>
+                <Text
+                  style={[styles.choiceLabel, { color: colors.mutedForeground }]}
+                >
+                  {f.label}
+                </Text>
+                <View
+                  style={[
+                    styles.segment,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      borderRadius: colors.radius,
+                    },
+                  ]}
+                >
+                  {f.options.map((opt) => {
+                    const on = v === opt;
+                    return (
+                      <Pressable
+                        key={opt}
+                        onPress={() => setValue(f.key, opt)}
                         style={[
-                          styles.segmentText,
+                          styles.segmentItem,
                           {
-                            color: on ? colors.primary : colors.mutedForeground,
+                            backgroundColor: on
+                              ? colors.background
+                              : "transparent",
+                            borderRadius: colors.radius - 4,
                           },
                         ]}
                       >
-                        {opt}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                        <Text
+                          style={[
+                            styles.segmentText,
+                            {
+                              color: on
+                                ? colors.primary
+                                : colors.mutedForeground,
+                            },
+                          ]}
+                        >
+                          {opt}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
+            );
+          }
+          return (
+            <TextField
+              key={f.key}
+              label={f.label}
+              hint={f.hint}
+              value={typeof v === "string" ? v : v != null ? String(v) : ""}
+              onChangeText={(t) => setValue(f.key, t)}
+              keyboardType={f.kind === "url" ? "url" : "default"}
+              autoCapitalize={f.kind === "url" ? "none" : "sentences"}
+              multiline={f.kind === "multiline"}
+              numberOfLines={f.kind === "multiline" ? 4 : 1}
+              style={
+                f.kind === "multiline"
+                  ? { height: 120, textAlignVertical: "top", paddingTop: 12 }
+                  : undefined
+              }
+            />
           );
-        }
-        return (
-          <TextField
-            key={f.key}
-            label={f.label}
-            hint={f.hint}
-            value={typeof v === "string" ? v : v != null ? String(v) : ""}
-            onChangeText={(t) => setValues((p) => ({ ...p, [f.key]: t }))}
-            keyboardType={f.kind === "url" ? "url" : "default"}
-            autoCapitalize={f.kind === "url" ? "none" : "sentences"}
-            multiline={f.kind === "multiline"}
-            numberOfLines={f.kind === "multiline" ? 4 : 1}
-            style={
-              f.kind === "multiline"
-                ? { height: 120, textAlignVertical: "top", paddingTop: 12 }
-                : undefined
-            }
-          />
-        );
-      })}
+        })}
+      </ScrollView>
 
-      <Button
-        label="Save"
-        onPress={() => save.mutate()}
-        loading={save.isPending}
-      />
-    </ScrollView>
+      <View
+        style={[
+          styles.footer,
+          { backgroundColor: colors.background, borderTopColor: colors.border },
+        ]}
+      >
+        {save.isError ? (
+          <Text style={[styles.feedback, { color: colors.destructive }]}>
+            Couldn't apply changes.{" "}
+            {(save.error as Error | null)?.message ?? "Please try again."}
+          </Text>
+        ) : applied ? (
+          <View style={styles.appliedRow} testID="settings-applied">
+            <Feather name="check-circle" size={15} color="#22c55e" />
+            <Text style={[styles.feedback, { color: "#22c55e" }]}>
+              Changes applied to your live page
+            </Text>
+          </View>
+        ) : dirty ? (
+          <Text style={[styles.feedback, { color: colors.mutedForeground }]}>
+            You have unapplied changes
+          </Text>
+        ) : null}
+        <Button
+          label={applied && !dirty ? "Applied" : "Apply changes"}
+          variant="cta"
+          onPress={() => save.mutate()}
+          loading={save.isPending}
+          disabled={!dirty}
+          testID="settings-apply"
+        />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  body: { padding: 20, gap: 14, paddingBottom: 40 },
+  body: { padding: 20, gap: 14, paddingBottom: 24 },
   blurb: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 14, lineHeight: 20 },
   row: {
     flexDirection: "row",
@@ -222,5 +275,23 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 12,
     textTransform: "capitalize",
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 24,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+  },
+  appliedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    justifyContent: "center",
+  },
+  feedback: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 12,
+    textAlign: "center",
   },
 });

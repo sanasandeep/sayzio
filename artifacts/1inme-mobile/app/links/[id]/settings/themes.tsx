@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -62,6 +62,21 @@ export default function BiolinkThemesScreen() {
   );
   const [starts, setStarts] = useState("");
   const [ends, setEnds] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flashNotice = useCallback((msg: string) => {
+    setNotice(msg);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(null), 3000);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    },
+    [],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -86,6 +101,7 @@ export default function BiolinkThemesScreen() {
       await saveBiolinkTheme(linkId, name.trim());
       setName("");
       await load();
+      flashNotice("Theme saved");
     } catch (e: unknown) {
       showAlert("Couldn't save theme", (e as Error).message);
     } finally {
@@ -143,6 +159,7 @@ export default function BiolinkThemesScreen() {
         return;
       }
       await load();
+      flashNotice("Schedule applied");
     } catch (e: unknown) {
       showAlert("Couldn't save schedule", (e as Error).message);
     }
@@ -163,6 +180,7 @@ export default function BiolinkThemesScreen() {
             try {
               await cancelBiolinkThemeSchedule(linkId, s.id);
               await load();
+              flashNotice(s.is_live ? "Theme ended" : "Schedule cancelled");
             } catch (e: unknown) {
               showAlert("Failed", (e as Error).message);
             }
@@ -185,6 +203,7 @@ export default function BiolinkThemesScreen() {
             try {
               await deleteBiolinkTheme(linkId, t.id);
               await load();
+              flashNotice("Theme deleted");
             } catch (e: unknown) {
               showAlert("Failed", (e as Error).message);
             }
@@ -198,6 +217,11 @@ export default function BiolinkThemesScreen() {
     <>
       <Stack.Screen options={{ headerShown: true, title: "Scheduled themes" }} />
       <ScrollView contentContainerStyle={styles.page}>
+        {notice ? (
+          <View style={styles.notice} testID="themes-notice">
+            <Text style={styles.noticeText}>✓ {notice}</Text>
+          </View>
+        ) : null}
         <Text style={styles.blurb}>
           Save the current look as a theme, then schedule it to apply over a
           date range. The page reverts automatically when the window ends.
@@ -355,6 +379,16 @@ export default function BiolinkThemesScreen() {
 
 const styles = StyleSheet.create({
   page: { padding: 16, gap: 12, paddingBottom: 60 },
+  notice: {
+    backgroundColor: "rgba(34,197,94,0.12)",
+    borderColor: "rgba(34,197,94,0.4)",
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  noticeText: { color: "#4ade80", fontSize: 13, fontWeight: "600" },
   blurb: { color: "#bbb", fontSize: 13, marginBottom: 4 },
   card: {
     backgroundColor: "#111",
