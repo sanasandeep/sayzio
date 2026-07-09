@@ -113,13 +113,25 @@ export async function getBlockAnalytics(
  * caches the result into link settings so subsequent analytics fetches
  * include it as `audience_estimate`. Plan-gated: throws an ApiError with
  * code `plan_upgrade_required` (HTTP 402) on free plans.
+ *
+ * If the cached estimate is still fresh (server-side cooldown, ~10 minutes)
+ * the server short-circuits and returns the cached rows without charging:
+ * `cached: true` + the original `generated_at` so the UI can surface a
+ * gentle "estimate is fresh" note instead of silently re-charging.
  */
 export async function runAudienceEstimate(linkId: number): Promise<{
   estimated: AudienceEstimateRow[];
   credits_spent: number;
+  cached?: boolean;
+  generated_at?: string | null;
 }> {
   const res = await apiFetch<{
-    data: { estimated: AudienceEstimateRow[]; credits_spent: number };
+    data: {
+      estimated: AudienceEstimateRow[];
+      credits_spent: number;
+      cached?: boolean;
+      generated_at?: string | null;
+    };
   }>(`/links/${linkId}/audience-estimate`, { method: "POST" });
   return res.data;
 }

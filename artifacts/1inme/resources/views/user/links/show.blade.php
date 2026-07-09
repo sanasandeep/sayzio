@@ -1194,6 +1194,7 @@
              estimating: false,
              estimateRows: @json($hasAiEstimate ? $cachedAiEstimate['data'] : []),
              estimateError: '',
+             estimateFreshNote: '',
              estimateDone: {{ $hasAiEstimate ? 'true' : 'false' }},
              estimateGeneratedAt: @js($hasAiEstimate ? ($cachedAiEstimate['generated_at'] ?? null) : null),
              get estimateDateLabel() {
@@ -1209,6 +1210,7 @@
              async runEstimate() {
                  this.estimating = true;
                  this.estimateError = '';
+                 this.estimateFreshNote = '';
                  try {
                      const res = await fetch('{{ route('user.links.audience.estimate', $link) }}', {
                          method: 'POST',
@@ -1221,6 +1223,15 @@
                      const json = await res.json();
                      if (!res.ok) {
                          this.estimateError = json.error ?? 'Estimation failed.';
+                     } else if (json.cached) {
+                         this.estimateRows = json.estimated ?? [];
+                         this.estimateDone = true;
+                         if (json.generated_at) this.estimateGeneratedAt = json.generated_at;
+                         const t = Date.parse(json.generated_at ?? '');
+                         const mins = isNaN(t) ? null : Math.max(1, Math.round((Date.now() - t) / 60000));
+                         this.estimateFreshNote = mins !== null
+                             ? `Estimate is fresh — generated ${mins} minute${mins === 1 ? '' : 's'} ago. No coins were charged.`
+                             : 'Estimate is fresh — no coins were charged.';
                      } else {
                          this.estimateRows = json.estimated ?? [];
                          this.estimateDone = true;
@@ -1338,6 +1349,7 @@
                 <i class="fas fa-clock text-[10px]"></i> Estimate is over 30 days old — re-estimate?
             </span>
             <span x-show="estimateError" x-text="estimateError" class="text-xs text-red-400" x-cloak></span>
+            <span x-show="estimateFreshNote" x-text="estimateFreshNote" class="text-xs inline-flex items-center gap-1" style="color:#34d399;" x-cloak data-testid="text-estimate-fresh"></span>
             @if($audienceAiCoins > 0)
             <span class="text-xs inline-flex items-center gap-1" style="color: var(--text-dimmed);" title="Charged from your coin wallet when the estimate runs.">
                 <i class="fas fa-coins text-[10px]" style="color:#fbbf24;"></i> Uses up to {{ number_format($audienceAiCoins) }} {{ Str::plural('coin', $audienceAiCoins) }} per run

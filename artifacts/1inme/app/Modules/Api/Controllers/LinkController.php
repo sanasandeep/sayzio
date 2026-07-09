@@ -1285,6 +1285,18 @@ class LinkController extends Controller
             return $this->planGate('AI Audience Estimation is available on paid plans.', \App\Services\AI\AudienceTypeEstimationService::FEATURE_KEY, $user);
         }
 
+        // Cooldown: if the cached estimate is only minutes old, return it
+        // without charging — protects coin wallets from accidental double runs.
+        $cached = $link->settings['biolink']['audience_estimate'] ?? null;
+        if (\App\Services\AI\AudienceTypeEstimationService::estimateIsFresh($cached)) {
+            return $this->ok([
+                'estimated'     => $cached['data'],
+                'credits_spent' => 0,
+                'cached'        => true,
+                'generated_at'  => $cached['generated_at'],
+            ]);
+        }
+
         try {
             $result = app(\App\Services\AI\AudienceTypeEstimationService::class)
                 ->estimate($user, $link, now()->subDays(30), now());

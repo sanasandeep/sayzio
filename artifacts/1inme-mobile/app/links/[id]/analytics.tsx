@@ -318,6 +318,7 @@ function AudienceInsightsSection({
   );
   const [error, setError] = useState<string | null>(null);
   const [upgradeMsg, setUpgradeMsg] = useState<string | null>(null);
+  const [freshNote, setFreshNote] = useState<string | null>(null);
 
   const estimate = useMutation({
     mutationFn: () => runAudienceEstimate(linkId),
@@ -325,6 +326,19 @@ function AudienceInsightsSection({
       setRows(res.estimated);
       setError(null);
       setUpgradeMsg(null);
+      if (res.cached) {
+        const t = Date.parse(res.generated_at ?? "");
+        const mins = isNaN(t)
+          ? null
+          : Math.max(1, Math.round((Date.now() - t) / 60000));
+        setFreshNote(
+          mins !== null
+            ? `Estimate is fresh — generated ${mins} minute${mins === 1 ? "" : "s"} ago. No coins were charged.`
+            : "Estimate is fresh — no coins were charged.",
+        );
+      } else {
+        setFreshNote(null);
+      }
       qc.invalidateQueries({ queryKey: ["analytics", linkId] });
     },
     onError: (e) => {
@@ -515,6 +529,14 @@ function AudienceInsightsSection({
           {error ? (
             <Text style={{ color: colors.destructive, fontSize: 12 }}>
               {error}
+            </Text>
+          ) : null}
+          {freshNote ? (
+            <Text
+              testID="text-estimate-fresh"
+              style={{ color: "#34d399", fontSize: 12 }}
+            >
+              {freshNote}
             </Text>
           ) : null}
         </View>

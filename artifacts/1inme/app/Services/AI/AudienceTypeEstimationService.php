@@ -28,6 +28,33 @@ class AudienceTypeEstimationService
 {
     public const FEATURE_KEY = 'audience_type_estimation';
 
+    /**
+     * Cooldown window (minutes): a cached estimate younger than this is
+     * considered "fresh" and re-runs are short-circuited without charging,
+     * so a double-tap can't burn coins on back-to-back identical runs.
+     */
+    public const FRESH_MINUTES = 10;
+
+    /**
+     * True when a cached settings['biolink']['audience_estimate'] entry is
+     * recent enough (< FRESH_MINUTES old) that a re-run should return it
+     * instead of charging for a new estimation.
+     */
+    public static function estimateIsFresh(mixed $cached): bool
+    {
+        if (!is_array($cached) || empty($cached['data']) || !is_array($cached['data']) || empty($cached['generated_at'])) {
+            return false;
+        }
+
+        try {
+            $generatedAt = \Carbon\Carbon::parse($cached['generated_at']);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return $generatedAt->gt(now()->subMinutes(self::FRESH_MINUTES));
+    }
+
     public const PERSONA_TYPES = [
         'student'      => 'Student',
         'professional' => 'Professional / Employee',
