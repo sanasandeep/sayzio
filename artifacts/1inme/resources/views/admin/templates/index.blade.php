@@ -8,7 +8,7 @@
     $coverSlugs = collect($coverPersonas)->pluck('slug')->all();
     $coverParam = !empty($coverSlugs) ? implode(',', $coverSlugs) : null;
 @endphp
-<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all', outdated: 'all', active: 'all', coverPersonas: @json($coverSlugs), selected: [], preview: { open: false, url: '', name: '' }, previewDevice: 'phone', previewWidths: { phone: 420, tablet: 768, desktop: 1100 }, openPreview(url, name) { this.previewDevice = 'phone'; this.preview = { open: true, url: url, name: name }; }, closePreview() { this.preview = { open: false, url: '', name: '' }; }, toggleAllVisible(ids) { var allSel = ids.every(i => this.selected.includes(i)); this.selected = allSel ? this.selected.filter(i => !ids.includes(i)) : Array.from(new Set(this.selected.concat(ids))); } }"
+<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all', outdated: 'all', active: 'all', coverPersonas: @js($coverSlugs), selected: [], preview: { open: false, url: '', name: '' }, previewDevice: 'phone', previewWidths: { phone: 420, tablet: 768, desktop: 1100 }, openPreview(url, name) { this.previewDevice = 'phone'; this.preview = { open: true, url: url, name: name }; }, closePreview() { this.preview = { open: false, url: '', name: '' }; }, toggleAllVisible(ids) { var allSel = ids.every(i => this.selected.includes(i)); this.selected = allSel ? this.selected.filter(i => !ids.includes(i)) : Array.from(new Set(this.selected.concat(ids))); } }"
      @keydown.escape.window="closePreview()">
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Curate full-page presets and reusable card-block presets.</p>
@@ -190,7 +190,7 @@
     </div>
     <div class="flex items-center gap-2 mb-3">
         <button type="button"
-                @click="toggleAllVisible(@json($allIds).filter(id => document.querySelector('[data-tpl-id=&quot;'+id+'&quot;]') && !document.querySelector('[data-tpl-id=&quot;'+id+'&quot;]').hasAttribute('hidden')))"
+                @click="toggleAllVisible(@js($allIds).filter(id => document.querySelector('[data-tpl-id=&quot;'+id+'&quot;]') && !document.querySelector('[data-tpl-id=&quot;'+id+'&quot;]').hasAttribute('hidden')))"
                 class="text-[11px] text-white/50 hover:text-white">
             Select all visible
         </button>
@@ -205,8 +205,8 @@
             $tplDesignIssues = $tpl->designIssues();
         @endphp
         <div x-show="(category === 'all' || category === '{{ $tpl->category }}')
-                  && (persona === 'all' || @json($tplPersonas).includes(persona))
-                  && (coverPersonas.length === 0 || coverPersonas.some(cp => !@json($tplPersonas).includes(cp)))
+                  && (persona === 'all' || @js($tplPersonas).includes(persona))
+                  && (coverPersonas.length === 0 || coverPersonas.some(cp => !@js($tplPersonas).includes(cp)))
                   && (customized === 'all' || (customized === 'yes') === {{ $tplCustomized ? 'true' : 'false' }})
                   && (outdated === 'all' || (outdated === 'yes') === {{ $tplOutdated ? 'true' : 'false' }})
                   && (active === 'all' || (active === 'yes') === {{ $tpl->is_active ? 'true' : 'false' }})
