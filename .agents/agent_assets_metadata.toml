@@ -214,25 +214,25 @@ title = "1inme app icon"
 id = "EQAutoUBuUnXlwnZRqSZU"
 uri = "file://artifacts/1inme-mobile/assets/images/onboarding/creators.png"
 type = "image"
-title = "creator phone"
+title = "creator desk setup"
 
 [[generated]]
 id = "dCUO0FYI-3NSoF2aRBlSi"
 uri = "file://artifacts/1inme-mobile/assets/images/onboarding/business.png"
 type = "image"
-title = "small business counter"
+title = "boutique business interior"
 
 [[generated]]
 id = "QbgEDoBr3lf6JW25kgdbG"
 uri = "file://artifacts/1inme-mobile/assets/images/onboarding/freelancer.png"
 type = "image"
-title = "freelancer desk"
+title = "freelancer minimal workspace"
 
 [[generated]]
 id = "zCR8WtosmSE0760KdS74H"
 uri = "file://artifacts/1inme-mobile/assets/images/onboarding/networker.png"
 type = "image"
-title = "business card tap"
+title = "business networking cards"
 
 [[generated]]
 id = "MEGGabZi_Q_IFl6Yqca1z"

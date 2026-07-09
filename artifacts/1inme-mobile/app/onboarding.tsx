@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
-  Dimensions,
   Easing,
   FlatList,
   ImageBackground,
@@ -15,6 +14,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
   type ImageSourcePropType,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -119,8 +119,6 @@ const AI_DASHBOARD_SLIDE: OnboardingSlide = {
   image_urls: [],
   sort_order: 10000,
 };
-
-const { width, height } = Dimensions.get("window");
 
 // How long each gallery photo stays on screen before crossfading
 // to the next one (in ms).
@@ -239,6 +237,8 @@ function SlideContent({
   body,
   paddingBottom,
   primaryColor,
+  width,
+  height,
 }: {
   images: SlideImage[];
   active: boolean;
@@ -247,6 +247,8 @@ function SlideContent({
   body: string | null;
   paddingBottom: number;
   primaryColor: string;
+  width: number;
+  height: number;
 }) {
   const [galleryIndex, setGalleryIndex] = useState(0);
   const handleIndexChange = useCallback((i: number) => {
@@ -335,12 +337,16 @@ function AiDashboardSlide({
   onOpenDesigner,
   paddingTop,
   paddingBottom,
+  width,
+  height,
 }: {
   loading: boolean;
   presets: DashboardPreset[] | null;
   onOpenDesigner: () => void;
   paddingTop: number;
   paddingBottom: number;
+  width: number;
+  height: number;
 }) {
   const colors = useColors();
   const hasPresets = !!presets && presets.length > 0;
@@ -408,6 +414,7 @@ export default function Onboarding() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const { user, token } = useAuth();
   const listRef = useRef<FlatList<OnboardingSlide>>(null);
   const [index, setIndex] = useState(0);
@@ -542,6 +549,8 @@ export default function Onboarding() {
               onOpenDesigner={openDesigner}
               paddingTop={insets.top + 72 + webTop}
               paddingBottom={insets.bottom + 200 + webBottom}
+              width={width}
+              height={height}
             />
           ) : (
             <SlideContent
@@ -552,6 +561,8 @@ export default function Onboarding() {
               body={item.body}
               paddingBottom={insets.bottom + 200 + webBottom}
               primaryColor={colors.primary}
+              width={width}
+              height={height}
             />
           )
         }
