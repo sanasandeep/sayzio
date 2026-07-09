@@ -137,14 +137,17 @@
 
                 <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-glass);">
                     <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3" style="color: var(--text-faint);">Or sign up with</p>
-                    <div class="grid grid-cols-3 gap-2">
-                        @foreach(['google' => 'fab fa-google', 'instagram' => 'fab fa-instagram', 'facebook' => 'fab fa-facebook', 'twitter' => 'fab fa-x-twitter', 'linkedin' => 'fab fa-linkedin', 'pinterest' => 'fab fa-pinterest', 'tiktok' => 'fab fa-tiktok'] as $p => $icon)
-                            <a href="{{ route('user.social-oauth.login', $p) }}"
-                               class="btn-ghost w-full justify-center text-xs py-2"
-                               title="Sign up with {{ ucfirst($p === 'twitter' ? 'X' : $p) }}">
-                                <i class="{{ $icon }} text-[12px]"></i>
-                            </a>
-                        @endforeach
+                    <div class="flex flex-col gap-2">
+                        <a href="{{ route('user.social-oauth.login', 'google') }}"
+                           class="btn-ghost w-full justify-center text-xs py-2.5 gap-2">
+                            <i class="fab fa-google text-[13px]"></i>
+                            <span>Sign up with Google</span>
+                        </a>
+                        <a href="{{ route('user.social-oauth.login', 'linkedin') }}"
+                           class="btn-ghost w-full justify-center text-xs py-2.5 gap-2">
+                            <i class="fab fa-linkedin text-[13px]"></i>
+                            <span>Sign up with LinkedIn</span>
+                        </a>
                     </div>
                 </div>
 

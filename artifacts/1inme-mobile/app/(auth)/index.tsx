@@ -34,15 +34,7 @@ import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
 
 type Channel = "email" | "mobile";
 
-type SocialProvider =
-  | "google"
-  | "apple"
-  | "instagram"
-  | "facebook"
-  | "twitter"
-  | "linkedin"
-  | "pinterest"
-  | "tiktok";
+type SocialProvider = "google" | "linkedin";
 
 const SOCIALS: {
   id: SocialProvider;
@@ -51,28 +43,12 @@ const SOCIALS: {
   color: string;
 }[] = [
   { id: "google", label: "Google", icon: "logo-google", color: "#ea4335" },
-  { id: "apple", label: "Apple", icon: "logo-apple", color: "#ffffff" },
-  { id: "instagram", label: "Instagram", icon: "logo-instagram", color: "#e1306c" },
-  { id: "facebook", label: "Facebook", icon: "logo-facebook", color: "#1877f2" },
-  { id: "twitter", label: "X", icon: "logo-x", color: "#ffffff" },
   { id: "linkedin", label: "LinkedIn", icon: "logo-linkedin", color: "#0a66c2" },
-  { id: "pinterest", label: "Pinterest", icon: "logo-pinterest", color: "#e60023" },
-  { id: "tiktok", label: "TikTok", icon: "logo-tiktok", color: "#ffffff" },
 ];
 
-// Build the displayed social list dynamically so providers without
-// real backing (no native SDK config, no backend route) don't render
-// dead buttons. Google requires a client ID; the others go through
-// the web /user/social-oauth/{provider}/login route, which only
-// supports a fixed set of providers.
-const WEB_BROWSER_PROVIDERS = new Set<SocialProvider>([
-  "facebook",
-  "instagram",
-  "linkedin",
-  "twitter",
-  "pinterest",
-  "tiktok",
-]);
+// LinkedIn goes through the web /user/social-oauth/{provider}/login route
+// via an in-app browser session. Google uses the native expo-auth-session flow.
+const WEB_BROWSER_PROVIDERS = new Set<SocialProvider>(["linkedin"]);
 
 const HAS_GOOGLE_NATIVE =
   !!process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
@@ -485,13 +461,16 @@ export default function AuthLanding() {
                     opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
                   },
                 ]}
-                accessibilityLabel={`Continue with ${s.label}`}
+                accessibilityLabel={`Log in with ${s.label}`}
               >
                 <Ionicons
                   name={s.icon}
-                  size={24}
+                  size={20}
                   color={colors.scheme === "dark" ? colors.foreground : s.color}
                 />
+                <Text style={[styles.socialBtnLabel, { color: colors.foreground }]}>
+                  Log in with {s.label}
+                </Text>
               </Pressable>
             );
           })}
@@ -585,18 +564,21 @@ const styles = StyleSheet.create({
   line: { flex: 1, height: StyleSheet.hairlineWidth },
   dividerText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
   socialGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: "column",
     gap: 10,
-    justifyContent: "space-between",
   },
   socialBtn: {
-    width: "22%",
-    minWidth: 56,
-    aspectRatio: 1,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 10,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
     borderWidth: 1,
+  },
+  socialBtnLabel: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 14,
   },
   section: {
     fontFamily: "SpaceGrotesk_500Medium",
