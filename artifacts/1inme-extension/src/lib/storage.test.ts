@@ -2,6 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  applyNotifUnreadCount,
+  getSettings,
   capPendingThanks,
   markPendingThanksSeen,
   prunePendingThanks,
@@ -271,5 +273,37 @@ describe("appendDialHistory", () => {
   it("tolerates a non-array stored value", () => {
     const h = appendDialHistory(undefined as unknown as DialHistoryEntry[], makeCall());
     assert.equal(h.length, 1);
+  });
+});
+
+describe("applyNotifUnreadCount", () => {
+  const badge = () => (globalThis as any).__badgeState as { text: string | null; color: string | null };
+
+  it("persists the count and paints the global badge", async () => {
+    (globalThis as any).__resetExtStorage();
+    await applyNotifUnreadCount(5);
+    const s = await getSettings();
+    assert.equal(s.notifUnreadCount, 5);
+    assert.ok((s.notifLastPolledAt ?? 0) > 0);
+    assert.equal(badge().text, "5");
+    assert.equal(badge().color, "#ef4444");
+  });
+
+  it("clears the badge text when the count reaches zero", async () => {
+    (globalThis as any).__resetExtStorage();
+    await applyNotifUnreadCount(3);
+    await applyNotifUnreadCount(0);
+    const s = await getSettings();
+    assert.equal(s.notifUnreadCount, 0);
+    assert.equal(badge().text, "");
+  });
+
+  it("clamps negatives to zero and caps display at 99+", async () => {
+    (globalThis as any).__resetExtStorage();
+    await applyNotifUnreadCount(-4);
+    assert.equal((await getSettings()).notifUnreadCount, 0);
+    await applyNotifUnreadCount(150);
+    assert.equal((await getSettings()).notifUnreadCount, 150);
+    assert.equal(badge().text, "99+");
   });
 });

@@ -1,6 +1,6 @@
 import { browser } from "../lib/browser";
 import { api, ApiError } from "../lib/api";
-import { appendDialHistory, clearAuth, clearCachedProperties, getSettings, setSettings, syncPendingThanks } from "../lib/storage";
+import { appendDialHistory, applyNotifUnreadCount, clearAuth, clearCachedProperties, getSettings, setSettings, syncPendingThanks } from "../lib/storage";
 import {
   ensureProperties,
   matchHrefs,
@@ -405,20 +405,12 @@ async function syncNotifications() {
     const items = resp.items ?? [];
     const unread = items.filter((n) => !n.read_at);
     const newCount = unread.length;
-    const now = Date.now();
 
-    // Persist updated count + poll timestamp.
-    await setSettings({ notifUnreadCount: newCount, notifLastPolledAt: now });
-
-    // Update the global extension badge (tab-specific radar badges override
-    // this per-tab, but the global badge shows when no tab override is set).
-    try {
-      const badgeText = newCount > 0 ? String(newCount > 99 ? "99+" : newCount) : "";
-      await (browser.action as any).setBadgeText?.({ text: badgeText });
-      if (newCount > 0) {
-        await (browser.action as any).setBadgeBackgroundColor?.({ color: "#ef4444" });
-      }
-    } catch { /* badge updates are best-effort */ }
+    // Persist updated count + poll timestamp AND repaint the global
+    // extension badge in one go (tab-specific radar badges override
+    // this per-tab, but the global badge shows when no tab override is
+    // set). Shared helper also used by the popup's markRead/markAll.
+    await applyNotifUnreadCount(newCount);
 
     // Fire native notifications only for genuinely new high-signal items.
     // When the SW slept (stale), the stored prevCount can lag reality and
@@ -454,6 +446,23 @@ async function ensureNotifAlarm() {
     });
   } catch { /* alarms permission may be missing in older builds */ }
 }
+
+// On-focus sync: when the user switches back to the browser window
+// (e.g. after reading notifications on the Sayzio website in another
+// window, or returning from another app), re-poll right away instead of
+// waiting up to 30 s for the next alarm tick. Throttled so rapid
+// window-switching doesn't hammer the API.
+const NOTIF_FOCUS_SYNC_MIN_GAP_MS = 10_000;
+let lastFocusSyncAt = 0;
+
+browser.windows?.onFocusChanged?.addListener?.((windowId: number) => {
+  // -1 (WINDOW_ID_NONE) means focus left the browser entirely — skip.
+  if (windowId === (browser.windows as any)?.WINDOW_ID_NONE || windowId === -1) return;
+  const now = Date.now();
+  if (now - lastFocusSyncAt < NOTIF_FOCUS_SYNC_MIN_GAP_MS) return;
+  lastFocusSyncAt = now;
+  syncNotifications().catch(() => undefined);
+});
 
 const PENDING_THANKS_ALARM = "1inme-pending-thanks-poll";
 const PENDING_THANKS_PERIOD_MIN = 0.5;

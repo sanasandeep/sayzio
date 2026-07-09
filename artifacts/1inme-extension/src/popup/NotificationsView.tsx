@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../lib/api";
-import { setSettings } from "../lib/storage";
+import { applyNotifUnreadCount } from "../lib/storage";
 
 export interface NotifItem {
   id: number;
@@ -69,11 +69,12 @@ export function NotificationsView({ onUnreadChange, showToast }: Props) {
       setItems(resp.items ?? []);
       const unread = (resp.items ?? []).filter((n: NotifItem) => !n.read_at).length;
       onUnreadChange(unread);
-      // Reconcile the freshly fetched count with storage so the cached
-      // badge value can't lag behind reality (e.g. after the MV3 service
-      // worker slept through background polls). Also stamp the poll time
+      // Reconcile the freshly fetched count with storage AND the global
+      // toolbar badge so the cached badge value can't lag behind reality
+      // (e.g. notifications read on the website, or the MV3 service
+      // worker slept through background polls). Also stamps the poll time
       // so the background stale-guard sees this as a successful poll.
-      setSettings({ notifUnreadCount: unread, notifLastPolledAt: Date.now() }).catch(() => undefined);
+      applyNotifUnreadCount(unread).catch(() => undefined);
     } catch (e: any) {
       if (!mountedRef.current) return;
       showToast({ kind: "error", text: e instanceof ApiError ? e.message : "Could not load notifications" });
@@ -92,8 +93,11 @@ export function NotificationsView({ onUnreadChange, showToast }: Props) {
     try {
       await api.markNotificationRead(id);
       setItems((prev) => prev.map((n) => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
-      const unread = items.filter((n) => !n.read_at && n.id !== id).length;
-      onUnreadChange(Math.max(0, unread));
+      const unread = Math.max(0, items.filter((n) => !n.read_at && n.id !== id).length);
+      onUnreadChange(unread);
+      // Update the stored count + global toolbar badge immediately —
+      // don't wait for the next 30 s background poll.
+      applyNotifUnreadCount(unread).catch(() => undefined);
     } catch { /* best-effort */ }
   };
 
@@ -103,6 +107,8 @@ export function NotificationsView({ onUnreadChange, showToast }: Props) {
       await api.markAllNotificationsRead();
       setItems((prev) => prev.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() })));
       onUnreadChange(0);
+      // Clear the stored count + global toolbar badge immediately.
+      applyNotifUnreadCount(0).catch(() => undefined);
     } catch (e: any) {
       showToast({ kind: "error", text: e instanceof ApiError ? e.message : "Could not mark all read" });
     } finally {

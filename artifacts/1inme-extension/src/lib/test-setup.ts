@@ -47,12 +47,31 @@ if (!g.chrome) {
     cb?.();
   }
 
+  // Minimal browser.action stub recording the last badge paint so tests
+  // can assert the global toolbar badge is updated alongside storage.
+  const badgeState: { text: string | null; color: string | null } = {
+    text: null,
+    color: null,
+  };
+
   g.chrome = {
     runtime: { id: "test-extension", lastError },
     storage: {
       local: { get, set, remove },
     },
+    action: {
+      setBadgeText: (details: { text: string }, cb?: () => void) => {
+        badgeState.text = details.text;
+        cb?.();
+      },
+      setBadgeBackgroundColor: (details: { color: string }, cb?: () => void) => {
+        badgeState.color = details.color;
+        cb?.();
+      },
+    },
   };
+
+  (g as any).__badgeState = badgeState;
 
   g.__resetExtStorage = () => {
     for (const k of Object.keys(store)) delete store[k];

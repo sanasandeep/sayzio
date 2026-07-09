@@ -399,6 +399,29 @@ export async function setSettings(patch: Partial<ExtSettings>): Promise<ExtSetti
 }
 
 /**
+ * Persist the unread-notification count AND repaint the global toolbar
+ * badge in one go. Used by the popup's markRead / markAll / load paths
+ * and the background's poll so a read action on any surface clears the
+ * badge instantly instead of waiting for the next 30 s background poll.
+ *
+ * Also stamps `notifLastPolledAt` so the background stale-guard treats
+ * the fresh count as authoritative (the popup only calls this with a
+ * count derived from a successful API response or a just-confirmed
+ * mark-read mutation).
+ */
+export async function applyNotifUnreadCount(count: number): Promise<void> {
+  const n = Math.max(0, Math.floor(count));
+  await setSettings({ notifUnreadCount: n, notifLastPolledAt: Date.now() });
+  try {
+    const text = n > 0 ? (n > 99 ? "99+" : String(n)) : "";
+    await (browser.action as any)?.setBadgeText?.({ text });
+    if (n > 0) {
+      await (browser.action as any)?.setBadgeBackgroundColor?.({ color: "#ef4444" });
+    }
+  } catch { /* badge updates are best-effort */ }
+}
+
+/**
  * Reconcile the locally-stored thank-you templates with the server copy
  * for the active workspace. Called on sign-in and whenever the workspace
  * selection changes.
