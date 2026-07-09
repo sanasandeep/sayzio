@@ -235,6 +235,37 @@ export type CalendarEventInput = {
   payment_url?: string | null;
 };
 
+/**
+ * Event details detected from a shared page (server-side scrape of
+ * JSON-LD Event / microdata / og meta — mirrors the browser extension's
+ * in-page extractor). Everything but `source`/`url` is best-effort.
+ */
+export type ExtractedEvent = {
+  title: string | null;
+  description: string | null;
+  location: string | null;
+  /** ISO-8601 UTC start, when the page declared one. */
+  start_at: string | null;
+  end_at: string | null;
+  image_url: string | null;
+  source: "json-ld" | "microdata" | "og" | "title";
+  url: string;
+};
+
+/**
+ * Ask the server to fetch a URL and detect event details for the
+ * Add-to-Calendar prefill. Throws on fetch/parse failure — callers
+ * should swallow errors and fall back to manual fields.
+ */
+export async function extractEventFromUrl(
+  url: string,
+): Promise<ExtractedEvent> {
+  const res = await apiFetch<{ data: { event: ExtractedEvent } }>(
+    `/calendars/extract-event?url=${encodeURIComponent(url)}`,
+  );
+  return res.data.event;
+}
+
 /** Create a new followable calendar. */
 export async function createCalendar(
   input: CalendarInput,

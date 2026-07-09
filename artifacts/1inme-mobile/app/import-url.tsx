@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +16,11 @@ import {
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
-import { createCalendarEvent, listCalendars } from "@/lib/api/calendars";
+import {
+  createCalendarEvent,
+  extractEventFromUrl,
+  listCalendars,
+} from "@/lib/api/calendars";
 import { createLink, type Link } from "@/lib/api/links";
 import { createQrCode } from "@/lib/api/qr";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
@@ -59,6 +63,17 @@ function todayDate(): string {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Split an ISO datetime into local YYYY-MM-DD + HH:MM parts. */
+function isoToLocalParts(iso: string): { date: string; time: string } | null {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+  };
 }
 
 export default function ImportUrlScreen() {
@@ -111,7 +126,45 @@ export default function ImportUrlScreen() {
   const [evTitle, setEvTitle] = useState<string | null>(null);
   const [evDate, setEvDate] = useState(todayDate());
   const [evTime, setEvTime] = useState("09:00");
+  const [evLocation, setEvLocation] = useState<string | null>(null);
   const [evErrors, setEvErrors] = useState<Record<string, string>>({});
+
+  // Detect event details from the shared page (title/date/location), the
+  // same way the browser extension scrapes JSON-LD/microdata/OG before
+  // opening Add to Calendar — just via a server-side fetch. Best-effort:
+  // any failure silently leaves the manual fields as they are.
+  const extractQ = useQuery({
+    queryKey: ["event-extract", url],
+    queryFn: () => extractEventFromUrl(url!),
+    enabled: mode === "calendar" && !!url,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const prefilledRef = useRef(false);
+  const prefilledUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    // A different URL (manual edits) may extract different details —
+    // allow one fresh prefill pass for it.
+    if (prefilledUrlRef.current !== null && prefilledUrlRef.current !== url) {
+      prefilledRef.current = false;
+    }
+  }, [url]);
+  useEffect(() => {
+    const ev = extractQ.data;
+    if (!ev || prefilledRef.current) return;
+    prefilledRef.current = true;
+    // Only fill fields the user hasn't already touched.
+    if (ev.title && evTitle === null) setEvTitle(ev.title);
+    if (ev.location && evLocation === null) setEvLocation(ev.location);
+    if (ev.start_at) {
+      const parts = isoToLocalParts(ev.start_at);
+      if (parts) {
+        if (evDate === todayDate()) setEvDate(parts.date);
+        if (evTime === "09:00") setEvTime(parts.time);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extractQ.data]);
 
   const selectedCalendarId =
     calendarId ?? (ownedCalendars.length === 1 ? ownedCalendars[0]!.id : null);
@@ -124,6 +177,7 @@ export default function ImportUrlScreen() {
         // URL field, so it travels in the description like the web flow.
         description: url!,
         start_at: `${evDate}T${evTime}`,
+        location: evLocation?.trim() || null,
       }),
     onSuccess: (ev) => {
       Alert.alert("Event added", `"${ev.title}" was added to your calendar.`, [
@@ -303,6 +357,18 @@ export default function ImportUrlScreen() {
             </View>
           ) : (
             <>
+              {extractQ.isFetching ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={{ color: colors.muted, fontSize: 12 }}>
+                    Detecting event details…
+                  </Text>
+                </View>
+              ) : extractQ.data && extractQ.data.source !== "title" ? (
+                <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 10 }}>
+                  Event details detected from the page — review and adjust below.
+                </Text>
+              ) : null}
               {ownedCalendars.length > 1 ? (
                 <View style={{ marginBottom: 8 }}>
                   <Text style={[styles.fieldLabel, { color: colors.text }]}>
@@ -361,6 +427,12 @@ export default function ImportUrlScreen() {
                 placeholder="HH:MM"
                 autoCapitalize="none"
                 error={evErrors.time}
+              />
+              <TextField
+                label="Location (optional)"
+                value={evLocation ?? ""}
+                onChangeText={setEvLocation}
+                placeholder="Address or venue name"
               />
               <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 12 }}>
                 The shared URL is saved in the event description.

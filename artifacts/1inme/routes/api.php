@@ -1131,6 +1131,9 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/my-calendar/today',               [\App\Modules\Api\Controllers\MyCalendarController::class, 'today']);
         Route::get   ('/calendars/{calendar}',            [\App\Modules\Api\Controllers\MyCalendarController::class, 'show'])->whereNumber('calendar');
         Route::post  ('/calendars/{calendar}/follow',     [\App\Modules\Api\Controllers\MyCalendarController::class, 'toggleFollow'])->whereNumber('calendar');
+        // Server-side event-details detection for Add-to-Calendar (mirrors the
+        // browser extension's in-page scrape; used by the mobile import screen).
+        Route::get   ('/calendars/extract-event',         [\App\Modules\Api\Controllers\EventExtractController::class, 'extract'])->middleware('throttle:30,1');
         // Owner-only calendar management (create/edit calendar + event CRUD).
         Route::post  ('/calendars',                                  [\App\Modules\Api\Controllers\MyCalendarController::class, 'store']);
         Route::patch ('/calendars/{calendar}',                       [\App\Modules\Api\Controllers\MyCalendarController::class, 'update'])->whereNumber('calendar');
