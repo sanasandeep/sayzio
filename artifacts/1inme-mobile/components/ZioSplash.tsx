@@ -5,6 +5,7 @@ import {
   AccessibilityInfo,
   Dimensions,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -220,6 +221,22 @@ function MascotHalo({ reduced }: { reduced: boolean }) {
   return <Animated.View style={[styles.halo, haloStyle]} />;
 }
 
+// ─── Session flag ──────────────────────────────────────────────────────────
+// Module-level so it survives GateScreen remounts (e.g. navigating back to
+// the gate) but resets on a fresh JS session (cold launch). Ensures the
+// branded splash shows only on the first launch of each session.
+let splashShownThisSession = false;
+
+/** True once the splash has been shown during the current app session. */
+export function hasSplashShownThisSession(): boolean {
+  return splashShownThisSession;
+}
+
+/** Mark the splash as shown for the current app session. */
+export function markSplashShownThisSession(): void {
+  splashShownThisSession = true;
+}
+
 // ─── Main ZioSplash component ──────────────────────────────────────────────
 export interface ZioSplashProps {
   /**
@@ -327,6 +344,14 @@ export function ZioSplash({
           <Text style={styles.pillText}>Zio runs it all</Text>
         </View>
       </View>
+
+      {/* Topmost layer: tap anywhere to skip the splash immediately. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Skip splash screen"
+        onPress={callOnce}
+        style={StyleSheet.absoluteFill}
+      />
     </Animated.View>
   );
 }

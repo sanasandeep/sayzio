@@ -4,17 +4,15 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { BrandWordmark } from "@/components/Brand";
-import { ZioSplash } from "@/components/ZioSplash";
+import {
+  ZioSplash,
+  hasSplashShownThisSession,
+  markSplashShownThisSession,
+} from "@/components/ZioSplash";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { getOnboardingStatus } from "@/lib/api/profile";
 import { getOnboardingComplete } from "@/lib/secure";
-
-// Module-scope session flag: survives GateScreen re-mounts (e.g. the OS
-// destroying and restoring the React tree when the app returns from the
-// background) but resets on a true cold launch, since a fresh process
-// re-evaluates this module. Ensures the splash plays once per process.
-let splashShownThisSession = false;
 
 export default function GateScreen() {
   const colors = useColors();
@@ -23,10 +21,10 @@ export default function GateScreen() {
   // Server-side first-run setup gate (separate from the local intro-slides
   // flag above): null = not yet checked, true = needs the stepped /setup flow.
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
-  // Animated Zio splash shown once on every cold launch. Warm resumes that
-  // re-mount this screen (background/foreground cycles) skip it via the
-  // module-scope session flag.
-  const [showSplash, setShowSplash] = useState(() => !splashShownThisSession);
+  // Animated Zio splash shown only on the first launch of each session
+  // (module-level flag in ZioSplash; survives GateScreen re-mounts from
+  // background/foreground cycles, resets on a true cold launch).
+  const [showSplash, setShowSplash] = useState(() => !hasSplashShownThisSession());
 
   useEffect(() => {
     getOnboardingComplete().then(setOnboarded);
@@ -71,7 +69,7 @@ export default function GateScreen() {
     return (
       <ZioSplash
         onDone={() => {
-          splashShownThisSession = true;
+          markSplashShownThisSession();
           setShowSplash(false);
         }}
         appReady={appReady}
