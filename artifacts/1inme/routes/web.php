@@ -685,6 +685,7 @@ Route::get('/sb/booking/{token}', [\App\Modules\Common\Controllers\PublicService
 
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');
 Route::post('/{alias}/track/heartbeat', [\App\Modules\Common\Controllers\EngagementController::class, 'heartbeat'])->name('track.heartbeat')->where('alias', '[^/]+')->middleware('throttle:120,1');
+Route::post('/{alias}/track/identify', [\App\Modules\Common\Controllers\EngagementController::class, 'recordVisitorType'])->name('track.visitor.type')->where('alias', '[^/]+')->middleware('throttle:10,1');
 Route::post('/{alias}/subscribe', [RedirectController::class, 'subscribe'])->name('redirect.subscribe')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')->middleware('throttle:10,1');
 
 // Public, no-login review submission for a standalone Reviews page. Honeypot

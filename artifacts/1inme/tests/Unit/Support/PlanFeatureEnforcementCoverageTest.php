@@ -138,6 +138,7 @@ class PlanFeatureEnforcementCoverageTest extends TestCase
         'ab_tests' => 'TODO: register in featureFlags(). Enforced in LinkController::planAllowsAbTests(); not yet in the admin plan form.',
         'ab_max_variants' => 'TODO: register in quantityLimits(). Enforced in LinkController::planMaxAbVariants(); not yet in the admin plan form.',
         'ask_coach' => 'TODO: register in aiSuite(). Enforced via AiPlanAccess::featureAllowed(); not yet in the admin plan form (see AiPlanAccess::legacyAvailabilityFallback()).',
+        'audience_type_estimation' => 'TODO: register in aiSuite(). Enforced via AudienceTypeEstimationService::FEATURE_KEY + AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
         'card_scan' => 'TODO: register in aiSuite(). Enforced via AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
         'ai_resume_tools' => 'TODO: register in aiSuite(). Enforced via GatesResumeAiTools + AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
         'competitor_teardown' => 'TODO: register in aiSuite(). Enforced via AiPlanAccess::featureAllowed(); not yet in the admin plan form.',

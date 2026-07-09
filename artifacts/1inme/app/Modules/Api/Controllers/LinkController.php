@@ -573,6 +573,28 @@ class LinkController extends Controller
         // tap-through list on the analytics screen.
         $payload['by_block'] = BlockAnalyticsAggregator::blockSummary($link, $from, $to);
 
+        // Audience Insights: self-identified visitor persona breakdown from page_sessions.
+        // Only present for non-empty datasets (visitor_type column populated after migration).
+        $audienceRows = \App\Modules\User\Models\PageSession::where('link_id', $link->id)
+            ->whereBetween('started_at', [$from, $to])
+            ->whereNotNull('visitor_type')
+            ->selectRaw('visitor_type, count(*) as count')
+            ->groupBy('visitor_type')
+            ->orderByDesc('count')
+            ->get();
+        $audienceTotal = max(1, $audienceRows->sum('count'));
+        $payload['by_visitor_type'] = $audienceRows->map(fn ($r) => [
+            'type'    => $r->visitor_type,
+            'count'   => (int) $r->count,
+            'pct'     => round(($r->count / $audienceTotal) * 100, 1),
+        ])->values()->all();
+
+        // Cached AI-estimated audience mix (produced by the owner-triggered
+        // web estimate endpoint) so mobile can render the same combined
+        // self-identified + estimated Audience Type breakdown.
+        $audienceEstimate = $link->settings['biolink']['audience_estimate'] ?? null;
+        $payload['audience_estimate'] = is_array($audienceEstimate) ? $audienceEstimate : null;
+
         // A/B variant breakdown — populated when the link was created via
         // the browser extension's "Shorten as A/B test" flow. The popup
         // (and dashboard) renders the per-variant counts and surfaces the

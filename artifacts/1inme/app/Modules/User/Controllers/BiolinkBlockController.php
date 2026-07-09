@@ -1780,6 +1780,7 @@ class BiolinkBlockController extends Controller
             'os' => ['iOS', 'Android', 'Windows', 'OS X', 'Linux', 'Chrome OS'],
             'browsers' => ['Chrome', 'Firefox', 'Safari', 'Edge', 'Opera', 'Brave', 'Vivaldi', 'Internet Explorer'],
             'languages' => null,
+            'visitor_types' => ['student', 'professional', 'business', 'creator', 'other'],
         ];
 
         // CSV-style fields (free-form text, comma-separated): accept scalar string too.

@@ -938,6 +938,8 @@
             $__storeCreatorId = $creatorOwner?->id;
         @endphp
 
+        @include('common.partials.audience-prompt', ['link' => $link])
+
         @if($pinnedPost)
             <div class="biolink-block-wrap" style="grid-column: span 12">
                 <div class="mb-3 rounded-2xl p-4" style="background: rgba(255,255,255,0.08); border:1px solid rgba(255,191,80,0.5); color:{{ $fontColor }};">
@@ -2270,7 +2272,7 @@
         function startSession(){
             fetch(startUrl, {method:'POST', headers:{'Content-Type':'application/json'}, body: '{}'})
                 .then(function(r){ return r.json(); })
-                .then(function(d){ if(d && d.session_id){ sessionId = d.session_id; setupObserver(); } })
+                .then(function(d){ if(d && d.session_id){ sessionId = d.session_id; window.__SESSION_ID__ = d.session_id; setupObserver(); } })
                 .catch(function(){});
         }
 

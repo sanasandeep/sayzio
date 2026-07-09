@@ -294,7 +294,7 @@
         </div>
 
         {{-- =============== AUDIENCE CARD =============== --}}
-        @php $audCount = count($vis['continents'] ?? []) + count($vis['countries'] ?? []) + count($vis['cities'] ?? []) + count($vis['languages'] ?? []); @endphp
+        @php $audCount = count($vis['continents'] ?? []) + count($vis['countries'] ?? []) + count($vis['cities'] ?? []) + count($vis['languages'] ?? []) + count($vis['visitor_types'] ?? []); @endphp
         <div class="rounded-xl overflow-hidden" style="background: linear-gradient(180deg, rgba(34,211,238,0.05), rgba(255,255,255,0.01)); border: 1px solid rgba(34,211,238,0.16);">
             <button type="button" @click="openCard = openCard === 'audience' ? '' : 'audience'"
                     class="w-full flex items-center justify-between px-3 py-2.5">
@@ -371,6 +371,35 @@
                                class="{{ $inputClass }} text-xs"
                                x-data x-init="$watch('$el.value', v => { $el.nextElementSibling.value = v; })">
                         <input type="hidden" name="visibility[languages]" value="{{ implode(',', $vis['languages'] ?? []) }}">
+                    </div>
+
+                    @php
+                        $allVisitorTypes = [
+                            'student'      => ['icon' => 'fa-user-graduate', 'label' => 'Student'],
+                            'professional' => ['icon' => 'fa-briefcase',     'label' => 'Professional'],
+                            'business'     => ['icon' => 'fa-building',      'label' => 'Business Owner'],
+                            'creator'      => ['icon' => 'fa-palette',       'label' => 'Creator'],
+                            'other'        => ['icon' => 'fa-user',          'label' => 'Other'],
+                        ];
+                    @endphp
+                    <div>
+                        <label class="text-[11px] font-medium flex items-center gap-1.5 mb-1.5" style="color: var(--text-muted);">
+                            <i class="fas fa-users text-cyan-400/80 text-[10px]"></i>
+                            Visitor Persona · Show only for
+                            <span class="text-white/30 text-[10px]">· requires audience prompt to be enabled</span>
+                        </label>
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach($allVisitorTypes as $vtKey => $vtMeta)
+                            <label class="flex items-center gap-1.5 text-[11px] cursor-pointer px-2.5 py-1 rounded-md transition" style="color: var(--text-muted); background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                <input type="checkbox" name="visibility[visitor_types][]" value="{{ $vtKey }}"
+                                       {{ in_array($vtKey, $vis['visitor_types'] ?? []) ? 'checked' : '' }}
+                                       class="rounded border-white/20 bg-white/5 text-cyan-500 focus:ring-cyan-500/30 w-3 h-3">
+                                <i class="fas {{ $vtMeta['icon'] }} text-[10px]"></i>
+                                {{ $vtMeta['label'] }}
+                            </label>
+                            @endforeach
+                        </div>
+                        <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Leave all unchecked to show this block to all visitors regardless of persona.</p>
                     </div>
                 </div>
             </div>

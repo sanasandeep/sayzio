@@ -1169,6 +1169,140 @@
     @endif
 </div>
 
+{{-- ================== AUDIENCE INSIGHTS =================== --}}
+@php
+    $aiPersonaLabels  = ['student'=>'Student','professional'=>'Professional','business'=>'Business Owner','creator'=>'Creator','other'=>'Other'];
+    $aiPersonaIcons   = ['student'=>'fa-user-graduate','professional'=>'fa-briefcase','business'=>'fa-building','creator'=>'fa-palette','other'=>'fa-user'];
+    $hasSelfIdData    = !empty($audienceTypeStats) && $audienceTypeStats->isNotEmpty();
+    $cachedAiEstimate = $link->settings['biolink']['audience_estimate'] ?? [];
+    $hasAiEstimate    = !empty($cachedAiEstimate['data']) && is_array($cachedAiEstimate['data']);
+    $showAudienceCard = $hasSelfIdData || $hasAiEstimate || $link->isBiolinkFamily();
+@endphp
+@if($showAudienceCard)
+<div class="section-card mb-7"
+     style="--sc-accent: linear-gradient(90deg,#5c83ff,#6366f1); --sc-glow: rgba(92,131,255,0.35); --sc-color: #a5b4fc; --sc-border: rgba(99,102,241,0.3);">
+    <div class="section-head">
+        <div class="section-title"><div class="section-icon"><i class="fas fa-users"></i></div> Audience Insights</div>
+        @if($hasSelfIdData)
+            <span class="section-pill">{{ $audienceTypeStats->sum('count') }} self-identified</span>
+        @elseif($hasAiEstimate)
+            <span class="section-pill" style="background:rgba(99,102,241,0.15);color:#a5b4fc;">AI Estimated</span>
+        @endif
+    </div>
+    <div class="section-body"
+         x-data="{
+             estimating: false,
+             estimateRows: @json($hasAiEstimate ? $cachedAiEstimate['data'] : []),
+             estimateError: '',
+             estimateDone: {{ $hasAiEstimate ? 'true' : 'false' }},
+             async runEstimate() {
+                 this.estimating = true;
+                 this.estimateError = '';
+                 try {
+                     const res = await fetch('{{ route('links.audience.estimate', $link) }}', {
+                         method: 'POST',
+                         headers: {
+                             'Content-Type': 'application/json',
+                             'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '',
+                             'Accept': 'application/json',
+                         },
+                     });
+                     const json = await res.json();
+                     if (!res.ok) {
+                         this.estimateError = json.error ?? 'Estimation failed.';
+                     } else {
+                         this.estimateRows = json.estimated ?? [];
+                         this.estimateDone = true;
+                     }
+                 } catch(e) {
+                     this.estimateError = 'Network error. Please try again.';
+                 } finally {
+                     this.estimating = false;
+                 }
+             }
+         }">
+
+        {{-- Self-identified data --}}
+        @if($hasSelfIdData)
+        <div class="mb-5">
+            <p class="text-xs mb-3" style="color: var(--text-dimmed);">Visitors who self-identified their persona via the audience prompt.</p>
+            @php $aiTotal = max(1, $audienceTypeStats->sum('count')); @endphp
+            <div class="space-y-3">
+                @foreach($audienceTypeStats as $row)
+                @php
+                    $pct   = round(($row->count / $aiTotal) * 100, 1);
+                    $icon  = $aiPersonaIcons[$row->visitor_type] ?? 'fa-user';
+                    $lbl   = $aiPersonaLabels[$row->visitor_type] ?? ucfirst($row->visitor_type);
+                @endphp
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="flex items-center gap-1.5 text-xs font-medium" style="color: var(--text-secondary);">
+                            <i class="fas {{ $icon }} text-blue-400 text-[10px]"></i> {{ $lbl }}
+                        </span>
+                        <span class="text-xs font-semibold" style="color: var(--text-primary);">{{ number_format($row->count) }} <span class="text-[10px] font-normal" style="color: var(--text-dimmed);">({{ $pct }}%)</span></span>
+                    </div>
+                    <div class="w-full rounded-full overflow-hidden" style="height:6px; background: rgba(255,255,255,0.07);">
+                        <div class="h-full rounded-full" style="width: {{ $pct }}%; background: linear-gradient(90deg,#5c83ff,#6366f1);"></div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        {{-- AI Estimated data (shown when cached or just fetched) --}}
+        <div x-show="estimateRows.length > 0" x-cloak class="mb-4">
+            <div class="flex items-center gap-2 mb-3">
+                <span class="text-xs font-semibold" style="color: var(--text-secondary);">AI Estimate</span>
+                <span style="font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(99,102,241,0.18);color:#a5b4fc;font-weight:600;">estimated · last 30 days</span>
+            </div>
+            <p class="text-xs mb-3" style="color: var(--text-dimmed);">Probabilistic breakdown inferred from aggregate, anonymous session signals. Not based on any individual visitor data.</p>
+            <div class="space-y-3">
+                <template x-for="row in estimateRows" :key="row.type">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="flex items-center gap-1.5 text-xs font-medium" style="color: var(--text-secondary);">
+                                <i class="fas fa-circle-dot text-indigo-400 text-[10px]"></i>
+                                <span x-text="row.label"></span>
+                            </span>
+                            <span class="text-xs font-semibold" style="color: var(--text-primary);">
+                                ~<span x-text="row.pct"></span>%
+                            </span>
+                        </div>
+                        <div class="w-full rounded-full overflow-hidden" style="height:6px; background: rgba(255,255,255,0.07);">
+                            <div class="h-full rounded-full" :style="'width:' + row.pct + '%; background: linear-gradient(90deg,#6366f1,#818cf8);'"></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        {{-- Empty state (no self-identified and no AI estimate yet) --}}
+        @if(!$hasSelfIdData)
+        <div x-show="!estimateDone" class="mb-4">
+            <p class="text-xs" style="color: var(--text-dimmed);">No visitors have self-identified yet. Enable the audience prompt in <a href="{{ route('links.advanced', $link) }}" class="underline">Privacy settings</a> to start collecting self-identified personas, or use AI to estimate from aggregate traffic signals.</p>
+        </div>
+        @endif
+
+        {{-- Get AI Estimate button --}}
+        @if($link->isBiolinkFamily())
+        <div class="flex items-center gap-3 mt-2">
+            <button type="button" @click="runEstimate()"
+                    :disabled="estimating"
+                    class="btn btn-xs"
+                    style="background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;"
+                    :style="estimating ? 'opacity:.6;cursor:not-allowed;' : ''">
+                <i class="fas fa-sparkles mr-1.5 text-[11px]"></i>
+                <span x-text="estimateDone ? 'Re-estimate with AI' : 'Get AI Estimate'"></span>
+                <span x-show="estimating"> &nbsp;<i class="fas fa-spinner fa-spin text-[10px]"></i></span>
+            </button>
+            <span x-show="estimateError" x-text="estimateError" class="text-xs text-red-400" x-cloak></span>
+        </div>
+        @endif
+    </div>
+</div>
+@endif
+
 {{-- ===================== GEOGRAPHIC HEATMAP ===================== --}}
 <div class="section-card mb-7"
      style="--sc-accent: linear-gradient(90deg,#f97316,#ef4444); --sc-glow: rgba(249,115,22,0.35); --sc-color: #fdba74; --sc-border: rgba(249,115,22,0.3);">

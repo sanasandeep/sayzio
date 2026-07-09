@@ -126,8 +126,19 @@
                     @endforeach
                 </select>
             </div>
+            <div>
+                <label class="text-xs font-medium mb-1 block" style="color: var(--text-muted);">Visitor Type</label>
+                <select name="visitor_type" class="px-3 py-2 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                    <option value="">All</option>
+                    <option value="student" {{ request('visitor_type') === 'student' ? 'selected' : '' }}>Student</option>
+                    <option value="professional" {{ request('visitor_type') === 'professional' ? 'selected' : '' }}>Professional</option>
+                    <option value="business" {{ request('visitor_type') === 'business' ? 'selected' : '' }}>Business Owner</option>
+                    <option value="creator" {{ request('visitor_type') === 'creator' ? 'selected' : '' }}>Creator</option>
+                    <option value="other" {{ request('visitor_type') === 'other' ? 'selected' : '' }}>Other</option>
+                </select>
+            </div>
             <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium text-white" style="background: linear-gradient(135deg, #3d6bff, #5c83ff);">Filter</button>
-            @if(request()->hasAny(['search','type','status','link_id']))
+            @if(request()->hasAny(['search','type','status','link_id','visitor_type']))
             <a href="{{ route('user.subscribers.index') }}" class="px-3 py-2 rounded-xl text-sm" style="color: var(--text-muted);">Clear</a>
             @endif
         </form>

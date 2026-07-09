@@ -217,6 +217,10 @@ class AiPlanAccess
             // perks above; gate to any non-free plan until plans carry the
             // explicit key.
             'competitor_teardown' => !$user->isOnFreePlan(),
+            // Audience Type AI Estimation — drives metered AI spend per
+            // on-demand analytics call; gate to any non-free plan until
+            // plans carry the explicit key.
+            'audience_type_estimation' => !$user->isOnFreePlan(),
             default              => true,
         };
     }

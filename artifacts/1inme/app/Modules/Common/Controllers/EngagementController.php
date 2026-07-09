@@ -116,6 +116,36 @@ class EngagementController extends Controller
     }
 
     /**
+     * Record a visitor's self-identified persona type for the current session.
+     * Consent-aware: only persists when engagementConsentGranted() is true.
+     */
+    public function recordVisitorType(Request $request, string $alias)
+    {
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if (!$link) abort(404);
+        if (!$this->engagementConsentGranted($request, $link)) {
+            return response()->json(['ok' => false, 'reason' => 'consent_required'], 200);
+        }
+
+        $data = $request->validate([
+            'session_id'   => 'required|string|size:36',
+            'visitor_type' => 'required|string|in:student,professional,business,creator,other',
+        ]);
+
+        $allowed = ['student', 'professional', 'business', 'creator', 'other'];
+        $type = in_array($data['visitor_type'], $allowed, true) ? $data['visitor_type'] : null;
+        if (!$type) {
+            return response()->json(['ok' => false], 422);
+        }
+
+        $updated = PageSession::where('session_id', $data['session_id'])
+            ->where('link_id', $link->id)
+            ->update(['visitor_type' => $type]);
+
+        return response()->json(['ok' => $updated > 0]);
+    }
+
+    /**
      * Per-biolink consent gate (task #1114). Engagement events
      * (sessions, heartbeats, dwell-time) are non-essential analytics:
      * if the page owner has the consent banner enabled, we only persist

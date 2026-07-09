@@ -71,6 +71,18 @@
                     <textarea name="body" rows="8" placeholder="Write your message here..." required class="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-y" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);"></textarea>
                 </div>
                 <input type="hidden" name="filter_type" :value="channel === 'email' ? 'email' : 'whatsapp_number'">
+                <div>
+                    <label class="text-xs font-medium mb-1.5 block" style="color: var(--text-muted);">Audience Segment <span style="color: var(--text-dimmed);">(optional)</span></label>
+                    <select name="visitor_type" class="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                        <option value="">All visitor types</option>
+                        <option value="student">Students</option>
+                        <option value="professional">Professionals</option>
+                        <option value="business">Business owners</option>
+                        <option value="creator">Creators</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <p class="text-xs mt-1.5" style="color: var(--text-dimmed);">Only send to subscribers who self-identified as this visitor type on your bio link.</p>
+                </div>
             </div>
         </div>
 

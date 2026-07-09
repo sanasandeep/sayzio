@@ -832,6 +832,29 @@
                         </span>
                     </label>
 
+                    @php
+                        $apCfg      = $link->settings['biolink']['audience_prompt'] ?? [];
+                        $apEnabled  = !empty($apCfg['enabled']);
+                        $apQuestion = trim($apCfg['question'] ?? '') ?: 'What best describes you?';
+                    @endphp
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="hidden" name="biolink[audience_prompt][enabled]" value="0">
+                        <input type="checkbox" name="biolink[audience_prompt][enabled]" value="1"
+                               {{ $apEnabled ? 'checked' : '' }} class="mt-0.5">
+                        <span>
+                            <span class="block text-xs font-semibold" style="color: var(--text-primary);">Show visitor audience prompt</span>
+                            <span class="block text-[11px] mt-0.5" style="color: var(--text-dimmed);">Ask visitors to self-identify (student, professional, business, creator…). Answers feed analytics and can be used in block display rules.</span>
+                        </span>
+                    </label>
+                    @if($apEnabled)
+                    <div class="pl-7 space-y-2">
+                        <div>
+                            <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Prompt question</label>
+                            <input type="text" name="biolink[audience_prompt][question]" value="{{ $apQuestion }}" maxlength="120" class="theme-input w-full text-xs" placeholder="What best describes you?">
+                        </div>
+                    </div>
+                    @endif
+
                     <div x-show="banner" x-transition class="space-y-3 pl-7">
                         <div>
                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Banner copy</label>

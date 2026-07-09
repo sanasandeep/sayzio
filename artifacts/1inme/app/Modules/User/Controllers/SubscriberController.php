@@ -31,6 +31,9 @@ class SubscriberController
         if ($request->filled('link_id')) {
             $query->where('link_id', $request->link_id);
         }
+        if ($request->filled('visitor_type')) {
+            $query->where('visitor_type', $request->visitor_type);
+        }
 
         $subscribers = $query->orderByDesc('subscribed_at')->paginate(25)->withQueryString();
 
@@ -77,6 +80,9 @@ class SubscriberController
 
         if ($request->filled('type')) {
             $query->where('type', $request->type);
+        }
+        if ($request->filled('visitor_type')) {
+            $query->where('visitor_type', $request->visitor_type);
         }
 
         $subscribers = $query->orderByDesc('subscribed_at')->get();
@@ -162,14 +168,17 @@ class SubscriberController
             'subject' => 'required_if:channel,email|nullable|string|max:200',
             'body' => 'required|string|max:10000',
             'filter_type' => 'nullable|in:all,email,whatsapp_number,whatsapp_channel',
+            'visitor_type' => 'nullable|in:student,professional,business,creator,other',
         ]);
 
         $channel = $validated['channel'];
         $filterType = $validated['filter_type'] ?? ($channel === 'email' ? 'email' : 'whatsapp_number');
+        $visitorType = $validated['visitor_type'] ?? null;
 
         $recipients = Subscriber::where('user_id', $user->id)
             ->active()
             ->ofType($filterType)
+            ->when($visitorType, fn ($q) => $q->where('visitor_type', $visitorType))
             ->get();
 
         $message = SubscriberMessage::create([
@@ -181,7 +190,7 @@ class SubscriberController
             'recipients_count' => $recipients->count(),
             'sent_count' => 0,
             'failed_count' => 0,
-            'filters' => ['type' => $filterType],
+            'filters' => array_filter(['type' => $filterType, 'visitor_type' => $visitorType]),
             'sent_at' => now(),
         ]);
 

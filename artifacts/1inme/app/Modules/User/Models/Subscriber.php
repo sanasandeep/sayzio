@@ -13,6 +13,7 @@ class Subscriber extends Model
 protected $fillable = [
         'user_id', 'link_id', 'block_id', 'type', 'email', 'phone',
         'name', 'channel_url', 'status', 'source', 'metadata',
+        'visitor_type',
         'subscribed_at', 'unsubscribed_at',
         'is_read', 'is_starred', 'is_spam', 'spam_reason', 'read_at',
     ];

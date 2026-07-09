@@ -1015,6 +1015,18 @@ class BiolinkBlock extends Model
             if (!self::matchesTimeSlot($v['time_slots'])) return false;
         }
 
+        // Visitor type targeting — read from cookie set by the audience-prompt Alpine component.
+        // Only evaluated when the visitor has previously self-identified (cookie present).
+        if (!empty($v['visitor_types']) && is_array($v['visitor_types'])) {
+            $cookieVal = $request->cookie('ap_type_' . ($this->link_id ?? 0));
+            if ($cookieVal !== null) {
+                $decodedType = rawurldecode((string) $cookieVal);
+                if (!in_array($decodedType, $v['visitor_types'], true)) {
+                    return false;
+                }
+            }
+        }
+
         return true;
     }
 

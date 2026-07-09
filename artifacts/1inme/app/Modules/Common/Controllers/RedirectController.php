@@ -1733,20 +1733,30 @@ class RedirectController extends Controller
             'phone'    => $data['phone'] ?? null,
         ]);
 
+        // Stamp the visitor's self-identified persona (set by the audience-prompt
+        // Alpine component before they subscribed) onto the subscriber row so that
+        // the Subscribers list and CSV export can be filtered/segmented by persona.
+        $visitorType = null;
+        $apCookieRaw = $request->cookie('ap_type_' . $link->id);
+        if ($apCookieRaw && preg_match('/^(student|professional|business|creator|other)$/', $apCookieRaw)) {
+            $visitorType = $apCookieRaw;
+        }
+
         $subscriber = Subscriber::create([
-            'user_id' => $link->user_id,
-            'link_id' => $link->id,
-            'block_id' => $block->id,
-            'type' => $data['type'],
-            'email' => $data['email'] ?? null,
-            'phone' => $data['phone'] ?? null,
-            'name' => $data['name'] ?? null,
-            'channel_url' => $data['channel_url'] ?? null,
-            'status' => 'active',
-            'source' => $data['type'] === 'whatsapp_channel' ? ($data['_fingerprint'] ?? $alias) : $alias,
+            'user_id'      => $link->user_id,
+            'link_id'      => $link->id,
+            'block_id'     => $block->id,
+            'type'         => $data['type'],
+            'email'        => $data['email'] ?? null,
+            'phone'        => $data['phone'] ?? null,
+            'name'         => $data['name'] ?? null,
+            'channel_url'  => $data['channel_url'] ?? null,
+            'status'       => 'active',
+            'source'       => $data['type'] === 'whatsapp_channel' ? ($data['_fingerprint'] ?? $alias) : $alias,
             'subscribed_at' => now(),
-            'is_spam' => $spamCheck['is_spam'],
-            'spam_reason' => $spamCheck['is_spam'] ? $spamCheck['reason'] : null,
+            'is_spam'      => $spamCheck['is_spam'],
+            'spam_reason'  => $spamCheck['is_spam'] ? $spamCheck['reason'] : null,
+            'visitor_type' => $visitorType,
         ]);
 
         // Account-level forwarding rules — fan out to the owner's email/webhook

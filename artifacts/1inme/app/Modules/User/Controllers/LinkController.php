@@ -1198,6 +1198,15 @@ class LinkController extends Controller
             ->groupBy('block_id', 'block_type', 'destination_url')
             ->orderByDesc('count')->limit(50)->get();
 
+        // Audience Insights: self-identified visitor type breakdown from page_sessions.
+        $audienceTypeStats = \App\Modules\User\Models\PageSession::where('link_id', $link->id)
+            ->whereBetween('started_at', [$startDate, $endDate])
+            ->whereNotNull('visitor_type')
+            ->selectRaw('visitor_type, count(*) as count')
+            ->groupBy('visitor_type')
+            ->orderByDesc('count')
+            ->get();
+
         // ---- Previous-period comparison (same span ending immediately before $startDate) ----
         $rangeSeconds  = max(1, $endDate->diffInSeconds($startDate));
         // Previous-period end is *exclusive* of the current-period start so a
@@ -1485,8 +1494,51 @@ class LinkController extends Controller
             'countryFilter', 'deviceFilter',
             'browserFilter', 'osFilter', 'languageFilter', 'baseLanguageFilter',
             'channelFilter',
+            'audienceTypeStats',
             'performance', 'performanceHistory'
         ));
+    }
+
+    /**
+     * Run the AI Audience Type Estimation for a link and cache the result in
+     * link.settings so the analytics panel can display it across page loads.
+     * Gate: paid plans only (feature key audience_type_estimation).
+     * Returns JSON: { estimated: [{type, label, pct}], credits_spent: N }
+     */
+    public function estimateAudience(Request $request, Link $link)
+    {
+        $user = workspace_owner();
+        abort_if($link->user_id !== $user->id, 403);
+
+        if (!\App\Services\AI\AiPlanAccess::featureAllowed($user, \App\Services\AI\AudienceTypeEstimationService::FEATURE_KEY)) {
+            return response()->json([
+                'error'            => 'AI Audience Estimation is available on paid plans.',
+                'upgrade_required' => true,
+                'upgrade_url'      => route('user.upgrade'),
+            ], 402);
+        }
+
+        try {
+            $result = app(\App\Services\AI\AudienceTypeEstimationService::class)
+                ->estimate($user, $link, now()->subDays(30), now());
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Audience estimation failed', ['link_id' => $link->id, 'error' => $e->getMessage()]);
+            return response()->json(['error' => 'Estimation failed. Please try again.'], 500);
+        }
+
+        // Cache the estimate on link settings so it renders on next analytics page load.
+        $settings = is_array($link->settings) ? $link->settings : [];
+        $settings['biolink']['audience_estimate'] = [
+            'data'          => $result['estimated'],
+            'generated_at'  => now()->toIso8601String(),
+            'credits_spent' => $result['credits_spent'],
+        ];
+        $link->update(['settings' => $settings]);
+
+        return response()->json([
+            'estimated'     => $result['estimated'],
+            'credits_spent' => $result['credits_spent'],
+        ]);
     }
 
     /**

@@ -166,6 +166,7 @@ class BlockReadonlyDemoWrites
      * rather than as missing/unclassified. Each entry notes what it writes.
      */
     public const ACKNOWLEDGED_NONALLOWED_ROUTE_NAMES = [
+        'user.links.audience.estimate',  // charges AI credits + persists result into links.settings
         'user.payouts.preview-complete', // writes creator_payment_connections (marks provider connected)
         'user.qr-codes.generate-art',    // charges coins for AI image gen against the shared demo wallet
     ];

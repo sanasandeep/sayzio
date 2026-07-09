@@ -1299,6 +1299,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/heatmap', [LinkController::class, 'heatmap'])->middleware('workspace.can:stats.view')->name('links.heatmap');
         Route::get('links/{link}/heatmap/live', [LinkController::class, 'heatmapLive'])->middleware('workspace.can:stats.view')->name('links.heatmap.live');
         Route::get('links/{link}/heatmap/live/stream', [LinkController::class, 'heatmapLiveStream'])->middleware('workspace.can:stats.view')->name('links.heatmap.live.stream');
+        Route::post('links/{link}/audience/estimate', [LinkController::class, 'estimateAudience'])->middleware('workspace.can:links.edit')->name('links.audience.estimate');
         Route::get('links/{link}/clicks/partial', [LinkController::class, 'recentClicksPartial'])->middleware('workspace.can:stats.view')->name('links.clicks.partial');
         // Per-block analytics drill-down (JSON) — used by the modal that
         // opens when a creator clicks a row in the block stats table.
