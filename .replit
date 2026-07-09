@@ -156,6 +156,10 @@ args = "e2e-block-live"
 task = "workflow.run"
 args = "e2e-home-showcase"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-import-url"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -537,6 +541,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-showcase-editor-preview.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-import-url"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:import-url-e2e"
 
 [workflows.workflow.metadata]
 isValidation = true
