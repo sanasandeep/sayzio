@@ -36,6 +36,11 @@ import {
   setCachedOnboardingSlides,
   setOnboardingComplete,
 } from "@/lib/secure";
+import {
+  getLocalSlideImageMap,
+  persistSlideImages,
+  type SlideImageMap,
+} from "@/lib/slideImageCache";
 
 // Bundled fallbacks. Used only if the slides endpoint is unreachable
 // (offline, fresh install with no network) so the splash never breaks.
@@ -132,9 +137,14 @@ const FADE_DURATION = 700;
 type SlideImage = ImageSourcePropType;
 
 // Resolve a slide into the list of images we should rotate through.
-// Prefer admin-managed remote URLs; fall back to bundled assets so
-// offline / fresh-install users still see the right photo.
-function resolveImages(slide: OnboardingSlide): SlideImage[] {
+// Prefer admin-managed remote URLs — swapped for persisted local file
+// URIs when the image cache has them, so cached slides render their
+// real photos instantly (even offline). Fall back to bundled assets so
+// fresh-install users still see the right photo.
+function resolveImages(
+  slide: OnboardingSlide,
+  localImages: SlideImageMap,
+): SlideImage[] {
   const remote =
     slide.image_urls && slide.image_urls.length > 0
       ? slide.image_urls
@@ -143,7 +153,7 @@ function resolveImages(slide: OnboardingSlide): SlideImage[] {
         : [];
 
   if (remote.length > 0) {
-    return remote.map((uri) => ({ uri }));
+    return remote.map((uri) => ({ uri: localImages[uri] ?? uri }));
   }
 
   const bundled =
@@ -500,6 +510,16 @@ export default function Onboarding() {
   // the race against a fast network response.
   const freshSlidesRef = useRef(false);
 
+  // Remote image URL -> persisted local file URI. Slides render from these
+  // local files when available so cached sets show their real photos
+  // instantly on relaunch, even offline. Merged (never replaced) so the
+  // cache-hydrate read and the fresh-fetch persist can't clobber each other.
+  const [localImages, setLocalImages] = useState<SlideImageMap>({});
+  const mergeLocalImages = useCallback((map: SlideImageMap) => {
+    if (Object.keys(map).length === 0) return;
+    setLocalImages((prev) => ({ ...prev, ...map }));
+  }, []);
+
   // Hydrate from the on-device cache of the last successfully fetched
   // slides so returning users see the real admin content instantly (even
   // offline) instead of the bundled fallback set. Skipped if fresh API
@@ -509,6 +529,12 @@ export default function Onboarding() {
     (async () => {
       const cached = await getCachedOnboardingSlides<OnboardingSlide>();
       if (cancelled || !cached || cached.length === 0) return;
+      // Resolve persisted local files BEFORE swapping the slides in, so
+      // the first paint of the cached set already uses local URIs and
+      // never flashes the bundled underlay while remote photos load.
+      const localMap = await getLocalSlideImageMap(cached);
+      if (cancelled) return;
+      mergeLocalImages(localMap);
       if (freshSlidesRef.current) return;
       if (indexRef.current === 0) {
         setSlides(cached);
@@ -541,10 +567,19 @@ export default function Onboarding() {
         freshSlidesRef.current = true;
         // Persist for instant rendering on future launches (best-effort).
         void setCachedOnboardingSlides(items);
-        // Warm the image cache before swapping so the new slides never
-        // show a blank background while their photos download.
-        await prefetchSlideImages(items);
+        // Download the photos to app storage alongside the slide JSON
+        // (pruning files for removed slides) so future launches render
+        // real photos from local files even offline. Doubles as the
+        // pre-swap warm-up so the new slides never show a blank
+        // background. On web there's no app filesystem, so fall back to
+        // warming the browser image cache instead.
+        const localMap = await persistSlideImages(items);
         if (cancelled) return;
+        mergeLocalImages(localMap);
+        if (Platform.OS === "web") {
+          await prefetchSlideImages(items);
+          if (cancelled) return;
+        }
         if (indexRef.current === 0) {
           setSlides(items);
         } else {
@@ -710,7 +745,7 @@ export default function Onboarding() {
             />
           ) : (
             <SlideContent
-              images={resolveImages(item)}
+              images={resolveImages(item, localImages)}
               underlay={resolveUnderlay(item)}
               active={i === index}
               category={item.category}
