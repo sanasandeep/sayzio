@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    {{-- Safari uses theme-color to tint browser chrome and fill the area behind
+         rounded page corners. Without it, Safari samples the root background which
+         is dark by default, producing dark squares in light mode. We render the
+         initial value server-side (matching the html.light-mode class logic on
+         line 2) and keep it in sync with the client-side theme toggle via JS. --}}
+    <meta id="site-theme-color" name="theme-color" content="{{ (($_COOKIE['1inme_theme'] ?? null) === 'light') ? '#f8fafc' : '#0a0a14' }}">
     @php
         $__seo = \App\Modules\Common\Support\MarketingSeo::resolveForView([
             'seoKey'           => $seoKey ?? null,
@@ -55,6 +61,12 @@
                     }
                 } catch(e) {}
             }
+            // Sync the theme-color meta with whatever class state we resolved
+            // (localStorage may differ from the PHP-rendered cookie value).
+            try {
+                var __tc = document.getElementById('site-theme-color');
+                if (__tc) __tc.setAttribute('content', document.documentElement.classList.contains('light-mode') ? '#f8fafc' : '#0a0a14');
+            } catch(e) {}
         })();
         window.inmeToggleTheme = function(){
             var html = document.documentElement;
@@ -63,6 +75,11 @@
             var val = light ? 'light' : 'dark';
             try { localStorage.setItem('1inme_theme', val); } catch(e) {}
             try { document.cookie = '1inme_theme=' + val + '; path=/; max-age=31536000; SameSite=Lax'; } catch(e) {}
+            // Keep Safari theme-color (tab-bar / rounded-corner chrome) in sync.
+            try {
+                var __tc = document.getElementById('site-theme-color');
+                if (__tc) __tc.setAttribute('content', light ? '#f8fafc' : '#0a0a14');
+            } catch(e) {}
             try { window.dispatchEvent(new CustomEvent('inme-theme-changed', { detail: { light: light } })); } catch(e) {}
             return light;
         };

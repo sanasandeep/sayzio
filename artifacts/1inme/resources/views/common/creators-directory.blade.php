@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
+{{-- Safari uses theme-color to fill the area behind rounded page corners;
+     this page is always light, so a static light value is enough. --}}
+<meta name="theme-color" content="#f8fafc">
 @php
     $__seo = \App\Modules\Common\Support\MarketingSeo::resolveForView(['seoKey' => 'creators']);
 @endphp
