@@ -418,6 +418,16 @@ export default function Onboarding() {
   const { user, token } = useAuth();
   const listRef = useRef<FlatList<OnboardingSlide>>(null);
   const [index, setIndex] = useState(0);
+  // Mirror of `index` for effects/handlers that must read the latest value
+  // without re-subscribing (rotation re-snap, resync guard below).
+  const indexRef = useRef(0);
+  useEffect(() => {
+    indexRef.current = index;
+  }, [index]);
+  // While true we're programmatically re-snapping after a dimension change
+  // (rotation / keyboard resize) and ignore intermediate scroll events, which
+  // would otherwise compute a bogus index from a stale offset/width pair.
+  const resyncing = useRef(false);
   const [slides, setSlides] = useState<OnboardingSlide[] | null>(null);
   // Real dashboard presets for the AI demo slide. Only fetched when a
   // session exists (the /dashboard/layout endpoint is auth-only); null
@@ -486,13 +496,53 @@ export default function Onboarding() {
     }
   };
 
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const i = Math.round(e.nativeEvent.contentOffset.x / width);
-    if (i !== index) setIndex(i);
-  };
-
   // The intro photos plus the appended AI-dashboard designer slide.
   const pages = slides ? [...slides, AI_DASHBOARD_SLIDE] : null;
+  const pageCount = pages?.length ?? 0;
+
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    // Ignore events fired while we're re-snapping after a rotation /
+    // keyboard resize — the offset is transiently inconsistent with the
+    // new width and would compute a wrong slide index.
+    if (resyncing.current) return;
+    // Divide by the layout's *measured* width (falls back to the reactive
+    // window width) so a stale closure width can't miscalculate the index.
+    const measured = e.nativeEvent.layoutMeasurement?.width || width;
+    const raw = Math.round(e.nativeEvent.contentOffset.x / measured);
+    const i = Math.max(0, Math.min(raw, Math.max(0, pageCount - 1)));
+    if (i !== indexRef.current) {
+      indexRef.current = i;
+      setIndex(i);
+    }
+  };
+
+  // With fixed-size pages FlatList never needs to measure items, so
+  // rotation / keyboard resizes and scrollToIndex stay exact.
+  const getItemLayout = useCallback(
+    (_: ArrayLike<OnboardingSlide> | null | undefined, i: number) => ({
+      length: width,
+      offset: width * i,
+      index: i,
+    }),
+    [width],
+  );
+
+  // When the width changes (rotation, foldable resize, web window resize)
+  // the pixel offset no longer matches `index * width`; re-snap to the
+  // slide the user was on, without animation, and swallow the scroll
+  // events that re-snap produces.
+  useEffect(() => {
+    if (!listRef.current) return;
+    resyncing.current = true;
+    listRef.current.scrollToOffset({
+      offset: indexRef.current * width,
+      animated: false,
+    });
+    const t = setTimeout(() => {
+      resyncing.current = false;
+    }, 120);
+    return () => clearTimeout(t);
+  }, [width]);
 
   const next = async () => {
     const total = pages?.length ?? 0;
@@ -541,6 +591,15 @@ export default function Onboarding() {
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
+        getItemLayout={getItemLayout}
+        onScrollToIndexFailed={(info) => {
+          // Should not happen with getItemLayout, but if it ever does,
+          // fall back to an exact offset computed from the reactive width.
+          listRef.current?.scrollToOffset({
+            offset: info.index * width,
+            animated: true,
+          });
+        }}
         renderItem={({ item, index: i }) =>
           item.slug === AI_DASHBOARD_SLUG ? (
             <AiDashboardSlide
