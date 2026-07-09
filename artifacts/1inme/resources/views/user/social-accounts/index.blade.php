@@ -130,6 +130,73 @@
         </form>
     </div>
 
+    {{-- Browser extension install card. The KB ("Settings → Connected
+         Accounts & Apps") points users here for the extension, so this card
+         must exist or the docs dead-end. "Signed in" is detected server-side
+         via the Sanctum token the handshake page mints under the
+         'browser-extension' name (revocable from Devices & sessions). --}}
+    @php
+        $__extSignedIn = false;
+        try {
+            $__extSignedIn = $__user && method_exists($__user, 'tokens')
+                ? $__user->tokens()->where('name', 'browser-extension')->exists()
+                : false;
+        } catch (\Throwable $e) {
+            $__extSignedIn = false;
+        }
+        $__extStores = [
+            ['label' => 'Chrome Web Store', 'icon' => 'fab fa-chrome',  'url' => 'https://chromewebstore.google.com/search/Sayzio'],
+            ['label' => 'Edge Add-ons',     'icon' => 'fab fa-edge',    'url' => 'https://microsoftedge.microsoft.com/addons/Search/Sayzio'],
+            ['label' => 'Firefox Add-ons',  'icon' => 'fab fa-firefox-browser', 'url' => 'https://addons.mozilla.org/en-US/firefox/search/?q=Sayzio'],
+        ];
+    @endphp
+    <div class="card-premium p-4 mb-4" id="browser-extension">
+        <div class="flex items-start gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                 style="background: rgba(61,107,255,0.1); color:#3d6bff;">
+                <i class="fas fa-puzzle-piece"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <div class="text-sm font-semibold" style="color: var(--text-primary);">
+                        Browser Extension
+                    </div>
+                    @if($__extSignedIn)
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                              style="background: rgba(16,185,129,0.12); color:#10b981;">
+                            <i class="fas fa-circle-check"></i> Signed in
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                              style="background: var(--bg-glass-input); color: var(--text-muted);">
+                            <i class="fas fa-circle-info"></i> Not installed
+                        </span>
+                    @endif
+                </div>
+                <div class="text-[11px] mt-0.5" style="color: var(--text-muted);">
+                    Shorten links, capture reviews, save events, and get notification badges right from your browser.
+                    Search for <span class="font-semibold">"Sayzio"</span> in your browser's store, then click the
+                    extension icon and choose <span class="font-semibold">Sign in with Sayzio</span>.
+                    @if($__extSignedIn)
+                        You can revoke the extension's access any time from
+                        <a href="{{ route('user.settings.sessions.index') }}" class="underline" style="color:#3d6bff;">Devices &amp; sessions</a>.
+                    @endif
+                </div>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    @foreach($__extStores as $store)
+                        <a href="{{ $store['url'] }}" target="_blank" rel="noopener noreferrer"
+                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                           style="background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass);">
+                            <i class="{{ $store['icon'] }}" style="color:#3d6bff;"></i>
+                            {{ $store['label'] }}
+                            <i class="fas fa-arrow-up-right-from-square text-[9px]" style="color: var(--text-faint);"></i>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+
     @if(session('success'))
         <div class="mb-4 px-4 py-3 rounded-lg text-sm flex items-center gap-2"
              style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); color: #10b981;">

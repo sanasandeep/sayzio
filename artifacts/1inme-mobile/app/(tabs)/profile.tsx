@@ -157,6 +157,7 @@ const SETTINGS_PAGES: {
     | "/account-sessions"
     | "/identifiers"
     | "/connected-apps"
+    | "/info/extension"
     | "/integrations"
     | "/domains"
     | "/notifications"
@@ -173,6 +174,7 @@ const SETTINGS_PAGES: {
   { href: "/account-sessions", label: "Devices & sessions", icon: "shield" },
   { href: "/identifiers", label: "Linked emails & phones", icon: "at-sign" },
   { href: "/connected-apps", label: "Connected apps", icon: "zap" },
+  { href: "/info/extension", label: "Browser extension", icon: "chrome" },
   { href: "/integrations", label: "Integrations", icon: "link" },
   { href: "/domains", label: "Custom domains", icon: "globe" },
   { href: "/notifications", label: "Notifications", icon: "bell" },
