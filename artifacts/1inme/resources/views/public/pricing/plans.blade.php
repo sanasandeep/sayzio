@@ -1202,6 +1202,7 @@
                     ['ask_coach',                'AI Coach',                'bool'],
                     ['card_scan',                'Card & Brochure Scanner', 'bool'],
                     ['ai_resume_tools',          'AI Resume Tools',         'bool'],
+                    ['audience_type_estimation', 'Audience Insights',       'ai_access'],
                 ],
                 'Developer API' => [
                     ['api_access',               'API access',              'bool'],
@@ -1216,6 +1217,19 @@
             $blockLabel = fn (string $slug): string => \App\Modules\Common\Support\PlanBlockLabels::label($slug);
             $renderCell = function ($plan, $key, $kind) use ($blockLabel) {
                 $features = $plan->features ?? [];
+                if ($kind === 'ai_access') {
+                    // AI features gated by AiPlanAccess::featureAllowed()
+                    // rather than a seeded plan-form key (e.g. Audience
+                    // Insights / audience_type_estimation). Mirror its
+                    // resolution: an explicit per-plan key wins; otherwise
+                    // the feature is unlocked on any paid (non-free) plan.
+                    $on = array_key_exists($key, $features)
+                        ? !empty($features[$key])
+                        : ($plan->slug ?? null) !== 'free';
+                    return $on
+                        ? '<span class="feat-mark feat-mark-yes" aria-label="Included"><i class="fas fa-check text-[11px]"></i></span>'
+                        : '<span class="feat-mark feat-mark-no" aria-label="Not included"><i class="fas fa-minus text-[10px]"></i></span>';
+                }
                 if (!array_key_exists($key, $features) && $kind !== 'analytics') {
                     return '<span class="feat-mark feat-mark-no" aria-label="Not included"><i class="fas fa-minus text-[10px]"></i></span>';
                 }
