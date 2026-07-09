@@ -89,6 +89,48 @@ class ApiAudienceEstimateTest extends TestCase
         $this->assertNotEmpty($cached['generated_at']);
     }
 
+    public function test_analytics_payload_exposes_estimate_and_coin_cost(): void
+    {
+        $user = $this->makeUser(['audience_type_estimation' => true]);
+        $link = $this->makeLink($user);
+        $link->update([
+            'settings' => [
+                'biolink' => [
+                    'audience_estimate' => [
+                        'data' => [
+                            ['type' => 'student', 'label' => 'Student', 'pct' => 100],
+                        ],
+                        'generated_at'  => now()->toIso8601String(),
+                        'credits_spent' => 2,
+                    ],
+                ],
+            ],
+        ]);
+        $token = $user->createToken('test')->plainTextToken;
+
+        $res = $this->withToken($token)
+            ->getJson("/api/v1/links/{$link->id}/analytics");
+
+        $res->assertOk();
+        $estimate = $res->json('data.analytics.audience_estimate');
+        $this->assertIsArray($estimate);
+        $this->assertSame('student', $estimate['data'][0]['type']);
+        $this->assertIsInt($res->json('data.analytics.audience_estimate_coins'));
+    }
+
+    public function test_analytics_coin_cost_is_zero_on_free_plan(): void
+    {
+        $user = $this->makeUser(['audience_type_estimation' => false]);
+        $link = $this->makeLink($user);
+        $token = $user->createToken('test')->plainTextToken;
+
+        $res = $this->withToken($token)
+            ->getJson("/api/v1/links/{$link->id}/analytics");
+
+        $res->assertOk();
+        $this->assertSame(0, $res->json('data.analytics.audience_estimate_coins'));
+    }
+
     public function test_other_users_link_is_404(): void
     {
         $owner = $this->makeUser(['audience_type_estimation' => true]);

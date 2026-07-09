@@ -15,6 +15,18 @@ export type RateLimitConfig = {
   fp_per_min: number;
 };
 
+export type AudienceEstimateRow = {
+  type: string;
+  label: string;
+  pct: number;
+};
+
+export type AudienceEstimate = {
+  data: AudienceEstimateRow[];
+  generated_at?: string | null;
+  credits_spent?: number;
+};
+
 export type Analytics = {
   link_id: number;
   alias: string;
@@ -27,6 +39,8 @@ export type Analytics = {
   by_device: { device_type: string | null; clicks: number }[];
   by_source: { source: string | null; clicks: number }[];
   by_visitor_type?: { type: string; count: number; pct: number }[];
+  audience_estimate?: AudienceEstimate | null;
+  audience_estimate_coins?: number;
   by_block?: BlockSummary[];
   blocked_total?: number;
   blocked_this_week?: number;
@@ -91,6 +105,23 @@ export async function getBlockAnalytics(
     `/links/${linkId}/analytics/blocks/${blockId}${qs}`,
   );
   return res.data.analytics;
+}
+
+/**
+ * Run a fresh AI audience-type estimation for a link (mobile parity for the
+ * web "Get AI Estimate" button). Server charges the AI-credit feature and
+ * caches the result into link settings so subsequent analytics fetches
+ * include it as `audience_estimate`. Plan-gated: throws an ApiError with
+ * code `plan_upgrade_required` (HTTP 402) on free plans.
+ */
+export async function runAudienceEstimate(linkId: number): Promise<{
+  estimated: AudienceEstimateRow[];
+  credits_spent: number;
+}> {
+  const res = await apiFetch<{
+    data: { estimated: AudienceEstimateRow[]; credits_spent: number };
+  }>(`/links/${linkId}/audience-estimate`, { method: "POST" });
+  return res.data;
 }
 
 export type HeatmapPoint = {

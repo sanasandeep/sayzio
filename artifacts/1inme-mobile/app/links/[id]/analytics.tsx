@@ -21,6 +21,8 @@ import { StatTile } from "@/components/StatTile";
 import { useColors } from "@/hooks/useColors";
 import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import {
+  type AudienceEstimate,
+  type AudienceEstimateRow,
   type BlockAnalytics,
   type RateLimitConfig,
   type VisitorType,
@@ -30,8 +32,13 @@ import {
   getLiveHeatmap,
   getNfcCount,
   getRateLimit,
+  runAudienceEstimate,
   updateRateLimit,
 } from "@/lib/api/analytics";
+import {
+  handlePlanLockedError,
+  upgradeHintFromError,
+} from "@/lib/upgradePrompt";
 
 const VISITOR_LABEL: Record<VisitorType, string> = {
   anonymous: "Anonymous",
@@ -202,38 +209,12 @@ export default function LinkAnalyticsScreen() {
           />
         </Section>
 
-        {(data.by_visitor_type ?? []).length > 0 ? (
-          <Section
-            title="Audience insights"
-            subtitle="Self-identified visitor personas"
-          >
-            <View style={{ gap: 8 }}>
-              {(data.by_visitor_type ?? []).map((r) => (
-                <View key={r.type} style={styles.barRow}>
-                  <Text
-                    style={[styles.barLabel, { color: colors.mutedForeground }]}
-                    numberOfLines={1}
-                  >
-                    {personaLabel(r.type)}
-                  </Text>
-                  <View style={styles.barTrack}>
-                    <View
-                      style={{
-                        height: 8,
-                        width: `${Math.max(2, Math.min(100, r.pct))}%`,
-                        backgroundColor: colors.primary,
-                        borderRadius: 4,
-                      }}
-                    />
-                  </View>
-                  <Text style={[styles.barValue, { color: colors.foreground }]}>
-                    {r.count} · {r.pct}%
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </Section>
-        ) : null}
+        <AudienceInsightsSection
+          linkId={id}
+          selfIdentified={data.by_visitor_type ?? []}
+          cachedEstimate={data.audience_estimate ?? null}
+          estimateCoins={data.audience_estimate_coins ?? 0}
+        />
 
         <Section title="Mobile app vs web">
           <Breakdown
@@ -250,6 +231,229 @@ export default function LinkAnalyticsScreen() {
         </Section>
       </ScrollView>
     </View>
+  );
+}
+
+function AudienceInsightsSection({
+  linkId,
+  selfIdentified,
+  cachedEstimate,
+  estimateCoins,
+}: {
+  linkId: number;
+  selfIdentified: { type: string; count: number; pct: number }[];
+  cachedEstimate: AudienceEstimate | null;
+  estimateCoins: number;
+}) {
+  const colors = useColors();
+  const qc = useQueryClient();
+  const [rows, setRows] = useState<AudienceEstimateRow[]>(
+    Array.isArray(cachedEstimate?.data) ? cachedEstimate.data : [],
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [upgradeMsg, setUpgradeMsg] = useState<string | null>(null);
+
+  const estimate = useMutation({
+    mutationFn: () => runAudienceEstimate(linkId),
+    onSuccess: (res) => {
+      setRows(res.estimated);
+      setError(null);
+      setUpgradeMsg(null);
+      qc.invalidateQueries({ queryKey: ["analytics", linkId] });
+    },
+    onError: (e) => {
+      if (handlePlanLockedError(e)) {
+        // Also keep an inline hint so the section explains the lock after
+        // the alert is dismissed (free plans; 402 plan_upgrade_required).
+        const hint = upgradeHintFromError(e);
+        setUpgradeMsg(
+          hint?.planName
+            ? `AI Audience Estimation is available on paid plans. Upgrade to ${hint.planName} to unlock it.`
+            : "AI Audience Estimation is available on paid plans.",
+        );
+        return;
+      }
+      setError(
+        (e as { message?: string })?.message ??
+          "Estimation failed. Please try again.",
+      );
+    },
+  });
+
+  const hasEstimate = rows.length > 0;
+
+  return (
+    <Section
+      title="Audience insights"
+      subtitle={
+        selfIdentified.length > 0
+          ? "Self-identified visitor personas"
+          : "Who visits this link"
+      }
+    >
+      <View style={{ gap: 14 }}>
+        {selfIdentified.length > 0 ? (
+          <View style={{ gap: 8 }}>
+            {selfIdentified.map((r) => (
+              <View key={r.type} style={styles.barRow}>
+                <Text
+                  style={[styles.barLabel, { color: colors.mutedForeground }]}
+                  numberOfLines={1}
+                >
+                  {personaLabel(r.type)}
+                </Text>
+                <View style={styles.barTrack}>
+                  <View
+                    style={{
+                      height: 8,
+                      width: `${Math.max(2, Math.min(100, r.pct))}%`,
+                      backgroundColor: colors.primary,
+                      borderRadius: 4,
+                    }}
+                  />
+                </View>
+                <Text style={[styles.barValue, { color: colors.foreground }]}>
+                  {r.count} · {r.pct}%
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {hasEstimate ? (
+          <View style={{ gap: 8 }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontFamily: "SpaceGrotesk_600SemiBold",
+                  fontSize: 12,
+                }}
+              >
+                AI Estimate
+              </Text>
+              <View
+                style={{
+                  paddingHorizontal: 7,
+                  paddingVertical: 2,
+                  borderRadius: 999,
+                  backgroundColor: "rgba(99,102,241,0.18)",
+                }}
+              >
+                <Text
+                  style={{
+                    color: "#a5b4fc",
+                    fontSize: 10,
+                    fontFamily: "SpaceGrotesk_600SemiBold",
+                  }}
+                >
+                  estimated · last 30 days
+                </Text>
+              </View>
+            </View>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+              Probabilistic breakdown inferred from aggregate, anonymous
+              session signals. Not based on any individual visitor data.
+            </Text>
+            {rows.map((r) => (
+              <View key={r.type} style={styles.barRow}>
+                <Text
+                  style={[styles.barLabel, { color: colors.mutedForeground }]}
+                  numberOfLines={1}
+                >
+                  {r.label || personaLabel(r.type)}
+                </Text>
+                <View style={styles.barTrack}>
+                  <View
+                    style={{
+                      height: 8,
+                      width: `${Math.max(2, Math.min(100, r.pct))}%`,
+                      backgroundColor: "#818cf8",
+                      borderRadius: 4,
+                    }}
+                  />
+                </View>
+                <Text style={[styles.barValue, { color: colors.foreground }]}>
+                  ~{r.pct}%
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {!hasEstimate && selfIdentified.length === 0 ? (
+          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+            No visitors have self-identified yet. Use AI to estimate your
+            audience mix from aggregate traffic signals.
+          </Text>
+        ) : null}
+
+        <View style={{ gap: 8 }}>
+          <Pressable
+            onPress={() => estimate.mutate()}
+            disabled={estimate.isPending}
+            accessibilityRole="button"
+            accessibilityLabel={
+              hasEstimate ? "Re-estimate with AI" : "Get AI Estimate"
+            }
+            style={({ pressed }) => [
+              {
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderRadius: 10,
+                alignSelf: "flex-start",
+                backgroundColor: "rgba(99,102,241,0.15)",
+                borderWidth: 1,
+                borderColor: "rgba(99,102,241,0.3)",
+                opacity: pressed || estimate.isPending ? 0.6 : 1,
+              },
+            ]}
+          >
+            {estimate.isPending ? (
+              <ActivityIndicator size="small" color="#a5b4fc" />
+            ) : (
+              <Feather name="zap" size={13} color="#a5b4fc" />
+            )}
+            <Text
+              style={{
+                color: "#a5b4fc",
+                fontFamily: "SpaceGrotesk_600SemiBold",
+                fontSize: 13,
+              }}
+            >
+              {estimate.isPending
+                ? "Estimating…"
+                : hasEstimate
+                  ? "Re-estimate with AI"
+                  : "Get AI Estimate"}
+            </Text>
+          </Pressable>
+
+          {estimateCoins > 0 ? (
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+              Uses up to {estimateCoins} coin{estimateCoins === 1 ? "" : "s"}{" "}
+              per run
+            </Text>
+          ) : null}
+          {upgradeMsg ? (
+            <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+              {upgradeMsg}
+            </Text>
+          ) : null}
+          {error ? (
+            <Text style={{ color: colors.destructive, fontSize: 12 }}>
+              {error}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+    </Section>
   );
 }
 

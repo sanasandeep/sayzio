@@ -595,6 +595,20 @@ class LinkController extends Controller
         $audienceEstimate = $link->settings['biolink']['audience_estimate'] ?? null;
         $payload['audience_estimate'] = is_array($audienceEstimate) ? $audienceEstimate : null;
 
+        // Coin-cost hint for the mobile "Get AI Estimate" button (parity
+        // with the web "Uses up to N coins per run" note). 0 when the
+        // caller's plan doesn't include the feature or estimation fails.
+        $estimateCoins = 0;
+        if (\App\Services\AI\AiPlanAccess::featureAllowed($request->user(), \App\Services\AI\AudienceTypeEstimationService::FEATURE_KEY)) {
+            try {
+                $estimateCoins = (int) (app(\App\Services\AI\AiCostEstimator::class)
+                    ->estimate($request->user(), \App\Services\AI\AudienceTypeEstimationService::FEATURE_KEY, '')['coins'] ?? 0);
+            } catch (\Throwable $e) {
+                $estimateCoins = 0;
+            }
+        }
+        $payload['audience_estimate_coins'] = $estimateCoins;
+
         // A/B variant breakdown — populated when the link was created via
         // the browser extension's "Shorten as A/B test" flow. The popup
         // (and dashboard) renders the per-variant counts and surfaces the
