@@ -54,6 +54,25 @@ function personaLabel(type: string): string {
     .join(" ");
 }
 
+const ESTIMATE_STALE_MS = 30 * 24 * 60 * 60 * 1000;
+
+function estimateDateLabel(generatedAt?: string | null): string | null {
+  if (!generatedAt) return null;
+  const t = Date.parse(generatedAt);
+  if (isNaN(t)) return null;
+  return new Date(t).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function estimateIsStale(generatedAt?: string | null): boolean {
+  if (!generatedAt) return false;
+  const t = Date.parse(generatedAt);
+  return !isNaN(t) && Date.now() - t > ESTIMATE_STALE_MS;
+}
+
 export default function LinkAnalyticsScreen() {
   const colors = useColors();
   const { id: idParam } = useLocalSearchParams<{ id: string }>();
@@ -215,6 +234,53 @@ export default function LinkAnalyticsScreen() {
           cachedEstimate={data.audience_estimate ?? null}
           estimateCoins={data.audience_estimate_coins ?? 0}
         />
+
+        {(data.audience_estimate?.data ?? []).length > 0 ? (
+          <Section
+            title="AI audience estimate"
+            subtitle={
+              estimateDateLabel(data.audience_estimate?.generated_at)
+                ? `Estimated on ${estimateDateLabel(data.audience_estimate?.generated_at)}`
+                : "Inferred from aggregate session signals"
+            }
+          >
+            <View style={{ gap: 8 }}>
+              {(data.audience_estimate?.data ?? []).map((r) => (
+                <View key={r.type} style={styles.barRow}>
+                  <Text
+                    style={[styles.barLabel, { color: colors.mutedForeground }]}
+                    numberOfLines={1}
+                  >
+                    {r.label || personaLabel(r.type)}
+                  </Text>
+                  <View style={styles.barTrack}>
+                    <View
+                      style={{
+                        height: 8,
+                        width: `${Math.max(2, Math.min(100, r.pct))}%`,
+                        backgroundColor: colors.primary,
+                        borderRadius: 4,
+                        opacity: 0.75,
+                      }}
+                    />
+                  </View>
+                  <Text style={[styles.barValue, { color: colors.foreground }]}>
+                    ~{r.pct}%
+                  </Text>
+                </View>
+              ))}
+            </View>
+            {estimateIsStale(data.audience_estimate?.generated_at) ? (
+              <Text
+                style={{ color: "#fbbf24", fontSize: 12, marginTop: 10 }}
+                testID="text-estimate-stale"
+              >
+                This estimate is over 30 days old — re-run it from the web
+                dashboard for a fresh read.
+              </Text>
+            ) : null}
+          </Section>
+        ) : null}
 
         <Section title="Mobile app vs web">
           <Breakdown

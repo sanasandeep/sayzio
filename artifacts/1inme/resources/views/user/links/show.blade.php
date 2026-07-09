@@ -1195,6 +1195,17 @@
              estimateRows: @json($hasAiEstimate ? $cachedAiEstimate['data'] : []),
              estimateError: '',
              estimateDone: {{ $hasAiEstimate ? 'true' : 'false' }},
+             estimateGeneratedAt: @js($hasAiEstimate ? ($cachedAiEstimate['generated_at'] ?? null) : null),
+             get estimateDateLabel() {
+                 if (!this.estimateGeneratedAt) return '';
+                 const d = new Date(this.estimateGeneratedAt);
+                 return isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+             },
+             get estimateStale() {
+                 if (!this.estimateGeneratedAt) return false;
+                 const t = Date.parse(this.estimateGeneratedAt);
+                 return !isNaN(t) && (Date.now() - t) > 30 * 24 * 60 * 60 * 1000;
+             },
              async runEstimate() {
                  this.estimating = true;
                  this.estimateError = '';
@@ -1213,6 +1224,7 @@
                      } else {
                          this.estimateRows = json.estimated ?? [];
                          this.estimateDone = true;
+                         this.estimateGeneratedAt = new Date().toISOString();
                      }
                  } catch(e) {
                      this.estimateError = 'Network error. Please try again.';
@@ -1255,6 +1267,9 @@
             <div class="flex items-center gap-2 mb-3">
                 <span class="text-xs font-semibold" style="color: var(--text-secondary);">AI Estimate</span>
                 <span style="font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(99,102,241,0.18);color:#a5b4fc;font-weight:600;">estimated · last 30 days</span>
+                <span x-show="estimateDateLabel" x-cloak class="text-[10px]" style="color: var(--text-dimmed);" data-testid="text-estimate-date">
+                    Estimated on <span x-text="estimateDateLabel"></span>
+                </span>
             </div>
             <p class="text-xs mb-3" style="color: var(--text-dimmed);">Probabilistic breakdown inferred from aggregate, anonymous session signals. Not based on any individual visitor data.</p>
             <div class="space-y-3">
@@ -1319,6 +1334,9 @@
                 <span x-text="estimateDone ? 'Re-estimate with AI' : 'Get AI Estimate'"></span>
                 <span x-show="estimating"> &nbsp;<i class="fas fa-spinner fa-spin text-[10px]"></i></span>
             </button>
+            <span x-show="estimateStale" x-cloak class="text-xs inline-flex items-center gap-1" style="color:#fbbf24;" data-testid="text-estimate-stale">
+                <i class="fas fa-clock text-[10px]"></i> Estimate is over 30 days old — re-estimate?
+            </span>
             <span x-show="estimateError" x-text="estimateError" class="text-xs text-red-400" x-cloak></span>
             @if($audienceAiCoins > 0)
             <span class="text-xs inline-flex items-center gap-1" style="color: var(--text-dimmed);" title="Charged from your coin wallet when the estimate runs.">
