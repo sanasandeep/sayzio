@@ -1192,7 +1192,7 @@
     <div class="section-body"
          x-data="{
              estimating: false,
-             estimateRows: @json($hasAiEstimate ? $cachedAiEstimate['data'] : []),
+             estimateRows: @js($hasAiEstimate ? $cachedAiEstimate['data'] : []),
              estimateError: '',
              estimateFreshNote: '',
              estimateDone: {{ $hasAiEstimate ? 'true' : 'false' }},
@@ -1307,7 +1307,7 @@
         {{-- Empty state (no self-identified and no AI estimate yet) --}}
         @if(!$hasSelfIdData)
         <div x-show="!estimateDone" class="mb-4">
-            <p class="text-xs" style="color: var(--text-dimmed);">No visitors have self-identified yet. Enable the audience prompt in <a href="{{ route('links.advanced', $link) }}" class="underline">Privacy settings</a> to start collecting self-identified personas, or use AI to estimate from aggregate traffic signals.</p>
+            <p class="text-xs" style="color: var(--text-dimmed);">No visitors have self-identified yet. Enable the audience prompt in <a href="{{ route('user.links.settings.advanced', $link) }}" class="underline">Privacy settings</a> to start collecting self-identified personas, or use AI to estimate from aggregate traffic signals.</p>
         </div>
         @endif
 

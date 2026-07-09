@@ -164,6 +164,10 @@ args = "mobile-unit"
 task = "workflow.run"
 args = "e2e-audience-prompt"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-audience-stale"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -567,6 +571,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh audience-prompt-flow.spec.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "e2e-audience-stale"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh audience-estimate-stale.spec.ts"
 
 [workflows.workflow.metadata]
 outputType = "console"
