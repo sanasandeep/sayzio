@@ -1,0 +1,88 @@
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import {
+  listWorkspaces,
+  switchWorkspace as apiSwitchWorkspace,
+  type Workspace,
+} from "@/lib/api/workspaces";
+
+const ACTIVE_WS_KEY = "sayzio_active_workspace_id";
+
+type WorkspaceContextValue = {
+  workspaces: Workspace[];
+  activeWorkspace: Workspace | null;
+  isLoading: boolean;
+  switchWorkspace: (ws: Workspace) => Promise<void>;
+};
+
+const WorkspaceContext = createContext<WorkspaceContextValue>({
+  workspaces: [],
+  activeWorkspace: null,
+  isLoading: false,
+  switchWorkspace: async () => {},
+});
+
+export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
+  const [activeId, setActiveId] = useState<number | null>(null);
+
+  const { data: workspaces = [], isLoading } = useQuery({
+    queryKey: ["workspaces-list"],
+    queryFn: listWorkspaces,
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  useEffect(() => {
+    AsyncStorage.getItem(ACTIVE_WS_KEY).then((raw) => {
+      const parsed = raw ? parseInt(raw, 10) : null;
+      if (parsed && !isNaN(parsed)) setActiveId(parsed);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!activeId && workspaces.length > 0) {
+      const personal = workspaces.find((w) => w.is_personal) ?? workspaces[0];
+      setActiveId(personal.id);
+    }
+  }, [workspaces, activeId]);
+
+  const activeWorkspace =
+    workspaces.find((w) => w.id === activeId) ??
+    workspaces.find((w) => w.is_personal) ??
+    workspaces[0] ??
+    null;
+
+  const switchWorkspace = useCallback(
+    async (ws: Workspace) => {
+      setActiveId(ws.id);
+      await AsyncStorage.setItem(ACTIVE_WS_KEY, String(ws.id));
+      try {
+        await apiSwitchWorkspace(ws.id);
+      } catch {
+      }
+      await queryClient.invalidateQueries({ queryKey: ["workspaces-list"] });
+    },
+    [queryClient],
+  );
+
+  return (
+    <WorkspaceContext.Provider
+      value={{ workspaces, activeWorkspace, isLoading, switchWorkspace }}
+    >
+      {children}
+    </WorkspaceContext.Provider>
+  );
+}
+
+export function useWorkspace() {
+  return useContext(WorkspaceContext);
+}

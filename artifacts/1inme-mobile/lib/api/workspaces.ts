@@ -6,6 +6,8 @@ export type Workspace = {
   slug: string | null;
   is_personal: boolean;
   owner_user_id: number;
+  color?: string | null;
+  icon?: string | null;
   created_at: string | null;
 };
 
@@ -22,6 +24,10 @@ export type WorkspaceMember = {
 export async function listWorkspaces(): Promise<Workspace[]> {
   const res = await apiFetch<{ data: { items: Workspace[] } }>("/workspaces");
   return res.data.items;
+}
+
+export async function switchWorkspace(id: number): Promise<void> {
+  await apiFetch<unknown>(`/workspaces/${id}/activate`, { method: "POST" });
 }
 
 export async function listWorkspaceMembers(id: number): Promise<WorkspaceMember[]> {
