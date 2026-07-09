@@ -247,6 +247,9 @@ async function runHydrate({ storage, index = 0, fresh = false, deferred = null }
     "undefined",
     {
       getCachedOnboardingSlides,
+      // Local image resolution is a no-op here (web/no-FS path returns {}).
+      getLocalSlideImageMap: async () => ({}),
+      mergeLocalImages: () => {},
       indexRef,
       freshSlidesRef,
       deferredSlidesRef,

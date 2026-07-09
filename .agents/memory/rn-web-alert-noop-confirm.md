@@ -1,0 +1,21 @@
+---
+name: RN-web Alert.alert is a no-op
+description: Confirmation dialogs on the mobile app's web build need a window.confirm branch or they silently swallow taps.
+---
+
+react-native-web ships `Alert` as `static alert() {}` — a literal no-op. Any
+native `Alert.alert` confirmation (e.g. destructive-action confirms) does
+NOTHING on the Expo web build: the tap is silently swallowed, no dialog, no
+action.
+
+**Why:** the drawer Sign out confirm was untestable (and broken) on web until
+a `Platform.OS === "web"` → `window.confirm(...)` branch was added, mirroring
+`lib/upgradePrompt.ts`. Dismissing the confirm (Cancel / Android hardware back)
+must run NO action — only explicit accept fires the destructive callback.
+
+**How to apply:** whenever adding an Alert.alert confirmation in
+`artifacts/1inme-mobile`, add the web `window.confirm` branch; e2e-cover it in
+a headless harness via Playwright `page.on("dialog")` (dismiss vs accept), the
+throwaway Expo server manager, and a seeded localStorage session
+(`1inme.auth.token`/`.user` + `1inme.onboarding.complete`). See
+`scripts/test-drawer-signout-e2e.mjs`.

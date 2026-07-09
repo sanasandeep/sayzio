@@ -480,6 +480,23 @@ export function DrawerSidebar() {
   };
 
   const handleSignOut = () => {
+    const confirmed = () => {
+      closeDrawer();
+      signOut();
+    };
+    // react-native-web's Alert.alert is a NO-OP, so on web the native Alert
+    // would silently swallow the tap. Fall back to window.confirm there
+    // (same pattern as lib/upgradePrompt.ts). Dismissing either dialog
+    // (Cancel, or the Android hardware back button closing the Alert) must
+    // never sign the user out — only the explicit confirm does.
+    if (
+      Platform.OS === "web" &&
+      typeof window !== "undefined" &&
+      typeof window.confirm === "function"
+    ) {
+      if (window.confirm("Are you sure you want to sign out?")) confirmed();
+      return;
+    }
     Alert.alert(
       "Sign out",
       "Are you sure you want to sign out?",
@@ -488,10 +505,7 @@ export function DrawerSidebar() {
         {
           text: "Sign out",
           style: "destructive",
-          onPress: () => {
-            closeDrawer();
-            signOut();
-          },
+          onPress: confirmed,
         },
       ],
     );

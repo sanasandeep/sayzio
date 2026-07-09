@@ -176,6 +176,10 @@ args = "blade-json-in-attr"
 task = "workflow.run"
 args = "e2e-mobile-onboarding"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-drawer-signout"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -612,6 +616,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:onboarding-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-drawer-signout"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:drawer-signout-e2e"
 
 [workflows.workflow.metadata]
 isValidation = true
