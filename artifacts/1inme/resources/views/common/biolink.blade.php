@@ -2528,7 +2528,7 @@
                    padding:9px 16px;border-radius:9999px;font:500 13px/1 'Space Grotesk',sans-serif;
                    cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,0.4);"
             onclick="(function(){
-                var alias = @json($link->alias);
+                var alias = @js($link->alias);
                 var fallback = window.location.href;
                 var t = Date.now();
                 window.location.href = '1inme://biolink/' + encodeURIComponent(alias);

@@ -10,3 +10,5 @@ Rule: never use `@json(...)` inside a double-quoted HTML attribute (`x-data="...
 **How to apply:** when a Blade partial's Alpine behaviour mysteriously does nothing, inspect the *rendered* attribute soup (Playwright error-context shows the mangled `<div \="" ...>` attributes). Sweep candidates via `grep -rn '="[a-zA-Z]*(@json' resources/views`.
 
 Related: route() names inside user-module blades must carry the `user.` group prefix (`route('user.links.…')`); a missing prefix throws RouteNotFoundException as a 500 only when that card actually renders — e2e through the real page catches it.
+
+**Guard:** automated since July 2026 — `pnpm --filter @workspace/scripts run check:blade-json-in-attr` (scripts/src/check-blade-json-in-attr.ts, registered as the `blade-json-in-attr` validation workflow) fails on any `@json(` inside a double-quoted attribute; single-quoted attrs, `<script>` bodies, `@@json`, Blade comments and `@verbatim` are exempt.

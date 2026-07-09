@@ -168,6 +168,10 @@ args = "e2e-audience-prompt"
 task = "workflow.run"
 args = "e2e-audience-stale"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blade-json-in-attr"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -585,6 +589,17 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh audience-estimate-s
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "blade-json-in-attr"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:blade-json-in-attr"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"

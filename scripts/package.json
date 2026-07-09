@@ -13,6 +13,7 @@
     "check:home-preview-blocks": "tsx ./src/check-home-preview-blocks.ts",
     "check:ci-passthrough-names": "tsx ./src/check-ci-passthrough-names.ts",
     "check:blade-comment-echo": "tsx ./src/check-blade-comment-echo.ts",
+    "check:blade-json-in-attr": "tsx ./src/check-blade-json-in-attr.ts",
     "check:fontawesome-loader": "tsx ./src/check-fontawesome-loader.ts",
     "check:multicol-transform": "tsx ./src/check-multicol-transform.ts",
     "check:dialer-sync": "tsx ./src/check-dialer-standalone-sync.ts",
