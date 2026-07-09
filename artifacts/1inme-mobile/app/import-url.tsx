@@ -88,6 +88,34 @@ export default function ImportUrlScreen() {
   const [manualUrl, setManualUrl] = useState("");
   const [mode, setMode] = useState<Mode>("pick");
 
+  // --- Clipboard suggestion ---
+  // When opened without a url param, offer a one-tap "Use copied link"
+  // chip if the clipboard already holds a valid URL. Best-effort: any
+  // platform permission gate or failure silently skips the suggestion.
+  const [clipboardUrl, setClipboardUrl] = useState<string | null>(null);
+  const [clipboardDismissed, setClipboardDismissed] = useState(false);
+  useEffect(() => {
+    if (sharedUrl) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const has = await Clipboard.hasStringAsync();
+        if (!has || cancelled) return;
+        const text = await Clipboard.getStringAsync();
+        if (cancelled) return;
+        const normalized = normalizeUrl(text);
+        if (normalized) setClipboardUrl(normalized);
+      } catch {
+        // Clipboard read denied/unavailable — manual entry still works.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Run once on mount for the manual-entry path.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const url = sharedUrl ?? normalizeUrl(manualUrl);
   const host = url ? hostOf(url) : "";
   const defaultName = sharedTitle || host;
@@ -265,7 +293,48 @@ export default function ImportUrlScreen() {
             manualUrl.trim() && !url ? "Enter a valid web address" : undefined
           }
         />
-      ) : (
+      ) : null}
+
+      {!sharedUrl &&
+      clipboardUrl &&
+      !clipboardDismissed &&
+      !manualUrl.trim() ? (
+        <View
+          style={[
+            styles.clipChip,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Pressable
+            onPress={() => {
+              setManualUrl(clipboardUrl);
+              setShortened(null);
+              setClipboardDismissed(true);
+            }}
+            style={styles.clipChipMain}
+            accessibilityRole="button"
+            accessibilityLabel={`Use copied link ${hostOf(clipboardUrl)}`}
+          >
+            <Feather name="clipboard" size={15} color={colors.primary} />
+            <Text
+              style={[styles.clipChipText, { color: colors.text }]}
+              numberOfLines={1}
+            >
+              Use copied link: {hostOf(clipboardUrl)}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setClipboardDismissed(true)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss copied link suggestion"
+          >
+            <Feather name="x" size={16} color={colors.muted} />
+          </Pressable>
+        </View>
+      ) : null}
+
+      {sharedUrl ? (
         <View
           style={[
             styles.urlCard,
@@ -281,7 +350,7 @@ export default function ImportUrlScreen() {
             {sharedUrl}
           </Text>
         </View>
-      )}
+      ) : null}
 
       <Text style={[styles.sectionLabel, { color: colors.muted }]}>
         What do you want to do with it?
@@ -498,6 +567,23 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   urlTitle: { fontSize: 15, fontWeight: "600" },
+  clipChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    gap: 8,
+  },
+  clipChipMain: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  clipChipText: { fontSize: 13, fontWeight: "600", flexShrink: 1 },
   urlText: { fontSize: 13, marginTop: 4 },
   sectionLabel: {
     fontSize: 13,
