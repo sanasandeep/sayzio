@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
+  Alert,
   Image,
   Platform,
   Pressable,
@@ -422,7 +423,7 @@ function ThemeToggleBlock({
 
 export function DrawerSidebar() {
   const { isOpen, closeDrawer, contentProgress } = useDrawer();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const colors = useColors();
   const scheme = useResolvedScheme();
   const insets = useSafeAreaInsets();
@@ -476,6 +477,24 @@ export function DrawerSidebar() {
   const navigate = (href: string) => {
     closeDrawer();
     setTimeout(() => router.push(href as never), 50);
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      "Sign out",
+      "Are you sure you want to sign out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign out",
+          style: "destructive",
+          onPress: () => {
+            closeDrawer();
+            signOut();
+          },
+        },
+      ],
+    );
   };
 
   const isActive = (href: string) => {
@@ -778,6 +797,43 @@ export function DrawerSidebar() {
             ))}
             <View style={{ height: 24 }} />
           </ScrollView>
+
+          {/* ── Sign out ─────────────────────────────────────────────── */}
+          <View
+            style={[
+              styles.signOutRow,
+              {
+                borderTopColor: isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.08)",
+              },
+            ]}
+          >
+            <Pressable
+              onPress={handleSignOut}
+              style={({ pressed }) => [
+                styles.signOutBtn,
+                {
+                  backgroundColor: pressed
+                    ? "rgba(239,68,68,0.12)"
+                    : "transparent",
+                  borderRadius: 10,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Sign out"
+            >
+              <View
+                style={[
+                  styles.signOutIconWrap,
+                  { backgroundColor: "rgba(239,68,68,0.12)", borderRadius: 8 },
+                ]}
+              >
+                <Feather name="log-out" size={14} color="#ef4444" />
+              </View>
+              <Text style={styles.signOutLabel}>Sign out</Text>
+            </Pressable>
+          </View>
         </View>
       </Animated.View>
     </Animated.View>
@@ -987,5 +1043,30 @@ const styles = StyleSheet.create({
     fontSize: 9,
     letterSpacing: 0.3,
     textTransform: "uppercase",
+  },
+  signOutRow: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  signOutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 9,
+  },
+  signOutIconWrap: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  signOutLabel: {
+    flex: 1,
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 13.5,
+    color: "#ef4444",
   },
 });
