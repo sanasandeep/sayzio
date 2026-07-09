@@ -41,6 +41,10 @@ export default function InboxTab() {
     queryKey: ["inbox", "conversations", tab, assigneeTab],
     queryFn: () =>
       listConversations(tab, assigneeTab === "me" ? "me" : undefined),
+    // Poll so new conversations / unread updates appear without pull-to-
+    // refresh. Longer than the thread's 7s interval to limit load; React
+    // Query dedupes overlapping refetches from pull-to-refresh/foreground.
+    refetchInterval: 15000,
   });
 
   return (
