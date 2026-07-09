@@ -438,6 +438,28 @@ export const api = {
       `/me/pending-thanks${workspaceId ? `?workspace_id=${workspaceId}` : ""}`,
       { method: "PUT", body: { items, updated_at_ms: updatedAtMs } },
     ),
+
+  // ── Mailbox AI reply draft ─────────────────────────────────────────
+  listKnowledgeBases: () =>
+    request<{
+      mine: Array<{ id: number; name: string }>;
+      platform: { id: number; name: string } | null;
+    }>("/ai/minds"),
+
+  draftMailboxReply: (payload: {
+    thread: {
+      subject: string;
+      participants: string[];
+      messages: Array<{ role: "inbound" | "outbound"; sender: string; body: string }>;
+    };
+    knowledge_base_ids?: number[];
+    include_links?: boolean;
+    instruction?: string;
+  }) =>
+    request<MailboxDraftResult>("/mailbox/draft-reply", {
+      method: "POST",
+      body: payload,
+    }),
 };
 
 export interface NotificationItem {
@@ -510,6 +532,13 @@ export interface BacklinkRow {
   matched_property_type: "short_link" | "biolink_username" | "custom_domain";
   matched_property_value: string | null;
   first_seen_at: string | null;
+}
+
+export interface MailboxDraftResult {
+  draft: string;
+  citations: Array<{ id: number; name: string }>;
+  credits_spent: number;
+  model: string;
 }
 
 export { request };

@@ -960,6 +960,9 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/inbox/forwards/{id}/test',        [\App\Modules\Api\Controllers\InboxForwardController::class, 'test'])->whereNumber('id');
         Route::post  ('/inbox/forward-deliveries/{id}/retry', [\App\Modules\Api\Controllers\InboxForwardController::class, 'retry'])->whereNumber('id');
 
+        // Mailbox AI reply draft (browser extension — email thread from Gmail / Outlook).
+        Route::post('/mailbox/draft-reply', [\App\Modules\Api\Controllers\MailboxReplyDraftController::class, 'draft'])->middleware('throttle:20,1');
+
         // Workspaces
         Route::get('/workspaces',                 [WorkspaceController::class, 'index']);
         Route::get('/workspaces/{id}/members',    [WorkspaceController::class, 'members'])->whereNumber('id');

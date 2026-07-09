@@ -27,6 +27,7 @@ export default defineConfig({
         "content-dial": resolve(__dirname, "src/content/dial.ts"),
         "content-event-extract": resolve(__dirname, "src/content/event-extract.ts"),
         "content-review-detect": resolve(__dirname, "src/content/review-detect.ts"),
+        "content-mailbox-extract": resolve(__dirname, "src/content/mailbox-extract.ts"),
       },
       output: {
         entryFileNames: (chunk) => {
@@ -38,6 +39,7 @@ export default defineConfig({
           if (chunk.name === "content-dial") return "content-dial.js";
           if (chunk.name === "content-event-extract") return "content-event-extract.js";
           if (chunk.name === "content-review-detect") return "content-review-detect.js";
+          if (chunk.name === "content-mailbox-extract") return "content-mailbox-extract.js";
           return "assets/[name]-[hash].js";
         },
         chunkFileNames: "assets/[name]-[hash].js",

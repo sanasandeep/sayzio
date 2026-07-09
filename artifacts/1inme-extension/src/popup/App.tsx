@@ -7,6 +7,7 @@ import { QuickQrView } from "./QuickQrView";
 import { AddToCalendarView } from "./AddToCalendarView";
 import { ReviewCaptureView } from "./ReviewCaptureView";
 import { BiolinkModeView } from "./BiolinkModeView";
+import { MailboxReplyView } from "./MailboxReplyView";
 import {
   AuthorBookEntry,
   AuthorContacts,
@@ -89,7 +90,8 @@ type View =
   | "quick-qr"
   | "add-calendar"
   | "review-capture"
-  | "biolink-mode";
+  | "biolink-mode"
+  | "mailbox-reply";
 
 type AbTestItem = { link: { id: number; alias: string; short_url?: string; title?: string }; variants: AbVariantsPayload };
 
@@ -170,7 +172,7 @@ export function App() {
       // Preserve all sub-views that shouldn't be reset on a storage-change refresh.
       const preservedViews: View[] = [
         "contact-preview", "ab", "notifications", "add-biolink",
-        "quick-qr", "add-calendar", "review-capture", "biolink-mode",
+        "quick-qr", "add-calendar", "review-capture", "biolink-mode", "mailbox-reply",
       ];
       if (preservedViews.includes(v)) return v;
       if (!s.token) return "login";
@@ -501,6 +503,14 @@ export function App() {
           showToast={showToast}
         />
       )}
+      {view === "mailbox-reply" && settings.token && (
+        <MailboxReplyView
+          tabId={tabId}
+          webBaseUrl={settings.webBaseUrl ?? ""}
+          onCancel={() => setView("main")}
+          showToast={showToast}
+        />
+      )}
       {view === "biolink-mode" && settings.token && (
         <BiolinkModeView
           tabUrl={tabUrl}
@@ -640,6 +650,17 @@ export function App() {
               title="Pull reviews from this business into Sayzio"
             >
               ⭐ Capture reviews
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button
+              className="btn-secondary"
+              style={{ flex: "1 1 auto", fontSize: 12, padding: "5px 8px" }}
+              disabled={busy !== null}
+              onClick={() => setView("mailbox-reply")}
+              title="Open a Gmail or Outlook thread and draft an AI reply"
+            >
+              ✉ Draft AI reply
             </button>
           </div>
 
