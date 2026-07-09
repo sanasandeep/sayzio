@@ -80,6 +80,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // Session-time enforcement of admin temporary holds: an already
         // signed-in user who gets suspended is logged out on their next
         // web request (no-op for admin/API guards). See Task #2106.
+        // The audience-prompt persona cookie (`ap_type_{link_id}`) is written
+        // client-side as a plain cookie, so it must be excluded from cookie
+        // encryption or EncryptCookies nulls it on every request (breaking
+        // subscriber persona stamping + visitor-type block targeting). The
+        // name is dynamic (per-link id), so we swap in a subclass that
+        // supports the prefix instead of an exact-name `except:` list.
+        $middleware->web(replace: [
+            \Illuminate\Cookie\Middleware\EncryptCookies::class => \App\Modules\Common\Middleware\EncryptCookies::class,
+        ]);
+
         $middleware->web(append: [
             \App\Modules\User\Middleware\EnsureNotSuspended::class,
             // Task #3498 — blocks every state-changing request from the

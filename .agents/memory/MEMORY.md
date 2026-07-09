@@ -96,4 +96,5 @@
 - [e2e fixture aliases on shared RDS](e2e-shared-rds-fixture-aliases.md) — fixed-alias e2e fixtures collide across parallel task envs on the shared RDS; use per-run unique aliases + stale-prefix pruning.
 - [Hidden legacy form fields clobber](hidden-legacy-form-fields-clobber.md) — display:none leftover markup in a form still serializes; duplicate names let empty dead fields override live values (PHP last-wins); broke Appearance live draft preview.
 - [Facade::partialMock null $app crash](facade-partialmock-null-app.md) — partialMock on Cache/manager facades builds an instance w/ null $app ("bound() on null"); proxy-partial the real root + swap instead.
+- [JS-set plain cookies nulled by EncryptCookies](js-set-cookie-encryptcookies-null.md) — document.cookie values need the prefix-aware EncryptCookies subclass or $request->cookie() is always null; postJson tests need withCredentials.
 - [Mobile source-driven test extraction helper](mobile-test-extract-helper.md) — lifted screen expressions run via scripts/lib/extract.mjs (with-proxy); new free vars warn+null, never raw ReferenceError.
