@@ -50,6 +50,7 @@ It complements two sibling docs and intentionally does **not** duplicate them:
    - [5.14 Referrals](#514-referrals)
    - [5.15 Calendar sync & followable calendars](#515-calendar-sync--followable-calendars)
    - [5.16 Persona onboarding](#516-persona-onboarding)
+   - [5.17 Visitor Type Audience Insights](#517-visitor-type-audience-insights)
 6. [Creator monetization & payouts](#6-creator-monetization--payouts)
 7. [18+ adult content](#7-18-adult-content)
 8. [AI engine & AI features](#8-ai-engine--ai-features)
@@ -60,6 +61,7 @@ It complements two sibling docs and intentionally does **not** duplicate them:
 13. [REST API surface](#13-rest-api-surface)
 14. [Cross-surface artifacts](#14-cross-surface-artifacts)
     - [14.1 Mobile app](#141-mobile-app-artifacts1inme-mobile)
+    - [14.2 Browser extension](#142-browser-extension-artifacts1inme-extension)
 
 ---
 
@@ -768,6 +770,53 @@ untouched). Persona/template/WhatsApp all reuse the existing REST endpoints.*
 
 ---
 
+### 5.17 Visitor Type Audience Insights
+
+An AI-powered probabilistic breakdown of the visitor mix for a biolink page,
+derived exclusively from aggregate, anonymized first-party signals that Sayzio
+already captures — no browser history, no third-party cookies, no data-broker
+enrichment.
+
+**Signals used:** referrer hostname, geographic region, device category, OS,
+browser, browser language, time-of-day distribution, and aggregate block-
+engagement counts (which block types visitors tapped).
+
+**Output:** a percentage split across five persona types:
+
+| Persona key    | Display label          |
+| -------------- | ---------------------- |
+| `student`      | Student                |
+| `professional` | Professional / Employee|
+| `business`     | Business Owner         |
+| `creator`      | Creator / Artist       |
+| `other`        | Other                  |
+
+Each entry in the response carries `type`, `label`, and `pct` (integer 0–100,
+always summing to 100). The result is persisted in
+`settings['biolink']['audience_estimate']` alongside a `generated_at`
+timestamp, so subsequent page loads show the cached estimate immediately.
+
+**Freshness & billing:**
+- A cached estimate younger than **10 minutes** (`FRESH_MINUTES = 10`) is
+  returned without re-charging (double-tapping costs nothing).
+- Pass `force: true` in the request body to bypass the cache and run a fresh
+  estimation regardless.
+- Charged to the `audience_type_estimation` AI-credit feature via
+  `AiUsageCharger`; the cost is shown alongside the result as
+  `coins_per_estimate`. On a parse failure the charge is auto-refunded.
+- Plan gate: `AiPlanAccess::featureAllowed($user, 'audience_type_estimation')`.
+  Plans without this feature receive **HTTP 402**.
+
+**Privacy note:** the model prompt receives only aggregate counts, never
+individual click rows, session IDs, or visitor-identifiable data.
+
+*Web: `POST /user/links/{link}/audience/estimate` (authenticated, workspace-
+gated `links.edit`). REST API: `POST /api/v1/links/{id}/audience-estimate`
+(bearer token; throttle 10/min). Mobile: Audience Insights tab on the Link
+analytics screen, driven by the REST endpoint.*
+
+---
+
 ## 6. Creator monetization & payouts
 
 **Sayzio's platform fee is 0%** — creators keep 100% minus the payment processor's
@@ -832,8 +881,10 @@ show "AI scanning/feature is currently disabled by your administrator."
 **AI-credit feature catalog** (`AiFeatureCatalog` FEATURES) — `mind`, `persona`,
 `companion`, `coach` / `ask_coach`, `voice_stt`, `voice_llm`, `voice_tts`,
 `card_scan`, `resume_import`, `resume_tailor`, `inbox_agent`, `brand_kit`,
-`qr_art`, and `marketing_strategist` (+ `marketing_strategist.chat`). Additional
-AI surfaces gated through the engine settings include the `biolink_builder`,
+`qr_art`, `marketing_strategist` (+ `marketing_strategist.chat`), and
+`audience_type_estimation` (Visitor Type Audience Insights — see
+[§5.17](#517-visitor-type-audience-insights)). Additional AI surfaces gated
+through the engine settings include the `biolink_builder`,
 `resume_cover_letter`, and the `whatsapp_agent`.
 
 - **AI biolink builder** (`AiBiolinkBuilderService`) — turns a prompt (+ optional
@@ -1169,12 +1220,85 @@ over `/api/v1`.
   restaurant menu builder + orders; paid pages (mobile template tokens).
 - **Monetization** — unlock content, tip, manage orders; payouts onboarding +
   sync; 18+ toggle.
-- **AI** — Account Assistant, AI Agent chat, floating-mic voice assistant.
+- **AI** — Account Assistant, AI Agent chat, floating-mic voice assistant;
+  Audience Insights tab on the Link analytics screen
+  (see [§5.17](#517-visitor-type-audience-insights)).
 - **Reviews** — moderation parity.
 - **Admin hub** — manage users, roles, protected accounts, mail settings, schema
   health.
 - **Engagement** — native poll voting, RSVPs, block taps reported via API for
   analytics parity; mobile dashboard fetches visit/click trends.
+- **Share-sheet / URL import** (`app/import-url.tsx`) — reachable via deep link
+  (`sayzio://import-url?url=…` or `https://sayzio.app/import-url?url=…`) and
+  from the iOS/Android share sheet. On share-intent arrival the screen
+  auto-shortens the URL immediately (on-by-default preference stored in secure
+  storage, togglable). The user then sees the result with **Copy / Share /
+  View** actions, plus a duplicate warning if the destination was shortened
+  recently. The "pick" mode (no URL supplied, or the user taps the manual-paste
+  field) exposes three additional actions: **Create QR** (`POST /api/v1/qr-codes`),
+  **Add to Calendar** (event extraction + `POST /api/v1/calendars/{id}/events`),
+  and **Shorten** (`POST /api/v1/links`). Routing is enforced by `DeepLinkRouter`
+  (the `import-url` slug is in the RESERVED set to prevent alias collisions) and
+  handled by `ShareIntentHandler` when the app is already running.
+
+---
+
+### 14.2 Browser extension (`artifacts/1inme-extension`)
+
+A cross-browser extension (Chrome / Edge / Firefox-compatible) that surfaces
+Sayzio tools on any page. In addition to the original backlink radar, pixel
+manager, and thank-you queue, seven capabilities were recently shipped:
+
+1. **Notifications** — polls `GET /api/v1/notifications` every 30 seconds;
+   shows an unread-count badge on the extension icon; surfaces native browser
+   notifications for high-signal events (new follower, new subscriber, new
+   review, etc.); clicking a notification opens the relevant page; **Mark all
+   read** clears the badge. All polling is done in the background service worker
+   to avoid interfering with page scripts.
+
+2. **Click-to-dial** (opt-in, disabled by default) — a content script scans the
+   active page for phone numbers (E.164 + common formatted variants) and injects
+   a hover overlay; the overlay shows the matching Sayzio contact, linked
+   biolink, or recent activity and offers a one-tap dial via `tel:` links. The
+   API token is relayed through the background worker so page scripts never see
+   the bearer token.
+
+3. **Capture reviews** — when the extension detects a Google Maps or Trustpilot
+   business page it surfaces a "Capture reviews" action. Triggering it calls
+   `POST /api/v1/me/reviews/capture-source` with the provider and external ref
+   (Place ID or domain); the platform then imports and syncs reviews to the
+   user's Reviews wall. Returns a `preview: true` flag when platform API keys
+   are absent.
+
+4. **Add to existing bio-link** — a dropdown lists the user's biolink pages;
+   selecting one appends the current page URL as a new link block (`PATCH
+   /api/v1/links/{id}` block-append payload). Useful for bookmarking pages
+   directly into a bio-link from the browser.
+
+5. **Quick QR** — a preset-picker panel lets the user pick one of the saved QR
+   catalog templates and generates a QR code for the current page URL via
+   `POST /api/v1/qr-codes`. The result is shown inline with download and copy
+   options, and appears in the QR Studio library.
+
+6. **Add to calendar** — the extension extracts structured event data from the
+   current page (JSON-LD `Event`, Microdata, and `<time>` elements) and pre-
+   fills a date/title/notes form. Submitting creates a calendar event via
+   `POST /api/v1/calendars/{id}/events`. Handles partial extraction gracefully
+   (falls back to title + URL when structured data is absent).
+
+7. **Dual-mode page → bio-link** — a mode picker offers **Quick** (instant, no
+   AI — converts the current page to a new biolink using the title/description/
+   URL, same as a blank wizard) or **AI-powered** (passes the page content to
+   the AI Biolink Builder; charged to `biolink_builder`). The AI path re-uses
+   `AiBiolinkBuilderService` via `GET /api/v1/links/{id}/ai-builder` +
+   `POST /api/v1/links/{id}/ai-builder/generate`.
+
+**Context menu** — right-clicking a link on any page also exposes: *Design QR
+for this link*, *Add page event to calendar*, and *Capture reviews for this
+business* as shortcuts to items 5, 6, and 3 above.
+
+*REST endpoints used by the extension are documented in the [Browser extension
+surface](./api.md#browser-extension-surface) section of `api.md`.*
 
 ---
 

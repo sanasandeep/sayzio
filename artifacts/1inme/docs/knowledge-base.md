@@ -529,6 +529,44 @@ of time (higher tiers keep more; some keep it indefinitely). Older click and
 visit detail beyond your plan's window is periodically pruned, but your running
 totals stay.
 
+### Audience Insights (Visitor Type Estimation)
+
+**What it is.** An AI feature that estimates the *type* of people visiting your
+Link in Bio page. It returns a percentage split across five personas — Student,
+Professional / Employee, Business Owner, Creator / Artist, and Other.
+
+**Why use it.** Knowing your audience mix helps you tailor your blocks, language,
+and offers without running a survey. A page skewing toward Business Owners might
+benefit from a testimonials block and a pricing table; one skewed toward Students
+might perform better with a bold countdown or a free-resource block.
+
+**Privacy.** The AI model only sees aggregate counts derived from the signals
+Sayzio already collects — referrer domain, geographic region, device type,
+browser language, time-of-day distribution, and which block types visitors
+engaged with. No individual visitor is identified, and no third-party data or
+browser history is ever used.
+
+**Where to find it.** Open any Link in Bio in your dashboard → **Analytics** →
+**Audience Insights** panel. On mobile: tap a Link in Bio → **Analytics** →
+**Audience Insights** tab.
+
+**How to use it.**
+
+1. Open the **Audience Insights** panel.
+2. Click **Estimate audience**. Sayzio runs the AI analysis and shows the
+   percentage breakdown with a bar chart.
+3. To get a fresh estimate after making significant changes, click
+   **Re-estimate** → **Force refresh**. This bypasses the 10-minute freshness
+   cache and always runs a new analysis.
+
+**Cost.** Each estimate deducts a small number of AI credits (coins) from your
+wallet. The coin cost is shown before you confirm. If the analysis fails for any
+reason the coins are automatically refunded. Running the estimate again within
+10 minutes returns the cached result without any charge.
+
+**Plan requirement.** Audience Insights is a paid feature. If your plan does not
+include it, you will see an upgrade prompt.
+
 ---
 
 ## 15. Audience & engagement
@@ -1096,12 +1134,129 @@ and code check come first.
 
 ## 28. Mobile app & browser extension
 
-- **Sayzio mobile app** — most creator features have native parity in the mobile
-  app, including links, biolink editing, QR Studio, restaurant menus, reviews
-  moderation, payouts, the 18+ toggle, **Competitor Biolink Teardown**, and
-  **credit notes** (alongside invoices). Sign in with email/OTP or social.
-- **Browser extension** — helps with things like saving links and powering the
-  Backlinks radar from your browser.
+### Sayzio mobile app
+
+Most creator features have native parity, including links, biolink editing, QR
+Studio, restaurant menus, reviews moderation, payouts, the 18+ toggle,
+**Competitor Biolink Teardown**, and **credit notes** (alongside invoices). Sign
+in with email/OTP or social.
+
+#### Share-sheet / URL import
+
+You can send any URL to Sayzio directly from the iOS or Android share sheet —
+no copy-pasting required.
+
+**How it works:**
+
+1. Find something you want to save in any app (a news article, product page,
+   event listing, etc.).
+2. Tap the **Share** button and choose **Sayzio** from the share sheet.
+3. Sayzio opens the **Import from URL** screen with the URL pre-filled.
+
+**Auto-shorten on arrival.** By default the URL is shortened immediately and
+you see the result with **Copy**, **Share**, and **View link** buttons. A
+duplicate warning appears if you have shortened the same destination recently.
+Toggle **Auto-shorten on share** on the screen to turn this off.
+
+**Three actions available.** Tap **Pick an action** (or turn off auto-shorten)
+to choose:
+
+| Action              | What happens                                                            |
+| ------------------- | ----------------------------------------------------------------------- |
+| **Shorten**         | Creates a tracked short link.                                           |
+| **Create QR**       | Generates a styled QR code and saves it to your QR Studio library.     |
+| **Add to Calendar** | Extracts event data from the page and adds an event to a Sayzio calendar. |
+
+**Manual paste.** Open the Import screen from inside the app and type or paste
+any URL yourself — all three actions work identically.
+
+**Deep links.** Other apps and iOS Shortcuts can trigger the Import screen
+directly: `sayzio://import-url?url=YOUR_URL` (or
+`https://sayzio.app/import-url?url=YOUR_URL`). Add `&title=PAGE_TITLE` to
+pre-fill the title field.
+
+**When the app is closed.** If you share while the app is fully closed, it
+launches straight to the Import screen and auto-shortens the URL without showing
+the home tabs first.
+
+---
+
+### Browser extension
+
+The Sayzio browser extension (Chrome, Edge, and Firefox-compatible) brings your
+Sayzio tools into any webpage. Install it from your browser's extension store or
+from **Settings → Connected Accounts & Apps**.
+
+#### Original capabilities
+
+- **Backlinks radar** — detects when a page links to your Sayzio properties and
+  saves discovered backlinks to your account.
+- **Pixel manager** — view and update your workspace's Meta / TikTok / Google
+  Ads pixel IDs from any page.
+- **Thank-you queue** — manage your pending thank-yous and templates without
+  leaving the page you're on.
+
+#### New capabilities
+
+**Notifications**
+
+The extension polls for new notifications every 30 seconds. When something
+arrives (new follower, subscriber, review, inbox message, etc.):
+
+- A **red badge** on the extension icon shows the unread count.
+- (Optional) A **browser notification pop-up** appears — allow or deny when
+  prompted.
+
+Click the badge or notification to open the relevant page. Click **Mark all
+read** in the popup to clear the badge. To stop pop-ups without uninstalling,
+open **Extension options → Desktop notifications** and turn it off (the badge
+still updates).
+
+**Click-to-dial** (opt-in)
+
+Enable in **Extension options** to have the extension scan pages for phone
+numbers and add a small Sayzio icon next to each. Hovering shows the matching
+Sayzio contact or linked biolink; clicking opens your dialer via `tel:`. Your
+API token is never exposed to the page — all lookups run in the extension's
+background worker. This feature is **off by default** because it modifies every
+page you visit.
+
+**Capture reviews**
+
+On Google Maps or Trustpilot business pages the popup shows a **Capture
+reviews** button. Click it to connect that listing to your Reviews wall. Sayzio
+then imports and syncs reviews automatically. Only use this for your own
+business's listing.
+
+**Add to existing bio-link**
+
+Visit any page → popup → **Add to Bio-link** → pick one of your Link in Bio
+pages → the page URL is appended as a new link block. Open the editor to
+reorder or style it.
+
+**Quick QR**
+
+Popup → **Quick QR** → choose a style template → **Generate**. A QR code for
+the current page URL appears inline with **Download** and **Copy** options. The
+QR is also saved to your QR Studio library.
+
+**Add page event to calendar**
+
+Popup → **Add to Calendar**. The extension reads structured event data from the
+page (JSON-LD, Microdata, `<time>` elements) and pre-fills the form. Pick your
+Sayzio calendar and save. Works even on pages without structured data — just
+fill the form manually.
+
+**Page → Bio-link (Quick or AI-powered)**
+
+| Mode           | What it creates                                    | Cost    |
+| -------------- | -------------------------------------------------- | ------- |
+| **Quick**      | A new Link in Bio using the page title + URL. Instant, no AI. | Free |
+| **AI-powered** | A full page with relevant blocks, copy, and layout built by the AI Biolink Builder. | AI credits |
+
+**Context menu shortcuts.** Right-click any link on a page for direct access to:
+*Design QR for this link*, *Add page event to calendar*, *Capture reviews for
+this business*.
 
 ---
 
@@ -1433,11 +1588,78 @@ Yes — use **Client portals** to share boards/files/deliverables in a limited a
 Use **Workspaces** — each is its own environment with its own branding and
 settings.
 
-### Mobile & developer
+### Analytics & Audience Insights
+
+**What is Audience Insights?**
+An AI feature that estimates the type of visitors to your Link in Bio page —
+split across Student, Professional/Employee, Business Owner, Creator/Artist, and
+Other — using only aggregate, anonymized signals Sayzio already collects. No
+individual is identified, and no third-party or browser data is used.
+
+**Does it cost anything to run an Audience Insights estimate?**
+Yes, a small number of AI credits (coins) per estimate. The cost is shown before
+you confirm. Running it again within 10 minutes returns the cached result for
+free. If the AI call fails for any reason, the coins are automatically refunded.
+
+**Why did I get an "upgrade required" message on Audience Insights?**
+Audience Insights is a paid-plan feature (`audience_type_estimation`). Check
+your plan under **Settings → Billing** or click the upgrade prompt to see which
+plans include it.
+
+**Can I force a fresh estimate before the 10-minute cache expires?**
+Yes — click **Re-estimate → Force refresh**. This bypasses the cache and always
+runs a new analysis (and charges one estimate).
+
+### Mobile app & share-sheet
 
 **Is there a mobile app?**
 Yes — most features have native parity, including links, the biolink editor, QR
 Studio, restaurant menus, reviews moderation, and payouts.
+
+**How do I use the share-sheet import on my phone?**
+Tap the **Share** button in any app, choose **Sayzio**, and the Import from URL
+screen opens with the URL pre-filled. By default it auto-shortens immediately;
+tap **Pick an action** to choose Shorten, Create QR, or Add to Calendar instead.
+
+**Can I import a URL without using the share sheet?**
+Yes — open the Sayzio app, go to the Import screen, and type or paste any URL
+directly.
+
+**How do I trigger the import screen from an iOS Shortcut or other automation?**
+Use the deep link `sayzio://import-url?url=YOUR_URL` (or
+`https://sayzio.app/import-url?url=YOUR_URL`). Add `&title=PAGE_TITLE` to pre-
+fill the title. The screen opens even when the app is fully closed.
+
+**I see a "duplicate" warning when I shorten a URL. What does that mean?**
+You've shortened the same destination recently. The warning is informational —
+you can still create the new link if you want separate tracking.
+
+### Browser extension
+
+**Where do I get the Sayzio browser extension?**
+Search for "Sayzio" in the Chrome Web Store, Edge Add-ons, or Firefox Add-ons,
+or click the link in **Settings → Connected Accounts & Apps**.
+
+**How do I enable notifications from the extension?**
+After installing and signing in, click the extension icon. Unread notifications
+show a red badge automatically. For pop-up notifications, allow them when your
+browser prompts you. Toggle them off in **Extension options → Desktop
+notifications** at any time.
+
+**Is click-to-dial on by default?**
+No — it is opt-in. Enable it in **Extension options → Click-to-dial**. It scans
+pages for phone numbers and adds hover overlays linked to your Sayzio contacts.
+
+**Can I capture reviews from any website?**
+Only from Google Maps and Trustpilot business pages. Only use it for your own
+business's listing.
+
+**What's the difference between Quick and AI-powered page-to-bio-link?**
+Quick mode instantly creates a new Link in Bio from the page title and URL —
+free, no AI. AI-powered mode uses the AI Biolink Builder to design a full page
+from the page content — costs AI credits.
+
+### Developer
 
 **Does Sayzio have an API?**
 Yes — generate **API keys** in settings and see [`api.md`](./api.md). API usage is

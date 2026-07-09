@@ -171,6 +171,7 @@ handle and a first link.
 | GET    | `/links/{id}/rate-limit`   | yes | Per-biolink visitor rate-limit override (read).                          |
 | PATCH  | `/links/{id}/rate-limit`   | yes | Per-biolink visitor rate-limit override (update).                        |
 | GET    | `/links/{id}/rsvps`        | yes | RSVP responses for an event link (see [Calendar](#calendar)).            |
+| POST   | `/links/{id}/audience-estimate` | yes | AI-powered visitor-persona breakdown for a biolink. Plan-gated (`audience_type_estimation`); returns HTTP 402 on plans without the feature. Body: `force?` (bool, default `false`) — pass `true` to bypass the 10-minute freshness cache and always run a fresh estimation. Charges AI credits (coins); auto-refunds on parse failure. Response includes `estimated` (array of `{type, label, pct}`), `coins_per_estimate`, `cached_at?`, and `is_fresh` (bool). Throttle: 10/min. |
 
 ### Guided Link-in-bio wizard
 
@@ -1269,7 +1270,9 @@ Super-admin parity for the mail transport editor, gated behind `settings.manage`
 
 ## Browser extension surface
 
-Endpoints the [browser extension](../../1inme-extension/README.md) relies on (also usable by any client). Backlink-radar properties + persistence, workspace tracking pixels, and per-workspace thank-you templates/queue.
+Endpoints the [browser extension](../../1inme-extension/README.md) relies on (also usable by any client). The extension uses the standard REST API throughout; the table below documents both the original endpoints and the additional endpoints used by the seven new capabilities.
+
+### Original capabilities (backlinks, pixels, thank-yous)
 
 | Method | Path                          | Auth | Description                                                  |
 | ------ | ----------------------------- | ---- | ----------------------------------------------------------- |
@@ -1285,6 +1288,23 @@ Endpoints the [browser extension](../../1inme-extension/README.md) relies on (al
 | GET    | `/me/pending-thanks`          | yes  | Queued thank-yous (the "Pending thanks" panel).            |
 | PUT    | `/me/pending-thanks`          | yes  | Update the pending-thanks queue.                           |
 | GET    | `/me/api-usage`               | yes  | Developer API-usage summary (mobile mirror of the web meter). |
+
+### New extension capabilities — endpoint mapping
+
+| Capability               | Method | Path                               | Notes |
+| ------------------------ | ------ | ---------------------------------- | ----- |
+| **Notifications**        | GET    | `/notifications`                   | Polled every 30 s by the background service worker. Returns the standard paginated notifications list; the extension reads `unread_count` from the response meta to drive the badge. |
+| **Notifications** (mark) | POST   | `/notifications/read-all`          | Called when the user clicks "Mark all read" in the popup. |
+| **Click-to-dial** (lookup) | GET  | `/dialer/search?q={phone}`         | Background worker relays the query so the content script never holds the bearer token. Returns grouped universal-finder results; the overlay shows matching contacts and biolinks. |
+| **Capture reviews**      | POST   | `/me/reviews/capture-source`       | Body: `provider` (`google`\|`trustpilot`), `external_ref` (Place ID / domain), `name?`. Returns `{ connection_id, provider, status, preview }` — `preview: true` means platform keys are absent and sync will not occur until configured. Already documented in [Reviews moderation (owner)](#reviews-moderation-owner). |
+| **Add to bio-link**      | GET    | `/links?type=biolink`              | Lists the user's biolink pages for the picker dropdown. |
+| **Add to bio-link**      | PATCH  | `/links/{id}`                      | Appends the current page as a new link block via the standard partial-update payload. |
+| **Quick QR**             | GET    | `/qr-codes/catalog`                | Fetches presets for the style picker. |
+| **Quick QR**             | POST   | `/qr-codes`                        | Creates the QR code. Body: `name`, `type` (`url`), `payload.url`, `design` (from selected preset). Already documented in [QR Studio](#qr-studio). |
+| **Add to calendar**      | GET    | `/calendars`                       | Lists the user's calendars for the picker (see [Calendar](#calendar)). |
+| **Add to calendar**      | POST   | `/calendars/{id}/events`           | Creates the event (see [Calendar](#calendar)). |
+| **Page → bio-link (AI)** | GET    | `/links/{id}/ai-builder`           | Intake for the AI-powered mode against an existing biolink page (plan-allowed block types, credit estimate). |
+| **Page → bio-link (AI)** | POST   | `/links/{id}/ai-builder/generate`  | Generates the page from the captured content via `AiBiolinkBuilderService`. Charged to the `biolink_builder` AI credit feature with auto-refund on parse failure (see [AI tools](#ai-tools)). Throttle: 10/min. |
 
 ## Pixel tracking
 

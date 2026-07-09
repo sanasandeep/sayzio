@@ -24,6 +24,7 @@
         ['icon' => 'fa-comments',         'name' => 'AI Coach',          'desc' => 'Data-aware assistant for your account'],
         ['icon' => 'fa-id-card',          'name' => 'Card & Brochure Scanner', 'desc' => 'Extract contacts from images'],
         ['icon' => 'fa-file-lines',       'name' => 'AI Resume Tools',   'desc' => 'Import, tailoring & cover letters'],
+        ['icon' => 'fa-chart-pie',        'name' => 'Audience Insights', 'desc' => 'AI visitor-type estimation for any link'],
     ];
 @endphp
 

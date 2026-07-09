@@ -3403,7 +3403,7 @@
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Share your Sayzio<br><span class="grad-text">anywhere you like.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging — anywhere.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging — anywhere. Save links from any browser tab with the Sayzio extension, or share straight from any mobile app into Sayzio.</p>
         </div>
 
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -3657,7 +3657,7 @@
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Live analytics with<br><span class="grad-text">an AI growth coach.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">See visitors land on a world map, watch click trends per block, and let your AI Performance Coach suggest one-click fixes.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">See visitors land on a world map, watch click trends per block, and let your AI Performance Coach suggest one-click fixes. AI Audience Insights even estimates who's visiting — students, professionals, businesses or creators — so you can tune every page to its crowd.</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -3833,6 +3833,17 @@
                                 </small>
                             </div>
                             <a href="#" class="cta">Run test</a>
+                        </div>
+                        <div class="coach-tip">
+                            <span class="ic"><i class="fas fa-chart-pie"></i></span>
+                            <div class="body">
+                                <b>Know your audience.</b> AI estimates visitor types
+                                <small>
+                                    <span class="spark up" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                                    <span>62% professionals</span>
+                                </small>
+                            </div>
+                            <a href="#" class="cta">See insights</a>
                         </div>
                     </div>
                 </div>
