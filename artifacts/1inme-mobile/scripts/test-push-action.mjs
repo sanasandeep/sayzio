@@ -71,12 +71,12 @@ assert.deepEqual(
   "api.usage_warning without a url should route to /api-usage",
 );
 
-// 3b. No url, expected_columns_missing type → deep-link to the admin
-// dashboard (where the schema-health warning + Repair action live).
+// 3b. No url, expected_columns_missing type → the mobile app has no admin
+// surface, so it falls back to the notifications list like any other type.
 assert.deepEqual(
   decidePushAction({ notification_id: 9, type: "expected_columns_missing" }),
-  { markReadId: 9, navigation: { kind: "route", path: "/admin" } },
-  "expected_columns_missing without a url should route to /admin",
+  { markReadId: 9, navigation: { kind: "route", path: "/notifications" } },
+  "expected_columns_missing without a url should route to /notifications",
 );
 
 // 4. No url, other/absent type → fall back to the notifications list.

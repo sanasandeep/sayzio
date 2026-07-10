@@ -57,11 +57,6 @@ function nativeRouteFor(target: string): string | null {
   const profile = path.match(/^\/@([A-Za-z0-9_]+)/);
   if (profile) return `/profile/${profile[1]}`;
 
-  // Admin ops alerts (scheduled job failed / scheduler stale) deep-link to
-  // the web panel at /admin/cron-jobs; the native counterpart is the admin
-  // Scheduled Jobs screen.
-  if (path.startsWith("/admin/cron-jobs")) return "/admin/scheduled-jobs";
-
   // In-app dashboard areas that have a native screen.
   if (path.startsWith("/user/team")) return "/team";
   if (path.startsWith("/user/posts")) return "/posts";

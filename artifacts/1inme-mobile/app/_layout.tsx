@@ -24,7 +24,6 @@ import { DeepLinkRouter } from "@/components/DeepLinkRouter";
 import { ShareIntentHandler } from "@/components/ShareIntentHandler";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IdleLockWarning } from "@/components/IdleLockWarning";
-import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
@@ -210,7 +209,6 @@ export default function RootLayout() {
                     <ShareIntentHandler />
                     <ActivityWatcher>
                       <RootLayoutNav />
-                      <ImpersonationBanner />
                       <PushRegistrar />
                       <IdleLockWarning />
                     </ActivityWatcher>

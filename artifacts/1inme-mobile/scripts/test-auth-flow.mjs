@@ -423,8 +423,8 @@ assert.ok(
   "after sending, the screen must advance to the verify screen",
 );
 assert.ok(
-  /demoLogin\(role === "user" \? "user" : "super_admin"\)/.test(loginSrc),
-  "the demo buttons must mint a session via demoLogin",
+  /await demoLogin\(\)/.test(loginSrc),
+  "the demo button must mint a session via demoLogin",
 );
 ok("login screen sends the OTP then advances to the verify step");
 

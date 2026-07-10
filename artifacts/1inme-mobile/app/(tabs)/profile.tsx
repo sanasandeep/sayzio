@@ -25,7 +25,6 @@ import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { useFeatureStates } from "@/hooks/useFeatureStates";
 import { wallet as walletApi } from "@/lib/api";
-import { getAdminContext } from "@/lib/api/admin";
 import { getProfile } from "@/lib/api/profile";
 import {
   formatIdleTimeout,
@@ -218,18 +217,6 @@ export default function Profile() {
   } = useAuth();
   const { pref, setPref } = useThemeControls();
   const featureStatesGate = useFeatureStates();
-
-  // Whether this account is linked to an active back-office admin record.
-  // Drives the Admin section + "Switch to admin dashboard" entry. The same
-  // token already authorizes the admin endpoints, so switching is navigation,
-  // not a re-login. Fails closed (no admin UI) on error.
-  const adminCtx = useQuery({
-    queryKey: ["admin-context"],
-    queryFn: getAdminContext,
-    retry: false,
-    staleTime: 60_000,
-  });
-  const hasAdminAccess = !!adminCtx.data?.has_admin_access;
 
   // Admin-assigned account badges (name + color), mirroring the web
   // dashboard/sidebar chips. Read-only; fails closed (no chips) on error.
@@ -1005,106 +992,6 @@ export default function Profile() {
             ) : null}
           </View>
         </View>
-
-        {user?.role === "super_admin" || hasAdminAccess ? (
-          <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              Admin
-            </Text>
-            <View
-              style={[
-                styles.list,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  borderRadius: colors.radius,
-                },
-              ]}
-            >
-              <Pressable
-                onPress={() => router.push("/admin" as never)}
-                style={({ pressed }) => [
-                  styles.listItem,
-                  { borderTopWidth: 0, opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <Feather name="shield" size={18} color={colors.primary} />
-                <Text style={[styles.listLabel, { color: colors.foreground }]}>
-                  Switch to admin dashboard
-                </Text>
-                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-              </Pressable>
-              <Pressable
-                onPress={() => router.push("/mail-settings" as never)}
-                style={({ pressed }) => [
-                  styles.listItem,
-                  {
-                    borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: colors.border,
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-              >
-                <Feather name="mail" size={18} color={colors.primary} />
-                <Text style={[styles.listLabel, { color: colors.foreground }]}>
-                  Email / SMTP
-                </Text>
-                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-              </Pressable>
-              <Pressable
-                onPress={() => router.push("/schema-health" as never)}
-                style={({ pressed }) => [
-                  styles.listItem,
-                  {
-                    borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: colors.border,
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-              >
-                <Feather name="database" size={18} color={colors.primary} />
-                <Text style={[styles.listLabel, { color: colors.foreground }]}>
-                  Schema health
-                </Text>
-                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-              </Pressable>
-              <Pressable
-                onPress={() => router.push("/admin/repair-audits" as never)}
-                style={({ pressed }) => [
-                  styles.listItem,
-                  {
-                    borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: colors.border,
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-              >
-                <Feather name="tool" size={18} color={colors.primary} />
-                <Text style={[styles.listLabel, { color: colors.foreground }]}>
-                  Schema repair log
-                </Text>
-                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-              </Pressable>
-              <Pressable
-                onPress={() => router.push("/cron-jobs" as never)}
-                style={({ pressed }) => [
-                  styles.listItem,
-                  {
-                    borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: colors.border,
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-              >
-                <Feather name="clock" size={18} color={colors.primary} />
-                <Text style={[styles.listLabel, { color: colors.foreground }]}>
-                  Cron jobs
-                </Text>
-                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
 
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>

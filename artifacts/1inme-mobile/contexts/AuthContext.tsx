@@ -22,11 +22,9 @@ import {
   getBiometricEnabled,
   getBiometricPromptDismissed,
   getIdleTimeoutMs,
-  getImpersonator,
   getLockWarningLeadMs,
   getStoredUser,
   getToken,
-  setImpersonator,
   setBiometricEnabled as persistBiometricEnabled,
   setBiometricPromptDismissed as persistBiometricPromptDismissed,
   setIdleTimeoutMs as persistIdleTimeoutMs,
@@ -75,19 +73,11 @@ type AuthState = {
   // While the idle timer is about to fire, this holds the whole-second
   // countdown shown by the warning banner. `null` means no warning visible.
   lockWarningSecondsRemaining: number | null;
-  // True while an admin operator is impersonating another user (the active
-  // token belongs to the impersonated user). Drives the persistent "Viewing
-  // as …" banner and the "Stop impersonating" action.
-  impersonating: boolean;
-  // Display name of the user currently being impersonated (for the banner).
-  impersonatedName: string | null;
 };
 
 type Ctx = AuthState & {
   signOut: () => Promise<void>;
   applySession: (token: string, user: AuthUser) => Promise<void>;
-  impersonate: (token: string, user: AuthUser) => Promise<void>;
-  stopImpersonating: () => Promise<void>;
   refresh: () => Promise<void>;
   sendOtp: (input: {
     channel: "email" | "mobile";
@@ -98,7 +88,7 @@ type Ctx = AuthState & {
     identifier: string;
     code: string;
   }) => Promise<void>;
-  demoLogin: (role?: "user" | "admin" | "super_admin") => Promise<void>;
+  demoLogin: () => Promise<void>;
   socialLogin: (input: {
     provider: "google" | "apple";
     id_token?: string;
@@ -132,8 +122,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
     lockWarningLeadMs: DEFAULT_LOCK_WARNING_LEAD_MS,
     lockWarningSecondsRemaining: null,
-    impersonating: false,
-    impersonatedName: null,
   });
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   // Tracks the last user-interaction timestamp. Updated on touch/navigation
@@ -154,7 +142,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         capability,
         idleTimeoutMs,
         lockWarningLeadMs,
-        impersonator,
       ] = await Promise.all([
         getToken(),
         getStoredUser<AuthUser>(),
@@ -162,7 +149,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         getBiometricCapability(),
         getIdleTimeoutMs(),
         getLockWarningLeadMs(),
-        getImpersonator<AuthUser>(),
       ]);
       if (cancelled) return;
 
@@ -185,9 +171,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         idleTimeoutMs,
         lockWarningLeadMs,
         lockWarningSecondsRemaining: null,
-        impersonating: !!(token && impersonator),
-        impersonatedName:
-          token && impersonator ? (user?.display_name ?? null) : null,
       });
     })();
     return () => {
@@ -319,12 +302,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const applySession = useCallback(async (token: string, user: AuthUser) => {
-    // A fresh sign-in always clears any impersonation stash — you can't be
-    // "returning" to an operator session you just replaced by logging in.
     await Promise.all([
       setToken(token),
       setStoredUser(user),
-      setImpersonator(null),
     ]);
     setState((s) => ({
       ...s,
@@ -334,67 +314,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Fresh sign-in counts as already unlocked.
       locked: false,
       lockWarningSecondsRemaining: null,
-      impersonating: false,
-      impersonatedName: null,
-    }));
-  }, []);
-
-  // Begin impersonating another user: stash the operator's own session so it
-  // can be restored later, then swap in the impersonated user's token. The
-  // token already authorizes the target's dashboard, so no re-login happens.
-  const impersonate = useCallback(
-    async (token: string, user: AuthUser) => {
-      const [currentToken, currentUser] = await Promise.all([
-        getToken(),
-        getStoredUser<AuthUser>(),
-      ]);
-      if (currentToken) {
-        await setImpersonator({ token: currentToken, user: currentUser });
-      }
-      await Promise.all([setToken(token), setStoredUser(user)]);
-      setState((s) => ({
-        ...s,
-        ready: true,
-        token,
-        user,
-        locked: false,
-        lockWarningSecondsRemaining: null,
-        impersonating: true,
-        impersonatedName: user?.display_name ?? null,
-      }));
-    },
-    [],
-  );
-
-  // Stop impersonating: restore the operator's stashed session. Best-effort
-  // revoke of the impersonation token happens before the swap (while it is
-  // still the active bearer token) so it doesn't linger server-side.
-  const stopImpersonating = useCallback(async () => {
-    const stash = await getImpersonator<AuthUser>();
-    if (!stash) {
-      // Nothing to restore — just clear the flag.
-      setState((s) => ({ ...s, impersonating: false, impersonatedName: null }));
-      return;
-    }
-    try {
-      await apiFetch("/auth/logout", { method: "POST" });
-    } catch {
-      /* best-effort — never block restoring the operator session */
-    }
-    await Promise.all([
-      setToken(stash.token),
-      setStoredUser(stash.user ?? null),
-      setImpersonator(null),
-    ]);
-    setState((s) => ({
-      ...s,
-      ready: true,
-      token: stash.token,
-      user: (stash.user as AuthUser) ?? null,
-      locked: false,
-      lockWarningSecondsRemaining: null,
-      impersonating: false,
-      impersonatedName: null,
     }));
   }, []);
 
@@ -426,7 +345,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await Promise.all([
       setToken(null),
       setStoredUser(null),
-      setImpersonator(null),
       persistBiometricEnabled(false),
       persistBiometricPromptDismissed(false),
     ]);
@@ -438,8 +356,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       locked: false,
       biometricEnabled: false,
       lockWarningSecondsRemaining: null,
-      impersonating: false,
-      impersonatedName: null,
     }));
   }, []);
 
@@ -501,14 +417,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const demoLogin = useCallback(
-    async (role: "user" | "admin" | "super_admin" = "user") => {
+    async () => {
       const res = await apiFetch<{
         data?: { token: string; user: AuthUser };
         token?: string;
         user?: AuthUser;
       } | null>("/auth/demo", {
         method: "POST",
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({ role: "user" }),
       });
       const token = res?.data?.token ?? res?.token;
       const user = res?.data?.user ?? res?.user;
@@ -625,8 +541,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ...state,
       signOut,
       applySession,
-      impersonate,
-      stopImpersonating,
       refresh,
       sendOtp,
       verifyOtp,
@@ -646,8 +560,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       state,
       signOut,
       applySession,
-      impersonate,
-      stopImpersonating,
       refresh,
       sendOtp,
       verifyOtp,

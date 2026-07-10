@@ -162,9 +162,7 @@ export function decidePushAction(data: Record<string, unknown> | undefined): {
   const path =
     type === "api.usage_warning"
       ? "/api-usage"
-      : type === "expected_columns_missing"
-        ? "/admin"
-        : "/notifications";
+      : "/notifications";
   return { markReadId, navigation: { kind: "route", path } };
 }
 
@@ -194,6 +192,6 @@ export function addPushResponseListener(): Notifications.EventSubscription {
       openPushTarget(navigation.target);
       return;
     }
-    router.push(navigation.path as "/api-usage" | "/notifications" | "/admin");
+    router.push(navigation.path as "/api-usage" | "/notifications");
   });
 }
