@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# Pre-push guard: catch silent Alpine/Blade view breakers BEFORE they are
+# pushed (and long before they fail a merge over the distant RDS).
+#
+# Runs the three static view guards together via one combined check:
+#   - check:alpine-line-comments  (// inside a double-quoted Alpine attribute)
+#   - check:blade-json-in-attr    (@json( inside a double-quoted attribute)
+#   - check:blade-comment-echo    (live {{ }} / {!! !!} inside plain comments)
+#
+# These are the exact same guards enforced in scripts/post-merge.sh, so a
+# green pre-push means the merge won't trip on them.
+#
+# Install once per clone:
+#   git config core.hooksPath .githooks
+# (or run: sh .githooks/install.sh)
+#
+# Bypass in a pinch (NOT recommended): git push --no-verify
+
+# Run from the repo root so pnpm resolves the workspace filter.
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+cd "$ROOT" || exit 0
+
+# If pnpm isn't available in this environment, don't block the push — the
+# post-merge pipeline still enforces the guards as a backstop.
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "pre-push: pnpm not found, skipping view guards (post-merge still enforces them)."
+  exit 0
+fi
+
+pnpm --filter @workspace/scripts run check:view-guards
+status=$?
+
+if [ "$status" -ne 0 ]; then
+  echo ""
+  echo "pre-push: view guards FAILED — push aborted."
+  echo "Fix the offenders above, or bypass with 'git push --no-verify' (not recommended)."
+fi
+
+exit "$status"

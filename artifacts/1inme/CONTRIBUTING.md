@@ -1,5 +1,49 @@
 # Contributing to Sayzio
 
+## Pre-flight: run the Blade/Alpine view guards before you push
+
+Three static guards catch a class of bug that compiles and typechecks fine but
+silently breaks whole Alpine components at runtime (dashboard, template picker,
+etc.):
+
+- **alpine-line-comments** — `//` line comments inside a double-quoted Alpine
+  attribute expression (`x-data` / `x-init` / any `x-*` / `@*` / `:*`). The
+  browser flattens the attribute to one line, so `//` swallows the rest —
+  including the closing `)` / `}` — throwing an *Alpine Expression Error* that
+  kills the whole component's bindings.
+- **blade-json-in-attr** — `@json(` inside a double-quoted attribute (emits
+  literal quotes that truncate `x-data` / `@click` and silently kill Alpine;
+  use `@js` instead).
+- **blade-comment-echo** — live `{{ }}` / `{!! !!}` echoes inside plain
+  HTML/CSS comments.
+
+These are enforced on **every merge** in
+[`scripts/post-merge.sh`](../../scripts/post-merge.sh), but that only catches
+offenders *after* the code is merged — the merge fails and someone has to fix
+it and re-run over the distant RDS. Run them locally first so they never reach
+a merge:
+
+```bash
+# From the repo root — runs all three guards together, one clear pass/fail:
+pnpm --filter @workspace/scripts run check:view-guards
+```
+
+### Automatic pre-push enforcement (recommended)
+
+A committed git hook runs `check:view-guards` before every `git push`. Install
+it once per clone:
+
+```bash
+# From the repo root:
+sh .githooks/install.sh
+# (equivalently: git config core.hooksPath .githooks)
+```
+
+After that, a push carrying a broken Alpine/Blade attribute is rejected locally
+in ~1s instead of failing a merge minutes later. To bypass in a pinch (not
+recommended): `git push --no-verify`. The hook is a no-op if `pnpm` isn't
+available; the post-merge pipeline still enforces the same guards as a backstop.
+
 ## Pre-flight: run migrations from scratch on PostgreSQL
 
 Before pushing changes that touch anything under
