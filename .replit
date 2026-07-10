@@ -184,6 +184,10 @@ args = "e2e-mobile-drawer-signout"
 task = "workflow.run"
 args = "demo-login-email"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-tabbar"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -642,6 +646,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:demo-login-email"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-tabbar"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:tabbar-legibility-e2e"
 
 [workflows.workflow.metadata]
 isValidation = true

@@ -91,6 +91,18 @@ export function FloatingTabBar() {
 
   const isDark = scheme === "dark";
 
+  // Legibility treatment for the ACTIVE tab's icon + label, which sit on top
+  // of the sliding blue→indigo→magenta gradient circle. A subtle text shadow
+  // keeps the glyph/word crisp over every hue stop; the shadow contrasts with
+  // the foreground colour (dark halo under white text in light mode, light
+  // halo under near-black text in dark mode). Paired with a bolder weight on
+  // the label so the active state never washes out over the mid-tone stops.
+  const activeTextShadow = {
+    textShadowColor: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.35)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  } as const;
+
   const glassBackground =
     Platform.OS === "web"
       ? isDark
@@ -199,12 +211,19 @@ export function FloatingTabBar() {
               accessibilityState={{ selected: focused }}
               hitSlop={4}
             >
-              <Feather name={tab.icon} size={iconSize} color={iconColor} />
+              <Feather
+                name={tab.icon}
+                size={iconSize}
+                color={iconColor}
+                style={focused ? activeTextShadow : undefined}
+              />
               {tab.name !== "create" && (
                 <Text
                   style={[
                     styles.label,
                     { color: iconColor },
+                    focused && styles.labelActive,
+                    focused && activeTextShadow,
                   ]}
                   numberOfLines={1}
                 >
@@ -276,5 +295,10 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 10,
     letterSpacing: 0.2,
+  },
+  // Active label uses the bolder weight so it reads clearly over the gradient
+  // circle; the theme-aware text shadow is applied inline (activeTextShadow).
+  labelActive: {
+    fontFamily: "SpaceGrotesk_700Bold",
   },
 });
