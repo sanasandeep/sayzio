@@ -269,6 +269,22 @@ async function main() {
     });
   }
 
+  // The "Section hidden" badge count changes on an async re-render (a checkbox
+  // toggle → React Query onSuccess → setChecks → recompute), so a one-shot
+  // count() right after a toggle/response races the re-render and can observe a
+  // stale count. Poll until the count settles to the expected value, then let
+  // the caller keep its own tailored fail() message.
+  async function badgeCountSettles(expected) {
+    const badges = page.getByText("Section hidden", { exact: true });
+    const deadline = Date.now() + STEP_TIMEOUT_MS;
+    let count = await badges.count();
+    while (count !== expected && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 200));
+      count = await badges.count();
+    }
+    return count;
+  }
+
   try {
     // ---- Boot + sign in as admin.
     const TRANSIENT_NAV =
@@ -332,7 +348,7 @@ async function main() {
         await assertChecked(item.name, true, "initial render");
       }
     }
-    if ((await page.getByText("Section hidden", { exact: true }).count()) !== 0) {
+    if ((await badgeCountSettles(0)) !== 0) {
       fail('the "Section hidden" badge must not show while everything is enabled');
     }
     log(`all ${CATALOG.length} sections + cards rendered, everything checked`);
@@ -347,11 +363,12 @@ async function main() {
       await assertChecked(item.name, false, "after emptying the section");
     }
 
-    // The emptied section (and only it) shows the "Section hidden" badge.
-    const badges = page.getByText("Section hidden", { exact: true });
-    await badges.first().waitFor({ timeout: STEP_TIMEOUT_MS });
-    if ((await badges.count()) !== 1) {
-      fail(`exactly ONE "Section hidden" badge expected, got ${await badges.count()}`);
+    // The emptied section (and only it) shows the "Section hidden" badge. The
+    // badge mounts on the re-render that follows the toggles, so poll until the
+    // count settles rather than a one-shot count() that races that re-render.
+    const badgeCount = await badgeCountSettles(1);
+    if (badgeCount !== 1) {
+      fail(`exactly ONE "Section hidden" badge expected, got ${badgeCount}`);
     }
     log('unchecked cards; "Section hidden" badge shows on the emptied section only');
 
@@ -414,7 +431,7 @@ async function main() {
         await assertChecked(item.name, true, "after restore defaults");
       }
     }
-    if ((await page.getByText("Section hidden", { exact: true }).count()) !== 0) {
+    if ((await badgeCountSettles(0)) !== 0) {
       fail('the "Section hidden" badge must disappear after restoring defaults');
     }
     log("restore defaults re-enabled every card and cleared the badge");

@@ -281,11 +281,21 @@ async function assertSocialButtonsTappable(page) {
   for (const label of [...REQUIRED_SOCIAL_LABELS, ...OPTIONAL_SOCIAL_LABELS]) {
     const optional = OPTIONAL_SOCIAL_LABELS.includes(label);
     const btn = page.locator(`[aria-label="${label}"]`).first();
-    const present = (await btn.count()) > 0;
-    if (!present) {
-      // Optional providers (Google without a client id) may be absent.
-      if (optional) continue;
-      fail(`social button "${label}" is missing from the login screen`);
+    if (optional) {
+      // Optional providers (Google without a client id) may be absent, so a
+      // one-shot presence check is correct here — we must NOT auto-wait for a
+      // button that legitimately never renders.
+      if ((await btn.count()) === 0) continue;
+    } else {
+      // Required buttons render with the login screen, but that render can lag
+      // the "Welcome back" heading reachLoginScreen waited on. Auto-wait for
+      // the button instead of a one-shot count() that races the mount and would
+      // spuriously report a present button as "missing".
+      await btn
+        .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS })
+        .catch(() =>
+          fail(`social button "${label}" is missing from the login screen`),
+        );
     }
     if (!(await btn.isVisible())) {
       fail(`social button "${label}" is present but not visible`);
@@ -476,12 +486,16 @@ const { acquireServer, stopExpo } = createExpoServerManager(log);
 async function assertGoogleButtonTappable(page) {
   const label = "Continue with Google";
   const btn = page.locator(`[aria-label="${label}"]`).first();
-  if ((await btn.count()) === 0) {
-    fail(
-      `Google variant: "${label}" did not render even with a web client id ` +
-        `configured — the Google sign-in button is broken or gated off`,
+  // Auto-wait for the button to mount rather than a one-shot count() that races
+  // the login-screen render and would falsely report the button as missing.
+  await btn
+    .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS })
+    .catch(() =>
+      fail(
+        `Google variant: "${label}" did not render even with a web client id ` +
+          `configured — the Google sign-in button is broken or gated off`,
+      ),
     );
-  }
   if (!(await btn.isVisible())) {
     fail(`Google variant: "${label}" is present but not visible`);
   }
