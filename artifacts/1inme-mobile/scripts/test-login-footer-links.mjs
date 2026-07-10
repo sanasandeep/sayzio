@@ -23,7 +23,7 @@
 // `test:login-footer-links`).
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { runExtractedCall } from "./lib/extract.mjs";
@@ -147,6 +147,11 @@ const ROUTER_TARGETS = {
   Terms: "/info/terms",
 };
 
+// Record the real in-app route each link pushes, so section 4 can resolve
+// those exact targets to shipped screen files (source-driven — the routes we
+// check are the ones the footer actually navigates to, not a hardcoded list).
+const inAppTargets = [];
+
 for (const { label, onPress } of links) {
   const calls = runHandler(onPress);
   if (label === "Website") {
@@ -172,8 +177,39 @@ for (const { label, onPress } of links) {
       0,
       `the ${label} link must navigate in-app, not via Linking.openURL`,
     );
+    inAppTargets.push({ label, target });
   }
 }
 ok("About/Help/Privacy/Terms push their /info route; Website opens https://sayzio.app");
+
+// ===========================================================================
+// 4. Each in-app /info route resolves to a REAL screen file that renders.
+//
+// Sections 1–3 prove the footer pushes /info/<page>, but Expo Router derives a
+// route purely from file paths: /info/about needs app/info/about.tsx to exist
+// and default-export a component. If a screen file were renamed or deleted the
+// footer link would push to a dead route (a +not-found screen) while sections
+// 1–3 stayed green. We resolve each pushed target to its file and assert it
+// exists and default-exports a component — following the route-file
+// registration checks in test-import-url-route.mjs.
+// ===========================================================================
+console.log("[test-login-footer-links] each /info route resolves to a screen file");
+
+for (const { label, target } of inAppTargets) {
+  // "/info/about" -> app/info/about.tsx (Expo Router file-based routing).
+  const relPath = join("app", ...target.split("/").filter(Boolean)) + ".tsx";
+  const screenPath = join(root, relPath);
+  assert.ok(
+    existsSync(screenPath),
+    `the ${label} link pushes "${target}", so ${relPath} must exist — Expo Router derives that route from this file; renaming or deleting it makes the footer link land on a +not-found screen`,
+  );
+  const routeSrc = readFileSync(screenPath, "utf8");
+  assert.match(
+    routeSrc,
+    /export default function \w+/,
+    `${relPath} must default-export a screen component or Expo Router won't register the ${target} route`,
+  );
+  ok(`${target} resolves to ${relPath} (default-exports a component)`);
+}
 
 console.log(`\n[test-login-footer-links] all ${passed} checks passed`);
