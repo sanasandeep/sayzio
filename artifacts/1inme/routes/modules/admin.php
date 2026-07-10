@@ -106,6 +106,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::prefix('plans')->name('plans.')->group(function () {
             Route::get('/', [PlanController::class, 'index'])->middleware(CheckPermission::class . ':plans.view')->name('index');
+            Route::get('export', [PlanController::class, 'export'])->middleware(CheckPermission::class . ':plans.view')->name('export');
             Route::get('create', [PlanController::class, 'create'])->middleware(CheckPermission::class . ':plans.manage')->name('create');
             Route::post('/', [PlanController::class, 'store'])->middleware(CheckPermission::class . ':plans.manage')->name('store');
             Route::get('{plan}', [PlanController::class, 'show'])->middleware(CheckPermission::class . ':plans.view')->name('show');

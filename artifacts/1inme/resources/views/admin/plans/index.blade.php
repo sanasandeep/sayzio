@@ -5,9 +5,14 @@
 @section('content')
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Manage subscription plans and pricing</p>
-    <a href="{{ route('admin.plans.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
-        <i class="fas fa-plus mr-2"></i>Add Plan
-    </a>
+    <div class="flex items-center gap-3">
+        <a href="{{ route('admin.plans.export') }}" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm font-medium hover:bg-white/20 transition">
+            <i class="fas fa-download mr-2"></i>Export CSV
+        </a>
+        <a href="{{ route('admin.plans.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
+            <i class="fas fa-plus mr-2"></i>Add Plan
+        </a>
+    </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

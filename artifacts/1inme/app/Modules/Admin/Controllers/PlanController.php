@@ -8,6 +8,7 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\Admin\Support\PlanWriter;
 use App\Modules\Common\Support\PlanFormCatalogue;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PlanController extends Controller
 {
@@ -91,6 +92,172 @@ class PlanController extends Controller
 
         $plan->delete();
         return redirect()->route('admin.plans.index')->with('success', 'Plan deleted successfully.');
+    }
+
+    /**
+     * Stream all plans (active + archived) as a single Excel-compatible CSV.
+     *
+     * Columns: core plan attributes → pricing (USD + INR × monthly + annual
+     * from the authoritative `prices` table) → every module flag → every
+     * quantity limit → every feature flag → every AI suite flag → AI coin
+     * multipliers → referral program fields. Human-readable column headers
+     * are sourced from PlanFormCatalogue / PremiumFeatures so the file is
+     * understandable without knowing internal keys.
+     */
+    public function export(): StreamedResponse
+    {
+        $plans = Plan::with('prices')->ordered()->get();
+
+        // ---- Build the deterministic column specification once ----
+        $columns = [];
+
+        // Core attributes
+        $columns[] = ['header' => 'Name',        'resolve' => fn ($p) => $p->name];
+        $columns[] = ['header' => 'Slug',        'resolve' => fn ($p) => $p->slug];
+        $columns[] = ['header' => 'Status',      'resolve' => fn ($p) => $p->status];
+        $columns[] = ['header' => 'Default',     'resolve' => fn ($p) => $p->is_default  ? 'Yes' : 'No'];
+        $columns[] = ['header' => 'Popular',     'resolve' => fn ($p) => $p->is_popular  ? 'Yes' : 'No'];
+        $columns[] = ['header' => 'Internal',    'resolve' => fn ($p) => $p->is_internal ? 'Yes' : 'No'];
+        $columns[] = ['header' => 'Archived',    'resolve' => fn ($p) => $p->is_archived ? 'Yes' : 'No'];
+        $columns[] = ['header' => 'Sort order',  'resolve' => fn ($p) => $p->sort_order];
+
+        // Pricing — USD + INR × monthly + annual (minor units → major)
+        foreach (['USD' => 'USD', 'INR' => 'INR'] as $currency => $currLabel) {
+            foreach (['monthly' => 'monthly', 'annual' => 'annual'] as $cycle => $cycleLabel) {
+                $col = "{$currLabel}/{$cycleLabel}";
+                $columns[] = [
+                    'header'  => "Price {$col}",
+                    'resolve' => function (Plan $p) use ($currency, $cycle) {
+                        $price = $p->prices->first(
+                            fn ($pr) => $pr->currency === $currency && $pr->billing_cycle === $cycle
+                        );
+                        if (!$price) { return ''; }
+                        return number_format($price->amount_minor_units / 100, 2, '.', '');
+                    },
+                ];
+            }
+        }
+
+        // Modules
+        foreach (PlanFormCatalogue::modules() as $key => $meta) {
+            $columns[] = [
+                'header'  => 'Module: ' . $meta['label'],
+                'resolve' => fn (Plan $p) => !empty(($p->features ?? [])[$key]) ? 'Yes' : 'No',
+            ];
+        }
+
+        // Quantity limits (-1 → "Unlimited")
+        foreach (PlanFormCatalogue::quantityLimits() as $q) {
+            $key   = $q['key'];
+            $label = $q['label'];
+            $columns[] = [
+                'header'  => $label,
+                'resolve' => function (Plan $p) use ($key) {
+                    $features = $p->features ?? [];
+                    if (!array_key_exists($key, $features)) { return ''; }
+                    $val = $features[$key];
+                    // Some limits (e.g. max_aliases_per_link) may be stored as a
+                    // map keyed by type with a `default` fallback — export the
+                    // default so the same -1 → "Unlimited" rule still applies.
+                    if (is_array($val)) {
+                        if (!array_key_exists('default', $val)) { return ''; }
+                        $val = $val['default'];
+                    }
+                    return (int) $val === -1 ? 'Unlimited' : (string) $val;
+                },
+            ];
+        }
+
+        // Feature flags (bool → Yes/No, select → value)
+        foreach (PlanFormCatalogue::featureFlags() as $flag) {
+            $key   = $flag['key'];
+            $label = PlanFormCatalogue::labelFor($key);
+            $type  = $flag['type'];
+            $columns[] = [
+                'header'  => $label,
+                'resolve' => function (Plan $p) use ($key, $type) {
+                    $features = $p->features ?? [];
+                    $val = $features[$key] ?? null;
+                    if ($type === 'bool') {
+                        return !empty($val) ? 'Yes' : 'No';
+                    }
+                    return (string) ($val ?? '');
+                },
+            ];
+        }
+
+        // AI suite booleans
+        foreach (PlanFormCatalogue::aiSuite() as $row) {
+            $key   = $row['key'];
+            $label = PlanFormCatalogue::labelFor($key);
+            $columns[] = [
+                'header'  => 'AI: ' . $label,
+                'resolve' => fn (Plan $p) => !empty(($p->features ?? [])[$key]) ? 'Yes' : 'No',
+            ];
+        }
+
+        // AI coin multipliers (float, 1.0 = no change)
+        foreach (PlanFormCatalogue::aiCoinMultipliers() as $row) {
+            $key   = $row['key'];
+            $label = $row['label'];
+            $columns[] = [
+                'header'  => $label,
+                'resolve' => function (Plan $p) use ($key) {
+                    $val = ($p->features ?? [])[$key] ?? null;
+                    return $val !== null ? (string) $val : '1';
+                },
+            ];
+        }
+
+        // Referral program integer fields
+        foreach (PlanFormCatalogue::referralFields() as $row) {
+            $key   = $row['key'];
+            $label = $row['label'];
+            $columns[] = [
+                'header'  => $label,
+                'resolve' => function (Plan $p) use ($key) {
+                    $val = ($p->features ?? [])[$key] ?? null;
+                    return $val !== null ? (string) (int) $val : '0';
+                },
+            ];
+        }
+
+        // ---- Stream the CSV ----
+        $safe = static function (mixed $value): string {
+            $s = (string) $value;
+            if ($s !== '' && in_array($s[0], ['=', '+', '-', '@'], true)) {
+                return "'" . $s;
+            }
+            return $s;
+        };
+
+        $filename = 'pricing-plans-' . now()->toDateString() . '.csv';
+
+        $headers   = $columns;
+        $allPlans  = $plans;
+
+        return response()->stream(function () use ($headers, $allPlans, $safe) {
+            $out = fopen('php://output', 'w');
+
+            // UTF-8 BOM so Excel auto-detects the encoding.
+            fwrite($out, "\xEF\xBB\xBF");
+
+            fputcsv($out, array_column($headers, 'header'));
+
+            foreach ($allPlans as $plan) {
+                $row = [];
+                foreach ($headers as $col) {
+                    $row[] = $safe(($col['resolve'])($plan));
+                }
+                fputcsv($out, $row);
+            }
+
+            fclose($out);
+        }, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control'       => 'no-store',
+        ]);
     }
 
     /**
