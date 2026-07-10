@@ -95,8 +95,8 @@ class MarketingSeo
                 'group' => 'Capabilities',
                 'url' => '/domains',
                 'title' => 'Custom Domains & URL Aliases — Brand Every Link',
-                'description' => 'Launch on a branded Sayzio domain like 1in.me, bizs.club, getbio.one or Sayzio.app, connect your own custom domain with simple CNAME verification, and give links memorable slugs with multiple aliases.',
-                'keywords' => 'custom domain, branded domain, url alias, link slug, cname verification, vanity url, biolink domain, 1in.me, bizs.club, getbio.one, sayzio.app',
+                'description' => 'Launch on a branded Sayzio domain like 1in.me, bizs.club, getbio.one, sayzio.link or Sayzio.app, connect your own custom domain with simple CNAME verification, and give links memorable slugs with multiple aliases.',
+                'keywords' => 'custom domain, branded domain, url alias, link slug, cname verification, vanity url, biolink domain, 1in.me, bizs.club, getbio.one, sayzio.app, sayzio.link',
             ],
             'api-docs' => [
                 'label' => 'API documentation',

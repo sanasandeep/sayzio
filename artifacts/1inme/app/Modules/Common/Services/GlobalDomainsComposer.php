@@ -21,6 +21,6 @@ class GlobalDomainsComposer
 
     public function compose(View $view): void
     {
-        $view->with('showcaseDomains', Domain::showcase(4));
+        $view->with('showcaseDomains', Domain::showcase(5));
     }
 }

@@ -21,7 +21,7 @@ class Domain extends Model
     public const PLATFORM_IDS_CACHE_KEY = 'domains.platform_ids';
 
     /** Static branded fallback shown when no global domains are configured. */
-    public const SHOWCASE_FALLBACK = ['1in.me', 'bizs.club', 'getbio.one', 'Sayzio.app'];
+    public const SHOWCASE_FALLBACK = ['1in.me', 'bizs.club', 'getbio.one', 'Sayzio.app', 'sayzio.link'];
 
 protected $fillable = [
         'user_id', 'domain', 'type', 'is_verified', 'is_active', 'is_primary',
