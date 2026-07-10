@@ -132,18 +132,17 @@ async function swipeToNextSlide(page) {
   log("swiped the carousel forward by one slide width");
 }
 
-async function run() {
-  const { acquireServer } = createExpoServerManager(log);
-  const server = await acquireServer("onboarding", process.env.APP_URL);
-  if (!server) {
-    skip("could not boot a throwaway Expo web server in this environment");
-  }
-  const appUrl = server.appUrl.endsWith("/")
-    ? server.appUrl
-    : server.appUrl + "/";
-
-  const browser = await chromium.launch();
-  const context = await browser.newContext({ viewport: VIEWPORT });
+// Build a browser context wired for a fresh onboarding launch: a signed-out,
+// not-yet-onboarded install, with the slides endpoint mocked and every other
+// backend call stubbed. `colorScheme` emulates the OS light/dark preference
+// (drives react-native-web's useColorScheme via prefers-color-scheme) so we
+// can prove the top-bar wordmark stays on the white variant in BOTH themes.
+async function prepareContext(browser, colorScheme) {
+  const context = await browser.newContext(
+    colorScheme
+      ? { viewport: VIEWPORT, colorScheme }
+      : { viewport: VIEWPORT },
+  );
 
   // A fresh install: onboarding NOT complete, signed out.
   await context.addInitScript(() => {
@@ -153,6 +152,17 @@ async function run() {
       window.localStorage.removeItem("1inme.auth.user");
     } catch {}
   });
+
+  // Admin-managed brand logos feed. Empty payload → fetchBrandLogos() returns
+  // null so the wordmark falls back to the BUNDLED PNGs, making the variant
+  // assertion deterministic (independent of any real admin config).
+  await context.route("**/branding.json**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: "{}",
+    }),
+  );
 
   // Deterministic slides for the carousel.
   await context.route("**/api/v1/onboarding/slides**", (route) =>
@@ -177,6 +187,73 @@ async function run() {
       body: JSON.stringify({ data: [] }),
     });
   });
+
+  return context;
+}
+
+// Prove the onboarding top-bar wordmark resolves to the WHITE (dark-background)
+// PNG — `wordmark-white-text.png` — and never the dark-text variant. This guards
+// the `forceVariant="dark-bg"` prop on <BrandWordmark>: if it's removed or the
+// forceVariant branch is short-circuited, a light-mode device would render the
+// dark-text logo, which is invisible on the dark top bar. On Expo web the
+// bundled require() resolves to a URL that keeps the original filename, so we
+// scan every <img src>/currentSrc and CSS background-image for the two names.
+async function assertWordmarkWhiteVariant(page, label) {
+  const hits = await page.evaluate(() => {
+    const found = { white: false, darkText: false, srcs: [] };
+    const scan = (val) => {
+      if (!val) return;
+      let d = val;
+      try {
+        d = decodeURIComponent(val);
+      } catch {}
+      if (d.includes("wordmark-white-text")) {
+        found.white = true;
+        found.srcs.push(d);
+      }
+      if (d.includes("wordmark-dark-text")) {
+        found.darkText = true;
+        found.srcs.push(d);
+      }
+    };
+    document.querySelectorAll("img").forEach((img) => {
+      scan(img.getAttribute("src"));
+      scan(img.currentSrc);
+    });
+    document.querySelectorAll("*").forEach((el) => {
+      const bg = window.getComputedStyle(el).backgroundImage;
+      if (bg && bg !== "none") scan(bg);
+    });
+    return found;
+  });
+
+  if (!hits.white) {
+    fail(
+      `${label}: white/dark-bg wordmark (wordmark-white-text.png) not found ` +
+        `in the DOM; srcs=${JSON.stringify(hits.srcs)}`,
+    );
+  }
+  if (hits.darkText) {
+    fail(
+      `${label}: dark-text wordmark (wordmark-dark-text.png) rendered — it is ` +
+        `invisible on the dark top bar; srcs=${JSON.stringify(hits.srcs)}`,
+    );
+  }
+  log(`${label}: brand wordmark resolved to the white/dark-bg variant`);
+}
+
+async function run() {
+  const { acquireServer } = createExpoServerManager(log);
+  const server = await acquireServer("onboarding", process.env.APP_URL);
+  if (!server) {
+    skip("could not boot a throwaway Expo web server in this environment");
+  }
+  const appUrl = server.appUrl.endsWith("/")
+    ? server.appUrl
+    : server.appUrl + "/";
+
+  const browser = await chromium.launch();
+  const context = await prepareContext(browser);
 
   const page = await context.newPage();
   page.setDefaultTimeout(STEP_TIMEOUT_MS);
@@ -253,6 +330,34 @@ async function run() {
       .first()
       .waitFor({ timeout: STEP_TIMEOUT_MS });
     log("Skip landed on the auth screen (Welcome back)");
+
+    // ---- 4. Wordmark stays the WHITE variant in BOTH color schemes -------
+    // Regression guard for the invisible-logo bug: the splash top-bar
+    // <BrandWordmark forceVariant="dark-bg" /> must resolve to the white PNG
+    // even when the device is in LIGHT mode (where useColorScheme() would
+    // otherwise pick the dark-text logo, invisible on the dark top bar).
+    for (const scheme of ["light", "dark"]) {
+      const themeCtx = await prepareContext(browser, scheme);
+      const themePage = await themeCtx.newPage();
+      themePage.setDefaultTimeout(STEP_TIMEOUT_MS);
+      themePage.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+      themePage.on("pageerror", (e) => log(`pageerror (${scheme}):`, e.message));
+      try {
+        log(`navigating to ${appUrl} with ${scheme} color scheme`);
+        await themePage.goto(appUrl, { waitUntil: "domcontentloaded" });
+        // Wait for the carousel (slide 1 chip) so the top bar is mounted.
+        await themePage
+          .getByText(SLIDE_ONE_CATEGORY, { exact: true })
+          .first()
+          .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
+        await assertWordmarkWhiteVariant(
+          themePage,
+          `top-bar wordmark (${scheme} scheme)`,
+        );
+      } finally {
+        await themeCtx.close().catch(() => {});
+      }
+    }
 
     log("PASS: onboarding slider e2e checks all passed");
   } finally {
