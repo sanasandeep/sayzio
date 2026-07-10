@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   Dimensions,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -24,10 +23,11 @@ import Svg, { Circle } from "react-native-svg";
 // ─── Ring definitions ──────────────────────────────────────────────────────
 // Each ring has a radius, rotation duration (ms per full revolution), and
 // direction (+1 = clockwise, -1 = counter-clockwise).
+// Radii nudged outward to give the enlarged mascot and tiles room.
 const RINGS = [
-  { radius: 74,  duration: 22000, dir:  1 },
-  { radius: 128, duration: 34000, dir: -1 },
-  { radius: 180, duration: 46000, dir:  1 },
+  { radius: 92,  duration: 22000, dir:  1 },
+  { radius: 148, duration: 34000, dir: -1 },
+  { radius: 196, duration: 46000, dir:  1 },
 ] as const;
 
 // ─── Node definitions ──────────────────────────────────────────────────────
@@ -70,15 +70,14 @@ const NODES: NodeDef[] = [
 ];
 
 // ─── Tile sizes by ring ─────────────────────────────────────────────────────
-const TILE_SIZES = [38, 34, 30] as const;
-const ICON_SIZES = [22, 20, 18] as const;
+// Enlarged from [38,34,30] / [22,20,18] to feel more substantial.
+const TILE_SIZES = [46, 40, 34] as const;
+const ICON_SIZES = [27, 24, 20] as const;
 
-// Mascot asset: animated WebP on Android (expo-image renders it looping),
-// still PNG on iOS (VP9-alpha WebM ignores alpha on iOS; animated WebP
-// support in older iOS WKWebView can be inconsistent).
-const MASCOT_ANIMATED = require("@/assets/images/sayzio-mascot-animated.webp");
-const MASCOT_STILL    = require("@/assets/images/sayzio-mascot-still.png");
-const mascotSource    = Platform.OS === "android" ? MASCOT_ANIMATED : MASCOT_STILL;
+// New mascot: single high-quality still PNG used on all platforms.
+// The animated-WebP path is no longer needed now that the mascot has its own
+// looping code-driven animation (see MascotFloat below).
+const MASCOT_SRC = require("@/assets/images/zio-mascot-new.png");
 
 // ─── Single orbiting node tile ─────────────────────────────────────────────
 function NodeTile({
@@ -221,6 +220,38 @@ function MascotHalo({ reduced }: { reduced: boolean }) {
   return <Animated.View style={[styles.halo, haloStyle]} />;
 }
 
+// ─── Floating mascot wrapper ────────────────────────────────────────────────
+// Gentle vertical float (−9 → 0 → −9 loop), independent of the image asset.
+// Disabled when the user has reduced motion enabled.
+function MascotFloat({
+  reduced,
+  children,
+}: {
+  reduced: boolean;
+  children: React.ReactNode;
+}) {
+  const ty = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduced) return;
+    ty.value = withRepeat(
+      withTiming(-9, { duration: 1800, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+  }, [reduced, ty]);
+
+  const floatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: ty.value }],
+  }));
+
+  return (
+    <Animated.View style={[styles.mascotWrap, reduced ? undefined : floatStyle]}>
+      {children}
+    </Animated.View>
+  );
+}
+
 // ─── Session flag ──────────────────────────────────────────────────────────
 // Module-level so it survives GateScreen remounts (e.g. navigating back to
 // the gate) but resets on a fresh JS session (cold launch). Ensures the
@@ -325,16 +356,13 @@ export function ZioSplash({
         <RingRotor ringIndex={2} reduced={reduced} />
 
         <MascotHalo reduced={reduced} />
-        <View style={styles.mascotWrap}>
+        <MascotFloat reduced={reduced}>
           <Image
-            source={mascotSource}
+            source={MASCOT_SRC}
             style={styles.mascot}
             contentFit="contain"
-            // Only autoplay on Android (animated WebP); iOS uses still PNG.
-            // In reduced-motion mode the mascot is static regardless of platform.
-            autoplay={!reduced}
           />
-        </View>
+        </MascotFloat>
       </View>
 
       {/* "Zio runs it all" pill */}
@@ -404,23 +432,25 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
+  // Halo scaled up to stay proportional with the larger mascot.
   halo: {
     position: "absolute",
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
     backgroundColor: "#3d6bff",
     opacity: 0.18,
   },
 
+  // Mascot wrapper and image enlarged from 100/96 → 136/130.
   mascotWrap: {
     position: "absolute",
-    width: 100,
-    height: 100,
+    width: 136,
+    height: 136,
     alignItems: "center",
     justifyContent: "center",
   },
-  mascot: { width: 96, height: 96 },
+  mascot: { width: 130, height: 130 },
 
   pillWrap: {
     position: "absolute",
