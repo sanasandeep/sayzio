@@ -9,6 +9,8 @@ import {
   type Page,
 } from "@playwright/test";
 
+import { DEMO_LOGIN_EMAIL } from "./demo-account";
+
 /**
  * Confirms the BROWSER dialer page visually refreshes when another device makes
  * a change (Task #3315). Task #3314 already proved the server contract of the
@@ -89,11 +91,11 @@ use App\\Modules\\User\\Services\\WorkspaceContext;
 use Illuminate\\Support\\Facades\\Hash;
 use Illuminate\\Support\\Facades\\DB;
 
-$u = User::where('email', 'demo@1inme.com')->first();
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->first();
 if (!$u) {
   $free = Plan::where('slug', 'free')->first() ?? Plan::defaultPlan();
   $u = User::create([
-    'name' => 'Demo User', 'email' => 'demo@1inme.com',
+    'name' => 'Demo User', 'email' => '${DEMO_LOGIN_EMAIL}',
     'password' => Hash::make('password'), 'plan_id' => $free?->id,
     'status' => 'active', 'email_verified_at' => now(),
   ]);
@@ -129,7 +131,7 @@ function addFavoriteOnAnotherDevice(): void {
   const php = `
 use App\\Modules\\User\\Models\\User;
 use App\\Modules\\User\\Models\\DialerFavorite;
-$u = User::where('email', 'demo@1inme.com')->firstOrFail();
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->firstOrFail();
 DialerFavorite::firstOrCreate(
   ['user_id' => $u->id, 'number_e164' => '${FAV_NUMBER}'],
   ['label' => '${FAV_LABEL}', 'sort_order' => 1]
@@ -146,7 +148,7 @@ function logCallOnAnotherDevice(): void {
   const php = `
 use App\\Modules\\User\\Models\\User;
 use App\\Modules\\User\\Models\\DialerLookup;
-$u = User::where('email', 'demo@1inme.com')->firstOrFail();
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->firstOrFail();
 DialerLookup::create([
   'user_id' => $u->id, 'number_e164' => '${RECENT_NUMBER}', 'looked_up_at' => now(),
 ]);

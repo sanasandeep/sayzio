@@ -9,6 +9,8 @@ import {
   type Page,
 } from "@playwright/test";
 
+import { DEMO_LOGIN_EMAIL } from "./demo-account";
+
 // Regression guard for the redesigned step-by-step first-run onboarding wizard
 // (task: "confirm the new step-by-step onboarding can't leave users stuck").
 //
@@ -106,10 +108,10 @@ use App\\Modules\\Admin\\Models\\PageTemplate;
 use Illuminate\\Support\\Facades\\Hash;
 
 $free = Plan::where('slug', 'free')->first();
-$u = User::where('email', 'demo@1inme.com')->first();
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->first();
 if (!$u) {
   $u = User::create([
-    'name' => 'Demo User', 'email' => 'demo@1inme.com',
+    'name' => 'Demo User', 'email' => '${DEMO_LOGIN_EMAIL}',
     'password' => Hash::make('password'), 'plan_id' => $free?->id,
     'status' => 'active', 'email_verified_at' => now(),
   ]);
@@ -172,7 +174,7 @@ function resetOnboarding(): void {
 use App\\Modules\\User\\Models\\User;
 use App\\Modules\\User\\Models\\Link;
 
-$u = User::where('email', 'demo@1inme.com')->firstOrFail();
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->firstOrFail();
 $settings = $u->settings ?? [];
 unset($settings['last_previewed_template_id']);
 $u->forceFill(['onboarded_at' => null, 'persona' => null, 'settings' => $settings])->save();
@@ -250,7 +252,7 @@ function prepareWhatsappStep(): void {
 use App\\Modules\\User\\Models\\User;
 use App\\Modules\\User\\Models\\LinkedIdentifier;
 
-$u = User::where('email', 'demo@1inme.com')->firstOrFail();
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->firstOrFail();
 
 // Drop any verified phone identifier so hasWhatsappNumber() is false and the
 // step is genuinely applicable (a prior run may have linked one).
@@ -280,7 +282,7 @@ function restoreOnboarded(): void {
 use App\\Modules\\User\\Models\\User;
 use App\\Modules\\User\\Models\\Link;
 
-$u = User::where('email', 'demo@1inme.com')->first();
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->first();
 if ($u) {
   if ($u->onboarded_at === null) { $u->onboarded_at = now(); }
   $u->save();

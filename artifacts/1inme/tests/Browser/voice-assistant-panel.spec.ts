@@ -10,6 +10,8 @@ import {
   type Route,
 } from "@playwright/test";
 
+import { DEMO_LOGIN_EMAIL } from "./demo-account";
+
 // The voice agent was moved out of the standalone floating Alpine mic and into
 // the Zio chat-panel composer as a plain-JS port (see
 // resources/views/common/partials/site-assistant.blade.php). The Alpine bridge
@@ -73,11 +75,11 @@ use App\\Modules\\User\\Services\\WorkspaceContext;
 use Illuminate\\Support\\Facades\\Hash;
 use Illuminate\\Support\\Facades\\DB;
 
-$u = User::where('email', 'demo@1inme.com')->first();
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->first();
 if (!$u) {
   $free = Plan::where('slug', 'free')->first();
   $u = User::create([
-    'name' => 'Demo User', 'email' => 'demo@1inme.com',
+    'name' => 'Demo User', 'email' => '${DEMO_LOGIN_EMAIL}',
     'password' => Hash::make('password'), 'plan_id' => $free?->id,
     'status' => 'active', 'email_verified_at' => now(),
   ]);

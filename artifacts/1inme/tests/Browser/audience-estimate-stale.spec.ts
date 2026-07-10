@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { DEMO_LOGIN_EMAIL } from "./demo-account";
+
 /**
  * e2e: "estimate is outdated" hint on the Audience Insights panel
  * (/user/links/{id}). Covers the client-side staleness logic no PHP feature
@@ -68,11 +70,11 @@ use Illuminate\\Support\\Facades\\DB;
 // (AuthController::demoLogin -> sazioapp@gmail.com). Owning the fixture as
 // any other email trips the analytics page's owner guard
 // (\$link->user_id !== workspace_owner_id()) and 403s before the card renders.
-$u = User::where('email', 'sazioapp@gmail.com')->first();
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->first();
 if (!$u) {
   $free = Plan::where('slug', 'free')->first();
   $u = User::create([
-    'name' => 'Demo User', 'email' => 'sazioapp@gmail.com',
+    'name' => 'Demo User', 'email' => '${DEMO_LOGIN_EMAIL}',
     'password' => Hash::make('password'), 'plan_id' => $free?->id,
     'status' => 'active', 'email_verified_at' => now(),
   ]);

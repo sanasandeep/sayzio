@@ -9,6 +9,8 @@ import {
   type Page,
 } from "@playwright/test";
 
+import { DEMO_LOGIN_EMAIL } from "./demo-account";
+
 // Regression guard for the logged-in account dropdown in the Sayzio PUBLIC
 // header (task: "Catch header account-menu styling breaks before they ship").
 //
@@ -95,11 +97,11 @@ use App\\Modules\\User\\Models\\User;
 use App\\Modules\\User\\Models\\Plan;
 use Illuminate\\Support\\Facades\\Hash;
 
-$u = User::where('email', 'demo@1inme.com')->first();
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->first();
 if (!$u) {
   $free = Plan::where('slug', 'free')->first();
   $u = User::create([
-    'name' => 'Demo User', 'email' => 'demo@1inme.com',
+    'name' => 'Demo User', 'email' => '${DEMO_LOGIN_EMAIL}',
     'password' => Hash::make('password'), 'plan_id' => $free?->id,
     'status' => 'active', 'email_verified_at' => now(),
   ]);

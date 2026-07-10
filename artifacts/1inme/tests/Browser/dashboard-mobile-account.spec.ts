@@ -9,6 +9,8 @@ import {
   type Page,
 } from "@playwright/test";
 
+import { DEMO_LOGIN_EMAIL } from "./demo-account";
+
 // Regression guard for the logged-in account controls of the IN-APP shell on a
 // MOBILE viewport (task: "Make sure the signed-in app sidebar's account controls
 // cannot silently break on mobile").
@@ -101,11 +103,11 @@ use App\\Modules\\User\\Models\\Plan;
 use Illuminate\\Support\\Facades\\Hash;
 use Illuminate\\Support\\Facades\\DB;
 
-$u = User::where('email', 'demo@1inme.com')->first();
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->first();
 if (!$u) {
   $free = Plan::where('slug', 'free')->first();
   $u = User::create([
-    'name' => 'Demo User', 'email' => 'demo@1inme.com',
+    'name' => 'Demo User', 'email' => '${DEMO_LOGIN_EMAIL}',
     'password' => Hash::make('password'), 'plan_id' => $free?->id,
     'status' => 'active', 'email_verified_at' => now(),
   ]);

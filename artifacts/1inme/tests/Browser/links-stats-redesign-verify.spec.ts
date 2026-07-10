@@ -10,6 +10,8 @@ import {
   type Page,
 } from "@playwright/test";
 
+import { DEMO_LOGIN_EMAIL } from "./demo-account";
+
 // Visual verification of the bento redesign of the Links index and Stats home
 // (Task #3217) in a real, logged-in session. This spec is NOT an unattended
 // gate — it is a one-off confirmation pass (Task #3223) that renders both pages
@@ -73,11 +75,11 @@ use App\\Modules\\User\\Services\\WorkspaceContext;
 use Illuminate\\Support\\Facades\\Hash;
 use Illuminate\\Support\\Facades\\DB;
 
-$u = User::where('email', 'demo@1inme.com')->first();
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->first();
 if (!$u) {
   $free = Plan::where('slug', 'free')->first() ?? Plan::defaultPlan();
   $u = User::create([
-    'name' => 'Demo User', 'email' => 'demo@1inme.com',
+    'name' => 'Demo User', 'email' => '${DEMO_LOGIN_EMAIL}',
     'password' => Hash::make('password'), 'plan_id' => $free?->id,
     'status' => 'active', 'email_verified_at' => now(),
   ]);
@@ -113,7 +115,7 @@ foreach ($seedLinks as $row) {
 }
 
 // Stats data: a follower and a couple of published posts with engagement.
-$other = User::where('email', '!=', 'demo@1inme.com')->first();
+$other = User::where('email', '!=', '${DEMO_LOGIN_EMAIL}')->first();
 if ($other && !Follow::where('creator_id', $u->id)->where('follower_id', $other->id)->exists()) {
   Follow::create(['creator_id' => $u->id, 'follower_id' => $other->id, 'created_at' => now()->subDays(2)]);
 }
