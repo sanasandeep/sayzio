@@ -683,9 +683,9 @@ class AiMindIngestor
         if ($robots && $this->isDisallowed($robots, $url)) {
             throw new \RuntimeException('robots.txt disallows fetching this URL.');
         }
-        $resp = Http::withHeaders([
+        $resp = $this->safeFetch($url, [
             'User-Agent' => '1INMEMindBot/1.0 (+https://1inme.com/bots)',
-        ])->timeout(20)->get($url);
+        ]);
         if ($resp->failed()) {
             throw new \RuntimeException("Link fetch failed (HTTP {$resp->status()}).");
         }
@@ -742,7 +742,7 @@ class AiMindIngestor
             $headers[$name] = $cred;
         }
 
-        $resp = Http::withHeaders($headers)->timeout(20)->get($url);
+        $resp = $this->safeFetch($url, $headers);
         if ($resp->failed()) {
             throw new \RuntimeException("API connector fetch failed (HTTP {$resp->status()}).");
         }
@@ -828,6 +828,65 @@ class AiMindIngestor
             }
         }
         return false;
+    }
+
+    /**
+     * Perform an HTTP GET while manually following redirects and re-validating
+     * each destination against isPrivateHost() before fetching it. This closes
+     * the SSRF redirect-bypass: a public URL that 302s to an RFC1918 or
+     * link-local address would pass the pre-flight check on the original host
+     * but must be rejected when the redirect target resolves to a private IP.
+     *
+     * Auto-redirects are disabled on the Guzzle client so that every hop is
+     * inspected here before being followed.
+     *
+     * @param  array<string,string>  $headers
+     * @return \Illuminate\Http\Client\Response
+     */
+    protected function safeFetch(string $url, array $headers = [], int $maxRedirects = 5): \Illuminate\Http\Client\Response
+    {
+        $hops = 0;
+        while (true) {
+            $resp = Http::withHeaders($headers)
+                ->timeout(20)
+                ->withOptions(['allow_redirects' => false])
+                ->get($url);
+
+            $status = $resp->status();
+            if (!in_array($status, [301, 302, 303, 307, 308], true)) {
+                // Not a redirect — return whatever we got (caller checks failed()).
+                return $resp;
+            }
+
+            $hops++;
+            if ($hops > $maxRedirects) {
+                throw new \RuntimeException('Too many redirects while fetching URL.');
+            }
+
+            $location = $resp->header('Location');
+            if (!$location) {
+                throw new \RuntimeException('Redirect response missing Location header.');
+            }
+
+            // Resolve relative Location against the current URL.
+            if (!preg_match('#^https?://#i', $location)) {
+                $parsed = parse_url($url);
+                $scheme = $parsed['scheme'] ?? 'https';
+                $host   = $parsed['host']   ?? '';
+                $port   = isset($parsed['port']) ? ':' . $parsed['port'] : '';
+                $location = $scheme . '://' . $host . $port . '/' . ltrim($location, '/');
+            }
+
+            $destHost = parse_url($location, PHP_URL_HOST) ?: '';
+            if ($this->isPrivateHost($destHost)) {
+                throw new \RuntimeException(
+                    'Refusing to follow redirect to a private or local address.'
+                );
+            }
+
+            $url = $location;
+            // 303 always degrades to GET; for 307/308 we stay GET since we only issue GET.
+        }
     }
 
     protected function isPrivateHost(string $host): bool

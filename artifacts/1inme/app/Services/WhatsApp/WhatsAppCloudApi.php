@@ -126,16 +126,21 @@ class WhatsAppCloudApi
 
     /**
      * Validate Meta's X-Hub-Signature-256 header against the raw request
-     * body using the configured app secret. When no app secret is set we
-     * cannot verify, so we accept (preview-friendly) and let the caller
-     * decide; the controller logs that signatures are unverified.
+     * body using the configured app secret.
+     *
+     * Returns false — rejecting the request — when no app secret is
+     * configured. This is a deliberate fail-closed design: without a
+     * signing secret the server cannot authenticate inbound payloads, so
+     * accepting them would allow anyone to forge arbitrary WhatsApp messages
+     * and drive authenticated agent actions. Administrators must supply the
+     * app secret before the webhook will process any messages.
      */
     public function verifySignature(?string $signatureHeader, string $rawBody): bool
     {
         $appSecret = (string) (IntegrationKeySettings::whatsappAppSecret() ?? '');
         if ($appSecret === '') {
-            // No secret configured — cannot verify, treat as preview mode.
-            return true;
+            // No secret configured — cannot authenticate the payload. Fail closed.
+            return false;
         }
         if (!is_string($signatureHeader) || !str_starts_with($signatureHeader, 'sha256=')) {
             return false;

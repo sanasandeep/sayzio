@@ -10,15 +10,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Inbound webhook for the two-way WhatsApp AI agent (Task #2759).
+ * Inbound webhook for the two-way WhatsApp AI agent.
  *
  *   GET  /webhooks/whatsapp  — Meta's verification handshake. Echoes the
  *        hub.challenge back when hub.verify_token matches the configured
  *        verify token.
  *   POST /webhooks/whatsapp  — inbound message delivery. Validates the
- *        X-Hub-Signature-256 HMAC (when an app secret is set), then
- *        queues one job per message and answers 200 immediately so Meta
- *        never retries on a slow model turn.
+ *        X-Hub-Signature-256 HMAC; the app secret MUST be configured or
+ *        every POST is rejected (fail-closed). Accepted payloads are
+ *        queued immediately so Meta never retries on a slow model turn.
  *
  * Routes are CSRF-exempt via the `webhooks/*` rule in bootstrap/app.php.
  */
@@ -53,12 +53,15 @@ class WhatsAppWebhookController extends Controller
         $signature = $request->header('X-Hub-Signature-256');
 
         if (!$cloud->verifySignature($signature, $raw)) {
-            Log::warning('WhatsApp webhook: invalid signature, rejecting payload.');
-            // 200 to avoid retries of a payload we will never accept.
+            // verifySignature() returns false both for invalid signatures AND
+            // when no app secret is configured (fail-closed). Return 200 to
+            // prevent Meta from retrying payloads we will never accept.
+            if (!$cloud->signatureEnforced()) {
+                Log::warning('WhatsApp webhook: app secret not configured — all POST traffic rejected until a secret is set.');
+            } else {
+                Log::warning('WhatsApp webhook: invalid signature, rejecting payload.');
+            }
             return response()->json(['ok' => true]);
-        }
-        if (!$cloud->signatureEnforced()) {
-            Log::info('WhatsApp webhook: app secret not set — signatures are not verified (preview mode).');
         }
 
         $payload = $request->json()->all();

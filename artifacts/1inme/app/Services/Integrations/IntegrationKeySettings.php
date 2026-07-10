@@ -219,15 +219,19 @@ class IntegrationKeySettings
 
     /**
      * The agent can fully run only when the master switch is on, delivery
-     * credentials exist (to reply) and the webhook verify token is set (to
-     * complete Meta's handshake). The app secret is recommended but the
-     * webhook also accepts unsigned posts in preview mode.
+     * credentials exist (to reply), the webhook verify token is set (to
+     * complete Meta's handshake), and the app secret is configured (so
+     * inbound POST payloads can be authenticated via HMAC-SHA256).
+     *
+     * Without the app secret the webhook rejects every POST (fail-closed),
+     * so the agent is not considered ready until all four conditions hold.
      */
     public static function whatsappAgentReady(): bool
     {
         return self::whatsappAgentEnabled()
             && self::whatsappConfigured()
-            && self::whatsappWebhookVerifyToken() !== null;
+            && self::whatsappWebhookVerifyToken() !== null
+            && self::whatsappAppSecret() !== null;
     }
 
     // ─────────────────────────────────────────────────────────────
