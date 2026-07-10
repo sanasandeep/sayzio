@@ -231,6 +231,46 @@ function MascotFloat({
   );
 }
 
+// ─── MascotHalo: the pulsing halo behind the mascot ────────────────────────
+// A concentric glow ring + soft bloom that slowly expands and contracts,
+// giving the mascot a living, breathing quality. Both layers share ONE scale
+// SharedValue so reduce-motion is a single freeze point: stop the shared
+// value and both surfaces go static simultaneously. The bloom gates its
+// animated style behind a ternary; the halo ring applies haloStyle
+// unconditionally and relies solely on the frozen scale to stay still.
+function MascotHalo({
+  reduced,
+}: {
+  reduced: boolean;
+}) {
+  const scale = useSharedValue(1);
+
+  const bloomStyle = useAnimatedStyle(() => ({
+    opacity: (scale.value - 0.85) * 1.2,
+    transform: [{ scale: scale.value }],
+  }));
+
+  const haloStyle = useAnimatedStyle(() => (
+    { transform: [{ scale: scale.value }], opacity: 0.55 + (scale.value - 1) * 0.6 }
+  ));
+
+  useEffect(() => {
+    if (reduced) return;
+    scale.value = withRepeat(
+      withTiming(1.4, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+  }, [reduced, scale]);
+
+  return (
+    <View style={styles.haloWrap} pointerEvents="none">
+      <Animated.View style={[styles.halo, haloStyle]} />
+      <Animated.View style={[styles.bloom, reduced ? { opacity: 0.18 } : bloomStyle]} />
+    </View>
+  );
+}
+
 // ─── Session flag ──────────────────────────────────────────────────────────
 // Module-level so it survives GateScreen remounts (e.g. navigating back to
 // the gate) but resets on a fresh JS session (cold launch). Ensures the
@@ -351,8 +391,10 @@ export function ZioSplash({
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Mascot on top of every other layer, non-interactive so taps pass through */}
+      {/* Mascot + halo on top of every other layer, non-interactive */}
       <View pointerEvents="none" style={styles.mascotTopLayer}>
+        {/* Pulsing halo behind the mascot */}
+        <MascotHalo reduced={reduced} />
         <MascotFloat reduced={reduced}>
           <Image
             source={MASCOT_SRC}
@@ -429,6 +471,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   mascot: { width: 130, height: 130 },
+
+  // Halo ring and bloom behind the mascot
+  haloWrap: {
+    position: "absolute",
+    width: 200,
+    height: 200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  halo: {
+    position: "absolute",
+    width: 170,
+    height: 170,
+    borderRadius: 9999,
+    borderWidth: 1.5,
+    borderColor: "rgba(61,107,255,0.55)",
+    backgroundColor: "transparent",
+  },
+  bloom: {
+    position: "absolute",
+    width: 150,
+    height: 150,
+    borderRadius: 9999,
+    backgroundColor: "rgba(61,107,255,0.12)",
+  },
 
   pillWrap: {
     position: "absolute",

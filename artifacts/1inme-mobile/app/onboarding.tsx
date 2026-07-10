@@ -1,13 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Image as ExpoImage } from "expo-image";
 import {
+  AccessibilityInfo,
   ActivityIndicator,
-  Animated,
-  Easing,
   FlatList,
   Platform,
   ScrollView,
@@ -19,6 +18,16 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiDashboardDemo } from "@/components/AiDashboardDemo";
@@ -42,9 +51,9 @@ import {
   type SlideImageMap,
 } from "@/lib/slideImageCache";
 
-// Bundled fallbacks. Used only if the slides endpoint is unreachable
-// (offline, fresh install with no network) so the splash never breaks.
-// Admin-managed slides from the API take priority.
+// ─── Bundled fallback images ──────────────────────────────────────────────
+// Used only if the slides endpoint is unreachable (offline, fresh install).
+// Admin-managed slides from the API always take priority.
 const FALLBACK_IMAGES: Record<string, ImageSourcePropType> = {
   creators: require("@/assets/images/onboarding/creators.png"),
   business: require("@/assets/images/onboarding/business.png"),
@@ -112,10 +121,6 @@ const INFO_LINKS: { href: InfoHref; label: string }[] = [
   { href: "/info/terms", label: "Terms" },
 ];
 
-// Sentinel slug for the extra "AI designs your dashboard" slide we append
-// to the end of the intro carousel. It reuses the OnboardingSlide shape so
-// it can live in the same FlatList, but `renderItem` renders a dedicated
-// component (not the image gallery) when it sees this slug.
 const AI_DASHBOARD_SLUG = "ai-dashboard";
 
 const AI_DASHBOARD_SLIDE: OnboardingSlide = {
@@ -129,18 +134,227 @@ const AI_DASHBOARD_SLIDE: OnboardingSlide = {
   sort_order: 10000,
 };
 
-// How long each gallery photo stays on screen before crossfading
-// to the next one (in ms).
-const GALLERY_INTERVAL = 3500;
-const FADE_DURATION = 700;
+// ─── Per-slide animated visual config ────────────────────────────────────
+// Each entry defines blob colors and which feature icons float above the
+// background. Icons reference existing zio-nodes images bundled in the app.
+// Positions are expressed as fractions of screen width/height (0–1).
 
+type FloatingIconDef = {
+  img: ImageSourcePropType;
+  /** Fractional x position 0–1 (measured from left) */
+  fx: number;
+  /** Fractional y position 0–1 (measured from top) */
+  fy: number;
+  size: number;
+  floatAmplitude: number;
+  floatDuration: number;
+  delayMs: number;
+};
+
+type SlideTheme = {
+  blobAColor: string;
+  blobBColor: string;
+  blobCColor: string;
+  accent: string;
+  icons: FloatingIconDef[];
+};
+
+const SLIDE_THEMES: Record<string, SlideTheme> = {
+  creators: {
+    blobAColor: "#1a3dff",
+    blobBColor: "#0080ff",
+    blobCColor: "#005aff",
+    accent: "#3d6bff",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/link.png"),
+        fx: 0.78, fy: 0.18, size: 50, floatAmplitude: 9, floatDuration: 2800, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/analytics.png"),
+        fx: 0.12, fy: 0.28, size: 40, floatAmplitude: 7, floatDuration: 3400, delayMs: 600,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/audience.png"),
+        fx: 0.82, fy: 0.52, size: 36, floatAmplitude: 11, floatDuration: 2500, delayMs: 300,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/social.png"),
+        fx: 0.08, fy: 0.60, size: 32, floatAmplitude: 8, floatDuration: 3100, delayMs: 900,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/growth.png"),
+        fx: 0.60, fy: 0.12, size: 34, floatAmplitude: 6, floatDuration: 3700, delayMs: 450,
+      },
+    ],
+  },
+  business: {
+    blobAColor: "#0066cc",
+    blobBColor: "#007799",
+    blobCColor: "#004d99",
+    accent: "#0099cc",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/store.png"),
+        fx: 0.75, fy: 0.15, size: 50, floatAmplitude: 8, floatDuration: 3000, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/menu.png"),
+        fx: 0.14, fy: 0.30, size: 42, floatAmplitude: 10, floatDuration: 2700, delayMs: 500,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/qr.png"),
+        fx: 0.80, fy: 0.54, size: 36, floatAmplitude: 7, floatDuration: 3300, delayMs: 200,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/reviews.png"),
+        fx: 0.10, fy: 0.62, size: 34, floatAmplitude: 9, floatDuration: 2900, delayMs: 800,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/forms.png"),
+        fx: 0.58, fy: 0.10, size: 32, floatAmplitude: 6, floatDuration: 3600, delayMs: 350,
+      },
+    ],
+  },
+  freelancer: {
+    blobAColor: "#1a55cc",
+    blobBColor: "#2244bb",
+    blobCColor: "#0033aa",
+    accent: "#4477ee",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/resume.png"),
+        fx: 0.76, fy: 0.17, size: 50, floatAmplitude: 9, floatDuration: 2900, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/analytics.png"),
+        fx: 0.11, fy: 0.27, size: 40, floatAmplitude: 8, floatDuration: 3200, delayMs: 600,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/domain.png"),
+        fx: 0.82, fy: 0.50, size: 36, floatAmplitude: 7, floatDuration: 2600, delayMs: 300,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/code.png"),
+        fx: 0.09, fy: 0.60, size: 32, floatAmplitude: 11, floatDuration: 3000, delayMs: 900,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/growth.png"),
+        fx: 0.62, fy: 0.13, size: 34, floatAmplitude: 6, floatDuration: 3800, delayMs: 450,
+      },
+    ],
+  },
+  networker: {
+    blobAColor: "#1a44cc",
+    blobBColor: "#0055bb",
+    blobCColor: "#003399",
+    accent: "#3366dd",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/vcard.png"),
+        fx: 0.77, fy: 0.16, size: 50, floatAmplitude: 8, floatDuration: 3100, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/calls.png"),
+        fx: 0.13, fy: 0.29, size: 42, floatAmplitude: 10, floatDuration: 2800, delayMs: 500,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/link.png"),
+        fx: 0.81, fy: 0.52, size: 36, floatAmplitude: 7, floatDuration: 3400, delayMs: 200,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/social.png"),
+        fx: 0.09, fy: 0.63, size: 32, floatAmplitude: 9, floatDuration: 2700, delayMs: 800,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/audience.png"),
+        fx: 0.60, fy: 0.11, size: 34, floatAmplitude: 6, floatDuration: 3500, delayMs: 350,
+      },
+    ],
+  },
+  students: {
+    blobAColor: "#1155cc",
+    blobBColor: "#0066bb",
+    blobCColor: "#004499",
+    accent: "#3388ff",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/link.png"),
+        fx: 0.76, fy: 0.17, size: 50, floatAmplitude: 9, floatDuration: 2900, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/social.png"),
+        fx: 0.12, fy: 0.28, size: 40, floatAmplitude: 7, floatDuration: 3300, delayMs: 600,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/analytics.png"),
+        fx: 0.82, fy: 0.52, size: 36, floatAmplitude: 8, floatDuration: 2600, delayMs: 300,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/forms.png"),
+        fx: 0.10, fy: 0.61, size: 32, floatAmplitude: 10, floatDuration: 3000, delayMs: 900,
+      },
+    ],
+  },
+  coaches: {
+    blobAColor: "#0055bb",
+    blobBColor: "#1166cc",
+    blobCColor: "#003388",
+    accent: "#4488ff",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/audience.png"),
+        fx: 0.77, fy: 0.16, size: 50, floatAmplitude: 8, floatDuration: 3000, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/calendar.png"),
+        fx: 0.13, fy: 0.29, size: 40, floatAmplitude: 10, floatDuration: 2800, delayMs: 500,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/link.png"),
+        fx: 0.81, fy: 0.53, size: 36, floatAmplitude: 7, floatDuration: 3200, delayMs: 200,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/forms.png"),
+        fx: 0.09, fy: 0.63, size: 32, floatAmplitude: 9, floatDuration: 2700, delayMs: 800,
+      },
+    ],
+  },
+};
+
+// Default theme for admin-managed slides whose slug doesn't have a config entry
+const DEFAULT_SLIDE_THEME: SlideTheme = {
+  blobAColor: "#1a3dff",
+  blobBColor: "#0055cc",
+  blobCColor: "#003399",
+  accent: "#3d6bff",
+  icons: [
+    {
+      img: require("@/assets/images/zio-nodes/link.png"),
+      fx: 0.78, fy: 0.18, size: 48, floatAmplitude: 9, floatDuration: 2900, delayMs: 0,
+    },
+    {
+      img: require("@/assets/images/zio-nodes/analytics.png"),
+      fx: 0.12, fy: 0.30, size: 38, floatAmplitude: 7, floatDuration: 3300, delayMs: 600,
+    },
+    {
+      img: require("@/assets/images/zio-nodes/growth.png"),
+      fx: 0.82, fy: 0.52, size: 34, floatAmplitude: 8, floatDuration: 2700, delayMs: 300,
+    },
+    {
+      img: require("@/assets/images/zio-nodes/qr.png"),
+      fx: 0.10, fy: 0.62, size: 32, floatAmplitude: 10, floatDuration: 3000, delayMs: 900,
+    },
+  ],
+};
+
+function resolveSlideTheme(slug: string): SlideTheme {
+  return SLIDE_THEMES[slug] ?? DEFAULT_SLIDE_THEME;
+}
+
+// ─── Image resolution helpers (unchanged from original) ───────────────────
 type SlideImage = ImageSourcePropType;
 
-// Resolve a slide into the list of images we should rotate through.
-// Prefer admin-managed remote URLs — swapped for persisted local file
-// URIs when the image cache has them, so cached slides render their
-// real photos instantly (even offline). Fall back to bundled assets so
-// fresh-install users still see the right photo.
 function resolveImages(
   slide: OnboardingSlide,
   localImages: SlideImageMap,
@@ -151,33 +365,13 @@ function resolveImages(
       : slide.image_url
         ? [slide.image_url]
         : [];
-
   if (remote.length > 0) {
     return remote.map((uri) => ({ uri: localImages[uri] ?? uri }));
   }
-
-  const bundled =
-    FALLBACK_IMAGES[slide.slug] ?? FALLBACK_IMAGES.creators;
+  const bundled = FALLBACK_IMAGES[slide.slug] ?? FALLBACK_IMAGES.creators;
   return [bundled];
 }
 
-// The bundled asset that should sit UNDER a slide's remote images so
-// the background is never dark/blank while a photo is still
-// downloading (slow networks, prefetch cache eviction). Returns null
-// when the slide already renders a bundled asset (nothing to layer).
-function resolveUnderlay(slide: OnboardingSlide): SlideImage | null {
-  const hasRemote =
-    (slide.image_urls && slide.image_urls.length > 0) || !!slide.image_url;
-  if (!hasRemote) return null;
-  return FALLBACK_IMAGES[slide.slug] ?? FALLBACK_IMAGES.creators;
-}
-
-// Warm the on-device image cache for every remote slide photo so the swap
-// from bundled → admin slides never shows a blank background, AND so an
-// offline relaunch can render the cached slides with their photos.
-// expo-image's disk cache persists across launches (unlike RN's
-// Image.prefetch memory/URL cache). Best-effort: failures (offline, bad
-// URL) are ignored — the bundled underlay still covers those slides.
 async function prefetchSlideImages(items: OnboardingSlide[]): Promise<void> {
   const urls = items.flatMap((s) =>
     s.image_urls && s.image_urls.length > 0
@@ -190,211 +384,401 @@ async function prefetchSlideImages(items: OnboardingSlide[]): Promise<void> {
   try {
     await ExpoImage.prefetch(urls, { cachePolicy: "disk" });
   } catch {
-    // Ignore — underlay covers any photo that isn't cached yet.
+    // ignore — underlay covers any photo that isn't cached yet
   }
 }
 
-/**
- * Auto-rotating image gallery for one onboarding slide. True
- * crossfade: the current image stays visible while the next one
- * fades in on top, then we promote the next to current. If only one
- * image is available we just render it statically.
- *
- * Reports the currently visible image index up to the parent so the
- * little indicator above the glass card can highlight it.
- */
-function SlideGallery({
-  images,
-  underlay,
-  active,
-  onIndexChange,
+// ─── Floating icon tile ───────────────────────────────────────────────────
+// Each icon independently floats up/down on a looping animation.
+// Counter-rotate is NOT applied (no orbit rotor here — each icon is stationary
+// in X and only bobs in Y so it reads as "floating" rather than "orbiting").
+function FloatingIcon({
+  def,
+  width,
+  height,
+  reduced,
+  startDelay,
 }: {
-  images: SlideImage[];
-  underlay?: SlideImage | null;
-  active: boolean;
-  onIndexChange?: (i: number) => void;
+  def: FloatingIconDef;
+  width: number;
+  height: number;
+  reduced: boolean;
+  startDelay: number;
 }) {
-  const [current, setCurrent] = useState(0);
-  const [incoming, setIncoming] = useState<number | null>(null);
-  const fade = useRef(new Animated.Value(0)).current;
+  const ty = useSharedValue(0);
+  const opacity = useSharedValue(0);
 
   useEffect(() => {
-    onIndexChange?.(current);
-  }, [current, onIndexChange]);
+    // Fade in with a slight delay
+    opacity.value = withDelay(startDelay + 200, withTiming(1, { duration: 500 }));
 
-  useEffect(() => {
-    if (!active || images.length <= 1) return;
-    const tick = setInterval(() => {
-      const nextIdx = (current + 1) % images.length;
-      setIncoming(nextIdx);
-      fade.setValue(0);
-      Animated.timing(fade, {
-        toValue: 1,
-        duration: FADE_DURATION,
-        easing: Easing.inOut(Easing.quad),
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) {
-          setCurrent(nextIdx);
-          setIncoming(null);
-        }
-      });
-    }, GALLERY_INTERVAL);
-    return () => clearInterval(tick);
-  }, [active, current, images.length, fade]);
+    if (reduced) return;
+    // Float loop: amplitude in both directions, eased
+    ty.value = withDelay(
+      startDelay,
+      withRepeat(
+        withSequence(
+          withTiming(-def.floatAmplitude, {
+            duration: def.floatDuration,
+            easing: Easing.inOut(Easing.sin),
+          }),
+          withTiming(def.floatAmplitude * 0.6, {
+            duration: def.floatDuration * 0.85,
+            easing: Easing.inOut(Easing.sin),
+          }),
+        ),
+        -1,
+        true,
+      ),
+    );
+  }, [reduced]);
 
-  // Restart from the first photo each time the slide becomes active
-  // so users always see the "hero" shot first when swiping back.
-  useEffect(() => {
-    if (active) {
-      setCurrent(0);
-      setIncoming(null);
-      fade.setValue(0);
-    }
-  }, [active, fade]);
+  const iconStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: ty.value }],
+  }));
+
+  const tileSize = def.size + 16;
 
   return (
-    <View style={StyleSheet.absoluteFill}>
-      {/* Bundled asset pinned beneath remote photos so the background
-          never flashes dark/blank while a download is in flight. */}
-      {underlay ? (
-        <ExpoImage
-          source={underlay}
-          contentFit="cover"
-          cachePolicy="disk"
-          style={StyleSheet.absoluteFill}
-        />
-      ) : null}
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: "absolute",
+          left: def.fx * width - tileSize / 2,
+          top: def.fy * height - tileSize / 2,
+          width: tileSize,
+          height: tileSize,
+          borderRadius: tileSize * 0.28,
+          backgroundColor: "rgba(255,255,255,0.07)",
+          borderWidth: 1,
+          borderColor: "rgba(100,160,255,0.20)",
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: "#3d6bff",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.35,
+          shadowRadius: 10,
+          elevation: 6,
+        },
+        iconStyle,
+      ]}
+    >
       <ExpoImage
-        source={images[current]}
-        contentFit="cover"
-        cachePolicy="disk"
-        style={StyleSheet.absoluteFill}
+        source={def.img}
+        style={{ width: def.size, height: def.size }}
+        contentFit="contain"
       />
-      {incoming !== null && incoming !== current ? (
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
-          <ExpoImage
-            source={images[incoming]}
-            contentFit="cover"
-            cachePolicy="disk"
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
-      ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
-/**
- * One full-screen onboarding slide. Owns its own gallery-index state
- * so the small indicator above the glass card highlights whichever
- * photo is currently on screen.
- */
-function SlideContent({
-  images,
-  underlay,
-  active,
+// ─── Animated blob ────────────────────────────────────────────────────────
+// A soft, blurred-looking colour blob that slowly drifts, giving the
+// background a sense of living depth without relying on colour interpolation.
+function AnimatedBlob({
+  color,
+  size,
+  initialX,
+  initialY,
+  driftX,
+  driftY,
+  duration,
+  opacity,
+  delayMs,
+  reduced,
+}: {
+  color: string;
+  size: number;
+  initialX: number;
+  initialY: number;
+  driftX: number;
+  driftY: number;
+  duration: number;
+  opacity: number;
+  delayMs: number;
+  reduced: boolean;
+}) {
+  const tx = useSharedValue(0);
+  const ty = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduced) return;
+    tx.value = withDelay(
+      delayMs,
+      withRepeat(
+        withSequence(
+          withTiming(driftX, { duration, easing: Easing.inOut(Easing.quad) }),
+          withTiming(-driftX * 0.6, {
+            duration: duration * 0.9,
+            easing: Easing.inOut(Easing.quad),
+          }),
+        ),
+        -1,
+        true,
+      ),
+    );
+    ty.value = withDelay(
+      delayMs,
+      withRepeat(
+        withSequence(
+          withTiming(driftY, {
+            duration: duration * 1.1,
+            easing: Easing.inOut(Easing.quad),
+          }),
+          withTiming(-driftY * 0.7, {
+            duration: duration * 0.8,
+            easing: Easing.inOut(Easing.quad),
+          }),
+        ),
+        -1,
+        true,
+      ),
+    );
+  }, [reduced]);
+
+  const blobStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: tx.value }, { translateY: ty.value }],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: "absolute",
+          left: initialX - size / 2,
+          top: initialY - size / 2,
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+          opacity,
+        },
+        blobStyle,
+      ]}
+    />
+  );
+}
+
+// ─── Animated slide content card ──────────────────────────────────────────
+// The glass card that holds category chip, title, and body text. It animates
+// up and fades in when the slide becomes active, giving each slide a fresh
+// entrance that makes the experience feel alive.
+function SlideCard({
   category,
   title,
   body,
+  active,
   paddingBottom,
-  primaryColor,
-  width,
-  height,
 }: {
-  images: SlideImage[];
-  underlay?: SlideImage | null;
-  active: boolean;
   category: string;
   title: string;
   body: string | null;
+  active: boolean;
   paddingBottom: number;
-  primaryColor: string;
+}) {
+  const cardY = useSharedValue(active ? 0 : 28);
+  const cardOpacity = useSharedValue(active ? 1 : 0);
+
+  useEffect(() => {
+    if (active) {
+      cardY.value = withSpring(0, { damping: 22, stiffness: 130, mass: 0.8 });
+      cardOpacity.value = withTiming(1, { duration: 320, easing: Easing.out(Easing.quad) });
+    } else {
+      // Reset to "ready to animate in" state immediately so re-entering
+      // the slide feels fresh. No animation — it's off-screen anyway.
+      cardY.value = 28;
+      cardOpacity.value = 0;
+    }
+  }, [active]);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    opacity: cardOpacity.value,
+    transform: [{ translateY: cardY.value }],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.copyWrap,
+        { paddingHorizontal: 20, paddingBottom },
+        cardStyle,
+      ]}
+    >
+      <BlurView
+        intensity={Platform.OS === "android" ? 40 : 64}
+        tint="dark"
+        style={styles.glassCard}
+      >
+        <View style={styles.glassInner}>
+          <View style={styles.categoryChip}>
+            <Text style={styles.categoryText}>{category}</Text>
+          </View>
+          <Text style={styles.title}>{title}</Text>
+          {body ? <Text style={styles.body}>{body}</Text> : null}
+        </View>
+      </BlurView>
+    </Animated.View>
+  );
+}
+
+// ─── Full animated slide ───────────────────────────────────────────────────
+// Replaces the old SlideGallery + SlideContent combination. Each slide has:
+//   • A dark base background with coloured animated blobs (depth)
+//   • The photo background (if the admin slide has images) with a dark overlay
+//   • Floating feature-icon tiles that gently bob up and down
+//   • The glassmorphic content card that animates in when the slide is active
+//   • A subtle parallax: the background layer shifts at 0.2× the scroll rate
+//     so it feels deeper than the foreground content
+function AnimatedSlide({
+  slide,
+  images,
+  hasRemoteImages,
+  active,
+  width,
+  height,
+  scrollX,
+  slideIndex,
+  paddingBottom,
+  reduced,
+}: {
+  slide: OnboardingSlide;
+  images: SlideImage[];
+  hasRemoteImages: boolean;
+  active: boolean;
   width: number;
   height: number;
+  scrollX: { value: number };
+  slideIndex: number;
+  paddingBottom: number;
+  reduced: boolean;
 }) {
-  const [galleryIndex, setGalleryIndex] = useState(0);
-  const handleIndexChange = useCallback((i: number) => {
-    setGalleryIndex(i);
-  }, []);
+  const theme = resolveSlideTheme(slide.slug);
+
+  // Parallax: background layer translates at 0.2× scroll offset
+  const bgParallaxStyle = useAnimatedStyle(() => {
+    const offset = scrollX.value - slideIndex * width;
+    return {
+      transform: [{ translateX: -offset * 0.2 }],
+    };
+  });
 
   return (
     <View style={[styles.slide, { width, height }]}>
-      <SlideGallery
-        images={images}
-        underlay={underlay}
-        active={active}
-        onIndexChange={handleIndexChange}
-      />
 
-      {/* Subtle top + bottom darkening so the brand wordmark, Skip
-          button and the glass card all stay legible regardless of
-          the underlying photograph. */}
+      {/* ── Base background ───────────────────────────────────────────── */}
+      <View style={StyleSheet.absoluteFill}>
+        <LinearGradient
+          colors={["#0b0e1a", "#080b14", "#070a12"]}
+          style={StyleSheet.absoluteFill}
+        />
+      </View>
+
+      {/* ── Parallax layer (blobs + icons + optional photo) ──────────── */}
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, bgParallaxStyle]}
+      >
+        {/* Animated colour blobs */}
+        <AnimatedBlob
+          color={theme.blobAColor}
+          size={width * 0.7}
+          initialX={width * 0.15}
+          initialY={height * 0.2}
+          driftX={18}
+          driftY={14}
+          duration={5200}
+          opacity={0.18}
+          delayMs={0}
+          reduced={reduced}
+        />
+        <AnimatedBlob
+          color={theme.blobBColor}
+          size={width * 0.55}
+          initialX={width * 0.82}
+          initialY={height * 0.55}
+          driftX={-14}
+          driftY={18}
+          duration={6400}
+          opacity={0.14}
+          delayMs={800}
+          reduced={reduced}
+        />
+        <AnimatedBlob
+          color={theme.blobCColor}
+          size={width * 0.4}
+          initialX={width * 0.50}
+          initialY={height * 0.35}
+          driftX={10}
+          driftY={-12}
+          duration={7100}
+          opacity={0.10}
+          delayMs={1600}
+          reduced={reduced}
+        />
+
+        {/* Admin photo layer (when a slide has remote images, show them
+            as a background with a dark overlay to maintain legibility) */}
+        {hasRemoteImages ? (
+          <>
+            <ExpoImage
+              source={images[0]}
+              contentFit="cover"
+              cachePolicy="disk"
+              style={[StyleSheet.absoluteFill, { opacity: 0.45 }]}
+            />
+            {/* Strong dark vignette so blobs and icons still read */}
+            <LinearGradient
+              colors={[
+                "rgba(7,10,18,0.55)",
+                "rgba(7,10,18,0.10)",
+                "rgba(7,10,18,0.60)",
+              ]}
+              locations={[0, 0.42, 1]}
+              style={StyleSheet.absoluteFill}
+            />
+          </>
+        ) : null}
+
+        {/* Floating feature icons */}
+        {theme.icons.map((def, i) => (
+          <FloatingIcon
+            key={i}
+            def={def}
+            width={width}
+            height={height}
+            reduced={reduced}
+            startDelay={def.delayMs}
+          />
+        ))}
+      </Animated.View>
+
+      {/* Bottom scrim so the glass card stays readable on any background */}
       <LinearGradient
-        colors={[
-          "rgba(10,10,15,0.55)",
-          "rgba(10,10,15,0.05)",
-          "rgba(10,10,15,0.55)",
-        ]}
-        locations={[0, 0.4, 1]}
+        pointerEvents="none"
+        colors={["transparent", "rgba(7,10,18,0.75)", "rgba(7,10,18,0.92)"]}
+        locations={[0.3, 0.65, 1]}
         style={StyleSheet.absoluteFill}
       />
 
-      <View
-        style={[styles.copyWrap, { paddingHorizontal: 20, paddingBottom }]}
-      >
-        {/* Tiny per-image indicator so users know more photos are
-            cycling behind the card. The active photo is solid. */}
-        {images.length > 1 ? (
-          <View style={styles.galleryDots}>
-            {images.map((_, gi) => (
-              <View
-                key={gi}
-                style={[
-                  styles.galleryDot,
-                  {
-                    backgroundColor:
-                      gi === galleryIndex
-                        ? primaryColor
-                        : "rgba(255,255,255,0.4)",
-                    width: gi === galleryIndex ? 22 : 12,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        ) : null}
-
-        {/* Glassmorphism card. expo-blur renders a real backdrop blur
-            on iOS / web; on Android it falls back to a translucent
-            tint. The semi-opaque inner overlay + hairline border give
-            it the frosted-glass look on every platform. */}
-        <BlurView
-          intensity={Platform.OS === "android" ? 40 : 60}
-          tint="dark"
-          style={styles.glassCard}
-        >
-          <View style={styles.glassInner}>
-            <View style={styles.categoryChip}>
-              <Text style={styles.categoryText}>{category}</Text>
-            </View>
-            <Text style={styles.title}>{title}</Text>
-            {body ? <Text style={styles.body}>{body}</Text> : null}
-          </View>
-        </BlurView>
-      </View>
+      {/* Animated glass content card */}
+      <SlideCard
+        category={slide.category}
+        title={slide.title}
+        body={slide.body}
+        active={active}
+        paddingBottom={paddingBottom}
+      />
     </View>
   );
 }
 
-/**
- * The final onboarding slide: introduces the AI dashboard designer. When the
- * user already has a session (returning user who reset the intro), we fetch
- * the same real presets the "Customize dashboard" screen uses and render the
- * live looping demo (`AiDashboardDemo`, which respects reduce-motion). Before
- * sign-in there are no presets to show, so we fall back to a static teaser.
- * Either way a clear CTA lets the user jump straight to the AI designer.
- */
+// ─── AI dashboard slide ───────────────────────────────────────────────────
+// Final onboarding slide introducing the AI dashboard designer. Visually
+// upgraded with animated blobs and floating icons consistent with the rest
+// of the carousel, while keeping the AiDashboardDemo widget intact.
 function AiDashboardSlide({
   loading,
   presets,
@@ -403,6 +787,7 @@ function AiDashboardSlide({
   paddingBottom,
   width,
   height,
+  reduced,
 }: {
   loading: boolean;
   presets: DashboardPreset[] | null;
@@ -411,16 +796,62 @@ function AiDashboardSlide({
   paddingBottom: number;
   width: number;
   height: number;
+  reduced: boolean;
 }) {
   const colors = useColors();
   const hasPresets = !!presets && presets.length > 0;
 
   return (
     <View style={[styles.slide, { width, height }]}>
+      {/* Background */}
       <LinearGradient
-        colors={["#1a0d2e", "#0a0a0f"]}
+        colors={["#08101f", "#070c18", "#060a14"]}
         style={StyleSheet.absoluteFill}
       />
+
+      {/* Animated blobs — blue-toned for the AI slide */}
+      <AnimatedBlob
+        color="#1a3dff"
+        size={width * 0.65}
+        initialX={width * 0.18}
+        initialY={height * 0.18}
+        driftX={16}
+        driftY={12}
+        duration={5800}
+        opacity={0.16}
+        delayMs={0}
+        reduced={reduced}
+      />
+      <AnimatedBlob
+        color="#0055cc"
+        size={width * 0.5}
+        initialX={width * 0.80}
+        initialY={height * 0.60}
+        driftX={-12}
+        driftY={16}
+        duration={7200}
+        opacity={0.12}
+        delayMs={1000}
+        reduced={reduced}
+      />
+
+      {/* Floating AI-related icons in the background */}
+      {[
+        { img: require("@/assets/images/zio-nodes/ai.png"),        fx: 0.82, fy: 0.14, size: 38, floatAmplitude: 8,  floatDuration: 2900, delayMs: 0 },
+        { img: require("@/assets/images/zio-nodes/analytics.png"), fx: 0.10, fy: 0.25, size: 32, floatAmplitude: 7,  floatDuration: 3300, delayMs: 500 },
+        { img: require("@/assets/images/zio-nodes/growth.png"),    fx: 0.78, fy: 0.72, size: 30, floatAmplitude: 10, floatDuration: 2600, delayMs: 300 },
+      ].map((def, i) => (
+        <FloatingIcon
+          key={i}
+          def={def as FloatingIconDef}
+          width={width}
+          height={height}
+          reduced={reduced}
+          startDelay={def.delayMs}
+        />
+      ))}
+
+      {/* Content */}
       <ScrollView
         contentContainerStyle={[
           styles.aiScroll,
@@ -475,6 +906,7 @@ function AiDashboardSlide({
   );
 }
 
+// ─── Main Onboarding screen ───────────────────────────────────────────────
 export default function Onboarding() {
   const colors = useColors();
   const router = useRouter();
@@ -482,57 +914,54 @@ export default function Onboarding() {
   const { width, height } = useWindowDimensions();
   const { user, token } = useAuth();
   const listRef = useRef<FlatList<OnboardingSlide>>(null);
+
   const [index, setIndex] = useState(0);
-  // Render the bundled slides immediately so the intro is never blank
-  // while the admin-managed set loads over the network.
   const [slides, setSlides] = useState<OnboardingSlide[]>(FALLBACK_SLIDES);
-  // Mirror of `index` for effects/handlers that must read the latest value
-  // without re-subscribing (slides-fetch position check, rotation re-snap,
-  // resync guard below).
+  const [reduced, setReduced] = useState(false);
+
   const indexRef = useRef(0);
   useEffect(() => {
     indexRef.current = index;
   }, [index]);
-  // While true we're programmatically re-snapping after a dimension change
-  // (rotation / keyboard resize) and ignore intermediate scroll events, which
-  // would otherwise compute a bogus index from a stale offset/width pair.
+
   const resyncing = useRef(false);
-  // Admin slides that arrived after the user already swiped past slide 0;
-  // swapping mid-carousel would yank them back, so we hold them here.
   const deferredSlidesRef = useRef<OnboardingSlide[] | null>(null);
-  // Real dashboard presets for the AI demo slide. Only fetched when a
-  // session exists (the /dashboard/layout endpoint is auth-only); null
-  // means "not loaded yet", [] means "loaded but none / unavailable".
+
   const [presets, setPresets] = useState<DashboardPreset[] | null>(null);
   const [presetsLoading, setPresetsLoading] = useState(false);
 
-  // Set once fresh API slides have been applied (or deferred); the cached
-  // set must never overwrite fresher content if the async cache read loses
-  // the race against a fast network response.
   const freshSlidesRef = useRef(false);
 
-  // Remote image URL -> persisted local file URI. Slides render from these
-  // local files when available so cached sets show their real photos
-  // instantly on relaunch, even offline. Merged (never replaced) so the
-  // cache-hydrate read and the fresh-fetch persist can't clobber each other.
   const [localImages, setLocalImages] = useState<SlideImageMap>({});
   const mergeLocalImages = useCallback((map: SlideImageMap) => {
     if (Object.keys(map).length === 0) return;
     setLocalImages((prev) => ({ ...prev, ...map }));
   }, []);
 
-  // Hydrate from the on-device cache of the last successfully fetched
-  // slides so returning users see the real admin content instantly (even
-  // offline) instead of the bundled fallback set. Skipped if fresh API
-  // slides already arrived or the user has swiped past slide 0.
+  // Shared scroll offset for parallax (updated on every scroll event)
+  const scrollX = useSharedValue(0);
+
+  // Detect reduce-motion preference
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((on) => { if (mounted) setReduced(on); })
+      .catch(() => {});
+    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", (on) => {
+      if (mounted) setReduced(on);
+    });
+    return () => {
+      mounted = false;
+      sub.remove();
+    };
+  }, []);
+
+  // Hydrate from the on-device cache
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const cached = await getCachedOnboardingSlides<OnboardingSlide>();
       if (cancelled || !cached || cached.length === 0) return;
-      // Resolve persisted local files BEFORE swapping the slides in, so
-      // the first paint of the cached set already uses local URIs and
-      // never flashes the bundled underlay while remote photos load.
       const localMap = await getLocalSlideImageMap(cached);
       if (cancelled) return;
       mergeLocalImages(localMap);
@@ -543,18 +972,10 @@ export default function Onboarding() {
         deferredSlidesRef.current = cached;
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
-  // Fetch slides from the admin-managed endpoint in the background while
-  // the bundled/cached set is already on screen. If the request fails we
-  // simply keep showing what's there. If it succeeds while the user is
-  // still on slide 0 we swap seamlessly; if they've already swiped ahead
-  // we defer the swap (applied if they ever swipe back to slide 0) so the
-  // carousel never resets under them. Successful results also refresh the
-  // on-device cache for the next launch.
+  // Fetch admin-managed slides
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -563,17 +984,8 @@ export default function Onboarding() {
         if (cancelled) return;
         const items = (res.items ?? []).filter((s) => !!s);
         if (items.length === 0) return;
-        // Mark fresh content as arrived before the prefetch await so a
-        // slow cache read can't overwrite it in the meantime.
         freshSlidesRef.current = true;
-        // Persist for instant rendering on future launches (best-effort).
         void setCachedOnboardingSlides(items);
-        // Download the photos to app storage alongside the slide JSON
-        // (pruning files for removed slides) so future launches render
-        // real photos from local files even offline. Doubles as the
-        // pre-swap warm-up so the new slides never show a blank
-        // background. On web there's no app filesystem, so fall back to
-        // warming the browser image cache instead.
         const localMap = await persistSlideImages(items);
         if (cancelled) return;
         mergeLocalImages(localMap);
@@ -587,16 +999,13 @@ export default function Onboarding() {
           deferredSlidesRef.current = items;
         }
       } catch {
-        // Keep the slides already on screen.
+        // keep current slides
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
-  // Apply any deferred admin slides once the user is back on slide 0,
-  // where a content swap isn't disorienting.
+  // Apply deferred slides when back on slide 0
   useEffect(() => {
     if (index === 0 && deferredSlidesRef.current) {
       setSlides(deferredSlidesRef.current);
@@ -604,10 +1013,7 @@ export default function Onboarding() {
     }
   }, [index]);
 
-  // Best-effort: pull the real dashboard presets so the AI demo slide can
-  // show the same live "describe → arrange → tiles" loop as the customize
-  // screen. Skipped entirely before sign-in (no token → 401), where the
-  // slide gracefully falls back to a static teaser + CTA.
+  // Fetch real dashboard presets for the AI slide (signed-in users only)
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
@@ -622,9 +1028,7 @@ export default function Onboarding() {
         if (!cancelled) setPresetsLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [token]);
 
   const finish = async () => {
@@ -632,9 +1036,6 @@ export default function Onboarding() {
     router.replace(user ? "/(tabs)" : "/(auth)");
   };
 
-  // Jump straight to the AI dashboard designer. Signed-in users land on the
-  // customize screen (on top of their tabs); everyone else finishes into the
-  // auth flow, since the designer requires an account.
   const openDesigner = async () => {
     await setOnboardingComplete(true);
     if (user) {
@@ -645,17 +1046,13 @@ export default function Onboarding() {
     }
   };
 
-  // The intro photos plus the appended AI-dashboard designer slide.
   const pages = [...slides, AI_DASHBOARD_SLIDE];
   const pageCount = pages.length;
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    // Ignore events fired while we're re-snapping after a rotation /
-    // keyboard resize — the offset is transiently inconsistent with the
-    // new width and would compute a wrong slide index.
     if (resyncing.current) return;
-    // Divide by the layout's *measured* width (falls back to the reactive
-    // window width) so a stale closure width can't miscalculate the index.
+    // Update parallax shared value on every scroll frame
+    scrollX.value = e.nativeEvent.contentOffset.x;
     const measured = e.nativeEvent.layoutMeasurement?.width || width;
     const raw = Math.round(e.nativeEvent.contentOffset.x / measured);
     const i = Math.max(0, Math.min(raw, Math.max(0, pageCount - 1)));
@@ -665,8 +1062,6 @@ export default function Onboarding() {
     }
   };
 
-  // With fixed-size pages FlatList never needs to measure items, so
-  // rotation / keyboard resizes and scrollToIndex stay exact.
   const getItemLayout = useCallback(
     (_: ArrayLike<OnboardingSlide> | null | undefined, i: number) => ({
       length: width,
@@ -676,10 +1071,6 @@ export default function Onboarding() {
     [width],
   );
 
-  // When the width changes (rotation, foldable resize, web window resize)
-  // the pixel offset no longer matches `index * width`; re-snap to the
-  // slide the user was on, without animation, and swallow the scroll
-  // events that re-snap produces.
   useEffect(() => {
     if (!listRef.current) return;
     resyncing.current = true;
@@ -687,34 +1078,26 @@ export default function Onboarding() {
       offset: indexRef.current * width,
       animated: false,
     });
-    const t = setTimeout(() => {
-      resyncing.current = false;
-    }, 120);
+    const t = setTimeout(() => { resyncing.current = false; }, 120);
     return () => clearTimeout(t);
   }, [width]);
 
   const next = async () => {
-    const total = pageCount;
-    if (index < total - 1) {
+    if (index < pageCount - 1) {
       listRef.current?.scrollToIndex({ index: index + 1, animated: true });
       return;
     }
     await finish();
   };
 
-  const skip = async () => {
-    await finish();
-  };
+  const skip = async () => { await finish(); };
 
-  // Web preview is rendered inside a fixed-height frame; padding keeps
-  // the chrome clear of the platform's surrounding browser bars.
-  const webTop = Platform.OS === "web" ? 0 : 0;
   const webBottom = Platform.OS === "web" ? 34 : 0;
-
+  const webTop = Platform.OS === "web" ? 0 : 0;
   const total = pages.length;
 
   return (
-    <View style={[styles.root, { backgroundColor: "#0a0a0f" }]}>
+    <View style={[styles.root, { backgroundColor: "#070a12" }]}>
       <FlatList
         ref={listRef}
         data={pages}
@@ -726,8 +1109,6 @@ export default function Onboarding() {
         scrollEventThrottle={16}
         getItemLayout={getItemLayout}
         onScrollToIndexFailed={(info) => {
-          // Should not happen with getItemLayout, but if it ever does,
-          // fall back to an exact offset computed from the reactive width.
           listRef.current?.scrollToOffset({
             offset: info.index * width,
             animated: true,
@@ -743,25 +1124,28 @@ export default function Onboarding() {
               paddingBottom={insets.bottom + 200 + webBottom}
               width={width}
               height={height}
+              reduced={reduced}
             />
           ) : (
-            <SlideContent
+            <AnimatedSlide
+              slide={item}
               images={resolveImages(item, localImages)}
-              underlay={resolveUnderlay(item)}
+              hasRemoteImages={
+                !!(item.image_urls?.length || item.image_url)
+              }
               active={i === index}
-              category={item.category}
-              title={item.title}
-              body={item.body}
-              paddingBottom={insets.bottom + 200 + webBottom}
-              primaryColor={colors.primary}
               width={width}
               height={height}
+              scrollX={scrollX}
+              slideIndex={i}
+              paddingBottom={insets.bottom + 200 + webBottom}
+              reduced={reduced}
             />
           )
         }
       />
 
-      {/* Top brand bar floats above the carousel */}
+      {/* ── Top brand bar ──────────────────────────────────────────────── */}
       <View
         pointerEvents="box-none"
         style={[
@@ -775,7 +1159,7 @@ export default function Onboarding() {
         </Text>
       </View>
 
-      {/* Bottom dots + CTA + info links also float above */}
+      {/* ── Bottom dots + CTA + info links ────────────────────────────── */}
       <View
         pointerEvents="box-none"
         style={[
@@ -794,7 +1178,7 @@ export default function Onboarding() {
                 styles.dot,
                 {
                   backgroundColor:
-                    i === index ? colors.primary : "rgba(255,255,255,0.35)",
+                    i === index ? colors.primary : "rgba(255,255,255,0.32)",
                   width: i === index ? 24 : 8,
                 },
               ]}
@@ -829,8 +1213,58 @@ export default function Onboarding() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  loader: { flex: 1, alignItems: "center", justifyContent: "center" },
-  slide: { flex: 1 },
+  slide: { overflow: "hidden" },
+
+  // Animated content card
+  copyWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  glassCard: {
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+  },
+  glassInner: {
+    padding: 22,
+    backgroundColor: "rgba(12,16,30,0.38)",
+  },
+  categoryChip: {
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 14,
+    backgroundColor: "rgba(61,107,255,0.20)",
+    borderColor: "rgba(61,107,255,0.40)",
+  },
+  categoryText: {
+    color: "#a8c4ff",
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 12,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  title: {
+    color: "#fff",
+    fontFamily: "SpaceGrotesk_700Bold",
+    fontSize: 26,
+    letterSpacing: -0.5,
+    lineHeight: 32,
+    marginBottom: 10,
+  },
+  body: {
+    color: "rgba(255,255,255,0.85)",
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 14,
+    lineHeight: 21,
+  },
+
+  // AI dashboard slide
   aiScroll: {
     paddingHorizontal: 24,
     justifyContent: "center",
@@ -839,8 +1273,8 @@ const styles = StyleSheet.create({
   aiTeaser: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
-    backgroundColor: "rgba(20,16,32,0.5)",
+    borderColor: "rgba(61,107,255,0.25)",
+    backgroundColor: "rgba(12,16,30,0.55)",
     padding: 20,
     alignItems: "center",
     gap: 14,
@@ -861,63 +1295,8 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     textAlign: "center",
   },
-  copyWrap: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  galleryDots: {
-    flexDirection: "row",
-    alignSelf: "center",
-    gap: 6,
-    marginBottom: 14,
-  },
-  galleryDot: {
-    height: 4,
-    borderRadius: 2,
-  },
-  glassCard: {
-    borderRadius: 24,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
-  },
-  glassInner: {
-    padding: 22,
-    backgroundColor: "rgba(20,16,32,0.35)",
-  },
-  categoryChip: {
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginBottom: 14,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderColor: "rgba(255,255,255,0.22)",
-  },
-  categoryText: {
-    color: "#fff",
-    fontFamily: "SpaceGrotesk_500Medium",
-    fontSize: 12,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-  },
-  title: {
-    color: "#fff",
-    fontFamily: "SpaceGrotesk_700Bold",
-    fontSize: 26,
-    letterSpacing: -0.5,
-    lineHeight: 32,
-    marginBottom: 10,
-  },
-  body: {
-    color: "rgba(255,255,255,0.88)",
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 14,
-    lineHeight: 21,
-  },
+
+  // Chrome
   topBar: {
     position: "absolute",
     top: 0,
@@ -930,10 +1309,10 @@ const styles = StyleSheet.create({
   skip: {
     fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 15,
-    color: "#fff",
+    color: "rgba(255,255,255,0.85)",
     padding: 8,
-    textShadowColor: "rgba(0,0,0,0.4)",
-    textShadowRadius: 4,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowRadius: 6,
   },
   bottom: {
     position: "absolute",
@@ -962,8 +1341,8 @@ const styles = StyleSheet.create({
   infoLink: {
     fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 13,
-    color: "rgba(255,255,255,0.85)",
+    color: "rgba(255,255,255,0.80)",
     padding: 4,
   },
-  infoDot: { fontSize: 13, color: "rgba(255,255,255,0.5)" },
+  infoDot: { fontSize: 13, color: "rgba(255,255,255,0.45)" },
 });
