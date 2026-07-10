@@ -502,6 +502,85 @@ class PlatformServiceSettings
     }
 
     // ═════════════════════════════════════════════════════════════
+    // Social OAuth (login + follow) — per-provider client credentials
+    // ═════════════════════════════════════════════════════════════
+    //
+    // The "Continue with Google / LinkedIn / …" sign-in buttons and the
+    // creator "Connect with …" follower-sync flow both authenticate through
+    // SocialOAuthService, which historically read GOOGLE_CLIENT_ID /
+    // *_CLIENT_SECRET (etc.) straight from the environment. These accessors
+    // let an admin set the same client id + secret from the Integrations UI
+    // instead, falling back to the provider's env var when nothing is saved —
+    // so existing env-configured installs keep working untouched.
+    //
+    // The env var *names* differ per provider (GOOGLE_CLIENT_ID,
+    // TIKTOK_CLIENT_KEY, …), so callers pass the provider's env key from
+    // SocialOAuthService::PROVIDERS rather than deriving it.
+
+    public const KEY_SOCIAL_OAUTH_CLIENT_ID  = 'social_oauth.%s.client_id';
+    public const KEY_SOCIAL_OAUTH_SECRET_ENC = 'social_oauth.%s.client_secret_enc';
+
+    private static function socialOAuthIdKey(string $provider): string
+    {
+        return sprintf(self::KEY_SOCIAL_OAUTH_CLIENT_ID, $provider);
+    }
+
+    private static function socialOAuthSecretKey(string $provider): string
+    {
+        return sprintf(self::KEY_SOCIAL_OAUTH_SECRET_ENC, $provider);
+    }
+
+    public static function socialOAuthClientId(string $provider, string $envKey): ?string
+    {
+        $v = AppSetting::get(self::socialOAuthIdKey($provider));
+        if (is_string($v) && trim($v) !== '') return trim($v);
+        $env = (string) env($envKey, '');
+        return $env !== '' ? $env : null;
+    }
+
+    public static function socialOAuthClientSecret(string $provider, string $envKey): ?string
+    {
+        $v = self::decrypt(self::socialOAuthSecretKey($provider));
+        if ($v !== null && $v !== '') return $v;
+        $env = (string) env($envKey, '');
+        return $env !== '' ? $env : null;
+    }
+
+    public static function setSocialOAuthClientId(string $provider, ?string $v): void
+    {
+        AppSetting::put(self::socialOAuthIdKey($provider), self::cleanScalar($v));
+    }
+
+    public static function setSocialOAuthClientSecret(string $provider, ?string $v): void
+    {
+        self::storeSecret(self::socialOAuthSecretKey($provider), $v);
+    }
+
+    public static function socialOAuthAdminClientId(string $provider): ?string
+    {
+        $v = AppSetting::get(self::socialOAuthIdKey($provider));
+        return (is_string($v) && trim($v) !== '') ? trim($v) : null;
+    }
+
+    public static function maskedSocialOAuthClientSecret(string $provider, string $envKey): ?string
+    {
+        return self::maskSecret(self::socialOAuthClientSecret($provider, $envKey));
+    }
+
+    public static function socialOAuthHasAdminValue(string $provider): bool
+    {
+        $id  = AppSetting::get(self::socialOAuthIdKey($provider));
+        $sec = self::decrypt(self::socialOAuthSecretKey($provider));
+        return (is_string($id) && trim($id) !== '') || ($sec !== null && $sec !== '');
+    }
+
+    public static function socialOAuthHasSecretAdminValue(string $provider): bool
+    {
+        $v = self::decrypt(self::socialOAuthSecretKey($provider));
+        return $v !== null && $v !== '';
+    }
+
+    // ═════════════════════════════════════════════════════════════
     // Runtime override
     // ═════════════════════════════════════════════════════════════
 

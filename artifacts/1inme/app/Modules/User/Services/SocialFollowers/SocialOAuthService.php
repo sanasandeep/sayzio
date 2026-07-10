@@ -3,6 +3,7 @@
 namespace App\Modules\User\Services\SocialFollowers;
 
 use App\Modules\User\Models\SocialAccountConnection;
+use App\Services\Integrations\PlatformServiceSettings;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
 
@@ -93,11 +94,34 @@ class SocialOAuthService
         ],
     ];
 
+    /**
+     * Resolve a provider's OAuth client id, preferring the admin-configured
+     * value (Integrations → Social OAuth) and falling back to the provider's
+     * env var. Returns null when neither is set.
+     */
+    private function clientId(string $provider): ?string
+    {
+        $cfg = self::PROVIDERS[$provider] ?? null;
+        if (! $cfg) return null;
+        return PlatformServiceSettings::socialOAuthClientId($provider, $cfg['client_id_env']);
+    }
+
+    /**
+     * Resolve a provider's OAuth client secret, preferring the admin-
+     * configured value and falling back to the provider's env var.
+     */
+    private function clientSecret(string $provider): ?string
+    {
+        $cfg = self::PROVIDERS[$provider] ?? null;
+        if (! $cfg) return null;
+        return PlatformServiceSettings::socialOAuthClientSecret($provider, $cfg['client_secret_env']);
+    }
+
     public function isConfigured(string $provider): bool
     {
         $cfg = self::PROVIDERS[$provider] ?? null;
         if (! $cfg) return false;
-        return ! empty(env($cfg['client_id_env'])) && ! empty(env($cfg['client_secret_env']));
+        return ! empty($this->clientId($provider)) && ! empty($this->clientSecret($provider));
     }
 
     public function configuredProviders(): array
@@ -119,7 +143,7 @@ class SocialOAuthService
     {
         $cfg = self::PROVIDERS[$provider];
         $params = [
-            'client_id'     => env($cfg['client_id_env']),
+            'client_id'     => $this->clientId($provider),
             'redirect_uri'  => $this->callbackUrl($provider),
             'response_type' => 'code',
             'scope'         => $cfg['scope'],
@@ -186,8 +210,8 @@ class SocialOAuthService
         $cfg = self::PROVIDERS[$c->platform];
         $resp = Http::acceptJson()->get($cfg['token_url'], [
             'grant_type'        => 'fb_exchange_token',
-            'client_id'         => env($cfg['client_id_env']),
-            'client_secret'     => env($cfg['client_secret_env']),
+            'client_id'         => $this->clientId($c->platform),
+            'client_secret'     => $this->clientSecret($c->platform),
             'fb_exchange_token' => $c->access_token,
         ]);
         return $this->persistRefreshedToken($c, $resp);
@@ -201,8 +225,8 @@ class SocialOAuthService
     {
         $cfg = self::PROVIDERS['tiktok'];
         $resp = Http::asForm()->acceptJson()->post($cfg['token_url'], [
-            'client_key'    => env($cfg['client_id_env']),
-            'client_secret' => env($cfg['client_secret_env']),
+            'client_key'    => $this->clientId('tiktok'),
+            'client_secret' => $this->clientSecret('tiktok'),
             'grant_type'    => 'refresh_token',
             'refresh_token' => $c->refresh_token,
         ]);
@@ -218,8 +242,8 @@ class SocialOAuthService
     private function refreshTwitter(SocialAccountConnection $c): bool
     {
         $cfg = self::PROVIDERS['twitter'];
-        $clientId     = (string) env($cfg['client_id_env']);
-        $clientSecret = (string) env($cfg['client_secret_env']);
+        $clientId     = (string) $this->clientId('twitter');
+        $clientSecret = (string) $this->clientSecret('twitter');
         $resp = Http::asForm()->acceptJson()
             ->withBasicAuth($clientId, $clientSecret)
             ->post($cfg['token_url'], [
@@ -237,8 +261,8 @@ class SocialOAuthService
         $resp = Http::asForm()->acceptJson()->post($cfg['token_url'], [
             'grant_type'    => 'refresh_token',
             'refresh_token' => $c->refresh_token,
-            'client_id'     => env($cfg['client_id_env']),
-            'client_secret' => env($cfg['client_secret_env']),
+            'client_id'     => $this->clientId($c->platform),
+            'client_secret' => $this->clientSecret($c->platform),
         ]);
         return $this->persistRefreshedToken($c, $resp);
     }
@@ -286,8 +310,8 @@ class SocialOAuthService
             'grant_type'    => 'authorization_code',
             'code'          => $code,
             'redirect_uri'  => $this->callbackUrl($provider),
-            'client_id'     => env($cfg['client_id_env']),
-            'client_secret' => env($cfg['client_secret_env']),
+            'client_id'     => $this->clientId($provider),
+            'client_secret' => $this->clientSecret($provider),
         ];
         if (! empty($cfg['pkce'])) $body['code_verifier'] = $state;
 
@@ -333,8 +357,8 @@ class SocialOAuthService
             'grant_type'    => 'authorization_code',
             'code'          => $code,
             'redirect_uri'  => $this->callbackUrl($provider),
-            'client_id'     => env($cfg['client_id_env']),
-            'client_secret' => env($cfg['client_secret_env']),
+            'client_id'     => $this->clientId($provider),
+            'client_secret' => $this->clientSecret($provider),
         ];
         if (! empty($cfg['pkce'])) $body['code_verifier'] = $state;
 

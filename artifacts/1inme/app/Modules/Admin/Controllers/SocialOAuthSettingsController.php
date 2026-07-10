@@ -4,6 +4,8 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Services\SocialFollowers\SocialOAuthService;
+use App\Services\Integrations\PlatformServiceSettings;
+use Illuminate\Http\Request;
 
 class SocialOAuthSettingsController extends Controller
 {
@@ -31,6 +33,12 @@ class SocialOAuthSettingsController extends Controller
             'icon'        => 'fa-brands fa-linkedin',
             'register_at' => 'https://www.linkedin.com/developers/apps',
             'notes'       => 'Create a LinkedIn app, request the Sign In with LinkedIn and Marketing Developer Platform products, and add the redirect URI under Auth → Authorized redirect URLs.',
+        ],
+        'google' => [
+            'label'       => 'Google',
+            'icon'        => 'fa-brands fa-google',
+            'register_at' => 'https://console.cloud.google.com/apis/credentials',
+            'notes'       => 'Create an OAuth 2.0 Client ID of type "Web application" in Google Cloud Console, add the redirect URI below under Authorized redirect URIs, and paste the Client ID + Client Secret here. The same client powers the "Continue with Google" web sign-in and native mobile Google sign-in.',
         ],
         'twitter' => [
             'label'       => 'X (Twitter)',
@@ -69,6 +77,12 @@ class SocialOAuthSettingsController extends Controller
                 'redirect_uri'      => $oauth->callbackUrl($key),
                 'register_at'       => $docs['register_at'],
                 'notes'             => $docs['notes'],
+                // Admin-editable credential state (falls back to env vars).
+                'admin_client_id'   => PlatformServiceSettings::socialOAuthAdminClientId($key),
+                'has_admin_secret'  => PlatformServiceSettings::socialOAuthHasSecretAdminValue($key),
+                'has_admin_value'   => PlatformServiceSettings::socialOAuthHasAdminValue($key),
+                'env_client_id_set' => ! empty(env($cfg['client_id_env'])),
+                'env_secret_set'    => ! empty(env($cfg['client_secret_env'])),
             ];
         }
 
@@ -76,5 +90,45 @@ class SocialOAuthSettingsController extends Controller
         $unconfigured = count($providers) - $configured;
 
         return view('admin.social-oauth.index', compact('providers', 'configured', 'unconfigured'));
+    }
+
+    /**
+     * Save (or clear) a provider's OAuth client id + secret. Stored in the
+     * encrypted app_settings key/value store via PlatformServiceSettings and
+     * used in preference to the env vars by SocialOAuthService. Leaving the
+     * secret blank keeps the existing stored value; ticking "clear" removes
+     * the admin-stored credentials so the env fallback applies again.
+     */
+    public function update(Request $request, string $provider)
+    {
+        abort_unless(isset(SocialOAuthService::PROVIDERS[$provider]), 404);
+
+        $data = $request->validate([
+            'client_id'     => ['nullable', 'string', 'max:512'],
+            'client_secret' => ['nullable', 'string', 'max:512'],
+            'clear'         => ['nullable', 'boolean'],
+        ]);
+
+        if ($request->boolean('clear')) {
+            PlatformServiceSettings::setSocialOAuthClientId($provider, null);
+            PlatformServiceSettings::setSocialOAuthClientSecret($provider, null);
+
+            return redirect()
+                ->route('admin.social-oauth.index')
+                ->with('success', ucfirst($provider) . ' OAuth credentials cleared. The server environment variables (if any) will be used instead.');
+        }
+
+        PlatformServiceSettings::setSocialOAuthClientId($provider, $data['client_id'] ?? null);
+
+        // Only overwrite the secret when a new one is supplied — the field is
+        // rendered masked/empty so an empty submit must preserve the stored value.
+        $secret = trim((string) ($data['client_secret'] ?? ''));
+        if ($secret !== '') {
+            PlatformServiceSettings::setSocialOAuthClientSecret($provider, $secret);
+        }
+
+        return redirect()
+            ->route('admin.social-oauth.index')
+            ->with('success', ucfirst($provider) . ' OAuth credentials saved.');
     }
 }

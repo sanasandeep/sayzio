@@ -194,6 +194,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::prefix('social-oauth')->name('social-oauth.')->group(function () {
             Route::get('/', [SocialOAuthSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('{provider}', [SocialOAuthSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
         });
 
         Route::prefix('social-links')->name('social-links.')->group(function () {

@@ -173,7 +173,7 @@ class SocialAuthController extends Controller
         $resp = Http::timeout(5)->get('https://oauth2.googleapis.com/tokeninfo', ['id_token' => $idToken]);
         if (!$resp->ok()) throw new \RuntimeException('Google rejected the id token');
         $payload = $resp->json();
-        $expectedAud = env('GOOGLE_CLIENT_ID');
+        $expectedAud = \App\Services\Integrations\PlatformServiceSettings::socialOAuthClientId('google', 'GOOGLE_CLIENT_ID');
         if ($expectedAud && ($payload['aud'] ?? null) !== $expectedAud) {
             throw new \RuntimeException('aud mismatch');
         }
