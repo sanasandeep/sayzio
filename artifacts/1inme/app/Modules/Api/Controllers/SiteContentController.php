@@ -51,9 +51,32 @@ class SiteContentController extends Controller
 
         $ee = $extra['eefind'] ?? SitePagesContent::aboutEefindDefault();
 
+        // Hero stat row (the animated "120,000+ creators" counters). Mirror the
+        // web /about page's visibility resolution: honor the per-stat `visible`
+        // flag (default true), and drop rows with neither a value nor a label so
+        // the mobile hero shows exactly what an admin curated on the web.
+        $heroCfg = is_array($extra['hero'] ?? null) ? $extra['hero'] : [];
+        $heroStats = [];
+        foreach ((array) ($heroCfg['stats'] ?? []) as $row) {
+            if (!is_array($row)) continue;
+            $value = trim((string) ($row['value'] ?? ''));
+            $label = trim((string) ($row['label'] ?? ''));
+            $visible = array_key_exists('visible', $row) ? (bool) $row['visible'] : true;
+            if (!$visible) continue;
+            if ($value === '' && $label === '') continue;
+            $heroStats[] = [
+                'value'  => $value,
+                'suffix' => (string) ($row['suffix'] ?? ''),
+                'label'  => $label,
+            ];
+        }
+
         return $this->ok([
             'title'    => $page ? (string) $page->title : 'About Sayzio',
             'sections' => $cleanSections,
+            'hero'     => [
+                'stats' => $heroStats,
+            ],
             'eefind'   => [
                 'eyebrow'     => (string) ($ee['eyebrow'] ?? ''),
                 'heading'     => (string) ($ee['heading'] ?? ''),

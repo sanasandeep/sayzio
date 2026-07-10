@@ -15,10 +15,21 @@ import type {
  * rebuild. The caller falls back to the bundled static copy when the fetch
  * fails or returns nothing (offline / endpoint unavailable).
  */
+export interface AboutHeroStat {
+  value: string;
+  label: string;
+}
+
 export interface AboutContent {
   title: string;
   sections: InfoSection[];
   eefind: EefindBlock;
+  /**
+   * Admin-editable hero stat row (the animated count-up counters). Omitted when
+   * the endpoint returns no usable stats, so the caller keeps its bundled
+   * fallback values.
+   */
+  heroStats?: AboutHeroStat[];
 }
 
 interface AboutStatRaw {
@@ -52,6 +63,7 @@ interface AboutResponse {
     title?: string;
     sections?: { heading?: string; body?: string }[];
     founder?: AboutFounderRaw;
+    hero?: { stats?: AboutStatRaw[] };
     eefind?: AboutEefindRaw;
   };
 }
@@ -291,6 +303,18 @@ export async function fetchAboutContent(): Promise<AboutContent | null> {
         websiteUrl: (ee.website_url ?? "").trim(),
       };
 
+      // Hero stat row (the animated count-up counters). Only kept when the
+      // server sends usable rows; otherwise omitted so the caller keeps its
+      // bundled fallback values.
+      const heroStats = Array.isArray(data.hero?.stats)
+        ? data.hero.stats
+            .map((st) => ({
+              value: formatStatValue(st?.value ?? "", st?.suffix ?? ""),
+              label: (st?.label ?? "").trim(),
+            }))
+            .filter((st) => st.value !== "" || st.label !== "")
+        : [];
+
       // A payload with no usable EEFind heading/body isn't worth swapping in;
       // let the caller keep its static fallback.
       if (eefind.heading === "" && eefind.body === "") return null;
@@ -299,6 +323,7 @@ export async function fetchAboutContent(): Promise<AboutContent | null> {
         title: (data.title ?? "").trim() || "About Sayzio",
         sections,
         eefind,
+        ...(heroStats.length > 0 ? { heroStats } : {}),
       };
       cache = content;
       return content;

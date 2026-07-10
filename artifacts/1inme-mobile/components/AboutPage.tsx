@@ -13,7 +13,16 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  Fragment,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Linking,
   Platform,
@@ -275,18 +284,29 @@ const cardStyles = StyleSheet.create({
 // Main AboutPage component
 // ---------------------------------------------------------------------------
 
+// Bundled fallback hero stats, shown until (and if) the admin-editable values
+// load from the /about endpoint, or when the endpoint is unreachable / returns
+// no stats. Mirrors the web /about hero defaults.
+const FALLBACK_HERO_STATS: Array<{ value: string; label: string }> = [
+  { value: "120,000+", label: "Creators" },
+  { value: "3+", label: "Years" },
+  { value: "9+", label: "Team" },
+];
+
 export function AboutPage({
   title,
   intro,
   sections,
   founder,
   eefind,
+  heroStats,
 }: {
   title: string;
   intro?: string;
   sections: InfoSection[];
   founder?: FounderBlock;
   eefind?: EefindBlock;
+  heroStats?: Array<{ value: string; label: string }>;
 }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -313,6 +333,12 @@ export function AboutPage({
   }));
 
   const isDark = colors.scheme === "dark";
+
+  // Prefer the admin-editable stats from the /about endpoint; fall back to the
+  // bundled defaults when none were provided (offline / endpoint unavailable /
+  // no stats configured).
+  const resolvedHeroStats =
+    heroStats && heroStats.length > 0 ? heroStats : FALLBACK_HERO_STATS;
 
   return (
     <ScrollRevealCtx.Provider value={registry}>
@@ -413,40 +439,29 @@ export function AboutPage({
                 </Text>
               ) : null}
 
-              {/* Hero stats row */}
+              {/* Hero stats row — admin-editable values from the /about
+                  endpoint, falling back to the bundled defaults. */}
               <ScrollReveal delay={200} direction="up" reduceMotion={reduceMotion}>
                 {(revealed) => (
                   <View style={styles.heroStats}>
-                    <CountUpStat
-                      value="120,000+"
-                      label="Creators"
-                      reduceMotion={reduceMotion}
-                      revealed={revealed}
-                    />
-                    <View
-                      style={[
-                        styles.statDivider,
-                        { backgroundColor: colors.border },
-                      ]}
-                    />
-                    <CountUpStat
-                      value="3+"
-                      label="Years"
-                      reduceMotion={reduceMotion}
-                      revealed={revealed}
-                    />
-                    <View
-                      style={[
-                        styles.statDivider,
-                        { backgroundColor: colors.border },
-                      ]}
-                    />
-                    <CountUpStat
-                      value="9+"
-                      label="Team"
-                      reduceMotion={reduceMotion}
-                      revealed={revealed}
-                    />
+                    {resolvedHeroStats.map((stat, i) => (
+                      <Fragment key={`${stat.label}-${i}`}>
+                        {i > 0 ? (
+                          <View
+                            style={[
+                              styles.statDivider,
+                              { backgroundColor: colors.border },
+                            ]}
+                          />
+                        ) : null}
+                        <CountUpStat
+                          value={stat.value}
+                          label={stat.label}
+                          reduceMotion={reduceMotion}
+                          revealed={revealed}
+                        />
+                      </Fragment>
+                    ))}
                   </View>
                 )}
               </ScrollReveal>

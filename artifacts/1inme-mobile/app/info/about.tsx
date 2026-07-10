@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { AboutPage } from "@/components/AboutPage";
 import type { EefindBlock, FounderBlock, InfoSection } from "@/components/InfoPage";
 import { getBaseUrl } from "@/lib/api";
-import { fetchAboutContent } from "@/lib/api/siteContent";
+import { fetchAboutContent, type AboutHeroStat } from "@/lib/api/siteContent";
 
 const INTRO =
   "Sayzio is the modern way to gather every link, contact, and channel that represents you into a single tap-shareable profile — on the web and in your pocket.";
@@ -57,6 +57,9 @@ const FALLBACK_EEFIND: EefindBlock = {
 export default function About() {
   const [sections, setSections] = useState<InfoSection[]>(FALLBACK_SECTIONS);
   const [eefind, setEefind] = useState<EefindBlock>(FALLBACK_EEFIND);
+  const [heroStats, setHeroStats] = useState<AboutHeroStat[] | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     let active = true;
@@ -65,6 +68,9 @@ export default function About() {
         if (!active || !content) return;
         if (content.sections.length > 0) setSections(content.sections);
         setEefind(content.eefind);
+        if (content.heroStats && content.heroStats.length > 0) {
+          setHeroStats(content.heroStats);
+        }
       })
       .catch(() => {});
     return () => {
@@ -79,6 +85,7 @@ export default function About() {
       sections={sections}
       founder={FOUNDER}
       eefind={eefind}
+      heroStats={heroStats}
     />
   );
 }
