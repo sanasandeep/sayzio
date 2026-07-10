@@ -14,7 +14,8 @@
  * them slips past the source-replay test. This harness exercises all three:
  *   - Email OTP: type an email, "Send code", type a code, "Verify and sign in".
  *   - Demo logins: "Demo as user" / "Demo as admin" (POST /api/v1/auth/demo).
- *   - Social providers: six web-browser OAuth buttons (+ Google when built).
+ *   - Social providers: seven web-browser OAuth buttons (Google always shown;
+ *     native expo-auth-session flow used instead when a Google client ID is built in).
  *
  * This harness does NOT depend on the live proxied Expo dev domain (or any
  * RDS-backed render). Like the Google variant below, it boots its OWN
@@ -56,8 +57,8 @@
  *        - the native-SDK leg (?provider=…&id_token=… → POST /auth/social
  *          via AuthContext.socialLogin), asserting the forwarded request
  *          URL/method/body and that a 422 surfaces "Sign-in failed".
- *   8. Click EVERY web-browser OAuth provider button (Instagram, Facebook, X,
- *      LinkedIn, Pinterest, TikTok) through its full mocked round-trip: the
+ *   8. Click EVERY web-browser OAuth provider button (Google, Instagram,
+ *      Facebook, X, LinkedIn, Pinterest, TikTok) through its full mocked round-trip: the
  *      backend /user/social-oauth/{provider}/login URL is intercepted and
  *      stands in for the backend + OS deep-link by returning the app to
  *      /oauth-callback?provider=…&id_token=…, which forwards { provider,
@@ -151,9 +152,11 @@ const MOCK_WEB_ID_TOKEN = "mock-web-oauth-id-token-e2e";
 
 // The web-browser OAuth providers always render on the login screen (see
 // WEB_BROWSER_PROVIDERS in app/(auth)/index.tsx); their accessibility labels
-// are the minimum set this test requires to be tappable. Google only renders
-// when a Google client id is configured, so it's verified opportunistically.
+// are the minimum set this test requires to be tappable. Google is now in
+// WEB_BROWSER_PROVIDERS so it always renders — the native expo-auth-session
+// flow takes precedence only when EXPO_PUBLIC_GOOGLE_*_CLIENT_ID is compiled in.
 const REQUIRED_SOCIAL_LABELS = [
+  "Continue with Google",
   "Continue with Instagram",
   "Continue with Facebook",
   "Continue with X",
@@ -161,7 +164,7 @@ const REQUIRED_SOCIAL_LABELS = [
   "Continue with Pinterest",
   "Continue with TikTok",
 ];
-const OPTIONAL_SOCIAL_LABELS = ["Continue with Google"];
+const OPTIONAL_SOCIAL_LABELS = [];
 
 // The base URL the main flow drives. Defaults to APP_URL, but the orchestrator
 // boots a throwaway Expo web server and points this at it unless an explicit
@@ -200,8 +203,11 @@ if (!["both", "main", "google"].includes(FLOW)) {
 // id (used in the backend /user/social-oauth/{id}/login URL and forwarded to
 // /auth/social) and the button's accessibility label. Mirrors
 // WEB_BROWSER_PROVIDERS in app/(auth)/index.tsx — note the "twitter" id renders
-// as "Continue with X".
+// as "Continue with X". Google is included here because in the main flow (no
+// native client ID) it uses the web-browser path; the Google variant separately
+// exercises the native expo-auth-session path via runGoogleVariant.
 const WEB_OAUTH_PROVIDERS = [
+  { id: "google", label: "Continue with Google" },
   { id: "instagram", label: "Continue with Instagram" },
   { id: "facebook", label: "Continue with Facebook" },
   { id: "twitter", label: "Continue with X" },
@@ -518,19 +524,23 @@ async function runOAuthCallbackErrors(page) {
 // ---------------------------------------------------------------------------
 // Google-enabled variant.
 //
-// On the default web build the Google button is intentionally absent — no
-// EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is set, so HAS_GOOGLE_NATIVE is false. The
-// main flow above can therefore only verify it opportunistically and never
-// exercises it. A break in the Google path — the guarded
-// useIdTokenAuthRequest hook throwing at render (which crashes the whole
-// login screen into the error boundary) or the button rendering disabled —
-// would slip past unnoticed.
+// The main flow above exercises Google via the web-browser OAuth path (the same
+// round-trip as LinkedIn), since no native Google client ID is compiled into the
+// default dev bundle. The NATIVE expo-auth-session path — which uses
+// useIdTokenAuthRequest and POSTs id_token directly to /auth/social — requires
+// EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to be baked into the bundle at build time.
 //
-// We can't flip the button on against the already-running server because Expo
-// inlines EXPO_PUBLIC_* into the web bundle at build time, so the value has to
-// be present when Metro builds. This variant boots a SECOND, throwaway Expo
-// web dev server with EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID set, then asserts the
-// login screen still mounts and the Google button is tappable.
+// A break in the native path — the guarded useIdTokenAuthRequest hook throwing
+// at render (which crashes the whole login screen into the error boundary), or
+// the button rendering disabled when a client ID IS present — would slip past the
+// main flow.
+//
+// We can't flip the native path on against the already-running server because
+// Expo inlines EXPO_PUBLIC_* into the web bundle at build time, so the value
+// has to be present when Metro builds. This variant boots a SECOND, throwaway
+// Expo web dev server with EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID set, then asserts
+// the login screen still mounts, the Google button is tappable, and the native
+// flow fires (rather than the web-browser fallback).
 //
 // Booting that server is best-effort: if it can't start (expo missing, port
 // contention, bundling too slow) we skip the variant rather than fail CI —
@@ -2847,10 +2857,10 @@ async function main(server) {
     // -----------------------------------------------------------------
     // Step 10: the guest "Perfect pairings" -> signup handoff must ALSO
     // survive a CANCELLED or REJECTED web-browser-provider sign-in and a
-    // subsequent successful retry. The six web providers take a different
-    // completion path than Google (oauth-callback's "Sign-in failed"
-    // screen), so a regression there would silently drop the guest's
-    // chosen pairing on any non-Google provider. Cover BOTH failure
+    // subsequent successful retry. Web-browser providers take a different
+    // completion path than the Google native hook — they go through
+    // oauth-callback's "Sign-in failed" screen — so a regression there
+    // would silently drop the guest's chosen pairing. Cover BOTH failure
     // mechanisms — a cancelled popup (Instagram) and a backend 422
     // (Facebook) — each on a fresh guest context on this same server.
     // -----------------------------------------------------------------

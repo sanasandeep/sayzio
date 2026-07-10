@@ -46,9 +46,11 @@ const SOCIALS: {
   { id: "linkedin", label: "LinkedIn", icon: "logo-linkedin", color: "#0a66c2" },
 ];
 
-// LinkedIn goes through the web /user/social-oauth/{provider}/login route
-// via an in-app browser session. Google uses the native expo-auth-session flow.
-const WEB_BROWSER_PROVIDERS = new Set<SocialProvider>(["linkedin"]);
+// LinkedIn and Google (when no native client ID is compiled in) go through the
+// web /user/social-oauth/{provider}/login route via an in-app browser session.
+// When a native Google client ID IS configured, the native expo-auth-session
+// flow takes precedence over the web-browser path for Google only.
+const WEB_BROWSER_PROVIDERS = new Set<SocialProvider>(["google", "linkedin"]);
 
 const HAS_GOOGLE_NATIVE =
   !!process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
@@ -260,16 +262,12 @@ export default function AuthLanding() {
   const onSocial = async (provider: SocialProvider) => {
     setError(null);
 
-    // Google: native flow via expo-auth-session — POSTs id_token to
-    // /auth/social directly, no backend OAuth round-trip needed.
-    if (provider === "google") {
-      if (!HAS_GOOGLE_NATIVE || !googleRequest) {
-        const msg =
-          "Google sign-in isn't configured for this build. Add EXPO_PUBLIC_GOOGLE_CLIENT_ID (or platform-specific EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID / EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID) to enable it.";
-        if (Platform.OS === "web") setError(msg);
-        else showAlert("Sign in", msg);
-        return;
-      }
+    // Google: native flow (expo-auth-session) takes precedence when a native
+    // client ID is compiled into the build — it POSTs the id_token directly to
+    // /auth/social with no backend round-trip. When no native client ID is
+    // present we fall through to the web-browser flow below, which uses the
+    // same /user/social-oauth/{provider}/login round-trip as LinkedIn.
+    if (provider === "google" && HAS_GOOGLE_NATIVE && googleRequest) {
       setBusy("social-google");
       try {
         await googlePrompt();
@@ -440,11 +438,7 @@ export default function AuthLanding() {
         </View>
 
         <View style={styles.socialGrid}>
-          {SOCIALS.filter(
-            (s) =>
-              (s.id === "google" && HAS_GOOGLE_NATIVE) ||
-              WEB_BROWSER_PROVIDERS.has(s.id),
-          ).map((s) => {
+          {SOCIALS.filter((s) => WEB_BROWSER_PROVIDERS.has(s.id)).map((s) => {
             const isBusy = busy === `social-${s.id}`;
             const disabled = !!busy && !isBusy;
             return (
