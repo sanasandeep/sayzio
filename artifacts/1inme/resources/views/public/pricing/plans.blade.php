@@ -491,7 +491,7 @@
         },
         introNormalPerMonth(plan){
             /* Per-month of the normal (non-discounted) annual price shown as
-               the struck-through "Was" and the renewal rate on intro cards. */
+               the struck-through 'Was' and the renewal rate on intro cards. */
             const i = this.intro(plan);
             if (!i) return '';
             return (Number(i.normal_minor) / 12 / 100)
