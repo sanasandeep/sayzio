@@ -21,6 +21,8 @@ class GlobalDomainsComposer
 
     public function compose(View $view): void
     {
-        $view->with('showcaseDomains', Domain::showcase(5));
+        // No hard cap: surface every active, verified, global domain so the
+        // showcase never silently hides one when the roster grows.
+        $view->with('showcaseDomains', Domain::showcase());
     }
 }

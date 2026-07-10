@@ -76,32 +76,54 @@ protected $fillable = [
     }
 
     /**
-     * Up to $limit active, verified admin-global domains (no owning user),
-     * for display on marketing surfaces. Primary first, then alphabetical.
-     * Falls back to a static branded list when none are configured (or on
-     * any DB error) so the marketing copy is never empty.
+     * Hard safety cap on the cached showcase list. Not a display limit —
+     * every active, verified, global domain should normally surface. This
+     * only guards against an implausibly large global-domain table blowing
+     * up the cached payload; well above any realistic count.
+     */
+    public const SHOWCASE_MAX = 20;
+
+    /**
+     * Active, verified admin-global domains (no owning user) for display on
+     * marketing surfaces. Primary first, then alphabetical. Falls back to a
+     * static branded list when none are configured (or on any DB error) so
+     * the marketing copy is never empty.
+     *
+     * The cache always holds the FULL list (up to SHOWCASE_MAX) under a
+     * single limit-independent key, so bumping a caller's display count
+     * never serves a stale, too-short cached list. Callers pass an optional
+     * $limit to trim the returned array in PHP; 0/null means "return all".
+     * The cache is flushed on any global-domain write (see booted()), so a
+     * newly added domain surfaces on the next request rather than after the
+     * TTL expires.
      *
      * @return array<int,string>
      */
-    public static function showcase(int $limit = 4): array
+    public static function showcase(?int $limit = null): array
     {
         try {
-            $domains = Cache::remember(self::SHOWCASE_CACHE_KEY, 600, function () use ($limit) {
+            $domains = Cache::remember(self::SHOWCASE_CACHE_KEY, 600, function () {
                 return static::query()
                     ->whereNull('user_id')
                     ->where('is_active', true)
                     ->where('is_verified', true)
                     ->orderByDesc('is_primary')
                     ->orderBy('domain')
-                    ->limit($limit)
+                    ->limit(self::SHOWCASE_MAX)
                     ->pluck('domain')
                     ->all();
             });
         } catch (\Throwable $e) {
-            return self::SHOWCASE_FALLBACK;
+            $domains = self::SHOWCASE_FALLBACK;
         }
 
-        return !empty($domains) ? $domains : self::SHOWCASE_FALLBACK;
+        $domains = !empty($domains) ? $domains : self::SHOWCASE_FALLBACK;
+
+        if ($limit !== null && $limit > 0) {
+            $domains = array_slice($domains, 0, $limit);
+        }
+
+        return array_values($domains);
     }
 
     /** True when this global domain has at least one custom logo uploaded. */
