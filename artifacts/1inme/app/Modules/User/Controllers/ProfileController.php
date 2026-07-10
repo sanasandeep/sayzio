@@ -133,7 +133,17 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
+            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id), function ($attribute, $value, $fail) use ($user) {
+                $newEmail = strtolower(trim((string) $value));
+                $currentEmail = strtolower(trim((string) $user->email));
+                if ($newEmail === $currentEmail) {
+                    return;
+                }
+                $exists = \App\Modules\Admin\Models\Admin::whereRaw('lower(email) = ?', [$newEmail])->exists();
+                if ($exists) {
+                    $fail('That email address is not available.');
+                }
+            }],
             'phone' => 'nullable|string|max:20',
             'timezone' => 'required|string',
             'language' => 'required|string|in:en',

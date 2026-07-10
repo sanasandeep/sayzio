@@ -920,20 +920,12 @@ class User extends Authenticatable
         }
         $this->adminAccountResolved = true;
 
-        $email = strtolower(trim((string) $this->email));
-        if ($email === '') {
-            return $this->cachedAdminAccount = null;
-        }
-
-        try {
-            $this->cachedAdminAccount = \App\Modules\Admin\Models\Admin::query()
-                ->whereRaw('lower(email) = ?', [$email])
-                ->first();
-        } catch (\Throwable $e) {
-            $this->cachedAdminAccount = null;
-        }
-
-        return $this->cachedAdminAccount;
+        // Resolution is delegated to the hardened bridge, which binds the
+        // user/admin identities via an explicit, immutable `admins.user_id`
+        // link established only under proof of mailbox ownership — never by
+        // a bare, user-controlled email string.
+        return $this->cachedAdminAccount =
+            \App\Modules\Common\Services\AdminUserBridge::resolveAdminForUser($this);
     }
 
     /** True when this user has a matching admin record at all. */

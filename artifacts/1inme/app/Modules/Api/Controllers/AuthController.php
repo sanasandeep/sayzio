@@ -26,7 +26,12 @@ class AuthController extends Controller
 
         $data = $request->validate([
             'name'     => ['required', 'string', 'max:120'],
-            'email'    => ['required', 'email', 'max:190', Rule::unique('users', 'email')],
+            'email'    => ['required', 'email', 'max:190', Rule::unique('users', 'email'), function ($attribute, $value, $fail) {
+                $exists = \App\Modules\Admin\Models\Admin::whereRaw('lower(email) = ?', [strtolower(trim((string) $value))])->exists();
+                if ($exists) {
+                    $fail('That email address is not available.');
+                }
+            }],
             'password' => ['required', 'string', 'min:8', 'max:200'],
             'handle'   => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/i', Rule::unique('users', 'handle'), new \App\Modules\Admin\Rules\NotBannedName()],
         ]);

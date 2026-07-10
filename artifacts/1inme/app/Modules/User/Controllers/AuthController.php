@@ -75,7 +75,12 @@ class AuthController extends Controller
 
         $rules = [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:190|unique:users,email',
+            'email' => ['required', 'email', 'max:190', 'unique:users,email', function ($attribute, $value, $fail) {
+                $exists = \App\Modules\Admin\Models\Admin::whereRaw('lower(email) = ?', [strtolower(trim((string) $value))])->exists();
+                if ($exists) {
+                    $fail('That email address is not available.');
+                }
+            }],
             'mobile' => 'nullable|string|max:20',
             'referral_code' => 'nullable|string|max:32',
             'country' => ['nullable', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],

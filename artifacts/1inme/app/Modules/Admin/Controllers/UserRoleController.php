@@ -160,12 +160,22 @@ class UserRoleController extends Controller
             return back()->with('error', 'That is not a valid admin role.');
         }
 
-        $admin = $user->adminAccount();
+        // Look the existing back-office record up by email directly (not via
+        // the ownership-gated bridge) so the create-vs-repoint decision is
+        // correct even for an as-yet-unverified target, and never trips the
+        // admins.email unique constraint. This grant is an operator-initiated,
+        // trusted act of binding `$user` to an admin, so we stamp the explicit
+        // `admins.user_id` link here — the same immutable anchor the bridge
+        // resolves against.
+        $admin = Admin::query()
+            ->whereRaw('lower(email) = ?', [strtolower(trim((string) $user->email))])
+            ->first();
 
         if ($admin) {
             $admin->update([
                 'role_id' => $role->id,
                 'status'  => 'active',
+                'user_id' => $user->id,
             ]);
             $message = $user->name . ' is now a ' . $role->name . ' admin.';
         } else {
@@ -177,6 +187,7 @@ class UserRoleController extends Controller
                 'password' => Hash::make(Str::random(40)),
                 'role_id'  => $role->id,
                 'status'   => 'active',
+                'user_id'  => $user->id,
             ]);
             $message = $user->name . ' was promoted to admin (' . $role->name . ').';
         }

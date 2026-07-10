@@ -165,7 +165,7 @@ class DashboardSwitchTest extends TestCase
 
     public function test_grant_admin_access_creates_a_new_admin_record(): void
     {
-        $operator = $this->makeAdmin(['staff.create']);
+        $operator = $this->makeAdmin(['users.grant_admin']);
         $target   = $this->makeUser();
         $role     = $this->makeAdminGuardRole();
 
@@ -185,7 +185,7 @@ class DashboardSwitchTest extends TestCase
 
     public function test_grant_admin_access_from_staff_page_stays_on_staff(): void
     {
-        $operator = $this->makeAdmin(['staff.create']);
+        $operator = $this->makeAdmin(['users.grant_admin']);
         $target   = $this->makeUser();
         $role     = $this->makeAdminGuardRole();
 
@@ -233,7 +233,7 @@ class DashboardSwitchTest extends TestCase
     public function test_grant_admin_access_repoints_an_existing_admin_record(): void
     {
         $target   = $this->makeUser();
-        $operator = $this->makeAdmin(['staff.create']);
+        $operator = $this->makeAdmin(['users.grant_admin']);
 
         // Pre-existing (inactive, old role) admin record on the same email.
         $oldRole = $this->makeAdminGuardRole();
@@ -264,7 +264,7 @@ class DashboardSwitchTest extends TestCase
 
     public function test_grant_admin_access_rejects_a_web_guard_role(): void
     {
-        $operator = $this->makeAdmin(['staff.create']);
+        $operator = $this->makeAdmin(['users.grant_admin']);
         $target   = $this->makeUser();
         $webRole  = Role::create(['name' => 'Web Role', 'slug' => 'web-role-' . Str::random(4), 'guard' => 'web']);
 
@@ -298,7 +298,7 @@ class DashboardSwitchTest extends TestCase
 
     public function test_revoke_admin_access_deletes_the_admin_record(): void
     {
-        $operator = $this->makeAdmin(['staff.delete']);
+        $operator = $this->makeAdmin(['users.revoke_admin']);
         $target   = $this->makeUser();
         $targetAdmin = $this->makeAdmin([], $target->email);
 
@@ -315,7 +315,7 @@ class DashboardSwitchTest extends TestCase
         // Operator's own email matches a user account, so the target
         // user's admin record IS the operator — revoking it would lock
         // them out mid-request and must be refused.
-        $operator = $this->makeAdmin(['staff.delete']);
+        $operator = $this->makeAdmin(['users.revoke_admin']);
         $self     = $this->makeUser(['email' => $operator->email]);
 
         $this->actingAs($operator, 'admin')

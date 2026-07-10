@@ -12,7 +12,7 @@ class Admin extends Authenticatable
     protected $guard = 'admin';
 
     protected $fillable = [
-        'name', 'email', 'password', 'role_id', 'avatar', 'status', 'last_login_at',
+        'name', 'email', 'password', 'role_id', 'avatar', 'status', 'last_login_at', 'user_id',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -22,6 +22,7 @@ class Admin extends Authenticatable
         return [
             'last_login_at' => 'datetime',
             'password' => 'hashed',
+            'user_id' => 'integer',
         ];
     }
 
@@ -65,20 +66,11 @@ class Admin extends Authenticatable
         }
         $this->userAccountResolved = true;
 
-        $email = strtolower(trim((string) $this->email));
-        if ($email === '') {
-            return $this->cachedUserAccount = null;
-        }
-
-        try {
-            $this->cachedUserAccount = \App\Modules\User\Models\User::query()
-                ->whereRaw('lower(email) = ?', [$email])
-                ->first();
-        } catch (\Throwable $e) {
-            $this->cachedUserAccount = null;
-        }
-
-        return $this->cachedUserAccount;
+        // Delegated to the hardened bridge: the back-office admin is bound to
+        // its user via the explicit `admins.user_id` link (established only
+        // under proof of mailbox ownership), not a bare email match.
+        return $this->cachedUserAccount =
+            \App\Modules\Common\Services\AdminUserBridge::resolveUserForAdmin($this);
     }
 
     /** True when this admin has a matching user record. */
