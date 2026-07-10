@@ -23,6 +23,12 @@ import { expect, test, type Page } from "@playwright/test";
 //   3. RESEND       -> re-issuing a code keeps the visitor on the verify screen
 //      with a fresh "a new code was sent" status and, crucially, a code that
 //      still verifies afterwards — so a resend never breaks the flow.
+//   4. BRUTE FORCE  -> submitting wrong codes up to `OtpService::MAX_ATTEMPTS`
+//      (5) BURNS the row: the service force-marks it used, so a *subsequent*
+//      submission of the CORRECT code is STILL rejected. This is the core
+//      anti-brute-force guarantee — the attempt cap must slam the window shut
+//      before the correct code is ever compared. Same graceful outcome: stays
+//      on verify, no account created, no login.
 //
 // Design notes shared with the sibling spec:
 //   - baseURL comes from APP_URL (the runner points it at the ephemeral e2e
@@ -45,8 +51,18 @@ const RUN_TAG = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 const WRONG_CODE_EMAIL = `${EMAIL_PREFIX}wrong-${RUN_TAG}@example.com`;
 const EXPIRED_CODE_EMAIL = `${EMAIL_PREFIX}expired-${RUN_TAG}@example.com`;
 const RESEND_EMAIL = `${EMAIL_PREFIX}resend-${RUN_TAG}@example.com`;
+const BRUTEFORCE_EMAIL = `${EMAIL_PREFIX}bruteforce-${RUN_TAG}@example.com`;
 
-const ALL_EMAILS = [WRONG_CODE_EMAIL, EXPIRED_CODE_EMAIL, RESEND_EMAIL];
+const ALL_EMAILS = [
+  WRONG_CODE_EMAIL,
+  EXPIRED_CODE_EMAIL,
+  RESEND_EMAIL,
+  BRUTEFORCE_EMAIL,
+];
+
+// Mirror of OtpService::MAX_ATTEMPTS — the number of wrong guesses that burns
+// an issued code. Kept in lockstep with the service constant.
+const MAX_ATTEMPTS = 5;
 
 /**
  * Run a `php artisan tinker` seed, retrying on a transient failure. Over the
@@ -376,5 +392,57 @@ test.describe("email-OTP signup error paths", () => {
     // The successful resend-then-verify DID create the account (contrast with
     // the wrong/expired cases above).
     expect(userExists(RESEND_EMAIL)).toBe(true);
+  });
+
+  test("submitting wrong codes up to the attempt cap BURNS the code so the CORRECT one is then rejected", async ({
+    page,
+  }) => {
+    await requestOtp(page, BRUTEFORCE_EMAIL);
+
+    // The real, issued value — the code that WOULD verify against a fresh row.
+    const realCode = await readRevealCode(page);
+    const wrongCode = realCode === "000000" ? "999999" : "000000";
+
+    // Exhaust the attempt cap with wrong guesses. Each one bounces back to the
+    // verify screen with the graceful error and never signs the visitor in.
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      await submitCode(page, wrongCode);
+      await page.waitForURL("**/user/verify-otp**", {
+        timeout: 120_000,
+        waitUntil: "commit",
+      });
+      expect(page.url()).toContain("/user/verify-otp");
+      await expect(page.getByText(/invalid or expired otp/i)).toBeVisible({
+        timeout: 30_000,
+      });
+    }
+
+    // The cap is now spent. On the NEXT verify the service force-marks the row
+    // used BEFORE the code is even compared, so even the CORRECT value is
+    // rejected — the brute-force window stays slammed shut.
+    await submitCode(page, realCode);
+    await page.waitForURL("**/user/verify-otp**", {
+      timeout: 120_000,
+      waitUntil: "commit",
+    });
+    expect(page.url()).toContain("/user/verify-otp");
+    await expect(page.getByText(/invalid or expired otp/i)).toBeVisible({
+      timeout: 30_000,
+    });
+
+    // No account was created behind the burned code (email OTP only
+    // auto-creates AFTER a code verifies, which never happened here).
+    expect(userExists(BRUTEFORCE_EMAIL)).toBe(false);
+
+    // And the visitor is still a guest: a protected route bounces to login.
+    await page.goto("/user/dashboard", {
+      timeout: 120_000,
+      waitUntil: "commit",
+    });
+    await page.waitForURL("**/user/login**", {
+      timeout: 120_000,
+      waitUntil: "commit",
+    });
+    expect(page.url()).toContain("/user/login");
   });
 });
