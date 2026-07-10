@@ -1,27 +1,37 @@
 ---
-name: e2e-mobile-main social-button staleness
-description: Why the mobile auth-flow e2e (e2e-mobile-main) currently fails at "Continue with Instagram" and why it's usually unrelated to your change.
+name: e2e-mobile auth-flow social-provider list is app-driven (Google + LinkedIn)
+description: The mobile auth-flow e2e's social-provider expectations must mirror the app's SOCIALS/WEB_BROWSER_PROVIDERS exactly; historically it drifted and went RED.
 ---
 
-The mobile auth-flow e2e (`e2e-mobile-main` → `test:auth-flow-e2e:core`,
-`artifacts/1inme-mobile/scripts/test-auth-flow-e2e.mjs`) can go RED at
-`FAIL: social button "Continue with Instagram" is missing from the login screen`
-deterministically, right after `reachLoginScreen`, before any demo/OTP step.
+The mobile auth-flow e2e (`test:auth-flow-e2e[:core|:google]`,
+`artifacts/1inme-mobile/scripts/test-auth-flow-e2e.mjs`) drives buttons by
+`aria-label`, so its provider list and label format must track the app's
+`app/(auth)/index.tsx` exactly, or it goes RED at button lookup before any
+sign-in step runs.
 
-**Cause:** the test's `REQUIRED_SOCIAL_LABELS` hard-requires 6 web-browser
-providers (Instagram, Facebook, X, LinkedIn, Pinterest, TikTok), but the app's
-`WEB_BROWSER_PROVIDERS` in `app/(auth)/index.tsx` renders only `["linkedin"]`.
-So the login screen no longer shows the other five, and the required-label loop
-fails on the first missing one.
+**Ground truth (app):** `type SocialProvider = "google" | "linkedin"` — the app
+intentionally ships exactly TWO social providers. `SOCIALS` and
+`WEB_BROWSER_PROVIDERS` both list only `google` + `linkedin`. Buttons render with
+`accessibilityLabel={`Log in with ${label}`}` → `aria-label="Log in with Google"`
+/ `"Log in with LinkedIn"`. The type-level narrowing is the signal that dropping
+Instagram/Facebook/X/Pinterest/TikTok is DELIBERATE product state, not a
+regression — so reconcile the test to the app, don't "restore" phantom providers.
 
-**Why:** this is a test↔app mismatch, not a per-change regression. It fails on a
-freshly-reloaded login screen and touches nothing but the social-provider list.
+**Both branches, two gates:** Google has two sign-in code paths and each is a
+separate CI gate (`.replit`, both `isValidation`):
+- native expo-auth-session (client ID compiled) → `e2e-mobile-google`
+  (`AUTH_FLOW_ONLY=google` → `runGoogleVariant`); label `"Log in with Google"`.
+- web-browser fallback (no client ID) → `e2e-mobile-main`
+  (`AUTH_FLOW_ONLY=main` → `main()`); `google` is `WEB_OAUTH_PROVIDERS[0]`, so
+  step 7 drives `/user/social-oauth/google/login`. Google's web fallback only
+  actually runs if the main flow gets past step 1 (`assertSocialButtonsTappable`),
+  so a stale provider list silently HIDES the web-fallback coverage.
 
-**How to apply:** if you're touching an *unrelated* part of this suite (e.g.
-adding the splash/voice-mic checks) and see this exact failure, it's pre-existing
-— don't attribute it to your change. The real fix is a scoping decision someone
-must make: either the app intentionally narrowed providers (update
-`REQUIRED_SOCIAL_LABELS` to match, moving the dropped ones to
-`OPTIONAL_SOCIAL_LABELS`) or the narrowing is itself a regression (restore the
-providers in `WEB_BROWSER_PROVIDERS`). Don't silently "fix the test" without
-deciding which, or you may mask a real provider regression.
+**How to apply:** any change to the app's social providers or the
+`"Log in with {label}"` format must update, in lockstep in the test:
+`REQUIRED_SOCIAL_LABELS`, `WEB_OAUTH_PROVIDERS`, the three Google-variant label
+literals (assertGoogleButtonTappable / runGoogleSuccessPath /
+runGooglePairingHandoff), both `label.replace(/^Log in with /, "")` displayName
+strippers, and the step-10 `runWebProviderPairingCancelRetry` provider pair.
+Keep the test's providers a strict mirror of the app; never leave labels the app
+doesn't render.

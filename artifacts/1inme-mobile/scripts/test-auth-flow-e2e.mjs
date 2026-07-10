@@ -14,8 +14,9 @@
  * them slips past the source-replay test. This harness exercises all three:
  *   - Email OTP: type an email, "Send code", type a code, "Verify and sign in".
  *   - Demo logins: "Demo as user" / "Demo as admin" (POST /api/v1/auth/demo).
- *   - Social providers: seven web-browser OAuth buttons (Google always shown;
- *     native expo-auth-session flow used instead when a Google client ID is built in).
+ *   - Social providers: the app ships two OAuth buttons (Google + LinkedIn).
+ *     Google is always shown; its native expo-auth-session flow is used instead
+ *     of the web-browser popup when a Google client ID is built in.
  *
  * This harness does NOT depend on the live proxied Expo dev domain (or any
  * RDS-backed render). Like the Google variant below, it boots its OWN
@@ -57,8 +58,8 @@
  *        - the native-SDK leg (?provider=…&id_token=… → POST /auth/social
  *          via AuthContext.socialLogin), asserting the forwarded request
  *          URL/method/body and that a 422 surfaces "Sign-in failed".
- *   8. Click EVERY web-browser OAuth provider button (Google, Instagram,
- *      Facebook, X, LinkedIn, Pinterest, TikTok) through its full mocked round-trip: the
+ *   8. Click EVERY web-browser OAuth provider button (Google, LinkedIn)
+ *      through its full mocked round-trip: the
  *      backend /user/social-oauth/{provider}/login URL is intercepted and
  *      stands in for the backend + OS deep-link by returning the app to
  *      /oauth-callback?provider=…&id_token=…, which forwards { provider,
@@ -74,7 +75,7 @@
  *      in (no signed-in tabs, no persisted token) — so a provider that hangs or
  *      wrongly signs the user in on failure is caught. When the failing return
  *      names the provider (the rejected-token leg), the screen must NAME it
- *      ("Instagram sign-in is having issues") and offer a one-tap "Use email
+ *      ("LinkedIn sign-in is having issues") and offer a one-tap "Use email
  *      instead" fallback that lands on the email sign-in field; a plain cancel
  *      offers the same fallback but blames no provider.
  *  10. Prove the guest "Perfect pairings" -> signup handoff survives a
@@ -83,8 +84,8 @@
  *      Google): a guest taps a pairing card, starts a web-provider sign-in,
  *      hits the failure return, taps back, and retries the SAME provider — and
  *      must STILL land on /links/create/biolink because the stash is only
- *      consumed on success. Covers a cancelled popup (Instagram) AND a backend
- *      422 (Facebook).
+ *      consumed on success. Covers a cancelled popup (Google) AND a backend
+ *      422 (LinkedIn).
  *
  * The test no-ops gracefully (skips, exit 0) when a throwaway Expo server
  * can't be booted (expo missing, port contention, bundling too slow) — so it
@@ -151,18 +152,15 @@ const MOCK_ID_TOKEN = "mock-google-id-token-e2e";
 const MOCK_WEB_ID_TOKEN = "mock-web-oauth-id-token-e2e";
 
 // The web-browser OAuth providers always render on the login screen (see
-// WEB_BROWSER_PROVIDERS in app/(auth)/index.tsx); their accessibility labels
-// are the minimum set this test requires to be tappable. Google is now in
+// SOCIALS / WEB_BROWSER_PROVIDERS in app/(auth)/index.tsx); their accessibility
+// labels ("Log in with {label}") are the minimum set this test requires to be
+// tappable. The app currently ships exactly two social providers — Google and
+// LinkedIn (SocialProvider is typed to those two). Google is in
 // WEB_BROWSER_PROVIDERS so it always renders — the native expo-auth-session
 // flow takes precedence only when EXPO_PUBLIC_GOOGLE_*_CLIENT_ID is compiled in.
 const REQUIRED_SOCIAL_LABELS = [
-  "Continue with Google",
-  "Continue with Instagram",
-  "Continue with Facebook",
-  "Continue with X",
-  "Continue with LinkedIn",
-  "Continue with Pinterest",
-  "Continue with TikTok",
+  "Log in with Google",
+  "Log in with LinkedIn",
 ];
 const OPTIONAL_SOCIAL_LABELS = [];
 
@@ -201,19 +199,14 @@ if (!["both", "main", "google"].includes(FLOW)) {
 
 // The web-browser OAuth providers driven end to end in step 7: their provider
 // id (used in the backend /user/social-oauth/{id}/login URL and forwarded to
-// /auth/social) and the button's accessibility label. Mirrors
-// WEB_BROWSER_PROVIDERS in app/(auth)/index.tsx — note the "twitter" id renders
-// as "Continue with X". Google is included here because in the main flow (no
-// native client ID) it uses the web-browser path; the Google variant separately
-// exercises the native expo-auth-session path via runGoogleVariant.
+// /auth/social) and the button's accessibility label ("Log in with {label}").
+// Mirrors SOCIALS / WEB_BROWSER_PROVIDERS in app/(auth)/index.tsx. Google is
+// included here because in the main flow (no native client ID) it uses the
+// web-browser path; the Google variant separately exercises the native
+// expo-auth-session path via runGoogleVariant.
 const WEB_OAUTH_PROVIDERS = [
-  { id: "google", label: "Continue with Google" },
-  { id: "instagram", label: "Continue with Instagram" },
-  { id: "facebook", label: "Continue with Facebook" },
-  { id: "twitter", label: "Continue with X" },
-  { id: "linkedin", label: "Continue with LinkedIn" },
-  { id: "pinterest", label: "Continue with Pinterest" },
-  { id: "tiktok", label: "Continue with TikTok" },
+  { id: "google", label: "Log in with Google" },
+  { id: "linkedin", label: "Log in with LinkedIn" },
 ];
 
 function log(...args) {
@@ -556,7 +549,7 @@ async function runOAuthCallbackErrors(page) {
 const { acquireServer, stopExpo } = createExpoServerManager(log);
 
 async function assertGoogleButtonTappable(page) {
-  const label = "Continue with Google";
+  const label = "Log in with Google";
   const btn = page.locator(`[aria-label="${label}"]`).first();
   // Auto-wait for the button to mount rather than a one-shot count() that races
   // the login-screen render and would falsely report the button as missing.
@@ -579,7 +572,7 @@ async function assertGoogleButtonTappable(page) {
   log(`Google variant: "${label}" rendered, visible and tappable`);
 }
 
-// Drive the "Continue with Google" button end to end with the OAuth
+// Drive the "Log in with Google" button end to end with the OAuth
 // round-trip mocked (see the route handlers wired in runGoogleVariant).
 // Clicking the button runs the REAL useIdTokenAuthRequest hook: it opens a
 // popup to Google's authorization endpoint (intercepted), which bounces back
@@ -593,7 +586,7 @@ async function runGoogleSuccessPath(page, social, googleAuth) {
   social.req = null;
   googleAuth.req = null;
 
-  const btn = page.locator('[aria-label="Continue with Google"]').first();
+  const btn = page.locator('[aria-label="Log in with Google"]').first();
   await btn.waitFor({ timeout: STEP_TIMEOUT_MS });
 
   const [popup] = await Promise.all([
@@ -899,7 +892,7 @@ async function runGooglePairingHandoff(browser, googleBaseUrl) {
 
     // Tapping stashes the post-auth create path and routes into /(auth); the
     // Google button being present there proves we reached the login screen.
-    const gbtn = page.locator('[aria-label="Continue with Google"]').first();
+    const gbtn = page.locator('[aria-label="Log in with Google"]').first();
     await gbtn.waitFor({ timeout: STEP_TIMEOUT_MS });
     log(
       "Google pairing: card tap routed the guest into /(auth) with Google enabled",
@@ -1253,8 +1246,8 @@ async function runOtpPairingHandoff(browser, baseUrl) {
 }
 
 // Prove the guest "Perfect pairings" -> signup handoff survives a CANCELLED or
-// REJECTED web-browser-provider sign-in FOLLOWED BY a successful retry. The six
-// web providers (Instagram, Facebook, X, LinkedIn, Pinterest, TikTok) don't use
+// REJECTED web-browser-provider sign-in FOLLOWED BY a successful retry. The two
+// web providers (Google without a native client ID, and LinkedIn) don't use
 // the Google native hook — they round-trip through the backend
 // /user/social-oauth/{provider}/login popup and return via
 // app/oauth-callback.tsx's "Sign-in failed" screen, a DIFFERENT completion
@@ -1531,7 +1524,7 @@ async function runWebProviderPairingCancelRetry(
       await page
         .getByText("We couldn't verify that sign-in", { exact: false })
         .waitFor({ timeout: STEP_TIMEOUT_MS });
-      const displayName = label.replace(/^Continue with /, "");
+      const displayName = label.replace(/^Log in with /, "");
       await page
         .getByText(`${displayName} sign-in is having issues`, { exact: false })
         .waitFor({ timeout: STEP_TIMEOUT_MS });
@@ -2269,8 +2262,8 @@ async function runWebProviderErrorPath(
     // …and because the redirect carried the provider, the screen must NAME it
     // and steer the user to email — provider-specific guidance, not a generic
     // echo of the backend message. The display name is the button label minus
-    // the "Continue with " prefix (so "twitter" reads as "X").
-    const displayName = label.replace(/^Continue with /, "");
+    // the "Log in with " prefix.
+    const displayName = label.replace(/^Log in with /, "");
     await page
       .getByText(`${displayName} sign-in is having issues`, { exact: false })
       .waitFor({ timeout: STEP_TIMEOUT_MS });
@@ -2861,17 +2854,17 @@ async function main(server) {
     // completion path than the Google native hook — they go through
     // oauth-callback's "Sign-in failed" screen — so a regression there
     // would silently drop the guest's chosen pairing. Cover BOTH failure
-    // mechanisms — a cancelled popup (Instagram) and a backend 422
-    // (Facebook) — each on a fresh guest context on this same server.
+    // mechanisms — a cancelled popup (Google) and a backend 422
+    // (LinkedIn) — each on a fresh guest context on this same server.
     // -----------------------------------------------------------------
     await runWebProviderPairingCancelRetry(browser, appBaseUrl, {
-      providerId: "instagram",
-      label: "Continue with Instagram",
+      providerId: "google",
+      label: "Log in with Google",
       failureMode: "cancel",
     });
     await runWebProviderPairingCancelRetry(browser, appBaseUrl, {
-      providerId: "facebook",
-      label: "Continue with Facebook",
+      providerId: "linkedin",
+      label: "Log in with LinkedIn",
       failureMode: "backend422",
     });
 
