@@ -18,12 +18,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import Svg, {
-  Circle,
-  Defs,
-  RadialGradient,
-  Stop,
-} from "react-native-svg";
+import Svg, { Circle } from "react-native-svg";
 
 // ─── Ring definitions ──────────────────────────────────────────────────────
 // Each ring has a radius, rotation duration (ms per full revolution), and
@@ -204,68 +199,6 @@ function RingRotor({
   );
 }
 
-// ─── Pulsing halo + radial bloom behind the mascot ─────────────────────────
-// Both share a single `scale` shared value so the soft radial light bloom
-// pulses in perfect sync with the halo ring. The bloom is a multi-stop
-// radial gradient (blue → purple → transparent) that sits between the halo
-// and the mascot image, giving the enlarged mascot a premium glow.
-function MascotHalo({ reduced }: { reduced: boolean }) {
-  const scale = useSharedValue(1);
-
-  useEffect(() => {
-    if (reduced) return;
-    scale.value = withRepeat(
-      withTiming(1.18, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
-    );
-  }, [reduced, scale]);
-
-  const haloStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: 1.5 - scale.value,
-  }));
-
-  const bloomStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: 1.7 - scale.value,
-  }));
-
-  return (
-    <>
-      <Animated.View style={[styles.halo, haloStyle]} />
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.bloom, reduced ? { opacity: 0.6 } : bloomStyle]}
-      >
-        <Svg width={BLOOM_SIZE} height={BLOOM_SIZE}>
-          <Defs>
-            <RadialGradient
-              id="mascotBloom"
-              cx="50%"
-              cy="50%"
-              r="50%"
-              fx="50%"
-              fy="50%"
-            >
-              <Stop offset="0%" stopColor="#7d9bff" stopOpacity={0.55} />
-              <Stop offset="40%" stopColor="#6e61ff" stopOpacity={0.32} />
-              <Stop offset="70%" stopColor="#6e61ff" stopOpacity={0.12} />
-              <Stop offset="100%" stopColor="#6e61ff" stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <Circle
-            cx={BLOOM_SIZE / 2}
-            cy={BLOOM_SIZE / 2}
-            r={BLOOM_SIZE / 2}
-            fill="url(#mascotBloom)"
-          />
-        </Svg>
-      </Animated.View>
-    </>
-  );
-}
-
 // ─── Floating mascot wrapper ────────────────────────────────────────────────
 // Gentle vertical float (−9 → 0 → −9 loop), independent of the image asset.
 // Disabled when the user has reduced motion enabled.
@@ -395,20 +328,11 @@ export function ZioSplash({
         <View style={[styles.blob, styles.blobB]} />
       </View>
 
-      {/* Orbit stage */}
+      {/* Orbit stage — rings only, no mascot layers here */}
       <View style={styles.stage}>
         <RingRotor ringIndex={0} reduced={reduced} />
         <RingRotor ringIndex={1} reduced={reduced} />
         <RingRotor ringIndex={2} reduced={reduced} />
-
-        <MascotHalo reduced={reduced} />
-        <MascotFloat reduced={reduced}>
-          <Image
-            source={MASCOT_SRC}
-            style={styles.mascot}
-            contentFit="contain"
-          />
-        </MascotFloat>
       </View>
 
       {/* "Zio runs it all" pill */}
@@ -419,13 +343,24 @@ export function ZioSplash({
         </View>
       </View>
 
-      {/* Topmost layer: tap anywhere to skip the splash immediately. */}
+      {/* Tap anywhere to skip the splash immediately. */}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Skip splash screen"
         onPress={callOnce}
         style={StyleSheet.absoluteFill}
       />
+
+      {/* Mascot on top of every other layer, non-interactive so taps pass through */}
+      <View pointerEvents="none" style={styles.mascotTopLayer}>
+        <MascotFloat reduced={reduced}>
+          <Image
+            source={MASCOT_SRC}
+            style={styles.mascot}
+            contentFit="contain"
+          />
+        </MascotFloat>
+      </View>
     </Animated.View>
   );
 }
@@ -433,9 +368,6 @@ export function ZioSplash({
 // ─── Styles ────────────────────────────────────────────────────────────────
 const { width: SW } = Dimensions.get("window");
 const STAGE_SIZE = Math.min(SW, 420);
-
-// Radial bloom diameter — fades to fully transparent at its ~90px radius.
-const BLOOM_SIZE = 180;
 
 const styles = StyleSheet.create({
   root: {
@@ -481,21 +413,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  // Halo scaled up to stay proportional with the larger mascot.
-  halo: {
+  // Top-layer wrapper: sits above the Pressable so the mascot renders on top.
+  mascotTopLayer: {
     position: "absolute",
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: "#3d6bff",
-    opacity: 0.18,
-  },
-
-  // Radial bloom: sits between the halo and the mascot image.
-  bloom: {
-    position: "absolute",
-    width: BLOOM_SIZE,
-    height: BLOOM_SIZE,
     alignItems: "center",
     justifyContent: "center",
   },
