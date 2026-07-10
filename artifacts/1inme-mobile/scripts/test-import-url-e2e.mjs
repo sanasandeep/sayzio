@@ -211,12 +211,19 @@ async function runColdStartCheck(page, appUrl) {
   await otherOptionsToggle.click();
   for (const label of ["Create QR", "Add to calendar"]) {
     const btn = page.locator(`[aria-label="${label}"]`).first();
-    if ((await btn.count()) === 0) {
-      fail(`action button "${label}" is missing from the Import screen`);
-    }
-    if (!(await btn.isVisible())) {
-      fail(`action button "${label}" is present but not visible`);
-    }
+    // Expanding "Other options" flips a React state flag, so the action
+    // rows mount on the NEXT render — not synchronously with the click.
+    // Auto-wait for the button to become visible instead of a one-shot
+    // count()/isVisible() that races the re-render (that race is what made
+    // this check spuriously report "Create QR button missing").
+    await btn
+      .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS })
+      .catch(() =>
+        fail(
+          `action button "${label}" did not appear after expanding "Other ` +
+            `options" — it is missing from the Import screen`,
+        ),
+      );
     const ariaDisabled = await btn.getAttribute("aria-disabled");
     if (ariaDisabled === "true") {
       fail(
