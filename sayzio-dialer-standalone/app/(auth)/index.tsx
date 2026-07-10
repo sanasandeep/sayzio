@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import {
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -548,6 +549,12 @@ export default function AuthLanding() {
           <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => router.push("/info/terms")} hitSlop={8}>
             <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
               Terms
+            </Text>
+          </Pressable>
+          <Text style={[styles.infoDot, { color: colors.border }]}>·</Text>
+          <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => Linking.openURL("https://sayzio.app")} hitSlop={8}>
+            <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
+              Website
             </Text>
           </Pressable>
         </View>
