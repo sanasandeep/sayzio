@@ -188,6 +188,7 @@ class PlanController extends Controller
             'unknownColumns'   => $result['unknownColumns'],
             'rawCsv'           => $raw,
             'changedCount'     => $result['changedCount'],
+            'createCount'      => $result['createCount'],
             'errorCount'       => $result['errorCount'],
             'unknownCount'     => $result['unknownCount'],
             'unchangedCount'   => $result['unchangedCount'],
@@ -204,7 +205,9 @@ class PlanController extends Controller
     public function importCommit(Request $request)
     {
         $request->validate([
-            'csv' => ['required', 'string', 'max:2000000'],
+            'csv'            => ['required', 'string', 'max:2000000'],
+            'create_slugs'   => ['nullable', 'array'],
+            'create_slugs.*' => ['string'],
         ]);
 
         $raw    = (string) $request->input('csv');
@@ -224,23 +227,36 @@ class PlanController extends Controller
             $before[$plan->id] = $this->snapshotPlanState($plan);
         }
 
+        // Which new-plan rows the admin opted in to create. Creation is
+        // opt-in: a "create" row is only persisted when its slug is ticked.
+        $createSet = array_flip(array_map('strval', (array) $request->input('create_slugs', [])));
+
         $updated = 0;
+        $created = 0;
         $changed = [];
-        \Illuminate\Support\Facades\DB::transaction(function () use ($result, &$updated, &$changed) {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($result, $createSet, &$updated, &$created, &$changed) {
             foreach ($result['rows'] as $row) {
-                if ($row['status'] !== 'update' || empty($row['plan'])) {
-                    continue;
+                if ($row['status'] === 'update' && !empty($row['plan'])) {
+                    $this->applyImportRow($row['plan'], $row);
+                    $updated++;
+                    $changed[] = ['slug' => $row['slug'], 'name' => $row['name']];
+                } elseif ($row['status'] === 'create' && isset($createSet[$row['slug']])) {
+                    $plan = $this->applyCreateRow($row['slug'], $row);
+                    $created++;
+                    // Record the created plan's id so revert can DELETE it —
+                    // created plans aren't in $before, so restoring existing
+                    // plans alone would leave them behind.
+                    $changed[] = ['slug' => $plan->slug, 'name' => $plan->name, 'created' => true, 'id' => $plan->id];
                 }
-                $this->applyImportRow($row['plan'], $row);
-                $updated++;
-                $changed[] = ['slug' => $row['slug'], 'name' => $row['name']];
             }
         });
 
         $skipped = $result['errorCount'] + $result['unknownCount'];
 
-        // Only record an undo point when something actually changed.
-        if ($updated > 0) {
+        // Only record an undo point when something actually changed. Reverting
+        // restores every updated plan's prior state AND deletes any plan this
+        // import created (tracked via the `created` flag in the change log).
+        if ($updated > 0 || $created > 0) {
             $admin = Auth::guard('admin')->user();
             PlanImportSnapshot::create([
                 'admin_id'      => $admin?->id,
@@ -252,13 +268,17 @@ class PlanController extends Controller
             ]);
         }
 
+        $parts = [];
+        if ($updated > 0) { $parts[] = "{$updated} plan(s) updated"; }
+        if ($created > 0) { $parts[] = "{$created} plan(s) created"; }
+
         return redirect()->route('admin.plans.index')->with(
             'success',
-            $updated > 0
-                ? "Imported plan changes: {$updated} plan(s) updated"
+            !empty($parts)
+                ? 'Imported plan changes: ' . implode(', ', $parts)
                     . ($skipped > 0 ? ", {$skipped} row(s) skipped." : '.')
                     . ' You can undo this from Import history below.'
-                : 'No plans were updated (no matching rows with changes).'
+                : 'No plans were updated or created (no matching changes or opted-in new plans).'
         );
     }
 
@@ -291,6 +311,16 @@ class PlanController extends Controller
                     continue; // plan deleted since the import — nothing to restore
                 }
                 $this->restorePlanState($plan, $state);
+            }
+
+            // Delete any plans this import CREATED — they aren't in the
+            // before-snapshot, so restoring existing plans can't remove them.
+            foreach (($snapshot->changed ?? []) as $entry) {
+                if (!empty($entry['created']) && !empty($entry['id'])) {
+                    \App\Modules\Admin\Models\Price::where('priceable_type', Plan::class)
+                        ->where('priceable_id', $entry['id'])->delete();
+                    Plan::where('id', $entry['id'])->delete();
+                }
             }
 
             $admin = Auth::guard('admin')->user();
@@ -395,7 +425,7 @@ class PlanController extends Controller
     {
         $empty = [
             'fatal' => null, 'rows' => [], 'unknownColumns' => [],
-            'changedCount' => 0, 'errorCount' => 0, 'unknownCount' => 0, 'unchangedCount' => 0,
+            'changedCount' => 0, 'createCount' => 0, 'errorCount' => 0, 'unknownCount' => 0, 'unchangedCount' => 0,
         ];
 
         // Strip a UTF-8 BOM if Excel added one.
@@ -444,9 +474,14 @@ class PlanController extends Controller
 
         $rows           = [];
         $changedCount   = 0;
+        $createCount    = 0;
         $errorCount     = 0;
         $unknownCount   = 0;
         $unchangedCount = 0;
+
+        // Slugs already claimed by an earlier "create" row in THIS file, so a
+        // duplicate row can be flagged instead of silently colliding on insert.
+        $seenCreateSlugs = [];
 
         foreach ($lines as $lineNo => $line) {
             if (trim($line) === '') { continue; }
@@ -476,11 +511,67 @@ class PlanController extends Controller
             /** @var Plan|null $plan */
             $plan = $plansBySlug->get($slug);
             if (!$plan) {
+                // Unmatched slug → offer the row as a brand-new plan (opt-in).
+                // Every mapped cell is parsed/validated exactly as for updates;
+                // blank optional cells fall back to create-time defaults rather
+                // than "leave unchanged". Cell errors (incl. a missing Name)
+                // turn the row into an error the admin can fix and re-upload.
+                $changes = [];
+                $errors  = [];
+                $apply   = [];
+                $newName = '';
+                foreach ($indexMap as $i => $col) {
+                    $rawCell = $cells[$i] ?? '';
+                    $parsed  = PlanCsvSchema::parseCell($col, $rawCell);
+
+                    if ($parsed['error'] !== null) {
+                        $errors[] = "{$col['header']}: {$parsed['error']}";
+                        continue;
+                    }
+                    if ($parsed['skip']) {
+                        continue;
+                    }
+                    if ($col['key'] === 'name') {
+                        $newName = (string) $parsed['value'];
+                    }
+                    $changes[] = [
+                        'label' => $col['header'],
+                        'old'   => '—',
+                        'new'   => $parsed['canonical'],
+                    ];
+                    $apply[] = ['col' => $col, 'value' => $parsed['value']];
+                }
+
+                // A plan cannot be created without a name. parseCell already
+                // flags a blank Name cell; this also covers files whose Name
+                // column is missing entirely (so no Name cell is ever parsed).
+                $hasNameError = false;
+                foreach ($errors as $e) {
+                    if (str_starts_with($e, 'Name:')) { $hasNameError = true; break; }
+                }
+                if ($newName === '' && !$hasNameError) {
+                    $errors[] = 'Name: is required to create a new plan';
+                }
+
+                if (isset($seenCreateSlugs[$slug])) {
+                    $errors[] = "Duplicate slug \"{$slug}\" appears more than once in this file.";
+                }
+                $seenCreateSlugs[$slug] = true;
+
+                if (!empty($errors)) {
+                    $rows[] = [
+                        'status' => 'error', 'slug' => $slug, 'name' => $newName ?: $rowName,
+                        'plan' => null, 'changes' => $changes, 'errors' => $errors, 'apply' => [],
+                    ];
+                    $errorCount++;
+                    continue;
+                }
+
                 $rows[] = [
-                    'status' => 'unknown', 'slug' => $slug, 'name' => $rowName,
-                    'plan' => null, 'changes' => [], 'errors' => ["No plan found with slug \"{$slug}\" — skipped."],
+                    'status' => 'create', 'slug' => $slug, 'name' => $newName,
+                    'plan' => null, 'changes' => $changes, 'errors' => [], 'apply' => $apply,
                 ];
-                $unknownCount++;
+                $createCount++;
                 continue;
             }
 
@@ -542,6 +633,7 @@ class PlanController extends Controller
             'rows'           => $rows,
             'unknownColumns' => array_values(array_unique($unknownColumns)),
             'changedCount'   => $changedCount,
+            'createCount'    => $createCount,
             'errorCount'     => $errorCount,
             'unknownCount'   => $unknownCount,
             'unchangedCount' => $unchangedCount,
@@ -620,6 +712,92 @@ class PlanController extends Controller
             'monthly_price_secondary' => $monthlyInr,
             'annual_price_secondary'  => $annualInr,
         ]);
+    }
+
+    /**
+     * Create a brand-new plan from an opted-in "create" import row. The row's
+     * validated cells are layered over a safe baseline: the features blob
+     * starts from {@see defaultFeatures()} so omitted columns get sane values,
+     * and — mirroring {@see PlanWriter::duplicate()} — the plan is born
+     * inactive + internal so a stray row can never publish a live/public plan
+     * unless its Status / Internal columns explicitly say so. Prices are synced
+     * through PlanWriter and the single-popular / single-default invariant is
+     * preserved.
+     */
+    private function applyCreateRow(string $slug, array $row): Plan
+    {
+        $features = $this->defaultFeatures();
+
+        // Safe baseline for the core attributes; the row's own cells override.
+        $core = [
+            'status'      => 'inactive',
+            'is_default'  => false,
+            'is_popular'  => false,
+            'is_internal' => true,
+            'is_archived' => false,
+            'sort_order'  => 0,
+            'name'        => $row['name'] ?? '',
+        ];
+
+        $minor = ['USD_monthly' => 0, 'USD_annual' => 0, 'INR_monthly' => 0, 'INR_annual' => 0];
+
+        foreach ($row['apply'] as $entry) {
+            $col   = $entry['col'];
+            $value = $entry['value'];
+
+            if ($col['group'] === 'core') {
+                $core[$col['key']] = $value;
+            } elseif ($col['group'] === 'price') {
+                $minor[$col['currency'] . '_' . $col['cycle']] = (int) $value;
+            } else { // feature
+                $features[$col['key']] = $col['type'] === 'yesno' ? (bool) $value : $value;
+            }
+        }
+
+        // Stats-history floor mirrors PlanWriter::collectFeatures().
+        if (array_key_exists('stats_retention_days', $features)) {
+            $retention = (int) $features['stats_retention_days'];
+            if ($retention !== -1 && $retention < 30) {
+                $retention = 30;
+            }
+            $features['stats_retention_days'] = $retention;
+        }
+
+        $plan = new Plan();
+        $plan->name        = (string) $core['name'];
+        // The CSV slug is unmatched by construction; uniqueSlug normalises it
+        // and guards against an in-transaction collision with a prior create.
+        $plan->slug        = $this->writer->uniqueSlug($slug);
+        $plan->status      = $core['status'];
+        $plan->is_default  = (bool) $core['is_default'];
+        $plan->is_popular  = (bool) $core['is_popular'];
+        $plan->is_internal = (bool) $core['is_internal'];
+        $plan->is_archived = (bool) $core['is_archived'];
+        $plan->sort_order  = (int) $core['sort_order'];
+        $plan->features    = $features;
+
+        $plan->monthly_price           = $minor['USD_monthly'] / 100;
+        $plan->annual_price            = $minor['USD_annual'] / 100;
+        $plan->monthly_price_secondary = $minor['INR_monthly'] / 100;
+        $plan->annual_price_secondary  = $minor['INR_annual'] / 100;
+
+        $plan->save();
+
+        if ($plan->is_popular) {
+            Plan::where('id', '!=', $plan->id)->where('is_popular', true)->update(['is_popular' => false]);
+        }
+        if ($plan->is_default) {
+            Plan::where('id', '!=', $plan->id)->where('is_default', true)->update(['is_default' => false]);
+        }
+
+        $this->writer->syncPriceTable($plan, [
+            'monthly_price'           => $minor['USD_monthly'],
+            'annual_price'            => $minor['USD_annual'],
+            'monthly_price_secondary' => $minor['INR_monthly'],
+            'annual_price_secondary'  => $minor['INR_annual'],
+        ]);
+
+        return $plan;
     }
 
     /**

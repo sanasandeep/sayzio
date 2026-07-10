@@ -15,6 +15,11 @@
         <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-200">
             {{ $changedCount }} to update
         </span>
+        @if($createCount > 0)
+        <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-sky-500/10 border border-sky-500/30 text-sky-200">
+            {{ $createCount }} new plan{{ $createCount === 1 ? '' : 's' }}
+        </span>
+        @endif
         <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-white/5 border border-white/10 text-white/60">
             {{ $unchangedCount }} unchanged
         </span>
@@ -38,68 +43,96 @@
     </div>
     @endif
 
-    {{-- Per-row diff --}}
-    <div class="space-y-3">
-        @foreach($rows as $row)
-        <div class="glass rounded-2xl border p-5
-            @if($row['status'] === 'update') border-emerald-500/25
-            @elseif($row['status'] === 'error') border-rose-500/30
-            @elseif($row['status'] === 'unknown') border-amber-500/30
-            @else border-white/10 @endif">
-            <div class="flex items-center justify-between gap-3">
-                <div class="min-w-0">
-                    <span class="text-white/90 font-semibold">{{ $row['name'] ?: '—' }}</span>
-                    <span class="text-white/40 text-sm font-mono ml-2">{{ $row['slug'] }}</span>
-                </div>
-                <div class="shrink-0">
-                    @if($row['status'] === 'update')
-                        <span class="text-xs font-medium text-emerald-300"><i class="fas fa-pen mr-1"></i>{{ count($row['changes']) }} change{{ count($row['changes']) === 1 ? '' : 's' }}</span>
-                    @elseif($row['status'] === 'error')
-                        <span class="text-xs font-medium text-rose-300"><i class="fas fa-circle-xmark mr-1"></i>Skipped (errors)</span>
-                    @elseif($row['status'] === 'unknown')
-                        <span class="text-xs font-medium text-amber-300"><i class="fas fa-question-circle mr-1"></i>Skipped (no match)</span>
-                    @else
-                        <span class="text-xs font-medium text-white/40"><i class="fas fa-check mr-1"></i>No changes</span>
-                    @endif
-                </div>
-            </div>
+    @if($createCount > 0)
+    <div class="rounded-xl px-4 py-3 mb-5 bg-sky-500/10 border border-sky-500/30 text-sky-100 text-sm">
+        <i class="fas fa-circle-info mr-1.5"></i>
+        {{ $createCount }} row{{ $createCount === 1 ? '' : 's' }} with an unrecognised slug can be created as
+        <strong>new plan{{ $createCount === 1 ? '' : 's' }}</strong>. Tick the ones you want to add — new plans are
+        created <strong>inactive &amp; internal</strong> unless their Status / Internal columns say otherwise.
+    </div>
+    @endif
 
-            @if(!empty($row['errors']))
-            <ul class="mt-3 space-y-1 text-sm text-rose-200 list-disc list-inside">
-                @foreach($row['errors'] as $error)<li>{{ $error }}</li>@endforeach
-            </ul>
-            @endif
+    <form method="POST" action="{{ route('admin.plans.import.commit') }}">
+        @csrf
+        <input type="hidden" name="csv" value="{{ $rawCsv }}">
 
-            @if(!empty($row['changes']))
-            <div class="mt-3 divide-y divide-white/5 border-t border-white/5">
-                @foreach($row['changes'] as $change)
-                <div class="flex items-center gap-3 py-2 text-sm">
-                    <span class="w-56 shrink-0 text-white/60">{{ $change['label'] }}</span>
-                    <span class="text-rose-300/80 line-through font-mono">{{ $change['old'] }}</span>
-                    <i class="fas fa-arrow-right text-white/30 text-xs"></i>
-                    <span class="text-emerald-300 font-mono">{{ $change['new'] }}</span>
+        {{-- Per-row diff --}}
+        <div class="space-y-3">
+            @foreach($rows as $row)
+            <div class="glass rounded-2xl border p-5
+                @if($row['status'] === 'update') border-emerald-500/25
+                @elseif($row['status'] === 'create') border-sky-500/30
+                @elseif($row['status'] === 'error') border-rose-500/30
+                @elseif($row['status'] === 'unknown') border-amber-500/30
+                @else border-white/10 @endif">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0 flex items-center gap-3">
+                        @if($row['status'] === 'create')
+                        <label class="inline-flex items-center gap-2 cursor-pointer select-none shrink-0">
+                            <input type="checkbox" name="create_slugs[]" value="{{ $row['slug'] }}"
+                                class="rounded border-white/20 bg-white/5 text-sky-500 focus:ring-sky-500/40">
+                        </label>
+                        @endif
+                        <span class="min-w-0">
+                            <span class="text-white/90 font-semibold">{{ $row['name'] ?: '—' }}</span>
+                            <span class="text-white/40 text-sm font-mono ml-2">{{ $row['slug'] }}</span>
+                        </span>
+                    </div>
+                    <div class="shrink-0">
+                        @if($row['status'] === 'update')
+                            <span class="text-xs font-medium text-emerald-300"><i class="fas fa-pen mr-1"></i>{{ count($row['changes']) }} change{{ count($row['changes']) === 1 ? '' : 's' }}</span>
+                        @elseif($row['status'] === 'create')
+                            <span class="text-xs font-medium text-sky-300"><i class="fas fa-plus mr-1"></i>New plan</span>
+                        @elseif($row['status'] === 'error')
+                            <span class="text-xs font-medium text-rose-300"><i class="fas fa-circle-xmark mr-1"></i>Skipped (errors)</span>
+                        @elseif($row['status'] === 'unknown')
+                            <span class="text-xs font-medium text-amber-300"><i class="fas fa-question-circle mr-1"></i>Skipped (no match)</span>
+                        @else
+                            <span class="text-xs font-medium text-white/40"><i class="fas fa-check mr-1"></i>No changes</span>
+                        @endif
+                    </div>
                 </div>
-                @endforeach
+
+                @if(!empty($row['errors']))
+                <ul class="mt-3 space-y-1 text-sm text-rose-200 list-disc list-inside">
+                    @foreach($row['errors'] as $error)<li>{{ $error }}</li>@endforeach
+                </ul>
+                @endif
+
+                @if(!empty($row['changes']))
+                <div class="mt-3 divide-y divide-white/5 border-t border-white/5">
+                    @foreach($row['changes'] as $change)
+                    <div class="flex items-center gap-3 py-2 text-sm">
+                        <span class="w-56 shrink-0 text-white/60">{{ $change['label'] }}</span>
+                        @if($row['status'] === 'create')
+                        <span class="text-sky-300 font-mono">{{ $change['new'] }}</span>
+                        @else
+                        <span class="text-rose-300/80 line-through font-mono">{{ $change['old'] }}</span>
+                        <i class="fas fa-arrow-right text-white/30 text-xs"></i>
+                        <span class="text-emerald-300 font-mono">{{ $change['new'] }}</span>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+                @endif
             </div>
-            @endif
+            @endforeach
         </div>
-        @endforeach
-    </div>
 
-    {{-- Confirm / cancel --}}
-    <div class="flex items-center gap-3 mt-8 sticky bottom-0 py-4 bg-gradient-to-t from-black/40 to-transparent">
-        @if($changedCount > 0)
-        <form method="POST" action="{{ route('admin.plans.import.commit') }}">
-            @csrf
-            <input type="hidden" name="csv" value="{{ $rawCsv }}">
+        {{-- Confirm / cancel --}}
+        <div class="flex items-center gap-3 mt-8 sticky bottom-0 py-4 bg-gradient-to-t from-black/40 to-transparent">
+            @if($changedCount > 0 || $createCount > 0)
             <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition">
-                <i class="fas fa-check mr-2"></i>Apply {{ $changedCount }} update{{ $changedCount === 1 ? '' : 's' }}
+                <i class="fas fa-check mr-2"></i>Apply changes
             </button>
-        </form>
-        @else
-        <span class="text-sm text-white/50">Nothing to apply — no rows changed a value.</span>
-        @endif
-        <a href="{{ route('admin.plans.index') }}" class="text-sm text-white/60 hover:text-white transition">Cancel</a>
-    </div>
+            @if($createCount > 0)
+            <span class="text-xs text-white/50">Only ticked new plans are created.</span>
+            @endif
+            @else
+            <span class="text-sm text-white/50">Nothing to apply — no rows changed a value.</span>
+            @endif
+            <a href="{{ route('admin.plans.index') }}" class="text-sm text-white/60 hover:text-white transition">Cancel</a>
+        </div>
+    </form>
 </div>
 @endsection

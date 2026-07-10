@@ -145,7 +145,7 @@ class AdminPlanCsvImportTest extends TestCase
         $this->assertSame(1900, (int) $price->amount_minor_units);
     }
 
-    public function test_unknown_slug_is_skipped_not_created(): void
+    public function test_new_slug_is_offered_as_create_not_created_without_opt_in(): void
     {
         $admin = $this->makeAdmin();
         $before = Plan::count();
@@ -155,17 +155,102 @@ class AdminPlanCsvImportTest extends TestCase
             'Slug' => 'does-not-exist-xyz',
         ]]);
 
+        // Preview offers it as a create candidate, not an unknown/error row.
         $this->actingAs($admin, 'admin')
             ->post(route('admin.plans.import.preview'), ['file' => $this->upload($csv)])
             ->assertOk()
-            ->assertViewHas('unknownCount', 1)
+            ->assertViewHas('createCount', 1)
+            ->assertViewHas('unknownCount', 0)
             ->assertViewHas('changedCount', 0);
 
+        // Committing WITHOUT ticking the row must not create the plan (opt-in).
         $this->actingAs($admin, 'admin')
             ->post(route('admin.plans.import.commit'), ['csv' => $csv])
             ->assertRedirect(route('admin.plans.index'));
 
         $this->assertSame($before, Plan::count());
+    }
+
+    public function test_new_plan_is_created_when_opted_in(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $moduleLabel = array_values(\App\Modules\Common\Support\PlanFormCatalogue::modules())[0]['label'];
+        $csv = $this->csv([[
+            'Name'              => 'Growth',
+            'Slug'             => 'growth-new',
+            'Status'           => 'active',
+            'Price USD/monthly' => '29.00',
+            'Module: ' . $moduleLabel => 'Yes',
+        ]]);
+
+        $resp = $this->actingAs($admin, 'admin')
+            ->post(route('admin.plans.import.commit'), [
+                'csv'          => $csv,
+                'create_slugs' => ['growth-new'],
+            ]);
+
+        $resp->assertRedirect(route('admin.plans.index'));
+        $resp->assertSessionHas('success');
+
+        $plan = Plan::where('slug', 'growth-new')->first();
+        $this->assertNotNull($plan);
+        $this->assertSame('Growth', $plan->name);
+        // Status column explicitly set active overrides the safe default.
+        $this->assertSame('active', $plan->status);
+
+        // USD monthly price row synced to 2900 minor units.
+        $price = Price::where('priceable_type', Plan::class)
+            ->where('priceable_id', $plan->id)
+            ->where('currency', 'USD')->where('billing_cycle', 'monthly')->first();
+        $this->assertNotNull($price);
+        $this->assertSame(2900, (int) $price->amount_minor_units);
+    }
+
+    public function test_new_plan_defaults_to_inactive_internal_when_columns_blank(): void
+    {
+        $admin = $this->makeAdmin();
+
+        // Only a Name + Slug — Status / Internal columns left blank.
+        $csv = $this->csv([[
+            'Name' => 'Quiet Tier',
+            'Slug' => 'quiet-tier',
+        ]]);
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.plans.import.commit'), [
+                'csv'          => $csv,
+                'create_slugs' => ['quiet-tier'],
+            ])->assertRedirect(route('admin.plans.index'));
+
+        $plan = Plan::where('slug', 'quiet-tier')->first();
+        $this->assertNotNull($plan);
+        $this->assertSame('inactive', $plan->status);
+        $this->assertTrue((bool) $plan->is_internal);
+    }
+
+    public function test_new_plan_row_without_name_is_an_error_not_a_create(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $csv = $this->csv([[
+            'Slug' => 'nameless-plan',
+        ]]);
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.plans.import.preview'), ['file' => $this->upload($csv)])
+            ->assertOk()
+            ->assertViewHas('createCount', 0)
+            ->assertViewHas('errorCount', 1);
+
+        // Even if a client forges the opt-in, the re-validated error row is skipped.
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.plans.import.commit'), [
+                'csv'          => $csv,
+                'create_slugs' => ['nameless-plan'],
+            ])->assertRedirect(route('admin.plans.index'));
+
+        $this->assertNull(Plan::where('slug', 'nameless-plan')->first());
     }
 
     public function test_invalid_value_is_rejected(): void
