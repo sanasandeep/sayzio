@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
+import { MandatoryNameModal } from "@/components/MandatoryNameModal";
 import { RegistrationPausedNotice } from "@/components/RegistrationPausedNotice";
 import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,6 +54,7 @@ export default function Verify() {
   // 403). Only new-account verify/resend paths return this — existing users
   // sign in normally.
   const [pausedMessage, setPausedMessage] = useState<string | null>(null);
+  const [showNameModal, setShowNameModal] = useState(false);
   const [resentAt, setResentAt] = useState<number | null>(null);
   // Admin "Demo mode" toggle: when on, the backend returns the actual code so
   // it can be shown on screen (no real inbox/phone needed). Seeded from the
@@ -93,7 +95,11 @@ export default function Verify() {
         });
         await applySession(session.token, session.user as never);
       } else {
-        await verifyOtp({ channel, identifier, code: code.trim() });
+        const result = await verifyOtp({ channel, identifier, code: code.trim() });
+        if (result.needsName) {
+          setShowNameModal(true);
+          return;
+        }
       }
       await redirectAfterAuth(router);
       maybeOfferBiometricEnrollment(auth);
@@ -249,6 +255,15 @@ export default function Verify() {
           disabled={!!busy}
         />
       </ScrollView>
+
+      <MandatoryNameModal
+        visible={showNameModal}
+        onSaved={async () => {
+          setShowNameModal(false);
+          await redirectAfterAuth(router);
+          maybeOfferBiometricEnrollment(auth);
+        }}
+      />
     </View>
   );
 }
