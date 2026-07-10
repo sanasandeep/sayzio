@@ -23,12 +23,14 @@ import {
   getBiometricPromptDismissed,
   getIdleTimeoutMs,
   getLockWarningLeadMs,
+  getNeedsName,
   getStoredUser,
   getToken,
   setBiometricEnabled as persistBiometricEnabled,
   setBiometricPromptDismissed as persistBiometricPromptDismissed,
   setIdleTimeoutMs as persistIdleTimeoutMs,
   setLockWarningLeadMs as persistLockWarningLeadMs,
+  setNeedsName as persistNeedsName,
   setStoredUser,
   setToken,
 } from "@/lib/secure";
@@ -76,12 +78,20 @@ type AuthState = {
   // While the idle timer is about to fire, this holds the whole-second
   // countdown shown by the warning banner. `null` means no warning visible.
   lockWarningSecondsRemaining: number | null;
+  // True while the signed-in account still needs a display name (auto-created
+  // via OTP/social). Persisted so the mandatory name prompt survives a
+  // dismissed modal / backgrounded app / cold launch, and read by the global
+  // name gate. Cleared only once the user actually submits a name.
+  isNameRequired: boolean;
 };
 
 type Ctx = AuthState & {
   signOut: () => Promise<void>;
   applySession: (token: string, user: AuthUser) => Promise<void>;
   refresh: () => Promise<void>;
+  // Clears the mandatory-name requirement after the user submits a display
+  // name. Call from the name prompt once the PATCH /profile save succeeds.
+  clearNameRequirement: () => Promise<void>;
   sendOtp: (input: {
     channel: "email" | "mobile";
     identifier: string;
@@ -91,7 +101,7 @@ type Ctx = AuthState & {
     identifier: string;
     code: string;
   }) => Promise<{ needsName: boolean }>;
-  demoLogin: (role?: "user" | "admin" | "super_admin") => Promise<void>;
+  demoLogin: () => Promise<void>;
   socialLogin: (input: {
     provider: "google" | "apple";
     id_token?: string;
@@ -129,6 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
     lockWarningLeadMs: DEFAULT_LOCK_WARNING_LEAD_MS,
     lockWarningSecondsRemaining: null,
+    isNameRequired: false,
   });
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   // Tracks the last user-interaction timestamp. Updated on touch/navigation
@@ -149,6 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         capability,
         idleTimeoutMs,
         lockWarningLeadMs,
+        needsName,
       ] = await Promise.all([
         getToken(),
         getStoredUser<AuthUser>(),
@@ -156,6 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         getBiometricCapability(),
         getIdleTimeoutMs(),
         getLockWarningLeadMs(),
+        getNeedsName(),
       ]);
       if (cancelled) return;
 
@@ -178,6 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         idleTimeoutMs,
         lockWarningLeadMs,
         lockWarningSecondsRemaining: null,
+        isNameRequired: !!token && needsName,
       });
     })();
     return () => {
@@ -309,9 +323,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const applySession = useCallback(async (token: string, user: AuthUser) => {
+    // A just-auto-created account (OTP verify / social sign-in) returns
+    // `needs_name: true`; existing accounts omit it. Persist the sticky flag
+    // so the mandatory name prompt survives a dismissed modal / cold launch,
+    // and mirror it into state so the global name gate reacts immediately.
+    const needsName = !!user.needs_name;
     await Promise.all([
       setToken(token),
       setStoredUser(user),
+      persistNeedsName(needsName),
     ]);
     setState((s) => ({
       ...s,
@@ -321,7 +341,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Fresh sign-in counts as already unlocked.
       locked: false,
       lockWarningSecondsRemaining: null,
+      isNameRequired: needsName,
     }));
+  }, []);
+
+  // Clear the mandatory-name requirement once the user has actually submitted
+  // a display name. The persisted flag is the source of truth (the /auth/me
+  // endpoint never echoes `needs_name`, so a plain refresh cannot resurrect
+  // it), so it must be cleared explicitly here.
+  const clearNameRequirement = useCallback(async () => {
+    await persistNeedsName(false);
+    setState((s) => ({ ...s, isNameRequired: false }));
   }, []);
 
   // Re-pull the signed-in user from the API and persist it locally.
@@ -354,6 +384,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setStoredUser(null),
       persistBiometricEnabled(false),
       persistBiometricPromptDismissed(false),
+      persistNeedsName(false),
     ]);
     setState((s) => ({
       ...s,
@@ -362,6 +393,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user: null,
       locked: false,
       biometricEnabled: false,
+      isNameRequired: false,
       lockWarningSecondsRemaining: null,
     }));
   }, []);
@@ -425,14 +457,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const demoLogin = useCallback(
-    async (role: "user" | "admin" | "super_admin" = "user") => {
+    async () => {
       const res = await apiFetch<{
         data?: { token: string; user: AuthUser };
         token?: string;
         user?: AuthUser;
       } | null>("/auth/demo", {
         method: "POST",
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({ role: "user" }),
       });
       const token = res?.data?.token ?? res?.token;
       const user = res?.data?.user ?? res?.user;
@@ -571,6 +603,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       applySession,
       refresh,
+      clearNameRequirement,
       sendOtp,
       verifyOtp,
       demoLogin,
@@ -591,6 +624,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       applySession,
       refresh,
+      clearNameRequirement,
       sendOtp,
       verifyOtp,
       demoLogin,

@@ -3,6 +3,7 @@ import { Redirect, Tabs, useRouter } from "expo-router";
 import { Image, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { NameRequiredGate } from "@/components/NameRequiredGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useContactAutoSync } from "@/hooks/useContactAutoSync";
@@ -39,6 +40,7 @@ export default function TabsLayout() {
 
   return (
     <>
+    <NameRequiredGate />
     <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },

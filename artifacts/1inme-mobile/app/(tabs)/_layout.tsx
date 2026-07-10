@@ -14,6 +14,7 @@ import React from "react";
 
 import { DrawerSidebar } from "@/components/DrawerSidebar";
 import { FloatingTabBar } from "@/components/FloatingTabBar";
+import { NameRequiredGate } from "@/components/NameRequiredGate";
 import { PinnedTopBar } from "@/components/PinnedTopBar";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { useAuth } from "@/contexts/AuthContext";
@@ -110,6 +111,11 @@ function SignedInLayout() {
         {/* Floating tap-to-talk mic, mirrors the web's voice assistant
             widget. Mounted here so it stays above every signed-in screen. */}
         <VoiceAssistant />
+
+        {/* Resilience prompt: re-shows the mandatory name modal if a new
+            account entered the app without setting a display name (dismissed
+            modal, backgrounded app, or cold launch). */}
+        <NameRequiredGate />
       </TabBarProvider>
     </WorkspaceProvider>
   );

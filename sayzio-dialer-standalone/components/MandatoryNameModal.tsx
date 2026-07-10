@@ -28,7 +28,7 @@ interface Props {
  */
 export function MandatoryNameModal({ visible, onSaved }: Props) {
   const colors = useColors();
-  const { refresh } = useAuth();
+  const { refresh, clearNameRequirement } = useAuth();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +50,9 @@ export function MandatoryNameModal({ visible, onSaved }: Props) {
         method: "PATCH",
         body: JSON.stringify({ name: trimmed }),
       });
+      // Clear the sticky requirement first so the prompt cannot re-appear on
+      // the next cold launch, then refresh the cached user for the new name.
+      await clearNameRequirement();
       await refresh();
       onSaved();
     } catch {
@@ -66,6 +69,9 @@ export function MandatoryNameModal({ visible, onSaved }: Props) {
       transparent={false}
       presentationStyle="fullScreen"
       statusBarTranslucent
+      // Swallow the Android hardware back button so the prompt cannot be
+      // dismissed without entering a name.
+      onRequestClose={() => {}}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}

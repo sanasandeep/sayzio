@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 
 const TOKEN_KEY = "1inme.auth.token";
 const USER_KEY = "1inme.auth.user";
+const NEEDS_NAME_KEY = "1inme.auth.needsName";
 const ONBOARDING_KEY = "1inme.onboarding.complete";
 const THEME_KEY = "1inme.theme";
 const BIOMETRIC_ENABLED_KEY = "1inme.auth.biometric.enabled";
@@ -76,6 +77,18 @@ async function getItem(key: string): Promise<string | null> {
 
 export const getToken = () => getItem(TOKEN_KEY);
 export const setToken = (v: string | null) => setItem(TOKEN_KEY, v);
+
+// Sticky "this account still needs a display name" flag. Set true right
+// after an account is auto-created (OTP verify / social sign-in returns
+// `needs_name`), and cleared only once the user actually submits a name.
+// Persisted alongside the token so the mandatory name prompt survives a
+// dismissed modal, a backgrounded app, or a full cold launch — the
+// profile/me endpoint intentionally does NOT echo this flag, so it can't
+// be recovered from the server on the mobile (token) auth path.
+export const getNeedsName = async () =>
+  (await getItem(NEEDS_NAME_KEY)) === "1";
+export const setNeedsName = (v: boolean) =>
+  setItem(NEEDS_NAME_KEY, v ? "1" : null);
 
 export const getStoredUser = async <T = unknown>(): Promise<T | null> => {
   const raw = await getItem(USER_KEY);

@@ -88,6 +88,11 @@
       "relation": "identical"
     },
     {
+      "standalone": "components/NameRequiredGate.tsx",
+      "source": "components/NameRequiredGate.tsx",
+      "relation": "identical"
+    },
+    {
       "standalone": "components/RegistrationPausedNotice.tsx",
       "source": "components/RegistrationPausedNotice.tsx",
       "relation": "identical"
@@ -242,7 +247,7 @@
       "standalone": "app/(tabs)/_layout.tsx",
       "source": "app/(tabs)/_layout.tsx",
       "relation": "adapted",
-      "sourceSha256": "14bda789272bb9b920180151cfe8b85636b7b6826664da54581abb147d07b774",
+      "sourceSha256": "920c0d38ef18d47bf26fc70e919f968e3764f654c2897acd3b12d7de5f72e78e",
       "note": "different tab set: Dialer / Contacts / Caller ID / Events (+ header search button + nearby-event badge) instead of the main-app tabs"
     },
     {

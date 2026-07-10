@@ -244,11 +244,11 @@ export default function AuthLanding() {
     }
   };
 
-  const onDemo = async (role: "user" | "admin") => {
-    setBusy(role === "user" ? "demo-user" : "demo-admin");
+  const onDemo = async () => {
+    setBusy("demo-user");
     setError(null);
     try {
-      await demoLogin(role === "user" ? "user" : "super_admin");
+      await demoLogin();
       await redirectAfterAuth(router);
       maybeOfferBiometricEnrollment(auth);
     } catch (e) {
@@ -499,17 +499,9 @@ export default function AuthLanding() {
           <Button
             label="Demo as user"
             variant="secondary"
-            onPress={() => onDemo("user")}
+            onPress={() => onDemo()}
             loading={busy === "demo-user"}
             disabled={!!busy && busy !== "demo-user"}
-            style={{ flex: 1 }}
-          />
-          <Button
-            label="Demo as admin"
-            variant="secondary"
-            onPress={() => onDemo("admin")}
-            loading={busy === "demo-admin"}
-            disabled={!!busy && busy !== "demo-admin"}
             style={{ flex: 1 }}
           />
         </View>
