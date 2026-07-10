@@ -185,24 +185,51 @@
                         </div>
                     </template>
                     <div class="flex items-baseline gap-1 flex-wrap">
-                        {{-- Struck-through normal price when intro active --}}
+                        {{-- Struck-through normal price when intro active.
+                             On annual cycle we show per-month equivalents so
+                             both the headline and "Was" are the same unit. --}}
                         <template x-if="{{ $introCell }}">
-                            <span class="text-lg font-medium text-white/40 line-through decoration-2" x-text="({{ $introCell }}).normal_formatted"></span>
+                            @if($cycle === 'annual')
+                                <span class="text-lg font-medium text-white/40 line-through decoration-2"
+                                      x-text="fmtMoney(Math.round(({{ $introCell }}).normal_minor / 12), currency)"></span>
+                            @else
+                                <span class="text-lg font-medium text-white/40 line-through decoration-2"
+                                      x-text="({{ $introCell }}).normal_formatted"></span>
+                            @endif
                         </template>
-                        <span class="text-3xl font-semibold text-white"
-                              x-text="({{ $introCell }}) ? ({{ $introCell }}).first_formatted : ((prices[currency] && prices[currency].{{ $cycle }} && prices[currency].{{ $cycle }}.formatted) || '{{ $row['shown']['formatted'] }}')">{{ $row['shown']['formatted'] }}</span>
-                        <span class="text-sm text-white/40">/ {{ $cycle === 'annual' ? 'yr' : 'mo' }}</span>
+                        @if($cycle === 'annual')
+                            {{-- Annual headline: effective per-month (annual total ÷ 12). --}}
+                            <span class="text-3xl font-semibold text-white"
+                                  x-text="({{ $introCell }})
+                                      ? fmtMoney(Math.round(({{ $introCell }}).first_minor / 12), currency)
+                                      : fmtMoney(Math.round((prices[currency] && prices[currency].annual && prices[currency].annual.amount_minor || 0) / 12), currency)">{{ \App\Services\PricingResolver::money((int) round(($row['shown']['amount_minor'] ?? 0) / 12), $currency) }}</span>
+                        @else
+                            <span class="text-3xl font-semibold text-white"
+                                  x-text="({{ $introCell }}) ? ({{ $introCell }}).first_formatted : ((prices[currency] && prices[currency].{{ $cycle }} && prices[currency].{{ $cycle }}.formatted) || '{{ $row['shown']['formatted'] }}')">{{ $row['shown']['formatted'] }}</span>
+                        @endif
+                        <span class="text-sm text-white/40">/ mo</span>
                     </div>
-                    {{-- Intro fineprint: revert-to-normal on renewal --}}
+                    {{-- Intro fineprint: revert-to-normal on renewal.
+                         On annual cycle renewal rate is also shown per-month. --}}
                     <template x-if="{{ $introCell }}">
-                        <div class="text-[11px] text-emerald-300/90">
-                            First {{ $cycle === 'annual' ? 'year' : 'month' }} only — renews at <span x-text="({{ $introCell }}).normal_formatted"></span>/{{ $cycle === 'annual' ? 'yr' : 'mo' }}
-                        </div>
+                        @if($cycle === 'annual')
+                            <div class="text-[11px] text-emerald-300/90">
+                                First year only — renews at <span x-text="fmtMoney(Math.round(({{ $introCell }}).normal_minor / 12), currency)"></span>/mo
+                            </div>
+                        @else
+                            <div class="text-[11px] text-emerald-300/90">
+                                First month only — renews at <span x-text="({{ $introCell }}).normal_formatted"></span>/mo
+                            </div>
+                        @endif
                     </template>
                     @if($cycle === 'annual')
+                        {{-- Annual fineprint: show the actual billed total + monthly comparison. --}}
                         <div class="text-[11px] text-white/40"
-                             x-show="prices[currency] && prices[currency].monthly && prices[currency].monthly.amount_minor > 0" x-cloak>
-                            vs <span x-text="(prices[currency] && prices[currency].monthly && prices[currency].monthly.formatted) || '{{ $row['monthly']['formatted'] }}'">{{ $row['monthly']['formatted'] }}</span>/mo billed monthly
+                             x-show="prices[currency] && prices[currency].annual && prices[currency].annual.amount_minor > 0" x-cloak>
+                            Billed annually at <span x-text="(prices[currency] && prices[currency].annual && prices[currency].annual.formatted) || '{{ $row['shown']['formatted'] }}'">{{ $row['shown']['formatted'] }}</span>/yr
+                            <template x-if="prices[currency] && prices[currency].monthly && prices[currency].monthly.amount_minor > 0">
+                                <span> — or <span x-text="(prices[currency] && prices[currency].monthly && prices[currency].monthly.formatted) || '{{ $row['monthly']['formatted'] }}'">{{ $row['monthly']['formatted'] }}</span>/mo month-to-month</span>
+                            </template>
                         </div>
                     @endif
                     {{-- Tax / fineprint per currency, toggled by Alpine. Both currencies

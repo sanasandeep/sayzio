@@ -15,7 +15,43 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { useColors } from "@/hooks/useColors";
-import { billing, planPrice, type Currency, type Plan } from "@/lib/api/billing";
+import {
+  billing,
+  planPrice,
+  type Currency,
+  type Plan,
+} from "@/lib/api/billing";
+
+type Cycle = "monthly" | "annual";
+
+function fmtMinorUpg(minor: number, currency: Currency): string {
+  const symbol = currency === "INR" ? "₹" : "$";
+  return (
+    symbol +
+    (minor / 100).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+  );
+}
+
+function upgradeHeadline(plan: Plan, currency: Currency, cycle: Cycle): string {
+  if (cycle === "monthly") {
+    return planPrice(plan, currency, "monthly").formatted ?? "—";
+  }
+  const annual = planPrice(plan, currency, "annual");
+  if (!annual.amount_minor) return planPrice(plan, currency, "monthly").formatted ?? "—";
+  return fmtMinorUpg(Math.round(annual.amount_minor / 12), currency);
+}
+
+function upgradeAnnualNote(plan: Plan, currency: Currency): string {
+  const annual = planPrice(plan, currency, "annual");
+  const monthly = planPrice(plan, currency, "monthly");
+  if (!annual.amount_minor) return "";
+  return monthly.amount_minor
+    ? `Billed annually at ${annual.formatted ?? "—"}/yr — or ${monthly.formatted ?? "—"}/mo month-to-month`
+    : `Billed annually at ${annual.formatted ?? "—"}/yr`;
+}
 
 const CURRENCIES: Currency[] = ["USD", "INR"];
 
@@ -78,6 +114,7 @@ export default function UpgradeScreen() {
     queryFn: () => billing.plans(),
   });
 
+  const [cycle, setCycle] = React.useState<Cycle>("monthly");
   const [currency, setCurrencyState] = React.useState<Currency | null>(null);
   const resolvedCurrency = plansQuery.data?.data?.currency;
   React.useEffect(() => {
@@ -151,29 +188,57 @@ export default function UpgradeScreen() {
             : "Start free. Upgrade only when you outgrow it."}
         </Text>
 
-        <View style={[styles.toggle, { borderColor: colors.border }]}>
-          {currencies.map((c) => {
-            const active = activeCurrency === c;
-            return (
-              <Pressable
-                key={c}
-                onPress={() => onCurrencyChange(c)}
-                style={[
-                  styles.toggleBtn,
-                  { backgroundColor: active ? colors.primary : "transparent" },
-                ]}
-              >
-                <Text
-                  style={{
-                    fontFamily: "SpaceGrotesk_600SemiBold",
-                    color: active ? colors.primaryForeground : colors.foreground,
-                  }}
+        <View style={{ flexDirection: "row", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+          <View style={[styles.toggle, { borderColor: colors.border }]}>
+            {(["monthly", "annual"] as Cycle[]).map((c) => {
+              const active = cycle === c;
+              return (
+                <Pressable
+                  key={c}
+                  onPress={() => setCycle(c)}
+                  style={[
+                    styles.toggleBtn,
+                    { backgroundColor: active ? colors.primary : "transparent" },
+                  ]}
                 >
-                  {c}
-                </Text>
-              </Pressable>
-            );
-          })}
+                  <Text
+                    style={{
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                      color: active ? colors.primaryForeground : colors.foreground,
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    {c}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={[styles.toggle, { borderColor: colors.border }]}>
+            {currencies.map((c) => {
+              const active = activeCurrency === c;
+              return (
+                <Pressable
+                  key={c}
+                  onPress={() => onCurrencyChange(c)}
+                  style={[
+                    styles.toggleBtn,
+                    { backgroundColor: active ? colors.primary : "transparent" },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                      color: active ? colors.primaryForeground : colors.foreground,
+                    }}
+                  >
+                    {c}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
 
         {plansQuery.isLoading ? (
@@ -182,10 +247,17 @@ export default function UpgradeScreen() {
           <Text style={{ color: colors.destructive }}>Could not load plans.</Text>
         ) : (
           featured.map((plan) => {
-            const price = planPrice(plan, activeCurrency, "monthly");
             const isRecommended = recommended?.id === plan.id;
             const popularBadge = !!plan.is_popular && !isRecommended;
             const emphasised = isRecommended || popularBadge;
+            const isFree = (planPrice(plan, activeCurrency, "monthly").amount_minor ?? 0) === 0;
+            const headline = isFree
+              ? (planPrice(plan, activeCurrency, "monthly").formatted ?? "$0.00")
+              : upgradeHeadline(plan, activeCurrency, cycle);
+            const billingNote =
+              !isFree && cycle === "annual"
+                ? upgradeAnnualNote(plan, activeCurrency)
+                : null;
             return (
               <View
                 key={plan.id}
@@ -221,17 +293,42 @@ export default function UpgradeScreen() {
                   ) : null}
                 </View>
                 <Text style={[styles.price, { color: colors.foreground }]}>
-                  {price.formatted ?? "—"}
+                  {headline}
+                  {!isFree ? (
+                    <Text
+                      style={{
+                        color: colors.mutedForeground,
+                        fontSize: 14,
+                        fontFamily: "SpaceGrotesk_400Regular",
+                      }}
+                    >
+                      {" "}/ mo
+                    </Text>
+                  ) : null}
+                </Text>
+                {isFree ? (
                   <Text
                     style={{
                       color: colors.mutedForeground,
-                      fontSize: 14,
+                      fontSize: 11,
                       fontFamily: "SpaceGrotesk_400Regular",
+                      marginTop: 2,
                     }}
                   >
-                    {" "}/ mo
+                    Free forever — no card required
                   </Text>
-                </Text>
+                ) : billingNote ? (
+                  <Text
+                    style={{
+                      color: colors.mutedForeground,
+                      fontSize: 11,
+                      fontFamily: "SpaceGrotesk_400Regular",
+                      marginTop: 2,
+                    }}
+                  >
+                    {billingNote}
+                  </Text>
+                ) : null}
                 {plan.description ? (
                   <Text style={[styles.desc, { color: colors.mutedForeground }]}>
                     {plan.description}

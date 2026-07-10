@@ -36,6 +36,54 @@ type Cycle = "monthly" | "annual";
 
 const CURRENCIES: Currency[] = ["USD", "INR"];
 
+/**
+ * Format a minor-unit amount in the same style as PHP PricingResolver::money().
+ * e.g. 750 (minor) USD → "$7.50"
+ */
+function fmtMinor(minor: number, currency: Currency): string {
+  const symbol = currency === "INR" ? "₹" : "$";
+  return (
+    symbol +
+    (minor / 100).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+  );
+}
+
+/**
+ * On the annual cycle, return the effective per-month price (annual ÷ 12).
+ * On the monthly cycle, return the normal monthly formatted string.
+ * This is the value shown as the big headline number.
+ */
+function planHeadlineFormatted(
+  plan: Plan,
+  currency: Currency,
+  cycle: Cycle,
+): string {
+  if (cycle === "monthly") {
+    return planPrice(plan, currency, "monthly").formatted ?? "—";
+  }
+  const annual = planPrice(plan, currency, "annual");
+  if (!annual.amount_minor) return planPrice(plan, currency, "monthly").formatted ?? "—";
+  return fmtMinor(Math.round(annual.amount_minor / 12), currency);
+}
+
+/**
+ * Fineprint for the annual billing note shown below the per-month headline.
+ * e.g. "Billed annually at $90.00/yr — or $9.00/mo month-to-month"
+ */
+function annualBillingNote(plan: Plan, currency: Currency): string {
+  const annual = planPrice(plan, currency, "annual");
+  const monthly = planPrice(plan, currency, "monthly");
+  if (!annual.amount_minor) return "";
+  const annualFmt = annual.formatted ?? "—";
+  const monthlyFmt = monthly.formatted;
+  return monthlyFmt && monthly.amount_minor
+    ? `Billed annually at ${annualFmt}/yr — or ${monthlyFmt}/mo month-to-month`
+    : `Billed annually at ${annualFmt}/yr`;
+}
+
 function formatApplies(iso: string | null): string {
   if (!iso) return "the end of your current cycle";
   const d = new Date(iso);
@@ -472,8 +520,15 @@ export default function PlansScreen() {
           </Text>
         ) : (
           plans.map((plan) => {
-            const price = planPrice(plan, activeCurrency, cycle);
             const isCurrent = plan.is_current;
+            const isFree = (planPrice(plan, activeCurrency, "monthly").amount_minor ?? 0) === 0;
+            const headline = isFree
+              ? (planPrice(plan, activeCurrency, "monthly").formatted ?? "$0.00")
+              : planHeadlineFormatted(plan, activeCurrency, cycle);
+            const billingNote =
+              !isFree && cycle === "annual"
+                ? annualBillingNote(plan, activeCurrency)
+                : null;
             return (
               <View
                 key={plan.id}
@@ -517,18 +572,42 @@ export default function PlansScreen() {
                 <Text
                   style={[styles.price, { color: colors.foreground }]}
                 >
-                  {price.formatted ?? "—"}
+                  {headline}
+                  {!isFree ? (
+                    <Text
+                      style={{
+                        color: colors.mutedForeground,
+                        fontSize: 14,
+                        fontFamily: "SpaceGrotesk_400Regular",
+                      }}
+                    >
+                      {" "}/ mo
+                    </Text>
+                  ) : null}
+                </Text>
+                {isFree ? (
                   <Text
                     style={{
                       color: colors.mutedForeground,
-                      fontSize: 14,
+                      fontSize: 11,
                       fontFamily: "SpaceGrotesk_400Regular",
+                      marginTop: 2,
                     }}
                   >
-                    {" "}
-                    / {cycle === "monthly" ? "mo" : "yr"}
+                    Free forever — no card required
                   </Text>
-                </Text>
+                ) : billingNote ? (
+                  <Text
+                    style={{
+                      color: colors.mutedForeground,
+                      fontSize: 11,
+                      fontFamily: "SpaceGrotesk_400Regular",
+                      marginTop: 2,
+                    }}
+                  >
+                    {billingNote}
+                  </Text>
+                ) : null}
                 {plan.description ? (
                   <Text
                     style={{

@@ -446,13 +446,15 @@
         },
         priceSize(plan){
             // The headline price uses a fluid (clamped) base size, but very
-            // long currency strings — notably INR annual amounts like
-            // ₹40,670.00 — still need to step down a notch (or two) so they
-            // never run past the card edge. We measure the visible glyph
-            // count (digits + symbol + separators, spaces ignored) and pick
-            // a size bucket. Reactive on currency + cycle, so it re-fits the
-            // instant the visitor flips either toggle.
-            const s = (this.money(plan, this.cycle) || '').replace(/\s/g, '');
+            // long currency strings — notably INR per-month amounts —
+            // still need to step down a notch (or two) so they never run
+            // past the card edge. On annual we measure the per-month string
+            // (that's what's shown as the headline); on monthly we measure
+            // the monthly price. Reactive on currency + cycle.
+            const s = (this.cycle === 'annual' && this.hasAnnual(plan)
+                ? this.perMonth(plan)
+                : (this.money(plan, this.cycle) || '')
+            ).replace(/\s/g, '');
             const len = s.length;
             if (len >= 11) return 'price-xs';
             if (len >= 9)  return 'price-sm';
@@ -469,15 +471,33 @@
             return (Number(a.amount_minor) / 12 / 100)
                 .toLocaleString(undefined, { style: 'currency', currency: a.currency || this.currency });
         },
+        introPerMonth(plan){
+            // Effective per-month of the discounted first-year intro price.
+            const i = this.intro(plan);
+            if (!i) return '';
+            return (Number(i.first_minor) / 12 / 100)
+                .toLocaleString(undefined, { style: 'currency', currency: this.currency });
+        },
+        introNormalPerMonth(plan){
+            // Per-month of the normal (non-discounted) annual price shown as
+            // the struck-through "Was" and the renewal rate on intro cards.
+            const i = this.intro(plan);
+            if (!i) return '';
+            return (Number(i.normal_minor) / 12 / 100)
+                .toLocaleString(undefined, { style: 'currency', currency: this.currency });
+        },
         billingNote(plan){
-            // Linktree-style fineprint under the big price. When viewing
-            // annual we surface the equivalent monthly rack rate; when
-            // viewing monthly we tease the annual per-month equivalent.
+            // Fineprint under the big price.
+            // Annual: headline is per-month, so fineprint shows the annual
+            // total (what's actually charged) and the higher month-to-month
+            // rate so the saving is obvious.
+            // Monthly: tease the cheaper annual per-month equivalent.
             const monthly = this.money(plan, 'monthly');
             if (this.cycle === 'annual' && this.hasAnnual(plan)) {
+                const annualTotal = this.money(plan, 'annual');
                 return monthly && monthly !== '—'
-                    ? 'Billed annually, or ' + monthly + ' monthly'
-                    : 'Billed annually';
+                    ? 'Billed annually at ' + annualTotal + '/yr — or ' + monthly + '/mo month-to-month'
+                    : 'Billed annually at ' + annualTotal + '/yr';
             }
             if (this.hasAnnual(plan)) {
                 return 'Billed monthly, or ' + this.perMonth(plan) + '/mo billed annually';
@@ -956,7 +976,17 @@
                             // Initial (server-rendered) price-size bucket so the
                             // number fits before Alpine hydrates and takes over
                             // the reactive sizing. Mirrors the priceSize() JS.
-                            $initialFormatted = $row['prices'][$currency][$cycle]['formatted'] ?? '—';
+                            // On the annual cycle the headline is per-month (÷12),
+                            // so we pre-compute that value here as the SSR fallback
+                            // to avoid a brief flash of the annual total with "/mo".
+                            if ($cycle === 'annual' && empty($row['is_free'])) {
+                                $annualMinor = (int) ($row['prices'][$currency]['annual']['amount_minor'] ?? 0);
+                                $initialFormatted = $annualMinor > 0
+                                    ? \App\Services\PricingResolver::money((int) round($annualMinor / 12), $currency)
+                                    : ($row['prices'][$currency]['monthly']['formatted'] ?? '—');
+                            } else {
+                                $initialFormatted = $row['prices'][$currency][$cycle]['formatted'] ?? '—';
+                            }
                             $initialLen = mb_strlen((string) preg_replace('/\s/', '', $initialFormatted));
                             $initialPriceSize = $initialLen >= 11 ? 'price-xs'
                                 : ($initialLen >= 9 ? 'price-sm'
@@ -984,25 +1014,28 @@
                                 <span class="price-num font-bold text-white tracking-tight price-pop {{ $initialPriceSize }}"
                                       :class="{ 'price-md': priceSize(plan) === 'price-md', 'price-sm': priceSize(plan) === 'price-sm', 'price-xs': priceSize(plan) === 'price-xs' }"
                                       :key="cycle + '-' + currency + '-' + priceKey + '-{{ $plan->id }}'"
-                                      x-text="intro(plan) ? intro(plan).first_formatted : money(plan, cycle)">{{ $initialFormatted }}</span>
+                                      x-text="intro(plan) ? (cycle==='annual' ? introPerMonth(plan) : intro(plan).first_formatted) : (cycle==='annual' && hasAnnual(plan) ? perMonth(plan) : money(plan, cycle))">{{ $initialFormatted }}</span>
                                 @unless(!empty($row['is_free']))
-                                    <span class="price-suffix shrink-0 text-sm font-medium text-gray-500 pb-1">/ <span x-text="cycle==='annual' ? 'yr' : 'mo'">{{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></span>
+                                    <span class="price-suffix shrink-0 text-sm font-medium text-gray-500 pb-1">/ mo</span>
                                 @endunless
                             </div>
 
                             {{-- Strike "was" line + renew fineprint. The struck normal
                                  price reads as clearly secondary to the discounted
                                  headline above; the slot is reserved (when any plan runs
-                                 an intro) so the billing note + CTA stay aligned. --}}
+                                 an intro) so the billing note + CTA stay aligned.
+                                 On annual cycle both "Was" and renewal rate are shown
+                                 as per-month equivalents to stay consistent with the
+                                 per-month headline. --}}
                             <div class="{{ $anyIntro ? 'min-h-[2.5rem] mt-1.5' : '' }}">
                                 <template x-if="intro(plan)">
                                     <div>
                                         <div class="flex items-baseline gap-1.5 text-sm leading-tight">
                                             <span class="text-gray-500 font-medium">Was</span>
-                                            <span class="font-semibold text-gray-500 line-through decoration-2 decoration-gray-400/60" x-text="intro(plan)?.normal_formatted"></span>
+                                            <span class="font-semibold text-gray-500 line-through decoration-2 decoration-gray-400/60" x-text="cycle==='annual' ? introNormalPerMonth(plan) : (intro(plan)?.normal_formatted ?? '')"></span>
                                         </div>
                                         <div class="text-[11px] text-emerald-300/90 mt-0.5">
-                                            First <span x-text="cycle==='annual' ? 'year' : 'month'"></span> only — renews at <span x-text="intro(plan)?.normal_formatted"></span>/<span x-text="cycle==='annual' ? 'yr' : 'mo'"></span>
+                                            First <span x-text="cycle==='annual' ? 'year' : 'month'"></span> only — renews at <span x-text="cycle==='annual' ? introNormalPerMonth(plan) : (intro(plan)?.normal_formatted ?? '')"></span>/mo
                                         </div>
                                     </div>
                                 </template>
