@@ -6,21 +6,13 @@
  * fade+slide in as they enter the viewport, stat counters count up on reveal.
  * Respects the OS "Reduce Motion" accessibility setting throughout.
  *
- * Only used by app/info/about.tsx — InfoPage.tsx is left unchanged for the
- * other /info/* pages.
+ * Used by app/info/about.tsx. The scroll-reveal primitives are shared with
+ * InfoPage.tsx (the other /info/* pages) via ./ScrollReveal.
  */
 
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack } from "expo-router";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Linking,
   Platform,
@@ -29,12 +21,10 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
@@ -43,139 +33,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
+import {
+  ScrollReveal,
+  ScrollRevealCtx,
+  useScrollRevealRegistry,
+} from "./ScrollReveal";
 import type { EefindBlock, FounderBlock, InfoSection } from "./InfoPage";
 
 export type { EefindBlock, FounderBlock, InfoSection };
-
-// ---------------------------------------------------------------------------
-// Scroll-reveal context — shares a subscriber registry so child components
-// can check their screen position without re-rendering the whole tree.
-// ---------------------------------------------------------------------------
-
-type ScrollListener = (scrollY: number) => void;
-type ScrollRevealRegistry = {
-  subscribe: (l: ScrollListener) => () => void;
-  getY: () => number;
-};
-
-const ScrollRevealCtx = createContext<ScrollRevealRegistry | null>(null);
-
-function useScrollRevealRegistry(): [ScrollRevealRegistry, (y: number) => void] {
-  const scrollY = useRef(0);
-  const listeners = useRef<Set<ScrollListener>>(new Set());
-
-  const registry = useMemo<ScrollRevealRegistry>(
-    () => ({
-      subscribe: (l) => {
-        listeners.current.add(l);
-        return () => {
-          listeners.current.delete(l);
-        };
-      },
-      getY: () => scrollY.current,
-    }),
-    [],
-  );
-
-  const notify = useCallback((y: number) => {
-    scrollY.current = y;
-    listeners.current.forEach((l) => l(y));
-  }, []);
-
-  return [registry, notify];
-}
-
-// ---------------------------------------------------------------------------
-// ScrollReveal — render-prop component; reveals children when they enter view.
-// children(revealed: boolean) so consumers can trigger their own animations.
-// ---------------------------------------------------------------------------
-
-function ScrollReveal({
-  children,
-  delay = 0,
-  direction = "up",
-  reduceMotion,
-}: {
-  children: (revealed: boolean) => React.ReactNode;
-  delay?: number;
-  direction?: "up" | "left" | "right" | "none";
-  reduceMotion: boolean;
-}) {
-  const ctx = useContext(ScrollRevealCtx);
-  const { height: windowHeight } = useWindowDimensions();
-  const triggered = useRef(false);
-  const [revealed, setRevealed] = useState(reduceMotion);
-  const ref = useRef<View>(null);
-
-  const opacity = useSharedValue(reduceMotion ? 1 : 0);
-  const translateY = useSharedValue(
-    reduceMotion ? 0 : direction === "up" ? 28 : 0,
-  );
-  const translateX = useSharedValue(
-    reduceMotion
-      ? 0
-      : direction === "left"
-        ? -24
-        : direction === "right"
-          ? 24
-          : 0,
-  );
-
-  const reveal = useCallback(() => {
-    if (triggered.current) return;
-    ref.current?.measure((_x, _y, _w, _h, _pageX, pageY) => {
-      if (pageY < windowHeight * 1.08) {
-        triggered.current = true;
-        setRevealed(true);
-        if (!reduceMotion) {
-          opacity.value = withDelay(delay, withTiming(1, { duration: 480 }));
-          translateY.value = withDelay(
-            delay,
-            withSpring(0, { damping: 22, stiffness: 130 }),
-          );
-          translateX.value = withDelay(
-            delay,
-            withSpring(0, { damping: 22, stiffness: 130 }),
-          );
-        }
-      }
-    });
-  }, [
-    windowHeight,
-    delay,
-    reduceMotion,
-    opacity,
-    translateY,
-    translateX,
-  ]);
-
-  useEffect(() => {
-    if (reduceMotion) {
-      setRevealed(true);
-      return;
-    }
-    const timer = setTimeout(reveal, 80);
-    const unsub = ctx?.subscribe(reveal);
-    return () => {
-      clearTimeout(timer);
-      unsub?.();
-    };
-  }, [reveal, ctx, reduceMotion]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [
-      { translateY: translateY.value },
-      { translateX: translateX.value },
-    ],
-  }));
-
-  return (
-    <Animated.View ref={ref} style={animStyle}>
-      {children(revealed)}
-    </Animated.View>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // CountUpStat — animates a numeric string (e.g. "4,000+") from 0 on reveal.

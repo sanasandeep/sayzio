@@ -11,6 +11,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Platform } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+
+import {
+  ScrollReveal,
+  ScrollRevealCtx,
+  useScrollRevealRegistry,
+} from "./ScrollReveal";
 
 export type InfoSection = {
   heading?: string;
@@ -56,179 +63,217 @@ export function InfoPage({
 }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
+  const [registry, notifyScroll] = useScrollRevealRegistry();
   const webBottom = Platform.OS === "web" ? 34 : 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen
-        options={{
-          title,
-          headerStyle: { backgroundColor: colors.background },
-          headerTitleStyle: {
-            color: colors.foreground,
-            fontFamily: "SpaceGrotesk_600SemiBold",
-          },
-          headerTintColor: colors.primary,
-        }}
-      />
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + 32 + webBottom },
-        ]}
-      >
-        <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
-        {intro ? (
-          <Text style={[styles.intro, { color: colors.mutedForeground }]}>
-            {intro}
-          </Text>
-        ) : null}
-        {sections.map((s, i) => (
-          <View key={i} style={styles.section}>
-            {s.heading ? (
-              <Text style={[styles.h2, { color: colors.foreground }]}>
-                {s.heading}
+    <ScrollRevealCtx.Provider value={registry}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <Stack.Screen
+          options={{
+            title,
+            headerStyle: { backgroundColor: colors.background },
+            headerTitleStyle: {
+              color: colors.foreground,
+              fontFamily: "SpaceGrotesk_600SemiBold",
+            },
+            headerTintColor: colors.primary,
+          }}
+        />
+        <ScrollView
+          scrollEventThrottle={16}
+          onScroll={(e) => notifyScroll(e.nativeEvent.contentOffset.y)}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: insets.bottom + 32 + webBottom },
+          ]}
+        >
+          <ScrollReveal delay={0} direction="up" reduceMotion={reduceMotion}>
+            {() => (
+              <Text style={[styles.title, { color: colors.foreground }]}>
+                {title}
               </Text>
-            ) : null}
-            <Text style={[styles.body, { color: colors.foreground }]}>
-              {s.body}
-            </Text>
-          </View>
-        ))}
-        {founder ? (
-          <View
-            style={[
-              styles.eefindCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.eyebrow, { color: colors.primary }]}>
-              {founder.eyebrow}
-            </Text>
-            <Text style={[styles.h2, { color: colors.foreground }]}>
-              {founder.name}
-            </Text>
-            <Text
-              style={[styles.founderRole, { color: colors.primary }]}
+            )}
+          </ScrollReveal>
+          {intro ? (
+            <ScrollReveal delay={60} direction="up" reduceMotion={reduceMotion}>
+              {() => (
+                <Text style={[styles.intro, { color: colors.mutedForeground }]}>
+                  {intro}
+                </Text>
+              )}
+            </ScrollReveal>
+          ) : null}
+          {sections.map((s, i) => (
+            <ScrollReveal
+              key={i}
+              delay={i * 80}
+              direction="up"
+              reduceMotion={reduceMotion}
             >
-              {founder.role}
-            </Text>
-            <Text
-              style={[
-                styles.body,
-                { color: colors.mutedForeground, marginTop: 10 },
-              ]}
-            >
-              {founder.bio}
-            </Text>
-          </View>
-        ) : null}
-        {eefind ? (
-          <View
-            style={[
-              styles.eefindCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <Text style={[styles.eyebrow, { color: colors.primary }]}>
-              {eefind.eyebrow}
-            </Text>
-            <Text style={[styles.h2, { color: colors.foreground }]}>
-              {eefind.heading}
-            </Text>
-            <Text
-              style={[
-                styles.body,
-                { color: colors.mutedForeground, marginTop: 8 },
-              ]}
-            >
-              {eefind.body}
-            </Text>
-            <View style={styles.statRow}>
-              {eefind.stats.map((stat) => (
-                <View
-                  key={stat.label}
-                  style={[
-                    styles.statCard,
-                    {
-                      backgroundColor: colors.muted,
-                      borderColor: colors.border,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.statValue, { color: colors.primary }]}>
-                    {stat.value}
-                  </Text>
-                  <Text
-                    style={[styles.statLabel, { color: colors.mutedForeground }]}
-                  >
-                    {stat.label}
+              {() => (
+                <View style={styles.section}>
+                  {s.heading ? (
+                    <Text style={[styles.h2, { color: colors.foreground }]}>
+                      {s.heading}
+                    </Text>
+                  ) : null}
+                  <Text style={[styles.body, { color: colors.foreground }]}>
+                    {s.body}
                   </Text>
                 </View>
-              ))}
-            </View>
-            <View style={styles.eefindMeta}>
-              <Text style={[styles.metaLabel, { color: colors.foreground }]}>
-                Registered office
-              </Text>
-              <Text style={[styles.metaValue, { color: colors.mutedForeground }]}>
-                {eefind.address}
-              </Text>
+              )}
+            </ScrollReveal>
+          ))}
+          {founder ? (
+            <ScrollReveal delay={0} direction="up" reduceMotion={reduceMotion}>
+              {() => (
+                <View
+                  style={[
+                    styles.eefindCard,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                >
+                  <Text style={[styles.eyebrow, { color: colors.primary }]}>
+                    {founder.eyebrow}
+                  </Text>
+                  <Text style={[styles.h2, { color: colors.foreground }]}>
+                    {founder.name}
+                  </Text>
+                  <Text style={[styles.founderRole, { color: colors.primary }]}>
+                    {founder.role}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.body,
+                      { color: colors.mutedForeground, marginTop: 10 },
+                    ]}
+                  >
+                    {founder.bio}
+                  </Text>
+                </View>
+              )}
+            </ScrollReveal>
+          ) : null}
+          {eefind ? (
+            <ScrollReveal delay={0} direction="up" reduceMotion={reduceMotion}>
+              {() => (
+                <View
+                  style={[
+                    styles.eefindCard,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                >
+                  <Text style={[styles.eyebrow, { color: colors.primary }]}>
+                    {eefind.eyebrow}
+                  </Text>
+                  <Text style={[styles.h2, { color: colors.foreground }]}>
+                    {eefind.heading}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.body,
+                      { color: colors.mutedForeground, marginTop: 8 },
+                    ]}
+                  >
+                    {eefind.body}
+                  </Text>
+                  <View style={styles.statRow}>
+                    {eefind.stats.map((stat) => (
+                      <View
+                        key={stat.label}
+                        style={[
+                          styles.statCard,
+                          {
+                            backgroundColor: colors.muted,
+                            borderColor: colors.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[styles.statValue, { color: colors.primary }]}
+                        >
+                          {stat.value}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.statLabel,
+                            { color: colors.mutedForeground },
+                          ]}
+                        >
+                          {stat.label}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={styles.eefindMeta}>
+                    <Text style={[styles.metaLabel, { color: colors.foreground }]}>
+                      Registered office
+                    </Text>
+                    <Text
+                      style={[styles.metaValue, { color: colors.mutedForeground }]}
+                    >
+                      {eefind.address}
+                    </Text>
 
-              <Text
-                style={[
-                  styles.metaLabel,
-                  { color: colors.foreground, marginTop: 12 },
-                ]}
-              >
-                Email
-              </Text>
-              <Pressable
-                onPress={() => Linking.openURL(`mailto:${eefind.email}`)}
-              >
-                <Text style={[styles.metaLink, { color: colors.primary }]}>
-                  {eefind.email}
-                </Text>
-              </Pressable>
+                    <Text
+                      style={[
+                        styles.metaLabel,
+                        { color: colors.foreground, marginTop: 12 },
+                      ]}
+                    >
+                      Email
+                    </Text>
+                    <Pressable
+                      onPress={() => Linking.openURL(`mailto:${eefind.email}`)}
+                    >
+                      <Text style={[styles.metaLink, { color: colors.primary }]}>
+                        {eefind.email}
+                      </Text>
+                    </Pressable>
 
-              <Text
-                style={[
-                  styles.metaLabel,
-                  { color: colors.foreground, marginTop: 12 },
-                ]}
-              >
-                WhatsApp
-              </Text>
-              <Pressable
-                onPress={() =>
-                  Linking.openURL(
-                    `https://wa.me/${eefind.whatsapp.replace(/[^0-9]/g, "")}`,
-                  )
-                }
-              >
-                <Text style={[styles.metaLink, { color: colors.primary }]}>
-                  {eefind.whatsapp}
-                </Text>
-              </Pressable>
+                    <Text
+                      style={[
+                        styles.metaLabel,
+                        { color: colors.foreground, marginTop: 12 },
+                      ]}
+                    >
+                      WhatsApp
+                    </Text>
+                    <Pressable
+                      onPress={() =>
+                        Linking.openURL(
+                          `https://wa.me/${eefind.whatsapp.replace(/[^0-9]/g, "")}`,
+                        )
+                      }
+                    >
+                      <Text style={[styles.metaLink, { color: colors.primary }]}>
+                        {eefind.whatsapp}
+                      </Text>
+                    </Pressable>
 
-              <Text
-                style={[
-                  styles.metaLabel,
-                  { color: colors.foreground, marginTop: 12 },
-                ]}
-              >
-                Website
-              </Text>
-              <Pressable onPress={() => Linking.openURL(eefind.websiteUrl)}>
-                <Text style={[styles.metaLink, { color: colors.primary }]}>
-                  {eefind.website}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
-      </ScrollView>
-    </View>
+                    <Text
+                      style={[
+                        styles.metaLabel,
+                        { color: colors.foreground, marginTop: 12 },
+                      ]}
+                    >
+                      Website
+                    </Text>
+                    <Pressable onPress={() => Linking.openURL(eefind.websiteUrl)}>
+                      <Text style={[styles.metaLink, { color: colors.primary }]}>
+                        {eefind.website}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+            </ScrollReveal>
+          ) : null}
+        </ScrollView>
+      </View>
+    </ScrollRevealCtx.Provider>
   );
 }
 

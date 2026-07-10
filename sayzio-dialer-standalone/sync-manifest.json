@@ -68,7 +68,9 @@
     {
       "standalone": "components/InfoPage.tsx",
       "source": "components/InfoPage.tsx",
-      "relation": "identical"
+      "relation": "adapted",
+      "note": "standalone keeps the plain static InfoPage; the main app added react-native-reanimated scroll-reveal entrance animations (via ./ScrollReveal + useReducedMotion) that the standalone does not depend on",
+      "sourceSha256": "0d001c8c70016d8eab2bc3c301ce15961c59d42b7c727d32afa223176fbdf1d1"
     },
     {
       "standalone": "components/MandatoryNameModal.tsx",
