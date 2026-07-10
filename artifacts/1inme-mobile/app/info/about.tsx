@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { AboutPage } from "@/components/AboutPage";
 import type { EefindBlock, FounderBlock, InfoSection } from "@/components/InfoPage";
+import { getBaseUrl } from "@/lib/api";
 import { fetchAboutContent } from "@/lib/api/siteContent";
 
 const INTRO =
@@ -34,6 +35,7 @@ const FOUNDER: FounderBlock = {
   name: "Sandeep Sana",
   role: "Founder & CEO",
   bio: "Guided by this belief, Sandeep Sana, Founder & CEO of Sayzio, has dedicated more than 16 years to building digital products that empower businesses and creators. His journey from developer to entrepreneur led to the creation of Sayzio, an all-in-one platform that helps users build their digital identity, engage audiences, and unlock new growth opportunities. Through innovation and a relentless focus on user needs, he continues to shape solutions that make online success more accessible to everyone.",
+  photo: `${getBaseUrl()}/images/marketing/about/founder.png`,
 };
 
 const FALLBACK_EEFIND: EefindBlock = {

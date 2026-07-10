@@ -10,6 +10,7 @@
  * InfoPage.tsx (the other /info/* pages) via ./ScrollReveal.
  */
 
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -570,24 +571,42 @@ export function AboutPage({
                   >
                     {founder.eyebrow.toUpperCase()}
                   </Text>
-                  {/* Avatar placeholder */}
-                  <View
-                    style={[
-                      styles.founderAvatar,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(61,107,255,0.20)"
-                          : "rgba(61,107,255,0.12)",
-                        borderColor: isDark
-                          ? "rgba(61,107,255,0.40)"
-                          : "rgba(61,107,255,0.25)",
-                      },
-                    ]}
-                  >
-                    <Text style={styles.founderInitial}>
-                      {founder.name.charAt(0)}
-                    </Text>
-                  </View>
+                  {/* Founder photo, with a letter-initial avatar fallback
+                      when no photo URL is provided. */}
+                  {founder.photo ? (
+                    <Image
+                      source={{ uri: founder.photo }}
+                      style={[
+                        styles.founderAvatar,
+                        {
+                          borderColor: isDark
+                            ? "rgba(61,107,255,0.40)"
+                            : "rgba(61,107,255,0.25)",
+                        },
+                      ]}
+                      contentFit="cover"
+                      transition={200}
+                      accessibilityLabel={founder.name}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.founderAvatar,
+                        {
+                          backgroundColor: isDark
+                            ? "rgba(61,107,255,0.20)"
+                            : "rgba(61,107,255,0.12)",
+                          borderColor: isDark
+                            ? "rgba(61,107,255,0.40)"
+                            : "rgba(61,107,255,0.25)",
+                        },
+                      ]}
+                    >
+                      <Text style={styles.founderInitial}>
+                        {founder.name.charAt(0)}
+                      </Text>
+                    </View>
+                  )}
                   <Text
                     style={[styles.founderName, { color: colors.foreground }]}
                   >

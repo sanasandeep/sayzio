@@ -46,6 +46,7 @@ export type FounderBlock = {
   name: string;
   role: string;
   bio: string;
+  photo?: string;
 };
 
 export function InfoPage({

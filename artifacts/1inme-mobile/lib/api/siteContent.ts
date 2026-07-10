@@ -1,6 +1,10 @@
 import { getBaseUrl } from "@/lib/api";
 
-import type { EefindBlock, InfoSection } from "@/components/InfoPage";
+import type {
+  EefindBlock,
+  FounderBlock,
+  InfoSection,
+} from "@/components/InfoPage";
 
 /**
  * Admin-editable /about marketing copy, read at runtime from the product
@@ -35,10 +39,19 @@ interface AboutEefindRaw {
   website_url?: string;
 }
 
+interface AboutFounderRaw {
+  eyebrow?: string;
+  name?: string;
+  role?: string;
+  bio?: string;
+  photo?: string;
+}
+
 interface AboutResponse {
   data?: {
     title?: string;
     sections?: { heading?: string; body?: string }[];
+    founder?: AboutFounderRaw;
     eefind?: AboutEefindRaw;
   };
 }
@@ -243,6 +256,18 @@ export async function fetchAboutContent(): Promise<AboutContent | null> {
             }))
             .filter((s) => s.body !== "")
         : [];
+
+      const fo = data.founder;
+      const founder: FounderBlock | undefined =
+        fo && (fo.name ?? "").trim() !== ""
+          ? {
+              eyebrow: (fo.eyebrow ?? "").trim(),
+              name: (fo.name ?? "").trim(),
+              role: (fo.role ?? "").trim(),
+              bio: (fo.bio ?? "").trim(),
+              photo: (fo.photo ?? "").trim() || undefined,
+            }
+          : undefined;
 
       const ee = data.eefind;
       if (!ee) return null;
