@@ -13,7 +13,6 @@ import {
   setBaseUrl,
 } from "@workspace/api-client-react";
 import { Stack, usePathname } from "expo-router";
-import { VoiceAssistant } from "@/components/VoiceAssistant";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { View } from "react-native";
@@ -70,27 +69,6 @@ function ActivityWatcher({ children }: { children: React.ReactNode }) {
   );
 }
 
-/**
- * The Voice Assistant floating mic + sheet should appear on every
- * signed-in tab screen, but stay hidden on auth, lock, onboarding,
- * and modal flows where it would conflict visually.
- */
-function GlobalVoiceAssistant() {
-  const { user, locked } = useAuth();
-  const pathname = usePathname() ?? "";
-  if (!user || locked) return null;
-  // Tab routes either start with the (tabs) group prefix or land at
-  // one of the five known tab paths after expo-router strips the group.
-  const isTabRoute =
-    pathname === "/" ||
-    pathname.startsWith("/(tabs)") ||
-    pathname === "/links" ||
-    pathname === "/create" ||
-    pathname === "/inbox" ||
-    pathname === "/profile";
-  if (!isTabRoute) return null;
-  return <VoiceAssistant />;
-}
 
 function PushRegistrar() {
   const { user, token, locked } = useAuth();
@@ -229,7 +207,6 @@ export default function RootLayout() {
                     <ActivityWatcher>
                       <RootLayoutNav />
                       <ImpersonationBanner />
-                      <GlobalVoiceAssistant />
                       <PushRegistrar />
                       <IdleLockWarning />
                     </ActivityWatcher>
