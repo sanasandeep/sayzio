@@ -292,4 +292,114 @@ function runHalo(reduced) {
   );
 }
 
+// ─── MascotHalo ring: the halo's OWN style branch ──────────────────────────
+// The bloom above gates its animated style behind a `reduced ?` ternary, but
+// the halo RING applies haloStyle UNCONDITIONALLY
+// (style={[styles.halo, haloStyle]}) and relies SOLELY on the shared `scale`
+// staying frozen at its resting value under reduce-motion to avoid pulsing.
+// That coupling is invisible to the bloom assertions above, so this section
+// guards it directly: (1) the halo ring style branch really applies haloStyle,
+// (2) the halo transform is a PURE function of the shared `scale` value (no
+// independent animation source), and (3) with reduce-motion on the frozen
+// scale yields a static (scale 1) transform. If a later refactor gave the halo
+// its own shared value, (2) would break — catching a halo that keeps pulsing
+// for reduce-motion users even while the shared `scale` is frozen.
+
+// The haloStyle worklet — lifted verbatim so the REAL transform/opacity math
+// runs against a controlled `scale` value.
+const haloStyleMatch = haloSrc.match(
+  /const haloStyle = useAnimatedStyle\(\(\) => \(([\s\S]*?)\)\);/,
+);
+assert.ok(
+  haloStyleMatch,
+  "could not find the MascotHalo haloStyle useAnimatedStyle worklet in ZioSplash.tsx",
+);
+const haloStyleExpr = haloStyleMatch[1].trim();
+
+// The halo ring style array — note there is NO reduce-motion ternary here, so
+// its stillness depends entirely on the shared `scale` being frozen.
+const haloRingStyleMatch = haloSrc.match(
+  /style=\{\[styles\.halo,\s*([^\]]+?)\]\}/,
+);
+assert.ok(
+  haloRingStyleMatch,
+  "could not find the MascotHalo halo ring style array in ZioSplash.tsx",
+);
+const haloRingStyleExpr = haloRingStyleMatch[1].trim();
+
+const HALO_STYLE = Symbol("haloStyle");
+
+// (1) The halo ring branch must apply the animated haloStyle unconditionally.
+{
+  const applied = runExtractedCall(
+    haloRingStyleExpr,
+    { reduced: true, haloStyle: HALO_STYLE },
+    "MascotHalo halo ring style",
+    { test: TEST },
+  );
+  assert.equal(
+    applied,
+    HALO_STYLE,
+    "the halo ring must apply haloStyle; with no reduce-motion ternary here, its stillness depends entirely on the shared scale staying frozen",
+  );
+}
+
+// (2) The halo transform must be a PURE function of the shared `scale` value:
+// inject a sentinel scale and confirm the worklet's transform scale tracks it
+// exactly. If the halo grew its own shared value, this would no longer hold.
+{
+  const scale = { value: 3.5 };
+  const styleOut = runExtractedCall(
+    haloStyleExpr,
+    { scale },
+    "MascotHalo haloStyle worklet",
+    { test: TEST },
+  );
+  assert.equal(
+    styleOut.transform[0].scale,
+    3.5,
+    "the halo transform scale must derive solely from the shared scale value (no independent animation source)",
+  );
+}
+
+// (3) reduce-motion ON: after the effect runs, the shared scale stays frozen
+// at 1, so the halo's own style branch yields a static (scale 1) transform —
+// the halo ring cannot pulse independently of the frozen shared value.
+{
+  const { calls, withTiming, withRepeat, Easing } = makeReanimated();
+  const scale = { value: 1 };
+  const scope = { reduced: true, scale, withTiming, withRepeat, Easing };
+
+  const effectFn = runExtractedCall(
+    `() => {${haloEffectBody}}`,
+    scope,
+    "MascotHalo effect (halo ring)",
+    { test: TEST },
+  );
+  effectFn();
+
+  assert.equal(
+    calls.withRepeat,
+    0,
+    "with reduce-motion on, no pulse animation may be seeded for the halo ring",
+  );
+  assert.equal(
+    scale.value,
+    1,
+    "with reduce-motion on, the shared scale must stay frozen at its resting value (1)",
+  );
+
+  const styleOut = runExtractedCall(
+    haloStyleExpr,
+    { scale },
+    "MascotHalo haloStyle worklet (reduce-motion)",
+    { test: TEST },
+  );
+  assert.equal(
+    styleOut.transform[0].scale,
+    1,
+    "with reduce-motion on, the halo ring transform must be static (scale 1), never animated",
+  );
+}
+
 console.log("test-splash-orbit: all assertions passed");
