@@ -205,7 +205,7 @@
     html.light-mode .feat-cell.feat-group {
         background: linear-gradient(90deg, #e7e2fb, #f1eefc); color: #2342c7;
     }
-    html.light-mode .feat-mark-yes { box-shadow: 0 0 0 1px rgba(16,185,129,.3), 0 4px 12px -6px rgba(16,185,129,.4); }
+    html.light-mode .feat-mark-yes { color: #047857; box-shadow: 0 0 0 1px rgba(16,185,129,.3), 0 4px 12px -6px rgba(16,185,129,.4); }
 
     /* Linktree-style plan card: a tinted header band sits flush at the
        top, with the body (price, CTA, grouped feature list) below. The
@@ -292,6 +292,15 @@
     html.light-mode .plan-price { background: rgba(15,23,42,.03); border-color: rgba(15,23,42,.08); }
     html.light-mode .plan-card.is-accent .plan-price { background: rgba(61,107,255,.07); border-color: rgba(61,107,255,.2); }
     html.light-mode .plan-card.is-current .plan-price { background: rgba(16,185,129,.07); border-color: rgba(16,185,129,.2); }
+    /* Headline plan price: the span carries `text-white` for dark-mode legibility.
+       The global marketing-anim.css remap should catch this, but certain
+       "preserve white on gradient" carve-outs (e.g. `[class*="bg-gradient"] .text-white`)
+       can intercept it when a gradient-background ancestor class is present.
+       An explicit scoped rule with `!important` guarantees dark-on-white in all cases
+       and also satisfies the light-mode-pairing guard for this page. */
+    html.light-mode .plan-price .price-num { color: #1f2937 !important; }
+    /* Tax "Total" row inside the price block also uses text-white; keep it legible. */
+    html.light-mode .plan-price .text-white { color: #1f2937 !important; }
 
     /* ── Single-row, horizontally-scrollable plan rail ──
        All plan cards sit on one row. Each keeps a readable min-width and
@@ -362,9 +371,11 @@
         background: linear-gradient(135deg,#2342c7 0%,#3d6bff 50%,#a21caf 100%) !important;
         box-shadow: 0 8px 22px -6px rgba(61,107,255,.85), 0 0 0 1.5px rgba(61,107,255,.6) !important;
     }
-    html.light-mode .cycle-seg { color: #475569; }
+    html.light-mode .cycle-seg { color: #334155; }
     html.light-mode .cycle-seg:hover { color: #111827; }
-    html.light-mode .cycle-seg.cycle-on { color: #fff !important; text-shadow: 0 1px 6px rgba(76,29,149,.5); }
+    /* Active (on-knob) label: white on the blue→purple gradient; double shadow
+       gives crisp contrast even on the lighter magenta end of the gradient. */
+    html.light-mode .cycle-seg.cycle-on { color: #fff !important; text-shadow: 0 1px 3px rgba(0,0,0,.45), 0 0 14px rgba(76,29,149,.65); }
     html.light-mode .seg:not(.seg-active):hover { color: #111827 !important; }
 
     /* ── Arbitrary white-opacity utilities the global remap misses ──

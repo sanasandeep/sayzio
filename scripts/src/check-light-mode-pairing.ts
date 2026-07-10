@@ -406,6 +406,32 @@ export const TARGETS: Target[] = [
     ],
   },
   {
+    // The pricing page ships all its custom-class CSS in the @push('head')
+    // <style> block alongside light-mode counterparts for every dark-on-white
+    // risk. The one genuine allowlist entry is the `.seg-active` currency tab:
+    // white label on the always-blue (#3d6bff) tab is legible in both modes.
+    // The `.plan-price .price-num` headline has an explicit
+    // `html.light-mode .plan-price .price-num { color: #1f2937 !important; }`
+    // override so it is always dark-on-white even if upstream
+    // "preserve white on gradient" carve-outs intercept the global remap.
+    page: "artifacts/1inme/resources/views/public/pricing/plans.blade.php",
+    label: "pricing plans page",
+    allowlist: [
+      {
+        selector: ".seg-active",
+        property: "color",
+        reason:
+          "white label on the always-blue (#3d6bff) active currency tab — the tab background is fully saturated blue so white text is legible in both themes.",
+      },
+      {
+        selector: ".plan-band-ico",
+        property: "color",
+        reason:
+          "white icon glyph inside the plan header badge — the badge always carries a saturated blue→purple gradient background so white is legible in both themes.",
+      },
+    ],
+  },
+  {
     // Surfaced by the unknown-standalone-page discovery pass: a standalone
     // page (own <html>, @includes theme-styles directly) shown while sign-ups
     // are paused. Its theme-token rules (color:transparent gradient headline,
