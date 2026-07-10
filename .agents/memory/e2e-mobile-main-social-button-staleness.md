@@ -35,3 +35,10 @@ runGooglePairingHandoff), both `label.replace(/^Log in with /, "")` displayName
 strippers, and the step-10 `runWebProviderPairingCancelRetry` provider pair.
 Keep the test's providers a strict mirror of the app; never leave labels the app
 doesn't render.
+
+**Now guarded:** `mobile-auth-providers` (a `@workspace/scripts` check +
+vitest, wired as an `isValidation` gate in `.replit`) parses the app's SOCIALS ∩
+WEB_BROWSER_PROVIDERS + accessibilityLabel prefix and fails if the test's
+`REQUIRED_SOCIAL_LABELS` / `WEB_OAUTH_PROVIDERS` drift from it. So the two lists
+can no longer silently diverge — but the Google-variant literals and displayName
+strippers above are NOT covered by the guard yet; still update them by hand.
