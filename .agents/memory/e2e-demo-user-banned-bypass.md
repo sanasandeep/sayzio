@@ -44,3 +44,11 @@ nav/menus) still pass; any spec that opens a *seeded* resource as its owner
 after demo-login, first diff the email in the spec's tinker seed against the
 one in `AuthController::demoLogin` — keep them identical (best: read the login
 email from a single shared constant/helper rather than hardcoding it per spec).
+The generic "No access" (Error 403) page renders instead of the seeded surface,
+so ANY `.section-card`/`.block-card` the spec asserts is simply absent — the
+failure looks like "the feature stopped rendering" but is really ownership.
+Confirmed fix for the two Audience-Insights specs (audience-prompt-flow,
+audience-estimate-stale): swap the seed email to sazioapp@gmail.com. NOTE the
+still-hardcoded `demo@1inme.com` seeds remain in other specs (biolink editor
+family, links-stats, dashboards, dialer, events, header, onboarding, voice) —
+same latent 403 for any that open a seeded owner-scoped resource.

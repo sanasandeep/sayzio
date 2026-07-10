@@ -65,11 +65,15 @@ use App\\Modules\\User\\Services\\WorkspaceContext;
 use Illuminate\\Support\\Facades\\Hash;
 use Illuminate\\Support\\Facades\\DB;
 
-$u = User::where('email', 'demo@1inme.com')->first();
+// Seed under the SAME account demo-login authenticates
+// (AuthController::demoLogin -> sazioapp@gmail.com). Owning the fixture as
+// any other email trips the analytics page's owner guard
+// (\$link->user_id !== workspace_owner_id()) and 403s before the card renders.
+$u = User::where('email', 'sazioapp@gmail.com')->first();
 if (!$u) {
   $free = Plan::where('slug', 'free')->first();
   $u = User::create([
-    'name' => 'Demo User', 'email' => 'demo@1inme.com',
+    'name' => 'Demo User', 'email' => 'sazioapp@gmail.com',
     'password' => Hash::make('password'), 'plan_id' => $free?->id,
     'status' => 'active', 'email_verified_at' => now(),
   ]);
