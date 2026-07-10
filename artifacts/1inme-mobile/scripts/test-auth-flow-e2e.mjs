@@ -259,6 +259,68 @@ async function waitForSignedInTabs(page) {
     .waitFor({ timeout: STEP_TIMEOUT_MS });
 }
 
+// The floating mic's accessibility label (see components/VoiceAssistant.tsx).
+// It renders ONLY inside the signed-in (tabs) layout — the splash-visibility
+// fix deliberately removed GlobalVoiceAssistant from the root layout. The two
+// checks below pin that: the mic is ABSENT while the branded ZioSplash is on
+// screen (cold launch), and PRESENT once the user lands on a signed-in tab.
+const VOICE_MIC_LABEL = "Open Zio Assistant";
+
+// Assert the cold-launch splash is on screen AND the voice mic is not.
+//
+// The branded ZioSplash (components/ZioSplash.tsx) plays for a minimum of
+// 2.4s (its minDuration, gated by GateScreen), so it is reliably still on
+// screen immediately after the app mounts. We first wait for a splash marker
+// — the "Zio runs it all" pill — to prove we actually caught the splash, then
+// assert the floating mic ("Open Zio Assistant") is NOT present. If the mic
+// leaks onto the splash, GlobalVoiceAssistant has been reintroduced into the
+// root layout (the exact regression this guards against).
+async function assertSplashHidesVoiceMic(page) {
+  const splashMarker = page
+    .getByText("Zio runs it all", { exact: false })
+    .first();
+  try {
+    await splashMarker.waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
+  } catch {
+    fail(
+      "the branded ZioSplash never appeared on cold launch, so the mic's " +
+        "absence during the splash could not be verified",
+    );
+  }
+  const micCount = await page
+    .locator(`[aria-label="${VOICE_MIC_LABEL}"]`)
+    .count();
+  if (micCount > 0) {
+    fail(
+      `the voice mic ("${VOICE_MIC_LABEL}") is present during the ZioSplash — ` +
+        "it must only mount on signed-in tab screens, not the splash " +
+        "(GlobalVoiceAssistant leaked back into the root layout)",
+    );
+  }
+  log("cold-launch splash is showing and the voice mic is correctly hidden");
+}
+
+// Once signed in and on a tab screen, the floating mic must be present and
+// tappable — the (tabs) layout mounts it. Auto-waits for the mount so the
+// check doesn't race the tab render.
+async function assertVoiceMicPresent(page) {
+  const mic = page.locator(`[aria-label="${VOICE_MIC_LABEL}"]`).first();
+  await mic
+    .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS })
+    .catch(() =>
+      fail(
+        `the voice mic ("${VOICE_MIC_LABEL}") did not appear on the signed-in ` +
+          "tab screen — the (tabs) layout should mount it",
+      ),
+    );
+  // React Native Web renders a disabled Pressable with aria-disabled="true".
+  const ariaDisabled = await mic.getAttribute("aria-disabled");
+  if (ariaDisabled === "true") {
+    fail(`the voice mic ("${VOICE_MIC_LABEL}") is present but disabled`);
+  }
+  log("signed-in tab screen shows the voice mic");
+}
+
 // Clear the persisted Sanctum session (token + user) so a reload drops us
 // back at the login screen, then walk onboarding again. Used between the
 // demo-login runs (each one signs in and lands in the tabs). Keeps the
@@ -2589,8 +2651,27 @@ async function main(server) {
       throw navErr;
     }
 
-    log("app mounted; navigating to login screen");
+    log("app mounted; verifying the cold-launch splash hides the voice mic");
+    // Cold launch: the branded ZioSplash is on screen right after mount. The
+    // floating mic must NOT be present during it (the splash-visibility fix
+    // removed GlobalVoiceAssistant from the root layout).
+    await assertSplashHidesVoiceMic(page);
+
+    log("navigating to login screen");
     await reachLoginScreen(page);
+
+    // -----------------------------------------------------------------
+    // Step 0: the "Ask Zio" voice mic reappears on a signed-in tab.
+    // Counterpart to assertSplashHidesVoiceMic above: the mic is hidden
+    // on the cold-launch splash and must reappear once the user reaches a
+    // signed-in tab screen (the (tabs) layout mounts it). Kept self-
+    // contained here — a demo sign-in to land in the tabs, assert the mic,
+    // then reset back to the login screen for the rest of the flow — so the
+    // voice-visibility proof doesn't depend on any later step.
+    // -----------------------------------------------------------------
+    await runDemoFlow("Demo as user", "user");
+    await assertVoiceMicPresent(page);
+    await resetToLogin(page);
 
     // -----------------------------------------------------------------
     // Step 1: every visible social-provider button is tappable.
@@ -2785,11 +2866,13 @@ async function main(server) {
     });
 
     log(
-      "PASS: social buttons, demo logins, OTP sign-in, the OAuth deep-link " +
-        "return (browser + native-SDK legs), every web-browser provider's " +
-        "full sign-in, every web-browser provider's failure path, the guest " +
-        "pairing -> email-OTP signup handoff, and the guest pairing -> " +
-        "web-provider cancel/reject + retry handoff all behave correctly.",
+      "PASS: the cold-launch splash hides the voice mic (present again on a " +
+        "signed-in tab), social buttons, demo logins, OTP sign-in, the OAuth " +
+        "deep-link return (browser + native-SDK legs), every web-browser " +
+        "provider's full sign-in, every web-browser provider's failure path, " +
+        "the guest pairing -> email-OTP signup handoff, and the guest " +
+        "pairing -> web-provider cancel/reject + retry handoff all behave " +
+        "correctly.",
     );
   } finally {
     await browser.close();

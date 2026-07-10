@@ -29,4 +29,4 @@
 @php $__faFonts = asset('css/vendor/fontawesome-free-6.5.1/webfonts'); @endphp
 <link rel="preload" href="{{ $__faFonts }}/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{{ $__faFonts }}/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{{ $__faHref }}" data-fa-stylesheet>
+

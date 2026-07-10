@@ -102,3 +102,4 @@
 - [Mobile onboarding slider e2e](mobile-onboarding-slider-e2e.md) — RNW pager = the div with scroll-snap x/overflow-x (slide wrappers no-op scrollLeft); goto warmed root not /onboarding; slides endpoint is flat {items}.
 - [RN-web Alert.alert is a no-op](rn-web-alert-noop-confirm.md) — mobile-app confirmations need a web `window.confirm` branch or taps are silently swallowed; e2e via Playwright dialog handlers.
 - [Blade @json in double-quoted attrs](blade-json-in-double-quoted-attr.md) — @json emits literal quotes that truncate x-data/@click attributes, silently killing Alpine; use @js. Sweep: grep '="[a-zA-Z]*(@json'.
+- [e2e-mobile-main social-button staleness](e2e-mobile-main-social-button-staleness.md) — suite deterministically FAILs at "Continue with Instagram" because test's REQUIRED_SOCIAL_LABELS (6) outran app's WEB_BROWSER_PROVIDERS=["linkedin"]; pre-existing, don't blame your change.
