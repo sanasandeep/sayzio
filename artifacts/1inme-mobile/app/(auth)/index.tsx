@@ -363,18 +363,37 @@ export default function AuthLanding() {
         end={{ x: 0, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
+
+      {/* Back-to-intro button — absolute so it doesn't affect the scroll layout */}
+      <Pressable
+        {...WEB_FOCUS_RING_PROPS}
+        onPress={() => router.push("/onboarding")}
+        hitSlop={12}
+        style={[
+          styles.backBtn,
+          { top: insets.top + 12, left: 16 },
+        ]}
+        accessibilityLabel="Back to intro"
+        accessibilityRole="button"
+      >
+        <Feather name="arrow-left" size={18} color={colors.mutedForeground} />
+        <Text style={[styles.backBtnLabel, { color: colors.mutedForeground }]}>
+          Intro
+        </Text>
+      </Pressable>
+
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
           {
-            paddingTop: insets.top + 36 + webTop,
+            paddingTop: insets.top + 56 + webTop,
             paddingBottom: insets.bottom + 32 + webBottom,
           },
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <BrandWordmark size={52} align="center" forceVariant="dark-bg" />
-        <View style={{ height: 32 }} />
+        <BrandWordmark size={36} align="center" forceVariant="dark-bg" />
+        <View style={{ height: 16 }} />
         <Text style={[styles.h1, { color: colors.foreground }]}>
           Welcome back
         </Text>
@@ -595,12 +614,25 @@ export default function AuthLanding() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { paddingHorizontal: 24, gap: 4 },
+  backBtn: {
+    position: "absolute",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    zIndex: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+  },
+  backBtnLabel: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 13,
+  },
   h1: {
     fontFamily: "SpaceGrotesk_700Bold",
-    fontSize: 32,
-    letterSpacing: -0.5,
+    fontSize: 24,
+    letterSpacing: -0.3,
   },
-  sub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 16, marginBottom: 24 },
+  sub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 14, marginBottom: 16 },
   tabs: { flexDirection: "row", padding: 4, borderWidth: 1 },
   tab: { flex: 1, alignItems: "center", paddingVertical: 10 },
   tabText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
