@@ -354,10 +354,11 @@ class UserFileController extends Controller
         $like   = '%' . $needle . '%';
         $db     = \Illuminate\Support\Facades\DB::class;
 
-        // Biolink blocks on an active link
+        // Biolink blocks on an active link — must be owned by the same user as the file
         if (\Illuminate\Support\Facades\DB::table('biolink_blocks')
             ->join('links', 'biolink_blocks.link_id', '=', 'links.id')
             ->where('links.is_active', true)
+            ->where('links.user_id', $file->user_id)
             ->where('biolink_blocks.settings', 'like', $like)
             ->exists()) {
             return true;
@@ -375,9 +376,10 @@ class UserFileController extends Controller
             return true;
         }
 
-        // Link assets (seo_image, favicon, verified_logo) on an active link
+        // Link assets (seo_image, favicon, verified_logo) on an active link — must be owned by the same user as the file
         if (\Illuminate\Support\Facades\DB::table('links')
             ->where('is_active', true)
+            ->where('user_id', $file->user_id)
             ->where(function ($q) use ($like) {
                 $q->where('seo_image', 'like', $like)
                   ->orWhere('favicon', 'like', $like)
@@ -387,11 +389,12 @@ class UserFileController extends Controller
             return true;
         }
 
-        // Splash page assets attached to an active link
+        // Splash page assets attached to an active link — must be owned by the same user as the file
         if (\Illuminate\Support\Facades\Schema::hasTable('splash_pages')) {
             $exists = \Illuminate\Support\Facades\DB::table('splash_pages')
                 ->join('links', 'links.splash_page_id', '=', 'splash_pages.id')
                 ->where('links.is_active', true)
+                ->where('links.user_id', $file->user_id)
                 ->where(function ($q) use ($like) {
                     $q->where('splash_pages.logo', 'like', $like)
                       ->orWhere('splash_pages.favicon', 'like', $like)
@@ -401,14 +404,13 @@ class UserFileController extends Controller
             if ($exists) return true;
         }
 
-        // Approved verification requests (logo + proof_files JSON)
+        // Approved verification requests — only logo_path is public-facing;
+        // proof_files are private evidence documents meant for admin review only,
+        // so they must never be served anonymously even after approval.
         if (\Illuminate\Support\Facades\Schema::hasTable('verification_requests')) {
             $exists = \Illuminate\Support\Facades\DB::table('verification_requests')
                 ->where('status', 'approved')
-                ->where(function ($q) use ($needle, $like) {
-                    $q->where('logo_path', 'like', $like)
-                      ->orWhere('proof_files', 'like', $like);
-                })
+                ->where('logo_path', 'like', $like)
                 ->exists();
             if ($exists) return true;
         }
