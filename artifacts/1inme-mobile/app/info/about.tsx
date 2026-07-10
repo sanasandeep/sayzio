@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 
-import {
-  InfoPage,
-  type EefindBlock,
-  type FounderBlock,
-  type InfoSection,
-} from "@/components/InfoPage";
+import { AboutPage } from "@/components/AboutPage";
+import type { EefindBlock, FounderBlock, InfoSection } from "@/components/InfoPage";
 import { fetchAboutContent } from "@/lib/api/siteContent";
 
 const INTRO =
@@ -75,7 +71,7 @@ export default function About() {
   }, []);
 
   return (
-    <InfoPage
+    <AboutPage
       title="About Sayzio"
       intro={INTRO}
       sections={sections}
