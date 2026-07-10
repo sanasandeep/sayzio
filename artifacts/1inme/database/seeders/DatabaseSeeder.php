@@ -153,6 +153,36 @@ class DatabaseSeeder extends Seeder
             'verification_token' => Str::random(32), 'cname_target' => $cnameTarget,
         ]);
 
+        // sayzio.link — open to every plan (no plan or badge tags), active
+        // and verified. Not primary. Uses firstOrCreate-style logic so
+        // re-running the seeder never produces a duplicate row.
+        $sayzioLink = Domain::firstOrCreate(
+            ['domain' => 'sayzio.link'],
+            [
+                'user_id'            => null,
+                'type'               => 'redirect',
+                'is_active'          => true,
+                'is_verified'        => true,
+                'is_primary'         => false,
+                'verified_at'        => now(),
+                'verification_token' => Str::random(32),
+                'cname_target'       => $cnameTarget,
+            ]
+        );
+        // Normalize existing row to global + active + verified + redirect type with no plan/badge
+        // restrictions in case it was previously created differently.
+        if (!$sayzioLink->wasRecentlyCreated) {
+            $sayzioLink->update([
+                'user_id'     => null,
+                'type'        => 'redirect',
+                'is_active'   => true,
+                'is_verified' => true,
+                'verified_at' => $sayzioLink->verified_at ?? now(),
+            ]);
+        }
+        $sayzioLink->plans()->detach();
+        $sayzioLink->badges()->detach();
+
         $proDomain = Domain::create([
             'user_id' => null, 'domain' => 'pro.1inme.io', 'type' => 'redirect',
             'is_active' => true, 'is_verified' => true, 'verified_at' => now(),
