@@ -172,6 +172,95 @@ async function readFocusedLabel(page) {
   });
 }
 
+// The computed outline of whatever element currently holds DOM focus, plus
+// whether it matches :focus-visible. Used to prove a keyboard-focused tab
+// paints a visible focus ring (and a mouse/touch press does not).
+async function readFocusedOutline(page) {
+  return page.evaluate(() => {
+    const el = document.activeElement;
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    let matchesFocusVisible = false;
+    try {
+      matchesFocusVisible = el.matches(":focus-visible");
+    } catch {}
+    return {
+      label: el.getAttribute("aria-label"),
+      outlineStyle: cs.outlineStyle,
+      outlineWidth: cs.outlineWidth,
+      outlineColor: cs.outlineColor,
+      matchesFocusVisible,
+    };
+  });
+}
+
+function hasVisibleOutline(info) {
+  return (
+    !!info &&
+    info.outlineStyle !== "none" &&
+    parseFloat(info.outlineWidth || "0") > 0
+  );
+}
+
+// Verify the keyboard focus INDICATOR: a keyboard-focused tab must paint a
+// visible :focus-visible outline (so a sighted keyboard user can track which
+// tab focus is on), while a mouse/touch press must NOT leave a stray ring.
+// Assumes the tab bar is mounted and interactive.
+async function checkFocusRing(page, theme) {
+  // ---- Positive: reach a tab BY KEYBOARD → the ring shows -----------------
+  // Focus the (active) Home tab, then arrow to Links so focus was moved via
+  // the keyboard — Chromium then treats it as :focus-visible.
+  await page.locator(`[aria-label="${TABS[0].label}"]`).first().focus();
+  await page.keyboard.press("ArrowRight"); // keyboard → Links
+  const focusedInfo = await readFocusedOutline(page);
+  if (!focusedInfo || focusedInfo.label !== TABS[1].label) {
+    fail(
+      `[${theme}] focus ring: expected keyboard focus on "${TABS[1].label}" ` +
+        `to inspect its focus indicator, got "${focusedInfo?.label ?? "none"}".`,
+    );
+  }
+  if (!hasVisibleOutline(focusedInfo)) {
+    fail(
+      `[${theme}] focus ring: the keyboard-focused "${TABS[1].label}" tab has ` +
+        `no visible outline (outline: "${focusedInfo.outlineWidth} ` +
+        `${focusedInfo.outlineStyle} ${focusedInfo.outlineColor}", ` +
+        `:focus-visible=${focusedInfo.matchesFocusVisible}) — a sighted ` +
+        `keyboard user can't tell which tab focus has landed on.`,
+    );
+  }
+  log(
+    `[${theme}] focus ring: keyboard-focused tab shows a visible outline ` +
+      `(${focusedInfo.outlineWidth} ${focusedInfo.outlineStyle})`,
+  );
+
+  // ---- Negative: a POINTER press must NOT leave a stray ring --------------
+  // Click Profile with the mouse; it takes DOM focus but :focus-visible must
+  // NOT match, so the tab carries no outline. Assert fail-fast: focus must
+  // actually land on Profile (otherwise the negative check would silently pass
+  // on the wrong element) AND the tab must carry no visible ring.
+  await page.locator(`[aria-label="${TABS[4].label}"]`).first().click();
+  const afterClick = await readFocusedOutline(page);
+  if (!afterClick || afterClick.label !== TABS[4].label) {
+    fail(
+      `[${theme}] focus ring: clicking "${TABS[4].label}" did not leave DOM ` +
+        `focus on it (activeElement aria-label="${afterClick?.label ?? "none"}") ` +
+        `— cannot verify a pointer press leaves no stray ring.`,
+    );
+  }
+  if (hasVisibleOutline(afterClick)) {
+    fail(
+      `[${theme}] focus ring: a mouse/touch press left a stray outline on ` +
+        `"${TABS[4].label}" (outline: "${afterClick.outlineWidth} ` +
+        `${afterClick.outlineStyle}") — the ring should be :focus-visible ` +
+        `only, not shown on tap.`,
+    );
+  }
+  log(
+    `[${theme}] focus ring: a pointer press leaves no stray ring ` +
+      `(:focus-visible only)`,
+  );
+}
+
 // Verify the WAI-ARIA tab keyboard pattern on web:
 //   • Roving tabindex — only the ACTIVE tab is in the natural tab order
 //     (tabindex 0); every other tab is tabindex -1.
@@ -501,10 +590,16 @@ async function checkTheme(context, appUrl, theme) {
     // keyboard check can assume Home is the active tab.
     await checkKeyboardNav(page, theme, expected);
 
+    // ---- Keyboard focus indicator (:focus-visible ring) -------------------
+    // A sighted keyboard user must see which tab focus is on as they arrow
+    // across; the ring must appear only for keyboard focus, not pointer taps.
+    await checkFocusRing(page, theme);
+
     log(
       `[${theme}] PASS: active tab stays bold + shadowed + foreground across ` +
         `all gradient stops; inactive stays plain; keyboard arrow-key ` +
-        `navigation follows the WAI-ARIA tab pattern.`,
+        `navigation follows the WAI-ARIA tab pattern; the keyboard-focused ` +
+        `tab shows a visible :focus-visible ring.`,
     );
   } finally {
     await page.close().catch(() => {});

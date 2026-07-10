@@ -71,6 +71,47 @@ export function FloatingTabBar() {
   const isWeb = Platform.OS === "web";
   const tabRefs = useRef<(HTMLElement | null)[]>([]);
 
+  // ── Web keyboard focus indicator (:focus-visible ring) ─────────────────
+  // Each tab renders as a React Native Web <div>, which has NO default focus
+  // outline, so a sighted keyboard user arrowing across the tabs can't see
+  // where focus currently is. We tag every tab with `data-tabbar-tab` and
+  // inject a one-time global stylesheet that paints an on-brand focus ring —
+  // scoped to `:focus-visible` so it ONLY appears for keyboard focus, never on
+  // mouse/touch press (which would leave a stray ring on tap). The ring colour
+  // tracks the theme's primary (blue) via a CSS custom property so it stays
+  // correct in light + dark. Native (iOS/Android) is untouched.
+  useEffect(() => {
+    if (!isWeb || typeof document === "undefined") return;
+    // Deliberate persistent singleton: the stylesheet is inserted once (guarded
+    // by its id) and intentionally NOT removed on unmount. The tab bar is a
+    // permanent app shell element, so re-inserting/removing on every mount would
+    // just churn; the CSS-var-driven ring colour is what changes per theme.
+    const STYLE_ID = "tabbar-focus-visible-style";
+    if (!document.getElementById(STYLE_ID)) {
+      const style = document.createElement("style");
+      style.id = STYLE_ID;
+      style.textContent = [
+        // RNW may set outline:none on the pressable; re-assert nothing on a
+        // plain (mouse/touch) focus, then paint a ring only for keyboard focus.
+        "[data-tabbar-tab]:focus { outline: none; }",
+        "[data-tabbar-tab]:focus-visible {",
+        "  outline: 2px solid var(--tabbar-focus-ring, #3d6bff);",
+        "  outline-offset: -3px;",
+        "  border-radius: 22px;",
+        "}",
+      ].join("\n");
+      document.head.appendChild(style);
+    }
+  }, [isWeb]);
+
+  useEffect(() => {
+    if (!isWeb || typeof document === "undefined") return;
+    document.documentElement.style.setProperty(
+      "--tabbar-focus-ring",
+      colors.primary,
+    );
+  }, [isWeb, colors.primary]);
+
   const navigateToTab = (index: number) => {
     const tab = TABS[index];
     if (!tab || index === activeIndex) return;
@@ -251,6 +292,9 @@ export function FloatingTabBar() {
                 tabIndex: focused ? 0 : -1,
                 onKeyDown: (e: { key?: string; preventDefault?: () => void }) =>
                   handleTabKeyDown(index, e),
+                // Marker the injected :focus-visible stylesheet targets so a
+                // keyboard-focused tab shows an on-brand focus ring.
+                dataSet: { tabbarTab: "true" },
               } as object)
             : null;
 
