@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -158,15 +159,22 @@ export function FloatingTabBar() {
         style={[
           styles.circle,
           {
-            backgroundColor: colors.primary,
             width: CIRCLE_SIZE,
             height: CIRCLE_SIZE,
             borderRadius: CIRCLE_SIZE / 2,
             top: CIRCLE_OVERFLOW + (TAB_BAR_H - CIRCLE_SIZE) / 2,
+            overflow: "hidden",
           },
           circleStyle,
         ]}
-      />
+      >
+        <LinearGradient
+          colors={colors.brandGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
 
       {/* ── Layer 3 (top): tab icon row ─────────────────────────────────── */}
       {/* Absolutely positioned to fill the bar area (bottom:0).
