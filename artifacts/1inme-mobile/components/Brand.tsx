@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
 
-import { useColorScheme } from "react-native";
+import { useResolvedScheme } from "@/hooks/useColors";
 
 import { fetchBrandLogos } from "@/lib/api/branding";
 
@@ -23,7 +23,7 @@ export function BrandWordmark({
    */
   forceVariant?: "dark-bg";
 }) {
-  const scheme = useColorScheme();
+  const scheme = useResolvedScheme();
   const [remote, setRemote] = useState<{
     light: string | null;
     dark: string | null;
