@@ -204,6 +204,10 @@ args = "e2e-mobile-form-focus-ring"
 task = "workflow.run"
 args = "alpine-line-comments"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-signup-name"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -717,6 +721,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:alpine-line-comments"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-signup-name"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-signup-name-flow.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
