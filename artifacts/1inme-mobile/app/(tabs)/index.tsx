@@ -18,6 +18,7 @@ import { BrandWordmark } from "@/components/Brand";
 import { EmptyState } from "@/components/EmptyState";
 import { LinkRow } from "@/components/LinkRow";
 import { StatTile } from "@/components/StatTile";
+import { MissingNameReminder } from "@/components/MissingNameReminder";
 import { VerifyEmailReminder } from "@/components/VerifyEmailReminder";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDrawer } from "@/contexts/DrawerContext";
@@ -87,6 +88,7 @@ export default function Home() {
         </View>
 
         <VerifyEmailReminder />
+        <MissingNameReminder />
 
         {q.isLoading ? (
           <View style={{ paddingVertical: 32 }}>
