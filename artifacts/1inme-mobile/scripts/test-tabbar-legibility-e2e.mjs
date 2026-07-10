@@ -154,6 +154,181 @@ function hasShadow(v) {
   return typeof v === "string" && v.trim() !== "" && v.trim() !== "none";
 }
 
+// Read the `tabindex` attribute of every tab, in TABS order, from the DOM.
+async function readTabIndices(page) {
+  return page.evaluate((labels) => {
+    return labels.map((l) => {
+      const el = document.querySelector(`[aria-label="${l}"]`);
+      return el ? el.getAttribute("tabindex") : "missing";
+    });
+  }, TABS.map((t) => t.label));
+}
+
+// The aria-label of whatever element currently holds DOM focus (or null).
+async function readFocusedLabel(page) {
+  return page.evaluate(() => {
+    const el = document.activeElement;
+    return el ? el.getAttribute("aria-label") : null;
+  });
+}
+
+// Verify the WAI-ARIA tab keyboard pattern on web:
+//   • Roving tabindex — only the ACTIVE tab is in the natural tab order
+//     (tabindex 0); every other tab is tabindex -1.
+//   • ArrowRight/ArrowDown move focus to the next tab (wrapping past the last),
+//     ArrowLeft/ArrowUp to the previous (wrapping before the first).
+//   • Home/End jump focus to the first/last tab.
+//   • Enter on a focused, non-active tab navigates to it (roving tabindex then
+//     follows the newly active tab).
+// Assumes the caller has just landed on Home (TABS[0] active).
+async function checkKeyboardNav(page, theme, expected) {
+  // ---- Roving tabindex: only the active (Home) tab is tabbable ----------
+  const indices = await readTabIndices(page);
+  const active = indices.findIndex((v) => v === "0");
+  if (active !== 0) {
+    fail(
+      `[${theme}] keyboard: expected only the active Home tab to have ` +
+        `tabindex="0", got tabindex list [${indices.join(", ")}] — the ` +
+        `roving tabindex isn't anchored to the active tab.`,
+    );
+  }
+  const strays = indices.filter((v, i) => i !== active && v !== "-1");
+  if (strays.length) {
+    fail(
+      `[${theme}] keyboard: non-active tabs must be tabindex="-1" (out of the ` +
+        `natural tab order), got [${indices.join(", ")}] — arrow-key roving ` +
+        `is defeated if every tab is tabbable.`,
+    );
+  }
+
+  // ---- Arrow keys move focus across the tabs (with wrap) ----------------
+  await page.locator(`[aria-label="${TABS[0].label}"]`).first().focus();
+  let focused = await readFocusedLabel(page);
+  if (focused !== TABS[0].label) {
+    fail(
+      `[${theme}] keyboard: could not focus the Home tab to begin arrow-key ` +
+        `navigation (activeElement aria-label="${focused}").`,
+    );
+  }
+
+  // Walk forward through every tab and past the end (wrap back to Home).
+  const forwardOrder = [...TABS.slice(1).map((t) => t.label), TABS[0].label];
+  for (const exp of forwardOrder) {
+    await page.keyboard.press("ArrowRight");
+    focused = await readFocusedLabel(page);
+    if (focused !== exp) {
+      fail(
+        `[${theme}] keyboard: ArrowRight should have moved focus to "${exp}", ` +
+          `but focus is on "${focused}".`,
+      );
+    }
+  }
+  log(`[${theme}] keyboard: ArrowRight walks all tabs and wraps to Home`);
+
+  // From Home, ArrowLeft wraps back to the last tab (Profile).
+  await page.keyboard.press("ArrowLeft");
+  focused = await readFocusedLabel(page);
+  if (focused !== TABS[TABS.length - 1].label) {
+    fail(
+      `[${theme}] keyboard: ArrowLeft from Home should wrap to ` +
+        `"${TABS[TABS.length - 1].label}", but focus is on "${focused}".`,
+    );
+  }
+
+  // ArrowUp/ArrowDown behave like Left/Right.
+  await page.keyboard.press("ArrowDown");
+  focused = await readFocusedLabel(page);
+  if (focused !== TABS[0].label) {
+    fail(
+      `[${theme}] keyboard: ArrowDown from the last tab should wrap to ` +
+        `"${TABS[0].label}", but focus is on "${focused}".`,
+    );
+  }
+  await page.keyboard.press("ArrowUp");
+  focused = await readFocusedLabel(page);
+  if (focused !== TABS[TABS.length - 1].label) {
+    fail(
+      `[${theme}] keyboard: ArrowUp should move focus to ` +
+        `"${TABS[TABS.length - 1].label}", but focus is on "${focused}".`,
+    );
+  }
+  log(`[${theme}] keyboard: ArrowLeft/Up/Down move + wrap focus correctly`);
+
+  // Home/End jump to the first/last tab.
+  await page.keyboard.press("Home");
+  focused = await readFocusedLabel(page);
+  if (focused !== TABS[0].label) {
+    fail(
+      `[${theme}] keyboard: Home key should focus "${TABS[0].label}", but ` +
+        `focus is on "${focused}".`,
+    );
+  }
+  await page.keyboard.press("End");
+  focused = await readFocusedLabel(page);
+  if (focused !== TABS[TABS.length - 1].label) {
+    fail(
+      `[${theme}] keyboard: End key should focus ` +
+        `"${TABS[TABS.length - 1].label}", but focus is on "${focused}".`,
+    );
+  }
+  log(`[${theme}] keyboard: Home/End jump to first/last tab`);
+
+  // ---- Enter on a focused, non-active tab navigates to it ---------------
+  // Focus Home, arrow to Links, press Enter — the tab bar should activate
+  // Links (its icon adopts the focused foreground) and the roving tabindex
+  // should follow to Links.
+  await page.locator(`[aria-label="${TABS[0].label}"]`).first().focus();
+  await page.keyboard.press("ArrowRight"); // → Links
+  focused = await readFocusedLabel(page);
+  if (focused !== TABS[1].label) {
+    fail(
+      `[${theme}] keyboard: expected focus on "${TABS[1].label}" before ` +
+        `pressing Enter, got "${focused}".`,
+    );
+  }
+  await page.keyboard.press("Enter");
+  const activated = await waitForIconColor(page, TABS[1].label, expected.foreground);
+  if (activated.timedOut) {
+    fail(
+      `[${theme}] keyboard: pressing Enter on the focused "${TABS[1].label}" ` +
+        `tab did not navigate to it (icon colour stayed ` +
+        `"${activated.last?.icon?.color ?? "n/a"}", expected the focused ` +
+        `foreground "${expected.foreground}").`,
+    );
+  }
+  const afterEnter = await readTabIndices(page);
+  if (afterEnter[1] !== "0") {
+    fail(
+      `[${theme}] keyboard: after Enter-activating "${TABS[1].label}", the ` +
+        `roving tabindex="0" should follow it, got [${afterEnter.join(", ")}].`,
+    );
+  }
+  log(`[${theme}] keyboard: Enter activates the focused tab + tabindex follows`);
+
+  // ---- Space on a focused, non-active tab also activates it -------------
+  // Focus is still on Links (Enter doesn't move focus). Arrow to Create, then
+  // press Space — Create should activate, proving Space works alongside Enter.
+  await page.keyboard.press("ArrowRight"); // Links → Create
+  focused = await readFocusedLabel(page);
+  if (focused !== TABS[2].label) {
+    fail(
+      `[${theme}] keyboard: expected focus on "${TABS[2].label}" before ` +
+        `pressing Space, got "${focused}".`,
+    );
+  }
+  await page.keyboard.press(" ");
+  const activatedSpace = await waitForIconColor(page, TABS[2].label, expected.foreground);
+  if (activatedSpace.timedOut) {
+    fail(
+      `[${theme}] keyboard: pressing Space on the focused "${TABS[2].label}" ` +
+        `tab did not navigate to it (icon colour stayed ` +
+        `"${activatedSpace.last?.icon?.color ?? "n/a"}", expected the focused ` +
+        `foreground "${expected.foreground}").`,
+    );
+  }
+  log(`[${theme}] keyboard: Space also activates the focused tab`);
+}
+
 // Poll a tab's computed styles until its icon paints in `targetColor`, the
 // signal the tab bar has (de)focused it. Returns the settled inspectTab info,
 // or `{ timedOut: true, last }` if it never reached that colour within
@@ -321,9 +496,15 @@ async function checkTheme(context, appUrl, theme) {
     }
     log(`[${theme}] control: inactive tab correctly plain/muted/no-shadow`);
 
+    // ---- Keyboard: WAI-ARIA tab pattern (roving tabindex + arrow keys) ----
+    // We're currently landed on Home (from the control block above), so the
+    // keyboard check can assume Home is the active tab.
+    await checkKeyboardNav(page, theme, expected);
+
     log(
       `[${theme}] PASS: active tab stays bold + shadowed + foreground across ` +
-        `all gradient stops; inactive stays plain.`,
+        `all gradient stops; inactive stays plain; keyboard arrow-key ` +
+        `navigation follows the WAI-ARIA tab pattern.`,
     );
   } finally {
     await page.close().catch(() => {});

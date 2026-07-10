@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePathname, useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -59,6 +59,46 @@ export function FloatingTabBar() {
   const tabW = barWidth / numTabs;
 
   const activeIndex = getActiveIndex(pathname);
+
+  // ── Web keyboard accessibility (WAI-ARIA tab pattern) ──────────────────
+  // On web the tab row is a role="tablist". The pattern expects a roving
+  // tabindex: only the active tab sits in the natural tab order (tabIndex 0)
+  // and the arrow keys move focus between tabs (Left/Up ← previous, Right/Down
+  // → next, Home/End → first/last, wrapping). Enter/Space activates the focused
+  // tab (a role="tab" renders as a <div>, which does NOT synthesise a click on
+  // Enter/Space the way a native <button> would, so we navigate explicitly).
+  // Native (iOS/Android) is untouched — none of these props are set there.
+  const isWeb = Platform.OS === "web";
+  const tabRefs = useRef<(HTMLElement | null)[]>([]);
+
+  const navigateToTab = (index: number) => {
+    const tab = TABS[index];
+    if (!tab || index === activeIndex) return;
+    router.navigate(tab.pathname as never);
+  };
+
+  const handleTabKeyDown = (index: number, e: { key?: string; preventDefault?: () => void }) => {
+    const key = e?.key;
+    if (!key) return;
+    const last = TABS.length - 1;
+    let target: number | null = null;
+    if (key === "ArrowRight" || key === "ArrowDown") {
+      target = index === last ? 0 : index + 1;
+    } else if (key === "ArrowLeft" || key === "ArrowUp") {
+      target = index === 0 ? last : index - 1;
+    } else if (key === "Home") {
+      target = 0;
+    } else if (key === "End") {
+      target = last;
+    } else if (key === "Enter" || key === " " || key === "Spacebar") {
+      e.preventDefault?.();
+      navigateToTab(index);
+      return;
+    }
+    if (target === null) return;
+    e.preventDefault?.();
+    tabRefs.current[target]?.focus?.();
+  };
 
   const circleX = useSharedValue(activeIndex * tabW + (tabW - CIRCLE_SIZE) / 2);
   const circleScale = useSharedValue(1);
@@ -200,6 +240,20 @@ export function FloatingTabBar() {
           const iconColor = focused ? colors.primaryForeground : colors.mutedForeground;
           const iconSize = tab.name === "create" ? 26 : 21;
 
+          // Web-only roving tabindex + keyboard handling. These props are not
+          // part of the React Native Pressable type, but React Native Web
+          // forwards `tabIndex`/`onKeyDown` to the underlying DOM node.
+          const webProps = isWeb
+            ? ({
+                ref: (node: HTMLElement | null) => {
+                  tabRefs.current[index] = node;
+                },
+                tabIndex: focused ? 0 : -1,
+                onKeyDown: (e: { key?: string; preventDefault?: () => void }) =>
+                  handleTabKeyDown(index, e),
+              } as object)
+            : null;
+
           return (
             <Pressable
               key={tab.name}
@@ -214,6 +268,7 @@ export function FloatingTabBar() {
               accessibilityState={{ selected: focused }}
               aria-selected={focused}
               hitSlop={4}
+              {...webProps}
             >
               <Feather
                 name={tab.icon}
