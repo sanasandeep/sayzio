@@ -29,6 +29,13 @@ import { expect, test, type Page } from "@playwright/test";
 //      anti-brute-force guarantee — the attempt cap must slam the window shut
 //      before the correct code is ever compared. Same graceful outcome: stays
 //      on verify, no account created, no login.
+//   5. PAUSED        -> when an admin has switched on `auth_registration_paused`
+//      a brand-new email must NOT get an account. Two gates enforce this and
+//      both are covered here: the SEND-TIME gate renders the "we're upgrading"
+//      registration-paused page instead of issuing a code, and the VERIFY-TIME
+//      gate (reached if a code was issued just before the pause flipped on)
+//      clears the session and bounces to login with "New registrations are
+//      currently paused." Either way no account is created.
 //
 // Design notes shared with the sibling spec:
 //   - baseURL comes from APP_URL (the runner points it at the ephemeral e2e
@@ -52,12 +59,16 @@ const WRONG_CODE_EMAIL = `${EMAIL_PREFIX}wrong-${RUN_TAG}@example.com`;
 const EXPIRED_CODE_EMAIL = `${EMAIL_PREFIX}expired-${RUN_TAG}@example.com`;
 const RESEND_EMAIL = `${EMAIL_PREFIX}resend-${RUN_TAG}@example.com`;
 const BRUTEFORCE_EMAIL = `${EMAIL_PREFIX}bruteforce-${RUN_TAG}@example.com`;
+const PAUSED_SEND_EMAIL = `${EMAIL_PREFIX}paused-send-${RUN_TAG}@example.com`;
+const PAUSED_VERIFY_EMAIL = `${EMAIL_PREFIX}paused-verify-${RUN_TAG}@example.com`;
 
 const ALL_EMAILS = [
   WRONG_CODE_EMAIL,
   EXPIRED_CODE_EMAIL,
   RESEND_EMAIL,
   BRUTEFORCE_EMAIL,
+  PAUSED_SEND_EMAIL,
+  PAUSED_VERIFY_EMAIL,
 ];
 
 // Mirror of OtpService::MAX_ATTEMPTS — the number of wrong guesses that burns
@@ -179,6 +190,24 @@ echo 'OTP_EXPIRED';
   const out = runTinker(php);
   if (!out.includes("OTP_EXPIRED")) {
     throw new Error("Failed to expire OTP rows, output:\n" + out);
+  }
+}
+
+/**
+ * Flip the admin `auth_registration_paused` switch. When on, both the OTP
+ * send-time and verify-time gates must refuse to mint a brand-new account.
+ * Always restore it to `false` in a `finally` so a failure here can't leave
+ * the shared setting stuck and break the sibling tests / other suites.
+ */
+function setRegistrationPaused(paused: boolean): void {
+  const php = `
+use App\\Modules\\Admin\\Models\\AppSetting;
+AppSetting::put('auth_registration_paused', ${paused ? "true" : "false"});
+echo 'PAUSE_SET';
+`.trim();
+  const out = runTinker(php);
+  if (!out.includes("PAUSE_SET")) {
+    throw new Error("Failed to set auth_registration_paused, output:\n" + out);
   }
 }
 
@@ -444,5 +473,92 @@ test.describe("email-OTP signup error paths", () => {
       waitUntil: "commit",
     });
     expect(page.url()).toContain("/user/login");
+  });
+
+  test("PAUSED registration blocks a fresh email at SEND time with the upgrading page and creates no account", async ({
+    page,
+  }) => {
+    try {
+      setRegistrationPaused(true);
+
+      // Drive the real email-OTP form for a brand-new address. The send-time
+      // gate renders the registration-paused ("we're upgrading") page instead
+      // of issuing a code or redirecting to the verify screen.
+      await page.goto("/user/login", { timeout: 120_000 });
+      await page.evaluate((addr) => {
+        const form = Array.from(
+          document.querySelectorAll<HTMLFormElement>("form"),
+        ).find((f) =>
+          f.querySelector('input[name="login_method"][value="email_otp"]'),
+        );
+        if (!form) throw new Error("email-OTP form not found on /user/login");
+        const input = form.querySelector<HTMLInputElement>(
+          'input[name="identifier"]',
+        );
+        if (!input) throw new Error("identifier input not found");
+        input.value = addr;
+        form.submit();
+      }, PAUSED_SEND_EMAIL);
+
+      // The upgrading / paused messaging is shown (never the verify screen).
+      await expect(
+        page.getByText(/temporarily paused new sign-ups/i),
+      ).toBeVisible({ timeout: 30_000 });
+      expect(page.url()).not.toContain("/user/verify-otp");
+
+      // No account was minted and no code was even issued.
+      expect(userExists(PAUSED_SEND_EMAIL)).toBe(false);
+    } finally {
+      setRegistrationPaused(false);
+    }
+  });
+
+  test("PAUSED registration blocks a fresh email at VERIFY time, clearing the session and bouncing to login", async ({
+    page,
+  }) => {
+    try {
+      // First, with registration OPEN, request a code and reach the verify
+      // screen for a brand-new email (no account exists yet — email OTP only
+      // auto-creates at verify time).
+      setRegistrationPaused(false);
+      await requestOtp(page, PAUSED_VERIFY_EMAIL);
+      const code = await readRevealCode(page);
+      expect(userExists(PAUSED_VERIFY_EMAIL)).toBe(false);
+
+      // Now an admin pauses registration between the send and the verify. The
+      // verify-time gate must refuse to auto-create the account even though the
+      // code itself is valid.
+      setRegistrationPaused(true);
+      await Promise.all([
+        page.waitForURL("**/user/login**", {
+          timeout: 120_000,
+          waitUntil: "commit",
+        }),
+        submitCode(page, code),
+      ]);
+
+      // Bounced back to login (the verify-time gate flashes its message under
+      // the `code` error key, which the login page doesn't surface as a field
+      // error — the SEND-time test above covers the user-visible paused page).
+      // The regression this guards is silent account creation, so the decisive
+      // assertion is that NO account was minted behind the valid code.
+      expect(page.url()).toContain("/user/login");
+      expect(page.url()).not.toContain("/user/verify-otp");
+      expect(userExists(PAUSED_VERIFY_EMAIL)).toBe(false);
+
+      // The session was cleared, so a protected route still bounces to login
+      // (the visitor was never signed in).
+      await page.goto("/user/dashboard", {
+        timeout: 120_000,
+        waitUntil: "commit",
+      });
+      await page.waitForURL("**/user/login**", {
+        timeout: 120_000,
+        waitUntil: "commit",
+      });
+      expect(page.url()).toContain("/user/login");
+    } finally {
+      setRegistrationPaused(false);
+    }
   });
 });
