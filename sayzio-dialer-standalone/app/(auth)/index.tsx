@@ -359,7 +359,7 @@ export default function AuthLanding() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <BrandWordmark size={52} align="center" />
+        <BrandWordmark size={52} align="center" forceVariant="dark-bg" />
         <View style={{ height: 32 }} />
         <Text style={[styles.h1, { color: colors.foreground }]}>
           Welcome back

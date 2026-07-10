@@ -119,7 +119,7 @@
       "source": "contexts/AuthContext.tsx",
       "relation": "adapted",
       "note": "demoLogin accepts an optional role (\"user\"|\"admin\"|\"super_admin\", default \"user\") to power the standalone (auth)/index.tsx \"Demo as admin\" button; otherwise identical (no impersonation stash — that was broken, half-added drift referencing storage exports the standalone never had)",
-      "sourceSha256": "f323fbc5f767182e1c4a0b7f5ecb0f3e724b7670ae5c3406c0f8d76ff88a37e5"
+      "sourceSha256": "bd6c9322b7c0ed75f1ffde73d8192fc00e6301e43a7409344fe2cd8591e2d2f4"
     },
     {
       "standalone": "contexts/ThemeContext.tsx",
@@ -219,7 +219,7 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "1c771b884ff6d1bb1a841aee89adb2a2263c211d0116b438250f7c4acd480c61",
+      "sourceSha256": "980282165ccf7bf9ccf0697ff559b58929d3ccfe3a7284bef23b54fe5ffdd3a7",
       "note": "dev-only missing-env alert text reworded (no monorepo path); everything else must match the main app"
     },
     {

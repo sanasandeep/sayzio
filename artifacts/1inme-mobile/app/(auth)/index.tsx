@@ -154,7 +154,7 @@ export default function AuthLanding() {
   // (`identity_taken`); drives the inline "merge accounts?" prompt.
   const [mergeProvider, setMergeProvider] = useState<string | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);
-  const [loginMethod, setLoginMethod] = useState<"otp" | "password">("otp");
+  const [loginMethod, setLoginMethod] = useState<"otp" | "password">("password");
   const [password, setPassword] = useState("");
 
   // Login-method policy: email is always available; WhatsApp (mobile) login
@@ -373,7 +373,7 @@ export default function AuthLanding() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <BrandWordmark size={52} align="center" />
+        <BrandWordmark size={52} align="center" forceVariant="dark-bg" />
         <View style={{ height: 32 }} />
         <Text style={[styles.h1, { color: colors.foreground }]}>
           Welcome back

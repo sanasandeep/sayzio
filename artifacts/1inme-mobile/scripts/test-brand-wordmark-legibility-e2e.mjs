@@ -13,16 +13,20 @@
  * because otherwise a light-mode device would render the dark-text logo,
  * invisible on the dark bar.
  *
- * The sign-in screen (app/(auth)/index.tsx) and the setup screen (app/setup.tsx)
- * render <BrandWordmark> WITHOUT forceVariant, on the THEME-ADAPTIVE
- * colors.background (white in light mode, near-black in dark mode). There the
- * adaptive default is the CORRECT behaviour — the rendered variant must simply
- * MATCH the surface: dark-text on the light-mode surface, white on the
- * dark-mode surface. This harness renders each screen under both color-scheme
- * emulations and asserts exactly that, so a future change that (a) hard-codes a
- * dark background without forcing the white logo, or (b) wrongly bolts
- * forceVariant="dark-bg" onto these adaptive screens (white-on-white in light
- * mode), is caught.
+ * The sign-in screen (app/(auth)/index.tsx) sits on a dark gradient
+ * (LinearGradient over colors.background) and passes forceVariant="dark-bg"
+ * so the white/light wordmark is always used regardless of the OS color
+ * scheme — the dark-text logo would be invisible on the dark bar in light
+ * mode. This harness asserts the white variant wins on both schemes for the
+ * sign-in screen.
+ *
+ * The setup screen (app/setup.tsx) renders <BrandWordmark> WITHOUT
+ * forceVariant, on the THEME-ADAPTIVE colors.background (white in light mode,
+ * near-black in dark mode). There the adaptive default is correct — the
+ * rendered variant must match the surface: dark-text on the light surface,
+ * white on the dark surface. This harness asserts exactly that, so a future
+ * change that hard-codes a dark background without forcing the white logo is
+ * caught.
  *
  * It reuses assertWordmarkVisibleVariant from ./lib/wordmark-variant.mjs (the
  * same scanning logic the onboarding guard uses) and, like the other mobile
@@ -43,7 +47,10 @@ import { chromium } from "playwright";
 
 import { NAV_TIMEOUT_MS, STEP_TIMEOUT_MS } from "./check-icon-fonts.mjs";
 import { createExpoServerManager } from "./expo-web-server.mjs";
-import { assertWordmarkVisibleVariant } from "./lib/wordmark-variant.mjs";
+import {
+  assertWordmarkVisibleVariant,
+  assertWordmarkWhiteVariant,
+} from "./lib/wordmark-variant.mjs";
 
 function log(...args) {
   console.log("[wordmark-legibility-e2e]", ...args);
@@ -140,8 +147,10 @@ async function prepareContext(browser, { colorScheme, signedIn }) {
   return context;
 }
 
-// Verify the sign-in screen ("Welcome back") shows the theme-appropriate,
-// visible wordmark under the given scheme.
+// Verify the sign-in screen ("Welcome back") shows the WHITE wordmark under
+// both schemes. The sign-in screen sits on a dark gradient and uses
+// forceVariant="dark-bg", so the white variant must always win regardless of
+// the OS color scheme.
 async function checkSignInScreen(browser, appUrl, colorScheme) {
   const context = await prepareContext(browser, { colorScheme, signedIn: false });
   const page = await context.newPage();
@@ -156,8 +165,7 @@ async function checkSignInScreen(browser, appUrl, colorScheme) {
       .getByText("Welcome back", { exact: false })
       .first()
       .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
-    await assertWordmarkVisibleVariant(page, {
-      colorScheme,
+    await assertWordmarkWhiteVariant(page, {
       label: `sign-in screen (${colorScheme} scheme)`,
       fail,
       log,
