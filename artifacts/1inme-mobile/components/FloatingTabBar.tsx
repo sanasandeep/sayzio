@@ -191,7 +191,10 @@ export function FloatingTabBar() {
       {/* ── Layer 3 (top): tab icon row ─────────────────────────────────── */}
       {/* Absolutely positioned to fill the bar area (bottom:0).
           zIndex:3 keeps icons readable above the circle at all positions. */}
-      <View style={[styles.tabRow, { height: TAB_BAR_H }]}>
+      <View
+        style={[styles.tabRow, { height: TAB_BAR_H }]}
+        accessibilityRole="tablist"
+      >
         {TABS.map((tab, index) => {
           const focused = index === activeIndex;
           const iconColor = focused ? colors.primaryForeground : colors.mutedForeground;
@@ -206,9 +209,10 @@ export function FloatingTabBar() {
               }}
               onLongPress={openDrawer}
               style={styles.tab}
-              accessibilityRole="button"
+              accessibilityRole="tab"
               accessibilityLabel={tab.label}
               accessibilityState={{ selected: focused }}
+              aria-selected={focused}
               hitSlop={4}
             >
               <Feather

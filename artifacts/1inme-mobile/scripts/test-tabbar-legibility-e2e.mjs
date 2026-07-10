@@ -25,6 +25,11 @@
  *   5. A control INACTIVE tab has NO shadow and uses the SemiBold weight +
  *      muted colour — proving the check actually discriminates active vs not
  *      (so it can flag a regression that makes active look like inactive).
+ *   6. The active tab is programmatically announced as selected to assistive
+ *      tech: it exposes role="tab" + aria-selected="true", while inactive tabs
+ *      expose aria-selected="false". This guards the accessibility contract so
+ *      a future refactor can't silently drop it back to role="button" (for
+ *      which React Native Web omits aria-selected entirely).
  *
  * Every /api/** call is intercepted with a benign {data:[]} catch-all so the
  * authenticated shell never reaches a real backend. Like the sibling mobile
@@ -153,10 +158,11 @@ function hasShadow(v) {
 // signal the tab bar has (de)focused it. Returns the settled inspectTab info,
 // or `{ timedOut: true, last }` if it never reached that colour within
 // STEP_TIMEOUT_MS — so a stuck tab bar fails loudly instead of hanging.
-// NOTE: React Native Web only emits `aria-selected` for a handful of roles;
-// the tabs use role="button", for which it is omitted, so the focused state
-// is read from the rendered colour (primaryForeground vs mutedForeground),
-// which is also exactly one of the things this gate is asserting.
+// NOTE: the focused state is read from the rendered icon colour
+// (primaryForeground vs mutedForeground), which is also one of the things this
+// gate asserts. The tabs now use role="tab", so React Native Web ALSO emits
+// `aria-selected`; that semantic attribute is asserted separately once the tab
+// has settled into its focused/unfocused colour.
 async function waitForIconColor(page, label, targetColor) {
   const deadline = Date.now() + STEP_TIMEOUT_MS;
   let last = null;
@@ -206,6 +212,17 @@ async function checkTheme(context, appUrl, theme) {
       const info = await activateTab(page, tab, theme, expected);
       if (info.error) {
         fail(`[${theme}] ${tab.label}: ${info.error}`);
+      }
+
+      // ---- Active tab must be ANNOUNCED as selected to assistive tech ------
+      // role="tab" makes React Native Web emit aria-selected; the active tab
+      // must expose "true" so a screen reader speaks its selected state.
+      if (info.ariaSelected !== "true") {
+        fail(
+          `[${theme}] ${tab.label}: active tab is not announced as selected ` +
+            `(aria-selected="${info.ariaSelected}", expected "true"). A ` +
+            `screen-reader user gets no spoken signal for the active tab.`,
+        );
       }
 
       // ---- Active ICON must keep its shadow on every gradient stop --------
@@ -275,6 +292,13 @@ async function checkTheme(context, appUrl, theme) {
     const inactive = settled;
     if (inactive.error || !inactive.label) {
       fail(`[${theme}] control: could not inspect the inactive Profile tab`);
+    }
+    if (inactive.ariaSelected !== "false") {
+      fail(
+        `[${theme}] control: an INACTIVE tab does not expose ` +
+          `aria-selected="false" (got "${inactive.ariaSelected}") — the ` +
+          `selected state isn't being announced distinctly from unselected.`,
+      );
     }
     if (hasShadow(inactive.label.textShadow)) {
       fail(
