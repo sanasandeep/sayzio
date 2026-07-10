@@ -45,8 +45,25 @@ export const REPO_ROOT = path.resolve(
   "../..",
 );
 
-export const SCAN_ROOTS: string[] = ["artifacts/1inme/resources/views"];
+/**
+ * Scan the entire repository rather than a single app's view directory.
+ *
+ * Alpine-powered Blade does not only live in `artifacts/1inme/resources/views`
+ * — it also ships from other Blade surfaces (standalone Blade apps such as the
+ * dialer, package/vendor-published Blade, any future Laravel artifact). A `//`
+ * comment inside an Alpine attribute breaks the component identically wherever
+ * it lives, so the guard walks every `*.blade.php` in the repo. Third-party
+ * composer/npm code we cannot fix is excluded via EXCLUDE_GLOBS below.
+ */
+export const SCAN_ROOTS: string[] = ["."];
 
+/**
+ * Directories we must never flag because we do not own / cannot fix them:
+ *   - `**\/vendor/**` — composer third-party packages (e.g. the Laravel
+ *     framework exception renderer ships Alpine) AND Laravel-published vendor
+ *     views under `resources/views/vendor/` (the user has asked that these not
+ *     be modified). Scanning either would produce failures we cannot resolve.
+ */
 const EXCLUDE_GLOBS: string[] = ["!**/vendor/**"];
 
 export type Offender = {
@@ -144,7 +161,7 @@ export function scanSource(relFile: string, src: string): Offender[] {
   return offenders;
 }
 
-function listFiles(): string[] {
+export function listFiles(): string[] {
   const args = ["--files", "-g", "*.blade.php"];
   for (const g of [
     ...EXCLUDE_GLOBS,

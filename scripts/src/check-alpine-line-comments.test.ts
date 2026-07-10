@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { scanSource, blankSafeContexts } from "./check-alpine-line-comments.js";
+import fs from "node:fs";
+import path from "node:path";
+import {
+  scanSource,
+  blankSafeContexts,
+  listFiles,
+  REPO_ROOT,
+} from "./check-alpine-line-comments.js";
 import { VIEWS_REL, readViewsFileMap } from "./lib/blade-theme-scope.js";
 
 /**
@@ -137,7 +144,7 @@ describe("blankSafeContexts", () => {
 
 describe("live repo", () => {
   it(
-    "passes on all real blade files under the scan roots",
+    "passes on all real blade files under the main web app views",
     () => {
       for (const [rel, src] of readViewsFileMap()) {
         const relFromRepo = `${VIEWS_REL}/${rel}`;
@@ -150,4 +157,35 @@ describe("live repo", () => {
     },
     30_000,
   );
+
+  it(
+    "passes on every *.blade.php across the whole repo (wider scope)",
+    () => {
+      const files = listFiles();
+      expect(files.length).toBeGreaterThan(0);
+      for (const rel of files) {
+        let src: string;
+        try {
+          src = fs.readFileSync(path.join(REPO_ROOT, rel), "utf8");
+        } catch {
+          continue;
+        }
+        const offenders = scanSource(rel, src);
+        expect(
+          offenders,
+          `${rel} has // line comments inside an Alpine attribute expression`,
+        ).toEqual([]);
+      }
+    },
+    30_000,
+  );
+
+  it("scans beyond the main web app views but never third-party vendor code", () => {
+    const files = listFiles().map((f) => f.replace(/^\.\//, ""));
+    // Composer / npm third-party trees must stay excluded — we can't fix them.
+    expect(files.some((f) => f.includes("/vendor/"))).toBe(false);
+    expect(files.some((f) => f.includes("/node_modules/"))).toBe(false);
+    // The main web app views are still covered.
+    expect(files.some((f) => f.startsWith(`${VIEWS_REL}/`))).toBe(true);
+  });
 });
