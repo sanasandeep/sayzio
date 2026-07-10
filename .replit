@@ -180,6 +180,10 @@ args = "e2e-mobile-onboarding"
 task = "workflow.run"
 args = "e2e-mobile-drawer-signout"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "demo-login-email"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -627,6 +631,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:drawer-signout-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "demo-login-email"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:demo-login-email"
 
 [workflows.workflow.metadata]
 isValidation = true
