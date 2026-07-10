@@ -422,15 +422,24 @@ class AuthController extends Controller
                 $user = $this->createOtpSignupUser($request, $referrals, $identifier, $type);
                 $justSignedUp = true;
             } else {
-                // Sign-in intent for an unknown identifier stays
-                // enumeration-safe: create nothing and issue no code, but
-                // still show the branded upgrade page when registrations are
-                // paused (matching the prior behavior).
-                if (AuthMethods::registrationPaused()) {
-                    return response()->view('user.auth.registration-paused');
+                // For email OTP: auto-create happens at verify time, so always
+                // generate+send a code even for unknown identifiers. The
+                // registration-paused gate still runs at verify time, but we
+                // surface it here too so the user gets immediate feedback.
+                if ($type === 'email') {
+                    if (AuthMethods::registrationPaused()) {
+                        return response()->view('user.auth.registration-paused');
+                    }
+                    // Fall through to generate+send below.
+                } else {
+                    // WhatsApp sign-in intent for an unknown number stays
+                    // enumeration-safe: create nothing, issue no code.
+                    if (AuthMethods::registrationPaused()) {
+                        return response()->view('user.auth.registration-paused');
+                    }
+                    session(['otp_identifier' => $identifier, 'otp_type' => $type]);
+                    return redirect()->route('user.otp.verify.form')->with('status', 'If an account exists, an OTP has been sent to your ' . $type . '.');
                 }
-                session(['otp_identifier' => $identifier, 'otp_type' => $type]);
-                return redirect()->route('user.otp.verify.form')->with('status', 'If an account exists, an OTP has been sent to your ' . $type . '.');
             }
         }
 
@@ -542,17 +551,17 @@ class AuthController extends Controller
                 ->withErrors(['identifier' => 'Email one-time-code login is not available. Please sign in with your password.']);
         }
 
-        // Only generate/send when a real user matches the session identifier.
-        // Always show a generic success so we don't leak account existence.
+        // For email: always re-generate+send (account may be auto-created at
+        // verify time). For mobile: only generate when a real user exists.
         $user = $this->resolveUserByIdentifier($identifier, $type);
 
-        // Only reveal a code we actually generated below — the account-hiding
-        // branch (no $user) must never surface one.
         $reveal = null;
-        if ($user) {
+        if ($user || $type === 'email') {
             $otpService = new OtpService();
             $code = $otpService->generate($identifier, $type, 'login', 'web', $request->ip());
-            $reveal = AuthMethods::demoRevealMessage($code);
+            if ($user) {
+                $reveal = AuthMethods::demoRevealMessage($code);
+            }
             try {
                 if ($type === 'email') {
                     $otpService->sendEmail($identifier, $code);
@@ -611,6 +620,19 @@ class AuthController extends Controller
 
         $user = $this->resolveUserByIdentifier($identifier, $type);
 
+        // Email OTP doubles as sign-up: if no account exists for this
+        // verified email, auto-create a free account right now and mark the
+        // session so the mandatory name-entry form is shown before the app.
+        if (!$user && $type === 'email') {
+            if (AuthMethods::registrationPaused()) {
+                session()->forget(['otp_identifier', 'otp_type']);
+                return redirect()->route('user.login')
+                    ->withErrors(['code' => 'New registrations are currently paused.']);
+            }
+            $user = $this->createOtpSignupUser($request, app(ReferralService::class), $identifier, $type);
+            session(['auth_needs_name' => true]);
+        }
+
         if ($user && ($msg = $this->suspensionMessage($user))) {
             session()->forget(['otp_identifier', 'otp_type']);
             return redirect()->route('user.login')->withErrors(['email' => $msg]);
@@ -651,10 +673,45 @@ class AuthController extends Controller
             if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
                 return $redirect;
             }
+            if (session('auth_needs_name')) {
+                return redirect()->route('user.complete.profile');
+            }
             return redirect()->intended(route('user.dashboard'));
         }
 
         return redirect()->route('user.login')->withErrors(['code' => 'User not found.']);
+    }
+
+    /**
+     * Show the mandatory name-entry form for accounts that were auto-created
+     * via OTP or social sign-in (no name collected at sign-up time).
+     */
+    public function showCompleteProfile(Request $request)
+    {
+        if (!Auth::check()) {
+            return redirect()->route('user.login');
+        }
+        if (!session('auth_needs_name')) {
+            return redirect()->route('user.dashboard');
+        }
+        return view('user.auth.complete-profile');
+    }
+
+    /**
+     * Save the chosen display name and clear the gating session flag so the
+     * RequiresNameMiddleware stops intercepting this user's requests.
+     */
+    public function saveCompleteName(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|min:2|max:120',
+        ]);
+        /** @var User $user */
+        $user = Auth::user();
+        $user->update(['name' => $request->name]);
+        session()->forget('auth_needs_name');
+        return redirect()->intended(route('user.dashboard'))
+            ->with('success', 'Welcome to ' . config('app.name') . '!');
     }
 
     /**

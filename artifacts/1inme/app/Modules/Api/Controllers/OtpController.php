@@ -56,14 +56,18 @@ class OtpController extends Controller
             return $this->fail(AuthMethods::registrationPausedMessage(), 403, AuthMethods::ERROR_REGISTRATION_PAUSED);
         }
 
-        // Always issue + try to send when a real user exists. Generic
-        // success either way to avoid enumeration. Only a code we actually
-        // generated (real account) is ever eligible for demo reveal — the
-        // account-hiding branch must never surface one.
+        // For email: always generate and send a code even for unknown
+        // identifiers — the account is created automatically at verify time.
+        // For mobile (WhatsApp): only send when a real user exists (enumeration
+        // safety; WhatsApp accounts require an explicit sign-up intent via the
+        // /register endpoint).
+        // Demo reveal is only returned for codes issued to existing users.
         $reveal = null;
-        if ($user) {
+        if ($user || $data['type'] === 'email') {
             $code = $otp->generate($data['identifier'], $data['type'], 'login', 'web', $request->ip());
-            $reveal = AuthMethods::demoRevealMessage($code);
+            if ($user) {
+                $reveal = AuthMethods::demoRevealMessage($code);
+            }
             try {
                 $data['type'] === 'email'
                     ? $otp->sendEmail($data['identifier'], $code)
@@ -98,6 +102,30 @@ class OtpController extends Controller
         }
 
         $user = $this->resolve($data['identifier'], $data['type']);
+
+        // Email OTP doubles as sign-up: if no account exists for this email,
+        // auto-create a free account now so the user lands in the app without
+        // a separate registration step. A `needs_name` flag in the response
+        // tells the mobile client to show the mandatory name-entry modal.
+        $needsName = false;
+        if (!$user && $data['type'] === 'email') {
+            if (AuthMethods::registrationPaused()) {
+                return $this->fail(AuthMethods::registrationPausedMessage(), 403, AuthMethods::ERROR_REGISTRATION_PAUSED);
+            }
+            $freePlan = Plan::defaultPlan();
+            $user = User::create([
+                'name'     => Str::before($data['identifier'], '@') ?: 'Creator',
+                'email'    => strtolower($data['identifier']),
+                'password' => Hash::make(Str::random(48)),
+                'plan_id'  => $freePlan?->id,
+                'status'   => 'active',
+            ]);
+            if (method_exists($user, 'ensureDefaultWorkspace')) {
+                $user->ensureDefaultWorkspace();
+            }
+            $needsName = true;
+        }
+
         if (!$user) return $this->fail('No account found', 404, 'user_not_found');
 
         $newToken = \App\Modules\Api\Support\SessionTokenIssuer::issue(
@@ -116,8 +144,13 @@ class OtpController extends Controller
             now(),
         );
 
+        $userData = UserResource::toArray($user, self: true);
+        if ($needsName) {
+            $userData['needs_name'] = true;
+        }
+
         return $this->ok([
-            'user'  => UserResource::toArray($user, self: true),
+            'user'  => $userData,
             'token' => $newToken->plainTextToken,
         ]);
     }

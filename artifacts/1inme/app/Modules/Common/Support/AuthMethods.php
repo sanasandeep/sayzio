@@ -54,7 +54,7 @@ class AuthMethods
      * are created with a random, unused password).
      */
     public const DEFAULT_EMAIL_OTP_ENABLED      = true;
-    public const DEFAULT_EMAIL_PASSWORD_ENABLED = false;
+    public const DEFAULT_EMAIL_PASSWORD_ENABLED = true;
 
     /**
      * Whether a newly-registered user must verify their email (via the

@@ -175,30 +175,26 @@ ok("redirectAfterAuth lands on the /(tabs) dashboard when nothing is stashed");
 }
 ok("redirectAfterAuth honours a stashed in-app destination");
 
-// --- login screen wiring: "Demo as user" → demoLogin() → redirectAfterAuth ---
+// --- login screen wiring: demo buttons removed, password login added ---
+// The "Demo as user" button has been removed from the mobile login screen
+// (it was a dev helper not appropriate for real users). Neither demo variant
+// should appear. Password login is now the alternative to OTP.
 {
   assert.ok(
-    /label="Demo as user"/.test(loginSrc),
-    'the login screen must offer a "Demo as user" button',
+    !/label="Demo as user"/.test(loginSrc),
+    'the login screen must NOT offer a "Demo as user" button (removed per auth revamp)',
   );
   assert.ok(
     !/Demo as admin/i.test(loginSrc),
     'the login screen must NOT offer a "Demo as admin" button',
   );
-  // onDemo mints the session then hands off to redirectAfterAuth (the router
-  // takes the user to the standard dashboard).
-  const onDemo = loginSrc.match(/const onDemo = async \(\) => \{[\s\S]*?\n  \};/);
-  assert.ok(onDemo, "could not find onDemo in the login screen");
+  // Password login is now offered alongside OTP.
   assert.ok(
-    /await demoLogin\(\);/.test(onDemo[0]),
-    "onDemo must mint the session via the no-arg demoLogin()",
-  );
-  assert.ok(
-    /await redirectAfterAuth\(router\);/.test(onDemo[0]),
-    "onDemo must hand off to redirectAfterAuth so the user reaches the dashboard",
+    /loginWithPassword/.test(loginSrc),
+    "the login screen must expose password sign-in (loginWithPassword)",
   );
 }
-ok('the "Demo as user" button runs demoLogin() then redirectAfterAuth(router)');
+ok("demo buttons are gone from login screen; password login is present");
 
 // ===========================================================================
 // 2. No admin routes exist — any attempt to reach them 404s (+not-found).

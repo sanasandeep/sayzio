@@ -67,33 +67,34 @@ const barSrc = read("components", "FloatingTabBar.tsx");
     "the active circle's LinearGradient must use colors={colors.brandGradient}",
   );
 
-  // The circle style block must not carry a solid backgroundColor — that would
-  // mean the gradient was swapped for / masked by a flat fill.
-  const circleStyle = barSrc.match(/circle:\s*\{[\s\S]*?\}/);
-  assert.ok(circleStyle, "styles.circle block not found");
+  // The createCircle style block must not carry a solid backgroundColor — that
+  // would mean the gradient was swapped for / masked by a flat fill.
+  // Note: the style key is `createCircle` (the raised Create button circle).
+  const circleStyle = barSrc.match(/createCircle:\s*\{[\s\S]*?\}/);
+  assert.ok(circleStyle, "styles.createCircle block not found");
   assert.doesNotMatch(
     circleStyle[0],
     /backgroundColor/,
-    "styles.circle must not set a solid backgroundColor (gradient only)",
+    "styles.createCircle must not set a solid backgroundColor (gradient only)",
   );
   ok("active circle paints colors.brandGradient via LinearGradient, no solid fill");
 }
 
 // ---------------------------------------------------------------------------
-// 3. The circle keeps its animated scale-pop wiring (spring on circleScale).
+// 3. The tab bar keeps its Animated wiring (useAnimatedStyle + translateY).
 // ---------------------------------------------------------------------------
 {
   assert.match(
     barSrc,
-    /circleScale\.value\s*=\s*withSpring/,
-    "FloatingTabBar.tsx must animate circleScale with withSpring (scale pop)",
+    /useAnimatedStyle/,
+    "FloatingTabBar.tsx must use useAnimatedStyle for its animation",
   );
   assert.match(
     barSrc,
-    /transform:\s*\[\{\s*scale:\s*circleScale\.value\s*\}\]/,
-    "the circle's animated style must apply scale: circleScale.value",
+    /translateY(?:\.value)?/,
+    "the animated style must apply a translateY (autohide slide)",
   );
-  ok("active circle keeps its withSpring scale-pop animation wiring");
+  ok("tab bar keeps its Animated translateY autohide wiring");
 }
 
 // ---------------------------------------------------------------------------

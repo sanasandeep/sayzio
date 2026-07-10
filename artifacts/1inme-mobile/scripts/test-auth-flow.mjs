@@ -422,9 +422,16 @@ assert.ok(
   /router\.push\(\{[\s\S]*?pathname: "\/\(auth\)\/verify"/.test(loginSrc),
   "after sending, the screen must advance to the verify screen",
 );
+// Demo login has been removed from the mobile login screen (it's a dev
+// helper that should not be visible to real users). Verify it's gone.
 assert.ok(
-  /await demoLogin\(\)/.test(loginSrc),
-  "the demo button must mint a session via demoLogin",
+  !/await demoLogin\(\)/.test(loginSrc),
+  "the demo button must NOT be present in the login screen (removed per auth revamp)",
+);
+// Password login is now offered as an alternative to OTP.
+assert.ok(
+  /loginWithPassword/.test(loginSrc),
+  "the login screen must expose the password sign-in path (loginWithPassword)",
 );
 ok("login screen sends the OTP then advances to the verify step");
 

@@ -167,6 +167,16 @@ Route::prefix('user')->name('user.')->group(function () {
         ->middleware('throttle:600,1')
         ->name('notifications.email-verification-reminder.unsubscribe');
 
+    // Mandatory name-entry step for accounts auto-created via OTP or social
+    // sign-in. The RequiresNameMiddleware intercepts all user/* routes and
+    // redirects here while the `auth_needs_name` session flag is set.
+    Route::get('complete-profile', [AuthController::class, 'showCompleteProfile'])
+        ->middleware('auth')
+        ->name('complete.profile');
+    Route::post('complete-profile', [AuthController::class, 'saveCompleteName'])
+        ->middleware('auth')
+        ->name('complete.profile.save');
+
     Route::get('verify-email', [AuthController::class, 'showVerifyEmail'])->middleware('auth')->name('verification.notice');
     Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['auth', 'signed'])->name('verification.verify');
     Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])->middleware(['auth', 'throttle:6,1'])->name('verification.send');

@@ -133,8 +133,13 @@ class SocialAuthController extends Controller
             now(),
         );
 
+        $userData = UserResource::toArray($user, self: true);
+        if ($created) {
+            $userData['needs_name'] = true;
+        }
+
         return $this->ok([
-            'user'    => UserResource::toArray($user, self: true),
+            'user'    => $userData,
             'token'   => $newToken->plainTextToken,
             'created' => $created,
         ]);

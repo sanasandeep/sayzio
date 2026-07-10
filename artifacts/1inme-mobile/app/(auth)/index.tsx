@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
+import { MandatoryNameModal } from "@/components/MandatoryNameModal";
 import { RegistrationPausedNotice } from "@/components/RegistrationPausedNotice";
 import { SocialMergePrompt } from "@/components/SocialMergePrompt";
 import { TextField } from "@/components/TextField";
@@ -89,7 +90,7 @@ export default function AuthLanding() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const auth = useAuth();
-  const { sendOtp, demoLogin, socialLogin } = auth;
+  const { sendOtp, socialLogin, loginWithPassword } = auth;
 
   // When the OAuth return screen sends users here to fall back to email
   // (?method=email), default to the email tab and focus the field so the
@@ -112,7 +113,11 @@ export default function AuthLanding() {
     const idToken = googleResponse.params?.id_token;
     if (!idToken) return;
     socialLogin({ provider: "google", id_token: idToken })
-      .then(async () => {
+      .then(async ({ needsName }) => {
+        if (needsName) {
+          setShowNameModal(true);
+          return;
+        }
         await redirectAfterAuth(router);
         maybeOfferBiometricEnrollment(auth);
       })
@@ -148,6 +153,9 @@ export default function AuthLanding() {
   // Set to the provider name when a social sign-in hits an account conflict
   // (`identity_taken`); drives the inline "merge accounts?" prompt.
   const [mergeProvider, setMergeProvider] = useState<string | null>(null);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<"otp" | "password">("otp");
+  const [password, setPassword] = useState("");
 
   // Login-method policy: email is always available; WhatsApp (mobile) login
   // is behind an admin toggle with an allowed-country-code list. Default to
@@ -246,15 +254,23 @@ export default function AuthLanding() {
     }
   };
 
-  const onDemo = async () => {
-    setBusy("demo-user");
+  const onLoginWithPw = async () => {
+    const email = identifier.trim();
+    if (!email) { setError("Enter your email"); return; }
+    const pw = password.trim();
+    if (!pw) { setError("Enter your password"); return; }
+    setBusy("pw-login");
     setError(null);
     try {
-      await demoLogin();
+      await loginWithPassword({ email, password: pw });
       await redirectAfterAuth(router);
       maybeOfferBiometricEnrollment(auth);
     } catch (e) {
-      setError((e as ApiError)?.message ?? "Demo unavailable");
+      const err = e as ApiError;
+      let msg = err?.message ?? "Sign-in failed";
+      if (err?.status === 401 || err?.status === 422) msg = "Incorrect email or password.";
+      if (err?.status === 429) msg = "Too many attempts — wait a minute and try again.";
+      setError(msg);
     } finally {
       setBusy(null);
     }
@@ -351,7 +367,7 @@ export default function AuthLanding() {
         contentContainerStyle={[
           styles.scroll,
           {
-            paddingTop: insets.top + 16 + webTop,
+            paddingTop: insets.top + 36 + webTop,
             paddingBottom: insets.bottom + 32 + webBottom,
           },
         ]}
@@ -386,6 +402,8 @@ export default function AuthLanding() {
                   setChannel(c);
                   setIdentifier("");
                   setError(null);
+                  setLoginMethod("otp");
+                  setPassword("");
                 }}
                 style={[
                   styles.tab,
@@ -419,17 +437,62 @@ export default function AuthLanding() {
           keyboardType={channel === "email" ? "email-address" : "phone-pad"}
           value={identifier}
           onChangeText={setIdentifier}
-          error={error ?? undefined}
+          error={loginMethod === "otp" ? (error ?? undefined) : undefined}
         />
 
+        {channel === "email" && loginMethod === "password" ? (
+          <>
+            <View style={{ height: 12 }} />
+            <TextField
+              label="Password"
+              placeholder="Your password"
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={password}
+              onChangeText={setPassword}
+              error={error ?? undefined}
+            />
+          </>
+        ) : null}
+
         <View style={{ height: 12 }} />
-        <Button
-          label="Send code"
-          variant="cta"
-          onPress={onSendOtp}
-          loading={busy === "otp"}
-          disabled={!!busy && busy !== "otp"}
-        />
+        {channel === "email" && loginMethod === "password" ? (
+          <Button
+            label="Sign in"
+            variant="cta"
+            onPress={onLoginWithPw}
+            loading={busy === "pw-login"}
+            disabled={!!busy && busy !== "pw-login"}
+          />
+        ) : (
+          <Button
+            label="Send code"
+            variant="cta"
+            onPress={onSendOtp}
+            loading={busy === "otp"}
+            disabled={!!busy && busy !== "otp"}
+          />
+        )}
+
+        {channel === "email" ? (
+          <Pressable
+            {...WEB_FOCUS_RING_PROPS}
+            onPress={() => {
+              setLoginMethod((m) => (m === "otp" ? "password" : "otp"));
+              setError(null);
+              setPassword("");
+            }}
+            hitSlop={8}
+            style={{ alignItems: "center", paddingVertical: 8 }}
+          >
+            <Text style={[styles.methodToggle, { color: colors.primary }]}>
+              {loginMethod === "otp"
+                ? "Sign in with password instead"
+                : "Get a one-time code instead"}
+            </Text>
+          </Pressable>
+        ) : null}
 
         <View style={styles.divider}>
           <View style={[styles.line, { backgroundColor: colors.border }]} />
@@ -480,22 +543,6 @@ export default function AuthLanding() {
           />
         ) : null}
 
-        <View style={{ height: 28 }} />
-
-        <Text style={[styles.section, { color: colors.mutedForeground }]}>
-          Just exploring?
-        </Text>
-        <View style={styles.demoRow}>
-          <Button
-            label="Demo as user"
-            variant="secondary"
-            onPress={() => onDemo()}
-            loading={busy === "demo-user"}
-            disabled={!!busy && busy !== "demo-user"}
-            style={{ flex: 1 }}
-          />
-        </View>
-
         <View style={{ height: 24 }} />
         <View style={styles.infoLinks}>
           <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => router.push("/info/about")} hitSlop={8}>
@@ -528,6 +575,15 @@ export default function AuthLanding() {
           By continuing you agree to our Terms and Privacy Policy.
         </Text>
       </ScrollView>
+
+      <MandatoryNameModal
+        visible={showNameModal}
+        onSaved={async () => {
+          setShowNameModal(false);
+          await redirectAfterAuth(router);
+          maybeOfferBiometricEnrollment(auth);
+        }}
+      />
     </View>
   );
 }
@@ -576,7 +632,11 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginBottom: 12,
   },
-  demoRow: { flexDirection: "row", gap: 12 },
+  methodToggle: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 13,
+    textDecorationLine: "underline",
+  },
   infoLinks: {
     flexDirection: "row",
     flexWrap: "wrap",

@@ -140,6 +140,7 @@ class SocialOAuthController extends Controller
             // account is auto-linked to it, otherwise a fresh free-plan
             // account is created. Either way the social identity is then
             // bound so subsequent sign-ins resolve straight to the account.
+            $justCreated = false;
             if (! $user && $email) {
                 $user = LinkedIdentifier::resolveUser('email', $email)
                     ?: User::where('email', $email)->first();
@@ -166,6 +167,7 @@ class SocialOAuthController extends Controller
                     if (method_exists($user, 'ensureDefaultWorkspace')) {
                         $user->ensureDefaultWorkspace();
                     }
+                    $justCreated = true;
                 }
 
                 // Bind the social identity to the resolved/created account.
@@ -217,10 +219,11 @@ class SocialOAuthController extends Controller
                 );
                 $token = $newToken->plainTextToken;
                 $payload = json_encode([
-                    'id'     => $user->id,
-                    'name'   => $user->name,
-                    'email'  => $user->email,
-                    'avatar' => $user->avatar ?? null,
+                    'id'         => $user->id,
+                    'name'       => $user->name,
+                    'email'      => $user->email,
+                    'avatar'     => $user->avatar ?? null,
+                    'needs_name' => $justCreated,
                 ], JSON_UNESCAPED_SLASHES);
                 $qs = http_build_query([
                     'token'    => $token,
@@ -230,6 +233,9 @@ class SocialOAuthController extends Controller
                 return redirect()->away($mobileReturn . '?' . $qs);
             }
 
+            if ($justCreated) {
+                session(['auth_needs_name' => true]);
+            }
             Auth::login($user, true);
             $request->session()->regenerate();
 
@@ -245,6 +251,9 @@ class SocialOAuthController extends Controller
 
             if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
                 return $redirect;
+            }
+            if (session('auth_needs_name')) {
+                return redirect()->route('user.complete.profile');
             }
             return redirect()->intended(route('user.dashboard'));
         }

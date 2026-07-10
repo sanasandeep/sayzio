@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { MandatoryNameModal } from "@/components/MandatoryNameModal";
 import { RegistrationPausedNotice } from "@/components/RegistrationPausedNotice";
 import { SocialMergePrompt } from "@/components/SocialMergePrompt";
 import { useAuth, type AuthUser } from "@/contexts/AuthContext";
@@ -56,6 +57,7 @@ export default function OAuthCallback() {
   // Set to the provider name when the social identity already belongs to a
   // different Sayzio account (`identity_taken`); drives the merge prompt.
   const [mergeProvider, setMergeProvider] = useState<string | null>(null);
+  const [showNameModal, setShowNameModal] = useState(false);
   const ran = useRef(false);
 
   useEffect(() => {
@@ -113,6 +115,10 @@ export default function OAuthCallback() {
       }
       applySession(token, user)
         .then(async () => {
+          if (user.needs_name) {
+            setShowNameModal(true);
+            return;
+          }
           await redirectAfterAuth(router);
           maybeOfferBiometricEnrollment(auth);
         })
@@ -136,7 +142,11 @@ export default function OAuthCallback() {
         id_token: idToken,
         access_token: accessToken,
       })
-        .then(async () => {
+        .then(async ({ needsName }) => {
+          if (needsName) {
+            setShowNameModal(true);
+            return;
+          }
           await redirectAfterAuth(router);
           maybeOfferBiometricEnrollment(auth);
         })
@@ -224,6 +234,15 @@ export default function OAuthCallback() {
           </Text>
         </>
       )}
+
+      <MandatoryNameModal
+        visible={showNameModal}
+        onSaved={async () => {
+          setShowNameModal(false);
+          await redirectAfterAuth(router);
+          maybeOfferBiometricEnrollment(auth);
+        }}
+      />
     </View>
   );
 }

@@ -54,6 +54,9 @@ export type AuthUser = {
     marketing_strategist?: boolean;
     [key: string]: boolean | undefined;
   };
+  // Set only on the first response after account auto-creation (OTP or social
+  // sign-in for an unknown email). Drives the mandatory name-entry modal.
+  needs_name?: boolean;
 };
 
 type AuthState = {
@@ -87,12 +90,16 @@ type Ctx = AuthState & {
     channel: "email" | "mobile";
     identifier: string;
     code: string;
-  }) => Promise<void>;
+  }) => Promise<{ needsName: boolean }>;
   demoLogin: () => Promise<void>;
   socialLogin: (input: {
     provider: "google" | "apple";
     id_token?: string;
     access_token?: string;
+  }) => Promise<{ needsName: boolean }>;
+  loginWithPassword: (input: {
+    email: string;
+    password: string;
   }) => Promise<void>;
   enableBiometricUnlock: () => Promise<
     { ok: true } | { ok: false; reason: string; message?: string }
@@ -412,6 +419,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Sign-in response was missing a token or user.");
       }
       await applySession(token, user);
+      return { needsName: !!user.needs_name };
     },
     [applySession],
   );
@@ -434,6 +442,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [applySession],
   );
 
+  const loginWithPassword = useCallback(
+    async (input: { email: string; password: string }) => {
+      const res = await apiFetch<{
+        data?: { token: string; user: AuthUser };
+        token?: string;
+        user?: AuthUser;
+      } | null>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
+      const token = res?.data?.token ?? res?.token;
+      const user = res?.data?.user ?? res?.user;
+      if (!token || !user) {
+        throw new Error("Sign-in response was missing a token or user.");
+      }
+      await applySession(token, user);
+    },
+    [applySession],
+  );
+
   const socialLogin = useCallback(
     async (input: {
       provider: "google" | "apple";
@@ -451,6 +479,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Social sign-in response was missing a token or user.");
       }
       await applySession(token, user);
+      return { needsName: !!user.needs_name };
     },
     [applySession],
   );
@@ -546,6 +575,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       verifyOtp,
       demoLogin,
       socialLogin,
+      loginWithPassword,
       enableBiometricUnlock,
       disableBiometricUnlock,
       unlockWithBiometrics,
@@ -565,6 +595,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       verifyOtp,
       demoLogin,
       socialLogin,
+      loginWithPassword,
       enableBiometricUnlock,
       disableBiometricUnlock,
       unlockWithBiometrics,

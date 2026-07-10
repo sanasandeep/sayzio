@@ -110,6 +110,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Modules\Common\Middleware\BlockReadonlyDemoWrites::class,
         ]);
 
+        $middleware->web(append: [
+            \App\Modules\User\Middleware\RequiresNameMiddleware::class,
+        ]);
+
         $middleware->alias([
             'onboarding.gate'   => \App\Modules\User\Middleware\RedirectToOnboarding::class,
             'api.optional_auth' => \App\Modules\Api\Middleware\OptionalSanctum::class,
