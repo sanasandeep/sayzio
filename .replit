@@ -200,6 +200,10 @@ args = "e2e-mobile-drawer-focus-ring"
 task = "workflow.run"
 args = "e2e-mobile-form-focus-ring"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "alpine-line-comments"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -705,6 +709,17 @@ args = "pnpm --filter @workspace/1inme-mobile run test:form-focus-ring-e2e"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "alpine-line-comments"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:alpine-line-comments"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"

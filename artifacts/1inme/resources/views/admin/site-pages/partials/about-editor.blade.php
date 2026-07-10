@@ -326,7 +326,7 @@
                 this.overIndex = i;
                 if (ev.dataTransfer) {
                     ev.dataTransfer.effectAllowed = 'move';
-                    // Some browsers require setData() for drag to actually start.
+                    /* Some browsers require setData() for drag to actually start. */
                     try { ev.dataTransfer.setData('text/plain', String(i)); } catch(_) {}
                 }
             },

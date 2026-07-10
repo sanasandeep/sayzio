@@ -14,6 +14,7 @@
     "check:ci-passthrough-names": "tsx ./src/check-ci-passthrough-names.ts",
     "check:blade-comment-echo": "tsx ./src/check-blade-comment-echo.ts",
     "check:blade-json-in-attr": "tsx ./src/check-blade-json-in-attr.ts",
+    "check:alpine-line-comments": "tsx ./src/check-alpine-line-comments.ts",
     "check:demo-login-email": "tsx ./src/check-demo-login-email.ts",
     "check:mobile-auth-providers": "tsx ./src/check-mobile-auth-providers.ts",
     "check:fontawesome-loader": "tsx ./src/check-fontawesome-loader.ts",

@@ -7,8 +7,8 @@
         switchCurrency(c){
             if (this.currency === c) return;
             this.currency = c;
-            // Persist the choice (session + cookie + profile) in the
-            // background — the UI has already re-rendered, so we never block.
+            /* Persist the choice (session + cookie + profile) in the
+               background — the UI has already re-rendered, so we never block. */
             const url = '{{ route('upgrade.public.switch-currency') }}';
             const token = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
             const data = new FormData();

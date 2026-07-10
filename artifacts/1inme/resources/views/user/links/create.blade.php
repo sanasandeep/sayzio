@@ -144,8 +144,8 @@
           @voice-action.window="
               if ($event.detail && $event.detail.type === 'select_link_type' && $event.detail.link_type) {
                   type = $event.detail.link_type;
-                  // requestSubmit() (not submit()) so the alias guard and native
-                  // validation still run on the voice-driven path.
+                  /* requestSubmit() (not submit()) so the alias guard and native
+                     validation still run on the voice-driven path. */
                   $nextTick(() => ($el.requestSubmit ? $el.requestSubmit() : $el.submit()));
               }
           ">

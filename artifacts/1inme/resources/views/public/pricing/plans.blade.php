@@ -448,20 +448,20 @@
             return r && r.formatted ? r.formatted : '—';
         },
         intro(plan){
-            // First-term introductory discount for the active currency +
-            // cycle (null when none applies). Drives the struck-through
-            // normal price, the discounted headline and the savings badge.
+            /* First-term introductory discount for the active currency +
+               cycle (null when none applies). Drives the struck-through
+               normal price, the discounted headline and the savings badge. */
             const block = this.cur(plan);
             const r = this.cycle === 'annual' ? block.annual : block.monthly;
             return (r && r.intro) ? r.intro : null;
         },
         priceSize(plan){
-            // The headline price uses a fluid (clamped) base size, but very
-            // long currency strings — notably INR per-month amounts —
-            // still need to step down a notch (or two) so they never run
-            // past the card edge. On annual we measure the per-month string
-            // (that's what's shown as the headline); on monthly we measure
-            // the monthly price. Reactive on currency + cycle.
+            /* The headline price uses a fluid (clamped) base size, but very
+               long currency strings — notably INR per-month amounts —
+               still need to step down a notch (or two) so they never run
+               past the card edge. On annual we measure the per-month string
+               (that's what's shown as the headline); on monthly we measure
+               the monthly price. Reactive on currency + cycle. */
             const s = (this.cycle === 'annual' && this.hasAnnual(plan)
                 ? this.perMonth(plan)
                 : (this.money(plan, this.cycle) || '')
@@ -483,26 +483,26 @@
                 .toLocaleString(undefined, { style: 'currency', currency: a.currency || this.currency });
         },
         introPerMonth(plan){
-            // Effective per-month of the discounted first-year intro price.
+            /* Effective per-month of the discounted first-year intro price. */
             const i = this.intro(plan);
             if (!i) return '';
             return (Number(i.first_minor) / 12 / 100)
                 .toLocaleString(undefined, { style: 'currency', currency: this.currency });
         },
         introNormalPerMonth(plan){
-            // Per-month of the normal (non-discounted) annual price shown as
-            // the struck-through "Was" and the renewal rate on intro cards.
+            /* Per-month of the normal (non-discounted) annual price shown as
+               the struck-through "Was" and the renewal rate on intro cards. */
             const i = this.intro(plan);
             if (!i) return '';
             return (Number(i.normal_minor) / 12 / 100)
                 .toLocaleString(undefined, { style: 'currency', currency: this.currency });
         },
         billingNote(plan){
-            // Fineprint under the big price.
-            // Annual: headline is per-month, so fineprint shows the annual
-            // total (what's actually charged) and the higher month-to-month
-            // rate so the saving is obvious.
-            // Monthly: tease the cheaper annual per-month equivalent.
+            /* Fineprint under the big price.
+               Annual: headline is per-month, so fineprint shows the annual
+               total (what's actually charged) and the higher month-to-month
+               rate so the saving is obvious.
+               Monthly: tease the cheaper annual per-month equivalent. */
             const monthly = this.money(plan, 'monthly');
             if (this.cycle === 'annual' && this.hasAnnual(plan)) {
                 const annualTotal = this.money(plan, 'annual');
@@ -527,8 +527,8 @@
             if (this.currency === c) return;
             this.currency = c;
             this.priceKey++;
-            // Persist the choice (session + cookie + user preference) in the
-            // background — the UI has already re-rendered, so we never block on it.
+            /* Persist the choice (session + cookie + user preference) in the
+               background — the UI has already re-rendered, so we never block on it. */
             const url = '{{ route('upgrade.public.switch-currency') }}';
             const token = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
             const data = new FormData();
@@ -545,9 +545,9 @@
             } catch (e) { /* swallow — UX must not depend on persistence */ }
         },
         rememberCycle(c){
-            // Persist the chosen cycle server-side so a refresh, menu
-            // navigation, or return visit lands on the same toggle.
-            // Best-effort — we never block the UI on the response.
+            /* Persist the chosen cycle server-side so a refresh, menu
+               navigation, or return visit lands on the same toggle.
+               Best-effort — we never block the UI on the response. */
             const url = '{{ route('site.pricing.cycle') }}';
             const token = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
             const data = new FormData();
@@ -577,9 +577,9 @@
     }"
     x-init="
         $watch('cycle', (val) => { priceKey++; rememberCycle(val); });
-        // Coin packages no longer live behind a tab toggle; instead
-        // we fire the marketing event when the coins section either
-        // is the deep-linked target on load or scrolls into view.
+        /* Coin packages no longer live behind a tab toggle; instead
+           we fire the marketing event when the coins section either
+           is the deep-linked target on load or scrolls into view. */
         const fireOnceCoins = (() => { let fired = false; return () => { if (!fired) { fired = true; trackCoinsView(); } }; })();
         if (window.location.hash === '#coins') { fireOnceCoins(); }
         const coinsEl = document.getElementById('coins');

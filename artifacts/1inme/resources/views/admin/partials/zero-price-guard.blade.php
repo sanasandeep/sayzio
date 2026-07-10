@@ -42,8 +42,8 @@
         },
         proceed() {
             this.open = false;
-            // Native submit() bypasses the submit-event listener above, so this
-            // saves without re-triggering the guard.
+            /* Native submit() bypasses the submit-event listener above, so this
+               saves without re-triggering the guard. */
             this.form.submit();
         },
     }"

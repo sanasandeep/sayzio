@@ -36,10 +36,10 @@
         openPreview(url, name) { this.previewDevice = 'phone'; this.preview = { open: true, url: url, name: name }; },
         closePreview() { this.preview = { open: false, url: '', name: '' }; },
         templates: {{ \Illuminate\Support\Js::from($filterIndex) }},
-        // Single source of truth for whether a template passes the active
-        // category + search filter. Used by both the per-card x-show and the
-        // visibleCount accessor below so the two can never drift apart.
-        // `text` should already be lowercased by the server-side index.
+        /* Single source of truth for whether a template passes the active
+           category + search filter. Used by both the per-card x-show and the
+           visibleCount accessor below so the two can never drift apart.
+           `text` should already be lowercased by the server-side index. */
         matches(category, text) {
             return (this.category === 'all' || this.category === category) &&
                 (this.search === '' || text.includes(this.search.toLowerCase()));
@@ -47,14 +47,14 @@
         get visibleCount() {
             return this.templates.filter(t => this.matches(t.category, t.text)).length;
         },
-        // Wrap occurrences of the active search term inside `text` in a
-        // <mark> tag so the picker shows *why* a card matched. HTML-escapes
-        // surrounding text and the matched slice to keep admin-authored
-        // names/descriptions safe from injection. Falls back to the plain
-        // (escaped) string when the search box is empty. The wrapping mark
-        // uses a single class (.tpl-mark, defined in the <style> block
-        // below) so we don't need quoted attributes inside this
-        // double-quoted x-data expression.
+        /* Wrap occurrences of the active search term inside `text` in a
+           <mark> tag so the picker shows *why* a card matched. HTML-escapes
+           surrounding text and the matched slice to keep admin-authored
+           names/descriptions safe from injection. Falls back to the plain
+           (escaped) string when the search box is empty. The wrapping mark
+           uses a single class (.tpl-mark, defined in the <style> block
+           below) so we don't need quoted attributes inside this
+           double-quoted x-data expression. */
         highlight(text) {
             const raw = text == null ? '' : String(text);
             const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
