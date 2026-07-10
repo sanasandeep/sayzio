@@ -192,6 +192,10 @@ args = "e2e-mobile-tabbar"
 task = "workflow.run"
 args = "mobile-auth-providers"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-wordmark"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -672,6 +676,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:mobile-auth-providers"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-wordmark"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:wordmark-legibility-e2e"
 
 [workflows.workflow.metadata]
 isValidation = true

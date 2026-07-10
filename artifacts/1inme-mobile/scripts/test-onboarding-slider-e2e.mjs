@@ -38,6 +38,7 @@ import {
   STEP_TIMEOUT_MS,
 } from "./check-icon-fonts.mjs";
 import { createExpoServerManager } from "./expo-web-server.mjs";
+import { assertWordmarkWhiteVariant } from "./lib/wordmark-variant.mjs";
 
 function log(...args) {
   console.log("[onboarding-slider-e2e]", ...args);
@@ -191,57 +192,11 @@ async function prepareContext(browser, colorScheme) {
   return context;
 }
 
-// Prove the onboarding top-bar wordmark resolves to the WHITE (dark-background)
-// PNG — `wordmark-white-text.png` — and never the dark-text variant. This guards
-// the `forceVariant="dark-bg"` prop on <BrandWordmark>: if it's removed or the
-// forceVariant branch is short-circuited, a light-mode device would render the
-// dark-text logo, which is invisible on the dark top bar. On Expo web the
-// bundled require() resolves to a URL that keeps the original filename, so we
-// scan every <img src>/currentSrc and CSS background-image for the two names.
-async function assertWordmarkWhiteVariant(page, label) {
-  const hits = await page.evaluate(() => {
-    const found = { white: false, darkText: false, srcs: [] };
-    const scan = (val) => {
-      if (!val) return;
-      let d = val;
-      try {
-        d = decodeURIComponent(val);
-      } catch {}
-      if (d.includes("wordmark-white-text")) {
-        found.white = true;
-        found.srcs.push(d);
-      }
-      if (d.includes("wordmark-dark-text")) {
-        found.darkText = true;
-        found.srcs.push(d);
-      }
-    };
-    document.querySelectorAll("img").forEach((img) => {
-      scan(img.getAttribute("src"));
-      scan(img.currentSrc);
-    });
-    document.querySelectorAll("*").forEach((el) => {
-      const bg = window.getComputedStyle(el).backgroundImage;
-      if (bg && bg !== "none") scan(bg);
-    });
-    return found;
-  });
-
-  if (!hits.white) {
-    fail(
-      `${label}: white/dark-bg wordmark (wordmark-white-text.png) not found ` +
-        `in the DOM; srcs=${JSON.stringify(hits.srcs)}`,
-    );
-  }
-  if (hits.darkText) {
-    fail(
-      `${label}: dark-text wordmark (wordmark-dark-text.png) rendered — it is ` +
-        `invisible on the dark top bar; srcs=${JSON.stringify(hits.srcs)}`,
-    );
-  }
-  log(`${label}: brand wordmark resolved to the white/dark-bg variant`);
-}
-
+// The onboarding top-bar wordmark must resolve to the WHITE (dark-background)
+// PNG even in light mode (the forceVariant="dark-bg" guard). The reusable
+// assertion lives in ./lib/wordmark-variant.mjs and is shared with the
+// sign-in / setup wordmark-legibility e2e; here we bind it to this module's
+// fail/log reporters.
 async function run() {
   const { acquireServer } = createExpoServerManager(log);
   const server = await acquireServer("onboarding", process.env.APP_URL);
@@ -350,10 +305,11 @@ async function run() {
           .getByText(SLIDE_ONE_CATEGORY, { exact: true })
           .first()
           .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
-        await assertWordmarkWhiteVariant(
-          themePage,
-          `top-bar wordmark (${scheme} scheme)`,
-        );
+        await assertWordmarkWhiteVariant(themePage, {
+          label: `top-bar wordmark (${scheme} scheme)`,
+          fail,
+          log,
+        });
       } finally {
         await themeCtx.close().catch(() => {});
       }
