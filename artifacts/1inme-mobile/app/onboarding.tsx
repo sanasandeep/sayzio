@@ -769,7 +769,7 @@ export default function Onboarding() {
           { paddingTop: insets.top + 16 + webTop, paddingHorizontal: 24 },
         ]}
       >
-        <BrandWordmark size={28} />
+        <BrandWordmark size={28} forceVariant="dark-bg" />
         <Text accessibilityRole="button" onPress={skip} style={styles.skip}>
           Skip
         </Text>

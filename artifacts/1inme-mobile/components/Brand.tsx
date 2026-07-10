@@ -11,10 +11,17 @@ const wordmarkDark = require("../assets/images/wordmark-white-text.png");
 export function BrandWordmark({
   size = 36,
   align = "left",
+  forceVariant,
 }: {
   size?: number;
   /** Horizontal alignment within the parent container. */
   align?: "left" | "center" | "right";
+  /**
+   * When set, overrides the system color-scheme for logo selection.
+   * - `"dark-bg"` — always use the white wordmark (for dark backgrounds).
+   * Use `undefined` (default) to keep the normal theme-adaptive behavior.
+   */
+  forceVariant?: "dark-bg";
 }) {
   const scheme = useColorScheme();
   const [remote, setRemote] = useState<{
@@ -34,7 +41,7 @@ export function BrandWordmark({
     };
   }, []);
 
-  const isDark = scheme === "dark";
+  const isDark = forceVariant === "dark-bg" ? true : scheme === "dark";
   // Admin logo wins when available; bundled PNG is the offline/unset fallback.
   const remoteUri = isDark ? remote?.dark : remote?.light;
   const fallback = isDark ? wordmarkDark : wordmarkLight;
