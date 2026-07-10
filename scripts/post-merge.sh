@@ -3,6 +3,30 @@ set -e
 
 pnpm install --frozen-lockfile
 
+# Blade/Alpine attribute guards — enforced on EVERY merge, not just when someone
+# remembers to run the manual validation workflow.
+#
+# These are fast, static, read-only scans over artifacts/1inme/resources/views.
+# They catch a class of bug that compiles and typechecks fine but silently breaks
+# whole Alpine components at runtime (dashboard, template picker, etc.):
+#   - alpine-line-comments: `//` line comments inside a double-quoted Alpine
+#     attribute expression (x-data/x-init/x-*/@*/:*). The browser flattens the
+#     attribute to one line, so `//` swallows the rest — including closing ) / } —
+#     throwing "Alpine Expression Error: Unexpected token" and killing the whole
+#     component's bindings.
+#   - blade-json-in-attr: `@json(` inside a double-quoted attribute (emits literal
+#     quotes that truncate x-data/@click and silently kill Alpine).
+#   - blade-comment-echo: live {{ }} / {!! !!} echoes inside plain HTML/CSS comments.
+#
+# They run BEFORE the slow RDS schema sync so a broken merge fails fast, and they
+# are deliberately FATAL (no `|| echo`): the whole point is that they can never be
+# skipped. If one trips, post-merge fails loudly, the offender is fixed, and the
+# idempotent steps below re-run cleanly on the next attempt.
+echo "running blade/alpine attribute guards..."
+pnpm --filter @workspace/scripts run check:alpine-line-comments
+pnpm --filter @workspace/scripts run check:blade-json-in-attr
+pnpm --filter @workspace/scripts run check:blade-comment-echo
+
 # Apply the api-server's drizzle schema. We use the NON-force `push` on purpose:
 # drizzle.config.ts restricts drizzle-kit to the dedicated `drizzle` Postgres
 # schema (schemaFilter: ["drizzle"], declared via pgSchema("drizzle")), so a push
