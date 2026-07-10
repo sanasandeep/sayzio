@@ -35,6 +35,7 @@
       "package": "com.oneinme.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon-foreground.png",
+        "monochromeImage": "./assets/images/icon-monochrome.png",
         "backgroundColor": "#140a32"
       },
       "permissions": [
