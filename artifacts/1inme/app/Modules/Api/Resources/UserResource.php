@@ -13,6 +13,9 @@ class UserResource
             'name'            => $u->name,
             'handle'          => $u->handle,
             'avatar'          => $u->avatar,
+            // Resolved avatar: Google photo → Gravatar → placeholder. Kept
+            // alongside the raw `avatar` field for backward compatibility.
+            'avatar_url'      => $u->resolveAvatarUrl(),
             'bio'             => $u->bio,
             'discoverable'    => (bool) $u->discoverable,
             'allow_followers' => (bool) $u->allow_followers,

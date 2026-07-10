@@ -547,6 +547,46 @@ class User extends Authenticatable
         return mb_strtoupper($a . $b) ?: '?';
     }
 
+    /**
+     * Resolve the best available avatar URL for this user in priority order:
+     *
+     * 1. Custom uploaded avatar stored in users.avatar (also covers Google/social
+     *    photos stored there at OAuth sign-up, which are the user's real photos).
+     * 2. A connected Google social account photo from SocialAccountConnection
+     *    (for users who linked Google via Connected Accounts after sign-up).
+     * 3. Gravatar for this email — the Gravatar `d=` parameter points at the
+     *    bundled placeholder image so both the Gravatar tier and the placeholder
+     *    tier are resolved in a single HTTP request: real Gravatar photo if one
+     *    exists, otherwise the placeholder image.
+     */
+    public function resolveAvatarUrl(): string
+    {
+        // 1. Custom uploaded avatar or social-OAuth photo already stored on the
+        //    user record (never a Gravatar URL, which is always built dynamically).
+        if (!empty($this->avatar) && !str_contains((string) $this->avatar, 'gravatar.com')) {
+            return (string) $this->avatar;
+        }
+
+        // 2. Connected Google social account photo (ignore null/empty rows so
+        //    an empty avatar_url never shadows the Gravatar/placeholder fallback).
+        $googleConn = \App\Modules\User\Models\SocialAccountConnection::where('user_id', $this->id)
+            ->where('platform', 'google')
+            ->whereNotNull('avatar_url')
+            ->where('avatar_url', '!=', '')
+            ->orderByDesc('id')
+            ->first();
+        if ($googleConn && trim((string) $googleConn->avatar_url) !== '') {
+            return (string) $googleConn->avatar_url;
+        }
+
+        // 3. Gravatar with the bundled placeholder as the fallback default so
+        //    both tiers (real Gravatar photo / placeholder) resolve in one request.
+        $hash        = md5(strtolower(trim((string) ($this->email ?? ''))));
+        $placeholder = url('images/avatar-placeholder.svg');
+        return 'https://www.gravatar.com/avatar/' . $hash
+            . '?d=' . urlencode($placeholder) . '&s=160&r=g';
+    }
+
     public function publicHandle(): string
     {
         return $this->handle ?: ('user' . $this->id);

@@ -1154,7 +1154,7 @@
                 <div class="flex items-center" :class="sidebarMode === 'icons' ? 'justify-center' : 'gap-3'">
                     <div class="user-avatar-ring flex-shrink-0">
                         <div class="inner">
-                            <img src="https://www.gravatar.com/avatar/{{ md5(strtolower(trim(auth()->user()->email))) }}?d=mp&s=80"
+                            <img src="{{ auth()->user()->resolveAvatarUrl() }}"
                                  alt="{{ auth()->user()->name }}"
                                  class="w-full h-full rounded-[10px] object-cover"
                                  onerror="this.style.display='none';this.parentNode.textContent='{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}';">
