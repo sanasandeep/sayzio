@@ -163,6 +163,24 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+// ── Web keyboard focus indicator (:focus-visible ring) ────────────────────
+// Every drawer control (nav items, close, workspace switcher, theme buttons,
+// sign out) renders as a React Native Web <div>/Pressable, which has NO default
+// focus outline — so a sighted keyboard user tabbing through the drawer can't
+// see where focus currently is. We tag each focusable control with
+// `data-drawer-focusable` (via RNW's `dataSet`, which forwards to the DOM node
+// as data-* attributes) and inject a one-time global stylesheet that paints an
+// on-brand focus ring — scoped to `:focus-visible` so it ONLY appears for
+// keyboard focus, never on mouse/touch press. The ring colour tracks the
+// theme's primary (blue) via a CSS custom property so it stays correct in light
+// + dark. Mirrors the FloatingTabBar treatment for consistent keyboard a11y
+// across the whole mobile-web navigation. Native (iOS/Android): this object is
+// null and nothing is added.
+const WEB_FOCUS_RING_PROPS =
+  Platform.OS === "web"
+    ? ({ dataSet: { drawerFocusable: "true" } } as object)
+    : null;
+
 const THEME_OPTIONS: {
   value: ThemePref;
   label: string;
@@ -227,6 +245,7 @@ function WorkspaceSwitcherBlock({
           },
         ]}
         accessibilityLabel={`Active workspace: ${activeWorkspace.name}. Tap to switch.`}
+        {...WEB_FOCUS_RING_PROPS}
       >
         <View
           style={[
@@ -299,6 +318,7 @@ function WorkspaceSwitcherBlock({
                     borderRadius: 10,
                   },
                 ]}
+                {...WEB_FOCUS_RING_PROPS}
               >
                 <View
                   style={[
@@ -399,6 +419,7 @@ function ThemeToggleBlock({
               ]}
               accessibilityLabel={`Theme: ${opt.label}`}
               accessibilityState={{ selected: active }}
+              {...WEB_FOCUS_RING_PROPS}
             >
               <Feather
                 name={opt.icon}
@@ -444,6 +465,41 @@ export function DrawerSidebar() {
     );
     return () => sub.remove();
   }, []);
+
+  // ── Web keyboard focus ring ──────────────────────────────────────────
+  // Inject the :focus-visible stylesheet once (guarded by its id; a permanent
+  // shell resource, so intentionally NOT removed on unmount) and keep the ring
+  // colour tracking the theme's primary via a CSS custom property. See the
+  // WEB_FOCUS_RING_PROPS comment above. Native is untouched.
+  const isWeb = Platform.OS === "web";
+
+  useEffect(() => {
+    if (!isWeb || typeof document === "undefined") return;
+    const STYLE_ID = "drawer-focus-visible-style";
+    if (!document.getElementById(STYLE_ID)) {
+      const style = document.createElement("style");
+      style.id = STYLE_ID;
+      style.textContent = [
+        // RNW may set outline:none on the pressable; re-assert nothing on a
+        // plain (mouse/touch) focus, then paint a ring only for keyboard focus.
+        "[data-drawer-focusable]:focus { outline: none; }",
+        "[data-drawer-focusable]:focus-visible {",
+        "  outline: 2px solid var(--drawer-focus-ring, #3d6bff);",
+        "  outline-offset: -2px;",
+        "  border-radius: 10px;",
+        "}",
+      ].join("\n");
+      document.head.appendChild(style);
+    }
+  }, [isWeb]);
+
+  useEffect(() => {
+    if (!isWeb || typeof document === "undefined") return;
+    document.documentElement.style.setProperty(
+      "--drawer-focus-ring",
+      colors.primary,
+    );
+  }, [isWeb, colors.primary]);
 
   const backdropOpacity = useSharedValue(0);
 
@@ -618,6 +674,7 @@ export function DrawerSidebar() {
                 },
               ]}
               accessibilityLabel="Close menu"
+              {...WEB_FOCUS_RING_PROPS}
             >
               <Feather name="x" size={18} color={colors.mutedForeground} />
             </Pressable>
@@ -735,6 +792,7 @@ export function DrawerSidebar() {
                       ]}
                       accessibilityRole="menuitem"
                       accessibilityState={{ selected: active }}
+                      {...WEB_FOCUS_RING_PROPS}
                     >
                       <View
                         style={[
@@ -836,6 +894,7 @@ export function DrawerSidebar() {
               ]}
               accessibilityRole="button"
               accessibilityLabel="Sign out"
+              {...WEB_FOCUS_RING_PROPS}
             >
               <View
                 style={[

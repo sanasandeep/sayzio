@@ -196,6 +196,10 @@ args = "mobile-auth-providers"
 task = "workflow.run"
 args = "e2e-mobile-wordmark"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-drawer-focus-ring"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -687,6 +691,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:wordmark-legibility-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-drawer-focus-ring"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:drawer-focus-ring-e2e"
 
 [workflows.workflow.metadata]
 isValidation = true
