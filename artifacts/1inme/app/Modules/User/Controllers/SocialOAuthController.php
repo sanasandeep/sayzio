@@ -129,12 +129,6 @@ class SocialOAuthController extends Controller
                     ->with('error', 'Sign-in with ' . SocialAccountConnection::platformLabel($provider) . ' failed: ' . $e->getMessage());
             }
             $user = LinkedIdentifier::resolveUser('social', '', $provider, (string) $externalId);
-            // Legacy-row fallback: some pre-fix connections were saved
-            // keyed by handle when external_id was unavailable. Try that
-            // before giving up.
-            if (! $user && $handle) {
-                $user = LinkedIdentifier::resolveUser('social', '', $provider, (string) $handle);
-            }
 
             // Email-based resolution / account creation. Only providers that
             // return a verified email (currently Google — `openid email
@@ -280,9 +274,6 @@ class SocialOAuthController extends Controller
                     ->with('error', 'Verification failed: ' . $e->getMessage());
             }
             $other = LinkedIdentifier::resolveUser('social', '', $provider, (string) $externalId);
-            if (! $other && $handle) {
-                $other = LinkedIdentifier::resolveUser('social', '', $provider, (string) $handle);
-            }
             if (! $other || $other->id === Auth::id()) {
                 return redirect()->route('user.merge.start')
                     ->with('error', 'No other account is linked to that ' . SocialAccountConnection::platformLabel($provider) . ' identity.');
@@ -307,7 +298,19 @@ class SocialOAuthController extends Controller
         try {
             $conn = \DB::transaction(function () use ($oauth, $provider, $code, $state, $registry, &$conflictUserId) {
                 $conn = $oauth->exchangeAndPersist($provider, Auth::id(), $code, $state);
-                $value = LinkedIdentifier::normalize('social', '', $provider, (string) ($conn->external_id ?: $conn->handle));
+
+                // Only create / check a LinkedIdentifier when the provider
+                // returned a stable, permanent external ID. Mutable handles
+                // must never be used as auth-resolution keys because providers
+                // can reassign them, enabling account takeover.
+                if (! $conn->external_id) {
+                    // No stable ID available — the SocialAccountConnection was
+                    // still persisted (for follower-count refreshes) but this
+                    // connection cannot be used for social sign-in.
+                    return $conn;
+                }
+
+                $value = LinkedIdentifier::normalize('social', '', $provider, (string) $conn->external_id);
                 $existing = LinkedIdentifier::where('kind', 'social')->where('value', $value)->first();
                 if ($existing && $existing->user_id !== Auth::id()) {
                     // Roll the transaction back — this provider identity
@@ -324,7 +327,7 @@ class SocialOAuthController extends Controller
                         'kind'        => 'social',
                         'value'       => $value,
                         'provider'    => $provider,
-                        'external_id' => (string) ($conn->external_id ?: $conn->handle),
+                        'external_id' => (string) $conn->external_id,
                         'verified_at' => now(),
                         'is_primary'  => false,
                     ]);

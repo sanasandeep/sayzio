@@ -16,6 +16,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Services\FanPointsEngine;
 use App\Modules\Admin\Models\BannedName;
+use App\Modules\Common\Services\OtpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -68,6 +69,7 @@ class CommunityPublicController extends Controller
         $data = $request->validate([
             'email'        => ['required', 'email', 'max:255'],
             'display_name' => ['nullable', 'string', 'max:80'],
+            'otp'          => ['nullable', 'string', 'max:10'],
         ]);
 
         if (!$this->passesNameModeration($data['display_name'] ?? null)) {
@@ -85,8 +87,8 @@ class CommunityPublicController extends Controller
             // need a way for an *already-paid* subscriber to authenticate
             // into the gated feed. The billing webhook (joinInsiderPaid)
             // creates the paid CommunityMember up front; here we let that
-            // person "claim" their seat by re-entering the same email
-            // they paid with, which establishes their viewer session.
+            // person "claim" their seat — but only after proving they
+            // control the email address, via a one-time verification code.
             $existingPaid = CommunityMember::query()
                 ->withoutGlobalScope('workspace')
                 ->where('block_id', $block->id)
@@ -101,6 +103,29 @@ class CommunityPublicController extends Controller
                     'requires' => 'paid',
                 ], 402);
             }
+
+            /** @var OtpService $otpService */
+            $otpService = app(OtpService::class);
+
+            // Phase 1 — no OTP supplied yet: issue a code and ask for it.
+            if (empty($data['otp'])) {
+                $code = $otpService->generate($data['email'], 'email', 'insider_claim', 'community', $request->ip());
+                $otpService->sendEmail($data['email'], $code);
+                return response()->json([
+                    'ok'       => false,
+                    'requires' => 'otp_verification',
+                    'message'  => 'A verification code has been sent to your email address. Please enter it to access the Insider feed.',
+                ]);
+            }
+
+            // Phase 2 — OTP supplied: verify before granting the session.
+            if (!$otpService->verify($data['email'], $data['otp'], 'email', 'insider_claim', 'community')) {
+                return response()->json([
+                    'ok'    => false,
+                    'error' => 'The verification code is incorrect or has expired. Please request a new one.',
+                ], 422);
+            }
+
             $request->session()->put('viewer_user_email', $data['email']);
             if (!empty($data['display_name'])) {
                 $request->session()->put('viewer_user_name', $data['display_name']);
