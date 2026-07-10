@@ -133,7 +133,7 @@
             <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Choose a domain that <span class="grad-text">matches your vibe</span>.</h3>
             <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Every account can build on one of our shared, branded domains — no purchase, no DNS, no waiting. Just pick one and your link is live.</p>
         </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4" data-anim="fade-up" data-stagger>
+        <div class="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4" data-anim="fade-up" data-stagger>
             @foreach($globalDomains as $dom)
                 <div class="glass rounded-2xl p-6 text-center lift">
                     <div class="w-11 h-11 mx-auto rounded-2xl flex items-center justify-center mb-3 text-white"
