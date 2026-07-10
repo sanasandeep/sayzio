@@ -14,6 +14,7 @@ import React from "react";
 
 import { DrawerSidebar } from "@/components/DrawerSidebar";
 import { FloatingTabBar } from "@/components/FloatingTabBar";
+import { PinnedTopBar } from "@/components/PinnedTopBar";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { useAuth } from "@/contexts/AuthContext";
 import { DrawerProvider, useDrawer } from "@/contexts/DrawerContext";
@@ -95,6 +96,9 @@ function SignedInLayout() {
             <Tabs.Screen name="notifications" options={{ href: null }} />
           </Tabs>
         </AnimatedContent>
+
+        {/* Pinned top bar — hamburger chip + centered logo + bell chip. */}
+        <PinnedTopBar />
 
         {/* Floating glassmorphic tab bar — rendered at the layout level so it
             sits above all tab screens and overlays content uniformly. */}

@@ -17,12 +17,10 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
 import { SoonBadge } from "@/components/SoonBadge";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDrawer } from "@/contexts/DrawerContext";
-import { useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
+import { TOP_BAR_H, useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
 import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { useFeatureStates } from "@/hooks/useFeatureStates";
@@ -203,7 +201,6 @@ export default function Profile() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { openDrawer } = useDrawer();
   const { reportScroll } = useTabBar();
   const tabBarBottomInset = useTabBarBottomInset();
   const {
@@ -221,7 +218,6 @@ export default function Profile() {
   } = useAuth();
   const { pref, setPref } = useThemeControls();
   const featureStatesGate = useFeatureStates();
-  const webTop = Platform.OS === "web" ? 0 : 0;
 
   // Whether this account is linked to an active back-office admin record.
   // Drives the Admin section + "Switch to admin dashboard" entry. The same
@@ -428,7 +424,7 @@ export default function Profile() {
       />
       <ScrollView
         contentContainerStyle={{
-          paddingTop: insets.top + 16 + webTop,
+          paddingTop: insets.top + TOP_BAR_H + 16,
           paddingBottom: tabBarBottomInset,
           paddingHorizontal: 24,
           gap: 24,
@@ -436,12 +432,6 @@ export default function Profile() {
         scrollEventThrottle={16}
         onScroll={(e) => reportScroll(e.nativeEvent.contentOffset.y)}
       >
-        <View style={styles.headerRow}>
-          <Pressable onPress={openDrawer} hitSlop={8} accessibilityLabel="Open menu">
-            <Feather name="menu" size={22} color={colors.foreground} />
-          </Pressable>
-          <BrandWordmark size={26} />
-        </View>
 
         <View
           style={[
@@ -1371,7 +1361,6 @@ export default function Profile() {
 }
 
 const styles = StyleSheet.create({
-  headerRow: { flexDirection: "row", alignItems: "center" },
   card: { padding: 20, borderWidth: 1, gap: 6 },
   hello: {
     fontFamily: "SpaceGrotesk_500Medium",

@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -14,15 +13,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { BrandWordmark } from "@/components/Brand";
 import { EmptyState } from "@/components/EmptyState";
 import { LinkRow } from "@/components/LinkRow";
 import { StatTile } from "@/components/StatTile";
 import { MissingNameReminder } from "@/components/MissingNameReminder";
 import { VerifyEmailReminder } from "@/components/VerifyEmailReminder";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDrawer } from "@/contexts/DrawerContext";
-import { useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
+import { TOP_BAR_H, useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
 import { useColors } from "@/hooks/useColors";
 import { getDashboard } from "@/lib/api/dashboard";
 
@@ -31,7 +28,6 @@ export default function Home() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { openDrawer } = useDrawer();
   const { reportScroll } = useTabBar();
   const tabBarBottomInset = useTabBarBottomInset();
   const webTop = Platform.OS === "web" ? 0 : 0;
@@ -49,7 +45,7 @@ export default function Home() {
       />
       <ScrollView
         contentContainerStyle={{
-          paddingTop: insets.top + 16 + webTop,
+          paddingTop: insets.top + TOP_BAR_H + 16 + webTop,
           paddingBottom: tabBarBottomInset,
           paddingHorizontal: 20,
           gap: 20,
@@ -64,20 +60,6 @@ export default function Home() {
           />
         }
       >
-        <View style={styles.headerRow}>
-          {/* Hamburger menu opens the drawer sidebar */}
-          <Pressable onPress={openDrawer} hitSlop={8} accessibilityLabel="Open menu">
-            <Feather name="menu" size={22} color={colors.foreground} />
-          </Pressable>
-          <BrandWordmark size={26} />
-          <Pressable
-            onPress={() => router.push("/notifications")}
-            hitSlop={8}
-          >
-            <Feather name="bell" size={22} color={colors.foreground} />
-          </Pressable>
-        </View>
-
         <View>
           <Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>
             Welcome back
@@ -179,11 +161,6 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   eyebrow: {
     fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 12,

@@ -19,8 +19,7 @@ import { DictationMic } from "@/components/DictationMic";
 import { EmptyState } from "@/components/EmptyState";
 import { LinkRow } from "@/components/LinkRow";
 import { onVoiceAction, setVoiceSurface } from "@/components/VoiceAssistant";
-import { useDrawer } from "@/contexts/DrawerContext";
-import { useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
+import { TOP_BAR_H, useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
 import { useColors } from "@/hooks/useColors";
 import type { VoiceClientAction } from "@/lib/api/voice";
 import { exportLinksCsv, listLinks } from "@/lib/api/links";
@@ -36,12 +35,10 @@ export default function LinksTab() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { reportScroll } = useTabBar();
   const tabBarBottomInset = useTabBarBottomInset();
   const [type, setType] = useState<string>("");
   const [q, setQ] = useState<string>("");
-  const webTop = Platform.OS === "web" ? 0 : 0;
 
   // ── Voice control ──────────────────────────────────────────────
   // Spoken "find my … link" runs the search_app tool, which returns a
@@ -92,21 +89,16 @@ export default function LinksTab() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View
         style={{
-          paddingTop: insets.top + 12 + webTop,
+          paddingTop: insets.top + TOP_BAR_H + 12,
           paddingHorizontal: 20,
           paddingBottom: 12,
           gap: 12,
         }}
       >
         <View style={styles.headerRow}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <Pressable onPress={openDrawer} hitSlop={8} accessibilityLabel="Open menu">
-              <Feather name="menu" size={22} color={colors.foreground} />
-            </Pressable>
-            <Text style={[styles.title, { color: colors.foreground }]}>
-              Links
-            </Text>
-          </View>
+          <Text style={[styles.title, { color: colors.foreground }]}>
+            Links
+          </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Pressable
               onPress={onExport}

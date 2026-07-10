@@ -6,12 +6,15 @@ import React, {
 } from "react";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import type { SharedValue } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const TAB_BAR_H = 64;
-export const CIRCLE_SIZE = 52;
-export const CIRCLE_OVERFLOW = 10;
+export const CIRCLE_SIZE = 56;
+export const CIRCLE_OVERFLOW = 18;
 export const TAB_BOTTOM_MARGIN = 12;
 export const TAB_SIDE_MARGIN = 20;
+
+export const TOP_BAR_H = 56;
 
 type TabBarContextValue = {
   translateY: SharedValue<number>;
@@ -64,4 +67,9 @@ export function useTabBar() {
 
 export function useTabBarBottomInset() {
   return TAB_BAR_H + CIRCLE_OVERFLOW + TAB_BOTTOM_MARGIN + 16;
+}
+
+export function useTopBarInset() {
+  const insets = useSafeAreaInsets();
+  return insets.top + TOP_BAR_H;
 }

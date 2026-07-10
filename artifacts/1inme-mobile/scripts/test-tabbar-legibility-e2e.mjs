@@ -3,29 +3,23 @@
  * End-to-end regression gate for the floating tab bar's ACTIVE-tab legibility
  * (components/FloatingTabBar.tsx), driving the REAL app in a headless browser.
  *
- * Why this exists: the active-tab indicator is a sliding blue→indigo→magenta
- * gradient circle. The active icon + label stay readable over every hue stop
- * because they carry a subtle text shadow (a contrast halo) AND the label uses
- * the bolder SpaceGrotesk_700Bold weight — while inactive tabs use the plain
- * SemiBold weight, the muted foreground colour, and NO shadow. Nothing in CI
- * verified that treatment, so a future gradient/colour-token change (or an
- * accidental style refactor) could silently drop the shadow or fall the active
- * state back to the non-active weight/colour, making it hard to read over the
- * magenta/indigo stops. That would ship unnoticed.
+ * Why this exists: the active-tab indicator is the brand primary colour (blue)
+ * on icon + label, while inactive tabs use the muted foreground colour.
+ * The center "Create" tab always shows a white icon on a brand-gradient circle.
+ * Nothing in CI verified that treatment, so a future colour-token change (or an
+ * accidental style refactor) could silently revert the active state back to the
+ * non-active weight/colour, making it hard to distinguish. That would ship
+ * unnoticed.
  *
- * What it asserts, per THEME (light + dark) and per TAB as the circle slides
- * across all three gradient stops:
- *   1. The active tab's LABEL keeps a real text shadow (computed text-shadow
- *      is not "none").
- *   2. The active label uses the BOLD weight (SpaceGrotesk_700Bold), distinct
+ * What it asserts, per THEME (light + dark):
+ *   1. The active label uses the BOLD weight (SpaceGrotesk_700Bold), distinct
  *      from the inactive SemiBold — i.e. it hasn't fallen back to non-active.
- *   3. The active label paints in the theme's primaryForeground colour (white
- *      in light, near-black in dark), NOT the muted inactive colour.
- *   4. The active tab's ICON glyph also keeps a text shadow.
- *   5. A control INACTIVE tab has NO shadow and uses the SemiBold weight +
- *      muted colour — proving the check actually discriminates active vs not
- *      (so it can flag a regression that makes active look like inactive).
- *   6. The active tab is programmatically announced as selected to assistive
+ *   2. The active label paints in the theme's primary colour (brand blue),
+ *      NOT the muted inactive colour.
+ *   3. The Create tab's icon is always white (sits on a gradient circle).
+ *   4. A control INACTIVE tab uses the SemiBold weight + muted colour —
+ *      proving the check actually discriminates active vs not.
+ *   5. The active tab is programmatically announced as selected to assistive
  *      tech: it exposes role="tab" + aria-selected="true", while inactive tabs
  *      expose aria-selected="false". This guards the accessibility contract so
  *      a future refactor can't silently drop it back to role="button" (for
@@ -85,12 +79,19 @@ const TABS = [
 ];
 
 // Expected computed colours (rgb) per theme, from constants/colors.ts.
-//   light: primaryForeground #ffffff, mutedForeground #475569
-//   dark:  primaryForeground #0a0a0f, mutedForeground #9ca3af
+//   light: primary #3d6bff (blue600), mutedForeground #475569
+//   dark:  primary #7d9bff (blue400), mutedForeground #9ca3af
+// The center Create tab always uses a white icon (#ffffff) — it sits on a
+// brand-gradient circle, not the glass bar, so it stays white in both themes.
 const THEME_COLORS = {
-  light: { foreground: "rgb(255, 255, 255)", muted: "rgb(71, 85, 105)" },
-  dark: { foreground: "rgb(10, 10, 15)", muted: "rgb(156, 163, 175)" },
+  light: { primary: "rgb(61, 107, 255)", muted: "rgb(71, 85, 105)", createIcon: "rgb(255, 255, 255)" },
+  dark: { primary: "rgb(125, 155, 255)", muted: "rgb(156, 163, 175)", createIcon: "rgb(255, 255, 255)" },
 };
+
+// Return the expected active icon colour for a given tab.
+function activeColorFor(tab, expected) {
+  return tab.label === "Create" ? expected.createIcon : expected.primary;
+}
 
 // The active label must use this weight; inactive labels use SemiBold. RNW
 // emits the raw fontFamily string as the computed font-family value.
@@ -376,13 +377,13 @@ async function checkKeyboardNav(page, theme, expected) {
     );
   }
   await page.keyboard.press("Enter");
-  const activated = await waitForIconColor(page, TABS[1].label, expected.foreground);
+  const activated = await waitForIconColor(page, TABS[1].label, expected.primary);
   if (activated.timedOut) {
     fail(
       `[${theme}] keyboard: pressing Enter on the focused "${TABS[1].label}" ` +
         `tab did not navigate to it (icon colour stayed ` +
-        `"${activated.last?.icon?.color ?? "n/a"}", expected the focused ` +
-        `foreground "${expected.foreground}").`,
+        `"${activated.last?.icon?.color ?? "n/a"}", expected the active ` +
+        `colour "${expected.primary}").`,
     );
   }
   const afterEnter = await readTabIndices(page);
@@ -406,13 +407,13 @@ async function checkKeyboardNav(page, theme, expected) {
     );
   }
   await page.keyboard.press(" ");
-  const activatedSpace = await waitForIconColor(page, TABS[2].label, expected.foreground);
+  const activatedSpace = await waitForIconColor(page, TABS[2].label, expected.createIcon);
   if (activatedSpace.timedOut) {
     fail(
       `[${theme}] keyboard: pressing Space on the focused "${TABS[2].label}" ` +
         `tab did not navigate to it (icon colour stayed ` +
-        `"${activatedSpace.last?.icon?.color ?? "n/a"}", expected the focused ` +
-        `foreground "${expected.foreground}").`,
+        `"${activatedSpace.last?.icon?.color ?? "n/a"}", expected the active ` +
+        `colour "${expected.createIcon}").`,
     );
   }
   log(`[${theme}] keyboard: Space also activates the focused tab`);
@@ -439,20 +440,21 @@ async function waitForIconColor(page, label, targetColor) {
   }
 }
 
-// Activate a tab by tapping it and waiting for its icon to adopt the focused
-// foreground colour. Tapping the already-active tab is a no-op in the app
-// (onPress returns early), and its icon is already the foreground colour, so
+// Activate a tab by tapping it and waiting for its icon to adopt the expected
+// active colour. Tapping the already-active tab is a no-op in the app
+// (onPress returns early), and its icon is already the active colour, so
 // this settles immediately in that case.
 async function activateTab(page, tab, theme, expected) {
+  const targetColor = activeColorFor(tab, expected);
   const pressable = page.locator(`[aria-label="${tab.label}"]`).first();
   await pressable.waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
   await pressable.click();
-  const info = await waitForIconColor(page, tab.label, expected.foreground);
+  const info = await waitForIconColor(page, tab.label, targetColor);
   if (info.timedOut) {
     fail(
       `[${theme}] ${tab.label}: tab never became active after tapping it ` +
         `(icon colour stayed "${info.last?.icon?.color ?? "n/a"}", expected ` +
-        `the focused foreground "${expected.foreground}"). The tab bar may ` +
+        `the active colour "${targetColor}"). The tab bar may ` +
         `not be responding to navigation.`,
     );
   }
@@ -489,32 +491,21 @@ async function checkTheme(context, appUrl, theme) {
         );
       }
 
-      // ---- Active ICON must keep its shadow on every gradient stop --------
+      // ---- Active ICON must be present and paint the active colour ---------
       if (!info.icon) {
         fail(`[${theme}] ${tab.label}: could not find the active icon glyph`);
       }
-      if (!hasShadow(info.icon.textShadow)) {
-        fail(
-          `[${theme}] ${tab.label}: active icon lost its text shadow ` +
-            `(computed text-shadow="${info.icon.textShadow}") — it would be ` +
-            `hard to read over the gradient.`,
-        );
-      }
 
       if (!tab.hasLabel) {
-        log(`[${theme}] ${tab.label}: icon-only tab — active icon shadow OK`);
+        log(`[${theme}] ${tab.label}: icon-only tab — active icon found OK`);
         continue;
       }
 
-      // ---- Active LABEL: shadow + bold weight + foreground colour ---------
+      // ---- Active LABEL: bold weight + brand primary colour ---------------
+      // The new design shows active tabs with the brand primary colour (blue)
+      // instead of a white text-shadow over a gradient circle. No shadow needed.
       if (!info.label) {
         fail(`[${theme}] ${tab.label}: could not find the active label text`);
-      }
-      if (!hasShadow(info.label.textShadow)) {
-        fail(
-          `[${theme}] ${tab.label}: active label lost its text shadow ` +
-            `(computed text-shadow="${info.label.textShadow}").`,
-        );
       }
       if (!info.label.fontFamily.includes(BOLD_FAMILY)) {
         fail(
@@ -523,15 +514,15 @@ async function checkTheme(context, appUrl, theme) {
             `include ${BOLD_FAMILY}).`,
         );
       }
-      if (info.label.color !== expected.foreground) {
+      if (info.label.color !== expected.primary) {
         fail(
           `[${theme}] ${tab.label}: active label colour is ` +
-            `"${info.label.color}", expected the primaryForeground ` +
-            `"${expected.foreground}" (not the muted inactive colour).`,
+            `"${info.label.color}", expected the brand primary ` +
+            `"${expected.primary}" (not the muted inactive colour).`,
         );
       }
       log(
-        `[${theme}] ${tab.label}: active label bold + shadowed + foreground OK`,
+        `[${theme}] ${tab.label}: active label bold + brand primary OK`,
       );
     }
 
@@ -564,13 +555,6 @@ async function checkTheme(context, appUrl, theme) {
           `selected state isn't being announced distinctly from unselected.`,
       );
     }
-    if (hasShadow(inactive.label.textShadow)) {
-      fail(
-        `[${theme}] control: an INACTIVE label has a text shadow ` +
-          `("${inactive.label.textShadow}") — active/inactive are ` +
-          `indistinguishable, so the legibility check is meaningless.`,
-      );
-    }
     if (!inactive.label.fontFamily.includes(SEMIBOLD_FAMILY)) {
       fail(
         `[${theme}] control: inactive label weight is ` +
@@ -583,7 +567,7 @@ async function checkTheme(context, appUrl, theme) {
           `"${inactive.label.color}", expected the muted "${expected.muted}".`,
       );
     }
-    log(`[${theme}] control: inactive tab correctly plain/muted/no-shadow`);
+    log(`[${theme}] control: inactive tab correctly plain/muted`);
 
     // ---- Keyboard: WAI-ARIA tab pattern (roving tabindex + arrow keys) ----
     // We're currently landed on Home (from the control block above), so the
@@ -596,10 +580,10 @@ async function checkTheme(context, appUrl, theme) {
     await checkFocusRing(page, theme);
 
     log(
-      `[${theme}] PASS: active tab stays bold + shadowed + foreground across ` +
-        `all gradient stops; inactive stays plain; keyboard arrow-key ` +
-        `navigation follows the WAI-ARIA tab pattern; the keyboard-focused ` +
-        `tab shows a visible :focus-visible ring.`,
+      `[${theme}] PASS: active tab stays bold + brand-primary colour; ` +
+        `inactive stays plain/muted; keyboard arrow-key navigation follows ` +
+        `the WAI-ARIA tab pattern; the keyboard-focused tab shows a visible ` +
+        `:focus-visible ring.`,
     );
   } finally {
     await page.close().catch(() => {});

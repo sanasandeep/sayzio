@@ -15,10 +15,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/EmptyState";
-import { useDrawer } from "@/contexts/DrawerContext";
-import { useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
+import { TOP_BAR_H, useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
 import { useColors } from "@/hooks/useColors";
-import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import { listConversations } from "@/lib/api/inbox";
 
 const TABS: { key: "open" | "archived"; label: string }[] = [
@@ -35,10 +33,8 @@ export default function InboxTab() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const tabBarBottomInset = useTabBarBottomInset();
   const { reportScroll } = useTabBar();
-  const webTop = Platform.OS === "web" ? 0 : 0;
   const [tab, setTab] = useState<"open" | "archived">("open");
   const [assigneeTab, setAssigneeTab] = useState<"all" | "me">("all");
 
@@ -56,7 +52,7 @@ export default function InboxTab() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View
         style={{
-          paddingTop: insets.top + 12 + webTop,
+          paddingTop: insets.top + TOP_BAR_H + 12,
           paddingHorizontal: 20,
           paddingBottom: 8,
           flexDirection: "row",
@@ -64,12 +60,7 @@ export default function InboxTab() {
           justifyContent: "space-between",
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <Pressable onPress={openDrawer} hitSlop={8} accessibilityLabel="Open menu">
-            <Feather name="menu" size={22} color={colors.foreground} />
-          </Pressable>
-          <Text style={[styles.title, { color: colors.foreground }]}>Inbox</Text>
-        </View>
+        <Text style={[styles.title, { color: colors.foreground }]}>Inbox</Text>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Pressable
             onPress={() => router.push("/inbox/spam-settings")}
@@ -100,21 +91,6 @@ export default function InboxTab() {
             ]}
           >
             <Feather name="send" size={18} color={colors.primary} />
-          </Pressable>
-          <Pressable
-            onPress={() => router.push("/notifications")}
-            hitSlop={8}
-            style={({ pressed }) => [
-              styles.bellWrap,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                borderRadius: 999,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-          >
-            <Feather name="bell" size={18} color={colors.primary} />
           </Pressable>
         </View>
       </View>
