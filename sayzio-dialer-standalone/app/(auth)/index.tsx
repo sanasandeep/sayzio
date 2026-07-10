@@ -359,7 +359,7 @@ export default function AuthLanding() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <BrandWordmark size={36} align="center" />
+        <BrandWordmark size={52} align="center" />
         <View style={{ height: 32 }} />
         <Text style={[styles.h1, { color: colors.foreground }]}>
           Welcome back
@@ -368,49 +368,53 @@ export default function AuthLanding() {
           Sign in with the same account you use on the web.
         </Text>
 
-        <View
-          style={[
-            styles.tabs,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderRadius: colors.radius,
-            },
-          ]}
-        >
-          {((mobileLoginEnabled ? ["email", "mobile"] : ["email"]) as Channel[]).map((c) => {
-            const active = channel === c;
-            return (
-              <Pressable
-                {...WEB_FOCUS_RING_PROPS}
-                key={c}
-                onPress={() => {
-                  setChannel(c);
-                  setIdentifier("");
-                  setError(null);
-                }}
-                style={[
-                  styles.tab,
-                  {
-                    backgroundColor: active ? colors.background : "transparent",
-                    borderRadius: colors.radius - 4,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    { color: active ? colors.primary : colors.mutedForeground },
-                  ]}
-                >
-                  {c === "email" ? "Email" : "WhatsApp"}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {mobileLoginEnabled && (
+          <>
+            <View
+              style={[
+                styles.tabs,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                },
+              ]}
+            >
+              {(["email", "mobile"] as Channel[]).map((c) => {
+                const active = channel === c;
+                return (
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
+                    key={c}
+                    onPress={() => {
+                      setChannel(c);
+                      setIdentifier("");
+                      setError(null);
+                    }}
+                    style={[
+                      styles.tab,
+                      {
+                        backgroundColor: active ? colors.background : "transparent",
+                        borderRadius: colors.radius - 4,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        { color: active ? colors.primary : colors.mutedForeground },
+                      ]}
+                    >
+                      {c === "email" ? "Email" : "WhatsApp"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
 
-        <View style={{ height: 16 }} />
+            <View style={{ height: 16 }} />
+          </>
+        )}
 
         <TextField
           label={channel === "email" ? "Email address" : "WhatsApp number"}

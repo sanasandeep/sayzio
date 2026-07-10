@@ -131,39 +131,32 @@ console.log("[test-login-auth-config] getAuthConfig mapping");
 ok("getAuthConfig maps the policy and falls back to email-only on failure");
 
 // ===========================================================================
-// 2. The screen's tab-list expression renders the right channels
+// 2. The screen's tab row is conditionally rendered
 //
-// We lift the EXACT ternary out of the screen source and evaluate it for both
-// policy states. If someone changes it to always include the mobile tab, the
-// disabled-state assertion below fails.
+// When `mobileLoginEnabled` is false the entire tab row is omitted — there is
+// no point showing a single "Email" pill with nothing to switch to.  When it
+// is true the row contains the ["email", "mobile"] pair.
+//
+// We guard the two structural patterns instead of lifting a ternary, because
+// the conditional is now expressed as {mobileLoginEnabled && (<tabs>)} JSX
+// rather than an inline array ternary.
 // ===========================================================================
 console.log("[test-login-auth-config] tab list reflects the policy");
 
-const tabExprMatch = screenSrc.match(
-  /mobileLoginEnabled \? (\[[^\]]*\]) : (\[[^\]]*\])/,
-);
+// The tab row must be gated by the feature flag so it only mounts when there
+// is more than one channel to choose from.
 assert.ok(
-  tabExprMatch,
-  "could not find the `mobileLoginEnabled ? [...] : [...]` tab list in the screen",
+  /\{mobileLoginEnabled &&/.test(screenSrc),
+  "the tab row must be wrapped in {mobileLoginEnabled && ...} so it only renders when WhatsApp login is enabled",
 );
 
-// eslint-disable-next-line no-new-func
-const tabsFor = new Function(
-  "mobileLoginEnabled",
-  `return (${tabExprMatch[0]});`,
+// The tab array inside the enabled branch must contain both channels.
+assert.ok(
+  /\["email",\s*"mobile"\]/.test(screenSrc),
+  'the enabled tab array must be ["email", "mobile"]',
 );
 
-assert.deepEqual(
-  tabsFor(false),
-  ["email"],
-  "mobile login disabled must render ONLY the email tab",
-);
-assert.deepEqual(
-  tabsFor(true),
-  ["email", "mobile"],
-  "mobile login enabled must render the email AND mobile (WhatsApp) tabs",
-);
-ok("disabled → [email] only; enabled → [email, mobile] (real screen expression)");
+ok("disabled → tab row hidden entirely; enabled → email + mobile tabs (conditional JSX)");
 
 // The tab labels map "mobile" → the visible "WhatsApp" string.
 assert.ok(

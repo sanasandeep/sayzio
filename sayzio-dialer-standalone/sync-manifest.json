@@ -196,7 +196,7 @@
       "source": "lib/push.ts",
       "relation": "adapted",
       "note": "notification-tap fallbacks all route to the dialer home (standalone has no notifications / API-usage / admin screens)",
-      "sourceSha256": "d495d7e08f58db8294fd6631208f8ddc49ce1a727d97e2fb057deed099c1def7"
+      "sourceSha256": "b43416e2118f941941b614568d4cc6e3f7405b790ab8428fe54034d04066e705"
     },
     {
       "standalone": "lib/secure.ts",
@@ -207,7 +207,7 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "39af781a72bb9ebee2d9bb74a445309f730904015df199ba48a2b4ec26e022e1",
+      "sourceSha256": "1c771b884ff6d1bb1a841aee89adb2a2263c211d0116b438250f7c4acd480c61",
       "note": "dev-only missing-env alert text reworded (no monorepo path); everything else must match the main app"
     },
     {
@@ -222,13 +222,13 @@
       "source": "app/_layout.tsx",
       "relation": "adapted",
       "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) — new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
-      "sourceSha256": "aa4abae2861535c21486b4972f3d395e8bbdb58e767eeef9ce7499f704243825"
+      "sourceSha256": "bc336ce2152cabebccb589d6bb83ad8329ca3143fc09d144df29d5ea04558b1d"
     },
     {
       "standalone": "app/oauth-callback.tsx",
       "source": "app/oauth-callback.tsx",
       "relation": "adapted",
-      "sourceSha256": "ca3328da8508354197a803db846ea237bc271436915f201a03cb215316d1646b",
+      "sourceSha256": "80dc2a8694bb246dfea59bb79dba0b589f8e4c9e1a046ddf1278b8f57738176d",
       "note": "Connected-Apps OAuth completion branch removed (standalone has no connected-apps screen); session handling must match"
     },
     {
