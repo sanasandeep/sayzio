@@ -30,6 +30,7 @@
     "test:wordmark-legibility-e2e": "node scripts/test-brand-wordmark-legibility-e2e.mjs",
     "test:drawer-signout-e2e": "node scripts/test-drawer-signout-e2e.mjs",
     "test:drawer-focus-ring-e2e": "node scripts/test-drawer-focus-ring-e2e.mjs",
+    "test:form-focus-ring-e2e": "node scripts/test-form-focus-ring-e2e.mjs",
     "test:tabbar-legibility-e2e": "node scripts/test-tabbar-legibility-e2e.mjs",
     "test:pairings-admin-e2e": "node scripts/test-pairings-admin-e2e.mjs",
     "test:auth-flow-e2e:core": "AUTH_FLOW_ONLY=main node scripts/test-auth-flow-e2e.mjs",

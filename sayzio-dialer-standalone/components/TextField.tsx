@@ -8,6 +8,7 @@ import {
 } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
 
 export function TextField({
   label,
@@ -37,6 +38,7 @@ export function TextField({
       ) : null}
       <View style={styles.inputWrap}>
         <TextInput
+          {...WEB_FOCUS_RING_PROPS}
           placeholderTextColor={colors.mutedForeground}
           {...props}
           onFocus={(e) => {

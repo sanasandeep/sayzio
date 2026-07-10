@@ -120,6 +120,11 @@
       "relation": "identical"
     },
     {
+      "standalone": "hooks/useWebFocusRing.ts",
+      "source": "hooks/useWebFocusRing.ts",
+      "relation": "identical"
+    },
+    {
       "standalone": "hooks/useCooldown.ts",
       "source": "hooks/useCooldown.ts",
       "relation": "identical"
@@ -202,7 +207,7 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "a913832d04d9a2411a315298b99fd7edb79b0a8b4565cbea3bd0ef1673dab2f8",
+      "sourceSha256": "39af781a72bb9ebee2d9bb74a445309f730904015df199ba48a2b4ec26e022e1",
       "note": "dev-only missing-env alert text reworded (no monorepo path); everything else must match the main app"
     },
     {
@@ -217,7 +222,7 @@
       "source": "app/_layout.tsx",
       "relation": "adapted",
       "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) — new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
-      "sourceSha256": "d9d40acb00f09dca14f72b5ceb1bedb8f5401187c307dbbb8f84482c160763c7"
+      "sourceSha256": "aa4abae2861535c21486b4972f3d395e8bbdb58e767eeef9ce7499f704243825"
     },
     {
       "standalone": "app/oauth-callback.tsx",

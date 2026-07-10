@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
 
 // "cta" is the highlight variant (electric blue → cyan gradient) reserved for
 // the handful of high-intent actions (sign-in, plan upgrade, claim handle).
@@ -95,6 +96,7 @@ export function Button({
         : {};
     return (
       <Pressable
+        {...WEB_FOCUS_RING_PROPS}
         onPress={handlePress}
         disabled={isDisabled}
         style={({ pressed }) => [
@@ -125,6 +127,7 @@ export function Button({
 
   return (
     <Pressable
+      {...WEB_FOCUS_RING_PROPS}
       onPress={handlePress}
       disabled={isDisabled}
       style={({ pressed }) => [

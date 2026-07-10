@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
+import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
 import { getLink, updateLink } from "@/lib/api/links";
 
 type FieldDef = {
@@ -157,6 +158,7 @@ export function SettingsForm({
                     const on = v === opt;
                     return (
                       <Pressable
+                        {...WEB_FOCUS_RING_PROPS}
                         key={opt}
                         onPress={() => setValue(f.key, opt)}
                         style={[

@@ -17,6 +17,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
+import { useWebFocusRing } from "@/hooks/useWebFocusRing";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -24,6 +25,9 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const colors = useColors();
+  // Inject the app-wide web keyboard :focus-visible ring stylesheet once and
+  // keep its colour tracking the active theme (no-op on native).
+  useWebFocusRing();
   return (
     <Stack
       screenOptions={{

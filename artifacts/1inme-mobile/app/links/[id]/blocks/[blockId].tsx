@@ -206,6 +206,7 @@ import { MapPickerModal, type PickedPoint } from "@/components/MapPickerModal";
 import { TextField } from "@/components/TextField";
 import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
+import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
 import { getLink } from "@/lib/api/links";
 import {
   blockKind,
@@ -950,7 +951,7 @@ export function BlockSettingsEditor({
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <Text style={[styles.rowLabel, { color: colors.foreground }]}>Design</Text>
-            <Pressable
+            <Pressable {...WEB_FOCUS_RING_PROPS}
               onPress={surpriseMe}
               style={{
                 paddingHorizontal: 10,
@@ -970,7 +971,7 @@ export function BlockSettingsEditor({
               const label =
                 f === "all" ? "All" : f === "favorites" ? "★ Favorites" : variantTagLabel(f as string);
               return (
-                <Pressable
+                <Pressable {...WEB_FOCUS_RING_PROPS}
                   key={f}
                   onPress={() => setActiveFilter(f as string)}
                   style={{
@@ -992,7 +993,7 @@ export function BlockSettingsEditor({
 
           {/* Custom restore card */}
           {block.settings?._style_custom_snapshot ? (
-            <Pressable
+            <Pressable {...WEB_FOCUS_RING_PROPS}
               onPress={restoreCustom}
               style={{
                 padding: 10,
@@ -1025,7 +1026,7 @@ export function BlockSettingsEditor({
               const selected = variantKey === v.key;
               const fav = favorites.indexOf(v.key) !== -1;
               return (
-                <Pressable
+                <Pressable {...WEB_FOCUS_RING_PROPS}
                   key={v.key}
                   onPress={() => handleApplyVariant(v.key)}
                   style={{
@@ -1037,7 +1038,7 @@ export function BlockSettingsEditor({
                     borderColor: selected ? colors.primary : colors.border,
                   }}
                 >
-                  <Pressable
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
                     onPress={() => toggleFavorite(v.key)}
                     hitSlop={8}
                     style={{ position: "absolute", top: 4, right: 4, zIndex: 1, padding: 2 }}
@@ -1080,7 +1081,7 @@ export function BlockSettingsEditor({
 
           {/* Apply to all */}
           {variantKey ? (
-            <Pressable
+            <Pressable {...WEB_FOCUS_RING_PROPS}
               onPress={handleApplyToAll}
               disabled={applyToAllMutation.isPending}
               style={{
@@ -1165,7 +1166,7 @@ export function BlockSettingsEditor({
                 ).map((s) => {
                   const selected = listStyle === s.key;
                   return (
-                    <Pressable
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
                       key={s.key}
                       onPress={() => setListStyle(s.key)}
                       style={{
@@ -1267,7 +1268,7 @@ export function BlockSettingsEditor({
                           }
                         />
                       </View>
-                      <Pressable
+                      <Pressable {...WEB_FOCUS_RING_PROPS}
                         onPress={() =>
                           setListItems((prev) => prev.filter((_, i) => i !== idx))
                         }
@@ -1468,7 +1469,7 @@ export function BlockSettingsEditor({
                         trackColor={{ true: colors.primary, false: colors.border }}
                       />
                     </View>
-                    <Pressable
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
                       onPress={() =>
                         setPricingItems((prev) => prev.filter((_, i) => i !== idx))
                       }
@@ -1490,7 +1491,7 @@ export function BlockSettingsEditor({
                   </View>
                 ))}
 
-              <Pressable
+              <Pressable {...WEB_FOCUS_RING_PROPS}
                 onPress={() => {
                   if (isPricing) {
                     setPricingItems((prev) => [...prev, emptyPricingItem()]);
@@ -1531,7 +1532,7 @@ export function BlockSettingsEditor({
               <Text style={[styles.rowLabel, { color: colors.foreground }]}>
                 Pin location
               </Text>
-              <Pressable
+              <Pressable {...WEB_FOCUS_RING_PROPS}
                 onPress={() => setMapPickerOpen(true)}
                 style={[styles.mapPickerBtn, { borderColor: colors.border, borderRadius: colors.radius }]}
               >
@@ -1541,7 +1542,7 @@ export function BlockSettingsEditor({
                 </Text>
               </Pressable>
               {values.lat && values.lng ? (
-                <Pressable
+                <Pressable {...WEB_FOCUS_RING_PROPS}
                   onPress={() =>
                     setValues((p) => ({ ...p, lat: "", lng: "" }))
                   }
@@ -1775,7 +1776,7 @@ export function BlockSettingsEditor({
                         autoCapitalize="none"
                       />
                     </View>
-                    <Pressable
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
                       onPress={() =>
                         setProfileSocials((p) => p.filter((_, i) => i !== idx))
                       }
@@ -1798,7 +1799,7 @@ export function BlockSettingsEditor({
                   />
                 </View>
               ))}
-              <Pressable
+              <Pressable {...WEB_FOCUS_RING_PROPS}
                 onPress={() =>
                   setProfileSocials((p) => [...p, { name: "", url: "" }])
                 }
@@ -1858,7 +1859,7 @@ export function BlockSettingsEditor({
                           }
                         />
                       </View>
-                      <Pressable
+                      <Pressable {...WEB_FOCUS_RING_PROPS}
                         disabled={idx === 0}
                         onPress={() =>
                           setProfileStats((p) => {
@@ -1873,7 +1874,7 @@ export function BlockSettingsEditor({
                       >
                         <Feather name="arrow-up" size={18} color={colors.foreground} />
                       </Pressable>
-                      <Pressable
+                      <Pressable {...WEB_FOCUS_RING_PROPS}
                         disabled={idx === profileStats.length - 1}
                         onPress={() =>
                           setProfileStats((p) => {
@@ -1892,7 +1893,7 @@ export function BlockSettingsEditor({
                       >
                         <Feather name="arrow-down" size={18} color={colors.foreground} />
                       </Pressable>
-                      <Pressable
+                      <Pressable {...WEB_FOCUS_RING_PROPS}
                         onPress={() =>
                           setProfileStats((p) => p.filter((_, i) => i !== idx))
                         }
@@ -1933,7 +1934,7 @@ export function BlockSettingsEditor({
                   </View>
                 ))}
                 {profileStats.length < 6 ? (
-                  <Pressable
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
                     onPress={() =>
                       setProfileStats((p) => [...p, { label: "", value: "" }])
                     }
@@ -2017,7 +2018,7 @@ export function BlockSettingsEditor({
                         }
                       />
                     </View>
-                    <Pressable
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
                       onPress={() =>
                         setProfileBadges((p) => p.filter((_, i) => i !== idx))
                       }
@@ -2029,7 +2030,7 @@ export function BlockSettingsEditor({
                   </View>
                 ))}
                 {profileBadges.length < 12 ? (
-                  <Pressable
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
                     onPress={() => setProfileBadges((p) => [...p, { label: "" }])}
                     style={{
                       padding: 12,
@@ -2115,7 +2116,7 @@ export function BlockSettingsEditor({
               {(["mobile", "tablet", "desktop"] as const).map((d) => {
                 const on = visDevices.has(d);
                 return (
-                  <Pressable
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
                     key={d}
                     onPress={() => {
                       const next = new Set(visDevices);
@@ -2144,7 +2145,7 @@ export function BlockSettingsEditor({
               {(["mobile", "tablet", "desktop"] as const).map((d) => {
                 const on = visDevicesExclude.has(d);
                 return (
-                  <Pressable
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
                     key={d}
                     onPress={() => {
                       const next = new Set(visDevicesExclude);
@@ -2307,7 +2308,7 @@ export function BlockSettingsEditor({
                             ? "Always on"
                             : "Off";
                       return (
-                        <Pressable
+                        <Pressable {...WEB_FOCUS_RING_PROPS}
                           key={opt}
                           onPress={() => setAutoUtmEnabled(opt)}
                           style={[
@@ -2502,7 +2503,7 @@ export function BlockSettingsEditor({
               "Almost gone" threshold: {nearPercent}%
             </Text>
             <View style={{ flexDirection: "row", gap: 8 }}>
-              <Pressable
+              <Pressable {...WEB_FOCUS_RING_PROPS}
                 onPress={() => setNearPercent((p) => Math.max(0, p - 5))}
                 style={{
                   paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
@@ -2511,7 +2512,7 @@ export function BlockSettingsEditor({
               >
                 <Text style={{ color: colors.foreground, fontWeight: "700" }}>−5%</Text>
               </Pressable>
-              <Pressable
+              <Pressable {...WEB_FOCUS_RING_PROPS}
                 onPress={() => setNearPercent((p) => Math.min(100, p + 5))}
                 style={{
                   paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
@@ -2528,7 +2529,7 @@ export function BlockSettingsEditor({
             {(["hide", "show"] as const).map((opt) => {
               const sel = expiredAction === opt;
               return (
-                <Pressable
+                <Pressable {...WEB_FOCUS_RING_PROPS}
                   key={opt}
                   onPress={() => setExpiredAction(opt)}
                   style={{
@@ -2583,7 +2584,7 @@ export function BlockSettingsEditor({
                 {(["active", "near", "expired"] as const).map((s) => {
                   const sel = previewState === s;
                   return (
-                    <Pressable
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
                       key={s}
                       onPress={() => setPreviewState(s)}
                       style={{

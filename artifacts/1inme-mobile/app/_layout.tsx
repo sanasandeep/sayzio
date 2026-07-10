@@ -28,6 +28,7 @@ import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
+import { useWebFocusRing } from "@/hooks/useWebFocusRing";
 import { getBaseUrl } from "@/lib/api";
 import {
   addPushResponseListener,
@@ -90,6 +91,9 @@ function PushRegistrar() {
 
 function RootLayoutNav() {
   const colors = useColors();
+  // Inject the app-wide web keyboard :focus-visible ring stylesheet once and
+  // keep its colour tracking the active theme (no-op on native).
+  useWebFocusRing();
   return (
     <Stack
       screenOptions={{

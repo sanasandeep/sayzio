@@ -25,6 +25,7 @@ import { useAuth } from "@/contexts/AuthContext";
 // required by expo-auth-session for the Google provider on Android.
 WebBrowser.maybeCompleteAuthSession();
 import { useColors } from "@/hooks/useColors";
+import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
 import { redirectAfterAuth, touchPendingPostAuthNext } from "@/lib/authNext";
 import { getBaseUrl, getConfiguredBaseUrl } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
@@ -379,6 +380,7 @@ export default function AuthLanding() {
             const active = channel === c;
             return (
               <Pressable
+                {...WEB_FOCUS_RING_PROPS}
                 key={c}
                 onPress={() => {
                   setChannel(c);
@@ -443,6 +445,7 @@ export default function AuthLanding() {
             const disabled = !!busy && !isBusy;
             return (
               <Pressable
+                {...WEB_FOCUS_RING_PROPS}
                 key={s.id}
                 onPress={() => onSocial(s.id)}
                 disabled={disabled || isBusy}
@@ -503,25 +506,25 @@ export default function AuthLanding() {
 
         <View style={{ height: 24 }} />
         <View style={styles.infoLinks}>
-          <Pressable onPress={() => router.push("/info/about")} hitSlop={8}>
+          <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => router.push("/info/about")} hitSlop={8}>
             <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
               About
             </Text>
           </Pressable>
           <Text style={[styles.infoDot, { color: colors.border }]}>·</Text>
-          <Pressable onPress={() => router.push("/info/help")} hitSlop={8}>
+          <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => router.push("/info/help")} hitSlop={8}>
             <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
               Help
             </Text>
           </Pressable>
           <Text style={[styles.infoDot, { color: colors.border }]}>·</Text>
-          <Pressable onPress={() => router.push("/info/privacy")} hitSlop={8}>
+          <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => router.push("/info/privacy")} hitSlop={8}>
             <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
               Privacy
             </Text>
           </Pressable>
           <Text style={[styles.infoDot, { color: colors.border }]}>·</Text>
-          <Pressable onPress={() => router.push("/info/terms")} hitSlop={8}>
+          <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => router.push("/info/terms")} hitSlop={8}>
             <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
               Terms
             </Text>

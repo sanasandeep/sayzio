@@ -35,6 +35,7 @@ import {
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
+import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
 import {
   blockKind,
   createBlock,
@@ -339,7 +340,7 @@ export default function BlocksScreen() {
   // A single block tile in the "Add block" palette. Shared by the
   // grouped (collapsible) and flat (search / single-category) layouts.
   const renderPaletteTile = (t: BlockCatalogType) => (
-    <Pressable
+    <Pressable {...WEB_FOCUS_RING_PROPS}
       key={t.type}
       onPress={() => onPaletteTap(t)}
       style={({ pressed }) => [
@@ -462,14 +463,14 @@ export default function BlocksScreen() {
                   ]}
                 >
                   <View style={styles.handle}>
-                    <Pressable onPress={() => move(i, -1)} hitSlop={6}>
+                    <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => move(i, -1)} hitSlop={6}>
                       <Feather
                         name="chevron-up"
                         size={18}
                         color={i === 0 ? colors.border : colors.foreground}
                       />
                     </Pressable>
-                    <Pressable onPress={() => move(i, 1)} hitSlop={6}>
+                    <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => move(i, 1)} hitSlop={6}>
                       <Feather
                         name="chevron-down"
                         size={18}
@@ -481,7 +482,7 @@ export default function BlocksScreen() {
                       />
                     </Pressable>
                   </View>
-                  <Pressable
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
                     style={{ flex: 1, gap: 2 }}
                     onPress={() =>
                       setExpandedId((cur) => (cur === b.id ? null : b.id))
@@ -509,7 +510,7 @@ export default function BlocksScreen() {
                     onValueChange={() => toggle.mutate(b)}
                     trackColor={{ true: colors.primary, false: colors.border }}
                   />
-                  <Pressable
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
                     onPress={() =>
                       confirm("Delete block?", "Remove this block?", () =>
                         remove.mutate(b.id),
@@ -588,7 +589,7 @@ export default function BlocksScreen() {
               <Text style={[styles.modalTitle, { color: colors.foreground }]}>
                 Add block
               </Text>
-              <Pressable onPress={() => setPicker(false)} hitSlop={8}>
+              <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => setPicker(false)} hitSlop={8}>
                 <Feather name="x" size={20} color={colors.mutedForeground} />
               </Pressable>
             </View>
@@ -614,7 +615,7 @@ export default function BlocksScreen() {
                 returnKeyType="search"
               />
               {paletteSearch.length > 0 ? (
-                <Pressable onPress={() => setPaletteSearch("")} hitSlop={8}>
+                <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => setPaletteSearch("")} hitSlop={8}>
                   <Feather name="x" size={14} color={colors.mutedForeground} />
                 </Pressable>
               ) : null}
@@ -628,7 +629,7 @@ export default function BlocksScreen() {
               {[{ key: "all", label: "All" }, ...paletteCategories].map((c) => {
                 const active = paletteCategory === c.key;
                 return (
-                  <Pressable
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
                     key={c.key}
                     onPress={() => setPaletteCategory(c.key)}
                     style={[
@@ -675,7 +676,7 @@ export default function BlocksScreen() {
             ) : (
               <ScrollView contentContainerStyle={{ paddingBottom: 20, gap: 8 }}>
                 {paletteGrouped ? (
-                  <Pressable
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
                     key="special-panel"
                     onPress={() => {
                       setPicker(false);
@@ -715,7 +716,7 @@ export default function BlocksScreen() {
                     const open = !paletteCollapsed[g.key];
                     return (
                       <View key={g.key} style={{ gap: 8 }}>
-                        <Pressable
+                        <Pressable {...WEB_FOCUS_RING_PROPS}
                           onPress={() => togglePaletteSection(g.key)}
                           accessibilityRole="button"
                           accessibilityState={{ expanded: open }}
@@ -1072,7 +1073,7 @@ function PageDesignPreview({
             { borderColor: colors.border, backgroundColor: colors.background },
           ]}
         >
-          <Pressable
+          <Pressable {...WEB_FOCUS_RING_PROPS}
             onPress={onClose}
             hitSlop={8}
             style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
@@ -1100,7 +1101,7 @@ function PageDesignPreview({
           >
             {template?.name ?? "Preview"}
           </Text>
-          <Pressable onPress={onClose} hitSlop={8}>
+          <Pressable {...WEB_FOCUS_RING_PROPS} onPress={onClose} hitSlop={8}>
             <Feather name="x" size={22} color={colors.mutedForeground} />
           </Pressable>
         </View>
@@ -1529,7 +1530,7 @@ function SpecialPanel(props: SpecialPanelProps) {
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>
               Templates, forms & more
             </Text>
-            <Pressable onPress={onClose} hitSlop={8}>
+            <Pressable {...WEB_FOCUS_RING_PROPS} onPress={onClose} hitSlop={8}>
               <Feather name="x" size={20} color={colors.mutedForeground} />
             </Pressable>
           </View>
@@ -1540,7 +1541,7 @@ function SpecialPanel(props: SpecialPanelProps) {
             {MODE_TABS.map((t) => {
               const active = t.key === mode;
               return (
-                <Pressable
+                <Pressable {...WEB_FOCUS_RING_PROPS}
                   key={t.key}
                   onPress={() => onModeChange(t.key)}
                   style={[
@@ -1600,7 +1601,7 @@ function SpecialPanel(props: SpecialPanelProps) {
               }}
             />
             {search ? (
-              <Pressable onPress={() => setSearch("")} hitSlop={8}>
+              <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => setSearch("")} hitSlop={8}>
                 <Feather name="x" size={14} color={colors.mutedForeground} />
               </Pressable>
             ) : null}
@@ -1639,7 +1640,7 @@ function SpecialPanel(props: SpecialPanelProps) {
                   {pageCatOptions.map((c) => {
                     const active = c.key === activeCat;
                     return (
-                      <Pressable
+                      <Pressable {...WEB_FOCUS_RING_PROPS}
                         key={c.key}
                         onPress={() => setActiveCat(c.key)}
                         style={[
@@ -1685,7 +1686,7 @@ function SpecialPanel(props: SpecialPanelProps) {
                     visiblePageItems.map((t) => {
                       const previewRows = t.preview_layout ?? [];
                       return (
-                        <Pressable
+                        <Pressable {...WEB_FOCUS_RING_PROPS}
                           key={t.id}
                           onPress={() => setPreviewPage(t)}
                           style={({ pressed }) => [
@@ -1927,7 +1928,7 @@ function SpecialPanel(props: SpecialPanelProps) {
                 {catOptions.map((c) => {
                   const active = c.key === activeCat;
                   return (
-                    <Pressable
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
                       key={c.key}
                       onPress={() => setActiveCat(c.key)}
                       style={[
@@ -1974,7 +1975,7 @@ function SpecialPanel(props: SpecialPanelProps) {
                     const shownChips = chips.slice(0, 3);
                     const extraChips = Math.max(0, chips.length - 3);
                     return (
-                      <Pressable
+                      <Pressable {...WEB_FOCUS_RING_PROPS}
                         key={t.id}
                         onPress={() => onPreview(t)}
                         style={({ pressed }) => [
@@ -2193,7 +2194,7 @@ function SpecialPanel(props: SpecialPanelProps) {
                 >
                   {previewTpl.name}
                 </Text>
-                <Pressable onPress={clearPreview} hitSlop={8}>
+                <Pressable {...WEB_FOCUS_RING_PROPS} onPress={clearPreview} hitSlop={8}>
                   <Feather name="x" size={20} color={colors.mutedForeground} />
                 </Pressable>
               </View>
@@ -2528,7 +2529,7 @@ function SpecialCreateModal(props: {
       transparent
       onRequestClose={onClose}
     >
-      <Pressable style={styles.createBackdrop} onPress={onClose} />
+      <Pressable {...WEB_FOCUS_RING_PROPS} style={styles.createBackdrop} onPress={onClose} />
       <View
         style={[
           styles.createSheet,
@@ -2545,7 +2546,7 @@ function SpecialCreateModal(props: {
           >
             {title}
           </Text>
-          <Pressable onPress={onClose} hitSlop={8}>
+          <Pressable {...WEB_FOCUS_RING_PROPS} onPress={onClose} hitSlop={8}>
             <Feather name="x" size={20} color={colors.mutedForeground} />
           </Pressable>
         </View>
@@ -2590,7 +2591,7 @@ function SpecialCreateModal(props: {
                 {FORM_TEMPLATES.map((t) => {
                   const active = template === t.value;
                   return (
-                    <Pressable
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
                       key={t.value}
                       onPress={() => setTemplate(t.value)}
                       style={[
@@ -2626,7 +2627,7 @@ function SpecialCreateModal(props: {
                 {buzzTypes.map((t) => {
                   const active = buzzType === t.type;
                   return (
-                    <Pressable
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
                       key={t.type}
                       onPress={() => setBuzzType(t.type)}
                       style={[
@@ -2676,7 +2677,7 @@ function SpecialCreateModal(props: {
                   {personas.map((p) => {
                     const active = personaId === p.id;
                     return (
-                      <Pressable
+                      <Pressable {...WEB_FOCUS_RING_PROPS}
                         key={p.id}
                         onPress={() => setPersonaId(p.id)}
                         style={[
@@ -2790,7 +2791,7 @@ function SpecialCreateModal(props: {
                           },
                         ]}
                       />
-                      <Pressable
+                      <Pressable {...WEB_FOCUS_RING_PROPS}
                         onPress={() =>
                           renamePersona.mutate(renameValue.trim())
                         }
@@ -2885,7 +2886,7 @@ function SpecialCreateModal(props: {
               ) : null}
 
               {!showPersonaForm ? (
-                <Pressable
+                <Pressable {...WEB_FOCUS_RING_PROPS}
                   onPress={() => setShowPersonaForm(true)}
                   style={{ paddingVertical: 4 }}
                   hitSlop={6}
@@ -3099,7 +3100,7 @@ function SpecialList(props: {
         </View>
       ) : null}
       {onCreate ? (
-        <Pressable
+        <Pressable {...WEB_FOCUS_RING_PROPS}
           onPress={onCreate}
           disabled={inserting}
           style={({ pressed }) => [
@@ -3165,7 +3166,7 @@ function SpecialRow(props: {
   const colors = useColors();
   const { icon, title, subtitle, disabled, onPress } = props;
   return (
-    <Pressable
+    <Pressable {...WEB_FOCUS_RING_PROPS}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
