@@ -4,12 +4,12 @@
     "slug": "sayzio-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon-appstore.png",
     "scheme": "sayzio",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/icon.png",
+      "image": "./assets/images/icon-appstore.png",
       "resizeMode": "contain",
       "backgroundColor": "#3d6bff"
     },
@@ -34,7 +34,7 @@
     "android": {
       "package": "com.oneinme.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/icon-playstore.png",
         "backgroundColor": "#0a0a0f"
       },
       "permissions": [
@@ -75,7 +75,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/icon-appstore.png"
     },
     "plugins": [
       [
@@ -88,12 +88,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/icon.png",
+          "image": "./assets/images/icon-appstore.png",
           "resizeMode": "contain",
           "backgroundColor": "#3d6bff",
           "imageWidth": 220,
           "dark": {
-            "image": "./assets/images/icon.png",
+            "image": "./assets/images/icon-appstore.png",
             "backgroundColor": "#3d6bff"
           }
         }
