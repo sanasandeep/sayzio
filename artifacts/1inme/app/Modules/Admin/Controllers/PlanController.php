@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Admin\Support\PlanCsvSchema;
 use App\Modules\Admin\Support\PlanWriter;
 use App\Modules\Common\Support\PlanFormCatalogue;
 use Illuminate\Http\Request;
@@ -108,119 +109,9 @@ class PlanController extends Controller
     {
         $plans = Plan::with('prices')->ordered()->get();
 
-        // ---- Build the deterministic column specification once ----
-        $columns = [];
-
-        // Core attributes
-        $columns[] = ['header' => 'Name',        'resolve' => fn ($p) => $p->name];
-        $columns[] = ['header' => 'Slug',        'resolve' => fn ($p) => $p->slug];
-        $columns[] = ['header' => 'Status',      'resolve' => fn ($p) => $p->status];
-        $columns[] = ['header' => 'Default',     'resolve' => fn ($p) => $p->is_default  ? 'Yes' : 'No'];
-        $columns[] = ['header' => 'Popular',     'resolve' => fn ($p) => $p->is_popular  ? 'Yes' : 'No'];
-        $columns[] = ['header' => 'Internal',    'resolve' => fn ($p) => $p->is_internal ? 'Yes' : 'No'];
-        $columns[] = ['header' => 'Archived',    'resolve' => fn ($p) => $p->is_archived ? 'Yes' : 'No'];
-        $columns[] = ['header' => 'Sort order',  'resolve' => fn ($p) => $p->sort_order];
-
-        // Pricing — USD + INR × monthly + annual (minor units → major)
-        foreach (['USD' => 'USD', 'INR' => 'INR'] as $currency => $currLabel) {
-            foreach (['monthly' => 'monthly', 'annual' => 'annual'] as $cycle => $cycleLabel) {
-                $col = "{$currLabel}/{$cycleLabel}";
-                $columns[] = [
-                    'header'  => "Price {$col}",
-                    'resolve' => function (Plan $p) use ($currency, $cycle) {
-                        $price = $p->prices->first(
-                            fn ($pr) => $pr->currency === $currency && $pr->billing_cycle === $cycle
-                        );
-                        if (!$price) { return ''; }
-                        return number_format($price->amount_minor_units / 100, 2, '.', '');
-                    },
-                ];
-            }
-        }
-
-        // Modules
-        foreach (PlanFormCatalogue::modules() as $key => $meta) {
-            $columns[] = [
-                'header'  => 'Module: ' . $meta['label'],
-                'resolve' => fn (Plan $p) => !empty(($p->features ?? [])[$key]) ? 'Yes' : 'No',
-            ];
-        }
-
-        // Quantity limits (-1 → "Unlimited")
-        foreach (PlanFormCatalogue::quantityLimits() as $q) {
-            $key   = $q['key'];
-            $label = $q['label'];
-            $columns[] = [
-                'header'  => $label,
-                'resolve' => function (Plan $p) use ($key) {
-                    $features = $p->features ?? [];
-                    if (!array_key_exists($key, $features)) { return ''; }
-                    $val = $features[$key];
-                    // Some limits (e.g. max_aliases_per_link) may be stored as a
-                    // map keyed by type with a `default` fallback — export the
-                    // default so the same -1 → "Unlimited" rule still applies.
-                    if (is_array($val)) {
-                        if (!array_key_exists('default', $val)) { return ''; }
-                        $val = $val['default'];
-                    }
-                    return (int) $val === -1 ? 'Unlimited' : (string) $val;
-                },
-            ];
-        }
-
-        // Feature flags (bool → Yes/No, select → value)
-        foreach (PlanFormCatalogue::featureFlags() as $flag) {
-            $key   = $flag['key'];
-            $label = PlanFormCatalogue::labelFor($key);
-            $type  = $flag['type'];
-            $columns[] = [
-                'header'  => $label,
-                'resolve' => function (Plan $p) use ($key, $type) {
-                    $features = $p->features ?? [];
-                    $val = $features[$key] ?? null;
-                    if ($type === 'bool') {
-                        return !empty($val) ? 'Yes' : 'No';
-                    }
-                    return (string) ($val ?? '');
-                },
-            ];
-        }
-
-        // AI suite booleans
-        foreach (PlanFormCatalogue::aiSuite() as $row) {
-            $key   = $row['key'];
-            $label = PlanFormCatalogue::labelFor($key);
-            $columns[] = [
-                'header'  => 'AI: ' . $label,
-                'resolve' => fn (Plan $p) => !empty(($p->features ?? [])[$key]) ? 'Yes' : 'No',
-            ];
-        }
-
-        // AI coin multipliers (float, 1.0 = no change)
-        foreach (PlanFormCatalogue::aiCoinMultipliers() as $row) {
-            $key   = $row['key'];
-            $label = $row['label'];
-            $columns[] = [
-                'header'  => $label,
-                'resolve' => function (Plan $p) use ($key) {
-                    $val = ($p->features ?? [])[$key] ?? null;
-                    return $val !== null ? (string) $val : '1';
-                },
-            ];
-        }
-
-        // Referral program integer fields
-        foreach (PlanFormCatalogue::referralFields() as $row) {
-            $key   = $row['key'];
-            $label = $row['label'];
-            $columns[] = [
-                'header'  => $label,
-                'resolve' => function (Plan $p) use ($key) {
-                    $val = ($p->features ?? [])[$key] ?? null;
-                    return $val !== null ? (string) (int) $val : '0';
-                },
-            ];
-        }
+        // The column specification (headers + value formatting) is shared with
+        // the importer via PlanCsvSchema so the exported file round-trips.
+        $columns = PlanCsvSchema::columns();
 
         // ---- Stream the CSV ----
         $safe = static function (mixed $value): string {
@@ -233,21 +124,18 @@ class PlanController extends Controller
 
         $filename = 'pricing-plans-' . now()->toDateString() . '.csv';
 
-        $headers   = $columns;
-        $allPlans  = $plans;
-
-        return response()->stream(function () use ($headers, $allPlans, $safe) {
+        return response()->stream(function () use ($columns, $plans, $safe) {
             $out = fopen('php://output', 'w');
 
             // UTF-8 BOM so Excel auto-detects the encoding.
             fwrite($out, "\xEF\xBB\xBF");
 
-            fputcsv($out, array_column($headers, 'header'));
+            fputcsv($out, array_column($columns, 'header'));
 
-            foreach ($allPlans as $plan) {
+            foreach ($plans as $plan) {
                 $row = [];
-                foreach ($headers as $col) {
-                    $row[] = $safe(($col['resolve'])($plan));
+                foreach ($columns as $col) {
+                    $row[] = $safe(($col['export'])($plan));
                 }
                 fputcsv($out, $row);
             }
@@ -257,6 +145,330 @@ class PlanController extends Controller
             'Content-Type'        => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             'Cache-Control'       => 'no-store',
+        ]);
+    }
+
+    /**
+     * Parse an uploaded pricing-plans CSV (matching the export format) and
+     * render a per-plan diff preview before anything is written. Rows are
+     * matched to existing plans by their **Slug** column; unknown slugs are
+     * surfaced as error rows. Each recognised cell is validated (required
+     * fields, known Yes/No / numeric / select values, numeric ranges) and
+     * only cells that actually change a value show up in the diff.
+     *
+     * Nothing is persisted here — the admin reviews the diff and confirms
+     * via {@see importCommit()}. The raw CSV is carried forward in a hidden
+     * field so the commit step re-parses and re-validates from scratch
+     * (never trusting a client-supplied change set).
+     */
+    public function importPreview(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt', 'max:4096'],
+        ]);
+
+        $raw = (string) file_get_contents($request->file('file')->getRealPath());
+
+        $result = $this->analyseImportCsv($raw);
+
+        if ($result['fatal']) {
+            return back()->with('error', $result['fatal']);
+        }
+
+        return view('admin.plans.import', [
+            'rows'             => $result['rows'],
+            'unknownColumns'   => $result['unknownColumns'],
+            'rawCsv'           => $raw,
+            'changedCount'     => $result['changedCount'],
+            'errorCount'       => $result['errorCount'],
+            'unknownCount'     => $result['unknownCount'],
+            'unchangedCount'   => $result['unchangedCount'],
+        ]);
+    }
+
+    /**
+     * Apply a previously-previewed import. The CSV is re-parsed and
+     * re-validated from the hidden `csv` field, then every row that matches a
+     * plan by slug and carries at least one valid change is updated inside a
+     * single transaction (features merged, prices synced). Rows with unknown
+     * slugs or validation errors are skipped.
+     */
+    public function importCommit(Request $request)
+    {
+        $request->validate([
+            'csv' => ['required', 'string', 'max:2000000'],
+        ]);
+
+        $raw    = (string) $request->input('csv');
+        $result = $this->analyseImportCsv($raw);
+
+        if ($result['fatal']) {
+            return redirect()->route('admin.plans.index')->with('error', $result['fatal']);
+        }
+
+        $updated = 0;
+        \Illuminate\Support\Facades\DB::transaction(function () use ($result, &$updated) {
+            foreach ($result['rows'] as $row) {
+                if ($row['status'] !== 'update' || empty($row['plan'])) {
+                    continue;
+                }
+                $this->applyImportRow($row['plan'], $row);
+                $updated++;
+            }
+        });
+
+        $skipped = $result['errorCount'] + $result['unknownCount'];
+
+        return redirect()->route('admin.plans.index')->with(
+            'success',
+            $updated > 0
+                ? "Imported plan changes: {$updated} plan(s) updated"
+                    . ($skipped > 0 ? ", {$skipped} row(s) skipped." : '.')
+                : 'No plans were updated (no matching rows with changes).'
+        );
+    }
+
+    /**
+     * Shared CSV parse + diff engine used by both the preview and the commit
+     * steps. Returns the per-plan rows (with resolved Plan models, computed
+     * changes and validation errors), plus summary counts and a fatal error
+     * message when the file is structurally unusable.
+     *
+     * @return array{
+     *   fatal:?string,
+     *   rows:array<int,array<string,mixed>>,
+     *   unknownColumns:array<int,string>,
+     *   changedCount:int, errorCount:int, unknownCount:int, unchangedCount:int
+     * }
+     */
+    private function analyseImportCsv(string $raw): array
+    {
+        $empty = [
+            'fatal' => null, 'rows' => [], 'unknownColumns' => [],
+            'changedCount' => 0, 'errorCount' => 0, 'unknownCount' => 0, 'unchangedCount' => 0,
+        ];
+
+        // Strip a UTF-8 BOM if Excel added one.
+        $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw) ?? $raw;
+
+        $lines = preg_split('/\r\n|\r|\n/', $raw) ?: [];
+        // Drop trailing blank lines.
+        while (!empty($lines) && trim(end($lines)) === '') {
+            array_pop($lines);
+        }
+        if (count($lines) < 2) {
+            return array_merge($empty, ['fatal' => 'The file has no data rows. Export the current plans, edit them, then upload.']);
+        }
+
+        $header = str_getcsv(array_shift($lines));
+        $header = array_map(fn ($h) => trim((string) $h), $header);
+
+        $columns    = PlanCsvSchema::columns();
+        $byHeader   = [];
+        foreach ($columns as $col) {
+            $byHeader[$col['header']] = $col;
+        }
+        $matchHeader = PlanCsvSchema::matchHeader();
+
+        // Map each CSV column index → schema column (skip the match column and
+        // unrecognised headers). Track unknown headers to warn the admin.
+        $indexMap       = [];
+        $matchIndex     = null;
+        $unknownColumns = [];
+        foreach ($header as $i => $h) {
+            if ($h === '') { continue; }
+            if ($h === $matchHeader) { $matchIndex = $i; continue; }
+            if (isset($byHeader[$h])) {
+                $indexMap[$i] = $byHeader[$h];
+            } else {
+                $unknownColumns[] = $h;
+            }
+        }
+
+        if ($matchIndex === null) {
+            return array_merge($empty, ['fatal' => "The file is missing the required \"{$matchHeader}\" column. Upload a file exported from this page."]);
+        }
+
+        // Snapshot all plans by slug once (active + archived), with prices.
+        $plansBySlug = Plan::with('prices')->get()->keyBy('slug');
+
+        $rows           = [];
+        $changedCount   = 0;
+        $errorCount     = 0;
+        $unknownCount   = 0;
+        $unchangedCount = 0;
+
+        foreach ($lines as $lineNo => $line) {
+            if (trim($line) === '') { continue; }
+            $cells = str_getcsv($line);
+
+            $slugRaw = trim((string) ($cells[$matchIndex] ?? ''));
+            $slug    = ltrim($slugRaw, "'");
+
+            $rowName = '';
+            // Best-effort name for display (first 'Name' column if present).
+            foreach ($indexMap as $i => $col) {
+                if ($col['key'] === 'name') {
+                    $rowName = trim((string) ($cells[$i] ?? ''));
+                    break;
+                }
+            }
+
+            if ($slug === '') {
+                $rows[] = [
+                    'status' => 'unknown', 'slug' => '(blank)', 'name' => $rowName,
+                    'plan' => null, 'changes' => [], 'errors' => ['Missing slug — cannot match a plan.'],
+                ];
+                $unknownCount++;
+                continue;
+            }
+
+            /** @var Plan|null $plan */
+            $plan = $plansBySlug->get($slug);
+            if (!$plan) {
+                $rows[] = [
+                    'status' => 'unknown', 'slug' => $slug, 'name' => $rowName,
+                    'plan' => null, 'changes' => [], 'errors' => ["No plan found with slug \"{$slug}\" — skipped."],
+                ];
+                $unknownCount++;
+                continue;
+            }
+
+            $changes = [];
+            $errors  = [];
+            $apply   = [];
+            foreach ($indexMap as $i => $col) {
+                $rawCell = $cells[$i] ?? '';
+                $parsed  = PlanCsvSchema::parseCell($col, $rawCell);
+
+                if ($parsed['error'] !== null) {
+                    $errors[] = "{$col['header']}: {$parsed['error']}";
+                    continue;
+                }
+                if ($parsed['skip']) {
+                    continue;
+                }
+
+                $old = (string) ($col['export'])($plan);
+                if ($parsed['canonical'] === $old) {
+                    continue; // no change
+                }
+
+                $changes[] = [
+                    'label' => $col['header'],
+                    'old'   => $old === '' ? '—' : $old,
+                    'new'   => $parsed['canonical'],
+                ];
+                $apply[] = ['col' => $col, 'value' => $parsed['value']];
+            }
+
+            if (!empty($errors)) {
+                $rows[] = [
+                    'status' => 'error', 'slug' => $slug, 'name' => $plan->name,
+                    'plan' => $plan, 'changes' => $changes, 'errors' => $errors, 'apply' => [],
+                ];
+                $errorCount++;
+                continue;
+            }
+
+            if (empty($changes)) {
+                $rows[] = [
+                    'status' => 'unchanged', 'slug' => $slug, 'name' => $plan->name,
+                    'plan' => $plan, 'changes' => [], 'errors' => [], 'apply' => [],
+                ];
+                $unchangedCount++;
+                continue;
+            }
+
+            $rows[] = [
+                'status' => 'update', 'slug' => $slug, 'name' => $plan->name,
+                'plan' => $plan, 'changes' => $changes, 'errors' => [], 'apply' => $apply,
+            ];
+            $changedCount++;
+        }
+
+        return [
+            'fatal'          => null,
+            'rows'           => $rows,
+            'unknownColumns' => array_values(array_unique($unknownColumns)),
+            'changedCount'   => $changedCount,
+            'errorCount'     => $errorCount,
+            'unknownCount'   => $unknownCount,
+            'unchangedCount' => $unchangedCount,
+        ];
+    }
+
+    /**
+     * Persist one validated import row onto its plan: core attributes are set
+     * directly, feature keys are merged into the existing features blob (so
+     * columns the file omits are preserved), and price columns are collected
+     * into the four minor-unit slots and synced through PlanWriter. The
+     * "only one popular / default plan" invariant is preserved.
+     */
+    private function applyImportRow(Plan $plan, array $row): void
+    {
+        $features = $plan->features ?? [];
+
+        // Current price minor units keyed by "CUR_cycle" so untouched price
+        // columns keep their existing value.
+        $minor = [];
+        foreach ($plan->prices as $pr) {
+            $minor[$pr->currency . '_' . $pr->billing_cycle] = (int) $pr->amount_minor_units;
+        }
+
+        foreach ($row['apply'] as $entry) {
+            $col   = $entry['col'];
+            $value = $entry['value'];
+
+            if ($col['group'] === 'core') {
+                $plan->{$col['key']} = $value;
+            } elseif ($col['group'] === 'price') {
+                $minor[$col['currency'] . '_' . $col['cycle']] = (int) $value;
+            } else { // feature
+                if ($col['type'] === 'yesno') {
+                    $features[$col['key']] = (bool) $value;
+                } else {
+                    $features[$col['key']] = $value;
+                }
+            }
+        }
+
+        // Stats-history floor mirrors PlanWriter::collectFeatures().
+        if (array_key_exists('stats_retention_days', $features)) {
+            $retention = (int) $features['stats_retention_days'];
+            if ($retention !== -1 && $retention < 30) {
+                $retention = 30;
+            }
+            $features['stats_retention_days'] = $retention;
+        }
+
+        $plan->features = $features;
+
+        // Keep legacy decimal columns in step with the four required prices.
+        $monthlyUsd = $minor['USD_monthly'] ?? (int) round(((float) $plan->monthly_price) * 100);
+        $annualUsd  = $minor['USD_annual']  ?? (int) round(((float) $plan->annual_price) * 100);
+        $monthlyInr = $minor['INR_monthly'] ?? (int) round(((float) $plan->monthly_price_secondary) * 100);
+        $annualInr  = $minor['INR_annual']  ?? (int) round(((float) $plan->annual_price_secondary) * 100);
+
+        $plan->monthly_price           = $monthlyUsd / 100;
+        $plan->annual_price            = $annualUsd / 100;
+        $plan->monthly_price_secondary = $monthlyInr / 100;
+        $plan->annual_price_secondary  = $annualInr / 100;
+
+        $plan->save();
+
+        if ($plan->is_popular) {
+            Plan::where('id', '!=', $plan->id)->where('is_popular', true)->update(['is_popular' => false]);
+        }
+        if ($plan->is_default) {
+            Plan::where('id', '!=', $plan->id)->where('is_default', true)->update(['is_default' => false]);
+        }
+
+        $this->writer->syncPriceTable($plan, [
+            'monthly_price'           => $monthlyUsd,
+            'annual_price'            => $annualUsd,
+            'monthly_price_secondary' => $monthlyInr,
+            'annual_price_secondary'  => $annualInr,
         ]);
     }
 
