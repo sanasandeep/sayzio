@@ -180,7 +180,8 @@ class ClientInvoiceTest extends TestCase
         ]);
         $invoice = app(ClientInvoiceService::class)->draftFromCards([$card->id], $ws, $u->id);
 
-        $signed = \Illuminate\Support\Facades\URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
+        // payLinkUrl() signs the route AND carries the revocable pay-link token.
+        $signed = $invoice->payLinkUrl();
         $path   = parse_url($signed, PHP_URL_PATH) . '?' . parse_url($signed, PHP_URL_QUERY);
 
         // GET with signature: page renders.
@@ -194,6 +195,110 @@ class ClientInvoiceTest extends TestCase
         // back with a flash error (302), which is the success criterion.
         $resp = $this->withHeaders(['Accept' => 'text/html'])->post($path);
         $this->assertNotSame(401, $resp->status(), 'Signed POST should not be 401.');
+    }
+
+    public function test_pay_link_token_mismatch_is_rejected(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $this->actingAs($u)->post('/user/tasks/boards', ['name' => 'TK', 'scope' => 'team']);
+        $board = \App\Modules\User\Models\TaskBoard::where('name', 'TK')->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $card  = TaskCard::create([
+            'workspace_id' => $ws->id, 'board_id' => $board->id, 'column_id' => $col->id,
+            'title' => 'TK', 'position' => 1, 'priority' => 'normal',
+            'billable' => true, 'rate_type' => 'flat', 'rate_amount_minor' => 9900,
+        ]);
+        $invoice = app(ClientInvoiceService::class)->draftFromCards([$card->id], $ws, $u->id);
+
+        // The current, correctly-tokened link works…
+        $good = $invoice->payLinkUrl();
+        $this->get(parse_url($good, PHP_URL_PATH) . '?' . parse_url($good, PHP_URL_QUERY))
+            ->assertStatus(200);
+
+        // …but a validly-signed link carrying a stale token is rejected. Sign a
+        // URL with a wrong `t` so the SIGNATURE is valid but the token is not.
+        $forged = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'client-invoice.pay',
+            now()->addDays(30),
+            ['invoice' => $invoice->id, 't' => 'not-the-real-token']
+        );
+        $this->get(parse_url($forged, PHP_URL_PATH) . '?' . parse_url($forged, PHP_URL_QUERY))
+            ->assertStatus(401);
+
+        // A signed link with NO token at all is also rejected.
+        $noToken = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'client-invoice.pay',
+            now()->addDays(30),
+            ['invoice' => $invoice->id]
+        );
+        $this->get(parse_url($noToken, PHP_URL_PATH) . '?' . parse_url($noToken, PHP_URL_QUERY))
+            ->assertStatus(401);
+    }
+
+    public function test_pay_link_is_revoked_when_recipient_changes(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $this->actingAs($u)->post('/user/tasks/boards', ['name' => 'RC', 'scope' => 'team']);
+        $board = \App\Modules\User\Models\TaskBoard::where('name', 'RC')->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $card  = TaskCard::create([
+            'workspace_id' => $ws->id, 'board_id' => $board->id, 'column_id' => $col->id,
+            'title' => 'RC', 'position' => 1, 'priority' => 'normal',
+            'billable' => true, 'rate_type' => 'flat', 'rate_amount_minor' => 5500,
+        ]);
+        $invoice = app(ClientInvoiceService::class)->draftFromCards([$card->id], $ws, $u->id);
+        $invoice->forceFill(['recipient_email' => 'old@ex.com'])->save();
+
+        // Link the FIRST recipient was given.
+        $oldLink = $invoice->payLinkUrl();
+        $oldPath = parse_url($oldLink, PHP_URL_PATH) . '?' . parse_url($oldLink, PHP_URL_QUERY);
+        $this->get($oldPath)->assertStatus(200);
+
+        // Owner corrects the recipient — this must revoke the mis-sent link.
+        $this->actingAs($u)->put(route('user.client-invoices.update', $invoice), [
+            'line_items'      => [['label' => 'Work', 'amount_minor' => 5500, 'quantity' => 1]],
+            'recipient_email' => 'new@ex.com',
+        ])->assertStatus(302);
+
+        // The old holder's link is now dead…
+        $this->get($oldPath)->assertStatus(401);
+
+        // …while a freshly-built link for the current token still works.
+        $newLink = $invoice->fresh()->payLinkUrl();
+        $this->get(parse_url($newLink, PHP_URL_PATH) . '?' . parse_url($newLink, PHP_URL_QUERY))
+            ->assertStatus(200);
+    }
+
+    public function test_pay_link_is_revoked_on_resend(): void
+    {
+        $u  = $this->user();
+        $ws = $this->bind($u);
+        $this->actingAs($u)->post('/user/tasks/boards', ['name' => 'RS', 'scope' => 'team']);
+        $board = \App\Modules\User\Models\TaskBoard::where('name', 'RS')->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $card  = TaskCard::create([
+            'workspace_id' => $ws->id, 'board_id' => $board->id, 'column_id' => $col->id,
+            'title' => 'RS', 'position' => 1, 'priority' => 'normal',
+            'billable' => true, 'rate_type' => 'flat', 'rate_amount_minor' => 4400,
+        ]);
+        $invoice = app(ClientInvoiceService::class)->draftFromCards([$card->id], $ws, $u->id);
+        $invoice->forceFill(['recipient_email' => 'client@ex.com'])->save();
+
+        // First send mints a token + link.
+        app(ClientInvoiceService::class)->markSent($invoice);
+        $firstLink = $invoice->fresh()->payLinkUrl();
+        $firstPath = parse_url($firstLink, PHP_URL_PATH) . '?' . parse_url($firstLink, PHP_URL_QUERY);
+        $this->get($firstPath)->assertStatus(200);
+
+        // Re-sending supersedes the earlier link (token rotates).
+        app(ClientInvoiceService::class)->markSent($invoice->fresh());
+        $this->get($firstPath)->assertStatus(401);
+
+        $secondLink = $invoice->fresh()->payLinkUrl();
+        $this->get(parse_url($secondLink, PHP_URL_PATH) . '?' . parse_url($secondLink, PHP_URL_QUERY))
+            ->assertStatus(200);
     }
 
     public function test_send_reminder_emails_unpaid_sent_invoice(): void

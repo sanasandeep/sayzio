@@ -544,6 +544,9 @@ class BillingController extends Controller
                 ->find($data['contact_id'])
             : null;
 
+        $previousRecipient = $invoice->recipient_email;
+        $newRecipient = $data['recipient_email'] ?? ($contact ? optional($contact->emails()->orderByDesc('is_primary')->first())->value : $invoice->recipient_email);
+
         $invoice->forceFill([
             'discount_minor'  => (int) ($data['discount_minor'] ?? $invoice->discount_minor ?? 0),
             'tax_total_minor' => (int) ($data['tax_total_minor'] ?? $invoice->tax_total_minor ?? 0),
@@ -551,13 +554,19 @@ class BillingController extends Controller
             'due_date'        => array_key_exists('due_date', $data) ? $data['due_date'] : $invoice->due_date,
             'vault_client_id' => array_key_exists('vault_client_id', $data) ? $data['vault_client_id'] : $invoice->vault_client_id,
             'contact_id'      => array_key_exists('contact_id', $data) ? ($contact?->id) : $invoice->contact_id,
-            'recipient_email' => $data['recipient_email'] ?? ($contact ? optional($contact->emails()->orderByDesc('is_primary')->first())->value : $invoice->recipient_email),
+            'recipient_email' => $newRecipient,
             'recipient_name'  => $data['recipient_name'] ?? ($contact ? $contact->nameForDisplay() : $invoice->recipient_name),
             'recipient_address' => array_key_exists('recipient_address', $data)
                 ? $data['recipient_address']
                 : ($contact && is_array($contact->manual_profile) ? ($contact->manual_profile['location']['address'] ?? $invoice->recipient_address) : $invoice->recipient_address),
             'letterhead_orientation' => $data['letterhead_orientation'] ?? $invoice->letterhead_orientation,
         ])->save();
+
+        // Changing the recipient revokes any pay link the previous recipient
+        // already holds (mis-sent-invoice mitigation; mirrors the web edit path).
+        if ($newRecipient !== $previousRecipient && !empty($invoice->pay_link_token)) {
+            $invoice->rotatePayLinkToken();
+        }
 
         if (array_key_exists('line_items', $data)) {
             $items = [];
@@ -730,13 +739,16 @@ class BillingController extends Controller
 
         // Reuse the shared send path (delivers, then stamps sent_at) so a
         // transport failure is surfaced to the caller instead of swallowed.
-        $payUrl = URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
+        // markSent rotates the pay-link token, so build the URL after it runs.
         try {
             $svc->markSent($invoice);
+            $payUrl = $invoice->payLinkUrl();
         } catch (\Throwable $e) {
             report($e);
+            // markSent rotates the token before it can fail on transport, so the
+            // pay link built here reflects the current (rotated) token.
             return $this->fail('Could not send the invoice email. The pay link is still available to share manually.', 502, null, [
-                'pay_url' => $payUrl,
+                'pay_url' => $invoice->payLinkUrl(),
             ]);
         }
 
@@ -923,7 +935,7 @@ class BillingController extends Controller
             // Sanitized, human-friendly cause of the latest failed send so the
             // app can show the same concrete reason as the web edit banner.
             $out['last_send_reason'] = $failed ? $i->lastSendFailedReason() : null;
-            $out['pay_url'] = URL::signedRoute('client-invoice.pay', ['invoice' => $i->id]);
+            $out['pay_url'] = $i->payLinkUrl();
         }
 
         return $out;

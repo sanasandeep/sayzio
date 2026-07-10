@@ -4,6 +4,7 @@ namespace App\Services\CreatorPayouts;
 
 use App\Modules\User\Models\CreatorPaymentConnection;
 use App\Modules\User\Models\User;
+use Illuminate\Support\Facades\URL;
 
 /**
  * Lightweight per-provider adapter for the creator-payout flow.
@@ -119,7 +120,7 @@ abstract class PayoutProviderAdapter
         CreatorPaymentConnection $connection,
         array $context,
     ): string {
-        return route('checkout.preview', [
+        return URL::signedRoute('checkout.preview', [
             'provider'  => $this->slug(),
             'kind'      => 'subscription',
             'reference' => $context['reference'] ?? '',
@@ -136,7 +137,7 @@ abstract class PayoutProviderAdapter
         CreatorPaymentConnection $connection,
         array $context,
     ): string {
-        return route('checkout.preview', [
+        return URL::signedRoute('checkout.preview', [
             'provider'  => $this->slug(),
             'kind'      => $context['kind'] ?? 'one_time',
             'reference' => $context['reference'] ?? '',

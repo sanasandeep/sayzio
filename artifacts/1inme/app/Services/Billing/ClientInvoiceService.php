@@ -279,13 +279,18 @@ class ClientInvoiceService
             abort(422, 'Pick a recipient email before sending.');
         }
 
+        // A fresh (re)send supersedes any previously-issued pay link, so rotate
+        // the token before building the URL: an earlier recipient can no longer
+        // use the link they were sent once the invoice is sent again.
+        $invoice->rotatePayLinkToken();
+
         // Deliver first so a transport failure surfaces to the caller (the
         // sent_at stamp is only written once delivery succeeds). The central
         // Emailer otherwise swallows transport failures (logs a `failed` row and
         // returns), so opt in to throw_on_failure: a genuine SMTP failure now
         // raises EmailDeliveryException instead of letting us stamp "sent" for
         // an email the client never received.
-        $payUrl = \Illuminate\Support\Facades\URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
+        $payUrl = $invoice->payLinkUrl();
         \App\Modules\Common\Services\Emailer::send('billing.client_invoice', $invoice->recipient_email, [
             'invoice_number' => $invoice->number,
             'pay_url'        => $payUrl,
@@ -322,7 +327,7 @@ class ClientInvoiceService
             abort(422, 'Send the invoice before reminding about it.');
         }
 
-        $payUrl = \Illuminate\Support\Facades\URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
+        $payUrl = $invoice->payLinkUrl();
         \App\Modules\Common\Services\Emailer::send('billing.payment_reminder', $invoice->recipient_email, [
             'invoice_number' => $invoice->number,
             'amount'         => number_format((int) $invoice->grand_total_minor / 100, 2),

@@ -46,7 +46,7 @@ class ClientInvoiceController extends Controller
         $payUrls = [];
         foreach ($invoices->items() as $inv) {
             if (!empty($sendFailedMap[$inv->id])) {
-                $payUrls[$inv->id] = URL::signedRoute('client-invoice.pay', ['invoice' => $inv->id]);
+                $payUrls[$inv->id] = $inv->payLinkUrl();
             }
         }
 
@@ -80,7 +80,7 @@ class ClientInvoiceController extends Controller
         $lastSendFailed = $invoice->lastSendFailed();
         // Human-friendly, sanitized reason for the latest failed send (if any).
         $lastSendReason = $lastSendFailed ? $invoice->lastSendFailedReason() : null;
-        $payUrl = URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
+        $payUrl = $invoice->payLinkUrl();
         return view('user.client_invoices.edit', compact('invoice', 'clients', 'emails', 'contacts', 'lastSendFailed', 'lastSendReason', 'payUrl'));
     }
 
@@ -128,6 +128,9 @@ class ClientInvoiceController extends Controller
             ? Contact::withoutWorkspaceScope()->where('workspace_id', $ws->id)->find($data['contact_id'])
             : null;
 
+        $previousRecipient = $invoice->recipient_email;
+        $newRecipient = $data['recipient_email'] ?? ($contact ? optional($contact->emails()->orderByDesc('is_primary')->first())->value : null);
+
         $invoice->forceFill([
             'discount_minor'    => (int) ($data['discount_minor'] ?? 0),
             'tax_total_minor'   => (int) ($data['tax_total_minor'] ?? 0),
@@ -135,11 +138,18 @@ class ClientInvoiceController extends Controller
             'due_date'          => $data['due_date'] ?? null,
             'vault_client_id'   => $data['vault_client_id'] ?? null,
             'contact_id'        => $contact?->id,
-            'recipient_email'   => $data['recipient_email'] ?? ($contact ? optional($contact->emails()->orderByDesc('is_primary')->first())->value : null),
+            'recipient_email'   => $newRecipient,
             'recipient_name'    => $data['recipient_name'] ?? ($contact ? $contact->nameForDisplay() : null),
             'recipient_address' => $data['recipient_address'] ?? ($contact && is_array($contact->manual_profile) ? ($contact->manual_profile['location']['address'] ?? null) : null),
             'letterhead_orientation' => $data['letterhead_orientation'] ?? $invoice->letterhead_orientation,
         ])->save();
+
+        // Changing who the invoice is addressed to must revoke any pay link the
+        // previous recipient already holds (mis-sent-invoice mitigation).
+        if ($newRecipient !== $previousRecipient && !empty($invoice->pay_link_token)) {
+            $invoice->rotatePayLinkToken();
+        }
+
         $svc->recalculate($invoice, $items);
         $this->applyLetterhead($invoice, $request, $data['letterhead_orientation'] ?? ($invoice->letterhead_orientation ?: 'portrait'));
 
@@ -161,7 +171,7 @@ class ClientInvoiceController extends Controller
             $svc->markSent($invoice);
         } catch (\Throwable $e) {
             report($e);
-            $payUrl = \Illuminate\Support\Facades\URL::signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
+            $payUrl = $invoice->payLinkUrl();
             return back()
                 ->with('error', 'Could not email the invoice — the email failed to send. Share this pay link manually: ' . $payUrl)
                 ->with('pay_url', $payUrl);
@@ -438,6 +448,10 @@ class ClientInvoiceController extends Controller
     public function payPage(Request $request, Invoice $invoice)
     {
         if (!$request->hasValidSignature()) abort(401, 'Pay link expired.');
+        // The signed URL only proves it was minted by us; the token proves it is
+        // the CURRENT link. Rotating the token (recipient change / re-send)
+        // revokes older links even though their signature is still valid.
+        if (!$invoice->payLinkTokenMatches($request->query('t'))) abort(401, 'This payment link is no longer valid.');
         if ($invoice->kind !== 'client') abort(404);
         return view('user.client_invoices.pay', ['invoice' => $invoice, 'paid' => $invoice->status === 'paid']);
     }
@@ -446,9 +460,10 @@ class ClientInvoiceController extends Controller
     public function payHandoff(Request $request, Invoice $invoice, GatewayManager $gm)
     {
         if (!$request->hasValidSignature()) abort(401, 'Pay link expired.');
+        if (!$invoice->payLinkTokenMatches($request->query('t'))) abort(401, 'This payment link is no longer valid.');
         if ($invoice->kind !== 'client') abort(404);
         if ($invoice->status === 'paid') {
-            return redirect()->signedRoute('client-invoice.pay', ['invoice' => $invoice->id]);
+            return redirect($invoice->payLinkUrl());
         }
         try {
             $adapter = $gm->for('stripe');

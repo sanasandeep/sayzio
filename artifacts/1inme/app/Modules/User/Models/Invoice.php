@@ -91,6 +91,53 @@ class Invoice extends Model
     }
 
     /**
+     * Per-invoice secret embedded in the public, signed pay URL and validated
+     * server-side on every hit (see ClientInvoiceController::payPage /
+     * payHandoff). Lazily generated + persisted so any pay URL built for this
+     * invoice always carries a token. Rotating it (see rotatePayLinkToken)
+     * immediately invalidates every previously-issued link.
+     */
+    public function payLinkToken(): string
+    {
+        if (empty($this->pay_link_token)) {
+            $this->forceFill(['pay_link_token' => \Illuminate\Support\Str::random(40)])->save();
+        }
+        return (string) $this->pay_link_token;
+    }
+
+    /**
+     * Mint a fresh pay-link token, revoking every link issued with the old one.
+     * Called when the recipient changes or the invoice is (re)sent, so a
+     * mis-sent link cannot be used to view/pay after the owner corrects it.
+     */
+    public function rotatePayLinkToken(): void
+    {
+        $this->forceFill(['pay_link_token' => \Illuminate\Support\Str::random(40)])->save();
+    }
+
+    /** Timing-safe check that a request-supplied token is the current one. */
+    public function payLinkTokenMatches(?string $token): bool
+    {
+        return !empty($this->pay_link_token)
+            && is_string($token)
+            && hash_equals((string) $this->pay_link_token, $token);
+    }
+
+    /**
+     * Build the public, temporary-signed pay URL for this invoice. Centralizes
+     * signing + token embedding so every caller (web, API, service, recurring
+     * auto-send) produces revocable, expiring links identically.
+     */
+    public function payLinkUrl(int $days = 30): string
+    {
+        return \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'client-invoice.pay',
+            now()->addDays($days),
+            ['invoice' => $this->getKey(), 't' => $this->payLinkToken()]
+        );
+    }
+
+    /**
      * The Emailer key used when a client invoice is emailed with its pay link
      * (see ClientInvoiceService::markSent). The latest email_logs row for this
      * key + invoice is what drives the persistent "last send failed" indicator

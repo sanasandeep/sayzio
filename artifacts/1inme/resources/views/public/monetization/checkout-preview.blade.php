@@ -36,11 +36,11 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('checkout.preview.confirm') }}">
+        {{-- The form action is a server-signed URL (pre-generated in the controller).
+             This prevents an attacker from driving the confirm endpoint directly
+             without a valid server-issued signature — even if they know the token. --}}
+        <form method="POST" action="{{ $confirmUrl }}">
             @csrf
-            <input type="hidden" name="kind" value="{{ $kind === 'one_time' ? 'tip' : $kind }}">
-            <input type="hidden" name="reference" value="{{ $reference }}">
-            <input type="hidden" name="token" value="{{ $token }}">
             <button type="submit" class="w-full py-2.5 rounded-lg font-semibold text-sm mb-2" style="background: #635bff; color: white;">
                 Confirm payment
             </button>

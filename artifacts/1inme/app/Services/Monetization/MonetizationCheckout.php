@@ -31,6 +31,27 @@ use Illuminate\Support\Str;
 class MonetizationCheckout
 {
     /**
+     * Whether the preview checkout flow may grant paid entitlements.
+     *
+     * The preview flow (/checkout/preview + /checkout/return) stands in for a
+     * real hosted checkout: it marks records paid on token possession alone,
+     * WITHOUT collecting money or verifying a provider charge. Allowing it in
+     * production would let anyone unlock paid content for free, so it is
+     * disabled there by default. `config('monetization.allow_preview_checkout')`
+     * may force a choice (e.g. true on an internal demo host); when null it is
+     * enabled everywhere except production.
+     */
+    public static function previewCheckoutAllowed(): bool
+    {
+        $flag = config('monetization.allow_preview_checkout');
+        if ($flag !== null) {
+            return (bool) $flag;
+        }
+
+        return !app()->environment('production');
+    }
+
+    /**
      * Subscribe a fan to a tier. Returns ['url' => string, 'subscription' => CreatorSubscription].
      *
      * - Free tiers skip the provider entirely and activate immediately.
@@ -392,6 +413,15 @@ class MonetizationCheckout
      */
     public function confirm(string $kind, string $reference, string $token): ?array
     {
+        // SECURITY: this method grants paid entitlements purely from possession
+        // of the preview cache token — it does NOT verify that money actually
+        // changed hands. It must therefore never run in production, where it
+        // would let anyone unlock paid content for free. A real payout adapter
+        // must verify the provider charge server-side before granting access.
+        if (!self::previewCheckoutAllowed()) {
+            return null;
+        }
+
         $key = $this->cacheKeyFromReference($kind, $reference, $token);
         if (!$key) return null;
         $payload = cache()->pull($key);
