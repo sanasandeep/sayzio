@@ -52,7 +52,7 @@
     "test:calendar-event-quota": "node scripts/test-calendar-event-quota.mjs",
     "test:scheduled-jobs-client": "node scripts/test-scheduled-jobs-client.mjs",
     "test:transient-env-error": "node scripts/test-transient-env-error.mjs",
-    "test:unit": "pnpm run test:citation-href && pnpm run test:block-cache && pnpm run test:inline-block-edit && pnpm run test:map-location && pnpm run test:event-host-map && pnpm run test:login-auth-config && pnpm run test:whatsapp-disconnect && pnpm run test:wizard-flow && pnpm run test:setup-flow && pnpm run test:voice-bridge && pnpm run test:push-action && pnpm run test:native-route && pnpm run test:stats-range && pnpm run test:stats-export && pnpm run test:upgrade-hint && pnpm run test:audience-coin-warning && pnpm run test:quick-contact && pnpm run test:contact-details && pnpm run test:contact-content && pnpm run test:about-eefind && pnpm run test:tier-switch-toast && pnpm run test:auth-next && pnpm run test:auth-flow && pnpm run test:onboarding-setup && pnpm run test:onboarding-slides-cache && pnpm run test:pairing-create-open && pnpm run test:calendar-quota-lock && pnpm run test:calendar-event-quota && pnpm run test:scheduled-jobs-client && pnpm run test:transient-env-error && pnpm run test:import-url && pnpm run test:import-url-route && pnpm run test:splash-once && pnpm run test:cta-variant && pnpm run test:tab-bar-gradient",
+    "test:unit": "pnpm run test:citation-href && pnpm run test:block-cache && pnpm run test:inline-block-edit && pnpm run test:map-location && pnpm run test:event-host-map && pnpm run test:login-auth-config && pnpm run test:whatsapp-disconnect && pnpm run test:wizard-flow && pnpm run test:setup-flow && pnpm run test:voice-bridge && pnpm run test:push-action && pnpm run test:native-route && pnpm run test:stats-range && pnpm run test:stats-export && pnpm run test:upgrade-hint && pnpm run test:audience-coin-warning && pnpm run test:quick-contact && pnpm run test:contact-details && pnpm run test:contact-content && pnpm run test:about-eefind && pnpm run test:tier-switch-toast && pnpm run test:auth-next && pnpm run test:auth-flow && pnpm run test:onboarding-setup && pnpm run test:onboarding-slides-cache && pnpm run test:pairing-create-open && pnpm run test:calendar-quota-lock && pnpm run test:calendar-event-quota && pnpm run test:scheduled-jobs-client && pnpm run test:transient-env-error && pnpm run test:import-url && pnpm run test:import-url-route && pnpm run test:splash-once && pnpm run test:cta-variant && pnpm run test:tab-bar-gradient && pnpm run test:focus-ring-guard",
     "test:unit:strict": "EXTRACT_STRICT=1 pnpm run test:unit",
     "test:inline-block-edit": "node scripts/test-inline-block-edit.mjs",
     "test:import-url": "node scripts/test-import-url.mjs",
@@ -61,6 +61,7 @@
     "test:splash-once": "node scripts/test-splash-once.mjs",
     "test:tab-bar-gradient": "node scripts/test-tab-bar-gradient.mjs",
     "test:cta-variant": "node scripts/test-cta-variant.mjs",
+    "test:focus-ring-guard": "node scripts/check-focus-ring-shared.mjs",
     "test:import-url-e2e": "node scripts/test-import-url-e2e.mjs"
   },
   "devDependencies": {

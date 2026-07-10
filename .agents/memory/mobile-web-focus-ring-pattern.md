@@ -7,17 +7,26 @@ description: How the on-brand :focus-visible keyboard focus ring is applied to R
 
 React Native Web renders Pressables as `<div>`s with NO default focus outline, so
 sighted keyboard users can't see which control has focus. The fix is an on-brand
-`:focus-visible` ring applied web-only:
+`:focus-visible` ring applied web-only. The treatment now lives in ONE shared module,
+`artifacts/1inme-mobile/lib/webFocusRing.ts` — do NOT re-inline it per surface:
 
-- A module-level `*_FOCUS_RING_PROPS` that is `{ dataSet: { <marker>: "true" } }` on
-  web and `null` on native (spread onto every focusable Pressable).
-- A one-time injected stylesheet: `[data-<marker>]:focus-visible { outline: 2px solid
-  var(--<marker>-focus-ring, #<fallback>); ... }`.
-- A CSS var (`--<marker>-focus-ring`) set to `colors.primary` from a useEffect so the
-  ring tracks the active theme.
+- `useWebFocusRing(config, ringColor)` — call once per surface. Installs the one-time
+  stylesheet (`[data-<marker>]:focus-visible { outline: 2px solid var(--<var>, #fallback) }`),
+  keeps the CSS var tracking `colors.primary`, and returns the marker props.
+- `focusRingMarkerProps(config)` — `{ dataSet: { <key>: "true" } }` on web, `null` on
+  native; spread onto every focusable Pressable.
+- Presets `TAB_BAR_FOCUS_RING` (marker `data-tabbar-tab`) and `DRAWER_FOCUS_RING`
+  (marker `data-drawer-focusable`). Add a new `WebFocusRingConfig` preset for a new surface.
 
 **Why:** the ring must be keyboard-only (`:focus-visible`, never on tap) and must not
 touch native rendering, so the props are null on native and the styling is pure web CSS.
+Duplicating it inline per surface let keyboard a11y drift silently.
+
+**Drift guard:** `scripts/check-focus-ring-shared.mjs` (npm `test:focus-ring-guard`,
+wired into `test:unit` → the `mobile-unit` workflow) fails if any file under
+`components/` inlines a `:focus-visible` stylesheet / focus-ring `dataSet` marker /
+`--*-focus-ring` var (comment-stripped) WITHOUT importing `webFocusRing`. Correct usage
+(spreading helper props) produces none of those literals, so sanctioned surfaces pass.
 
 **Shared helper (preferred for NEW surfaces, as of Jul 2026):**
 `artifacts/1inme-mobile/hooks/useWebFocusRing.ts` generalizes the pattern with a single

@@ -29,6 +29,11 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors, useResolvedScheme } from "@/hooks/useColors";
 import { BrandWordmark } from "@/components/Brand";
+import {
+  DRAWER_FOCUS_RING,
+  focusRingMarkerProps,
+  useWebFocusRing,
+} from "@/lib/webFocusRing";
 import type { ThemePref } from "@/lib/secure";
 import type { Workspace } from "@/lib/api/workspaces";
 
@@ -167,19 +172,14 @@ const NAV_GROUPS: NavGroup[] = [
 // Every drawer control (nav items, close, workspace switcher, theme buttons,
 // sign out) renders as a React Native Web <div>/Pressable, which has NO default
 // focus outline — so a sighted keyboard user tabbing through the drawer can't
-// see where focus currently is. We tag each focusable control with
-// `data-drawer-focusable` (via RNW's `dataSet`, which forwards to the DOM node
-// as data-* attributes) and inject a one-time global stylesheet that paints an
-// on-brand focus ring — scoped to `:focus-visible` so it ONLY appears for
-// keyboard focus, never on mouse/touch press. The ring colour tracks the
-// theme's primary (blue) via a CSS custom property so it stays correct in light
-// + dark. Mirrors the FloatingTabBar treatment for consistent keyboard a11y
-// across the whole mobile-web navigation. Native (iOS/Android): this object is
-// null and nothing is added.
-const WEB_FOCUS_RING_PROPS =
-  Platform.OS === "web"
-    ? ({ dataSet: { drawerFocusable: "true" } } as object)
-    : null;
+// see where focus currently is. The shared helper (lib/webFocusRing) tags each
+// focusable control with the `data-drawer-focusable` marker and injects the
+// on-brand `:focus-visible` stylesheet (keyboard-only, no stray ring on tap),
+// mirroring the FloatingTabBar treatment for consistent keyboard a11y across
+// the whole mobile-web navigation. `focusRingMarkerProps` is null on native so
+// nothing is added there. The stylesheet + colour tracking are installed once
+// via `useWebFocusRing` inside the DrawerSidebar component below.
+const WEB_FOCUS_RING_PROPS = focusRingMarkerProps(DRAWER_FOCUS_RING);
 
 const THEME_OPTIONS: {
   value: ThemePref;
@@ -467,39 +467,11 @@ export function DrawerSidebar() {
   }, []);
 
   // ── Web keyboard focus ring ──────────────────────────────────────────
-  // Inject the :focus-visible stylesheet once (guarded by its id; a permanent
-  // shell resource, so intentionally NOT removed on unmount) and keep the ring
-  // colour tracking the theme's primary via a CSS custom property. See the
-  // WEB_FOCUS_RING_PROPS comment above. Native is untouched.
-  const isWeb = Platform.OS === "web";
-
-  useEffect(() => {
-    if (!isWeb || typeof document === "undefined") return;
-    const STYLE_ID = "drawer-focus-visible-style";
-    if (!document.getElementById(STYLE_ID)) {
-      const style = document.createElement("style");
-      style.id = STYLE_ID;
-      style.textContent = [
-        // RNW may set outline:none on the pressable; re-assert nothing on a
-        // plain (mouse/touch) focus, then paint a ring only for keyboard focus.
-        "[data-drawer-focusable]:focus { outline: none; }",
-        "[data-drawer-focusable]:focus-visible {",
-        "  outline: 2px solid var(--drawer-focus-ring, #3d6bff);",
-        "  outline-offset: -2px;",
-        "  border-radius: 10px;",
-        "}",
-      ].join("\n");
-      document.head.appendChild(style);
-    }
-  }, [isWeb]);
-
-  useEffect(() => {
-    if (!isWeb || typeof document === "undefined") return;
-    document.documentElement.style.setProperty(
-      "--drawer-focus-ring",
-      colors.primary,
-    );
-  }, [isWeb, colors.primary]);
+  // Install the shared :focus-visible treatment once and keep its colour
+  // tracking the theme's primary. The marker props spread onto each focusable
+  // control are the module-level WEB_FOCUS_RING_PROPS above. Native is
+  // untouched (the helper is a no-op there).
+  useWebFocusRing(DRAWER_FOCUS_RING, colors.primary);
 
   const backdropOpacity = useSharedValue(0);
 
