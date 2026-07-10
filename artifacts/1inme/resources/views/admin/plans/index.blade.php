@@ -79,6 +79,71 @@
     @endforeach
 </div>
 
+@if(isset($imports) && $imports->count() > 0)
+<div x-data="{ open: false }" class="mt-10">
+    <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition">
+        <i class="fas" :class="open ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+        Import history ({{ $imports->count() }})
+        <span class="text-white/30">— undo a recent CSV import if the numbers came out wrong</span>
+    </button>
+    <div x-show="open" x-cloak class="mt-4 glass rounded-2xl border border-white/10 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="text-[11px] uppercase tracking-wider text-white/40 bg-white/5">
+                <tr>
+                    <th class="text-left font-semibold px-4 py-3">When</th>
+                    <th class="text-left font-semibold px-4 py-3">By</th>
+                    <th class="text-left font-semibold px-4 py-3">Plans changed</th>
+                    <th class="text-left font-semibold px-4 py-3">Status</th>
+                    <th class="text-right font-semibold px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                @foreach($imports as $import)
+                <tr class="text-white/70">
+                    <td class="px-4 py-3 whitespace-nowrap">{{ $import->created_at?->format('M j, Y g:i A') }}</td>
+                    <td class="px-4 py-3 text-white/60">{{ $import->admin_name ?? '—' }}</td>
+                    <td class="px-4 py-3">
+                        <span class="text-white/80">{{ $import->plans_updated }} plan(s)</span>
+                        @if(!empty($import->changed))
+                        <span class="text-white/40 text-xs block mt-0.5">
+                            {{ collect($import->changed)->pluck('name')->filter()->take(6)->implode(', ') }}{{ count($import->changed) > 6 ? '…' : '' }}
+                        </span>
+                        @endif
+                        @if($import->rows_skipped > 0)
+                        <span class="text-white/30 text-xs">({{ $import->rows_skipped }} row(s) skipped)</span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3">
+                        @if($import->reverted_at)
+                        <span class="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg bg-white/5 text-white/40">
+                            <i class="fas fa-rotate-left"></i>
+                            Reverted{{ $import->reverted_by_name ? ' by ' . $import->reverted_by_name : '' }}
+                        </span>
+                        @else
+                        <span class="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-200">
+                            <i class="fas fa-check"></i>Applied
+                        </span>
+                        @endif
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        @if(!$import->reverted_at && isset($revertableId) && $revertableId === $import->id)
+                        <form method="POST" action="{{ route('admin.plans.import.revert', $import) }}"
+                              onsubmit="return confirm('Revert this import? Every plan will be restored to the values it had just before this import ran.');">
+                            @csrf
+                            <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 transition">
+                                <i class="fas fa-rotate-left mr-1.5"></i>Undo this import
+                            </button>
+                        </form>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
 @if(isset($archivedPlans) && $archivedPlans->count() > 0)
 <div x-data="{ open: false }" class="mt-10">
     <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition">

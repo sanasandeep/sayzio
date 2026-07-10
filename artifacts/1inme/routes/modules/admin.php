@@ -109,6 +109,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('export', [PlanController::class, 'export'])->middleware(CheckPermission::class . ':plans.view')->name('export');
             Route::post('import/preview', [PlanController::class, 'importPreview'])->middleware(CheckPermission::class . ':plans.manage')->name('import.preview');
             Route::post('import/commit', [PlanController::class, 'importCommit'])->middleware(CheckPermission::class . ':plans.manage')->name('import.commit');
+            Route::post('import/{snapshot}/revert', [PlanController::class, 'revertImport'])->whereNumber('snapshot')->middleware(CheckPermission::class . ':plans.manage')->name('import.revert');
             Route::get('create', [PlanController::class, 'create'])->middleware(CheckPermission::class . ':plans.manage')->name('create');
             Route::post('/', [PlanController::class, 'store'])->middleware(CheckPermission::class . ':plans.manage')->name('store');
             Route::get('{plan}', [PlanController::class, 'show'])->middleware(CheckPermission::class . ':plans.view')->name('show');

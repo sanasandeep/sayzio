@@ -22,3 +22,16 @@ never in the controller. Import matches plans by the `Slug` column
 required=Name, blank cell = "leave unchanged". Commit re-parses from the hidden
 raw CSV (never trusts a client change set). Prices are minor units; feature keys
 are MERGED into the existing features blob so omitted columns are preserved.
+
+## Import undo / history (`plan_import_snapshots`)
+
+`importCommit()` records a `PlanImportSnapshot` (before-state of EVERY plan, not
+just the changed rows) so `revertImport()` can restore it; only the single
+most-recent un-reverted snapshot is revertable (once). Recent imports + the Undo
+button render on `/admin/plans` (index passes `$imports` + `$revertableId`).
+
+**Why snapshot ALL plans, not just diff rows:** `applyImportRow()` has
+side-effects — it flips `is_popular` / `is_default` OFF on sibling plans that
+were never in the CSV. A faithful undo must restore those siblings too, so the
+snapshot captures every plan and `restorePlanState()` writes flags back verbatim
+WITHOUT re-running the auto-flip (which would corrupt the restore).

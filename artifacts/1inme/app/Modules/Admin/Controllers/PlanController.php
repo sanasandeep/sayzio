@@ -5,10 +5,12 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Admin\Models\PlanImportSnapshot;
 use App\Modules\Admin\Support\PlanCsvSchema;
 use App\Modules\Admin\Support\PlanWriter;
 use App\Modules\Common\Support\PlanFormCatalogue;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PlanController extends Controller
@@ -25,7 +27,13 @@ class PlanController extends Controller
         // active lineup.
         $plans = Plan::withCount('users')->where('is_archived', false)->ordered()->get();
         $archivedPlans = Plan::withCount('users')->where('is_archived', true)->ordered()->get();
-        return view('admin.plans.index', compact('plans', 'archivedPlans'));
+
+        // Recent CSV imports (undo history). The single most-recent un-reverted
+        // one is the only revertable entry (see revertImport()).
+        $imports = PlanImportSnapshot::latest('id')->limit(10)->get();
+        $revertableId = optional($imports->firstWhere('reverted_at', null))->id;
+
+        return view('admin.plans.index', compact('plans', 'archivedPlans', 'imports', 'revertableId'));
     }
 
     public function show(Plan $plan)
@@ -206,26 +214,168 @@ class PlanController extends Controller
             return redirect()->route('admin.plans.index')->with('error', $result['fatal']);
         }
 
+        // Capture the full before-state of EVERY plan (not just the changed
+        // rows): applyImportRow() has side-effects — flipping is_popular /
+        // is_default OFF on sibling plans — so an undo must be able to restore
+        // plans that never appeared in the CSV diff. Plans are few, so this is
+        // cheap and keeps revert exact.
+        $before = [];
+        foreach (Plan::with('prices')->get() as $plan) {
+            $before[$plan->id] = $this->snapshotPlanState($plan);
+        }
+
         $updated = 0;
-        \Illuminate\Support\Facades\DB::transaction(function () use ($result, &$updated) {
+        $changed = [];
+        \Illuminate\Support\Facades\DB::transaction(function () use ($result, &$updated, &$changed) {
             foreach ($result['rows'] as $row) {
                 if ($row['status'] !== 'update' || empty($row['plan'])) {
                     continue;
                 }
                 $this->applyImportRow($row['plan'], $row);
                 $updated++;
+                $changed[] = ['slug' => $row['slug'], 'name' => $row['name']];
             }
         });
 
         $skipped = $result['errorCount'] + $result['unknownCount'];
+
+        // Only record an undo point when something actually changed.
+        if ($updated > 0) {
+            $admin = Auth::guard('admin')->user();
+            PlanImportSnapshot::create([
+                'admin_id'      => $admin?->id,
+                'admin_name'    => $admin?->name,
+                'plans_updated' => $updated,
+                'rows_skipped'  => $skipped,
+                'changed'       => array_values($changed),
+                'snapshot'      => array_values($before),
+            ]);
+        }
 
         return redirect()->route('admin.plans.index')->with(
             'success',
             $updated > 0
                 ? "Imported plan changes: {$updated} plan(s) updated"
                     . ($skipped > 0 ? ", {$skipped} row(s) skipped." : '.')
+                    . ' You can undo this from Import history below.'
                 : 'No plans were updated (no matching rows with changes).'
         );
+    }
+
+    /**
+     * Revert the most recent (not-yet-reverted) plan CSV import, restoring
+     * every plan to the exact state captured just before that import ran.
+     * Each import can be undone only once; the snapshot row is stamped so it
+     * cannot be replayed. Reverting the LATEST import only is intentional —
+     * older imports may sit on top of state this restore would overwrite.
+     */
+    public function revertImport(Request $request, PlanImportSnapshot $snapshot)
+    {
+        if ($snapshot->isReverted()) {
+            return redirect()->route('admin.plans.index')
+                ->with('error', 'That import has already been reverted.');
+        }
+
+        // Guard against reverting a stale import out of order: only the most
+        // recent un-reverted snapshot can be undone.
+        $latest = PlanImportSnapshot::whereNull('reverted_at')->latest('id')->first();
+        if (!$latest || $latest->id !== $snapshot->id) {
+            return redirect()->route('admin.plans.index')
+                ->with('error', 'Only the most recent import can be reverted.');
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($snapshot) {
+            foreach (($snapshot->snapshot ?? []) as $state) {
+                $plan = Plan::find($state['id'] ?? null);
+                if (!$plan) {
+                    continue; // plan deleted since the import — nothing to restore
+                }
+                $this->restorePlanState($plan, $state);
+            }
+
+            $admin = Auth::guard('admin')->user();
+            $snapshot->forceFill([
+                'reverted_at'      => now(),
+                'reverted_by'      => $admin?->id,
+                'reverted_by_name' => $admin?->name,
+            ])->save();
+        });
+
+        return redirect()->route('admin.plans.index')
+            ->with('success', 'Reverted the last import. Plans were restored to their previous values.');
+    }
+
+    /**
+     * Capture the complete restorable state of one plan: every core column,
+     * the features blob, and the four authoritative price rows (minor units).
+     * This is the undo payload for a single plan.
+     *
+     * @return array<string,mixed>
+     */
+    private function snapshotPlanState(Plan $plan): array
+    {
+        $prices = [];
+        foreach ($plan->prices as $pr) {
+            $prices[] = [
+                'currency' => $pr->currency,
+                'cycle'    => $pr->billing_cycle,
+                'minor'    => (int) $pr->amount_minor_units,
+            ];
+        }
+
+        return [
+            'id'   => $plan->id,
+            'slug' => $plan->slug,
+            'name' => $plan->name,
+            'core' => [
+                'name'                    => $plan->name,
+                'slug'                    => $plan->slug,
+                'description'             => $plan->description,
+                'status'                  => $plan->status,
+                'is_default'              => (bool) $plan->is_default,
+                'is_popular'              => (bool) $plan->is_popular,
+                'is_internal'             => (bool) $plan->is_internal,
+                'is_archived'             => (bool) $plan->is_archived,
+                'sort_order'              => (int) $plan->sort_order,
+                'monthly_price'           => (string) $plan->monthly_price,
+                'annual_price'            => (string) $plan->annual_price,
+                'monthly_price_secondary' => (string) $plan->monthly_price_secondary,
+                'annual_price_secondary'  => (string) $plan->annual_price_secondary,
+            ],
+            'features' => $plan->features ?? [],
+            'prices'   => $prices,
+        ];
+    }
+
+    /**
+     * Restore one plan from a {@see snapshotPlanState()} payload. Core columns,
+     * the features blob and the price table are all written back verbatim. The
+     * "only one popular / default" invariant is naturally preserved because the
+     * snapshot restores every plan's exact prior flags — so no auto-flip
+     * side-effect is applied here (that would corrupt a faithful restore).
+     */
+    private function restorePlanState(Plan $plan, array $state): void
+    {
+        $core = $state['core'] ?? [];
+        foreach ($core as $key => $value) {
+            $plan->{$key} = $value;
+        }
+        $plan->features = $state['features'] ?? [];
+        $plan->save();
+
+        // Rebuild the four required minor-unit price slots from the snapshot,
+        // falling back to the restored decimal columns for any missing slot.
+        $minor = [];
+        foreach (($state['prices'] ?? []) as $pr) {
+            $minor[$pr['currency'] . '_' . $pr['cycle']] = (int) $pr['minor'];
+        }
+
+        $this->writer->syncPriceTable($plan, [
+            'monthly_price'           => $minor['USD_monthly'] ?? (int) round(((float) $plan->monthly_price) * 100),
+            'annual_price'            => $minor['USD_annual']  ?? (int) round(((float) $plan->annual_price) * 100),
+            'monthly_price_secondary' => $minor['INR_monthly'] ?? (int) round(((float) $plan->monthly_price_secondary) * 100),
+            'annual_price_secondary'  => $minor['INR_annual']  ?? (int) round(((float) $plan->annual_price_secondary) * 100),
+        ]);
     }
 
     /**

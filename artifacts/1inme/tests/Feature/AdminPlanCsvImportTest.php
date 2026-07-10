@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Admin\Models\PlanImportSnapshot;
 use App\Modules\Admin\Models\Price;
 use App\Modules\Admin\Models\Role;
 use App\Modules\Admin\Support\PlanCsvSchema;
@@ -211,5 +212,131 @@ class AdminPlanCsvImportTest extends TestCase
             ->assertRedirect();
         $this->post(route('admin.plans.import.commit'), ['csv' => $csv])
             ->assertRedirect();
+    }
+
+    public function test_commit_records_a_reversible_snapshot(): void
+    {
+        $admin = $this->makeAdmin();
+        $plan  = $this->makePlan(['name' => 'Starter']);
+
+        $csv = $this->csv([[
+            'Name'              => 'Starter Pro',
+            'Slug'              => $plan->slug,
+            'Price USD/monthly' => '19.00',
+        ]]);
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.plans.import.commit'), ['csv' => $csv]);
+
+        $snapshot = PlanImportSnapshot::latest('id')->first();
+        $this->assertNotNull($snapshot);
+        $this->assertSame(1, $snapshot->plans_updated);
+        $this->assertSame($admin->id, $snapshot->admin_id);
+        $this->assertNull($snapshot->reverted_at);
+        // The before-state records the plan's original name.
+        $names = collect($snapshot->snapshot)->pluck('core.name');
+        $this->assertTrue($names->contains('Starter'));
+    }
+
+    public function test_no_snapshot_when_nothing_changes(): void
+    {
+        $admin = $this->makeAdmin();
+        $plan  = $this->makePlan(['name' => 'Starter']);
+
+        // Same value as current — no diff, no write, no undo point.
+        $csv = $this->csv([[
+            'Name' => 'Starter',
+            'Slug' => $plan->slug,
+        ]]);
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.plans.import.commit'), ['csv' => $csv]);
+
+        $this->assertSame(0, PlanImportSnapshot::count());
+    }
+
+    public function test_revert_restores_previous_values(): void
+    {
+        $admin = $this->makeAdmin();
+        $plan  = $this->makePlan(['name' => 'Starter', 'features' => ['max_links' => 5]]);
+
+        $csv = $this->csv([[
+            'Name'              => 'Starter Pro',
+            'Slug'              => $plan->slug,
+            'Price USD/monthly' => '19.00',
+        ]]);
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.plans.import.commit'), ['csv' => $csv]);
+
+        $this->assertSame('Starter Pro', $plan->fresh()->name);
+        $snapshot = PlanImportSnapshot::latest('id')->first();
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.plans.import.revert', $snapshot))
+            ->assertRedirect(route('admin.plans.index'))
+            ->assertSessionHas('success');
+
+        $fresh = $plan->fresh();
+        $this->assertSame('Starter', $fresh->name);
+        // Price restored to the original 10.00 (1000 minor units).
+        $price = Price::where('priceable_type', Plan::class)
+            ->where('priceable_id', $plan->id)
+            ->where('currency', 'USD')->where('billing_cycle', 'monthly')->first();
+        $this->assertSame(1000, (int) $price->amount_minor_units);
+
+        // Snapshot is stamped as reverted and can't be undone twice.
+        $snapshot->refresh();
+        $this->assertNotNull($snapshot->reverted_at);
+        $this->assertSame($admin->id, $snapshot->reverted_by);
+
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.plans.import.revert', $snapshot))
+            ->assertSessionHas('error');
+    }
+
+    public function test_only_latest_import_can_be_reverted(): void
+    {
+        $admin = $this->makeAdmin();
+        $plan  = $this->makePlan(['name' => 'Starter']);
+
+        $first = $this->csv([['Name' => 'First', 'Slug' => $plan->slug]]);
+        $this->actingAs($admin, 'admin')->post(route('admin.plans.import.commit'), ['csv' => $first]);
+        $firstSnapshot = PlanImportSnapshot::latest('id')->first();
+
+        $second = $this->csv([['Name' => 'Second', 'Slug' => $plan->slug]]);
+        $this->actingAs($admin, 'admin')->post(route('admin.plans.import.commit'), ['csv' => $second]);
+
+        // Reverting the older (non-latest) import is refused.
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.plans.import.revert', $firstSnapshot))
+            ->assertSessionHas('error');
+
+        $this->assertSame('Second', $plan->fresh()->name);
+    }
+
+    public function test_revert_restores_sibling_popular_flag(): void
+    {
+        $admin = $this->makeAdmin();
+        $planA = $this->makePlan(['name' => 'Alpha', 'is_popular' => true]);
+        $planB = $this->makePlan(['name' => 'Beta', 'is_popular' => false]);
+
+        // Making Beta popular flips Alpha's popular flag off as a side-effect.
+        $csv = $this->csv([[
+            'Name'    => 'Beta',
+            'Slug'    => $planB->slug,
+            'Popular' => 'Yes',
+        ]]);
+        $this->actingAs($admin, 'admin')->post(route('admin.plans.import.commit'), ['csv' => $csv]);
+
+        $this->assertTrue($planB->fresh()->is_popular);
+        $this->assertFalse($planA->fresh()->is_popular);
+
+        $snapshot = PlanImportSnapshot::latest('id')->first();
+        $this->actingAs($admin, 'admin')->post(route('admin.plans.import.revert', $snapshot));
+
+        // Both plans restored: Alpha popular again, Beta not.
+        $this->assertTrue($planA->fresh()->is_popular);
+        $this->assertFalse($planB->fresh()->is_popular);
     }
 }
