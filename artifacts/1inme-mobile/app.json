@@ -34,8 +34,8 @@
     "android": {
       "package": "com.oneinme.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon-playstore.png",
-        "backgroundColor": "#0a0a0f"
+        "foregroundImage": "./assets/images/icon-foreground.png",
+        "backgroundColor": "#140a32"
       },
       "permissions": [
         "android.permission.NFC",
