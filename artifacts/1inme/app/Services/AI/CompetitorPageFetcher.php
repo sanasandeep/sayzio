@@ -52,18 +52,12 @@ class CompetitorPageFetcher
         }
         $this->guardAgainstPrivateHost($host);
 
-        try {
-            $response = Http::timeout(self::TIMEOUT_SECONDS)
-                ->connectTimeout(6)
-                ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (compatible; SayzioTeardownBot/1.0; +https://1in.me)',
-                    'Accept'     => 'text/html,application/xhtml+xml',
-                ])
-                ->withOptions(['allow_redirects' => ['max' => 5, 'strict' => true]])
-                ->get($url);
-        } catch (\Throwable $e) {
-            throw new RuntimeException("We couldn't reach that URL. Double-check it and try again.");
-        }
+        // Follow redirects manually so we can validate each hop's
+        // destination before the request is issued. Automatic redirect
+        // following (allow_redirects) only lets us inspect the final URL
+        // *after* the internal request has already been sent, which is
+        // too late to prevent blind SSRF through an open redirect.
+        [$response, $finalUrl] = $this->fetchFollowingRedirects($url);
 
         if (!$response->successful()) {
             throw new RuntimeException('That page returned an error (HTTP ' . $response->status() . '). Please check the URL.');
@@ -82,24 +76,70 @@ class CompetitorPageFetcher
             throw new RuntimeException('That page returned no content to analyze.');
         }
 
-        $finalUrl = $url;
-        try {
-            $effective = $response->effectiveUri();
-            if ($effective) {
-                $finalUrl = (string) $effective;
-            }
-        } catch (\Throwable $e) {
-            // Fall back to the requested URL — non-fatal.
-        }
-
-        // Re-check the *final* (post-redirect) host too, in case of an
-        // open redirect pointing at an internal target.
-        $finalHost = parse_url($finalUrl, PHP_URL_HOST);
-        if (is_string($finalHost) && $finalHost !== '') {
-            $this->guardAgainstPrivateHost($finalHost);
-        }
-
         return $this->extract($html, $finalUrl);
+    }
+
+    /**
+     * Issue a GET request and follow redirects manually, re-validating
+     * each redirect destination against guardAgainstPrivateHost() before
+     * issuing the next hop. This prevents an open-redirect on a public
+     * URL from routing the server-side request to an internal network
+     * target (blind SSRF), which would otherwise occur if we relied on
+     * Guzzle's built-in allow_redirects and only checked the final URL
+     * after the internal request had already been sent.
+     *
+     * @return array{0: \Illuminate\Http\Client\Response, 1: string}
+     *   [response, finalUrl]
+     */
+    private function fetchFollowingRedirects(string $url, int $maxRedirects = 5): array
+    {
+        $hops = 0;
+        while (true) {
+            try {
+                $response = Http::timeout(self::TIMEOUT_SECONDS)
+                    ->connectTimeout(6)
+                    ->withHeaders([
+                        'User-Agent' => 'Mozilla/5.0 (compatible; SayzioTeardownBot/1.0; +https://1in.me)',
+                        'Accept'     => 'text/html,application/xhtml+xml',
+                    ])
+                    ->withOptions(['allow_redirects' => false])
+                    ->get($url);
+            } catch (\Throwable $e) {
+                throw new RuntimeException("We couldn't reach that URL. Double-check it and try again.");
+            }
+
+            $status = $response->status();
+            if (!in_array($status, [301, 302, 303, 307, 308], true)) {
+                // Not a redirect — return the response together with the
+                // URL that produced it (the effective final URL).
+                return [$response, $url];
+            }
+
+            $hops++;
+            if ($hops > $maxRedirects) {
+                throw new RuntimeException("We couldn't reach that URL. Double-check it and try again.");
+            }
+
+            $location = $response->header('Location');
+            if (!$location) {
+                throw new RuntimeException("We couldn't reach that URL. Double-check it and try again.");
+            }
+
+            // Resolve a relative Location against the current URL.
+            if (!preg_match('#^https?://#i', $location)) {
+                $parsed = parse_url($url);
+                $scheme  = $parsed['scheme'] ?? 'https';
+                $host    = $parsed['host']   ?? '';
+                $port    = isset($parsed['port']) ? ':' . $parsed['port'] : '';
+                $location = $scheme . '://' . $host . $port . '/' . ltrim($location, '/');
+            }
+
+            // Validate the redirect target BEFORE following it.
+            $destHost = parse_url($location, PHP_URL_HOST) ?: '';
+            $this->guardAgainstPrivateHost($destHost);
+
+            $url = $location;
+        }
     }
 
     /**

@@ -47,15 +47,33 @@ class PublicCompanionController
         if ($companion->placement === AiCompanion::PLACEMENT_EMBED) {
             $origin = $request->header('Origin');
             $tokenHost = null;
-            // Either `session_token` (issued by /session for the
-            // launcher embed) or `iframe_token` (issued by the
-            // iframe controller) is sufficient — both are HMAC-signed
-            // and bound to the companion + a verified origin host.
-            $tok = (string) $request->input('session_token', '') ?: (string) $request->input('iframe_token', '');
-            if ($tok) {
-                $tokenHost = \App\Services\AI\CompanionRuntime::verifyIframeToken($companion, $tok);
+
+            // Prefer iframe_token (issued server-side by the iframe controller
+            // after validating Referer against the allow-list). It may
+            // substitute for Origin because the iframe's Origin is legitimately
+            // Sayzio's own domain, not the embedding site.
+            //
+            // session_token (issued by /session to the embed launcher JS) was
+            // minted based solely on the client-supplied Origin header, which
+            // any HTTP client can forge. It therefore CANNOT substitute for a
+            // real Origin check — we still require the current request to carry
+            // an allowed Origin header alongside it.  Only iframe_token gets
+            // the Origin-bypass privilege.
+            $iframeTok   = (string) $request->input('iframe_token', '');
+            $sessionTok  = (string) $request->input('session_token', '');
+
+            if ($iframeTok !== '') {
+                $tokenHost = \App\Services\AI\CompanionRuntime::verifyIframeToken($companion, $iframeTok);
             }
+
             $originOk = $origin && $companion->originAllowed($origin);
+
+            // session_token only counts when Origin is also valid — it does
+            // not provide any additional trust beyond what Origin already gives.
+            if (!$tokenHost && $sessionTok !== '' && $originOk) {
+                $tokenHost = \App\Services\AI\CompanionRuntime::verifyIframeToken($companion, $sessionTok);
+            }
+
             if (!$originOk && !$tokenHost) {
                 return response()->json([
                     'ok'    => false,
