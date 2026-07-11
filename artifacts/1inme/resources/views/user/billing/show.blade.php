@@ -44,14 +44,18 @@
     <script>
       (function () {
         var DEEP_LINK = 'sayzio://billing/refresh';
-        try {
-          // Attempt the hand-off automatically once. Assigning location is the
-          // most reliable way to open a custom scheme from a mobile browser;
-          // if no app is registered the navigation simply no-ops.
-          window.location.href = DEEP_LINK;
-        } catch (e) {
-          /* no-op — the manual button below still works */
-        }
+        // Defer the auto hand-off briefly so the success banner paints first
+        // and the browser can associate the navigation with the just-finished
+        // interaction rather than a bare page-load. If no app is registered
+        // (e.g. this markup somehow reaches a desktop browser) the navigation
+        // simply no-ops; the manual "Return to app" button is the fallback.
+        window.setTimeout(function () {
+          try {
+            window.location.href = DEEP_LINK;
+          } catch (e) {
+            /* no-op — the manual button above still works */
+          }
+        }, 400);
       })();
     </script>
   @endif

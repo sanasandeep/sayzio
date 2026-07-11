@@ -42,8 +42,12 @@ class PricingPagesController extends Controller
         // success page reads this flag to fire the `sayzio://billing/refresh`
         // deep link so the app can auto-refresh the plan when the user
         // returns (see BillingController::show + billing/show.blade.php).
+        // Store the moment it was set (not a bare bool) so the success page
+        // can ignore a stale flag left behind by an abandoned app checkout —
+        // otherwise a later plain-web upgrade in the same session would show
+        // the "return to app" banner even though this browser has no app.
         if ($request->query('client') === 'app') {
-            $request->session()->put('billing.app_return', true);
+            $request->session()->put('billing.app_return', time());
         }
         // Honor the visitor's last-chosen billing cycle (query param,
         // session, or long-lived cookie) so navigating from /user/upgrade
