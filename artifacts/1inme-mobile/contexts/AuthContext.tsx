@@ -355,8 +355,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Re-pull the signed-in user from the API and persist it locally.
-  // Called after server-side state changes (e.g. RevenueCat activation
-  // bumps the plan) so any cached `user.plan_id` reflects reality.
+  // Called after server-side state changes (e.g. a plan change on the web)
+  // so any cached `user.plan_id` reflects reality.
   const refresh = useCallback(async () => {
     try {
       const res = await apiFetch<{ user: AuthUser }>("/auth/me");

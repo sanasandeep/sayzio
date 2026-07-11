@@ -1,9 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,17 +14,22 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
+import { getBaseUrl } from "@/lib/api";
 import { type CoinPackage, wallet as walletApi } from "@/lib/api";
 import { showAlert } from "@/lib/webAlert";
 
-const GATEWAYS: { slug: string; label: string }[] = [
-  { slug: "stripe", label: "Card (Stripe)" },
-  { slug: "razorpay", label: "Razorpay" },
-  { slug: "paypal", label: "PayPal" },
-  { slug: "cashfree", label: "Cashfree" },
-  { slug: "offline", label: "Manual / Offline" },
-];
+function openPricingPage(): void {
+  const url = `${getBaseUrl()}/pricing`;
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined") {
+      window.open(url, "_blank");
+    }
+    return;
+  }
+  Linking.openURL(url).catch(() => {});
+}
 
 export default function CoinPackagesScreen() {
   const colors = useColors();
@@ -32,7 +38,6 @@ export default function CoinPackagesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [packages, setPackages] = useState<CoinPackage[]>([]);
-  const [busyPkgId, setBusyPkgId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -55,39 +60,6 @@ export default function CoinPackagesScreen() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  const buy = async (pkg: CoinPackage, gateway: string) => {
-    setBusyPkgId(pkg.id);
-    try {
-      const res = await walletApi.purchase(pkg.id, gateway);
-      const handoff = res.handoff;
-      if (
-        handoff &&
-        typeof handoff === "object" &&
-        "kind" in handoff &&
-        handoff.kind === "redirect" &&
-        "url" in handoff &&
-        typeof handoff.url === "string"
-      ) {
-        await WebBrowser.openBrowserAsync(handoff.url);
-        await load();
-      } else {
-        showAlert("Almost there", "Continue checkout in your web browser to complete payment.");
-      }
-    } catch (e: unknown) {
-      const err = e as { message?: string } | undefined;
-      showAlert("Purchase failed", err?.message ?? "Please try again.");
-    } finally {
-      setBusyPkgId(null);
-    }
-  };
-
-  const promptGateway = (pkg: CoinPackage) => {
-    showAlert("Pay with", pkg.name, [
-      ...GATEWAYS.map((g) => ({ text: g.label, onPress: () => buy(pkg, g.slug) })),
-      { text: "Cancel", style: "cancel" as const },
-    ]);
-  };
 
   if (loading) {
     return (
@@ -121,6 +93,26 @@ export default function CoinPackagesScreen() {
           Top up coins to unlock paid add-ons on demand without changing your subscription plan.
         </Text>
 
+        <View
+          style={[
+            styles.webBanner,
+            {
+              backgroundColor: colors.primary + "14",
+              borderColor: colors.primary + "44",
+              borderRadius: colors.radius,
+            },
+          ]}
+        >
+          <Feather name="external-link" size={15} color={colors.primary} />
+          <Text style={[styles.webBannerText, { color: colors.mutedForeground }]}>
+            Coin purchases are completed on the website.{" "}
+            <Text style={{ color: colors.primary, fontFamily: "SpaceGrotesk_600SemiBold" }}>
+              Open the pricing page
+            </Text>{" "}
+            in your browser to buy coins.
+          </Text>
+        </View>
+
         {packages.length === 0 ? (
           <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
             No coin packages are available right now.
@@ -128,17 +120,14 @@ export default function CoinPackagesScreen() {
         ) : (
           <View style={{ gap: 10 }}>
             {packages.map((pkg) => (
-              <Pressable
+              <View
                 key={pkg.id}
-                onPress={() => promptGateway(pkg)}
-                disabled={busyPkgId === pkg.id}
-                style={({ pressed }) => [
+                style={[
                   styles.packageCard,
                   {
                     backgroundColor: colors.card,
                     borderColor: colors.border,
                     borderRadius: colors.radius,
-                    opacity: pressed || busyPkgId === pkg.id ? 0.6 : 1,
                   },
                 ]}
               >
@@ -154,20 +143,37 @@ export default function CoinPackagesScreen() {
                     </Text>
                   ) : null}
                 </View>
-                <View style={{ alignItems: "flex-end" }}>
+                <View style={{ alignItems: "flex-end", gap: 8 }}>
                   <Text style={[styles.price, { color: colors.foreground }]}>
                     {pkg.formatted ?? `${pkg.currency} ${(pkg.amount_minor / 100).toFixed(2)}`}
                   </Text>
-                  {busyPkgId === pkg.id ? (
-                    <ActivityIndicator size="small" color={colors.primary} />
-                  ) : (
-                    <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-                  )}
+                  <Pressable
+                    onPress={openPricingPage}
+                    style={({ pressed }) => [
+                      styles.buyBtn,
+                      {
+                        backgroundColor: colors.primary,
+                        borderRadius: colors.radius,
+                        opacity: pressed ? 0.7 : 1,
+                      },
+                    ]}
+                  >
+                    <Feather name="external-link" size={13} color={colors.primaryForeground} />
+                    <Text style={[styles.buyBtnText, { color: colors.primaryForeground }]}>
+                      Buy on web
+                    </Text>
+                  </Pressable>
                 </View>
-              </Pressable>
+              </View>
             ))}
           </View>
         )}
+
+        <Button
+          label="Open pricing page to buy coins"
+          onPress={openPricingPage}
+          style={{ marginTop: 4 }}
+        />
 
         <Pressable onPress={() => router.push("/wallet" as never)} style={styles.linkRow}>
           <Feather name="credit-card" size={14} color={colors.primary} />
@@ -190,6 +196,19 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   intro: { fontSize: 13, lineHeight: 18 },
   subtle: { fontSize: 12 },
+  webBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: 12,
+    borderWidth: 1,
+  },
+  webBannerText: {
+    flex: 1,
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 13,
+    lineHeight: 18,
+  },
   packageCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -199,6 +218,17 @@ const styles = StyleSheet.create({
   },
   pkgName: { fontSize: 15, fontWeight: "600" },
   price: { fontSize: 16, fontWeight: "700" },
+  buyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  buyBtnText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 12,
+  },
   linkRow: {
     flexDirection: "row",
     alignItems: "center",

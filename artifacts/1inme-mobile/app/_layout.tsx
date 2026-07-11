@@ -34,20 +34,10 @@ import {
   configurePushHandler,
   syncPushRegistration,
 } from "@/lib/push";
-import { initializeRevenueCat, SubscriptionProvider } from "@/lib/revenuecat";
 import { getToken } from "@/lib/secure";
 
 setBaseUrl(getBaseUrl());
 setAuthTokenGetter(async () => (await getToken()) ?? null);
-
-// In-app purchases are optional — if the public RevenueCat keys haven't
-// been set yet (early development, fresh repl), this is a silent no-op
-// and the plans screen will surface a friendly message at use time.
-try {
-  initializeRevenueCat();
-} catch {
-  /* swallow — see lib/revenuecat.tsx for messaging fallback */
-}
 
 SplashScreen.preventAutoHideAsync();
 
@@ -202,19 +192,17 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
             <AuthProvider>
-              <SubscriptionProvider>
-                <GestureHandlerRootView>
-                  <KeyboardProvider>
-                    <DeepLinkRouter />
-                    <ShareIntentHandler />
-                    <ActivityWatcher>
-                      <RootLayoutNav />
-                      <PushRegistrar />
-                      <IdleLockWarning />
-                    </ActivityWatcher>
-                  </KeyboardProvider>
-                </GestureHandlerRootView>
-              </SubscriptionProvider>
+              <GestureHandlerRootView>
+                <KeyboardProvider>
+                  <DeepLinkRouter />
+                  <ShareIntentHandler />
+                  <ActivityWatcher>
+                    <RootLayoutNav />
+                    <PushRegistrar />
+                    <IdleLockWarning />
+                  </ActivityWatcher>
+                </KeyboardProvider>
+              </GestureHandlerRootView>
             </AuthProvider>
           </ThemeProvider>
         </QueryClientProvider>

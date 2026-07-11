@@ -25,6 +25,7 @@ import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { useFeatureStates } from "@/hooks/useFeatureStates";
 import { wallet as walletApi } from "@/lib/api";
+import { openUpgradeInBrowser } from "@/lib/upgradePrompt";
 import { getProfile } from "@/lib/api/profile";
 import {
   formatIdleTimeout,
@@ -1051,7 +1052,7 @@ export default function Profile() {
               />
             </Pressable>
             <Pressable
-              onPress={() => router.push("/upgrade" as never)}
+              onPress={() => openUpgradeInBrowser()}
               style={({ pressed }) => [
                 styles.listItem,
                 {

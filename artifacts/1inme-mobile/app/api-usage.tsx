@@ -1,6 +1,5 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
 import {
   ActivityIndicator,
   Pressable,
@@ -14,6 +13,7 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import { getApiUsage, type ApiUsage } from "@/lib/api/usage";
+import { openUpgradeInBrowser } from "@/lib/upgradePrompt";
 
 function Row({
   label,
@@ -77,7 +77,7 @@ export default function ApiUsageScreen() {
             calls. You'll see your usage and limits here.
           </Text>
           <Pressable
-            onPress={() => router.push("/upgrade")}
+            onPress={() => openUpgradeInBrowser()}
             style={[styles.cta, { backgroundColor: colors.primary }]}
           >
             <Text style={[styles.ctaText, { color: colors.primaryForeground }]}>

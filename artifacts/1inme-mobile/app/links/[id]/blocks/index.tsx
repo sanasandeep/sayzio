@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { openUpgradeInBrowser } from "@/lib/upgradePrompt";
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
@@ -254,7 +255,7 @@ export default function BlocksScreen() {
         `"${t.label}" is available on a higher plan. View upgrade options?`,
         () => {
           setPicker(false);
-          router.push("/upgrade" as any);
+          openUpgradeInBrowser();
         },
       );
       return;

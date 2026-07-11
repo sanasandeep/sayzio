@@ -1,8 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import {
   ActivityIndicator,
+  Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,7 +14,7 @@ import {
 
 import { Button } from "@/components/Button";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import { useColors } from "@/hooks/useColors";
 import {
@@ -21,6 +23,7 @@ import {
   type Currency,
   type Plan,
 } from "@/lib/api/billing";
+import { getBaseUrl } from "@/lib/api";
 
 type Cycle = "monthly" | "annual";
 
@@ -78,8 +81,6 @@ function resolveRecommended(
       if (p.is_current) return false;
       const raw = p.features_map?.[feature];
       if (raw == null) return false;
-      // Numeric caps (max_*, storage, contacts): qualify when the plan raises
-      // the current cap (or is unlimited). Boolean flags: any truthy value.
       if (typeof raw === "number" || /^-?\d+$/.test(String(raw))) {
         const n = Number(raw);
         return n === -1 || n > currentVal;
@@ -97,9 +98,19 @@ function resolveRecommended(
   return null;
 }
 
+function openPricingPage(): void {
+  const url = `${getBaseUrl()}/pricing`;
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined") {
+      window.open(url, "_blank");
+    }
+    return;
+  }
+  Linking.openURL(url).catch(() => {});
+}
+
 export default function UpgradeScreen() {
   const colors = useColors();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ plan?: string; feature?: string }>();
   const planHint = typeof params.plan === "string" ? params.plan : undefined;
@@ -127,14 +138,6 @@ export default function UpgradeScreen() {
   const currencies = plansQuery.data?.data?.currencies ?? CURRENCIES;
   const activeCurrency: Currency = currency ?? "USD";
 
-  const persistCurrency = useMutation({
-    mutationFn: (c: Currency) => billing.setCurrency(c),
-  });
-  const onCurrencyChange = (c: Currency) => {
-    setCurrencyState(c);
-    persistCurrency.mutate(c);
-  };
-
   const plans = plansQuery.data?.data?.plans ?? [];
   const free = plans.find((p) => (p.monthly?.amount_minor ?? 0) === 0);
   const popular =
@@ -146,14 +149,10 @@ export default function UpgradeScreen() {
     [plans, planHint, featureHint],
   );
 
-  // Lead with the recommended plan so it's the first card the user sees, then
-  // the usual free + popular pair (deduped). Falls back to the generic pair
-  // when there's no hint.
   const featured: Plan[] = [recommended, free, popular]
     .filter((p): p is Plan => p != null)
     .filter((p, i, arr) => arr.findIndex((q) => q.id === p.id) === i);
 
-  // Once the recommended card has measured its position, scroll it into view.
   React.useEffect(() => {
     if (recommended && recommendedY != null) {
       const y = Math.max(0, recommendedY - 12);
@@ -188,6 +187,26 @@ export default function UpgradeScreen() {
             : "Start free. Upgrade only when you outgrow it."}
         </Text>
 
+        <View
+          style={[
+            styles.webBanner,
+            {
+              backgroundColor: colors.primary + "14",
+              borderColor: colors.primary + "44",
+              borderRadius: colors.radius,
+            },
+          ]}
+        >
+          <Feather name="external-link" size={15} color={colors.primary} />
+          <Text style={[styles.webBannerText, { color: colors.mutedForeground }]}>
+            Upgrades are completed on the website. Tap{" "}
+            <Text style={{ color: colors.primary, fontFamily: "SpaceGrotesk_600SemiBold" }}>
+              Upgrade on the web
+            </Text>{" "}
+            below — your browser will open the pricing page.
+          </Text>
+        </View>
+
         <View style={{ flexDirection: "row", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
           <View style={[styles.toggle, { borderColor: colors.border }]}>
             {(["monthly", "annual"] as Cycle[]).map((c) => {
@@ -221,7 +240,7 @@ export default function UpgradeScreen() {
               return (
                 <Pressable
                   key={c}
-                  onPress={() => onCurrencyChange(c)}
+                  onPress={() => setCurrencyState(c)}
                   style={[
                     styles.toggleBtn,
                     { backgroundColor: active ? colors.primary : "transparent" },
@@ -342,12 +361,21 @@ export default function UpgradeScreen() {
                     </Text>
                   </View>
                 ))}
-                <Button
-                  label={emphasised ? `Choose ${plan.name}` : "Stay on Free"}
-                  variant={emphasised ? "cta" : "outline"}
-                  onPress={() => router.push("/plans" as never)}
-                  style={{ marginTop: 14 }}
-                />
+                {!isFree ? (
+                  <Button
+                    label={`Upgrade to ${plan.name} on the web`}
+                    variant={emphasised ? "cta" : "outline"}
+                    onPress={openPricingPage}
+                    style={{ marginTop: 14 }}
+                  />
+                ) : (
+                  <Button
+                    label="Stay on Free"
+                    variant="outline"
+                    onPress={openPricingPage}
+                    style={{ marginTop: 14 }}
+                  />
+                )}
               </View>
             );
           })
@@ -357,18 +385,18 @@ export default function UpgradeScreen() {
           Want the full picture?
         </Text>
         <Pressable
-          onPress={() => router.push("/plans" as never)}
+          onPress={openPricingPage}
           style={[styles.linkCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}
         >
           <Feather name="tag" size={18} color={colors.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.linkTitle, { color: colors.foreground }]}>See all plans</Text>
+            <Text style={[styles.linkTitle, { color: colors.foreground }]}>See all plans on the web</Text>
             <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>Compare every tier side by side.</Text>
           </View>
-          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+          <Feather name="external-link" size={18} color={colors.mutedForeground} />
         </Pressable>
         <Pressable
-          onPress={() => router.push("/coin-packages" as never)}
+          onPress={() => Linking.openURL(`${getBaseUrl()}/pricing`).catch(() => {})}
           style={[styles.linkCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}
         >
           <Feather name="dollar-sign" size={18} color={colors.primary} />
@@ -376,7 +404,7 @@ export default function UpgradeScreen() {
             <Text style={[styles.linkTitle, { color: colors.foreground }]}>Coin packages</Text>
             <Text style={[styles.linkSub, { color: colors.mutedForeground }]}>Top up coins for paid add-ons.</Text>
           </View>
-          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+          <Feather name="external-link" size={18} color={colors.mutedForeground} />
         </Pressable>
       </ScrollView>
     </View>
@@ -386,6 +414,19 @@ export default function UpgradeScreen() {
 const styles = StyleSheet.create({
   heading: { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold" },
   intro: { fontSize: 13, lineHeight: 18 },
+  webBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: 12,
+    borderWidth: 1,
+  },
+  webBannerText: {
+    flex: 1,
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 13,
+    lineHeight: 18,
+  },
   toggle: {
     flexDirection: "row",
     borderWidth: 1,
