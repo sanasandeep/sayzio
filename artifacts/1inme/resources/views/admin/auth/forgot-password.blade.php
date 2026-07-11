@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Forgot Password - Admin</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/auth-ajax.js'])
     <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
@@ -154,7 +154,6 @@
         }
     })();
     </script>
-    <script src="{{ asset('js/auth-ajax.js') }}"></script>
     <script>
     /* Show the resend section after the send form reports a successful delivery */
     document.getElementById('forgot-send-form').addEventListener('authajax:success', function(e) {
