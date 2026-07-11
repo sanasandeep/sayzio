@@ -62,6 +62,16 @@ return [
         'cadence'     => ['everyFifteenMinutes'],
     ],
     [
+        // Sign-up-independent refresh of the platform default Mind. The
+        // User::created hook only PROVISIONS it when missing (Task #4596),
+        // so this scheduled reconcile owns attaching any newly-declared
+        // public feature snapshots and keeping stats current. Idempotent —
+        // a no-op when the Mind is already up to date.
+        'key'         => 'minds:reseed-platform',
+        'description' => 'Refresh the platform default AI Mind: attach any new public feature sources and recount stats (idempotent).',
+        'cadence'     => ['dailyAt', '03:30'],
+    ],
+    [
         'key'         => 'reviews:sync',
         'description' => 'Pull third-party reviews (Google, Trustpilot, …) into external_reviews for connected providers.',
         'cadence'     => ['everyThirtyMinutes'],
