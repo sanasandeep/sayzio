@@ -845,6 +845,13 @@ class RedirectController extends Controller
             return response()->view('common.link-expired', ['link' => $link], 410);
         }
 
+        // Enforce the same visibility gate that /{alias} applies. Without this
+        // a visitor can skip the registered/followers/subscribers check by
+        // hitting /{alias}/download directly instead of /{alias}.
+        if ($gated = $this->enforceVisibility($request, $link)) {
+            return $gated;
+        }
+
         $settings = $link->settings ?? [];
         if (!empty($settings['country_restrictions'])) {
             $visitorCountry = app(\App\Modules\Common\Services\GeoIpService::class)->detectCountry($request->ip());

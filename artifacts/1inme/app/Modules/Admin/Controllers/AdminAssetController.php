@@ -177,6 +177,16 @@ class AdminAssetController extends Controller
             abort(404);
         }
 
+        // Private assets (is_public === false) are restricted to admins only.
+        // "Admin" means an authenticated admin-guard session OR a web user
+        // whose account is bridged to an active admin record — a regular
+        // logged-in front-end user is NOT sufficient. Unauthorized requests
+        // get a 404 (same as a filename mismatch) so the endpoint never
+        // discloses that a private asset exists, blocking ID enumeration.
+        if (!$asset->is_public && !$this->requesterIsAdmin($request)) {
+            abort(404);
+        }
+
         $diskName = $asset->disk ?: AdminAsset::diskName();
 
         // S3-backed disks (whatever the disk is named) have no local path —
@@ -204,6 +214,22 @@ class AdminAssetController extends Controller
     }
 
     /* ============ Helpers ============ */
+
+    /**
+     * True when the request is made by an admin principal: either an
+     * authenticated admin-guard session, or a web user whose account is
+     * bridged to an active admin record. A plain logged-in front-end user
+     * is intentionally NOT treated as an admin here.
+     */
+    private function requesterIsAdmin(Request $request): bool
+    {
+        if ($request->user('admin')) {
+            return true;
+        }
+        $webUser = $request->user();
+        return $webUser instanceof \App\Modules\User\Models\User
+            && $webUser->hasActiveAdminAccount();
+    }
 
     private function resolveFolderSlug($input): ?string
     {
