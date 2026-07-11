@@ -846,6 +846,30 @@ uri = "file://artifacts/1inme/public/images/marketing/contact-aisha.jpg"
 type = "image"
 title = "contact profile photo"
 
+[[generated]]
+id = "OqBXL_4HjA6bCR2XRo5lX"
+uri = "file://artifacts/1inme-mobile/assets/images/onboarding/welcome.png"
+type = "image"
+title = "welcome onboarding background"
+
+[[generated]]
+id = "wkSdmGD8p2BNFyPtL-ZY2"
+uri = "file://artifacts/1inme-mobile/assets/images/onboarding/platform.png"
+type = "image"
+title = "platform onboarding background"
+
+[[generated]]
+id = "OcVUtWmsPXaiseHi0G0sR"
+uri = "file://artifacts/1inme-mobile/assets/images/onboarding/grow.png"
+type = "image"
+title = "grow onboarding background"
+
+[[generated]]
+id = "Uwz9oJ-ZEM_WD6u-UlfwM"
+uri = "file://artifacts/1inme-mobile/assets/images/onboarding/get-started.png"
+type = "image"
+title = "get started onboarding background"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"

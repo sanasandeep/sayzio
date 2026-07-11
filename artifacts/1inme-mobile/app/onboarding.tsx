@@ -57,6 +57,12 @@ import {
 // Used only if the slides endpoint is unreachable (offline, fresh install).
 // Admin-managed slides from the API always take priority.
 const FALLBACK_IMAGES: Record<string, ImageSourcePropType> = {
+  // Framing slides
+  welcome: require("@/assets/images/onboarding/welcome.png"),
+  platform: require("@/assets/images/onboarding/platform.png"),
+  grow: require("@/assets/images/onboarding/grow.png"),
+  "get-started": require("@/assets/images/onboarding/get-started.png"),
+  // Persona slides
   creators: require("@/assets/images/onboarding/creators.png"),
   business: require("@/assets/images/onboarding/business.png"),
   freelancer: require("@/assets/images/onboarding/freelancer.png"),
