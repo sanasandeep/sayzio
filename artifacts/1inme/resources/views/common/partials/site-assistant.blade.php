@@ -622,6 +622,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   function togglePanel(on){
     open = !!on;
     panelWrap.classList.toggle('sa-open', open);
+    saSyncPanelViewport();
     if(open){
       unread=0; badge.style.display='none';
       hideTooltip();
@@ -1744,6 +1745,34 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       .observe(document.body, { childList: true });
   } catch(e){}
   window.addEventListener('resize', saApplyOffset, { passive: true });
+
+  // --- Safari iOS visible-viewport pinning --------------------------------
+  // Safari iOS animates its address/tab bars in and out as you scroll, which
+  // shrinks the *visible* viewport mid-session. `100dvh` (mobile stylesheet)
+  // fixes the panel's height at the moment it opens, but a panel already open
+  // gets clipped under the bars as they animate back in. We track
+  // window.visualViewport and pin the panel's height to the true visible area
+  // for as long as it's open on a small screen. On desktop, when the panel is
+  // closed, or in browsers without visualViewport we remove the inline height
+  // so the stylesheet's dvh/vh sizing (and desktop 560px) stays untouched.
+  var SA_VV_RESERVE = 100; // keep in lockstep with the mobile 100dvh - 100px rule
+  function saSyncPanelViewport(){
+    var vv = window.visualViewport;
+    var mobile = (window.innerWidth || document.documentElement.clientWidth || 0) <= 480;
+    if (!vv || !mobile || !open) {
+      if (panel.style.height) panel.style.height = '';
+      return;
+    }
+    var h = Math.max(240, Math.round(vv.height) - SA_VV_RESERVE);
+    var hpx = h + 'px';
+    if (panel.style.height !== hpx) panel.style.height = hpx;
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', saSyncPanelViewport, { passive: true });
+    window.visualViewport.addEventListener('scroll', saSyncPanelViewport, { passive: true });
+  }
+  window.addEventListener('resize', saSyncPanelViewport, { passive: true });
+  window.addEventListener('orientationchange', saSyncPanelViewport, { passive: true });
 
   scheduleTooltip(true);
 })();
