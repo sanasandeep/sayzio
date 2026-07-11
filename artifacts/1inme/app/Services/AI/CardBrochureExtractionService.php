@@ -156,20 +156,95 @@ class CardBrochureExtractionService
             return $scan;
         }
 
+        return $this->runVisionPipeline($owner, $scan, $model);
+    }
+
+    /**
+     * Run the extraction pipeline on UserFile objects that are already in
+     * the vault — e.g. images received over WhatsApp. Skips the
+     * upload/vault phase of extract() but shares the same idempotency,
+     * vision call, normalise, and logo-crop pipeline.
+     *
+     * @param list<UserFile> $userFiles Already-vaulted images to scan.
+     */
+    public function extractFromVaultedFiles(User $owner, User $actor, array $userFiles): CardScan
+    {
+        $userFiles = array_values(array_filter($userFiles, fn ($f) => $f instanceof UserFile));
+        if (!$userFiles) {
+            throw new \RuntimeException('Please provide at least one image to scan.');
+        }
+        if (count($userFiles) > self::MAX_UPLOADS) {
+            throw new \RuntimeException(
+                'Too many files — please provide at most ' . self::MAX_UPLOADS . ' at a time.'
+            );
+        }
+
+        $ids   = array_map(fn ($f) => $f->id, $userFiles);
+        $model = $this->modelName();
+        // Prefix "vaulted:" so idem keys from pre-vaulted files don't
+        // collide with keys from fresh UploadedFile bundles.
+        $idem  = 'card_scan:' . hash('sha256', "{$owner->id}|vaulted:" . implode(',', $ids) . "|{$model}");
+
+        $created = false;
+        $scan = \Illuminate\Support\Facades\DB::transaction(function () use ($owner, $actor, $ids, $idem, &$created) {
+            $existing = CardScan::withoutGlobalScope('workspace')
+                ->where('idempotency_key', $idem)
+                ->lockForUpdate()
+                ->first();
+            if ($existing) {
+                if ($existing->status === 'failed') {
+                    $existing->forceFill([
+                        'status'           => 'processing',
+                        'error'            => null,
+                        'raw_response'     => null,
+                        'extracted'        => null,
+                        'derived_file_ids' => [],
+                        'credits_spent'    => 0,
+                    ])->save();
+                    $created = true;
+                }
+                return $existing;
+            }
+
+            $row = CardScan::create([
+                'user_id'         => $owner->id,
+                'actor_user_id'   => $actor->id,
+                'source_file_id'  => $ids[0] ?? null,
+                'source_file_ids' => $ids,
+                'status'          => 'processing',
+                'idempotency_key' => $idem,
+            ]);
+            $created = true;
+            return $row;
+        });
+
+        if (!$created) {
+            return $scan;
+        }
+
+        return $this->runVisionPipeline($owner, $scan, $model);
+    }
+
+    /**
+     * Shared post-transaction vision pipeline: rasterise → callVision →
+     * normalise → extractLogo → persist. Called by both extract() and
+     * extractFromVaultedFiles() after their respective scan rows are
+     * created/reset.
+     */
+    private function runVisionPipeline(User $owner, CardScan $scan, string $model): CardScan
+    {
         try {
-            // Rasterise every upload (PDFs may yield multiple pages). We
-            // then vault each rasterised page as a derived UserFile so
+            // Rasterise every source file (PDFs may yield multiple pages).
+            // Vault each rasterised PDF page as a derived UserFile so
             // brochures can be browsed page-by-page from the review
             // screen, the contact and the biolink draft.
-            $images       = [];
-            $derivedIds   = [];
-            $sourceModels = $scan->sourceFiles();
-            foreach ($sourceModels as $sf) {
+            $images     = [];
+            $derivedIds = [];
+            foreach ($scan->sourceFiles() as $sf) {
                 $perFile = $this->rasteriseToImages($sf);
                 foreach ($perFile as $i => $img) {
                     $images[] = $img;
                     if ($sf->mime_type === 'application/pdf') {
-                        // PDF page → vault as a derived asset.
                         try {
                             $derived = UserFile::createFromBytes(
                                 $img['bytes'],
@@ -218,8 +293,7 @@ class CardBrochureExtractionService
             throw $e;
         } catch (\Throwable $e) {
             // Mark the scan as failed and refund any partial spend so
-            // the user isn't billed for a broken extraction. Surface a
-            // friendly message — the controller catches and renders it.
+            // the user isn't billed for a broken extraction.
             $scan->forceFill([
                 'status' => 'failed',
                 'error'  => mb_substr($e->getMessage(), 0, 480),

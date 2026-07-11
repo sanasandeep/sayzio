@@ -2,6 +2,9 @@
 
 namespace App\Services\WhatsApp;
 
+use App\Modules\User\Models\Contact;
+use App\Modules\User\Models\ContactEmail;
+use App\Modules\User\Models\ContactPhone;
 use App\Modules\User\Models\FileLink;
 use App\Modules\User\Models\IcsData;
 use App\Modules\User\Models\Link;
@@ -9,6 +12,8 @@ use App\Modules\User\Models\QrCode;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Models\VcfData;
+use App\Services\AI\AiPlanAccess;
+use App\Services\AI\CardBrochureExtractionService;
 use App\Services\Biolink\AiBiolinkBuilderService;
 use Illuminate\Support\Facades\Log;
 
@@ -90,6 +95,10 @@ class WhatsAppAgentTools
             $this->fn('list_recent_links', 'List the user\'s most recently created links so they can reference or edit them.', [
                 'limit' => ['type' => 'integer', 'description' => 'How many to list (max 10).'],
             ], []),
+
+            $this->fn('scan_card', 'Scan a business card image the user sent and extract contact details (name, title, email, phone, website, address, company, socials). Use this when the user sends a photo of a business card and wants the details read out or saved. If the user sent a front AND a back photo, both are included automatically.', [
+                'save_as_contact' => ['type' => 'boolean', 'description' => 'Also save the extracted details as a contact in the user\'s address book.'],
+            ], []),
         ];
     }
 
@@ -105,6 +114,7 @@ class WhatsAppAgentTools
                 'create_event'      => $this->createEvent($args),
                 'create_vcard'      => $this->createVcard($args),
                 'list_recent_links' => $this->listRecent($args),
+                'scan_card'         => $this->scanCard($args),
                 default             => ['ok' => false, 'summary' => 'Unknown tool.'],
             };
         } catch (\Throwable $e) {
@@ -324,6 +334,111 @@ class WhatsAppAgentTools
         return ['ok' => true, 'summary' => "Your recent links:\n" . $lines];
     }
 
+    private function scanCard(array $args): array
+    {
+        $imageFiles = $this->takePendingImages();
+        if (!$imageFiles) {
+            return ['ok' => false, 'summary' => 'Please send me a photo of the business card first, then ask me to scan it.'];
+        }
+
+        if (!AiPlanAccess::featureAllowed($this->user, 'card_scan')) {
+            $plan = AiPlanAccess::featureUpgradePlan($this->user, 'card_scan');
+            $msg  = $plan
+                ? "Card scanning requires the {$plan->name} plan. Upgrade at sayzio.com/user/upgrade to use it."
+                : "Card scanning isn't available on your current plan. Upgrade to use it.";
+            return ['ok' => false, 'summary' => $msg];
+        }
+
+        $scan = app(CardBrochureExtractionService::class)
+            ->extractFromVaultedFiles($this->user, $this->user, $imageFiles);
+
+        if ($scan->status !== 'completed') {
+            return ['ok' => false, 'summary' => "The card scan didn't complete. Please try again with a clearer photo."];
+        }
+
+        $e = is_array($scan->extracted) ? $scan->extracted : [];
+
+        $lines = [];
+        if ($name = ($e['full_name'] ?? null))    $lines[] = "*{$name}*";
+        if ($title = ($e['title'] ?? null))        $lines[] = $title;
+        if ($company = ($e['company'] ?? null))    $lines[] = $company;
+
+        foreach ($e['emails'] ?? [] as $em) {
+            $val = is_string($em['value'] ?? null) ? trim($em['value']) : '';
+            if ($val !== '') $lines[] = "Email: {$val}";
+        }
+        foreach ($e['phones'] ?? [] as $ph) {
+            $val = is_string($ph['value'] ?? null) ? trim($ph['value']) : '';
+            if ($val !== '') $lines[] = "Phone: {$val}";
+        }
+        if ($website = ($e['website'] ?? null))   $lines[] = "Web: {$website}";
+        if ($address = ($e['address'] ?? null))   $lines[] = "Address: {$address}";
+
+        $socialLabels = ['instagram' => 'Instagram', 'tiktok' => 'TikTok', 'linkedin' => 'LinkedIn', 'twitter' => 'Twitter/X', 'youtube' => 'YouTube', 'facebook' => 'Facebook'];
+        foreach ($e['socials'] ?? [] as $platform => $handle) {
+            if (is_string($handle) && $handle !== '' && isset($socialLabels[$platform])) {
+                $lines[] = $socialLabels[$platform] . ': @' . $handle;
+            }
+        }
+
+        $reply = "Here's what I found on the card:\n\n" . implode("\n", $lines ?: ['(no details could be read)']);
+
+        $contact = null;
+        if (!empty($args['save_as_contact'])) {
+            $contact = $this->saveCardContact($e);
+        }
+
+        if ($contact) {
+            $reply .= "\n\n✅ Saved as a contact: " . ($contact->display_name ?: ($e['full_name'] ?? 'New contact'));
+        } else {
+            $reply .= "\n\nTo save this as a contact, reply \"save contact\".";
+        }
+
+        return ['ok' => true, 'summary' => $reply];
+    }
+
+    private function saveCardContact(array $extracted): ?Contact
+    {
+        $display = trim((string) ($extracted['full_name'] ?? ''));
+        if ($display === '') {
+            $first = trim((string) ($extracted['first_name'] ?? ''));
+            $last  = trim((string) ($extracted['last_name'] ?? ''));
+            $display = trim("{$first} {$last}") ?: (trim((string) ($extracted['company'] ?? '')) ?: null);
+        }
+
+        $contact = Contact::create([
+            'user_id'             => $this->user->id,
+            'display_name'        => $display,
+            'given_name'          => ($v = trim((string) ($extracted['first_name'] ?? ''))) !== '' ? $v : null,
+            'family_name'         => ($v = trim((string) ($extracted['last_name']  ?? ''))) !== '' ? $v : null,
+            'organization'        => ($v = trim((string) ($extracted['company']    ?? ''))) !== '' ? $v : null,
+            'job_title'           => ($v = trim((string) ($extracted['title']      ?? ''))) !== '' ? $v : null,
+            'locally_modified_at' => now(),
+        ]);
+
+        foreach ($extracted['phones'] ?? [] as $p) {
+            $val = trim((string) ($p['value'] ?? ''));
+            if ($val === '') continue;
+            $contact->phones()->create([
+                'label'      => is_string($p['label'] ?? null) ? $p['label'] : null,
+                'value'      => $val,
+                'value_e164' => ContactPhone::normalize($val),
+                'is_primary' => false,
+            ]);
+        }
+        foreach ($extracted['emails'] ?? [] as $em) {
+            $val = trim((string) ($em['value'] ?? ''));
+            if ($val === '') continue;
+            $contact->emails()->create([
+                'label'      => is_string($em['label'] ?? null) ? $em['label'] : null,
+                'value'      => ContactEmail::normalize($val),
+                'is_primary' => false,
+            ]);
+        }
+
+        return $contact->load(['phones', 'emails']);
+    }
+
     // ── Pending-media helpers ─────────────────────────────────────
 
     /** Public URLs for pending image media (for the biolink builder). */
@@ -336,6 +451,31 @@ class WhatsAppAgentTools
             }
         }
         return $urls;
+    }
+
+    /**
+     * Consume ALL pending image UserFiles (front + back of a card, etc.)
+     * from the pending bucket and return them as loaded models. Non-image
+     * items and items the user no longer owns are left in the bucket.
+     *
+     * @return list<UserFile>
+     */
+    private function takePendingImages(): array
+    {
+        $files     = [];
+        $remaining = [];
+        foreach ($this->pending as $item) {
+            if (($item['kind'] ?? '') === 'image' && !empty($item['user_file_id'])) {
+                $file = UserFile::find($item['user_file_id']);
+                if ($file && $file->user_id === $this->user->id) {
+                    $files[] = $file;
+                    continue;
+                }
+            }
+            $remaining[] = $item;
+        }
+        $this->pending = array_values($remaining);
+        return $files;
     }
 
     /** Pop the most recent pending file/image as a UserFile, or null. */
