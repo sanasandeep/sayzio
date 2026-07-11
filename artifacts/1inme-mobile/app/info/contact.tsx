@@ -16,9 +16,15 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "@/components/Button";
+import {
+  ScrollReveal,
+  ScrollRevealCtx,
+  useScrollRevealRegistry,
+} from "@/components/ScrollReveal";
 import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import type { ApiError } from "@/lib/api";
 import {
   sendQuickContact,
@@ -85,6 +91,8 @@ export default function QuickContactScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const reduceMotion = useReducedMotion();
+  const [registry, notifyScroll] = useScrollRevealRegistry();
 
   const [channel, setChannel] = useState<QuickContactChannel>("callback");
   const [phone, setPhone] = useState("");
@@ -164,7 +172,10 @@ export default function QuickContactScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
+        <ScrollRevealCtx.Provider value={registry}>
         <ScrollView
+          scrollEventThrottle={16}
+          onScroll={(e) => notifyScroll(e.nativeEvent.contentOffset.y)}
           contentContainerStyle={[
             styles.content,
             { paddingBottom: insets.bottom + 32 },
@@ -200,158 +211,196 @@ export default function QuickContactScreen() {
             </View>
           ) : (
             <>
-              <ContactDetailsCard details={details} colors={colors} />
-
-              <Text style={[styles.title, { color: colors.foreground }]}>
-                Request a callback
-              </Text>
-              <Text style={[styles.intro, { color: colors.mutedForeground }]}>
-                Tell us how you'd like to be reached and our team will get back
-                to you soon.
-              </Text>
-
-              <View style={styles.channelRow}>
-                {CHANNELS.map((c) => {
-                  const selected = channel === c.value;
-                  return (
-                    <Pressable
-                      key={c.value}
-                      onPress={() => {
-                        setChannel(c.value);
-                        submit.reset();
-                      }}
-                      style={[
-                        styles.channelPill,
-                        {
-                          backgroundColor: selected
-                            ? colors.primary + "1a"
-                            : colors.card,
-                          borderColor: selected
-                            ? colors.primary + "88"
-                            : colors.border,
-                        },
-                      ]}
-                    >
-                      <Feather
-                        name={c.icon}
-                        size={18}
-                        color={selected ? colors.primary : colors.mutedForeground}
-                      />
-                      <Text
-                        style={{
-                          color: selected ? colors.primary : colors.mutedForeground,
-                          fontFamily: "SpaceGrotesk_600SemiBold",
-                          fontSize: 12,
-                          marginTop: 6,
-                          textAlign: "center",
-                        }}
-                      >
-                        {c.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              <Text style={[styles.blurb, { color: colors.mutedForeground }]}>
-                {active.blurb}
-              </Text>
-
-              <View style={{ gap: 14, marginTop: 4 }}>
-                <TextField
-                  label="Your name (optional)"
-                  placeholder="Jane Doe"
-                  value={name}
-                  onChangeText={setName}
-                />
-
-                {/* Honeypot decoy — off-screen, not focusable, no autofill.
-                    Real users never reach it; scripted fillers tend to. */}
-                <TextInput
-                  style={styles.honeypot}
-                  value={website}
-                  onChangeText={setWebsite}
-                  autoComplete="off"
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                  textContentType="none"
-                  importantForAutofill="no"
-                  accessible={false}
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                  focusable={false}
-                  pointerEvents="none"
-                  aria-hidden
-                />
-
-                {channel === "email" ? (
-                  <TextField
-                    label="Email address"
-                    placeholder="you@example.com"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="email-address"
-                    value={email}
-                    onChangeText={setEmail}
-                    error={fieldError ?? undefined}
-                  />
-                ) : (
-                  <>
-                    <TextField
-                      label={
-                        channel === "callback"
-                          ? "Phone number"
-                          : "WhatsApp number (with country code)"
-                      }
-                      placeholder={
-                        channel === "callback"
-                          ? "+91 98765 43210"
-                          : "+1 555 123 4567"
-                      }
-                      keyboardType="phone-pad"
-                      value={phone}
-                      onChangeText={setPhone}
-                      error={fieldError ?? undefined}
-                    />
-                    <TextField
-                      label="Email address (optional)"
-                      placeholder="you@example.com"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      keyboardType="email-address"
-                      value={email}
-                      onChangeText={setEmail}
-                    />
-                  </>
+              <ScrollReveal delay={0} direction="up" reduceMotion={reduceMotion}>
+                {() => (
+                  <ContactDetailsCard details={details} colors={colors} />
                 )}
+              </ScrollReveal>
 
-                <TextField
-                  label="Message (optional)"
-                  placeholder="How can we help?"
-                  value={message}
-                  onChangeText={setMessage}
-                  multiline
-                  numberOfLines={4}
-                  style={{ minHeight: 100, paddingTop: 14 }}
-                />
+              <ScrollReveal
+                delay={60}
+                direction="up"
+                reduceMotion={reduceMotion}
+              >
+                {() => (
+                  <View style={{ gap: 16 }}>
+                    <Text style={[styles.title, { color: colors.foreground }]}>
+                      Request a callback
+                    </Text>
+                    <Text
+                      style={[styles.intro, { color: colors.mutedForeground }]}
+                    >
+                      Tell us how you'd like to be reached and our team will get
+                      back to you soon.
+                    </Text>
+                  </View>
+                )}
+              </ScrollReveal>
 
-                {submit.isError && !fieldError ? (
-                  <Text style={[styles.errorText, { color: colors.destructive }]}>
-                    {apiError?.message ??
-                      "Something went wrong. Please try again."}
-                  </Text>
-                ) : null}
+              <ScrollReveal
+                delay={120}
+                direction="up"
+                reduceMotion={reduceMotion}
+              >
+                {() => (
+                  <View style={{ gap: 16 }}>
+                    <View style={styles.channelRow}>
+                      {CHANNELS.map((c) => {
+                        const selected = channel === c.value;
+                        return (
+                          <Pressable
+                            key={c.value}
+                            onPress={() => {
+                              setChannel(c.value);
+                              submit.reset();
+                            }}
+                            style={[
+                              styles.channelPill,
+                              {
+                                backgroundColor: selected
+                                  ? colors.primary + "1a"
+                                  : colors.card,
+                                borderColor: selected
+                                  ? colors.primary + "88"
+                                  : colors.border,
+                              },
+                            ]}
+                          >
+                            <Feather
+                              name={c.icon}
+                              size={18}
+                              color={
+                                selected ? colors.primary : colors.mutedForeground
+                              }
+                            />
+                            <Text
+                              style={{
+                                color: selected
+                                  ? colors.primary
+                                  : colors.mutedForeground,
+                                fontFamily: "SpaceGrotesk_600SemiBold",
+                                fontSize: 12,
+                                marginTop: 6,
+                                textAlign: "center",
+                              }}
+                            >
+                              {c.label}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
 
-                <Button
-                  label="Send request"
-                  onPress={() => submit.mutate()}
-                  loading={submit.isPending}
-                  disabled={!canSubmit}
-                />
-              </View>
+                    <Text
+                      style={[styles.blurb, { color: colors.mutedForeground }]}
+                    >
+                      {active.blurb}
+                    </Text>
+
+                    <View style={{ gap: 14, marginTop: 4 }}>
+                      <TextField
+                        label="Your name (optional)"
+                        placeholder="Jane Doe"
+                        value={name}
+                        onChangeText={setName}
+                      />
+
+                      {/* Honeypot decoy — off-screen, not focusable, no autofill.
+                          Real users never reach it; scripted fillers tend to. */}
+                      <TextInput
+                        style={styles.honeypot}
+                        value={website}
+                        onChangeText={setWebsite}
+                        autoComplete="off"
+                        autoCorrect={false}
+                        autoCapitalize="none"
+                        textContentType="none"
+                        importantForAutofill="no"
+                        accessible={false}
+                        accessibilityElementsHidden
+                        importantForAccessibility="no-hide-descendants"
+                        focusable={false}
+                        pointerEvents="none"
+                        aria-hidden
+                      />
+
+                      {channel === "email" ? (
+                        <TextField
+                          label="Email address"
+                          placeholder="you@example.com"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          keyboardType="email-address"
+                          value={email}
+                          onChangeText={setEmail}
+                          error={fieldError ?? undefined}
+                        />
+                      ) : (
+                        <>
+                          <TextField
+                            label={
+                              channel === "callback"
+                                ? "Phone number"
+                                : "WhatsApp number (with country code)"
+                            }
+                            placeholder={
+                              channel === "callback"
+                                ? "+91 98765 43210"
+                                : "+1 555 123 4567"
+                            }
+                            keyboardType="phone-pad"
+                            value={phone}
+                            onChangeText={setPhone}
+                            error={fieldError ?? undefined}
+                          />
+                          <TextField
+                            label="Email address (optional)"
+                            placeholder="you@example.com"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            keyboardType="email-address"
+                            value={email}
+                            onChangeText={setEmail}
+                          />
+                        </>
+                      )}
+
+                      <TextField
+                        label="Message (optional)"
+                        placeholder="How can we help?"
+                        value={message}
+                        onChangeText={setMessage}
+                        multiline
+                        numberOfLines={4}
+                        style={{ minHeight: 100, paddingTop: 14 }}
+                      />
+
+                      {submit.isError && !fieldError ? (
+                        <Text
+                          style={[
+                            styles.errorText,
+                            { color: colors.destructive },
+                          ]}
+                        >
+                          {apiError?.message ??
+                            "Something went wrong. Please try again."}
+                        </Text>
+                      ) : null}
+
+                      <Button
+                        label="Send request"
+                        onPress={() => submit.mutate()}
+                        loading={submit.isPending}
+                        disabled={!canSubmit}
+                      />
+                    </View>
+                  </View>
+                )}
+              </ScrollReveal>
             </>
           )}
         </ScrollView>
+        </ScrollRevealCtx.Provider>
       </KeyboardAvoidingView>
     </View>
   );
