@@ -91,14 +91,44 @@ class ClientInvoiceService
      *
      * Idempotent: re-entrant deliveries return immediately.
      */
-    public function markPaid(Invoice $invoice, string $gateway, ?string $gatewayRef = null, bool $manual = false): Invoice
-    {
-        return DB::transaction(function () use ($invoice, $gateway, $gatewayRef, $manual) {
+    public function markPaid(
+        Invoice $invoice,
+        string $gateway,
+        ?string $gatewayRef = null,
+        bool $manual = false,
+        ?int $confirmedAmountMinor = null,
+        ?string $confirmedCurrency = null,
+    ): Invoice {
+        return DB::transaction(function () use ($invoice, $gateway, $gatewayRef, $manual, $confirmedAmountMinor, $confirmedCurrency) {
             /** @var Invoice $fresh */
             $fresh = Invoice::query()->withoutGlobalScopes()
                 ->whereKey($invoice->id)->lockForUpdate()->firstOrFail();
             if ($fresh->status === 'paid' && $fresh->paid_at) {
                 return $fresh;
+            }
+
+            // Defense-in-depth: re-verify the Stripe-confirmed amount against
+            // the locked invoice row. This catches any race between the
+            // WebhookController's pre-call check and this transaction acquiring
+            // the row lock (e.g. an invoice edit that landed in the narrow
+            // window between those two points).
+            if (!$manual && $gateway !== 'manual' && $confirmedAmountMinor !== null) {
+                $expectedMinor    = (int) $fresh->grand_total_minor;
+                $invoiceCurrency  = strtoupper((string) ($fresh->currency ?? ''));
+                $confirmedCurrency = strtoupper((string) ($confirmedCurrency ?? ''));
+
+                $currencyMismatch = $confirmedCurrency !== ''
+                    && $invoiceCurrency !== ''
+                    && $confirmedCurrency !== $invoiceCurrency;
+
+                if ($confirmedAmountMinor < $expectedMinor || $currencyMismatch) {
+                    throw new \RuntimeException(
+                        "Payment amount mismatch for invoice {$fresh->number}: "
+                        . "confirmed {$confirmedCurrency} {$confirmedAmountMinor} "
+                        . "< expected {$invoiceCurrency} {$expectedMinor}. "
+                        . 'Invoice was NOT marked paid.'
+                    );
+                }
             }
 
             // A manual payment can carry a specific method label (bank_transfer,

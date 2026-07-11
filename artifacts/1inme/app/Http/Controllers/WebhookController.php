@@ -87,7 +87,39 @@ class WebhookController extends Controller
                 // pipeline than subscription invoices: no plan activation,
                 // just sync the originating cards + flip status.
                 if (($invoice->kind ?? 'subscription') === 'client') {
-                    app(ClientInvoiceService::class)->markPaid($invoice, $gateway, $ref);
+                    // Payment-integrity guard: the invoice may have been edited
+                    // after the Stripe Checkout session was created. Verify that
+                    // the amount Stripe actually collected matches the invoice's
+                    // current grand total before marking it paid. A mismatch
+                    // means the customer used a stale, lower-priced session and
+                    // must NOT result in a "fully paid" receipt.
+                    $confirmedMinor    = (int) ($event['amount_minor'] ?? 0);
+                    $confirmedCurrency = strtoupper((string) ($event['currency'] ?? ''));
+                    $invoiceCurrency   = strtoupper((string) ($invoice->currency ?? ''));
+                    $expectedMinor     = (int) $invoice->grand_total_minor;
+
+                    $currencyMismatch = $confirmedCurrency !== ''
+                        && $invoiceCurrency !== ''
+                        && $confirmedCurrency !== $invoiceCurrency;
+
+                    if ($confirmedMinor < $expectedMinor || $currencyMismatch) {
+                        $attempt->update(['status' => 'requires_review']);
+                        $this->alertPaymentAmountMismatch(
+                            $gateway, $invoice, $ref,
+                            $confirmedMinor, $confirmedCurrency,
+                            $expectedMinor, $invoiceCurrency,
+                        );
+                        // Return 200 so Stripe does not retry this event; the
+                        // attempt is flagged requires_review for manual ops
+                        // resolution. The invoice is intentionally left unpaid.
+                        return response()->json(['ok' => true, 'note' => 'amount_mismatch'], 200);
+                    }
+
+                    app(ClientInvoiceService::class)->markPaid(
+                        $invoice, $gateway, $ref,
+                        confirmedAmountMinor: $confirmedMinor,
+                        confirmedCurrency: $confirmedCurrency,
+                    );
                 } else {
                     $activator->run($invoice, $gateway, $ref);
                 }
@@ -162,6 +194,55 @@ class WebhookController extends Controller
 
         $query = $number !== '' ? ('=' . urlencode($number)) : '';
         return redirect('/user/billing?' . $outcome . $query);
+    }
+
+    /**
+     * Best-effort team alert when the gateway-confirmed amount is less than
+     * the invoice's current grand total (stale Checkout session after an edit).
+     * We do NOT mark the invoice paid; a human must reconcile.
+     */
+    private function alertPaymentAmountMismatch(
+        string $gateway,
+        Invoice $invoice,
+        string $ref,
+        int $confirmedMinor,
+        string $confirmedCurrency,
+        int $expectedMinor,
+        string $expectedCurrency,
+    ): void {
+        try {
+            Log::critical('Payment amount mismatch — invoice NOT marked paid', [
+                'gateway'            => $gateway,
+                'invoice'            => $invoice->number,
+                'invoice_id'         => $invoice->id,
+                'gateway_ref'        => $ref,
+                'confirmed_minor'    => $confirmedMinor,
+                'confirmed_currency' => $confirmedCurrency,
+                'expected_minor'     => $expectedMinor,
+                'expected_currency'  => $expectedCurrency,
+            ]);
+            app(\App\Modules\Common\Services\NotificationService::class)->systemAlert(
+                'Payment amount mismatch — underpayment detected',
+                "A {$gateway} payment of {$confirmedCurrency} {$confirmedMinor} was received for "
+                    . "invoice {$invoice->number} (expected {$expectedCurrency} {$expectedMinor}). "
+                    . 'The invoice was NOT marked paid. A stale Checkout session may have been used '
+                    . 'after the invoice was edited — manual reconciliation required.',
+                'critical',
+                [
+                    'gateway'            => $gateway,
+                    'invoice'            => $invoice->number,
+                    'invoice_id'         => $invoice->id,
+                    'gateway_ref'        => $ref,
+                    'confirmed_minor'    => $confirmedMinor,
+                    'confirmed_currency' => $confirmedCurrency,
+                    'expected_minor'     => $expectedMinor,
+                    'expected_currency'  => $expectedCurrency,
+                ],
+                \App\Services\Integrations\IntegrationKeySettings::ALERT_CATEGORY_PAYMENT,
+            );
+        } catch (\Throwable $alertError) {
+            Log::warning('Failed to dispatch payment-amount-mismatch alert: ' . $alertError->getMessage());
+        }
     }
 
     /**
