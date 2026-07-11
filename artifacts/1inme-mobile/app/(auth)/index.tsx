@@ -12,9 +12,11 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AnimatedBlob } from "@/components/AnimatedBlobBackground";
 import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
 import { MandatoryNameModal } from "@/components/MandatoryNameModal";
@@ -27,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 // required by expo-auth-session for the Google provider on Android.
 WebBrowser.maybeCompleteAuthSession();
 import { useColors } from "@/hooks/useColors";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
 import { redirectAfterAuth, touchPendingPostAuthNext } from "@/lib/authNext";
 import { getBaseUrl, getConfiguredBaseUrl } from "@/lib/api";
@@ -90,6 +93,8 @@ export default function AuthLanding() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
+  const reducedMotion = useReducedMotion();
   const auth = useAuth();
   const { sendOtp, socialLogin, loginWithPassword } = auth;
 
@@ -375,6 +380,45 @@ export default function AuthLanding() {
         start={{ x: 0.0, y: 0.0 }}
         end={{ x: 1.0, y: 1.0 }}
         style={StyleSheet.absoluteFill}
+      />
+
+      {/* Decorative ambient blobs — same visual family as the intro carousel.
+          pointerEvents="none" on each blob ensures taps pass through. */}
+      <AnimatedBlob
+        color="#1a3dff"
+        size={width * 0.7}
+        initialX={width * 0.15}
+        initialY={height * 0.2}
+        driftX={18}
+        driftY={14}
+        duration={5200}
+        opacity={0.18}
+        delayMs={0}
+        reduced={reducedMotion}
+      />
+      <AnimatedBlob
+        color="#0055cc"
+        size={width * 0.55}
+        initialX={width * 0.82}
+        initialY={height * 0.55}
+        driftX={-14}
+        driftY={18}
+        duration={6400}
+        opacity={0.14}
+        delayMs={800}
+        reduced={reducedMotion}
+      />
+      <AnimatedBlob
+        color="#003399"
+        size={width * 0.4}
+        initialX={width * 0.50}
+        initialY={height * 0.35}
+        driftX={10}
+        driftY={-12}
+        duration={7100}
+        opacity={0.10}
+        delayMs={1600}
+        reduced={reducedMotion}
       />
 
       {/* Back-to-intro button — absolute so it doesn't affect the scroll layout */}

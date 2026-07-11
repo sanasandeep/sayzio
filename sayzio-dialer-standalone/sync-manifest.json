@@ -221,8 +221,8 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "5335dfd6d4dd27aba40a96271c19fcd882a07737ee2bf289a5b5366986f215b6",
-      "note": "dev-only missing-env alert text reworded (no monorepo path); everything else must match the main app"
+      "sourceSha256": "ab98aed5063ae5a2999d0617584ec4d7c10ab87b855b35cf5fadb459d643eb73",
+      "note": "dev-only missing-env alert text reworded (no monorepo path); also omits the intro-style reanimated AnimatedBlob decorative background the main app adds, because the standalone deliberately does not depend on react-native-reanimated (same policy as the static InfoPage entry); everything else must match the main app"
     },
     {
       "standalone": "app/index.tsx",
