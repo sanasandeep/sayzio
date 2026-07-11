@@ -870,6 +870,78 @@ uri = "file://artifacts/1inme-mobile/assets/images/onboarding/get-started.png"
 type = "image"
 title = "get started onboarding background"
 
+[[generated]]
+id = "iWSvENJIYvua5cNxWjQrv"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/welcome.png"
+type = "image"
+title = "onboarding welcome"
+
+[[generated]]
+id = "QjTvPyzbkeU3nykvdPcwq"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/welcome_2.png"
+type = "image"
+title = "onboarding welcome_2"
+
+[[generated]]
+id = "V8jU5MeAZFz27KIcRi4u7"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/welcome_3.png"
+type = "image"
+title = "onboarding welcome_3"
+
+[[generated]]
+id = "mrH4emiqlWOaVNmU-6PAP"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/platform.png"
+type = "image"
+title = "onboarding platform"
+
+[[generated]]
+id = "ibwGyoLBySqfFAsEJC84u"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/platform_2.png"
+type = "image"
+title = "onboarding platform_2"
+
+[[generated]]
+id = "-3cwU9pMZnWs_K3YWQeup"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/platform_3.png"
+type = "image"
+title = "onboarding platform_3"
+
+[[generated]]
+id = "WT0xb2sRDJVDQCUPpIoUs"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/grow.png"
+type = "image"
+title = "onboarding grow"
+
+[[generated]]
+id = "JJ7baKqikdETrLRMz5Dl6"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/grow_2.png"
+type = "image"
+title = "onboarding grow_2"
+
+[[generated]]
+id = "e1cV9nr9dAhNL2bx0vn6I"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/grow_3.png"
+type = "image"
+title = "onboarding grow_3"
+
+[[generated]]
+id = "oFSS1fmrMjXO0NA_BnFCe"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/get-started.png"
+type = "image"
+title = "onboarding get-started"
+
+[[generated]]
+id = "R94NDrr3gLpovLgF5dyC6"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/get-started_2.png"
+type = "image"
+title = "onboarding get-started_2"
+
+[[generated]]
+id = "9jO4xF9591KzHbc26hHs5"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/get-started_3.png"
+type = "image"
+title = "onboarding get-started_3"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"
