@@ -124,6 +124,82 @@ class CardScanController extends Controller
         ]);
     }
 
+    /**
+     * Re-run extraction on the SAME vaulted source files with a new
+     * instruction — no re-upload required. Mirrors the web rescan(): the
+     * instruction is folded into the idempotency key, so a different focus
+     * always produces a fresh CardScan row, leaving the original scan (and
+     * its saved contact/draft links) intact for comparison.
+     */
+    public function rescan(Request $request, int $scan)
+    {
+        $user  = $request->user();
+        $model = $this->resolveScan($user, $scan);
+        if (!$model) {
+            return $this->notFound('Scan not found.');
+        }
+
+        $request->validate([
+            'instruction' => 'nullable|string|max:' . CardBrochureExtractionService::MAX_INSTRUCTION_LENGTH,
+        ]);
+
+        if (!\App\Services\AI\AiPlanAccess::featureAllowed($user, 'card_scan')) {
+            $plan = \App\Services\AI\AiPlanAccess::featureUpgradePlan($user, 'card_scan');
+            $msg  = 'The Card & Brochure Scanner is not available on your current plan.';
+            if ($plan) {
+                $msg .= ' Upgrade to the ' . $plan->name . ' plan to use it.';
+            }
+            return $this->fail($msg, 403, 'plan_upgrade_required', ['upgrade_plan' => $plan?->slug]);
+        }
+
+        if (!AiEngineSettings::isEnabled() || !AiEngineSettings::openAiKey()) {
+            return $this->fail(
+                'AI scanning is currently unavailable. Please try again later.',
+                503,
+                'ai_unavailable',
+            );
+        }
+
+        $sourceFiles = $model->sourceFiles()->all();
+        if (!$sourceFiles) {
+            return $this->fail(
+                'The original files for this scan are no longer available — please upload again.',
+                422,
+                'source_files_missing',
+            );
+        }
+
+        $instruction = $request->input('instruction') !== null
+            ? trim((string) $request->input('instruction'))
+            : null;
+        if ($instruction === '') $instruction = null;
+
+        try {
+            $newScan = $this->extractor->extractFromVaultedFiles($user, $user, $sourceFiles, $instruction);
+        } catch (InsufficientCoinsForAiException $e) {
+            return $this->fail(
+                "You need {$e->required} coins to scan a card (you have {$e->balance}).",
+                402,
+                'insufficient_credits',
+                ['required' => $e->required, 'balance' => $e->balance],
+            );
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'invalid_upload');
+        } catch (Throwable $e) {
+            report($e);
+            return $this->fail(
+                'We couldn\'t re-scan that card. Please try again.',
+                500,
+                'scan_failed',
+            );
+        }
+
+        return $this->created([
+            'scan'       => $this->presentScan($newScan),
+            'duplicates' => $this->findDuplicates($user, is_array($newScan->extracted) ? $newScan->extracted : []),
+        ]);
+    }
+
     /** Review screen — fetch a single scan + duplicate hints. */
     public function show(Request $request, int $scan)
     {

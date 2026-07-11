@@ -629,9 +629,10 @@ Route::prefix('v1')->group(function () {
         // Scan a business card / brochure (mobile parity for the web-only
         // user.card-scans.* flow). Upload runs the shared AI extraction
         // service; review/save persists a Contact and/or seeds a wizard draft.
-        Route::post('/card-scans',             [CardScanController::class, 'store'])->middleware('throttle:20,1');
-        Route::get ('/card-scans/{scan}',      [CardScanController::class, 'show'])->whereNumber('scan');
-        Route::post('/card-scans/{scan}/save', [CardScanController::class, 'save'])->whereNumber('scan');
+        Route::post('/card-scans',               [CardScanController::class, 'store'])->middleware('throttle:20,1');
+        Route::get ('/card-scans/{scan}',        [CardScanController::class, 'show'])->whereNumber('scan');
+        Route::post('/card-scans/{scan}/rescan', [CardScanController::class, 'rescan'])->whereNumber('scan')->middleware('throttle:20,1');
+        Route::post('/card-scans/{scan}/save',   [CardScanController::class, 'save'])->whereNumber('scan');
         // A/B test endpoints — registered BEFORE the `/links/{id}` show
         // route so the literal segments (`ab`) win over the integer id
         // matcher and we don't accidentally treat "ab" as a link id.

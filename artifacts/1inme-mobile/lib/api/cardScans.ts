@@ -96,6 +96,31 @@ export async function runCardScan(
   return res.data;
 }
 
+/**
+ * Re-run extraction on the SAME vaulted source files with a new focus —
+ * no re-upload required. The original scan is left intact and a fresh scan
+ * (with its own duplicate hints) is returned.
+ */
+export async function rescanCardScan(
+  scanId: number,
+  instruction?: string,
+): Promise<{ scan: CardScan; duplicates: DuplicateHint[] }> {
+  const res = await apiFetch<{
+    data: { scan: CardScan; duplicates: DuplicateHint[] };
+  }>(`/card-scans/${scanId}/rescan`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      instruction:
+        instruction && instruction.trim()
+          ? instruction.trim().slice(0, MAX_INSTRUCTION_LENGTH)
+          : undefined,
+    }),
+  });
+
+  return res.data;
+}
+
 /** Fetch a previously-run scan by id. */
 export async function getCardScan(
   scanId: number,
