@@ -36,7 +36,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=16">
-    <script src="{{ asset('js/marketing-anim.js') }}?v=1" defer></script>
+    @vite(['resources/js/marketing-anim.js'])
     <script>
         // Fire-and-forget marketing-CTA tracking shared by every home-page
         // "Sign up free" button so we can see which placement converts.

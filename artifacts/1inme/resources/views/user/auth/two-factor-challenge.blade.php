@@ -96,6 +96,6 @@
         }
     })();
     </script>
-    <script src="{{ asset('js/auth-ajax.js') }}"></script>
+    @vite(['resources/js/auth-ajax.js'])
 </body>
 </html>

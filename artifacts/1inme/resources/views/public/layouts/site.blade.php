@@ -170,7 +170,7 @@
 
 @include('common.partials.global-shortcuts')
 
-<script src="{{ asset('js/marketing-anim.js') }}?v=1" defer></script>
+@vite(['resources/js/marketing-anim.js'])
 
 @stack('scripts')
 </body>

@@ -150,9 +150,9 @@
         </div>
 
         <script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
-        <script src="{{ asset('js/analytics-charts.js') }}"></script>
+        @vite(['resources/js/analytics-charts.js'])
         <script>
-            (function () {
+            document.addEventListener('DOMContentLoaded', function () {
                 const labels = @json($dailySeries->pluck('d'));
                 const visitors = @json($dailySeries->pluck('visitors'));
                 const returningPct = @json($dailySeries->pluck('returning_pct'));
@@ -172,7 +172,7 @@
                         });
                     });
                 }
-            })();
+            });
         </script>
     @endif
 

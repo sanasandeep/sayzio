@@ -156,9 +156,9 @@
     </div>
 
     <script src="{{ asset('js/vendor/chart.umd.min.js') }}"></script>
-    <script src="{{ asset('js/analytics-charts.js') }}"></script>
+    @vite(['resources/js/analytics-charts.js'])
     <script>
-        (function () {
+        document.addEventListener('DOMContentLoaded', function () {
             const labels = @json($dailySeries->pluck('d'));
             const newSeries = @json($dailySeries->pluck('new'));
             const returningSeries = @json($dailySeries->pluck('returning'));
@@ -193,7 +193,7 @@
             if (sourceLabels.length) {
                 AnalyticsCharts.createBreakdownChart('sourceChart', sourceLabels, sourceData, { type: 'bar' });
             }
-        })();
+        });
     </script>
 @endif
 @endsection

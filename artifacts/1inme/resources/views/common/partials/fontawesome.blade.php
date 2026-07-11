@@ -31,3 +31,4 @@
 <link rel="preload" href="{{ $__faFonts }}/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="{{ $__faHref }}" data-fa-stylesheet>
 
+
