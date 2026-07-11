@@ -107,26 +107,39 @@ export function ScrollReveal({
           : 0,
   );
 
+  // Unconditionally reveal the section — animating in when motion is allowed,
+  // or snapping to visible otherwise. Idempotent via the `triggered` guard.
+  const applyReveal = useCallback(() => {
+    if (triggered.current) return;
+    triggered.current = true;
+    setRevealed(true);
+    if (!reduceMotion) {
+      opacity.value = withDelay(delay, withTiming(1, { duration: 480 }));
+      translateY.value = withDelay(
+        delay,
+        withSpring(0, { damping: 22, stiffness: 130 }),
+      );
+      translateX.value = withDelay(
+        delay,
+        withSpring(0, { damping: 22, stiffness: 130 }),
+      );
+    }
+  }, [delay, reduceMotion, opacity, translateY, translateX]);
+
   const reveal = useCallback(() => {
     if (triggered.current) return;
-    ref.current?.measure((_x, _y, _w, _h, _pageX, pageY) => {
-      if (pageY < windowHeight * 1.08) {
-        triggered.current = true;
-        setRevealed(true);
-        if (!reduceMotion) {
-          opacity.value = withDelay(delay, withTiming(1, { duration: 480 }));
-          translateY.value = withDelay(
-            delay,
-            withSpring(0, { damping: 22, stiffness: 130 }),
-          );
-          translateX.value = withDelay(
-            delay,
-            withSpring(0, { damping: 22, stiffness: 130 }),
-          );
-        }
-      }
+    const node = ref.current;
+    // If the view can't be measured (null ref, or a platform where measure is
+    // unavailable / silently drops its callback), reveal instead of risking a
+    // section stuck permanently at opacity 0.
+    if (!node || typeof node.measure !== "function") {
+      applyReveal();
+      return;
+    }
+    node.measure((_x, _y, _w, _h, _pageX, pageY) => {
+      if (pageY < windowHeight * 1.08) applyReveal();
     });
-  }, [windowHeight, delay, reduceMotion, opacity, translateY, translateX]);
+  }, [windowHeight, applyReveal]);
 
   useEffect(() => {
     if (reduceMotion) {
@@ -134,12 +147,18 @@ export function ScrollReveal({
       return;
     }
     const timer = setTimeout(reveal, 80);
+    // Failsafe: guarantee the section becomes visible even if the scroll/measure
+    // trigger never fires (measurement timing, web vs native quirks, off-screen
+    // content that never scrolls into view). Without this a section could stay
+    // stuck at opacity 0 — a silent content-loss bug.
+    const failsafe = setTimeout(applyReveal, 2200);
     const unsub = ctx?.subscribe(reveal);
     return () => {
       clearTimeout(timer);
+      clearTimeout(failsafe);
       unsub?.();
     };
-  }, [reveal, ctx, reduceMotion]);
+  }, [reveal, applyReveal, ctx, reduceMotion]);
 
   const animStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
