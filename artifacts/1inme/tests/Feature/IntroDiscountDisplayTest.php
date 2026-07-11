@@ -11,7 +11,7 @@ use Tests\TestCase;
 /**
  * The intro discount has a DISPLAY surface ({@see PricingResolver::introFor})
  * consumed by the public /pricing page, the in-app /user/upgrade page, and
- * the RevenueCat mobile billing controller. Those surfaces render the
+ * the mobile billing controller. Those surfaces render the
  * struck-through normal price, the discounted first-term price, the
  * percent-off badge and an optional label — all pre-formatted by introFor
  * so views never re-derive currency formatting.

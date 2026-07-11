@@ -44,7 +44,7 @@ use App\Modules\Api\Controllers\VaultController;
 use App\Modules\Api\Controllers\VerificationController;
 use App\Modules\Api\Controllers\AccountingController;
 use App\Modules\Api\Controllers\BillingController;
-use App\Modules\Api\Controllers\RevenueCatBillingController;
+use App\Modules\Api\Controllers\MobileBillingController;
 use App\Modules\Api\Controllers\DialerController;
 use App\Modules\Api\Controllers\RestaurantController;
 use App\Modules\Api\Controllers\StoreController;
@@ -1258,14 +1258,12 @@ Route::prefix('v1')->group(function () {
         Route::delete('/team/invites/{invite}',    [\App\Modules\Api\Controllers\TeamController::class, 'revokeInvite'])->whereNumber('invite');
         Route::delete('/team/members/{member}',    [\App\Modules\Api\Controllers\TeamController::class, 'removeMember'])->whereNumber('member');
 
-        // Plan + addon catalogue priced for the signed-in user, plus
-        // the RevenueCat receipt-verification hook used by the mobile
-        // app after a successful Purchases.purchasePackage / restore.
-        Route::get ('/billing/plans',                [RevenueCatBillingController::class, 'plans']);
-        Route::post('/billing/currency',             [RevenueCatBillingController::class, 'setCurrency'])
+        // Plan + addon catalogue priced for the signed-in user. Plan
+        // upgrades and coin purchases are completed on the web pricing
+        // page (opened in the OS external browser), not in-app.
+        Route::get ('/billing/plans',                [MobileBillingController::class, 'plans']);
+        Route::post('/billing/currency',             [MobileBillingController::class, 'setCurrency'])
             ->middleware('throttle:60,1');
-        Route::post('/billing/revenuecat/activate',  [RevenueCatBillingController::class, 'activate'])
-            ->middleware('throttle:30,1');
 
         // Dialer
         Route::get   ('/dialer/suggestions',        [DialerController::class, 'suggestions']);

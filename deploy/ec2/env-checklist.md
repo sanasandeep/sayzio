@@ -119,7 +119,6 @@ env values are the fallback.
 | `SENDGRID_API_KEY` / `POSTMARK_API_KEY` | ✅ | | Only if you use those mail transports. |
 | `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_APP_SECRET` / `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | ✅ | | WhatsApp Business API (OTP + agent). |
 | `WHATSAPP_TEMPLATE_NAME` / `WHATSAPP_TEMPLATE_LANG` / `WHATSAPP_GRAPH_VERSION` / `WHATSAPP_AGENT_ENABLED` | | | WhatsApp plain config. |
-| `REVENUECAT_REST_API_KEY` / `REVENUECAT_PROJECT_ID` | ✅ | | Mobile IAP verification. |
 
 Note: **OpenAI / ElevenLabs keys and PayPal credentials are fully admin-DB-backed**
 (Admin → Integrations / AI engine settings) — there is no env fallback for

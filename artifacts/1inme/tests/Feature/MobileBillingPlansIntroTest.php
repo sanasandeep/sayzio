@@ -11,11 +11,11 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Sanctum (bearer-token) coverage for the mobile RevenueCat billing
- * catalogue (GET /api/v1/billing/plans), which feeds the mobile billing
- * screen. The JSON each plan carries a per-currency `prices[CUR].monthly.intro`
+ * Sanctum (bearer-token) coverage for the mobile billing catalogue
+ * (GET /api/v1/billing/plans), which feeds the mobile billing screen.
+ * The JSON each plan carries a per-currency `prices[CUR].monthly.intro`
  * DISPLAY block (first/normal/amount_off formatted, percent_off, label)
- * assembled by {@see RevenueCatBillingController::plans} via
+ * assembled by {@see MobileBillingController::plans} via
  * {@see PricingResolver::introFor}. This guards against a regression in how
  * that controller assembles/formats the intro blocks (dropping the key,
  * wrong currency, only-on-Plan gating) shipping silently to mobile users.
@@ -24,7 +24,7 @@ use Tests\TestCase;
  * Sanctum::actingAs, which injects a mock that breaks the TouchSessionToken
  * middleware — every authed request would 500). See sanctum-api-tests.md.
  */
-class RevenueCatBillingPlansIntroTest extends TestCase
+class MobileBillingPlansIntroTest extends TestCase
 {
     use RefreshDatabase;
 

@@ -6,15 +6,6 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
-    // RevenueCat REST v1 secret API key — used by the mobile billing
-    // controller to fetch the authoritative subscriber object before
-    // activating a plan locally. NOT the public SDK key the mobile
-    // client uses (those live in EXPO_PUBLIC_REVENUECAT_*_API_KEY).
-    'revenuecat' => [
-        'api_key'    => env('REVENUECAT_REST_API_KEY'),
-        'project_id' => env('REVENUECAT_PROJECT_ID'),
-    ],
-
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
