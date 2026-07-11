@@ -257,6 +257,20 @@
             <span class="sidebar-tooltip">Plans</span>
         </a>
 
+        <a href="{{ route('admin.custom-plan-requests.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.custom-plan-requests.*') ? 'active' : '' }}"
+           style="--nav-tint:var(--color-primary-500,#3d6bff); --nav-tint-soft:rgba(61,107,255,0.12);">
+            <div class="nav-icon-wrap">
+                <i class="fas fa-gem"></i>
+                @php $__cprCount = \App\Modules\Admin\Models\CustomPlanRequest::where('status','new')->count(); @endphp
+                @if($__cprCount > 0)
+                    <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[8px] font-bold leading-none text-white" style="background:var(--color-primary-500,#3d6bff);">{{ $__cprCount }}</span>
+                @endif
+            </div>
+            <span class="nav-label">Custom Requests</span>
+            <span class="sidebar-tooltip">Custom Plan Requests</span>
+        </a>
+
         <a href="{{ route('admin.coin-packages.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.coin-packages.*') ? 'active' : '' }}"
            style="--nav-tint:#eab308; --nav-tint-soft:rgba(234,179,8,0.12);">

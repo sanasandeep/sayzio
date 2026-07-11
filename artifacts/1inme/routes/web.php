@@ -348,6 +348,9 @@ Route::middleware('brand.primary')->controller(\App\Modules\Common\Controllers\S
 Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::class, 'submitContact'])
     ->name('site.contact.submit')->middleware('throttle:10,10');
 
+Route::post('/custom-plan-request', [\App\Modules\Common\Controllers\CustomPlanRequestController::class, 'store'])
+    ->name('custom-plan-request.store')->middleware('throttle:5,10');
+
 // ---- Marketing XML sitemap + robots.txt (must precede the catch-all /{alias} routes) ----
 // URL list sourced from MarketingSeo so it stays in lockstep with per-page SEO meta.
 Route::get('/sitemap_index.xml', [\App\Modules\Common\Controllers\SitemapController::class, 'index'])->name('site.sitemap.index');

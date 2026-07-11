@@ -310,6 +310,35 @@ class EmailTemplateRegistry
                     'invoice_url' => ['label' => 'Invoice URL', 'sample' => 'https://sayzio.app/user/billing'],
                 ],
             ],
+            'billing.custom_plan_approved' => [
+                'category' => 'billing',
+                'label' => 'Custom plan offer approved',
+                'description' => 'Sent to the prospect when an admin approves their custom plan request and provisions a bespoke plan for them.',
+                'format' => 'text',
+                'body_type' => 'dynamic',
+                'subject' => 'Your custom plan "{{plan_name}}" is ready — {{price}}/{{cycle}}',
+                'body' => "Hi {{name}},\n\nGreat news! Our team has reviewed your custom plan request and set up a bespoke plan just for you:\n\nPlan: {{plan_name}}\nPrice: {{price}}/{{cycle}}\n\nSign in to your dashboard to review and activate it:\n{{dashboard}}\n\nIf you have any questions, just reply to this email.",
+                'variables' => [
+                    'name'      => ['label' => 'Requester name',  'sample' => 'Jane Smith'],
+                    'plan_name' => ['label' => 'Custom plan name', 'sample' => 'Enterprise Custom'],
+                    'price'     => ['label' => 'Formatted price',  'sample' => '$99.00'],
+                    'cycle'     => ['label' => 'Billing cycle',    'sample' => 'monthly'],
+                    'dashboard' => ['label' => 'Dashboard URL',    'sample' => 'https://sayzio.app/user/dashboard'],
+                ],
+            ],
+            'billing.custom_plan_declined' => [
+                'category' => 'billing',
+                'label' => 'Custom plan request declined',
+                'description' => 'Sent to the prospect when an admin declines their custom plan request.',
+                'format' => 'text',
+                'body_type' => 'dynamic',
+                'subject' => 'Update on your custom plan request',
+                'body' => "Hi {{name}},\n\nThank you for reaching out about a custom plan. After reviewing your request, we're unable to put together an offer at this time.{{decline_reason}}\n\nPlease don't hesitate to reach out again in the future — our standard plans at sayzio.app/pricing may also suit your needs.",
+                'variables' => [
+                    'name'           => ['label' => 'Requester name',  'sample' => 'Jane Smith'],
+                    'decline_reason' => ['label' => 'Decline reason (may be blank)', 'sample' => "\n\nReason: Budget constraints at this time."],
+                ],
+            ],
 
             // ----------------------------------------------------------------
             // Events & ticketing

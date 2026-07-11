@@ -801,5 +801,22 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{badgeRequest}/approve', [\App\Modules\Admin\Controllers\BadgeRequestController::class, 'approve'])->whereNumber('badgeRequest')->name('approve');
             Route::post('{badgeRequest}/reject',  [\App\Modules\Admin\Controllers\BadgeRequestController::class, 'reject'])->whereNumber('badgeRequest')->name('reject');
         });
+
+        // Custom plan requests: prospects submit via the public form; admin
+        // reviews, provisions a bespoke internal plan, and notifies the user.
+        Route::prefix('custom-plan-requests')->name('custom-plan-requests.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\CustomPlanRequestController::class, 'index'])
+                ->middleware(CheckPermission::class . ':plans.view')->name('index');
+            Route::get('{customPlanRequest}', [\App\Modules\Admin\Controllers\CustomPlanRequestController::class, 'show'])
+                ->middleware(CheckPermission::class . ':plans.view')->whereNumber('customPlanRequest')->name('show');
+            Route::post('{customPlanRequest}/reviewing', [\App\Modules\Admin\Controllers\CustomPlanRequestController::class, 'markReviewing'])
+                ->middleware(CheckPermission::class . ':plans.manage')->whereNumber('customPlanRequest')->name('reviewing');
+            Route::post('{customPlanRequest}/approve', [\App\Modules\Admin\Controllers\CustomPlanRequestController::class, 'approve'])
+                ->middleware(CheckPermission::class . ':plans.manage')->whereNumber('customPlanRequest')->name('approve');
+            Route::post('{customPlanRequest}/decline', [\App\Modules\Admin\Controllers\CustomPlanRequestController::class, 'decline'])
+                ->middleware(CheckPermission::class . ':plans.manage')->whereNumber('customPlanRequest')->name('decline');
+            Route::patch('{customPlanRequest}/notes', [\App\Modules\Admin\Controllers\CustomPlanRequestController::class, 'updateNotes'])
+                ->middleware(CheckPermission::class . ':plans.manage')->whereNumber('customPlanRequest')->name('notes');
+        });
     });
 });

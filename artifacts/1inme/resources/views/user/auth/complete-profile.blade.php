@@ -62,7 +62,7 @@
                         autocomplete="name"
                         placeholder="Your name"
                         class="w-full rounded-xl bg-white/10 border border-white/15 px-4 py-3 text-sm text-white placeholder-white/30
-                               focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500,#7c3aed)] focus:border-transparent
+                               focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500,#3d6bff)] focus:border-transparent
                                transition-all duration-150"
                     >
                 </div>
@@ -70,7 +70,7 @@
                 <button
                     type="submit"
                     :disabled="busy"
-                    class="w-full rounded-xl bg-[var(--color-primary-600,#7c3aed)] hover:bg-[var(--color-primary-500,#8b5cf6)]
+                    class="w-full rounded-xl bg-[var(--color-primary-600,#2d58e0)] hover:bg-[var(--color-primary-500,#3d6bff)]
                            text-white font-semibold text-sm px-4 py-3 transition-all duration-150
                            disabled:opacity-60 disabled:cursor-not-allowed"
                 >

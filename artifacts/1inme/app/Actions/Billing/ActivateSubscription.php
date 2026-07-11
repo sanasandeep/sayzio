@@ -223,8 +223,30 @@ class ActivateSubscription
 
             $this->sendReceipt($fresh);
 
+            // If this invoice paid a custom-plan offer, mark the request as paid.
+            $this->resolveCustomPlanRequest($fresh, $plan);
+
             return $subscription;
         });
+    }
+
+    /**
+     * Mark any pending custom plan request as paid once the provisioned plan
+     * invoice settles. Best-effort — never throws.
+     */
+    private function resolveCustomPlanRequest(Invoice $invoice, Plan $plan): void
+    {
+        try {
+            \App\Modules\Admin\Models\CustomPlanRequest::where('provisioned_plan_id', $plan->id)
+                ->where('status', 'approved')
+                ->update([
+                    'status'     => 'paid',
+                    'invoice_id' => $invoice->id,
+                    'handled_at' => now(),
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('Custom plan request resolution failed: ' . $e->getMessage());
+        }
     }
 
     /**

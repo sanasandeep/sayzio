@@ -281,6 +281,18 @@ const ALLOWLIST: AllowEntry[] = [
     kind: "file",
     reason: "Template-preview component renders the categorical template palette.",
   },
+  {
+    path: "artifacts/1inme/resources/views/admin/custom-plan-requests/index.blade.php",
+    kind: "file",
+    reason:
+      "Admin custom-plan-requests list: $bgMap uses a categorical 6-color status palette (blue/amber/green/purple/red/gray), not the brand accent.",
+  },
+  {
+    path: "artifacts/1inme/resources/views/admin/custom-plan-requests/show.blade.php",
+    kind: "file",
+    reason:
+      "Admin custom-plan-request detail view: same categorical 6-color status palette as the index.",
+  },
 ];
 
 export function isAllowed(file: string): boolean {

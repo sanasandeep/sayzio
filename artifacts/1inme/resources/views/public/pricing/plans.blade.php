@@ -1546,6 +1546,9 @@
     </div>
 </section>
 
+{{-- Custom Plan Request form --}}
+@include('public.partials._custom-plan-form')
+
 {{-- ============================ FULL COMPETITOR BREAKDOWN ============================
      The pricing page hosts the complete competitor comparison: head-to-head
      rival selector PLUS the full multi-tool feature matrix (expanded by
