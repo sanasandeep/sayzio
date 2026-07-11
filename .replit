@@ -240,6 +240,10 @@ args = "e2e-mobile-plans-refresh"
 task = "workflow.run"
 args = "e2e-mobile-plans-downgrade-refresh"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-2fa-challenge"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -852,6 +856,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:plans-downgrade-refresh-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-2fa-challenge"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh two-factor-challenge-ajax.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
