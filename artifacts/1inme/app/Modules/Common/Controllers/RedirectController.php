@@ -845,9 +845,19 @@ class RedirectController extends Controller
             return response()->view('common.link-expired', ['link' => $link], 410);
         }
 
-        // Enforce the same visibility gate that /{alias} applies. Without this
-        // a visitor can skip the registered/followers/subscribers check by
-        // hitting /{alias}/download directly instead of /{alias}.
+        // Moderation gate — mirrors handle(). A file hidden by an admin is
+        // inaccessible to non-owners through the direct download path too.
+        if ($link->moderation_state === 'hidden') {
+            $viewerId = optional($request->user())->id
+                ?? \App\Modules\Common\Services\ViewerSession::id();
+            if ((int) $viewerId !== (int) $link->user_id) {
+                return response()->view('common.link-moderated', ['link' => $link], 451);
+            }
+        }
+
+        // Visibility gate — mirrors handle(). A file restricted to
+        // registered/followers/subscribers cannot be bypassed by appending
+        // /download to the alias.
         if ($gated = $this->enforceVisibility($request, $link)) {
             return $gated;
         }
