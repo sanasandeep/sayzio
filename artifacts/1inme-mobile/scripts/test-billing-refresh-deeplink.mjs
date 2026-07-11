@@ -191,6 +191,43 @@ assert.ok(
 );
 ok("handler invalidates both billing queries + calls refresh()");
 
+// 3c. Cold-start vs warm-start dispatch. Custom-scheme deep links reach the app
+// through two different OS paths depending on process state, and the hand-off
+// must work in BOTH:
+//   - Cold start (app killed): the launch URL is read once via
+//     Linking.getInitialURL().
+//   - Warm start (app backgrounded): the URL arrives as a runtime "url" event
+//     via Linking.addEventListener.
+// Both must feed the SAME handle() so billing state refreshes identically. This
+// is the code-level guard for the on-device cold/warm requirement (a real
+// device round-trip still needs manual QA, but a regression that drops either
+// entry point — or points them at different logic — is caught here).
+assert.ok(
+  /Linking\.getInitialURL\(\)\.then\(\s*\(?[a-zA-Z_]+\)?\s*=>\s*handle\(/.test(
+    routerSrc,
+  ),
+  "DeepLinkRouter must feed the cold-start launch URL (getInitialURL) into handle()",
+);
+assert.ok(
+  /Linking\.addEventListener\(\s*"url"\s*,[\s\S]*?handle\(\s*url\s*\)/.test(
+    routerSrc,
+  ),
+  "DeepLinkRouter must feed warm-start 'url' events (addEventListener) into handle()",
+);
+// The billing short-circuit must return BEFORE the biolink probe so a
+// refresh link never gets mis-treated as a handle and pushed to /biolink.
+const handleBody = routerSrc.match(
+  /async function handle\([\s\S]*?\n {4}\}\n/,
+);
+assert.ok(handleBody, "DeepLinkRouter must define an async handle()");
+const refreshIdx = handleBody[0].indexOf("_isBillingRefreshUrl(url)");
+const aliasIdx = handleBody[0].indexOf("_aliasFromUrl(url)");
+assert.ok(
+  refreshIdx !== -1 && aliasIdx !== -1 && refreshIdx < aliasIdx,
+  "the billing-refresh branch must short-circuit before the biolink alias probe",
+);
+ok("cold-start (getInitialURL) + warm-start (url event) both dispatch to handle()");
+
 console.log(
   `test-billing-refresh-deeplink: all assertions passed (${passed} checks)`,
 );
