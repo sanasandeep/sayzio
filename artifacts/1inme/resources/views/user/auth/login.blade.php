@@ -171,21 +171,6 @@
                             <span>Log in with LinkedIn</span>
                         </a>
                     </div>
-                    <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3" style="color: var(--text-faint);">Quick access</p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <form method="POST" action="{{ route('user.demo.login') }}">
-                            @csrf
-                            <button type="submit" class="btn-ghost w-full justify-center text-xs py-2">
-                                <i class="fas fa-user text-[10px]"></i> Demo User
-                            </button>
-                        </form>
-                        <form method="POST" action="{{ route('admin.demo.login') }}">
-                            @csrf
-                            <button type="submit" class="btn-ghost w-full justify-center text-xs py-2">
-                                <i class="fas fa-shield-alt text-[10px]"></i> Demo Admin
-                            </button>
-                        </form>
-                    </div>
                 </div>
 
                 <p class="mt-6 text-center text-xs" style="color: var(--text-dimmed);">
