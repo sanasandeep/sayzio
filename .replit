@@ -232,6 +232,10 @@ args = "e2e-mobile-onboarding-reveal"
 task = "workflow.run"
 args = "auth-screen-gradient"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-plans-refresh"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -822,6 +826,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:auth-screen-gradient"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-plans-refresh"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:plans-foreground-refresh-e2e"
 
 [workflows.workflow.metadata]
 isValidation = true
