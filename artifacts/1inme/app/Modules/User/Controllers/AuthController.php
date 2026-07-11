@@ -775,7 +775,7 @@ class AuthController extends Controller
             abort(404);
         }
 
-        $user = User::where('email', 'sazioapp@gmail.com')->first();
+        $user = User::where('email', 'sayzioapp@gmail.com')->first();
 
         if (!$user) {
             $freePlan = Plan::defaultPlan();
@@ -786,14 +786,14 @@ class AuthController extends Controller
                 // converge on the single demo account instead of 500ing.
                 $user = User::create([
                     'name' => 'Demo User',
-                    'email' => 'sazioapp@gmail.com',
+                    'email' => 'sayzioapp@gmail.com',
                     'password' => Hash::make('password'),
                     'plan_id' => $freePlan?->id,
                     'status' => 'active',
                     'email_verified_at' => now(),
                 ]);
             } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-                $user = User::where('email', 'sazioapp@gmail.com')->firstOrFail();
+                $user = User::where('email', 'sayzioapp@gmail.com')->firstOrFail();
             }
         }
 

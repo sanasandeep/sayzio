@@ -30,7 +30,7 @@ class BillingNotificationSettings
     /** Default finance/admin addresses CC'd until an admin edits the list. */
     public const DEFAULTS = [
         'sana@sayzio.app',
-        'sanasandeep@gmail.com',
+        'sayzioapp@gmail.com',
     ];
 
     /**

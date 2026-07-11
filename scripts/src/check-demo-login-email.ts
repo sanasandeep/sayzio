@@ -50,7 +50,7 @@ export const SCAN_ROOTS: string[] = ["artifacts/1inme/tests/Browser"];
  * legacy wrong account (`demo@1inme.com`) and the current canonical value of
  * `DEMO_LOGIN_EMAIL` — specs must interpolate the constant, not paste the value.
  */
-export const BANNED_EMAILS: string[] = ["sazioapp@gmail.com", "demo@1inme.com"];
+export const BANNED_EMAILS: string[] = ["sayzioapp@gmail.com", "demo@1inme.com"];
 
 export type Offender = { file: string; line: number; col: number; email: string; text: string };
 

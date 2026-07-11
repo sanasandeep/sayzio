@@ -100,7 +100,7 @@
             <p class="text-xs mb-4" style="color: var(--text-dimmed);">
                 Deletes every row marked as demo (creators, Link in Bio pages, short links, file/event/vCard links,
                 feed posts, demo follows and demo subscribers). The original demo super-admin
-                (<code>sazioapp@gmail.com</code>) is preserved so you keep dashboard access.
+                (<code>sayzioapp@gmail.com</code>) is preserved so you keep dashboard access.
             </p>
             <form method="POST" action="{{ route('admin.demo-content.wipe') }}"
                   onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove all demo content?', message: 'This cannot be undone.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">

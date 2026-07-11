@@ -68,7 +68,7 @@ use Illuminate\\Support\\Facades\\Hash;
 use Illuminate\\Support\\Facades\\DB;
 
 // Seed under the SAME account demo-login authenticates
-// (AuthController::demoLogin -> sazioapp@gmail.com). Owning the fixture as
+// (AuthController::demoLogin -> sayzioapp@gmail.com). Owning the fixture as
 // any other email trips the analytics page's owner guard
 // (\$link->user_id !== workspace_owner_id()) and 403s before the card renders.
 $u = User::where('email', '${DEMO_LOGIN_EMAIL}')->first();

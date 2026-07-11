@@ -64,7 +64,7 @@ class AuthController extends Controller
             abort(404);
         }
 
-        $admin = Admin::where('email', 'official1inme@gmail.com')->first();
+        $admin = Admin::where('email', 'sayzioapp@gmail.com')->first();
 
         if (!$admin) {
             $role = Role::firstOrCreate(
@@ -78,13 +78,13 @@ class AuthController extends Controller
                 // converge on the single demo admin instead of 500ing.
                 $admin = Admin::create([
                     'name' => 'Admin',
-                    'email' => 'official1inme@gmail.com',
+                    'email' => 'sayzioapp@gmail.com',
                     'password' => Hash::make('password'),
                     'role_id' => $role->id,
                     'status' => 'active',
                 ]);
             } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-                $admin = Admin::where('email', 'official1inme@gmail.com')->firstOrFail();
+                $admin = Admin::where('email', 'sayzioapp@gmail.com')->firstOrFail();
             }
         }
 
