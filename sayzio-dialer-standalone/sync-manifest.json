@@ -11,7 +11,7 @@
       "source": "app/(auth)/_layout.tsx",
       "relation": "adapted",
       "note": "signed-in redirect targets /(tabs)/dialer (standalone tab group has no index screen); otherwise identical",
-      "sourceSha256": "afdea40807667a2fcb86ee05a0b2501fc7f8f2806f5b28859ca245f61aee3f08"
+      "sourceSha256": "fcc7278dba124016b74a4c551b2edda4cd5b8f2721d4bcc076d48561629b1186"
     },
     {
       "standalone": "app/(auth)/verify.tsx",
@@ -221,7 +221,7 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "83537218e6ff47d5797cb6967fa9ddea7c672882e83a2666b8f4ad3692ada957",
+      "sourceSha256": "5335dfd6d4dd27aba40a96271c19fcd882a07737ee2bf289a5b5366986f215b6",
       "note": "dev-only missing-env alert text reworded (no monorepo path); everything else must match the main app"
     },
     {

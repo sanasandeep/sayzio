@@ -54,3 +54,11 @@ export function useThemePreference(): ThemePref {
 export function useThemeControls() {
   return useContext(ThemeContext);
 }
+
+export function ForceDarkTheme({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeContext.Provider value={{ pref: "dark", setPref: async () => {} }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}

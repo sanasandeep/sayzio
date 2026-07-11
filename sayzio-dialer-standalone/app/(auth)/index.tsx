@@ -342,18 +342,20 @@ export default function AuthLanding() {
     );
   }
 
-  // Derive tinted brand gradient stops for the screen background wash.
-  // Uses the theme-aware brandGradient tokens so colors adapt to dark mode.
-  // Dark mode gets slightly more opacity (0x40 = 25%) since the near-black
-  // base makes lighter tints less visible; light mode uses 0x2e (18%) for a
-  // soft wash that keeps white-base legibility intact.
-  const bgAlpha = colors.scheme === "dark" ? "40" : "2e";
+  // Brand gradient wash — always dark treatment (auth screens match intro).
+  // 0x40 = 25% opacity, visible over the near-black intro base.
   const bgGradientColors = colors.brandGradient.map(
-    (c) => `${c}${bgAlpha}`,
+    (c) => `${c}40`,
   ) as unknown as [string, string, string];
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <View style={[styles.root, { backgroundColor: "#0b0e1a" }]}>
+      {/* Dark intro gradient base — same as onboarding slides */}
+      <LinearGradient
+        colors={["#0b0e1a", "#080b14", "#070a12"]}
+        style={StyleSheet.absoluteFill}
+      />
+      {/* Brand gradient wash on top */}
       <LinearGradient
         colors={bgGradientColors}
         start={{ x: 0.0, y: 0.0 }}
