@@ -101,6 +101,56 @@ const AI_SLIDE_CATEGORY = "AI dashboard";
 const AI_SLIDE_TITLE = "Let AI arrange your dashboard";
 const AI_SLIDE_CTA = "Set up my dashboard";
 
+// ── Signed-in variant of the final slide ──────────────────────────────────
+// When a user IS signed in AND GET /api/v1/dashboard/layout returns real
+// presets, AiDashboardSlide's `hasPresets` branch swaps the static teaser for
+// the interactive AiDashboardDemo widget (components/AiDashboardDemo.tsx) and
+// the CTA label flips to "Open the AI designer". The demo types out the
+// preset's description in a prompt console, "arranges", then staggers in the
+// preset's real widget tiles via Animated.Value opacity/translateY. NONE of
+// that reveal path is reached by the signed-out phase above, so a regression
+// that leaves the console / board / tiles blank would ship unnoticed. The
+// signed-in phase below seeds a token in localStorage, mocks the layout
+// endpoint with ONE preset (single preset ⇒ no auto-advance, no tab dots — the
+// tiles animate once and stay), and asserts the demo actually paints.
+const AI_SLIDE_CTA_SIGNED_IN = "Open the AI designer";
+
+// A synthetic bearer token + user for the signed-in launch. AuthContext loads
+// these straight from storage on boot and does NOT re-validate them against the
+// server, so a mocked token is enough to make `token` truthy — which is the
+// only thing that gates the onboarding preset fetch (app/onboarding.tsx ~L931).
+const SIGNED_IN_TOKEN = "e2e-onboarding-reveal-signed-in-token";
+const SIGNED_IN_USER = {
+  id: 987654,
+  display_name: "E2E Signed-in User",
+  email: "e2e-onboarding-reveal@example.com",
+};
+
+// One deterministic dashboard preset served from the mocked /dashboard/layout.
+// The board title renders `label`; each widget key maps to a fixed tile label
+// via AiDashboardDemo's WIDGET_META (stat_total_clicks → "Total Clicks").
+const DEMO_PRESET_LABEL = "Growth focus";
+const DEMO_TILE_LABEL = "Total Clicks"; // WIDGET_META["stat_total_clicks"].label
+const DEMO_CONSOLE_BADGE = "AI DESIGNER"; // static badge inside the prompt console
+const MOCK_DASHBOARD_LAYOUT = {
+  data: {
+    presets: [
+      {
+        key: "growth",
+        label: DEMO_PRESET_LABEL,
+        description: "Track how my links are growing over time",
+        icon: "fa-arrow-trend-up",
+        widgets: [
+          "stat_total_clicks",
+          "stat_today",
+          "recent_links",
+          "traffic_channels",
+        ],
+      },
+    ],
+  },
+};
+
 // Build a browser context wired for a fresh onboarding launch: a signed-out,
 // not-yet-onboarded install, with the slides endpoint mocked and every other
 // backend call stubbed.
@@ -142,6 +192,69 @@ async function prepareContext(browser) {
   await context.route("**/api/**", (route) => {
     const path = new URL(route.request().url()).pathname;
     if (/\/api\/v1\/onboarding\/slides$/.test(path)) return route.fallback();
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ data: [] }),
+    });
+  });
+
+  return context;
+}
+
+// Build a browser context wired for a SIGNED-IN, not-yet-onboarded launch: a
+// bearer token + user seeded into localStorage so the onboarding preset fetch
+// fires, the slides endpoint mocked as before, and GET /api/v1/dashboard/layout
+// answered with a deterministic one-preset payload so AiDashboardSlide takes its
+// `hasPresets` branch and renders the interactive AiDashboardDemo widget.
+async function prepareSignedInContext(browser) {
+  const context = await browser.newContext({ viewport: VIEWPORT });
+
+  // Onboarding NOT complete (so the launch gate still routes to /onboarding),
+  // but SIGNED IN — seed the same storage keys AuthContext reads on boot.
+  await context.addInitScript(
+    ([token, userJson]) => {
+      try {
+        window.localStorage.removeItem("1inme.onboarding.complete");
+        window.localStorage.setItem("1inme.auth.token", token);
+        window.localStorage.setItem("1inme.auth.user", userJson);
+      } catch {}
+    },
+    [SIGNED_IN_TOKEN, JSON.stringify(SIGNED_IN_USER)],
+  );
+
+  await context.route("**/branding.json**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  );
+
+  await context.route("**/api/v1/onboarding/slides**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ items: MOCK_SLIDES }),
+    }),
+  );
+
+  // The signed-in-only endpoint that supplies the demo's real presets. The
+  // mobile client unwraps a { data } envelope (getDashboardLayout → res.data).
+  await context.route("**/api/v1/dashboard/layout**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(MOCK_DASHBOARD_LAYOUT),
+    }),
+  );
+
+  // Catch-all, registered last (consulted first): defer the two specific paths
+  // above to their handlers, benign {data:[]} for everything else.
+  await context.route("**/api/**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (
+      /\/api\/v1\/onboarding\/slides$/.test(path) ||
+      /\/api\/v1\/dashboard\/layout$/.test(path)
+    ) {
+      return route.fallback();
+    }
     return route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -409,6 +522,125 @@ async function assertAiSlideFloatingIconPainted(page) {
   );
 }
 
+// ── Phase 1: signed-out launch ─────────────────────────────────────────────
+// The active slide's card copy + a floating icon must paint, then swipe to the
+// final AI dashboard slide and assert its (teaser) heading/CTA copy + a floating
+// icon paint. Signed out there are no presets, so the interactive demo is NOT
+// rendered here — that is phase 2's job.
+async function runSignedOutPhase(browser, appUrl) {
+  const context = await prepareContext(browser);
+  const page = await context.newPage();
+  page.setDefaultTimeout(STEP_TIMEOUT_MS);
+  page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+  page.on("pageerror", (e) => log("[signed-out] pageerror:", e.message));
+
+  // Load the (already-warmed) root; with the onboarding flag cleared the
+  // launch gate redirects to /onboarding client-side — the exact path a fresh
+  // install takes. (Requesting /onboarding directly would make Metro compile
+  // that route from scratch and can blow the nav timeout.)
+  log(`[signed-out] navigating to ${appUrl} (launch gate → /onboarding)`);
+  await page.goto(appUrl, { waitUntil: "domcontentloaded" });
+
+  // ---- The active slide's card copy must actually PAINT --------------------
+  await assertPainted(page, SLIDE_CATEGORY, "slide category chip");
+  await assertPainted(page, SLIDE_TITLE, "slide title");
+  await assertPainted(page, SLIDE_BODY, "slide body");
+
+  // ---- At least one FloatingIcon tile must end non-transparent -------------
+  await assertFloatingIconPainted(page);
+
+  // ---- Swipe to the DISTINCT final AI dashboard slide ---------------------
+  // It has its OWN render path (blobs + floating icons + AiDashboardDemo in a
+  // ScrollView, not a SlideCard), so the active-slide checks above never reach
+  // it. Only the mocked slide + the appended AI_DASHBOARD_SLIDE exist, so one
+  // swipe lands on it. Wait for its category chip to be present before asserting.
+  await swipeToNextSlide(page);
+  await page
+    .getByText(AI_SLIDE_CATEGORY, { exact: true })
+    .first()
+    .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS })
+    .catch(() =>
+      fail(
+        "the AI dashboard slide's category chip never appeared after swiping " +
+          "to the final slide.",
+      ),
+    );
+
+  // Its heading + CTA copy must paint (effective opacity > 0) AND land inside
+  // the frame — proving the AI slide actually rendered on screen, not blank.
+  await assertPaintedInFrame(page, AI_SLIDE_CATEGORY, "AI slide category chip");
+  await assertPaintedInFrame(page, AI_SLIDE_TITLE, "AI slide title");
+  await assertPaintedInFrame(page, AI_SLIDE_CTA, "AI slide CTA");
+
+  // And at least one of the AI slide's OWN floating icons must end painted.
+  await assertAiSlideFloatingIconPainted(page);
+
+  log(
+    "[signed-out] ok — the active slide AND the final AI dashboard slide's " +
+      "teaser copy plus a floating icon each paint on screen",
+  );
+  await context.close().catch(() => {});
+}
+
+// ── Phase 2: signed-in launch (the interactive AiDashboardDemo) ────────────
+// With a token seeded and /dashboard/layout returning a preset, the final slide
+// takes its `hasPresets` branch and renders AiDashboardDemo instead of the
+// teaser. Assert the prompt console badge + board title paint AND at least one
+// of the preset's real widget TILES reaches effective opacity > 0 — i.e. the
+// Animated.Value stagger reveal actually applied to the rendered tile rather
+// than leaving it stuck at 0 (a blank demo board regression).
+async function runSignedInPhase(browser, appUrl) {
+  const context = await prepareSignedInContext(browser);
+  const page = await context.newPage();
+  page.setDefaultTimeout(STEP_TIMEOUT_MS);
+  page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+  page.on("pageerror", (e) => log("[signed-in] pageerror:", e.message));
+
+  log(`[signed-in] navigating to ${appUrl} (launch gate → /onboarding)`);
+  await page.goto(appUrl, { waitUntil: "domcontentloaded" });
+
+  // The first mocked slide still paints before we page forward.
+  await assertPainted(page, SLIDE_TITLE, "slide title");
+
+  // Swipe to the final AI dashboard slide and confirm the swipe landed.
+  await swipeToNextSlide(page);
+  await page
+    .getByText(AI_SLIDE_CATEGORY, { exact: true })
+    .first()
+    .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS })
+    .catch(() =>
+      fail(
+        "[signed-in] the AI dashboard slide's category chip never appeared " +
+          "after swiping to the final slide.",
+      ),
+    );
+  await assertPaintedInFrame(
+    page,
+    AI_SLIDE_CATEGORY,
+    "AI slide category chip (signed in)",
+  );
+
+  // hasPresets branch active: the CTA label flips and the interactive demo's
+  // prompt console + board render. These are opacity-only checks (the demo sits
+  // lower in the ScrollView so it may be below the fold, but its opacity is what
+  // a blank-demo regression would zero out).
+  await assertPainted(page, AI_SLIDE_CTA_SIGNED_IN, "AI slide CTA (presets)");
+  await assertPainted(page, DEMO_CONSOLE_BADGE, "AiDashboardDemo prompt console");
+  await assertPainted(page, DEMO_PRESET_LABEL, "AiDashboardDemo board title");
+
+  // The core assertion: at least one real widget tile's staggered reveal
+  // actually raised its effective opacity above 0 (the tiles START at 0 and
+  // animate to 1 — assertPainted polls until the reveal lands).
+  await assertPainted(page, DEMO_TILE_LABEL, "AiDashboardDemo widget tile");
+
+  log(
+    "[signed-in] ok — the interactive AiDashboardDemo prompt console, board " +
+      "and at least one animated widget tile paint on screen (effective " +
+      "opacity > 0)",
+  );
+  await context.close().catch(() => {});
+}
+
 async function run() {
   const { acquireServer } = createExpoServerManager(log);
   const server = await acquireServer("onboarding-reveal", process.env.APP_URL);
@@ -429,58 +661,14 @@ async function run() {
     );
   }
 
-  const context = await prepareContext(browser);
-  const page = await context.newPage();
-  page.setDefaultTimeout(STEP_TIMEOUT_MS);
-  page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
-  page.on("pageerror", (e) => log("pageerror:", e.message));
-
   try {
-    // Load the (already-warmed) root; with the onboarding flag cleared the
-    // launch gate redirects to /onboarding client-side — the exact path a fresh
-    // install takes. (Requesting /onboarding directly would make Metro compile
-    // that route from scratch and can blow the nav timeout.)
-    log(`navigating to ${appUrl} (launch gate → /onboarding)`);
-    await page.goto(appUrl, { waitUntil: "domcontentloaded" });
-
-    // ---- The active slide's card copy must actually PAINT ------------------
-    await assertPainted(page, SLIDE_CATEGORY, "slide category chip");
-    await assertPainted(page, SLIDE_TITLE, "slide title");
-    await assertPainted(page, SLIDE_BODY, "slide body");
-
-    // ---- At least one FloatingIcon tile must end non-transparent -----------
-    await assertFloatingIconPainted(page);
-
-    // ---- Swipe to the DISTINCT final AI dashboard slide -------------------
-    // It has its OWN render path (blobs + floating icons + AiDashboardDemo in a
-    // ScrollView, not a SlideCard), so the active-slide checks above never reach
-    // it. Only the mocked slide + the appended AI_DASHBOARD_SLIDE exist, so one
-    // swipe lands on it. Wait for its category chip to be present before asserting.
-    await swipeToNextSlide(page);
-    await page
-      .getByText(AI_SLIDE_CATEGORY, { exact: true })
-      .first()
-      .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS })
-      .catch(() =>
-        fail(
-          "the AI dashboard slide's category chip never appeared after swiping " +
-            "to the final slide.",
-        ),
-      );
-
-    // Its heading + CTA copy must paint (effective opacity > 0) AND land inside
-    // the frame — proving the AI slide actually rendered on screen, not blank.
-    await assertPaintedInFrame(page, AI_SLIDE_CATEGORY, "AI slide category chip");
-    await assertPaintedInFrame(page, AI_SLIDE_TITLE, "AI slide title");
-    await assertPaintedInFrame(page, AI_SLIDE_CTA, "AI slide CTA");
-
-    // And at least one of the AI slide's OWN floating icons must end painted.
-    await assertAiSlideFloatingIconPainted(page);
+    await runSignedOutPhase(browser, appUrl);
+    await runSignedInPhase(browser, appUrl);
 
     log(
-      "PASS: the active onboarding slide AND the final AI dashboard slide's " +
-        "card copy plus at least one floating icon each actually paint on " +
-        "screen (effective opacity > 0)",
+      "PASS: the onboarding carousel paints for BOTH a signed-out install " +
+        "(teaser AI slide) AND a signed-in one (interactive AiDashboardDemo " +
+        "console + board + animated widget tile)",
     );
     await browser.close().catch(() => {});
     // Explicit exit (like the sibling harnesses): the throwaway Metro child
