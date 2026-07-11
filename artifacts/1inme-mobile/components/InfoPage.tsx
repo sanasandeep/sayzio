@@ -33,7 +33,7 @@ export type EefindBlock = {
   eyebrow: string;
   heading: string;
   body: string;
-  stats: InfoStat[];
+  stats?: InfoStat[];
   address: string;
   email: string;
   whatsapp: string;
@@ -181,7 +181,7 @@ export function InfoPage({
                     {eefind.body}
                   </Text>
                   <View style={styles.statRow}>
-                    {eefind.stats.map((stat) => (
+                    {(eefind.stats ?? []).map((stat) => (
                       <View
                         key={stat.label}
                         style={[

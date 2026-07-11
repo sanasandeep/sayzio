@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { AboutPage } from "@/components/AboutPage";
 import type { EefindBlock, FounderBlock, InfoSection } from "@/components/InfoPage";
 import { getBaseUrl } from "@/lib/api";
-import { fetchAboutContent, type AboutHeroStat } from "@/lib/api/siteContent";
+import { fetchAboutContent } from "@/lib/api/siteContent";
 
 const INTRO =
   "Sayzio is the modern way to gather every link, contact, and channel that represents you into a single tap-shareable profile — on the web and in your pocket.";
@@ -42,11 +42,6 @@ const FALLBACK_EEFIND: EefindBlock = {
   eyebrow: "Part of EEFind",
   heading: "Built by EEFind Private Limited",
   body: 'Sayzio is a brand and product of EEFIND PVT LTD (EEFind Private Limited) — an aggregator marketplace on a mission to be "The All in One App for everything essential." From groceries home-delivered by neighbourhood stores to trusted home help like carpentry, plumbing and home cleaning, EEFind brings everyday essentials together in one place. Their promise sums up the philosophy Sayzio is built on: "We are not in a hurry to deliver in 10 mins. We drive safe."',
-  stats: [
-    { value: "4,000+", label: "Products" },
-    { value: "2,000+", label: "Merchants" },
-    { value: "35+", label: "Cities live" },
-  ],
   address: "8 Amrutha Nilayam, Banjara Hills, Hyderabad, Telangana 500034",
   email: "support@eefind.com",
   whatsapp: "+91 81210 57755",
@@ -57,9 +52,6 @@ const FALLBACK_EEFIND: EefindBlock = {
 export default function About() {
   const [sections, setSections] = useState<InfoSection[]>(FALLBACK_SECTIONS);
   const [eefind, setEefind] = useState<EefindBlock>(FALLBACK_EEFIND);
-  const [heroStats, setHeroStats] = useState<AboutHeroStat[] | undefined>(
-    undefined,
-  );
 
   useEffect(() => {
     let active = true;
@@ -68,9 +60,6 @@ export default function About() {
         if (!active || !content) return;
         if (content.sections.length > 0) setSections(content.sections);
         setEefind(content.eefind);
-        if (content.heroStats && content.heroStats.length > 0) {
-          setHeroStats(content.heroStats);
-        }
       })
       .catch(() => {});
     return () => {
@@ -85,7 +74,6 @@ export default function About() {
       sections={sections}
       founder={FOUNDER}
       eefind={eefind}
-      heroStats={heroStats}
     />
   );
 }
