@@ -18,7 +18,21 @@
  * CTA — see the `ctaIdx` / `pages` logic in app/onboarding.tsx — so it is not
  * part of the raw slide list but IS one of the eleven rendered pages.)
  *
- * Assertions:
+ * The harness runs the arc TWICE, to prove the intro slides land correctly on
+ * BOTH the fresh-install/not-yet-seeded path AND the admin-seeded path:
+ *
+ *   PASS 1 (bundled fallback): the slides endpoint returns an EMPTY payload,
+ *   so the app renders its bundled FALLBACK_SLIDES — the real shipped intro
+ *   arc. This is exactly what a fresh env (or one where the admin-seeding
+ *   migration hasn't run yet) shows.
+ *
+ *   PASS 2 (admin-seeded API): the slides endpoint returns the admin-managed
+ *   slides (the raw seeded slugs + categories), so the app swaps out the
+ *   fallback. The same arc must render — same categories, same page count —
+ *   so a slug/copy mismatch between the seeded content and what the app
+ *   expects surfaces here, before it reaches production.
+ *
+ * Assertions (PASS 1 covers 1–7; PASS 2 re-walks the arc via the API):
  *   1. Each of the 11 pages, walked in order, shows its category chip VISIBLE
  *      WITHIN THE FRAME (not clipped, not off-screen) after paging to it.
  *   2. Slide 1 also has its title within frame (glass-card layout guard).
@@ -28,14 +42,14 @@
  *   5. The footer "Website" link is present and opens https://sayzio.app in a
  *      new window (external), captured via a window.open stub.
  *   6. Tapping "Skip" routes to the auth screen ("Welcome back").
- *   7. The top-bar wordmark stays the WHITE variant in BOTH light and dark
+ *   7. With the admin-seeded API payload, the SAME 11-page arc renders (same
+ *      category chips within frame, same dot count) and a sentinel body proves
+ *      the app actually applied the API slides rather than the fallback.
+ *   8. The top-bar wordmark stays the WHITE variant in BOTH light and dark
  *      color schemes (invisible-logo regression guard).
  *
- * The slides endpoint is intercepted with an EMPTY payload so the app renders
- * its bundled FALLBACK_SLIDES — i.e. the real, shipped intro arc — instead of
- * whatever admin-managed content happens to live in the backend. Every other
- * /api/** call is fulfilled with a benign {data:[]} so nothing hits a real
- * backend.
+ * Every other /api/** call is fulfilled with a benign {data:[]} so nothing
+ * hits a real backend.
  *
  * Like the other mobile e2e harnesses, it boots its OWN throwaway Expo web
  * dev server (shared expo-web-server.mjs manager) unless APP_URL points at an
@@ -97,6 +111,33 @@ const EXPECTED_PAGE_COUNT = EXPECTED_PAGES.length; // 11
 const WELCOME_CATEGORY = EXPECTED_PAGES[0].category;
 const WELCOME_TITLE = "One link for everything you do";
 const WEBSITE_URL = "https://sayzio.app";
+
+// A distinctive welcome-slide body that ONLY the mocked admin API payload
+// carries (the real fallback welcome body is different). Asserting it renders
+// in the second pass proves the app actually swapped in the admin-managed
+// slides rather than silently falling back to the bundled ones again — without
+// it, the second pass could pass even if the API-render path were broken.
+const API_SENTINEL_BODY = "Seeded via the admin API.";
+
+// The admin-managed slides feed used by the SECOND pass: the same intro arc
+// the admin would seed (every raw slug + category the app expects), returned
+// as the flat { items } payload OnboardingSlideController emits. The
+// ai-dashboard page is NOT included here — the app inserts it client-side just
+// before get-started, so both passes still render EXPECTED_PAGE_COUNT pages.
+// Positive ids mirror real DB rows (the bundled fallback uses negative ids);
+// categories mirror EXPECTED_PAGES so the walk asserts the SAME copy renders.
+const MOCK_API_SLIDES = EXPECTED_PAGES.filter(
+  (p) => p.slug !== "ai-dashboard",
+).map((p, i) => ({
+  id: 100 + i,
+  slug: p.slug,
+  category: p.category,
+  title: p.slug === "welcome" ? WELCOME_TITLE : `${p.category} headline`,
+  body: p.slug === "welcome" ? API_SENTINEL_BODY : `${p.category} details.`,
+  image_url: null,
+  image_urls: [],
+  sort_order: (i + 1) * 10,
+}));
 
 // Assert the element is visible AND its bounding box sits fully inside the
 // viewport frame — this is the check that would have caught the glass card
@@ -189,13 +230,19 @@ async function ctaLabelPresent(page, label) {
 }
 
 // Build a browser context wired for a fresh onboarding launch: a signed-out,
-// not-yet-onboarded install, with the slides endpoint mocked EMPTY (so the
-// bundled FALLBACK_SLIDES arc renders) and every other backend call stubbed.
-// A window.open stub records external opens so the footer "Website" link can
-// be verified. `colorScheme` emulates the OS light/dark preference (drives
-// react-native-web's useColorScheme via prefers-color-scheme) so we can prove
-// the top-bar wordmark stays on the white variant in BOTH themes.
-async function prepareContext(browser, colorScheme) {
+// not-yet-onboarded install, with the slides endpoint mocked and every other
+// backend call stubbed. A window.open stub records external opens so the
+// footer "Website" link can be verified. `colorScheme` emulates the OS
+// light/dark preference (drives react-native-web's useColorScheme via
+// prefers-color-scheme) so we can prove the top-bar wordmark stays on the
+// white variant in BOTH themes.
+//
+// `slidesPayload` controls what the slides endpoint returns:
+//   • undefined / [] → EMPTY, so the app keeps its bundled FALLBACK_SLIDES
+//     (the "admin hasn't seeded yet" / fresh-install / offline path).
+//   • an array of slide objects → the admin-managed API path, so the app
+//     replaces the fallback with these (the "admin HAS seeded" path).
+async function prepareContext(browser, colorScheme, slidesPayload) {
   const context = await browser.newContext(
     colorScheme
       ? { viewport: VIEWPORT, colorScheme }
@@ -235,14 +282,16 @@ async function prepareContext(browser, colorScheme) {
     }),
   );
 
-  // EMPTY slides → the app keeps its bundled FALLBACK_SLIDES, i.e. the real
-  // shipped intro arc we want to verify. The real endpoint returns a FLAT
-  // { items } payload (no {data} envelope) — see OnboardingSlideController.
+  // Slides feed. With no payload this is EMPTY → the app keeps its bundled
+  // FALLBACK_SLIDES, i.e. the real shipped intro arc (admin-not-seeded path).
+  // With a payload it returns those admin-managed slides instead. The real
+  // endpoint returns a FLAT { items } payload (no {data} envelope) — see
+  // OnboardingSlideController.
   await context.route("**/api/v1/onboarding/slides**", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ items: [] }),
+      body: JSON.stringify({ items: slidesPayload ?? [] }),
     }),
   );
 
@@ -362,7 +411,71 @@ async function run() {
       .waitFor({ timeout: STEP_TIMEOUT_MS });
     log("Skip landed on the auth screen (Welcome back)");
 
-    // ---- 7. Wordmark stays the WHITE variant in BOTH color schemes ------
+    // ---- 7. Admin-seeded API renders the SAME intro arc ----------------
+    // Second pass: instead of an EMPTY slides feed (which keeps the bundled
+    // fallback), the endpoint now returns the admin-managed slides. This is
+    // the "admin HAS seeded" path — the app should replace the fallback and
+    // render the exact same arc (same categories, same page count), so a
+    // slug/copy mismatch between the seeded content and what the app expects
+    // surfaces here rather than only in production after the migration runs.
+    log("second pass: admin-seeded API should render the same arc");
+    const seededCtx = await prepareContext(browser, undefined, MOCK_API_SLIDES);
+    const seededPage = await seededCtx.newPage();
+    seededPage.setDefaultTimeout(STEP_TIMEOUT_MS);
+    seededPage.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+    seededPage.on("pageerror", (e) => log("pageerror (seeded):", e.message));
+    try {
+      await seededPage.goto(appUrl, { waitUntil: "domcontentloaded" });
+
+      // Slide 1 (welcome): same category chip + title as the fallback arc.
+      await assertWithinFrame(
+        seededPage,
+        seededPage.getByText(WELCOME_CATEGORY, { exact: true }).first(),
+        "seeded slide 1 (welcome) category chip",
+      );
+      await assertWithinFrame(
+        seededPage,
+        seededPage.getByText(WELCOME_TITLE, { exact: true }).first(),
+        "seeded slide 1 (welcome) title",
+      );
+
+      // Prove the API path actually swapped in — the sentinel body only the
+      // mocked payload carries must appear (so this pass can't silently be
+      // re-testing the bundled fallback if setSlides(items) ever regresses).
+      await seededPage
+        .getByText(API_SENTINEL_BODY, { exact: false })
+        .first()
+        .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
+      log("seeded welcome body sentinel rendered → admin API slides applied");
+
+      // Same page count as the fallback arc (ai-dashboard still inserted).
+      const seededDots = await countPagerDots(seededPage);
+      if (seededDots !== EXPECTED_PAGE_COUNT) {
+        fail(
+          `seeded arc: expected ${EXPECTED_PAGE_COUNT} pager dots, found ` +
+            `${seededDots}`,
+        );
+      }
+      log(`seeded arc renders exactly ${seededDots} dots`);
+
+      // Walk the ENTIRE arc, asserting each page's category chip renders the
+      // SAME copy within the frame — page 0 (welcome) already asserted above.
+      for (let i = 1; i < EXPECTED_PAGE_COUNT; i++) {
+        const { slug, category } = EXPECTED_PAGES[i];
+        await swipeToNextSlide(seededPage);
+        await waitForChipInFrame(seededPage, category);
+        await assertWithinFrame(
+          seededPage,
+          seededPage.getByText(category, { exact: true }).first(),
+          `seeded page ${i + 1}/${EXPECTED_PAGE_COUNT} (${slug}) category chip`,
+        );
+      }
+      log(`all ${EXPECTED_PAGE_COUNT} seeded intro pages rendered the same copy`);
+    } finally {
+      await seededCtx.close().catch(() => {});
+    }
+
+    // ---- 8. Wordmark stays the WHITE variant in BOTH color schemes ------
     // Regression guard for the invisible-logo bug: the splash top-bar
     // <BrandWordmark forceVariant="dark-bg" /> must resolve to the white PNG
     // even when the device is in LIGHT mode (where useColorScheme() would
