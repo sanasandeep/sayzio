@@ -23,6 +23,15 @@
  * at opacity 0 still reports visible, so we walk the ancestor chain and multiply
  * the computed opacities (same technique as test-info-pages-e2e.mjs).
  *
+ * The carousel ends with a DISTINCT final slide, AiDashboardSlide, which does
+ * NOT use the SlideCard/AnimatedSlide render path — it renders its own blobs,
+ * floating icons and the interactive AiDashboardDemo widget inside a ScrollView.
+ * Because it has separate render paths the active-slide checks above never
+ * reach, this harness ALSO swipes to that final slide and asserts its heading /
+ * CTA copy paints (effective opacity > 0, in-frame) and at least one of ITS
+ * floating icons ends non-transparent — so a regression that leaves the AI
+ * dashboard slide blank fails here instead of shipping unnoticed.
+ *
  * The slides endpoint is intercepted with a deterministic slide so the
  * assertions never depend on admin-managed content; every other /api/** call is
  * fulfilled with a benign {data:[]} so nothing hits a real backend.
@@ -83,6 +92,14 @@ const MOCK_SLIDES = [
     sort_order: 10,
   },
 ];
+
+// Copy for the DISTINCT final AiDashboardSlide (hard-coded in app/onboarding.tsx
+// as AI_DASHBOARD_SLIDE — it is NOT admin-managed, so it always appends after
+// the mocked slides). Signed out (no auth token), the slide has no dashboard
+// presets, so it renders its teaser + the "Set up my dashboard" CTA label.
+const AI_SLIDE_CATEGORY = "AI dashboard";
+const AI_SLIDE_TITLE = "Let AI arrange your dashboard";
+const AI_SLIDE_CTA = "Set up my dashboard";
 
 // Build a browser context wired for a fresh onboarding launch: a signed-out,
 // not-yet-onboarded install, with the slides endpoint mocked and every other
@@ -247,6 +264,151 @@ async function assertFloatingIconPainted(page) {
   );
 }
 
+// Page the horizontal FlatList forward by one viewport width, like a swipe.
+// React Native Web renders the carousel as ONE horizontally scrollable element;
+// every slide wrapper ALSO reports scrollWidth > clientWidth (overflow visible),
+// but setting scrollLeft on those is a silent no-op — so we pick the element
+// whose overflow-x is auto/scroll or whose scroll-snap-type includes x, then
+// advance scrollLeft by clientWidth. The scroll event drives the same
+// onScroll/index logic as a finger swipe. (Same technique as
+// test-onboarding-slider-e2e.mjs.)
+async function swipeToNextSlide(page) {
+  const advanced = await page.evaluate(() => {
+    const scroller = Array.from(document.querySelectorAll("div")).find((n) => {
+      if (n.scrollWidth <= n.clientWidth + 10) return false;
+      const cs = getComputedStyle(n);
+      return (
+        cs.overflowX === "auto" ||
+        cs.overflowX === "scroll" ||
+        (cs.scrollSnapType && cs.scrollSnapType.includes("x"))
+      );
+    });
+    if (!scroller) return false;
+    scroller.scrollLeft = scroller.scrollLeft + scroller.clientWidth;
+    return true;
+  });
+  if (!advanced) fail("could not find the horizontal slider to swipe");
+  log("swiped the carousel forward by one slide width");
+}
+
+// Assert a Text node with EXACTLY this string is painted (effective opacity > 0)
+// AND sits inside the visible viewport frame. The AI dashboard slide's copy has
+// no entrance opacity animation (it renders in a ScrollView, not an animated
+// SlideCard), so the meaningful regression this guards is the copy never
+// reaching the screen at all — either transparent, or stranded off-frame because
+// the swipe didn't actually land on the final slide.
+async function assertPaintedInFrame(page, text, label) {
+  const locator = page.getByText(text, { exact: true }).first();
+  await locator
+    .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS })
+    .catch(() =>
+      fail(`${label}: expected "${text}" to be visible, but it never appeared.`),
+    );
+
+  const deadline = Date.now() + 6000;
+  let lastOpacity = 0;
+  let lastBox = null;
+  while (Date.now() < deadline) {
+    lastOpacity = await effectiveOpacity(locator);
+    lastBox = await locator.boundingBox().catch(() => null);
+    const inFrame =
+      lastBox &&
+      lastBox.x >= -1 &&
+      lastBox.x + lastBox.width <= VIEWPORT.width + 1;
+    if (lastOpacity > 0 && inFrame) {
+      log(
+        `ok — ${label} painted in-frame (effective opacity ` +
+          `${lastOpacity.toFixed(2)}, x=${Math.round(lastBox.x)})`,
+      );
+      return;
+    }
+    await page.waitForTimeout(150);
+  }
+
+  if (!lastBox) {
+    fail(`${label}: "${text}" is in the DOM but has no bounding box.`);
+  }
+  if (lastOpacity <= 0) {
+    fail(
+      `${label}: "${text}" is in the DOM but never painted — effective ` +
+        `opacity stayed at ${lastOpacity} for 6s.`,
+    );
+  }
+  fail(
+    `${label}: "${text}" painted but stayed OUTSIDE the frame ` +
+      `(box=${JSON.stringify(lastBox)} viewport width=${VIEWPORT.width}) — the ` +
+      `swipe to the AI dashboard slide never brought its copy on screen.`,
+  );
+}
+
+// Assert at least one FloatingIcon tile BELONGING TO THE AI DASHBOARD SLIDE ends
+// non-transparent. The AI slide renders the SAME FloatingIcon component (same
+// translucent-blue border signature) as the earlier slides, so after swiping we
+// must ignore the previous slide's tiles — those are translated one viewport
+// width to the LEFT (off-frame). We therefore only count tiles whose bounding
+// rect sits inside the current viewport horizontally, then poll their effective
+// opacity: a broken AI-slide reveal (or a shared value that never reaches the
+// DOM) leaves every in-frame tile stuck at 0.
+async function assertAiSlideFloatingIconPainted(page) {
+  const deadline = Date.now() + 6000;
+  let best = 0;
+  let found = 0;
+  while (Date.now() < deadline) {
+    const result = await page.evaluate(() => {
+      const tiles = Array.from(document.querySelectorAll("div")).filter((n) => {
+        const cs = getComputedStyle(n);
+        const bc = cs.borderColor || cs.borderTopColor || "";
+        if (
+          cs.position !== "absolute" ||
+          !/\b100,\s*160,\s*255\b/.test(bc.replace(/\s+/g, " "))
+        ) {
+          return false;
+        }
+        // Only tiles inside the current viewport horizontally — this excludes
+        // the previous slide's tiles, now paged one screen to the left.
+        const r = n.getBoundingClientRect();
+        return r.width > 0 && r.left >= -1 && r.right <= window.innerWidth + 1;
+      });
+      let count = tiles.length;
+      let max = 0;
+      for (const tile of tiles) {
+        let node = tile;
+        let opacity = 1;
+        while (node && node instanceof Element) {
+          const parsed = parseFloat(getComputedStyle(node).opacity);
+          if (!Number.isNaN(parsed)) opacity *= parsed;
+          node = node.parentElement;
+        }
+        if (opacity > max) max = opacity;
+      }
+      return { count, max };
+    });
+    found = result.count;
+    best = result.max;
+    if (found > 0 && best > 0) {
+      log(
+        `ok — AI-slide FloatingIcon tile painted (${found} in-frame tile(s), ` +
+          `best effective opacity ${best.toFixed(2)})`,
+      );
+      return;
+    }
+    await page.waitForTimeout(150);
+  }
+
+  if (found === 0) {
+    fail(
+      "no in-frame FloatingIcon tile was found on the AI dashboard slide " +
+        "(expected the bobbing AI feature-icon tiles with the translucent blue " +
+        "border) — the AI slide's floating-icon layer did not render at all.",
+    );
+  }
+  fail(
+    `found ${found} in-frame AI-slide FloatingIcon tile(s) but none ever ` +
+      `painted — best effective opacity stayed at ${best} for 6s (the AI ` +
+      `slide's mount fade-in reveal never applied its opacity).`,
+  );
+}
+
 async function run() {
   const { acquireServer } = createExpoServerManager(log);
   const server = await acquireServer("onboarding-reveal", process.env.APP_URL);
@@ -289,9 +451,36 @@ async function run() {
     // ---- At least one FloatingIcon tile must end non-transparent -----------
     await assertFloatingIconPainted(page);
 
+    // ---- Swipe to the DISTINCT final AI dashboard slide -------------------
+    // It has its OWN render path (blobs + floating icons + AiDashboardDemo in a
+    // ScrollView, not a SlideCard), so the active-slide checks above never reach
+    // it. Only the mocked slide + the appended AI_DASHBOARD_SLIDE exist, so one
+    // swipe lands on it. Wait for its category chip to be present before asserting.
+    await swipeToNextSlide(page);
+    await page
+      .getByText(AI_SLIDE_CATEGORY, { exact: true })
+      .first()
+      .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS })
+      .catch(() =>
+        fail(
+          "the AI dashboard slide's category chip never appeared after swiping " +
+            "to the final slide.",
+        ),
+      );
+
+    // Its heading + CTA copy must paint (effective opacity > 0) AND land inside
+    // the frame — proving the AI slide actually rendered on screen, not blank.
+    await assertPaintedInFrame(page, AI_SLIDE_CATEGORY, "AI slide category chip");
+    await assertPaintedInFrame(page, AI_SLIDE_TITLE, "AI slide title");
+    await assertPaintedInFrame(page, AI_SLIDE_CTA, "AI slide CTA");
+
+    // And at least one of the AI slide's OWN floating icons must end painted.
+    await assertAiSlideFloatingIconPainted(page);
+
     log(
-      "PASS: the active onboarding slide's card copy and at least one floating " +
-        "icon tile actually paint on screen (effective opacity > 0)",
+      "PASS: the active onboarding slide AND the final AI dashboard slide's " +
+        "card copy plus at least one floating icon each actually paint on " +
+        "screen (effective opacity > 0)",
     );
     await browser.close().catch(() => {});
     // Explicit exit (like the sibling harnesses): the throwaway Metro child
