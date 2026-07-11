@@ -165,6 +165,7 @@ test.beforeAll(async ({ browser }) => {
   await sharedContext.addInitScript(() => {
     const et = new EventTarget();
     let override: number | null = null;
+    let offsetTopOverride = 0;
     const vv = {
       get width() {
         return window.innerWidth;
@@ -172,9 +173,16 @@ test.beforeAll(async ({ browser }) => {
       get height() {
         return override == null ? window.innerHeight : override;
       },
-      offsetTop: 0,
+      // offsetTop / pageTop shift when Safari iOS scrolls the focused input into
+      // view under the software keyboard; the widget must anchor above the
+      // keyboard using offsetTop + height, not the (unchanged) layout viewport.
+      get offsetTop() {
+        return offsetTopOverride;
+      },
       offsetLeft: 0,
-      pageTop: 0,
+      get pageTop() {
+        return offsetTopOverride;
+      },
       pageLeft: 0,
       scale: 1,
       addEventListener: (...a: unknown[]) =>
@@ -190,8 +198,20 @@ test.beforeAll(async ({ browser }) => {
     (window as unknown as { __setVisualViewportHeight: (h: number) => void }).__setVisualViewportHeight =
       (h: number) => {
         override = h;
+        offsetTopOverride = 0;
         vv.dispatchEvent(new Event("resize"));
       };
+    // Simulate the software keyboard: shrink the visible viewport AND shift its
+    // top offset (as iOS does when it scrolls the composer into view).
+    (
+      window as unknown as {
+        __setVisualViewport: (h: number, offsetTop: number) => void;
+      }
+    ).__setVisualViewport = (h: number, offsetTop: number) => {
+      override = h;
+      offsetTopOverride = offsetTop;
+      vv.dispatchEvent(new Event("resize"));
+    };
   });
   const page = await sharedContext.newPage();
   await loginAsDemo(page);
@@ -258,6 +278,86 @@ test.describe("Ask Zio panel — visualViewport pinning (mobile)", () => {
       ),
     );
     await expect.poll(() => inlineHeight(page), { timeout: 10_000 }).toBe(240);
+  });
+
+  test("the panel stays anchored above the software keyboard when the visible viewport is offset", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await stubChat(page);
+    await page.goto("/user/links", { timeout: 120_000 });
+    await openPanel(page);
+
+    // Baseline: full visible area, no keyboard, panel pinned to 800 - 100.
+    await expect
+      .poll(() => inlineHeight(page), { timeout: 10_000 })
+      .toBe(800 - SA_VV_RESERVE);
+
+    // The user taps the composer: iOS opens the keyboard, which both shrinks the
+    // visible viewport (height 500) AND shifts its top (offsetTop 40) as Safari
+    // scrolls the focused input into view. The occluded keyboard region is
+    // therefore [offsetTop + height, innerHeight] = [540, 800].
+    const KB_HEIGHT = 500;
+    const KB_OFFSET_TOP = 40;
+    const visibleBottom = KB_OFFSET_TOP + KB_HEIGHT; // 540
+    await page.evaluate(
+      ([h, top]) =>
+        (
+          window as unknown as {
+            __setVisualViewport: (h: number, offsetTop: number) => void;
+          }
+        ).__setVisualViewport(h, top),
+      [KB_HEIGHT, KB_OFFSET_TOP],
+    );
+
+    // Height still tracks the reduced visible viewport (500 - 100 = 400).
+    await expect
+      .poll(() => inlineHeight(page), { timeout: 10_000 })
+      .toBe(KB_HEIGHT - SA_VV_RESERVE);
+
+    // The composer must be lifted out from behind the keyboard: its bottom edge
+    // sits at or above the visible bottom, and its top stays below the visible
+    // top — i.e. the whole composer row is inside [offsetTop, offsetTop+height].
+    const composerRect = () =>
+      page
+        .locator("#sa-panel .sa-input-row")
+        .first()
+        .evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          return { top: r.top, bottom: r.bottom };
+        });
+
+    await expect
+      .poll(async () => (await composerRect()).bottom <= visibleBottom, {
+        timeout: 10_000,
+      })
+      .toBe(true);
+
+    const rect = await composerRect();
+    expect(rect.bottom).toBeLessThanOrEqual(visibleBottom);
+    expect(rect.top).toBeGreaterThanOrEqual(KB_OFFSET_TOP);
+    await expect(page.locator("#sa-panel .sa-input-row").first()).toBeVisible();
+
+    // When the keyboard dismisses (visible viewport restored) the lift is
+    // released so the panel returns to its normal anchored position.
+    await page.evaluate(
+      ([h, top]) =>
+        (
+          window as unknown as {
+            __setVisualViewport: (h: number, offsetTop: number) => void;
+          }
+        ).__setVisualViewport(h, top),
+      [800, 0],
+    );
+    await expect
+      .poll(
+        () =>
+          page
+            .locator("#sa-panel-wrap")
+            .evaluate((el) => (el as HTMLElement).style.transform || ""),
+        { timeout: 10_000 },
+      )
+      .toBe("");
   });
 });
 

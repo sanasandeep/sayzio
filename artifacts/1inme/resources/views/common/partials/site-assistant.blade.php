@@ -1756,16 +1756,37 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   // closed, or in browsers without visualViewport we remove the inline height
   // so the stylesheet's dvh/vh sizing (and desktop 560px) stays untouched.
   var SA_VV_RESERVE = 100; // keep in lockstep with the mobile 100dvh - 100px rule
+  var SA_VV_KB_MARGIN = 8;  // small gap kept between the composer and the keyboard top
   function saSyncPanelViewport(){
     var vv = window.visualViewport;
     var mobile = (window.innerWidth || document.documentElement.clientWidth || 0) <= 480;
     if (!vv || !mobile || !open) {
       if (panel.style.height) panel.style.height = '';
+      if (panelWrap.style.transform) panelWrap.style.transform = '';
       return;
     }
     var h = Math.max(240, Math.round(vv.height) - SA_VV_RESERVE);
     var hpx = h + 'px';
     if (panel.style.height !== hpx) panel.style.height = hpx;
+
+    // Keyboard / shifted visual-viewport handling. The software keyboard (and
+    // Safari's bars) not only shrinks vv.height but can shift vv.offsetTop, so
+    // the visible viewport in layout coordinates is [offsetTop, offsetTop +
+    // height]. The panel is position:fixed near the layout-viewport bottom, so
+    // when the keyboard opens its bottom edge — where the composer lives — ends
+    // up occluded behind the keyboard. Translate the wrap up just enough to keep
+    // the composer inside the visible area, without dragging the panel's top
+    // above the visible top. Reset any prior transform first so the base rect is
+    // measured, then re-apply.
+    if (panelWrap.style.transform) panelWrap.style.transform = '';
+    var visibleTop = Math.round(vv.offsetTop || 0);
+    var visibleBottom = visibleTop + Math.round(vv.height);
+    var rect = panelWrap.getBoundingClientRect();
+    var lift = (rect.bottom + SA_VV_KB_MARGIN) - visibleBottom; // > 0 when occluded
+    if (lift > 0) {
+      lift = Math.min(lift, Math.max(0, rect.top - visibleTop));
+      if (lift > 0) panelWrap.style.transform = 'translateY(' + (-Math.round(lift)) + 'px)';
+    }
   }
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', saSyncPanelViewport, { passive: true });
