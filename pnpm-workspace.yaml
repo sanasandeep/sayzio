@@ -18,7 +18,7 @@ catalog:
   '@vitejs/plugin-react': ^5.0.4
   class-variance-authority: ^0.7.1
   clsx: ^2.1.1
-  drizzle-orm: ^0.45.1
+  drizzle-orm: ^0.45.2
   framer-motion: ^12.23.24
   lucide-react: ^0.545.0
   react: 19.1.0
@@ -26,7 +26,7 @@ catalog:
   tailwind-merge: ^3.3.1
   tailwindcss: ^4.1.14
   tsx: 4.21.0
-  vite: ^7.3.0
+  vite: ^7.3.2
   wouter: ^3.7.1
   zod: ^3.25.76
 
@@ -43,6 +43,19 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 overrides:
+  picomatch: 2.3.2
+  'path-to-regexp': 8.4.2
+  shell-quote: 1.9.0
+  linkify-it: 5.0.2
+  lodash: 4.18.1
+  fast-uri: 4.1.0
+  form-data: 4.0.6
+  '@expo/cli>undici': 6.27.0
+  '@expo/cli>ws': 8.21.0
+  '@react-native/dev-middleware>ws': 8.21.0
+  'metro>ws': 7.5.11
+  'react-native>ws': 6.2.4
+  'react-devtools-core>ws': 7.5.11
   metro: 0.83.3
   metro-babel-transformer: 0.83.3
   metro-cache: 0.83.3
