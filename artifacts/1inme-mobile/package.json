@@ -36,6 +36,7 @@
     "test:drawer-focus-ring-e2e": "node scripts/test-drawer-focus-ring-e2e.mjs",
     "test:form-focus-ring-e2e": "node scripts/test-form-focus-ring-e2e.mjs",
     "test:tabbar-legibility-e2e": "node scripts/test-tabbar-legibility-e2e.mjs",
+    "test:info-pages-e2e": "node scripts/test-info-pages-e2e.mjs",
     "test:auth-flow-e2e:core": "AUTH_FLOW_ONLY=main node scripts/test-auth-flow-e2e.mjs",
     "test:auth-flow-e2e:google": "AUTH_FLOW_ONLY=google node scripts/test-auth-flow-e2e.mjs",
     "test:push-action": "node scripts/test-push-action.mjs",
