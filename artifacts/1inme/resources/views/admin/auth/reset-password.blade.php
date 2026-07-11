@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Reset Password - Admin</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
@@ -39,7 +40,7 @@
         <div class="flex-1 lg:flex-none lg:w-[480px] flex items-center justify-center p-6 lg:p-12 relative">
             <div class="hidden lg:block absolute inset-y-0 left-0 w-px" style="background: linear-gradient(180deg, transparent, var(--border-glass), transparent);"></div>
 
-            <div class="w-full max-w-sm">
+            <div class="w-full max-w-sm" data-ajax-group>
                 <div class="text-center mb-7 lg:hidden">
                     <a href="{{ route('home') }}" class="inline-flex items-center justify-center">
                         @include('common.partials.brand-logo', ['height' => 'h-10'])
@@ -65,25 +66,30 @@
                     <p class="text-sm mt-1" style="color: var(--text-dimmed);">Choose a new admin password to continue</p>
                 </div>
 
-                @if($errors->any())
-                    <div class="mb-4 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">
-                        @foreach($errors->all() as $error) <p>{{ $error }}</p> @endforeach
-                    </div>
-                @endif
+                {{-- Status / AJAX status (shown for flash success) --}}
+                <div class="mb-4 p-3 rounded-xl text-emerald-400 text-xs font-medium" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);" data-ajax-status @if(!session('success')) hidden @endif>
+                    {{ session('success') }}
+                </div>
 
-                <form method="POST" action="{{ route('admin.password.update') }}">
+                <form method="POST" action="{{ route('admin.password.update') }}" data-ajax>
                     @csrf
                     <input type="hidden" name="token" value="{{ $token }}">
                     <input type="hidden" name="email" value="{{ $email }}">
+
+                    <div class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err @if(!$errors->any()) hidden @endif>
+                        @foreach($errors->all() as $error) <p>{{ $error }}</p> @endforeach
+                    </div>
 
                     <div class="space-y-4">
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">New Password</label>
                             <input type="password" name="password" required autofocus placeholder="Min 8 characters" class="theme-input w-full">
+                            <p class="mt-1 text-xs text-red-400" data-err="password" @if(!$errors->has('password')) hidden @endif>{{ $errors->first('password') }}</p>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Confirm Password</label>
                             <input type="password" name="password_confirmation" required placeholder="Repeat password" class="theme-input w-full">
+                            <p class="mt-1 text-xs text-red-400" data-err="password_confirmation" hidden></p>
                         </div>
                         <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                             Reset Password <i class="fas fa-arrow-right text-[10px] ml-1"></i>
@@ -116,5 +122,6 @@
         }
     })();
     </script>
+    <script src="{{ asset('js/auth-ajax.js') }}"></script>
 </body>
 </html>

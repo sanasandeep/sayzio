@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login - {{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
@@ -39,7 +40,7 @@
         <div class="flex-1 lg:flex-none lg:w-[480px] flex items-center justify-center p-6 lg:p-12 relative">
             <div class="hidden lg:block absolute inset-y-0 left-0 w-px" style="background: linear-gradient(180deg, transparent, var(--border-glass), transparent);"></div>
 
-            <div class="w-full max-w-sm">
+            <div class="w-full max-w-sm" data-ajax-group>
                 <div class="text-center mb-7 lg:hidden">
                     <a href="{{ route('home') }}" class="inline-flex items-center justify-center">
                         @include('common.partials.brand-logo', ['height' => 'h-10'])
@@ -65,11 +66,10 @@
                     <p class="text-sm mt-1" style="color: var(--text-dimmed);">{{ $passwordOn ? 'Sign in to your account' : 'Sign in with a one-time code' }}</p>
                 </div>
 
-                @if(session('status'))
-                    <div class="mb-4 rounded-xl px-3 py-2.5 text-xs" style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.20); color: #86efac;">
-                        {{ session('status') }}
-                    </div>
-                @endif
+                {{-- Status flash / AJAX status --}}
+                <div class="mb-4 rounded-xl px-3 py-2.5 text-xs" style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.20); color: #86efac;" data-ajax-status @if(!session('status')) hidden @endif>
+                    {{ session('status') }}
+                </div>
 
                 <div x-data="{ method: '{{ $defaultMethod }}' }">
                     @if($methodCount > 1)
@@ -94,19 +94,20 @@
 
                     @if($emailPasswordEnabled)
                     {{-- Email + password sign-in --}}
-                    <form method="POST" action="{{ route('user.login.submit') }}" x-show="method === 'password'" @if($methodCount > 1)x-cloak @endif>
+                    <form method="POST" action="{{ route('user.login.submit') }}" data-ajax x-show="method === 'password'" @if($methodCount > 1)x-cloak @endif>
                         @csrf
                         <input type="hidden" name="login_method" value="password">
+                        <div data-general-err class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" hidden></div>
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email Address</label>
                                 <input type="email" name="email" value="{{ old('email') }}" required placeholder="you@example.com" class="theme-input w-full">
-                                @error('email')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                                <p class="mt-1 text-xs text-red-400" data-err="email" @if(!$errors->has('email')) hidden @endif>{{ $errors->first('email') }}</p>
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Password</label>
                                 <input type="password" name="password" required placeholder="Your password" autocomplete="current-password" class="theme-input w-full">
-                                @error('password')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                                <p class="mt-1 text-xs text-red-400" data-err="password" @if(!$errors->has('password')) hidden @endif>{{ $errors->first('password') }}</p>
                             </div>
                             <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                                 <i class="fas fa-arrow-right-to-bracket text-xs"></i> Sign In
@@ -117,15 +118,16 @@
 
                     @if($emailOtpEnabled)
                     {{-- Email one-time-code sign-in --}}
-                    <form method="POST" action="{{ route('user.otp.send') }}" x-show="method === 'email_otp'" @if($methodCount > 1)x-cloak @endif>
+                    <form method="POST" action="{{ route('user.otp.send') }}" data-ajax x-show="method === 'email_otp'" @if($methodCount > 1)x-cloak @endif>
                         @csrf
                         <input type="hidden" name="login_method" value="email_otp">
                         <input type="hidden" name="type" value="email">
+                        <div data-general-err class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" hidden></div>
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email Address</label>
                                 <input type="email" name="identifier" value="{{ old('identifier') }}" required placeholder="you@example.com" class="theme-input w-full">
-                                @error('identifier')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                                <p class="mt-1 text-xs text-red-400" data-err="identifier" @if(!$errors->has('identifier')) hidden @endif>{{ $errors->first('identifier') }}</p>
                             </div>
                             <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                                 <i class="fas fa-paper-plane text-xs"></i> Send 6-digit Code
@@ -136,15 +138,16 @@
 
                     @if($mobileLoginEnabled)
                     {{-- WhatsApp one-time-code sign-in --}}
-                    <form method="POST" action="{{ route('user.otp.send') }}" x-show="method === 'mobile'" @if($methodCount > 1)x-cloak @endif>
+                    <form method="POST" action="{{ route('user.otp.send') }}" data-ajax x-show="method === 'mobile'" @if($methodCount > 1)x-cloak @endif>
                         @csrf
                         <input type="hidden" name="login_method" value="mobile">
                         <input type="hidden" name="type" value="mobile">
+                        <div data-general-err class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" hidden></div>
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">WhatsApp Number</label>
                                 <input type="text" name="identifier" value="{{ old('identifier') }}" required placeholder="+1234567890" class="theme-input w-full">
-                                @error('identifier')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                                <p class="mt-1 text-xs text-red-400" data-err="identifier" @if(!$errors->has('identifier')) hidden @endif>{{ $errors->first('identifier') }}</p>
                                 <p class="mt-1.5 text-[10px]" style="color: var(--text-faint);">
                                     <i class="fab fa-whatsapp mr-0.5"></i> We'll send your code over WhatsApp. Supported country codes: {{ implode(', ', $allowedCountryCodes ?? []) }}.
                                 </p>
@@ -197,5 +200,6 @@
         }
     })();
     </script>
+    <script src="{{ asset('js/auth-ajax.js') }}"></script>
 </body>
 </html>

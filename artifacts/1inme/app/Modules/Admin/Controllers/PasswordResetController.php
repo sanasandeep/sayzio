@@ -49,6 +49,9 @@ class PasswordResetController extends Controller
             // Neutral response — do not leak account existence.
             // Still persist the email so the resend affordance appears; a resend
             // for an unknown address will silently no-op with the same neutral text.
+            if ($request->ajax()) {
+                return response()->json(['ok' => true, 'status' => self::MSG_SENT, 'csrf_token' => csrf_token(), 'reset_email_sent_to' => $email]);
+            }
             return back()
                 ->with('status', self::MSG_SENT)
                 ->with('reset_email_sent_to', $email);
@@ -74,12 +77,18 @@ class PasswordResetController extends Controller
             // Delivery failed — surface an honest but existence-neutral message.
             // The failed row is already written to email_logs by Emailer before
             // the exception is thrown, so the admin can inspect it there.
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['_' => self::MSG_FAILED], 'csrf_token' => csrf_token(), 'reset_email_sent_to' => $email]);
+            }
             return back()->withInput()
                 ->with('delivery_error', self::MSG_FAILED)
                 ->with('delivery_error_log', $this->hasFailedResetLog())
                 ->with('reset_email_sent_to', $email);
         }
 
+        if ($request->ajax()) {
+            return response()->json(['ok' => true, 'status' => self::MSG_SENT, 'csrf_token' => csrf_token(), 'reset_email_sent_to' => $email]);
+        }
         return back()
             ->with('status', self::MSG_SENT)
             ->with('reset_email_sent_to', $email);
@@ -94,6 +103,9 @@ class PasswordResetController extends Controller
 
         if (RateLimiter::tooManyAttempts($throttleKey, self::RESEND_MAX)) {
             $seconds = RateLimiter::availableIn($throttleKey);
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['_' => 'Please wait ' . $seconds . ' second(s) before requesting another link.'], 'csrf_token' => csrf_token()]);
+            }
             return back()
                 ->with('status', self::MSG_SENT)
                 ->with('reset_email_sent_to', $email)
@@ -106,6 +118,9 @@ class PasswordResetController extends Controller
 
         if (!$admin) {
             // Neutral response — do not leak account existence.
+            if ($request->ajax()) {
+                return response()->json(['ok' => true, 'status' => self::MSG_SENT, 'csrf_token' => csrf_token()]);
+            }
             return back()
                 ->with('status', self::MSG_SENT)
                 ->with('reset_email_sent_to', $email);
@@ -128,12 +143,18 @@ class PasswordResetController extends Controller
                 'throw_on_failure' => true,
             ]);
         } catch (EmailDeliveryException $e) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['_' => self::MSG_FAILED], 'csrf_token' => csrf_token()]);
+            }
             return back()->withInput()
                 ->with('delivery_error', self::MSG_FAILED)
                 ->with('delivery_error_log', $this->hasFailedResetLog())
                 ->with('reset_email_sent_to', $email);
         }
 
+        if ($request->ajax()) {
+            return response()->json(['ok' => true, 'status' => self::MSG_RESENT, 'csrf_token' => csrf_token()]);
+        }
         return back()
             ->with('status', self::MSG_RESENT)
             ->with('reset_email_sent_to', $email);
@@ -174,22 +195,34 @@ class PasswordResetController extends Controller
             ->first();
 
         if (!$record || !Hash::check($request->token, $record->token)) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['_' => 'This password reset link is invalid or has expired.'], 'csrf_token' => csrf_token()]);
+            }
             return back()->withErrors(['email' => 'This password reset link is invalid or has expired.']);
         }
 
         if (Carbon::parse($record->created_at)->addMinutes(60)->isPast()) {
             DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['_' => 'This password reset link has expired. Please request a new one.'], 'csrf_token' => csrf_token()]);
+            }
             return back()->withErrors(['email' => 'This password reset link has expired.']);
         }
 
         $admin = Admin::where('email', $request->email)->first();
         if (!$admin) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['_' => 'Admin account not found.'], 'csrf_token' => csrf_token()]);
+            }
             return back()->withErrors(['email' => 'Admin not found.']);
         }
 
         $admin->update(['password' => Hash::make($request->password)]);
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
+        if ($request->ajax()) {
+            return response()->json(['ok' => true, 'redirect' => route('admin.login'), 'csrf_token' => csrf_token(), 'status' => 'Your password has been reset. Please log in.']);
+        }
         return redirect()->route('admin.login')->with('success', 'Your password has been reset. Please log in.');
     }
 }

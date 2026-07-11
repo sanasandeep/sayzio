@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Verify OTP - {{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
@@ -39,7 +40,7 @@
         <div class="flex-1 lg:flex-none lg:w-[480px] flex items-center justify-center p-6 lg:p-12 relative">
             <div class="hidden lg:block absolute inset-y-0 left-0 w-px" style="background: linear-gradient(180deg, transparent, var(--border-glass), transparent);"></div>
 
-            <div class="w-full max-w-sm">
+            <div class="w-full max-w-sm" data-ajax-group>
                 <div class="text-center mb-7 lg:hidden">
                     <a href="{{ route('home') }}" class="inline-flex items-center justify-center">
                         @include('common.partials.brand-logo', ['height' => 'h-10'])
@@ -54,11 +55,10 @@
                     <p class="text-sm mt-1" style="color: var(--text-dimmed);">We sent a 6-digit code to your {{ session('otp_type') === 'mobile' ? 'WhatsApp' : 'email' }}.</p>
                 </div>
 
-                @if(session('status'))
-                    <div class="mb-4 p-3 rounded-xl text-blue-400 text-xs font-medium" style="border: 1px solid rgba(61,107,255,0.15); background: rgba(61,107,255,0.06);">
-                        {{ session('status') }}
-                    </div>
-                @endif
+                {{-- Status flash / AJAX status (used by both verify and resend forms) --}}
+                <div class="mb-4 p-3 rounded-xl text-blue-400 text-xs font-medium" style="border: 1px solid rgba(61,107,255,0.15); background: rgba(61,107,255,0.06);" data-ajax-status @if(!session('status')) hidden @endif>
+                    {{ session('status') }}
+                </div>
 
                 @if(session('otp_demo_reveal'))
                     <div class="mb-4 p-3 rounded-xl text-amber-300 text-xs font-semibold" style="border: 1px solid rgba(245,158,11,0.25); background: rgba(245,158,11,0.08);">
@@ -66,25 +66,24 @@
                     </div>
                 @endif
 
-                @if($errors->any())
-                    <div class="mb-4 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">
+                <form method="POST" action="{{ route('user.otp.verify') }}" data-ajax>
+                    @csrf
+                    <div class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err @if(!$errors->any()) hidden @endif>
                         @foreach($errors->all() as $error) <p>{{ $error }}</p> @endforeach
                     </div>
-                @endif
-
-                <form method="POST" action="{{ route('user.otp.verify') }}">
-                    @csrf
                     <div class="mb-4">
                         <input type="text" name="code" maxlength="6" placeholder="000000" required autofocus
                                class="theme-input w-full text-center text-2xl tracking-[0.5em] font-bold py-3.5">
+                        <p class="mt-1 text-xs text-red-400" data-err="code" hidden></p>
                     </div>
                     <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                         Verify &amp; Login
                     </button>
                 </form>
 
-                <form method="POST" action="{{ route('user.otp.resend') }}" class="mt-4 text-center lg:text-left">
+                <form method="POST" action="{{ route('user.otp.resend') }}" class="mt-4 text-center lg:text-left" data-ajax>
                     @csrf
+                    <div class="mb-2 p-2 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err hidden></div>
                     <button type="submit" class="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">
                         <i class="fas fa-rotate-right text-[10px] mr-1"></i> Resend code
                     </button>
@@ -115,5 +114,6 @@
         }
     })();
     </script>
+    <script src="{{ asset('js/auth-ajax.js') }}"></script>
 </body>
 </html>

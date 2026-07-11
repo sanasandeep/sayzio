@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Forgot Password - Admin</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
@@ -65,63 +66,68 @@
                     <p class="text-sm mt-1" style="color: var(--text-dimmed);">Enter your admin email to receive a reset link</p>
                 </div>
 
-                @if(session('status'))
-                    <div class="mb-4 p-3 rounded-xl text-emerald-400 text-xs font-medium flex items-center gap-2" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);">
-                        <i class="fas fa-check-circle"></i> {{ session('status') }}
-                    </div>
-                @endif
-
-                @if(session('delivery_error'))
-                    <div class="mb-4 p-3 rounded-xl text-amber-400 text-xs font-medium flex items-start gap-2" style="border: 1px solid rgba(251,191,36,0.2); background: rgba(251,191,36,0.06);">
-                        <i class="fas fa-exclamation-triangle mt-0.5 shrink-0"></i>
-                        <span>
-                            {{ session('delivery_error') }}
-                            @if(session('delivery_error_log'))
-                                <a href="{{ route('admin.email-logs.index', ['key' => 'admin.password_reset', 'status' => 'failed']) }}" class="inline-flex items-center gap-1 mt-1 font-semibold text-amber-300 hover:text-amber-200 underline transition-colors">
-                                    View error details <i class="fas fa-arrow-right text-[9px]"></i>
-                                </a>
-                            @endif
-                        </span>
-                    </div>
-                @endif
-
-                @if($errors->any())
-                    <div class="mb-4 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">
-                        @foreach($errors->all() as $error) <p>{{ $error }}</p> @endforeach
-                    </div>
-                @endif
-
                 @if(session('resend_throttled'))
                     <div class="mb-4 p-3 rounded-xl text-blue-400 text-xs font-medium flex items-center gap-2" style="border: 1px solid rgba(61,107,255,0.15); background: rgba(61,107,255,0.06);">
                         <i class="fas fa-clock"></i> Please wait {{ session('resend_throttled') }} second(s) before requesting another link.
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('admin.password.email') }}">
-                    @csrf
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email</label>
-                            <input type="email" name="email" value="{{ old('email', session('reset_email_sent_to')) }}" required autofocus placeholder="admin@example.com" class="theme-input w-full">
-                        </div>
-                        <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
-                            Send Reset Link <i class="fas fa-arrow-right text-[10px] ml-1"></i>
-                        </button>
+                {{-- Main send-link form --}}
+                <div data-ajax-group>
+                    {{-- Status box (success + AJAX updates). Shows delivery_error on initial page load if applicable. --}}
+                    <div class="mb-4 p-3 rounded-xl text-emerald-400 text-xs font-medium" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);" data-ajax-status @if(!session('status') && !session('delivery_error')) hidden @endif>
+                        @if(session('delivery_error'))
+                            <div class="flex items-start gap-2 text-amber-400">
+                                <i class="fas fa-exclamation-triangle mt-0.5 shrink-0"></i>
+                                <span>
+                                    {{ session('delivery_error') }}
+                                    @if(session('delivery_error_log'))
+                                        <a href="{{ route('admin.email-logs.index', ['key' => 'admin.password_reset', 'status' => 'failed']) }}" class="inline-flex items-center gap-1 mt-1 font-semibold text-amber-300 hover:text-amber-200 underline transition-colors">
+                                            View error details <i class="fas fa-arrow-right text-[9px]"></i>
+                                        </a>
+                                    @endif
+                                </span>
+                            </div>
+                        @else
+                            <i class="fas fa-check-circle mr-1"></i>{{ session('status') }}
+                        @endif
                     </div>
-                </form>
 
-                @if(session('reset_email_sent_to'))
-                    <div class="mt-4 pt-4" style="border-top: 1px solid var(--border-glass);">
-                        <p class="text-xs mb-2" style="color: var(--text-dimmed);">Didn't receive the email? Check your spam folder, or resend the link.</p>
-                        <form method="POST" action="{{ route('admin.password.resend') }}">
-                            @csrf
-                            <input type="hidden" name="email" value="{{ session('reset_email_sent_to') }}">
-                            <button type="submit" class="w-full py-2 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5" style="color: var(--text-secondary); border: 1px solid var(--border-glass); background: var(--bg-card);">
-                                <i class="fas fa-redo text-[9px]"></i> Resend reset link
+                    <form id="forgot-send-form" method="POST" action="{{ route('admin.password.email') }}" data-ajax>
+                        @csrf
+                        <div class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err @if(!$errors->any()) hidden @endif>
+                            @foreach($errors->all() as $error) <p>{{ $error }}</p> @endforeach
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email</label>
+                                <input type="email" name="email" id="forgot-email" value="{{ old('email', session('reset_email_sent_to')) }}" required autofocus placeholder="admin@example.com" class="theme-input w-full">
+                                <p class="mt-1 text-xs text-red-400" data-err="email" @if(!$errors->has('email')) hidden @endif>{{ $errors->first('email') }}</p>
+                            </div>
+                            <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
+                                Send Reset Link <i class="fas fa-arrow-right text-[10px] ml-1"></i>
                             </button>
-                        </form>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- Resend section: visible after a successful send (session or AJAX) --}}
+                <div id="resend-section" @if(!session('reset_email_sent_to')) hidden @endif>
+                    <div class="mt-4 pt-4" style="border-top: 1px solid var(--border-glass);">
+                        <div data-ajax-group>
+                            <div class="mb-2 p-2 rounded-xl text-emerald-400 text-xs font-medium" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);" data-ajax-status hidden></div>
+                            <p class="text-xs mb-2" style="color: var(--text-dimmed);">Didn't receive the email? Check your spam folder, or resend the link.</p>
+                            <form method="POST" action="{{ route('admin.password.resend') }}" data-ajax>
+                                @csrf
+                                <input type="hidden" name="email" id="resend-email" value="{{ session('reset_email_sent_to') }}">
+                                <div class="mb-2 p-2 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err hidden></div>
+                                <button type="submit" class="w-full py-2 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5" style="color: var(--text-secondary); border: 1px solid var(--border-glass); background: var(--bg-card);">
+                                    <i class="fas fa-redo text-[9px]"></i> Resend reset link
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                @endif
+                </div>
 
                 <p class="mt-6 text-center text-xs">
                     <a href="{{ route('admin.login') }}" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
@@ -147,6 +153,18 @@
             c.appendChild(p);
         }
     })();
+    </script>
+    <script src="{{ asset('js/auth-ajax.js') }}"></script>
+    <script>
+    /* Show the resend section after the send form reports a successful delivery */
+    document.getElementById('forgot-send-form').addEventListener('authajax:success', function(e) {
+        var section = document.getElementById('resend-section');
+        if (!section) return;
+        section.hidden = false;
+        var resendEmail = document.getElementById('resend-email');
+        var sendEmail   = document.getElementById('forgot-email');
+        if (resendEmail && sendEmail) resendEmail.value = sendEmail.value;
+    });
     </script>
 </body>
 </html>
