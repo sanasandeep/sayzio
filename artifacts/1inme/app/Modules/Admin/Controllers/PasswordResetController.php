@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Admin;
 use App\Modules\Common\Exceptions\EmailDeliveryException;
+use App\Modules\Common\Models\EmailLog;
 use App\Modules\Common\Services\Emailer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -74,6 +75,7 @@ class PasswordResetController extends Controller
             // the exception is thrown, so the admin can inspect it there.
             return back()->withInput()
                 ->with('delivery_error', self::MSG_FAILED)
+                ->with('delivery_error_log', $this->hasFailedResetLog())
                 ->with('reset_email_sent_to', $email);
         }
 
@@ -127,12 +129,27 @@ class PasswordResetController extends Controller
         } catch (EmailDeliveryException $e) {
             return back()->withInput()
                 ->with('delivery_error', self::MSG_FAILED)
+                ->with('delivery_error_log', $this->hasFailedResetLog())
                 ->with('reset_email_sent_to', $email);
         }
 
         return back()
             ->with('status', self::MSG_RESENT)
             ->with('reset_email_sent_to', $email);
+    }
+
+    /**
+     * Whether a failed admin.password_reset row actually exists in email_logs.
+     * Used to gate the "View error details" deep-link in the delivery-failure
+     * banner. Checks the key only (not the recipient) so the presence of the
+     * link never leaks whether the submitted address belongs to a real admin.
+     */
+    private function hasFailedResetLog(): bool
+    {
+        return EmailLog::query()
+            ->where('email_key', 'admin.password_reset')
+            ->where('status', 'failed')
+            ->exists();
     }
 
     public function showResetForm(Request $request, string $token)

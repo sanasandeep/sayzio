@@ -74,7 +74,14 @@
                 @if(session('delivery_error'))
                     <div class="mb-4 p-3 rounded-xl text-amber-400 text-xs font-medium flex items-start gap-2" style="border: 1px solid rgba(251,191,36,0.2); background: rgba(251,191,36,0.06);">
                         <i class="fas fa-exclamation-triangle mt-0.5 shrink-0"></i>
-                        <span>{{ session('delivery_error') }}</span>
+                        <span>
+                            {{ session('delivery_error') }}
+                            @if(session('delivery_error_log'))
+                                <a href="{{ route('admin.email-logs.index', ['key' => 'admin.password_reset', 'status' => 'failed']) }}" class="inline-flex items-center gap-1 mt-1 font-semibold text-amber-300 hover:text-amber-200 underline transition-colors">
+                                    View error details <i class="fas fa-arrow-right text-[9px]"></i>
+                                </a>
+                            @endif
+                        </span>
                     </div>
                 @endif
 
