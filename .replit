@@ -244,6 +244,10 @@ args = "e2e-mobile-plans-downgrade-refresh"
 task = "workflow.run"
 args = "e2e-2fa-challenge"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-auth-ajax"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -870,6 +874,17 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh two-factor-challeng
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-auth-ajax"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh auth-ajax-flows.spec.ts --retries=0 --reporter=list"
 
 [agent]
 stack = "PNPM_WORKSPACE"
