@@ -288,9 +288,9 @@ const cardStyles = StyleSheet.create({
 // load from the /about endpoint, or when the endpoint is unreachable / returns
 // no stats. Mirrors the web /about hero defaults.
 const FALLBACK_HERO_STATS: Array<{ value: string; label: string }> = [
-  { value: "120,000+", label: "Creators" },
-  { value: "3+", label: "Years" },
-  { value: "9+", label: "Team" },
+  { value: "120,000+", label: "Creators served" },
+  { value: "3", label: "Years young" },
+  { value: "9", label: "Teammates" },
 ];
 
 export function AboutPage({
