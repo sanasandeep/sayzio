@@ -8,15 +8,9 @@
  * harness renders the actual onboarding carousel and asserts the copy is
  * VISIBLE WITHIN THE FRAME, so a purely visual break surfaces.
  *
- * The intro arc grew from a handful of slides to the full story arc of ELEVEN
- * pages, so this spec now walks the ENTIRE arc and asserts every page renders:
+ * This spec walks the ENTIRE 5-slide AI-business-companion arc:
  *
- *   welcome → creators → business → freelancer → networker → students →
- *   coaches → platform → grow → ai-dashboard → get-started
- *
- * (The ai-dashboard page is inserted by the app just before the get-started
- * CTA — see the `ctaIdx` / `pages` logic in app/onboarding.tsx — so it is not
- * part of the raw slide list but IS one of the eleven rendered pages.)
+ *   welcome → every-business → everything-you-need → work-smarter → start-free
  *
  * The harness runs the arc across FOUR feed shapes, to prove the intro slides
  * land correctly no matter what the admin has (or hasn't) seeded:
@@ -32,32 +26,33 @@
  *   so a slug/copy mismatch between the seeded content and what the app
  *   expects surfaces here, before it reaches production.
  *
- *   PASS 3 (PARTIAL feed): the admin seeded only SOME slugs (welcome,
- *   creators, platform, get-started). The app must render just those slides
- *   plus the client-inserted ai-dashboard page — a shorter but still coherent
- *   arc — with get-started last and a working CTA/Skip.
+ *   PASS 3 (PARTIAL feed): the admin seeded only SOME slugs (a subset of the
+ *   arc). The app must render exactly those slides — a shorter but still
+ *   coherent arc — with the final page's CTA flipping to "Get started" and a
+ *   working Skip. Nothing is injected client-side; the app renders precisely
+ *   what the feed carries.
  *
  *   PASS 4 (SHUFFLED + UNRECOGNIZED feed): the admin seeded slides OUT OF
- *   nominal order (a framing slide ahead of a persona) AND a brand-new slug
- *   the app has no bundled theme/image for. The app must render them in the
- *   ARRAY order it received (it trusts the backend's sort and never re-sorts
- *   or drops rows), fall back gracefully for the unknown slug, still insert
- *   ai-dashboard right before get-started, and never crash or strand the user.
+ *   nominal order (a framing slide ahead of another) AND a brand-new slug the
+ *   app has no bundled theme/image for. The app must render them in the ARRAY
+ *   order it received (it trusts the backend's sort and never re-sorts or
+ *   drops rows), fall back gracefully for the unknown slug, and never crash or
+ *   strand the user.
  *
  * Assertions (PASS 1 covers 1–7; PASS 2 re-walks the arc via the API; PASS 3
  * and PASS 4 walk their own shorter/misordered arcs and assert the same
- * coherence guarantees — dot count, in-order chips, CTA flip, ai-dashboard
- * before get-started, and — for PASS 3 — a working Skip):
- *   1. Each of the 11 pages, walked in order, shows its category chip VISIBLE
+ * coherence guarantees — dot count, in-order chips, CTA flip, and — for
+ * PASS 3 — a working Skip):
+ *   1. Each of the 5 pages, walked in order, shows its category chip VISIBLE
  *      WITHIN THE FRAME (not clipped, not off-screen) after paging to it.
  *   2. Slide 1 also has its title within frame (glass-card layout guard).
- *   3. The bottom pager renders exactly 11 dots.
+ *   3. The bottom pager renders exactly 5 dots.
  *   4. The bottom CTA reads "Continue" on the non-final pages and flips to
- *      "Get started" on the final (get-started) page.
+ *      "Get started" on the final (start-free) page.
  *   5. The footer "Website" link is present and opens https://sayzio.app in a
  *      new window (external), captured via a window.open stub.
  *   6. Tapping "Skip" routes to the auth screen ("Welcome back").
- *   7. With the admin-seeded API payload, the SAME 11-page arc renders (same
+ *   7. With the admin-seeded API payload, the SAME 5-page arc renders (same
  *      category chips within frame, same dot count) and a sentinel body proves
  *      the app actually applied the API slides rather than the fallback.
  *   8. The top-bar wordmark stays the WHITE variant in BOTH light and dark
@@ -86,7 +81,6 @@ import {
   STEP_TIMEOUT_MS,
 } from "./check-icon-fonts.mjs";
 import { createExpoServerManager } from "./expo-web-server.mjs";
-import { buildExpectedPages } from "./lib/onboarding-slides-source.mjs";
 import { assertWordmarkWhiteVariant } from "./lib/wordmark-variant.mjs";
 
 function log(...args) {
@@ -105,25 +99,20 @@ function skip(msg) {
 
 const VIEWPORT = { width: 400, height: 720 };
 
-// The full shipped intro arc, in the exact order the app renders the pages —
-// DERIVED FROM THE REAL SOURCE (app/onboarding.tsx) rather than hand-kept, so
-// this harness can never silently drift from the slides it walks. buildExpected
-// Pages() parses FALLBACK_SLIDES (10 pages) and inserts the ai-dashboard page
-// just before the get-started CTA (11 pages total), mirroring the app's ctaIdx
-// / pages logic. It THROWS if the source structure changes in a way that would
-// invalidate this arc (e.g. the get-started CTA the insertion pivots on goes
-// missing), so a structural regression fails the harness loudly here.
+// The 5-slide AI-business-companion arc, in the exact order the app renders.
+// Mirrors FALLBACK_SLIDES in app/onboarding.tsx.
 // `category` is the visible chip copy asserted within the frame for each page.
-const EXPECTED_PAGES = buildExpectedPages().map((p) => ({
-  slug: p.slug,
-  category: p.category,
-}));
-const EXPECTED_PAGE_COUNT = EXPECTED_PAGES.length; // 11
+const EXPECTED_PAGES = [
+  { slug: "welcome", category: "Welcome" },
+  { slug: "every-business", category: "Built for Every Business" },
+  { slug: "everything-you-need", category: "Everything You Need" },
+  { slug: "work-smarter", category: "Work Smarter" },
+  { slug: "start-free", category: "Start Free" },
+];
+const EXPECTED_PAGE_COUNT = EXPECTED_PAGES.length; // 5
 
 const WELCOME_CATEGORY = EXPECTED_PAGES[0].category;
-// The welcome slide's title, read from the same parsed source (its first
-// slide) so the title assertion + mocked payload stay pinned to the real copy.
-const WELCOME_TITLE = buildExpectedPages()[0].title;
+const WELCOME_TITLE = "Meet Sayzio";
 const WEBSITE_URL = "https://sayzio.app";
 
 // A distinctive welcome-slide body that ONLY the mocked admin API payload
@@ -133,16 +122,12 @@ const WEBSITE_URL = "https://sayzio.app";
 // it, the second pass could pass even if the API-render path were broken.
 const API_SENTINEL_BODY = "Seeded via the admin API.";
 
-// The admin-managed slides feed used by the SECOND pass: the same intro arc
-// the admin would seed (every raw slug + category the app expects), returned
-// as the flat { items } payload OnboardingSlideController emits. The
-// ai-dashboard page is NOT included here — the app inserts it client-side just
-// before get-started, so both passes still render EXPECTED_PAGE_COUNT pages.
+// The admin-managed slides feed used by the SECOND pass: the same 5-slide arc
+// the admin would seed, returned as the flat { items } payload
+// OnboardingSlideController emits.
 // Positive ids mirror real DB rows (the bundled fallback uses negative ids);
 // categories mirror EXPECTED_PAGES so the walk asserts the SAME copy renders.
-const MOCK_API_SLIDES = EXPECTED_PAGES.filter(
-  (p) => p.slug !== "ai-dashboard",
-).map((p, i) => ({
+const MOCK_API_SLIDES = EXPECTED_PAGES.map((p, i) => ({
   id: 100 + i,
   slug: p.slug,
   category: p.category,
@@ -159,9 +144,9 @@ const MOCK_API_SLIDES = EXPECTED_PAGES.filter(
 // middle — an admin who seeds only SOME slugs, seeds them OUT OF sort_order, or
 // seeds a slug the app doesn't recognize. In every case the arc must stay
 // coherent: the app renders the slides in the order the API returns them (it
-// trusts the backend's `->ordered()` sort and never re-sorts), still inserts
-// the client-side ai-dashboard page immediately before get-started, and keeps a
-// working Continue→Get started CTA and Skip.
+// trusts the backend's `->ordered()` sort and never re-sorts), renders exactly
+// what the feed carries (nothing is injected client-side), and keeps a working
+// Continue→Get started CTA and Skip.
 
 // Helper: build a slide row, marking the welcome slide's body with a per-pass
 // sentinel so we can prove THIS payload (not the bundled fallback) rendered.
@@ -181,46 +166,44 @@ function slideRow(id, slug, category, sentinel) {
 }
 
 // PASS 3 — PARTIAL feed: the admin seeded only a subset of the arc (welcome,
-// creators, platform, get-started), in a sensible order with get-started last.
-// The app should render exactly those 4 slides plus the inserted ai-dashboard
-// page (5 pages), ai-dashboard landing right before get-started.
+// every-business, work-smarter, start-free), in a sensible order with
+// start-free last. The app should render exactly those 4 slides — no more, no
+// fewer — with start-free last and its CTA flipped to "Get started".
 const PARTIAL_SENTINEL_BODY = "Seeded as a partial admin feed.";
 const MOCK_PARTIAL_SLIDES = [
   slideRow(200, "welcome", "Welcome to Sayzio", PARTIAL_SENTINEL_BODY),
-  slideRow(201, "creators", "For creators"),
-  slideRow(202, "platform", "One platform, endless possibilities"),
-  slideRow(203, "get-started", "Ready when you are"),
+  slideRow(201, "every-business", "Built for teams"),
+  slideRow(202, "work-smarter", "Automate the busywork"),
+  slideRow(203, "start-free", "Ready when you are"),
 ];
 const PARTIAL_EXPECTED_PAGES = [
   { slug: "welcome", category: "Welcome to Sayzio" },
-  { slug: "creators", category: "For creators" },
-  { slug: "platform", category: "One platform, endless possibilities" },
-  { slug: "ai-dashboard", category: "AI dashboard" },
-  { slug: "get-started", category: "Ready when you are" },
+  { slug: "every-business", category: "Built for teams" },
+  { slug: "work-smarter", category: "Automate the busywork" },
+  { slug: "start-free", category: "Ready when you are" },
 ];
 
 // PASS 4 — SHUFFLED + UNRECOGNIZED feed: the admin seeded a framing slide
-// (platform) ahead of a persona (creators), included a brand-new slug the app
-// has no bundled theme/image for (spotlight), and left get-started last. The
-// app must render them in the exact ARRAY order it received (proving it doesn't
-// silently drop or re-sort rows), fall back gracefully for the unknown slug,
-// still insert ai-dashboard right before get-started, and never crash.
+// (work-smarter) ahead of another (every-business), included a brand-new slug
+// the app has no bundled theme/image for (spotlight), and left start-free last.
+// The app must render them in the exact ARRAY order it received (proving it
+// doesn't silently drop or re-sort rows), fall back gracefully for the unknown
+// slug, and never crash.
 const SHUFFLED_SENTINEL_BODY = "Seeded out of order with a brand-new slide.";
 const UNKNOWN_SLIDE_CATEGORY = "Fresh this week";
 const MOCK_SHUFFLED_SLIDES = [
   slideRow(300, "welcome", "Welcome to Sayzio", SHUFFLED_SENTINEL_BODY),
-  slideRow(301, "platform", "One platform, endless possibilities"),
-  slideRow(302, "creators", "For creators"),
+  slideRow(301, "work-smarter", "Automate the busywork"),
+  slideRow(302, "every-business", "Built for teams"),
   slideRow(303, "spotlight", UNKNOWN_SLIDE_CATEGORY),
-  slideRow(304, "get-started", "Ready when you are"),
+  slideRow(304, "start-free", "Ready when you are"),
 ];
 const SHUFFLED_EXPECTED_PAGES = [
   { slug: "welcome", category: "Welcome to Sayzio" },
-  { slug: "platform", category: "One platform, endless possibilities" },
-  { slug: "creators", category: "For creators" },
+  { slug: "work-smarter", category: "Automate the busywork" },
+  { slug: "every-business", category: "Built for teams" },
   { slug: "spotlight", category: UNKNOWN_SLIDE_CATEGORY },
-  { slug: "ai-dashboard", category: "AI dashboard" },
-  { slug: "get-started", category: "Ready when you are" },
+  { slug: "start-free", category: "Ready when you are" },
 ];
 
 // Assert the element is visible AND its bounding box sits fully inside the
@@ -291,7 +274,7 @@ async function swipeToNextSlide(page) {
 // Count the pager dots. The dots row is a div whose children are all tiny
 // bars (height 8, width 8/24). We locate the first div whose direct children
 // are all small bars and there are enough of them to be the pager.
-async function countPagerDots(page, minDots = 8) {
+async function countPagerDots(page, minDots = 5) {
   return page.evaluate((min) => {
     const parents = Array.from(document.querySelectorAll("div"));
     for (const p of parents) {
@@ -318,9 +301,9 @@ async function ctaLabelPresent(page, label) {
 // (not the bundled fallback) is what rendered; the pager dot count matches the
 // expected page count; every page's category chip pages into the frame in the
 // expected ARRAY order; and the CTA starts on "Continue" and flips to
-// "Get started" only on the final page. `expected` already encodes the
-// ai-dashboard page sitting immediately before get-started, so a coherent walk
-// also proves that insertion held for the partial/misordered feed.
+// "Get started" only on the final page. `expected` is the exact set of slides
+// the feed carried, in order, so a coherent walk also proves the app rendered
+// precisely what it received for the partial/misordered feed.
 async function assertArcRenders(pg, expected, { label, sentinelBody }) {
   // Prove the mocked admin payload actually swapped in (its unique welcome
   // body only exists in this payload). setSlides(items) commits the new copy
@@ -333,8 +316,8 @@ async function assertArcRenders(pg, expected, { label, sentinelBody }) {
   log(`${label}: welcome sentinel rendered → admin payload applied`);
 
   const count = expected.length;
-  // These arcs are shorter than the full 11-page one, so lower the dot-count
-  // floor to the expected count (the default assumes the full arc's ≥8 dots).
+  // These arcs may be shorter than the full 5-page one, so lower the dot-count
+  // floor to the expected count (the default assumes the full arc's 5 dots).
   const dots = await countPagerDots(pg, count);
   if (dots !== count) {
     fail(`${label}: expected ${count} pager dots, found ${dots}`);
@@ -366,11 +349,10 @@ async function assertArcRenders(pg, expected, { label, sentinelBody }) {
     );
   }
 
-  // Final page (get-started) flips the CTA — proving get-started stayed last
-  // and the ai-dashboard page landed just before it. The label is driven by
-  // the onScroll `index` state, which settles a beat after the last swipe's
-  // scroll lands, so wait for the flip rather than reading it immediately
-  // (a shorter arc has fewer swipes, so less time for the state to catch up).
+  // Final page flips the CTA — proving the last-seeded slide stayed last. The
+  // label is driven by the onScroll `index` state, which settles a beat after
+  // the last swipe's scroll lands, so wait for the flip rather than reading it
+  // immediately (a shorter arc has fewer swipes, so less time to catch up).
   await pg
     .getByText("Get started", { exact: true })
     .first()
@@ -378,10 +360,7 @@ async function assertArcRenders(pg, expected, { label, sentinelBody }) {
   if (await ctaLabelPresent(pg, "Continue")) {
     fail(`${label}: CTA should NOT read "Continue" on the final page`);
   }
-  log(
-    `${label}: all ${count} pages rendered in order; ai-dashboard landed ` +
-      `before get-started; CTA behaved`,
-  );
+  log(`${label}: all ${count} pages rendered in order; CTA behaved`);
 }
 
 // Build a browser context wired for a fresh onboarding launch: a signed-out,
@@ -509,7 +488,7 @@ async function run() {
     }
     log('bottom CTA reads "Continue" on the first page');
 
-    // ---- 2. Pager renders exactly 11 dots ------------------------------
+    // ---- 2. Pager renders exactly 5 dots -------------------------------
     const dotCount = await countPagerDots(page);
     if (dotCount !== EXPECTED_PAGE_COUNT) {
       fail(
@@ -533,7 +512,7 @@ async function run() {
     const opened = await page.evaluate(() => window.__openedUrls);
     log(`"Website" link opened external URL(s): ${JSON.stringify(opened)}`);
 
-    // ---- 4. Walk the ENTIRE 11-page arc, asserting each page renders ----
+    // ---- 4. Walk the ENTIRE 5-page arc, asserting each page renders ----
     // Page 0 (welcome) is already asserted above; page through the rest.
     for (let i = 1; i < EXPECTED_PAGE_COUNT; i++) {
       const { slug, category } = EXPECTED_PAGES[i];
@@ -607,7 +586,7 @@ async function run() {
         "seeded slide 1 (welcome) title",
       );
 
-      // Same page count as the fallback arc (ai-dashboard still inserted).
+      // Same page count as the fallback arc.
       const seededDots = await countPagerDots(seededPage);
       if (seededDots !== EXPECTED_PAGE_COUNT) {
         fail(
@@ -635,11 +614,10 @@ async function run() {
     }
 
     // ---- 8. PARTIAL admin feed still renders a coherent arc -------------
-    // The admin seeded only SOME slugs (welcome, creators, platform,
-    // get-started). The app must render exactly those 4 slides plus the
-    // client-inserted ai-dashboard page (5 pages), keep get-started last with
-    // ai-dashboard right before it, keep a working Continue→Get started CTA,
-    // and Skip must still route to the auth screen.
+    // The admin seeded only SOME slugs (welcome, every-business, work-smarter,
+    // start-free). The app must render exactly those 4 slides — nothing
+    // injected — keep start-free last, keep a working Continue→Get started
+    // CTA, and Skip must still route to the auth screen.
     log("partial pass: a subset feed should render a coherent, shorter arc");
     const partialCtx = await prepareContext(
       browser,
@@ -671,12 +649,12 @@ async function run() {
     }
 
     // ---- 9. SHUFFLED + UNRECOGNIZED feed still renders a coherent arc ----
-    // The admin seeded a framing slide (platform) ahead of a persona
-    // (creators), included a brand-new slug the app has no bundled theme/image
-    // for (spotlight), and left get-started last. The app must render them in
-    // the exact ARRAY order it received (it doesn't drop or re-sort rows),
-    // fall back gracefully for the unknown slug, still insert ai-dashboard
-    // right before get-started, and never crash or strand the user.
+    // The admin seeded a framing slide (work-smarter) ahead of another
+    // (every-business), included a brand-new slug the app has no bundled
+    // theme/image for (spotlight), and left start-free last. The app must
+    // render them in the exact ARRAY order it received (it doesn't drop or
+    // re-sort rows), fall back gracefully for the unknown slug, and never
+    // crash or strand the user.
     log("shuffled pass: an out-of-order feed with a new slug stays coherent");
     const shuffledCtx = await prepareContext(
       browser,
