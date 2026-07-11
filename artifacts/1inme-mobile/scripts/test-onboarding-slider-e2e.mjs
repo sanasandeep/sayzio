@@ -18,8 +18,8 @@
  * CTA — see the `ctaIdx` / `pages` logic in app/onboarding.tsx — so it is not
  * part of the raw slide list but IS one of the eleven rendered pages.)
  *
- * The harness runs the arc TWICE, to prove the intro slides land correctly on
- * BOTH the fresh-install/not-yet-seeded path AND the admin-seeded path:
+ * The harness runs the arc across FOUR feed shapes, to prove the intro slides
+ * land correctly no matter what the admin has (or hasn't) seeded:
  *
  *   PASS 1 (bundled fallback): the slides endpoint returns an EMPTY payload,
  *   so the app renders its bundled FALLBACK_SLIDES — the real shipped intro
@@ -32,7 +32,22 @@
  *   so a slug/copy mismatch between the seeded content and what the app
  *   expects surfaces here, before it reaches production.
  *
- * Assertions (PASS 1 covers 1–7; PASS 2 re-walks the arc via the API):
+ *   PASS 3 (PARTIAL feed): the admin seeded only SOME slugs (welcome,
+ *   creators, platform, get-started). The app must render just those slides
+ *   plus the client-inserted ai-dashboard page — a shorter but still coherent
+ *   arc — with get-started last and a working CTA/Skip.
+ *
+ *   PASS 4 (SHUFFLED + UNRECOGNIZED feed): the admin seeded slides OUT OF
+ *   nominal order (a framing slide ahead of a persona) AND a brand-new slug
+ *   the app has no bundled theme/image for. The app must render them in the
+ *   ARRAY order it received (it trusts the backend's sort and never re-sorts
+ *   or drops rows), fall back gracefully for the unknown slug, still insert
+ *   ai-dashboard right before get-started, and never crash or strand the user.
+ *
+ * Assertions (PASS 1 covers 1–7; PASS 2 re-walks the arc via the API; PASS 3
+ * and PASS 4 walk their own shorter/misordered arcs and assert the same
+ * coherence guarantees — dot count, in-order chips, CTA flip, ai-dashboard
+ * before get-started, and — for PASS 3 — a working Skip):
  *   1. Each of the 11 pages, walked in order, shows its category chip VISIBLE
  *      WITHIN THE FRAME (not clipped, not off-screen) after paging to it.
  *   2. Slide 1 also has its title within frame (glass-card layout guard).
@@ -139,6 +154,76 @@ const MOCK_API_SLIDES = EXPECTED_PAGES.filter(
   sort_order: (i + 1) * 10,
 }));
 
+// ─── Partial / misordered admin feeds (the "middle ground") ──────────────────
+// The two passes above cover the clean extremes: an EMPTY feed (bundled
+// fallback) and a FULL admin-seeded feed. The passes below cover the untested
+// middle — an admin who seeds only SOME slugs, seeds them OUT OF sort_order, or
+// seeds a slug the app doesn't recognize. In every case the arc must stay
+// coherent: the app renders the slides in the order the API returns them (it
+// trusts the backend's `->ordered()` sort and never re-sorts), still inserts
+// the client-side ai-dashboard page immediately before get-started, and keeps a
+// working Continue→Get started CTA and Skip.
+
+// Helper: build a slide row, marking the welcome slide's body with a per-pass
+// sentinel so we can prove THIS payload (not the bundled fallback) rendered.
+function slideRow(id, slug, category, sentinel) {
+  return {
+    id,
+    slug,
+    category,
+    title: slug === "welcome" ? WELCOME_TITLE : `${category} headline`,
+    body: slug === "welcome" ? sentinel : `${category} details.`,
+    image_url: null,
+    image_urls: [],
+    // sort_order is intentionally NOT monotonic in these payloads — the app
+    // must honour ARRAY order (what the backend already sorted), not this field.
+    sort_order: 0,
+  };
+}
+
+// PASS 3 — PARTIAL feed: the admin seeded only a subset of the arc (welcome,
+// creators, platform, get-started), in a sensible order with get-started last.
+// The app should render exactly those 4 slides plus the inserted ai-dashboard
+// page (5 pages), ai-dashboard landing right before get-started.
+const PARTIAL_SENTINEL_BODY = "Seeded as a partial admin feed.";
+const MOCK_PARTIAL_SLIDES = [
+  slideRow(200, "welcome", "Welcome to Sayzio", PARTIAL_SENTINEL_BODY),
+  slideRow(201, "creators", "For creators"),
+  slideRow(202, "platform", "One platform, endless possibilities"),
+  slideRow(203, "get-started", "Ready when you are"),
+];
+const PARTIAL_EXPECTED_PAGES = [
+  { slug: "welcome", category: "Welcome to Sayzio" },
+  { slug: "creators", category: "For creators" },
+  { slug: "platform", category: "One platform, endless possibilities" },
+  { slug: "ai-dashboard", category: "AI dashboard" },
+  { slug: "get-started", category: "Ready when you are" },
+];
+
+// PASS 4 — SHUFFLED + UNRECOGNIZED feed: the admin seeded a framing slide
+// (platform) ahead of a persona (creators), included a brand-new slug the app
+// has no bundled theme/image for (spotlight), and left get-started last. The
+// app must render them in the exact ARRAY order it received (proving it doesn't
+// silently drop or re-sort rows), fall back gracefully for the unknown slug,
+// still insert ai-dashboard right before get-started, and never crash.
+const SHUFFLED_SENTINEL_BODY = "Seeded out of order with a brand-new slide.";
+const UNKNOWN_SLIDE_CATEGORY = "Fresh this week";
+const MOCK_SHUFFLED_SLIDES = [
+  slideRow(300, "welcome", "Welcome to Sayzio", SHUFFLED_SENTINEL_BODY),
+  slideRow(301, "platform", "One platform, endless possibilities"),
+  slideRow(302, "creators", "For creators"),
+  slideRow(303, "spotlight", UNKNOWN_SLIDE_CATEGORY),
+  slideRow(304, "get-started", "Ready when you are"),
+];
+const SHUFFLED_EXPECTED_PAGES = [
+  { slug: "welcome", category: "Welcome to Sayzio" },
+  { slug: "platform", category: "One platform, endless possibilities" },
+  { slug: "creators", category: "For creators" },
+  { slug: "spotlight", category: UNKNOWN_SLIDE_CATEGORY },
+  { slug: "ai-dashboard", category: "AI dashboard" },
+  { slug: "get-started", category: "Ready when you are" },
+];
+
 // Assert the element is visible AND its bounding box sits fully inside the
 // viewport frame — this is the check that would have caught the glass card
 // sliding off the bottom of the screen.
@@ -207,12 +292,12 @@ async function swipeToNextSlide(page) {
 // Count the pager dots. The dots row is a div whose children are all tiny
 // bars (height 8, width 8/24). We locate the first div whose direct children
 // are all small bars and there are enough of them to be the pager.
-async function countPagerDots(page) {
-  return page.evaluate(() => {
+async function countPagerDots(page, minDots = 8) {
+  return page.evaluate((min) => {
     const parents = Array.from(document.querySelectorAll("div"));
     for (const p of parents) {
       const kids = Array.from(p.children).filter((c) => c.tagName === "DIV");
-      if (kids.length < 8) continue;
+      if (kids.length < min) continue;
       const allDots = kids.every((k) => {
         const r = k.getBoundingClientRect();
         return r.height >= 4 && r.height <= 14 && r.width >= 4 && r.width <= 40;
@@ -220,13 +305,84 @@ async function countPagerDots(page) {
       if (allDots) return kids.length;
     }
     return -1;
-  });
+  }, minDots);
 }
 
 // Read the visible label of the bottom CTA button. It is the "Continue" /
 // "Get started" text; return whichever is present in the DOM.
 async function ctaLabelPresent(page, label) {
   return (await page.getByText(label, { exact: true }).count()) > 0;
+}
+
+// Walk a whole arc for a given admin-managed payload and assert it renders as a
+// coherent carousel: the per-pass welcome sentinel body proves THIS payload
+// (not the bundled fallback) is what rendered; the pager dot count matches the
+// expected page count; every page's category chip pages into the frame in the
+// expected ARRAY order; and the CTA starts on "Continue" and flips to
+// "Get started" only on the final page. `expected` already encodes the
+// ai-dashboard page sitting immediately before get-started, so a coherent walk
+// also proves that insertion held for the partial/misordered feed.
+async function assertArcRenders(pg, expected, { label, sentinelBody }) {
+  // Prove the mocked admin payload actually swapped in (its unique welcome
+  // body only exists in this payload). setSlides(items) commits the new copy
+  // and the new pager dot count in the same render, so once the sentinel is
+  // visible the dot count below reflects THIS payload, not the fallback.
+  await pg
+    .getByText(sentinelBody, { exact: false })
+    .first()
+    .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
+  log(`${label}: welcome sentinel rendered → admin payload applied`);
+
+  const count = expected.length;
+  // These arcs are shorter than the full 11-page one, so lower the dot-count
+  // floor to the expected count (the default assumes the full arc's ≥8 dots).
+  const dots = await countPagerDots(pg, count);
+  if (dots !== count) {
+    fail(`${label}: expected ${count} pager dots, found ${dots}`);
+  }
+  log(`${label}: pager renders exactly ${dots} dots`);
+
+  // Page 0 chip within frame + starting CTA reads "Continue".
+  await assertWithinFrame(
+    pg,
+    pg.getByText(expected[0].category, { exact: true }).first(),
+    `${label}: page 1/${count} (${expected[0].slug}) category chip`,
+  );
+  if (!(await ctaLabelPresent(pg, "Continue"))) {
+    fail(`${label}: CTA should read "Continue" on the first page`);
+  }
+  if (await ctaLabelPresent(pg, "Get started")) {
+    fail(`${label}: CTA should NOT read "Get started" on the first page`);
+  }
+
+  // Walk the rest of the arc in order — page 0 already asserted above.
+  for (let i = 1; i < count; i++) {
+    const { slug, category } = expected[i];
+    await swipeToNextSlide(pg);
+    await waitForChipInFrame(pg, category);
+    await assertWithinFrame(
+      pg,
+      pg.getByText(category, { exact: true }).first(),
+      `${label}: page ${i + 1}/${count} (${slug}) category chip`,
+    );
+  }
+
+  // Final page (get-started) flips the CTA — proving get-started stayed last
+  // and the ai-dashboard page landed just before it. The label is driven by
+  // the onScroll `index` state, which settles a beat after the last swipe's
+  // scroll lands, so wait for the flip rather than reading it immediately
+  // (a shorter arc has fewer swipes, so less time for the state to catch up).
+  await pg
+    .getByText("Get started", { exact: true })
+    .first()
+    .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
+  if (await ctaLabelPresent(pg, "Continue")) {
+    fail(`${label}: CTA should NOT read "Continue" on the final page`);
+  }
+  log(
+    `${label}: all ${count} pages rendered in order; ai-dashboard landed ` +
+      `before get-started; CTA behaved`,
+  );
 }
 
 // Build a browser context wired for a fresh onboarding launch: a signed-out,
@@ -427,6 +583,19 @@ async function run() {
     try {
       await seededPage.goto(appUrl, { waitUntil: "domcontentloaded" });
 
+      // Prove the API path actually swapped in FIRST — the sentinel body only
+      // the mocked payload carries must appear (so this pass can't silently be
+      // re-testing the bundled fallback if setSlides(items) ever regresses).
+      // Waiting on the sentinel before the chip assertions below also avoids a
+      // render-swap race: the fallback paints the welcome chip, then the API
+      // slides commit and re-mount it, so a chip check that runs mid-swap can
+      // catch a detached node with no bounding box.
+      await seededPage
+        .getByText(API_SENTINEL_BODY, { exact: false })
+        .first()
+        .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
+      log("seeded welcome body sentinel rendered → admin API slides applied");
+
       // Slide 1 (welcome): same category chip + title as the fallback arc.
       await assertWithinFrame(
         seededPage,
@@ -438,15 +607,6 @@ async function run() {
         seededPage.getByText(WELCOME_TITLE, { exact: true }).first(),
         "seeded slide 1 (welcome) title",
       );
-
-      // Prove the API path actually swapped in — the sentinel body only the
-      // mocked payload carries must appear (so this pass can't silently be
-      // re-testing the bundled fallback if setSlides(items) ever regresses).
-      await seededPage
-        .getByText(API_SENTINEL_BODY, { exact: false })
-        .first()
-        .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
-      log("seeded welcome body sentinel rendered → admin API slides applied");
 
       // Same page count as the fallback arc (ai-dashboard still inserted).
       const seededDots = await countPagerDots(seededPage);
@@ -475,7 +635,72 @@ async function run() {
       await seededCtx.close().catch(() => {});
     }
 
-    // ---- 8. Wordmark stays the WHITE variant in BOTH color schemes ------
+    // ---- 8. PARTIAL admin feed still renders a coherent arc -------------
+    // The admin seeded only SOME slugs (welcome, creators, platform,
+    // get-started). The app must render exactly those 4 slides plus the
+    // client-inserted ai-dashboard page (5 pages), keep get-started last with
+    // ai-dashboard right before it, keep a working Continue→Get started CTA,
+    // and Skip must still route to the auth screen.
+    log("partial pass: a subset feed should render a coherent, shorter arc");
+    const partialCtx = await prepareContext(
+      browser,
+      undefined,
+      MOCK_PARTIAL_SLIDES,
+    );
+    const partialPage = await partialCtx.newPage();
+    partialPage.setDefaultTimeout(STEP_TIMEOUT_MS);
+    partialPage.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+    partialPage.on("pageerror", (e) => log("pageerror (partial):", e.message));
+    try {
+      await partialPage.goto(appUrl, { waitUntil: "domcontentloaded" });
+      await assertArcRenders(partialPage, PARTIAL_EXPECTED_PAGES, {
+        label: "partial",
+        sentinelBody: PARTIAL_SENTINEL_BODY,
+      });
+
+      // Skip still works with a partial feed — routes to the auth screen.
+      const partialSkip = partialPage.getByText("Skip", { exact: true }).first();
+      await assertWithinFrame(partialPage, partialSkip, "partial Skip button");
+      await partialSkip.click();
+      await partialPage
+        .getByText("Welcome back", { exact: false })
+        .first()
+        .waitFor({ timeout: STEP_TIMEOUT_MS });
+      log("partial pass: Skip landed on the auth screen (Welcome back)");
+    } finally {
+      await partialCtx.close().catch(() => {});
+    }
+
+    // ---- 9. SHUFFLED + UNRECOGNIZED feed still renders a coherent arc ----
+    // The admin seeded a framing slide (platform) ahead of a persona
+    // (creators), included a brand-new slug the app has no bundled theme/image
+    // for (spotlight), and left get-started last. The app must render them in
+    // the exact ARRAY order it received (it doesn't drop or re-sort rows),
+    // fall back gracefully for the unknown slug, still insert ai-dashboard
+    // right before get-started, and never crash or strand the user.
+    log("shuffled pass: an out-of-order feed with a new slug stays coherent");
+    const shuffledCtx = await prepareContext(
+      browser,
+      undefined,
+      MOCK_SHUFFLED_SLIDES,
+    );
+    const shuffledPage = await shuffledCtx.newPage();
+    shuffledPage.setDefaultTimeout(STEP_TIMEOUT_MS);
+    shuffledPage.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+    shuffledPage.on("pageerror", (e) =>
+      log("pageerror (shuffled):", e.message),
+    );
+    try {
+      await shuffledPage.goto(appUrl, { waitUntil: "domcontentloaded" });
+      await assertArcRenders(shuffledPage, SHUFFLED_EXPECTED_PAGES, {
+        label: "shuffled",
+        sentinelBody: SHUFFLED_SENTINEL_BODY,
+      });
+    } finally {
+      await shuffledCtx.close().catch(() => {});
+    }
+
+    // ---- 10. Wordmark stays the WHITE variant in BOTH color schemes -----
     // Regression guard for the invisible-logo bug: the splash top-bar
     // <BrandWordmark forceVariant="dark-bg" /> must resolve to the white PNG
     // even when the device is in LIGHT mode (where useColorScheme() would
