@@ -49,7 +49,7 @@ class OnboardingSlidesSeeder extends Seeder
                 'sort_order' => 20,
                 'category'   => 'For small businesses',
                 'title'      => 'Your menu, hours and reviews on the counter',
-                'body'       => 'Stick a Sayzio NFC tag at the till. Customers tap their phone to see your menu, opening hours, directions and leave a review — no app needed.',
+                'body'       => 'Stick a Sayzio NFC tag at the till. Customers tap their phone to see your menu, hours, directions and leave a review — no app needed.',
             ],
             [
                 'slug'       => 'freelancer',

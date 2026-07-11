@@ -89,7 +89,7 @@ const FALLBACK_SLIDES: OnboardingSlide[] = [
     slug: "creators",
     category: "For creators",
     title: "Every link, every channel — one tap away",
-    body: "Bundle your latest video, store, sponsorships and socials into a single Link in Bio your audience can save, share, or tap.",
+    body: "Bundle your latest video, store, sponsorships and socials into a single biolink your audience can save, share, or tap.",
     image_url: null,
     image_urls: [],
     sort_order: 10,
