@@ -57,6 +57,16 @@
  *      the app actually applied the API slides rather than the fallback.
  *   8. The top-bar wordmark stays the WHITE variant in BOTH light and dark
  *      color schemes (invisible-logo regression guard).
+ *   9. Slide 3 ("everything-you-need") renders the 3×3 business-tools icon grid
+ *      (all 9 tool labels present, one within frame) — NOT a blank body.
+ *  10. CACHE-BUST guard: an install that ALREADY has a stale v1 slides-cache
+ *      entry (the old, longer intro arc an existing user carried across the
+ *      key bump) still renders the NEW 5-slide arc — 5 dots, no stale category
+ *      copy — proving the v1 → v2 cache-key bump orphans the old cache instead
+ *      of resurrecting it. On that same install, tapping the final "Get started"
+ *      CTA routes a signed-out user to the auth screen. This is the closest an
+ *      automated harness can get to the real-device "upgrade over a v1 cache"
+ *      check, since AsyncStorage on web is backed by localStorage.
  *
  * Every other /api/** call is fulfilled with a benign {data:[]} so nothing
  * hits a real backend.
@@ -114,6 +124,43 @@ const EXPECTED_PAGE_COUNT = EXPECTED_PAGES.length; // 5
 const WELCOME_CATEGORY = EXPECTED_PAGES[0].category;
 const WELCOME_TITLE = "Meet Sayzio";
 const WEBSITE_URL = "https://sayzio.app";
+
+// The 9 business-tool labels the "everything-you-need" slide renders as a 3×3
+// icon grid (mirrors TOOLS_GRID in app/onboarding.tsx). Slide 3 has a null
+// body on purpose — this grid IS its body — so asserting these prove the grid
+// renders instead of leaving a blank card.
+const TOOLS_GRID_LABELS = [
+  "AI Chatbots",
+  "CRM",
+  "WhatsApp",
+  "Forms",
+  "Booking",
+  "Store",
+  "QR Codes",
+  "Campaigns",
+  "Analytics",
+];
+
+// The AsyncStorage key an EXISTING user's device carried BEFORE the v1 → v2
+// cache-key bump. On web, AsyncStorage is backed by localStorage under the raw
+// key, so seeding this simulates upgrading over a stale cache. The app now
+// reads the v2 key only, so this entry must be orphaned (never rendered).
+const LEGACY_V1_CACHE_KEY = "1inme.onboarding.slides.cache.v1";
+
+// A stale, longer intro arc (the shape an old cache would hold) with a category
+// that exists NOWHERE in the new arc — so if the app ever read v1 again, this
+// copy (and a 10-dot pager) would surface and fail the guard below.
+const LEGACY_STALE_CATEGORY = "Legacy Intro Slide";
+const LEGACY_V1_SLIDES = Array.from({ length: 10 }, (_, i) => ({
+  id: 900 + i,
+  slug: `legacy-${i + 1}`,
+  category: `${LEGACY_STALE_CATEGORY} ${i + 1}`,
+  title: `Old headline ${i + 1}`,
+  body: `Stale cached body ${i + 1}.`,
+  image_url: null,
+  image_urls: [],
+  sort_order: (i + 1) * 10,
+}));
 
 // A distinctive welcome-slide body that ONLY the mocked admin API payload
 // carries (the real fallback welcome body is different). Asserting it renders
@@ -296,6 +343,34 @@ async function ctaLabelPresent(page, label) {
   return (await page.getByText(label, { exact: true }).count()) > 0;
 }
 
+// Assert the "everything-you-need" slide's 3×3 business-tools grid rendered.
+// That slide ships a null body on purpose — the grid IS its body — so a
+// regression that dropped the grid would leave a blank card. We prove every
+// one of the 9 tool labels is in the DOM (the grid populated) AND that a
+// representative label is geometrically within the frame (the grid is on the
+// active, paged-in slide, not clipped or off-screen). Caller must already be
+// on slide 3.
+async function assertToolsGridRenders(page, label) {
+  // Wait for the grid to have paged into the frame — key off a distinctive
+  // label so this can't race the slide swap.
+  await waitForChipInFrame(page, TOOLS_GRID_LABELS[0]);
+  for (const tool of TOOLS_GRID_LABELS) {
+    const count = await page.getByText(tool, { exact: true }).count();
+    if (count < 1) {
+      fail(
+        `${label}: slide 3 tools grid missing "${tool}" — the 3×3 grid did ` +
+          `not render (blank body regression)`,
+      );
+    }
+  }
+  await assertWithinFrame(
+    page,
+    page.getByText(TOOLS_GRID_LABELS[0], { exact: true }).first(),
+    `${label}: slide 3 tools grid ("${TOOLS_GRID_LABELS[0]}")`,
+  );
+  log(`${label}: slide 3 renders all ${TOOLS_GRID_LABELS.length} tool labels`);
+}
+
 // Walk a whole arc for a given admin-managed payload and assert it renders as a
 // coherent carousel: the per-pass welcome sentinel body proves THIS payload
 // (not the bundled fallback) is what rendered; the pager dot count matches the
@@ -376,7 +451,7 @@ async function assertArcRenders(pg, expected, { label, sentinelBody }) {
 //     (the "admin hasn't seeded yet" / fresh-install / offline path).
 //   • an array of slide objects → the admin-managed API path, so the app
 //     replaces the fallback with these (the "admin HAS seeded" path).
-async function prepareContext(browser, colorScheme, slidesPayload) {
+async function prepareContext(browser, colorScheme, slidesPayload, opts = {}) {
   const context = await browser.newContext(
     colorScheme
       ? { viewport: VIEWPORT, colorScheme }
@@ -386,11 +461,22 @@ async function prepareContext(browser, colorScheme, slidesPayload) {
   // A fresh install: onboarding NOT complete, signed out. Also stub
   // window.open so Linking.openURL (react-native-web opens external links via
   // window.open) is captured instead of spawning a real popup.
-  await context.addInitScript(() => {
+  //
+  // `opts.legacyV1Slides` (optional) pre-seeds a STALE v1 slides-cache entry so
+  // we can prove an upgrade over an old cache still renders the new arc.
+  await context.addInitScript(
+    ({ legacyKey, legacyV1Slides }) => {
     try {
       window.localStorage.removeItem("1inme.onboarding.complete");
       window.localStorage.removeItem("1inme.auth.token");
       window.localStorage.removeItem("1inme.auth.user");
+      // Always start from a clean v2 cache so the fallback/API path drives the
+      // render (no leftover v2 entry from a prior context on the same origin).
+      window.localStorage.removeItem("1inme.onboarding.slides.cache.v2");
+      window.localStorage.removeItem(legacyKey);
+      if (legacyV1Slides) {
+        window.localStorage.setItem(legacyKey, JSON.stringify(legacyV1Slides));
+      }
     } catch {}
     window.__openedUrls = [];
     const realOpen = window.open;
@@ -403,7 +489,9 @@ async function prepareContext(browser, colorScheme, slidesPayload) {
       return { closed: false, close() {}, focus() {} };
     };
     window.__realWindowOpen = realOpen;
-  });
+    },
+    { legacyKey: LEGACY_V1_CACHE_KEY, legacyV1Slides: opts.legacyV1Slides ?? null },
+  );
 
   // Admin-managed brand logos feed. Empty payload → fetchBrandLogos() returns
   // null so the wordmark falls back to the BUNDLED PNGs, making the variant
@@ -523,6 +611,12 @@ async function run() {
         page.getByText(category, { exact: true }).first(),
         `page ${i + 1}/${EXPECTED_PAGE_COUNT} (${slug}) category chip`,
       );
+      // Slide 3 ("everything-you-need") carries a null body — its 3×3 tools
+      // icon grid IS the body. Assert the grid rendered (all 9 labels present,
+      // one within frame) so a blank card would surface here.
+      if (slug === "everything-you-need") {
+        await assertToolsGridRenders(page, "fallback");
+      }
     }
     log(`all ${EXPECTED_PAGE_COUNT} intro pages rendered in order`);
 
@@ -677,7 +771,90 @@ async function run() {
       await shuffledCtx.close().catch(() => {});
     }
 
-    // ---- 10. Wordmark stays the WHITE variant in BOTH color schemes -----
+    // ---- 10. CACHE-BUST: a stale v1 cache still renders the NEW arc ------
+    // Simulate an EXISTING user upgrading over a device that already holds the
+    // old, longer intro arc under the pre-bump v1 cache key. AsyncStorage on
+    // web is localStorage under the raw key, so seeding LEGACY_V1_CACHE_KEY
+    // reproduces exactly that state. The app now reads the v2 key only, so:
+    //   • the pager must show the NEW 5-dot arc (not the stale 10-slide one)
+    //   • NO stale category copy may appear anywhere
+    //   • slide 3's tools grid must still render (not a blank body)
+    //   • the final "Get started" CTA must route a signed-out user to auth
+    // This is the closest an automated harness gets to the real-device
+    // "first launch after the cache busts" check the task calls for.
+    log("cache-bust pass: a stale v1 cache must not resurrect the old arc");
+    const legacyCtx = await prepareContext(browser, undefined, [], {
+      legacyV1Slides: LEGACY_V1_SLIDES,
+    });
+    const legacyPage = await legacyCtx.newPage();
+    legacyPage.setDefaultTimeout(STEP_TIMEOUT_MS);
+    legacyPage.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
+    legacyPage.on("pageerror", (e) => log("pageerror (cache-bust):", e.message));
+    try {
+      await legacyPage.goto(appUrl, { waitUntil: "domcontentloaded" });
+
+      // The NEW welcome chip proves the fresh 5-slide fallback arc rendered.
+      await assertWithinFrame(
+        legacyPage,
+        legacyPage.getByText(WELCOME_CATEGORY, { exact: true }).first(),
+        "cache-bust slide 1 (welcome) category chip",
+      );
+
+      // Exactly 5 dots — a stale 10-slide cache would have surfaced 10.
+      const legacyDots = await countPagerDots(legacyPage);
+      if (legacyDots !== EXPECTED_PAGE_COUNT) {
+        fail(
+          `cache-bust: expected ${EXPECTED_PAGE_COUNT} pager dots (new arc), ` +
+            `found ${legacyDots} — a stale v1 cache leaked into the render`,
+        );
+      }
+      log(`cache-bust: pager renders the NEW ${legacyDots}-dot arc`);
+
+      // The stale category copy must NOT be anywhere in the DOM.
+      const staleHits = await legacyPage
+        .getByText(LEGACY_STALE_CATEGORY, { exact: false })
+        .count();
+      if (staleHits > 0) {
+        fail(
+          `cache-bust: stale v1 copy "${LEGACY_STALE_CATEGORY}" leaked into ` +
+            `the render (${staleHits} node(s)) — the cache bump did not orphan ` +
+            `the old cache`,
+        );
+      }
+      log("cache-bust: no stale v1 category copy present");
+
+      // Walk to slide 3 and prove the tools grid still renders over a stale
+      // cache (the exact "blank body on slide 3" regression the task flags).
+      for (let i = 1; i <= 2; i++) {
+        const { category } = EXPECTED_PAGES[i];
+        await swipeToNextSlide(legacyPage);
+        await waitForChipInFrame(legacyPage, category);
+      }
+      await assertToolsGridRenders(legacyPage, "cache-bust");
+
+      // Page to the final slide and tap "Get started" — a signed-out user must
+      // land on the auth screen (finish() → router.replace("/(auth)")).
+      for (let i = 3; i < EXPECTED_PAGE_COUNT; i++) {
+        const { category } = EXPECTED_PAGES[i];
+        await swipeToNextSlide(legacyPage);
+        await waitForChipInFrame(legacyPage, category);
+      }
+      const getStarted = legacyPage
+        .getByText("Get started", { exact: true })
+        .first();
+      await getStarted.waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
+      await assertWithinFrame(legacyPage, getStarted, "cache-bust Get started CTA");
+      await getStarted.click();
+      await legacyPage
+        .getByText("Welcome back", { exact: false })
+        .first()
+        .waitFor({ timeout: STEP_TIMEOUT_MS });
+      log('cache-bust: "Get started" routed a signed-out user to auth');
+    } finally {
+      await legacyCtx.close().catch(() => {});
+    }
+
+    // ---- 11. Wordmark stays the WHITE variant in BOTH color schemes -----
     // Regression guard for the invisible-logo bug: the splash top-bar
     // <BrandWordmark forceVariant="dark-bg" /> must resolve to the white PNG
     // even when the device is in LIGHT mode (where useColorScheme() would
