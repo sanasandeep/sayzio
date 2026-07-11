@@ -27,6 +27,7 @@ Sayzio is a publicly deployed link-management and creator SaaS built primarily o
 
 - **Primary production entry points:** `artifacts/1inme/routes/web.php`, `artifacts/1inme/routes/api.php`, `artifacts/1inme/routes/webhooks.php`, and `artifacts/api-server/src/routes/*` when the Express artifact is deployed.
 - **Highest-risk code areas:** auth/OTP/social login flows, admin/mobile-admin APIs, payment/webhook controllers, public AI/chat and webhook ingress, file upload/import/serve logic, redirect/share-token/media-delivery code.
+- **Access-control hot spots confirmed by review:** separate public delivery endpoints like `/admin-assets/{id}/{filename}` and `/{alias}/download` need the same authorization policy as the admin UI or primary link handler; duplicated delivery logic is a recurring place for authz drift.
 - **Public vs authenticated vs admin:** public routes dominate `web.php` plus portions of `api.php` under `api.optional_auth`; authenticated user/mobile APIs sit behind `auth:sanctum`; admin APIs and web admin are separate privilege boundaries and must enforce server-side permissions on every action.
 - **Usually dev-only:** `artifacts/mockup-sandbox`, preview-only Express Laravel proxy behavior in `artifacts/api-server`, and local workflow helpers unless production reachability is demonstrated. The standalone Express contact/health routes are production-scope only when that artifact is actually deployed.
 
