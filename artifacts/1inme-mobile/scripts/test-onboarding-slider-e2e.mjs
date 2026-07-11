@@ -86,6 +86,7 @@ import {
   STEP_TIMEOUT_MS,
 } from "./check-icon-fonts.mjs";
 import { createExpoServerManager } from "./expo-web-server.mjs";
+import { buildExpectedPages } from "./lib/onboarding-slides-source.mjs";
 import { assertWordmarkWhiteVariant } from "./lib/wordmark-variant.mjs";
 
 function log(...args) {
@@ -104,27 +105,25 @@ function skip(msg) {
 
 const VIEWPORT = { width: 400, height: 720 };
 
-// The full shipped intro arc, in the exact order the app renders the pages.
-// These mirror app/onboarding.tsx: FALLBACK_SLIDES (10 pages) with the
-// ai-dashboard page inserted just before the get-started CTA (11 pages total).
+// The full shipped intro arc, in the exact order the app renders the pages —
+// DERIVED FROM THE REAL SOURCE (app/onboarding.tsx) rather than hand-kept, so
+// this harness can never silently drift from the slides it walks. buildExpected
+// Pages() parses FALLBACK_SLIDES (10 pages) and inserts the ai-dashboard page
+// just before the get-started CTA (11 pages total), mirroring the app's ctaIdx
+// / pages logic. It THROWS if the source structure changes in a way that would
+// invalidate this arc (e.g. the get-started CTA the insertion pivots on goes
+// missing), so a structural regression fails the harness loudly here.
 // `category` is the visible chip copy asserted within the frame for each page.
-const EXPECTED_PAGES = [
-  { slug: "welcome", category: "Welcome to Sayzio" },
-  { slug: "creators", category: "For creators" },
-  { slug: "business", category: "For small businesses" },
-  { slug: "freelancer", category: "For freelancers" },
-  { slug: "networker", category: "For networkers" },
-  { slug: "students", category: "For students & job seekers" },
-  { slug: "coaches", category: "For coaches & educators" },
-  { slug: "platform", category: "One platform, endless possibilities" },
-  { slug: "grow", category: "Grow with confidence" },
-  { slug: "ai-dashboard", category: "AI dashboard" },
-  { slug: "get-started", category: "Ready when you are" },
-];
+const EXPECTED_PAGES = buildExpectedPages().map((p) => ({
+  slug: p.slug,
+  category: p.category,
+}));
 const EXPECTED_PAGE_COUNT = EXPECTED_PAGES.length; // 11
 
 const WELCOME_CATEGORY = EXPECTED_PAGES[0].category;
-const WELCOME_TITLE = "One link for everything you do";
+// The welcome slide's title, read from the same parsed source (its first
+// slide) so the title assertion + mocked payload stay pinned to the real copy.
+const WELCOME_TITLE = buildExpectedPages()[0].title;
 const WEBSITE_URL = "https://sayzio.app";
 
 // A distinctive welcome-slide body that ONLY the mocked admin API payload
