@@ -150,19 +150,22 @@ async function prepareContext(browser) {
     }),
   );
 
-  // The About endpoint is FORCED OFFLINE for this whole suite so the About
-  // screen must render its bundled FALLBACK_SECTIONS. Registered before the
-  // catch-all so Playwright consults it first.
+  // The About AND Contact endpoints are FORCED OFFLINE for this whole suite so
+  // the About screen must render its bundled FALLBACK_SECTIONS and the Contact
+  // screen must render its bundled DEFAULT_CONTACT_CONTENT (real address +
+  // support email, no fake phone). Registered before the catch-all so
+  // Playwright consults it first.
   await context.route(
-    (url) => /\/api\/v1\/site\/about$/.test(url.pathname),
+    (url) => /\/api\/v1\/site\/(about|contact)$/.test(url.pathname),
     (route) => route.abort("failed"),
   );
 
-  // Catch-all so nothing else reaches a real backend. Defers the /site/about
-  // path to the abort handler above via fallback().
+  // Catch-all so nothing else reaches a real backend. Defers the offline
+  // /site/about and /site/contact paths to the abort handler above via
+  // fallback().
   await context.route("**/api/**", (route) => {
     const path = new URL(route.request().url()).pathname;
-    if (/\/api\/v1\/site\/about$/.test(path)) return route.fallback();
+    if (/\/api\/v1\/site\/(about|contact)$/.test(path)) return route.fallback();
     return route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -200,8 +203,8 @@ function effectiveOpacity(locator) {
 // including copy below the initial fold. This exercises the real runtime reveal
 // rather than forcing Reduce Motion (that path is covered by
 // test-info-scroll-reveal.mjs).
-async function assertPainted(page, text, ctx) {
-  const locator = page.getByText(text, { exact: true }).first();
+async function assertPainted(page, text, ctx, { exact = true } = {}) {
+  const locator = page.getByText(text, { exact }).first();
   await locator
     .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS })
     .catch(() =>
@@ -228,6 +231,72 @@ async function assertPainted(page, text, ctx) {
     `${ctx}: "${text}" is in the DOM but never painted — effective opacity ` +
       `stayed at ${last} for 6s (a ScrollReveal section never revealed).`,
   );
+}
+
+// The bundled brand contact details the Contact card MUST paint when its
+// /api/v1/site/contact fetch fails. Kept in lockstep with
+// DEFAULT_CONTACT_CONTENT in lib/api/siteContent.ts (a copy change there is a
+// deliberate edit here too). `addressAnchor` is a substring unique to the
+// address block (NOT shared with the map label). `phoneAbsent` is empty, so the
+// ContactDetailsCard must render NO "Phone" detail row — the guard against a
+// resurrected fake phone number.
+const CONTACT_OFFLINE = {
+  route: "info/contact",
+  title: "Contact us",
+  detailsHeading: "Contact details",
+  addressAnchor: "8 Amrutha Nilayam, Banjara Hills",
+  email: "hello@sayzio.app",
+  // The exact text of the "Phone" detail-row label. It only renders when the
+  // card has a non-empty phone — so its ABSENCE proves no fake phone surfaced.
+  phoneLabel: "Phone",
+};
+
+// Boot the Contact screen with /api/v1/site/contact FORCED OFFLINE (aborted in
+// prepareContext) and assert the card paints the real bundled brand details:
+// the header, address block, and support email are present AND painted, while
+// the "Phone" detail row is absent (no fabricated number). This catches a
+// render-wiring regression that would leave offline users staring at a blank or
+// wrong contact card while the source guards stay green.
+async function assertContactOffline(page, appUrl) {
+  const target = `${appUrl}${CONTACT_OFFLINE.route}`;
+  const ctx = `${CONTACT_OFFLINE.route} (offline)`;
+  log(`navigating to ${target}`);
+  await page.goto(target, { waitUntil: "domcontentloaded" });
+
+  await page
+    .waitForFunction(
+      () => document.body && document.body.innerText.trim().length > 0,
+      null,
+      { timeout: NAV_TIMEOUT_MS },
+    )
+    .catch(() => fail(`${ctx}: the app never mounted any visible content.`));
+
+  // Screen header proves the route mounted; the details card heading proves the
+  // ContactDetailsCard rendered (not a blank card).
+  await assertPainted(page, CONTACT_OFFLINE.title, ctx);
+  await assertPainted(page, CONTACT_OFFLINE.detailsHeading, ctx);
+
+  // The real brand address + support email must be painted from the bundled
+  // fallback. Address is a multiline Text node, so anchor on a distinctive
+  // substring (exact:false); the email is its own node (exact match).
+  await assertPainted(page, CONTACT_OFFLINE.addressAnchor, ctx, {
+    exact: false,
+  });
+  await assertPainted(page, CONTACT_OFFLINE.email, ctx);
+
+  // No fake phone: the "Phone" detail-row label only renders when the card has
+  // a non-empty phone, so it must be entirely absent from the offline card.
+  const phoneCount = await page
+    .getByText(CONTACT_OFFLINE.phoneLabel, { exact: true })
+    .count();
+  if (phoneCount > 0) {
+    fail(
+      `${ctx}: a "Phone" detail row is showing (${phoneCount} match(es)) — the ` +
+        `offline contact card must never surface a phone number, but one ` +
+        `appeared.`,
+    );
+  }
+  log(`ok — no fake phone row on the offline contact card (${ctx})`);
 }
 
 async function run() {
@@ -293,9 +362,20 @@ async function run() {
       log(`ok — section body ("${p.body}") visible (${ctx})`);
     }
 
+    // Contact screen (info/contact) with /api/v1/site/contact FORCED OFFLINE.
+    // The screen seeds its details state with the bundled DEFAULT_CONTACT_CONTENT
+    // and swaps to the admin-editable payload on a successful fetch — so when the
+    // fetch is aborted the card must still PAINT the real brand details (address
+    // + support email) and NEVER show a fake phone. The source guards
+    // (test:contact-content / test:contact-details) only read the shipped source;
+    // this proves the ContactDetailsCard actually renders the fallback at runtime
+    // (not a blank card, and not a fabricated phone number).
+    await assertContactOffline(page, appUrl);
+
     log(
-      "PASS: every login-footer /info screen (About, Help, Privacy, Terms, " +
-        "NFC) paints its title + section copy (About via the offline fallback)",
+      "PASS: every login-footer /info screen (About, Contact, Help, Privacy, " +
+        "Terms, NFC) paints its title + section copy (About + Contact via the " +
+        "offline fallback)",
     );
     await context.close().catch(() => {});
     await browser.close().catch(() => {});
