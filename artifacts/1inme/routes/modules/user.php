@@ -1854,8 +1854,11 @@ Route::prefix('user')->name('user.')->group(function () {
             // Library picker for composers (post / task / inbox-reply).
             // Read access mirrors the rest of the cloud-files group.
             Route::get('library',                          [\App\Modules\User\Controllers\CloudFileAttachmentController::class, 'library'])->name('library');
-            Route::post('attach',                          [\App\Modules\User\Controllers\CloudFileAttachmentController::class, 'attach'])->name('attach');
-            Route::delete('attach/{attachment}',           [\App\Modules\User\Controllers\CloudFileAttachmentController::class, 'destroy'])->name('attach.destroy');
+            // Mutating attachment endpoints require write permission (parity
+            // with the REST API), on top of the per-object ownership check the
+            // controller enforces on the underlying post/task/inbox-reply.
+            Route::post('attach',                          [\App\Modules\User\Controllers\CloudFileAttachmentController::class, 'attach'])->middleware('workspace.can:files.create')->name('attach');
+            Route::delete('attach/{attachment}',           [\App\Modules\User\Controllers\CloudFileAttachmentController::class, 'destroy'])->middleware('workspace.can:files.delete')->name('attach.destroy');
 
             // Owner-only OAuth-app credential management.
             Route::get('settings',                         [\App\Modules\User\Controllers\CloudProviderAppController::class, 'index'])->middleware('workspace.owner')->name('settings.index');

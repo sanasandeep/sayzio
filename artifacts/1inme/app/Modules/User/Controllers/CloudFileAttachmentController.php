@@ -63,6 +63,10 @@ class CloudFileAttachmentController extends Controller
         // attach to records the active workspace owns.
         $target = $cls::query()->findOrFail($data['target_id']);
 
+        // Per-object authorization: only the owner of the target record may
+        // add attachments to it. Workspace membership alone is not sufficient.
+        abort_unless($this->callerOwnsTarget($request->user(), $target), 403, 'You do not have permission to modify this object.');
+
         $created = [];
         foreach (array_unique($data['cloud_file_ids']) as $cfId) {
             $file = CloudFile::query()->find($cfId);
@@ -83,11 +87,31 @@ class CloudFileAttachmentController extends Controller
         return response()->json(['attachments' => $created]);
     }
 
-    public function destroy(CloudFileAttachment $attachment)
+    public function destroy(Request $request, CloudFileAttachment $attachment)
     {
-        // workspace global scope on the model already filtered to this workspace
+        // Per-object authorization: resolve the polymorphic target and confirm
+        // the caller owns it before allowing removal.
+        $target = $attachment->attachable;
+        abort_unless($target && $this->callerOwnsTarget($request->user(), $target), 403, 'You do not have permission to modify this object.');
+
         $attachment->delete();
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Returns true when the authenticated caller owns the specific target
+     * object. Workspace-scope alone is not sufficient — this enforces
+     * per-object authorization on top of workspace membership.
+     */
+    protected function callerOwnsTarget(mixed $user, mixed $target): bool
+    {
+        $userId = (int) $user->id;
+        return match (true) {
+            $target instanceof CreatorPost,
+            $target instanceof InboxReply  => (int) $target->user_id === $userId,
+            $target instanceof TaskCard    => (int) $target->created_by_user_id === $userId,
+            default                        => false,
+        };
     }
 
     public static function serialize(CloudFileAttachment $att, ?CloudFile $file = null): array

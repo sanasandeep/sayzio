@@ -394,6 +394,10 @@ class CloudFilesApiController extends Controller
         $target = $cls::query()->find($data['target_id']);
         if (!$target) return $this->notFound('Target not found.');
 
+        if (!$this->callerOwnsTarget($request->user(), $target)) {
+            return $this->forbidden('You do not have permission to access this object.');
+        }
+
         $atts = CloudFileAttachment::query()
             ->with('cloudFile')
             ->where('attachable_type', $cls)
@@ -407,7 +411,7 @@ class CloudFilesApiController extends Controller
 
     public function attach(Request $request): JsonResponse
     {
-        [$ws, $err] = $this->gate($request, 'files.view');
+        [$ws, $err] = $this->gate($request, 'files.create');
         if ($err) return $err;
 
         $data = $request->validate([
@@ -422,6 +426,10 @@ class CloudFilesApiController extends Controller
 
         $target = $cls::query()->find($data['target_id']);
         if (!$target) return $this->notFound('Target not found.');
+
+        if (!$this->callerOwnsTarget($request->user(), $target)) {
+            return $this->forbidden('You do not have permission to modify this object.');
+        }
 
         $created = [];
         foreach (array_unique($data['cloud_file_ids']) as $cfId) {
@@ -445,11 +453,17 @@ class CloudFilesApiController extends Controller
 
     public function detach(Request $request, int $attachment): JsonResponse
     {
-        [$ws, $err] = $this->gate($request, 'files.view');
+        [$ws, $err] = $this->gate($request, 'files.create');
         if ($err) return $err;
 
         $att = CloudFileAttachment::query()->find($attachment);
         if (!$att) return $this->notFound('Attachment not found.');
+
+        $target = $att->attachable;
+        if (!$target || !$this->callerOwnsTarget($request->user(), $target)) {
+            return $this->forbidden('You do not have permission to modify this object.');
+        }
+
         $att->delete();
         return $this->ok(['removed' => true]);
     }
@@ -478,6 +492,22 @@ class CloudFilesApiController extends Controller
             return [null, $this->forbidden('You do not have permission to perform this action in this workspace.')];
         }
         return [$ws, null];
+    }
+
+    /**
+     * Returns true when the authenticated caller owns the specific target
+     * object. Workspace-scope alone is not sufficient — this is the
+     * per-object authorization check.
+     */
+    protected function callerOwnsTarget(User $user, mixed $target): bool
+    {
+        $userId = (int) $user->id;
+        return match (true) {
+            $target instanceof CreatorPost,
+            $target instanceof InboxReply  => (int) $target->user_id === $userId,
+            $target instanceof TaskCard    => (int) $target->created_by_user_id === $userId,
+            default                        => false,
+        };
     }
 
     /** Mirror of RequireWorkspacePermission's resolution. */
