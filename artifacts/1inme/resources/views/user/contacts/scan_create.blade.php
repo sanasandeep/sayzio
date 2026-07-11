@@ -46,6 +46,20 @@
             </p>
         </div>
 
+        <div>
+            <label for="instruction" class="block text-sm font-semibold mb-1" style="color: var(--text-primary);">
+                What should I focus on? <span class="font-normal text-xs" style="color: var(--text-muted);">(optional)</span>
+            </label>
+            <textarea id="instruction" name="instruction" rows="2"
+                      maxlength="{{ \App\Services\AI\CardBrochureExtractionService::MAX_INSTRUCTION_LENGTH }}"
+                      placeholder="e.g. "just grab the logo and phone number" or "only extract brand colors""
+                      class="block w-full text-sm rounded-xl px-3 py-2 resize-none"
+                      style="background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10); color: var(--text-primary);">{{ old('instruction') }}</textarea>
+            <p class="mt-1 text-xs" style="color: var(--text-muted);">
+                Tell the AI what to prioritise. Leave blank to extract everything on the card.
+            </p>
+        </div>
+
         <div class="rounded-xl p-4" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.20);">
             <h4 class="text-xs font-bold uppercase tracking-wide mb-1" style="color:#90acff;">
                 <i class="fas fa-sparkles mr-1"></i> What we'll extract

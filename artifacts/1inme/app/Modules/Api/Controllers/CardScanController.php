@@ -51,9 +51,10 @@ class CardScanController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'file'    => 'nullable|file|max:' . (CardBrochureExtractionService::MAX_UPLOAD_MB * 1024),
-            'files'   => 'nullable|array|max:' . CardBrochureExtractionService::MAX_UPLOADS,
-            'files.*' => 'file|max:' . (CardBrochureExtractionService::MAX_UPLOAD_MB * 1024),
+            'file'        => 'nullable|file|max:' . (CardBrochureExtractionService::MAX_UPLOAD_MB * 1024),
+            'files'       => 'nullable|array|max:' . CardBrochureExtractionService::MAX_UPLOADS,
+            'files.*'     => 'file|max:' . (CardBrochureExtractionService::MAX_UPLOAD_MB * 1024),
+            'instruction' => 'nullable|string|max:' . CardBrochureExtractionService::MAX_INSTRUCTION_LENGTH,
         ]);
 
         $uploads = (array) ($request->file('files') ?? []);
@@ -83,8 +84,13 @@ class CardScanController extends Controller
             );
         }
 
+        $instruction = $request->input('instruction') !== null
+            ? trim((string) $request->input('instruction'))
+            : null;
+        if ($instruction === '') $instruction = null;
+
         try {
-            $scan = $this->extractor->extract($user, $user, $uploads);
+            $scan = $this->extractor->extract($user, $user, $uploads, $instruction);
         } catch (InsufficientCoinsForAiException $e) {
             return $this->fail(
                 "You need {$e->required} coins to scan a card (you have {$e->balance}).",

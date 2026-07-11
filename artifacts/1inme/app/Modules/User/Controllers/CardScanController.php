@@ -59,10 +59,11 @@ class CardScanController extends Controller
         $request->validate([
             // Accept either a single file or an array of files. Cap
             // matches the service-level guard. Laravel takes KB.
-            'file'     => 'nullable|file|max:' . (CardBrochureExtractionService::MAX_UPLOAD_MB * 1024),
-            'files'    => 'nullable|array|max:' . CardBrochureExtractionService::MAX_UPLOADS,
-            'files.*'  => 'file|max:' . (CardBrochureExtractionService::MAX_UPLOAD_MB * 1024),
-            'from'     => 'nullable|string|in:contacts,wizard',
+            'file'        => 'nullable|file|max:' . (CardBrochureExtractionService::MAX_UPLOAD_MB * 1024),
+            'files'       => 'nullable|array|max:' . CardBrochureExtractionService::MAX_UPLOADS,
+            'files.*'     => 'file|max:' . (CardBrochureExtractionService::MAX_UPLOAD_MB * 1024),
+            'from'        => 'nullable|string|in:contacts,wizard',
+            'instruction' => 'nullable|string|max:' . CardBrochureExtractionService::MAX_INSTRUCTION_LENGTH,
         ]);
 
         $uploads = (array) ($request->file('files') ?? []);
@@ -89,8 +90,13 @@ class CardScanController extends Controller
             return back()->with('error', 'AI scanning is currently unavailable. Please try again later.');
         }
 
+        $instruction = $request->input('instruction') !== null
+            ? trim((string) $request->input('instruction'))
+            : null;
+        if ($instruction === '') $instruction = null;
+
         try {
-            $scan = $this->extractor->extract($owner, $actor, $uploads);
+            $scan = $this->extractor->extract($owner, $actor, $uploads, $instruction);
         } catch (InsufficientCoinsForAiException $e) {
             return redirect()->route('user.wallet.buy')
                 ->with('error', "You need {$e->required} coins to scan a card (you have {$e->balance}).");

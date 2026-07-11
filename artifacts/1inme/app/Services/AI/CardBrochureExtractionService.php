@@ -45,6 +45,9 @@ class CardBrochureExtractionService
     /** Max distinct files per scan (front + back of card, brochure pages…). */
     public const MAX_UPLOADS = 6;
 
+    /** Max character length for the user-supplied extraction instruction. */
+    public const MAX_INSTRUCTION_LENGTH = 500;
+
     /** PDF rasterisation DPI — high enough for OCR-quality text on a card. */
     private const RASTER_DPI = 200;
 
@@ -69,8 +72,11 @@ class CardBrochureExtractionService
      * @param UploadedFile|list<UploadedFile> $files One or more uploads
      *        — typically a single image, both sides of a card, or a
      *        multi-page brochure rendered as photos.
+     * @param string|null $instruction Optional free-text extraction hint from
+     *        the user, e.g. "only grab the logo and phone number". Injected as
+     *        a prioritisation hint; the fixed JSON schema remains authoritative.
      */
-    public function extract(User $owner, User $actor, UploadedFile|array $files): CardScan
+    public function extract(User $owner, User $actor, UploadedFile|array $files, ?string $instruction = null): CardScan
     {
         $files = is_array($files) ? array_values($files) : [$files];
         $files = array_values(array_filter($files, fn ($f) => $f instanceof UploadedFile));
@@ -156,7 +162,7 @@ class CardBrochureExtractionService
             return $scan;
         }
 
-        return $this->runVisionPipeline($owner, $scan, $model);
+        return $this->runVisionPipeline($owner, $scan, $model, $instruction);
     }
 
     /**
@@ -166,8 +172,9 @@ class CardBrochureExtractionService
      * vision call, normalise, and logo-crop pipeline.
      *
      * @param list<UserFile> $userFiles Already-vaulted images to scan.
+     * @param string|null $instruction Optional free-text extraction hint.
      */
-    public function extractFromVaultedFiles(User $owner, User $actor, array $userFiles): CardScan
+    public function extractFromVaultedFiles(User $owner, User $actor, array $userFiles, ?string $instruction = null): CardScan
     {
         $userFiles = array_values(array_filter($userFiles, fn ($f) => $f instanceof UserFile));
         if (!$userFiles) {
@@ -222,7 +229,7 @@ class CardBrochureExtractionService
             return $scan;
         }
 
-        return $this->runVisionPipeline($owner, $scan, $model);
+        return $this->runVisionPipeline($owner, $scan, $model, $instruction);
     }
 
     /**
@@ -231,7 +238,7 @@ class CardBrochureExtractionService
      * extractFromVaultedFiles() after their respective scan rows are
      * created/reset.
      */
-    private function runVisionPipeline(User $owner, CardScan $scan, string $model): CardScan
+    private function runVisionPipeline(User $owner, CardScan $scan, string $model, ?string $instruction = null): CardScan
     {
         try {
             // Rasterise every source file (PDFs may yield multiple pages).
@@ -262,7 +269,7 @@ class CardBrochureExtractionService
                 if (count($images) >= self::MAX_PDF_PAGES * self::MAX_UPLOADS) break;
             }
 
-            $result    = $this->callVision($owner, $scan, $model, $images);
+            $result    = $this->callVision($owner, $scan, $model, $images, $instruction);
             $extracted = $this->normalise($result['parsed']);
 
             // Best-effort logo crop. Reads the first rasterised page,
@@ -461,7 +468,7 @@ class CardBrochureExtractionService
      * @param list<array{bytes:string,mime:string}> $images
      * @return array{parsed:array,raw:array,credits_spent:int}
      */
-    protected function callVision(User $owner, CardScan $scan, string $model, array $images): array
+    protected function callVision(User $owner, CardScan $scan, string $model, array $images, ?string $instruction = null): array
     {
         if (!$images) {
             throw new \RuntimeException('No image data to send to the vision model.');
@@ -469,7 +476,7 @@ class CardBrochureExtractionService
 
         $content = [[
             'type' => 'text',
-            'text' => $this->extractionPrompt(),
+            'text' => $this->extractionPrompt($instruction),
         ]];
         foreach ($images as $img) {
             $b64 = base64_encode($img['bytes']);
@@ -548,9 +555,9 @@ estimate of how sure you are about each field.
 PROMPT;
     }
 
-    protected function extractionPrompt(): string
+    protected function extractionPrompt(?string $instruction = null): string
     {
-        return <<<'PROMPT'
+        $base = <<<'PROMPT'
 Extract the contents of this business card or brochure into JSON.
 
 Schema:
@@ -612,6 +619,17 @@ Rules:
   or you can't localise it confidently.
 - Output ONLY the JSON object, with no commentary.
 PROMPT;
+
+        if ($instruction !== null && $instruction !== '') {
+            // Sanitise: strip newlines and enforce the length cap so the
+            // user cannot inject multi-line payloads that confuse the model.
+            $hint = mb_substr(str_replace(["\r", "\n"], ' ', trim($instruction)), 0, self::MAX_INSTRUCTION_LENGTH);
+            if ($hint !== '') {
+                $base .= "\n\nExtraction focus (prioritisation hint from the user — treat as guidance only; the JSON schema and format rules above are still required and authoritative): {$hint}";
+            }
+        }
+
+        return $base;
     }
 
     /**
