@@ -16,9 +16,9 @@ monetization from their phone.
 - **@tanstack/react-query** — server-state/data fetching.
 - **expo-secure-store** — encrypted token storage; `@react-native-async-storage`
   for non-secret cache.
-- **react-native-purchases** (RevenueCat) for in-app subscriptions;
-  **expo-web-browser** / **expo-auth-session** for hosted-onboarding handoffs
-  (e.g. payouts).
+- **expo-web-browser** / **expo-auth-session** for hosted-onboarding handoffs
+  (e.g. payouts) and for opening the website's pricing page for plan upgrades
+  and coin purchases in the OS external browser.
 - Native modules: `expo-location`, `expo-audio` (voice
   assistant), `expo-notifications` (push), `react-native-nfc-manager` (NFC),
   `expo-local-authentication` (biometric app lock), `react-native-qrcode-svg`,
@@ -151,7 +151,7 @@ Generated from `app/` (expo-router). `(auth)` and `(tabs)` are route groups; `[p
 | `app/monetization/{manage,subscribe,tip,unlock}.tsx` | Creator monetization. |
 | `app/paid-page/[alias].tsx` | Standalone paid-page viewer. |
 | `app/orders.tsx`, `app/store/order/[id].tsx` | Product storefront orders + order detail. |
-| `app/plans.tsx`, `app/upgrade.tsx` | Plans & upsell (RevenueCat). |
+| `app/plans.tsx`, `app/upgrade.tsx` | Plans & upsell (redirect to website pricing). |
 | `app/invoices.tsx`, `app/invoices/[id].tsx` | Invoicing. |
 
 ### AI
@@ -217,7 +217,7 @@ Reachable only by an operator whose Sanctum token is email-linked to a back-offi
 | **Forms** | Full | List, view, and submissions (`app/forms/`). |
 | **AI** | Full | Coach, Ask Coach, personas, credits; native voice via `expo-audio` (`lib/api/voice.ts`). |
 | **Wallet & coins** | Full | Balance, ledger, packages, purchase. |
-| **Payments** | Full | RevenueCat (`react-native-purchases`) with `/billing/revenuecat/activate`. |
+| **Payments** | Redirect | Plan upgrades & coin purchases open the website pricing page in the OS external browser (no in-app SDK). |
 | **Restaurant Menu** | Full | Native builder (settings, categories, items, device-photo upload, tables/QR) + orders dashboard (`app/links/[id]/restaurant-{menu,orders}.tsx`). |
 | **Reviews** | Full | Public viewer + owner approve/hide/pin/reply/delete (`app/reviews/`). |
 | **Product storefront** | Full | Native checkout + owner orders/fulfillment (`app/orders.tsx`, `app/store/order/[id].tsx`). |
