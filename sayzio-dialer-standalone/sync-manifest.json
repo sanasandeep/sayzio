@@ -23,7 +23,7 @@
       "source": "app/info/about.tsx",
       "relation": "adapted",
       "note": "standalone copy keeps the contacts/dialer mentions the main app removed when its dialer surfaces were dropped",
-      "sourceSha256": "f0614eb38205023d2ee467f9ef5159ae9645532927632788cfcd0b8d9087ab9b"
+      "sourceSha256": "a5e1fd9fa50f7cb339c5550a8d7561deec86deebdf328f58d8434940efd60ea5"
     },
     {
       "standalone": "app/info/help.tsx",
@@ -70,7 +70,7 @@
       "source": "components/InfoPage.tsx",
       "relation": "adapted",
       "note": "standalone keeps the plain static InfoPage; the main app added react-native-reanimated scroll-reveal entrance animations (via ./ScrollReveal + useReducedMotion) that the standalone does not depend on",
-      "sourceSha256": "0d001c8c70016d8eab2bc3c301ce15961c59d42b7c727d32afa223176fbdf1d1"
+      "sourceSha256": "e1e5600409ec4c9f41dff992c2f67a66192193ce40d30a40b7e83b987c8240b6"
     },
     {
       "standalone": "components/MandatoryNameModal.tsx",
@@ -221,7 +221,7 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "b0c50bff1810a87688f8aaf8610d0caa8b266599d614e05195d6277fd147b046",
+      "sourceSha256": "83537218e6ff47d5797cb6967fa9ddea7c672882e83a2666b8f4ad3692ada957",
       "note": "dev-only missing-env alert text reworded (no monorepo path); everything else must match the main app"
     },
     {
