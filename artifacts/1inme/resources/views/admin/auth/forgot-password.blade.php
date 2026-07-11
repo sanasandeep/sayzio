@@ -71,9 +71,22 @@
                     </div>
                 @endif
 
+                @if(session('delivery_error'))
+                    <div class="mb-4 p-3 rounded-xl text-amber-400 text-xs font-medium flex items-start gap-2" style="border: 1px solid rgba(251,191,36,0.2); background: rgba(251,191,36,0.06);">
+                        <i class="fas fa-exclamation-triangle mt-0.5 shrink-0"></i>
+                        <span>{{ session('delivery_error') }}</span>
+                    </div>
+                @endif
+
                 @if($errors->any())
                     <div class="mb-4 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">
                         @foreach($errors->all() as $error) <p>{{ $error }}</p> @endforeach
+                    </div>
+                @endif
+
+                @if(session('resend_throttled'))
+                    <div class="mb-4 p-3 rounded-xl text-blue-400 text-xs font-medium flex items-center gap-2" style="border: 1px solid rgba(61,107,255,0.15); background: rgba(61,107,255,0.06);">
+                        <i class="fas fa-clock"></i> Please wait {{ session('resend_throttled') }} second(s) before requesting another link.
                     </div>
                 @endif
 
@@ -82,13 +95,26 @@
                     <div class="space-y-4">
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email</label>
-                            <input type="email" name="email" value="{{ old('email') }}" required autofocus placeholder="admin@example.com" class="theme-input w-full">
+                            <input type="email" name="email" value="{{ old('email', session('reset_email_sent_to')) }}" required autofocus placeholder="admin@example.com" class="theme-input w-full">
                         </div>
                         <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                             Send Reset Link <i class="fas fa-arrow-right text-[10px] ml-1"></i>
                         </button>
                     </div>
                 </form>
+
+                @if(session('reset_email_sent_to'))
+                    <div class="mt-4 pt-4" style="border-top: 1px solid var(--border-glass);">
+                        <p class="text-xs mb-2" style="color: var(--text-dimmed);">Didn't receive the email? Check your spam folder, or resend the link.</p>
+                        <form method="POST" action="{{ route('admin.password.resend') }}">
+                            @csrf
+                            <input type="hidden" name="email" value="{{ session('reset_email_sent_to') }}">
+                            <button type="submit" class="w-full py-2 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5" style="color: var(--text-secondary); border: 1px solid var(--border-glass); background: var(--bg-card);">
+                                <i class="fas fa-redo text-[9px]"></i> Resend reset link
+                            </button>
+                        </form>
+                    </div>
+                @endif
 
                 <p class="mt-6 text-center text-xs">
                     <a href="{{ route('admin.login') }}" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
