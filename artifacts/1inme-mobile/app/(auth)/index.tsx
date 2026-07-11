@@ -361,10 +361,14 @@ export default function AuthLanding() {
     );
   }
 
-  // Brand gradient wash — always dark treatment (auth screens match intro).
-  // 0x40 = 25% opacity, visible over the near-black intro base.
+  // Brand gradient wash — theme-aware treatment shared across the whole auth
+  // funnel (login, verify, OAuth return, cancel-change). Dark mode uses 0x40
+  // (25%) since the near-black intro base makes lighter tints less visible;
+  // light mode uses 0x2e (18%) for a soft wash. It is layered over the dark
+  // intro base below so the login landing still matches the onboarding slides.
+  const bgAlpha = colors.scheme === "dark" ? "40" : "2e";
   const bgGradientColors = colors.brandGradient.map(
-    (c) => `${c}40`,
+    (c) => `${c}${bgAlpha}`,
   ) as unknown as [string, string, string];
 
   return (

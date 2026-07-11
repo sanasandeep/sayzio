@@ -18,6 +18,7 @@
     "check:view-guards": "tsx ./src/check-view-guards.ts",
     "check:demo-login-email": "tsx ./src/check-demo-login-email.ts",
     "check:mobile-auth-providers": "tsx ./src/check-mobile-auth-providers.ts",
+    "check:auth-screen-gradient": "tsx ./src/check-auth-screen-gradient.ts",
     "check:fontawesome-loader": "tsx ./src/check-fontawesome-loader.ts",
     "check:multicol-transform": "tsx ./src/check-multicol-transform.ts",
     "check:dialer-sync": "tsx ./src/check-dialer-standalone-sync.ts",
