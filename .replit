@@ -216,6 +216,10 @@ args = "e2e-mobile-login-default"
 task = "workflow.run"
 args = "e2e-otp-signup-errors"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-zio-visualviewport"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -762,6 +766,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-signup-error-paths.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-zio-visualviewport"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh site-assistant-visualviewport.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
