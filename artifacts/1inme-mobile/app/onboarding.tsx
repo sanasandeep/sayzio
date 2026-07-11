@@ -117,7 +117,6 @@ const FALLBACK_SLIDES: OnboardingSlide[] = [
 
 type InfoHref =
   | "/info/about"
-  | "/info/nfc"
   | "/info/help"
   | "/info/privacy"
   | "/info/terms";
@@ -128,7 +127,6 @@ type InfoLink =
 
 const INFO_LINKS: InfoLink[] = [
   { kind: "internal", href: "/info/about", label: "About" },
-  { kind: "internal", href: "/info/nfc", label: "NFC" },
   { kind: "internal", href: "/info/help", label: "Help" },
   { kind: "internal", href: "/info/privacy", label: "Privacy" },
   { kind: "internal", href: "/info/terms", label: "Terms" },

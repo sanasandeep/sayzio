@@ -107,11 +107,6 @@ const PAGES = [
     heading: "Your account",
     body: "responsible for the activity on your account",
   },
-  {
-    route: "info/nfc",
-    title: "How NFC works",
-    body: "What gets written",
-  },
 ];
 
 // Build a browser context wired signed-out with every backend call stubbed so
@@ -374,7 +369,7 @@ async function run() {
 
     log(
       "PASS: every login-footer /info screen (About, Contact, Help, Privacy, " +
-        "Terms, NFC) paints its title + section copy (About + Contact via the " +
+        "Terms) paints its title + section copy (About + Contact via the " +
         "offline fallback)",
     );
     await context.close().catch(() => {});
