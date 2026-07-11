@@ -41,7 +41,7 @@ class OnboardingSlidesSeeder extends Seeder
                 'slug'       => 'welcome',
                 'sort_order' => 10,
                 'category'   => 'Welcome',
-                'title'      => 'Meet Sayzio',
+                'title'      => 'Meet Zio',
                 'body'       => 'Your AI-powered business companion for smarter customer engagement.',
             ],
             // ── 2. Audience breadth ─────────────────────────────────────────

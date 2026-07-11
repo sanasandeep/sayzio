@@ -137,8 +137,10 @@ function decodeJsString(raw) {
     .replace(/\\\\/g, "\\");
 }
 
-// Read a `'key' => "..."` (PHP) scalar string from an element block.
+// Read a `'key' => "..."` or `'key' => null` (PHP) scalar from an element block.
 function readPhpString(block, key, ctx) {
+  const reNull = new RegExp(`'${key}'\\s*=>\\s*null`);
+  if (reNull.test(block)) return null;
   const re = new RegExp(
     `'${key}'\\s*=>\\s*("(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*')`,
   );
@@ -153,8 +155,10 @@ function readPhpNumber(block, key, ctx) {
   return Number(m[1]);
 }
 
-// Read a `key: "..."` (JS/TS) scalar string from an element block.
+// Read a `key: "..."` or `key: null` (JS/TS) scalar from an element block.
 function readJsString(block, key, ctx) {
+  const reNull = new RegExp(`\\b${key}\\s*:\\s*null`);
+  if (reNull.test(block)) return null;
   const re = new RegExp(
     `\\b${key}\\s*:\\s*("(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'|\`(?:[^\`\\\\]|\\\\.)*\`)`,
   );

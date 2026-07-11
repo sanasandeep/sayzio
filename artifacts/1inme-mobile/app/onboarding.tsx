@@ -63,7 +63,7 @@ const FALLBACK_SLIDES: OnboardingSlide[] = [
     id: -1,
     slug: "welcome",
     category: "Welcome",
-    title: "Meet Sayzio",
+    title: "Meet Zio",
     body: "Your AI-powered business companion for smarter customer engagement.",
     image_url: null,
     image_urls: [],
@@ -425,29 +425,16 @@ function FloatingIcon({
     transform: [{ translateY: ty.value }],
   }));
 
-  const tileSize = def.size + 16;
-
   return (
     <Animated.View
       pointerEvents="none"
       style={[
         {
           position: "absolute",
-          left: def.fx * width - tileSize / 2,
-          top: def.fy * height - tileSize / 2,
-          width: tileSize,
-          height: tileSize,
-          borderRadius: tileSize * 0.28,
-          backgroundColor: "rgba(255,255,255,0.07)",
-          borderWidth: 1,
-          borderColor: "rgba(100,160,255,0.20)",
-          alignItems: "center",
-          justifyContent: "center",
-          shadowColor: "#3d6bff",
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.35,
-          shadowRadius: 10,
-          elevation: 6,
+          left: def.fx * width - def.size / 2,
+          top: def.fy * height - def.size / 2,
+          width: def.size,
+          height: def.size,
         },
         iconStyle,
       ]}
@@ -455,6 +442,65 @@ function FloatingIcon({
       <ExpoImage
         source={def.img}
         style={{ width: def.size, height: def.size }}
+        contentFit="contain"
+      />
+    </Animated.View>
+  );
+}
+
+// ─── Floating Zio mascot ──────────────────────────────────────────────────
+// Shown prominently on the Welcome slide. Reuses the same float-loop animation
+// pattern as FloatingIcon so it feels alive, and respects reduced-motion.
+const zioMascotSource = require("@/assets/images/zio-mascot.png");
+
+function FloatingMascot({
+  width,
+  height,
+  reduced,
+}: {
+  width: number;
+  height: number;
+  reduced: boolean;
+}) {
+  const mascotSize = Math.min(width * 0.52, 220);
+  const ty = useSharedValue(0);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    opacity.value = withDelay(300, withTiming(1, { duration: 600 }));
+    if (reduced) return;
+    ty.value = withRepeat(
+      withSequence(
+        withTiming(-10, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(6, { duration: 2600, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      true,
+    );
+  }, [reduced]);
+
+  const mascotStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: ty.value }],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: "absolute",
+          left: width * 0.5 - mascotSize / 2,
+          top: height * 0.30 - mascotSize / 2,
+          width: mascotSize,
+          height: mascotSize,
+        },
+        mascotStyle,
+      ]}
+    >
+      <ExpoImage
+        source={zioMascotSource}
+        style={{ width: mascotSize, height: mascotSize }}
         contentFit="contain"
       />
     </Animated.View>
@@ -652,6 +698,11 @@ function AnimatedSlide({
             startDelay={def.delayMs}
           />
         ))}
+
+        {/* Big Zio mascot — Welcome slide only */}
+        {slide.slug === "welcome" ? (
+          <FloatingMascot width={width} height={height} reduced={reduced} />
+        ) : null}
       </Animated.View>
 
       {/* Bottom scrim so the glass card stays readable on any background */}
