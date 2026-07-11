@@ -17,6 +17,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import {
   billing,
   planPrice,
@@ -176,6 +177,19 @@ export default function PlansScreen() {
     },
     onError: (e: { message?: string }) =>
       showAlert("Couldn't cancel", e?.message ?? "Please try again."),
+  });
+
+  // The "Upgrade on the web" flow hands off to the OS browser and relies on
+  // the user returning to the app. Nothing in an external browser session can
+  // push the new plan back into the app, so when the app returns to the
+  // foreground we invalidate every billing query (plans, subscription,
+  // downgrade) and refresh auth. This makes the "CURRENT" badge move to the
+  // just-purchased plan and the upgrade CTAs disappear without a manual reload.
+  useForegroundRefresh(() => {
+    qc.invalidateQueries({ queryKey: ["billing", "plans"] });
+    qc.invalidateQueries({ queryKey: ["billing", "subscription"] });
+    qc.invalidateQueries({ queryKey: ["billing", "downgrade"] });
+    refreshAuth?.();
   });
 
   // Seed the currency from the backend-resolved default once, then let the
