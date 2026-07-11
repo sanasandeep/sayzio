@@ -113,6 +113,66 @@ class CardScanController extends Controller
         ]);
     }
 
+    /**
+     * Re-run extraction on the SAME vaulted source files with a new
+     * instruction — no re-upload required. Because the instruction is
+     * folded into the idempotency key, a different focus always produces a
+     * fresh CardScan row, leaving the original scan (and its saved
+     * contact/draft links) intact for comparison.
+     */
+    public function rescan(Request $request, CardScan $scan)
+    {
+        $this->authorizeScan($scan);
+
+        $request->validate([
+            'instruction' => 'nullable|string|max:' . CardBrochureExtractionService::MAX_INSTRUCTION_LENGTH,
+            'from'        => 'nullable|string|in:contacts,wizard',
+        ]);
+
+        $owner = workspace_owner();
+        $actor = $request->user();
+
+        if (!\App\Services\AI\AiPlanAccess::featureAllowed($actor, 'card_scan')) {
+            $plan = \App\Services\AI\AiPlanAccess::featureUpgradePlan($actor, 'card_scan');
+            $msg  = 'The Card & Brochure Scanner is not available on your current plan.';
+            if ($plan) {
+                $msg .= ' Upgrade to the ' . $plan->name . ' plan to use it.';
+            }
+            return back()->with('error', $msg);
+        }
+
+        if (!AiEngineSettings::isEnabled() || !AiEngineSettings::openAiKey()) {
+            return back()->with('error', 'AI scanning is currently unavailable. Please try again later.');
+        }
+
+        $sourceFiles = $scan->sourceFiles()->all();
+        if (!$sourceFiles) {
+            return back()->with('error', 'The original files for this scan are no longer available — please upload again.');
+        }
+
+        $instruction = $request->input('instruction') !== null
+            ? trim((string) $request->input('instruction'))
+            : null;
+        if ($instruction === '') $instruction = null;
+
+        try {
+            $newScan = $this->extractor->extractFromVaultedFiles($owner, $actor, $sourceFiles, $instruction);
+        } catch (InsufficientCoinsForAiException $e) {
+            return redirect()->route('user.wallet.buy')
+                ->with('error', "You need {$e->required} coins to scan a card (you have {$e->balance}).");
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->with('error', 'We couldn\'t re-scan that card. Please try again.');
+        }
+
+        return redirect()->route('user.contacts.scan.show', [
+            'scan' => $newScan->id,
+            'from' => $request->input('from', 'contacts'),
+        ]);
+    }
+
     public function show(Request $request, CardScan $scan)
     {
         $this->authorizeScan($scan);
