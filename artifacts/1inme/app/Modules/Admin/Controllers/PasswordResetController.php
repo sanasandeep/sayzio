@@ -9,6 +9,7 @@ use App\Modules\Common\Models\EmailLog;
 use App\Modules\Common\Services\Emailer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -176,7 +177,7 @@ class PasswordResetController extends Controller
             return back()->withErrors(['email' => 'This password reset link is invalid or has expired.']);
         }
 
-        if (now()->diffInMinutes($record->created_at) > 60) {
+        if (Carbon::parse($record->created_at)->addMinutes(60)->isPast()) {
             DB::table('password_reset_tokens')->where('email', $request->email)->delete();
             return back()->withErrors(['email' => 'This password reset link has expired.']);
         }

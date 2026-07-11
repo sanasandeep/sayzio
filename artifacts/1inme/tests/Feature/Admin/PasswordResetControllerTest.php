@@ -150,4 +150,106 @@ class PasswordResetControllerTest extends TestCase
         // The stored token is unchanged from the last successful resend.
         $this->assertSame(end($seenHashes), $this->storedTokenHash($admin->email));
     }
+
+    /**
+     * The consume side: a valid token + email must actually update the admin's
+     * password, delete the used token row, and redirect to admin.login with the
+     * success flash. This is the end-to-end reset that admins depend on.
+     */
+    public function test_valid_token_updates_password_and_deletes_token(): void
+    {
+        $admin = $this->makeAdmin();
+
+        $token = 'valid-reset-token';
+        DB::table('password_reset_tokens')->insert([
+            'email'      => $admin->email,
+            'token'      => Hash::make($token),
+            'created_at' => now(),
+        ]);
+
+        $resp = $this->post(route('admin.password.update'), [
+            'token'                 => $token,
+            'email'                 => $admin->email,
+            'password'              => 'brand-new-password',
+            'password_confirmation' => 'brand-new-password',
+        ]);
+
+        $resp->assertRedirect(route('admin.login'));
+        $resp->assertSessionHas('success');
+
+        // The password was actually rotated to the new value.
+        $this->assertTrue(Hash::check('brand-new-password', $admin->fresh()->password));
+
+        // The used token row is gone (single-use).
+        $this->assertNull($this->storedTokenHash($admin->email));
+    }
+
+    /**
+     * An invalid/mismatched token must be rejected with the neutral
+     * "invalid or has expired" error and must NOT change the password.
+     */
+    public function test_invalid_token_is_rejected(): void
+    {
+        $admin        = $this->makeAdmin();
+        $originalHash = $admin->password;
+
+        DB::table('password_reset_tokens')->insert([
+            'email'      => $admin->email,
+            'token'      => Hash::make('the-real-token'),
+            'created_at' => now(),
+        ]);
+
+        $resp = $this->from(route('admin.password.reset', ['token' => 'wrong-token']))
+            ->post(route('admin.password.update'), [
+                'token'                 => 'wrong-token',
+                'email'                 => $admin->email,
+                'password'              => 'brand-new-password',
+                'password_confirmation' => 'brand-new-password',
+            ]);
+
+        $resp->assertSessionHasErrors('email');
+        $this->assertStringContainsString(
+            'invalid or has expired',
+            (string) session('errors')->first('email'),
+        );
+
+        // Password untouched.
+        $this->assertSame($originalHash, $admin->fresh()->password);
+    }
+
+    /**
+     * A token older than 60 minutes must be rejected AND the stale row deleted,
+     * regardless of Carbon's signed-diff behaviour. Guards the expiry window so
+     * a leaked-but-old reset link can never be redeemed.
+     */
+    public function test_expired_token_is_rejected_and_deleted(): void
+    {
+        $admin        = $this->makeAdmin();
+        $originalHash = $admin->password;
+
+        $token = 'expired-reset-token';
+        DB::table('password_reset_tokens')->insert([
+            'email'      => $admin->email,
+            'token'      => Hash::make($token),
+            'created_at' => now()->subMinutes(61),
+        ]);
+
+        $resp = $this->from(route('admin.password.reset', ['token' => $token]))
+            ->post(route('admin.password.update'), [
+                'token'                 => $token,
+                'email'                 => $admin->email,
+                'password'              => 'brand-new-password',
+                'password_confirmation' => 'brand-new-password',
+            ]);
+
+        $resp->assertSessionHasErrors('email');
+        $this->assertStringContainsString(
+            'expired',
+            (string) session('errors')->first('email'),
+        );
+
+        // Password untouched and the stale token row was purged.
+        $this->assertSame($originalHash, $admin->fresh()->password);
+        $this->assertNull($this->storedTokenHash($admin->email));
+    }
 }
