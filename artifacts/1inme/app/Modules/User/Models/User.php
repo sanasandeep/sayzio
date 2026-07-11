@@ -376,12 +376,27 @@ class User extends Authenticatable
                 $user->forceFill(['starter_free_window_ends_at' => now()->addYear()])->saveQuietly();
             }
             \App\Modules\User\Services\PersonalTaskBoardProvisioner::ensureFor($user);
-            // Make sure the platform-managed "Sayzio Default Mind"
-            // exists so the new account immediately has access to a
-            // Mind with product knowledge in it. Per-user "My Mind" is
-            // created lazily the first time they open the dashboard.
+            // Make sure the platform-managed "Sayzio Default Mind" exists so
+            // the new account has access to a Mind with product knowledge in
+            // it. This is deliberately pushed onto the queue rather than run
+            // inline: it creates AI rows, recounts stats and dispatches
+            // source-ingest jobs, none of which should sit on the account-
+            // creation request path (a slow/misconfigured AI backend, or a
+            // sync-queue install where the ingest jobs would run inline, must
+            // never be able to stall a first-time sign-up). The provisioner is
+            // idempotent, and per-user "My Mind" plus the platform default are
+            // both also provisioned lazily the first time a user opens the
+            // Mind dashboard, so deferring here is safe. Only dispatch when the
+            // platform default is actually missing so we don't enqueue a no-op
+            // job on every single sign-up.
             try {
-                \App\Services\AI\AiMindProvisioner::ensurePlatformDefault();
+                $platformMindMissing = \App\Modules\User\Models\AiMind::query()
+                    ->whereNull('user_id')
+                    ->where('is_default', true)
+                    ->doesntExist();
+                if ($platformMindMissing) {
+                    \App\Jobs\ProvisionPlatformAiMindJob::dispatchDeferred();
+                }
             } catch (\Throwable $e) {
                 // Don't ever break account creation on AI provisioning.
             }
