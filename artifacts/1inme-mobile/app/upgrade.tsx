@@ -99,7 +99,11 @@ function resolveRecommended(
 }
 
 function openPricingPage(): void {
-  const url = `${getBaseUrl()}/pricing`;
+  // The `client=app` marker tells the website this checkout originated from
+  // the native app, so its post-payment success page fires the
+  // `sayzio://billing/refresh` deep link to bounce the user back here with a
+  // freshly-refreshed plan (see DeepLinkRouter).
+  const url = `${getBaseUrl()}/pricing?client=app`;
   if (Platform.OS === "web") {
     if (typeof window !== "undefined") {
       window.open(url, "_blank");
@@ -396,7 +400,7 @@ export default function UpgradeScreen() {
           <Feather name="external-link" size={18} color={colors.mutedForeground} />
         </Pressable>
         <Pressable
-          onPress={() => Linking.openURL(`${getBaseUrl()}/pricing`).catch(() => {})}
+          onPress={() => Linking.openURL(`${getBaseUrl()}/pricing?client=app`).catch(() => {})}
           style={[styles.linkCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}
         >
           <Feather name="dollar-sign" size={18} color={colors.primary} />

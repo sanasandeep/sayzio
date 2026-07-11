@@ -81,10 +81,19 @@ class BillingController extends Controller
             ? Plan::find($subscription->scheduled_downgrade_plan_id)
             : null;
 
+        // When this billing page is the landing after a just-completed payment
+        // (`?paid=`) AND the checkout originated from the native app (flag set
+        // by PricingPagesController when /pricing?client=app was opened), fire
+        // the `sayzio://billing/refresh` deep link so the app auto-refreshes
+        // the plan the moment the user switches back. Pull-and-forget so it
+        // fires only once per return.
+        $appReturn = $request->filled('paid')
+            && (bool) $request->session()->pull('billing.app_return', false);
+
         return view('user.billing.show', compact(
             'subscription', 'invoices', 'creditNotes',
             'graceDaysRemaining', 'refundableInvoices', 'addons',
-            'scheduledDowngradePlan'
+            'scheduledDowngradePlan', 'appReturn'
         ));
     }
 

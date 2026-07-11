@@ -38,7 +38,11 @@ const CURRENCIES: Currency[] = ["USD", "INR"];
  * a purchase.
  */
 function openPricingPage(): void {
-  const url = `${getBaseUrl()}/pricing`;
+  // The `client=app` marker tells the website this checkout originated from
+  // the native app, so its post-payment success page fires the
+  // `sayzio://billing/refresh` deep link to bounce the user back here with a
+  // freshly-refreshed plan (see DeepLinkRouter).
+  const url = `${getBaseUrl()}/pricing?client=app`;
   if (Platform.OS === "web") {
     if (typeof window !== "undefined") {
       window.open(url, "_blank");

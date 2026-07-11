@@ -1,8 +1,10 @@
+import { useQueryClient } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 
+import { useAuth } from "@/contexts/AuthContext";
 import { getBiolink } from "@/lib/api/biolinks";
 
 // Hostnames whose `/{single-segment}` URLs we even consider routing as
@@ -57,14 +59,49 @@ export function _aliasFromUrl(url: string): Parsed {
   }
 }
 
+// True for the post-payment hand-off deep link the website fires after a
+// successful upgrade completed in the external browser
+// (`sayzio://billing/refresh`). Parsed with expo-linking so scheme/host/path
+// casing and stray slashes are all normalized.
+export function _isBillingRefreshUrl(url: string): boolean {
+  try {
+    const parsed = Linking.parse(url);
+    if (parsed.scheme !== "sayzio") return false;
+    const host = (parsed.hostname ?? "").toLowerCase();
+    const path = (parsed.path ?? "").replace(/^\/+|\/+$/g, "").toLowerCase();
+    return host === "billing" && path === "refresh";
+  } catch {
+    return false;
+  }
+}
+
 export function DeepLinkRouter() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { refresh } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
 
     async function handle(url: string | null) {
       if (cancelled || !url) return;
+
+      // Post-payment hand-off: the website fires sayzio://billing/refresh once
+      // an upgrade completes in the external browser. Invalidate the cached
+      // billing queries and re-pull the signed-in user so the app reflects the
+      // new plan immediately instead of waiting for a manual pull-to-refresh.
+      // (`+native-intent.ts` routes this link to the billing/plans screen.)
+      if (_isBillingRefreshUrl(url)) {
+        await Promise.allSettled([
+          queryClient.invalidateQueries({ queryKey: ["billing", "plans"] }),
+          queryClient.invalidateQueries({
+            queryKey: ["billing", "subscription"],
+          }),
+          refresh(),
+        ]);
+        return;
+      }
+
       const { host, alias } = _aliasFromUrl(url);
       if (!alias) return;
       // Probe the backend before routing in-app. If the alias doesn't

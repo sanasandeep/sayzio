@@ -29,6 +29,33 @@
   @if (session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
   @if (session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 
+  @if (!empty($appReturn))
+    {{-- Post-payment landing for a checkout that started in the native app.
+         Fire the sayzio://billing/refresh deep link so the app invalidates its
+         cached plan/subscription and re-pulls the user the moment it reopens.
+         The button is a manual fallback for browsers that block auto-firing a
+         custom scheme without a user gesture. --}}
+    <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2" role="alert">
+      <span><i class="fas fa-check-circle me-1"></i> Payment complete — returning you to the Sayzio app…</span>
+      <a href="sayzio://billing/refresh" class="btn btn-primary btn-sm" id="billing-return-to-app">
+        <i class="fas fa-mobile-screen-button me-1"></i> Return to app
+      </a>
+    </div>
+    <script>
+      (function () {
+        var DEEP_LINK = 'sayzio://billing/refresh';
+        try {
+          // Attempt the hand-off automatically once. Assigning location is the
+          // most reliable way to open a custom scheme from a mobile browser;
+          // if no app is registered the navigation simply no-ops.
+          window.location.href = DEEP_LINK;
+        } catch (e) {
+          /* no-op — the manual button below still works */
+        }
+      })();
+    </script>
+  @endif
+
   @if ($subscription)
     @if (in_array($subscription->status, ['past_due', 'grace']) && $graceDaysRemaining !== null)
       <div class="alert alert-warning">
