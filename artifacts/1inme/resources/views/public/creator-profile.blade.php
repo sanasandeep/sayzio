@@ -41,11 +41,12 @@
     if (!empty($__cpSameAs))       $__cpPerson['sameAs'] = array_values(array_unique($__cpSameAs));
 
     $__cpJsonLd = [
-        '@context'    => 'https://schema.org',
-        '@type'       => 'ProfilePage',
-        'url'         => $__cpProfileUrl,
-        'dateCreated' => $creator->created_at?->toIso8601String(),
-        'mainEntity'  => $__cpPerson,
+        '@context'     => 'https://schema.org',
+        '@type'        => 'ProfilePage',
+        'url'          => $__cpProfileUrl,
+        'dateCreated'  => $creator->created_at?->toIso8601String(),
+        'dateModified' => $creator->updated_at?->toIso8601String(),
+        'mainEntity'   => $__cpPerson,
     ];
 @endphp
 <!DOCTYPE html>
@@ -68,14 +69,17 @@
 <meta property="og:url" content="{{ \App\Modules\Common\Support\PlatformHosts::canonicalUrl() }}">
 @if($creator->cover_image)
     <meta property="og:image" content="{{ $creator->cover_image }}">
+    <meta property="og:image:alt" content="{{ $creator->name }}">
 @elseif($creator->avatar)
     <meta property="og:image" content="{{ $creator->avatar }}">
+    <meta property="og:image:alt" content="{{ $creator->name }}">
 @endif
 <meta name="twitter:card" content="{{ $__cpImage ? 'summary_large_image' : 'summary' }}">
 <meta name="twitter:title" content="{{ $creator->name }} (&#64;{{ $creator->handle }})">
 <meta name="twitter:description" content="{{ $__cpDescription }}">
 @if($__cpImage)
     <meta name="twitter:image" content="{{ $__cpImage }}">
+    <meta name="twitter:image:alt" content="{{ $creator->name }}">
 @endif
 <script type="application/ld+json">{!! json_encode($__cpJsonLd, JSON_UNESCAPED_UNICODE) !!}</script>
 @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -109,7 +113,7 @@
             <div class="flex items-end justify-between gap-3 flex-wrap">
                 <div class="flex items-end gap-4">
                     @if($creator->avatar)
-                        <img src="{{ $creator->avatar }}" alt="" class="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md bg-white">
+                        <img src="{{ $creator->avatar }}" alt="{{ $creator->name }}" class="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md bg-white">
                     @else
                         <div class="w-24 h-24 rounded-2xl border-4 border-white shadow-md bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-extrabold text-2xl">
                             {{ $creator->getInitials() }}

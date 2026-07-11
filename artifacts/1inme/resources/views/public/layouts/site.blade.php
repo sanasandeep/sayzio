@@ -32,7 +32,7 @@
             'url'    => \App\Modules\Common\Support\PlatformHosts::canonicalUrl(),
         ]);
     @endphp
-    <script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+    <script type="application/ld+json">{!! json_encode($__schema, JSON_UNESCAPED_UNICODE) !!}</script>
     @include('common.partials.default-icons')
     @include('public.partials.marketing-share-meta')
     @include('public.partials.marketing-tracking')

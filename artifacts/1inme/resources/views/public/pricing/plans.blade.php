@@ -10,7 +10,7 @@
     );
 @endphp
 @if(!empty($__pricingProducts))
-<script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph($__pricingProducts), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+<script type="application/ld+json">{!! json_encode(\App\Modules\Common\Support\MarketingSchema::graph($__pricingProducts), JSON_UNESCAPED_UNICODE) !!}</script>
 @endif
 <style>
     .grad-bar { background: linear-gradient(135deg,#3d6bff 0%,#2b54eb 50%,#c026d3 100%); }

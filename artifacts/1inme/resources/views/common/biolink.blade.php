@@ -7,8 +7,11 @@
     $shareBtnSettings = $link->settings['biolink']['share_button'] ?? [];
     $menuBarSettings = $link->settings['biolink']['menu_bar'] ?? [];
     $autoTranslateSettings = $link->settings['biolink']['auto_translate'] ?? [];
-    $pageTitle = $link->seo_title ?? $metaSettings['seo_title'] ?? $link->title ?? 'Sayzio Link in Bio';
-    $pageDesc = $link->seo_description ?? $metaSettings['seo_description'] ?? '';
+    $__biolinkOwnerName = $link->user?->name ?? null;
+    $pageTitle = $link->seo_title ?? $metaSettings['seo_title'] ?? $link->title
+        ?? ($__biolinkOwnerName ? $__biolinkOwnerName . ' — Link in Bio' : 'Link in Bio');
+    $pageDesc = $link->seo_description ?? $metaSettings['seo_description']
+        ?? ($__biolinkOwnerName ? ('Visit ' . $__biolinkOwnerName . "'s Link in Bio page on Sayzio.") : '');
     $pageImage = $link->seo_image ?? $ogSettings['image_url'] ?? '';
     $ogTitle = $ogSettings['title'] ?? $pageTitle;
     $ogDesc = $ogSettings['description'] ?? $pageDesc;
@@ -37,13 +40,16 @@
     @if(!empty($metaSettings['author']))
         <meta name="author" content="{{ $metaSettings['author'] }}">
     @endif
-    <meta name="robots" content="{{ $metaSettings['robots'] ?? 'index,follow' }}">
+    @php
+        $__biolinkVisibility = $link->visibility ?? 'public';
+        $__biolinkGated = $link->isBiolinkFamily() && $__biolinkVisibility !== 'public';
+        $__biolinkRobots = $__biolinkGated ? 'noindex,nofollow' : ($metaSettings['robots'] ?? 'index,follow');
+    @endphp
+    <meta name="robots" content="{{ $__biolinkRobots }}">
     @if(!empty($metaSettings['rating']))
         <meta name="rating" content="{{ $metaSettings['rating'] }}">
     @endif
-    @if(!empty($metaSettings['canonical_url']))
-        <link rel="canonical" href="{{ $metaSettings['canonical_url'] }}">
-    @endif
+    <link rel="canonical" href="{{ $metaSettings['canonical_url'] ?? \App\Modules\Common\Support\PlatformHosts::canonicalUrl() }}">
 
     <meta property="og:title" content="{{ $ogTitle }}">
     @if($ogDesc)
@@ -55,6 +61,7 @@
         <meta property="og:image" content="{{ $pageImage }}">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
+        <meta property="og:image:alt" content="{{ $ogTitle }}">
     @endif
     <meta property="og:url" content="{{ \App\Modules\Common\Support\PlatformHosts::canonicalUrl() }}">
 

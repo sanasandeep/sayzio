@@ -43,6 +43,7 @@
 <meta property="og:url" content="{{ $__shareUrl }}">
 @if($__shareImage !== '')
     <meta property="og:image" content="{{ $__shareImage }}">
+    <meta property="og:image:alt" content="{{ $__shareTitle }}">
 @endif
 <meta name="twitter:card" content="{{ $__shareImage !== '' ? 'summary_large_image' : 'summary' }}">
 <meta name="twitter:title" content="{{ $__shareTitle }}">
