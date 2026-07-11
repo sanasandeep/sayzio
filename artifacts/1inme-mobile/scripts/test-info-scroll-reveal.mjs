@@ -37,9 +37,9 @@
 // `test:info-scroll-reveal`, wired into the `test:unit` gate).
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 
 import { runExtractedCall } from "./lib/extract.mjs";
 
@@ -51,11 +51,82 @@ const srcPath = join(root, "components", "ScrollReveal.tsx");
 const src = readFileSync(srcPath, "utf8");
 
 // ---------------------------------------------------------------------------
-// Sanity: InfoPage renders its text content through ScrollReveal, so the
-// primitive's reveal guarantee is what keeps each /info/* screen's copy
-// visible. If InfoPage ever stops routing content through ScrollReveal this
-// test's coverage claim would be void.
+// Consumer enumeration — EVERY screen that renders content through ScrollReveal
+// inherits the primitive's "never stuck invisible" guarantee (scenarios 3–5
+// below). This audit scans the whole mobile app for ScrollReveal consumers and
+// pins them against a known-covered list. When a NEW screen starts using
+// ScrollReveal (a newly-added hidden-then-revealed surface), this test fails
+// loudly so the author confirms the failsafe covers it and adds it here —
+// rather than the coverage claim silently going stale. Each consumer is also
+// checked to actually WRAP content in <ScrollReveal>, so a consumer that merely
+// imports the symbol without routing content through it can't slip by.
 // ---------------------------------------------------------------------------
+
+// Screens/components proven to route their content through ScrollReveal, and so
+// covered by the primitive's reveal guarantee. Paths are posix-relative to the
+// mobile app root.
+const KNOWN_CONSUMERS = new Set([
+  "components/InfoPage.tsx", // help / terms / privacy / nfc — all /info/* screens
+  "components/AboutPage.tsx", // the About screen
+  "app/info/contact.tsx", // the Contact screen
+]);
+
+// The primitive's own module isn't a "consumer".
+const PRIMITIVE_REL = "components/ScrollReveal.tsx";
+
+function walkTsx(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walkTsx(full));
+    else if (entry.name.endsWith(".tsx")) out.push(full);
+  }
+  return out;
+}
+
+const toPosix = (p) => relative(root, p).split(sep).join("/");
+
+// A file "uses" ScrollReveal only if it renders the <ScrollReveal> element (or
+// its provider) — a bare mention in a comment/doc string doesn't count.
+const usesScrollReveal = (text) =>
+  /<ScrollReveal[\s/>]/.test(text) || /ScrollRevealCtx\.Provider/.test(text);
+
+const discovered = [];
+for (const abs of [...walkTsx(join(root, "components")), ...walkTsx(join(root, "app"))]) {
+  const rel = toPosix(abs);
+  if (rel === PRIMITIVE_REL) continue;
+  if (usesScrollReveal(readFileSync(abs, "utf8"))) discovered.push(rel);
+}
+
+// No NEW, unlisted consumer — a newly-added hidden-then-revealed surface must be
+// consciously acknowledged as covered by the failsafe.
+const newConsumers = discovered.filter((rel) => !KNOWN_CONSUMERS.has(rel));
+assert.deepEqual(
+  newConsumers,
+  [],
+  "new ScrollReveal consumer(s) found that aren't in KNOWN_CONSUMERS: " +
+    `[${newConsumers.join(", ")}]. Any new screen that starts a section hidden ` +
+    "and reveals it via ScrollReveal inherits the failsafe below — confirm that, " +
+    "then add it to KNOWN_CONSUMERS in test-info-scroll-reveal.mjs so its coverage " +
+    "is tracked.",
+);
+
+// Every listed consumer must still exist AND actually wrap content in
+// ScrollReveal (guarding against a consumer that stops routing content through
+// the safe primitive, which would silently void its reveal guarantee).
+for (const rel of KNOWN_CONSUMERS) {
+  assert.ok(
+    discovered.includes(rel),
+    `KNOWN_CONSUMERS lists ${rel} but it no longer renders content through ` +
+      "<ScrollReveal> — either restore the ScrollReveal wrapper or remove it " +
+      "from KNOWN_CONSUMERS (and confirm its content still can't stay invisible).",
+  );
+}
+
+// Sanity: InfoPage renders its title/body TEXT through ScrollReveal, anchoring
+// the coverage claim that the primitive's reveal guarantee keeps each /info/*
+// screen's copy visible.
 const infoSrc = readFileSync(join(root, "components", "InfoPage.tsx"), "utf8");
 assert.ok(
   /<ScrollReveal[\s>]/.test(infoSrc) &&
@@ -380,6 +451,87 @@ for (const measure of ["null-ref", "none-fn"]) {
     1,
     `with an immeasurable ref (${measure}), reveal must fall back to showing the section (opacity 1)`,
   );
+}
+
+// ---------------------------------------------------------------------------
+// 6. AboutPage hero — the ONE other start-hidden entrance animation in the app
+//    that does NOT go through ScrollReveal. Its opacity starts at 0 (motion on)
+//    and is revealed by a mount effect. Unlike ScrollReveal it is NOT measure-
+//    or scroll-gated, so it's "provably always revealed" — but only as long as
+//    that stays true. This guard lifts the REAL hero initialiser + effect and
+//    asserts: (a) it starts hidden with motion off / visible with motion on,
+//    (b) the effect reveals opacity to 1 in BOTH motion states, and (c) the
+//    effect has no measure()/scroll gate that could stop the reveal from firing.
+//    If a future refactor gates the hero behind a trigger without a failsafe,
+//    this fails instead of silently shipping a hero stuck at opacity 0.
+// ---------------------------------------------------------------------------
+{
+  const aboutSrc = readFileSync(
+    join(root, "components", "AboutPage.tsx"),
+    "utf8",
+  );
+
+  const aboutLift = (re, label) => {
+    const m = aboutSrc.match(re);
+    assert.ok(m, `could not find the ${label} in AboutPage.tsx`);
+    return m[1];
+  };
+
+  const heroOpacityInit = aboutLift(
+    /const heroOpacity = useSharedValue\(([\s\S]*?)\);/,
+    "heroOpacity useSharedValue initialiser",
+  )
+    .trim()
+    .replace(/,$/, "");
+
+  // Anchor to the hero effect specifically: the captured body must not span an
+  // earlier useEffect (AboutPage has another effect above the hero one).
+  const heroEffectBody = aboutLift(
+    /useEffect\(\(\) => \{((?:(?!useEffect\()[\s\S])*?)\}, \[reduceMotion, heroOpacity, heroTranslateY\]\);/,
+    "hero reveal useEffect body",
+  );
+
+  // The hero reveal must run unconditionally on mount — no measurement or
+  // scroll position can gate it, so it can never be left un-fired.
+  assert.ok(
+    !/\.measure\(/.test(heroEffectBody) && !/scrollY|pageY|windowHeight/.test(heroEffectBody),
+    "the AboutPage hero reveal effect must NOT be measure-/scroll-gated — it " +
+      "reveals unconditionally on mount so the hero can never stay invisible",
+  );
+
+  for (const reduceMotion of [true, false]) {
+    const rea = makeReanimated();
+    const heroOpacity = {
+      value: runExtractedCall(
+        heroOpacityInit,
+        { reduceMotion },
+        "heroOpacity initialiser",
+        { test: TEST },
+      ),
+    };
+    const heroTranslateY = { value: 0 };
+
+    // Initial resting value: hidden (0) with motion off, visible (1) on.
+    assert.equal(
+      heroOpacity.value,
+      reduceMotion ? 1 : 0,
+      `AboutPage hero opacity must initialise to ${reduceMotion ? 1 : 0} when reduceMotion=${reduceMotion}`,
+    );
+
+    const effect = runExtractedCall(
+      `() => {${heroEffectBody}}`,
+      { ...rea, reduceMotion, heroOpacity, heroTranslateY },
+      "hero reveal effect",
+      { test: TEST },
+    );
+    effect();
+
+    assert.equal(
+      settledTarget(heroOpacity.value),
+      1,
+      `AboutPage hero must end fully visible (opacity 1) after its mount effect (reduceMotion=${reduceMotion}) — never stuck at 0`,
+    );
+  }
 }
 
 console.log("test-info-scroll-reveal: all assertions passed");
