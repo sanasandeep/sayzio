@@ -20,7 +20,20 @@ use Illuminate\Support\Facades\Storage;
  */
 class OnboardingSlidesSeeder extends Seeder
 {
-    public function run(): void
+    /**
+     * The canonical default copy for every intro slide, keyed positionally
+     * (each row carries its own `slug`). This is the single source of truth
+     * for both:
+     *   - seeding fresh installs (see run()), and
+     *   - detecting when an admin has edited a live slide away from its
+     *     shipped default (see OnboardingSlide::customizationState()).
+     *
+     * Image discovery lives in run() — this method only owns the wording so
+     * the mobile bundled fallback, the seeder and the drift check all agree.
+     *
+     * @return array<int, array{slug:string, sort_order:int, category:string, title:string, body:string}>
+     */
+    public static function defaults(): array
     {
         $slides = [
             // ── 1. Brand intro ──────────────────────────────────────────────
@@ -64,6 +77,13 @@ class OnboardingSlidesSeeder extends Seeder
                 'body'       => "Create your free workspace in minutes and upgrade whenever you're ready.",
             ],
         ];
+
+        return $slides;
+    }
+
+    public function run(): void
+    {
+        $slides = self::defaults();
 
         foreach ($slides as $row) {
             // Primary background image (legacy single image).

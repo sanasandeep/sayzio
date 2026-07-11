@@ -12,6 +12,19 @@
     <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('success') }}</div>
 @endif
 
+@if($drifted->isNotEmpty())
+    <div class="mb-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm">
+        <div class="flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation mt-0.5 text-amber-300"></i>
+            <div>
+                <p class="font-medium">{{ $drifted->count() }} slide{{ $drifted->count() === 1 ? '' : 's' }} edited away from the shipped default wording.</p>
+                <p class="text-amber-200/70 mt-1">The mobile app ships a bundled copy of these slides shown on a fresh install or offline. The edited slide{{ $drifted->count() === 1 ? '' : 's' }} below no longer match{{ $drifted->count() === 1 ? 'es' : '' }} that default, so a returning or offline user may see different wording than someone hitting the live copy. Look for the <span class="font-medium text-amber-100">Customized</span> badge.</p>
+                <p class="text-amber-200/60 mt-1 font-mono text-[11px]">{{ $drifted->pluck('slug')->implode(', ') }}</p>
+            </div>
+        </div>
+    </div>
+@endif
+
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     @forelse($slides as $slide)
     <div class="glass rounded-2xl border border-white/10 overflow-hidden {{ $slide->status !== 'active' ? 'opacity-60' : '' }}">
@@ -36,6 +49,16 @@
 
         <div class="p-4 space-y-3">
             <p class="text-xs text-white/50 line-clamp-2">{{ $slide->body ?? '—' }}</p>
+            @php($state = $slide->customizationState())
+            <div>
+                @if($state === 'customized')
+                    <span title="Copy differs from the shipped default in: {{ implode(', ', $slide->driftedFields()) }}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-200 border border-amber-400/30"><i class="fas fa-pen-nib text-[10px]"></i>Customized</span>
+                @elseif($state === 'custom')
+                    <span title="Admin-created slide — no shipped default to compare against" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-white/60 border border-white/20"><i class="fas fa-plus text-[10px]"></i>Custom</span>
+                @else
+                    <span title="Copy matches the shipped default wording exactly" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-200 border border-emerald-400/30"><i class="fas fa-check text-[10px]"></i>Default</span>
+                @endif
+            </div>
             <div class="flex items-center justify-between text-[11px] text-white/40">
                 <span class="font-mono">{{ $slide->slug }}</span>
                 <span>order: <span class="text-white/70">{{ $slide->sort_order }}</span></span>

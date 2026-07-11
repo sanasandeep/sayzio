@@ -24,8 +24,9 @@ class OnboardingSlideController extends Controller
 {
     public function index(Request $request)
     {
-        $slides = OnboardingSlide::ordered()->get();
-        return view('admin.onboarding-slides.index', compact('slides'));
+        $slides  = OnboardingSlide::ordered()->get();
+        $drifted = $slides->filter->hasDriftedFromDefault()->values();
+        return view('admin.onboarding-slides.index', compact('slides', 'drifted'));
     }
 
     public function create()
