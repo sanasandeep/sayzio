@@ -8,6 +8,7 @@ import {
   AccessibilityInfo,
   ActivityIndicator,
   FlatList,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -65,6 +66,18 @@ const FALLBACK_IMAGES: Record<string, ImageSourcePropType> = {
 };
 
 const FALLBACK_SLIDES: OnboardingSlide[] = [
+  // 1. Brand intro
+  {
+    id: -10,
+    slug: "welcome",
+    category: "Welcome to Sayzio",
+    title: "One link for everything you do",
+    body: "Sayzio turns all your links, content and channels into a single smart profile people can tap, save and share — online or in person.",
+    image_url: null,
+    image_urls: [],
+    sort_order: 5,
+  },
+  // 2. Personas — "this is for me"
   {
     id: -1,
     slug: "creators",
@@ -105,6 +118,59 @@ const FALLBACK_SLIDES: OnboardingSlide[] = [
     image_urls: [],
     sort_order: 40,
   },
+  {
+    id: -5,
+    slug: "students",
+    category: "For students & job seekers",
+    title: "One link for your CV, projects and socials",
+    body: "Hand recruiters a single Sayzio link with your résumé, GitHub, portfolio and contact info — and watch which sections they actually open.",
+    image_url: null,
+    image_urls: [],
+    sort_order: 50,
+  },
+  {
+    id: -6,
+    slug: "coaches",
+    category: "For coaches & educators",
+    title: "Sell, schedule and stay in touch",
+    body: "Group your courses, booking calendar, payment links and follower updates in one biolink — and broadcast announcements to everyone who follows you.",
+    image_url: null,
+    image_urls: [],
+    sort_order: 60,
+  },
+  // 3. Breadth of platform
+  {
+    id: -7,
+    slug: "platform",
+    category: "One platform, endless possibilities",
+    title: "Biolinks, QR codes, stores, forms and more",
+    body: "Build a menu, sell products, collect leads, share a résumé or spin up a QR code — all from one Sayzio account, no extra tools needed.",
+    image_url: null,
+    image_urls: [],
+    sort_order: 70,
+  },
+  // 4. Value & outcomes
+  {
+    id: -8,
+    slug: "grow",
+    category: "Grow with confidence",
+    title: "See what works and turn taps into results",
+    body: "Real-time analytics show who's clicking, from where and what they love — so you can grow your audience, sales and reach with data on your side.",
+    image_url: null,
+    image_urls: [],
+    sort_order: 80,
+  },
+  // 5. Call to action (final slide — AI dashboard is inserted just before this)
+  {
+    id: -9,
+    slug: "get-started",
+    category: "Ready when you are",
+    title: "Your link is one tap away",
+    body: "Create your free Sayzio profile in minutes — no code, no clutter. Let's build it together.",
+    image_url: null,
+    image_urls: [],
+    sort_order: 90,
+  },
 ];
 
 type InfoHref =
@@ -114,12 +180,17 @@ type InfoHref =
   | "/info/privacy"
   | "/info/terms";
 
-const INFO_LINKS: { href: InfoHref; label: string }[] = [
-  { href: "/info/about", label: "About" },
-  { href: "/info/nfc", label: "NFC" },
-  { href: "/info/help", label: "Help" },
-  { href: "/info/privacy", label: "Privacy" },
-  { href: "/info/terms", label: "Terms" },
+type InfoLink =
+  | { kind: "internal"; href: InfoHref; label: string }
+  | { kind: "external"; url: string; label: string };
+
+const INFO_LINKS: InfoLink[] = [
+  { kind: "internal", href: "/info/about", label: "About" },
+  { kind: "internal", href: "/info/nfc", label: "NFC" },
+  { kind: "internal", href: "/info/help", label: "Help" },
+  { kind: "internal", href: "/info/privacy", label: "Privacy" },
+  { kind: "internal", href: "/info/terms", label: "Terms" },
+  { kind: "external", url: "https://sayzio.app", label: "Website" },
 ];
 
 const AI_DASHBOARD_SLUG = "ai-dashboard";
@@ -318,6 +389,116 @@ const SLIDE_THEMES: Record<string, SlideTheme> = {
       {
         img: require("@/assets/images/zio-nodes/forms.png"),
         fx: 0.09, fy: 0.63, size: 32, floatAmplitude: 9, floatDuration: 2700, delayMs: 800,
+      },
+    ],
+  },
+
+  // ── Framing slides ────────────────────────────────────────────────────────
+
+  welcome: {
+    blobAColor: "#4422cc",
+    blobBColor: "#5533ee",
+    blobCColor: "#3311aa",
+    accent: "#7755ff",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/link.png"),
+        fx: 0.78, fy: 0.18, size: 52, floatAmplitude: 9, floatDuration: 2800, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/social.png"),
+        fx: 0.12, fy: 0.28, size: 40, floatAmplitude: 7, floatDuration: 3400, delayMs: 600,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/qr.png"),
+        fx: 0.82, fy: 0.52, size: 36, floatAmplitude: 10, floatDuration: 2600, delayMs: 300,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/growth.png"),
+        fx: 0.10, fy: 0.62, size: 34, floatAmplitude: 8, floatDuration: 3100, delayMs: 900,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/analytics.png"),
+        fx: 0.60, fy: 0.12, size: 32, floatAmplitude: 6, floatDuration: 3700, delayMs: 450,
+      },
+    ],
+  },
+
+  platform: {
+    blobAColor: "#0044bb",
+    blobBColor: "#1166dd",
+    blobCColor: "#0033aa",
+    accent: "#3366ff",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/qr.png"),
+        fx: 0.76, fy: 0.16, size: 50, floatAmplitude: 8, floatDuration: 3100, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/store.png"),
+        fx: 0.13, fy: 0.28, size: 42, floatAmplitude: 10, floatDuration: 2700, delayMs: 500,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/forms.png"),
+        fx: 0.82, fy: 0.52, size: 36, floatAmplitude: 7, floatDuration: 3400, delayMs: 200,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/resume.png"),
+        fx: 0.09, fy: 0.63, size: 34, floatAmplitude: 9, floatDuration: 2900, delayMs: 800,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/link.png"),
+        fx: 0.58, fy: 0.11, size: 32, floatAmplitude: 6, floatDuration: 3600, delayMs: 350,
+      },
+    ],
+  },
+
+  grow: {
+    blobAColor: "#006699",
+    blobBColor: "#0088aa",
+    blobCColor: "#004477",
+    accent: "#00aacc",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/analytics.png"),
+        fx: 0.78, fy: 0.17, size: 52, floatAmplitude: 9, floatDuration: 2900, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/growth.png"),
+        fx: 0.11, fy: 0.28, size: 42, floatAmplitude: 8, floatDuration: 3300, delayMs: 600,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/audience.png"),
+        fx: 0.82, fy: 0.54, size: 36, floatAmplitude: 7, floatDuration: 2700, delayMs: 300,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/social.png"),
+        fx: 0.10, fy: 0.62, size: 32, floatAmplitude: 10, floatDuration: 3100, delayMs: 900,
+      },
+    ],
+  },
+
+  "get-started": {
+    blobAColor: "#1133ee",
+    blobBColor: "#0055ff",
+    blobCColor: "#1144cc",
+    accent: "#4466ff",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/link.png"),
+        fx: 0.78, fy: 0.17, size: 52, floatAmplitude: 9, floatDuration: 2800, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/growth.png"),
+        fx: 0.12, fy: 0.28, size: 40, floatAmplitude: 7, floatDuration: 3400, delayMs: 600,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/social.png"),
+        fx: 0.82, fy: 0.50, size: 36, floatAmplitude: 10, floatDuration: 2600, delayMs: 300,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/audience.png"),
+        fx: 0.10, fy: 0.62, size: 32, floatAmplitude: 8, floatDuration: 3000, delayMs: 900,
       },
     ],
   },
@@ -959,7 +1140,18 @@ export default function Onboarding() {
     }
   };
 
-  const pages = [...slides, AI_DASHBOARD_SLIDE];
+  // Insert the AI dashboard slide just before the CTA (get-started) slide so
+  // the story arc ends cleanly on the "get-started" beat. If get-started is
+  // absent (e.g. admin deleted it), the AI slide falls through to the end.
+  const ctaIdx = slides.findIndex((s) => s.slug === "get-started");
+  const pages =
+    ctaIdx >= 0
+      ? [
+          ...slides.slice(0, ctaIdx),
+          AI_DASHBOARD_SLIDE,
+          ...slides.slice(ctaIdx),
+        ]
+      : [...slides, AI_DASHBOARD_SLIDE];
   const pageCount = pages.length;
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -1105,10 +1297,17 @@ export default function Onboarding() {
         />
         <View style={styles.infoLinks}>
           {INFO_LINKS.map((l, i, arr) => (
-            <View key={l.href} style={styles.infoLinkRow}>
+            <View
+              key={l.kind === "internal" ? l.href : l.url}
+              style={styles.infoLinkRow}
+            >
               <Text
                 accessibilityRole="link"
-                onPress={() => router.push(l.href)}
+                onPress={() =>
+                  l.kind === "internal"
+                    ? router.push(l.href)
+                    : void Linking.openURL(l.url)
+                }
                 style={styles.infoLink}
               >
                 {l.label}
