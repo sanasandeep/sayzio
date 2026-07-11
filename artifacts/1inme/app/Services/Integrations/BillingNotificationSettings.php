@@ -4,6 +4,7 @@ namespace App\Services\Integrations;
 
 use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Services\EmailTemplateRegistry;
+use App\Modules\Common\Support\RetiredAdminEmails;
 
 /**
  * Admin-managed CC list for platform billing emails.
@@ -96,8 +97,15 @@ class BillingNotificationSettings
         $seen = [];
         foreach ($emails as $email) {
             $email = trim((string) $email);
+            if ($email === '') {
+                continue;
+            }
+            // Defense-in-depth: swap any retired admin address for the canonical
+            // one before de-duping, so a non-validated caller can't slip it back
+            // into the CC list (the admin form/API also reject it up front).
+            $email = RetiredAdminEmails::normalize($email);
             $lower = strtolower($email);
-            if ($email === '' || isset($seen[$lower])) {
+            if (isset($seen[$lower])) {
                 continue;
             }
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {

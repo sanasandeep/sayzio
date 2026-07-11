@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Admin\Models\AppSetting;
+use App\Modules\Common\Support\RetiredAdminEmails;
 use Illuminate\Database\Migrations\Migration;
 
 /**
@@ -48,14 +49,7 @@ use Illuminate\Database\Migrations\Migration;
  */
 return new class extends Migration
 {
-    private string $canonical = 'sayzioapp@gmail.com';
-
-    /** @var list<string> retired addresses, matched case-insensitively */
-    private array $retired = [
-        'sanasandeep@gmail.com',
-        'official1inme@gmail.com',
-        'admin@1inme.com',
-    ];
+    private string $canonical = RetiredAdminEmails::CANONICAL;
 
     public function up(): void
     {
@@ -125,13 +119,7 @@ return new class extends Migration
 
     private function isRetired(string $email): bool
     {
-        $lower = strtolower(trim($email));
-        foreach ($this->retired as $legacy) {
-            if ($lower === strtolower($legacy)) {
-                return true;
-            }
-        }
-        return false;
+        return RetiredAdminEmails::isRetired($email);
     }
 
     /**

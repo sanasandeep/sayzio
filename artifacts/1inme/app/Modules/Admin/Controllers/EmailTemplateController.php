@@ -3,6 +3,7 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Rules\NotRetiredAdminEmail;
 use App\Modules\Common\Services\Emailer;
 use App\Modules\Common\Services\EmailTemplateRegistry;
 use App\Services\Integrations\BillingNotificationSettings;
@@ -63,7 +64,7 @@ class EmailTemplateController extends Controller
 
         Validator::make(
             ['billing_cc' => $emails],
-            ['billing_cc.*' => ['email:rfc']],
+            ['billing_cc.*' => ['email:rfc', new NotRetiredAdminEmail()]],
             ['billing_cc.*.email' => 'Each line must be a valid email address.'],
         )->validate();
 
