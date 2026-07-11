@@ -766,10 +766,14 @@ class AuthController extends Controller
 
     public function demoLogin(Request $request)
     {
-        // Demo login is intentionally available in every environment,
-        // including production, so the live site can offer a one-click
-        // demo tour. Owner-approved despite the security exposure of a
-        // publicly reachable shared account.
+        // Demo login is disabled in production. Granting any visitor a
+        // session with the user-admin role (which carries cross-tenant
+        // access and platform-admin privileges) through a public
+        // unauthenticated route is a critical security vulnerability that
+        // must never be active on a live system.
+        if (app()->environment('production')) {
+            abort(404);
+        }
 
         $user = User::where('email', 'sazioapp@gmail.com')->first();
 

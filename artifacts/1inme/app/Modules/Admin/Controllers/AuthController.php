@@ -55,9 +55,14 @@ class AuthController extends Controller
 
     public function demoLogin(Request $request)
     {
-        // Demo admin login is intentionally available in every environment,
-        // including production. Owner-approved despite the security exposure
-        // of publicly reachable super-admin access.
+        // Demo admin login is disabled in production. Exposing a
+        // publicly-reachable route that grants super-admin access without
+        // credentials is a critical security vulnerability regardless of
+        // any prior owner approval; it must never be reachable on a live
+        // system.
+        if (app()->environment('production')) {
+            abort(404);
+        }
 
         $admin = Admin::where('email', 'official1inme@gmail.com')->first();
 

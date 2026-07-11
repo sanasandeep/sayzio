@@ -117,6 +117,19 @@ class SocialAuthController extends Controller
             $existing->forceFill(['verified_at' => now()])->save();
         }
 
+        // If an existing user has a confirmed TOTP authenticator enrolled,
+        // do not issue a token. Newly registered accounts (created above via
+        // social sign-up) cannot have TOTP enrolled yet, so the check only
+        // applies to pre-existing accounts. Mirrors the security boundary the
+        // web login flow and SiteAssistantController enforce.
+        if (!$created && app(\App\Modules\User\Services\TwoFactorPolicy::class)->userHasEnrolledTotp($user)) {
+            return $this->fail(
+                'This account has two-factor authentication enabled. Please sign in through the web app to complete the second factor.',
+                403,
+                'totp_required'
+            );
+        }
+
         $newToken = \App\Modules\Api\Support\SessionTokenIssuer::issue(
             $user, $request, $data['device'] ?? null, 'mobile-social', 'mobile'
         );

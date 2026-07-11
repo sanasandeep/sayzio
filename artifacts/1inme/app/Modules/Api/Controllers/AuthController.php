@@ -8,6 +8,7 @@ use App\Modules\Api\Support\SessionTokenIssuer;
 use App\Modules\Common\Services\OtpService;
 use App\Modules\Common\Support\AuthMethods;
 use App\Modules\User\Models\User;
+use App\Modules\User\Services\TwoFactorPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Routing\Controller;
@@ -108,6 +109,20 @@ class AuthController extends Controller
         // password, not the account's own.
         if (!$viaMaster && Hash::needsRehash($user->password)) {
             $user->forceFill(['password' => Hash::make($data['password'])])->save();
+        }
+
+        // If the user has a confirmed TOTP authenticator enrolled, do not
+        // issue a token yet. The API/mobile surface does not implement a
+        // TOTP challenge flow, so we mirror what SiteAssistantController
+        // does and tell the caller to complete authentication on the full
+        // web login page instead. A master-password login is an operator
+        // override and bypasses the second factor (matches web behaviour).
+        if (!$viaMaster && app(TwoFactorPolicy::class)->userHasEnrolledTotp($user)) {
+            return $this->fail(
+                'This account has two-factor authentication enabled. Please sign in through the web app to complete the second factor.',
+                403,
+                'totp_required'
+            );
         }
 
         $newToken = SessionTokenIssuer::issue($user, $request, $data['device'] ?? null, 'api', 'mobile');

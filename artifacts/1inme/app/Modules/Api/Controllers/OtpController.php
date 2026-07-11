@@ -128,6 +128,18 @@ class OtpController extends Controller
 
         if (!$user) return $this->fail('No account found', 404, 'user_not_found');
 
+        // If the existing user has a confirmed TOTP authenticator enrolled,
+        // do not issue a token. Newly auto-created accounts cannot have TOTP
+        // enrolled so the check is only meaningful for resolved accounts.
+        // Mirrors the security boundary the web login flow enforces.
+        if (!$needsName && app(\App\Modules\User\Services\TwoFactorPolicy::class)->userHasEnrolledTotp($user)) {
+            return $this->fail(
+                'This account has two-factor authentication enabled. Please sign in through the web app to complete the second factor.',
+                403,
+                'totp_required'
+            );
+        }
+
         $newToken = \App\Modules\Api\Support\SessionTokenIssuer::issue(
             $user, $request, $data['device'] ?? null, 'mobile', 'mobile'
         );
