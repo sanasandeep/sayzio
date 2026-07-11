@@ -30,6 +30,8 @@
     "test:voice-bridge": "node scripts/test-voice-bridge.mjs",
     "test:auth-flow-e2e": "node scripts/test-auth-flow-e2e.mjs",
     "test:onboarding-e2e": "node scripts/test-onboarding-slider-e2e.mjs",
+    "test:onboarding-reveal-e2e": "node scripts/run-onboarding-reveal-e2e.mjs",
+    "test:onboarding-reveal-e2e:raw": "node scripts/test-onboarding-slide-reveal-e2e.mjs",
     "test:wordmark-legibility-e2e": "node scripts/test-brand-wordmark-legibility-e2e.mjs",
     "test:login-default-e2e": "node scripts/test-login-default-e2e.mjs",
     "test:drawer-signout-e2e": "node scripts/test-drawer-signout-e2e.mjs",
