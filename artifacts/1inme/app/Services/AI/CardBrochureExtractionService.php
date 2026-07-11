@@ -794,8 +794,8 @@ PROMPT;
             'company'     => $get($company, 'name'),
             'tagline'     => $get($company, 'tagline'),
             'description' => $get($company, 'description'),
-            'emails'      => $cleanContacts($contact['emails'] ?? [], 'email'),
-            'phones'      => $cleanContacts($contact['phones'] ?? [], 'phone'),
+            'emails'      => $cleanContacts(is_array($contact['emails'] ?? null) ? $contact['emails'] : [], 'email'),
+            'phones'      => $cleanContacts(is_array($contact['phones'] ?? null) ? $contact['phones'] : [], 'phone'),
             'website'     => $get($contact, 'website'),
             'address'     => $get($contact, 'address'),
             'socials'     => [
