@@ -143,10 +143,22 @@
                         }
                         $disabled = $userFile && $userFile->isPendingScan();
                     @endphp
+                    @php
+                        // Attachment label: flat fields store the original filename at
+                        // $data[$field]; repeatable file copies use a dotted key
+                        // "sectionId.pos.childId" whose filename lives inside the copy.
+                        $attachLabel = $submission->data[$field] ?? null;
+                        if ($attachLabel === null && str_contains($field, '.')) {
+                            [$aSec, $aPos, $aCid] = array_pad(explode('.', $field, 3), 3, null);
+                            $attachLabel = $submission->data[$aSec]['copies'][$aPos][$aCid]
+                                ?? ($submission->data[$aSec]['copies'][(int) $aPos][$aCid] ?? null);
+                        }
+                        $attachLabel = $attachLabel ?: $field;
+                    @endphp
                     <div class="p-3 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                         <div class="flex items-center gap-3">
                             <i class="fas fa-paperclip text-blue-400"></i>
-                            <span class="text-sm flex-1 min-w-0 truncate" style="color: var(--text-primary);">{{ $submission->data[$field] ?? $field }}</span>
+                            <span class="text-sm flex-1 min-w-0 truncate" style="color: var(--text-primary);">{{ $attachLabel }}</span>
 
                             @if($disabled)
                                 <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded inline-flex items-center gap-1"

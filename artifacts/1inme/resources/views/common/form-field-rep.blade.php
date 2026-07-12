@@ -33,6 +33,55 @@
 @if(in_array($type, ['heading', 'paragraph']))
     @if($type === 'heading') <h3 class="form-heading">{{ $label }}</h3>
     @else <p class="form-paragraph">{{ $label }}</p> @endif
+@elseif($type === 'file')
+    @php
+        // File children of repeatable groups. Mirror the flat file field's
+        // plan-driven upload policy, resolved against the form OWNER so public
+        // (unauthenticated) submissions still honour the owner's limits.
+        $ffOwner  = $fieldOwner ?? auth()->user();
+        $ffPolicy = (!empty($field['file_types']) || !empty($field['file_max_kb']) || !$ffOwner)
+            ? null
+            : \App\Services\UploadPolicy::for('form_field.file', $ffOwner);
+        $ffAccept = !empty($field['file_types'])
+            ? collect(explode(',', preg_replace('/[^a-zA-Z0-9,]/', '', (string) $field['file_types'])))->map(fn ($e) => '.' . $e)->implode(',')
+            : ($ffPolicy['accept'] ?? '*/*');
+        $ffMaxMb  = !empty($field['file_max_kb'])
+            ? round(((int) $field['file_max_kb']) / 1024, 1)
+            : ($ffPolicy['max_mb'] ?? null);
+        $ffHint   = !empty($field['file_types']) ? strtoupper(str_replace(',', ', ', $field['file_types'])) : null;
+
+        // Uploaded files can't be flashed back by old() after a 422 (the browser
+        // never resubmits a file input's value). If THIS copy carried a file on
+        // the failed submit, surface a precise "please re-attach" prompt so the
+        // file isn't silently dropped.
+        $repPending  = session('_rep_file_pending', []);
+        $pendingName = $repPending[$sectionId][$repCopyIdx][$id] ?? null;
+    @endphp
+    <div class="form-field">
+        <label class="form-label">{{ $label }}@if($required)<span class="form-required">*</span>@endif</label>
+        @if($pendingName)
+            <div role="status" style="display:flex;gap:0.5rem;align-items:flex-start;margin-bottom:0.5rem;padding:0.55rem 0.7rem;border-radius:8px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);color:#b45309;font-size:0.8rem;line-height:1.35;">
+                <i class="fas fa-triangle-exclamation" style="margin-top:0.12rem;"></i>
+                <span>Please re-attach <strong>{{ $pendingName }}</strong> — uploaded files can’t be saved when the form is returned with errors, so this one needs to be selected again.</span>
+            </div>
+        @endif
+        @include('user.partials.dropzone-input', [
+            'name'     => $repName,
+            'accept'   => $ffAccept,
+            'required' => $required,
+            'maxMb'    => $ffMaxMb,
+            'hint'     => $ffHint,
+            'compact'  => true,
+            // Explicitly null the `form` param: this partial lives inside the
+            // public form.blade.php scope where `$form` is the Form model, and
+            // the dropzone would otherwise inherit it and render a bogus
+            // form="<model>" attribute that detaches the file input from the
+            // real <form>, so the upload is silently never submitted.
+            'form'     => null,
+        ])
+        @if($help)<div class="form-help">{{ $help }}</div>@endif
+        @if($hasError)<div class="form-error">{{ $errors->first($errKey) }}</div>@endif
+    </div>
 @elseif(!in_array($type, ['file', 'signature', 'pricing', 'hidden', 'page_break', 'divider', 'section']))
 <div class="form-field">
     @unless(in_array($type, ['consent', 'checkbox']))

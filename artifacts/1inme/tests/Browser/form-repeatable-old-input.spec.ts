@@ -54,6 +54,7 @@ $fields = [
   ['id'=>'company','type'=>'text','label'=>'Company','required'=>true,'width'=>12],
   ['id'=>'sec1','type'=>'section','label'=>'Attendee','repeatable'=>true,'repeat_min'=>1,'repeat_max'=>5,'repeat_add_label'=>'Add attendee'],
   ['id'=>'aname','type'=>'text','label'=>'Attendee name','required'=>true,'parent'=>'sec1','width'=>12],
+  ['id'=>'afile','type'=>'file','label'=>'Attendee file','required'=>false,'parent'=>'sec1','width'=>12],
 ];
 
 // Form::user_id is NOT mass-assignable (not in $fillable), so set it directly.
@@ -141,5 +142,75 @@ test.describe("repeatable group survives validation failure (web)", () => {
     // on a success screen), and the top-level field is flagged invalid.
     await expect(page.locator('input[name="company"]')).toBeVisible();
     await expect(page.locator(".form-error").first()).toBeVisible();
+  });
+
+  test("a file attached to a rep copy beyond index 0 prompts a precise re-attach on 422", async ({
+    page,
+  }) => {
+    await page.goto(`/f/${slug}`, { timeout: 120_000 });
+
+    // Fill copy 0's required text so the ONLY validation failure is the empty
+    // top-level "company" field (a top-level 422, which re-renders the form).
+    const copy0 = page.locator('input[name="rep_sec1[0][aname]"]');
+    await expect(copy0).toBeVisible();
+    await copy0.fill(COPY0_VALUE);
+
+    // Add a second copy and fill its text, then attach a file to copy 1's file
+    // input — the regression target is that a file in a copy beyond index 0 is
+    // not silently dropped on re-render.
+    await page.getByRole("button", { name: "Add attendee" }).click();
+    const copy1 = page.locator('input[name="rep_sec1[1][aname]"]');
+    await expect(copy1).toBeVisible();
+    await copy1.fill(COPY1_VALUE);
+
+    // Attach a file to copy 1's dropzone. The file MUST be created in-page (not
+    // via setInputFiles): the dropzone's @change handler rebuilds the input's
+    // FileList through a fresh DataTransfer, and Playwright's CDP-injected File
+    // objects can't be re-added to a DataTransfer (dt.items.add drops them),
+    // which would silently clear the input before submit. A page-created File
+    // survives that rebuild, faithfully mirroring a real file-picker selection.
+    // Use an extension the form_field.file upload policy allows (png).
+    const FILE_NAME = "attendee-badge.png";
+    await page.evaluate((fileName) => {
+      const input = document.querySelector<HTMLInputElement>(
+        'input[name="rep_sec1[1][afile]"]',
+      );
+      if (!input) throw new Error("rep copy 1 file input not found");
+      const bytes = new Uint8Array([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      ]);
+      const file = new File([bytes], fileName, { type: "image/png" });
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }, FILE_NAME);
+
+    const submitted = page.waitForResponse(
+      (r) => r.url().includes(`/f/${slug}`) && r.request().method() === "POST",
+      { timeout: 60_000 },
+    );
+    await page.evaluate(() => {
+      const form = document.querySelector<HTMLFormElement>(
+        'form[action*="/f/"]',
+      );
+      if (!form) throw new Error("public form element not found");
+      form.submit();
+    });
+    await submitted;
+
+    // After the 422 re-render, the file input for copy 1 is present again AND a
+    // precise "please re-attach <filename>" notice names the dropped file, so
+    // the visitor knows exactly which upload to re-select.
+    await expect(
+      page.locator('input[name="rep_sec1[1][afile]"]'),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(FILE_NAME, { exact: false })).toBeVisible();
+    await expect(page.getByText(/re-attach/i).first()).toBeVisible();
+
+    // The text sibling in the same copy still survives (old() repopulation).
+    await expect(page.locator('input[name="rep_sec1[1][aname]"]')).toHaveValue(
+      COPY1_VALUE,
+    );
   });
 });

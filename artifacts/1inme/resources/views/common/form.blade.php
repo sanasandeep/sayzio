@@ -456,7 +456,7 @@
                         };
 
                         // Types excluded from repeatable group copies in oneq (same as flat form)
-                        $oneqRepExcluded = ['file', 'signature', 'pricing', 'heading', 'paragraph', 'divider', 'page_break', 'section', 'hidden'];
+                        $oneqRepExcluded = ['signature', 'pricing', 'heading', 'paragraph', 'divider', 'page_break', 'section', 'hidden'];
 
                         foreach ($allFields as $f) {
                             $t = $f['type'] ?? 'text';
@@ -589,6 +589,7 @@
                                                 'repName'     => $repChild['_rep_name'],
                                                 'repCopyIdx'  => 0,
                                                 'sectionId'   => $f['id'],
+                                                'fieldOwner'  => $form->user ?? null,
                                             ])
                                         @endforeach
                                     </div>
@@ -691,7 +692,7 @@
                                     @php
                                         $secId   = $field['id'] ?? null;
                                         $sRepeat = !empty($field['repeatable']);
-                                        $repExcludedTypes = ['file', 'signature', 'pricing', 'hidden'];
+                                        $repExcludedTypes = ['signature', 'pricing', 'hidden'];
                                         $sChildren = $childrenBySection[$secId] ?? [];
                                         $sChildrenRep = $sRepeat
                                             ? array_values(array_filter($sChildren, fn ($c) => !in_array($c['type'] ?? 'text', $repExcludedTypes, true)))
@@ -742,7 +743,7 @@
                                                                     $rn = "rep_{$secId}[{$ci}][{$cid}]";
                                                                 @endphp
                                                                 <div class="form-grid-cell" style="grid-column: span {{ $cw }};">
-                                                                    @include('common.form-field-rep', ['field' => $child, 'repName' => $rn, 'repCopyIdx' => $ci, 'sectionId' => $secId])
+                                                                    @include('common.form-field-rep', ['field' => $child, 'repName' => $rn, 'repCopyIdx' => $ci, 'sectionId' => $secId, 'fieldOwner' => $form->user ?? null])
                                                                 </div>
                                                             @endforeach
                                                         </div>

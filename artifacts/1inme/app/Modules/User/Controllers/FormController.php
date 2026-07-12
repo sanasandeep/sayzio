@@ -1028,6 +1028,14 @@ class FormController extends Controller
         $form = Form::where('slug', $slug)->where('is_active', true)->firstOrFail();
 
         $rules = $this->buildSubmissionRules($form);
+
+        // Files attached inside repeatable copies can't be flashed back by old()
+        // on a 422 (browsers never resubmit a file input's value and Laravel
+        // doesn't flash uploads). Before validation may redirect us back,
+        // remember which repeatable copies carried an upload so the re-render
+        // can prompt the visitor to re-attach instead of silently dropping it.
+        $this->flashPendingRepeatableFiles($request, $form);
+
         $validated = $request->validate($rules, $this->customMessages);
 
         // Verify captcha before processing any submission data
@@ -1049,11 +1057,17 @@ class FormController extends Controller
         }
         $repSecChildren = [];
         // Excluded types that cannot live inside a repeatable group at collect time.
+        // File children are collected separately (they arrive in the uploaded-files
+        // array, not ->input()), so they get their own map below.
         $repExcluded = ['file', 'signature', 'pricing', 'heading', 'paragraph', 'divider', 'page_break', 'section', 'hidden'];
+        $repFileChildren = [];
         foreach ($form->fields ?? [] as $f) {
             $fParent = (string) ($f['parent'] ?? '');
-            if ($fParent !== '' && isset($repeatableSecIds[$fParent])
-                && !in_array($f['type'] ?? 'text', $repExcluded, true)) {
+            if ($fParent === '' || !isset($repeatableSecIds[$fParent])) continue;
+            $ftype = $f['type'] ?? 'text';
+            if ($ftype === 'file') {
+                $repFileChildren[$fParent][] = $f;
+            } elseif (!in_array($ftype, $repExcluded, true)) {
                 $repSecChildren[$fParent][] = $f;
             }
         }
@@ -1068,10 +1082,23 @@ class FormController extends Controller
             if ($type === 'section' && $id && !empty($field['repeatable'])) {
                 $repKey    = 'rep_' . $id;
                 $rawCopies = $request->input($repKey, []);
+                $repFiles  = $request->file($repKey, []);
                 if (!is_array($rawCopies)) $rawCopies = [];
+                if (!is_array($repFiles))  $repFiles  = [];
+
+                // A copy index can appear in the text inputs, the uploaded files,
+                // or both. Iterate the union (preserving each original index) so an
+                // uploaded file lines up with the text siblings in its own copy.
+                $copyIndices = array_values(array_unique(array_merge(
+                    array_map('intval', array_keys($rawCopies)),
+                    array_map('intval', array_keys($repFiles))
+                )));
+                sort($copyIndices);
+
                 $copies = [];
-                foreach (array_values($rawCopies) as $copyData) {
-                    if (!is_array($copyData)) continue;
+                foreach ($copyIndices as $ci) {
+                    $copyData  = is_array($rawCopies[$ci] ?? null) ? $rawCopies[$ci] : [];
+                    $copyFiles = is_array($repFiles[$ci] ?? null) ? $repFiles[$ci] : [];
                     $copy = [];
                     foreach ($repSecChildren[$id] ?? [] as $child) {
                         $cid   = (string) ($child['id'] ?? '');
@@ -1087,6 +1114,31 @@ class FormController extends Controller
                         } else {
                             $raw = $copyData[$cid] ?? null;
                             $copy[$cid] = is_scalar($raw) ? (string) $raw : null;
+                        }
+                    }
+                    // File children arrive in the uploaded-files array, not
+                    // ->input(). Store each under the form OWNER's vault (visitors
+                    // are anonymous) and keep a downloadable reference plus the
+                    // original filename in the copy. The attachment key uses the
+                    // final copies-array position so the owner UI can resolve the
+                    // filename back from the stored group.
+                    $pos = count($copies);
+                    foreach ($repFileChildren[$id] ?? [] as $child) {
+                        $cid = (string) ($child['id'] ?? '');
+                        if ($cid === '') continue;
+                        $up = $copyFiles[$cid] ?? null;
+                        if ($up instanceof \Illuminate\Http\UploadedFile && $up->isValid()) {
+                            try {
+                                $userFile = UserFile::createFromUpload($up, $form->user, [
+                                    'enforce_allowlist' => false,
+                                ]);
+                                $files["{$id}.{$pos}.{$cid}"] = $userFile->url;
+                                $copy[$cid] = $up->getClientOriginalName();
+                            } catch (\RuntimeException $e) {
+                                $copy[$cid] = '[upload failed: ' . $e->getMessage() . ']';
+                            }
+                        } else {
+                            $copy[$cid] = null;
                         }
                     }
                     $copies[] = $copy;
@@ -1363,6 +1415,41 @@ class FormController extends Controller
         } catch (\Throwable $e) {
             // Resolver unavailable — leave geo empty; breakdown degrades.
             return null;
+        }
+    }
+
+    /**
+     * Remember which repeatable copies carried an uploaded file so a 422
+     * re-render can prompt the visitor to re-attach (uploads can't be flashed
+     * to the session like old() text input). Structure:
+     *   session('_rep_file_pending') = [sectionId => [copyIdx => [fieldId => filename]]]
+     * Called BEFORE validation because a failed validate() redirects back.
+     */
+    protected function flashPendingRepeatableFiles(Request $request, Form $form): void
+    {
+        $repSecIds = [];
+        foreach ($form->fields ?? [] as $f) {
+            if (($f['type'] ?? null) === 'section' && !empty($f['repeatable']) && !empty($f['id'])) {
+                $repSecIds[(string) $f['id']] = true;
+            }
+        }
+        if (empty($repSecIds)) return;
+
+        $pending = [];
+        foreach ($request->allFiles() as $key => $copies) {
+            if (!is_string($key) || !str_starts_with($key, 'rep_')) continue;
+            $secId = substr($key, 4);
+            if (!isset($repSecIds[$secId])) continue;
+            foreach ((array) $copies as $ci => $childFiles) {
+                foreach ((array) $childFiles as $cid => $file) {
+                    if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
+                        $pending[$secId][(int) $ci][(string) $cid] = $file->getClientOriginalName();
+                    }
+                }
+            }
+        }
+        if (!empty($pending)) {
+            session()->flash('_rep_file_pending', $pending);
         }
     }
 
@@ -1655,6 +1742,15 @@ class FormController extends Controller
                 $stack = $req ? ['accepted'] : ['nullable'];
                 break;
             case 'file':
+                // Repeatable file children are collected via $request->file();
+                // validate size/type here so an unauthenticated visitor can't
+                // push an oversized or disallowed upload into the owner's vault.
+                $maxKb = (int) ($field['file_max_kb'] ?? 10240);
+                if ($maxKb < 1) $maxKb = 10240;
+                $mimes = trim((string) ($field['file_types'] ?? ''));
+                $mimes = $mimes !== '' ? preg_replace('/[^a-zA-Z0-9,]/', '', $mimes) : 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,csv,txt,zip,mp3,mp4,mov';
+                $stack = [$req ? 'required' : 'nullable', 'file', "max:$maxKb", "mimes:$mimes"];
+                break;
             case 'signature':
             case 'pricing':
             case 'hidden':
