@@ -10,6 +10,7 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 // Regression guard for the redesigned step-by-step first-run onboarding wizard
 // (task: "confirm the new step-by-step onboarding can't leave users stuck").
@@ -300,25 +301,6 @@ echo 'RESTORE_OK';
  * (not the redirect target render) so the heavy post-login render never blocks
  * the suite (see memory "1inme browser e2e fast login").
  */
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      if (!form) throw new Error("demo-login form not found");
-      form.submit();
-    }),
-  ]);
-}
-
 /**
  * Open the onboarding wizard and wait until Alpine has hydrated the stage
  * machine: the progress stepper is attached and the Welcome stage's primary

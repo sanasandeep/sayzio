@@ -11,6 +11,7 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 // Shared logged-in context (demo-login is rate-limited at throttle:5,1).
 let sharedContext: BrowserContext;
@@ -135,31 +136,6 @@ echo 'IDS=' . json_encode(['linkId' => $bio->id, 'headingId' => $h->id, 'badgeId
   return JSON.parse(m[1]);
 }
 
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      if (!form) throw new Error("demo-login form not found");
-      form.submit();
-    }),
-  ]);
-  // The POST response can arrive before the resulting navigation commits;
-  // navigating away immediately then races ("interrupted by another
-  // navigation to /user/demo-login"). Let the post-login page settle first.
-  await page
-    .waitForLoadState("load", { timeout: 90_000 })
-    .catch(() => undefined);
-}
-
 let ids: ReturnType<typeof seedFixtures>;
 
 test.beforeAll(async ({ browser }) => {
@@ -170,6 +146,12 @@ test.beforeAll(async ({ browser }) => {
   sharedContext = await browser.newContext();
   const page = await sharedContext.newPage();
   await loginAsDemo(page);
+  // The POST response can arrive before the resulting navigation commits;
+  // navigating away immediately then races ("interrupted by another navigation
+  // to /user/demo-login"). Let the post-login page settle first.
+  await page
+    .waitForLoadState("load", { timeout: 90_000 })
+    .catch(() => undefined);
   // Warm the public biolink page once: a cold render over the distant RDS can
   // take 30s+, which otherwise eats the preview-iframe wait budget in test 1.
   await page.goto(`/${ALIAS}`, {

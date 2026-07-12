@@ -11,6 +11,7 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 // Guards the Safari-iOS visible-viewport pinning added to the Ask Zio chat
 // panel (saSyncPanelViewport in
@@ -93,25 +94,6 @@ echo 'SEED_OK';
 }
 
 /** Log in as the demo user (non-prod quick-login) without blocking on the dashboard render. */
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      if (!form) throw new Error("demo-login form not found");
-      form.submit();
-    }),
-  ]);
-}
-
 /** Stub the chat bootstrap/session so opening the panel is deterministic and fast. */
 async function stubChat(page: Page): Promise<void> {
   await page.route("**/assistant/bootstrap*", (route: Route) =>

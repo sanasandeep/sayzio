@@ -10,6 +10,7 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 // Shared logged-in context (demo-login is rate-limited at throttle:5,1).
 let sharedContext: BrowserContext;
@@ -101,25 +102,6 @@ echo 'IDS=' . json_encode(['linkId' => $bio->id, 'blockA' => $a->id, 'blockB' =>
   const m = out.match(/IDS=(\{.*\})/);
   if (!m) throw new Error("Seed failed, output:\n" + out);
   return JSON.parse(m[1]);
-}
-
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      if (!form) throw new Error("demo-login form not found");
-      form.submit();
-    }),
-  ]);
 }
 
 let ids: ReturnType<typeof seedFixtures>;

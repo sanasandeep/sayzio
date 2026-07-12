@@ -10,6 +10,7 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 /**
  * Confirms the BROWSER dialer page visually refreshes when another device makes
@@ -157,22 +158,6 @@ echo 'CALL_OK';
   if (!runTinker(php).includes("CALL_OK")) {
     throw new Error("Failed to log out-of-band call");
   }
-}
-
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") && r.request().method() === "POST",
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      form?.submit();
-    }),
-  ]);
 }
 
 /**

@@ -10,6 +10,7 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 // Regression guard for the logged-in account controls inside the MOBILE
 // hamburger drawer of the Sayzio public header (task: "Make sure the mobile
@@ -125,25 +126,6 @@ echo 'SEED_OK';
  * (not the redirect target render) so the heavy post-login render never blocks
  * the suite (see memory "1inme browser e2e fast login").
  */
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      if (!form) throw new Error("demo-login form not found");
-      form.submit();
-    }),
-  ]);
-}
-
 /**
  * Force the site into the requested theme by toggling the exact `light-mode`
  * html class the CSS keys off. Bulletproof and mode-deterministic — setting the

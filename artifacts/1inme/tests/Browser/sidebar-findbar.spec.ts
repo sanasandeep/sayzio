@@ -10,6 +10,7 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 // Regression guard for the sidebar find-bar fix (commit 44b3bf0cc).
 //
@@ -153,45 +154,6 @@ echo 'SEED_OK';
  * Either way we wait only for the demo-login POST response, not the heavy
  * post-login render, so the suite isn't blocked.
  */
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login", { timeout: 120_000 });
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const existing = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      if (existing) {
-        existing.submit();
-        return;
-      }
-      // Fallback: no demo form on this page — build one from the CSRF token.
-      const token =
-        document.querySelector<HTMLInputElement>('input[name="_token"]')
-          ?.value ??
-        document
-          .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-          ?.getAttribute("content") ??
-        "";
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = "/user/demo-login";
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = "_token";
-      input.value = token;
-      form.appendChild(input);
-      document.body.appendChild(form);
-      form.submit();
-    }),
-  ]);
-}
-
 /**
  * Open /user/dashboard and wait until the desktop sidebar has rendered with its
  * top-level "Dashboard" link visible. A cold authenticated render over the

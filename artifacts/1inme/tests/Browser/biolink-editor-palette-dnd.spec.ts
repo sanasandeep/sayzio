@@ -10,6 +10,7 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 // All tests share a single logged-in browser context (the demo-login route is
 // rate-limited at throttle:5,1, so a login per test would trip the limit).
@@ -129,30 +130,6 @@ echo 'LINKID=' . $bio->id . ' CARDID=' . $card->id;
  * (not the redirect target render) so the heavy post-login dashboard render
  * never blocks the suite — see the inline note below.
  */
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  // Wait only for the demo-login POST itself — Laravel sets the authenticated
-  // session cookie on its 302 response, so the context is logged in as soon as
-  // that returns. We deliberately do NOT wait for the redirect target to render
-  // (the dashboard is a heavy ~20-30s cold Blade render over the distant RDS,
-  // and openEditor navigates straight to the editor anyway).
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      if (!form) throw new Error("demo-login form not found");
-      form.submit();
-    }),
-  ]);
-}
-
 /** Open the block editor for a link with the test hooks armed. */
 async function openEditor(page: Page, linkId: number): Promise<void> {
   await page.addInitScript(() => {

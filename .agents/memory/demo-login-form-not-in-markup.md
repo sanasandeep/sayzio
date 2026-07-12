@@ -24,10 +24,16 @@ exactly how `tests/Browser/run-validation.sh`'s warm step authenticates: GET
 `AuthController::demoLogin` 404s ONLY in production; otherwise it converges on the
 `sayzioapp@gmail.com` demo user and logs in.
 
-**How to apply:** make `loginAsDemo` independent of the DOM button — read the
+**How to apply:** the robust `loginAsDemo` is now a single shared helper —
+`tests/Browser/login-as-demo.ts` (exports `loginAsDemo(page)`). It reads the
 `_token` the login page's own forms already carry (`input[name="_token"]`),
-synthesize a form POSTing to `/user/demo-login`, and submit it. Identical result
-to the shared helper, but works whether or not any demo button is rendered.
-`form-builder-panel-scroll-reset.spec.ts` uses this pattern. If you touch the
-shared `loginAsDemo`, prefer migrating it to the token-POST form for the same
-reason.
+synthesizes a form POSTing to `/user/demo-login`, and submits it — independent of
+any rendered demo button, identical to run-validation.sh's warm step. ALL
+browser specs that sign in as the demo user import it from `./login-as-demo`; do
+NOT re-add a copy-pasted inline `loginAsDemo` (the `form[action$="/user/demo-login"]`
+button-first version is what silently broke ~22 specs with "demo-login form not
+found"). If a spec needs to settle before navigating (rare — see
+`biolink-block-live-preview.spec.ts`), add a `waitForLoadState` at the call site,
+not a new login helper. NB the admin equivalent (`loginAsDemoAdmin` in
+`home-showcase-editor-preview.spec.ts`, POSTing `/admin/demo-login`) is a
+separate endpoint and was intentionally left on its own button-first flow.
