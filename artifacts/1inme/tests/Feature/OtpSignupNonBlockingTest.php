@@ -7,11 +7,18 @@ use App\Jobs\RecordLoginEventJob;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Services\OtpService;
 use App\Modules\User\Models\AiMind;
+use App\Modules\User\Models\AiMindSource;
 use App\Modules\User\Models\User;
+use App\Services\AI\AiMindIngestor;
+use App\Services\AI\OpenAiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Mail\Transport\ArrayTransport;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Symfony\Component\Mailer\Envelope;
+use Symfony\Component\Mailer\SentMessage;
+use Symfony\Component\Mime\RawMessage;
 use Tests\TestCase;
 
 /**
@@ -89,6 +96,124 @@ class OtpSignupNonBlockingTest extends TestCase
 
         // No synchronous mail (no welcome e-mail / SMTP connect) on sign-up.
         Mail::assertNothingSent();
+    }
+
+    public function test_first_time_email_otp_verify_responds_quickly_under_slow_ai_and_smtp_backends(): void
+    {
+        // Wall-clock guard (Task #4597). The structural tests above prove the
+        // heavy work is *queued*; this one proves that translates into an
+        // actually-fast response even when the two backends the sign-up path
+        // could touch — the AI ingestor and SMTP — are pathologically slow.
+        //
+        // Both stubbed backends sleep for far longer than the response budget,
+        // so if a regression ever runs either inline on the sign-up request
+        // (e.g. re-introducing a direct AiMindProvisioner::ensurePlatformDefault
+        // call in User::created, dropping ProvisionPlatformAiMindJob's
+        // sync-safe deferral, or adding a synchronous welcome e-mail) the verify
+        // POST would block on a sleep and blow the threshold below.
+
+        $sleepSeconds = 6;                 // each slow backend stalls this long
+        $responseBudgetSeconds = 3.0;      // the POST must return well under this
+
+        // Use the app's real `sync` driver: a plain dispatch() of a ShouldQueue
+        // job would run it inline, in-process, during the request. This is the
+        // exact misconfiguration the deferral exists to survive, so it's the
+        // right setting to prove the guarantee holds.
+        config(['queue.default' => 'sync']);
+
+        // Fake ONLY the login-event job. Under `sync` it would otherwise run
+        // inline (GeoIP HTTP lookup + possible alert e-mail through our slow
+        // transport), which is unrelated to the AI/welcome-mail regressions
+        // this test targets and would confound the timing. Every other job
+        // (platform-Mind provisioning + its source ingestion) runs for real.
+        Queue::fake([RecordLoginEventJob::class]);
+
+        // Stub a pathologically slow AI backend: if source ingestion ever runs
+        // inline (only possible if provisioning is executed on the request
+        // instead of deferred to the database queue) this sleep fires.
+        $this->app->instance(AiMindIngestor::class, new class(app(OpenAiService::class), $sleepSeconds) extends AiMindIngestor {
+            public function __construct(OpenAiService $openai, private int $sleepSeconds)
+            {
+                parent::__construct($openai);
+            }
+
+            public function ingest(AiMindSource $source): void
+            {
+                sleep($this->sleepSeconds);
+            }
+
+            public function ingestAllForMind(\App\Modules\User\Models\AiMind $mind): void
+            {
+                sleep($this->sleepSeconds);
+            }
+        });
+
+        // Stub a pathologically slow SMTP backend: any e-mail sent
+        // synchronously on the sign-up path (e.g. a welcome mail) blocks here.
+        $slowTransport = new class($sleepSeconds) extends ArrayTransport {
+            public function __construct(private int $sleepSeconds)
+            {
+                parent::__construct();
+            }
+
+            public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
+            {
+                sleep($this->sleepSeconds);
+
+                return parent::send($message, $envelope);
+            }
+        };
+        Mail::mailer()->setSymfonyTransport($slowTransport);
+
+        // Force the "platform Mind not yet provisioned" branch so the dispatch
+        // path (and, under a regression, the slow inline ingest) is exercised.
+        AiMind::query()->whereNull('user_id')->where('is_default', true)->delete();
+
+        // Warm the framework (route registration, view/config bootstrapping)
+        // with an untimed request so only the sign-up work is measured, not
+        // one-off first-request boot cost.
+        $this->get('/user/login');
+
+        $email = 'timed-first-timer@example.com';
+        $this->assertDatabaseMissing('users', ['email' => $email]);
+
+        $code = app(OtpService::class)->generate($email, 'email', 'login', 'web', '127.0.0.1');
+
+        $start = microtime(true);
+        $response = $this->withSession([
+            'otp_identifier' => $email,
+            'otp_type'       => 'email',
+        ])->post('/user/verify-otp', ['code' => $code]);
+        $elapsed = microtime(true) - $start;
+
+        // The account is created and the request redirects (a 500/hang fails).
+        $response->assertRedirect();
+        $this->assertDatabaseHas('users', ['email' => $email]);
+
+        // The core assertion: the verify POST returned promptly despite both
+        // backends being far slower than the budget, which can only hold if no
+        // slow work ran inline on the request.
+        $this->assertLessThan(
+            $responseBudgetSeconds,
+            $elapsed,
+            sprintf(
+                'First-time OTP sign-up took %.2fs (budget %.1fs). A slow AI/SMTP '
+                . 'backend ran inline — heavy provisioning or a synchronous '
+                . 'welcome e-mail is back on the sign-up request path.',
+                $elapsed,
+                $responseBudgetSeconds
+            )
+        );
+
+        // Sanity floor: the stubs really would have blown the budget if hit, so
+        // a "fast" pass genuinely means the slow paths were skipped, not that
+        // the stubs were no-ops.
+        $this->assertGreaterThan($responseBudgetSeconds, (float) $sleepSeconds);
+
+        // Provisioning was deferred, not executed: no platform Mind was created
+        // during the request (its creation + ingest would have tripped the
+        // slow stub above).
+        $this->assertDatabaseMissing('ai_minds', ['user_id' => null, 'is_default' => true]);
     }
 
     public function test_platform_mind_job_is_not_reenqueued_once_provisioned(): void
