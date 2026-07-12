@@ -206,6 +206,15 @@ Route::prefix('v1')->group(function () {
     Route::post('/reviews/{alias}', [\App\Modules\Api\Controllers\ReviewApiController::class, 'submit'])
         ->middleware(['api.optional_auth', 'throttle:10,1']);
 
+    // Public, no-login form submission — the REST mirror of the web POST
+    // /f/{slug}. Delegates to the canonical web submit pipeline so API-driven
+    // embeds and mobile integrations capture the same data, including
+    // repeatable-group (rep_{id}[idx][childId]) payloads stored as
+    // {_repeatable_group, copies}. Same throttle as the web route.
+    Route::post('/forms/{id}/submit', [FormController::class, 'publicSubmit'])
+        ->whereNumber('id')
+        ->middleware('throttle:10,1');
+
     // Best-effort page-visit tracking from in-app biolink viewers (mobile).
     // Mirrors the web's RedirectController::track() call on every biolink
     // page load so visits via the app are counted in creator analytics.

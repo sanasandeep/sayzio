@@ -28,6 +28,43 @@ class FormController extends Controller
     }
 
     /**
+     * Public, no-login form submission over REST — the API mirror of the web
+     * FormController@publicSubmit (POST /f/{slug}). API-driven form embeds and
+     * mobile integrations POST here to record a submission, including
+     * repeatable-group payloads (rep_{id}[idx][childId]) which are collected
+     * and stored in the exact same {_repeatable_group, copies} shape as the
+     * web flow.
+     *
+     * Rather than duplicate the full submit pipeline (validation, captcha,
+     * spam heuristics, pricing/payment, CRM fan-out, owner notifications), this
+     * delegates to the canonical web controller so behaviour — including the
+     * repeatable collect logic the task targets — can never drift between the
+     * two surfaces. The web method already emits a JSON body for JSON requests;
+     * we force the Accept header so its success / payment-required / captcha
+     * branches all return JSON regardless of the caller's headers. Validation
+     * failures bubble up as a ValidationException and are rendered in the
+     * standard /api/* error envelope by the global exception handler.
+     *
+     * Note: math (session-based) captcha cannot be satisfied over the stateless
+     * bearer API, so forms configured with it will reject API submissions. The
+     * honeypot and every HTTP-verified captcha provider (reCAPTCHA / hCaptcha /
+     * Turnstile) still work.
+     */
+    public function publicSubmit(Request $request, int $id)
+    {
+        $form = Form::where('id', $id)->where('is_active', true)->first();
+        if (!$form || !$form->slug) return $this->notFound('Form not found');
+
+        // Make the delegated web flow take its JSON branches (success message,
+        // payment_required checkout, captcha error) instead of a browser
+        // redirect / flashed session response.
+        $request->headers->set('Accept', 'application/json');
+
+        return app(\App\Modules\User\Controllers\FormController::class)
+            ->publicSubmit($request, $form->slug);
+    }
+
+    /**
      * Create a form on the spot from the mobile block editor's special
      * panel. Mirrors the web FormController@store: a title (and optional
      * starter template) is enough — the new form is seeded with the

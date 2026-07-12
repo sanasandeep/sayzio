@@ -561,6 +561,7 @@ Mobile can list + create-on-the-spot from the block editor; richer editing lives
 | GET    | `/forms`                             | yes  | List forms.                         |
 | POST   | `/forms`                             | yes  | Create a form.                      |
 | GET    | `/forms/{id}`                        | yes  | Show a form.                        |
+| POST   | `/forms/{id}/submit`                 | no   | Public form submission. Throttle: 10/min. |
 | GET    | `/forms/{id}/submissions`            | yes  | List submissions.                   |
 | GET    | `/forms/{id}/submissions.csv`        | yes  | Export submissions as CSV.          |
 
@@ -572,6 +573,63 @@ Forms can charge on submission — a **fixed** price and/or **per-field** pricin
 (`mode = per_field`), plus a dedicated **Pricing/Package** field. Totals and line
 items are computed and charged **server-side** in minor units, so a client must
 not trust a client-supplied total.
+
+### Reading a form's fields
+
+`GET /forms/{id}` returns `{ data: { form: { …, fields: [ … ] } } }`. Each entry
+in `fields` is the raw field definition. **Repeatable sections** (a field with
+`type: "section"`) carry the metadata a client needs to render and collect a
+repeatable group:
+
+| Field key          | Meaning                                                                 |
+| ------------------ | ----------------------------------------------------------------------- |
+| `repeatable`       | `true` when the section can be duplicated by the visitor.               |
+| `repeat_min`       | Minimum number of copies required (defaults to `1`; `0` = optional).    |
+| `repeat_max`       | Maximum number of copies allowed (`0`/absent = unlimited).              |
+| `repeat_add_label` | Button label shown to add another copy (e.g. `"Add another"`).          |
+
+Fields that belong to a section carry `parent` set to that section's `id`. To
+build a repeatable group, take every non-section child whose `parent` equals the
+repeatable section's `id`.
+
+### Submitting a form
+
+`POST /forms/{id}/submit` is the REST mirror of the public web form (`POST
+/f/{slug}`). It requires **no** authentication and shares the same submit
+pipeline — server-side validation, spam/honeypot checks, HTTP-verified captcha
+(reCAPTCHA / hCaptcha / Turnstile), pricing/payment, CRM fan-out, and owner
+notifications — so behaviour is identical to the web form.
+
+Send each **flat** field keyed by its field `id`. For each **repeatable
+section**, send an array keyed `rep_{sectionId}`, where every element is an object
+of that section's `{childId: value}` copies:
+
+```bash
+curl -X POST $BASE/forms/42/submit \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Ada Lovelace",
+    "rep_7": [
+      { "item_9": "Widget", "qty_10": "2" },
+      { "item_9": "Gadget", "qty_10": "1" }
+    ]
+  }'
+```
+
+Repeatable-group answers are stored on the submission in the same shape the web
+flow uses — `{ "7": { "_repeatable_group": true, "copies": [ … ] } }` — so they
+appear identically in `GET /forms/{id}/submissions`.
+
+**Success** returns `{ ok: true, message, redirect }`. When the form charges on
+submission, the response is `{ ok: true, payment_required: true, checkout_url,
+amount_cents, currency }` and the submission is finalised after payment.
+**Validation errors** use the standard envelope
+(`{ error: { message, code: "validation_failed", details } }`, HTTP 422); a
+failed captcha returns `{ error: { message, code: "captcha_failed" } }` (422).
+
+> **Note:** the session-based **math** captcha cannot be satisfied over the
+> stateless bearer API — forms configured with it will reject API submissions.
+> Use the honeypot or an HTTP-verified captcha provider instead.
 
 ## Contacts
 
