@@ -440,30 +440,57 @@ protected $fillable = [
     public static function fieldTypes(): array
     {
         return [
-            'text'      => ['label' => 'Short Text',  'icon' => 'fa-font'],
-            'textarea'  => ['label' => 'Long Text',   'icon' => 'fa-align-left'],
-            'email'     => ['label' => 'Email',       'icon' => 'fa-envelope'],
-            'phone'     => ['label' => 'Phone',       'icon' => 'fa-phone'],
-            'number'    => ['label' => 'Number',      'icon' => 'fa-hashtag'],
-            'url'       => ['label' => 'Website URL', 'icon' => 'fa-link'],
-            'date'      => ['label' => 'Date',        'icon' => 'fa-calendar'],
-            'time'      => ['label' => 'Time',        'icon' => 'fa-clock'],
-            'select'    => ['label' => 'Dropdown',    'icon' => 'fa-caret-square-down'],
-            'radio'     => ['label' => 'Multiple Choice', 'icon' => 'fa-dot-circle'],
-            'checkbox'  => ['label' => 'Checkboxes',  'icon' => 'fa-check-square'],
-            'rating'    => ['label' => 'Star Rating', 'icon' => 'fa-star'],
-            'scale'     => ['label' => 'Linear Scale','icon' => 'fa-sliders-h'],
-            'pricing'   => ['label' => 'Pricing / Package', 'icon' => 'fa-tags'],
-            'file'      => ['label' => 'File Upload', 'icon' => 'fa-paperclip'],
-            'signature' => ['label' => 'Signature',   'icon' => 'fa-signature'],
-            'consent'   => ['label' => 'Consent / Terms', 'icon' => 'fa-shield-alt'],
-            'hidden'    => ['label' => 'Hidden Field','icon' => 'fa-eye-slash'],
-            'heading'   => ['label' => 'Section Heading', 'icon' => 'fa-heading'],
-            'paragraph' => ['label' => 'Paragraph Text','icon' => 'fa-paragraph'],
-            'divider'   => ['label' => 'Divider',     'icon' => 'fa-minus'],
-            'page_break'=> ['label' => 'Page Break (Multi-step)', 'icon' => 'fa-file-export'],
-            'section'   => ['label' => 'Section / Group',  'icon' => 'fa-layer-group'],
+            'text'         => ['label' => 'Short Text',          'icon' => 'fa-font',            'group' => 'basic'],
+            'textarea'     => ['label' => 'Long Text',           'icon' => 'fa-align-left',      'group' => 'basic'],
+            'email'        => ['label' => 'Email',               'icon' => 'fa-envelope',        'group' => 'basic'],
+            'phone'        => ['label' => 'Phone',               'icon' => 'fa-phone',           'group' => 'basic'],
+            'number'       => ['label' => 'Number',              'icon' => 'fa-hashtag',         'group' => 'basic'],
+            'url'          => ['label' => 'Website URL',         'icon' => 'fa-link',            'group' => 'basic'],
+            'date'         => ['label' => 'Date',                'icon' => 'fa-calendar',        'group' => 'basic'],
+            'time'         => ['label' => 'Time',                'icon' => 'fa-clock',           'group' => 'basic'],
+            'select'       => ['label' => 'Dropdown',            'icon' => 'fa-caret-square-down','group'=> 'choice'],
+            'radio'        => ['label' => 'Multiple Choice',     'icon' => 'fa-dot-circle',      'group' => 'choice'],
+            'checkbox'     => ['label' => 'Checkboxes',          'icon' => 'fa-check-square',    'group' => 'choice'],
+            'rating'       => ['label' => 'Star Rating',         'icon' => 'fa-star',            'group' => 'choice'],
+            'scale'        => ['label' => 'Linear Scale',        'icon' => 'fa-sliders-h',       'group' => 'choice'],
+            'pricing'      => ['label' => 'Pricing / Package',   'icon' => 'fa-tags',            'group' => 'advanced'],
+            'file'         => ['label' => 'File Upload',         'icon' => 'fa-paperclip',       'group' => 'advanced'],
+            'signature'    => ['label' => 'Signature',           'icon' => 'fa-signature',       'group' => 'advanced'],
+            'consent'      => ['label' => 'Consent / Terms',     'icon' => 'fa-shield-alt',      'group' => 'advanced'],
+            'hidden'       => ['label' => 'Hidden Field',        'icon' => 'fa-eye-slash',       'group' => 'advanced'],
+            'full_name'    => ['label' => 'Full Name',           'icon' => 'fa-id-card',         'group' => 'personal'],
+            'address'      => ['label' => 'Address',             'icon' => 'fa-map-marker-alt',  'group' => 'personal'],
+            'country'      => ['label' => 'Country / Region',   'icon' => 'fa-globe',           'group' => 'personal'],
+            'currency'     => ['label' => 'Currency / Money',   'icon' => 'fa-dollar-sign',     'group' => 'personal'],
+            'yes_no'       => ['label' => 'Yes / No',            'icon' => 'fa-toggle-on',       'group' => 'choice'],
+            'image_choice' => ['label' => 'Image Choice',        'icon' => 'fa-images',          'group' => 'choice'],
+            'ranking'      => ['label' => 'Ranking',             'icon' => 'fa-list-ol',         'group' => 'choice'],
+            'slider'       => ['label' => 'Range Slider',        'icon' => 'fa-grip-lines-vertical','group'=> 'choice'],
+            'time_range'   => ['label' => 'Time Range',          'icon' => 'fa-business-time',   'group' => 'advanced'],
+            'date_range'   => ['label' => 'Date Range',          'icon' => 'fa-calendar-week',   'group' => 'advanced'],
+            'heading'      => ['label' => 'Section Heading',     'icon' => 'fa-heading',         'group' => 'layout'],
+            'paragraph'    => ['label' => 'Paragraph Text',      'icon' => 'fa-paragraph',       'group' => 'layout'],
+            'divider'      => ['label' => 'Divider',             'icon' => 'fa-minus',           'group' => 'layout'],
+            'page_break'   => ['label' => 'Page Break (Multi-step)', 'icon' => 'fa-file-export', 'group' => 'layout'],
+            'section'      => ['label' => 'Section / Group',     'icon' => 'fa-layer-group',     'group' => 'layout'],
         ];
+    }
+
+    /**
+     * Returns the normalized captcha configuration for this form.
+     * Handles backward-compat where settings['captcha'] was stored as `false`.
+     */
+    public function captchaConfig(): array
+    {
+        $defaults = [
+            'provider'        => 'honeypot',
+            'site_key'        => null,
+            'secret_key'      => null,
+            'score_threshold' => 0.5,
+        ];
+        $cap = ($this->settings ?? [])['captcha'] ?? null;
+        if (!is_array($cap)) return $defaults;
+        return array_merge($defaults, $cap);
     }
 
     protected static function booted(): void

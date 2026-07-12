@@ -40,6 +40,12 @@
         // Label for the base-fee line item in the mini-cart, mirroring
         // Form::priceLineItems()'s per_field base row (Task #2337).
         $baseFeeLabel    = ((string) ($settings['payment']['label'] ?? '')) ?: 'Base fee';
+
+        // Captcha configuration
+        $captchaCfg      = $form->captchaConfig();
+        $captchaProvider = $captchaCfg['provider'] ?? 'honeypot';
+        $captchaSiteKey  = $captchaCfg['site_key'] ?? '';
+        $mathQuestion    = $mathQuestion ?? null;
     @endphp
     <title>{{ $form->title }}</title>
     @if($form->description)<meta name="description" content="{{ $form->description }}">@endif
@@ -50,6 +56,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family={{ urlencode($font) }}:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     @include('common.partials.fontawesome')
+    @if($captchaProvider === 'recaptcha_v2' && $captchaSiteKey)
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    @elseif($captchaProvider === 'recaptcha_v3' && $captchaSiteKey)
+        <script src="https://www.google.com/recaptcha/api.js?render={{ $captchaSiteKey }}" async defer></script>
+    @elseif($captchaProvider === 'hcaptcha' && $captchaSiteKey)
+        <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    @elseif($captchaProvider === 'turnstile' && $captchaSiteKey)
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    @endif
     <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
     <script src="{{ asset('js/vendor/alpine.min.js') }}" defer></script>
     <style>
@@ -653,6 +668,53 @@
                         </div>
                     @endif
 
+                    {{-- Captcha widget (shown on last page / only page) --}}
+                    @if($errors->has('_captcha'))
+                        <div style="margin-top:1rem; padding:0.6rem 0.9rem; border-radius:8px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); color:#ef4444; font-size:0.8rem;">
+                            <i class="fas fa-exclamation-triangle mr-1"></i> {{ $errors->first('_captcha') }}
+                        </div>
+                    @endif
+                    @if($captchaProvider === 'math' && $mathQuestion)
+                        <div style="margin-top:1.25rem; padding:1rem; border-radius:var(--form-radius-sm,6px); border:1px solid rgba(139,92,246,0.2); background:rgba(139,92,246,0.04);">
+                            <label style="display:block; font-size:0.82rem; font-weight:600; margin-bottom:0.5rem; color:inherit;">
+                                <i class="fas fa-calculator" style="margin-right:0.3rem; color:var(--form-accent,#8b5cf6);"></i>
+                                {{ $mathQuestion['question'] }}
+                            </label>
+                            <input type="number" name="_math_answer" class="form-input" placeholder="Your answer" required
+                                   inputmode="numeric" style="max-width:120px;">
+                        </div>
+                    @elseif($captchaProvider === 'recaptcha_v2' && $captchaSiteKey)
+                        <div style="margin-top:1.25rem;">
+                            <div class="g-recaptcha" data-sitekey="{{ $captchaSiteKey }}"></div>
+                        </div>
+                    @elseif($captchaProvider === 'recaptcha_v3' && $captchaSiteKey)
+                        <input type="hidden" name="_recaptcha_token" id="_recaptcha_token">
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                var form = document.querySelector('form[action*="/f/"]');
+                                if (!form) return;
+                                form.addEventListener('submit', function(e) {
+                                    if (!window.grecaptcha) return;
+                                    e.preventDefault();
+                                    grecaptcha.ready(function() {
+                                        grecaptcha.execute('{{ $captchaSiteKey }}', {action: 'form_submit'}).then(function(token) {
+                                            document.getElementById('_recaptcha_token').value = token;
+                                            form.submit();
+                                        });
+                                    });
+                                }, { once: true });
+                            });
+                        </script>
+                    @elseif($captchaProvider === 'hcaptcha' && $captchaSiteKey)
+                        <div style="margin-top:1.25rem;">
+                            <div class="h-captcha" data-sitekey="{{ $captchaSiteKey }}"></div>
+                        </div>
+                    @elseif($captchaProvider === 'turnstile' && $captchaSiteKey)
+                        <div style="margin-top:1.25rem;">
+                            <div class="cf-turnstile" data-sitekey="{{ $captchaSiteKey }}"></div>
+                        </div>
+                    @endif
+
                     <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 1.5rem; flex-wrap: wrap;">
                         @if($isMulti)
                             <button type="button" x-show="page > 0" @click="page--" class="form-button form-button-secondary">
@@ -901,6 +963,81 @@
                     const c = this.$refs.pad;
                     this.ctx.clearRect(0, 0, c.width, c.height);
                     this.hasInk = false; this.dataUrl = '';
+                },
+            };
+        }
+
+        // Date-range and time-range: enforce end >= start client-side.
+        // Runs once the DOM is ready and re-validates on every input change.
+        (function () {
+            function wireRangeField(fieldId, type) {
+                var prefix = fieldId + (type === 'date_range' ? '_date_range' : '_time_range');
+                var startEl = document.querySelector('[name="' + fieldId + '[start]"]');
+                var endEl   = document.querySelector('[name="' + fieldId + '[end]"]');
+                if (!startEl || !endEl) return;
+                function validate() {
+                    if (!startEl.value || !endEl.value) { endEl.setCustomValidity(''); return; }
+                    var s = type === 'time_range'
+                        ? (function(t) { var p = t.split(':'); return parseInt(p[0],10)*60 + parseInt(p[1]||0,10); })(startEl.value)
+                        : new Date(startEl.value).getTime();
+                    var e = type === 'time_range'
+                        ? (function(t) { var p = t.split(':'); return parseInt(p[0],10)*60 + parseInt(p[1]||0,10); })(endEl.value)
+                        : new Date(endEl.value).getTime();
+                    if (e < s) {
+                        endEl.setCustomValidity(type === 'time_range'
+                            ? 'End time must be the same or later than start time.'
+                            : 'End date must be the same or later than start date.');
+                    } else {
+                        endEl.setCustomValidity('');
+                    }
+                }
+                startEl.addEventListener('change', validate);
+                endEl.addEventListener('change', validate);
+                validate();
+            }
+            @foreach($form->fields ?? [] as $field)
+                @if(($field['type'] ?? '') === 'date_range')
+                    wireRangeField(@js($field['id'] ?? ''), 'date_range');
+                @elseif(($field['type'] ?? '') === 'time_range')
+                    wireRangeField(@js($field['id'] ?? ''), 'time_range');
+                @endif
+            @endforeach
+        })();
+
+        // Ranking field — drag-to-reorder list. The hidden input's :value binding
+        // is handled by Alpine directly in the template (`items.join(',')`).
+        // Handler names must match the @dragstart/@dragover/@dragend used in
+        // form-field.blade.php.
+        function rankingField(items) {
+            return {
+                items: items.slice(),
+                dragging: null,
+                over: null,
+                init() { /* Alpine `:value` binding handles the hidden input reactively */ },
+                dragStart(idx) {
+                    this.dragging = idx;
+                },
+                dragOver(idx) {
+                    this.over = idx;
+                },
+                dragEnd() {
+                    if (this.dragging !== null && this.over !== null && this.dragging !== this.over) {
+                        const moved = this.items.splice(this.dragging, 1)[0];
+                        this.items.splice(this.over, 0, moved);
+                        this.items = [...this.items];
+                    }
+                    this.dragging = null;
+                    this.over = null;
+                },
+                moveUp(idx) {
+                    if (idx === 0) return;
+                    [this.items[idx - 1], this.items[idx]] = [this.items[idx], this.items[idx - 1]];
+                    this.items = [...this.items];
+                },
+                moveDown(idx) {
+                    if (idx >= this.items.length - 1) return;
+                    [this.items[idx], this.items[idx + 1]] = [this.items[idx + 1], this.items[idx]];
+                    this.items = [...this.items];
                 },
             };
         }

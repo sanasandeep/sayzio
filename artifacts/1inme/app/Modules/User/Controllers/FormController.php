@@ -315,6 +315,24 @@ class FormController extends Controller
             foreach (['rows', 'min', 'max', 'min_length', 'max_length', 'file_max_kb'] as $k) {
                 if (isset($f[$k]) && $f[$k] !== '' && is_numeric($f[$k])) $row[$k] = (int) $f[$k];
             }
+            // Float numeric props for new typed fields
+            foreach (['step', 'default_val'] as $k) {
+                if (isset($f[$k]) && $f[$k] !== '' && is_numeric($f[$k])) $row[$k] = (float) $f[$k];
+            }
+            // String props for new typed fields
+            foreach (['auto_collect', 'auto_collect_param', 'unit', 'currency_code', 'first_label', 'last_label', 'min_date', 'max_date'] as $k) {
+                if (isset($f[$k]) && (string) $f[$k] !== '') $row[$k] = (string) $f[$k];
+            }
+            // Image choice: [{label, url}] pairs
+            if ($type === 'image_choice') {
+                $ios = [];
+                foreach ((array) ($f['image_options'] ?? []) as $io) {
+                    $lbl = trim((string) ($io['label'] ?? ''));
+                    $url = trim((string) ($io['url'] ?? ''));
+                    if ($lbl !== '') $ios[] = ['label' => $lbl, 'url' => $url];
+                }
+                $row['image_options'] = $ios;
+            }
             // Width (4=1/3, 6=1/2, 8=2/3, 12=full)
             $w = (int) ($f['width'] ?? 12);
             $row['width'] = in_array($w, $allowedWidths, true) ? $w : 12;
@@ -467,6 +485,46 @@ class FormController extends Controller
 
         $form->update(['design' => $design]);
         return back()->with('success', 'Design updated.');
+    }
+
+    public function settings(Request $request, Form $form)
+    {
+        $this->authorizeForm($request, $form);
+        $captcha = $form->captchaConfig();
+        return view('user.forms.settings', compact('form', 'captcha'));
+    }
+
+    public function updateSettings(Request $request, Form $form)
+    {
+        $this->authorizeForm($request, $form);
+        $request->validate([
+            'captcha_provider' => 'required|in:honeypot,math,recaptcha_v2,recaptcha_v3,hcaptcha,turnstile',
+            'site_key'         => 'nullable|string|max:255',
+            'secret_key'       => 'nullable|string|max:255',
+            'score_threshold'  => 'nullable|numeric|min:0.1|max:1.0',
+        ]);
+
+        $cap = $form->captchaConfig();
+        $cap['provider']        = $request->input('captcha_provider');
+        $cap['site_key']        = trim((string) $request->input('site_key', '')) ?: null;
+        $cap['score_threshold'] = (float) $request->input('score_threshold', 0.5);
+
+        $newSecret = trim((string) $request->input('secret_key', ''));
+        if ($newSecret !== '') {
+            $cap['secret_key'] = encrypt($newSecret);
+        } elseif ($request->boolean('clear_secret')) {
+            $cap['secret_key'] = null;
+        }
+        if (in_array($cap['provider'], ['honeypot', 'math'], true)) {
+            $cap['secret_key'] = null;
+            $cap['site_key']   = null;
+        }
+
+        $settings = array_merge(Form::defaultSettings(), $form->settings ?? []);
+        $settings['captcha'] = $cap;
+        $form->update(['settings' => $settings]);
+
+        return back()->with('success', 'Settings saved.');
     }
 
     public function notifications(Request $request, Form $form)
@@ -852,14 +910,16 @@ class FormController extends Controller
     {
         $form = Form::where('slug', $slug)->where('is_active', true)->firstOrFail();
         $form->increment('total_views');
-        return view('common.form', ['form' => $form, 'embed' => false]);
+        $mathQuestion = $this->seedMathCaptcha($form);
+        return view('common.form', ['form' => $form, 'embed' => false, 'mathQuestion' => $mathQuestion]);
     }
 
     public function publicIframe(Request $request, string $slug)
     {
         $form = Form::where('slug', $slug)->where('is_active', true)->firstOrFail();
         $form->increment('total_views');
-        return view('common.form', ['form' => $form, 'embed' => true]);
+        $mathQuestion = $this->seedMathCaptcha($form);
+        return view('common.form', ['form' => $form, 'embed' => true, 'mathQuestion' => $mathQuestion]);
     }
 
     public function publicEmbedJs(Request $request, string $slug)
@@ -895,6 +955,15 @@ class FormController extends Controller
 
         $rules = $this->buildSubmissionRules($form);
         $validated = $request->validate($rules, $this->customMessages);
+
+        // Verify captcha before processing any submission data
+        $captchaError = $this->verifyCaptcha($request, $form);
+        if ($captchaError !== null) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => ['message' => $captchaError, 'code' => 'captcha_failed']], 422);
+            }
+            return back()->withInput()->withErrors(['_captcha' => $captchaError]);
+        }
 
         $files = [];
         $data  = [];
@@ -947,6 +1016,31 @@ class FormController extends Controller
                 $data[$id] = $request->boolean($id);
             } elseif ($type === 'checkbox') {
                 $data[$id] = (array) $request->input($id, []);
+            } elseif ($type === 'full_name') {
+                $data[$id] = [
+                    'first' => (string) $request->input($id . '_first', ''),
+                    'last'  => (string) $request->input($id . '_last', ''),
+                ];
+            } elseif ($type === 'address') {
+                $addr = (array) $request->input($id, []);
+                $data[$id] = array_map(
+                    fn ($v) => substr((string) $v, 0, 255),
+                    array_intersect_key($addr, array_flip(['street', 'city', 'state', 'postal', 'country']))
+                );
+            } elseif ($type === 'time_range' || $type === 'date_range') {
+                $range = (array) $request->input($id, []);
+                $data[$id] = [
+                    'start' => (string) ($range['start'] ?? ''),
+                    'end'   => (string) ($range['end'] ?? ''),
+                ];
+            } elseif ($type === 'yes_no') {
+                $val = (string) $request->input($id, '');
+                $data[$id] = in_array($val, ['yes', 'no'], true) ? $val : '';
+            } elseif ($type === 'ranking') {
+                $val = (string) $request->input($id, '');
+                $data[$id] = $val !== '' ? array_map('trim', explode(',', $val)) : [];
+            } elseif ($type === 'hidden' && !empty($field['auto_collect'])) {
+                $data[$id] = $this->resolveAutoCollect($field['auto_collect_param'] ?? 'ip', $request, $form);
             } else {
                 $data[$id] = $request->input($id);
             }
@@ -1232,6 +1326,60 @@ class FormController extends Controller
                 case 'hidden':
                     $stack = ['nullable', 'string', 'max:1000'];
                     break;
+                case 'full_name':
+                    // Submitted as {id}_first / {id}_last sub-fields
+                    $rules["{$id}_first"] = [$base, 'string', 'max:100'];
+                    $rules["{$id}_last"]  = [$base, 'string', 'max:100'];
+                    $stack = ['nullable']; // parent key not submitted
+                    break;
+                case 'address':
+                    $rules["{$id}.street"]  = [$base, 'string', 'max:255'];
+                    $rules["{$id}.city"]    = ['nullable', 'string', 'max:100'];
+                    $rules["{$id}.state"]   = ['nullable', 'string', 'max:100'];
+                    $rules["{$id}.postal"]  = ['nullable', 'string', 'max:20'];
+                    $rules["{$id}.country"] = ['nullable', 'string', 'max:100'];
+                    $stack = ['nullable', 'array'];
+                    break;
+                case 'country':
+                    $stack[] = 'string';
+                    $stack[] = 'max:100';
+                    break;
+                case 'currency':
+                    $stack[] = 'numeric';
+                    $stack[] = 'min:0';
+                    break;
+                case 'yes_no':
+                    $stack[] = 'string';
+                    $stack[] = 'in:yes,no';
+                    break;
+                case 'image_choice':
+                    $stack[] = 'string';
+                    $stack[] = 'max:255';
+                    break;
+                case 'ranking':
+                    $stack = [$base, 'string', 'max:1000'];
+                    break;
+                case 'slider':
+                    $stack[] = 'numeric';
+                    if ($minN !== null) $stack[] = "min:$minN";
+                    if ($maxN !== null) $stack[] = "max:$maxN";
+                    break;
+                case 'time_range':
+                    $rules["{$id}.start"] = [$base, 'date_format:H:i'];
+                    $rules["{$id}.end"]   = [$base, 'date_format:H:i', "after_or_equal:{$id}.start"];
+                    $stack = ['nullable', 'array'];
+                    break;
+                case 'date_range':
+                    $rules["{$id}.start"] = [$base, 'date'];
+                    $rules["{$id}.end"]   = [$base, 'date', "after_or_equal:{$id}.start"];
+                    if (!empty($field['min_date'])) {
+                        $rules["{$id}.start"][] = 'after_or_equal:' . $field['min_date'];
+                    }
+                    if (!empty($field['max_date'])) {
+                        $rules["{$id}.end"][] = 'before_or_equal:' . $field['max_date'];
+                    }
+                    $stack = ['nullable', 'array'];
+                    break;
                 default: // text and unknown
                     $stack[] = 'string';
                     $stack[] = 'max:' . ($maxL ?: 1000);
@@ -1261,13 +1409,194 @@ class FormController extends Controller
     protected array $customMessages = [];
 
     /**
-     * Normalise a builder-submitted pricing list (options or addons) into
-     * stored shape: an array of {label, price} where label is non-empty and
-     * price is a clamped dollar amount (0–1,000,000). Caps the row count so a
-     * malicious payload can't bloat the stored field.
-     *
-     * @return list<array{label:string,price:float}>
+     * Verify the captcha token for the submitted form.
+     * Returns null on success, or an error string to show the user.
+     * Fails-open on network errors so temporary outages don't block real users.
      */
+    protected function verifyCaptcha(Request $request, Form $form): ?string
+    {
+        $cap      = $form->captchaConfig();
+        $provider = $cap['provider'] ?? 'honeypot';
+
+        switch ($provider) {
+            case 'math':
+                $answer    = $request->session()->pull("_form_math_{$form->id}");
+                $submitted = (int) $request->input('_math_answer');
+                if ($answer === null || $submitted !== (int) $answer) {
+                    return 'Incorrect answer to the math question. Please try again.';
+                }
+                break;
+
+            case 'recaptcha_v2':
+                $secret   = !empty($cap['secret_key']) ? decrypt($cap['secret_key']) : null;
+                if (!$secret) break;
+                $response = (string) $request->input('g-recaptcha-response', '');
+                if ($response === '') return 'Please complete the CAPTCHA.';
+                try {
+                    $r = \Illuminate\Support\Facades\Http::asForm()
+                        ->timeout(5)
+                        ->post('https://www.google.com/recaptcha/api/siteverify', [
+                            'secret'   => $secret,
+                            'response' => $response,
+                            'remoteip' => $request->ip(),
+                        ]);
+                    if (!($r->json('success'))) return 'CAPTCHA verification failed. Please try again.';
+                } catch (\Exception) {
+                    return 'CAPTCHA verification could not be completed. Please try again.';
+                }
+                break;
+
+            case 'recaptcha_v3':
+                $secret    = !empty($cap['secret_key']) ? decrypt($cap['secret_key']) : null;
+                if (!$secret) break;
+                $response  = (string) $request->input('_recaptcha_token', '');
+                if ($response === '') return 'CAPTCHA token missing. Please refresh and try again.';
+                try {
+                    $r         = \Illuminate\Support\Facades\Http::asForm()
+                        ->timeout(5)
+                        ->post('https://www.google.com/recaptcha/api/siteverify', [
+                            'secret'   => $secret,
+                            'response' => $response,
+                            'remoteip' => $request->ip(),
+                        ]);
+                    $threshold = (float) ($cap['score_threshold'] ?? 0.5);
+                    if (!$r->json('success') || (float) $r->json('score', 1.0) < $threshold) {
+                        return 'Our security check flagged this submission as likely automated. Please try again.';
+                    }
+                } catch (\Exception) {
+                    return 'CAPTCHA verification could not be completed. Please try again.';
+                }
+                break;
+
+            case 'hcaptcha':
+                $secret   = !empty($cap['secret_key']) ? decrypt($cap['secret_key']) : null;
+                if (!$secret) break;
+                $response = (string) $request->input('h-captcha-response', '');
+                if ($response === '') return 'Please complete the CAPTCHA.';
+                try {
+                    $r = \Illuminate\Support\Facades\Http::asForm()
+                        ->timeout(5)
+                        ->post('https://hcaptcha.com/siteverify', [
+                            'secret'   => $secret,
+                            'response' => $response,
+                            'remoteip' => $request->ip(),
+                        ]);
+                    if (!$r->json('success')) return 'hCaptcha verification failed. Please try again.';
+                } catch (\Exception) {
+                    return 'CAPTCHA verification could not be completed. Please try again.';
+                }
+                break;
+
+            case 'turnstile':
+                $secret   = !empty($cap['secret_key']) ? decrypt($cap['secret_key']) : null;
+                if (!$secret) break;
+                $response = (string) $request->input('cf-turnstile-response', '');
+                if ($response === '') return 'Please complete the Turnstile challenge.';
+                try {
+                    $r = \Illuminate\Support\Facades\Http::asForm()
+                        ->timeout(5)
+                        ->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+                            'secret'   => $secret,
+                            'response' => $response,
+                            'remoteip' => $request->ip(),
+                        ]);
+                    if (!$r->json('success')) return 'Turnstile verification failed. Please try again.';
+                } catch (\Exception) {
+                    return 'CAPTCHA verification could not be completed. Please try again.';
+                }
+                break;
+
+            case 'honeypot':
+            default:
+                // Honeypot is validated via the SpamChecker using the _hp field
+                break;
+        }
+        return null;
+    }
+
+    /**
+     * Generate a math captcha question for forms that use it, storing the answer
+     * in the session. Returns null when this form does not use math captcha.
+     */
+    protected function seedMathCaptcha(Form $form): ?array
+    {
+        if ($form->captchaConfig()['provider'] !== 'math') return null;
+        $a      = random_int(1, 15);
+        $b      = random_int(1, 15);
+        $answer = $a + $b;
+        session(["_form_math_{$form->id}" => $answer]);
+        return ['question' => "What is {$a} + {$b}?", 'answer' => $answer];
+    }
+
+    /**
+     * Resolve a value for auto-collected hidden fields from request context.
+     * Only safe, non-sensitive metadata is collected — never cookies or credentials.
+     *
+     * Supports: ip, ua, referer, language, page_url, timestamp,
+     *           utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+     *           browser, os, device, country (blank — no GeoIP service wired),
+     *           and custom query keys via "query:{key}" prefix.
+     */
+    protected function resolveAutoCollect(string $param, Request $request, ?Form $form = null): string
+    {
+        // Custom query-string key: "query:my_param" → ?my_param=value
+        if (str_starts_with($param, 'query:')) {
+            $key = substr($param, 6);
+            return substr((string) $request->query($key, ''), 0, 500);
+        }
+
+        $ua = (string) ($request->userAgent() ?? '');
+
+        return match ($param) {
+            'ip'           => (string) ($request->ip() ?? ''),
+            'ua'           => substr($ua, 0, 500),
+            'referer'      => substr((string) ($request->header('Referer', '')), 0, 500),
+            'language'     => substr((string) ($request->header('Accept-Language', '')), 0, 100),
+            'page_url'     => substr($request->fullUrl(), 0, 500),
+            'landing_url'  => substr((string) ($form->getPublicUrl()), 0, 500),
+            'timestamp'    => now()->toIso8601String(),
+            'utm_source'   => substr((string) $request->query('utm_source', ''), 0, 200),
+            'utm_medium'   => substr((string) $request->query('utm_medium', ''), 0, 200),
+            'utm_campaign' => substr((string) $request->query('utm_campaign', ''), 0, 200),
+            'utm_term'     => substr((string) $request->query('utm_term', ''), 0, 200),
+            'utm_content'  => substr((string) $request->query('utm_content', ''), 0, 200),
+            'browser'      => $this->parseUaBrowser($ua),
+            'os'           => $this->parseUaOs($ua),
+            'device'       => $this->parseUaDevice($ua),
+            'biolink_alias' => $form->slug ?? '',
+            'country'      => '', // GeoIP not wired — blank
+            'city'         => '', // GeoIP not wired — blank
+            default        => '',
+        };
+    }
+
+    private function parseUaBrowser(string $ua): string
+    {
+        if (str_contains($ua, 'Edg/') || str_contains($ua, 'Edge/')) return 'Edge';
+        if (str_contains($ua, 'OPR/') || str_contains($ua, 'Opera')) return 'Opera';
+        if (str_contains($ua, 'Chrome/')) return 'Chrome';
+        if (str_contains($ua, 'Firefox/')) return 'Firefox';
+        if (str_contains($ua, 'Safari/') && str_contains($ua, 'Version/')) return 'Safari';
+        return 'Other';
+    }
+
+    private function parseUaOs(string $ua): string
+    {
+        if (str_contains($ua, 'Windows')) return 'Windows';
+        if (str_contains($ua, 'iPhone') || str_contains($ua, 'iPad')) return 'iOS';
+        if (str_contains($ua, 'Mac OS X')) return 'macOS';
+        if (str_contains($ua, 'Android')) return 'Android';
+        if (str_contains($ua, 'Linux')) return 'Linux';
+        return 'Other';
+    }
+
+    private function parseUaDevice(string $ua): string
+    {
+        if (str_contains($ua, 'Mobi') || str_contains($ua, 'iPhone') || str_contains($ua, 'Android')) return 'Mobile';
+        if (str_contains($ua, 'iPad') || str_contains($ua, 'Tablet')) return 'Tablet';
+        return 'Desktop';
+    }
+
     protected function cleanPriceList($raw): array
     {
         if (!is_array($raw)) return [];

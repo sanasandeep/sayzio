@@ -239,6 +239,246 @@
             <input type="url" id="f_{{ $id }}" name="{{ $id }}" class="form-input" placeholder="{{ $placeholder ?: 'https://' }}" value="{{ $oldVal }}" @if($required) required @endif>
             @break
 
+        @case('full_name')
+            @php
+                $fnFirst = old($id . '_first', '');
+                $fnLast  = old($id . '_last', '');
+                $firstLbl = $field['first_label'] ?? 'First Name';
+                $lastLbl  = $field['last_label']  ?? 'Last Name';
+            @endphp
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                <div>
+                    <label class="form-label" for="f_{{ $id }}_first" style="font-size:0.78rem; margin-bottom:0.25rem;">{{ $firstLbl }}</label>
+                    <input type="text" id="f_{{ $id }}_first" name="{{ $id }}_first" class="form-input" placeholder="{{ $firstLbl }}" value="{{ $fnFirst }}" @if($required) required @endif>
+                </div>
+                <div>
+                    <label class="form-label" for="f_{{ $id }}_last" style="font-size:0.78rem; margin-bottom:0.25rem;">{{ $lastLbl }}</label>
+                    <input type="text" id="f_{{ $id }}_last" name="{{ $id }}_last" class="form-input" placeholder="{{ $lastLbl }}" value="{{ $fnLast }}" @if($required) required @endif>
+                </div>
+            </div>
+            @break
+
+        @case('address')
+            @php
+                $addrOld = old($id, []);
+                if (!is_array($addrOld)) $addrOld = [];
+            @endphp
+            <div class="space-y-2">
+                <input type="text" name="{{ $id }}[street]" class="form-input" placeholder="Street address" value="{{ $addrOld['street'] ?? '' }}" @if($required) required @endif>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+                    <input type="text" name="{{ $id }}[city]" class="form-input" placeholder="City" value="{{ $addrOld['city'] ?? '' }}" @if($required) required @endif>
+                    <input type="text" name="{{ $id }}[state]" class="form-input" placeholder="State / Province" value="{{ $addrOld['state'] ?? '' }}">
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+                    <input type="text" name="{{ $id }}[postal]" class="form-input" placeholder="Postal / ZIP code" value="{{ $addrOld['postal'] ?? '' }}">
+                    <input type="text" name="{{ $id }}[country]" class="form-input" placeholder="Country" value="{{ $addrOld['country'] ?? '' }}" list="f_{{ $id }}_countries">
+                    <datalist id="f_{{ $id }}_countries">
+                        @foreach(['Afghanistan','Albania','Algeria','Argentina','Australia','Austria','Bangladesh','Belgium','Bolivia','Brazil','Bulgaria','Cambodia','Canada','Chile','China','Colombia','Croatia','Czech Republic','Denmark','Egypt','Ethiopia','Finland','France','Germany','Ghana','Greece','Guatemala','Hungary','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Malaysia','Mexico','Morocco','Myanmar','Nepal','Netherlands','New Zealand','Nigeria','Norway','Pakistan','Peru','Philippines','Poland','Portugal','Romania','Russia','Saudi Arabia','Serbia','Singapore','Slovakia','South Africa','South Korea','Spain','Sri Lanka','Sweden','Switzerland','Taiwan','Tanzania','Thailand','Turkey','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Venezuela','Vietnam','Zimbabwe'] as $cn)
+                            <option value="{{ $cn }}">
+                        @endforeach
+                    </datalist>
+                </div>
+            </div>
+            @break
+
+        @case('country')
+            @php
+                $countries = ['Afghanistan','Albania','Algeria','Argentina','Armenia','Australia','Austria','Azerbaijan','Bangladesh','Belarus','Belgium','Bolivia','Brazil','Bulgaria','Cambodia','Canada','Chile','China','Colombia','Croatia','Cuba','Czech Republic','Denmark','Dominican Republic','Ecuador','Egypt','El Salvador','Ethiopia','Finland','France','Georgia','Germany','Ghana','Greece','Guatemala','Honduras','Hungary','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kuwait','Kyrgyzstan','Lebanon','Libya','Malaysia','Mexico','Moldova','Mongolia','Morocco','Mozambique','Myanmar','Nepal','Netherlands','New Zealand','Nicaragua','Nigeria','North Korea','Norway','Pakistan','Panama','Paraguay','Peru','Philippines','Poland','Portugal','Puerto Rico','Qatar','Romania','Russia','Saudi Arabia','Senegal','Serbia','Singapore','Slovakia','Slovenia','Somalia','South Africa','South Korea','Spain','Sri Lanka','Sudan','Sweden','Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Tunisia','Turkey','Turkmenistan','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Venezuela','Vietnam','Yemen','Zimbabwe'];
+                $countryOld = old($id, '');
+            @endphp
+            {{-- Searchable country typeahead --}}
+            <div x-data="{
+                    open: false,
+                    search: @js($countryOld),
+                    value: @js($countryOld),
+                    countries: @js($countries),
+                    get filtered() {
+                        if (!this.search) return this.countries;
+                        var s = this.search.toLowerCase();
+                        return this.countries.filter(function(c){ return c.toLowerCase().indexOf(s) !== -1; });
+                    },
+                    select(c) { this.value = c; this.search = c; this.open = false; },
+                    clear() { if (!this.countries.includes(this.search)) { this.search = this.value; } }
+                }"
+                style="position:relative;">
+                <input type="text"
+                       x-model="search"
+                       @focus="open = true"
+                       @blur="setTimeout(() => { open = false; clear(); }, 180)"
+                       @input="open = true; value = countries.includes(search) ? search : ''"
+                       class="form-input"
+                       id="f_{{ $id }}"
+                       autocomplete="off"
+                       placeholder="{{ $placeholder ?: 'Search country…' }}"
+                       @if($required) x-bind:required="!value" @endif>
+                <input type="hidden" name="{{ $id }}" :value="value">
+                <div x-show="open && filtered.length > 0"
+                     style="position:absolute;z-index:999;left:0;right:0;top:100%;max-height:200px;overflow-y:auto;background:var(--card-bg,#1e1e2e);border:1px solid var(--border-color,rgba(255,255,255,0.1));border-radius:0.375rem;box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+                    <template x-for="c in filtered" :key="c">
+                        <div @mousedown.prevent="select(c)"
+                             :class="c === value ? 'bg-purple-600/20 text-purple-300' : 'hover:bg-white/5'"
+                             style="padding:0.45rem 0.75rem;cursor:pointer;font-size:0.875rem;"
+                             x-text="c"></div>
+                    </template>
+                </div>
+            </div>
+            @break
+
+        @case('currency')
+            @php
+                $curCode = $field['currency_code'] ?? 'USD';
+                $curSymbols = ['USD'=>'$','EUR'=>'€','GBP'=>'£','INR'=>'₹','AUD'=>'A$','CAD'=>'C$','JPY'=>'¥','BRL'=>'R$','CHF'=>'Fr','CNY'=>'¥','SGD'=>'S$','AED'=>'د.إ','SAR'=>'﷼','MXN'=>'$','HKD'=>'HK$','SEK'=>'kr','NOK'=>'kr','DKK'=>'kr','NZD'=>'NZ$','ZAR'=>'R'];
+                $curSym = $curSymbols[$curCode] ?? $curCode;
+            @endphp
+            <div style="display:flex; align-items:center; gap:0;">
+                <span style="display:flex; align-items:center; padding:0 0.75rem; border:1px solid var(--form-accent,#8b5cf6); border-right:0; border-radius:var(--form-radius-sm,6px) 0 0 var(--form-radius-sm,6px); font-weight:600; font-size:0.9rem; background:rgba(139,92,246,0.08); color:var(--form-accent,#8b5cf6); height:2.75rem;">{{ $curSym }}</span>
+                <input type="number" id="f_{{ $id }}" name="{{ $id }}" class="form-input" placeholder="{{ $placeholder ?: '0.00' }}" value="{{ $oldVal }}"
+                       min="0" step="0.01"
+                       style="border-radius:0 var(--form-radius-sm,6px) var(--form-radius-sm,6px) 0 !important; flex:1;"
+                       @if($required) required @endif>
+            </div>
+            @break
+
+        @case('yes_no')
+            <div class="form-radio-group" style="display:flex; gap:0.75rem;">
+                <label style="display:flex; align-items:center; gap:0.5rem; flex:1; padding:0.6rem 1rem; border:1px solid var(--form-accent,#8b5cf6); border-radius:var(--form-radius-sm,6px); cursor:pointer; transition:background 0.15s;"
+                       :style="f_{{ $id }}_val === 'yes' ? 'background:rgba(139,92,246,0.12)' : ''"
+                       x-data x-on:click="document.getElementById('f_{{ $id }}_yes').checked=true; window.f_{{ $id }}_val='yes'">
+                    <input type="radio" id="f_{{ $id }}_yes" name="{{ $id }}" value="yes" @checked(old($id)==='yes') @if($required) required @endif style="accent-color:var(--form-accent,#8b5cf6);">
+                    <span style="font-weight:600;">✓ Yes</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:0.5rem; flex:1; padding:0.6rem 1rem; border:1px solid var(--form-accent,#8b5cf6); border-radius:var(--form-radius-sm,6px); cursor:pointer; transition:background 0.15s;"
+                       :style="f_{{ $id }}_val === 'no' ? 'background:rgba(139,92,246,0.12)' : ''"
+                       x-data x-on:click="document.getElementById('f_{{ $id }}_no').checked=true; window.f_{{ $id }}_val='no'">
+                    <input type="radio" id="f_{{ $id }}_no" name="{{ $id }}" value="no" @checked(old($id)==='no') @if($required) required @endif style="accent-color:var(--form-accent,#8b5cf6);">
+                    <span style="font-weight:600;">✗ No</span>
+                </label>
+            </div>
+            @break
+
+        @case('image_choice')
+            @php
+                $imgOpts = $field['image_options'] ?? [];
+            @endphp
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:0.75rem;">
+                @forelse($imgOpts as $io)
+                    @php $ioLabel = $io['label'] ?? ''; $ioUrl = $io['url'] ?? ''; @endphp
+                    <label style="position:relative; cursor:pointer; border-radius:var(--form-radius-sm,6px); overflow:hidden; border:2px solid transparent; transition:border-color 0.15s;"
+                           x-data="{ checked: @js(old($id) === $ioLabel) }"
+                           :style="checked ? 'border-color:var(--form-accent,#8b5cf6)' : 'border:2px solid rgba(0,0,0,0.12)'">
+                        <input type="radio" name="{{ $id }}" value="{{ $ioLabel }}" @checked(old($id) === $ioLabel) @if($required) required @endif
+                               x-model="checked" style="position:absolute; opacity:0; width:0; height:0;" @change="checked=!checked">
+                        @if($ioUrl)
+                            <img src="{{ $ioUrl }}" alt="{{ $ioLabel }}" style="width:100%; height:100px; object-fit:cover; display:block;">
+                        @else
+                            <div style="width:100%; height:100px; background:rgba(139,92,246,0.08); display:flex; align-items:center; justify-content:center;">
+                                <i class="far fa-image" style="font-size:1.5rem; opacity:0.4;"></i>
+                            </div>
+                        @endif
+                        <div style="padding:0.4rem 0.5rem; font-size:0.78rem; font-weight:500; text-align:center;">{{ $ioLabel }}</div>
+                        <div x-show="checked" style="position:absolute; top:0.3rem; right:0.3rem; width:1.1rem; height:1.1rem; border-radius:50%; background:var(--form-accent,#8b5cf6); display:flex; align-items:center; justify-content:center;">
+                            <i class="fas fa-check" style="font-size:0.5rem; color:#fff;"></i>
+                        </div>
+                    </label>
+                @empty
+                    <p style="color:inherit; opacity:0.5; font-size:0.82rem; grid-column:1/-1;">No image options configured.</p>
+                @endforelse
+            </div>
+            @break
+
+        @case('ranking')
+            @php
+                $rankOpts = $field['options'] ?? [];
+                $rankOld  = old($id);
+                if (is_string($rankOld) && $rankOld !== '') $rankOld = explode(',', $rankOld);
+                elseif (!is_array($rankOld)) $rankOld = $rankOpts;
+            @endphp
+            <div x-data="rankingField(@js($rankOld ?: $rankOpts), @js($id))" x-init="init()">
+                <ul id="rank_{{ $id }}" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.4rem;">
+                    <template x-for="(item, idx) in items" :key="item">
+                        <li style="display:flex; align-items:center; gap:0.6rem; padding:0.5rem 0.75rem; border:1px solid var(--form-accent,#8b5cf6); border-radius:var(--form-radius-sm,6px); cursor:grab; background:var(--form-bg,#fff); user-select:none;"
+                            :draggable="true"
+                            @dragstart="dragStart(idx)"
+                            @dragover.prevent="dragOver(idx)"
+                            @dragend="dragEnd()">
+                            <i class="fas fa-grip-vertical" style="opacity:0.4; font-size:0.7rem;"></i>
+                            <span style="flex:1; font-size:0.88rem;" x-text="item"></span>
+                            <span style="font-size:0.7rem; opacity:0.4; font-weight:600;" x-text="idx+1"></span>
+                        </li>
+                    </template>
+                </ul>
+                <input type="hidden" name="{{ $id }}" :value="items.join(',')">
+            </div>
+            @break
+
+        @case('slider')
+            @php
+                $slMin = $field['min'] ?? 0;
+                $slMax = $field['max'] ?? 100;
+                $slStep = $field['step'] ?? 1;
+                $slUnit = $field['unit'] ?? '';
+                $slDefault = $field['default_val'] ?? $slMin;
+                $slOld = old($id, $slDefault);
+            @endphp
+            <div x-data="{ val: {{ (float) $slOld }} }" style="padding:0.25rem 0;">
+                <div style="display:flex; justify-content:space-between; font-size:0.78rem; opacity:0.6; margin-bottom:0.4rem;">
+                    <span>{{ $slMin }}{{ $slUnit }}</span>
+                    <span style="font-weight:700; color:var(--form-accent,#8b5cf6);" x-text="val + '{{ $slUnit }}'"></span>
+                    <span>{{ $slMax }}{{ $slUnit }}</span>
+                </div>
+                <input type="range" id="f_{{ $id }}" name="{{ $id }}" class="form-range"
+                       min="{{ $slMin }}" max="{{ $slMax }}" step="{{ $slStep }}"
+                       x-model.number="val"
+                       style="width:100%; accent-color:var(--form-accent,#8b5cf6);"
+                       @if($required) required @endif>
+            </div>
+            @break
+
+        @case('time_range')
+            @php
+                $trOld = old($id, []);
+                if (!is_array($trOld)) $trOld = [];
+            @endphp
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; align-items:end;">
+                <div>
+                    <label class="form-label" for="f_{{ $id }}_start" style="font-size:0.78rem; margin-bottom:0.25rem;">From</label>
+                    <input type="time" id="f_{{ $id }}_start" name="{{ $id }}[start]" class="form-input" value="{{ $trOld['start'] ?? '' }}" @if($required) required @endif>
+                </div>
+                <div>
+                    <label class="form-label" for="f_{{ $id }}_end" style="font-size:0.78rem; margin-bottom:0.25rem;">To</label>
+                    <input type="time" id="f_{{ $id }}_end" name="{{ $id }}[end]" class="form-input" value="{{ $trOld['end'] ?? '' }}" @if($required) required @endif
+                           @if($required) data-time-range-end="f_{{ $id }}_start" @endif>
+                </div>
+            </div>
+            @break
+
+        @case('date_range')
+            @php
+                $drOld = old($id, []);
+                if (!is_array($drOld)) $drOld = [];
+                $drMin = $field['min_date'] ?? null;
+                $drMax = $field['max_date'] ?? null;
+            @endphp
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; align-items:end;">
+                <div>
+                    <label class="form-label" for="f_{{ $id }}_start" style="font-size:0.78rem; margin-bottom:0.25rem;">Start date</label>
+                    <input type="date" id="f_{{ $id }}_start" name="{{ $id }}[start]" class="form-input"
+                           value="{{ $drOld['start'] ?? '' }}"
+                           @if($drMin) min="{{ $drMin }}" @endif @if($drMax) max="{{ $drMax }}" @endif
+                           @if($required) required @endif
+                           data-date-range-start="f_{{ $id }}_end">
+                </div>
+                <div>
+                    <label class="form-label" for="f_{{ $id }}_end" style="font-size:0.78rem; margin-bottom:0.25rem;">End date</label>
+                    <input type="date" id="f_{{ $id }}_end" name="{{ $id }}[end]" class="form-input"
+                           value="{{ $drOld['end'] ?? '' }}"
+                           @if($drMin) min="{{ $drMin }}" @endif @if($drMax) max="{{ $drMax }}" @endif
+                           @if($required) required @endif
+                           data-date-range-end="f_{{ $id }}_start">
+                </div>
+            </div>
+            @break
+
         @default
             <input type="text" id="f_{{ $id }}" name="{{ $id }}" class="form-input" placeholder="{{ $placeholder }}" value="{{ $oldVal }}" @if($required) required @endif>
     @endswitch
