@@ -179,6 +179,56 @@ class AiMindProvisionerStaticSourceSyncTest extends TestCase
             fn (IngestAiMindSourceJob $j) => $j->sourceId === $faq->id));
     }
 
+    public function test_sync_report_flags_in_sync_and_drifted_sources(): void
+    {
+        Bus::fake();
+        $mind = AiMindProvisioner::ensurePlatformDefault();
+
+        // Fresh provision: both static sources exist and match the code.
+        $report = AiMindProvisioner::staticSourceSyncReport($mind);
+        $this->assertCount(2, $report);
+        $byKey = collect($report)->keyBy('key');
+        $this->assertTrue($byKey['about']['exists']);
+        $this->assertTrue($byKey['about']['in_sync']);
+        $this->assertTrue($byKey['faq']['in_sync']);
+        $this->assertSame(AiMindSource::STATUS_QUEUED, $byKey['about']['status']);
+
+        // Drift the About body: report must flag it as out of sync.
+        $this->aboutSource($mind)->forceFill([
+            'body' => 'Outdated overview from an earlier release.',
+        ])->save();
+
+        $report = collect(AiMindProvisioner::staticSourceSyncReport($mind))->keyBy('key');
+        $this->assertFalse($report['about']['in_sync']);
+        $this->assertTrue($report['faq']['in_sync']);
+    }
+
+    public function test_sync_report_marks_missing_source_as_not_created(): void
+    {
+        // A default Mind with no static sources at all (never provisioned).
+        $mind = AiMind::create([
+            'user_id'    => null,
+            'name'       => AiMindProvisioner::PLATFORM_NAME,
+            'is_default' => true,
+        ]);
+
+        $report = collect(AiMindProvisioner::staticSourceSyncReport($mind))->keyBy('key');
+        $this->assertFalse($report['about']['exists']);
+        $this->assertFalse($report['about']['in_sync']);
+        $this->assertNull($report['about']['status']);
+        $this->assertNull($report['about']['last_ingested_at']);
+    }
+
+    public function test_sync_report_is_read_only_and_dispatches_nothing(): void
+    {
+        Bus::fake();
+        $mind = AiMindProvisioner::ensurePlatformDefault();
+
+        Bus::fake();
+        AiMindProvisioner::staticSourceSyncReport($mind);
+        Bus::assertNotDispatched(IngestAiMindSourceJob::class);
+    }
+
     /** The current code About body, read the same way the provisioner writes it. */
     private function currentAboutBody(): string
     {

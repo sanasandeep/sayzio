@@ -206,6 +206,52 @@ class AiMindProvisioner
         return $dispatched;
     }
 
+    /**
+     * Read-only drift report for the platform Mind's code-defined static
+     * text sources (About + FAQ). Compares each stored body against the
+     * current code definition WITHOUT mutating or re-queuing anything, so
+     * an admin can confirm a docs change propagated (and spot a stuck or
+     * failed ingest) at a glance.
+     *
+     * Mirrors the lookup order of {@see ensureStaticTextSources()}: match by
+     * the stable `meta['managed_key']` first, then fall back to a legacy
+     * untagged source by type+title.
+     *
+     * @return array<int,array{
+     *   key:string, title:string, type:string, exists:bool, in_sync:bool,
+     *   status:?string, status_message:?string,
+     *   last_ingested_at:?\Illuminate\Support\Carbon
+     * }>
+     */
+    public static function staticSourceSyncReport(AiMind $mind): array
+    {
+        $report = [];
+        foreach (self::staticTextSourceDefinitions() as $key => $def) {
+            $source = AiMindSource::where('mind_id', $mind->id)
+                ->where('meta->managed_key', $key)
+                ->first();
+
+            if (!$source) {
+                $source = AiMindSource::where('mind_id', $mind->id)
+                    ->where('type', $def['type'])
+                    ->where('title', $def['title'])
+                    ->first();
+            }
+
+            $report[] = [
+                'key'              => $key,
+                'title'            => $def['title'],
+                'type'             => $def['type'],
+                'exists'           => (bool) $source,
+                'in_sync'          => $source ? ($source->body === $def['body']) : false,
+                'status'           => $source?->status,
+                'status_message'   => $source?->status_message,
+                'last_ingested_at' => $source?->last_ingested_at,
+            ];
+        }
+        return $report;
+    }
+
     public static function ensureForUser(User $user): void
     {
         // Per-user "My Mind" is created lazily — when the user opens

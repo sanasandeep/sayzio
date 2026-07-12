@@ -50,6 +50,14 @@ class AiMindAdminController extends Controller
         $topByCredits   = $usage->topMinds(10);
         $dailySpend     = $usage->dailySpendGlobal();
 
+        // Read-only drift report for the platform default Mind's code-defined
+        // About + FAQ sources. Looked up (never provisioned) so this page
+        // never mutates anything; null when the default Mind isn't seeded yet.
+        $platformMind   = AiMind::whereNull('user_id')->where('is_default', true)->first();
+        $staticSources  = $platformMind
+            ? AiMindProvisioner::staticSourceSyncReport($platformMind)
+            : [];
+
         return view('admin.ai-minds.index', [
             'totals'        => $totals,
             'topUsers'      => $topUsers,
@@ -57,6 +65,7 @@ class AiMindAdminController extends Controller
             'caps'          => AiMindSettings::caps(),
             'topByCredits'  => $topByCredits,
             'dailySpend'    => $dailySpend,
+            'staticSources' => $staticSources,
         ]);
     }
 
