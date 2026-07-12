@@ -12,6 +12,7 @@
     "check:light-mode-pairing": "tsx ./src/check-light-mode-pairing.ts",
     "check:undefined-css-var": "tsx ./src/check-undefined-css-var-fallback.ts",
     "check:home-preview-blocks": "tsx ./src/check-home-preview-blocks.ts",
+    "check:form-template-keys": "tsx ./src/check-form-template-keys.ts",
     "check:ci-passthrough-names": "tsx ./src/check-ci-passthrough-names.ts",
     "check:blade-comment-echo": "tsx ./src/check-blade-comment-echo.ts",
     "check:blade-json-in-attr": "tsx ./src/check-blade-json-in-attr.ts",

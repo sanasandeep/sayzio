@@ -78,13 +78,28 @@ class FormController extends Controller
             }
         }
 
+        // A deep link may arrive with ?template=<key> — e.g. a bookmark or a
+        // curated link straight into a specific starting point. If that key
+        // still resolves, pre-select it; if it was retired from the catalog,
+        // fall back to Contact and surface a small notice so the removal is
+        // visible instead of silently ignored.
+        $requestedTemplate = $request->query('template');
+        $requestedTemplate = is_string($requestedTemplate) ? trim($requestedTemplate) : '';
+        $templateResolves  = $requestedTemplate !== ''
+            && \App\Modules\User\Services\FormTemplateCatalog::isValid($requestedTemplate);
+        $initialTemplate   = $templateResolves ? $requestedTemplate : 'contact';
+        $templateUnavailable = $requestedTemplate !== '' && !$templateResolves;
+
         return view('user.forms.create', [
-            'projects'           => $projects,
-            'domains'            => $domains,
-            'defaultDomainId'    => $domains->firstWhere('is_primary', true)?->id,
-            'templateGroups'     => $groups,
-            'templateCategories' => \App\Modules\User\Services\FormTemplateCatalog::categories(),
-            'templatesFlat'      => $templatesFlat,
+            'projects'            => $projects,
+            'domains'             => $domains,
+            'defaultDomainId'     => $domains->firstWhere('is_primary', true)?->id,
+            'templateGroups'      => $groups,
+            'templateCategories'  => \App\Modules\User\Services\FormTemplateCatalog::categories(),
+            'templatesFlat'       => $templatesFlat,
+            'initialTemplate'     => $initialTemplate,
+            'requestedTemplate'   => $requestedTemplate,
+            'templateUnavailable' => $templateUnavailable,
         ]);
     }
 
