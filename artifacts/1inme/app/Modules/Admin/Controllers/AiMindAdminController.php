@@ -95,9 +95,13 @@ class AiMindAdminController extends Controller
 
     public function reseedDefault()
     {
+        // ensurePlatformDefault() first re-syncs the code-defined static
+        // sources (About + FAQ) from the current constants — so an edit to
+        // the product overview or an FAQ answer is written to the stored body
+        // and re-embedded. We then force a full re-queue of EVERY source so an
+        // admin clicking "Re-seed default" gets an unconditional refresh
+        // (including retrying any failed source), not just drifted ones.
         $mind = AiMindProvisioner::ensurePlatformDefault();
-        // Re-queue ingestion of every source on the platform mind so
-        // any new product knowledge picks up immediately.
         foreach ($mind->sources as $s) {
             $s->forceFill(['status' => AiMindSource::STATUS_QUEUED])->save();
             \App\Jobs\IngestAiMindSourceJob::dispatch($s->id);

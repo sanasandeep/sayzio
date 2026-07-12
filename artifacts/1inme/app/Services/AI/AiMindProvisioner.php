@@ -34,6 +34,15 @@ class AiMindProvisioner
      */
     protected const PLATFORM_FEATURE_KEYS = ['pricing', 'features'];
 
+    /**
+     * Stable identity keys for the two code-defined static text sources on
+     * the platform Mind. Stored in each source's `meta['managed_key']` so we
+     * can find, adopt (legacy installs), and re-sync them regardless of any
+     * title edit — without creating duplicates.
+     */
+    protected const STATIC_KEY_ABOUT = 'about';
+    protected const STATIC_KEY_FAQ   = 'faq';
+
     /** @return AiMind The platform-managed mind. */
     public static function ensurePlatformDefault(): AiMind
     {
@@ -48,24 +57,13 @@ class AiMindProvisioner
                 'description' => 'Built-in knowledge about Sayzio — features, how-to, FAQs. Auto-attached to every account.',
                 'is_default'  => true,
             ]);
-
-            // Seed the platform mind with a baseline FAQ + product-overview
-            // text. Admin can edit/refresh from the admin Minds page later.
-            AiMindSource::create([
-                'mind_id' => $mind->id,
-                'type'    => AiMindSource::TYPE_TEXT,
-                'title'   => 'About Sayzio',
-                'body'    => self::aboutText(),
-                'status'  => AiMindSource::STATUS_QUEUED,
-            ]);
-            AiMindSource::create([
-                'mind_id' => $mind->id,
-                'type'    => AiMindSource::TYPE_FAQ,
-                'title'   => 'Common questions',
-                'body'    => json_encode(self::seedFaqs(), JSON_UNESCAPED_UNICODE),
-                'status'  => AiMindSource::STATUS_QUEUED,
-            ]);
         }
+
+        // Idempotently sync the code-defined static text sources (About + FAQ):
+        // create them on first run, and re-ingest ONLY when the code body has
+        // drifted from what's stored — so edits to the product overview / FAQ
+        // answers reach existing installs on the next provision/reseed.
+        self::ensureStaticTextSources($mind);
 
         // Idempotently attach the live public pricing + feature snapshots.
         // Done unconditionally (not just on first creation) so existing
@@ -74,6 +72,90 @@ class AiMindProvisioner
 
         $mind->recountStats();
         return $mind;
+    }
+
+    /**
+     * Code-defined static text sources for the platform Mind, keyed by their
+     * stable {@see AiMindSource::$meta}['managed_key']. Each entry carries the
+     * current code body so drift can be detected and re-ingested.
+     *
+     * @return array<string,array{type:string,title:string,body:string}>
+     */
+    protected static function staticTextSourceDefinitions(): array
+    {
+        return [
+            self::STATIC_KEY_ABOUT => [
+                'type'  => AiMindSource::TYPE_TEXT,
+                'title' => 'About Sayzio',
+                'body'  => self::aboutText(),
+            ],
+            self::STATIC_KEY_FAQ => [
+                'type'  => AiMindSource::TYPE_FAQ,
+                'title' => 'Common questions',
+                'body'  => json_encode(self::seedFaqs(), JSON_UNESCAPED_UNICODE),
+            ],
+        ];
+    }
+
+    /**
+     * Create-or-refresh the platform Mind's static About + FAQ sources from
+     * the code constants. Idempotent: an unchanged body is a no-op (no
+     * re-embed); only genuine drift — or a first-time create — updates the
+     * body, re-queues, and dispatches ingestion.
+     *
+     * Legacy installs (seeded before `managed_key` existed) are located by
+     * their original type+title, adopted (tagged with the key), and only
+     * re-ingested if their body actually differs from the current code.
+     */
+    protected static function ensureStaticTextSources(AiMind $mind): void
+    {
+        foreach (self::staticTextSourceDefinitions() as $key => $def) {
+            $source = AiMindSource::where('mind_id', $mind->id)
+                ->where('meta->managed_key', $key)
+                ->first();
+
+            $isLegacyAdopt = false;
+            if (!$source) {
+                // Adopt a pre-existing untagged source seeded by an older
+                // build so we refresh it in place rather than duplicating it.
+                $source = AiMindSource::where('mind_id', $mind->id)
+                    ->where('type', $def['type'])
+                    ->where('title', $def['title'])
+                    ->first();
+                $isLegacyAdopt = (bool) $source;
+            }
+
+            $bodyMatches = $source && $source->body === $def['body'];
+
+            // Already tagged and current — nothing to do.
+            if ($source && $bodyMatches && !$isLegacyAdopt) {
+                continue;
+            }
+
+            if (!$source) {
+                $source = new AiMindSource();
+                $source->mind_id = $mind->id;
+            }
+
+            $meta = $source->meta ?? [];
+            $meta['managed_key'] = $key;
+            $source->meta  = $meta;
+            $source->type  = $def['type'];
+            $source->title = $def['title'];
+
+            // Legacy source whose body already matches code: just tag it so
+            // future runs are true no-ops — no needless re-embed.
+            if ($bodyMatches && $isLegacyAdopt) {
+                $source->save();
+                continue;
+            }
+
+            $source->body   = $def['body'];
+            $source->status = AiMindSource::STATUS_QUEUED;
+            $source->save();
+
+            \App\Jobs\IngestAiMindSourceJob::dispatch($source->id);
+        }
     }
 
     /**
