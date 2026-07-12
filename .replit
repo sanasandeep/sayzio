@@ -248,6 +248,10 @@ args = "e2e-2fa-challenge"
 task = "workflow.run"
 args = "e2e-auth-ajax"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "claude-training-api-index"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -885,6 +889,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh auth-ajax-flows.spec.ts --retries=0 --reporter=list"
+
+[[workflows.workflow]]
+name = "claude-training-api-index"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:claude-training-api-index"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"
