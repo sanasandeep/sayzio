@@ -98,9 +98,10 @@ async function demoLogin(page: import("@playwright/test").Page): Promise<void> {
 }
 
 test.describe("service_booking request flow (web)", () => {
-  // Cold authenticated editor renders over the distant RDS are slow, so give
-  // the whole flow real headroom (mirrors dashboard-layout.spec.ts).
-  test.describe.configure({ timeout: 180_000 });
+  // Cold authenticated editor renders over the distant RDS are slow, and this
+  // flow now drives the booking through its full status lifecycle (several extra
+  // POST round-trips), so give the whole flow real headroom.
+  test.describe.configure({ timeout: 300_000 });
 
   let linkId: number;
 
@@ -165,7 +166,8 @@ test.describe("service_booking request flow (web)", () => {
     await expect(firstDayRow.locator("button.sb-btn.sm.danger")).toBeVisible();
 
     // ── Visitor: request the first free slot via the public /sb API ─────
-    await page.goto(`/${ALIAS}`);
+    // Cold public-page renders over the distant RDS can exceed the 45s nav cap.
+    await page.goto(`/${ALIAS}`, { timeout: 120_000 });
     const serviceId = Number(
       await page.locator("[data-add]").first().getAttribute("data-add"),
     );
@@ -219,13 +221,53 @@ test.describe("service_booking request flow (web)", () => {
     expect(result.ok, JSON.stringify(result)).toBeTruthy();
 
     // ── Owner: the request appears on the Bookings dashboard as Pending ─
-    await page.goto(`/user/links/${linkId}/service-booking/bookings`);
+    // The authenticated dashboard render can exceed the config's 45s nav cap
+    // when cold over the distant RDS, so give it real headroom (mirrors the
+    // editor goto above).
+    await page.goto(`/user/links/${linkId}/service-booking/bookings`, {
+      timeout: 120_000,
+    });
     const bookingCard = page.locator(".sb-card", {
       has: page.locator(".sb-meta", { hasText: CUSTOMER }),
     });
     await expect(bookingCard).toBeVisible();
     await expect(bookingCard.locator(".sb-status.st-pending")).toHaveText(
       "Pending",
+    );
+
+    // ── Owner: advance the booking through its status lifecycle ─────────
+    // The status buttons POST to /bookings/{id}/status and the board merges the
+    // returned booking in place. Drive the real dashboard buttons and assert
+    // the badge updates after each transition. The first status POST is a cold
+    // controller compile + update over the distant RDS, so wait for it (later
+    // transitions are warm, but wait on each to avoid asserting mid-flight).
+    async function advance(actionLabel: string): Promise<void> {
+      const statusPosted = page.waitForResponse(
+        (r) =>
+          /\/bookings\/\d+\/status(\?|$)/.test(r.url()) &&
+          r.request().method() === "POST",
+        { timeout: 60_000 },
+      );
+      await bookingCard.getByRole("button", { name: actionLabel }).click();
+      await statusPosted;
+    }
+
+    // Pending → Confirmed (stays in the default "open" filter).
+    await advance("Confirm");
+    await expect(bookingCard.locator(".sb-status.st-confirmed")).toHaveText(
+      "Confirmed",
+      { timeout: 15_000 },
+    );
+
+    // Confirmed → Completed. Completed bookings drop out of the "open" filter,
+    // so switch to "All" to confirm the terminal status landed.
+    await advance("Mark complete");
+    // `exact:true` — a substring match on "All" also hits the header's "Coin
+    // wallet balance" button (…b-ALL-ance…), tripping strict-mode.
+    await page.getByRole("button", { name: "All", exact: true }).click();
+    await expect(bookingCard.locator(".sb-status.st-completed")).toHaveText(
+      "Completed",
+      { timeout: 15_000 },
     );
   });
 });

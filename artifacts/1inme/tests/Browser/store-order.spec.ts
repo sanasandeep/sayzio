@@ -98,9 +98,10 @@ async function demoLogin(page: import("@playwright/test").Page): Promise<void> {
 }
 
 test.describe("store_menu order flow (web)", () => {
-  // Cold authenticated editor renders over the distant RDS are slow, so give
-  // the whole flow real headroom (mirrors dashboard-layout.spec.ts).
-  test.describe.configure({ timeout: 180_000 });
+  // Cold authenticated editor renders over the distant RDS are slow, and this
+  // flow now drives the order through its full status lifecycle (several extra
+  // POST round-trips), so give the whole flow real headroom.
+  test.describe.configure({ timeout: 300_000 });
 
   let linkId: number;
 
@@ -166,7 +167,8 @@ test.describe("store_menu order flow (web)", () => {
     ).toBeVisible({ timeout: 15_000 });
 
     // ── Visitor: place an order request through the public page UI ──────
-    await page.goto(`/${ALIAS}`);
+    // Cold public-page renders over the distant RDS can exceed the 45s nav cap.
+    await page.goto(`/${ALIAS}`, { timeout: 120_000 });
     await expect(page.locator(".item .name", { hasText: "E2E Product" })).toBeVisible();
 
     await page.locator("button.add", { hasText: "Add" }).first().click();
@@ -193,11 +195,55 @@ test.describe("store_menu order flow (web)", () => {
     await expect(page.locator("#ordStatus")).toHaveText("New");
 
     // ── Owner: the order appears on the Order Requests dashboard as New ──
-    await page.goto(`/user/links/${linkId}/store/orders`);
+    // The authenticated dashboard render can exceed the config's 45s nav cap
+    // when cold over the distant RDS, so give it real headroom (mirrors the
+    // editor goto above).
+    await page.goto(`/user/links/${linkId}/store/orders`, { timeout: 120_000 });
     const orderCard = page.locator(".ro-card", {
       has: page.locator(".ro-table", { hasText: "E2E Shopper" }),
     });
     await expect(orderCard).toBeVisible();
     await expect(orderCard.locator(".ro-status.st-new")).toHaveText("New");
+
+    // ── Owner: advance the order through its status lifecycle ───────────
+    // The status buttons POST to /orders/{id}/status and the board merges the
+    // returned order in place. Drive the real dashboard buttons and assert the
+    // badge updates after each transition. The first status POST is a cold
+    // controller compile + update over the distant RDS, so wait for it (later
+    // transitions are warm, but wait on each to avoid asserting mid-flight).
+    async function advance(actionLabel: string): Promise<void> {
+      const statusPosted = page.waitForResponse(
+        (r) =>
+          /\/orders\/\d+\/status(\?|$)/.test(r.url()) &&
+          r.request().method() === "POST",
+        { timeout: 60_000 },
+      );
+      await orderCard.getByRole("button", { name: actionLabel }).click();
+      await statusPosted;
+    }
+
+    // New → Accepted (stays in the default "open" filter).
+    await advance("Accept");
+    await expect(orderCard.locator(".ro-status.st-accepted")).toHaveText(
+      "Accepted",
+      { timeout: 15_000 },
+    );
+
+    // Accepted → Ready.
+    await advance("Mark ready");
+    await expect(orderCard.locator(".ro-status.st-ready")).toHaveText("Ready", {
+      timeout: 15_000,
+    });
+
+    // Ready → Completed. Completed orders drop out of the "open" filter, so
+    // switch to "All" to confirm the terminal status landed.
+    await advance("Complete");
+    // `exact:true` — a substring match on "All" also hits the header's "Coin
+    // wallet balance" button (…b-ALL-ance…), tripping strict-mode.
+    await page.getByRole("button", { name: "All", exact: true }).click();
+    await expect(orderCard.locator(".ro-status.st-completed")).toHaveText(
+      "Completed",
+      { timeout: 15_000 },
+    );
   });
 });
