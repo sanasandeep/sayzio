@@ -368,7 +368,7 @@ Feature key goes in `FEATURES`; call `OpenAiService::chat` (auto-charges).
 | Chat Widgets | `ai_widget` | Embed chatbot; owner pays for visitor chats |
 | AI Note Summarizer | — | Summarizes raw notes into action steps |
 | Voice assistant | `ai_voice_assistant` | STT (Whisper) + AI turn + TTS (ElevenLabs) |
-| Persona Generator | `ai_persona` | Brand persona shaping AI tone/personality |
+| Persona Generator | `persona` | Brand persona shaping AI tone/personality |
 | Card/Brochure Scanner | `card_scan` | Reads photos/PDFs; extracts contact fields |
 | Resume AI (tailor, cover letter, ATS) | `ai_resume_tools` | Resume-specific AI tools |
 | AI Marketing Strategist | `marketing_strategist` | Organic+paid marketing plan; refinement chat |

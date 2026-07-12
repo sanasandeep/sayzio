@@ -8,6 +8,7 @@
     "check:brand-color": "tsx ./src/check-brand-color.ts",
     "check:brand-color-build": "tsx ./src/check-brand-color-build.ts",
     "check:ai-tool-names": "tsx ./src/check-ai-tool-names.ts",
+    "check:doc-constants": "tsx ./src/check-doc-constants.ts",
     "check:light-mode-pairing": "tsx ./src/check-light-mode-pairing.ts",
     "check:undefined-css-var": "tsx ./src/check-undefined-css-var-fallback.ts",
     "check:home-preview-blocks": "tsx ./src/check-home-preview-blocks.ts",
