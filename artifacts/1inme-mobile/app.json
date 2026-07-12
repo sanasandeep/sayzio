@@ -33,6 +33,7 @@
     },
     "android": {
       "package": "com.oneinme.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon-foreground.png",
         "monochromeImage": "./assets/images/icon-monochrome.png",
@@ -148,6 +149,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "eas-project-id-placeholder"
+      }
     }
   }
 }
