@@ -67,7 +67,9 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   store-coming-soon-modal.spec.ts \
   ai-dashboard-demo-perf.spec.ts \
   event-rsvp-light-readability.spec.ts \
-  header-autohide.spec.ts
+  header-autohide.spec.ts \
+  store-order.spec.ts \
+  service-booking-request.spec.ts
 ```
 
 The wrapper handles its own prerequisites:

@@ -256,6 +256,10 @@ args = "claude-training-api-index"
 task = "workflow.run"
 args = "doc-constants"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "store-booking-e2e"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -915,6 +919,17 @@ args = "pnpm --filter @workspace/scripts run check:doc-constants"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "store-booking-e2e"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh store-order.spec.ts service-booking-request.spec.ts"
 
 [agent]
 stack = "PNPM_WORKSPACE"
