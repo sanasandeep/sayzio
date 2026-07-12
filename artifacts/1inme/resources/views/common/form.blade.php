@@ -703,9 +703,14 @@
                                             $sMax    = isset($field['repeat_max']) ? (int) $field['repeat_max'] : null;
                                             $sCap    = $sMax ? min($sMax, 10) : 10;
                                             $sAddLbl = e($field['repeat_add_label'] ?? 'Add another');
+                                            // On a 422 re-render, restore how many copies the visitor had open
+                                            // (Task #4640) so extra copies + their old() values survive.
+                                            $oldCopies = old('rep_' . $secId);
+                                            $oldCount  = is_array($oldCopies) ? count($oldCopies) : 0;
+                                            $sInitial  = max($sMin, min($oldCount, $sCap));
                                         @endphp
                                         <div class="form-grid-cell form-section-card" style="grid-column: span 12;"
-                                             x-data="{ rCount: {{ $sMin }}, rMin: {{ $sMin }}, rMax: {{ $sMax ? $sMax : 'null' }}, rCap: {{ $sCap }} }">
+                                             x-data="{ rCount: {{ $sInitial }}, rMin: {{ $sMin }}, rMax: {{ $sMax ? $sMax : 'null' }}, rCap: {{ $sCap }} }">
                                             @if(!empty($field['label']))
                                                 <h3 class="form-heading" style="margin: 0 0 0.4rem;">{{ $field['label'] }}</h3>
                                             @endif

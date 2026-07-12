@@ -268,6 +268,10 @@ args = "form-template-keys"
 task = "workflow.run"
 args = "e2e-sidebar-findbar"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-form-rep-old"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -960,6 +964,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh sidebar-findbar.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-form-rep-old"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh form-repeatable-old-input.spec.ts"
 
 [agent]
 stack = "PNPM_WORKSPACE"

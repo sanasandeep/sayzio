@@ -23,6 +23,11 @@
     // Error key: rep_sectionId.copyIdx.fieldId  (dot notation for $errors->has)
     $errKey  = "rep_{$sectionId}.{$repCopyIdx}.{$id}";
     $hasError = $errors->has($errKey);
+
+    // Old input repopulation (Task #4640): on a 422 re-render, restore the value
+    // this copy carried. old() supports the same dot-notation key as the error key,
+    // so copies beyond index 0 survive validation failures and page reloads.
+    $oldVal = old($errKey);
 @endphp
 
 @if(in_array($type, ['heading', 'paragraph']))
@@ -41,7 +46,7 @@
             <textarea id="frep_{{ $sectionId }}_{{ $repCopyIdx }}_{{ $id }}" name="{{ $repName }}"
                       class="form-textarea {{ $hasError ? 'is-invalid' : '' }}"
                       rows="{{ $field['rows'] ?? 4 }}" placeholder="{{ $placeholder }}"
-                      @if($required) required @endif></textarea>
+                      @if($required) required @endif>{{ is_scalar($oldVal) ? $oldVal : '' }}</textarea>
             @break
 
         @case('select')
@@ -49,7 +54,7 @@
                     class="form-select {{ $hasError ? 'is-invalid' : '' }}" @if($required) required @endif>
                 <option value="">— Choose —</option>
                 @foreach(($field['options'] ?? []) as $opt)
-                    <option value="{{ $opt }}">{{ $opt }}</option>
+                    <option value="{{ $opt }}" @selected((string) $oldVal === (string) $opt)>{{ $opt }}</option>
                 @endforeach
             </select>
             @break
@@ -57,27 +62,28 @@
         @case('radio')
             <div class="form-radio-group">
                 @foreach(($field['options'] ?? []) as $opt)
-                    <label><input type="radio" name="{{ $repName }}" value="{{ $opt }}" @if($required) required @endif> {{ $opt }}</label>
+                    <label><input type="radio" name="{{ $repName }}" value="{{ $opt }}" @checked((string) $oldVal === (string) $opt) @if($required) required @endif> {{ $opt }}</label>
                 @endforeach
             </div>
             @break
 
         @case('checkbox')
+            @php $oldChecks = is_array($oldVal) ? array_map('strval', $oldVal) : []; @endphp
             <label class="form-label">{{ $label }}@if($required)<span class="form-required">*</span>@endif</label>
             <div class="form-check-group">
                 @foreach(($field['options'] ?? []) as $opt)
-                    <label><input type="checkbox" name="{{ $repName }}[]" value="{{ $opt }}"> {{ $opt }}</label>
+                    <label><input type="checkbox" name="{{ $repName }}[]" value="{{ $opt }}" @checked(in_array((string) $opt, $oldChecks, true))> {{ $opt }}</label>
                 @endforeach
             </div>
             @break
 
         @case('rating')
-            @php $rMax = (int) ($field['max'] ?? 5); @endphp
-            <div class="rating-stars" x-data="{ value: 0, hover: 0 }">
+            @php $rMax = (int) ($field['max'] ?? 5); $rOld = (int) (is_scalar($oldVal) ? $oldVal : 0); @endphp
+            <div class="rating-stars" x-data="{ value: {{ $rOld }}, hover: 0 }">
                 @for($i = 1; $i <= $rMax; $i++)
                     <label :class="{ active: value >= {{ $i }}, hover: hover >= {{ $i }} }"
                            @mouseenter="hover = {{ $i }}" @mouseleave="hover = 0" @click="value = {{ $i }}">
-                        <input type="radio" name="{{ $repName }}" value="{{ $i }}" @if($required && $i === 1) required @endif x-bind:checked="value === {{ $i }}">
+                        <input type="radio" name="{{ $repName }}" value="{{ $i }}" @checked($rOld === $i) @if($required && $i === 1) required @endif x-bind:checked="value === {{ $i }}">
                         <i class="fas fa-star"></i>
                     </label>
                 @endfor
@@ -88,7 +94,7 @@
             @php $scMin = (int) ($field['min'] ?? 0); $scMax = (int) ($field['max'] ?? 10); @endphp
             <div class="scale-row">
                 @for($i = $scMin; $i <= $scMax; $i++)
-                    <input type="radio" id="frep_{{ $sectionId }}_{{ $repCopyIdx }}_{{ $id }}_{{ $i }}" name="{{ $repName }}" value="{{ $i }}">
+                    <input type="radio" id="frep_{{ $sectionId }}_{{ $repCopyIdx }}_{{ $id }}_{{ $i }}" name="{{ $repName }}" value="{{ $i }}" @checked((string) $oldVal === (string) $i)>
                     <label for="frep_{{ $sectionId }}_{{ $repCopyIdx }}_{{ $id }}_{{ $i }}">{{ $i }}</label>
                 @endfor
             </div>
@@ -96,36 +102,37 @@
 
         @case('consent')
             <label style="display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer; line-height: 1.4;">
-                <input type="checkbox" name="{{ $repName }}" value="1" @if($required) required @endif style="margin-top: 0.2rem;">
+                <input type="checkbox" name="{{ $repName }}" value="1" @checked(filter_var($oldVal, FILTER_VALIDATE_BOOL)) @if($required) required @endif style="margin-top: 0.2rem;">
                 <span class="form-label" style="margin: 0;">{{ $label }}@if($required)<span class="form-required">*</span>@endif</span>
             </label>
             @break
 
         @case('date')
             <input type="date" id="frep_{{ $sectionId }}_{{ $repCopyIdx }}_{{ $id }}" name="{{ $repName }}"
-                   class="form-input {{ $hasError ? 'is-invalid' : '' }}" @if($required) required @endif>
+                   class="form-input {{ $hasError ? 'is-invalid' : '' }}" value="{{ is_scalar($oldVal) ? $oldVal : '' }}" @if($required) required @endif>
             @break
 
         @case('time')
             <input type="time" id="frep_{{ $sectionId }}_{{ $repCopyIdx }}_{{ $id }}" name="{{ $repName }}"
-                   class="form-input {{ $hasError ? 'is-invalid' : '' }}" @if($required) required @endif>
+                   class="form-input {{ $hasError ? 'is-invalid' : '' }}" value="{{ is_scalar($oldVal) ? $oldVal : '' }}" @if($required) required @endif>
             @break
 
         @case('email')
             <input type="email" id="frep_{{ $sectionId }}_{{ $repCopyIdx }}_{{ $id }}" name="{{ $repName }}"
                    class="form-input {{ $hasError ? 'is-invalid' : '' }}" placeholder="{{ $placeholder }}"
-                   @if($required) required @endif>
+                   value="{{ is_scalar($oldVal) ? $oldVal : '' }}" @if($required) required @endif>
             @break
 
         @case('phone')
             <input type="tel" id="frep_{{ $sectionId }}_{{ $repCopyIdx }}_{{ $id }}" name="{{ $repName }}"
                    class="form-input {{ $hasError ? 'is-invalid' : '' }}" placeholder="{{ $placeholder }}"
-                   @if($required) required @endif>
+                   value="{{ is_scalar($oldVal) ? $oldVal : '' }}" @if($required) required @endif>
             @break
 
         @case('number')
             <input type="number" id="frep_{{ $sectionId }}_{{ $repCopyIdx }}_{{ $id }}" name="{{ $repName }}"
                    class="form-input {{ $hasError ? 'is-invalid' : '' }}" placeholder="{{ $placeholder }}"
+                   value="{{ is_scalar($oldVal) ? $oldVal : '' }}"
                    @if(isset($field['min']) && $field['min'] !== '') min="{{ $field['min'] }}" @endif
                    @if(isset($field['max']) && $field['max'] !== '') max="{{ $field['max'] }}" @endif
                    @if($required) required @endif>
@@ -134,13 +141,13 @@
         @case('url')
             <input type="url" id="frep_{{ $sectionId }}_{{ $repCopyIdx }}_{{ $id }}" name="{{ $repName }}"
                    class="form-input {{ $hasError ? 'is-invalid' : '' }}" placeholder="{{ $placeholder ?: 'https://' }}"
-                   @if($required) required @endif>
+                   value="{{ is_scalar($oldVal) ? $oldVal : '' }}" @if($required) required @endif>
             @break
 
         @default
             <input type="text" id="frep_{{ $sectionId }}_{{ $repCopyIdx }}_{{ $id }}" name="{{ $repName }}"
                    class="form-input {{ $hasError ? 'is-invalid' : '' }}" placeholder="{{ $placeholder }}"
-                   @if($required) required @endif>
+                   value="{{ is_scalar($oldVal) ? $oldVal : '' }}" @if($required) required @endif>
     @endswitch
 
     @if($help)<div class="form-help">{{ $help }}</div>@endif
