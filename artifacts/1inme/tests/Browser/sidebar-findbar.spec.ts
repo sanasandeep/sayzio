@@ -38,19 +38,36 @@ import { DEMO_LOGIN_EMAIL } from "./demo-account";
 //      wrapping an absolutely-positioned inner `.sidebar-nav-scroll` container
 //      clipped to the nav box. Reverting to the old single-container markup
 //      fails these assertions.
-//   2. The behavioural scenario: with a collapsed (display:none) nav group
-//      present, driving the find-in-page reveal scroll (the browser scrolls the
-//      match's nearest scrollable ancestor to bring it into view) never paints a
-//      top-level link over the account header, and once the scroll is released
-//      ("closing find") the top-level links reappear exactly where they were.
+//   2. The behavioural scenario: reproducing the *native* find-in-page reveal on
+//      a real, native-findable match. When the browser's find bar locates a
+//      match it brings it into view by scrolling the match's nearest scrollable
+//      ancestor(s) — the exact same routine `Element.scrollIntoView()` invokes.
+//      The test picks a genuine match (a VISIBLE, below-the-fold collapsed
+//      nav-group header) and calls `scrollIntoView({block:'start'})` on it — the
+//      worst-case reveal that pushes everything above the match out of view.
+//      With the fix in place, no top-level link is ever painted outside the nav
+//      box over the account header/footer, and once the reveal scroll is
+//      released ("closing find") the top-level links reappear where they were.
 //
-// NOTE on the trigger: the real native find bar lives in browser chrome and
-// cannot be opened/typed-into reliably in headless Playwright. We reproduce the
-// same DOM effect — scrolling the nav's scroll container to bring a
-// below-the-fold/collapsed match into view — which is precisely what a
-// find-in-page match does to the layout. window.find() is fired too as the
-// literal JS twin of find-in-page, but it is best-effort only (it skips
-// display:none content) and is not asserted on.
+// NOTE — why this drives the native reveal, not a CSS proxy: the real find bar
+// lives in the browser's chrome/UI process, NOT the page renderer. Playwright
+// key events (and CDP `Input.dispatchKeyEvent`) are delivered to the renderer,
+// so `Ctrl/Cmd+F` cannot open or type into the find bar, and headless Chromium
+// has no find UI at all. CDP exposes no find-in-page command either
+// (`Page.handleJavaScriptDialog` is for JS alert/confirm/prompt dialogs, which
+// is unrelated). So the find *bar* genuinely cannot be automated here — BUT the
+// DOM effect it produces can be, faithfully: `scrollIntoView()` is the same
+// nearest-scrollable-ancestor scroll the browser runs to reveal a match, and it
+// does NOT presume WHICH element scrolls (the browser resolves that). That is
+// what makes this stronger than hard-coding `scroller.scrollTop`: if a future
+// refactor keeps the structural CSS invariant but reintroduces the blank-out
+// through a *different* scroll container or mechanism, `scrollIntoView()` still
+// reproduces native find's real behaviour and catches it. Crucially the match
+// target is a VISIBLE header, because native find (like `window.find()`) skips
+// `display:none` content — so a collapsed group's hidden children can never be a
+// real find trigger; its still-visible header is. `window.find()` is fired too
+// as the literal JS twin of find-in-page (now against that visible term, so it
+// is a real match) but stays best-effort/un-asserted since engines vary.
 //
 // Runs against the Laravel app; baseURL comes from APP_URL (the runner points it
 // at the ephemeral e2e server, since localhost:80 hits the Express api-server —
@@ -309,7 +326,7 @@ test.describe("sidebar find-bar fix", () => {
     ).toBe(true);
   });
 
-  test("searching a collapsed-group term does not blank the sidebar, and closing find restores it", async ({
+  test("native find revealing a collapsed-group header does not blank the sidebar, and closing find restores it", async ({
     page,
   }) => {
     await openDashboard(page);
@@ -323,9 +340,13 @@ test.describe("sidebar find-bar fix", () => {
       ).toBeVisible();
     }
 
-    // Precondition + baseline snapshot: confirm the scenario is real (a nav
-    // group is collapsed => its label text is display:none) and record where the
-    // top-level links sit, so we can prove nothing moved after "closing find".
+    // Precondition + pick a REAL, native-findable match. Native find (and its JS
+    // twin window.find()) only matches RENDERED text, so the honest trigger is a
+    // collapsed group's still-visible HEADER (its children are display:none, its
+    // header is not) that sits below the scroll container's fold — revealing it
+    // is what forces the browser to scroll. We tag that header for the reveal
+    // step and record where the top-level links sit so we can prove nothing was
+    // structurally lost after "closing find".
     const setup = await page.evaluate((topLinks) => {
       const nav = Array.from(document.querySelectorAll("aside nav")).find(
         (n) => {
@@ -338,17 +359,33 @@ test.describe("sidebar find-bar fix", () => {
       ) as HTMLElement | undefined;
       if (!nav) return { navFound: false as const };
 
-      // A label is "hidden in a collapsed group" if it's in the DOM but not
-      // rendered (no layout box), which is what x-show display:none produces.
-      const hiddenLabels = Array.from(nav.querySelectorAll(".nav-label"))
-        .filter((l) => {
-          const el = l as HTMLElement;
-          const txt = el.textContent?.trim() ?? "";
-          if (!txt) return false;
-          const r = el.getBoundingClientRect();
-          return r.width === 0 && r.height === 0; // collapsed / display:none
-        })
-        .map((l) => l.textContent?.trim() ?? "");
+      const scroller =
+        (nav.querySelector(".sidebar-nav-scroll") as HTMLElement | null) ?? nav;
+      const scRect = scroller.getBoundingClientRect();
+
+      // A collapsed group = a visible header toggle whose x-show panel sibling is
+      // display:none. Its header text is exactly the "collapsed nav-group term".
+      const collapsedHeaders = Array.from(
+        nav.querySelectorAll(".sidebar-group-toggle"),
+      ).filter((btn) => {
+        const el = btn as HTMLElement;
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) return false; // header itself hidden
+        const panel = el.nextElementSibling as HTMLElement | null;
+        return !!panel && getComputedStyle(panel).display === "none";
+      }) as HTMLElement[];
+
+      // Prefer a collapsed header BELOW the fold (revealing it must scroll);
+      // otherwise fall back to the last collapsed header so the test still drives
+      // scrollIntoView on a genuine match.
+      const belowFold = collapsedHeaders.filter(
+        (h) => h.getBoundingClientRect().top >= scRect.bottom - 1,
+      );
+      const target =
+        belowFold[belowFold.length - 1] ??
+        collapsedHeaders[collapsedHeaders.length - 1] ??
+        null;
+      if (target) target.setAttribute("data-findbar-target", "1");
 
       const topPositions: Record<string, number | null> = {};
       for (const t of topLinks) {
@@ -360,8 +397,11 @@ test.describe("sidebar find-bar fix", () => {
 
       return {
         navFound: true as const,
-        collapsedTerm: hiddenLabels[0] ?? null,
-        collapsedCount: hiddenLabels.length,
+        collapsedCount: collapsedHeaders.length,
+        hasTarget: !!target,
+        targetBelowFold: belowFold.length > 0,
+        scrollable: scroller.scrollHeight > scroller.clientHeight + 2,
+        term: target?.textContent?.trim() ?? null,
         topPositions,
       };
     }, TOP_LEVEL_LINKS as unknown as string[]);
@@ -370,14 +410,23 @@ test.describe("sidebar find-bar fix", () => {
     if (!setup.navFound) return;
     expect(
       setup.collapsedCount,
-      "expected at least one collapsed (display:none) nav group so the find-bar scenario is exercised",
+      "expected at least one collapsed nav group (visible header + display:none panel) so a native-findable term exists",
     ).toBeGreaterThan(0);
+    expect(
+      setup.hasTarget,
+      "could not tag a collapsed-group header to reveal",
+    ).toBe(true);
 
-    // Drive the find-in-page reveal: fire window.find() for the collapsed term
-    // (best-effort literal twin of find-in-page) and scroll the nav's scroll
-    // container fully — the exact layout effect of the browser scrolling a
-    // matched element into view.
-    const term = setup.collapsedTerm ?? "Dashboard";
+    // Drive the GENUINE native find reveal: fire window.find() for the visible
+    // header term (the literal JS twin of find-in-page — best-effort) and then
+    // call scrollIntoView({block:'start'}) on the matched header. That is the
+    // exact nearest-scrollable-ancestor scroll the browser runs to bring a match
+    // into view; block:'start' is the worst case, pinning the match to the top
+    // and pushing everything above it (all top-level links) out of view. Crucial
+    // difference from a hard-coded scrollTop: scrollIntoView does not presume
+    // WHICH element scrolls, so it reproduces the blank-out through whatever
+    // scroll container a future refactor introduces.
+    const term = setup.term ?? "Dashboard";
     await page.evaluate((t) => {
       const w = window as unknown as { find?: (s: string) => boolean };
       try {
@@ -385,21 +434,17 @@ test.describe("sidebar find-bar fix", () => {
       } catch {
         /* window.find may throw in some engines; ignore */
       }
-      const scroller =
-        (document.querySelector("aside .sidebar-nav-scroll") as HTMLElement | null) ??
-        (Array.from(document.querySelectorAll("aside nav")).find((n) => {
-          const r = n.getBoundingClientRect();
-          return r.width > 0 && r.height > 0;
-        }) as HTMLElement | undefined) ??
-        null;
-      if (scroller) scroller.scrollTop = scroller.scrollHeight;
+      const match = document.querySelector(
+        "[data-findbar-target]",
+      ) as HTMLElement | null;
+      match?.scrollIntoView({ block: "start", inline: "nearest" });
     }, term);
     await page.waitForTimeout(200);
 
-    // Sidebar must NOT blank: no top-level link may be PAINTED over the account
-    // header (the area above the nav). Because the nav clips its overflow, any
-    // link scrolled above the nav top must be clipped away, not floating over
-    // the header.
+    // Sidebar must NOT blank: no top-level link may be PAINTED outside the nav
+    // box over a sibling (the account header above, or the upgrade/footer below).
+    // Because the fixed nav clips its overflow, any link scrolled past the nav's
+    // edges must be clipped away, never left floating over a sibling.
     const duringFind = await page.evaluate((topLinks) => {
       const nav = Array.from(document.querySelectorAll("aside nav")).find(
         (n) => {
@@ -418,15 +463,17 @@ test.describe("sidebar find-bar fix", () => {
           (l) => l.textContent?.trim() === t,
         ) as HTMLElement | undefined;
         const link = label?.closest("a") as HTMLElement | undefined;
-        if (!link) return { t, paintedOverHeader: false };
+        if (!link) return { t, paintedOutsideNav: false };
         const r = link.getBoundingClientRect();
-        // Only meaningful if the link got scrolled above the nav's top edge.
-        if (r.bottom > navRect.top) return { t, paintedOverHeader: false };
+        // Only meaningful if the link got scrolled past the nav's clipped box.
+        const aboveTop = r.bottom <= navRect.top;
+        const belowBottom = r.top >= navRect.bottom;
+        if (!aboveTop && !belowBottom) return { t, paintedOutsideNav: false };
         const cx = r.left + r.width / 2;
         const cy = r.top + r.height / 2;
         const atPoint = document.elementFromPoint(cx, cy);
         const painted = !!atPoint && (link.contains(atPoint) || atPoint === link);
-        return { t, paintedOverHeader: painted };
+        return { t, paintedOutsideNav: painted };
       });
 
       return { navFound: true as const, results };
@@ -436,23 +483,28 @@ test.describe("sidebar find-bar fix", () => {
     if (duringFind.navFound) {
       for (const r of duringFind.results) {
         expect(
-          r.paintedOverHeader,
-          `top-level link "${r.t}" was painted over the account header while a collapsed-group match was revealed — the sidebar blanked (find-bar regression)`,
+          r.paintedOutsideNav,
+          `top-level link "${r.t}" was painted outside the nav box over a sibling while a native find reveal (scrollIntoView on the "${term}" header) was in progress — the sidebar blanked (find-bar regression)`,
         ).toBe(false);
       }
     }
 
-    // "Close find": release the reveal scroll. The top-level links must be
-    // visible again at their original positions — the sidebar is unchanged.
+    // "Close find": release every scroll the reveal may have driven (the inner
+    // scroller in the fixed markup, or the nav / aside / window in a reverted
+    // one). The top-level links must be visible again at their original
+    // positions — proof they were only scrolled, never structurally removed.
     await page.evaluate(() => {
-      const scroller =
-        (document.querySelector("aside .sidebar-nav-scroll") as HTMLElement | null) ??
-        (Array.from(document.querySelectorAll("aside nav")).find((n) => {
-          const r = n.getBoundingClientRect();
-          return r.width > 0 && r.height > 0;
-        }) as HTMLElement | undefined) ??
-        null;
-      if (scroller) scroller.scrollTop = 0;
+      const nav = Array.from(document.querySelectorAll("aside nav")).find((n) => {
+        const r = n.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      }) as HTMLElement | undefined;
+      const scrollers = [
+        document.querySelector("aside .sidebar-nav-scroll") as HTMLElement | null,
+        nav ?? null,
+        document.querySelector("aside") as HTMLElement | null,
+      ];
+      for (const s of scrollers) if (s) s.scrollTop = 0;
+      window.scrollTo(0, 0);
     });
     await page.waitForTimeout(200);
 

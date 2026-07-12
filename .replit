@@ -264,6 +264,10 @@ args = "store-booking-e2e"
 task = "workflow.run"
 args = "form-template-keys"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-sidebar-findbar"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -945,6 +949,17 @@ args = "pnpm --filter @workspace/scripts run check:form-template-keys"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-sidebar-findbar"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh sidebar-findbar.spec.ts"
 
 [agent]
 stack = "PNPM_WORKSPACE"
