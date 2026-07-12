@@ -84,7 +84,16 @@
         <div class="card-premium overflow-hidden">
             <div class="divide-y" style="border-color: var(--border-glass);">
                 @foreach($submissions as $s)
-                    @php $name = $s->data['name'] ?? $s->data['email'] ?? '#' . $s->id; @endphp
+                    @php
+                        $name = $s->data['name'] ?? $s->data['email'] ?? '#' . $s->id;
+                        // Repeatable-group fields are stored as {_repeatable_group:true, copies:[...]}.
+                        // Surface them as a compact "N copies" badge that expands the numbered
+                        // copy sub-cards inline (same layout as submission-show.blade.php).
+                        $repGroups = collect($s->data ?? [])->filter(fn($v) => is_array($v) && !empty($v['_repeatable_group']));
+                        $repCopyTotal = (int) $repGroups->sum(fn($v) => is_array($v['copies'] ?? null) ? count($v['copies']) : 0);
+                        $hasRepGroups = $repGroups->isNotEmpty();
+                    @endphp
+                    <div @if($hasRepGroups) x-data="{ expanded: false }" @endif>
                     <div class="flex items-center gap-3 p-4 hover:bg-blue-500/5 transition-colors {{ !$s->is_read ? 'bg-blue-500/5' : '' }}">
                         @if($__can('inbox.edit'))
                         <form method="POST" action="{{ route('user.forms.submissions.star', [$form, $s]) }}">@csrf
@@ -112,6 +121,17 @@
                                 </div>
                             </div>
                         </a>
+                        @if($hasRepGroups)
+                        <button type="button" @click="expanded = !expanded"
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
+                                style="background: rgba(92,131,255,0.12); border: 1px solid rgba(92,131,255,0.25); color: #93b0ff;"
+                                :aria-expanded="expanded ? 'true' : 'false'"
+                                :title="expanded ? 'Hide copies' : 'Show copies'">
+                            <i class="fas fa-layer-group"></i>
+                            <span>{{ $repCopyTotal }} {{ \Illuminate\Support\Str::plural('copy', $repCopyTotal) }}</span>
+                            <i class="fas fa-chevron-down text-[9px] transition-transform" :class="expanded ? 'rotate-180' : ''"></i>
+                        </button>
+                        @endif
                         <div class="text-[10px] text-right flex-shrink-0" style="color: var(--text-faint);">
                             {{ $s->created_at->diffForHumans() }}<br>
                             <span class="font-mono">{{ $s->ip ?? '' }}</span>
@@ -139,6 +159,36 @@
                         @else
                         <span class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] cursor-not-allowed opacity-60" style="background: var(--bg-glass-input); color: var(--text-faint);" title="Your role doesn't allow deleting submissions — ask a workspace admin"><i class="fas fa-lock"></i></span>
                         @endif
+                    </div>
+                    @if($hasRepGroups)
+                    <div x-show="expanded" x-cloak n class="px-4 pb-4 pt-1 space-y-4" style="border-top: 1px solid var(--border-subtle);">
+                        @foreach($repGroups as $gk => $gv)
+                            <div>
+                                <div class="text-[11px] font-bold uppercase tracking-wider mb-2" style="color: var(--text-secondary);">
+                                    {{ str_replace('_', ' ', $gk) }}
+                                    <span class="font-medium normal-case" style="color: var(--text-faint);">· {{ count($gv['copies'] ?? []) }} {{ \Illuminate\Support\Str::plural('copy', count($gv['copies'] ?? [])) }}</span>
+                                </div>
+                                @foreach(array_values($gv['copies'] ?? []) as $repIdx => $repCopy)
+                                    <div class="mb-2 p-3 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                        <div class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Copy {{ $repIdx + 1 }}</div>
+                                        @foreach((array) $repCopy as $ck => $cv)
+                                            <div class="flex gap-2 text-xs mb-1 flex-wrap">
+                                                <span class="font-medium shrink-0" style="color: var(--text-muted);">{{ str_replace('_', ' ', $ck) }}:</span>
+                                                @if(is_array($cv))
+                                                    <span style="color: var(--text-primary);">{{ implode(', ', array_map('strval', $cv)) }}</span>
+                                                @elseif(is_bool($cv))
+                                                    <span style="color: var(--text-primary);">{{ $cv ? 'Yes' : 'No' }}</span>
+                                                @else
+                                                    <span style="color: var(--text-primary);">{{ $cv }}</span>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endforeach
+                    </div>
+                    @endif
                     </div>
                 @endforeach
             </div>
