@@ -69,7 +69,8 @@ bash artifacts/1inme/tests/Browser/run-validation.sh \
   event-rsvp-light-readability.spec.ts \
   header-autohide.spec.ts \
   store-order.spec.ts \
-  service-booking-request.spec.ts
+  service-booking-request.spec.ts \
+  sidebar-findbar.spec.ts
 ```
 
 The wrapper handles its own prerequisites:
