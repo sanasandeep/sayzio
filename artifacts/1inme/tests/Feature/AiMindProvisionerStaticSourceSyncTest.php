@@ -3,11 +3,14 @@
 namespace Tests\Feature;
 
 use App\Jobs\IngestAiMindSourceJob;
+use App\Modules\Admin\Models\Admin;
+use App\Modules\Admin\Models\Role;
 use App\Modules\User\Models\AiMind;
 use App\Modules\User\Models\AiMindSource;
 use App\Services\AI\AiMindProvisioner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 /**
@@ -18,6 +21,21 @@ use Tests\TestCase;
 class AiMindProvisionerStaticSourceSyncTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function makeAdmin(): Admin
+    {
+        $role = Role::firstOrCreate(
+            ['slug' => 'super-admin'],
+            ['name' => 'Super Admin', 'guard' => 'admin']
+        );
+        return Admin::create([
+            'name'     => 'Test Admin',
+            'email'    => 'admin' . uniqid() . '@example.com',
+            'password' => Hash::make('secret'),
+            'role_id'  => $role->id,
+            'status'   => 'active',
+        ]);
+    }
 
     private function aboutSource(AiMind $mind): ?AiMindSource
     {
@@ -130,6 +148,35 @@ class AiMindProvisionerStaticSourceSyncTest extends TestCase
         // Body already matched, so adopting it must not trigger a re-embed.
         Bus::assertNotDispatched(IngestAiMindSourceJob::class,
             fn (IngestAiMindSourceJob $j) => $j->sourceId === $legacy->id);
+    }
+
+    public function test_admin_reseed_dispatches_each_drifted_source_only_once(): void
+    {
+        Bus::fake();
+        $mind = AiMindProvisioner::ensurePlatformDefault();
+
+        // Simulate an install whose About copy has drifted (older docs) and is
+        // already embedded (READY), so ensurePlatformDefault() will re-queue it.
+        $about = $this->aboutSource($mind);
+        $about->forceFill([
+            'body'   => 'Outdated overview from an earlier release.',
+            'status' => AiMindSource::STATUS_READY,
+        ])->save();
+
+        Bus::fake();
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->post(route('admin.ai-minds.reseed'))
+            ->assertRedirect();
+
+        // The drifted About source must be embedded EXACTLY once, even though
+        // ensurePlatformDefault() re-queued it AND the reseed loop iterates it.
+        $this->assertCount(1, Bus::dispatched(IngestAiMindSourceJob::class,
+            fn (IngestAiMindSourceJob $j) => $j->sourceId === $about->id));
+
+        // Non-drifted sources are still refreshed once by the reseed loop.
+        $faq = $this->faqSource($mind);
+        $this->assertCount(1, Bus::dispatched(IngestAiMindSourceJob::class,
+            fn (IngestAiMindSourceJob $j) => $j->sourceId === $faq->id));
     }
 
     /** The current code About body, read the same way the provisioner writes it. */

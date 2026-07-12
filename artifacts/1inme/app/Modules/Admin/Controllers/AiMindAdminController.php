@@ -101,8 +101,19 @@ class AiMindAdminController extends Controller
         // and re-embedded. We then force a full re-queue of EVERY source so an
         // admin clicking "Re-seed default" gets an unconditional refresh
         // (including retrying any failed source), not just drifted ones.
-        $mind = AiMindProvisioner::ensurePlatformDefault();
+        //
+        // A source that drifted in THIS call was already re-queued + dispatched
+        // by ensurePlatformDefault(); dispatching it again in the loop below
+        // would embed it twice and waste paid AI/embedding credits — so skip
+        // any id it already handled.
+        $alreadyDispatched = [];
+        $mind = AiMindProvisioner::ensurePlatformDefault($alreadyDispatched);
+        $alreadyDispatched = array_flip($alreadyDispatched);
+
         foreach ($mind->sources as $s) {
+            if (isset($alreadyDispatched[$s->id])) {
+                continue;
+            }
             $s->forceFill(['status' => AiMindSource::STATUS_QUEUED])->save();
             \App\Jobs\IngestAiMindSourceJob::dispatch($s->id);
         }

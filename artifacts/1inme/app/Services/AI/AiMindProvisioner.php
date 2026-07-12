@@ -43,9 +43,17 @@ class AiMindProvisioner
     protected const STATIC_KEY_ABOUT = 'about';
     protected const STATIC_KEY_FAQ   = 'faq';
 
-    /** @return AiMind The platform-managed mind. */
-    public static function ensurePlatformDefault(): AiMind
+    /**
+     * @param array<int,int> $dispatchedSourceIds Out-param: filled with the ids
+     *        of any source freshly (re-)queued and dispatched for ingestion by
+     *        this call. Lets callers (e.g. the admin reseed) avoid dispatching
+     *        the SAME source a second time in the same action.
+     * @return AiMind The platform-managed mind.
+     */
+    public static function ensurePlatformDefault(array &$dispatchedSourceIds = []): AiMind
     {
+        $dispatchedSourceIds = [];
+
         $mind = AiMind::whereNull('user_id')
             ->where('is_default', true)
             ->first();
@@ -63,12 +71,12 @@ class AiMindProvisioner
         // create them on first run, and re-ingest ONLY when the code body has
         // drifted from what's stored — so edits to the product overview / FAQ
         // answers reach existing installs on the next provision/reseed.
-        self::ensureStaticTextSources($mind);
+        $dispatchedSourceIds = array_merge($dispatchedSourceIds, self::ensureStaticTextSources($mind));
 
         // Idempotently attach the live public pricing + feature snapshots.
         // Done unconditionally (not just on first creation) so existing
         // installs pick them up on the next provision/reseed.
-        self::ensurePublicFeatureSources($mind);
+        $dispatchedSourceIds = array_merge($dispatchedSourceIds, self::ensurePublicFeatureSources($mind));
 
         $mind->recountStats();
         return $mind;
@@ -106,9 +114,13 @@ class AiMindProvisioner
      * Legacy installs (seeded before `managed_key` existed) are located by
      * their original type+title, adopted (tagged with the key), and only
      * re-ingested if their body actually differs from the current code.
+     *
+     * @return array<int,int> ids of sources (re-)queued and dispatched here.
      */
-    protected static function ensureStaticTextSources(AiMind $mind): void
+    protected static function ensureStaticTextSources(AiMind $mind): array
     {
+        $dispatched = [];
+
         foreach (self::staticTextSourceDefinitions() as $key => $def) {
             $source = AiMindSource::where('mind_id', $mind->id)
                 ->where('meta->managed_key', $key)
@@ -155,7 +167,10 @@ class AiMindProvisioner
             $source->save();
 
             \App\Jobs\IngestAiMindSourceJob::dispatch($source->id);
+            $dispatched[] = $source->id;
         }
+
+        return $dispatched;
     }
 
     /**
@@ -163,9 +178,13 @@ class AiMindProvisioner
      * Mind if not already present. Idempotent and safe to call repeatedly
      * (provisioning, admin reseed, migrations). Feature sources are
      * answered live at query time, so ingestion just marks them ready.
+     *
+     * @return array<int,int> ids of sources created and dispatched here.
      */
-    protected static function ensurePublicFeatureSources(AiMind $mind): void
+    protected static function ensurePublicFeatureSources(AiMind $mind): array
     {
+        $dispatched = [];
+
         foreach (self::PLATFORM_FEATURE_KEYS as $key) {
             $exists = AiMindSource::where('mind_id', $mind->id)
                 ->where('type', AiMindSource::TYPE_FEATURE)
@@ -181,7 +200,10 @@ class AiMindProvisioner
                 'status'      => AiMindSource::STATUS_QUEUED,
             ]);
             \App\Jobs\IngestAiMindSourceJob::dispatch($source->id);
+            $dispatched[] = $source->id;
         }
+
+        return $dispatched;
     }
 
     public static function ensureForUser(User $user): void
