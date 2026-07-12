@@ -272,6 +272,10 @@ args = "e2e-sidebar-findbar"
 task = "workflow.run"
 args = "e2e-form-rep-old"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-form-rep-copy-error"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -975,6 +979,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh form-repeatable-old-input.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-form-rep-copy-error"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh form-repeatable-copy-error.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"
