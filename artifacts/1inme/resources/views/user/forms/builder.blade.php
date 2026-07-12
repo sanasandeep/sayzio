@@ -317,10 +317,10 @@
                                     </div>
                                     <div class="space-y-1.5">
                                         <template x-for="(po, j) in (fields[selectedIndex].price_options || [])" :key="`po-${j}`">
-                                            <div class="flex items-center gap-1.5">
-                                                <input type="text" x-model="po.label" placeholder="Label" class="theme-input flex-1 text-xs">
-                                                <input type="number" min="0" step="0.01" x-model.number="po.price" placeholder="0.00" class="theme-input w-20 text-xs">
-                                                <button type="button" @click="removePriceOption(j)" class="text-rose-400 px-1" title="Remove"><i class="fas fa-times"></i></button>
+                                            <div class="flex items-center gap-1.5 min-w-0">
+                                                <input type="text" x-model="po.label" placeholder="Label" class="theme-input flex-1 min-w-0 text-xs">
+                                                <input type="number" min="0" step="0.01" x-model.number="po.price" placeholder="0.00" class="theme-input w-16 shrink-0 text-xs">
+                                                <button type="button" @click="removePriceOption(j)" class="text-rose-400 shrink-0 px-1" title="Remove"><i class="fas fa-times"></i></button>
                                             </div>
                                         </template>
                                     </div>
@@ -332,10 +332,10 @@
                                     </div>
                                     <div class="space-y-1.5">
                                         <template x-for="(ad, j) in (fields[selectedIndex].addons || [])" :key="`ad-${j}`">
-                                            <div class="flex items-center gap-1.5">
-                                                <input type="text" x-model="ad.label" placeholder="Label" class="theme-input flex-1 text-xs">
-                                                <input type="number" min="0" step="0.01" x-model.number="ad.price" placeholder="0.00" class="theme-input w-20 text-xs">
-                                                <button type="button" @click="removeAddon(j)" class="text-rose-400 px-1" title="Remove"><i class="fas fa-times"></i></button>
+                                            <div class="flex items-center gap-1.5 min-w-0">
+                                                <input type="text" x-model="ad.label" placeholder="Label" class="theme-input flex-1 min-w-0 text-xs">
+                                                <input type="number" min="0" step="0.01" x-model.number="ad.price" placeholder="0.00" class="theme-input w-16 shrink-0 text-xs">
+                                                <button type="button" @click="removeAddon(j)" class="text-rose-400 shrink-0 px-1" title="Remove"><i class="fas fa-times"></i></button>
                                             </div>
                                         </template>
                                     </div>
