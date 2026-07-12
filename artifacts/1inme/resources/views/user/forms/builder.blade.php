@@ -289,7 +289,7 @@
 
             {{-- RIGHT: per-field editor --}}
             <aside class="lg:col-span-3">
-                <div class="card-premium p-5 lg:sticky lg:top-4">
+                <div class="card-premium p-5 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:custom-scrollbar">
                     <h4 class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--text-faint);">
                         <span x-show="selectedIndex === null">Field options</span>
                         <span x-show="selectedIndex !== null" x-text="`Editing: ${fields[selectedIndex]?.type}`"></span>
